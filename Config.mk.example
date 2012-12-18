@@ -1,0 +1,21 @@
+#
+# Config.mk --- Example configuration file to build for the STM32F4.
+#
+# Copyright (C) 2012, Galois, Inc.
+# All Rights Reserved.
+#
+# This software is released under the "BSD3" license.  Read the file
+# "LICENSE" for more information.
+#
+
+# GCC toolchain to compile with (one of mk/arch/*.mk).
+CONFIG_TOOLCHAIN := cortex-m4
+
+# GCC prefix for the Cortex-M4 toolchain.
+CONFIG_CORTEX_M4_PREFIX := $(HOME)/local/gcc-arm-none-eabi-4_6-2012q1/bin/arm-none-eabi-
+
+# Target board (one of mk/board/*.mk).
+CONFIG_BOARD := px4
+
+# Root directory of the FreeRTOS source tree.
+CONFIG_FREERTOS_PREFIX := $(HOME)/Downloads/FreeRTOSV7.3.0

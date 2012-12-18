@@ -1,0 +1,26 @@
+# -*- Mode: makefile-gmake; indent-tabs-mode: t; tab-width: 2 -*-
+#
+# stm32f4-discovery.mk --- STM32F4 Discovery board support.
+#
+# Copyright (C) 2012, Galois, Inc.
+# All Rights Reserved.
+#
+# This software is released under the "BSD3" license.  Read the file
+# "LICENSE" for more information.
+#
+# Written by James Bielman <jamesjb@galois.com>, December 07, 2012
+#
+
+# Frequency of the HSE crystal in Hz.
+BOARD_HSE_FREQ := 8000000
+
+# Add the HSE frequency to the default CFLAGS.
+CFLAGS += -DHSE_VALUE=$(BOARD_HSE_FREQ)
+
+# Add a preprocessor definition for this board.
+CFLAGS += -DCONFIG_BOARD_STM32F4_DISCOVERY
+
+# Select the full-speed USB OTG core.
+CFLAGS += -DUSE_USB_OTG_FS
+
+# vim: set ft=make noet ts=2:

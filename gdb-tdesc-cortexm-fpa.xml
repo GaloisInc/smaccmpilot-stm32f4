@@ -1,0 +1,90 @@
+<?xml version="1.0"?>
+<!-- ===============================================================        -->
+<!--                                                                        -->
+<!--     gdb-tdesc-cortexm-fpa.xml                                          -->
+<!--                                                                        -->
+<!--     GDB target description for M-profile with FPA                      -->
+<!--                                                                        -->
+<!-- ===============================================================        -->
+<!-- ####ECOSGPLCOPYRIGHTBEGIN####                                          -->
+<!--                                                                        -->
+<!-- This file is part of eCos, the Embedded Configurable Operating System. -->
+<!-- Copyright (C) 2012 Free Software Foundation, Inc.                      -->
+<!--                                                                        -->
+<!-- eCos is free software; you can redistribute it and/or modify it under  -->
+<!-- the terms of the GNU General Public License as published by the Free   -->
+<!-- Software Foundation; either version 2 or (at your option) any later    -->
+<!-- version.                                                               -->
+<!--                                                                        -->
+<!-- eCos is distributed in the hope that it will be useful, but WITHOUT    -->
+<!-- ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or  -->
+<!-- FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License  -->
+<!-- for more details.                                                      -->
+<!--                                                                        -->
+<!-- You should have received a copy of the GNU General Public License      -->
+<!-- along with eCos; if not, write to the Free Software Foundation, Inc.,  -->
+<!-- 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.          -->
+<!--                                                                        -->
+<!-- As a special exception, if other files instantiate templates or use    -->
+<!-- macros or inline functions from this file, or you compile this file    -->
+<!-- and link it with other works to produce a work based on this file,     -->
+<!-- this file does not by itself cause the resulting work to be covered by -->
+<!-- the GNU General Public License. However the source code for this file  -->
+<!-- must still be made available in accordance with section (3) of the GNU -->
+<!-- General Public License v2.                                             -->
+<!--                                                                        -->
+<!-- This exception does not invalidate any other reasons why a work based  -->
+<!-- on this file might be covered by the GNU General Public License.       -->
+<!--                                                                        -->
+<!-- ####ECOSGPLCOPYRIGHTEND####                                            -->
+<!-- ===============================================================        -->
+<!-- #####DESCRIPTIONBEGIN####                                              -->
+<!--                                                                        -->
+<!-- Author(s):   jld (based on existing GDB feature definitions)           -->
+<!-- Date:        2012-03-07                                                -->
+<!--                                                                        -->
+<!-- This file contains a GDB target description for ARM M-profile          -->
+<!-- targets which provides compatibility with GDB stubs that return        -->
+<!-- FPA registers in their 'g' packet response.                            -->
+<!--                                                                        -->
+<!-- Future versions of the eCos stub code for Cortex-M architecture        -->
+<!-- may eliminate the need for this file.                                  -->
+<!--                                                                        -->
+<!-- Usage: set tdesc filename gdb-tdesc-cortexm-fpa.xml                    -->
+<!--                                                                        -->
+<!-- ####DESCRIPTIONEND####                                                 -->
+<!-- ===============================================================        -->
+
+<!DOCTYPE target SYSTEM "gdb-target.dtd">
+<target>
+  <feature name="org.gnu.gdb.arm.m-profile">
+    <reg name="r0" bitsize="32" type="uint32"/>
+    <reg name="r1" bitsize="32" type="uint32"/>
+    <reg name="r2" bitsize="32" type="uint32"/>
+    <reg name="r3" bitsize="32" type="uint32"/>
+    <reg name="r4" bitsize="32" type="uint32"/>
+    <reg name="r5" bitsize="32" type="uint32"/>
+    <reg name="r6" bitsize="32" type="uint32"/>
+    <reg name="r7" bitsize="32" type="uint32"/>
+    <reg name="r8" bitsize="32" type="uint32"/>
+    <reg name="r9" bitsize="32" type="uint32"/>
+    <reg name="r10" bitsize="32" type="uint32"/>
+    <reg name="r11" bitsize="32" type="uint32"/>
+    <reg name="r12" bitsize="32" type="uint32"/>
+    <reg name="sp" bitsize="32" type="data_ptr"/>
+    <reg name="lr" bitsize="32"/>
+    <reg name="pc" bitsize="32" type="code_ptr"/>
+    <reg name="xpsr" bitsize="32" regnum="25"/>
+  </feature>
+  <feature name="org.gnu.gdb.arm.fpa">
+    <reg name="f0" bitsize="96" type="arm_fpa_ext" regnum="16"/>
+    <reg name="f1" bitsize="96" type="arm_fpa_ext"/>
+    <reg name="f2" bitsize="96" type="arm_fpa_ext"/>
+    <reg name="f3" bitsize="96" type="arm_fpa_ext"/>
+    <reg name="f4" bitsize="96" type="arm_fpa_ext"/>
+    <reg name="f5" bitsize="96" type="arm_fpa_ext"/>
+    <reg name="f6" bitsize="96" type="arm_fpa_ext"/>
+    <reg name="f7" bitsize="96" type="arm_fpa_ext"/>
+    <reg name="fps" bitsize="32"/>
+  </feature>
+</target>

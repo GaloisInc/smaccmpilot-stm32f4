@@ -1,0 +1,4 @@
+Config.mk
+build
+*.o
+*.a
