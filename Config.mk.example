@@ -18,4 +18,4 @@ CONFIG_CORTEX_M4_PREFIX := $(HOME)/local/gcc-arm-none-eabi-4_6-2012q1/bin/arm-no
 CONFIG_BOARD := px4
 
 # Root directory of the FreeRTOS source tree.
-CONFIG_FREERTOS_PREFIX := $(HOME)/Downloads/FreeRTOSV7.3.0
+CONFIG_FREERTOS_PREFIX := ../../OutsideSrcs/FreeRTOS
