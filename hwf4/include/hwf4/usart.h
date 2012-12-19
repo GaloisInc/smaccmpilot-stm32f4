@@ -79,6 +79,34 @@ static inline ssize_t usart_read(struct usart *usart, uint8_t *buf,
     return usart_read_timeout(usart, portMAX_DELAY, buf, len);
 }
 
+/** Return true if there is pending output in the TX buffer. */
+bool usart_is_tx_pending(struct usart *usart);
+
+/**
+ * Return the number of bytes available for reading.
+ *
+ * Note that this number should not be relied upon exactly, as data
+ * becomes available asynchronously via the RX interrupt.  It can be
+ * used to poll for input.
+ */
+size_t usart_available(struct usart *usart);
+
+/**
+ * Read the first byte of input without removing it.
+ *
+ * Returns true if an input byte was available and placed in "buf", or
+ * false if no input was available.
+ */
+bool usart_peek(struct usart *usart, uint8_t *buf);
+
+/**
+ * Return the number of bytes that can be written without blocking.
+ *
+ * This number is useful as a lower bound on the value---it will
+ * decrease asynchronously via the TX interrupt.
+ */
+size_t usart_txspace(struct usart *usart);
+
 /* USART Handles **************************************************************/
 
 extern struct usart _usart1;

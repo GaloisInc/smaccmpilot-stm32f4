@@ -21,7 +21,7 @@
 #include "hwf4/gpio.h"
 #include "hwf4/usart.h"
 
-#define BUFFER_SIZE     64
+#define BUFFER_SIZE     128
 
 struct usart {
     USART_TypeDef *dev;
@@ -270,8 +270,8 @@ bool usart_init(struct usart *usart, uint32_t baud) {
     interrupt_set_priority(usart->irq, INTERRUPT_PRIORITY_FREERTOS_SAFE);
     interrupt_enable(usart->irq);
 
-    usart->tx_buf = xQueueCreate(BUFFER_SIZE * 2, sizeof(uint8_t));
-    usart->rx_buf = xQueueCreate(BUFFER_SIZE * 2, sizeof(uint8_t));
+    usart->tx_buf = xQueueCreate(BUFFER_SIZE, sizeof(uint8_t));
+    usart->rx_buf = xQueueCreate(BUFFER_SIZE, sizeof(uint8_t));
 
     return true;
 }
@@ -343,6 +343,27 @@ ssize_t usart_read_timeout(struct usart *usart, uint32_t timeout, uint8_t *buf,
     return i;
 }
 
+bool usart_is_tx_pending(struct usart *usart)
+{
+  return uxQueueMessagesWaiting(usart->tx_buf) != 0;
+}
+
+size_t usart_available(struct usart *usart)
+{
+  return uxQueueMessagesWaiting(usart->rx_buf);
+}
+
+size_t usart_txspace(struct usart *usart)
+{
+  return BUFFER_SIZE - uxQueueMessagesWaiting(usart->tx_buf);
+}
+
+bool usart_peek(struct usart *usart, uint8_t *buf)
+{
+  if (xQueuePeek(usart->rx_buf, buf, 0))
+    return true;
+  return false;
+}
 
 /* IRQ Handlers ***************************************************************/
 
