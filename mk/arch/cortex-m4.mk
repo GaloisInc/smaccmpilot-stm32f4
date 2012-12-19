@@ -16,10 +16,11 @@
 TOOLCHAIN_PREFIX := $(CONFIG_CORTEX_M4_PREFIX)
 
 # Compiler and linker commands.
-CC     := $(TOOLCHAIN_PREFIX)gcc
-LD     := $(TOOLCHAIN_PREFIX)ld
-AR     := $(TOOLCHAIN_PREFIX)ar
-RANLIB := $(TOOLCHAIN_PREFIX)ranlib
+CC      := $(TOOLCHAIN_PREFIX)gcc
+LD      := $(TOOLCHAIN_PREFIX)ld
+AR      := $(TOOLCHAIN_PREFIX)ar
+RANLIB  := $(TOOLCHAIN_PREFIX)ranlib
+OBJCOPY := $(TOOLCHAIN_PREFIX)objcopy
 
 # Compiler flags.
 CFLAGS := -g -std=gnu99 -Wall -mlittle-endian -mthumb \

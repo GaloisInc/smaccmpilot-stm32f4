@@ -86,6 +86,9 @@ $(OBJ_DIR)/%.o: %.s
 	$(Q)mkdir -p $(dir $@)
 	$(call cmd,as_o_s)
 
+quiet_cmd_elf_to_bin = OBJCOPY $@
+      cmd_elf_to_bin = $(OBJCOPY) -O binary $(2) $(2).bin
+
 # Make all object files depend on all included Makefiles, to force a
 # rebuild if the build system or configuration is modified.
 $(ALL_OBJECTS): $(MAKEFILE_LIST)

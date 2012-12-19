@@ -29,20 +29,25 @@ $(1)_PREFIX         := $(dir $(lastword $(MAKEFILE_LIST)))
 $(1)_REAL_OBJECTS   += $$(addprefix $$(OBJ_DIR)/,$$(STARTUP_OBJECTS))
 $(1)_REAL_OBJECTS   += $$(addprefix $$(OBJ_DIR)/$$($(1)_PREFIX),$$($(1)_OBJECTS))
 $(1)_REAL_IMG       := $$(addprefix $$(IMG_DIR)/,$$($(1)_IMG))
+$(1)_REAL_BIN       := $$($(1)_REAL_IMG).bin
 $(1)_REAL_LIBRARIES := $$(addprefix $$(LIB_DIR)/,$$($(1)_LIBRARIES))
 
 $$($(1)_REAL_IMG): CFLAGS  += $$($(1)_CFLAGS)
 $$($(1)_REAL_IMG): LDFLAGS += $$($(1)_LDFLAGS)
 $$($(1)_REAL_IMG): LIBS    += $$($(1)_LIBS)
 
-IMAGES      += $$($(1)_REAL_IMG)
+IMAGES      += $$($(1)_REAL_IMG) $$($(1)_REAL_BIN)
 ALL_OBJECTS += $$($(1)_REAL_OBJECTS)
 
 $$($(1)_REAL_IMG): $$($(1)_REAL_OBJECTS) $$($(1)_REAL_LIBRARIES)
 	$$(Q)mkdir -p $$(dir $$@)
 	$$(call cmd,link,$$($(1)_REAL_OBJECTS) $$($(1)_REAL_LIBRARIES))
 
+$$($(1)_REAL_BIN): $$($(1)_REAL_IMG)
+	$$(call cmd,elf_to_bin,$$($(1)_REAL_IMG))
+
 $($(1)_IMG): $$($(1)_REAL_IMG)
+
 endef
 
 # vim: set ft=make noet ts=2:
