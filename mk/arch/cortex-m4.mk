@@ -26,9 +26,12 @@ OBJCOPY := $(TOOLCHAIN_PREFIX)objcopy
 CFLAGS := -g -std=gnu99 -Wall -mlittle-endian -mthumb \
           -mcpu=cortex-m4 -mfloat-abi=hard -mfpu=fpv4-sp-d16
 
+# Path to the linker script.
+LDSCRIPT := stm32_flash.ld
+
 # Linker flags.
 LDFLAGS := -mlittle-endian -mcpu=cortex-m4 -mthumb -mfloat-abi=hard \
-           -mfpu=fpv4-sp-d16 -Wl,--script=stm32_flash.ld
+           -mfpu=fpv4-sp-d16 -Wl,--script=$(LDSCRIPT)
 
 # Startup code source files.
 STARTUP_OBJECTS := source/startup_stm32f4xx.o \

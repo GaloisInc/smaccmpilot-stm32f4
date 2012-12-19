@@ -39,7 +39,7 @@ $$($(1)_REAL_IMG): LIBS    += $$($(1)_LIBS)
 IMAGES      += $$($(1)_REAL_IMG) $$($(1)_REAL_BIN)
 ALL_OBJECTS += $$($(1)_REAL_OBJECTS)
 
-$$($(1)_REAL_IMG): $$($(1)_REAL_OBJECTS) $$($(1)_REAL_LIBRARIES)
+$$($(1)_REAL_IMG): $$($(1)_REAL_OBJECTS) $$($(1)_REAL_LIBRARIES) $(LDSCRIPT)
 	$$(Q)mkdir -p $$(dir $$@)
 	$$(call cmd,link,$$($(1)_REAL_OBJECTS) $$($(1)_REAL_LIBRARIES))
 
