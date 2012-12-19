@@ -731,5 +731,8 @@ extern struct pin _pin_i14;
 extern struct pin _pin_i15;
 #define pin_i15 (&_pin_i15)
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* __gpio_h */
