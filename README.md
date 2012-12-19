@@ -1,33 +1,19 @@
-
 Build Instructions
 ==================
 
-## Cortex-M4 Toolchain
+## Dependencies
 
- 1. Download the toolchain from:
-    [https://launchpad.net/gcc-arm-embedded/4.6/4.6-2012-q1-update/+download/gcc-arm-none-eabi-4_6-2012q1-20120316.tar.bz2]
- 2. Unpack the toolchain somewhere, and make sure that it's in your PATH.
+### Cortex-M4 Toolchain
 
-## FreeRTOS
+Download and unpack the [gcc-arm-embedded toolchain](https://launchpad.net/gcc-arm-embedded).
 
- 1. Download the FreeRTOS distribution from:
-    [http://sourceforge.net/projects/freertos/files/]
- 2. Unpack the ZIP file anywhere.  We will refer to the root directory of
-    the unzipped source tree during build configuration.
+### FreeRTOS
 
-## Install OpenOCD (needed for STM32F4 Discovery board)
+[Download the latest FreeRTOS](http://sourceforge.net/projects/freertos/files/)
+release. We're using version 7.3.0.
 
- 1. Download a new release of OpenOCD, this was tested with 0.6.1
- 2. Configure and install OpenOCD with:
-```shell
-$ tar -zxvf openocd-0.6.1.tar.gz
-$ cd openocd-0.6.1
-# NOTE: many of these flags are not necessary
-$ ./configure --enable-ftdi --enable-ft2232_libftdi --enable-stlink \
-  --enable-jlink --enable-amtjtagaccel --enable-buspirate
-$ make
-% make install
-```
+Unpack the ZIP file in a directory near the smaccmpilot-stm32f4 tree: the same parent directory is best.
+We will refer to the path of the unzipped source tree during build configuration.
 
 ## Configuration File
 
@@ -45,10 +31,13 @@ $ make
 
 ## Flashing the PX4FMU Board
 
-  1. This process uses the Black Magic Probe JTAG adapter on a Linux system.  This
-     will show up as a serial device, such as `/dev/ttyACM0`.
+We use the [Black Sphere Technologies Black Magic Probe](http://www.blacksphere.co.nz/main/blackmagic) as a
+JTAG/SWD debugger to flash and debug on the PX4FMU hardware.
+
+  1. Follow the [instructions on the PX4 wiki(https://pixhawk.ethz.ch/px4/dev/jtag/black_magic_probe)
+     for setting up your Black Magic Probe.
   2. Start GDB: `arm-none-eabi-gdb`
-  3. Connect to the JTAG adapter: `target extended-remote /dev/ttyACM0`
+  3. Connect to the Black Magic Probe: `target extended-remote /dev/ttyACM0`
   4. Scan the single-wire debug adapters: `mon swdp_scan`
   5. This should display a single result, such as: `1 STM32F4xx`.
   6. Attach to this target: `attach 1`
@@ -56,3 +45,20 @@ $ make
   8. Flash the image to the device: `load`
   9. Execute the firmware: `run`
   10. Interrupt the debugger with Control-C to reflash by running `load` and `run` again.
+
+## Installing OpenOCD (required for STM32F4-Discovery board) 
+
+ 1. Download a recent release of [OpenOCD](http://sourceforge.net/projects/openocd/files/openocd/0.6.1/).
+    We have tested with version 0.6.1.
+ 2. Configure and install OpenOCD with:
+ 
+```
+$ tar -zxvf openocd-0.6.1.tar.gz
+$ cd openocd-0.6.1
+# NOTE: you may not need all of these flags
+$ ./configure --enable-ftdi --enable-ft2232_libftdi --enable-stlink \
+  --enable-amtjtagaccel --enable-buspirate
+$ make
+$ sudo make install
+```
+
