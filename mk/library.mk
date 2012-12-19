@@ -20,13 +20,15 @@
 #
 # FOO_LIB         name of the library (eg: libfoo.a)
 # FOO_OBJECTS     list of .o files relative to the Makefile
-# FOO_CFLAGS      additional compiler flags for "FOO_OBJECTS"
+# FOO_CFLAGS      additional C compiler flags for "FOO_OBJECTS"
+# FOO_CXXFLAGS    additional C++ compiler flags for "FOO_OBJECTS"
 define library
 $(1)_PREFIX         := $(dir $(lastword $(MAKEFILE_LIST)))
 $(1)_REAL_OBJECTS   := $$(addprefix $$(OBJ_DIR)/$$($(1)_PREFIX),$$($(1)_OBJECTS))
 $(1)_REAL_LIB       := $$(addprefix $$(LIB_DIR)/,$$($(1)_LIB))
 
-$$($(1)_REAL_LIB): CFLAGS  += $$($(1)_CFLAGS)
+$$($(1)_REAL_LIB): CFLAGS   += $$($(1)_CFLAGS)
+$$($(1)_REAL_LIB): CXXFLAGS += $$($(1)_CXXFLAGS)
 
 LIBRARIES   += $$($(1)_REAL_LIB)
 ALL_OBJECTS += $$($(1)_REAL_OBJECTS)

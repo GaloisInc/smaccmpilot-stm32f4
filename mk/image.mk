@@ -20,7 +20,8 @@
 #
 # FOO_IMG         name of the library (eg: ledtest)
 # FOO_OBJECTS     list of .o files relative to the Makefile
-# FOO_CFLAGS      additional compiler flags for "FOO_OBJECTS"
+# FOO_CFLAGS      additional C compiler flags for "FOO_OBJECTS"
+# FOO_CXXFLAGS    additional C++ compiler flags
 # FOO_LDFLAGS     additional linker flags for "FOO_IMG"
 # FOO_LIBRARIES   built libraries to link against (eg: libFreeRTOS.a)
 # FOO_LIBS        system libraries to link against (eg: -lfoo)
@@ -32,9 +33,10 @@ $(1)_REAL_IMG       := $$(addprefix $$(IMG_DIR)/,$$($(1)_IMG))
 $(1)_REAL_BIN       := $$($(1)_REAL_IMG).bin
 $(1)_REAL_LIBRARIES := $$(addprefix $$(LIB_DIR)/,$$($(1)_LIBRARIES))
 
-$$($(1)_REAL_IMG): CFLAGS  += $$($(1)_CFLAGS)
-$$($(1)_REAL_IMG): LDFLAGS += $$($(1)_LDFLAGS)
-$$($(1)_REAL_IMG): LIBS    += $$($(1)_LIBS)
+$$($(1)_REAL_IMG): CFLAGS   += $$($(1)_CFLAGS)
+$$($(1)_REAL_IMG): CXXFLAGS += $$($(1)_CXXFLAGS)
+$$($(1)_REAL_IMG): LDFLAGS  += $$($(1)_LDFLAGS)
+$$($(1)_REAL_IMG): LIBS     += $$($(1)_LIBS)
 
 IMAGES      += $$($(1)_REAL_IMG) $$($(1)_REAL_BIN)
 ALL_OBJECTS += $$($(1)_REAL_OBJECTS)

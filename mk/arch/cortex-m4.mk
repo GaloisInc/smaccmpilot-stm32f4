@@ -17,14 +17,21 @@ TOOLCHAIN_PREFIX := $(CONFIG_CORTEX_M4_PREFIX)
 
 # Compiler and linker commands.
 CC      := $(TOOLCHAIN_PREFIX)gcc
+CXX     := $(TOOLCHAIN_PREFIX)g++
 LD      := $(TOOLCHAIN_PREFIX)ld
 AR      := $(TOOLCHAIN_PREFIX)ar
 RANLIB  := $(TOOLCHAIN_PREFIX)ranlib
 OBJCOPY := $(TOOLCHAIN_PREFIX)objcopy
 
-# Compiler flags.
-CFLAGS := -g -std=gnu99 -Wall -mlittle-endian -mthumb \
-          -mcpu=cortex-m4 -mfloat-abi=hard -mfpu=fpv4-sp-d16
+# Base compiler flags for C and C++.
+BASE_CFLAGS := -g -Wall -mlittle-endian -mthumb -mcpu=cortex-m4 \
+               -mfloat-abi=hard -mfpu=fpv4-sp-d16
+
+# C compiler flags.
+CFLAGS := $(BASE_CFLAGS) -std=gnu99
+
+# C++ compiler flags.
+CXXFLAGS := $(BASE_CFLAGS) -fno-exceptions -fno-rtti
 
 # Path to the linker script.
 LDSCRIPT := stm32_flash.ld

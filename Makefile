@@ -64,6 +64,14 @@ $(OBJ_DIR)/%.o: %.c
 	$(Q)mkdir -p $(dir $@)
 	$(call cmd,cc_o_c)
 
+quiet_cmd_cxx_o_c = CXX     $<
+      cmd_cxx_o_c = $(CXX) $(CXXFLAGS) -MMD -c -o $@ $<
+
+# Compile a C++ source file to an object and dependency file.
+$(OBJ_DIR)/%.o: %.cpp
+	$(Q)mkdir -p $(dir $@)
+	$(call cmd,cxx_o_c)
+
 quiet_cmd_link = LINK    $@
       cmd_link = $(CC) -o $@ $(LDFLAGS) $(2) $(LIBS)
 

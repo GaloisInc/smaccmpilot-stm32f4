@@ -114,6 +114,26 @@ SECTIONS
   } > flash
   __exidx_end = ABSOLUTE(.);
 
+  .preinit_array : {
+    PROVIDE_HIDDEN(__preinit_array_start = .);
+    KEEP(*(.preinit_array))
+    PROVIDE_HIDDEN(__preinit_array_end = .);
+  } > flash
+
+  .init_array : {
+    PROVIDE_HIDDEN(__init_array_start = .);
+    KEEP(*(.init_array))
+    PROVIDE_HIDDEN(__init_array_end = .);
+  } > flash
+
+  .ctors : {
+    KEEP(*crtbegin.o(.ctors))
+    KEEP(*crtbegin?.o(.ctors))
+    KEEP(*(EXCLUDE_FILE(*crtend.o *crtend?.o) .ctors))
+    KEEP(*(SORT(.ctors.*)))
+    KEEP(*(.ctors))
+  } > flash
+
   _sidata = ABSOLUTE(.);
 
   .data : {
