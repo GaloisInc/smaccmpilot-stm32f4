@@ -79,25 +79,29 @@ void SMACCMUARTDriver::println_P(const prog_char_t *pstr)
 void SMACCMUARTDriver::printf(const char *fmt, ...)
 {
   va_list ap;
-  char buf[128];
-
   va_start(ap, fmt);
-  vsnprintf(buf, sizeof(buf), fmt, ap);
+  vprintf(fmt, ap);
   va_end(ap);
-
-  print_P(buf);
 }
 
 void SMACCMUARTDriver::_printf_P(const prog_char *fmt, ...)
 {
   va_list ap;
-  char buf[128];
-
   va_start(ap, fmt);
-  vsnprintf(buf, sizeof(buf), fmt, ap);
+  vprintf(fmt, ap);
   va_end(ap);
+}
 
-  print_P(buf);
+void SMACCMUARTDriver::vprintf(const char *pstr, va_list ap)
+{
+  char buf[128];
+  vsnprintf(buf, sizeof(buf), pstr, ap);
+  print(buf);
+}
+
+void SMACCMUARTDriver::vprintf_P(const prog_char *pstr, va_list ap)
+{
+  vprintf(pstr, ap);
 }
 
 /* SMACCM implementations of Stream virtual methods */
