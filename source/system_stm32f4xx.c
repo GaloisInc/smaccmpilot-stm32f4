@@ -205,6 +205,8 @@ static void SetSysClock(void);
   * @{
   */
 
+extern uint32_t *g_pfnVectors[];
+
 /**
   * @brief  Setup the microcontroller system
   *         Initialize the Embedded Flash Interface, the PLL and update the 
@@ -250,7 +252,7 @@ void SystemInit(void)
 #ifdef VECT_TAB_SRAM
   SCB->VTOR = SRAM_BASE | VECT_TAB_OFFSET; /* Vector Table Relocation in Internal SRAM */
 #else
-  SCB->VTOR = FLASH_BASE | VECT_TAB_OFFSET; /* Vector Table Relocation in Internal FLASH */
+  SCB->VTOR = (intptr_t)(&g_pfnVectors[0]);
 #endif
 }
 
