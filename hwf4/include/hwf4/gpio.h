@@ -242,6 +242,11 @@ void pin_reset(struct pin *pin);
 void pin_set(struct pin *pin);
 
 /**
+ * Toggle an output pin.
+ */
+void pin_toggle(struct pin *pin);
+
+/**
  * Read the value of an input pin.
  */
 bool pin_read(struct pin *pin);

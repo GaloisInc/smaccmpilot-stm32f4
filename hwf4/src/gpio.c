@@ -142,6 +142,15 @@ void pin_set(struct pin *pin) {
     gpio_set_bsrrl(pin->bank, 0x1 << pin->pin_num);
 }
 
+void pin_toggle(struct pin *pin) {
+    uint16_t odr = pin->bank->dev->ODR;
+
+    if (odr & (1 << pin->pin_num))
+        pin_reset(pin);
+    else
+        pin_set(pin);
+}
+
 bool pin_read(struct pin *pin) {
     uint16_t idr = gpio_get_idr(pin->bank);
     return (idr & (1 << pin->pin_num)) != 0;
