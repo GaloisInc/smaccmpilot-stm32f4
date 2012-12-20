@@ -36,8 +36,7 @@ HAL_SMACCM::HAL_SMACCM() :
       &rcinDriver,
       &rcoutDriver,
       &schedulerInstance,
-      &utilInstance),
-    _member(new SMACCMPrivateMember(123))
+      &utilInstance)
 {
 }
 
@@ -48,7 +47,6 @@ void HAL_SMACCM::init(int argc,char* const argv[]) const
    * Scheduler should likely come first. */
   scheduler->init(NULL);
   uartA->begin(115200);
-  _member->init();
 }
 
 const HAL_SMACCM AP_HAL_SMACCM;

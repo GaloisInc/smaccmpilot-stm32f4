@@ -11,8 +11,6 @@ class HAL_SMACCM : public AP_HAL::HAL {
 public:
     HAL_SMACCM();
     void init(int argc, char * const * argv) const;
-private:
-    SMACCM::SMACCMPrivateMember *_member;
 };
 
 extern const HAL_SMACCM AP_HAL_SMACCM;
