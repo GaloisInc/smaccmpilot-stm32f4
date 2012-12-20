@@ -134,9 +134,8 @@ SECTIONS
     KEEP(*(.ctors))
   } > flash
 
-  _sidata = ABSOLUTE(.);
-
   .data : {
+    _sidata = LOADADDR(.data);
     _sdata = ABSOLUTE(.);
     *(.data .data.*)
     *(.gnu.linkonce.d.*)
