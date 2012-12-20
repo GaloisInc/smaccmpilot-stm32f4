@@ -73,7 +73,7 @@ $(OBJ_DIR)/%.o: %.cpp
 	$(call cmd,cxx_o_c)
 
 quiet_cmd_link = LINK    $@
-      cmd_link = $(CC) -o $@ $(LDFLAGS) $(2) $(LIBS)
+      cmd_link = $(CC) -o $@ $(LDFLAGS) -Wl,-Map=$@.map $(2) $(LIBS)
 
 quiet_cmd_lib = AR      $@
       cmd_lib = $(AR) rcs $@ $(2) && $(RANLIB) $@
