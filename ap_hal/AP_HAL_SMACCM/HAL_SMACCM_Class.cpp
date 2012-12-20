@@ -47,6 +47,10 @@ void HAL_SMACCM::init(int argc,char* const argv[]) const
    * Scheduler should likely come first. */
   scheduler->init(NULL);
   uartA->begin(115200);
+  console->init(uartA);
+  i2c->begin();
+  spi->init(NULL);
+  storage->init(NULL);
 }
 
 const HAL_SMACCM AP_HAL_SMACCM;

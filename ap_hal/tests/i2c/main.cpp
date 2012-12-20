@@ -189,10 +189,7 @@ void ms5611_print_sample(ms5611_sample_t *sample)
 void main_task(void *args)
 {
   hal.init(0, NULL);
-  hal.uartA->begin(115200);
-  hal.console->init(hal.uartA);
   hal.console->printf("AP_HAL I2C Test\r\n");
-  hal.i2c->begin();
 
   ms5611_init();
 

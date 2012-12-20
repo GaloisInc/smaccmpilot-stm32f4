@@ -129,10 +129,7 @@ void mpu6000_print_sample(const mpu6000_sample_t *sample)
 void main_task(void *args)
 {
   hal.init(0, NULL);
-  hal.uartA->begin(115200);
-  hal.console->init(hal.uartA);
   hal.console->printf("AP_HAL SPI Test\r\n\r\n");
-  hal.spi->init(NULL);
 
   mpu6000_init();
 

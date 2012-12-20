@@ -28,8 +28,6 @@ static xTaskHandle htask;
 void main_task(void *args)
 {
   hal.init(0, NULL);
-  hal.uartA->begin(115200);
-
   hal.uartA->printf("AP_HAL UART Test\r\n");
 
   for (;;) {
