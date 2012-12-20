@@ -40,6 +40,14 @@ void timer_init(void);
 uint64_t timer_get_ticks(void);
 
 /**
+ * Delay for "delay" milliseconds.  This is implemented using an RTOS
+ * system call, so it will not block other threads from running.
+ *
+ * @param delay wait delay in milliseconds
+ */
+void timer_msleep(uint32_t delay);
+
+/**
  * Busy wait for "delay" (up to 65535) microseconds.  This should only
  * be used for short delays as we prevent FreeRTOS from context
  * switching during the delay.

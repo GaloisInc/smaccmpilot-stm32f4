@@ -13,6 +13,7 @@
 #include <stm32f4xx.h>
 
 #include <FreeRTOS.h>
+#include <task.h>
 
 #include "hwf4/gpio.h"
 #include "hwf4/interrupt.h"
@@ -194,6 +195,11 @@ void timer_usleep(uint16_t delay)
     ;
 
   portEXIT_CRITICAL();
+}
+
+void timer_msleep(uint32_t delay)
+{
+  vTaskDelay(delay / portTICK_RATE_MS);
 }
 
 size_t timer_get_ppm(uint16_t *buf, size_t len, timer_tick_t *time)
