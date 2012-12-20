@@ -12,7 +12,7 @@
 #define __i2c_h
 
 #ifdef __cplusplus
-extern C {
+extern "C" {
 #endif
 
 #include <stdbool.h>
@@ -47,6 +47,10 @@ bool i2c_write(struct i2cdrv_t *drv, uint8_t addr, uint8_t *buf, size_t len);
 bool i2c_write_reg(struct i2cdrv_t *drv, uint8_t addr,
         uint8_t reg, uint8_t data);
 
+/** Write multiple registers, assuming auto-incrementing. */
+bool i2c_write_regs(struct i2cdrv_t *drv, uint8_t addr, uint8_t reg,
+                    uint8_t *data, uint8_t len);
+
 extern struct i2cdrv_t _i2c1_drv;
 #define i2c1 (&_i2c1_drv)
 
@@ -61,4 +65,3 @@ extern struct i2cdrv_t _i2c3_drv;
 #endif
 
 #endif /* __i2c.h */
-

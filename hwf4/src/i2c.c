@@ -9,6 +9,7 @@
  */
 
 #include <stddef.h>
+#include <string.h>
 
 #include <stm32f4xx.h>
 
@@ -176,6 +177,15 @@ bool i2c_write_reg(struct i2cdrv_t *drv, uint8_t addr,
 {
   uint8_t buf[2] = { reg, data };
   return i2c_write(drv, addr, buf, sizeof(buf));
+}
+
+bool i2c_write_regs(struct i2cdrv_t *drv, uint8_t addr, uint8_t reg,
+                    uint8_t *data, uint8_t len)
+{
+  uint8_t buf[len + 1];    // requires C99, careful of stack overflow!
+  buf[0] = reg;
+  memcpy(&buf[1], data, len);
+  return i2c_transfer(drv, addr, buf, len + 1, NULL, 0);
 }
 
 bool i2c_read_reg(struct i2cdrv_t *drv, uint8_t addr, uint8_t reg,

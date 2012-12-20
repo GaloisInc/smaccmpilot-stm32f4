@@ -1,3 +1,15 @@
+/* -*- Mode: C; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/*
+ * I2CDriver.h --- AP_HAL_SMACCM I2C driver.
+ *
+ * Copyright (C) 2012, Galois, Inc.
+ * All Rights Reserved.
+ *
+ * This software is released under the "BSD3" license.  Read the file
+ * "LICENSE" for more information.
+ *
+ * Written by James Bielman <jamesjb@galois.com>, 20 December 2012
+ */
 
 #ifndef __AP_HAL_SMACCM_I2CDRIVER_H__
 #define __AP_HAL_SMACCM_I2CDRIVER_H__
