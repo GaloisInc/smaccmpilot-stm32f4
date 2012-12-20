@@ -51,7 +51,7 @@ all-targets: $(ALL_TARGETS)
 
 .PHONY: clean
 clean:
-	$(Q)rm -f $(ALL_TARGETS) $(ALL_OBJECTS) $(ALL_DEPS)
+	$(Q)rm -f $(ALL_TARGETS) $(ALL_OBJECTS) $(ALL_DEPS) $(EXTRA_CLEAN)
 
 ######################################################################
 ## Compilation Rules
