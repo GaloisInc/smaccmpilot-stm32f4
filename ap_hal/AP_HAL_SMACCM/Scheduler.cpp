@@ -1,4 +1,4 @@
-/* -*- Mode: C; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 /*
  * Scheduler.cpp --- AP_HAL_SMACCM scheduler.
  *
@@ -15,6 +15,7 @@
 
 #include <FreeRTOS.h>
 #include <task.h>
+#include <semphr.h>
 
 #include "Scheduler.h"
 
@@ -28,23 +29,109 @@ extern const AP_HAL::HAL& hal;
 /** Stack size of the scheduler thread. */
 #define SCHEDULER_STACK_SIZE 256
 
-/** FreeRTOS thread managing timer procedures. */
+/** Priority of the scheduler timer process task. */
+#define SCHEDULER_PRIORITY (configMAX_PRIORITIES - 1)
+
+/** Rate in milliseconds of the delay callback task. */
+#define DELAY_CB_TICKS (1 / (portTICK_RATE_MS))
+
+/** Stack size of the delay callback task. */
+#define DELAY_CB_STACK_SIZE 64
+
+/** Priority of the delay callback task. */
+#define DELAY_CB_PRIORITY 0
+
+/**
+ * Recursive mutex used to block "scheduler_task" during atomic
+ * sections.
+ */
+static xSemaphoreHandle g_atomic;
+
+/** High-priority thread managing timer procedures. */
 static void scheduler_task(void *arg)
 {
   SMACCMScheduler *sched = (SMACCMScheduler *)arg;
   portTickType last_wake_time;
+  portTickType now;
 
   last_wake_time = xTaskGetTickCount();
 
   for (;;) {
-    vTaskDelayUntil(&last_wake_time, SCHEDULER_TICKS);
-    sched->run_callbacks();
+    xSemaphoreTakeRecursive(g_atomic, portMAX_DELAY);
+    xSemaphoreGiveRecursive(g_atomic);
+
+    /* If "vTaskDelayUntil" would return immediately without blocking,
+     * call the failsafe callback to notify the client that we've
+     * missed our deadline, and reset the wakeup time to the current
+     * time. */
+    now = xTaskGetTickCount();
+    if (last_wake_time + SCHEDULER_TICKS <= now) {
+      sched->run_failsafe_cb();
+      last_wake_time = now;
+    } else {
+      vTaskDelayUntil(&last_wake_time, SCHEDULER_TICKS);
+      sched->run_callbacks();
+    }
+  }
+}
+
+/** Count of the number of threads in "delay". */
+static uint32_t g_delay_count;
+
+/** Binary semaphore given when a thread enters "delay". */
+static xSemaphoreHandle g_delay_event;
+
+/**
+ * Low-priority thread that calls the delay callback every 1ms.
+ *
+ * Whenever any thread enters a call to "delay", it unblocks this
+ * task.
+ *
+ * We use a count of the number of threads currently in "delay"
+ * because there could be more than one.
+ */
+static void delay_cb_task(void *arg)
+{
+  SMACCMScheduler *sched = (SMACCMScheduler *)arg;
+  portTickType last_wake_time;
+  portTickType now;
+
+  last_wake_time = xTaskGetTickCount();
+
+  for (;;) {
+    portENTER_CRITICAL();
+    uint32_t delay_count = g_delay_count;
+    portEXIT_CRITICAL();
+
+    if (delay_count > 0) {
+      /* If some thread is in "delay", call the delay callback. */
+      sched->run_delay_cb();
+
+      /* If "vTaskDelayUntil" would return immediately without
+       * blocking, that means we've missed our deadline.  However,
+       * this thread is best-effort, so we'll just readjust our
+       * schedule accordingly and run 1ms from now.
+       *
+       * Without this, the thread runs many times to "catch up" if
+       * something takes too long in a higher priority thread. */
+      now = xTaskGetTickCount();
+      if (last_wake_time + DELAY_CB_TICKS <= now) {
+        last_wake_time = now;
+      } else {
+        vTaskDelayUntil(&last_wake_time, DELAY_CB_TICKS);
+      }
+    } else {
+      /* Wait for a thread to enter a delay. */
+      xSemaphoreTake(g_delay_event, portMAX_DELAY);
+      last_wake_time = xTaskGetTickCount();
+    }
   }
 }
 
 SMACCMScheduler::SMACCMScheduler()
-  : m_delay_cb(NULL), m_delay_cb_ms(0), m_suspended(false),
-    m_task(NULL), m_deferred_proc(NULL), m_num_procs(0)
+  : m_delay_cb(NULL), m_suspended(false),
+    m_task(NULL), m_delay_cb_task(NULL), m_deferred_proc(NULL),
+    m_failsafe_cb(NULL), m_num_procs(0)
 {
 }
 
@@ -52,19 +139,34 @@ void SMACCMScheduler::init(void *arg)
 {
   timer_init();
 
+  g_atomic = xSemaphoreCreateRecursiveMutex();
+
+  vSemaphoreCreateBinary(g_delay_event);
+  xSemaphoreTake(g_delay_event, portMAX_DELAY);
+
   xTaskCreate(scheduler_task, (signed char *)"scheduler",
-              SCHEDULER_STACK_SIZE, this, 0, &m_task);
+              SCHEDULER_STACK_SIZE, this, SCHEDULER_PRIORITY,
+              &m_task);
+
+  xTaskCreate(delay_cb_task, (signed char *)"delay_cb",
+              DELAY_CB_STACK_SIZE, this, DELAY_CB_PRIORITY,
+              &m_delay_cb_task);
 }
 
 void SMACCMScheduler::delay(uint32_t ms)
 {
-  while (ms > 0) {
-    timer_msleep(1);
-    --ms;
+  /* Wake up the delay callback thread. */
+  portENTER_CRITICAL();
+  ++g_delay_count;
+  portEXIT_CRITICAL();
+  xSemaphoreGive(g_delay_event);
 
-    if (m_delay_cb && m_delay_cb_ms <= ms)
-      m_delay_cb();
-  }
+  timer_msleep(ms);
+
+  /* Put the delay callback thread back to sleep. */
+  portENTER_CRITICAL();
+  --g_delay_count;
+  portEXIT_CRITICAL();
 }
 
 uint32_t SMACCMScheduler::millis()
@@ -83,10 +185,9 @@ void SMACCMScheduler::delay_microseconds(uint16_t us)
   timer_usleep(us);
 }
 
-void SMACCMScheduler::register_delay_callback(AP_HAL::Proc k, uint16_t min_time_ms)
+void SMACCMScheduler::register_delay_callback(AP_HAL::Proc k, uint16_t)
 {
   m_delay_cb = k;
-  m_delay_cb_ms = min_time_ms;
 }
 
 void SMACCMScheduler::register_timer_process(AP_HAL::TimedProc k)
@@ -115,8 +216,9 @@ bool SMACCMScheduler::defer_timer_process(AP_HAL::TimedProc k)
   return true;
 }
 
-void SMACCMScheduler::register_timer_failsafe(AP_HAL::TimedProc, uint32_t)
+void SMACCMScheduler::register_timer_failsafe(AP_HAL::TimedProc k, uint32_t)
 {
+  m_failsafe_cb = k;
 }
 
 void SMACCMScheduler::suspend_timer_procs()
@@ -131,17 +233,19 @@ void SMACCMScheduler::resume_timer_procs()
 
 void SMACCMScheduler::begin_atomic()
 {
-  portENTER_CRITICAL();
+  xSemaphoreTakeRecursive(g_atomic, portMAX_DELAY);
 }
 
 void SMACCMScheduler::end_atomic()
 {
-  portEXIT_CRITICAL();
+  xSemaphoreGiveRecursive(g_atomic);
 }
 
 void SMACCMScheduler::panic(const prog_char_t *errormsg)
 {
   hal.console->println_P(errormsg);
+  m_suspended = true;
+
   for(;;)
     ;
 }
@@ -155,9 +259,6 @@ void SMACCMScheduler::reboot()
 void SMACCMScheduler::run_callbacks()
 {
   uint32_t now = micros();
-
-  // TODO: if it's been too long since the last time, call the
-  // failsafe callback and return.
 
   // Run timer processes if not suspended.
   if (!m_suspended) {
@@ -180,4 +281,16 @@ void SMACCMScheduler::run_callbacks()
   if (deferred != NULL) {
     deferred(now);
   }
+}
+
+void SMACCMScheduler::run_failsafe_cb()
+{
+  if (m_failsafe_cb)
+    m_failsafe_cb(micros());
+}
+
+void SMACCMScheduler::run_delay_cb()
+{
+  if (m_delay_cb)
+    m_delay_cb();
 }

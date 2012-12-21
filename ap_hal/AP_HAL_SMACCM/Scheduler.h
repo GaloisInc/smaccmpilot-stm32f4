@@ -1,4 +1,4 @@
-/* -*- Mode: C; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 /*
  * Scheduler.h --- AP_HAL_SMACCM scheduler.
  *
@@ -46,6 +46,8 @@ public:
   /**
    * Register a callback to run every millisecond during a call to
    * "delay" as long as the delay remaining is at least "min_time_ms".
+   *
+   * The callback is executed in the thread that calls "delay".
    */
   void register_delay_callback(AP_HAL::Proc, uint16_t min_time_ms);
 
@@ -53,9 +55,8 @@ public:
   void register_timer_process(AP_HAL::TimedProc);
 
   /**
-   * Chain a timed procedure at the end of the currently executing
-   * procedure, or call it immediately if no timed procedure is
-   * currently executing.
+   * Register a single callback that will run once at the end of the
+   * next timer process cycle.
    */
   bool defer_timer_process(AP_HAL::TimedProc);
 
@@ -101,13 +102,26 @@ public:
    */
   void run_callbacks();
 
+  /**
+   * Run the failsafe callback.  This should not be called from client
+   * code.
+   */
+  void run_failsafe_cb();
+
+  /**
+   * Run the delay callback.  This should not be called from client
+   * code.
+   */
+  void run_delay_cb();
+
 private:
   AP_HAL::Proc m_delay_cb;      /* delay callback */
-  uint16_t m_delay_cb_ms;       /* delay callback min time */
   bool m_suspended;             /* true if timers suspended */
   void *m_task;                 /* opaque scheduler task handle */
+  void *m_delay_cb_task;        /* opaque delay cb task handle */
   AP_HAL::TimedProc m_procs[SMACCM_SCHEDULER_MAX_TIMER_PROCS];
   AP_HAL::TimedProc m_deferred_proc;
+  AP_HAL::TimedProc m_failsafe_cb;
   uint8_t m_num_procs;          /* number of entries in "m_procs" */
 };
 
