@@ -53,7 +53,7 @@ uint8_t SMACCMI2CDriver::write(uint8_t addr, uint8_t len, uint8_t* data)
 
 uint8_t SMACCMI2CDriver::writeRegister(uint8_t addr, uint8_t reg, uint8_t val)
 {
-  return i2c_write_reg(I2C_BUS, addr, reg, val);
+  return i2c_write_reg(I2C_BUS, addr, reg, val) ? 0 : 1;
 }
 
 uint8_t SMACCMI2CDriver::writeRegisters(uint8_t addr, uint8_t reg,
