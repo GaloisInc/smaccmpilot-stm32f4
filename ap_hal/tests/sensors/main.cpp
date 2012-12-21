@@ -1,5 +1,5 @@
 /*
- * main.cpp --- AP_InertialSensor_MPU6000 test.
+ * main.cpp --- AP_HAL sensors test.
  *
  * Copyright (C) 2012, Galois, Inc.
  * All Rights Reserved.
@@ -22,15 +22,18 @@
 #endif
 #include <AP_Param.h>
 #include <AP_InertialSensor_MPU6000.h>
+#include <AP_Compass_HMC5843.h>
 
 // There is apparently a dependency within the HAL implementation on
 // the HAL being in a global variable named "hal".
 const AP_HAL::HAL& hal = AP_HAL_BOARD_DRIVER;
 
 // The rate we run the inertial sensor at.
-static const AP_InertialSensor::Sample_rate SAMPLE_RATE = AP_InertialSensor::RATE_200HZ;
+static const AP_InertialSensor::Sample_rate INS_SAMPLE_RATE =
+  AP_InertialSensor::RATE_200HZ;
 
 static AP_InertialSensor_MPU6000 g_ins;
+static AP_Compass_HMC5843 g_compass;
 
 static xTaskHandle htask;
 
@@ -41,9 +44,15 @@ void flash_leds(bool on)
 
 // Since we don't have the data interrupt, we poll the inertial sensor
 // from a timer process.
-void sample_sensor(uint32_t)
+void sample_mpu6000(uint32_t)
 {
   AP_InertialSensor_MPU6000::data_interrupt();
+}
+
+void sample_compass(uint32_t)
+{
+  g_compass.read();
+  g_compass.accumulate();
 }
 
 void main_task(void *args)
@@ -51,12 +60,19 @@ void main_task(void *args)
   led_init();
 
   hal.init(0, NULL);
-  hal.console->printf("AP_InertialSensor_MPU6000 Test\r\n");
+  hal.console->printf("AP_HAL Sensor Test\r\n");
 
   AP_Param::setup_sketch_defaults();
 
-  hal.scheduler->register_timer_process(sample_sensor);
-  g_ins.init(AP_InertialSensor::COLD_START, SAMPLE_RATE, flash_leds);
+  g_compass.init();
+
+  g_compass.set_orientation(AP_COMPASS_COMPONENTS_DOWN_PINS_BACK);
+  g_compass.set_offsets(0,0,0);
+  g_compass.set_declination(ToRad(0.0));
+  hal.scheduler->register_timer_process(sample_compass);
+
+  hal.scheduler->register_timer_process(sample_mpu6000);
+  g_ins.init(AP_InertialSensor::COLD_START, INS_SAMPLE_RATE, flash_leds);
   g_ins.init_accel(flash_leds);
   hal.console->println();
   led_set(0, false);
@@ -74,6 +90,10 @@ void main_task(void *args)
                                  "gyro %.2f %.2f %.2f\r\n",
                         accel.x, accel.y, accel.z,
                         gyro.x, gyro.y, gyro.z);
+
+    hal.console->printf("compass: heading = %.2f deg\r\n",
+                        ToDeg(g_compass.calculate_heading(0, 0)));
+    g_compass.null_offsets();
   }
 }
 
