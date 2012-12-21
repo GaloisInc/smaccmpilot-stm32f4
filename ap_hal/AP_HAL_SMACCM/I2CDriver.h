@@ -1,4 +1,4 @@
-/* -*- Mode: C; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 /*
  * I2CDriver.h --- AP_HAL_SMACCM I2C driver.
  *
