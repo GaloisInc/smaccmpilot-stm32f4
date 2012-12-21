@@ -26,6 +26,8 @@ AP_HAL_SMACCM_CXXFLAGS  += -I$(TOP)/ap_hal/AP_Progmem
 AP_HAL_SMACCM_CXXFLAGS  += -I$(TOP)/ap_hal/AP_InertialSensor
 AP_HAL_SMACCM_CXXFLAGS  += -I$(TOP)/ap_hal/AP_Declination
 AP_HAL_SMACCM_CXXFLAGS  += -I$(TOP)/ap_hal/AP_Compass
+AP_HAL_SMACCM_CXXFLAGS  += -I$(TOP)/ap_hal/Filter
+AP_HAL_SMACCM_CXXFLAGS  += -I$(TOP)/ap_hal/AP_Baro
 AP_HAL_SMACCM_CXXFLAGS  += -DCONFIG_HAL_BOARD=HAL_BOARD_SMACCM
 AP_HAL_SMACCM_CXXFLAGS  += -Wno-psabi
 
@@ -61,7 +63,10 @@ AP_HAL_SMACCM_OBJECTS :=                        \
   AP_Declination/AP_Declination.o               \
   AP_Compass/AP_Compass_HIL.o                   \
   AP_Compass/AP_Compass_HMC5843.o               \
-  AP_Compass/Compass.o
+  AP_Compass/Compass.o                          \
+  AP_Baro/AP_Baro.o                             \
+  AP_Baro/AP_Baro_MS5611.o                      \
+  Filter/DerivativeFilter.o
 
 $(eval $(call library,AP_HAL_SMACCM))
 
