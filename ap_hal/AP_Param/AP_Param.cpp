@@ -25,7 +25,7 @@ extern const AP_HAL::HAL &hal;
 // #define ENABLE_FASTSERIAL_DEBUG
 
 #ifdef ENABLE_FASTSERIAL_DEBUG
- # define serialDebug(fmt, args ...)  do {hal.console->printf("%s:%d: " fmt "\n", __FUNCTION__, __LINE__, ## args); hal.scheduler->delay(0); } while(0)
+ # define serialDebug(fmt, args ...)  do {hal.console->printf("%s:%d: " fmt "\r\n", __FUNCTION__, __LINE__, ## args); hal.scheduler->delay(0); } while(0)
 #else
  # define serialDebug(fmt, args ...)
 #endif

@@ -20,6 +20,7 @@
 #else
 # error "Unsupported CONFIG_HAL_BOARD type."
 #endif
+#include <AP_Param.h>
 #include <AP_InertialSensor_MPU6000.h>
 
 // There is apparently a dependency within the HAL implementation on
@@ -51,6 +52,8 @@ void main_task(void *args)
 
   hal.init(0, NULL);
   hal.console->printf("AP_InertialSensor_MPU6000 Test\r\n");
+
+  AP_Param::setup_sketch_defaults();
 
   hal.scheduler->register_timer_process(sample_sensor);
   g_ins.init(AP_InertialSensor::COLD_START, SAMPLE_RATE, flash_leds);
