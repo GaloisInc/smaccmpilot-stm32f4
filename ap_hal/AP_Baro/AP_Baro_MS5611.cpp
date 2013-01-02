@@ -172,8 +172,7 @@ bool AP_Baro_MS5611::init()
     }
 
     _serial->init();
-
-    hal.scheduler->suspend_timer_procs();
+    _serial->sem_get();
 
     _serial->write(CMD_MS5611_RESET);
     hal.scheduler->delay(4);
@@ -201,7 +200,7 @@ bool AP_Baro_MS5611::init()
     _d2_count = 0;
 
     hal.scheduler->register_timer_process( AP_Baro_MS5611::_update );
-    hal.scheduler->resume_timer_procs();
+    _serial->sem_release();
 
     // wait for at least one value to be read
     uint32_t tstart = hal.scheduler->millis();
