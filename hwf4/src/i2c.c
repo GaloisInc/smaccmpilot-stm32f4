@@ -125,12 +125,23 @@ void i2c_init(struct i2cdrv_t *drv, struct pin* sda, struct pin* scl)
         | I2C_CR2_ITBUFEN  /* Buffer interrupt enable */
         );
 
+    // fast speed init
+    uint16_t result = (uint16_t)(freq.pclk1 / (400000 * 25));
+    if (result < 1)
+      result = 1;
+
+    reg->CCR |= I2C_CCR_DUTY | I2C_CCR_FS | result;
+    reg->TRISE = (uint16_t)((((freq.pclk1 / 1000000) * 300) / 1000) + 1);
+
+    // standard speed init
+#if 0
     uint16_t result = (uint16_t)(freq.pclk1 / (100000 << 1));
     if(result < 0x4) {
         result = 0x04;
     }
     reg->CCR |= result;
     reg->TRISE = ((freq.pclk1 / 1000000 + 1) & I2C_TRISE_TRISE);
+#endif
 
     /* Enable interrupts globally */
     interrupt_enable(drv->hw->irq_ev);
