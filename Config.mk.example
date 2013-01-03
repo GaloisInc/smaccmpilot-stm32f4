@@ -19,3 +19,6 @@ CONFIG_BOARD := px4
 
 # Root directory of the FreeRTOS source tree.
 CONFIG_FREERTOS_PREFIX := ../../OutsideSrcs/FreeRTOS
+
+# Root directory of the ArduPilot source tree.
+CONFIG_ARDUPILOT_PREFIX := ../../OutsideSrcs/ardupilot-mega
