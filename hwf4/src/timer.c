@@ -169,17 +169,21 @@ void timer_init(void)
 
 uint64_t timer_get_ticks(void)
 {
-  uint64_t result;
+  uint64_t ticks;
+  uint16_t cnt;
 
-  /* It might be possible to do this without disabling interrupts by
-   * reading multiple times.  Note that we don't enter a critical
-   * section here, so the ISR must not call any FreeRTOS API
-   * functions. */
-  portDISABLE_INTERRUPTS();
-  result = g_ticks + TIMER_DEV->CNT;
-  portENABLE_INTERRUPTS();
+  /* We read "g_ticks" in a loop here to avoid running into an edge
+   * case where the timer rolls over during the read.
+   *
+   * Without doing this, even if we disable the update interrupt, the
+   * counter register will still reload and the total sum will be
+   * incorrect. */
+  do {
+    ticks = g_ticks;
+    cnt   = TIMER_DEV->CNT;
+  } while (ticks != g_ticks);
 
-  return result;
+  return ticks + (uint64_t)cnt;
 }
 
 void timer_usleep(uint16_t delay)
@@ -207,8 +211,13 @@ size_t timer_get_ppm(uint16_t *buf, size_t len, timer_tick_t *time)
   size_t result = 0;
   size_t i;
 
-  /* We disable interrupts here so we do not capture the sample
-   * buffer in an intermediate state during an update. */
+  /*
+   * We disable interrupts here so we do not capture the sample
+   * buffer in an intermediate state during an update.
+   *
+   * XXX This might not actually disable the capture/compare interrupt
+   * since the priority is above the FreeRTOS syscall priority.
+   */
   portDISABLE_INTERRUPTS();
 
   for (i = 0; i < len && i < g_ppm_state.sample_len; ++i) {
