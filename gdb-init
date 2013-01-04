@@ -1,1 +1,1 @@
-set tdesc filename stm32f4/gdb-tdesc-cortexm-fpa.xml
+set tdesc filename gdb-tdesc-cortexm-fpa.xml
