@@ -93,6 +93,7 @@
 #define configTOTAL_HEAP_SIZE		( ( size_t ) ( 30 * 1024 ) )
 #define configMAX_TASK_NAME_LEN		( 16 )
 #define configUSE_TRACE_FACILITY	1
+#define configUSE_APPLICATION_TASK_TAG  1
 #define configUSE_16_BIT_TICKS		0
 #define configIDLE_SHOULD_YIELD		1
 
@@ -118,6 +119,7 @@ to exclude the API function. */
 #define INCLUDE_vTaskSuspend			1
 #define INCLUDE_vTaskDelayUntil			1
 #define INCLUDE_vTaskDelay				1
+#define INCLUDE_xTaskGetIdleTaskHandle  1
 
 /* This is the raw value as per the Cortex-M3 NVIC.  Values can be 255
 (lowest) to 0 (1?) (highest). */
@@ -174,6 +176,23 @@ extern unsigned long ulRunTimeStatsClock;
   #define portGET_RUN_TIME_COUNTER_VALUE() do {} while(0)
 #endif
 
+/*
+ * This is an example of how to use FreeRTOS debug trace hooks to show
+ * context switches on a logic analyzer.  This implementation sends
+ * out "n" pulses on a GPIO on each context switch, where "n" is the
+ * integer value of the task tag.
+ */
+#if 0
+#include "hwf4/gpio.h"
+
+#define traceTASK_SWITCHED_IN()                                 \
+  do {                                                          \
+    for (int i = 0; i < (int)pxCurrentTCB->pxTaskTag; ++i) {    \
+      pin_toggle(pin_a1);                                       \
+      pin_toggle(pin_a1);                                       \
+    }                                                           \
+  } while (0)
+#endif
 
 #endif /* FREERTOS_CONFIG_H */
 
