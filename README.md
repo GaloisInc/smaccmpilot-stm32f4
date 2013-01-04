@@ -34,7 +34,7 @@ We will refer to the path of the unzipped source tree during build configuration
 We use the [Black Sphere Technologies Black Magic Probe](http://www.blacksphere.co.nz/main/blackmagic) as a
 JTAG/SWD debugger to flash and debug on the PX4FMU hardware.
 
-  1. Follow the [instructions on the PX4 wiki(https://pixhawk.ethz.ch/px4/dev/jtag/black_magic_probe)
+  1. Follow the [instructions on the PX4 wiki](https://pixhawk.ethz.ch/px4/dev/jtag/black_magic_probe)
      for setting up your Black Magic Probe.
   2. Start GDB: `arm-none-eabi-gdb`
   3. Connect to the Black Magic Probe: `target extended-remote /dev/ttyACM0`
