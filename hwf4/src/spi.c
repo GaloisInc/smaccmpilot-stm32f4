@@ -193,13 +193,21 @@ static inline void spi_device_deselect(struct spi_device *dev)
 /**
  * Handle an IRQ for the given SPI bus.
  *
- * In order to send data at maximum speed, we track the TX and RX
- * counts separately.  This allows us to pipeline characters to
- * transmit without waiting to receive the corresponding bytes.
+ * This is actually quite tricky---be very careful making changes to
+ * this ISR.
  *
- * The transfer is actually considered complete when the final
- * character is received.  Once the last character is transmitted, we
- * simply turn off the TXNE interrupt and continue to receive.
+ * It's important to note here that both RXNE and TXE can be set in
+ * the status register in the same interrupt.  This can happen when
+ * another task disables interrupts during a transfer.
+ *
+ * To make sure that we never drop any received bytes, we always
+ * alternate between TXing and RXing by toggling the TX/RX interrupts
+ * as they occur.
+ *
+ * This makes us slightly less than optimal, as we could load the
+ * second byte into the TX register before we've RX'ed the first byte,
+ * but the additional complexity doesn't warrant complicating this ISR
+ * any further until we need the extra performance.
  */
 static void spi_irq(struct spi_bus *bus)
 {
@@ -210,17 +218,6 @@ static void spi_irq(struct spi_bus *bus)
   pin_set(DEBUG_LED);
 #endif
 
-  if (sr & SPI_SR_TXE) {
-    if (bus->transfer.tx_len == 0) {
-      spi_cr2_clear(bus, SPI_CR2_TXEIE);
-    } else {
-      bus->dev->DR = *bus->transfer.tx_buf;
-      ++bus->transfer.tx_buf;
-      --bus->transfer.tx_len;
-      spi_cr2_set(bus, SPI_CR2_RXNEIE);
-    }
-  }
-
   if (sr & SPI_SR_RXNE) {
     *bus->transfer.rx_buf = bus->dev->DR;
     ++bus->transfer.rx_buf;
@@ -229,6 +226,18 @@ static void spi_irq(struct spi_bus *bus)
     if (bus->transfer.rx_len == 0) {
       spi_cr2_clear(bus, SPI_CR2_RXNEIE);
       xSemaphoreGiveFromISR(bus->complete, &should_yield);
+    } else {
+      spi_cr2_set(bus, SPI_CR2_TXEIE);
+    }
+  } else if (sr & SPI_SR_TXE) {
+    spi_cr2_clear(bus, SPI_CR2_TXEIE);
+
+    if (bus->transfer.tx_len != 0) {
+      spi_cr2_set(bus, SPI_CR2_RXNEIE);
+      bus->dev->DR = *bus->transfer.tx_buf;
+
+      ++bus->transfer.tx_buf;
+      --bus->transfer.tx_len;
     }
   }
 
@@ -327,6 +336,8 @@ ssize_t spi_transfer(struct spi_bus *bus, struct spi_device *dev,
                      uint32_t timeout, const uint8_t *tx_buf,
                      uint8_t *rx_buf, size_t len)
 {
+  bool error = false;
+
   if (len == 0)                /* ensure at least one byte of TX/RX */
     return 0;
 
@@ -342,22 +353,31 @@ ssize_t spi_transfer(struct spi_bus *bus, struct spi_device *dev,
   bus->transfer.rx_len = len;
 
   interrupt_enable(bus->irq);
-
   spi_cr2_set(bus, SPI_CR2_TXEIE | SPI_CR2_ERRIE);
-  xSemaphoreTake(bus->complete, portMAX_DELAY);
+
+  /* XXX We may not be able to successfully communicate on this bus
+   * after we time out like this without doing something special to
+   * clear the error state.  Most likely we're going to panic anyway,
+   * though. */
+  if (!xSemaphoreTake(bus->complete, timeout))
+    error = true;
+
   spi_cr2_clear(bus, SPI_CR2_TXEIE | SPI_CR2_RXNEIE);
   interrupt_disable(bus->irq);
 
   /* According to the reference manual, we must wait until TXE=1 and
-   * BSY=0 before disabling the SPI. */
-  BUSY_UNTIL_SET(bus->dev->SR, SPI_SR_TXE);
-  BUSY_UNTIL_CLEAR(bus->dev->SR, SPI_SR_BSY);
+   * BSY=0 before disabling the SPI.  Don't bother doing this if the
+   * transfer has timed out. */
+  if (error) {
+    BUSY_UNTIL_SET(bus->dev->SR, SPI_SR_TXE);
+    BUSY_UNTIL_CLEAR(bus->dev->SR, SPI_SR_BSY);
+  }
 
   spi_device_deselect(dev);
   spi_disable(bus);
 
   xSemaphoreGive(bus->lock);
-  return len - bus->transfer.rx_len;
+  return error ? -1 : len - bus->transfer.rx_len;
 }
 
 struct spi_bus _spi1 = {
