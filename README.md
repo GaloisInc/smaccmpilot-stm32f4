@@ -48,6 +48,9 @@ JTAG/SWD debugger to flash and debug on the PX4FMU hardware.
 
 ## Installing OpenOCD (required for STM32F4-Discovery board) 
 
+On the STM32F4-Discovery board, we find it easier to use the builtin STLink debugger with OpenOCD.
+(If you're only using the Black Magic Probe with the PX4FMU, you can skip this section.)
+
  1. Download a recent release of [OpenOCD](http://sourceforge.net/projects/openocd/files/openocd/0.6.1/).
     We have tested with version 0.6.1.
  2. Configure and install OpenOCD with:
