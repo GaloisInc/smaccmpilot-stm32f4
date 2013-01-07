@@ -206,6 +206,33 @@ void timer_msleep(uint32_t delay)
   vTaskDelay(delay / portTICK_RATE_MS);
 }
 
+bool timer_is_ppm_valid(void)
+{
+  uint16_t sample_len;
+
+  portDISABLE_INTERRUPTS();
+  sample_len = g_ppm_state.sample_len;
+  portENABLE_INTERRUPTS();
+
+  return sample_len != 0;
+}
+
+bool timer_get_ppm_channel(int channel, uint16_t *result)
+{
+  bool ret = false;
+
+  portDISABLE_INTERRUPTS();
+
+  if (channel < g_ppm_state.sample_len) {
+    *result = g_ppm_state.sample_buf[channel];
+    ret = true;
+  }
+
+  portENABLE_INTERRUPTS();
+
+  return ret;
+}
+
 size_t timer_get_ppm(uint16_t *buf, size_t len, timer_tick_t *time)
 {
   size_t result = 0;
@@ -231,6 +258,13 @@ size_t timer_get_ppm(uint16_t *buf, size_t len, timer_tick_t *time)
   portENABLE_INTERRUPTS();
 
   return result;
+}
+
+void timer_clear_ppm(void)
+{
+  portDISABLE_INTERRUPTS();
+  g_ppm_state.sample_len = 0;
+  portENABLE_INTERRUPTS();
 }
 
 /** Handle a timer update interrupt. */

@@ -57,6 +57,20 @@ void timer_msleep(uint32_t delay);
 void timer_usleep(uint16_t delay);
 
 /**
+ * Return true if there is valid PPM available.
+ */
+bool timer_is_ppm_valid(void);
+
+/**
+ * Read one channel from the last PPM sample buffer.
+ *
+ * @param ch channel number to read
+ * @param result pointer to result value
+ * @returns true if the channel was valid, false if invalid
+ */
+bool timer_get_ppm_channel(int ch, uint16_t *result);
+
+/**
  * Get the last PPM sample buffer and number of values.
  *
  * @param buf buffer to copy sample data to
@@ -65,6 +79,14 @@ void timer_usleep(uint16_t delay);
  * @returns the number of samples copied to "buf"
  */
 size_t timer_get_ppm(uint16_t *buf, size_t len, timer_tick_t *ticks);
+
+/**
+ * Clear the PPM sample buffer.
+ *
+ * After calling this function, "timer_is_ppm_valid" will return false
+ * (and reading channels will fail) until the next sample arrives.
+ */
+void timer_clear_ppm(void);
 
 #ifdef __cplusplus
 }
