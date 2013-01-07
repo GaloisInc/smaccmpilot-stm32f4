@@ -15,6 +15,7 @@
 
 #include <hwf4/led.h>
 #include <hwf4/gpio.h>
+#include <hwf4/timer.h>
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_SMACCM
 # include <AP_HAL_SMACCM.h>
@@ -128,6 +129,18 @@ void main_task(void *args)
       hal.console->printf("compass: heading %.2f deg\r\n",
                           ToDeg(g_compass.calculate_heading(0, 0)));
       g_compass.null_offsets();
+
+      if (hal.rcin->valid()) {
+        uint16_t ppm[PPM_MAX_CHANNELS];
+        size_t count;
+
+        count = hal.rcin->read(ppm, PPM_MAX_CHANNELS);
+
+        hal.console->write("ppm:     ");
+        for (size_t i = 0; i < count; ++i)
+          hal.console->printf("%u ", ppm[i]);
+        hal.console->write("\r\n");
+      }
     }
   }
 }
