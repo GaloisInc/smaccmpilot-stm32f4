@@ -100,12 +100,12 @@ void i2c_init(struct i2cdrv_t *drv, struct pin* sda, struct pin* scl)
 
     /* sda : set open drain, alternate function mode, alternate function i2c */
     pin_set_otype(sda, PIN_TYPE_OPENDRAIN);
-    pin_set_pupd (sda, PIN_PUPD_UP);
+    pin_set_pupd (sda, PIN_PUPD_NONE);
     pin_set_af   (sda, PIN_AF_I2C);
     pin_set_mode (sda, PIN_MODE_AF);
     /* scl : open drain, alternate function mode, alternate function i2c */
     pin_set_otype(scl, PIN_TYPE_OPENDRAIN);
-    pin_set_pupd (scl, PIN_PUPD_UP);
+    pin_set_pupd (scl, PIN_PUPD_NONE);
     pin_set_af   (scl, PIN_AF_I2C);
     pin_set_mode (scl, PIN_MODE_AF);
 
