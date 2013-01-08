@@ -170,7 +170,7 @@ bool i2c_transfer(struct i2cdrv_t *drv, uint8_t addr,
 
   drv->hw->reg->CR1 |= I2C_CR1_START;
   if (!xSemaphoreTake(drv->complete, 1000)) {
-    // asm volatile("bkpt");
+    asm volatile("bkpt");
     result = false;
   }
 
