@@ -146,6 +146,8 @@ void i2c_init(struct i2cdrv_t *drv, struct pin* sda, struct pin* scl)
 #endif
 
     /* Enable interrupts globally */
+    interrupt_set_priority(drv->hw->irq_ev, INTERRUPT_PRIORITY_FREERTOS_SAFE);
+    interrupt_set_priority(drv->hw->irq_er, INTERRUPT_PRIORITY_FREERTOS_SAFE);
     interrupt_enable(drv->hw->irq_ev);
     interrupt_enable(drv->hw->irq_er);
 
