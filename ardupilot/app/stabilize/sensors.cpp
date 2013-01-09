@@ -1,0 +1,122 @@
+
+#include "sensors.h"
+
+#include <FreeRTOS.h>
+#include <task.h>
+#include <queue.h>
+
+#include <hwf4/led.h>
+
+#include <AP_AHRS.h>
+#include <AP_Baro.h>
+#include <AP_Compass_HMC5843.h>
+#include <AP_InertialSensor_MPU6000.h>
+#include <AP_Param.h>
+#include <AP_HAL.h>
+extern const AP_HAL::HAL& hal;
+
+static void sensors_task(void* arg);
+static void flash_leds(bool on);
+
+// The rate we run the inertial sensor at.
+static const AP_InertialSensor::Sample_rate INS_SAMPLE_RATE =
+  AP_InertialSensor::RATE_200HZ;
+
+static AP_InertialSensor_MPU6000 g_ins;
+static AP_Compass_HMC5843 g_compass;
+static AP_Baro_MS5611 g_baro(&AP_Baro_MS5611::i2c);
+static GPS *g_gps;
+static AP_AHRS_DCM g_ahrs(&g_ins, g_gps);
+
+static xTaskHandle h_sensors_task;
+static xQueueHandle q_sensors_result;
+
+void sensors_init(void) {
+    if (h_sensors_task == NULL) {
+        xTaskCreate(sensors_task, (signed char *)"sens", 1024, NULL, 0,
+                &h_sensors_task);
+    }
+}
+
+xQueueHandle get_sensors_queue(void) {
+    return q_sensors_result;
+}
+
+static void sensors_task(void* arg) {
+
+    hal.console->printf("init AP_InertialSensor: ");
+    g_ins.init(AP_InertialSensor::COLD_START, INS_SAMPLE_RATE, flash_leds);
+    g_ins.init_accel(flash_leds);
+    hal.console->println();
+    led_set(0, false);
+    hal.console->printf("done\r\n");
+
+    hal.console->printf("init AP_Compass: ");
+    g_compass.init();
+    g_compass.set_orientation(AP_COMPASS_COMPONENTS_DOWN_PINS_BACK);
+    g_compass.set_offsets(0,0,0);
+    g_compass.set_declination(ToRad(0.0));
+    hal.console->printf("done\r\n");
+
+    hal.console->printf("init AP_Baro: ");
+    g_baro.init();
+    g_baro.calibrate();
+    hal.console->printf("done\r\n");
+
+    hal.console->printf("init AP_AHRS: ");
+    g_ahrs.init();
+    g_ahrs.set_compass(&g_compass);
+    g_ahrs.set_barometer(&g_baro);
+    hal.console->printf("done\r\n");
+
+    portTickType last_print = 0;
+    portTickType last_compass = 0;
+    portTickType last_wake = 0;
+    float heading = 0.0f;
+
+    last_wake = xTaskGetTickCount();
+
+    for (;;) {
+        // Delay to run this loop at 100Hz.
+        vTaskDelayUntil(&last_wake, 10);
+
+        portTickType now = xTaskGetTickCount();
+
+        if (last_compass == 0 || now - last_compass > 100) {
+            last_compass = now;
+            g_compass.read();
+            g_baro.read();
+            heading = g_compass.calculate_heading(g_ahrs.get_dcm_matrix());
+        }
+
+        g_ahrs.update();
+
+        if (last_print == 0 || now - last_print > 100) {
+            last_print = now;
+
+            hal.console->write("\r\n");
+            hal.console->printf("ahrs: roll %4.1f pitch %4.1f "
+                                "yaw %4.1f hdg %.1f\r\n",
+                                ToDeg(g_ahrs.roll), ToDeg(g_ahrs.pitch),
+                                ToDeg(g_ahrs.yaw),
+                                g_compass.use_for_yaw() ? ToDeg(heading):0.0f);
+
+            Vector3f accel(g_ins.get_accel());
+            Vector3f gyro(g_ins.get_gyro());
+            hal.console->printf("mpu6000: accel %.2f %.2f %.2f "
+                                "gyro %.2f %.2f %.2f\r\n",
+                                accel.x, accel.y, accel.z,
+                                gyro.x, gyro.y, gyro.z);
+
+            hal.console->printf("compass: heading %.2f deg\r\n",
+                                ToDeg(g_compass.calculate_heading(0, 0)));
+            g_compass.null_offsets();
+
+        }
+    }
+}
+
+static void flash_leds(bool on)
+{
+  led_set(0, on);
+}
