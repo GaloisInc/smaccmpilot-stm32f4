@@ -10,18 +10,21 @@ extern "C" {
 #include <queue.h>
 
 struct sensors_result {
+  bool valid;
+  /* roll, pitch, yaw in radians*/
   float roll;
   float pitch;
   float yaw;
+  /* omega in radians per second */
   float omega_x;
   float omega_y;
   float omega_z;
+  /* altitude in meters */
   float baro_alt;
 };
 
 void sensors_init(void);
-
-xQueueHandle get_sensors_queue(void);
+bool sensors_get(struct sensors_result *sensors, portTickType wait);
 
 #ifdef __cplusplus
 }
