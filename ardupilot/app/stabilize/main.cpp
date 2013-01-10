@@ -30,6 +30,8 @@ const AP_HAL::HAL& hal = AP_HAL_BOARD_DRIVER;
 
 static xTaskHandle h_main_task;
 
+static void debug_userinput(void);
+
 void main_task(void *args)
 {
   vTaskSetApplicationTaskTag(xTaskGetIdleTaskHandle(), (pdTASK_HOOK_CODE)1);
@@ -38,9 +40,16 @@ void main_task(void *args)
   led_init();
 
   hal.init(0, NULL);
+  hal.console->println("beginning stabilize app...");
 
-  sensors_init();
+  //sensors_init();
   userinput_init();
+
+
+  for(;;) {
+      debug_userinput();
+      vTaskDelay(100);
+  }
 
   for(;;);
 }
@@ -52,4 +61,18 @@ extern "C" int main(void)
   for (;;)
     ;
   return 0;
+}
+
+static void debug_userinput(void) {
+      struct userinput_result userin;
+      bool res = userinput_get(&userin, 1);
+      if (res) {
+          hal.console->printf(
+                  "userinput %s; roll %f pitch %f yaw %f throttle %f\r\n",
+                  userin.armed ? "armed" : "disarmed",
+                  userin.roll, userin.pitch, userin.yaw, userin.throttle
+                  );
+      } else {
+          hal.console->println("userinput get failed");
+      }
 }

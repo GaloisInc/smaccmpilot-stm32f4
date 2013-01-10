@@ -8,7 +8,6 @@ extern "C" {
 #endif
 
 #include <FreeRTOS.h>
-#include <queue.h>
 
 struct userinput_result {
     bool armed;
@@ -16,11 +15,11 @@ struct userinput_result {
     float roll;
     float pitch;
     float yaw;
+    portTickType time;
 };
 
 void userinput_init(void);
-
-xQueueHandle get_userinput_queue(void);
+bool userinput_get(struct userinput_result *input, portTickType wait);
 
 #ifdef __cplusplus
 }
