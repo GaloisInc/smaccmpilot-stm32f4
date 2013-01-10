@@ -176,9 +176,9 @@ void mpu6000_read_sample(mpu6000_sample_t *sample)
   sample->gyro_raw_y = (int16_t)get_be16(&buf[11]);
   sample->gyro_raw_z = (int16_t)get_be16(&buf[13]);
 
-  sample->gyro_x = (float)sample->gyro_raw_x / 16.4;
-  sample->gyro_y = (float)sample->gyro_raw_y / 16.4;
-  sample->gyro_z = (float)sample->gyro_raw_z / 16.4;
+  sample->gyro_x = (float)sample->gyro_raw_x / 16.4f;
+  sample->gyro_y = (float)sample->gyro_raw_y / 16.4f;
+  sample->gyro_z = (float)sample->gyro_raw_z / 16.4f;
 }
 
 /** Print an MPU6000 sample to the debug console. */
