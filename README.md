@@ -5,15 +5,19 @@ Build Instructions
 
 ### Cortex-M4 Toolchain
 
-Download and unpack the [gcc-arm-embedded toolchain](https://launchpad.net/gcc-arm-embedded).
+Download and unpack the [gcc-arm-embedded toolchain][1].
+
+[1]:https://launchpad.net/gcc-arm-embedded
 
 ### FreeRTOS
 
-[Download the latest FreeRTOS](http://sourceforge.net/projects/freertos/files/)
-release. We're using version 7.3.0.
+[Download the latest FreeRTOS][2] release. We're using version 7.3.0.
 
-Unpack the ZIP file in a directory near the smaccmpilot-stm32f4 tree: the same parent directory is best.
-We will refer to the path of the unzipped source tree during build configuration.
+Unpack the ZIP file in a directory near the smaccmpilot-stm32f4 tree: the same
+parent directory is best. We will refer to the path of the unzipped source
+tree during build configuration.
+
+[2]: http://sourceforge.net/projects/freertos/files/
 
 ## Configuration File
 
@@ -31,10 +35,10 @@ We will refer to the path of the unzipped source tree during build configuration
 
 ## Flashing the PX4FMU Board
 
-We use the [Black Sphere Technologies Black Magic Probe](http://www.blacksphere.co.nz/main/blackmagic) as a
+We use the [Black Sphere Technologies Black Magic Probe][3] as a
 JTAG/SWD debugger to flash and debug on the PX4FMU hardware.
 
-  1. Follow the [instructions on the PX4 wiki](https://pixhawk.ethz.ch/px4/dev/jtag/black_magic_probe)
+  1. Follow the [instructions on the PX4 wiki][4]
      for setting up your Black Magic Probe.
   2. Start GDB: `arm-none-eabi-gdb`
   3. Connect to the Black Magic Probe: `target extended-remote /dev/ttyACM0`
@@ -44,17 +48,25 @@ JTAG/SWD debugger to flash and debug on the PX4FMU hardware.
   7. Load the image to flash: `file build/cortex-m4/px4/img/ledtest`
   8. Flash the image to the device: `load`
   9. Execute the firmware: `run`
-  10. Interrupt the debugger with Control-C to reflash by running `load` and `run` again.
+  10. Interrupt the debugger with Control-C to reflash by running `load` and
+    `run` again.
+
+[3]: http://www.blacksphere.co.nz/main/blackmagic
+[4]: https://pixhawk.ethz.ch/px4/dev/jtag/black_magic_probe
 
 ## Installing OpenOCD (required for STM32F4-Discovery board) 
 
-On the STM32F4-Discovery board, we find it easier to use the builtin STLink debugger with OpenOCD.
-(If you're only using the Black Magic Probe with the PX4FMU, you can skip this section.)
+On the STM32F4-Discovery board, we find it easier to use the builtin STLink
+debugger with OpenOCD.  (If you're only using the Black Magic Probe with the
+PX4FMU, you can skip this section.)
 
- 1. Download a recent release of [OpenOCD](http://sourceforge.net/projects/openocd/files/openocd/0.6.1/).
+ 1. Download a recent release of [OpenOCD][5]
     We have tested with version 0.6.1.
+
+[5]: http://sourceforge.net/projects/openocd/files/openocd/0.6.1/
+
  2. Configure and install OpenOCD with:
- 
+
 ```
 $ tar -zxvf openocd-0.6.1.tar.gz
 $ cd openocd-0.6.1
