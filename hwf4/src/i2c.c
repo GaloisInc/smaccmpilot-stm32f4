@@ -1,3 +1,4 @@
+/* -*- Mode: C; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
 /*
  * i2c.c --- STM32F4 I2C driver.
  *
@@ -88,8 +89,7 @@ static inline void __i2c_set_freq(struct i2cdrv_t *i2c,
     __i2c_update_cr2(i2c, freq->pclk1 / 1000000);
 }
 
-void i2c_init(struct i2cdrv_t *drv, struct pin* sda, struct pin* scl)
-{
+void i2c_init(struct i2cdrv_t *drv, struct pin* sda, struct pin* scl) {
     pin_enable(sda);
     pin_enable(scl);
     rcc_enable(drv->hw->dev);
@@ -157,59 +157,54 @@ void i2c_init(struct i2cdrv_t *drv, struct pin* sda, struct pin* scl)
 
 bool i2c_transfer(struct i2cdrv_t *drv, uint8_t addr,
                   const uint8_t *tx_buf, size_t tx_len,
-                  uint8_t *rx_buf, size_t rx_len)
-{
-  bool result = true;
+                  uint8_t *rx_buf, size_t rx_len) {
+    bool result = true;
 
-  if (!xSemaphoreTake(drv->lock, portMAX_DELAY))
-    return false;
+    if (!xSemaphoreTake(drv->lock, portMAX_DELAY))
+        return false;
 
-  drv->addr    = addr;
-  drv->writing = tx_len;
-  drv->write_p = (uint8_t *)tx_buf;
-  drv->reading = rx_len;
-  drv->read_p  = rx_buf;
+    drv->addr    = addr;
+    drv->writing = tx_len;
+    drv->write_p = (uint8_t *)tx_buf;
+    drv->reading = rx_len;
+    drv->read_p  = rx_buf;
 
-  drv->hw->reg->CR1 |= I2C_CR1_START;
-  if (!xSemaphoreTake(drv->complete, 1000)) {
-    asm volatile("bkpt");
-    result = false;
-  }
+    drv->hw->reg->CR1 |= I2C_CR1_START;
+    if (!xSemaphoreTake(drv->complete, 1000)) {
+        asm volatile("bkpt");
+        result = false;
+    }
 
-  if (drv->error) {
-    drv->error = false;
-    result = false;
-  }
+    if (drv->error) {
+        drv->error = false;
+        result = false;
+    }
 
-  xSemaphoreGive(drv->lock);
-  return result;
+    xSemaphoreGive(drv->lock);
+    return result;
 }
 
-bool i2c_write(struct i2cdrv_t *drv, uint8_t addr, uint8_t *buf, size_t len)
-{
-  return i2c_transfer(drv, addr, buf, len, NULL, 0);
+bool i2c_write(struct i2cdrv_t *drv, uint8_t addr, uint8_t *buf, size_t len) {
+    return i2c_transfer(drv, addr, buf, len, NULL, 0);
 }
 
 bool i2c_write_reg(struct i2cdrv_t *drv, uint8_t addr,
-        uint8_t reg, uint8_t data)
-{
-  uint8_t buf[2] = { reg, data };
-  return i2c_write(drv, addr, buf, sizeof(buf));
+        uint8_t reg, uint8_t data) {
+    uint8_t buf[2] = { reg, data };
+    return i2c_write(drv, addr, buf, sizeof(buf));
 }
 
 bool i2c_write_regs(struct i2cdrv_t *drv, uint8_t addr, uint8_t reg,
-                    uint8_t *data, uint8_t len)
-{
-  uint8_t buf[len + 1];    // requires C99, careful of stack overflow!
-  buf[0] = reg;
-  memcpy(&buf[1], data, len);
-  return i2c_transfer(drv, addr, buf, len + 1, NULL, 0);
+                    uint8_t *data, uint8_t len) {
+    uint8_t buf[len + 1];    // requires C99, careful of stack overflow!
+    buf[0] = reg;
+    memcpy(&buf[1], data, len);
+    return i2c_transfer(drv, addr, buf, len + 1, NULL, 0);
 }
 
 bool i2c_read_reg(struct i2cdrv_t *drv, uint8_t addr, uint8_t reg,
-        uint8_t len, uint8_t *buf)
-{
-  return i2c_transfer(drv, addr, &reg, 1, buf, len);
+        uint8_t len, uint8_t *buf) {
+    return i2c_transfer(drv, addr, &reg, 1, buf, len);
 }
 
 static void __i2c_event_irq_handler(struct i2cdrv_t *drv) {
@@ -254,7 +249,7 @@ static void __i2c_event_irq_handler(struct i2cdrv_t *drv) {
             uint16_t cr1 = drv->hw->reg->CR1;
             drv->hw->reg->CR1 = ( cr1 & ~I2C_CR1_ACK ) | I2C_CR1_STOP;
         }
-        
+
         if (drv->reading == 0) {
             xSemaphoreGiveFromISR(drv->complete, &should_yield);
         }
