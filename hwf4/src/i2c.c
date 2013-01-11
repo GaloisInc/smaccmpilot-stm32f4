@@ -80,6 +80,26 @@ static inline void __i2c_update_cr2(struct i2cdrv_t *i2c, uint32_t val) {
 }
 
 /**
+ * Generate an I2C START condition.  Per the reference manual, we wait
+ * for the hardware to clear the start bit after setting it before
+ * allowing any further writes to CR1.  This prevents random lockups.
+ */
+static inline void __i2c_set_start(struct i2cdrv_t *i2c) {
+    i2c->hw->reg->CR1 |= I2C_CR1_START;
+    while (i2c->hw->reg->CR1 & I2C_CR1_START);
+}
+
+/**
+ * Generate an I2C STOP condition.  Per the reference manual, we wait
+ * for the hardware to clear the stop bit after setting it before
+ * allowing any further writes to CR1.  This prevents random lockups.
+ */
+static inline void __i2c_set_stop(struct i2cdrv_t *i2c) {
+    i2c->hw->reg->CR1 |= I2C_CR1_STOP;
+    while (i2c->hw->reg->CR1 & I2C_CR1_STOP);
+}
+
+/**
  * Set the peripheral frequency.
  */
 static inline void __i2c_set_freq(struct i2cdrv_t *i2c,
@@ -169,7 +189,7 @@ bool i2c_transfer(struct i2cdrv_t *drv, uint8_t addr,
     drv->reading = rx_len;
     drv->read_p  = rx_buf;
 
-    drv->hw->reg->CR1 |= I2C_CR1_START;
+    __i2c_set_start(drv);
     if (!xSemaphoreTake(drv->complete, 1000)) {
         asm volatile("bkpt");
         result = false;
@@ -232,7 +252,7 @@ static void __i2c_event_irq_handler(struct i2cdrv_t *drv) {
                 drv->hw->reg->CR1 |= I2C_CR1_ACK;
             } else {
                 /* One byte left to read, send stop afterwards. */
-                drv->hw->reg->CR1 |= I2C_CR1_STOP;
+                __i2c_set_stop(drv);
             }
         }
     }
@@ -246,8 +266,8 @@ static void __i2c_event_irq_handler(struct i2cdrv_t *drv) {
 
         if (drv->reading == 1) {
             /* Unset Ack, set Stop */
-            uint16_t cr1 = drv->hw->reg->CR1;
-            drv->hw->reg->CR1 = ( cr1 & ~I2C_CR1_ACK ) | I2C_CR1_STOP;
+            drv->hw->reg->CR1 &= ~I2C_CR1_ACK;
+            __i2c_set_stop(drv);
         }
 
         if (drv->reading == 0) {
@@ -265,10 +285,10 @@ static void __i2c_event_irq_handler(struct i2cdrv_t *drv) {
         } else {
             if (drv->reading) {
                 /* done writing, now reading: send repeated stat */
-                drv->hw->reg->CR1 |= I2C_CR1_START;
+                __i2c_set_start(drv);
             } else {
                 /* done reading: send stop */
-                drv->hw->reg->CR1 |= I2C_CR1_STOP;
+                __i2c_set_stop(drv);
                 xSemaphoreGiveFromISR(drv->complete, &should_yield);
             }
         }
@@ -288,7 +308,7 @@ static void __i2c_error_irq_handler(struct i2cdrv_t *drv) {
     /* Write 0 to SR1 ?? XXX why  */
     drv->hw->reg->SR1 = 0;
     /* Send stop */
-    drv->hw->reg->CR1 |= I2C_CR1_STOP;
+    __i2c_set_stop(drv);
     drv->error = 1;
 
     xSemaphoreGiveFromISR(drv->complete, &should_yield);
