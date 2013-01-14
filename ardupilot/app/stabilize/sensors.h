@@ -24,7 +24,7 @@ struct sensors_result {
 };
 
 void sensors_init(void);
-bool sensors_get(struct sensors_result *sensors, portTickType wait);
+void sensors_get(struct sensors_result *sensors);
 
 #ifdef __cplusplus
 }

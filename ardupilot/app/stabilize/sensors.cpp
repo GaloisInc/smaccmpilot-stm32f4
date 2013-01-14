@@ -45,13 +45,13 @@ void sensors_init(void) {
 }
 
 /* sensors_get: for external threads to grab the shared state */
-bool sensors_get(struct sensors_result *input, portTickType wait) {
-    if (xSemaphoreTake(sensors_mutex, wait)) {
+void sensors_get(struct sensors_result *input) {
+    if (xSemaphoreTake(sensors_mutex, 1)) {
         memcpy(input, &sensors_shared_state, sizeof(struct sensors_result));
         xSemaphoreGive(sensors_mutex);
-        return true;
     } else {
-        return false;
+        hal.scheduler->panic("PANIC: sensors_get took too long to take "
+                "memory barrier");
     }
 }
 
@@ -61,7 +61,7 @@ static void sensors_share(const struct sensors_result *capt) {
         memcpy(&sensors_shared_state, capt, sizeof(struct sensors_result));
         xSemaphoreGive(sensors_mutex);
     } else {
-        hal.scheduler->panic("PANIC: sensors_share took too long to take"
+        hal.scheduler->panic("PANIC: sensors_share took too long to take "
                 "memory barrier");
     }
 }

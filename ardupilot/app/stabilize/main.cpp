@@ -25,13 +25,24 @@
 
 #include "sensors.h"
 #include "userinput.h"
+#include "motorsoutput.h"
 
 const AP_HAL::HAL& hal = AP_HAL_BOARD_DRIVER;
 
-static xTaskHandle h_main_task;
+static xTaskHandle main_task_handle;
 
 static void debug_sensors(void);
 static void debug_userinput(void);
+
+void input_to_motors(const struct userinput_result *input,
+                           struct motorsoutput_result *output) {
+    output->armed    = input->armed;
+    output->throttle = input->throttle;
+    output->roll     = input->roll;
+    output->pitch    = input->pitch;
+    output->yaw      = input->yaw;
+    output->time     = xTaskGetTickCount();
+}
 
 void main_task(void *args)
 {
@@ -45,11 +56,19 @@ void main_task(void *args)
 
     sensors_init();
     userinput_init();
-
+    motorsoutput_init();
 
     for(;;) {
         // debug_userinput();
-        debug_sensors();
+        // debug_sensors();
+       
+        struct userinput_result input;
+        struct motorsoutput_result motors;
+       
+        userinput_get(&input);
+        input_to_motors(&input, &motors);
+        motorsoutput_set(&motors);
+
         vTaskDelay(100);
     }
 
@@ -58,7 +77,8 @@ void main_task(void *args)
 
 extern "C" int main(void)
 {
-    xTaskCreate(main_task, (signed char *)"main", 1024, NULL, 0, &h_main_task);
+    xTaskCreate(main_task, (signed char *)"main", 1024, NULL, 0,
+            &main_task_handle);
     vTaskStartScheduler();
     for (;;);
     return 0;
@@ -70,38 +90,28 @@ static float rad2deg(float rad) {
 
 static void debug_sensors(void) {
     struct sensors_result sensors;
-    bool res = sensors_get(&sensors, 1);
-    if (res) {
-        if (sensors.valid) {
-            hal.console->printf(
-                    "sensors roll %f pitch %f yaw %f alt %f\r\n",
-                    rad2deg(sensors.roll),
-                    rad2deg(sensors.pitch),
-                    rad2deg(sensors.yaw),
-                    sensors.baro_alt
-                    );
-        } else {
-            hal.console->printf(
-                    "sensors calibrating...\r\n" 
-                    );
-        }
-
+    sensors_get(&sensors);
+    if (sensors.valid) {
+        hal.console->printf(
+                "sensors roll %f pitch %f yaw %f alt %f\r\n",
+                rad2deg(sensors.roll),
+                rad2deg(sensors.pitch),
+                rad2deg(sensors.yaw),
+                sensors.baro_alt
+                );
     } else {
-        hal.console->println("ERROR: sensors get failed");
+        hal.console->printf(
+                "sensors calibrating...\r\n" 
+                );
     }
-
 }
 
 static void debug_userinput(void) {
     struct userinput_result userin;
-    bool res = userinput_get(&userin, 1);
-    if (res) {
-        hal.console->printf(
-                "userinput %s; roll %f pitch %f yaw %f throttle %f\r\n",
-                userin.armed ? "armed" : "disarmed",
-                userin.roll, userin.pitch, userin.yaw, userin.throttle
-                );
-    } else {
-        hal.console->println("ERROR: userinput get failed");
-    }
+    userinput_get(&userin);
+    hal.console->printf(
+            "userinput %s; roll %f pitch %f yaw %f throttle %f\r\n",
+            userin.armed ? "armed" : "disarmed",
+            userin.roll, userin.pitch, userin.yaw, userin.throttle
+            );
 }

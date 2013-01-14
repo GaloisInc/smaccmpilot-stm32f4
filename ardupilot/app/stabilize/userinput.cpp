@@ -34,7 +34,7 @@ void userinput_init(void) {
                 &userinput_task_handle);
 }
 
-void userinput_task(void* args) {
+static void userinput_task(void* args) {
 
     struct userinput_result state = {0};
 
@@ -49,13 +49,13 @@ void userinput_task(void* args) {
 }
 
 /* userinput_get: for external threads to grab the shared state */
-bool userinput_get(struct userinput_result *input, portTickType wait) {
-    if (xSemaphoreTake(userinput_mutex, wait)) {
+void userinput_get(struct userinput_result *input) {
+    if (xSemaphoreTake(userinput_mutex, 1)) {
         memcpy(input, &userinput_shared_state, sizeof(struct userinput_result));
         xSemaphoreGive(userinput_mutex);
-        return true;
     } else {
-        return false;
+        hal.scheduler->panic("PANIC: userinput_get took too long to take "
+                "memory barrier");
     }
 }
 
@@ -65,7 +65,7 @@ static void userinput_share(const struct userinput_result *capt) {
         memcpy(&userinput_shared_state, capt, sizeof(struct userinput_result));
         xSemaphoreGive(userinput_mutex);
     } else {
-        hal.scheduler->panic("PANIC: userinput_share took too long to take"
+        hal.scheduler->panic("PANIC: userinput_share took too long to take "
                 "memory barrier");
     }
 }

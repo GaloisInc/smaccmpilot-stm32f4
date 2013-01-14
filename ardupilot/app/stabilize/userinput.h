@@ -19,7 +19,7 @@ struct userinput_result {
 };
 
 void userinput_init(void);
-bool userinput_get(struct userinput_result *input, portTickType wait);
+void userinput_get(struct userinput_result *input);
 
 #ifdef __cplusplus
 }
