@@ -18,6 +18,7 @@ ARDUPILOT_CXXFLAGS += -I$(ARDUPILOT_SRC)/libraries/AP_HAL/utility
 ARDUPILOT_CXXFLAGS += $(addprefix -I,$(wildcard $(ARDUPILOT_SRC)/libraries/*))
 ARDUPILOT_CXXFLAGS += -DCONFIG_HAL_BOARD=HAL_BOARD_SMACCM
 ARDUPILOT_CXXFLAGS += -Wno-psabi
+ARDUPILOT_CXXFLAGS += $(ARDUPILOT_EXTRA_FLAGS)
 
 ARDUPILOT_OBJECTS :=                                                    \
   libraries/AC_PID/AC_PID.o                                             \
@@ -31,6 +32,7 @@ ARDUPILOT_OBJECTS :=                                                    \
   libraries/AP_AHRS/AP_AHRS.o                                           \
   libraries/AP_Airspeed/AP_Airspeed.o                                   \
   libraries/AP_Baro/AP_Baro_MS5611.o                                    \
+  libraries/AP_Baro/AP_Baro_BMP085_hil.o                                \
   libraries/AP_Baro/AP_Baro.o                                           \
   libraries/AP_Camera/AP_Camera.o                                       \
   libraries/AP_Common/c++.o                                             \
@@ -110,6 +112,7 @@ ARDUPILOT_OBJECTS :=                                                    \
   libraries/AP_RangeFinder/AP_RangeFinder_SharpGP2Y.o                   \
   libraries/AP_RangeFinder/RangeFinder.o                                \
   libraries/AP_Relay/AP_Relay.o                                         \
+  libraries/AP_Scheduler/AP_Scheduler.o                                 \
   libraries/DataFlash/DataFlash_APM1.o                                  \
   libraries/DataFlash/DataFlash_APM2.o                                  \
   libraries/DataFlash/DataFlash_Empty.o                                 \
