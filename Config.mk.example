@@ -22,3 +22,6 @@ CONFIG_FREERTOS_PREFIX := ../../OutsideSrcs/FreeRTOS
 
 # Root directory of the ArduPilot source tree.
 CONFIG_ARDUPILOT_PREFIX := ../../OutsideSrcs/ardupilot-mega
+
+# Extra arguments to pass to ArduPilot C++ compiler.
+# CONFIG_ARDUPILOT_EXTRA_CFLAGS := -DHIL_MODE=HIL_MODE_ATTITUDE -DLOGGING_ENABLED=DISABLED

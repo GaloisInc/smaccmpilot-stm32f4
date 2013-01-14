@@ -18,7 +18,7 @@ ARDUPILOT_CXXFLAGS += -I$(ARDUPILOT_SRC)/libraries/AP_HAL/utility
 ARDUPILOT_CXXFLAGS += $(addprefix -I,$(wildcard $(ARDUPILOT_SRC)/libraries/*))
 ARDUPILOT_CXXFLAGS += -DCONFIG_HAL_BOARD=HAL_BOARD_SMACCM
 ARDUPILOT_CXXFLAGS += -Wno-psabi
-ARDUPILOT_CXXFLAGS += $(ARDUPILOT_EXTRA_FLAGS)
+ARDUPILOT_CXXFLAGS += $(CONFIG_ARDUPILOT_EXTRA_CFLAGS)
 
 ARDUPILOT_OBJECTS :=                                                    \
   libraries/AC_PID/AC_PID.o                                             \
