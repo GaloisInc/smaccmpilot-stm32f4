@@ -29,7 +29,7 @@ static void motorsoutput_task(void* args) {
 
     apmotors_output_init();
 
-    portTickType last_wake_time;
+    portTickType last_wake_time = xTaskGetTickCount();
 
     for(;;) {
         vTaskDelayUntil(&last_wake_time, 10);

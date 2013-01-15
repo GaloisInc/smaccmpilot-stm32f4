@@ -45,7 +45,7 @@ static void gcs_task(void* args) {
 
     gcs_setup();
 
-    portTickType last_wake_time;
+    portTickType last_wake_time = xTaskGetTickCount();
 
     for(;;) {
         vTaskDelayUntil(&last_wake_time, 2000);
@@ -89,6 +89,8 @@ static void gcs_setup() {
     /* Setup system */
     smav_sys.sysid  = 1;
     smav_sys.compid = 0;
+
+    hal.console->println("gcs setup complete");
 }
 
 static size_t gcs_write(void* delegate, const uint8_t *data, size_t len) {

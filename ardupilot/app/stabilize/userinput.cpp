@@ -38,7 +38,7 @@ static void userinput_task(void* args) {
 
     struct userinput_result state = {0};
 
-    portTickType last_wake_time;
+    portTickType last_wake_time = xTaskGetTickCount();
 
     for(;;) {
         vTaskDelayUntil(&last_wake_time, 20);
