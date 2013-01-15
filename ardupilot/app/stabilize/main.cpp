@@ -23,6 +23,7 @@
 # error "Unsupported CONFIG_HAL_BOARD type."
 #endif
 
+#include "gcs.h"
 #include "sensors.h"
 #include "userinput.h"
 #include "motorsoutput.h"
@@ -34,7 +35,7 @@ static xTaskHandle main_task_handle;
 static void debug_sensors(void);
 static void debug_userinput(void);
 
-void input_to_motors(const struct userinput_result *input,
+static void input_to_motors(const struct userinput_result *input,
                            struct motorsoutput_result *output) {
     output->armed    = input->armed;
     output->throttle = input->throttle;
@@ -42,6 +43,11 @@ void input_to_motors(const struct userinput_result *input,
     output->pitch    = input->pitch;
     output->yaw      = input->yaw;
     output->time     = xTaskGetTickCount();
+}
+
+static void input_to_gcs(const struct userinput_result *input,
+                           struct gcs_state *gcs) {
+    gcs->armed = input->armed;
 }
 
 void main_task(void *args)
@@ -57,6 +63,7 @@ void main_task(void *args)
     sensors_init();
     userinput_init();
     motorsoutput_init();
+    gcs_init();
 
     for(;;) {
         // debug_userinput();
@@ -64,9 +71,11 @@ void main_task(void *args)
        
         struct userinput_result input;
         struct motorsoutput_result motors;
+        struct gcs_state gcs;
        
         userinput_get(&input);
         input_to_motors(&input, &motors);
+        input_to_gcs(&input, &gcs);
         motorsoutput_set(&motors);
 
         vTaskDelay(100);
