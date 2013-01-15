@@ -59,13 +59,13 @@ void smavlink_send_heartbeat(struct smavlink_heartbeat *msg,
         struct smavlink_system *sys) 
 {
     uint8_t buf[MAVLINK_MESSAGE_ID_HEARTBEAT_LEN];
-    const uint8_t three = 3; /* needed for last value, no idea why */
+    const uint8_t mavlinkversion = 3;
     smavlink_pack_uint32_t(buf, 0, msg->hb_custom_mode);
     smavlink_pack_uint8_t(buf,  4, msg->hb_type);
     smavlink_pack_uint8_t(buf,  5, msg->hb_autopilot);
     smavlink_pack_uint8_t(buf,  6, msg->hb_base_mode);
     smavlink_pack_uint8_t(buf,  7, msg->hb_system_status);
-    smavlink_pack_uint8_t(buf,  8, three);
+    smavlink_pack_uint8_t(buf,  8, mavlinkversion);
 
     smavlink_send(ch, sys, MAVLINK_MESSAGE_ID_HEARTBEAT, buf,
             MAVLINK_MESSAGE_ID_HEARTBEAT_LEN,
