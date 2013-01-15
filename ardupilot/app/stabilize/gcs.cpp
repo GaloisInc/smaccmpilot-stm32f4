@@ -48,7 +48,7 @@ static void gcs_task(void* args) {
     portTickType last_wake_time = xTaskGetTickCount();
 
     for(;;) {
-        vTaskDelayUntil(&last_wake_time, 2000);
+        vTaskDelayUntil(&last_wake_time, 1000);
         gcs_get(&state);
         gcs_send_heartbeat(&state);
     }
