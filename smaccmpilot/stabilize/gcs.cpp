@@ -7,7 +7,7 @@
 
 #include <smavlink/channel.h>
 #include <smavlink/system.h>
-#include <smavlink/messages.h>
+#include <smavlink/messages/smavlink_message_heartbeat.h>
 #include <smavlink/send.h>
 
 #include <AP_HAL.h>
@@ -112,12 +112,13 @@ static void gcs_send_heartbeat(const struct gcs_state *state) {
     const uint8_t STABILIZE_ENABLED = 16;
     const uint8_t SAFETY_ARMED = 128;
     uint8_t basemode = STABILIZE_ENABLED | (state->armed? SAFETY_ARMED : 0);
-    struct smavlink_heartbeat msg = {
-        /* .hb_type: */          2, /* Quadrotor*/
-        /* .hb_autopilot: */     0, /* MAV_AUTOPILOT_GENERIC */
-        /* .hb_base_mode: */     basemode,
-        /* .hb_custom_mode: */   0,
-        /* .hb_system_status: */ 4 /* MAV_STATE_ACTIVE */
+    struct heartbeat_msg msg = {
+        /* .type: */          2, /* Quadrotor*/
+        /* .autopilot: */     0, /* MAV_AUTOPILOT_GENERIC */
+        /* .base_mode: */     basemode,
+        /* .custom_mode: */   0,
+        /* .system_status: */ 4, /* MAV_STATE_ACTIVE */
+        /* .mavlink_vers: */  3  /* magic num - must always be 3 */
     };
     smavlink_send_heartbeat(&msg, &smav_ch, &smav_sys);
 }
