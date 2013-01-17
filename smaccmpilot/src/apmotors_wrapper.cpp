@@ -48,7 +48,7 @@ void apmotors_output_init(void) {
 
     motors.set_update_rate(50); /* Is this appropriate with IOAR?
                                      Otherwise? */
-    motors.set_frame_orientation(1); /* 1 is X_FRAME */
+    motors.set_frame_orientation(AP_MOTORS_X_FRAME);
     motors.Init();
     motors.set_min_throttle(THROTTLE_MINIMUM);
     motors.set_max_throttle(THROTTLE_MAXIMUM);
@@ -109,8 +109,4 @@ void apmotors_output_set(const struct motorsoutput_result *state) {
                 "memory barrier (should never happen).");
 
     }
-
-
-
 }
-

@@ -16,16 +16,19 @@ SMACCMPILOT_LIB     := libsmaccmpilot.a
 SMACCMPILOT_INCLUDES  += -I$(TOP)/smaccmpilot/include
 SMACCMPILOT_INCLUDES  += $(HWF4_INCLUDES)
 SMACCMPILOT_INCLUDES  += $(ARDUPILOT_LIBINCLUDES)
+SMACCMPILOT_INCLUDES  += $(IVORYRUNTIME_INCLUDES)
 SMACCMPILOT_INCLUDES  += $(FREERTOS_CFLAGS)
 
 SMACCMPILOT_CFLAGS    += $(SMACCMPILOT_INCLUDES)
 SMACCMPILOT_CXXFLAGS  += $(SMACCMPILOT_INCLUDES)
 
-SMACCMPILOT_OBJECTS :=     \
-  src/apmotors_wrapper.o   \
-  src/motorsoutput.o       \
-  src/sensors.o            \
-  src/userinput.o
+SMACCMPILOT_OBJECTS :=       \
+  src/apmotors_wrapper.o     \
+  src/motorsoutput.o         \
+  src/sensors.o              \
+  src/userinput.o            \
+  src/stabilize.o            \
+  src/ivory/pid_stabilize.o
 
 $(eval $(call library,SMACCMPILOT))
 

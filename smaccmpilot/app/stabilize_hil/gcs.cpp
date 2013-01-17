@@ -206,7 +206,7 @@ static void gcs_send_servo_output_raw()
     mavlink_msg_servo_output_raw_pack(SYS_ID, COMP_ID, &msg,
                                       hal.scheduler->micros(), 0,
                                       servo.servo[0], servo.servo[1],
-                                      servo.servo[2], servo.servo[2],
+                                      servo.servo[2], servo.servo[3],
                                       0, 0, 0, 0);
     len = mavlink_msg_to_send_buffer(g_buf, &msg);
     usart_write(GCS_UART, g_buf, len);
