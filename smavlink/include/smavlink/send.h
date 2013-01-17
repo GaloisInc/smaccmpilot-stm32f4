@@ -8,11 +8,16 @@ extern "C" {
 
 #include "smavlink/channel.h"
 #include "smavlink/system.h"
-#include "smavlink/messages.h"
 
-void smavlink_send_heartbeat(struct smavlink_heartbeat *msg,
-        struct smavlink_out_channel *ch,
-        struct smavlink_system *sys);
+#define smavlink_send_ivory(ch, sys, msgid, bodyref, bodylen, crc) \
+    smavlink_send(ch, sys, msgid, (const uint8_t*)(*bodyref), bodylen, crc)
+
+void smavlink_send( struct smavlink_out_channel *ch,
+        struct smavlink_system *sys,
+        uint8_t msgid,
+        const uint8_t *body,
+        size_t bodylen,
+        int8_t crc_extra );
 
 #ifdef __cplusplus
 }
