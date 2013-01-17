@@ -11,11 +11,13 @@
 # Written by Pat Hickey <pat@galois.com>, 14 Jan, 2013
 #
 
-SMAVLINK_LIB     := libsmavlink.a
+SMAVLINK_LIB       := libsmavlink.a
 
-SMAVLINK_CFLAGS  += -I$(TOP)/smavlink/include
-SMAVLINK_CFLAGS  += -I$(TOP)/smavlink/include/smavlink/messages
-SMAVLINK_CFLAGS  += -I$(TOP)/../dsl/ivory-lang-c/runtime
+SMAVLINK_INCLUDES  += -I$(TOP)/smavlink/include
+SMAVLINK_INCLUDES  += -I$(TOP)/smavlink/include/smavlink/messages
+SMAVLINK_INCLUDES  += -I$(TOP)/../dsl/ivory-lang-c/runtime
+
+SMAVLINK_CFLAGS    += $(SMAVLINK_INCLUDES)
 
 SMAVLINK_OBJECTS :=    \
   src/channel.o \

@@ -1,19 +1,20 @@
 
 
-#ifndef __APP_STABILIZE_APMOTORS_WRAPPER_H__
-#define __APP_STABILIZE_APMOTORS_WRAPPER_H__
+#ifndef __SMACCMPILOT_APMOTORS_WRAPPER_H__
+#define __SMACCMPILOT_APMOTORS_WRAPPER_H__
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#include "motorsoutput.h"
+#include "smaccmpilot/motorsoutput.h"
 
 void apmotors_output_init(void);
 void apmotors_output_set(const struct motorsoutput_result *state);
+void apmotors_output_get(struct servo_result *output);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif // __APP_STABILIZE_APMOTORS_WRAPPER_H__
+#endif // __SMACCMPILOT_APMOTORS_WRAPPER_H__

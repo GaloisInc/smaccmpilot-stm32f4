@@ -23,10 +23,11 @@
 # error "Unsupported CONFIG_HAL_BOARD type."
 #endif
 
+#include <smaccmpilot/sensors.h>
+#include <smaccmpilot/userinput.h>
+#include <smaccmpilot/motorsoutput.h>
+
 #include "gcs.h"
-#include "sensors.h"
-#include "userinput.h"
-#include "motorsoutput.h"
 
 const AP_HAL::HAL& hal = AP_HAL_BOARD_DRIVER;
 

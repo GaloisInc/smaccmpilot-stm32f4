@@ -1,9 +1,15 @@
 
 #include "apmotors_wrapper.h"
 
+#include <FreeRTOS.h>
+#include <task.h>
+#include <semphr.h>
+
 #include <AP_HAL.h>
 #include <RC_Channel.h>
 #include <AP_Motors.h>
+
+extern const AP_HAL::HAL& hal;
 
 
 /* copying arducopter's minimum throttle of 130. dont really know why? */
@@ -19,6 +25,8 @@ static RC_Channel s_yaw      (255);
 
 static AP_MotorsQuad motors(&s_roll, &s_pitch, &s_throttle, &s_yaw);
 
+static xSemaphoreHandle apmotors_mutex;
+
 static void angular_channel_setup(RC_Channel* ch) {
     ch->set_angle(4500);
     ch->set_type(RC_CHANNEL_TYPE_ANGLE_RAW);
@@ -30,6 +38,8 @@ static void throttle_channel_setup(RC_Channel* ch) {
 }
 
 void apmotors_output_init(void) {
+
+    apmotors_mutex = xSemaphoreCreateMutex();
 
     angular_channel_setup(&s_roll);
     angular_channel_setup(&s_pitch);
@@ -65,6 +75,20 @@ static int16_t throttle_scale(float input) {
     return (int16_t) (1000.0f * input);
 }
 
+void apmotors_output_get(struct servo_result *servo) {
+    if (xSemaphoreTake(apmotors_mutex, 1)) {
+        servo->valid = true;
+        servo->servo[0] = motors.motor_out[0];
+        servo->servo[1] = motors.motor_out[1];
+        servo->servo[2] = motors.motor_out[2];
+        servo->servo[3] = motors.motor_out[3];
+        servo->time = xTaskGetTickCount();
+    } else {
+        hal.scheduler->panic("PANIC: apmotors_output_get took too long to grab "
+                "memory barrier (should never happen).");
+    }
+}
+
 void apmotors_output_set(const struct motorsoutput_result *state) {
 
     if (motors.armed() && !(state->armed)) {
@@ -73,12 +97,20 @@ void apmotors_output_set(const struct motorsoutput_result *state) {
         motors.armed(true);
     }
 
-    s_roll.servo_out     = angular_scale(state->roll);
-    s_pitch.servo_out    = angular_scale(state->pitch);
-    s_yaw.servo_out      = angular_scale(state->yaw);
+    if (xSemaphoreTake(apmotors_mutex, 1)) {
+        s_roll.servo_out     = angular_scale(state->roll);
+        s_pitch.servo_out    = angular_scale(state->pitch);
+        s_yaw.servo_out      = angular_scale(state->yaw);
+        s_throttle.servo_out = throttle_scale(state->throttle);
+        motors.output();
+        xSemaphoreGive(apmotors_mutex);
+    } else {
+        hal.scheduler->panic("PANIC: apmotors_output_set took too long to grab "
+                "memory barrier (should never happen).");
 
-    s_throttle.servo_out = throttle_scale(state->throttle);
+    }
 
-    motors.output();
+
+
 }
 

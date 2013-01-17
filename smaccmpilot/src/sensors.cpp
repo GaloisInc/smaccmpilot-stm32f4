@@ -1,5 +1,5 @@
 
-#include "sensors.h"
+#include "smaccmpilot/sensors.h"
 
 #include <FreeRTOS.h>
 #include <task.h>

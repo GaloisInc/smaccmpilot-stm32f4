@@ -1,5 +1,5 @@
 
-#include "userinput.h"
+#include "smaccmpilot/userinput.h"
 
 #include <hwf4/timer.h>
 

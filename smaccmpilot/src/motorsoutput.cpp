@@ -1,5 +1,5 @@
 
-#include "motorsoutput.h"
+#include "smaccmpilot/motorsoutput.h"
 #include "apmotors_wrapper.h"
 
 #include <FreeRTOS.h>
@@ -63,6 +63,10 @@ void motorsoutput_set(const struct motorsoutput_result *out) {
         hal.scheduler->panic("PANIC: motorsoutput_set took too long to grab "
                 "memory barrier (should never happen).");
     }
+}
+
+void motorsoutput_getservo(struct servo_result *output) {
+    apmotors_output_get(output);    
 }
 
 static void motorsoutput_failsafe(struct motorsoutput_result *state) {

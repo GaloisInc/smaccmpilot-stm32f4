@@ -17,8 +17,15 @@ struct motorsoutput_result {
     portTickType time;
 };
 
+struct servo_result {
+    bool valid;
+    uint16_t servo[4];
+    portTickType time;
+};
+
 void motorsoutput_init(void);
 void motorsoutput_set(const struct motorsoutput_result *input);
+void motorsoutput_getservo(struct servo_result *output);
 
 #ifdef __cplusplus
 }
