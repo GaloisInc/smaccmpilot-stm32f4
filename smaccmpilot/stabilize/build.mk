@@ -19,6 +19,9 @@ SP_STABILIZE_OBJECTS  += motorsoutput.o
 SP_STABILIZE_OBJECTS  += apmotors_wrapper.o
 SP_STABILIZE_OBJECTS  += gcs.o
 
+SP_STABILIZE_CFLAGS    += $(FREERTOS_CFLAGS)
+SP_STABILIZE_CFLAGS    += -I$(TOP)/include
+SP_STABILIZE_CFLAGS    += -I$(TOP)/hwf4/include
 SP_STABILIZE_CXXFLAGS  = $(ARDUPILOT_CXXFLAGS)
 SP_STABILIZE_CXXFLAGS += -I$(TOP)/smavlink/include
 SP_STABILIZE_CXXFLAGS += -I$(TOP)/../dsl/ivory-lang-c/runtime
