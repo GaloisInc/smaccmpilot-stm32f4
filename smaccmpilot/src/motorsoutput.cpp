@@ -18,6 +18,8 @@ static void motorsoutput_get(struct motorsoutput_result *state);
 static void motorsoutput_failsafe(struct motorsoutput_result *state);
 
 void motorsoutput_init(void) {
+    apmotors_output_init();
+
     motorsoutput_mutex = xSemaphoreCreateMutex();
     xTaskCreate(motorsoutput_task, (signed char *)"user", 1024, NULL, 0,
                 &motorsoutput_task_handle);
@@ -26,8 +28,6 @@ void motorsoutput_init(void) {
 static void motorsoutput_task(void* args) {
 
     struct motorsoutput_result state = {0};
-
-    apmotors_output_init();
 
     portTickType last_wake_time = xTaskGetTickCount();
 
@@ -66,7 +66,7 @@ void motorsoutput_set(const struct motorsoutput_result *out) {
 }
 
 void motorsoutput_getservo(struct servo_result *output) {
-    apmotors_output_get(output);    
+    apmotors_output_get(output);
 }
 
 static void motorsoutput_failsafe(struct motorsoutput_result *state) {

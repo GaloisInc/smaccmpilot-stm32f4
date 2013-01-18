@@ -83,6 +83,7 @@ void apmotors_output_get(struct servo_result *servo) {
         servo->servo[2] = motors.motor_out[2];
         servo->servo[3] = motors.motor_out[3];
         servo->time = xTaskGetTickCount();
+        xSemaphoreGive(apmotors_mutex);
     } else {
         hal.scheduler->panic("PANIC: apmotors_output_get took too long to grab "
                 "memory barrier (should never happen).");
