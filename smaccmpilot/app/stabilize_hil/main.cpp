@@ -17,8 +17,8 @@
 #include <AP_HAL_SMACCM.h>
 #include <AP_Math.h>
 
-#include "userinput.h"
-#include "motorsoutput.h"
+#include <smaccmpilot/userinput.h>
+#include <smaccmpilot/motorsoutput.h>
 #include "gcs.h"
 
 const AP_HAL::HAL& hal = AP_HAL_BOARD_DRIVER;
