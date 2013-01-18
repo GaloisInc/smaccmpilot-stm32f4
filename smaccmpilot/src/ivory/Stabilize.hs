@@ -19,6 +19,15 @@ import Ivory.Compile.C
 
 ----------------------------------------------------------------------
 -- Ivory Utilities
+--
+-- If these are generally useful, they should probably be moved into a
+-- "user-space" Ivory utility module.
+
+-- | Infix structure field access and dereference.
+--
+-- This is a shorthand for 'deref $ s~>x'.
+struct ~>* label = deref $ struct~>label
+infixl 8 ~>*
 
 -- | Modify the value stored at a reference by a function.
 (%=) :: (IvoryType r, IvoryExpr a) => Ref (Stored a) -> (a -> a) -> Ivory r ()
@@ -52,11 +61,11 @@ constrain min max x = ((x <? min) ? (min, ((x >? max) ? (max, x))))
 -- output value.
 pid_update :: Def ('[(Ref (Struct "PID")), IFloat] :-> IFloat)
 pid_update = proc "pid_update" $ \pid err -> do
-  p_term <- fmap (* err) (deref $ pid~>pid_pGain)
-  i_min <- deref $ pid~>pid_iMin
-  i_max <- deref $ pid~>pid_iMax
+  p_term <- fmap (* err) (pid~>*pid_pGain)
+  i_min <- pid~>*pid_iMin
+  i_max <- pid~>*pid_iMax
   pid~>pid_iState %= (constrain i_min i_max . (+ err))
-  i_term <- liftA2 (*) (deref $ pid~>pid_iGain) (deref $ pid~>pid_iState)
+  i_term <- liftA2 (*) (pid~>*pid_iGain) (pid~>*pid_iState)
   ret $ p_term + i_term
 
 ----------------------------------------------------------------------
@@ -79,16 +88,18 @@ stabilize_from_angle = proc "stabilize_from_angle" $
   \angle_pid rate_pid stick_angle_norm
    max_stick_angle_deg sensor_angle_rad
    sensor_rate_rad_s max_servo_rate_rad_s -> do
-  let stick_angle_deg   = stick_angle_norm * max_stick_angle_deg
-  let sensor_angle_deg  = degrees sensor_angle_rad
-  let angle_error       = stick_angle_deg - sensor_angle_deg
-  rate_deg_s           <- call pid_update angle_pid angle_error
-  let sensor_rate_deg_s = degrees sensor_rate_rad_s
-  let rate_error        = rate_deg_s - sensor_rate_deg_s
-  servo_rate_deg_s     <- call pid_update rate_pid rate_error
-  let servo_rate_norm   = (constrain (-max_servo_rate_rad_s)
-                                      max_servo_rate_rad_s
-                                      servo_rate_deg_s) / max_servo_rate_rad_s
+  stick_angle_deg   <- assign $ stick_angle_norm * max_stick_angle_deg
+  sensor_angle_deg  <- assign $ degrees sensor_angle_rad
+  angle_error       <- assign $ stick_angle_deg - sensor_angle_deg
+  rate_deg_s        <- call pid_update angle_pid angle_error
+  sensor_rate_deg_s <- assign $ degrees sensor_rate_rad_s
+  rate_error        <- assign $ rate_deg_s - sensor_rate_deg_s
+  servo_rate_deg_s  <- call pid_update rate_pid rate_error
+  servo_rate_norm   <- assign $
+                       (constrain
+                        (-max_servo_rate_rad_s)
+                        max_servo_rate_rad_s
+                        servo_rate_deg_s) / max_servo_rate_rad_s
   ret servo_rate_norm
 
 -- | Return a normalized servo output given a normalized stick input
@@ -103,13 +114,15 @@ stabilize_from_rate :: Def ('[
 stabilize_from_rate = proc "stabilize_from_rate" $
   \rate_pid stick_rate_norm max_stick_rate_deg_s
    sensor_rate_rad_s max_servo_rate_rad_s -> do
-  let stick_rate_deg_s  = stick_rate_norm * max_stick_rate_deg_s
-  let sensor_rate_deg_s = degrees sensor_rate_rad_s
-  let rate_error        = stick_rate_deg_s - sensor_rate_deg_s
-  servo_rate_deg_s     <- call pid_update rate_pid rate_error
-  let servo_rate_norm   = (constrain (-max_servo_rate_rad_s)
-                                     max_servo_rate_rad_s
-                                     servo_rate_deg_s) / max_servo_rate_rad_s
+  stick_rate_deg_s  <- assign $ stick_rate_norm * max_stick_rate_deg_s
+  sensor_rate_deg_s <- assign $ degrees sensor_rate_rad_s
+  rate_error        <- assign $ stick_rate_deg_s - sensor_rate_deg_s
+  servo_rate_deg_s  <- call pid_update rate_pid rate_error
+  servo_rate_norm   <- assign $
+                       (constrain
+                        (-max_servo_rate_rad_s)
+                        max_servo_rate_rad_s
+                        servo_rate_deg_s) / max_servo_rate_rad_s
   ret servo_rate_norm
 
 ----------------------------------------------------------------------
