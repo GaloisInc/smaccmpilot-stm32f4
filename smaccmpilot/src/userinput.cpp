@@ -92,10 +92,10 @@ static void userinput_capture(struct userinput_result *capt) {
             /* Update capt.time, recordkeeping for internal failsafe */
             capt->time     = xTaskGetTickCount();
             /* Update each captured channel */
-            capt->yaw      = fit_ch(ch[0], 1500, 500, -1.0f, 1.0f );
+            capt->roll     = fit_ch(ch[0], 1500, 500, -1.0f, 1.0f );
             capt->pitch    = fit_ch(ch[1], 1500, 500, -1.0f, 1.0f );
             capt->throttle = fit_ch(ch[2], 1000, 1000, 0.0f, 1.0f );
-            capt->roll     = fit_ch(ch[3], 1500, 500, -1.0f, 1.0f );
+            capt->yaw      = fit_ch(ch[3], 1500, 500, -1.0f, 1.0f );
 
             /* Motor arming is mapped to channel 5 as a single switch, for
              * simplicity. */
