@@ -1,13 +1,12 @@
 
-#ifndef __APP_STABILIZE_SENSORS_H__
-#define __APP_STABILIZE_SENSORS_H__
+#ifndef __SMACCMPILOT_SENSORS_H__
+#define __SMACCMPILOT_SENSORS_H__
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#include <FreeRTOS.h>
-#include <queue.h>
+#include <stdbool.h>
 
 struct sensors_result {
   bool valid;
@@ -30,5 +29,5 @@ void sensors_get(struct sensors_result *sensors);
 }
 #endif
 
-#endif // __APP_STABILIZE_SENSORS_H__
+#endif // __SMACCMPILOT_SENSORS_H__
 
