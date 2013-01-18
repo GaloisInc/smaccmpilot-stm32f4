@@ -2,3 +2,6 @@ Config.mk
 build
 *.o
 *.a
+mav.log
+mav.log.raw
+status.txt
