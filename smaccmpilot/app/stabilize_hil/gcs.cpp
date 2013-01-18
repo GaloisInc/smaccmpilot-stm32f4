@@ -173,6 +173,24 @@ static void gcs_send_location()
     usart_write(GCS_UART, g_buf, len);
 }
 
+// Send a GPS_RAW_INT message from the sensor state.
+static void gcs_send_gps_raw_int()
+{
+    struct sensors_result sensors;
+    mavlink_message_t msg;
+    uint16_t len;
+
+    if (!gcs_sensors_get(&sensors))
+        return;
+
+    mavlink_msg_gps_raw_int_pack(SYS_ID, COMP_ID, &msg,
+                                 hal.scheduler->micros(), 3, // 3D fix
+                                 sensors.lat, sensors.lon, sensors.gps_alt,
+                                 65535, 65535, 65535, 65535, 255);
+    len = mavlink_msg_to_send_buffer(g_buf, &msg);
+    usart_write(GCS_UART, g_buf, len);
+}
+
 // Send a VFR_HUD message.
 static void gcs_send_vfr_hud()
 {
@@ -292,12 +310,13 @@ struct gcs_timed_action {
 // The mapping of streams to messages here is intended to be
 // compatible with ArduCopter.
 static struct gcs_timed_action g_actions[] = {
-    { gcs_send_heartbeat,        0,                              1, 0 },
-    { gcs_send_servo_output_raw, MAV_DATA_STREAM_RAW_CONTROLLER, 0, 0 },
-    { gcs_send_attitude,         MAV_DATA_STREAM_EXTRA1,         0, 0 },
-    { gcs_send_location,         MAV_DATA_STREAM_POSITION,       0, 0 },
-    { gcs_send_vfr_hud,          MAV_DATA_STREAM_EXTRA2,         0, 0 },
-    { NULL,                      0,                              0, 0 },
+    { gcs_send_heartbeat,        0,                               1, 0 },
+    { gcs_send_servo_output_raw, MAV_DATA_STREAM_RAW_CONTROLLER,  0, 0 },
+    { gcs_send_attitude,         MAV_DATA_STREAM_EXTRA1,          0, 0 },
+    { gcs_send_location,         MAV_DATA_STREAM_POSITION,        0, 0 },
+    { gcs_send_gps_raw_int,      MAV_DATA_STREAM_EXTENDED_STATUS, 0, 0 },
+    { gcs_send_vfr_hud,          MAV_DATA_STREAM_EXTRA2,          0, 0 },
+    { NULL,                      0,                               0, 0 },
 };
 
 // Enable/disable and set rate for a stream.  If "stream" is zero, all
