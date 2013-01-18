@@ -66,15 +66,16 @@ pid_update = proc "pid_update" $ \pid err -> do
 degrees :: (Fractional a) => a -> a
 degrees x = x * 57.295779513082320876798154814105
 
-stabilize_axis :: Def ('[(Ref (Struct "PID")), -- angle_pid
-                         (Ref (Struct "PID")), -- rate_pid
-                         IFloat,               -- stick_angle_norm
-                         IFloat,               -- max_stick_angle_deg
-                         IFloat,               -- sensor_angle_rad,
-                         IFloat,               -- sensor_rate_rad_s
-                         IFloat                -- max_servo_rate_rad_s
-                        ] :-> IFloat)
-stabilize_axis = proc "stabilize_axis" $
+stabilize_from_angle :: Def ('[
+  (Ref (Struct "PID")),         -- angle_pid
+  (Ref (Struct "PID")),         -- rate_pid
+  IFloat,                       -- stick_angle_norm
+  IFloat,                       -- max_stick_angle_deg
+  IFloat,                       -- sensor_angle_rad,
+  IFloat,                       -- sensor_rate_rad_s
+  IFloat                        -- max_servo_rate_rad_s
+ ] :-> IFloat)
+stabilize_from_angle = proc "stabilize_from_angle" $
   \angle_pid rate_pid stick_angle_norm
    max_stick_angle_deg sensor_angle_rad
    sensor_rate_rad_s max_servo_rate_rad_s -> do
@@ -90,6 +91,27 @@ stabilize_axis = proc "stabilize_axis" $
                                       servo_rate_deg_s) / max_servo_rate_rad_s
   ret servo_rate_norm
 
+-- | Return a normalized servo output given a normalized stick input
+-- representing the desired rate.  Only uses the rate PID controller.
+stabilize_from_rate :: Def ('[
+  (Ref (Struct "PID")),         -- rate_pid
+  IFloat,                       -- stick_rate_norm
+  IFloat,                       -- max_stick_rate_deg_s
+  IFloat,                       -- sensor_rate_rad_s
+  IFloat                        -- max_servo_rate_rad_s
+ ] :-> IFloat)
+stabilize_from_rate = proc "stabilize_from_rate" $
+  \rate_pid stick_rate_norm max_stick_rate_deg_s
+   sensor_rate_rad_s max_servo_rate_rad_s -> do
+  let stick_rate_deg_s  = stick_rate_norm * max_stick_rate_deg_s
+  let sensor_rate_deg_s = degrees sensor_rate_rad_s
+  let rate_error        = stick_rate_deg_s - sensor_rate_deg_s
+  servo_rate_deg_s     <- call pid_update rate_pid rate_error
+  let servo_rate_norm   = (constrain (-max_servo_rate_rad_s)
+                                     max_servo_rate_rad_s
+                                     servo_rate_deg_s) / max_servo_rate_rad_s
+  ret servo_rate_norm
+
 ----------------------------------------------------------------------
 -- Ivory Module
 
@@ -100,7 +122,8 @@ stabilizeModule :: Module
 stabilizeModule = package "pid_stabilize" $ do
   defStruct (Proxy :: Proxy "PID")
   incl pid_update
-  incl stabilize_axis
+  incl stabilize_from_angle
+  incl stabilize_from_rate
 
 main :: IO ()
 main = writeFiles cmodule

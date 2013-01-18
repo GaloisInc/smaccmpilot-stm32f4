@@ -12,8 +12,10 @@ struct PID {
     float pid_iMax;
 };
 float pid_update(struct PID* var0, float var1);
-float stabilize_axis(struct PID* var0, struct PID* var1, float var2, float var3,
-                     float var4, float var5, float var6);
+float stabilize_from_angle(struct PID* var0, struct PID* var1, float var2,
+                           float var3, float var4, float var5, float var6);
+float stabilize_from_rate(struct PID* var0, float var1, float var2, float var3,
+                          float var4);
 
 #ifdef __cplusplus
 }

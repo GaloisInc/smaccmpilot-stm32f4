@@ -64,6 +64,7 @@ static struct PID g_pi_pitch_rate = {
     5.0f,                       // i_max
 };
 
+#if 0                           // not used currently
 static struct PID g_pi_yaw_stabilize = {
     1.3f,                       // p_gain
     0.0f,                       // i_gain
@@ -71,6 +72,7 @@ static struct PID g_pi_yaw_stabilize = {
     -8.0f,                      // i_min
     8.0f,                       // i_max
 };
+#endif
 
 static struct PID g_pi_yaw_rate = {
     0.05f,                      // p_gain
@@ -84,20 +86,18 @@ void stabilize_motors(const struct userinput_result *in,
                       const struct sensors_result *sensors,
                       struct motorsoutput_result *out)
 {
-    out->roll  = stabilize_axis (&g_pi_roll_stabilize, &g_pi_roll_rate,
-                                 in->roll, MAX_INPUT_ROLL,
-                                 sensors->roll, sensors->omega_x,
-                                 MAX_OUTPUT_ROLL);
+    out->roll  = stabilize_from_angle(&g_pi_roll_stabilize, &g_pi_roll_rate,
+                                      in->roll, MAX_INPUT_ROLL,
+                                      sensors->roll, sensors->omega_x,
+                                      MAX_OUTPUT_ROLL);
 
-    out->pitch = stabilize_axis (&g_pi_pitch_stabilize, &g_pi_pitch_rate,
-                                 in->pitch, MAX_INPUT_PITCH,
-                                 sensors->pitch, sensors->omega_y,
-                                 MAX_OUTPUT_PITCH);
+    out->pitch = stabilize_from_angle(&g_pi_pitch_stabilize, &g_pi_pitch_rate,
+                                      in->pitch, MAX_INPUT_PITCH,
+                                      sensors->pitch, sensors->omega_y,
+                                      MAX_OUTPUT_PITCH);
 
-    out->yaw   = stabilize_axis (&g_pi_yaw_stabilize, &g_pi_yaw_rate,
-                                 in->yaw, MAX_INPUT_YAW,
-                                 sensors->yaw, sensors->omega_z,
-                                 MAX_OUTPUT_YAW);
+    out->yaw   = stabilize_from_rate(&g_pi_yaw_rate, in->yaw, MAX_INPUT_YAW,
+                                     sensors->omega_z, MAX_OUTPUT_YAW);
 
     out->armed    = in->armed;
     out->throttle = in->throttle;
