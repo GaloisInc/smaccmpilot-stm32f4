@@ -16,6 +16,9 @@
 extern "C" {
 #endif
 
+// Forward declaration---defined in "motorsoutput.h".
+struct servo_result;
+
 // Sensor data received from the host via MAVLink.
 struct sensors_result {
     bool valid;
@@ -43,12 +46,6 @@ struct sensors_result {
     int16_t zacc;
 };
 
-// Servo data to send to the host via MAVLink.
-struct servos_result {
-    bool valid;
-    uint16_t servo[8];
-};
-
 // Initialize the GCS, starting a task for MAVLink.
 void gcs_init();
 
@@ -57,7 +54,7 @@ void gcs_init();
 bool gcs_sensors_get(struct sensors_result *sensors);
 
 // Write servo data to the GCS.
-void gcs_servos_set(const struct servos_result *servo);
+void gcs_servos_set(const struct servo_result *servo);
 
 #ifdef __cplusplus
 }

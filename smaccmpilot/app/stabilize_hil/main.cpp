@@ -41,11 +41,14 @@ void main_task(void *arg)
         struct userinput_result input;
         struct sensors_result sensors;
         struct motorsoutput_result motors;
+        struct servo_result servos;
 
         userinput_get(&input);
         gcs_sensors_get(&sensors);
         stabilize_motors(&input, &sensors, &motors);
         motorsoutput_set(&motors);
+        motorsoutput_getservo(&servos);
+        gcs_servos_set(&servos);
 
         vTaskDelay(10);
     }

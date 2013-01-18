@@ -23,6 +23,7 @@
 #include <include/mavlink/v1.0/mavlink_types.h>
 #include <include/mavlink/v1.0/common/mavlink.h>
 
+#include <smaccmpilot/motorsoutput.h>
 #include "gcs.h"
 
 extern const AP_HAL::HAL& hal;
@@ -54,7 +55,7 @@ static struct sensors_result g_sensors;
 
 // Shared servo state and mutex protecting it.
 static xSemaphoreHandle g_servos_mutex;
-static struct servos_result g_servos;
+static struct servo_result g_servos;
 
 static void gcs_set_stream_rate(uint8_t stream, uint8_t enable, uint16_t rate);
 
@@ -88,11 +89,11 @@ static void gcs_sensors_set(const struct sensors_result *state)
 }
 
 // Read the current servo data.
-static bool gcs_servos_get(struct servos_result *state)
+static bool gcs_servos_get(struct servo_result *state)
 {
     bool result = false;
 
-    if (xSemaphoreTake(g_servos_mutex, 50)) {
+    if (xSemaphoreTake(g_servos_mutex, 1)) {
         memcpy(state, &g_servos, sizeof(g_servos));
         result = state->valid;
         xSemaphoreGive(g_servos_mutex);
@@ -105,9 +106,9 @@ static bool gcs_servos_get(struct servos_result *state)
 }
 
 // Set the servo data to send via MAVLink.
-void gcs_servos_set(const struct servos_result *state)
+void gcs_servos_set(const struct servo_result *state)
 {
-    if (xSemaphoreTake(g_servos_mutex, 50)) {
+    if (xSemaphoreTake(g_servos_mutex, 1)) {
         memcpy(&g_servos, state, sizeof(g_servos));
         xSemaphoreGive(g_servos_mutex);
     } else {
@@ -196,7 +197,7 @@ static void gcs_send_vfr_hud()
 // Send a SERVO_OUTPUT_RAW message from the servo state.
 static void gcs_send_servo_output_raw()
 {
-    struct servos_result servo;
+    struct servo_result servo;
     mavlink_message_t msg;
     uint16_t len;
 
