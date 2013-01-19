@@ -10,16 +10,16 @@ void smavlink_send_statustext(struct statustext_msg* var0,
     uint8_t(* ref1)[51U] = &local0;
     uint8_t deref2 = *&var0->severity;
     
-    smavlink_pack_uint8_t(ref1, 0, deref2);
+    smavlink_pack_uint8_t(ref1, 0U, deref2);
     
     uint8_t(* let3)[50U] = &var0->text;
-    uint8_t ix4 = 0 % 50;
+    uint8_t ix4 = 0U % 50U;
     
-    for (; ix4 < 49 % 50; ix4 = ix4 + 1 % 50) {
+    for (; ix4 < 49U % 50U; ix4 = ix4 + 1U % 50U) {
         uint8_t deref5 = *&*let3[ix4];
         
-        smavlink_pack_uint8_t(ref1, 1 + ix4, deref5);
+        smavlink_pack_uint8_t(ref1, 1U + ix4, deref5);
     }
-    smavlink_send_ivory(var1, var2, 253, ref1, 51, 83);
+    smavlink_send_ivory(var1, var2, 253U, ref1, 51U, 83U);
     return;
 }

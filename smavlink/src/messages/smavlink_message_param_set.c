@@ -9,28 +9,28 @@ void smavlink_send_param_set(struct param_set_msg* var0,
     uint8_t(* ref1)[23U] = &local0;
     float deref2 = *&var0->param_value;
     
-    smavlink_pack_float(ref1, 0, deref2);
+    smavlink_pack_float(ref1, 0U, deref2);
     
     uint8_t deref3 = *&var0->target_system;
     
-    smavlink_pack_uint8_t(ref1, 4, deref3);
+    smavlink_pack_uint8_t(ref1, 4U, deref3);
     
     uint8_t deref4 = *&var0->target_component;
     
-    smavlink_pack_uint8_t(ref1, 5, deref4);
+    smavlink_pack_uint8_t(ref1, 5U, deref4);
     
     uint8_t deref5 = *&var0->param_type;
     
-    smavlink_pack_uint8_t(ref1, 22, deref5);
+    smavlink_pack_uint8_t(ref1, 22U, deref5);
     
     uint8_t(* let6)[16U] = &var0->param_id;
-    uint8_t ix7 = 0 % 16;
+    uint8_t ix7 = 0U % 16U;
     
-    for (; ix7 < 15 % 16; ix7 = ix7 + 1 % 16) {
+    for (; ix7 < 15U % 16U; ix7 = ix7 + 1U % 16U) {
         uint8_t deref8 = *&*let6[ix7];
         
-        smavlink_pack_uint8_t(ref1, 6 + ix7, deref8);
+        smavlink_pack_uint8_t(ref1, 6U + ix7, deref8);
     }
-    smavlink_send_ivory(var1, var2, 23, ref1, 23, 168);
+    smavlink_send_ivory(var1, var2, 23U, ref1, 23U, 168U);
     return;
 }

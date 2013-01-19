@@ -10,24 +10,24 @@ void smavlink_send_memory_vect(struct memory_vect_msg* var0,
     uint8_t(* ref1)[36U] = &local0;
     uint16_t deref2 = *&var0->address;
     
-    smavlink_pack_uint16_t(ref1, 0, deref2);
+    smavlink_pack_uint16_t(ref1, 0U, deref2);
     
     uint8_t deref3 = *&var0->ver;
     
-    smavlink_pack_uint8_t(ref1, 2, deref3);
+    smavlink_pack_uint8_t(ref1, 2U, deref3);
     
     uint8_t deref4 = *&var0->memory_vect_type;
     
-    smavlink_pack_uint8_t(ref1, 3, deref4);
+    smavlink_pack_uint8_t(ref1, 3U, deref4);
     
     int8_t(* let5)[32U] = &var0->value;
-    uint8_t ix6 = 0 % 32;
+    uint8_t ix6 = 0U % 32U;
     
-    for (; ix6 < 31 % 32; ix6 = ix6 + 1 % 32) {
+    for (; ix6 < 31U % 32U; ix6 = ix6 + 1U % 32U) {
         int8_t deref7 = *&*let5[ix6];
         
-        smavlink_pack_int8_t(ref1, 4 + ix6, deref7);
+        smavlink_pack_int8_t(ref1, 4U + ix6, deref7);
     }
-    smavlink_send_ivory(var1, var2, 249, ref1, 36, 204);
+    smavlink_send_ivory(var1, var2, 249U, ref1, 36U, 204U);
     return;
 }

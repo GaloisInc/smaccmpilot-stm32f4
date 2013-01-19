@@ -8,11 +8,11 @@ void smavlink_send_system_time(struct system_time_msg* var0,
     uint8_t(* ref1)[12U] = &local0;
     uint64_t deref2 = *&var0->time_unix_usec;
     
-    smavlink_pack_uint64_t(ref1, 0, deref2);
+    smavlink_pack_uint64_t(ref1, 0U, deref2);
     
     uint32_t deref3 = *&var0->time_boot_ms;
     
-    smavlink_pack_uint32_t(ref1, 8, deref3);
-    smavlink_send_ivory(var1, var2, 2, ref1, 12, 137);
+    smavlink_pack_uint32_t(ref1, 8U, deref3);
+    smavlink_send_ivory(var1, var2, 2U, ref1, 12U, 137U);
     return;
 }

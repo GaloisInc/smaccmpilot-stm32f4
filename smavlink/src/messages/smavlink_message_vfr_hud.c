@@ -9,27 +9,27 @@ void smavlink_send_vfr_hud(struct vfr_hud_msg* var0,
     uint8_t(* ref1)[20U] = &local0;
     float deref2 = *&var0->airspeed;
     
-    smavlink_pack_float(ref1, 0, deref2);
+    smavlink_pack_float(ref1, 0U, deref2);
     
     float deref3 = *&var0->groundspeed;
     
-    smavlink_pack_float(ref1, 4, deref3);
+    smavlink_pack_float(ref1, 4U, deref3);
     
     float deref4 = *&var0->alt;
     
-    smavlink_pack_float(ref1, 8, deref4);
+    smavlink_pack_float(ref1, 8U, deref4);
     
     float deref5 = *&var0->climb;
     
-    smavlink_pack_float(ref1, 12, deref5);
+    smavlink_pack_float(ref1, 12U, deref5);
     
     int16_t deref6 = *&var0->heading;
     
-    smavlink_pack_int16_t(ref1, 16, deref6);
+    smavlink_pack_int16_t(ref1, 16U, deref6);
     
     uint16_t deref7 = *&var0->throttle;
     
-    smavlink_pack_uint16_t(ref1, 18, deref7);
-    smavlink_send_ivory(var1, var2, 74, ref1, 20, 20);
+    smavlink_pack_uint16_t(ref1, 18U, deref7);
+    smavlink_send_ivory(var1, var2, 74U, ref1, 20U, 20U);
     return;
 }

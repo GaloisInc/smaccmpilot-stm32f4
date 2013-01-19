@@ -9,28 +9,28 @@ void smavlink_send_debug_vect(struct debug_vect_msg* var0,
     uint8_t(* ref1)[30U] = &local0;
     uint64_t deref2 = *&var0->time_usec;
     
-    smavlink_pack_uint64_t(ref1, 0, deref2);
+    smavlink_pack_uint64_t(ref1, 0U, deref2);
     
     float deref3 = *&var0->x;
     
-    smavlink_pack_float(ref1, 8, deref3);
+    smavlink_pack_float(ref1, 8U, deref3);
     
     float deref4 = *&var0->y;
     
-    smavlink_pack_float(ref1, 12, deref4);
+    smavlink_pack_float(ref1, 12U, deref4);
     
     float deref5 = *&var0->z;
     
-    smavlink_pack_float(ref1, 16, deref5);
+    smavlink_pack_float(ref1, 16U, deref5);
     
     uint8_t(* let6)[10U] = &var0->name;
-    uint8_t ix7 = 0 % 10;
+    uint8_t ix7 = 0U % 10U;
     
-    for (; ix7 < 9 % 10; ix7 = ix7 + 1 % 10) {
+    for (; ix7 < 9U % 10U; ix7 = ix7 + 1U % 10U) {
         uint8_t deref8 = *&*let6[ix7];
         
-        smavlink_pack_uint8_t(ref1, 20 + ix7, deref8);
+        smavlink_pack_uint8_t(ref1, 20U + ix7, deref8);
     }
-    smavlink_send_ivory(var1, var2, 250, ref1, 30, 49);
+    smavlink_send_ivory(var1, var2, 250U, ref1, 30U, 49U);
     return;
 }

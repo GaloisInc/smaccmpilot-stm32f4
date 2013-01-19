@@ -9,23 +9,23 @@ void smavlink_send_roll_pitch_yaw_speed_thrust_setpoint(struct roll_pitch_yaw_sp
     uint8_t(* ref1)[20U] = &local0;
     uint32_t deref2 = *&var0->time_boot_ms;
     
-    smavlink_pack_uint32_t(ref1, 0, deref2);
+    smavlink_pack_uint32_t(ref1, 0U, deref2);
     
     float deref3 = *&var0->roll_speed;
     
-    smavlink_pack_float(ref1, 4, deref3);
+    smavlink_pack_float(ref1, 4U, deref3);
     
     float deref4 = *&var0->pitch_speed;
     
-    smavlink_pack_float(ref1, 8, deref4);
+    smavlink_pack_float(ref1, 8U, deref4);
     
     float deref5 = *&var0->yaw_speed;
     
-    smavlink_pack_float(ref1, 12, deref5);
+    smavlink_pack_float(ref1, 12U, deref5);
     
     float deref6 = *&var0->thrust;
     
-    smavlink_pack_float(ref1, 16, deref6);
-    smavlink_send_ivory(var1, var2, 59, ref1, 20, 238);
+    smavlink_pack_float(ref1, 16U, deref6);
+    smavlink_send_ivory(var1, var2, 59U, ref1, 20U, 238U);
     return;
 }

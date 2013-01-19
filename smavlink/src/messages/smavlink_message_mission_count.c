@@ -8,15 +8,15 @@ void smavlink_send_mission_count(struct mission_count_msg* var0,
     uint8_t(* ref1)[4U] = &local0;
     uint16_t deref2 = *&var0->count;
     
-    smavlink_pack_uint16_t(ref1, 0, deref2);
+    smavlink_pack_uint16_t(ref1, 0U, deref2);
     
     uint8_t deref3 = *&var0->target_system;
     
-    smavlink_pack_uint8_t(ref1, 2, deref3);
+    smavlink_pack_uint8_t(ref1, 2U, deref3);
     
     uint8_t deref4 = *&var0->target_component;
     
-    smavlink_pack_uint8_t(ref1, 3, deref4);
-    smavlink_send_ivory(var1, var2, 44, ref1, 4, 221);
+    smavlink_pack_uint8_t(ref1, 3U, deref4);
+    smavlink_send_ivory(var1, var2, 44U, ref1, 4U, 221U);
     return;
 }
