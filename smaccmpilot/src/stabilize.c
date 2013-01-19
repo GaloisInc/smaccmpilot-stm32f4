@@ -17,7 +17,8 @@
 #include <smaccmpilot/stabilize.h>
 #include <smaccmpilot/motorsoutput.h>
 
-#include "ivory/pid_stabilize.h"
+/* ivory generated pid code: */
+#include <smaccmpilot/pid_stabilize.h>
 
 #define MAX_INPUT_ROLL   45.0f  /* deg */
 #define MAX_INPUT_PITCH  45.0f  /* deg */

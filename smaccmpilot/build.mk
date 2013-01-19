@@ -20,6 +20,9 @@ SMACCMPILOT_INCLUDES  += $(IVORYRUNTIME_INCLUDES)
 SMACCMPILOT_INCLUDES  += $(FREERTOS_CFLAGS)
 
 SMACCMPILOT_CFLAGS    += $(SMACCMPILOT_INCLUDES)
+# need to include with unqualified name: ivory doesnt have a way to
+# build c files whose own headers have qualified names.
+SMACCMPILOT_CFLAGS    += -I$(TOP)/smaccmpilot/include/smaccmpilot
 SMACCMPILOT_CXXFLAGS  += $(SMACCMPILOT_INCLUDES)
 
 SMACCMPILOT_OBJECTS :=       \
@@ -28,7 +31,7 @@ SMACCMPILOT_OBJECTS :=       \
   src/sensors.o              \
   src/userinput.o            \
   src/stabilize.o            \
-  src/ivory/pid_stabilize.o
+  src/pid_stabilize.o
 
 $(eval $(call library,SMACCMPILOT))
 
