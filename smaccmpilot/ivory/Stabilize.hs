@@ -12,10 +12,22 @@
 -- TBD: License terms?
 --
 
+module Stabilize where
+
 import Control.Applicative
 
 import Ivory.Language
-import Ivory.Compile.C
+
+----------------------------------------------------------------------
+-- Ivory Module
+
+
+stabilizeModule :: Module
+stabilizeModule = package "pid_stabilize" $ do
+  defStruct (Proxy :: Proxy "PID")
+  incl pid_update
+  incl stabilize_from_angle
+  incl stabilize_from_rate
 
 ----------------------------------------------------------------------
 -- Ivory Utilities
@@ -125,18 +137,3 @@ stabilize_from_rate = proc "stabilize_from_rate" $
                         servo_rate_deg_s) / max_servo_rate_rad_s
   ret servo_rate_norm
 
-----------------------------------------------------------------------
--- Ivory Module
-
-cmodule :: CompileUnits
-cmodule = compileModule stabilizeModule
-
-stabilizeModule :: Module
-stabilizeModule = package "pid_stabilize" $ do
-  defStruct (Proxy :: Proxy "PID")
-  incl pid_update
-  incl stabilize_from_angle
-  incl stabilize_from_rate
-
-main :: IO ()
-main = writeFiles cmodule

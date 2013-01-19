@@ -1,6 +1,6 @@
 #! /bin/sh
 
-TOP=../../..
+TOP=..
 DSL=$TOP/../dsl
 SANDBOX=$DSL/cabal-dev
 

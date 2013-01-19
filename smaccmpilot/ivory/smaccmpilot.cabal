@@ -1,0 +1,31 @@
+
+name:                smaccmpilot
+version:             0.1.0.0
+-- synopsis:            
+-- description:         
+license:             BSD3
+license-file:        LICENSE
+author:              Galois, Inc.
+maintainer:          jamesjb@galois.com
+-- copyright:           
+category:            System
+build-type:          Simple
+cabal-version:       >=1.8
+
+library
+  exposed-modules:     Stabilize,
+                       Position
+
+  build-depends:       base >= 4.6,
+                       ivory
+
+  default-language:    Haskell2010
+  ghc-options:         -Wall -fno-warn-orphans
+
+executable smaccmpilot-gen
+  main-is:             Main.hs
+  other-modules:       
+  build-depends:       base ==4.6.*,
+                       ivory,
+                       ivory-lang-c,
+                       smaccmpilot

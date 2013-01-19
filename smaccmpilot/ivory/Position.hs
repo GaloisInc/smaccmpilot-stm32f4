@@ -3,12 +3,11 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE QuasiQuotes #-}
 
-module Position (
-  positionModule
+module Position
+  ( positionModule
   ) where
 
 import Ivory.Language
-import Ivory.Compile.C
 
 positionModule :: Module
 positionModule = package "position" $ do
@@ -38,10 +37,4 @@ struct position_result
   ; zacc    :: Stored Sint16
   }
 |]
-
-writeModule :: Module -> IO ()
-writeModule = writeFiles . compileModule
-
-main :: IO ()
-main = writeModule positionModule
 
