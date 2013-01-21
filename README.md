@@ -19,11 +19,23 @@ tree during build configuration.
 
 [2]: http://sourceforge.net/projects/freertos/files/
 
+### ArduPilot
+
+Many of the libraries in the SMACCMPilot software are from the ArduPilot
+project.
+
+Clone the [Galois fork of the ArduPilot repo][22], using the `master` branch.
+Keep this clone in a directory near the smaccmpilot-stm32f4 tree, as you did
+with the FreeRTOS sources.
+
+[22]:https://github.com/diydrones/ardupilot
+
 ## Configuration File
 
   1. Copy `Config.mk.example` to `Config.mk`.  Open this file in a text editor.
   2. Set `CONFIG_CORTEX_M4_PREFIX` to the location of the Cortex-M4 toolchain.
   3. Set `CONFIG_FREERTOS_PREFIX` to the location of the FreeRTOS source.
+  3. Set `CONFIG_ARDUPILOT_PREFIX` to the location of the Ardupilot source.
   4. Set `CONFIG_BOARD` to `px4` for the PX4FMU, or `stm32f4-discovery`.
 
 ## Compiling

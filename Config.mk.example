@@ -18,10 +18,12 @@ CONFIG_CORTEX_M4_PREFIX := $(HOME)/local/gcc-arm-none-eabi-4_6-2012q1/bin/arm-no
 CONFIG_BOARD := px4
 
 # Root directory of the FreeRTOS source tree.
-CONFIG_FREERTOS_PREFIX := ../../OutsideSrcs/FreeRTOS
+CONFIG_FREERTOS_PREFIX := ../FreeRTOS
 
 # Root directory of the ArduPilot source tree.
-CONFIG_ARDUPILOT_PREFIX := ../../OutsideSrcs/ardupilot-mega
+# Note: this should be a clone of https://github.com/galoisinc/ardupilot
+CONFIG_ARDUPILOT_PREFIX := ../ardupilot
 
-# Extra arguments to pass to ArduPilot C++ compiler.
-# CONFIG_ARDUPILOT_EXTRA_CFLAGS := -DHIL_MODE=HIL_MODE_ATTITUDE -DLOGGING_ENABLED=DISABLED
+# Extra arguments to pass to ArduPilot as build flags.
+CONFIG_ARDUPILOT_EXTRA_CFLAGS += -DLOGGING_ENABLED=DISABLED
+# CONFIG_ARDUPILOT_EXTRA_CFLAGS += -DHIL_MODE=HIL_MODE_ATTITUDE
