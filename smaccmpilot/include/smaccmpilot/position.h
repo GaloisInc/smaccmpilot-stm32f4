@@ -11,6 +11,7 @@ struct position_result {
     int16_t vx;
     int16_t vy;
     int16_t vz;
+    uint32_t time;
 };
 
 #ifdef __cplusplus

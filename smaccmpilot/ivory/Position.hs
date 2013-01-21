@@ -20,6 +20,7 @@ positionModule = package "position" $ do
  -- ground speed m/s*100
  -- ground speed m/s*100
  -- ground speed m/s*100
+ -- capture time in freertos ticks
 
 [ivory|
 struct position_result
@@ -29,6 +30,7 @@ struct position_result
   ; vx      :: Stored Sint16
   ; vy      :: Stored Sint16
   ; vz      :: Stored Sint16
+  ; time    :: Stored Uint32
   }
 |]
 
