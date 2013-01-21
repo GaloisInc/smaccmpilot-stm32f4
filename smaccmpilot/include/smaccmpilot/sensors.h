@@ -25,6 +25,8 @@ struct sensors_result {
     int16_t xacc;
     int16_t yacc;
     int16_t zacc;
+    /* time of capture */
+    uint32_t time;
 };
 
 void sensors_init(void);
