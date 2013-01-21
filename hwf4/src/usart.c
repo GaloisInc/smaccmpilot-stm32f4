@@ -281,8 +281,8 @@ void usart_enable(struct usart *usart) {
     __usart_update_cr1(usart, USART_CR1_UE);
 }
 
-ssize_t usart_write_timeout(struct usart *usart, uint32_t timeout, uint8_t *buf,
-                            size_t len) {
+ssize_t usart_write_timeout(struct usart *usart, uint32_t timeout,
+                            const uint8_t *buf, size_t len) {
 
     ssize_t i = 0;
 
@@ -298,7 +298,8 @@ ssize_t usart_write_timeout(struct usart *usart, uint32_t timeout, uint8_t *buf,
     return i;
 }
 
-ssize_t usart_write_blocking(struct usart *usart, uint8_t *buf, size_t len)
+ssize_t usart_write_blocking(struct usart *usart, const uint8_t *buf,
+                             size_t len)
 {
   __usart_disable_txe(usart);
 
@@ -314,7 +315,7 @@ ssize_t usart_write_blocking(struct usart *usart, uint8_t *buf, size_t len)
   return len;
 }
 
-void usart_write_from_isr(struct usart *usart, uint8_t *buf, size_t len)
+void usart_write_from_isr(struct usart *usart, const uint8_t *buf, size_t len)
 {
   portBASE_TYPE should_yield = pdFALSE;
 

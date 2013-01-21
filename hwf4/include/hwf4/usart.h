@@ -40,8 +40,8 @@ void usart_enable(struct usart *usart);
 /**
  * Write to the usart, delaying for at most timeout*len ms.
  */
-ssize_t usart_write_timeout(struct usart *usart, uint32_t timeout, uint8_t *buf,
-                            size_t len);
+ssize_t usart_write_timeout(struct usart *usart, uint32_t timeout,
+                            const uint8_t *buf, size_t len);
 
 /**
  * Read from the usart, delaying for at most timeout*len ms.
@@ -52,7 +52,7 @@ ssize_t usart_read_timeout(struct usart *usart, uint32_t timeout, uint8_t *buf,
 /**
  * Write to the usart device, blocking until the entire buffer has been written.
  */
-static inline ssize_t usart_write(struct usart *usart, uint8_t *buf,
+static inline ssize_t usart_write(struct usart *usart, const uint8_t *buf,
                                   size_t len) {
     return usart_write_timeout(usart, portMAX_DELAY, buf, len);
 }
@@ -62,13 +62,14 @@ static inline ssize_t usart_write(struct usart *usart, uint8_t *buf,
  * the internal buffer to hold the data.  This is useful for
  * debugging, but should not be relied upon in normal operation.
  */
-void usart_write_from_isr(struct usart *usart, uint8_t *buf, size_t len);
+void usart_write_from_isr(struct usart *usart, const uint8_t *buf, size_t len);
 
 /**
  * Perform a blocking write directly to the USART without interrupts.
  * Do not combine calls to this with normal writes.
  */
-ssize_t usart_write_blocking(struct usart *usart, uint8_t *buf, size_t len);
+ssize_t usart_write_blocking(struct usart *usart, const uint8_t *buf,
+                             size_t len);
 
 /**
  * Read from the usart device, blocking until the entire buffer has been
