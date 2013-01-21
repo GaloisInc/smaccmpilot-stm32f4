@@ -11,9 +11,6 @@ struct position_result {
     int16_t vx;
     int16_t vy;
     int16_t vz;
-    int16_t xacc;
-    int16_t yacc;
-    int16_t zacc;
 };
 
 #ifdef __cplusplus

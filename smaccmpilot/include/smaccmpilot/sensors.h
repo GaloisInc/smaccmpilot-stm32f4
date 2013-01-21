@@ -7,19 +7,24 @@ extern "C" {
 #endif
 
 #include <stdbool.h>
+#include <stdint.h>
 
 struct sensors_result {
-  bool valid;
-  /* roll, pitch, yaw in radians*/
-  float roll;
-  float pitch;
-  float yaw;
-  /* omega in radians per second */
-  float omega_x;
-  float omega_y;
-  float omega_z;
-  /* altitude in meters */
-  float baro_alt;
+    bool valid;
+    /* roll, pitch, yaw in radians*/
+    float roll;
+    float pitch;
+    float yaw;
+    /* omega in radians per second */
+    float omega_x;
+    float omega_y;
+    float omega_z;
+    /* altitude in meters */
+    float baro_alt;
+    /* acceleration in mg */
+    int16_t xacc;
+    int16_t yacc;
+    int16_t zacc;
 };
 
 void sensors_init(void);
