@@ -3,14 +3,12 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE QuasiQuotes #-}
 
-module Position
-  ( positionModule
-  ) where
+module PositionType where
 
 import Ivory.Language
 
 positionModule :: Module
-positionModule = package "position" $ do
+positionModule = package "position_type" $ do
   defStruct (Proxy :: Proxy "position_result")
 
 -- Because trevor wont let me use haskell comments in a quasiquoter:
@@ -33,4 +31,5 @@ struct position_result
   ; time    :: Stored Uint32
   }
 |]
+
 
