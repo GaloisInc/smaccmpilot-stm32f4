@@ -16,7 +16,8 @@ library
   exposed-modules:     Stabilize,
                        PositionType,
                        MotorsOutputType,
-                       ServoType
+                       ServoType,
+                       UserInputType
 
   build-depends:       base >= 4.6,
                        ivory
