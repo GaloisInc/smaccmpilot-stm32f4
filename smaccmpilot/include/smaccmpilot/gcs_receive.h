@@ -7,7 +7,7 @@ extern "C" {
 #endif
 
 #include "sensors.h"
-#include "position.h"
+#include "position_type.h"
 
 void gcs_receive_init(void);
 bool gcs_receive_get_hilstate( struct sensors_result *sensors,

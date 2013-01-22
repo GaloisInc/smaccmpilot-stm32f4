@@ -1,27 +1,13 @@
 
-#ifndef __APP_STABILIZE_MOTORSOUTPUT_H__
-#define __APP_STABILIZE_MOTORSOUTPUT_H__
+#ifndef __MOTORSOUTPUT_H__
+#define __MOTORSOUTPUT_H__
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#include <FreeRTOS.h>
-
-struct motorsoutput_result {
-    bool armed;
-    float throttle;
-    float roll;
-    float pitch;
-    float yaw;
-    portTickType time;
-};
-
-struct servo_result {
-    bool valid;
-    uint16_t servo[4];
-    portTickType time;
-};
+#include "motorsoutput_type.h"
+#include "servo_type.h"
 
 void motorsoutput_init(void);
 void motorsoutput_set(const struct motorsoutput_result *input);
@@ -31,4 +17,4 @@ void motorsoutput_getservo(struct servo_result *output);
 }
 #endif
 
-#endif // __APP_STABILIZE_MOTORSOUTPUT_H__
+#endif // __MOTORSOUTPUT_H__
