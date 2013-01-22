@@ -149,6 +149,10 @@ static void gcs_receive_handle_hil_state(const mavlink_message_t *msg) {
 
 }
 
+static void gcs_receive_handle_request_datastream(const mavlink_message_t *msg){
+    /* XXX punt on this for now */
+}
+
 static void gcs_receive_handle_unknown(const mavlink_message_t *msg) {
     handle_unknown_id_history[handle_unknown_id_history_idx] = msg->msgid;
     handle_unknown_id_history_idx =
@@ -159,3 +163,4 @@ static void panic(const char* panicmsg) {
         usart_write(GCS_UART, (const uint8_t*)panicmsg, strlen(panicmsg));
         for(;;);
 }
+

@@ -15,7 +15,7 @@ struct userinput_result {
     float roll;
     float pitch;
     float yaw;
-    portTickType time;
+    uint32_t time;
 };
 
 void userinput_init(void);

@@ -20,7 +20,7 @@
 #include <smaccmpilot/userinput.h>
 #include <smaccmpilot/motorsoutput.h>
 #include <smaccmpilot/stabilize.h>
-#include "gcs.h"
+#include <smaccmpilot/gcs_receive.h>
 
 const AP_HAL::HAL& hal = AP_HAL_BOARD_DRIVER;
 
@@ -35,20 +35,26 @@ void main_task(void *arg)
     hal.init(0, NULL);
     userinput_init();
     motorsoutput_init();
-    gcs_init();
+    gcs_receive_init();
+
+    struct userinput_result input;
+    struct sensors_result sensors;
+    struct position_result position;
+    struct motorsoutput_result motors;
+    struct servo_result servos;
 
     for (;;) {
-        struct userinput_result input;
-        struct sensors_result sensors;
-        struct motorsoutput_result motors;
-        struct servo_result servos;
 
         userinput_get(&input);
-        gcs_sensors_get(&sensors);
+
+        gcs_receive_get_hilstate(&sensors, &position);
+
         stabilize_motors(&input, &sensors, &motors);
+
         motorsoutput_set(&motors);
+
         motorsoutput_getservo(&servos);
-        gcs_servos_set(&servos);
+        //gcs_servos_set(&servos);
 
         vTaskDelay(10);
     }
