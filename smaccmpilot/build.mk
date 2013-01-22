@@ -32,6 +32,7 @@ SMACCMPILOT_OBJECTS :=       \
   src/userinput.o            \
   src/stabilize.o            \
   src/gcs_receive.o          \
+  src/gcs_transmit.o         \
   src/pid_stabilize.o
 
 $(eval $(call library,SMACCMPILOT))
