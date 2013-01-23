@@ -4,15 +4,19 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE QuasiQuotes #-}
 
-module GCSTransmit where
+module GCSTransmitDriver where
 
 import Ivory.Language
+
+import IvoryHelpers
 
 import qualified PositionType as P
 import qualified ServoType as Serv
 import qualified SensorsType as Sens
 import qualified MotorsOutputType as M
 import qualified UserInputType as U
+
+import qualified IvoryFloatHelper as F
 
 import Smaccm.Mavlink.Send (useSendModule)
 
@@ -22,28 +26,11 @@ import qualified Smaccm.Mavlink.Messages.VfrHud as HUD
 import qualified Smaccm.Mavlink.Messages.ServoOutputRaw as SVO
 import qualified Smaccm.Mavlink.Messages.GpsRawInt as GPS
 
--- This is a shorthand for 'deref $ s~>x'.
-struct ~>* label = deref $ struct~>label
-infixl 8 ~>*
-
--- Another handy shorthand for transfering members
-resultInto :: (IvoryType r, IvoryExpr a) =>
-     Ivory r a -> Ref (Stored a) -> Ivory r ()
-resultInto a b = do
-  v <- a
-  store b v
-
-into :: (IvoryType r, IvoryExpr a) =>
- Ref (Stored a) -> Ref (Stored a) -> Ivory r ()
-into a b = do
-  v <- deref a
-  store b v
-
 --------------------------------------------------------------------
 -- Module def
 
-gcsTransmitModule :: Module
-gcsTransmitModule = package "gcs_transmit_driver" $ do
+gcsTransmitDriverModule :: Module
+gcsTransmitDriverModule = package "gcs_transmit_driver" $ do
   -- send module has only abstract defs so we depend on it in a weird way
   useSendModule
   -- dependencies for all the smaccmpilot types
@@ -58,6 +45,8 @@ gcsTransmitModule = package "gcs_transmit_driver" $ do
   depend HUD.vfrHudModule
   depend SVO.servoOutputRawModule
   depend GPS.gpsRawIntModule
+  -- Cheat with the FFI for float ops that aren't in Ivory
+  depend F.ivoryFloatHelperModule
   -- module has the following methods
   incl sendHeartbeat
   incl sendAttitude
@@ -138,9 +127,8 @@ sendVfrHud = proc "gcs_transmit_send_vfrhud" $ \pos mot sens ch sys -> do
   calcAltitude :: (Ref (Struct "position_result")) -> Ivory () IFloat
   calcAltitude pos = do
     milimeters <- (pos ~>* P.gps_alt)
-    -- XXX punting here until we have proper casts
-    return 888.8
-    --return $ (safeCast milimeters :: IFloat) * 1000.0
+    mm_float <- call F.int32ToFloat milimeters
+    return (mm_float / 1000)
 
   calcVertSpeed :: (Ref (Struct "position_result")) -> Ivory () IFloat
   calcVertSpeed pos = do
@@ -151,16 +139,14 @@ sendVfrHud = proc "gcs_transmit_send_vfrhud" $ \pos mot sens ch sys -> do
   calcHeading sens = do
     radians <- (sens ~>* Sens.yaw)
     degrees <- assign $ 180 / pi * radians
-    -- XXX punting here until we have proper casts
-    return 359
-    --return (safeCast degrees)
+    deg_int <- call F.floatToInt16 degrees
+    return  deg_int
 
   calcThrottle :: (Ref (Struct "motorsoutput_result")) -> Ivory () Uint16
   calcThrottle motors = do
     thr <- (motors ~>* M.throttle)
-    -- XXX punting here until we have proper casts
-    return $ (thr >? 0) ? (66, 0)
-    --return $ (safeCast thr) * 100
+    thrFloat <- call F.floatToUInt16 thr
+    return $ thrFloat * 100
 
 
 sendServoOutputRaw :: Def ('[ (Ref (Struct "servo_result"))

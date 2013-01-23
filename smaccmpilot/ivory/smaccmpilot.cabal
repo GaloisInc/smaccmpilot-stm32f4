@@ -19,7 +19,7 @@ library
                        ServoType,
                        SensorsType,
                        UserInputType,
-                       GCSTransmit
+                       GCSTransmitDriver,
 
   build-depends:       base >= 4.6,
                        smaccm-mavlink,
