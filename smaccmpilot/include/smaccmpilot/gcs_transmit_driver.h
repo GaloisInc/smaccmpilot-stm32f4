@@ -7,6 +7,7 @@
 extern "C" {
 #endif
 #include <ivory.h>
+#include <ivory_float_helper.h>
 #include <motorsoutput_type.h>
 #include <position_type.h>
 #include <sensors_type.h>
@@ -19,6 +20,7 @@ extern "C" {
 #include <smavlink_message_servo_output_raw.h>
 #include <smavlink_message_vfr_hud.h>
 #include <userinput_type.h>
+#include "ivory_float_helper.h"
 #include "motorsoutput_type.h"
 #include "position_type.h"
 #include "sensors_type.h"

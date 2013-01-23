@@ -20,6 +20,8 @@ library
                        SensorsType,
                        UserInputType,
                        GCSTransmitDriver,
+                       IvoryHelpers,
+                       IvoryFloatHelper
 
   build-depends:       base >= 4.6,
                        smaccm-mavlink,
