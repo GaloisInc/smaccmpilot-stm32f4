@@ -14,6 +14,7 @@ struct PID {
     float pid_iMin;
     float pid_iMax;
 };
+float constrain(float n_var0, float n_var1, float n_var2);
 float pid_update(struct PID* n_var0, float n_var1);
 float stabilize_from_angle(struct PID* n_var0, struct PID* n_var1, float n_var2,
                            float n_var3, float n_var4, float n_var5,
