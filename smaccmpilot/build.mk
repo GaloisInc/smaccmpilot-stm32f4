@@ -16,7 +16,7 @@ SMACCMPILOT_LIB     := libsmaccmpilot.a
 SMACCMPILOT_INCLUDES  += -I$(TOP)/smaccmpilot/include
 SMACCMPILOT_INCLUDES  += $(HWF4_INCLUDES)
 SMACCMPILOT_INCLUDES  += $(ARDUPILOT_LIBINCLUDES)
-SMACCMPILOT_INCLUDES  += $(IVORYRUNTIME_INCLUDES)
+SMACCMPILOT_INCLUDES  += $(SMAVLINK_INCLUDES)
 SMACCMPILOT_INCLUDES  += $(FREERTOS_CFLAGS)
 
 SMACCMPILOT_CFLAGS    += $(SMACCMPILOT_INCLUDES)
@@ -32,6 +32,7 @@ SMACCMPILOT_OBJECTS :=       \
   src/userinput.o            \
   src/stabilize.o            \
   src/gcs_receive.o          \
+  src/gcs_transmit_driver.o  \
   src/pid_stabilize.o
 
 $(eval $(call library,SMACCMPILOT))
