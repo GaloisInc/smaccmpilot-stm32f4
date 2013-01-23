@@ -14,7 +14,6 @@ import qualified PositionType as P
 import qualified ServoType as Serv
 import qualified SensorsType as Sens
 import qualified MotorsOutputType as M
-import qualified UserInputType as U
 
 import qualified IvoryFloatHelper as F
 
@@ -38,7 +37,6 @@ gcsTransmitDriverModule = package "gcs_transmit_driver" $ do
   depend Serv.servoModule
   depend Sens.sensorsTypeModule
   depend M.motorsOutputModule
-  depend U.userInputModule
   -- dependencies for all the smavlink types and senders
   depend HB.heartbeatModule
   depend ATT.attitudeModule

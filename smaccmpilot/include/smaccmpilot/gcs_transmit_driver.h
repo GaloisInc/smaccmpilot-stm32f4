@@ -19,7 +19,6 @@ extern "C" {
 #include <smavlink_message_heartbeat.h>
 #include <smavlink_message_servo_output_raw.h>
 #include <smavlink_message_vfr_hud.h>
-#include <userinput_type.h>
 #include "ivory_float_helper.h"
 #include "motorsoutput_type.h"
 #include "position_type.h"
@@ -30,7 +29,6 @@ extern "C" {
 #include "smavlink_message_heartbeat.h"
 #include "smavlink_message_servo_output_raw.h"
 #include "smavlink_message_vfr_hud.h"
-#include "userinput_type.h"
 void gcs_transmit_send_heartbeat(struct motorsoutput_result* n_var0,
                                  struct smavlink_out_channel* n_var1,
                                  struct smavlink_system* n_var2);
