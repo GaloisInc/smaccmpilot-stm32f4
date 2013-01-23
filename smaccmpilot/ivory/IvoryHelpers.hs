@@ -15,11 +15,8 @@ import Ivory.Language
 
 -- | Infix structure field access and dereference.
 -- This is a shorthand for 'deref $ s~>x'.
---
--- I would like to annotate this with a type signature but Label is not
--- exported from Ivory.Language
--- (~>*) :: (IvoryType r, IvoryExpr a) =>
---     Ref (Struct sym) -> Label sym (Stored a) -> Ivory r a
+(~>*) :: (IvoryType r, IvoryExpr a, IvoryStruct sym) =>
+            Ref (Struct sym) -> Label sym (Stored a) -> Ivory r a
 struct ~>* label = deref $ struct~>label
 infixl 8 ~>*
 
