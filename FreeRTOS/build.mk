@@ -16,10 +16,12 @@ FREERTOS_SRC    := $(CONFIG_FREERTOS_PREFIX)/FreeRTOS/Source
 
 FREERTOS_LIB    := libFreeRTOS.a
 
-FREERTOS_CFLAGS := -I$(FREERTOS_SRC)/include
-FREERTOS_CFLAGS += -I$(FREERTOS_SRC)/portable/GCC/ARM_CM4F
-FREERTOS_CFLAGS += -I$(TOP)/include
-FREERTOS_CFLAGS += -I$(TOP)/StdPeriph/include
+FREERTOS_INCLUDES := -I$(FREERTOS_SRC)/include
+FREERTOS_INCLUDES += -I$(FREERTOS_SRC)/portable/GCC/ARM_CM4F
+FREERTOS_INCLUDES += -I$(TOP)/include
+FREERTOS_INCLUDES += -I$(TOP)/StdPeriph/include
+
+FREERTOS_CFLAGS   += $(FREERTOS_INCLUDES)
 
 FREERTOS_OBJECTS :=                              \
   src/list.o                                     \
