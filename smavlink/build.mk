@@ -23,6 +23,7 @@ SMAVLINK_OBJECTS :=    \
   src/channel.o \
   src/crc.o \
   src/send.o \
+  src/receive.o \
   src/messages/smavlink_message_attitude.o \
   src/messages/smavlink_message_attitude_quaternion.o \
   src/messages/smavlink_message_auth_key.o \

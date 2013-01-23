@@ -1,15 +1,7 @@
 
 #include "smavlink/send.h"
+#include "protocol.h"
 #include "crc.h"
-
-/* magic number */
-#define MAVLINK_STX 254
-
-#define MAVLINK_CORE_HEADER_LEN 5
-#define MAVLINK_NUM_HEADER_BYTES (MAVLINK_CORE_HEADER_LEN + 1)
-#define MAVLINK_NUM_CHECKSUM_BYTES 2
-#define MAVLINK_NUM_NON_PAYLOAD_BYTES (MAVLINK_NUM_HEADER_BYTES + \
-                                       MAVLINK_NUM_CHECKSUM_BYTES)
 
 void smavlink_send( struct smavlink_out_channel *ch,
         struct smavlink_system *sys,
@@ -40,11 +32,11 @@ void smavlink_send( struct smavlink_out_channel *ch,
 
     size_t total_len = MAVLINK_NUM_NON_PAYLOAD_BYTES + bodylen;
     /* */
-    if (smavlink_channel_begin_atomic(ch, total_len)) {
-        smavlink_channel_write(ch, head, MAVLINK_NUM_HEADER_BYTES);
-        smavlink_channel_write(ch, body, bodylen);
-        smavlink_channel_write(ch, ck, MAVLINK_NUM_CHECKSUM_BYTES);
-        smavlink_channel_end_atomic(ch);
+    if (smavlink_out_channel_begin_atomic(ch, total_len)) {
+        smavlink_out_channel_write(ch, head, MAVLINK_NUM_HEADER_BYTES);
+        smavlink_out_channel_write(ch, body, bodylen);
+        smavlink_out_channel_write(ch, ck, MAVLINK_NUM_CHECKSUM_BYTES);
+        smavlink_out_channel_end_atomic(ch);
     }
 }
 
