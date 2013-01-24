@@ -29,12 +29,11 @@
 #define MAX_OUTPUT_PITCH 50.0f  /* deg/sec */
 #define MAX_OUTPUT_YAW   45.0f  /* deg/sec */
 
-// These PID gains are tuned experiementally for the "pysim" simulator
-// and will surely be wrong for any real copter.  We will need
-// something more dynamic than hardcoding these here.
+/* These values are tuned for the PX4IOAR connected to the ARDrone
+ * motor controller. */
 
 static struct PID g_pi_roll_stabilize = {
-    1.3f,                       // p_gain
+    2.0f,                       // p_gain
     0.0f,                       // i_gain
     0.0f,                       // i_state
     -8.0f,                      // i_min
@@ -42,7 +41,7 @@ static struct PID g_pi_roll_stabilize = {
 };
 
 static struct PID g_pi_roll_rate = {
-    0.05f,                      // p_gain
+    0.15f,                      // p_gain
     0.015f,                     // i_gain
     0.0f,                       // i_state
     -5.0f,                      // i_min
@@ -50,7 +49,7 @@ static struct PID g_pi_roll_rate = {
 };
 
 static struct PID g_pi_pitch_stabilize = {
-    1.3f,                       // p_gain
+    2.0f,                       // p_gain
     0.0f,                       // i_gain
     0.0f,                       // i_state
     -8.0f,                      // i_min
@@ -58,7 +57,7 @@ static struct PID g_pi_pitch_stabilize = {
 };
 
 static struct PID g_pi_pitch_rate = {
-    0.05f,                      // p_gain
+    0.15f,                      // p_gain
     0.015f,                     // i_gain
     0.0f,                       // i_state
     -5.0f,                      // i_min
@@ -75,8 +74,9 @@ static struct PID g_pi_yaw_stabilize = {
 };
 #endif
 
+/* FIXME: Yaw control is too weak. */
 static struct PID g_pi_yaw_rate = {
-    0.05f,                      // p_gain
+    0.3f,                       // p_gain
     0.015f,                     // i_gain
     0.0f,                       // i_state
     -8.0f,                      // i_min
