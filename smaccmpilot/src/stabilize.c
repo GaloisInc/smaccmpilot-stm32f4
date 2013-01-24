@@ -93,7 +93,7 @@ void stabilize_motors(const struct userinput_result *in,
                                       MAX_OUTPUT_ROLL);
 
     out->pitch = stabilize_from_angle(&g_pi_pitch_stabilize, &g_pi_pitch_rate,
-                                      in->pitch, MAX_INPUT_PITCH,
+                                      -in->pitch, MAX_INPUT_PITCH,
                                       sensors->pitch, sensors->omega_y,
                                       MAX_OUTPUT_PITCH);
 
