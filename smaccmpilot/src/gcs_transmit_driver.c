@@ -124,23 +124,22 @@ void gcs_transmit_send_servo_output(struct servo_result* n_var0,
     
     *&n_ref1->time_usec = n_deref2;
     
-    uint16_t n_deref3 = *&*(&n_var0->servo)[0U % 4U];
+    uint16_t n_deref3 = *&n_var0->servo1;
     
     *&n_ref1->servo1_raw = n_deref3;
     
-    uint16_t n_deref4 = *&*(&n_var0->servo)[1U % 4U];
+    uint16_t n_deref4 = *&n_var0->servo2;
     
     *&n_ref1->servo2_raw = n_deref4;
     
-    uint16_t n_deref5 = *&*(&n_var0->servo)[2U % 4U];
+    uint16_t n_deref5 = *&n_var0->servo3;
     
     *&n_ref1->servo3_raw = n_deref5;
     
-    uint16_t n_deref6 = *&*(&n_var0->servo)[3U % 4U];
+    uint16_t n_deref6 = *&n_var0->servo4;
     
     *&n_ref1->servo4_raw = n_deref6;
     smavlink_send_servo_output_raw(n_ref1, n_var1, n_var2);
-    return;
 }
 void gcs_transmit_send_gps(struct position_result* n_var0,
                            struct smavlink_out_channel* n_var1,

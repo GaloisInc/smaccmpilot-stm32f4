@@ -149,14 +149,12 @@ sendServoOutputRaw :: Def ('[ (Ref (Struct "servo_result"))
                             ] :-> ())
 sendServoOutputRaw = proc "gcs_transmit_send_servo_output" $ \state ch sys -> do
   msg <- local
-  (state ~> Serv.time) `into` (msg ~> SVO.time_usec)
-  let servos = (state ~> Serv.servo)
-  (servos ! (0 :: Ix Uint16 4)) `into` (msg ~> SVO.servo1_raw)
-  (servos ! (1 :: Ix Uint16 4)) `into` (msg ~> SVO.servo2_raw)
-  (servos ! (2 :: Ix Uint16 4)) `into` (msg ~> SVO.servo3_raw)
-  (servos ! (3 :: Ix Uint16 4)) `into` (msg ~> SVO.servo4_raw)
-  call_  SVO.servoOutputRawSend msg ch sys
-  retVoid 
+  (state ~> Serv.time)   `into` (msg ~> SVO.time_usec)
+  (state ~> Serv.servo1) `into` (msg ~> SVO.servo1_raw)
+  (state ~> Serv.servo2) `into` (msg ~> SVO.servo2_raw)
+  (state ~> Serv.servo3) `into` (msg ~> SVO.servo3_raw)
+  (state ~> Serv.servo4) `into` (msg ~> SVO.servo4_raw)
+  call_ SVO.servoOutputRawSend msg ch sys
 
 
 sendGps :: Def ('[ (Ref (Struct "position_result"))

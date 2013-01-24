@@ -9,7 +9,10 @@ extern "C" {
 #include <ivory.h>
 struct servo_result {
     bool valid;
-    uint16_t servo[4U];
+    uint16_t servo1;
+    uint16_t servo2;
+    uint16_t servo3;
+    uint16_t servo4;
     uint32_t time;
 };
 

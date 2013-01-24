@@ -14,7 +14,10 @@ servoModule = package "servo_type" $ do
 [ivory|
 struct servo_result
   { valid   :: Stored IBool
-  ; servo   :: Array 4 (Stored Uint16)
+  ; servo1  :: Stored Uint16
+  ; servo2  :: Stored Uint16
+  ; servo3  :: Stored Uint16
+  ; servo4  :: Stored Uint16
   ; time    :: Stored Uint32
   }
 |]

@@ -80,10 +80,10 @@ static int16_t throttle_scale(float input) {
 void apmotors_output_get(struct servo_result *servo) {
     if (xSemaphoreTake(apmotors_mutex, 1)) {
         servo->valid = true;
-        servo->servo[0] = motors.motor_out[0];
-        servo->servo[1] = motors.motor_out[1];
-        servo->servo[2] = motors.motor_out[2];
-        servo->servo[3] = motors.motor_out[3];
+        servo->servo1 = motors.motor_out[0];
+        servo->servo2 = motors.motor_out[1];
+        servo->servo3 = motors.motor_out[2];
+        servo->servo4 = motors.motor_out[3];
         servo->time = (uint32_t)timer_get_ticks();
         xSemaphoreGive(apmotors_mutex);
     } else {
