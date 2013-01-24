@@ -9,6 +9,7 @@
 #include <include/mavlink/v1.0/common/mavlink.h>
 
 #include "smaccmpilot/gcs_receive.h"
+#include "smaccmpilot/gcs_transmit.h"
 
 #define GCS_UART usart1
 
@@ -40,7 +41,7 @@ static uint8_t handle_unknown_id_history_idx = 0;
 /* Entry point */
 void gcs_receive_init(void) {
     hilstate_mutex = xSemaphoreCreateMutex();
-    xTaskCreate(gcs_receive_task, (signed char *)"gcsr", 1024, NULL, 1,
+    xTaskCreate(gcs_receive_task, (signed char *)"gcsr", 512, NULL, 1,
                 &gcs_receive_taskhandle);
 }
 
@@ -149,8 +150,33 @@ static void gcs_receive_handle_hil_state(const mavlink_message_t *msg) {
 
 }
 
+static int tx_stream_id(uint8_t mavlink_id) {
+    switch (mavlink_id) {
+        case 0: /* all streams */
+            return 0;
+        case MAV_DATA_STREAM_RAW_CONTROLLER:
+            return GCS_TRANSMIT_STREAM_SERVO_OUTPUT_RAW;
+        case MAV_DATA_STREAM_EXTRA1:
+            return GCS_TRANSMIT_STREAM_ATTITUDE;
+        case MAV_DATA_STREAM_POSITION:
+            return -1; /* sorry, i punted here. pch */
+        case MAV_DATA_STREAM_EXTENDED_STATUS:
+            return GCS_TRANSMIT_STREAM_GPS_RAW_INT;
+        case MAV_DATA_STREAM_EXTRA2:
+            return GCS_TRANSMIT_STREAM_VFR_HUD;
+        default:
+            return -1;
+    }
+}
+
 static void gcs_receive_handle_request_datastream(const mavlink_message_t *msg){
-    /* XXX punt on this for now */
+    mavlink_request_data_stream_t req;
+    mavlink_msg_request_data_stream_decode(msg, &req);
+    gcs_transmit_set_stream_rate(
+                tx_stream_id(req.req_stream_id),
+                req.start_stop,
+                req.req_message_rate
+                );
 }
 
 static void gcs_receive_handle_unknown(const mavlink_message_t *msg) {
