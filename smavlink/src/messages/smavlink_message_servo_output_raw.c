@@ -10,7 +10,7 @@ void smavlink_send_servo_output_raw(struct servo_output_raw_msg* n_var0,
     uint8_t n_local0[21U] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                              0, 0, 0, 0};
     uint8_t(* n_ref1)[21U] = &n_local0;
-    uint32_t n_deref2 = *&n_var0->time_boot_ms;
+    uint32_t n_deref2 = *&n_var0->time_usec;
     
     smavlink_pack_uint32_t(n_ref1, 0U, n_deref2);
     
@@ -49,7 +49,7 @@ void smavlink_send_servo_output_raw(struct servo_output_raw_msg* n_var0,
     uint8_t n_deref11 = *&n_var0->port;
     
     smavlink_pack_uint8_t(n_ref1, 20U, n_deref11);
-    smavlink_send_ivory(n_var1, n_var2, 36U, n_ref1, 21U, 242U);
+    smavlink_send_ivory(n_var1, n_var2, 36U, n_ref1, 21U, 222U);
     return;
 }
 void smavlink_unpack_servo_output_raw(struct servo_output_raw_msg* n_var0, const
@@ -57,7 +57,7 @@ void smavlink_unpack_servo_output_raw(struct servo_output_raw_msg* n_var0, const
 {
     uint32_t n_r0 = smavlink_unpack_uint32_t(n_var1, 0U);
     
-    *&n_var0->time_boot_ms = n_r0;
+    *&n_var0->time_usec = n_r0;
     
     uint16_t n_r1 = smavlink_unpack_uint16_t(n_var1, 4U);
     

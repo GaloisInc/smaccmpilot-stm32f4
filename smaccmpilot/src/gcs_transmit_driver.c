@@ -114,7 +114,7 @@ void gcs_transmit_send_servo_output(struct servo_result* n_var0,
                                     struct smavlink_out_channel* n_var1,
                                     struct smavlink_system* n_var2)
 {
-    struct servo_output_raw_msg n_local0 = {.time_boot_ms =0, .servo1_raw =0,
+    struct servo_output_raw_msg n_local0 = {.time_usec =0, .servo1_raw =0,
                                             .servo2_raw =0, .servo3_raw =0,
                                             .servo4_raw =0, .servo5_raw =0,
                                             .servo6_raw =0, .servo7_raw =0,
@@ -122,7 +122,7 @@ void gcs_transmit_send_servo_output(struct servo_result* n_var0,
     struct servo_output_raw_msg* n_ref1 = &n_local0;
     uint32_t n_deref2 = *&n_var0->time;
     
-    *&n_ref1->time_boot_ms = n_deref2;
+    *&n_ref1->time_usec = n_deref2;
     
     uint16_t n_deref3 = *&*(&n_var0->servo)[0U % 4U];
     

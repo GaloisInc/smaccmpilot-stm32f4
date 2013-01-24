@@ -5,6 +5,8 @@
 #include <task.h>
 #include <semphr.h>
 
+#include <hwf4/timer.h>
+
 #include <AP_HAL.h>
 #include <RC_Channel.h>
 #include <AP_Motors.h>
@@ -82,7 +84,7 @@ void apmotors_output_get(struct servo_result *servo) {
         servo->servo[1] = motors.motor_out[1];
         servo->servo[2] = motors.motor_out[2];
         servo->servo[3] = motors.motor_out[3];
-        servo->time = xTaskGetTickCount();
+        servo->time = (uint32_t)timer_get_ticks();
         xSemaphoreGive(apmotors_mutex);
     } else {
         hal.scheduler->panic("PANIC: apmotors_output_get took too long to grab "

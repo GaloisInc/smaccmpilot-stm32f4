@@ -10,7 +10,7 @@ extern "C" {
 #include <smavlink/channel.h>
 #include <smavlink/system.h>
 struct servo_output_raw_msg {
-    uint32_t time_boot_ms;
+    uint32_t time_usec;
     uint16_t servo1_raw;
     uint16_t servo2_raw;
     uint16_t servo3_raw;

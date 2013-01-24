@@ -149,7 +149,7 @@ sendServoOutputRaw :: Def ('[ (Ref (Struct "servo_result"))
                             ] :-> ())
 sendServoOutputRaw = proc "gcs_transmit_send_servo_output" $ \state ch sys -> do
   msg <- local
-  (state ~> Serv.time) `into` (msg ~> SVO.time_boot_ms)
+  (state ~> Serv.time) `into` (msg ~> SVO.time_usec)
   let servos = (state ~> Serv.servo)
   (servos ! (0 :: Ix Uint16 4)) `into` (msg ~> SVO.servo1_raw)
   (servos ! (1 :: Ix Uint16 4)) `into` (msg ~> SVO.servo2_raw)
