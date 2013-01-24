@@ -45,6 +45,8 @@ gcsTransmitDriverModule = package "gcs_transmit_driver" $ do
   depend GPS.gpsRawIntModule
   -- Cheat with the FFI for float ops that aren't in Ivory
   depend F.ivoryFloatHelperModule
+  -- and grab the header that actually implements those cheats:
+  inclHeader "float_helper_impl"
   -- module has the following methods
   incl sendHeartbeat
   incl sendAttitude

@@ -6,6 +6,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+#include <float_helper_impl.h>
 #include <ivory.h>
 #include <smavlink/channel.h>
 #include <smavlink/system.h>
