@@ -11,7 +11,11 @@
 #include "smaccmpilot/gcs_receive.h"
 #include "smaccmpilot/gcs_transmit.h"
 
-#define GCS_UART uart5
+#ifdef CONFIG_GCS_UART
+# define GCS_UART CONFIG_GCS_UART
+#else
+# define GCS_UART usart1
+#endif
 
 /* HIL state */
 static xSemaphoreHandle hilstate_mutex;

@@ -27,3 +27,6 @@ CONFIG_ARDUPILOT_PREFIX := ../ardupilot
 # Extra arguments to pass to ArduPilot as build flags.
 CONFIG_ARDUPILOT_EXTRA_CFLAGS += -DLOGGING_ENABLED=DISABLED
 # CONFIG_ARDUPILOT_EXTRA_CFLAGS += -DHIL_MODE=HIL_MODE_ATTITUDE
+
+# GCS UART selection (default is "usart1").
+# CONFIG_GCS_UART := uart5

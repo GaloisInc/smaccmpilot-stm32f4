@@ -22,6 +22,11 @@ ARDUPILOT_CXXFLAGS += -I$(TOP)/hwf4/include
 ARDUPILOT_CXXFLAGS += $(ARDUPILOT_LIBINCLUDES)
 ARDUPILOT_CXXFLAGS += $(CONFIG_ARDUPILOT_EXTRA_CFLAGS)
 
+# Allow overriding the GCS UART from Config.mk:
+ifdef CONFIG_GCS_UART
+ARDUPILOT_CXXFLAGS += -DCONFIG_GCS_UART=$(CONFIG_GCS_UART)
+endif
+
 ARDUPILOT_OBJECTS :=                                                    \
   libraries/AC_PID/AC_PID.o                                             \
   libraries/AP_ADC_AnalogSource/AP_ADC_AnalogSource.o                   \

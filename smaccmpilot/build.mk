@@ -23,6 +23,12 @@ SMACCMPILOT_CFLAGS    += $(SMACCMPILOT_INCLUDES)
 # need to include with unqualified name: ivory doesnt have a way to
 # build c files whose own headers have qualified names.
 SMACCMPILOT_CFLAGS    += -I$(TOP)/smaccmpilot/include/smaccmpilot
+
+# Allow overriding the GCS UART from Config.mk:
+ifdef CONFIG_GCS_UART
+SMACCMPILOT_CFLAGS    += -DCONFIG_GCS_UART=$(CONFIG_GCS_UART)
+endif
+
 SMACCMPILOT_CXXFLAGS  += $(SMACCMPILOT_INCLUDES)
 
 SMACCMPILOT_OBJECTS :=       \
