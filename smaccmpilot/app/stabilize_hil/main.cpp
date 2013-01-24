@@ -21,6 +21,7 @@
 #include <smaccmpilot/motorsoutput.h>
 #include <smaccmpilot/stabilize.h>
 #include <smaccmpilot/gcs_receive.h>
+#include <smaccmpilot/gcs_transmit.h>
 
 const AP_HAL::HAL& hal = AP_HAL_BOARD_DRIVER;
 
@@ -36,6 +37,7 @@ void main_task(void *arg)
     userinput_init();
     motorsoutput_init();
     gcs_receive_init();
+    gcs_transmit_init();
 
     struct userinput_result input;
     struct sensors_result sensors;
@@ -43,6 +45,7 @@ void main_task(void *arg)
     struct motorsoutput_result motors;
     struct servo_result servos;
 
+    portTickType last_wake_time = xTaskGetTickCount();
     for (;;) {
 
         userinput_get(&input);
@@ -54,9 +57,10 @@ void main_task(void *arg)
         motorsoutput_set(&motors);
 
         motorsoutput_getservo(&servos);
-        //gcs_servos_set(&servos);
 
-        vTaskDelay(10);
+        gcs_transmit_set_states(&sensors, &position, &motors, &servos);
+
+        vTaskDelayUntil(&last_wake_time, 10);
     }
 }
 
