@@ -89,9 +89,9 @@ void gcs_transmit_send_vfrhud(struct position_result* n_var0,
     *&n_ref1->airspeed = sqrtf(n_let9);
     
     int32_t n_deref10 = *&n_var0->gps_alt;
-    float n_r11 = int32_to_float(n_deref10);
+    float n_let11 = (float) n_deref10;
     
-    *&n_ref1->alt = n_r11 / 1000.0f;
+    *&n_ref1->alt = n_let11 / 1000.0f;
     
     int16_t n_deref12 = *&n_var0->vz;
     
@@ -99,14 +99,14 @@ void gcs_transmit_send_vfrhud(struct position_result* n_var0,
     
     float n_deref13 = *&n_var2->yaw;
     float n_let14 = 180.0f / 3.1415927f * n_deref13;
-    int16_t n_r15 = float_to_int16(n_let14);
+    int16_t n_let15 = (bool) isnan(n_let14) ? 0 : (int16_t) truncf(n_let14);
     
-    *&n_ref1->heading = n_r15;
+    *&n_ref1->heading = n_let15;
     
     float n_deref16 = *&n_var1->throttle;
-    uint16_t n_r17 = float_to_uint16(n_deref16);
     
-    *&n_ref1->throttle = n_r17 * 100U;
+    *&n_ref1->throttle = (bool) isnan(n_deref16 *
+        100.0f) ? 0U : (uint16_t) truncf(n_deref16 * 100.0f);
     smavlink_send_vfr_hud(n_ref1, n_var3, n_var4);
     return;
 }

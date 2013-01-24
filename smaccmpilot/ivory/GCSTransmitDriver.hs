@@ -15,7 +15,6 @@ import qualified ServoType as Serv
 import qualified SensorsType as Sens
 import qualified MotorsOutputType as M
 
-import qualified IvoryFloatHelper as F
 
 import Smaccm.Mavlink.Send (useSendModule)
 
@@ -43,10 +42,6 @@ gcsTransmitDriverModule = package "gcs_transmit_driver" $ do
   depend HUD.vfrHudModule
   depend SVO.servoOutputRawModule
   depend GPS.gpsRawIntModule
-  -- Cheat with the FFI for float ops that aren't in Ivory
-  depend F.ivoryFloatHelperModule
-  -- and grab the header that actually implements those cheats:
-  inclHeader "float_helper_impl"
   -- module has the following methods
   incl sendHeartbeat
   incl sendAttitude
@@ -127,7 +122,7 @@ sendVfrHud = proc "gcs_transmit_send_vfrhud" $ \pos mot sens ch sys -> do
   calcAltitude :: (Ref (Struct "position_result")) -> Ivory () IFloat
   calcAltitude pos = do
     milimeters <- (pos ~>* P.gps_alt)
-    mm_float <- call F.int32ToFloat milimeters
+    mm_float <- assign $ toFloat milimeters
     return (mm_float / 1000)
 
   calcVertSpeed :: (Ref (Struct "position_result")) -> Ivory () IFloat
@@ -139,14 +134,13 @@ sendVfrHud = proc "gcs_transmit_send_vfrhud" $ \pos mot sens ch sys -> do
   calcHeading sens = do
     radians <- (sens ~>* Sens.yaw)
     degrees <- assign $ 180 / pi * radians
-    deg_int <- call F.floatToInt16 degrees
+    deg_int <- assign $ fromFloat 0 degrees
     return  deg_int
 
   calcThrottle :: (Ref (Struct "motorsoutput_result")) -> Ivory () Uint16
   calcThrottle motors = do
-    thr <- (motors ~>* M.throttle)
-    thrFloat <- call F.floatToUInt16 thr
-    return $ thrFloat * 100
+    thrFloat <- (motors ~>* M.throttle)
+    return $ fromFloat 0 (thrFloat * 100)
 
 
 sendServoOutputRaw :: Def ('[ (Ref (Struct "servo_result"))

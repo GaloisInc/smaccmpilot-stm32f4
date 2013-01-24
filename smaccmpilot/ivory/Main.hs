@@ -8,7 +8,6 @@ import SensorsType       (sensorsTypeModule)
 import MotorsOutputType  (motorsOutputModule)
 import UserInputType     (userInputModule)
 import GCSTransmitDriver (gcsTransmitDriverModule)
-import IvoryFloatHelper  (ivoryFloatHelperModule)
 
 import Ivory.Compile.C.CmdlineFrontend
 
@@ -20,6 +19,5 @@ main = compile [ positionModule
                , motorsOutputModule
                , userInputModule
                , gcsTransmitDriverModule
-               , ivoryFloatHelperModule
                ]
 
