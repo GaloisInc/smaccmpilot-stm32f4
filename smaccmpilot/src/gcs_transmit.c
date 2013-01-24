@@ -14,7 +14,7 @@
 #include "gcs_transmit.h"
 #include "gcs_transmit_driver.h"
 
-#define GCS_TRANSMIT_USART usart1
+#define GCS_TRANSMIT_USART uart5
 
 /* lets not use the HAL. */
 static void panic(const char* panicmsg);
