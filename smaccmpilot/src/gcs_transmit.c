@@ -28,10 +28,10 @@ static xTaskHandle gcs_transmit_task_handle;
 static void gcs_transmit_task(void* args);
 
 static xSemaphoreHandle shared_state_mutex;
-static struct sensors_result  *shared_sensors;
-static struct position_result *shared_position;
-static struct motors_result   *shared_motors;
-static struct servo_result    *shared_servo;
+static struct sensors_result     shared_sensors;
+static struct position_result    shared_position;
+static struct motorsoutput_result shared_motors;
+static struct servo_result       shared_servo;
 
 static size_t gcstx_write(void* delegate, const uint8_t *data, size_t len);
 static bool   gcstx_begin_atomic(void*, size_t);
@@ -58,7 +58,7 @@ static struct gcs_timed_action g_actions [] = {
 void gcs_transmit_init(void) {
     shared_state_mutex = xSemaphoreCreateMutex();
     g_action_mutex = xSemaphoreCreateMutex();
-    xTaskCreate(gcs_transmit_task, (signed char*)"gcst", 1024, NULL, 0,
+    xTaskCreate(gcs_transmit_task, (signed char*)"gcst", 512, NULL, 0,
             &gcs_transmit_task_handle);
 }
 
@@ -66,6 +66,7 @@ void gcs_transmit_init(void) {
 static void gcs_transmit_task(void* args) {
     struct smavlink_out_channel ch;
     struct smavlink_system sys;
+    bool streams_due[GCS_TRANSMIT_NUM_STREAMS];
 
     /* setup channel */
     ch.tx_seq = 0;
@@ -78,19 +79,22 @@ static void gcs_transmit_task(void* args) {
     sys.sysid = 1;
     sys.compid = 0;
 
-
     portTickType last_wake_time = xTaskGetTickCount();
     portTickType dt = 10;
 
     for(;;) {
         vTaskDelayUntil(&last_wake_time, dt);
 
-        bool streams_due[GCS_TRANSMIT_NUM_STREAMS] = {0};
+        for(int i = 0; i < GCS_TRANSMIT_NUM_STREAMS; ++i) {
+            streams_due[i] = false;
+        }
 
         dt = gcs_transmit_schedule_streams(streams_due);
 
         gcs_transmit_send_streams(streams_due, &ch, &sys);
     }
+
+    for(;;);
 }
 
 void gcs_transmit_set_states( const struct sensors_result *sensors,
@@ -183,6 +187,7 @@ static portTickType gcs_transmit_schedule_streams(bool* streams_due) {
                 }
             }
         }
+        xSemaphoreGive(g_action_mutex);
     } else {
         panic("PANIC: gcs_transmit_schedule_streams took too long to "
                 "get memory barrier");
