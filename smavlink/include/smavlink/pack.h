@@ -89,6 +89,105 @@ static inline void smavlink_pack_copy1(uint8_t *dst, const uint8_t *src) {
 #define smavlink_pack_double(buf, offs, b)   smavlink_pack_copy8(&(*buf)[offs], (const uint8_t *)&b)
 #endif
 
+/*
+ * Unpacking
+ *
+ * MAVLink passes multi-byte fields in little-endian byte order, so
+ * the non-swapping versions of unpack decode the LSB-first.
+ */
+
+static inline uint8_t smavlink_unpack_copy1(const uint8_t *src) {
+    return *src;
+}
+
+static inline uint16_t smavlink_unpack_copy2(const uint8_t *src) {
+    return (((uint16_t)src[0] << 0 ) |
+            ((uint16_t)src[1] << 8 ));
+}
+
+static inline uint32_t smavlink_unpack_copy4(const uint8_t *src) {
+    return (((uint32_t)src[0] << 0 ) |
+            ((uint32_t)src[1] << 8 ) |
+            ((uint16_t)src[2] << 16) |
+            ((uint16_t)src[3] << 24));
+}
+
+static inline uint64_t smavlink_unpack_copy8(const uint8_t *src) {
+    return (((uint64_t)src[0] << 0 ) |
+            ((uint64_t)src[1] << 8 ) |
+            ((uint64_t)src[2] << 16) |
+            ((uint64_t)src[3] << 24) |
+            ((uint64_t)src[4] << 32) |
+            ((uint64_t)src[5] << 40) |
+            ((uint64_t)src[6] << 48) |
+            ((uint64_t)src[7] << 56));
+}
+
+
+static inline uint16_t smavlink_unpack_swap2(const uint8_t *src) {
+    return (((uint16_t)src[1] << 0 ) |
+            ((uint16_t)src[0] << 8 ));
+}
+
+static inline uint32_t smavlink_unpack_swap4(const uint8_t *src) {
+    return (((uint32_t)src[3] << 0 ) |
+            ((uint32_t)src[2] << 8 ) |
+            ((uint16_t)src[1] << 16) |
+            ((uint16_t)src[0] << 24));
+}
+
+static inline uint64_t smavlink_unpack_swap8(const uint8_t *src) {
+    return (((uint64_t)src[7] << 0 ) |
+            ((uint64_t)src[6] << 8 ) |
+            ((uint64_t)src[5] << 16) |
+            ((uint64_t)src[4] << 24) |
+            ((uint64_t)src[3] << 32) |
+            ((uint64_t)src[2] << 40) |
+            ((uint64_t)src[1] << 48) |
+            ((uint64_t)src[0] << 56));
+}
+
+#define smavlink_unpack_uint8_t(buf, offs) ((uint8_t)smavlink_unpack_copy1(&(*buf)[offs]))
+#define smavlink_unpack_int8_t(buf, offs)  ((int8_t)smavlink_unpack_copy1(&(*buf)[offs]))
+
+#if SMAVLINK_PACK_BYTE_SWAP
+#define smavlink_unpack_uint16_t(buf, offs) ((uint16_t)smavlink_unpack_swap2(&(*buf)[offs]))
+#define smavlink_unpack_int16_t(buf, offs)  ((int16_t)smavlink_unpack_swap2(&(*buf)[offs]))
+#define smavlink_unpack_uint32_t(buf, offs) ((uint32_t)smavlink_unpack_swap4(&(*buf)[offs]))
+#define smavlink_unpack_int32_t(buf, offs)  ((int32_t)smavlink_unpack_swap4(&(*buf)[offs]))
+#define smavlink_unpack_uint64_t(buf, offs) ((uint64_t)smavlink_unpack_swap8(&(*buf)[offs]))
+#define smavlink_unpack_int64_t(buf, offs)  ((int64_t)smavlink_unpack_swap8(&(*buf)[offs]))
+
+static inline float smavlink_unpack_float(uint8_t *buf[], uint8_t offset) {
+    uint32_t raw = smavlink_unpack_swap4(&(*buf)[offset]);
+    return *(float *)(&raw);
+}
+
+static inline double smavlink_unpack_double(uint8_t *buf[], uint8_t offset) {
+    uint64_t raw = smavlink_unpack_swap8(&(*buf)[offset]);
+    return *(double *)(&raw);
+}
+
+#else
+#define smavlink_unpack_uint16_t(buf, offs) ((uint16_t)smavlink_unpack_copy2(&(*buf)[offs]))
+#define smavlink_unpack_int16_t(buf, offs)  ((int16_t)smavlink_unpack_copy2(&(*buf)[offs]))
+#define smavlink_unpack_uint32_t(buf, offs) ((uint32_t)smavlink_unpack_copy4(&(*buf)[offs]))
+#define smavlink_unpack_int32_t(buf, offs)  ((int32_t)smavlink_unpack_copy4(&(*buf)[offs]))
+#define smavlink_unpack_uint64_t(buf, offs) ((uint64_t)smavlink_unpack_copy8(&(*buf)[offs]))
+#define smavlink_unpack_int64_t(buf, offs)  ((int64_t)smavlink_unpack_copy8(&(*buf)[offs]))
+
+static inline float smavlink_unpack_float(const uint8_t *buf[], uint8_t offset) {
+    uint32_t raw = smavlink_unpack_copy4(&(*buf)[offset]);
+    return *(float *)(&raw);
+}
+
+static inline double smavlink_unpack_double(const uint8_t *buf[], uint8_t offset) {
+    uint64_t raw = smavlink_unpack_copy8(&(*buf)[offset]);
+    return *(double *)(&raw);
+}
+
+#endif
+
 #ifdef __cplusplus
 }
 #endif

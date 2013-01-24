@@ -120,6 +120,15 @@ static void send_heartbeat(void)
     smavlink_send_heartbeat(&msg, &g_out_ch, &g_sys);
 }
 
+static void receive_heartbeat(const uint8_t *buf)
+{
+    struct heartbeat_msg msg;
+    smavlink_unpack_heartbeat(&msg, &buf);
+    debug_printf("heartbeat: %lu %u %u %u %u\r\n",
+                 msg.custom_mode, msg.mavtype, msg.autopilot,
+                 msg.base_mode, msg.system_status);
+}
+
 static void receive_task(void *arg)
 {
     uint8_t buf[255];
@@ -127,7 +136,11 @@ static void receive_task(void *arg)
 
     for (;;) {
         if (smavlink_receive(&g_in_ch, &g_sys, &msg_id, buf, sizeof(buf))) {
-            debug_printf("received msg id %u\r\n", msg_id);
+            if (msg_id == 0) {
+                receive_heartbeat(buf);
+            } else {
+                debug_printf("received msg id %u\r\n", msg_id);
+            }
         } else {
             debug_puts("received bad message");
         }
