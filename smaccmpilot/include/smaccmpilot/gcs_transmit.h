@@ -22,6 +22,7 @@ extern "C" {
 #define GCS_TRANSMIT_NUM_STREAMS             6 /* just don't use zero */
 
 void gcs_transmit_init(void);
+void gcs_transmit_start_task(void);
 
 void gcs_transmit_set_states( const struct sensors_result *sensors,
                               const struct position_result *position,

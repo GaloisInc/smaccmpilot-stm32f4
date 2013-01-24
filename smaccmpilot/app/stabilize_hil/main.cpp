@@ -29,31 +29,42 @@ const AP_HAL::HAL& hal = AP_HAL_BOARD_DRIVER;
 // Handle to the main thread.
 static xTaskHandle g_main_task;
 
+// Initialize the HAL and sub-tasks before the main loop.
+void init(void)
+{
+    hal.init(0, NULL);
+
+    userinput_init();
+#ifndef USE_HIL
+    sensors_init();
+#endif
+    motorsoutput_init();
+    gcs_receive_init();
+    gcs_transmit_init();
+
+    userinput_start_task();
+#ifndef USE_HIL
+    sensors_start_task();
+#endif
+    motorsoutput_start_task();
+    gcs_receive_start_task();
+    gcs_transmit_start_task();
+}
+
 // Main thread.  Starts up the GCS thread to communicate with the
 // host, then processes incoming sensor data and writes servo output
 // back to MAVLink.
 void main_task(void *arg)
 {
-    hal.init(0, NULL);
-    userinput_init();
-
-#ifndef USE_HIL
-    sensors_init();
-#endif
-
-    motorsoutput_init();
-    gcs_receive_init();
-    gcs_transmit_init();
-
     struct userinput_result input;
     struct sensors_result sensors;
     struct motorsoutput_result motors;
     struct position_result position;
     struct servo_result servos;
 
-    portTickType last_wake_time = xTaskGetTickCount();
-
+    init();
     memset(&position, 0, sizeof(position));
+    portTickType last_wake_time = xTaskGetTickCount();
 
     for (;;) {
         userinput_get(&input);

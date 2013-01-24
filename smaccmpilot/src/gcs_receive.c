@@ -41,6 +41,9 @@ static uint8_t handle_unknown_id_history_idx = 0;
 /* Entry point */
 void gcs_receive_init(void) {
     hilstate_mutex = xSemaphoreCreateMutex();
+}
+
+void gcs_receive_start_task(void) {
     xTaskCreate(gcs_receive_task, (signed char *)"gcsr", 512, NULL, 1,
                 &gcs_receive_taskhandle);
 }

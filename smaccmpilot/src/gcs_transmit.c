@@ -58,6 +58,9 @@ static struct gcs_timed_action g_actions [] = {
 void gcs_transmit_init(void) {
     shared_state_mutex = xSemaphoreCreateMutex();
     g_action_mutex = xSemaphoreCreateMutex();
+}
+
+void gcs_transmit_start_task(void) {
     xTaskCreate(gcs_transmit_task, (signed char*)"gcst", 512, NULL, 0,
             &gcs_transmit_task_handle);
 }

@@ -40,6 +40,9 @@ static struct sensors_result sensors_shared_state;
 
 void sensors_init(void) {
     sensors_mutex = xSemaphoreCreateMutex();
+}
+
+void sensors_start_task(void) {
     xTaskCreate(sensors_task, (signed char *)"sens", 1024, NULL, 0,
             &sensors_task_handle);
 }

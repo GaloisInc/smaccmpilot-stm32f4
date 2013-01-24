@@ -12,6 +12,7 @@ extern "C" {
 #include "userinput_type.h"
 
 void userinput_init(void);
+void userinput_start_task(void);
 void userinput_get(struct userinput_result *input);
 
 #ifdef __cplusplus

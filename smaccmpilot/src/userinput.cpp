@@ -30,6 +30,9 @@ static void userinput_task(void* args);
 
 void userinput_init(void) {
     userinput_mutex = xSemaphoreCreateMutex();
+}
+
+void userinput_start_task(void) {
     xTaskCreate(userinput_task, (signed char *)"user", 1024, NULL, 0,
                 &userinput_task_handle);
 }

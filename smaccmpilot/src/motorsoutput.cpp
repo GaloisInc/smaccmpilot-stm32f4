@@ -21,7 +21,10 @@ void motorsoutput_init(void) {
     apmotors_output_init();
 
     motorsoutput_mutex = xSemaphoreCreateMutex();
-    xTaskCreate(motorsoutput_task, (signed char *)"user", 1024, NULL, 0,
+}
+
+void motorsoutput_start_task(void) {
+    xTaskCreate(motorsoutput_task, (signed char *)"motors", 1024, NULL, 0,
                 &motorsoutput_task_handle);
 }
 
