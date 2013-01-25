@@ -22,7 +22,7 @@
 
 #define MAX_INPUT_ROLL   45.0f  /* deg */
 #define MAX_INPUT_PITCH  45.0f  /* deg */
-#define MAX_INPUT_YAW    45.0f  /* deg */
+#define MAX_INPUT_YAW    180.0f  /* deg/sec */
 
 /* These numbers are from ArduPilot.  Do they still make sense? */
 #define MAX_OUTPUT_ROLL  50.0f  /* deg/sec */
