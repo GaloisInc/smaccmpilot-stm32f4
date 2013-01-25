@@ -26,7 +26,7 @@ void smavlink_send_param_request_read(struct param_request_read_msg* n_var0,
     
     for (uint8_t n_ix6 = 0U % 16U; n_ix6 < 15U % 16U; n_ix6 = n_ix6 + 1U %
          16U) {
-        uint8_t n_deref7 = *&*n_let5[n_ix6];
+        uint8_t n_deref7 = *&(*n_let5)[n_ix6];
         
         smavlink_pack_uint8_t(n_ref1, 4U + n_ix6, n_deref7);
     }
@@ -51,6 +51,6 @@ void smavlink_unpack_param_request_read(struct param_request_read_msg* n_var0,
          16U) {
         uint8_t n_r4 = smavlink_unpack_uint8_t(n_var1, 4U + n_ix3);
         
-        *&*(&n_var0->param_id)[n_ix3] = n_r4;
+        *&(*&n_var0->param_id)[n_ix3] = n_r4;
     }
 }

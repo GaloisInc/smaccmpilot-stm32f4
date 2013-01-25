@@ -43,7 +43,7 @@ void smavlink_send_file_transfer_start(struct file_transfer_start_msg* n_var0,
     
     for (uint8_t n_ix7 = 0U % 240U; n_ix7 < 239U % 240U; n_ix7 = n_ix7 + 1U %
          240U) {
-        uint8_t n_deref8 = *&*n_let6[n_ix7];
+        uint8_t n_deref8 = *&(*n_let6)[n_ix7];
         
         smavlink_pack_uint8_t(n_ref1, 12U + n_ix7, n_deref8);
     }
@@ -72,6 +72,6 @@ void smavlink_unpack_file_transfer_start(struct file_transfer_start_msg* n_var0,
          240U) {
         uint8_t n_r5 = smavlink_unpack_uint8_t(n_var1, 12U + n_ix4);
         
-        *&*(&n_var0->dest_path)[n_ix4] = n_r5;
+        *&(*&n_var0->dest_path)[n_ix4] = n_r5;
     }
 }

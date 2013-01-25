@@ -22,7 +22,7 @@ void smavlink_send_gps_status(struct gps_status_msg* n_var0,
     
     for (uint8_t n_ix4 = 0U % 20U; n_ix4 < 19U % 20U; n_ix4 = n_ix4 + 1U %
          20U) {
-        uint8_t n_deref5 = *&*n_let3[n_ix4];
+        uint8_t n_deref5 = *&(*n_let3)[n_ix4];
         
         smavlink_pack_uint8_t(n_ref1, 1U + n_ix4, n_deref5);
     }
@@ -31,7 +31,7 @@ void smavlink_send_gps_status(struct gps_status_msg* n_var0,
     
     for (uint8_t n_ix7 = 0U % 20U; n_ix7 < 19U % 20U; n_ix7 = n_ix7 + 1U %
          20U) {
-        uint8_t n_deref8 = *&*n_let6[n_ix7];
+        uint8_t n_deref8 = *&(*n_let6)[n_ix7];
         
         smavlink_pack_uint8_t(n_ref1, 21U + n_ix7, n_deref8);
     }
@@ -40,7 +40,7 @@ void smavlink_send_gps_status(struct gps_status_msg* n_var0,
     
     for (uint8_t n_ix10 = 0U % 20U; n_ix10 < 19U % 20U; n_ix10 = n_ix10 + 1U %
          20U) {
-        uint8_t n_deref11 = *&*n_let9[n_ix10];
+        uint8_t n_deref11 = *&(*n_let9)[n_ix10];
         
         smavlink_pack_uint8_t(n_ref1, 41U + n_ix10, n_deref11);
     }
@@ -49,7 +49,7 @@ void smavlink_send_gps_status(struct gps_status_msg* n_var0,
     
     for (uint8_t n_ix13 = 0U % 20U; n_ix13 < 19U % 20U; n_ix13 = n_ix13 + 1U %
          20U) {
-        uint8_t n_deref14 = *&*n_let12[n_ix13];
+        uint8_t n_deref14 = *&(*n_let12)[n_ix13];
         
         smavlink_pack_uint8_t(n_ref1, 61U + n_ix13, n_deref14);
     }
@@ -58,7 +58,7 @@ void smavlink_send_gps_status(struct gps_status_msg* n_var0,
     
     for (uint8_t n_ix16 = 0U % 20U; n_ix16 < 19U % 20U; n_ix16 = n_ix16 + 1U %
          20U) {
-        uint8_t n_deref17 = *&*n_let15[n_ix16];
+        uint8_t n_deref17 = *&(*n_let15)[n_ix16];
         
         smavlink_pack_uint8_t(n_ref1, 81U + n_ix16, n_deref17);
     }
@@ -75,30 +75,30 @@ void smavlink_unpack_gps_status(struct gps_status_msg* n_var0, const
          20U) {
         uint8_t n_r2 = smavlink_unpack_uint8_t(n_var1, 1U + n_ix1);
         
-        *&*(&n_var0->satellite_prn)[n_ix1] = n_r2;
+        *&(*&n_var0->satellite_prn)[n_ix1] = n_r2;
     }
     for (uint8_t n_ix3 = 0U % 20U; n_ix3 < 19U % 20U; n_ix3 = n_ix3 + 1U %
          20U) {
         uint8_t n_r4 = smavlink_unpack_uint8_t(n_var1, 21U + n_ix3);
         
-        *&*(&n_var0->satellite_used)[n_ix3] = n_r4;
+        *&(*&n_var0->satellite_used)[n_ix3] = n_r4;
     }
     for (uint8_t n_ix5 = 0U % 20U; n_ix5 < 19U % 20U; n_ix5 = n_ix5 + 1U %
          20U) {
         uint8_t n_r6 = smavlink_unpack_uint8_t(n_var1, 41U + n_ix5);
         
-        *&*(&n_var0->satellite_elevation)[n_ix5] = n_r6;
+        *&(*&n_var0->satellite_elevation)[n_ix5] = n_r6;
     }
     for (uint8_t n_ix7 = 0U % 20U; n_ix7 < 19U % 20U; n_ix7 = n_ix7 + 1U %
          20U) {
         uint8_t n_r8 = smavlink_unpack_uint8_t(n_var1, 61U + n_ix7);
         
-        *&*(&n_var0->satellite_azimuth)[n_ix7] = n_r8;
+        *&(*&n_var0->satellite_azimuth)[n_ix7] = n_r8;
     }
     for (uint8_t n_ix9 = 0U % 20U; n_ix9 < 19U % 20U; n_ix9 = n_ix9 + 1U %
          20U) {
         uint8_t n_r10 = smavlink_unpack_uint8_t(n_var1, 81U + n_ix9);
         
-        *&*(&n_var0->satellite_snr)[n_ix9] = n_r10;
+        *&(*&n_var0->satellite_snr)[n_ix9] = n_r10;
     }
 }

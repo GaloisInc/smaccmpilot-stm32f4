@@ -29,7 +29,7 @@ void smavlink_send_debug_vect(struct debug_vect_msg* n_var0,
     uint8_t(* n_let6)[10U] = &n_var0->name;
     
     for (uint8_t n_ix7 = 0U % 10U; n_ix7 < 9U % 10U; n_ix7 = n_ix7 + 1U % 10U) {
-        uint8_t n_deref8 = *&*n_let6[n_ix7];
+        uint8_t n_deref8 = *&(*n_let6)[n_ix7];
         
         smavlink_pack_uint8_t(n_ref1, 20U + n_ix7, n_deref8);
     }
@@ -57,6 +57,6 @@ void smavlink_unpack_debug_vect(struct debug_vect_msg* n_var0, const
     for (uint8_t n_ix4 = 0U % 10U; n_ix4 < 9U % 10U; n_ix4 = n_ix4 + 1U % 10U) {
         uint8_t n_r5 = smavlink_unpack_uint8_t(n_var1, 20U + n_ix4);
         
-        *&*(&n_var0->name)[n_ix4] = n_r5;
+        *&(*&n_var0->name)[n_ix4] = n_r5;
     }
 }

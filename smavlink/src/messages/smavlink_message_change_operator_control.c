@@ -26,7 +26,7 @@ void smavlink_send_change_operator_control(struct change_operator_control_msg* n
     
     for (uint8_t n_ix6 = 0U % 25U; n_ix6 < 24U % 25U; n_ix6 = n_ix6 + 1U %
          25U) {
-        uint8_t n_deref7 = *&*n_let5[n_ix6];
+        uint8_t n_deref7 = *&(*n_let5)[n_ix6];
         
         smavlink_pack_uint8_t(n_ref1, 3U + n_ix6, n_deref7);
     }
@@ -51,6 +51,6 @@ void smavlink_unpack_change_operator_control(struct change_operator_control_msg*
          25U) {
         uint8_t n_r4 = smavlink_unpack_uint8_t(n_var1, 3U + n_ix3);
         
-        *&*(&n_var0->passkey)[n_ix3] = n_r4;
+        *&(*&n_var0->passkey)[n_ix3] = n_r4;
     }
 }

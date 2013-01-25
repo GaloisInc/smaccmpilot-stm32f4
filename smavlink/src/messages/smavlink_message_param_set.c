@@ -30,7 +30,7 @@ void smavlink_send_param_set(struct param_set_msg* n_var0,
     
     for (uint8_t n_ix7 = 0U % 16U; n_ix7 < 15U % 16U; n_ix7 = n_ix7 + 1U %
          16U) {
-        uint8_t n_deref8 = *&*n_let6[n_ix7];
+        uint8_t n_deref8 = *&(*n_let6)[n_ix7];
         
         smavlink_pack_uint8_t(n_ref1, 6U + n_ix7, n_deref8);
     }
@@ -59,6 +59,6 @@ void smavlink_unpack_param_set(struct param_set_msg* n_var0, const
          16U) {
         uint8_t n_r5 = smavlink_unpack_uint8_t(n_var1, 6U + n_ix4);
         
-        *&*(&n_var0->param_id)[n_ix4] = n_r5;
+        *&(*&n_var0->param_id)[n_ix4] = n_r5;
     }
 }

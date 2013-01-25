@@ -27,7 +27,7 @@ void smavlink_send_memory_vect(struct memory_vect_msg* n_var0,
     
     for (uint8_t n_ix6 = 0U % 32U; n_ix6 < 31U % 32U; n_ix6 = n_ix6 + 1U %
          32U) {
-        int8_t n_deref7 = *&*n_let5[n_ix6];
+        int8_t n_deref7 = *&(*n_let5)[n_ix6];
         
         smavlink_pack_int8_t(n_ref1, 4U + n_ix6, n_deref7);
     }
@@ -52,6 +52,6 @@ void smavlink_unpack_memory_vect(struct memory_vect_msg* n_var0, const
          32U) {
         int8_t n_r4 = smavlink_unpack_int8_t(n_var1, 4U + n_ix3);
         
-        *&*(&n_var0->value)[n_ix3] = n_r4;
+        *&(*&n_var0->value)[n_ix3] = n_r4;
     }
 }

@@ -19,7 +19,7 @@ void smavlink_send_statustext(struct statustext_msg* n_var0,
     
     for (uint8_t n_ix4 = 0U % 50U; n_ix4 < 49U % 50U; n_ix4 = n_ix4 + 1U %
          50U) {
-        uint8_t n_deref5 = *&*n_let3[n_ix4];
+        uint8_t n_deref5 = *&(*n_let3)[n_ix4];
         
         smavlink_pack_uint8_t(n_ref1, 1U + n_ix4, n_deref5);
     }
@@ -36,6 +36,6 @@ void smavlink_unpack_statustext(struct statustext_msg* n_var0, const
          50U) {
         uint8_t n_r2 = smavlink_unpack_uint8_t(n_var1, 1U + n_ix1);
         
-        *&*(&n_var0->text)[n_ix1] = n_r2;
+        *&(*&n_var0->text)[n_ix1] = n_r2;
     }
 }

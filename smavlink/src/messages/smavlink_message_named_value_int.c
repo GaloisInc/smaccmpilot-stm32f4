@@ -21,7 +21,7 @@ void smavlink_send_named_value_int(struct named_value_int_msg* n_var0,
     uint8_t(* n_let4)[10U] = &n_var0->name;
     
     for (uint8_t n_ix5 = 0U % 10U; n_ix5 < 9U % 10U; n_ix5 = n_ix5 + 1U % 10U) {
-        uint8_t n_deref6 = *&*n_let4[n_ix5];
+        uint8_t n_deref6 = *&(*n_let4)[n_ix5];
         
         smavlink_pack_uint8_t(n_ref1, 8U + n_ix5, n_deref6);
     }
@@ -41,6 +41,6 @@ void smavlink_unpack_named_value_int(struct named_value_int_msg* n_var0, const
     for (uint8_t n_ix2 = 0U % 10U; n_ix2 < 9U % 10U; n_ix2 = n_ix2 + 1U % 10U) {
         uint8_t n_r3 = smavlink_unpack_uint8_t(n_var1, 8U + n_ix2);
         
-        *&*(&n_var0->name)[n_ix2] = n_r3;
+        *&(*&n_var0->name)[n_ix2] = n_r3;
     }
 }
