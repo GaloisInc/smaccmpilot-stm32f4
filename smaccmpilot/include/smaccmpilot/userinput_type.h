@@ -13,6 +13,7 @@ struct userinput_result {
     float roll;
     float pitch;
     float yaw;
+    uint8_t mode;
     uint32_t time;
 };
 

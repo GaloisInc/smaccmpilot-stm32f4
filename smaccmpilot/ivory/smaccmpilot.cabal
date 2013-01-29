@@ -20,6 +20,7 @@ library
                        SensorsType,
                        UserInputType,
                        GCSTransmitDriver,
+                       UserInputDecode,
                        IvoryHelpers
 
   build-depends:       base >= 4.6,

@@ -51,3 +51,6 @@ ref %=! mf = do
 -- | Increment the value stored at a reference.
 (+=) :: (Num a, IvoryType r, IvoryExpr a) => Ref (Stored a) -> a -> Ivory r ()
 ref += x = ref %= (+ x)
+
+ift :: IBool -> Ivory r a -> Ivory r ()
+ift pred c = ifte pred c (return ())

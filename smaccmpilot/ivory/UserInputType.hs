@@ -18,6 +18,7 @@ struct userinput_result
   ; roll     :: Stored IFloat 
   ; pitch    :: Stored IFloat 
   ; yaw      :: Stored IFloat 
+  ; mode     :: Stored Uint8
   ; time     :: Stored Uint32
   }
 |]

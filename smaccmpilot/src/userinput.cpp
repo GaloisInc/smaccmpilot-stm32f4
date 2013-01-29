@@ -1,5 +1,6 @@
 
 #include "smaccmpilot/userinput.h"
+#include "smaccmpilot/userinput_decode.h"
 
 #include <hwf4/timer.h>
 
@@ -22,7 +23,8 @@ static xTaskHandle userinput_task_handle;
 static xSemaphoreHandle userinput_mutex;
 static struct userinput_result userinput_shared_state;
 
-static void userinput_capture(struct userinput_result *capt);
+static void userinput_capture(struct userinput_result *capt,
+                              struct userinput_decode_state *decode_state);
 static void userinput_failsafe(struct userinput_result *capt);
 static void userinput_share(const struct userinput_result *capt);
 
@@ -40,12 +42,13 @@ void userinput_start_task(void) {
 static void userinput_task(void* args) {
 
     struct userinput_result state = {0};
+    struct userinput_decode_state decode_state = {0};
 
     portTickType last_wake_time = xTaskGetTickCount();
 
     for(;;) {
         vTaskDelayUntil(&last_wake_time, 20);
-        userinput_capture(&state);
+        userinput_capture(&state, &decode_state);
         userinput_failsafe(&state);
         userinput_share(&state);
     }
@@ -83,7 +86,8 @@ static float fit_ch(uint16_t input, uint16_t center, uint16_t range,
 
 }
 
-static void userinput_capture(struct userinput_result *capt) {
+static void userinput_capture(struct userinput_result *capt,
+                              struct userinput_decode_state *decode_state) {
     if (hal.rcin->valid()) {
         uint16_t ch[SMACCM_RCINPUT_CHANNELS];
         size_t count;
@@ -91,22 +95,9 @@ static void userinput_capture(struct userinput_result *capt) {
         count = hal.rcin->read(ch, SMACCM_RCINPUT_CHANNELS);
 
         if (count == SMACCM_RCINPUT_CHANNELS) {
+            uint32_t now = xTaskGetTickCount();
+            userinput_decode(&ch, decode_state, capt, now);
 
-            /* Update capt.time, recordkeeping for internal failsafe */
-            capt->time     = xTaskGetTickCount();
-            /* Update each captured channel */
-            capt->roll     = fit_ch(ch[0], 1500, 500, -1.0f, 1.0f );
-            capt->pitch    = fit_ch(ch[1], 1500, 500, -1.0f, 1.0f );
-            capt->throttle = fit_ch(ch[2], 1000, 1000, 0.0f, 1.0f );
-            capt->yaw      = fit_ch(ch[3], 1500, 500, -1.0f, 1.0f );
-
-            /* Motor arming is mapped to channel 5 as a single switch, for
-             * simplicity. */
-            if (ch[5] > 1500) {
-                capt->armed = true;
-            } else {
-                capt->armed = false;
-            }
         }
 
     }

@@ -11,4 +11,4 @@ INCDIR=../include/smaccmpilot/
 rm -f $FILES
 cabal-dev -s $SANDBOX configure
 cabal-dev -s $SANDBOX install
-$SANDBOX/bin/smaccmpilot-gen --src-dir=$SRCDIR --include-dir=$INCDIR
+$SANDBOX/bin/smaccmpilot-gen --src-dir=$SRCDIR --include-dir=$INCDIR --const-fold

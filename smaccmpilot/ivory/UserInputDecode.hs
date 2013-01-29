@@ -1,0 +1,121 @@
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE QuasiQuotes #-}
+
+module UserInputDecode where
+
+import Ivory.Language
+
+import IvoryHelpers
+
+import qualified UserInputType as I
+
+userInputDecodeModule :: Module
+userInputDecodeModule = package "userinput_decode" $ do
+  depend I.userInputModule
+  defStruct (Proxy :: Proxy "userinput_decode_state")
+  incl decode
+  incl scale_proc
+
+[ivory|
+struct userinput_decode_state
+  { last_modepwm      :: Stored Uint16
+  ; last_modepwm_time :: Stored Uint32
+  ; arm_state         :: Stored Uint8
+  ; arm_state_time    :: Stored Uint32
+  }
+|]
+
+as_DISARMED, as_ARMING, as_ARMED :: Uint8
+as_DISARMED = 0
+as_ARMING   = 1
+as_ARMED    = 2
+
+decode :: Def ('[ Ref (Array 8 (Stored Uint16))
+                , Ref (Struct "userinput_decode_state")
+                , Ref (Struct "userinput_result")
+                , Uint32 ] :-> ()) 
+decode = proc "userinput_decode" $ \pwms state out now -> do
+  let chtransform ix f ofield = deref (pwms ! (ix :: Ix Uint8 8)) >>=
+                                f >>= \v -> store (out ~> ofield) v
+  store (out ~> I.time) now
+  chtransform 0 scale_rpy I.roll
+  chtransform 1 scale_rpy I.pitch
+  chtransform 2 scale_thr I.throttle
+  chtransform 3 scale_rpy I.yaw
+  arming_statemachine pwms state out now
+  mode_statemachine pwms state out now
+  retVoid
+
+arming_statemachine :: (Ref (Array 8 (Stored Uint16)))
+                    -> (Ref (Struct "userinput_decode_state"))
+                    -> (Ref (Struct "userinput_result"))
+                    -> Uint32
+                    -> Ivory () ()
+arming_statemachine pwms state out now = do
+  ch5_switch <- deref (pwms ! (5 :: Ix Uint8 8))
+  throttle_stick <- deref (pwms ! (2 :: Ix Uint8 8))
+  rudder_stick   <- deref (pwms ! (3 :: Ix Uint8 8))
+
+  ifte (ch5_switch <? 1500)
+    (do_disarm)
+    (ifte ((throttle_stick <? 1050) .&& (rudder_stick >? 1900))
+      (do_try_arming)
+      (do_not_arming))
+  where
+  set_arm_state :: Uint8 -> Ivory () ()
+  set_arm_state newstate = do
+    store (state ~> arm_state) newstate
+    store (state ~> arm_state_time) now
+    ifte (newstate ==? as_DISARMED)
+      (store (out ~> I.armed) false)
+      (ift (newstate ==? as_ARMED)
+        (store (out ~> I.armed) true))
+
+  do_disarm :: Ivory () ()
+  do_disarm = set_arm_state as_DISARMED
+  
+  hystresis = 500
+
+  do_try_arming :: Ivory () ()
+  do_try_arming = do
+    as <- deref (state ~> arm_state)
+    astime <- deref (state ~> arm_state_time)
+    (ifte (as ==? as_DISARMED)
+      (ift (now - astime >? hystresis)
+        (set_arm_state as_ARMING))
+      (ift (as ==? as_ARMING)
+        (ift (now - astime >? hystresis)
+          (set_arm_state as_ARMED))))
+
+  do_not_arming :: Ivory () ()
+  do_not_arming = do
+    as <- deref (state ~> arm_state)
+    ift (as ==? as_ARMING)
+      (set_arm_state as_DISARMED)
+
+mode_statemachine :: (Ref (Array 8 (Stored Uint16)))
+                  -> (Ref (Struct "userinput_decode_state"))
+                  -> (Ref (Struct "userinput_result"))
+                  -> Uint32
+                  -> Ivory () ()
+mode_statemachine pwms state out now = do return ()
+
+scale_thr :: Uint16 -> Ivory a IFloat 
+scale_thr input = call scale_proc 1000 1000 0.0 1.0 input
+
+scale_rpy :: Uint16 -> Ivory a IFloat
+scale_rpy input = call scale_proc 1500 500 (-1.0) 1.0 input
+
+scale_proc :: Def ('[Uint16, Uint16, IFloat, IFloat, Uint16] :-> IFloat)
+scale_proc = proc "userinput_scale" $ \center range outmin outmax input -> do
+  let centered = input - center
+  let ranged = (toFloat centered) / (toFloat range)
+  ifte (ranged <? outmin)
+    (ret outmin)
+    (ifte (ranged >? outmax)
+      (ret outmax)
+      (ret ranged))
+  
+
