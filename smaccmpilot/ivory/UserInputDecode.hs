@@ -32,6 +32,17 @@ as_DISARMED = 0
 as_ARMING   = 1
 as_ARMED    = 2
 
+mode_STABILIZE, mode_ALT_HOLD, mode_LOITER :: Uint8
+mode_STABILIZE = 0
+mode_ALT_HOLD  = 1
+mode_LOITER    = 2
+
+mode_pwm_map :: [(Uint8, (Uint16, Uint16))]
+mode_pwm_map = [(mode_STABILIZE, (900, 1300))
+               ,(mode_ALT_HOLD,  (1301, 1700))
+               ,(mode_LOITER,    (1701, 2100))
+               ]
+
 decode :: Def ('[ Ref (Array 8 (Stored Uint16))
                 , Ref (Struct "userinput_decode_state")
                 , Ref (Struct "userinput_result")
@@ -100,7 +111,31 @@ mode_statemachine :: (Ref (Array 8 (Stored Uint16)))
                   -> (Ref (Struct "userinput_result"))
                   -> Uint32
                   -> Ivory () ()
-mode_statemachine pwms state out now = do return ()
+mode_statemachine pwms state out now = do
+  mode_input_current <- deref (pwms ! (4 :: Ix Uint8 8))
+  mode_input_prev    <- deref (state ~> last_modepwm)
+  prev_time          <- deref (state ~> last_modepwm_time)
+  let pwmtolerance = 10
+  let latchtime    = 250
+  ifte ((abs (mode_input_current - mode_input_prev)) <? pwmtolerance)
+    (ift (now - prev_time >? latchtime)
+      (newmode mode_input_current))
+    (reset_input mode_input_current)
+  where
+  reset_input m = do
+    store (state ~> last_modepwm) m
+    store (state ~> last_modepwm_time) now
+  newmode m = do 
+    reset_input m
+    new <- assign $ mode_from_pwm m
+    store (out ~> I.mode) new
+  mode_from_pwm :: Uint16 -> Uint8
+  mode_from_pwm pwm = foldr matchmodemap mode_STABILIZE mode_pwm_map
+    -- Build up a series of conditional checks using fold. Default to
+    -- mode_STABILIZE if none found.
+    where
+    matchmodemap (mode, (minpwm, maxpwm)) dflt =
+      ((pwm >=? minpwm) .&& (pwm <=? maxpwm)) ? (mode, dflt)
 
 scale_thr :: Uint16 -> Ivory a IFloat 
 scale_thr input = call scale_proc 1000 1000 0.0 1.0 input

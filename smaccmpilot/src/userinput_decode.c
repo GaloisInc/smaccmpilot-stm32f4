@@ -90,6 +90,27 @@ void userinput_decode(uint16_t(* n_var0)[8U],
             } else { }
         }
     }
+    
+    uint16_t n_deref14 = *&(*n_var0)[4U];
+    uint16_t n_deref15 = *&n_var1->last_modepwm;
+    uint32_t n_deref16 = *&n_var1->last_modepwm_time;
+    
+    if (n_deref14 - n_deref15 < 10U) {
+        if (n_var3 - n_deref16 > 100U) {
+            *&n_var1->last_modepwm = n_deref14;
+            *&n_var1->last_modepwm_time = n_var3;
+            
+            uint8_t n_let17 = n_deref14 >= 900U && n_deref14 <=
+                   1300U ? 0U : n_deref14 >= 1301U && n_deref14 <=
+                   1700U ? 1U : n_deref14 >= 1701U && n_deref14 <=
+                   2100U ? 2U : 0U;
+            
+            *&n_var2->mode = n_let17;
+        } else { }
+    } else {
+        *&n_var1->last_modepwm = n_deref14;
+        *&n_var1->last_modepwm_time = n_var3;
+    }
     return;
 }
 float userinput_scale(uint16_t n_var0, uint16_t n_var1, float n_var2,
