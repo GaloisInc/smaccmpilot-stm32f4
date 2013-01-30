@@ -21,6 +21,7 @@ library
                        UserInputType,
                        GCSTransmitDriver,
                        UserInputDecode,
+                       OptFlowType,
                        IvoryHelpers
 
   build-depends:       base >= 4.6,
