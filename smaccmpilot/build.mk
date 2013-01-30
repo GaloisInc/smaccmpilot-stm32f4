@@ -41,6 +41,8 @@ SMACCMPILOT_OBJECTS :=       \
   src/gcs_transmit_driver.o  \
   src/gcs_transmit.o         \
   src/userinput_decode.o     \
+  src/optflow_input.o        \
+  src/optflow_compensate.o   \
   src/pid_stabilize.o
 
 $(eval $(call library,SMACCMPILOT))

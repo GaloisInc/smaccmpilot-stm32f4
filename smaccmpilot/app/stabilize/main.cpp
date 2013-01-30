@@ -23,6 +23,8 @@
 #include <smaccmpilot/gcs_receive.h>
 #include <smaccmpilot/gcs_transmit.h>
 #include <smaccmpilot/sensors.h>
+#include <smaccmpilot/optflow_input.h>
+#include <smaccmpilot/optflow_compensate.h>
 
 const AP_HAL::HAL& hal = AP_HAL_BOARD_DRIVER;
 
@@ -42,6 +44,8 @@ void init(void)
     gcs_receive_init();
     gcs_transmit_init();
 
+    optflow_input_init();
+
     userinput_start_task();
 #ifndef USE_HIL
     sensors_start_task();
@@ -49,6 +53,8 @@ void init(void)
     motorsoutput_start_task();
     gcs_receive_start_task();
     gcs_transmit_start_task();
+
+    optflow_input_start_task();
 }
 
 // Main thread.  Starts up the GCS thread to communicate with the
@@ -56,30 +62,37 @@ void init(void)
 // back to MAVLink.
 void main_task(void *arg)
 {
-    struct userinput_result input;
+    struct userinput_result userinput;
+    struct userinput_result optflow_compensated_input;
     struct sensors_result sensors;
     struct motorsoutput_result motors;
     struct position_result position;
     struct servo_result servos;
+    struct optflow_result optflow;
 
     init();
     memset(&position, 0, sizeof(position));
     portTickType last_wake_time = xTaskGetTickCount();
 
     for (;;) {
-        userinput_get(&input);
+        userinput_get(&userinput);
 
 #ifdef USE_HIL
         gcs_receive_get_hilstate(&sensors, &position);
 #else
         sensors_get(&sensors);
+        optflow_input_get(&optflow);
 #endif
 
-        stabilize_motors(&input, &sensors, &motors);
+        optflow_compensate(&optflow, &userinput, &optflow_compensated_input);
+
+        stabilize_motors(&userinput, &sensors, &motors);
         motorsoutput_set(&motors);
 
         motorsoutput_getservo(&servos);
-        gcs_transmit_set_states(&sensors, &position, &motors, &servos, &input);
+
+        gcs_transmit_set_states(&sensors, &position,
+                &motors, &servos, &userinput);
 
         vTaskDelayUntil(&last_wake_time, 10);
     }
