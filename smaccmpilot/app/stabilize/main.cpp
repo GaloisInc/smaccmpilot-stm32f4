@@ -79,7 +79,7 @@ void main_task(void *arg)
         motorsoutput_set(&motors);
 
         motorsoutput_getservo(&servos);
-        gcs_transmit_set_states(&sensors, &position, &motors, &servos);
+        gcs_transmit_set_states(&sensors, &position, &motors, &servos, &input);
 
         vTaskDelayUntil(&last_wake_time, 10);
     }

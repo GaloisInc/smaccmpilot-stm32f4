@@ -13,6 +13,7 @@ extern "C" {
 #include "position_type.h"
 #include "sensors_type.h"
 #include "servo_type.h"
+#include "userinput_type.h"
 
 #define GCS_TRANSMIT_STREAM_HEARTBEAT        1
 #define GCS_TRANSMIT_STREAM_SERVO_OUTPUT_RAW 2
@@ -27,7 +28,8 @@ void gcs_transmit_start_task(void);
 void gcs_transmit_set_states( const struct sensors_result *sensors,
                               const struct position_result *position,
                               const struct motorsoutput_result *motors,
-                              const struct servo_result *servo );
+                              const struct servo_result *servo,
+                              const struct userinput_result *user);
 
 void gcs_transmit_set_stream_rate(int stream, bool enable, uint16_t rate_hz );
 

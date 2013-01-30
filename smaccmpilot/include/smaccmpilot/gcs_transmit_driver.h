@@ -18,9 +18,11 @@ extern "C" {
 #include "smavlink_message_heartbeat.h"
 #include "smavlink_message_servo_output_raw.h"
 #include "smavlink_message_vfr_hud.h"
+#include "userinput_type.h"
 void gcs_transmit_send_heartbeat(struct motorsoutput_result* n_var0,
-                                 struct smavlink_out_channel* n_var1,
-                                 struct smavlink_system* n_var2);
+                                 struct userinput_result* n_var1,
+                                 struct smavlink_out_channel* n_var2,
+                                 struct smavlink_system* n_var3);
 void gcs_transmit_send_attitude(struct sensors_result* n_var0,
                                 struct smavlink_out_channel* n_var1,
                                 struct smavlink_system* n_var2);

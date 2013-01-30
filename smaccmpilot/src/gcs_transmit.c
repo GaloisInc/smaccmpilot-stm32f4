@@ -36,6 +36,7 @@ static struct sensors_result     shared_sensors;
 static struct position_result    shared_position;
 static struct motorsoutput_result shared_motors;
 static struct servo_result       shared_servo;
+static struct userinput_result   shared_user;
 
 static size_t gcstx_write(void* delegate, const uint8_t *data, size_t len);
 static bool   gcstx_begin_atomic(void*, size_t);
@@ -107,13 +108,15 @@ static void gcs_transmit_task(void* args) {
 void gcs_transmit_set_states( const struct sensors_result *sensors,
                               const struct position_result *position,
                               const struct motorsoutput_result *motors,
-                              const struct servo_result *servo )
+                              const struct servo_result *servo,
+                              const struct userinput_result *user )
 {
     if (xSemaphoreTake(shared_state_mutex, 1)) {
         memcpy(&shared_sensors,  sensors,  sizeof(struct sensors_result));
         memcpy(&shared_position, position, sizeof(struct position_result));
         memcpy(&shared_motors,   motors,   sizeof(struct motorsoutput_result));
         memcpy(&shared_servo,    servo,    sizeof(struct servo_result));
+        memcpy(&shared_user,     user,     sizeof(struct userinput_result));
         xSemaphoreGive(shared_state_mutex);
     } else {
         panic("PANIC: gcs_transmit_set_states took too long to "
@@ -124,13 +127,15 @@ void gcs_transmit_set_states( const struct sensors_result *sensors,
 void gcs_transmit_get_states( struct sensors_result *sensors,
                               struct position_result *position,
                               struct motorsoutput_result *motors,
-                              struct servo_result *servo )
+                              struct servo_result *servo,
+                              struct userinput_result *user )
 {
     if (xSemaphoreTake(shared_state_mutex, 1)) {
         memcpy(sensors,  &shared_sensors,  sizeof(struct sensors_result));
         memcpy(position, &shared_position, sizeof(struct position_result));
         memcpy(motors,   &shared_motors,   sizeof(struct motorsoutput_result));
         memcpy(servo,    &shared_servo,    sizeof(struct servo_result));
+        memcpy(user,     &shared_user,     sizeof(struct userinput_result));
         xSemaphoreGive(shared_state_mutex);
     } else {
         panic("PANIC: gcs_transmit_get_states took too long to "
@@ -209,11 +214,12 @@ static void gcs_transmit_send_streams( bool *streams_due,
     struct position_result position;
     struct motorsoutput_result motors;
     struct servo_result servo;
+    struct userinput_result userinput;
     
-    gcs_transmit_get_states( &sensors, &position, &motors, &servo );
+    gcs_transmit_get_states( &sensors, &position, &motors, &servo, &userinput );
 
     if (streams_due[GCS_TRANSMIT_STREAM_HEARTBEAT]) {
-        gcs_transmit_send_heartbeat(&motors, ch, sys);
+        gcs_transmit_send_heartbeat(&motors, &userinput, ch, sys);
     }
 
     if (streams_due[GCS_TRANSMIT_STREAM_SERVO_OUTPUT_RAW]) {
