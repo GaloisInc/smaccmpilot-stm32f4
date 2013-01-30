@@ -9,35 +9,35 @@ void smavlink_send_safety_allowed_area(struct safety_allowed_area_msg* n_var0,
 {
     uint8_t n_local0[25U] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                              0, 0, 0, 0, 0, 0, 0, 0};
-    uint8_t(* n_ref1)[25U] = &n_local0;
+    uint8_t* n_ref1 = n_local0;
     float n_deref2 = *&n_var0->p1x;
     
-    smavlink_pack_float(n_ref1, 0U, n_deref2);
+    smavlink_pack_float((uint8_t*) n_ref1, 0U, n_deref2);
     
     float n_deref3 = *&n_var0->p1y;
     
-    smavlink_pack_float(n_ref1, 4U, n_deref3);
+    smavlink_pack_float((uint8_t*) n_ref1, 4U, n_deref3);
     
     float n_deref4 = *&n_var0->p1z;
     
-    smavlink_pack_float(n_ref1, 8U, n_deref4);
+    smavlink_pack_float((uint8_t*) n_ref1, 8U, n_deref4);
     
     float n_deref5 = *&n_var0->p2x;
     
-    smavlink_pack_float(n_ref1, 12U, n_deref5);
+    smavlink_pack_float((uint8_t*) n_ref1, 12U, n_deref5);
     
     float n_deref6 = *&n_var0->p2y;
     
-    smavlink_pack_float(n_ref1, 16U, n_deref6);
+    smavlink_pack_float((uint8_t*) n_ref1, 16U, n_deref6);
     
     float n_deref7 = *&n_var0->p2z;
     
-    smavlink_pack_float(n_ref1, 20U, n_deref7);
+    smavlink_pack_float((uint8_t*) n_ref1, 20U, n_deref7);
     
     uint8_t n_deref8 = *&n_var0->frame;
     
-    smavlink_pack_uint8_t(n_ref1, 24U, n_deref8);
-    smavlink_send_ivory(n_var1, n_var2, 55U, n_ref1, 25U, 3U);
+    smavlink_pack_uint8_t((uint8_t*) n_ref1, 24U, n_deref8);
+    smavlink_send_ivory(n_var1, n_var2, 55U, (uint8_t*) n_ref1, 25U, 3U);
     return;
 }
 void smavlink_unpack_safety_allowed_area(struct safety_allowed_area_msg* n_var0,

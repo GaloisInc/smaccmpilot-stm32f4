@@ -9,23 +9,23 @@ void smavlink_send_vision_speed_estimate(struct vision_speed_estimate_msg* n_var
 {
     uint8_t n_local0[20U] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                              0, 0, 0};
-    uint8_t(* n_ref1)[20U] = &n_local0;
+    uint8_t* n_ref1 = n_local0;
     uint64_t n_deref2 = *&n_var0->usec;
     
-    smavlink_pack_uint64_t(n_ref1, 0U, n_deref2);
+    smavlink_pack_uint64_t((uint8_t*) n_ref1, 0U, n_deref2);
     
     float n_deref3 = *&n_var0->x;
     
-    smavlink_pack_float(n_ref1, 8U, n_deref3);
+    smavlink_pack_float((uint8_t*) n_ref1, 8U, n_deref3);
     
     float n_deref4 = *&n_var0->y;
     
-    smavlink_pack_float(n_ref1, 12U, n_deref4);
+    smavlink_pack_float((uint8_t*) n_ref1, 12U, n_deref4);
     
     float n_deref5 = *&n_var0->z;
     
-    smavlink_pack_float(n_ref1, 16U, n_deref5);
-    smavlink_send_ivory(n_var1, n_var2, 103U, n_ref1, 20U, 208U);
+    smavlink_pack_float((uint8_t*) n_ref1, 16U, n_deref5);
+    smavlink_send_ivory(n_var1, n_var2, 103U, (uint8_t*) n_ref1, 20U, 208U);
     return;
 }
 void smavlink_unpack_vision_speed_estimate(struct vision_speed_estimate_msg* n_var0,

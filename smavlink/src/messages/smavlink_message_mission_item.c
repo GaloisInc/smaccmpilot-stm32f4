@@ -10,63 +10,63 @@ void smavlink_send_mission_item(struct mission_item_msg* n_var0,
     uint8_t n_local0[37U] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                              0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                              0, 0, 0};
-    uint8_t(* n_ref1)[37U] = &n_local0;
+    uint8_t* n_ref1 = n_local0;
     float n_deref2 = *&n_var0->param1;
     
-    smavlink_pack_float(n_ref1, 0U, n_deref2);
+    smavlink_pack_float((uint8_t*) n_ref1, 0U, n_deref2);
     
     float n_deref3 = *&n_var0->param2;
     
-    smavlink_pack_float(n_ref1, 4U, n_deref3);
+    smavlink_pack_float((uint8_t*) n_ref1, 4U, n_deref3);
     
     float n_deref4 = *&n_var0->param3;
     
-    smavlink_pack_float(n_ref1, 8U, n_deref4);
+    smavlink_pack_float((uint8_t*) n_ref1, 8U, n_deref4);
     
     float n_deref5 = *&n_var0->param4;
     
-    smavlink_pack_float(n_ref1, 12U, n_deref5);
+    smavlink_pack_float((uint8_t*) n_ref1, 12U, n_deref5);
     
     float n_deref6 = *&n_var0->x;
     
-    smavlink_pack_float(n_ref1, 16U, n_deref6);
+    smavlink_pack_float((uint8_t*) n_ref1, 16U, n_deref6);
     
     float n_deref7 = *&n_var0->y;
     
-    smavlink_pack_float(n_ref1, 20U, n_deref7);
+    smavlink_pack_float((uint8_t*) n_ref1, 20U, n_deref7);
     
     float n_deref8 = *&n_var0->z;
     
-    smavlink_pack_float(n_ref1, 24U, n_deref8);
+    smavlink_pack_float((uint8_t*) n_ref1, 24U, n_deref8);
     
     uint16_t n_deref9 = *&n_var0->mission_item_seq;
     
-    smavlink_pack_uint16_t(n_ref1, 28U, n_deref9);
+    smavlink_pack_uint16_t((uint8_t*) n_ref1, 28U, n_deref9);
     
     uint16_t n_deref10 = *&n_var0->command;
     
-    smavlink_pack_uint16_t(n_ref1, 30U, n_deref10);
+    smavlink_pack_uint16_t((uint8_t*) n_ref1, 30U, n_deref10);
     
     uint8_t n_deref11 = *&n_var0->target_system;
     
-    smavlink_pack_uint8_t(n_ref1, 32U, n_deref11);
+    smavlink_pack_uint8_t((uint8_t*) n_ref1, 32U, n_deref11);
     
     uint8_t n_deref12 = *&n_var0->target_component;
     
-    smavlink_pack_uint8_t(n_ref1, 33U, n_deref12);
+    smavlink_pack_uint8_t((uint8_t*) n_ref1, 33U, n_deref12);
     
     uint8_t n_deref13 = *&n_var0->frame;
     
-    smavlink_pack_uint8_t(n_ref1, 34U, n_deref13);
+    smavlink_pack_uint8_t((uint8_t*) n_ref1, 34U, n_deref13);
     
     uint8_t n_deref14 = *&n_var0->current;
     
-    smavlink_pack_uint8_t(n_ref1, 35U, n_deref14);
+    smavlink_pack_uint8_t((uint8_t*) n_ref1, 35U, n_deref14);
     
     uint8_t n_deref15 = *&n_var0->autocontinue;
     
-    smavlink_pack_uint8_t(n_ref1, 36U, n_deref15);
-    smavlink_send_ivory(n_var1, n_var2, 39U, n_ref1, 37U, 254U);
+    smavlink_pack_uint8_t((uint8_t*) n_ref1, 36U, n_deref15);
+    smavlink_send_ivory(n_var1, n_var2, 39U, (uint8_t*) n_ref1, 37U, 254U);
     return;
 }
 void smavlink_unpack_mission_item(struct mission_item_msg* n_var0, const

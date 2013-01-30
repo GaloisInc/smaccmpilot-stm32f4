@@ -8,27 +8,27 @@ void smavlink_send_local_position_setpoint(struct local_position_setpoint_msg* n
                                            struct smavlink_system* n_var2)
 {
     uint8_t n_local0[17U] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-    uint8_t(* n_ref1)[17U] = &n_local0;
+    uint8_t* n_ref1 = n_local0;
     float n_deref2 = *&n_var0->x;
     
-    smavlink_pack_float(n_ref1, 0U, n_deref2);
+    smavlink_pack_float((uint8_t*) n_ref1, 0U, n_deref2);
     
     float n_deref3 = *&n_var0->y;
     
-    smavlink_pack_float(n_ref1, 4U, n_deref3);
+    smavlink_pack_float((uint8_t*) n_ref1, 4U, n_deref3);
     
     float n_deref4 = *&n_var0->z;
     
-    smavlink_pack_float(n_ref1, 8U, n_deref4);
+    smavlink_pack_float((uint8_t*) n_ref1, 8U, n_deref4);
     
     float n_deref5 = *&n_var0->yaw;
     
-    smavlink_pack_float(n_ref1, 12U, n_deref5);
+    smavlink_pack_float((uint8_t*) n_ref1, 12U, n_deref5);
     
     uint8_t n_deref6 = *&n_var0->coordinate_frame;
     
-    smavlink_pack_uint8_t(n_ref1, 16U, n_deref6);
-    smavlink_send_ivory(n_var1, n_var2, 51U, n_ref1, 17U, 223U);
+    smavlink_pack_uint8_t((uint8_t*) n_ref1, 16U, n_deref6);
+    smavlink_send_ivory(n_var1, n_var2, 51U, (uint8_t*) n_ref1, 17U, 223U);
     return;
 }
 void smavlink_unpack_local_position_setpoint(struct local_position_setpoint_msg* n_var0,

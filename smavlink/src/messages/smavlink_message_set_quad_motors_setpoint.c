@@ -8,27 +8,27 @@ void smavlink_send_set_quad_motors_setpoint(struct set_quad_motors_setpoint_msg*
                                             struct smavlink_system* n_var2)
 {
     uint8_t n_local0[9U] = {0, 0, 0, 0, 0, 0, 0, 0, 0};
-    uint8_t(* n_ref1)[9U] = &n_local0;
+    uint8_t* n_ref1 = n_local0;
     uint16_t n_deref2 = *&n_var0->motor_front_nw;
     
-    smavlink_pack_uint16_t(n_ref1, 0U, n_deref2);
+    smavlink_pack_uint16_t((uint8_t*) n_ref1, 0U, n_deref2);
     
     uint16_t n_deref3 = *&n_var0->motor_right_ne;
     
-    smavlink_pack_uint16_t(n_ref1, 2U, n_deref3);
+    smavlink_pack_uint16_t((uint8_t*) n_ref1, 2U, n_deref3);
     
     uint16_t n_deref4 = *&n_var0->motor_back_se;
     
-    smavlink_pack_uint16_t(n_ref1, 4U, n_deref4);
+    smavlink_pack_uint16_t((uint8_t*) n_ref1, 4U, n_deref4);
     
     uint16_t n_deref5 = *&n_var0->motor_left_sw;
     
-    smavlink_pack_uint16_t(n_ref1, 6U, n_deref5);
+    smavlink_pack_uint16_t((uint8_t*) n_ref1, 6U, n_deref5);
     
     uint8_t n_deref6 = *&n_var0->target_system;
     
-    smavlink_pack_uint8_t(n_ref1, 8U, n_deref6);
-    smavlink_send_ivory(n_var1, n_var2, 60U, n_ref1, 9U, 30U);
+    smavlink_pack_uint8_t((uint8_t*) n_ref1, 8U, n_deref6);
+    smavlink_send_ivory(n_var1, n_var2, 60U, (uint8_t*) n_ref1, 9U, 30U);
     return;
 }
 void smavlink_unpack_set_quad_motors_setpoint(struct set_quad_motors_setpoint_msg* n_var0,

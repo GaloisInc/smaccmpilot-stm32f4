@@ -8,27 +8,27 @@ void smavlink_send_request_data_stream(struct request_data_stream_msg* n_var0,
                                        struct smavlink_system* n_var2)
 {
     uint8_t n_local0[6U] = {0, 0, 0, 0, 0, 0};
-    uint8_t(* n_ref1)[6U] = &n_local0;
+    uint8_t* n_ref1 = n_local0;
     uint16_t n_deref2 = *&n_var0->req_message_rate;
     
-    smavlink_pack_uint16_t(n_ref1, 0U, n_deref2);
+    smavlink_pack_uint16_t((uint8_t*) n_ref1, 0U, n_deref2);
     
     uint8_t n_deref3 = *&n_var0->target_system;
     
-    smavlink_pack_uint8_t(n_ref1, 2U, n_deref3);
+    smavlink_pack_uint8_t((uint8_t*) n_ref1, 2U, n_deref3);
     
     uint8_t n_deref4 = *&n_var0->target_component;
     
-    smavlink_pack_uint8_t(n_ref1, 3U, n_deref4);
+    smavlink_pack_uint8_t((uint8_t*) n_ref1, 3U, n_deref4);
     
     uint8_t n_deref5 = *&n_var0->req_stream_id;
     
-    smavlink_pack_uint8_t(n_ref1, 4U, n_deref5);
+    smavlink_pack_uint8_t((uint8_t*) n_ref1, 4U, n_deref5);
     
     uint8_t n_deref6 = *&n_var0->start_stop;
     
-    smavlink_pack_uint8_t(n_ref1, 5U, n_deref6);
-    smavlink_send_ivory(n_var1, n_var2, 66U, n_ref1, 6U, 148U);
+    smavlink_pack_uint8_t((uint8_t*) n_ref1, 5U, n_deref6);
+    smavlink_send_ivory(n_var1, n_var2, 66U, (uint8_t*) n_ref1, 6U, 148U);
     return;
 }
 void smavlink_unpack_request_data_stream(struct request_data_stream_msg* n_var0,

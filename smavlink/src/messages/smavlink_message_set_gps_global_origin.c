@@ -8,23 +8,23 @@ void smavlink_send_set_gps_global_origin(struct set_gps_global_origin_msg* n_var
                                          struct smavlink_system* n_var2)
 {
     uint8_t n_local0[13U] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-    uint8_t(* n_ref1)[13U] = &n_local0;
+    uint8_t* n_ref1 = n_local0;
     int32_t n_deref2 = *&n_var0->latitude;
     
-    smavlink_pack_int32_t(n_ref1, 0U, n_deref2);
+    smavlink_pack_int32_t((uint8_t*) n_ref1, 0U, n_deref2);
     
     int32_t n_deref3 = *&n_var0->longitude;
     
-    smavlink_pack_int32_t(n_ref1, 4U, n_deref3);
+    smavlink_pack_int32_t((uint8_t*) n_ref1, 4U, n_deref3);
     
     int32_t n_deref4 = *&n_var0->altitude;
     
-    smavlink_pack_int32_t(n_ref1, 8U, n_deref4);
+    smavlink_pack_int32_t((uint8_t*) n_ref1, 8U, n_deref4);
     
     uint8_t n_deref5 = *&n_var0->target_system;
     
-    smavlink_pack_uint8_t(n_ref1, 12U, n_deref5);
-    smavlink_send_ivory(n_var1, n_var2, 48U, n_ref1, 13U, 41U);
+    smavlink_pack_uint8_t((uint8_t*) n_ref1, 12U, n_deref5);
+    smavlink_send_ivory(n_var1, n_var2, 48U, (uint8_t*) n_ref1, 13U, 41U);
     return;
 }
 void smavlink_unpack_set_gps_global_origin(struct set_gps_global_origin_msg* n_var0,

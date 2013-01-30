@@ -8,31 +8,31 @@ void smavlink_send_heartbeat(struct heartbeat_msg* n_var0,
                              struct smavlink_system* n_var2)
 {
     uint8_t n_local0[9U] = {0, 0, 0, 0, 0, 0, 0, 0, 0};
-    uint8_t(* n_ref1)[9U] = &n_local0;
+    uint8_t* n_ref1 = n_local0;
     uint32_t n_deref2 = *&n_var0->custom_mode;
     
-    smavlink_pack_uint32_t(n_ref1, 0U, n_deref2);
+    smavlink_pack_uint32_t((uint8_t*) n_ref1, 0U, n_deref2);
     
     uint8_t n_deref3 = *&n_var0->mavtype;
     
-    smavlink_pack_uint8_t(n_ref1, 4U, n_deref3);
+    smavlink_pack_uint8_t((uint8_t*) n_ref1, 4U, n_deref3);
     
     uint8_t n_deref4 = *&n_var0->autopilot;
     
-    smavlink_pack_uint8_t(n_ref1, 5U, n_deref4);
+    smavlink_pack_uint8_t((uint8_t*) n_ref1, 5U, n_deref4);
     
     uint8_t n_deref5 = *&n_var0->base_mode;
     
-    smavlink_pack_uint8_t(n_ref1, 6U, n_deref5);
+    smavlink_pack_uint8_t((uint8_t*) n_ref1, 6U, n_deref5);
     
     uint8_t n_deref6 = *&n_var0->system_status;
     
-    smavlink_pack_uint8_t(n_ref1, 7U, n_deref6);
+    smavlink_pack_uint8_t((uint8_t*) n_ref1, 7U, n_deref6);
     
     uint8_t n_deref7 = *&n_var0->mavlink_version;
     
-    smavlink_pack_uint8_t(n_ref1, 8U, n_deref7);
-    smavlink_send_ivory(n_var1, n_var2, 0U, n_ref1, 9U, 50U);
+    smavlink_pack_uint8_t((uint8_t*) n_ref1, 8U, n_deref7);
+    smavlink_send_ivory(n_var1, n_var2, 0U, (uint8_t*) n_ref1, 9U, 50U);
     return;
 }
 void smavlink_unpack_heartbeat(struct heartbeat_msg* n_var0, const

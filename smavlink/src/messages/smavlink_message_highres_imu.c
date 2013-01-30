@@ -11,67 +11,67 @@ void smavlink_send_highres_imu(struct highres_imu_msg* n_var0,
                              0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                              0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                              0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-    uint8_t(* n_ref1)[62U] = &n_local0;
+    uint8_t* n_ref1 = n_local0;
     uint64_t n_deref2 = *&n_var0->time_usec;
     
-    smavlink_pack_uint64_t(n_ref1, 0U, n_deref2);
+    smavlink_pack_uint64_t((uint8_t*) n_ref1, 0U, n_deref2);
     
     float n_deref3 = *&n_var0->xacc;
     
-    smavlink_pack_float(n_ref1, 8U, n_deref3);
+    smavlink_pack_float((uint8_t*) n_ref1, 8U, n_deref3);
     
     float n_deref4 = *&n_var0->yacc;
     
-    smavlink_pack_float(n_ref1, 12U, n_deref4);
+    smavlink_pack_float((uint8_t*) n_ref1, 12U, n_deref4);
     
     float n_deref5 = *&n_var0->zacc;
     
-    smavlink_pack_float(n_ref1, 16U, n_deref5);
+    smavlink_pack_float((uint8_t*) n_ref1, 16U, n_deref5);
     
     float n_deref6 = *&n_var0->xgyro;
     
-    smavlink_pack_float(n_ref1, 20U, n_deref6);
+    smavlink_pack_float((uint8_t*) n_ref1, 20U, n_deref6);
     
     float n_deref7 = *&n_var0->ygyro;
     
-    smavlink_pack_float(n_ref1, 24U, n_deref7);
+    smavlink_pack_float((uint8_t*) n_ref1, 24U, n_deref7);
     
     float n_deref8 = *&n_var0->zgyro;
     
-    smavlink_pack_float(n_ref1, 28U, n_deref8);
+    smavlink_pack_float((uint8_t*) n_ref1, 28U, n_deref8);
     
     float n_deref9 = *&n_var0->xmag;
     
-    smavlink_pack_float(n_ref1, 32U, n_deref9);
+    smavlink_pack_float((uint8_t*) n_ref1, 32U, n_deref9);
     
     float n_deref10 = *&n_var0->ymag;
     
-    smavlink_pack_float(n_ref1, 36U, n_deref10);
+    smavlink_pack_float((uint8_t*) n_ref1, 36U, n_deref10);
     
     float n_deref11 = *&n_var0->zmag;
     
-    smavlink_pack_float(n_ref1, 40U, n_deref11);
+    smavlink_pack_float((uint8_t*) n_ref1, 40U, n_deref11);
     
     float n_deref12 = *&n_var0->abs_pressure;
     
-    smavlink_pack_float(n_ref1, 44U, n_deref12);
+    smavlink_pack_float((uint8_t*) n_ref1, 44U, n_deref12);
     
     float n_deref13 = *&n_var0->diff_pressure;
     
-    smavlink_pack_float(n_ref1, 48U, n_deref13);
+    smavlink_pack_float((uint8_t*) n_ref1, 48U, n_deref13);
     
     float n_deref14 = *&n_var0->pressure_alt;
     
-    smavlink_pack_float(n_ref1, 52U, n_deref14);
+    smavlink_pack_float((uint8_t*) n_ref1, 52U, n_deref14);
     
     float n_deref15 = *&n_var0->temperature;
     
-    smavlink_pack_float(n_ref1, 56U, n_deref15);
+    smavlink_pack_float((uint8_t*) n_ref1, 56U, n_deref15);
     
     uint16_t n_deref16 = *&n_var0->fields_updated;
     
-    smavlink_pack_uint16_t(n_ref1, 60U, n_deref16);
-    smavlink_send_ivory(n_var1, n_var2, 105U, n_ref1, 62U, 93U);
+    smavlink_pack_uint16_t((uint8_t*) n_ref1, 60U, n_deref16);
+    smavlink_send_ivory(n_var1, n_var2, 105U, (uint8_t*) n_ref1, 62U, 93U);
     return;
 }
 void smavlink_unpack_highres_imu(struct highres_imu_msg* n_var0, const

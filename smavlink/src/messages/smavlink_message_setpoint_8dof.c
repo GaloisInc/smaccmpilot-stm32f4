@@ -9,43 +9,43 @@ void smavlink_send_setpoint_8dof(struct setpoint_8dof_msg* n_var0,
 {
     uint8_t n_local0[33U] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                              0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-    uint8_t(* n_ref1)[33U] = &n_local0;
+    uint8_t* n_ref1 = n_local0;
     float n_deref2 = *&n_var0->val1;
     
-    smavlink_pack_float(n_ref1, 0U, n_deref2);
+    smavlink_pack_float((uint8_t*) n_ref1, 0U, n_deref2);
     
     float n_deref3 = *&n_var0->val2;
     
-    smavlink_pack_float(n_ref1, 4U, n_deref3);
+    smavlink_pack_float((uint8_t*) n_ref1, 4U, n_deref3);
     
     float n_deref4 = *&n_var0->val3;
     
-    smavlink_pack_float(n_ref1, 8U, n_deref4);
+    smavlink_pack_float((uint8_t*) n_ref1, 8U, n_deref4);
     
     float n_deref5 = *&n_var0->val4;
     
-    smavlink_pack_float(n_ref1, 12U, n_deref5);
+    smavlink_pack_float((uint8_t*) n_ref1, 12U, n_deref5);
     
     float n_deref6 = *&n_var0->val5;
     
-    smavlink_pack_float(n_ref1, 16U, n_deref6);
+    smavlink_pack_float((uint8_t*) n_ref1, 16U, n_deref6);
     
     float n_deref7 = *&n_var0->val6;
     
-    smavlink_pack_float(n_ref1, 20U, n_deref7);
+    smavlink_pack_float((uint8_t*) n_ref1, 20U, n_deref7);
     
     float n_deref8 = *&n_var0->val7;
     
-    smavlink_pack_float(n_ref1, 24U, n_deref8);
+    smavlink_pack_float((uint8_t*) n_ref1, 24U, n_deref8);
     
     float n_deref9 = *&n_var0->val8;
     
-    smavlink_pack_float(n_ref1, 28U, n_deref9);
+    smavlink_pack_float((uint8_t*) n_ref1, 28U, n_deref9);
     
     uint8_t n_deref10 = *&n_var0->target_system;
     
-    smavlink_pack_uint8_t(n_ref1, 32U, n_deref10);
-    smavlink_send_ivory(n_var1, n_var2, 148U, n_ref1, 33U, 241U);
+    smavlink_pack_uint8_t((uint8_t*) n_ref1, 32U, n_deref10);
+    smavlink_send_ivory(n_var1, n_var2, 148U, (uint8_t*) n_ref1, 33U, 241U);
     return;
 }
 void smavlink_unpack_setpoint_8dof(struct setpoint_8dof_msg* n_var0, const

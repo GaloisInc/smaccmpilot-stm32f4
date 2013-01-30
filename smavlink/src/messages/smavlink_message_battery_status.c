@@ -8,43 +8,43 @@ void smavlink_send_battery_status(struct battery_status_msg* n_var0,
                                   struct smavlink_system* n_var2)
 {
     uint8_t n_local0[16U] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-    uint8_t(* n_ref1)[16U] = &n_local0;
+    uint8_t* n_ref1 = n_local0;
     uint16_t n_deref2 = *&n_var0->voltage_cell_1;
     
-    smavlink_pack_uint16_t(n_ref1, 0U, n_deref2);
+    smavlink_pack_uint16_t((uint8_t*) n_ref1, 0U, n_deref2);
     
     uint16_t n_deref3 = *&n_var0->voltage_cell_2;
     
-    smavlink_pack_uint16_t(n_ref1, 2U, n_deref3);
+    smavlink_pack_uint16_t((uint8_t*) n_ref1, 2U, n_deref3);
     
     uint16_t n_deref4 = *&n_var0->voltage_cell_3;
     
-    smavlink_pack_uint16_t(n_ref1, 4U, n_deref4);
+    smavlink_pack_uint16_t((uint8_t*) n_ref1, 4U, n_deref4);
     
     uint16_t n_deref5 = *&n_var0->voltage_cell_4;
     
-    smavlink_pack_uint16_t(n_ref1, 6U, n_deref5);
+    smavlink_pack_uint16_t((uint8_t*) n_ref1, 6U, n_deref5);
     
     uint16_t n_deref6 = *&n_var0->voltage_cell_5;
     
-    smavlink_pack_uint16_t(n_ref1, 8U, n_deref6);
+    smavlink_pack_uint16_t((uint8_t*) n_ref1, 8U, n_deref6);
     
     uint16_t n_deref7 = *&n_var0->voltage_cell_6;
     
-    smavlink_pack_uint16_t(n_ref1, 10U, n_deref7);
+    smavlink_pack_uint16_t((uint8_t*) n_ref1, 10U, n_deref7);
     
     int16_t n_deref8 = *&n_var0->current_battery;
     
-    smavlink_pack_int16_t(n_ref1, 12U, n_deref8);
+    smavlink_pack_int16_t((uint8_t*) n_ref1, 12U, n_deref8);
     
     uint8_t n_deref9 = *&n_var0->accu_id;
     
-    smavlink_pack_uint8_t(n_ref1, 14U, n_deref9);
+    smavlink_pack_uint8_t((uint8_t*) n_ref1, 14U, n_deref9);
     
     int8_t n_deref10 = *&n_var0->battery_remaining;
     
-    smavlink_pack_int8_t(n_ref1, 15U, n_deref10);
-    smavlink_send_ivory(n_var1, n_var2, 147U, n_ref1, 16U, 42U);
+    smavlink_pack_int8_t((uint8_t*) n_ref1, 15U, n_deref10);
+    smavlink_send_ivory(n_var1, n_var2, 147U, (uint8_t*) n_ref1, 16U, 42U);
     return;
 }
 void smavlink_unpack_battery_status(struct battery_status_msg* n_var0, const

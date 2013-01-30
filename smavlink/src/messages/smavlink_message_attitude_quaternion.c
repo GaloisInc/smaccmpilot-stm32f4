@@ -9,39 +9,39 @@ void smavlink_send_attitude_quaternion(struct attitude_quaternion_msg* n_var0,
 {
     uint8_t n_local0[32U] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                              0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-    uint8_t(* n_ref1)[32U] = &n_local0;
+    uint8_t* n_ref1 = n_local0;
     uint32_t n_deref2 = *&n_var0->time_boot_ms;
     
-    smavlink_pack_uint32_t(n_ref1, 0U, n_deref2);
+    smavlink_pack_uint32_t((uint8_t*) n_ref1, 0U, n_deref2);
     
     float n_deref3 = *&n_var0->q1;
     
-    smavlink_pack_float(n_ref1, 4U, n_deref3);
+    smavlink_pack_float((uint8_t*) n_ref1, 4U, n_deref3);
     
     float n_deref4 = *&n_var0->q2;
     
-    smavlink_pack_float(n_ref1, 8U, n_deref4);
+    smavlink_pack_float((uint8_t*) n_ref1, 8U, n_deref4);
     
     float n_deref5 = *&n_var0->q3;
     
-    smavlink_pack_float(n_ref1, 12U, n_deref5);
+    smavlink_pack_float((uint8_t*) n_ref1, 12U, n_deref5);
     
     float n_deref6 = *&n_var0->q4;
     
-    smavlink_pack_float(n_ref1, 16U, n_deref6);
+    smavlink_pack_float((uint8_t*) n_ref1, 16U, n_deref6);
     
     float n_deref7 = *&n_var0->rollspeed;
     
-    smavlink_pack_float(n_ref1, 20U, n_deref7);
+    smavlink_pack_float((uint8_t*) n_ref1, 20U, n_deref7);
     
     float n_deref8 = *&n_var0->pitchspeed;
     
-    smavlink_pack_float(n_ref1, 24U, n_deref8);
+    smavlink_pack_float((uint8_t*) n_ref1, 24U, n_deref8);
     
     float n_deref9 = *&n_var0->yawspeed;
     
-    smavlink_pack_float(n_ref1, 28U, n_deref9);
-    smavlink_send_ivory(n_var1, n_var2, 31U, n_ref1, 32U, 246U);
+    smavlink_pack_float((uint8_t*) n_ref1, 28U, n_deref9);
+    smavlink_send_ivory(n_var1, n_var2, 31U, (uint8_t*) n_ref1, 32U, 246U);
     return;
 }
 void smavlink_unpack_attitude_quaternion(struct attitude_quaternion_msg* n_var0,

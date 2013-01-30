@@ -9,31 +9,31 @@ void smavlink_send_vfr_hud(struct vfr_hud_msg* n_var0,
 {
     uint8_t n_local0[20U] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                              0, 0, 0};
-    uint8_t(* n_ref1)[20U] = &n_local0;
+    uint8_t* n_ref1 = n_local0;
     float n_deref2 = *&n_var0->airspeed;
     
-    smavlink_pack_float(n_ref1, 0U, n_deref2);
+    smavlink_pack_float((uint8_t*) n_ref1, 0U, n_deref2);
     
     float n_deref3 = *&n_var0->groundspeed;
     
-    smavlink_pack_float(n_ref1, 4U, n_deref3);
+    smavlink_pack_float((uint8_t*) n_ref1, 4U, n_deref3);
     
     float n_deref4 = *&n_var0->alt;
     
-    smavlink_pack_float(n_ref1, 8U, n_deref4);
+    smavlink_pack_float((uint8_t*) n_ref1, 8U, n_deref4);
     
     float n_deref5 = *&n_var0->climb;
     
-    smavlink_pack_float(n_ref1, 12U, n_deref5);
+    smavlink_pack_float((uint8_t*) n_ref1, 12U, n_deref5);
     
     int16_t n_deref6 = *&n_var0->heading;
     
-    smavlink_pack_int16_t(n_ref1, 16U, n_deref6);
+    smavlink_pack_int16_t((uint8_t*) n_ref1, 16U, n_deref6);
     
     uint16_t n_deref7 = *&n_var0->throttle;
     
-    smavlink_pack_uint16_t(n_ref1, 18U, n_deref7);
-    smavlink_send_ivory(n_var1, n_var2, 74U, n_ref1, 20U, 20U);
+    smavlink_pack_uint16_t((uint8_t*) n_ref1, 18U, n_deref7);
+    smavlink_send_ivory(n_var1, n_var2, 74U, (uint8_t*) n_ref1, 20U, 20U);
     return;
 }
 void smavlink_unpack_vfr_hud(struct vfr_hud_msg* n_var0, const uint8_t** n_var1)

@@ -9,47 +9,47 @@ void smavlink_send_rc_channels_override(struct rc_channels_override_msg* n_var0,
 {
     uint8_t n_local0[18U] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                              0};
-    uint8_t(* n_ref1)[18U] = &n_local0;
+    uint8_t* n_ref1 = n_local0;
     uint16_t n_deref2 = *&n_var0->chan1_raw;
     
-    smavlink_pack_uint16_t(n_ref1, 0U, n_deref2);
+    smavlink_pack_uint16_t((uint8_t*) n_ref1, 0U, n_deref2);
     
     uint16_t n_deref3 = *&n_var0->chan2_raw;
     
-    smavlink_pack_uint16_t(n_ref1, 2U, n_deref3);
+    smavlink_pack_uint16_t((uint8_t*) n_ref1, 2U, n_deref3);
     
     uint16_t n_deref4 = *&n_var0->chan3_raw;
     
-    smavlink_pack_uint16_t(n_ref1, 4U, n_deref4);
+    smavlink_pack_uint16_t((uint8_t*) n_ref1, 4U, n_deref4);
     
     uint16_t n_deref5 = *&n_var0->chan4_raw;
     
-    smavlink_pack_uint16_t(n_ref1, 6U, n_deref5);
+    smavlink_pack_uint16_t((uint8_t*) n_ref1, 6U, n_deref5);
     
     uint16_t n_deref6 = *&n_var0->chan5_raw;
     
-    smavlink_pack_uint16_t(n_ref1, 8U, n_deref6);
+    smavlink_pack_uint16_t((uint8_t*) n_ref1, 8U, n_deref6);
     
     uint16_t n_deref7 = *&n_var0->chan6_raw;
     
-    smavlink_pack_uint16_t(n_ref1, 10U, n_deref7);
+    smavlink_pack_uint16_t((uint8_t*) n_ref1, 10U, n_deref7);
     
     uint16_t n_deref8 = *&n_var0->chan7_raw;
     
-    smavlink_pack_uint16_t(n_ref1, 12U, n_deref8);
+    smavlink_pack_uint16_t((uint8_t*) n_ref1, 12U, n_deref8);
     
     uint16_t n_deref9 = *&n_var0->chan8_raw;
     
-    smavlink_pack_uint16_t(n_ref1, 14U, n_deref9);
+    smavlink_pack_uint16_t((uint8_t*) n_ref1, 14U, n_deref9);
     
     uint8_t n_deref10 = *&n_var0->target_system;
     
-    smavlink_pack_uint8_t(n_ref1, 16U, n_deref10);
+    smavlink_pack_uint8_t((uint8_t*) n_ref1, 16U, n_deref10);
     
     uint8_t n_deref11 = *&n_var0->target_component;
     
-    smavlink_pack_uint8_t(n_ref1, 17U, n_deref11);
-    smavlink_send_ivory(n_var1, n_var2, 70U, n_ref1, 18U, 124U);
+    smavlink_pack_uint8_t((uint8_t*) n_ref1, 17U, n_deref11);
+    smavlink_send_ivory(n_var1, n_var2, 70U, (uint8_t*) n_ref1, 18U, 124U);
     return;
 }
 void smavlink_unpack_rc_channels_override(struct rc_channels_override_msg* n_var0,

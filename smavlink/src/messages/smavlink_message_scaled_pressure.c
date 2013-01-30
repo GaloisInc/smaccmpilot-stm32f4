@@ -8,23 +8,23 @@ void smavlink_send_scaled_pressure(struct scaled_pressure_msg* n_var0,
                                    struct smavlink_system* n_var2)
 {
     uint8_t n_local0[14U] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-    uint8_t(* n_ref1)[14U] = &n_local0;
+    uint8_t* n_ref1 = n_local0;
     uint32_t n_deref2 = *&n_var0->time_boot_ms;
     
-    smavlink_pack_uint32_t(n_ref1, 0U, n_deref2);
+    smavlink_pack_uint32_t((uint8_t*) n_ref1, 0U, n_deref2);
     
     float n_deref3 = *&n_var0->press_abs;
     
-    smavlink_pack_float(n_ref1, 4U, n_deref3);
+    smavlink_pack_float((uint8_t*) n_ref1, 4U, n_deref3);
     
     float n_deref4 = *&n_var0->press_diff;
     
-    smavlink_pack_float(n_ref1, 8U, n_deref4);
+    smavlink_pack_float((uint8_t*) n_ref1, 8U, n_deref4);
     
     int16_t n_deref5 = *&n_var0->temperature;
     
-    smavlink_pack_int16_t(n_ref1, 12U, n_deref5);
-    smavlink_send_ivory(n_var1, n_var2, 29U, n_ref1, 14U, 115U);
+    smavlink_pack_int16_t((uint8_t*) n_ref1, 12U, n_deref5);
+    smavlink_send_ivory(n_var1, n_var2, 29U, (uint8_t*) n_ref1, 14U, 115U);
     return;
 }
 void smavlink_unpack_scaled_pressure(struct scaled_pressure_msg* n_var0, const

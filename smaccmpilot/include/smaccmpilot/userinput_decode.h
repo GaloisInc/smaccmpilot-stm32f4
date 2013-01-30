@@ -14,7 +14,7 @@ struct userinput_decode_state {
     uint8_t arm_state;
     uint32_t arm_state_time;
 };
-void userinput_decode(uint16_t(* n_var0)[8U],
+void userinput_decode(uint16_t n_var0[8U],
                       struct userinput_decode_state* n_var1,
                       struct userinput_result* n_var2, uint32_t n_var3);
 float userinput_scale(uint16_t n_var0, uint16_t n_var1, float n_var2,

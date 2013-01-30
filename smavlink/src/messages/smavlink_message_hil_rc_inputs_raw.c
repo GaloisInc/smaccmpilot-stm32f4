@@ -9,63 +9,63 @@ void smavlink_send_hil_rc_inputs_raw(struct hil_rc_inputs_raw_msg* n_var0,
 {
     uint8_t n_local0[33U] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                              0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-    uint8_t(* n_ref1)[33U] = &n_local0;
+    uint8_t* n_ref1 = n_local0;
     uint64_t n_deref2 = *&n_var0->time_usec;
     
-    smavlink_pack_uint64_t(n_ref1, 0U, n_deref2);
+    smavlink_pack_uint64_t((uint8_t*) n_ref1, 0U, n_deref2);
     
     uint16_t n_deref3 = *&n_var0->chan1_raw;
     
-    smavlink_pack_uint16_t(n_ref1, 8U, n_deref3);
+    smavlink_pack_uint16_t((uint8_t*) n_ref1, 8U, n_deref3);
     
     uint16_t n_deref4 = *&n_var0->chan2_raw;
     
-    smavlink_pack_uint16_t(n_ref1, 10U, n_deref4);
+    smavlink_pack_uint16_t((uint8_t*) n_ref1, 10U, n_deref4);
     
     uint16_t n_deref5 = *&n_var0->chan3_raw;
     
-    smavlink_pack_uint16_t(n_ref1, 12U, n_deref5);
+    smavlink_pack_uint16_t((uint8_t*) n_ref1, 12U, n_deref5);
     
     uint16_t n_deref6 = *&n_var0->chan4_raw;
     
-    smavlink_pack_uint16_t(n_ref1, 14U, n_deref6);
+    smavlink_pack_uint16_t((uint8_t*) n_ref1, 14U, n_deref6);
     
     uint16_t n_deref7 = *&n_var0->chan5_raw;
     
-    smavlink_pack_uint16_t(n_ref1, 16U, n_deref7);
+    smavlink_pack_uint16_t((uint8_t*) n_ref1, 16U, n_deref7);
     
     uint16_t n_deref8 = *&n_var0->chan6_raw;
     
-    smavlink_pack_uint16_t(n_ref1, 18U, n_deref8);
+    smavlink_pack_uint16_t((uint8_t*) n_ref1, 18U, n_deref8);
     
     uint16_t n_deref9 = *&n_var0->chan7_raw;
     
-    smavlink_pack_uint16_t(n_ref1, 20U, n_deref9);
+    smavlink_pack_uint16_t((uint8_t*) n_ref1, 20U, n_deref9);
     
     uint16_t n_deref10 = *&n_var0->chan8_raw;
     
-    smavlink_pack_uint16_t(n_ref1, 22U, n_deref10);
+    smavlink_pack_uint16_t((uint8_t*) n_ref1, 22U, n_deref10);
     
     uint16_t n_deref11 = *&n_var0->chan9_raw;
     
-    smavlink_pack_uint16_t(n_ref1, 24U, n_deref11);
+    smavlink_pack_uint16_t((uint8_t*) n_ref1, 24U, n_deref11);
     
     uint16_t n_deref12 = *&n_var0->chan10_raw;
     
-    smavlink_pack_uint16_t(n_ref1, 26U, n_deref12);
+    smavlink_pack_uint16_t((uint8_t*) n_ref1, 26U, n_deref12);
     
     uint16_t n_deref13 = *&n_var0->chan11_raw;
     
-    smavlink_pack_uint16_t(n_ref1, 28U, n_deref13);
+    smavlink_pack_uint16_t((uint8_t*) n_ref1, 28U, n_deref13);
     
     uint16_t n_deref14 = *&n_var0->chan12_raw;
     
-    smavlink_pack_uint16_t(n_ref1, 30U, n_deref14);
+    smavlink_pack_uint16_t((uint8_t*) n_ref1, 30U, n_deref14);
     
     uint8_t n_deref15 = *&n_var0->rssi;
     
-    smavlink_pack_uint8_t(n_ref1, 32U, n_deref15);
-    smavlink_send_ivory(n_var1, n_var2, 92U, n_ref1, 33U, 54U);
+    smavlink_pack_uint8_t((uint8_t*) n_ref1, 32U, n_deref15);
+    smavlink_send_ivory(n_var1, n_var2, 92U, (uint8_t*) n_ref1, 33U, 54U);
     return;
 }
 void smavlink_unpack_hil_rc_inputs_raw(struct hil_rc_inputs_raw_msg* n_var0,

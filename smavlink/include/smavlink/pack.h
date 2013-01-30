@@ -66,27 +66,27 @@ static inline void smavlink_pack_copy1(uint8_t *dst, const uint8_t *src) {
  * than value. */
 
 /* 1 byte values are always just copied...*/
-#define smavlink_pack_uint8_t(buf, offs, b) smavlink_pack_copy1(&(*buf)[offs], (const uint8_t *)&b)
-#define smavlink_pack_int8_t(buf, offs, b) smavlink_pack_copy1(&(*buf)[offs], (const uint8_t *)&b)
+#define smavlink_pack_uint8_t(buf, offs, b) smavlink_pack_copy1(((buf) + (offs)), (const uint8_t *)&b)
+#define smavlink_pack_int8_t(buf, offs, b) smavlink_pack_copy1(((buf) + (offs)), (const uint8_t *)&b)
 
 #if SMAVLINK_PACK_BYTE_SWAP
-#define smavlink_pack_uint16_t(buf, offs, b) smavlink_pack_swap2(&(*buf)[offs], (const uint8_t *)&b)
-#define smavlink_pack_int16_t(buf, offs, b)  smavlink_pack_swap2(&(*buf)[offs], (const uint8_t *)&b)
-#define smavlink_pack_uint32_t(buf, offs, b) smavlink_pack_swap4(&(*buf)[offs], (const uint8_t *)&b)
-#define smavlink_pack_int32_t(buf, offs, b)  smavlink_pack_swap4(&(*buf)[offs], (const uint8_t *)&b)
-#define smavlink_pack_uint64_t(buf, offs, b) smavlink_pack_swap8(&(*buf)[offs], (const uint8_t *)&b)
-#define smavlink_pack_int64_t(buf, offs, b)  smavlink_pack_swap8(&(*buf)[offs], (const uint8_t *)&b)
-#define smavlink_pack_float(buf, offs, b)    smavlink_pack_swap4(&(*buf)[offs], (const uint8_t *)&b)
-#define smavlink_pack_double(buf, offs, b)   smavlink_pack_swap8(&(*buf)[offs], (const uint8_t *)&b)
+#define smavlink_pack_uint16_t(buf, offs, b) smavlink_pack_swap2(((buf) + (offs)), (const uint8_t *)&b)
+#define smavlink_pack_int16_t(buf, offs, b)  smavlink_pack_swap2(((buf) + (offs)), (const uint8_t *)&b)
+#define smavlink_pack_uint32_t(buf, offs, b) smavlink_pack_swap4(((buf) + (offs)), (const uint8_t *)&b)
+#define smavlink_pack_int32_t(buf, offs, b)  smavlink_pack_swap4(((buf) + (offs)), (const uint8_t *)&b)
+#define smavlink_pack_uint64_t(buf, offs, b) smavlink_pack_swap8(((buf) + (offs)), (const uint8_t *)&b)
+#define smavlink_pack_int64_t(buf, offs, b)  smavlink_pack_swap8(((buf) + (offs)), (const uint8_t *)&b)
+#define smavlink_pack_float(buf, offs, b)    smavlink_pack_swap4(((buf) + (offs)), (const uint8_t *)&b)
+#define smavlink_pack_double(buf, offs, b)   smavlink_pack_swap8(((buf) + (offs)), (const uint8_t *)&b)
 #else 
-#define smavlink_pack_uint16_t(buf, offs, b) smavlink_pack_copy2(&(*buf)[offs], (const uint8_t *)&b)
-#define smavlink_pack_int16_t(buf, offs, b)  smavlink_pack_copy2(&(*buf)[offs], (const uint8_t *)&b)
-#define smavlink_pack_uint32_t(buf, offs, b) smavlink_pack_copy4(&(*buf)[offs], (const uint8_t *)&b)
-#define smavlink_pack_int32_t(buf, offs, b)  smavlink_pack_copy4(&(*buf)[offs], (const uint8_t *)&b)
-#define smavlink_pack_uint64_t(buf, offs, b) smavlink_pack_copy8(&(*buf)[offs], (const uint8_t *)&b)
-#define smavlink_pack_int64_t(buf, offs, b)  smavlink_pack_copy8(&(*buf)[offs], (const uint8_t *)&b)
-#define smavlink_pack_float(buf, offs, b)    smavlink_pack_copy4(&(*buf)[offs], (const uint8_t *)&b)
-#define smavlink_pack_double(buf, offs, b)   smavlink_pack_copy8(&(*buf)[offs], (const uint8_t *)&b)
+#define smavlink_pack_uint16_t(buf, offs, b) smavlink_pack_copy2(((buf) + (offs)), (const uint8_t *)&b)
+#define smavlink_pack_int16_t(buf, offs, b)  smavlink_pack_copy2(((buf) + (offs)), (const uint8_t *)&b)
+#define smavlink_pack_uint32_t(buf, offs, b) smavlink_pack_copy4(((buf) + (offs)), (const uint8_t *)&b)
+#define smavlink_pack_int32_t(buf, offs, b)  smavlink_pack_copy4(((buf) + (offs)), (const uint8_t *)&b)
+#define smavlink_pack_uint64_t(buf, offs, b) smavlink_pack_copy8(((buf) + (offs)), (const uint8_t *)&b)
+#define smavlink_pack_int64_t(buf, offs, b)  smavlink_pack_copy8(((buf) + (offs)), (const uint8_t *)&b)
+#define smavlink_pack_float(buf, offs, b)    smavlink_pack_copy4(((buf) + (offs)), (const uint8_t *)&b)
+#define smavlink_pack_double(buf, offs, b)   smavlink_pack_copy8(((buf) + (offs)), (const uint8_t *)&b)
 #endif
 
 /*

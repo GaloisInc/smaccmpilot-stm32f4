@@ -9,39 +9,39 @@ void smavlink_send_nav_controller_output(struct nav_controller_output_msg* n_var
 {
     uint8_t n_local0[26U] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                              0, 0, 0, 0, 0, 0, 0, 0, 0};
-    uint8_t(* n_ref1)[26U] = &n_local0;
+    uint8_t* n_ref1 = n_local0;
     float n_deref2 = *&n_var0->nav_roll;
     
-    smavlink_pack_float(n_ref1, 0U, n_deref2);
+    smavlink_pack_float((uint8_t*) n_ref1, 0U, n_deref2);
     
     float n_deref3 = *&n_var0->nav_pitch;
     
-    smavlink_pack_float(n_ref1, 4U, n_deref3);
+    smavlink_pack_float((uint8_t*) n_ref1, 4U, n_deref3);
     
     float n_deref4 = *&n_var0->alt_error;
     
-    smavlink_pack_float(n_ref1, 8U, n_deref4);
+    smavlink_pack_float((uint8_t*) n_ref1, 8U, n_deref4);
     
     float n_deref5 = *&n_var0->aspd_error;
     
-    smavlink_pack_float(n_ref1, 12U, n_deref5);
+    smavlink_pack_float((uint8_t*) n_ref1, 12U, n_deref5);
     
     float n_deref6 = *&n_var0->xtrack_error;
     
-    smavlink_pack_float(n_ref1, 16U, n_deref6);
+    smavlink_pack_float((uint8_t*) n_ref1, 16U, n_deref6);
     
     int16_t n_deref7 = *&n_var0->nav_bearing;
     
-    smavlink_pack_int16_t(n_ref1, 20U, n_deref7);
+    smavlink_pack_int16_t((uint8_t*) n_ref1, 20U, n_deref7);
     
     int16_t n_deref8 = *&n_var0->target_bearing;
     
-    smavlink_pack_int16_t(n_ref1, 22U, n_deref8);
+    smavlink_pack_int16_t((uint8_t*) n_ref1, 22U, n_deref8);
     
     uint16_t n_deref9 = *&n_var0->wp_dist;
     
-    smavlink_pack_uint16_t(n_ref1, 24U, n_deref9);
-    smavlink_send_ivory(n_var1, n_var2, 62U, n_ref1, 26U, 183U);
+    smavlink_pack_uint16_t((uint8_t*) n_ref1, 24U, n_deref9);
+    smavlink_send_ivory(n_var1, n_var2, 62U, (uint8_t*) n_ref1, 26U, 183U);
     return;
 }
 void smavlink_unpack_nav_controller_output(struct nav_controller_output_msg* n_var0,

@@ -8,31 +8,31 @@ void smavlink_send_manual_control(struct manual_control_msg* n_var0,
                                   struct smavlink_system* n_var2)
 {
     uint8_t n_local0[11U] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-    uint8_t(* n_ref1)[11U] = &n_local0;
+    uint8_t* n_ref1 = n_local0;
     int16_t n_deref2 = *&n_var0->x;
     
-    smavlink_pack_int16_t(n_ref1, 0U, n_deref2);
+    smavlink_pack_int16_t((uint8_t*) n_ref1, 0U, n_deref2);
     
     int16_t n_deref3 = *&n_var0->y;
     
-    smavlink_pack_int16_t(n_ref1, 2U, n_deref3);
+    smavlink_pack_int16_t((uint8_t*) n_ref1, 2U, n_deref3);
     
     int16_t n_deref4 = *&n_var0->z;
     
-    smavlink_pack_int16_t(n_ref1, 4U, n_deref4);
+    smavlink_pack_int16_t((uint8_t*) n_ref1, 4U, n_deref4);
     
     int16_t n_deref5 = *&n_var0->r;
     
-    smavlink_pack_int16_t(n_ref1, 6U, n_deref5);
+    smavlink_pack_int16_t((uint8_t*) n_ref1, 6U, n_deref5);
     
     uint16_t n_deref6 = *&n_var0->buttons;
     
-    smavlink_pack_uint16_t(n_ref1, 8U, n_deref6);
+    smavlink_pack_uint16_t((uint8_t*) n_ref1, 8U, n_deref6);
     
     uint8_t n_deref7 = *&n_var0->target;
     
-    smavlink_pack_uint8_t(n_ref1, 10U, n_deref7);
-    smavlink_send_ivory(n_var1, n_var2, 69U, n_ref1, 11U, 243U);
+    smavlink_pack_uint8_t((uint8_t*) n_ref1, 10U, n_deref7);
+    smavlink_send_ivory(n_var1, n_var2, 69U, (uint8_t*) n_ref1, 11U, 243U);
     return;
 }
 void smavlink_unpack_manual_control(struct manual_control_msg* n_var0, const

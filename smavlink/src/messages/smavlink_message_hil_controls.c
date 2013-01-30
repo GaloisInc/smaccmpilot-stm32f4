@@ -10,51 +10,51 @@ void smavlink_send_hil_controls(struct hil_controls_msg* n_var0,
     uint8_t n_local0[42U] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                              0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                              0, 0, 0, 0, 0, 0, 0, 0};
-    uint8_t(* n_ref1)[42U] = &n_local0;
+    uint8_t* n_ref1 = n_local0;
     uint64_t n_deref2 = *&n_var0->time_usec;
     
-    smavlink_pack_uint64_t(n_ref1, 0U, n_deref2);
+    smavlink_pack_uint64_t((uint8_t*) n_ref1, 0U, n_deref2);
     
     float n_deref3 = *&n_var0->roll_ailerons;
     
-    smavlink_pack_float(n_ref1, 8U, n_deref3);
+    smavlink_pack_float((uint8_t*) n_ref1, 8U, n_deref3);
     
     float n_deref4 = *&n_var0->pitch_elevator;
     
-    smavlink_pack_float(n_ref1, 12U, n_deref4);
+    smavlink_pack_float((uint8_t*) n_ref1, 12U, n_deref4);
     
     float n_deref5 = *&n_var0->yaw_rudder;
     
-    smavlink_pack_float(n_ref1, 16U, n_deref5);
+    smavlink_pack_float((uint8_t*) n_ref1, 16U, n_deref5);
     
     float n_deref6 = *&n_var0->throttle;
     
-    smavlink_pack_float(n_ref1, 20U, n_deref6);
+    smavlink_pack_float((uint8_t*) n_ref1, 20U, n_deref6);
     
     float n_deref7 = *&n_var0->aux1;
     
-    smavlink_pack_float(n_ref1, 24U, n_deref7);
+    smavlink_pack_float((uint8_t*) n_ref1, 24U, n_deref7);
     
     float n_deref8 = *&n_var0->aux2;
     
-    smavlink_pack_float(n_ref1, 28U, n_deref8);
+    smavlink_pack_float((uint8_t*) n_ref1, 28U, n_deref8);
     
     float n_deref9 = *&n_var0->aux3;
     
-    smavlink_pack_float(n_ref1, 32U, n_deref9);
+    smavlink_pack_float((uint8_t*) n_ref1, 32U, n_deref9);
     
     float n_deref10 = *&n_var0->aux4;
     
-    smavlink_pack_float(n_ref1, 36U, n_deref10);
+    smavlink_pack_float((uint8_t*) n_ref1, 36U, n_deref10);
     
     uint8_t n_deref11 = *&n_var0->mode;
     
-    smavlink_pack_uint8_t(n_ref1, 40U, n_deref11);
+    smavlink_pack_uint8_t((uint8_t*) n_ref1, 40U, n_deref11);
     
     uint8_t n_deref12 = *&n_var0->nav_mode;
     
-    smavlink_pack_uint8_t(n_ref1, 41U, n_deref12);
-    smavlink_send_ivory(n_var1, n_var2, 91U, n_ref1, 42U, 63U);
+    smavlink_pack_uint8_t((uint8_t*) n_ref1, 41U, n_deref12);
+    smavlink_send_ivory(n_var1, n_var2, 91U, (uint8_t*) n_ref1, 42U, 63U);
     return;
 }
 void smavlink_unpack_hil_controls(struct hil_controls_msg* n_var0, const

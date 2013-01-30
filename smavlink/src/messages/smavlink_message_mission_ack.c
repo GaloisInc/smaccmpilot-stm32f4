@@ -8,19 +8,19 @@ void smavlink_send_mission_ack(struct mission_ack_msg* n_var0,
                                struct smavlink_system* n_var2)
 {
     uint8_t n_local0[3U] = {0, 0, 0};
-    uint8_t(* n_ref1)[3U] = &n_local0;
+    uint8_t* n_ref1 = n_local0;
     uint8_t n_deref2 = *&n_var0->target_system;
     
-    smavlink_pack_uint8_t(n_ref1, 0U, n_deref2);
+    smavlink_pack_uint8_t((uint8_t*) n_ref1, 0U, n_deref2);
     
     uint8_t n_deref3 = *&n_var0->target_component;
     
-    smavlink_pack_uint8_t(n_ref1, 1U, n_deref3);
+    smavlink_pack_uint8_t((uint8_t*) n_ref1, 1U, n_deref3);
     
     uint8_t n_deref4 = *&n_var0->mission_ack_type;
     
-    smavlink_pack_uint8_t(n_ref1, 2U, n_deref4);
-    smavlink_send_ivory(n_var1, n_var2, 47U, n_ref1, 3U, 153U);
+    smavlink_pack_uint8_t((uint8_t*) n_ref1, 2U, n_deref4);
+    smavlink_send_ivory(n_var1, n_var2, 47U, (uint8_t*) n_ref1, 3U, 153U);
     return;
 }
 void smavlink_unpack_mission_ack(struct mission_ack_msg* n_var0, const

@@ -10,7 +10,7 @@ extern "C" {
 #include "smavlink/system.h"
 
 #define smavlink_send_ivory(ch, sys, msgid, bodyref, bodylen, crc) \
-    smavlink_send(ch, sys, msgid, (const uint8_t*)(*bodyref), bodylen, crc)
+    smavlink_send(ch, sys, msgid, (const uint8_t*)(bodyref), bodylen, crc)
 
 void smavlink_send( struct smavlink_out_channel *ch,
         struct smavlink_system *sys,

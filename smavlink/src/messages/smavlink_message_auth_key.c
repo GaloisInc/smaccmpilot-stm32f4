@@ -9,25 +9,25 @@ void smavlink_send_auth_key(struct auth_key_msg* n_var0,
 {
     uint8_t n_local0[32U] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                              0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-    uint8_t(* n_ref1)[32U] = &n_local0;
-    uint8_t(* n_let2)[32U] = &n_var0->key;
+    uint8_t* n_ref1 = n_local0;
+    uint8_t* n_let2 = n_var0->key;
     
-    for (uint8_t n_ix3 = 0U % 32U; n_ix3 < 31U % 32U; n_ix3 = n_ix3 + 1U %
+    for (uint8_t n_ix3 = 0U % 32U; n_ix3 <= 31U % 32U; n_ix3 = n_ix3 + 1U %
          32U) {
-        uint8_t n_deref4 = *&(*n_let2)[n_ix3];
+        uint8_t n_deref4 = *&n_let2[n_ix3];
         
-        smavlink_pack_uint8_t(n_ref1, 0U + n_ix3, n_deref4);
+        smavlink_pack_uint8_t((uint8_t*) n_ref1, 0U + n_ix3, n_deref4);
     }
-    smavlink_send_ivory(n_var1, n_var2, 7U, n_ref1, 32U, 119U);
+    smavlink_send_ivory(n_var1, n_var2, 7U, (uint8_t*) n_ref1, 32U, 119U);
     return;
 }
 void smavlink_unpack_auth_key(struct auth_key_msg* n_var0, const
                               uint8_t** n_var1)
 {
-    for (uint8_t n_ix0 = 0U % 32U; n_ix0 < 31U % 32U; n_ix0 = n_ix0 + 1U %
+    for (uint8_t n_ix0 = 0U % 32U; n_ix0 <= 31U % 32U; n_ix0 = n_ix0 + 1U %
          32U) {
         uint8_t n_r1 = smavlink_unpack_uint8_t(n_var1, 0U + n_ix0);
         
-        *&(*&n_var0->key)[n_ix0] = n_r1;
+        *&n_var0->key[n_ix0] = n_r1;
     }
 }

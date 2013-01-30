@@ -8,15 +8,15 @@ void smavlink_send_command_ack(struct command_ack_msg* n_var0,
                                struct smavlink_system* n_var2)
 {
     uint8_t n_local0[3U] = {0, 0, 0};
-    uint8_t(* n_ref1)[3U] = &n_local0;
+    uint8_t* n_ref1 = n_local0;
     uint16_t n_deref2 = *&n_var0->command;
     
-    smavlink_pack_uint16_t(n_ref1, 0U, n_deref2);
+    smavlink_pack_uint16_t((uint8_t*) n_ref1, 0U, n_deref2);
     
     uint8_t n_deref3 = *&n_var0->result;
     
-    smavlink_pack_uint8_t(n_ref1, 2U, n_deref3);
-    smavlink_send_ivory(n_var1, n_var2, 77U, n_ref1, 3U, 143U);
+    smavlink_pack_uint8_t((uint8_t*) n_ref1, 2U, n_deref3);
+    smavlink_send_ivory(n_var1, n_var2, 77U, (uint8_t*) n_ref1, 3U, 143U);
     return;
 }
 void smavlink_unpack_command_ack(struct command_ack_msg* n_var0, const

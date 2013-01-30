@@ -9,43 +9,43 @@ void smavlink_send_global_position_int(struct global_position_int_msg* n_var0,
 {
     uint8_t n_local0[28U] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                              0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-    uint8_t(* n_ref1)[28U] = &n_local0;
+    uint8_t* n_ref1 = n_local0;
     uint32_t n_deref2 = *&n_var0->time_boot_ms;
     
-    smavlink_pack_uint32_t(n_ref1, 0U, n_deref2);
+    smavlink_pack_uint32_t((uint8_t*) n_ref1, 0U, n_deref2);
     
     int32_t n_deref3 = *&n_var0->lat;
     
-    smavlink_pack_int32_t(n_ref1, 4U, n_deref3);
+    smavlink_pack_int32_t((uint8_t*) n_ref1, 4U, n_deref3);
     
     int32_t n_deref4 = *&n_var0->lon;
     
-    smavlink_pack_int32_t(n_ref1, 8U, n_deref4);
+    smavlink_pack_int32_t((uint8_t*) n_ref1, 8U, n_deref4);
     
     int32_t n_deref5 = *&n_var0->alt;
     
-    smavlink_pack_int32_t(n_ref1, 12U, n_deref5);
+    smavlink_pack_int32_t((uint8_t*) n_ref1, 12U, n_deref5);
     
     int32_t n_deref6 = *&n_var0->relative_alt;
     
-    smavlink_pack_int32_t(n_ref1, 16U, n_deref6);
+    smavlink_pack_int32_t((uint8_t*) n_ref1, 16U, n_deref6);
     
     int16_t n_deref7 = *&n_var0->vx;
     
-    smavlink_pack_int16_t(n_ref1, 20U, n_deref7);
+    smavlink_pack_int16_t((uint8_t*) n_ref1, 20U, n_deref7);
     
     int16_t n_deref8 = *&n_var0->vy;
     
-    smavlink_pack_int16_t(n_ref1, 22U, n_deref8);
+    smavlink_pack_int16_t((uint8_t*) n_ref1, 22U, n_deref8);
     
     int16_t n_deref9 = *&n_var0->vz;
     
-    smavlink_pack_int16_t(n_ref1, 24U, n_deref9);
+    smavlink_pack_int16_t((uint8_t*) n_ref1, 24U, n_deref9);
     
     uint16_t n_deref10 = *&n_var0->hdg;
     
-    smavlink_pack_uint16_t(n_ref1, 26U, n_deref10);
-    smavlink_send_ivory(n_var1, n_var2, 33U, n_ref1, 28U, 104U);
+    smavlink_pack_uint16_t((uint8_t*) n_ref1, 26U, n_deref10);
+    smavlink_send_ivory(n_var1, n_var2, 33U, (uint8_t*) n_ref1, 28U, 104U);
     return;
 }
 void smavlink_unpack_global_position_int(struct global_position_int_msg* n_var0,

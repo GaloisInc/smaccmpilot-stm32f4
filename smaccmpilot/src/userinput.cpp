@@ -96,7 +96,7 @@ static void userinput_capture(struct userinput_result *capt,
 
         if (count == SMACCM_RCINPUT_CHANNELS) {
             uint32_t now = xTaskGetTickCount();
-            userinput_decode(&ch, decode_state, capt, now);
+            userinput_decode(ch, decode_state, capt, now);
 
         }
 

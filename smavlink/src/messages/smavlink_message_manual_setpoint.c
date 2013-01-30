@@ -9,35 +9,35 @@ void smavlink_send_manual_setpoint(struct manual_setpoint_msg* n_var0,
 {
     uint8_t n_local0[22U] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                              0, 0, 0, 0, 0};
-    uint8_t(* n_ref1)[22U] = &n_local0;
+    uint8_t* n_ref1 = n_local0;
     uint32_t n_deref2 = *&n_var0->time_boot_ms;
     
-    smavlink_pack_uint32_t(n_ref1, 0U, n_deref2);
+    smavlink_pack_uint32_t((uint8_t*) n_ref1, 0U, n_deref2);
     
     float n_deref3 = *&n_var0->roll;
     
-    smavlink_pack_float(n_ref1, 4U, n_deref3);
+    smavlink_pack_float((uint8_t*) n_ref1, 4U, n_deref3);
     
     float n_deref4 = *&n_var0->pitch;
     
-    smavlink_pack_float(n_ref1, 8U, n_deref4);
+    smavlink_pack_float((uint8_t*) n_ref1, 8U, n_deref4);
     
     float n_deref5 = *&n_var0->yaw;
     
-    smavlink_pack_float(n_ref1, 12U, n_deref5);
+    smavlink_pack_float((uint8_t*) n_ref1, 12U, n_deref5);
     
     float n_deref6 = *&n_var0->thrust;
     
-    smavlink_pack_float(n_ref1, 16U, n_deref6);
+    smavlink_pack_float((uint8_t*) n_ref1, 16U, n_deref6);
     
     uint8_t n_deref7 = *&n_var0->mode_switch;
     
-    smavlink_pack_uint8_t(n_ref1, 20U, n_deref7);
+    smavlink_pack_uint8_t((uint8_t*) n_ref1, 20U, n_deref7);
     
     uint8_t n_deref8 = *&n_var0->manual_override_switch;
     
-    smavlink_pack_uint8_t(n_ref1, 21U, n_deref8);
-    smavlink_send_ivory(n_var1, n_var2, 81U, n_ref1, 22U, 106U);
+    smavlink_pack_uint8_t((uint8_t*) n_ref1, 21U, n_deref8);
+    smavlink_send_ivory(n_var1, n_var2, 81U, (uint8_t*) n_ref1, 22U, 106U);
     return;
 }
 void smavlink_unpack_manual_setpoint(struct manual_setpoint_msg* n_var0, const

@@ -8,19 +8,19 @@ void smavlink_send_data_stream(struct data_stream_msg* n_var0,
                                struct smavlink_system* n_var2)
 {
     uint8_t n_local0[4U] = {0, 0, 0, 0};
-    uint8_t(* n_ref1)[4U] = &n_local0;
+    uint8_t* n_ref1 = n_local0;
     uint16_t n_deref2 = *&n_var0->message_rate;
     
-    smavlink_pack_uint16_t(n_ref1, 0U, n_deref2);
+    smavlink_pack_uint16_t((uint8_t*) n_ref1, 0U, n_deref2);
     
     uint8_t n_deref3 = *&n_var0->stream_id;
     
-    smavlink_pack_uint8_t(n_ref1, 2U, n_deref3);
+    smavlink_pack_uint8_t((uint8_t*) n_ref1, 2U, n_deref3);
     
     uint8_t n_deref4 = *&n_var0->on_off;
     
-    smavlink_pack_uint8_t(n_ref1, 3U, n_deref4);
-    smavlink_send_ivory(n_var1, n_var2, 67U, n_ref1, 4U, 21U);
+    smavlink_pack_uint8_t((uint8_t*) n_ref1, 3U, n_deref4);
+    smavlink_send_ivory(n_var1, n_var2, 67U, (uint8_t*) n_ref1, 4U, 21U);
     return;
 }
 void smavlink_unpack_data_stream(struct data_stream_msg* n_var0, const

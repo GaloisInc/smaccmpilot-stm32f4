@@ -2,35 +2,35 @@
  * Compiler version  Version {versionBranch = [0,1,0,0], versionTags = []}
  */
 #include "userinput_decode.h"
-void userinput_decode(uint16_t(* n_var0)[8U],
+void userinput_decode(uint16_t n_var0[8U],
                       struct userinput_decode_state* n_var1,
                       struct userinput_result* n_var2, uint32_t n_var3)
 {
     *&n_var2->time = n_var3;
     
-    uint16_t n_deref0 = *&(*n_var0)[0U];
+    uint16_t n_deref0 = *&n_var0[0U];
     float n_r1 = userinput_scale(1500U, 500U, -1.0f, 1.0f, n_deref0);
     
     *&n_var2->roll = n_r1;
     
-    uint16_t n_deref2 = *&(*n_var0)[1U];
+    uint16_t n_deref2 = *&n_var0[1U];
     float n_r3 = userinput_scale(1500U, 500U, -1.0f, 1.0f, n_deref2);
     
     *&n_var2->pitch = n_r3;
     
-    uint16_t n_deref4 = *&(*n_var0)[2U];
+    uint16_t n_deref4 = *&n_var0[2U];
     float n_r5 = userinput_scale(1000U, 1000U, 0.0f, 1.0f, n_deref4);
     
     *&n_var2->throttle = n_r5;
     
-    uint16_t n_deref6 = *&(*n_var0)[3U];
+    uint16_t n_deref6 = *&n_var0[3U];
     float n_r7 = userinput_scale(1500U, 500U, -1.0f, 1.0f, n_deref6);
     
     *&n_var2->yaw = n_r7;
     
-    uint16_t n_deref8 = *&(*n_var0)[5U];
-    uint16_t n_deref9 = *&(*n_var0)[2U];
-    uint16_t n_deref10 = *&(*n_var0)[3U];
+    uint16_t n_deref8 = *&n_var0[5U];
+    uint16_t n_deref9 = *&n_var0[2U];
+    uint16_t n_deref10 = *&n_var0[3U];
     
     if (n_deref8 < 1500U) {
         *&n_var1->arm_state = 0U;
@@ -91,12 +91,12 @@ void userinput_decode(uint16_t(* n_var0)[8U],
         }
     }
     
-    uint16_t n_deref14 = *&(*n_var0)[4U];
+    uint16_t n_deref14 = *&n_var0[4U];
     uint16_t n_deref15 = *&n_var1->last_modepwm;
     uint32_t n_deref16 = *&n_var1->last_modepwm_time;
     
     if (n_deref14 - n_deref15 < 10U) {
-        if (n_var3 - n_deref16 > 100U) {
+        if (n_var3 - n_deref16 > 250U) {
             *&n_var1->last_modepwm = n_deref14;
             *&n_var1->last_modepwm_time = n_var3;
             

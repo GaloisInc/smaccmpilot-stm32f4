@@ -8,15 +8,15 @@ void smavlink_send_file_transfer_res(struct file_transfer_res_msg* n_var0,
                                      struct smavlink_system* n_var2)
 {
     uint8_t n_local0[9U] = {0, 0, 0, 0, 0, 0, 0, 0, 0};
-    uint8_t(* n_ref1)[9U] = &n_local0;
+    uint8_t* n_ref1 = n_local0;
     uint64_t n_deref2 = *&n_var0->transfer_uid;
     
-    smavlink_pack_uint64_t(n_ref1, 0U, n_deref2);
+    smavlink_pack_uint64_t((uint8_t*) n_ref1, 0U, n_deref2);
     
     uint8_t n_deref3 = *&n_var0->result;
     
-    smavlink_pack_uint8_t(n_ref1, 8U, n_deref3);
-    smavlink_send_ivory(n_var1, n_var2, 112U, n_ref1, 9U, 124U);
+    smavlink_pack_uint8_t((uint8_t*) n_ref1, 8U, n_deref3);
+    smavlink_send_ivory(n_var1, n_var2, 112U, (uint8_t*) n_ref1, 9U, 124U);
     return;
 }
 void smavlink_unpack_file_transfer_res(struct file_transfer_res_msg* n_var0,

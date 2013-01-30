@@ -9,28 +9,28 @@ void smavlink_send_change_operator_control(struct change_operator_control_msg* n
 {
     uint8_t n_local0[28U] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                              0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-    uint8_t(* n_ref1)[28U] = &n_local0;
+    uint8_t* n_ref1 = n_local0;
     uint8_t n_deref2 = *&n_var0->target_system;
     
-    smavlink_pack_uint8_t(n_ref1, 0U, n_deref2);
+    smavlink_pack_uint8_t((uint8_t*) n_ref1, 0U, n_deref2);
     
     uint8_t n_deref3 = *&n_var0->control_request;
     
-    smavlink_pack_uint8_t(n_ref1, 1U, n_deref3);
+    smavlink_pack_uint8_t((uint8_t*) n_ref1, 1U, n_deref3);
     
     uint8_t n_deref4 = *&n_var0->version;
     
-    smavlink_pack_uint8_t(n_ref1, 2U, n_deref4);
+    smavlink_pack_uint8_t((uint8_t*) n_ref1, 2U, n_deref4);
     
-    uint8_t(* n_let5)[25U] = &n_var0->passkey;
+    uint8_t* n_let5 = n_var0->passkey;
     
-    for (uint8_t n_ix6 = 0U % 25U; n_ix6 < 24U % 25U; n_ix6 = n_ix6 + 1U %
+    for (uint8_t n_ix6 = 0U % 25U; n_ix6 <= 24U % 25U; n_ix6 = n_ix6 + 1U %
          25U) {
-        uint8_t n_deref7 = *&(*n_let5)[n_ix6];
+        uint8_t n_deref7 = *&n_let5[n_ix6];
         
-        smavlink_pack_uint8_t(n_ref1, 3U + n_ix6, n_deref7);
+        smavlink_pack_uint8_t((uint8_t*) n_ref1, 3U + n_ix6, n_deref7);
     }
-    smavlink_send_ivory(n_var1, n_var2, 5U, n_ref1, 28U, 217U);
+    smavlink_send_ivory(n_var1, n_var2, 5U, (uint8_t*) n_ref1, 28U, 217U);
     return;
 }
 void smavlink_unpack_change_operator_control(struct change_operator_control_msg* n_var0,
@@ -47,10 +47,10 @@ void smavlink_unpack_change_operator_control(struct change_operator_control_msg*
     uint8_t n_r2 = smavlink_unpack_uint8_t(n_var1, 2U);
     
     *&n_var0->version = n_r2;
-    for (uint8_t n_ix3 = 0U % 25U; n_ix3 < 24U % 25U; n_ix3 = n_ix3 + 1U %
+    for (uint8_t n_ix3 = 0U % 25U; n_ix3 <= 24U % 25U; n_ix3 = n_ix3 + 1U %
          25U) {
         uint8_t n_r4 = smavlink_unpack_uint8_t(n_var1, 3U + n_ix3);
         
-        *&(*&n_var0->passkey)[n_ix3] = n_r4;
+        *&n_var0->passkey[n_ix3] = n_r4;
     }
 }
