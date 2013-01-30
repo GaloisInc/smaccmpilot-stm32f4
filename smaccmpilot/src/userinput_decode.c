@@ -101,9 +101,9 @@ void userinput_decode(uint16_t n_var0[8U],
             *&n_var1->last_modepwm_time = n_var3;
             
             uint8_t n_let17 = n_deref14 >= 900U && n_deref14 <=
-                   1300U ? 0U : n_deref14 >= 1301U && n_deref14 <=
+                   1300U ? 2U : n_deref14 >= 1301U && n_deref14 <=
                    1700U ? 1U : n_deref14 >= 1701U && n_deref14 <=
-                   2100U ? 2U : 0U;
+                   2100U ? 0U : 0U;
             
             *&n_var2->mode = n_let17;
         } else { }

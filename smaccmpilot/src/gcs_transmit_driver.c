@@ -3,26 +3,28 @@
  */
 #include "gcs_transmit_driver.h"
 void gcs_transmit_send_heartbeat(struct motorsoutput_result* n_var0,
-                                 struct smavlink_out_channel* n_var1,
-                                 struct smavlink_system* n_var2)
+                                 struct userinput_result* n_var1,
+                                 struct smavlink_out_channel* n_var2,
+                                 struct smavlink_system* n_var3)
 {
     struct heartbeat_msg n_local0 = {.custom_mode =0, .mavtype =0, .autopilot =
                                      0, .base_mode =0, .system_status =0,
                                      .mavlink_version =0};
     struct heartbeat_msg* n_ref1 = &n_local0;
-    
-    *&n_ref1->mavtype = 2U;
-    *&n_ref1->autopilot = 0U;
-    
     bool n_deref2 = *&n_var0->armed;
+    uint8_t n_deref3 = *&n_var1->mode;
     
+    *&n_ref1->custom_mode = n_deref3 == 0U ? 0U : n_deref3 ==
+        1U ? 2U : n_deref3 == 2U ? 5U : 0U;
+    *&n_ref1->mavtype = 2U;
+    *&n_ref1->autopilot = 3U;
     if (n_deref2) {
-        *&n_ref1->base_mode = 208U;
+        *&n_ref1->base_mode = 128U;
     } else {
-        *&n_ref1->base_mode = 80U;
+        *&n_ref1->base_mode = 1U;
     }
     *&n_ref1->mavlink_version = 3U;
-    smavlink_send_heartbeat(n_ref1, n_var1, n_var2);
+    smavlink_send_heartbeat(n_ref1, n_var2, n_var3);
     return;
 }
 void gcs_transmit_send_attitude(struct sensors_result* n_var0,
