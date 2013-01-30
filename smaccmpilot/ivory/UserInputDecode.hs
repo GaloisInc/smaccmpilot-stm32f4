@@ -37,10 +37,10 @@ mode_STABILIZE = 0
 mode_ALT_HOLD  = 1
 mode_LOITER    = 2
 
-mode_pwm_map :: [(Uint8, (Uint16, Uint16))]
-mode_pwm_map = [(mode_STABILIZE, (900, 1300))
-               ,(mode_ALT_HOLD,  (1301, 1700))
-               ,(mode_LOITER,    (1701, 2100))
+mode_pwm_map :: [(Uint8, (Uint16, Uint16))]    -- on ER9X this should be:
+mode_pwm_map = [(mode_LOITER,    (900, 1300))  -- AUX 3 up
+               ,(mode_ALT_HOLD,  (1301, 1700)) -- AUX 3 center
+               ,(mode_STABILIZE, (1701, 2100)) -- AUX 3 down
                ]
 
 decode :: Def ('[ Ref s1 (Array 8 (Stored Uint16))
