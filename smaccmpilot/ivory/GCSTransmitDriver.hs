@@ -14,7 +14,8 @@ import qualified PositionType as P
 import qualified ServoType as Serv
 import qualified SensorsType as Sens
 import qualified MotorsOutputType as M
-
+import qualified UserInputType as U
+import qualified UserInputDecode as U
 
 import Smaccm.Mavlink.Send (useSendModule)
 
@@ -36,6 +37,7 @@ gcsTransmitDriverModule = package "gcs_transmit_driver" $ do
   depend Serv.servoModule
   depend Sens.sensorsTypeModule
   depend M.motorsOutputModule
+  depend U.userInputModule
   -- dependencies for all the smavlink types and senders
   depend HB.heartbeatModule
   depend ATT.attitudeModule
@@ -50,28 +52,46 @@ gcsTransmitDriverModule = package "gcs_transmit_driver" $ do
   incl sendGps
 
 sendHeartbeat :: Def ('[ (Ref s1 (Struct "motorsoutput_result"))
-                       , (Ref s2 (Struct "smavlink_out_channel"))
-                       , (Ref s3 (Struct "smavlink_system"))
+                       , (Ref s2 (Struct "userinput_result"))
+                       , (Ref s3 (Struct "smavlink_out_channel"))
+                       , (Ref s4 (Struct "smavlink_system"))
                        ] :-> ())
-sendHeartbeat = proc "gcs_transmit_send_heartbeat" $ \mot ch sys -> body $ do
+sendHeartbeat = proc "gcs_transmit_send_heartbeat" $ 
+  \mot user ch sys -> body $ do
   hb <- local
-  -- custom_mode stays 0
-  store (hb ~> HB.mavtype) mavtype_quadrotor
-  store (hb ~> HB.autopilot) autopilot_generic
-  armedfield <- (mot ~>* M.armed)
-  ifte armedfield
-    (store (hb ~> HB.base_mode) mode_stabilize_armed)
-    (store (hb ~> HB.base_mode) mode_stabilize_disarmed)
+  armed <- (mot ~>* M.armed)
+  mode  <- (user ~>* U.mode)
+  store (hb ~> HB.custom_mode) (mode_to_ac2mode mode)
+  store (hb ~> HB.mavtype)      mavtype_quadrotor
+  -- masquerade as an APM so we can use their custom modes, for now
+  store (hb ~> HB.autopilot)    autopilot_ardupilotmega
+  ifte armed
+    (store (hb ~> HB.base_mode) (mavl_armed + mavl_custom_mode))
+    (store (hb ~> HB.base_mode) (mavl_custom_mode))
   -- system status stays 0
   store (hb ~> HB.mavlink_version) 3 -- magic number
 
   call_ HB.heartbeatSend hb ch sys
   retVoid 
   where
-  autopilot_generic = 0 -- MAV_AUTOPILOT_GENERIC
-  mavtype_quadrotor = 2 -- MAV_TYPE_QUADROTOR
-  mode_stabilize_disarmed = 80  -- MAV_MODE_STABILIZE_DISARMED
-  mode_stabilize_armed    = 208 -- MAV_MODE_STABILIZE_ARMED
+  _autopilot_generic      = 0 -- MAV_AUTOPILOT_GENERIC
+  autopilot_ardupilotmega = 3 -- MAV_AUTOPILOT_ARDUPILOTMEGA
+  mavtype_quadrotor       = 2 -- MAV_TYPE_QUADROTOR
+
+  mavl_armed        = 128  
+  mavl_custom_mode  = 1
+  ac2mode_stabilize = 0
+  ac2mode_alt_hold  = 2
+  ac2mode_loiter    = 5
+  mode_to_ac2mode :: Uint8 -> Uint32
+  mode_to_ac2mode um = foldr translate ac2mode_stabilize t
+    where
+    translate (umode, ac2mode) c = (um ==? umode) ? (ac2mode, c)
+    t = [(U.mode_STABILIZE, ac2mode_stabilize)
+        ,(U.mode_ALT_HOLD,  ac2mode_alt_hold)
+        ,(U.mode_LOITER,    ac2mode_loiter)
+        ]
+
 
 sendAttitude :: Def ('[ (Ref s1 (Struct "sensors_result"))
                       , (Ref s2 (Struct "smavlink_out_channel"))
