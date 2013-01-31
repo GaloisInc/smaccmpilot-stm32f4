@@ -13,7 +13,7 @@ extern "C" {
 #include "userinput_type.h"
 
 void optflow_compensate(struct optflow_result *optflow,
-                        struct userinput_result *userin,
+                        const struct userinput_result *userin,
                         struct userinput_result *out);
 
 #ifdef __cplusplus

@@ -78,7 +78,8 @@ static int16_t throttle_scale(float input) {
 }
 
 void apmotors_output_get(struct servo_result *servo) {
-    if (xSemaphoreTake(apmotors_mutex, 1)) {
+    /* wait 2 ticks - sometimes motors.output() can take some time.*/
+    if (xSemaphoreTake(apmotors_mutex, 2)) {
         servo->valid = true;
         servo->servo1 = motors.motor_out[0];
         servo->servo2 = motors.motor_out[1];
