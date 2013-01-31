@@ -10,6 +10,7 @@ import UserInputType     (userInputModule)
 import GCSTransmitDriver (gcsTransmitDriverModule)
 import UserInputDecode   (userInputDecodeModule)
 import OptFlowType       (optFlowTypeModule)
+import PositionEstimateType (positionEstimateTypeModule)
 
 import Ivory.Compile.C.CmdlineFrontend
 
@@ -23,5 +24,6 @@ main = compile [ positionModule
                , gcsTransmitDriverModule
                , userInputDecodeModule
                , optFlowTypeModule
+               , positionEstimateTypeModule
                ]
 

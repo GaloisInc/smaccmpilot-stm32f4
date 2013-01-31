@@ -24,7 +24,8 @@
 #include <smaccmpilot/gcs_transmit.h>
 #include <smaccmpilot/sensors.h>
 #include <smaccmpilot/optflow_input.h>
-#include <smaccmpilot/optflow_compensate.h>
+#include <smaccmpilot/position_estimator.h>
+#include <smaccmpilot/altitude_controller.h>
 #include <smaccmpilot/ioar_relay.h>
 
 const AP_HAL::HAL& hal = AP_HAL_BOARD_DRIVER;
@@ -69,22 +70,24 @@ void init(void)
 void main_task(void *arg)
 {
     struct userinput_result userinput;
-    struct userinput_result optflow_compensated_input;
+    struct userinput_result altitude_comped_input;
     struct sensors_result sensors;
     struct motorsoutput_result motors;
-    struct position_result position;
+    struct position_result gps_position;
+    struct position_result fromestimated_position;
+    struct position_estimate pos_estimate;
     struct servo_result servos;
     struct optflow_result optflow;
 
     init();
-    memset(&position, 0, sizeof(position));
+    memset(&gps_position, 0, sizeof(gps_position));
     portTickType last_wake_time = xTaskGetTickCount();
 
     for (;;) {
         userinput_get(&userinput);
 
 #ifdef USE_HIL
-        gcs_receive_get_hilstate(&sensors, &position);
+        gcs_receive_get_hilstate(&sensors, &gps_position);
 #else
         sensors_get(&sensors);
         optflow_input_get(&optflow);
@@ -94,23 +97,27 @@ void main_task(void *arg)
             userinput.armed = false;
         }
 
-        optflow_compensate(&optflow, &userinput, &optflow_compensated_input);
+        position_estimate(&sensors, &gps_position, &optflow, &pos_estimate);
 
-        stabilize_motors(&userinput, &sensors, &motors);
+        altitude_compensate(&pos_estimate, &userinput, &altitude_comped_input);
+
+        stabilize_motors(&altitude_comped_input, &sensors, &motors);
+
         motorsoutput_set(&motors);
 
         motorsoutput_getservo(&servos);
 
-        gcs_transmit_set_states(&sensors, &position,
+        position_estimate_output(&pos_estimate, &fromestimated_position);
+        gcs_transmit_set_states(&sensors, &fromestimated_position,
                 &motors, &servos, &userinput);
 
         if (!(userinput.armed)){
             ioar_relay_set(IOAR_RELAY_PULSE_SLOW);
-        } else if (optflow_compensated_input.mode == 0)  { /* stabilize */
+        } else if (altitude_comped_input.mode == 0)  { /* stabilize */
             ioar_relay_set(IOAR_RELAY_PULSE_FAST);
-        } else if (optflow_compensated_input.mode == 1) { /* alt_hold */
+        } else if (altitude_comped_input.mode == 1) { /* alt_hold */
             ioar_relay_set(IOAR_RELAY_BLINK_FAST);
-        } else if (optflow_compensated_input.mode == 2) { /* loiter */
+        } else if (altitude_comped_input.mode == 2) { /* loiter */
             ioar_relay_set(IOAR_RELAY_ON);
         } else { /* Error!! */
             ioar_relay_set(IOAR_RELAY_PULSE_EXTRA_FAST);
