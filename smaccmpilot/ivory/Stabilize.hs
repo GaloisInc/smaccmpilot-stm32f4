@@ -40,7 +40,7 @@ degrees x = x * 57.295779513082320876798154814105
 
 -- | Constrain a floating point value to the range [xmin..xmax].
 constrain :: Def ('[IFloat, IFloat, IFloat] :-> IFloat)
-constrain = proc "constrain" $ \xmin xmax x ->
+constrain = proc "constrain" $ \xmin xmax x -> body $
   (ifte (x <? xmin)
     (ret xmin)
     (ifte (x >? xmax)
@@ -64,8 +64,8 @@ constrain = proc "constrain" $ \xmin xmax x ->
 
 -- | Update a PID controller given an error value and return the
 -- output value.
-pid_update :: Def ('[(Ref (Struct "PID")), IFloat] :-> IFloat)
-pid_update = proc "pid_update" $ \pid err -> do
+pid_update :: Def ('[(Ref s1 (Struct "PID")), IFloat] :-> IFloat)
+pid_update = proc "pid_update" $ \pid err -> body $ do
   p_term <- fmap (* err) (pid~>*pid_pGain)
   i_min <- pid~>*pid_iMin
   i_max <- pid~>*pid_iMax
@@ -85,8 +85,8 @@ pid_update = proc "pid_update" $ \pid err -> do
 --
 --   http://code.google.com/p/arducopter/wiki/AC2_Tweaks
 stabilize_from_angle :: Def ('[
-  (Ref (Struct "PID")),         -- angle_pid
-  (Ref (Struct "PID")),         -- rate_pid
+  (Ref s1 (Struct "PID")),      -- angle_pid
+  (Ref s2 (Struct "PID")),      -- rate_pid
   IFloat,                       -- stick_angle_norm
   IFloat,                       -- max_stick_angle_deg
   IFloat,                       -- sensor_angle_rad,
@@ -96,7 +96,7 @@ stabilize_from_angle :: Def ('[
 stabilize_from_angle = proc "stabilize_from_angle" $
   \angle_pid rate_pid stick_angle_norm
    max_stick_angle_deg sensor_angle_rad
-   sensor_rate_rad_s max_servo_rate_rad_s -> do
+   sensor_rate_rad_s max_servo_rate_rad_s -> body $ do
   stick_angle_deg   <- assign $ stick_angle_norm * max_stick_angle_deg
   sensor_angle_deg  <- assign $ degrees sensor_angle_rad
   angle_error       <- assign $ stick_angle_deg - sensor_angle_deg
@@ -111,7 +111,7 @@ stabilize_from_angle = proc "stabilize_from_angle" $
 -- | Return a normalized servo output given a normalized stick input
 -- representing the desired rate.  Only uses the rate PID controller.
 stabilize_from_rate :: Def ('[
-  (Ref (Struct "PID")),         -- rate_pid
+  (Ref s1 (Struct "PID")),         -- rate_pid
   IFloat,                       -- stick_rate_norm
   IFloat,                       -- max_stick_rate_deg_s
   IFloat,                       -- sensor_rate_rad_s
@@ -119,7 +119,7 @@ stabilize_from_rate :: Def ('[
  ] :-> IFloat)
 stabilize_from_rate = proc "stabilize_from_rate" $
   \rate_pid stick_rate_norm max_stick_rate_deg_s
-   sensor_rate_rad_s max_servo_rate_rad_s -> do
+   sensor_rate_rad_s max_servo_rate_rad_s -> body $ do
   stick_rate_deg_s  <- assign $ stick_rate_norm * max_stick_rate_deg_s
   sensor_rate_deg_s <- assign $ degrees sensor_rate_rad_s
   rate_error        <- assign $ stick_rate_deg_s - sensor_rate_deg_s

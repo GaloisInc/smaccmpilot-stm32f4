@@ -15,42 +15,40 @@ import Ivory.Language
 
 -- | Infix structure field access and dereference.
 -- This is a shorthand for 'deref $ s~>x'.
-(~>*) :: (IvoryType r, IvoryExpr a, IvoryStruct sym) =>
-            Ref (Struct sym) -> Label sym (Stored a) -> Ivory r a
+(~>*) :: (IvoryVar a, IvoryStruct sym) =>
+            Ref s (Struct sym) -> Label sym (Stored a) -> Ivory lex r a
 struct ~>* label = deref $ struct~>label
 infixl 8 ~>*
 
 -- | handy shorthand for transfering members
-resultInto :: (IvoryType r, IvoryExpr a) =>
-     Ivory r a -> Ref (Stored a) -> Ivory r ()
-resultInto a b = do
-  v <- a
-  store b v
+resultInto :: IvoryStore lex ref a =>
+     Ivory lex r a -> Ref ref (Stored a) -> Ivory lex r ()
+resultInto a b = store b =<< a
 
-into :: (IvoryType r, IvoryExpr a) =>
- Ref (Stored a) -> Ref (Stored a) -> Ivory r ()
-into a b = do
-  v <- deref a
-  store b v
+into :: IvoryStore lex ref' a =>
+     Ref ref (Stored a) -> Ref ref' (Stored a) -> Ivory lex r ()
+into a b = store b =<< deref a
 
 -- | Modify the value stored at a reference by a function.
-(%=) :: (IvoryType r, IvoryExpr a) => Ref (Stored a) -> (a -> a) -> Ivory r ()
+(%=) :: IvoryStore lex ref a =>
+     Ref ref (Stored a) -> (a -> a) -> Ivory lex r ()
 ref %= f = do
   val <- deref ref
   store ref (f val)
 
 -- | Modify the value stored at a reference by a function that returns
 -- a value in the Ivory monad.
-(%=!) :: (IvoryType r, IvoryExpr a) =>
-         Ref (Stored a) -> (a -> Ivory r a) -> Ivory r ()
+(%=!) :: IvoryStore lex ref a =>
+         Ref ref (Stored a) -> (a -> Ivory lex r a) -> Ivory lex r ()
 ref %=! mf = do
   val  <- deref ref
   val' <- mf val
   store ref val'
 
 -- | Increment the value stored at a reference.
-(+=) :: (Num a, IvoryType r, IvoryExpr a) => Ref (Stored a) -> a -> Ivory r ()
+(+=) :: (Num a, IvoryStore lex ref a) =>
+        Ref ref (Stored a) -> a -> Ivory lex r ()
 ref += x = ref %= (+ x)
 
-ift :: IBool -> Ivory r a -> Ivory r ()
+ift :: IBool -> Ivory (Block s) r a -> Ivory s r ()
 ift pred c = ifte pred c (return ())

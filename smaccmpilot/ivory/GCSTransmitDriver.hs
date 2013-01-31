@@ -49,11 +49,11 @@ gcsTransmitDriverModule = package "gcs_transmit_driver" $ do
   incl sendServoOutputRaw
   incl sendGps
 
-sendHeartbeat :: Def ('[ (Ref (Struct "motorsoutput_result"))
-                       , (Ref (Struct "smavlink_out_channel"))
-                       , (Ref (Struct "smavlink_system"))
+sendHeartbeat :: Def ('[ (Ref s1 (Struct "motorsoutput_result"))
+                       , (Ref s2 (Struct "smavlink_out_channel"))
+                       , (Ref s3 (Struct "smavlink_system"))
                        ] :-> ())
-sendHeartbeat = proc "gcs_transmit_send_heartbeat" $ \mot ch sys -> do
+sendHeartbeat = proc "gcs_transmit_send_heartbeat" $ \mot ch sys -> body $ do
   hb <- local
   -- custom_mode stays 0
   store (hb ~> HB.mavtype) mavtype_quadrotor
@@ -73,11 +73,11 @@ sendHeartbeat = proc "gcs_transmit_send_heartbeat" $ \mot ch sys -> do
   mode_stabilize_disarmed = 80  -- MAV_MODE_STABILIZE_DISARMED
   mode_stabilize_armed    = 208 -- MAV_MODE_STABILIZE_ARMED
 
-sendAttitude :: Def ('[ (Ref (Struct "sensors_result"))
-                      , (Ref (Struct "smavlink_out_channel"))
-                      , (Ref (Struct "smavlink_system"))
+sendAttitude :: Def ('[ (Ref s1 (Struct "sensors_result"))
+                      , (Ref s2 (Struct "smavlink_out_channel"))
+                      , (Ref s3 (Struct "smavlink_system"))
                       ] :-> ())
-sendAttitude = proc "gcs_transmit_send_attitude" $ \sensors ch sys -> do
+sendAttitude = proc "gcs_transmit_send_attitude" $ \sensors ch sys -> body $ do
   att <- local
   (sensors ~> Sens.time)    `into` (att ~> ATT.time_boot_ms)
   (sensors ~> Sens.roll)    `into` (att ~> ATT.roll)
@@ -89,13 +89,13 @@ sendAttitude = proc "gcs_transmit_send_attitude" $ \sensors ch sys -> do
   call_ ATT.attitudeSend att ch sys
   retVoid 
 
-sendVfrHud :: Def ('[ (Ref (Struct "position_result"))
-                    , (Ref (Struct "motorsoutput_result"))
-                    , (Ref (Struct "sensors_result"))
-                    , (Ref (Struct "smavlink_out_channel"))
-                    , (Ref (Struct "smavlink_system"))
+sendVfrHud :: Def ('[ (Ref s1 (Struct "position_result"))
+                    , (Ref s2 (Struct "motorsoutput_result"))
+                    , (Ref s3 (Struct "sensors_result"))
+                    , (Ref s4 (Struct "smavlink_out_channel"))
+                    , (Ref s5 (Struct "smavlink_system"))
                     ] :-> ())
-sendVfrHud = proc "gcs_transmit_send_vfrhud" $ \pos mot sens ch sys -> do
+sendVfrHud = proc "gcs_transmit_send_vfrhud" $ \pos mot sens ch sys -> body $ do
   hud <- local
   -- Calculating speed from vx/vy/vz int16s in m/s*100, into float in m/s
   (calcSpeed pos) `resultInto` (hud ~> HUD.groundspeed)
@@ -111,7 +111,7 @@ sendVfrHud = proc "gcs_transmit_send_vfrhud" $ \pos mot sens ch sys -> do
   call_ HUD.vfrHudSend hud ch sys
   retVoid 
   where
-  calcSpeed :: (Ref (Struct "position_result")) -> Ivory () IFloat
+  calcSpeed :: Ref s (Struct "position_result") -> Ivory lex () IFloat
   calcSpeed pos = do
     vx <- (pos ~>* P.vx)
     vy <- (pos ~>* P.vy)
@@ -119,35 +119,35 @@ sendVfrHud = proc "gcs_transmit_send_vfrhud" $ \pos mot sens ch sys -> do
     sumsquares <- assign (safeCast (vx * vx + vy * vy + vz * vz) :: IFloat)
     return $ sqrt sumsquares
 
-  calcAltitude :: (Ref (Struct "position_result")) -> Ivory () IFloat
+  calcAltitude :: Ref s (Struct "position_result") -> Ivory lex () IFloat
   calcAltitude pos = do
     milimeters <- (pos ~>* P.gps_alt)
     mm_float <- assign $ toFloat milimeters
     return (mm_float / 1000)
 
-  calcVertSpeed :: (Ref (Struct "position_result")) -> Ivory () IFloat
+  calcVertSpeed :: (Ref s (Struct "position_result")) -> Ivory lex () IFloat
   calcVertSpeed pos = do
     meterspersec <- (pos ~>* P.vz)
     return $ (safeCast meterspersec :: IFloat)
 
-  calcHeading :: (Ref (Struct "sensors_result")) -> Ivory () Sint16
+  calcHeading :: Ref s (Struct "sensors_result") -> Ivory lex () Sint16
   calcHeading sens = do
     radians <- (sens ~>* Sens.yaw)
     degrees <- assign $ 180 / pi * radians
     deg_int <- assign $ fromFloat 0 degrees
     return  deg_int
 
-  calcThrottle :: (Ref (Struct "motorsoutput_result")) -> Ivory () Uint16
+  calcThrottle :: Ref s (Struct "motorsoutput_result") -> Ivory l () Uint16
   calcThrottle motors = do
     thrFloat <- (motors ~>* M.throttle)
     return $ fromFloat 0 (thrFloat * 100)
 
 
-sendServoOutputRaw :: Def ('[ (Ref (Struct "servo_result"))
-                            , (Ref (Struct "smavlink_out_channel"))
-                            , (Ref (Struct "smavlink_system"))
+sendServoOutputRaw :: Def ('[ (Ref s1 (Struct "servo_result"))
+                            , (Ref s2 (Struct "smavlink_out_channel"))
+                            , (Ref s3 (Struct "smavlink_system"))
                             ] :-> ())
-sendServoOutputRaw = proc "gcs_transmit_send_servo_output" $ \state ch sys -> do
+sendServoOutputRaw = proc "gcs_transmit_send_servo_output" $ \state ch sys -> body $ do
   msg <- local
   (state ~> Serv.time)   `into` (msg ~> SVO.time_usec)
   (state ~> Serv.servo1) `into` (msg ~> SVO.servo1_raw)
@@ -157,11 +157,11 @@ sendServoOutputRaw = proc "gcs_transmit_send_servo_output" $ \state ch sys -> do
   call_ SVO.servoOutputRawSend msg ch sys
 
 
-sendGps :: Def ('[ (Ref (Struct "position_result"))
-                 , (Ref (Struct "smavlink_out_channel"))
-                 , (Ref (Struct "smavlink_system"))
+sendGps :: Def ('[ (Ref s1 (Struct "position_result"))
+                 , (Ref s2 (Struct "smavlink_out_channel"))
+                 , (Ref s3 (Struct "smavlink_system"))
                  ] :-> ())
-sendGps = proc "gcs_transmit_send_gps" $ \pos ch sys -> do
+sendGps = proc "gcs_transmit_send_gps" $ \pos ch sys -> body $ do
   msg <- local
   (pos ~> P.lat)     `into` (msg ~> GPS.lat)
   (pos ~> P.lon)     `into` (msg ~> GPS.lon)

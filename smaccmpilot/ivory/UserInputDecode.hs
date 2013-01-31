@@ -43,11 +43,11 @@ mode_pwm_map = [(mode_STABILIZE, (900, 1300))
                ,(mode_LOITER,    (1701, 2100))
                ]
 
-decode :: Def ('[ Ref (Array 8 (Stored Uint16))
-                , Ref (Struct "userinput_decode_state")
-                , Ref (Struct "userinput_result")
-                , Uint32 ] :-> ()) 
-decode = proc "userinput_decode" $ \pwms state out now -> do
+decode :: Def ('[ Ref s1 (Array 8 (Stored Uint16))
+                , Ref s2 (Struct "userinput_decode_state")
+                , Ref s3 (Struct "userinput_result")
+                , Uint32 ] :-> ())
+decode = proc "userinput_decode" $ \pwms state out now -> body $ do
   let chtransform ix f ofield = deref (pwms ! (ix :: Ix Uint8 8)) >>=
                                 f >>= \v -> store (out ~> ofield) v
   store (out ~> I.time) now
@@ -59,11 +59,11 @@ decode = proc "userinput_decode" $ \pwms state out now -> do
   mode_statemachine pwms state out now
   retVoid
 
-arming_statemachine :: (Ref (Array 8 (Stored Uint16)))
-                    -> (Ref (Struct "userinput_decode_state"))
-                    -> (Ref (Struct "userinput_result"))
+arming_statemachine :: (Ref s1 (Array 8 (Stored Uint16)))
+                    -> (Ref s2 (Struct "userinput_decode_state"))
+                    -> (Ref s3 (Struct "userinput_result"))
                     -> Uint32
-                    -> Ivory () ()
+                    -> Ivory s () ()
 arming_statemachine pwms state out now = do
   ch5_switch <- deref (pwms ! (5 :: Ix Uint8 8))
   throttle_stick <- deref (pwms ! (2 :: Ix Uint8 8))
@@ -75,7 +75,7 @@ arming_statemachine pwms state out now = do
       (do_try_arming)
       (do_not_arming))
   where
-  set_arm_state :: Uint8 -> Ivory () ()
+  set_arm_state :: Uint8 -> Ivory s () ()
   set_arm_state newstate = do
     store (state ~> arm_state) newstate
     store (state ~> arm_state_time) now
@@ -84,12 +84,12 @@ arming_statemachine pwms state out now = do
       (ift (newstate ==? as_ARMED)
         (store (out ~> I.armed) true))
 
-  do_disarm :: Ivory () ()
+  do_disarm :: Ivory s () ()
   do_disarm = set_arm_state as_DISARMED
   
   hystresis = 500
 
-  do_try_arming :: Ivory () ()
+  do_try_arming :: Ivory s () ()
   do_try_arming = do
     as <- deref (state ~> arm_state)
     astime <- deref (state ~> arm_state_time)
@@ -100,17 +100,17 @@ arming_statemachine pwms state out now = do
         (ift (now - astime >? hystresis)
           (set_arm_state as_ARMED))))
 
-  do_not_arming :: Ivory () ()
+  do_not_arming :: Ivory s () ()
   do_not_arming = do
     as <- deref (state ~> arm_state)
     ift (as ==? as_ARMING)
       (set_arm_state as_DISARMED)
 
-mode_statemachine :: (Ref (Array 8 (Stored Uint16)))
-                  -> (Ref (Struct "userinput_decode_state"))
-                  -> (Ref (Struct "userinput_result"))
+mode_statemachine :: (Ref s1 (Array 8 (Stored Uint16)))
+                  -> (Ref s2 (Struct "userinput_decode_state"))
+                  -> (Ref s3 (Struct "userinput_result"))
                   -> Uint32
-                  -> Ivory () ()
+                  -> Ivory s () ()
 mode_statemachine pwms state out now = do
   mode_input_current <- deref (pwms ! (4 :: Ix Uint8 8))
   mode_input_prev    <- deref (state ~> last_modepwm)
@@ -137,14 +137,14 @@ mode_statemachine pwms state out now = do
     matchmodemap (mode, (minpwm, maxpwm)) dflt =
       ((pwm >=? minpwm) .&& (pwm <=? maxpwm)) ? (mode, dflt)
 
-scale_thr :: Uint16 -> Ivory a IFloat 
+scale_thr :: Uint16 -> Ivory s a IFloat
 scale_thr input = call scale_proc 1000 1000 0.0 1.0 input
 
-scale_rpy :: Uint16 -> Ivory a IFloat
+scale_rpy :: Uint16 -> Ivory s a IFloat
 scale_rpy input = call scale_proc 1500 500 (-1.0) 1.0 input
 
 scale_proc :: Def ('[Uint16, Uint16, IFloat, IFloat, Uint16] :-> IFloat)
-scale_proc = proc "userinput_scale" $ \center range outmin outmax input -> do
+scale_proc = proc "userinput_scale" $ \center range outmin outmax input -> body $ do
   let centered = input - center
   let ranged = (toFloat centered) / (toFloat range)
   ifte (ranged <? outmin)
