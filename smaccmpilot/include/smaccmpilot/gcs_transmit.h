@@ -20,7 +20,8 @@ extern "C" {
 #define GCS_TRANSMIT_STREAM_ATTITUDE         3
 #define GCS_TRANSMIT_STREAM_GPS_RAW_INT      4
 #define GCS_TRANSMIT_STREAM_VFR_HUD          5
-#define GCS_TRANSMIT_NUM_STREAMS             6 /* just don't use zero */
+#define GCS_TRANSMIT_STREAM_GLOBAL_POSITION_INT 6
+#define GCS_TRANSMIT_NUM_STREAMS             7 
 
 void gcs_transmit_init(void);
 void gcs_transmit_start_task(void);

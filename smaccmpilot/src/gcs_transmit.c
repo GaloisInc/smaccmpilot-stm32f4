@@ -56,6 +56,7 @@ static struct gcs_timed_action g_actions [] = {
     { GCS_TRANSMIT_STREAM_ATTITUDE        , 0, 0 },
     { GCS_TRANSMIT_STREAM_GPS_RAW_INT     , 0, 0 },
     { GCS_TRANSMIT_STREAM_VFR_HUD         , 0, 0 },
+    { GCS_TRANSMIT_STREAM_GLOBAL_POSITION_INT, 0, 0 },
     { 0                                   , 0, 0 }
 };
 
@@ -237,6 +238,11 @@ static void gcs_transmit_send_streams( bool *streams_due,
     if (streams_due[GCS_TRANSMIT_STREAM_VFR_HUD]) {
         gcs_transmit_send_vfrhud(&position, &motors, &sensors, ch, sys);
     }
+ 
+    if (streams_due[GCS_TRANSMIT_STREAM_GLOBAL_POSITION_INT]) {
+        gcs_transmit_send_global_position_int(&position, ch, sys);
+    }
+
 }
 
 static size_t gcstx_write(void* delegate, const uint8_t *data, size_t len) {
