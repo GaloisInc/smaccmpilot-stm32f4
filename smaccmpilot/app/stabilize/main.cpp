@@ -25,6 +25,7 @@
 #include <smaccmpilot/sensors.h>
 #include <smaccmpilot/optflow_input.h>
 #include <smaccmpilot/optflow_compensate.h>
+#include <smaccmpilot/ioar_relay.h>
 
 const AP_HAL::HAL& hal = AP_HAL_BOARD_DRIVER;
 
@@ -45,6 +46,7 @@ void init(void)
     gcs_transmit_init();
 
     optflow_input_init();
+    ioar_relay_init();
 
     userinput_start_task();
 #ifndef USE_HIL
@@ -55,6 +57,10 @@ void init(void)
     gcs_transmit_start_task();
 
     optflow_input_start_task();
+    
+    ioar_relay_start_task();
+
+    ioar_relay_set(IOAR_RELAY_BLINK_FAST);
 }
 
 // Main thread.  Starts up the GCS thread to communicate with the
@@ -84,6 +90,10 @@ void main_task(void *arg)
         optflow_input_get(&optflow);
 #endif
 
+        if (!sensors.valid) {
+            userinput.armed = false;
+        }
+
         optflow_compensate(&optflow, &userinput, &optflow_compensated_input);
 
         stabilize_motors(&userinput, &sensors, &motors);
@@ -93,6 +103,18 @@ void main_task(void *arg)
 
         gcs_transmit_set_states(&sensors, &position,
                 &motors, &servos, &userinput);
+
+        if (!(userinput.armed)){
+            ioar_relay_set(IOAR_RELAY_PULSE_SLOW);
+        } else if (optflow_compensated_input.mode == 0)  { /* stabilize */
+            ioar_relay_set(IOAR_RELAY_PULSE_FAST);
+        } else if (optflow_compensated_input.mode == 1) { /* alt_hold */
+            ioar_relay_set(IOAR_RELAY_BLINK_FAST);
+        } else if (optflow_compensated_input.mode == 2) { /* loiter */
+            ioar_relay_set(IOAR_RELAY_ON);
+        } else { /* Error!! */
+            ioar_relay_set(IOAR_RELAY_PULSE_EXTRA_FAST);
+        }
 
         vTaskDelayUntil(&last_wake_time, 10);
     }
