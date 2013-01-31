@@ -5,6 +5,35 @@
 #include<math.h>
 #include<stdbool.h>
 
+/* Requires and Provides statements */
+
+#ifdef IVORY_TEST
+
+#include <assert.h>
+
+#define REQUIRES(arg) assert(arg)
+#define ASSERTS(arg)  assert(arg)
+#define ENSURES(arg) assert(arg)
+
+#endif /* IVORY_TEST */
+
+#ifdef IVORY_CBMC
+
+#define REQUIRES(arg) __CPROVER_assume(arg)
+#define ASSERTS(arg)  __CPROVER_assert(arg, "")
+#define ENSURES(arg) __CPROVER_assert(arg, "")
+
+#endif /* IVORY_CBMC */
+
+#ifdef IVORY_DEPLOY
+
+#define REQUIRES(arg)
+#define ASSERTS(arg)
+#define ENSURES(arg)
+
+#endif /* IVORY_DEPLOY */
+
+
 /* abs implementations */
 
 static inline char abs_char(char i) {
