@@ -231,7 +231,7 @@ static void gcs_transmit_send_streams( bool *streams_due,
     }
 
     if (streams_due[GCS_TRANSMIT_STREAM_GPS_RAW_INT]) {
-        gcs_transmit_send_gps(&position, ch, sys);
+        gcs_transmit_send_gps_raw_int(&position, ch, sys);
     }
 
     if (streams_due[GCS_TRANSMIT_STREAM_VFR_HUD]) {

@@ -23,7 +23,7 @@ import qualified Smaccm.Mavlink.Messages.Heartbeat as HB
 import qualified Smaccm.Mavlink.Messages.Attitude as ATT
 import qualified Smaccm.Mavlink.Messages.VfrHud as HUD
 import qualified Smaccm.Mavlink.Messages.ServoOutputRaw as SVO
-import qualified Smaccm.Mavlink.Messages.GpsRawInt as GPS
+import qualified Smaccm.Mavlink.Messages.GpsRawInt as GRI
 
 --------------------------------------------------------------------
 -- Module def
@@ -43,13 +43,13 @@ gcsTransmitDriverModule = package "gcs_transmit_driver" $ do
   depend ATT.attitudeModule
   depend HUD.vfrHudModule
   depend SVO.servoOutputRawModule
-  depend GPS.gpsRawIntModule
+  depend GRI.gpsRawIntModule
   -- module has the following methods
   incl sendHeartbeat
   incl sendAttitude
   incl sendVfrHud
   incl sendServoOutputRaw
-  incl sendGps
+  incl sendGpsRawInt
 
 sendHeartbeat :: Def ('[ (Ref s1 (Struct "motorsoutput_result"))
                        , (Ref s2 (Struct "userinput_result"))
@@ -177,21 +177,22 @@ sendServoOutputRaw = proc "gcs_transmit_send_servo_output" $ \state ch sys -> bo
   call_ SVO.servoOutputRawSend msg ch sys
 
 
-sendGps :: Def ('[ (Ref s1 (Struct "position_result"))
-                 , (Ref s2 (Struct "smavlink_out_channel"))
-                 , (Ref s3 (Struct "smavlink_system"))
-                 ] :-> ())
-sendGps = proc "gcs_transmit_send_gps" $ \pos ch sys -> body $ do
+sendGpsRawInt :: Def ('[ (Ref s1 (Struct "position_result"))
+                       , (Ref s2 (Struct "smavlink_out_channel"))
+                       , (Ref s3 (Struct "smavlink_system"))
+                       ] :-> ())
+sendGpsRawInt = proc "gcs_transmit_send_gps_raw_int" $
+  \pos ch sys -> body do
   msg <- local
-  (pos ~> P.lat)     `into` (msg ~> GPS.lat)
-  (pos ~> P.lon)     `into` (msg ~> GPS.lon)
-  (pos ~> P.gps_alt) `into` (msg ~> GPS.alt)
-  store (msg ~> GPS.eph) 10
-  store (msg ~> GPS.epv) 10
-  store (msg ~> GPS.vel) 1 -- XXX can calculate this
-  store (msg ~> GPS.cog) 359 -- XXX can calulate this
-  store (msg ~> GPS.fix_type) 3 -- 3d fix
-  store (msg ~> GPS.satellites_visible) 8
-  call_ GPS.gpsRawIntSend msg ch sys
+  (pos ~> P.lat)     `into` (msg ~> GRI.lat)
+  (pos ~> P.lon)     `into` (msg ~> GRI.lon)
+  (pos ~> P.gps_alt) `into` (msg ~> GRI.alt)
+  store (msg ~> GRI.eph) 10
+  store (msg ~> GRI.epv) 10
+  store (msg ~> GRI.vel) 1 -- XXX can calculate this
+  store (msg ~> GRI.cog) 359 -- XXX can calulate this
+  store (msg ~> GRI.fix_type) 3 -- 3d fix
+  store (msg ~> GRI.satellites_visible) 8
+  call_ GRI.gpsRawIntSend msg ch sys
   retVoid 
 

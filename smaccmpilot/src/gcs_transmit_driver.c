@@ -143,9 +143,9 @@ void gcs_transmit_send_servo_output(struct servo_result* n_var0,
     *&n_ref1->servo4_raw = n_deref6;
     smavlink_send_servo_output_raw(n_ref1, n_var1, n_var2);
 }
-void gcs_transmit_send_gps(struct position_result* n_var0,
-                           struct smavlink_out_channel* n_var1,
-                           struct smavlink_system* n_var2)
+void gcs_transmit_send_gps_raw_int(struct position_result* n_var0,
+                                   struct smavlink_out_channel* n_var1,
+                                   struct smavlink_system* n_var2)
 {
     struct gps_raw_int_msg n_local0 = {.time_usec =0, .lat =0, .lon =0, .alt =0,
                                        .eph =0, .epv =0, .vel =0, .cog =0,
