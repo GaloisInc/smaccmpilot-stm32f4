@@ -24,6 +24,7 @@ import qualified Smaccm.Mavlink.Messages.Attitude as ATT
 import qualified Smaccm.Mavlink.Messages.VfrHud as HUD
 import qualified Smaccm.Mavlink.Messages.ServoOutputRaw as SVO
 import qualified Smaccm.Mavlink.Messages.GpsRawInt as GRI
+import qualified Smaccm.Mavlink.Messages.GlobalPositionInt as GPI
 
 --------------------------------------------------------------------
 -- Module def
@@ -44,12 +45,14 @@ gcsTransmitDriverModule = package "gcs_transmit_driver" $ do
   depend HUD.vfrHudModule
   depend SVO.servoOutputRawModule
   depend GRI.gpsRawIntModule
+  depend GPI.globalPositionIntModule
   -- module has the following methods
   incl sendHeartbeat
   incl sendAttitude
   incl sendVfrHud
   incl sendServoOutputRaw
   incl sendGpsRawInt
+  incl sendGlobalPositionInt
 
 sendHeartbeat :: Def ('[ (Ref s1 (Struct "motorsoutput_result"))
                        , (Ref s2 (Struct "userinput_result"))
@@ -196,3 +199,22 @@ sendGpsRawInt = proc "gcs_transmit_send_gps_raw_int" $
   call_ GRI.gpsRawIntSend msg ch sys
   retVoid 
 
+sendGlobalPositionInt :: Def ('[ (Ref (Struct "position_result"))
+                               , (Ref (Struct "sensors_result"))
+                               , (Ref (Struct "smavlink_out_channel"))
+                               , (Ref (Struct "smavlink_system"))
+                               ] :-> ())
+sendGlobalPositionInt = proc "gcs_transmit_send_global_position_int" $ 
+  \pos sens ch sys -> do
+  msg <- local
+  yawfloat <- (sens ~>* Sens.yaw)
+  yawscaled <- assign $ (10*180/pi)*yawfloat -- radians to 10*degrees
+  store (msg ~> GPI.hdg) (fromFloat 9999 yawscaled)
+  (pos ~> P.lat)     `into` (msg ~> GPI.lat)
+  (pos ~> P.lon)     `into` (msg ~> GPI.lon)
+  (pos ~> P.gps_alt) `into` (msg ~> GPI.alt)
+  (pos ~> P.vx) `into` (msg ~> GPI.vx)
+  (pos ~> P.vy) `into` (msg ~> GPI.vy)
+  (pos ~> P.vz) `into` (msg ~> GPI.vz)
+  call_ GPI.globalPositionIntSend msg ch sys
+  retVoid 
