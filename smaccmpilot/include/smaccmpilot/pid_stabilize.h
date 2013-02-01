@@ -10,12 +10,15 @@ extern "C" {
 struct PID {
     float pid_pGain;
     float pid_iGain;
+    float pid_dGain;
     float pid_iState;
     float pid_iMin;
     float pid_iMax;
+    float pid_dState;
+    uint8_t pid_reset;
 };
 float constrain(float n_var0, float n_var1, float n_var2);
-float pid_update(struct PID* n_var0, float n_var1);
+float pid_update(struct PID* n_var0, float n_var1, float n_var2);
 float stabilize_from_angle(struct PID* n_var0, struct PID* n_var1, float n_var2,
                            float n_var3, float n_var4, float n_var5,
                            float n_var6);

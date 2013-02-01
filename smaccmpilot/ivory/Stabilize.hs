@@ -56,22 +56,38 @@ constrain = proc "constrain" $ \xmin xmax x -> body $
   struct PID
     { pid_pGain  :: Stored IFloat
     ; pid_iGain  :: Stored IFloat
+    ; pid_dGain  :: Stored IFloat
     ; pid_iState :: Stored IFloat
     ; pid_iMin   :: Stored IFloat
     ; pid_iMax   :: Stored IFloat
+    ; pid_dState :: Stored IFloat
+    ; pid_reset  :: Stored Uint8
   }
 |]
 
--- | Update a PID controller given an error value and return the
--- output value.
-pid_update :: Def ('[(Ref s1 (Struct "PID")), IFloat] :-> IFloat)
-pid_update = proc "pid_update" $ \pid err -> body $ do
-  p_term <- fmap (* err) (pid~>*pid_pGain)
-  i_min <- pid~>*pid_iMin
-  i_max <- pid~>*pid_iMax
+-- | Update a PID controller given an error value and measured value
+-- and return the output value.
+pid_update :: Def ('[(Ref s1 (Struct "PID")), IFloat, IFloat] :-> IFloat)
+pid_update = proc "pid_update" $ \pid err pos -> body $ do
+  p_term  <- fmap (* err) (pid~>*pid_pGain)
+
+  i_min   <- pid~>*pid_iMin
+  i_max   <- pid~>*pid_iMax
   pid~>pid_iState %=! (call constrain i_min i_max . (+ err))
-  i_term <- liftA2 (*) (pid~>*pid_iGain) (pid~>*pid_iState)
-  ret $ p_term + i_term
+  i_term  <- liftA2 (*) (pid~>*pid_iGain) (pid~>*pid_iState)
+
+  reset      <- pid~>*pid_reset
+  d_term_var <- local
+
+  ifte (reset /=? 0)
+    (store (pid~>pid_reset) 0)
+    (do d_state <- pid~>*pid_dState
+        d_gain  <- pid~>*pid_dGain
+        store d_term_var (d_gain * (pos - d_state)))
+  store (pid~>pid_dState) pos
+
+  d_term <- deref d_term_var
+  ret $ p_term + i_term - d_term
 
 ----------------------------------------------------------------------
 -- Stabilization
@@ -100,10 +116,10 @@ stabilize_from_angle = proc "stabilize_from_angle" $
   stick_angle_deg   <- assign $ stick_angle_norm * max_stick_angle_deg
   sensor_angle_deg  <- assign $ degrees sensor_angle_rad
   angle_error       <- assign $ stick_angle_deg - sensor_angle_deg
-  rate_deg_s        <- call pid_update angle_pid angle_error
+  rate_deg_s        <- call pid_update angle_pid angle_error sensor_angle_deg
   sensor_rate_deg_s <- assign $ degrees sensor_rate_rad_s
   rate_error        <- assign $ rate_deg_s - sensor_rate_deg_s
-  servo_rate_deg_s  <- call pid_update rate_pid rate_error
+  servo_rate_deg_s  <- call pid_update rate_pid rate_error sensor_rate_deg_s
   servo_rate_norm   <- call constrain (-max_servo_rate_rad_s)
                             max_servo_rate_rad_s servo_rate_deg_s
   ret $ servo_rate_norm / max_servo_rate_rad_s
@@ -123,7 +139,7 @@ stabilize_from_rate = proc "stabilize_from_rate" $
   stick_rate_deg_s  <- assign $ stick_rate_norm * max_stick_rate_deg_s
   sensor_rate_deg_s <- assign $ degrees sensor_rate_rad_s
   rate_error        <- assign $ stick_rate_deg_s - sensor_rate_deg_s
-  servo_rate_deg_s  <- call pid_update rate_pid rate_error
+  servo_rate_deg_s  <- call pid_update rate_pid rate_error sensor_rate_deg_s
   servo_rate_norm   <- call constrain (-max_servo_rate_rad_s)
                             max_servo_rate_rad_s servo_rate_deg_s
   ret $ servo_rate_norm / max_servo_rate_rad_s

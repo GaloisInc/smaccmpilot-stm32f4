@@ -35,42 +35,57 @@
 static struct PID g_pi_roll_stabilize = {
     2.0f,                       // p_gain
     0.0f,                       // i_gain
+    0.0f,                       // d_gain
     0.0f,                       // i_state
     -8.0f,                      // i_min
     8.0f,                       // i_max
+    0.0f,                       // d_state
+    1,                          // reset
 };
 
 static struct PID g_pi_roll_rate = {
     0.15f,                      // p_gain
     0.015f,                     // i_gain
+    0.0f,                       // d_gain
     0.0f,                       // i_state
     -5.0f,                      // i_min
     5.0f,                       // i_max
+    0.0f,                       // d_state
+    1,                          // reset
 };
 
 static struct PID g_pi_pitch_stabilize = {
     2.0f,                       // p_gain
     0.0f,                       // i_gain
+    0.0f,                       // d_gain
     0.0f,                       // i_state
     -8.0f,                      // i_min
     8.0f,                       // i_max
+    0.0f,                       // d_state
+    1,                          // reset
 };
 
 static struct PID g_pi_pitch_rate = {
     0.15f,                      // p_gain
     0.015f,                     // i_gain
+    0.0f,                       // d_gain
     0.0f,                       // i_state
     -5.0f,                      // i_min
     5.0f,                       // i_max
+    0.0f,                       // d_state
+    1,                          // reset
 };
 
 #if 0                           // not used currently
 static struct PID g_pi_yaw_stabilize = {
     1.3f,                       // p_gain
     0.0f,                       // i_gain
+    0.0f,                       // d_gain
     0.0f,                       // i_state
     -8.0f,                      // i_min
     8.0f,                       // i_max
+    0.0f,                       // d_state
+    1,                          // reset
 };
 #endif
 
@@ -78,9 +93,12 @@ static struct PID g_pi_yaw_stabilize = {
 static struct PID g_pi_yaw_rate = {
     0.3f,                       // p_gain
     0.015f,                     // i_gain
+    0.0f,                       // d_gain
     0.0f,                       // i_state
     -8.0f,                      // i_min
     8.0f,                       // i_max
+    0.0f,                       // d_state
+    1,                          // reset
 };
 
 void stabilize_motors(const struct userinput_result *in,

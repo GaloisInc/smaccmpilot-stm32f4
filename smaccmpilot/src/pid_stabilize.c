@@ -14,7 +14,7 @@ float constrain(float n_var0, float n_var1, float n_var2)
         }
     }
 }
-float pid_update(struct PID* n_var0, float n_var1)
+float pid_update(struct PID* n_var0, float n_var1, float n_var2)
 {
     float n_deref0 = *&n_var0->pid_pGain;
     float n_deref1 = *&n_var0->pid_iMin;
@@ -26,8 +26,23 @@ float pid_update(struct PID* n_var0, float n_var1)
     
     float n_deref5 = *&n_var0->pid_iGain;
     float n_deref6 = *&n_var0->pid_iState;
+    uint8_t n_deref7 = *&n_var0->pid_reset;
+    float n_local8 = 0;
+    float* n_ref9 = &n_local8;
     
-    return n_deref0 * n_var1 + n_deref5 * n_deref6;
+    if (n_deref7 != 0U) {
+        *&n_var0->pid_reset = 0U;
+    } else {
+        float n_deref10 = *&n_var0->pid_dState;
+        float n_deref11 = *&n_var0->pid_dGain;
+        
+        *n_ref9 = n_deref11 * (n_var2 - n_deref10);
+    }
+    *&n_var0->pid_dState = n_var2;
+    
+    float n_deref12 = *n_ref9;
+    
+    return n_deref0 * n_var1 + n_deref5 * n_deref6 - n_deref12;
 }
 float stabilize_from_angle(struct PID* n_var0, struct PID* n_var1, float n_var2,
                            float n_var3, float n_var4, float n_var5,
@@ -36,10 +51,10 @@ float stabilize_from_angle(struct PID* n_var0, struct PID* n_var1, float n_var2,
     float n_let0 = n_var2 * n_var3;
     float n_let1 = n_var4 * 57.29578f;
     float n_let2 = n_let0 - n_let1;
-    float n_r3 = pid_update(n_var0, n_let2);
+    float n_r3 = pid_update(n_var0, n_let2, n_let1);
     float n_let4 = n_var5 * 57.29578f;
     float n_let5 = n_r3 - n_let4;
-    float n_r6 = pid_update(n_var1, n_let5);
+    float n_r6 = pid_update(n_var1, n_let5, n_let4);
     float n_r7 = constrain(-n_var6, n_var6, n_r6);
     
     return n_r7 / n_var6;
@@ -50,7 +65,7 @@ float stabilize_from_rate(struct PID* n_var0, float n_var1, float n_var2,
     float n_let0 = n_var1 * n_var2;
     float n_let1 = n_var3 * 57.29578f;
     float n_let2 = n_let0 - n_let1;
-    float n_r3 = pid_update(n_var0, n_let2);
+    float n_r3 = pid_update(n_var0, n_let2, n_let1);
     float n_r4 = constrain(-n_var4, n_var4, n_r3);
     
     return n_r4 / n_var4;
