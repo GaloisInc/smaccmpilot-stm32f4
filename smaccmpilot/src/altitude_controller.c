@@ -12,9 +12,12 @@ static float g_throttle_avg    = 0.0f;
 static struct PID g_pi_throttle_climb_rate = {
     1.0f,                       // p_gain
     0.0f,                       // i_gain
+    0.0f,                       // d_gain
     0.0f,                       // i_state
     -10.0f,                     // i_min
     10.0f,                      // i_max
+    0.0f,                       // d_state
+    1,                          // reset
 };
 
 /* ------------------------------------------------------------------------ */
@@ -43,7 +46,7 @@ static float alt_hold_throttle( const struct position_estimate *pos_estimate,
         float desired_rate = throttle_to_climb_rate(user_throttle);
         float actual_rate  = pos_estimate->vz;
         float error        = desired_rate - actual_rate;
-        float result       = pid_update(&g_pi_throttle_climb_rate, error);
+        float result       = pid_update(&g_pi_throttle_climb_rate, error, actual_rate);
         return g_throttle_cruise + result;
     } else {
         return user_throttle;
