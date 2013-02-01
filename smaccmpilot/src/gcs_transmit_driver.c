@@ -113,8 +113,9 @@ void gcs_transmit_send_vfrhud(struct position_result* n_var0,
     return;
 }
 void gcs_transmit_send_servo_output(struct servo_result* n_var0,
-                                    struct smavlink_out_channel* n_var1,
-                                    struct smavlink_system* n_var2)
+                                    struct userinput_result* n_var1,
+                                    struct smavlink_out_channel* n_var2,
+                                    struct smavlink_system* n_var3)
 {
     struct servo_output_raw_msg n_local0 = {.time_usec =0, .servo1_raw =0,
                                             .servo2_raw =0, .servo3_raw =0,
@@ -141,7 +142,12 @@ void gcs_transmit_send_servo_output(struct servo_result* n_var0,
     uint16_t n_deref6 = *&n_var0->servo4;
     
     *&n_ref1->servo4_raw = n_deref6;
-    smavlink_send_servo_output_raw(n_ref1, n_var1, n_var2);
+    
+    float n_deref7 = *&n_var1->throttle;
+    
+    *&n_ref1->servo8_raw = (bool) isnan(n_deref7 *
+        100.0f) ? 9999U : (uint16_t) truncf(n_deref7 * 100.0f);
+    smavlink_send_servo_output_raw(n_ref1, n_var2, n_var3);
 }
 void gcs_transmit_send_gps_raw_int(struct position_result* n_var0,
                                    struct smavlink_out_channel* n_var1,

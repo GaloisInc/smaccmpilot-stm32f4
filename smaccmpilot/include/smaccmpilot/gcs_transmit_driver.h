@@ -33,8 +33,9 @@ void gcs_transmit_send_vfrhud(struct position_result* n_var0,
                               struct smavlink_out_channel* n_var3,
                               struct smavlink_system* n_var4);
 void gcs_transmit_send_servo_output(struct servo_result* n_var0,
-                                    struct smavlink_out_channel* n_var1,
-                                    struct smavlink_system* n_var2);
+                                    struct userinput_result* n_var1,
+                                    struct smavlink_out_channel* n_var2,
+                                    struct smavlink_system* n_var3);
 void gcs_transmit_send_gps_raw_int(struct position_result* n_var0,
                                    struct smavlink_out_channel* n_var1,
                                    struct smavlink_system* n_var2);

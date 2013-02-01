@@ -224,7 +224,7 @@ static void gcs_transmit_send_streams( bool *streams_due,
     }
 
     if (streams_due[GCS_TRANSMIT_STREAM_SERVO_OUTPUT_RAW]) {
-        gcs_transmit_send_servo_output(&servo, ch, sys);
+        gcs_transmit_send_servo_output(&servo, &userinput, ch, sys);
     }
 
     if (streams_due[GCS_TRANSMIT_STREAM_ATTITUDE]) {

@@ -165,18 +165,22 @@ sendVfrHud = proc "gcs_transmit_send_vfrhud" $ \pos mot sens ch sys -> body $ do
     thrFloat <- (motors ~>* M.throttle)
     return $ fromFloat 0 (thrFloat * 100)
 
-
 sendServoOutputRaw :: Def ('[ (Ref s1 (Struct "servo_result"))
-                            , (Ref s2 (Struct "smavlink_out_channel"))
-                            , (Ref s3 (Struct "smavlink_system"))
+                            , (Ref s2 (Struct "userinput_result"))
+                            , (Ref s3 (Struct "smavlink_out_channel"))
+                            , (Ref s4 (Struct "smavlink_system"))
                             ] :-> ())
-sendServoOutputRaw = proc "gcs_transmit_send_servo_output" $ \state ch sys -> body $ do
+sendServoOutputRaw = proc "gcs_transmit_send_servo_output" $
+  \state user ch sys -> body $ do
   msg <- local
   (state ~> Serv.time)   `into` (msg ~> SVO.time_usec)
   (state ~> Serv.servo1) `into` (msg ~> SVO.servo1_raw)
   (state ~> Serv.servo2) `into` (msg ~> SVO.servo2_raw)
   (state ~> Serv.servo3) `into` (msg ~> SVO.servo3_raw)
   (state ~> Serv.servo4) `into` (msg ~> SVO.servo4_raw)
+  thr <- (user  ~>* U.throttle)
+  store (msg ~> SVO.servo8_raw) (fromFloat 9999 (thr * 100))
+
   call_ SVO.servoOutputRawSend msg ch sys
 
 
@@ -185,7 +189,7 @@ sendGpsRawInt :: Def ('[ (Ref s1 (Struct "position_result"))
                        , (Ref s3 (Struct "smavlink_system"))
                        ] :-> ())
 sendGpsRawInt = proc "gcs_transmit_send_gps_raw_int" $
-  \pos ch sys -> body do
+  \pos ch sys -> body $ do
   msg <- local
   (pos ~> P.lat)     `into` (msg ~> GRI.lat)
   (pos ~> P.lon)     `into` (msg ~> GRI.lon)
@@ -199,13 +203,13 @@ sendGpsRawInt = proc "gcs_transmit_send_gps_raw_int" $
   call_ GRI.gpsRawIntSend msg ch sys
   retVoid 
 
-sendGlobalPositionInt :: Def ('[ (Ref (Struct "position_result"))
-                               , (Ref (Struct "sensors_result"))
-                               , (Ref (Struct "smavlink_out_channel"))
-                               , (Ref (Struct "smavlink_system"))
+sendGlobalPositionInt :: Def ('[ (Ref s1 (Struct "position_result"))
+                               , (Ref s2 (Struct "sensors_result"))
+                               , (Ref s3 (Struct "smavlink_out_channel"))
+                               , (Ref s4 (Struct "smavlink_system"))
                                ] :-> ())
 sendGlobalPositionInt = proc "gcs_transmit_send_global_position_int" $ 
-  \pos sens ch sys -> do
+  \pos sens ch sys -> body $ do
   msg <- local
   yawfloat <- (sens ~>* Sens.yaw)
   yawscaled <- assign $ (10*180/pi)*yawfloat -- radians to 10*degrees

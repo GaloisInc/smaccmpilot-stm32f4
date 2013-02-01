@@ -99,7 +99,8 @@ void main_task(void *arg)
 
         position_estimate(&sensors, &gps_position, &optflow, &pos_estimate);
 
-        altitude_compensate(&pos_estimate, &userinput, &altitude_comped_input);
+        altitude_compensate(&pos_estimate, &sensors, &userinput,
+                &altitude_comped_input);
 
         stabilize_motors(&altitude_comped_input, &sensors, &motors);
 
@@ -108,8 +109,9 @@ void main_task(void *arg)
         motorsoutput_getservo(&servos);
 
         position_estimate_output(&pos_estimate, &fromestimated_position);
+
         gcs_transmit_set_states(&sensors, &fromestimated_position,
-                &motors, &servos, &userinput);
+                &motors, &servos, &altitude_comped_input);
 
         if (!(userinput.armed)){
             ioar_relay_set(IOAR_RELAY_PULSE_SLOW);
