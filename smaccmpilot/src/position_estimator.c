@@ -16,13 +16,35 @@ void position_estimate(const struct sensors_result *sensors,
     if (!optflow->valid || (now - optflow->time) > 200) {
         est->horiz_conf = 0;
         est->vert_conf = 0;
+        return;
+    }
+
+    /* don't process the same optflow sample twice. Sample uniquely tagged with
+     * usec stamp on sensor, into optflow->sensortime ) */
+    if (optflow->sensortime == est->optflow_t) {
+        return;
+    } else {
+        est->optflow_t = optflow->sensortime;
     }
 
     /* estimate vx, vy: low pass filter on optflow->flow_x, optflow->flow_y */
     if (optflow->quality > 40) {
-        /* TODO low pass these, resetting when conf = 0 */
-        est->vx = optflow->flow_x;
-        est->vy = optflow->flow_y;
+        if (est->horiz_conf > 0) { 
+            const float filter_time_const = 0.6f;
+            const float state_x = est->vx;
+            const float state_y = est->vy;
+            const float input_x = optflow->flow_x;
+            const float input_y = optflow->flow_y;
+            est->vx = ((1.0f - filter_time_const) * input_x) +
+                (filter_time_const * state_x);
+            est->vy = ((1.0f - filter_time_const) * input_y) +
+                (filter_time_const * state_y);
+        } else {
+            const float input_x = optflow->flow_x;
+            const float input_y = optflow->flow_y;
+            est->vx = input_x;
+            est->vy = input_y;
+        }
 
         if (est->horiz_conf < 10) {
             est->horiz_conf++;
@@ -36,19 +58,34 @@ void position_estimate(const struct sensors_result *sensors,
 
    
     const float ground_dist = optflow->ground_dist;
-    if (ground_dist > 0.30f && ground_dist < 4.5f) {
+    if (ground_dist > 0.10f && ground_dist < 4.5f) {
 
-        /* estimate vz: TODO make this a low pass filter on $
-         *  (optflow->ground_dist - alt) / (now - time) */
-        if (est->vert_conf > 0) {
-            uint32_t dt_millis = now - last_estimate;
-            float dt = dt_millis / 1000.0f;
-            est->vz = (optflow->ground_dist - est->alt) / dt;
+        /* estimate alt, low passed ground_dist */
+        {
+            if (est->vert_conf > 0) {
+                const float filter_time_const = 0.7f;
+                const float state = est->alt;
+                const float input = optflow->ground_dist;
+                est->alt = ((1.0f - filter_time_const) * input) +
+                        (filter_time_const * state);
+            } else {
+                const float input = optflow->ground_dist;
+                est->alt = input;
+            }
         }
 
-        /* estimate alt: 
-         * TODO make this a low pass filter on optflow->ground_dist */
-        est->alt = optflow->ground_dist;
+        /* estimate vz, low passed derivative of alt */
+        if (est->vert_conf > 0) {
+            const uint32_t dt_millis = now - last_estimate;
+            const float dt = dt_millis / 1000.0f;
+            const float filter_time_const = 0.9f;
+            const float state = est->vz;
+            const float input = (optflow->ground_dist - est->alt) / dt;
+            est->vz = ((1.0f - filter_time_const) * input) +
+                (filter_time_const * state);
+        } else {
+            est->vz = 0;
+        }
 
         if (est->vert_conf < 10) {
             est->vert_conf++;

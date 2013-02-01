@@ -19,6 +19,7 @@ struct position_estimate
   ; vert_conf  :: Stored Uint8
   ; alt        :: Stored IFloat
   ; vz         :: Stored IFloat
+  ; optflow_t  :: Stored Uint64
   ; time       :: Stored Uint32
   }
 |]

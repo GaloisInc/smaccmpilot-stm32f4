@@ -14,6 +14,7 @@ struct position_estimate {
     uint8_t vert_conf;
     float alt;
     float vz;
+    uint64_t optflow_t;
     uint32_t time;
 };
 
