@@ -11,10 +11,14 @@ extern "C" {
 
 #include "position_estimate_type.h"
 #include "userinput_type.h"
+#include "sensors_type.h"
 
 void altitude_compensate(const struct position_estimate *pos,
+                         const struct  sensors_result *sens,
                          const struct userinput_result *userin,
                          struct userinput_result *out);
+
+float get_throttle_cruise_estimate(void);
 
 #ifdef __cplusplus
 }
