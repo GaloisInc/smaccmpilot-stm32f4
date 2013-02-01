@@ -50,8 +50,6 @@ constrain = proc "constrain" $ \xmin xmax x -> body $
 ----------------------------------------------------------------------
 -- Generic PID Controller
 
--- This is incorrectly called "PID" because I will be adding the
--- derivative term in once this is working with just PI.
 [ivory|
   struct PID
     { pid_pGain  :: Stored IFloat
