@@ -166,7 +166,7 @@ static int tx_stream_id(uint8_t mavlink_id) {
         case MAV_DATA_STREAM_EXTRA1:
             return GCS_TRANSMIT_STREAM_ATTITUDE;
         case MAV_DATA_STREAM_POSITION:
-            return -1; /* sorry, i punted here. pch */
+            return GCS_TRANSMIT_STREAM_GLOBAL_POSITION_INT;
         case MAV_DATA_STREAM_EXTENDED_STATUS:
             return GCS_TRANSMIT_STREAM_GPS_RAW_INT;
         case MAV_DATA_STREAM_EXTRA2:
