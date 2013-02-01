@@ -171,3 +171,43 @@ void gcs_transmit_send_gps_raw_int(struct position_result* n_var0,
     smavlink_send_gps_raw_int(n_ref1, n_var1, n_var2);
     return;
 }
+void gcs_transmit_send_global_position_int(struct position_result* n_var0,
+                                           struct sensors_result* n_var1,
+                                           struct smavlink_out_channel* n_var2,
+                                           struct smavlink_system* n_var3)
+{
+    struct global_position_int_msg n_local0 = {.time_boot_ms =0, .lat =0, .lon =
+                                               0, .alt =0, .relative_alt =0,
+                                               .vx =0, .vy =0, .vz =0, .hdg =0};
+    struct global_position_int_msg* n_ref1 = &n_local0;
+    float n_deref2 = *&n_var1->yaw;
+    float n_let3 = 1800.0f / 3.1415927f * n_deref2;
+    
+    *&n_ref1->hdg = (bool) isnan(n_let3) ? 9999U : (uint16_t) truncf(n_let3);
+    
+    int32_t n_deref4 = *&n_var0->lat;
+    
+    *&n_ref1->lat = n_deref4;
+    
+    int32_t n_deref5 = *&n_var0->lon;
+    
+    *&n_ref1->lon = n_deref5;
+    
+    int32_t n_deref6 = *&n_var0->gps_alt;
+    
+    *&n_ref1->alt = n_deref6;
+    
+    int16_t n_deref7 = *&n_var0->vx;
+    
+    *&n_ref1->vx = n_deref7;
+    
+    int16_t n_deref8 = *&n_var0->vy;
+    
+    *&n_ref1->vy = n_deref8;
+    
+    int16_t n_deref9 = *&n_var0->vz;
+    
+    *&n_ref1->vz = n_deref9;
+    smavlink_send_global_position_int(n_ref1, n_var2, n_var3);
+    return;
+}

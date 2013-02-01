@@ -240,7 +240,7 @@ static void gcs_transmit_send_streams( bool *streams_due,
     }
  
     if (streams_due[GCS_TRANSMIT_STREAM_GLOBAL_POSITION_INT]) {
-        gcs_transmit_send_global_position_int(&position, ch, sys);
+        gcs_transmit_send_global_position_int(&position, &sensors, ch, sys);
     }
 
 }

@@ -14,6 +14,7 @@ extern "C" {
 #include "sensors_type.h"
 #include "servo_type.h"
 #include "smavlink_message_attitude.h"
+#include "smavlink_message_global_position_int.h"
 #include "smavlink_message_gps_raw_int.h"
 #include "smavlink_message_heartbeat.h"
 #include "smavlink_message_servo_output_raw.h"
@@ -37,6 +38,10 @@ void gcs_transmit_send_servo_output(struct servo_result* n_var0,
 void gcs_transmit_send_gps_raw_int(struct position_result* n_var0,
                                    struct smavlink_out_channel* n_var1,
                                    struct smavlink_system* n_var2);
+void gcs_transmit_send_global_position_int(struct position_result* n_var0,
+                                           struct sensors_result* n_var1,
+                                           struct smavlink_out_channel* n_var2,
+                                           struct smavlink_system* n_var3);
 
 #ifdef __cplusplus
 }
