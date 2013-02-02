@@ -75,7 +75,7 @@ pid_update = proc "pid_update" $ \pid err pos -> body $ do
   i_term  <- liftA2 (*) (pid~>*pid_iGain) (pid~>*pid_iState)
 
   reset      <- pid~>*pid_reset
-  d_term_var <- local
+  d_term_var <- local (ival 0)
 
   ifte (reset /=? 0)
     (store (pid~>pid_reset) 0)

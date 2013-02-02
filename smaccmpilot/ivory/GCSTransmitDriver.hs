@@ -61,7 +61,7 @@ sendHeartbeat :: Def ('[ (Ref s1 (Struct "motorsoutput_result"))
                        ] :-> ())
 sendHeartbeat = proc "gcs_transmit_send_heartbeat" $ 
   \mot user ch sys -> body $ do
-  hb <- local
+  hb <- local (istruct [])
   armed <- (mot ~>* M.armed)
   mode  <- (user ~>* U.mode)
   store (hb ~> HB.custom_mode) (mode_to_ac2mode mode)
@@ -101,7 +101,7 @@ sendAttitude :: Def ('[ (Ref s1 (Struct "sensors_result"))
                       , (Ref s3 (Struct "smavlink_system"))
                       ] :-> ())
 sendAttitude = proc "gcs_transmit_send_attitude" $ \sensors ch sys -> body $ do
-  att <- local
+  att <- local (istruct [])
   (sensors ~> Sens.time)    `into` (att ~> ATT.time_boot_ms)
   (sensors ~> Sens.roll)    `into` (att ~> ATT.roll)
   (sensors ~> Sens.pitch)   `into` (att ~> ATT.pitch)
@@ -119,7 +119,7 @@ sendVfrHud :: Def ('[ (Ref s1 (Struct "position_result"))
                     , (Ref s5 (Struct "smavlink_system"))
                     ] :-> ())
 sendVfrHud = proc "gcs_transmit_send_vfrhud" $ \pos mot sens ch sys -> body $ do
-  hud <- local
+  hud <- local (istruct [])
   -- Calculating speed from vx/vy/vz int16s in m/s*100, into float in m/s
   (calcSpeed pos) `resultInto` (hud ~> HUD.groundspeed)
   (calcSpeed pos) `resultInto` (hud ~> HUD.airspeed)
@@ -172,7 +172,7 @@ sendServoOutputRaw :: Def ('[ (Ref s1 (Struct "servo_result"))
                             ] :-> ())
 sendServoOutputRaw = proc "gcs_transmit_send_servo_output" $
   \state user ch sys -> body $ do
-  msg <- local
+  msg <- local (istruct [])
   (state ~> Serv.time)   `into` (msg ~> SVO.time_usec)
   (state ~> Serv.servo1) `into` (msg ~> SVO.servo1_raw)
   (state ~> Serv.servo2) `into` (msg ~> SVO.servo2_raw)
@@ -194,7 +194,7 @@ sendGpsRawInt :: Def ('[ (Ref s1 (Struct "position_result"))
                        ] :-> ())
 sendGpsRawInt = proc "gcs_transmit_send_gps_raw_int" $
   \pos ch sys -> body $ do
-  msg <- local
+  msg <- local (istruct [])
   (pos ~> P.lat)     `into` (msg ~> GRI.lat)
   (pos ~> P.lon)     `into` (msg ~> GRI.lon)
   (pos ~> P.gps_alt) `into` (msg ~> GRI.alt)
@@ -214,7 +214,7 @@ sendGlobalPositionInt :: Def ('[ (Ref s1 (Struct "position_result"))
                                ] :-> ())
 sendGlobalPositionInt = proc "gcs_transmit_send_global_position_int" $ 
   \pos sens ch sys -> body $ do
-  msg <- local
+  msg <- local (istruct [])
   yawfloat <- (sens ~>* Sens.yaw)
   yawscaled <- assign $ (10*180/pi)*yawfloat -- radians to 10*degrees
   store (msg ~> GPI.hdg) (fromFloat 9999 yawscaled)
