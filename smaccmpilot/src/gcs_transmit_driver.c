@@ -143,10 +143,16 @@ void gcs_transmit_send_servo_output(struct servo_result* n_var0,
     
     *&n_ref1->servo4_raw = n_deref6;
     
-    float n_deref7 = *&n_var1->throttle;
+    float n_deref7 = *&n_var1->pitch;
+    float n_deref8 = *&n_var1->roll;
+    float n_deref9 = *&n_var1->throttle;
     
-    *&n_ref1->servo8_raw = (bool) isnan(n_deref7 *
-        100.0f) ? 9999U : (uint16_t) truncf(n_deref7 * 100.0f);
+    *&n_ref1->servo6_raw = (bool) isnan((n_deref8 + 1.0f) *
+        100.0f) ? 9999U : (uint16_t) truncf((n_deref8 + 1.0f) * 100.0f);
+    *&n_ref1->servo7_raw = (bool) isnan((n_deref7 + 1.0f) *
+        100.0f) ? 9999U : (uint16_t) truncf((n_deref7 + 1.0f) * 100.0f);
+    *&n_ref1->servo8_raw = (bool) isnan((n_deref9 + 1.0f) *
+        100.0f) ? 9999U : (uint16_t) truncf((n_deref9 + 1.0f) * 100.0f);
     smavlink_send_servo_output_raw(n_ref1, n_var2, n_var3);
 }
 void gcs_transmit_send_gps_raw_int(struct position_result* n_var0,

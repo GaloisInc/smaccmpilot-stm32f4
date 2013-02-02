@@ -178,8 +178,12 @@ sendServoOutputRaw = proc "gcs_transmit_send_servo_output" $
   (state ~> Serv.servo2) `into` (msg ~> SVO.servo2_raw)
   (state ~> Serv.servo3) `into` (msg ~> SVO.servo3_raw)
   (state ~> Serv.servo4) `into` (msg ~> SVO.servo4_raw)
+  pit <- (user  ~>* U.pitch)
+  roll <- (user  ~>* U.roll)
   thr <- (user  ~>* U.throttle)
-  store (msg ~> SVO.servo8_raw) (fromFloat 9999 (thr * 100))
+  store (msg ~> SVO.servo6_raw) (fromFloat 9999 ((roll + 1) * 100))
+  store (msg ~> SVO.servo7_raw) (fromFloat 9999 ((pit + 1) * 100))
+  store (msg ~> SVO.servo8_raw) (fromFloat 9999 ((thr + 1) * 100))
 
   call_ SVO.servoOutputRawSend msg ch sys
 
