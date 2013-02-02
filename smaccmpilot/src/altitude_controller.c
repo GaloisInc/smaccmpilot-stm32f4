@@ -2,7 +2,7 @@
 #include <smaccmpilot/altitude_controller.h>
 #include <smaccmpilot/pid_stabilize.h>
 
-#define MAX_CLIMB_RATE  2.0f
+#define MAX_CLIMB_RATE  3.0f
 
 /* throttle cruise determined empirically for AR drone with flow system,
  * no foam guards, full battery. pch 01feb2013 */
@@ -10,7 +10,7 @@ static float g_throttle_cruise = 0.64f;
 static float g_throttle_avg    = 0.0f;
 
 static struct PID g_pi_throttle_climb_rate = {
-    1.0f,                       // p_gain
+    0.05f,                       // p_gain
     0.0f,                       // i_gain
     0.0f,                       // d_gain
     0.0f,                       // i_state
@@ -42,7 +42,7 @@ static float degrees(float rad) {
 static float alt_hold_throttle( const struct position_estimate *pos_estimate,
                                 float user_throttle )
 {
-    if (pos_estimate->vert_conf == 5) {
+    if (pos_estimate->vert_conf > 5 && user_throttle > 0.1f) {
         float desired_rate = throttle_to_climb_rate(user_throttle);
         float actual_rate  = pos_estimate->vz;
         float error        = desired_rate - actual_rate;
@@ -99,15 +99,10 @@ static void update_throttle_cruise(float throttle,
 float throttle_to_climb_rate(float stick)
 {
     const float dead_zone = 0.4f;
-    const float cutoff    = 0.9f;
-
+    
     stick = (stick * 2.0f) - 1.0f; // convert to [-1.0, 1.0]
 
-    if (stick >= cutoff) {
-        return MAX_CLIMB_RATE;
-    } else if (stick <= -cutoff) {
-        return 0.0f;
-    } else if (stick >= dead_zone) {
+    if (stick >= dead_zone) {
         stick = (stick - dead_zone) * (1.0f / (1.0f - dead_zone));
         return stick * MAX_CLIMB_RATE;
     } else if (stick <= -dead_zone) {
