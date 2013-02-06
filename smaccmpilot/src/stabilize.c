@@ -29,93 +29,21 @@
 #define MAX_OUTPUT_PITCH 50.0f  /* deg/sec */
 #define MAX_OUTPUT_YAW   45.0f  /* deg/sec */
 
-/* These values are tuned for the PX4IOAR connected to the ARDrone
- * motor controller. */
-
-static struct PID g_pi_roll_stabilize = {
-    2.0f,                       // p_gain
-    0.0f,                       // i_gain
-    0.0f,                       // d_gain
-    0.0f,                       // i_state
-    -8.0f,                      // i_min
-    8.0f,                       // i_max
-    0.0f,                       // d_state
-    1,                          // reset
-};
-
-static struct PID g_pi_roll_rate = {
-    0.15f,                      // p_gain
-    0.015f,                     // i_gain
-    0.0f,                       // d_gain
-    0.0f,                       // i_state
-    -5.0f,                      // i_min
-    5.0f,                       // i_max
-    0.0f,                       // d_state
-    1,                          // reset
-};
-
-static struct PID g_pi_pitch_stabilize = {
-    2.0f,                       // p_gain
-    0.0f,                       // i_gain
-    0.0f,                       // d_gain
-    0.0f,                       // i_state
-    -8.0f,                      // i_min
-    8.0f,                       // i_max
-    0.0f,                       // d_state
-    1,                          // reset
-};
-
-static struct PID g_pi_pitch_rate = {
-    0.15f,                      // p_gain
-    0.015f,                     // i_gain
-    0.0f,                       // d_gain
-    0.0f,                       // i_state
-    -5.0f,                      // i_min
-    5.0f,                       // i_max
-    0.0f,                       // d_state
-    1,                          // reset
-};
-
-#if 0                           // not used currently
-static struct PID g_pi_yaw_stabilize = {
-    1.3f,                       // p_gain
-    0.0f,                       // i_gain
-    0.0f,                       // d_gain
-    0.0f,                       // i_state
-    -8.0f,                      // i_min
-    8.0f,                       // i_max
-    0.0f,                       // d_state
-    1,                          // reset
-};
-#endif
-
-/* FIXME: Yaw control is too weak. */
-static struct PID g_pi_yaw_rate = {
-    0.3f,                       // p_gain
-    0.015f,                     // i_gain
-    0.0f,                       // d_gain
-    0.0f,                       // i_state
-    -8.0f,                      // i_min
-    8.0f,                       // i_max
-    0.0f,                       // d_state
-    1,                          // reset
-};
-
 void stabilize_motors(const struct userinput_result *in,
                       const struct sensors_result *sensors,
                       struct motorsoutput_result *out)
 {
-    out->roll  = stabilize_from_angle(&g_pi_roll_stabilize, &g_pi_roll_rate,
+    out->roll  = stabilize_from_angle(&g_pid_roll_stabilize, &g_pid_roll_rate,
                                       in->roll, MAX_INPUT_ROLL,
                                       sensors->roll, sensors->omega_x,
                                       MAX_OUTPUT_ROLL);
 
-    out->pitch = stabilize_from_angle(&g_pi_pitch_stabilize, &g_pi_pitch_rate,
+    out->pitch = stabilize_from_angle(&g_pid_pitch_stabilize, &g_pid_pitch_rate,
                                       -in->pitch, MAX_INPUT_PITCH,
                                       sensors->pitch, sensors->omega_y,
                                       MAX_OUTPUT_PITCH);
 
-    out->yaw   = stabilize_from_rate(&g_pi_yaw_rate, in->yaw, MAX_INPUT_YAW,
+    out->yaw   = stabilize_from_rate(&g_pid_yaw_rate, in->yaw, MAX_INPUT_YAW,
                                      sensors->omega_z, MAX_OUTPUT_YAW);
 
     out->armed    = in->armed;

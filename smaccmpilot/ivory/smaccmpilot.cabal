@@ -24,8 +24,10 @@ library
                        OptFlowType,
                        PositionEstimateType,
                        IvoryHelpers,
+                       IvoryCString,
                        SMACCMPilot.Driver.I2C,
-                       SMACCMPilot.Storage.EEPROM
+                       SMACCMPilot.Storage.EEPROM,
+                       SMACCMPilot.Param
 
   build-depends:       base >= 4.6,
                        smaccm-mavlink,

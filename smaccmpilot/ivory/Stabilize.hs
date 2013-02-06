@@ -14,20 +14,28 @@
 
 module Stabilize where
 
-import IvoryHelpers
-
 import Control.Applicative
-
+import Data.String
 import Ivory.Language
+
+import IvoryHelpers
+import SMACCMPilot.Param
 
 ----------------------------------------------------------------------
 -- Ivory Module
 
 stabilizeModule :: Module
 stabilizeModule = package "pid_stabilize" $ do
+  depend paramModule
   defStruct (Proxy :: Proxy "PID")
-  incl constrain
+  defMemArea pid_roll_stabilize
+  defMemArea pid_roll_rate
+  defMemArea pid_pitch_stabilize
+  defMemArea pid_pitch_rate
+  defMemArea pid_yaw_rate
+  incl fconstrain
   incl pid_update
+  incl stabilize_init
   incl stabilize_from_angle
   incl stabilize_from_rate
 
@@ -39,8 +47,8 @@ degrees :: (Fractional a) => a -> a
 degrees x = x * 57.295779513082320876798154814105
 
 -- | Constrain a floating point value to the range [xmin..xmax].
-constrain :: Def ('[IFloat, IFloat, IFloat] :-> IFloat)
-constrain = proc "constrain" $ \xmin xmax x -> body $
+fconstrain :: Def ('[IFloat, IFloat, IFloat] :-> IFloat)
+fconstrain = proc "fconstrain" $ \xmin xmax x -> body $
   (ifte (x <? xmin)
     (ret xmin)
     (ifte (x >? xmax)
@@ -71,7 +79,7 @@ pid_update = proc "pid_update" $ \pid err pos -> body $ do
 
   i_min   <- pid~>*pid_iMin
   i_max   <- pid~>*pid_iMax
-  pid~>pid_iState %=! (call constrain i_min i_max . (+ err))
+  pid~>pid_iState %=! (call fconstrain i_min i_max . (+ err))
   i_term  <- liftA2 (*) (pid~>*pid_iGain) (pid~>*pid_iState)
 
   reset      <- pid~>*pid_reset
@@ -87,8 +95,79 @@ pid_update = proc "pid_update" $ \pid err pos -> body $ do
   d_term <- deref d_term_var
   ret $ p_term + i_term - d_term
 
+-- | Define a group of parameters for a PID controller.
+init_pid_param :: String -> Ref Global (Struct "PID") -> Ivory s r ()
+init_pid_param name pid = do
+  init_param (fromString $ name ++ "_P")    (pid ~> pid_pGain)
+  init_param (fromString $ name ++ "_I")    (pid ~> pid_iGain)
+  init_param (fromString $ name ++ "_D")    (pid ~> pid_dGain)
+  init_param (fromString $ name ++ "_IMAX") (pid ~> pid_iMax)
+
+instance ParamType (Struct "PID") where
+  init_param = init_pid_param
+
 ----------------------------------------------------------------------
 -- Stabilization
+
+pid_roll_stabilize :: MemArea (Struct "PID")
+pid_roll_stabilize = area "g_pid_roll_stabilize" $ Just $ istruct
+  [ pid_pGain    .= ival 2.0
+  , pid_iGain    .= ival 0.0
+  , pid_dGain    .= ival 0.0
+  , pid_iMin     .= ival (-8.0)
+  , pid_iMax     .= ival 8.0
+  , pid_reset    .= ival 1
+  ]
+
+pid_roll_rate :: MemArea (Struct "PID")
+pid_roll_rate = area "g_pid_roll_rate" $ Just $ istruct
+  [ pid_pGain    .= ival 0.15
+  , pid_iGain    .= ival 0.015
+  , pid_dGain    .= ival 0.0
+  , pid_iMin     .= ival (-5.0)
+  , pid_iMax     .= ival 5.0
+  , pid_reset    .= ival 1
+  ]
+
+pid_pitch_stabilize :: MemArea (Struct "PID")
+pid_pitch_stabilize = area "g_pid_pitch_stabilize" $ Just $ istruct
+  [ pid_pGain    .= ival 2.0
+  , pid_iGain    .= ival 0.0
+  , pid_dGain    .= ival 0.0
+  , pid_iMin     .= ival (-8.0)
+  , pid_iMax     .= ival 8.0
+  , pid_reset    .= ival 1
+  ]
+
+pid_pitch_rate :: MemArea (Struct "PID")
+pid_pitch_rate = area "g_pid_pitch_rate" $ Just $ istruct
+  [ pid_pGain    .= ival 0.15
+  , pid_iGain    .= ival 0.015
+  , pid_dGain    .= ival 0.0
+  , pid_iMin     .= ival (-5.0)
+  , pid_iMax     .= ival 5.0
+  , pid_reset    .= ival 1
+  ]
+
+pid_yaw_rate :: MemArea (Struct "PID")
+pid_yaw_rate = area "g_pid_yaw_rate" $ Just $ istruct
+  [ pid_pGain    .= ival 0.3
+  , pid_iGain    .= ival 0.015
+  , pid_dGain    .= ival 0.0
+  , pid_iMin     .= ival (-8.0)
+  , pid_iMax     .= ival 8.0
+  , pid_reset    .= ival 1
+  ]
+
+-- | Initialize the stabilization module.  This registers parameters
+-- for all the PID controllers so they can be accessed via MAVlink.
+stabilize_init :: Def ('[] :-> ())
+stabilize_init = proc "stabilize_init" $ body $ do
+  init_param_area "STB_RLL"  pid_roll_stabilize
+  init_param_area "RATE_RLL" pid_roll_rate
+  init_param_area "STB_PIT"  pid_pitch_stabilize
+  init_param_area "RATE_PIT" pid_pitch_rate
+  init_param_area "RATE_YAW" pid_yaw_rate
 
 -- | Return a normalized servo output given a normalized stick input
 -- representing the desired angle.  This uses two PI controllers; one
@@ -118,7 +197,7 @@ stabilize_from_angle = proc "stabilize_from_angle" $
   sensor_rate_deg_s <- assign $ degrees sensor_rate_rad_s
   rate_error        <- assign $ rate_deg_s - sensor_rate_deg_s
   servo_rate_deg_s  <- call pid_update rate_pid rate_error sensor_rate_deg_s
-  servo_rate_norm   <- call constrain (-max_servo_rate_rad_s)
+  servo_rate_norm   <- call fconstrain (-max_servo_rate_rad_s)
                             max_servo_rate_rad_s servo_rate_deg_s
   ret $ servo_rate_norm / max_servo_rate_rad_s
 
@@ -138,6 +217,6 @@ stabilize_from_rate = proc "stabilize_from_rate" $
   sensor_rate_deg_s <- assign $ degrees sensor_rate_rad_s
   rate_error        <- assign $ stick_rate_deg_s - sensor_rate_deg_s
   servo_rate_deg_s  <- call pid_update rate_pid rate_error sensor_rate_deg_s
-  servo_rate_norm   <- call constrain (-max_servo_rate_rad_s)
+  servo_rate_norm   <- call fconstrain (-max_servo_rate_rad_s)
                             max_servo_rate_rad_s servo_rate_deg_s
   ret $ servo_rate_norm / max_servo_rate_rad_s

@@ -7,6 +7,7 @@
 extern "C" {
 #endif
 #include <ivory.h>
+#include "param.h"
 struct PID {
     float pid_pGain;
     float pid_iGain;
@@ -17,13 +18,19 @@ struct PID {
     float pid_dState;
     uint8_t pid_reset;
 };
-float constrain(float n_var0, float n_var1, float n_var2);
+float fconstrain(float n_var0, float n_var1, float n_var2);
 float pid_update(struct PID* n_var0, float n_var1, float n_var2);
+void stabilize_init();
 float stabilize_from_angle(struct PID* n_var0, struct PID* n_var1, float n_var2,
                            float n_var3, float n_var4, float n_var5,
                            float n_var6);
 float stabilize_from_rate(struct PID* n_var0, float n_var1, float n_var2,
                           float n_var3, float n_var4);
+extern struct PID g_pid_roll_stabilize;
+extern struct PID g_pid_roll_rate;
+extern struct PID g_pid_pitch_stabilize;
+extern struct PID g_pid_pitch_rate;
+extern struct PID g_pid_yaw_rate;
 
 #ifdef __cplusplus
 }

@@ -20,6 +20,7 @@
 #include <smaccmpilot/userinput.h>
 #include <smaccmpilot/motorsoutput.h>
 #include <smaccmpilot/stabilize.h>
+#include <smaccmpilot/pid_stabilize.h>
 #include <smaccmpilot/gcs_receive.h>
 #include <smaccmpilot/gcs_transmit.h>
 #include <smaccmpilot/sensors.h>
@@ -43,6 +44,7 @@ void init(void)
     sensors_init();
 #endif
     motorsoutput_init();
+    stabilize_init();
     gcs_receive_init();
     gcs_transmit_init();
 

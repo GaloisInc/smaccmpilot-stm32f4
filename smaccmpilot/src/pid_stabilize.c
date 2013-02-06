@@ -2,7 +2,7 @@
  * Compiler version  0.1.0.0
  */
 #include "pid_stabilize.h"
-float constrain(float n_var0, float n_var1, float n_var2)
+float fconstrain(float n_var0, float n_var1, float n_var2)
 {
     if (n_var2 < n_var0) {
         return n_var0;
@@ -20,7 +20,7 @@ float pid_update(struct PID* n_var0, float n_var1, float n_var2)
     float n_deref1 = *&n_var0->pid_iMin;
     float n_deref2 = *&n_var0->pid_iMax;
     float n_deref3 = *&n_var0->pid_iState;
-    float n_r4 = constrain(n_deref1, n_deref2, n_deref3 + n_var1);
+    float n_r4 = fconstrain(n_deref1, n_deref2, n_deref3 + n_var1);
     
     *&n_var0->pid_iState = n_r4;
     
@@ -44,6 +44,43 @@ float pid_update(struct PID* n_var0, float n_var1, float n_var2)
     
     return n_deref0 * n_var1 + n_deref5 * n_deref6 - n_deref12;
 }
+void stabilize_init()
+{
+    struct PID* n_ref0 = &g_pid_roll_stabilize;
+    
+    init_param_float("STB_RLL_P", &n_ref0->pid_pGain);
+    init_param_float("STB_RLL_I", &n_ref0->pid_iGain);
+    init_param_float("STB_RLL_D", &n_ref0->pid_dGain);
+    init_param_float("STB_RLL_IMAX", &n_ref0->pid_iMax);
+    
+    struct PID* n_ref1 = &g_pid_roll_rate;
+    
+    init_param_float("RATE_RLL_P", &n_ref1->pid_pGain);
+    init_param_float("RATE_RLL_I", &n_ref1->pid_iGain);
+    init_param_float("RATE_RLL_D", &n_ref1->pid_dGain);
+    init_param_float("RATE_RLL_IMAX", &n_ref1->pid_iMax);
+    
+    struct PID* n_ref2 = &g_pid_pitch_stabilize;
+    
+    init_param_float("STB_PIT_P", &n_ref2->pid_pGain);
+    init_param_float("STB_PIT_I", &n_ref2->pid_iGain);
+    init_param_float("STB_PIT_D", &n_ref2->pid_dGain);
+    init_param_float("STB_PIT_IMAX", &n_ref2->pid_iMax);
+    
+    struct PID* n_ref3 = &g_pid_pitch_rate;
+    
+    init_param_float("RATE_PIT_P", &n_ref3->pid_pGain);
+    init_param_float("RATE_PIT_I", &n_ref3->pid_iGain);
+    init_param_float("RATE_PIT_D", &n_ref3->pid_dGain);
+    init_param_float("RATE_PIT_IMAX", &n_ref3->pid_iMax);
+    
+    struct PID* n_ref4 = &g_pid_yaw_rate;
+    
+    init_param_float("RATE_YAW_P", &n_ref4->pid_pGain);
+    init_param_float("RATE_YAW_I", &n_ref4->pid_iGain);
+    init_param_float("RATE_YAW_D", &n_ref4->pid_dGain);
+    init_param_float("RATE_YAW_IMAX", &n_ref4->pid_iMax);
+}
 float stabilize_from_angle(struct PID* n_var0, struct PID* n_var1, float n_var2,
                            float n_var3, float n_var4, float n_var5,
                            float n_var6)
@@ -55,7 +92,7 @@ float stabilize_from_angle(struct PID* n_var0, struct PID* n_var1, float n_var2,
     float n_let4 = n_var5 * 57.29578f;
     float n_let5 = n_r3 - n_let4;
     float n_r6 = pid_update(n_var1, n_let5, n_let4);
-    float n_r7 = constrain(-n_var6, n_var6, n_r6);
+    float n_r7 = fconstrain(-n_var6, n_var6, n_r6);
     
     return n_r7 / n_var6;
 }
@@ -66,7 +103,22 @@ float stabilize_from_rate(struct PID* n_var0, float n_var1, float n_var2,
     float n_let1 = n_var3 * 57.29578f;
     float n_let2 = n_let0 - n_let1;
     float n_r3 = pid_update(n_var0, n_let2, n_let1);
-    float n_r4 = constrain(-n_var4, n_var4, n_r3);
+    float n_r4 = fconstrain(-n_var4, n_var4, n_r3);
     
     return n_r4 / n_var4;
 }
+struct PID g_pid_roll_stabilize = {.pid_pGain =2.0f, .pid_iGain =0.0f,
+                                   .pid_dGain =0.0f, .pid_iMin =-8.0f,
+                                   .pid_iMax =8.0f, .pid_reset =1U};
+struct PID g_pid_roll_rate = {.pid_pGain =0.15f, .pid_iGain =1.5e-2f,
+                              .pid_dGain =0.0f, .pid_iMin =-5.0f, .pid_iMax =
+                              5.0f, .pid_reset =1U};
+struct PID g_pid_pitch_stabilize = {.pid_pGain =2.0f, .pid_iGain =0.0f,
+                                    .pid_dGain =0.0f, .pid_iMin =-8.0f,
+                                    .pid_iMax =8.0f, .pid_reset =1U};
+struct PID g_pid_pitch_rate = {.pid_pGain =0.15f, .pid_iGain =1.5e-2f,
+                               .pid_dGain =0.0f, .pid_iMin =-5.0f, .pid_iMax =
+                               5.0f, .pid_reset =1U};
+struct PID g_pid_yaw_rate = {.pid_pGain =0.3f, .pid_iGain =1.5e-2f, .pid_dGain =
+                             0.0f, .pid_iMin =-8.0f, .pid_iMax =8.0f,
+                             .pid_reset =1U};

@@ -46,7 +46,9 @@ SMACCMPILOT_OBJECTS :=       \
   src/altitude_controller.o  \
   src/position_estimator.o   \
   src/pid_stabilize.o        \
-  src/storage_eeprom.o
+  src/ivory_string_prim.o    \
+  src/storage_eeprom.o       \
+  src/param.o
 
 $(eval $(call library,SMACCMPILOT))
 

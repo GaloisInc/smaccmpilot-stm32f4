@@ -12,8 +12,11 @@ import UserInputDecode   (userInputDecodeModule)
 import OptFlowType       (optFlowTypeModule)
 import PositionEstimateType (positionEstimateTypeModule)
 
+import IvoryCString               (cstringModule)
+
 import SMACCMPilot.Driver.I2C     (i2cModule)
 import SMACCMPilot.Storage.EEPROM (eepromModule)
+import SMACCMPilot.Param          (paramModule)
 
 import Ivory.Compile.C.CmdlineFrontend
 
@@ -28,7 +31,9 @@ main = compile [ positionModule
                , userInputDecodeModule
                , optFlowTypeModule
                , positionEstimateTypeModule
+               , cstringModule
                , i2cModule
                , eepromModule
+               , paramModule
                ]
 
