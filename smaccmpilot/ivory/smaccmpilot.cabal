@@ -23,7 +23,9 @@ library
                        UserInputDecode,
                        OptFlowType,
                        PositionEstimateType,
-                       IvoryHelpers
+                       IvoryHelpers,
+                       SMACCMPilot.Driver.I2C,
+                       SMACCMPilot.Storage.EEPROM
 
   build-depends:       base >= 4.6,
                        smaccm-mavlink,
