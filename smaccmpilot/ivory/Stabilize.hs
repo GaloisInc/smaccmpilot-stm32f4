@@ -96,15 +96,15 @@ pid_update = proc "pid_update" $ \pid err pos -> body $ do
   ret $ p_term + i_term - d_term
 
 -- | Define a group of parameters for a PID controller.
-init_pid_param :: String -> Ref Global (Struct "PID") -> Ivory s r ()
-init_pid_param name pid = do
-  init_param (fromString $ name ++ "_P")    (pid ~> pid_pGain)
-  init_param (fromString $ name ++ "_I")    (pid ~> pid_iGain)
-  init_param (fromString $ name ++ "_D")    (pid ~> pid_dGain)
-  init_param (fromString $ name ++ "_IMAX") (pid ~> pid_iMax)
+pid_param_init :: String -> Ref Global (Struct "PID") -> Ivory s r ()
+pid_param_init name pid = do
+  param_init (fromString $ name ++ "_P")    (pid ~> pid_pGain)
+  param_init (fromString $ name ++ "_I")    (pid ~> pid_iGain)
+  param_init (fromString $ name ++ "_D")    (pid ~> pid_dGain)
+  param_init (fromString $ name ++ "_IMAX") (pid ~> pid_iMax)
 
 instance ParamType (Struct "PID") where
-  init_param = init_pid_param
+  param_init = pid_param_init
 
 ----------------------------------------------------------------------
 -- Stabilization
@@ -163,11 +163,11 @@ pid_yaw_rate = area "g_pid_yaw_rate" $ Just $ istruct
 -- for all the PID controllers so they can be accessed via MAVlink.
 stabilize_init :: Def ('[] :-> ())
 stabilize_init = proc "stabilize_init" $ body $ do
-  init_param_area "STB_RLL"  pid_roll_stabilize
-  init_param_area "RATE_RLL" pid_roll_rate
-  init_param_area "STB_PIT"  pid_pitch_stabilize
-  init_param_area "RATE_PIT" pid_pitch_rate
-  init_param_area "RATE_YAW" pid_yaw_rate
+  param_init_area "STB_RLL"  pid_roll_stabilize
+  param_init_area "RATE_RLL" pid_roll_rate
+  param_init_area "STB_PIT"  pid_pitch_stabilize
+  param_init_area "RATE_PIT" pid_pitch_rate
+  param_init_area "RATE_YAW" pid_yaw_rate
 
 -- | Return a normalized servo output given a normalized stick input
 -- representing the desired angle.  This uses two PI controllers; one

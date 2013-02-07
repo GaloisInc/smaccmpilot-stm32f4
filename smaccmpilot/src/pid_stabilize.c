@@ -48,38 +48,38 @@ void stabilize_init()
 {
     struct PID* n_ref0 = &g_pid_roll_stabilize;
     
-    init_param_float("STB_RLL_P", &n_ref0->pid_pGain);
-    init_param_float("STB_RLL_I", &n_ref0->pid_iGain);
-    init_param_float("STB_RLL_D", &n_ref0->pid_dGain);
-    init_param_float("STB_RLL_IMAX", &n_ref0->pid_iMax);
+    param_init_float("STB_RLL_P", &n_ref0->pid_pGain);
+    param_init_float("STB_RLL_I", &n_ref0->pid_iGain);
+    param_init_float("STB_RLL_D", &n_ref0->pid_dGain);
+    param_init_float("STB_RLL_IMAX", &n_ref0->pid_iMax);
     
     struct PID* n_ref1 = &g_pid_roll_rate;
     
-    init_param_float("RATE_RLL_P", &n_ref1->pid_pGain);
-    init_param_float("RATE_RLL_I", &n_ref1->pid_iGain);
-    init_param_float("RATE_RLL_D", &n_ref1->pid_dGain);
-    init_param_float("RATE_RLL_IMAX", &n_ref1->pid_iMax);
+    param_init_float("RATE_RLL_P", &n_ref1->pid_pGain);
+    param_init_float("RATE_RLL_I", &n_ref1->pid_iGain);
+    param_init_float("RATE_RLL_D", &n_ref1->pid_dGain);
+    param_init_float("RATE_RLL_IMAX", &n_ref1->pid_iMax);
     
     struct PID* n_ref2 = &g_pid_pitch_stabilize;
     
-    init_param_float("STB_PIT_P", &n_ref2->pid_pGain);
-    init_param_float("STB_PIT_I", &n_ref2->pid_iGain);
-    init_param_float("STB_PIT_D", &n_ref2->pid_dGain);
-    init_param_float("STB_PIT_IMAX", &n_ref2->pid_iMax);
+    param_init_float("STB_PIT_P", &n_ref2->pid_pGain);
+    param_init_float("STB_PIT_I", &n_ref2->pid_iGain);
+    param_init_float("STB_PIT_D", &n_ref2->pid_dGain);
+    param_init_float("STB_PIT_IMAX", &n_ref2->pid_iMax);
     
     struct PID* n_ref3 = &g_pid_pitch_rate;
     
-    init_param_float("RATE_PIT_P", &n_ref3->pid_pGain);
-    init_param_float("RATE_PIT_I", &n_ref3->pid_iGain);
-    init_param_float("RATE_PIT_D", &n_ref3->pid_dGain);
-    init_param_float("RATE_PIT_IMAX", &n_ref3->pid_iMax);
+    param_init_float("RATE_PIT_P", &n_ref3->pid_pGain);
+    param_init_float("RATE_PIT_I", &n_ref3->pid_iGain);
+    param_init_float("RATE_PIT_D", &n_ref3->pid_dGain);
+    param_init_float("RATE_PIT_IMAX", &n_ref3->pid_iMax);
     
     struct PID* n_ref4 = &g_pid_yaw_rate;
     
-    init_param_float("RATE_YAW_P", &n_ref4->pid_pGain);
-    init_param_float("RATE_YAW_I", &n_ref4->pid_iGain);
-    init_param_float("RATE_YAW_D", &n_ref4->pid_dGain);
-    init_param_float("RATE_YAW_IMAX", &n_ref4->pid_iMax);
+    param_init_float("RATE_YAW_P", &n_ref4->pid_pGain);
+    param_init_float("RATE_YAW_I", &n_ref4->pid_iGain);
+    param_init_float("RATE_YAW_D", &n_ref4->pid_dGain);
+    param_init_float("RATE_YAW_IMAX", &n_ref4->pid_iMax);
 }
 float stabilize_from_angle(struct PID* n_var0, struct PID* n_var1, float n_var2,
                            float n_var3, float n_var4, float n_var5,

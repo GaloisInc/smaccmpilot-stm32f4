@@ -202,9 +202,9 @@ static void gcs_receive_handle_param_request_read(const mavlink_message_t *msg) 
         char name[17];
         memcpy(name, req.param_id, 16);
         name[16] = '\0';
-        param = get_param_by_name(name);
+        param = param_get_by_name(name);
     } else {
-        param = get_param_by_index(req.param_index);
+        param = param_get_by_index(req.param_index);
     }
 
     if (param != NULL) {

@@ -69,8 +69,8 @@ instance (SingI len, IvoryIx rep, IvoryStore lex s rep) =>
 
 -- | Increment "param_count" and return an entry to be filled in when
 -- a new parameter is added.
-new_param :: Def ('[] :-> Ref Global (Struct "param_info"))
-new_param = proc "new_param" $ body $ do
+param_new :: Def ('[] :-> Ref Global (Struct "param_info"))
+param_new = proc "param_new" $ body $ do
   count_ref <- addrOf param_count
   count     <- deref count_ref
   store count_ref (count + 1)
@@ -81,56 +81,56 @@ new_param = proc "new_param" $ body $ do
   ret entry
 
 -- | Initialize a parameter of type "Uint8".
-init_param_u8 :: Def ('[ IString                    -- name
+param_init_u8 :: Def ('[ IString                    -- name
                        , Ref Global (Stored Uint8)] -- ref
                       :-> ())
-init_param_u8 = proc "init_param_u8" $ \name ref -> body $ do
-  entry <- call new_param
+param_init_u8 = proc "param_init_u8" $ \name ref -> body $ do
+  entry <- call param_new
   strcpy (entry ~> param_name)   name
   store  (entry ~> param_type)   paramTypeU8
   store  (entry ~> param_ptr_u8) (refToPtr ref)
 
 -- | Initialize a parameter of type "Uint16".
-init_param_u16 :: Def ('[ IString                     -- name
+param_init_u16 :: Def ('[ IString                     -- name
                         , Ref Global (Stored Uint16)] -- ref
                        :-> ())
-init_param_u16 = proc "init_param_u16" $ \name ref -> body $ do
-  entry <- call new_param
+param_init_u16 = proc "param_init_u16" $ \name ref -> body $ do
+  entry <- call param_new
   strcpy (entry ~> param_name)    name
   store  (entry ~> param_type)    paramTypeU16
   store  (entry ~> param_ptr_u16) (refToPtr ref)
 
 -- | Initialize a parameter of type "Uint32".
-init_param_u32 :: Def ('[ IString                     -- name
+param_init_u32 :: Def ('[ IString                     -- name
                         , Ref Global (Stored Uint32)] -- ref
                        :-> ())
-init_param_u32 = proc "init_param_u32" $ \name ref -> body $ do
-  entry <- call new_param
+param_init_u32 = proc "param_init_u32" $ \name ref -> body $ do
+  entry <- call param_new
   strcpy (entry ~> param_name)    name
   store  (entry ~> param_type)    paramTypeU32
   store  (entry ~> param_ptr_u32) (refToPtr ref)
 
 -- | Initialize a parameter of type "IFloat".
-init_param_float :: Def ('[ IString                     -- name
+param_init_float :: Def ('[ IString                     -- name
                           , Ref Global (Stored IFloat)] -- ref
                          :-> ())
-init_param_float = proc "init_param_float" $ \name ref -> body $ do
-  entry <- call new_param
+param_init_float = proc "param_init_float" $ \name ref -> body $ do
+  entry <- call param_new
   strcpy (entry ~> param_name)      name
   store  (entry ~> param_type)      paramTypeFloat
   store  (entry ~> param_ptr_float) (refToPtr ref)
 
 -- | Return the number of defined parameters.
-get_param_count :: Ivory s r (Ix Uint16 512)
-get_param_count = deref =<< addrOf param_count
+param_get_count :: Ivory s r (Ix Uint16 512)
+param_get_count = deref =<< addrOf param_count
 
 -- | Look up a parameter by name and retrieve its "param_info" entry
 -- if it exists.  Returns "nullPtr" if no parameter with that name is
 -- found.
-get_param_by_name :: Def ('[ConstRef s (CArray (Stored IChar))]
+param_get_by_name :: Def ('[ConstRef s (CArray (Stored IChar))]
                           :-> Ptr Global (Struct "param_info"))
-get_param_by_name = proc "get_param_by_name" $ \name -> body $ do
-  count <- get_param_count
+param_get_by_name = proc "param_get_by_name" $ \name -> body $ do
+  count <- param_get_count
   info  <- addrOf param_info
 
   count `times` \ix -> do
@@ -147,10 +147,10 @@ get_param_by_name = proc "get_param_by_name" $ \name -> body $ do
 -- | Look up a parameter by index and retrieve its "param_info" entry
 -- if it exists.  Returns "nullPtr" if no parameter with that index is
 -- defined.
-get_param_by_index :: Def ('[Ix Uint16 512]
+param_get_by_index :: Def ('[Ix Uint16 512]
                            :-> Ptr Global (Struct "param_info"))
-get_param_by_index = proc "get_param_by_index" $ \ix -> body $ do
-  count <- get_param_count
+param_get_by_index = proc "param_get_by_index" $ \ix -> body $ do
+  count <- param_get_count
   ift (ix >=? count)
     (ret nullPtr)
 
@@ -158,8 +158,8 @@ get_param_by_index = proc "get_param_by_index" $ \ix -> body $ do
   ret (refToPtr (info ! ix))
 
 -- | Extract the value of a parameter, casted to an IFloat.
-get_float_value :: Def ('[Ref s (Struct "param_info")] :-> IFloat)
-get_float_value = proc "get_float_value" $ \info -> body $ do
+param_get_float_value :: Def ('[Ref s (Struct "param_info")] :-> IFloat)
+param_get_float_value = proc "param_get_float_value" $ \info -> body $ do
   type_code <- deref (info ~> param_type)
 
   -- ick...
@@ -188,31 +188,31 @@ get_float_value = proc "get_float_value" $ \info -> body $ do
 ----------------------------------------------------------------------
 -- Parameter Initialization
 
--- | Type class used to select the appropriate "init_param_XXX"
+-- | Type class used to select the appropriate "param_init_XXX"
 -- function based on the type of the value reference.
 --
--- Modules can define instances of "init_param" to work on structures
+-- Modules can define instances of "param_init" to work on structures
 -- and initialize multiple fields at once by appending suffixes to the
 -- strings.
 class ParamType a where
-  init_param :: String -> Ref Global a -> Ivory s r ()
+  param_init :: String -> Ref Global a -> Ivory s r ()
 
 instance ParamType (Stored Uint8) where
-  init_param name ref = call_ init_param_u8 (fromString name) ref
+  param_init name ref = call_ param_init_u8 (fromString name) ref
 
 instance ParamType (Stored Uint16) where
-  init_param name ref = call_ init_param_u16 (fromString name) ref
+  param_init name ref = call_ param_init_u16 (fromString name) ref
 
 instance ParamType (Stored Uint32) where
-  init_param name ref = call_ init_param_u32 (fromString name) ref
+  param_init name ref = call_ param_init_u32 (fromString name) ref
 
 instance ParamType (Stored IFloat) where
-  init_param name ref = call_ init_param_float (fromString name) ref
+  param_init name ref = call_ param_init_float (fromString name) ref
 
 -- | Initialize a parameter with value stored in a "MemArea".
-init_param_area :: (ParamType a, IvoryType a) =>
+param_init_area :: (ParamType a, IvoryType a) =>
                    String -> MemArea a -> Ivory s r ()
-init_param_area name a = init_param name =<< addrOf a
+param_init_area name a = param_init name =<< addrOf a
 
 ----------------------------------------------------------------------
 -- Ivory Module
@@ -223,11 +223,11 @@ paramModule = package "param" $ do
   defStruct (Proxy :: Proxy "param_info")
   defMemArea param_info
   defMemArea param_count
-  incl new_param
-  incl init_param_u8
-  incl init_param_u16
-  incl init_param_u32
-  incl init_param_float
-  incl get_param_by_name
-  incl get_param_by_index
-  incl get_float_value
+  incl param_new
+  incl param_init_u8
+  incl param_init_u16
+  incl param_init_u32
+  incl param_init_float
+  incl param_get_by_name
+  incl param_get_by_index
+  incl param_get_float_value

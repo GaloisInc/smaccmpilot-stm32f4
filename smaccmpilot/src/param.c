@@ -2,7 +2,7 @@
  * Compiler version  0.1.0.0
  */
 #include "param.h"
-struct param_info* new_param()
+struct param_info* param_new()
 {
     uint16_t* n_ref0 = &g_param_count;
     uint16_t n_deref1 = *n_ref0;
@@ -15,39 +15,39 @@ struct param_info* new_param()
     *&n_let3->param_index = n_deref1;
     return n_let3;
 }
-void init_param_u8(char* n_var0, uint8_t* n_var1)
+void param_init_u8(char* n_var0, uint8_t* n_var1)
 {
-    struct param_info* n_r0 = new_param();
+    struct param_info* n_r0 = param_new();
     
     ivory_strlcpy((char*) n_r0->param_name, n_var0, 32U);
     *&n_r0->param_type = 0U;
     *&n_r0->param_ptr_u8 = n_var1;
 }
-void init_param_u16(char* n_var0, uint16_t* n_var1)
+void param_init_u16(char* n_var0, uint16_t* n_var1)
 {
-    struct param_info* n_r0 = new_param();
+    struct param_info* n_r0 = param_new();
     
     ivory_strlcpy((char*) n_r0->param_name, n_var0, 32U);
     *&n_r0->param_type = 1U;
     *&n_r0->param_ptr_u16 = n_var1;
 }
-void init_param_u32(char* n_var0, uint32_t* n_var1)
+void param_init_u32(char* n_var0, uint32_t* n_var1)
 {
-    struct param_info* n_r0 = new_param();
+    struct param_info* n_r0 = param_new();
     
     ivory_strlcpy((char*) n_r0->param_name, n_var0, 32U);
     *&n_r0->param_type = 2U;
     *&n_r0->param_ptr_u32 = n_var1;
 }
-void init_param_float(char* n_var0, float* n_var1)
+void param_init_float(char* n_var0, float* n_var1)
 {
-    struct param_info* n_r0 = new_param();
+    struct param_info* n_r0 = param_new();
     
     ivory_strlcpy((char*) n_r0->param_name, n_var0, 32U);
     *&n_r0->param_type = 3U;
     *&n_r0->param_ptr_float = n_var1;
 }
-struct param_info* get_param_by_name(const char* n_var0)
+struct param_info* param_get_by_name(const char* n_var0)
 {
     uint16_t* n_ref0 = &g_param_count;
     uint16_t n_deref1 = *n_ref0;
@@ -65,7 +65,7 @@ struct param_info* get_param_by_name(const char* n_var0)
     }
     return NULL;
 }
-struct param_info* get_param_by_index(uint16_t n_var0)
+struct param_info* param_get_by_index(uint16_t n_var0)
 {
     uint16_t* n_ref0 = &g_param_count;
     uint16_t n_deref1 = *n_ref0;
@@ -78,7 +78,7 @@ struct param_info* get_param_by_index(uint16_t n_var0)
     
     return &n_ref2[n_var0];
 }
-float get_float_value(struct param_info* n_var0)
+float param_get_float_value(struct param_info* n_var0)
 {
     uint8_t n_deref0 = *&n_var0->param_type;
     

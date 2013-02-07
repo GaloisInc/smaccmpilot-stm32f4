@@ -216,7 +216,7 @@ void gcs_transmit_send_param_value(struct param_info* n_var0,
 {
     struct param_value_msg n_local0 = {0};
     struct param_value_msg* n_ref1 = &n_local0;
-    float n_r2 = get_float_value(n_var0);
+    float n_r2 = param_get_float_value(n_var0);
     
     *&n_ref1->param_value = n_r2;
     

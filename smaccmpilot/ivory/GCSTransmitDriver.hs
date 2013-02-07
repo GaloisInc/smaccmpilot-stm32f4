@@ -247,9 +247,9 @@ sendParamValue :: Def ('[ Ref s1 (Struct "param_info")
 sendParamValue = proc "gcs_transmit_send_param_value" $
   \param ch sys -> body $ do
   msg   <- local (istruct [])
-  value <- call Param.get_float_value param
+  value <- call Param.param_get_float_value param
   store (msg ~> PV.param_value) value
-  count <- Param.get_param_count
+  count <- Param.param_get_count
   store (msg ~> PV.param_count) (fromIx count)
   index <- deref (param ~> Param.param_index)
   store (msg ~> PV.param_index) (fromIx index)
