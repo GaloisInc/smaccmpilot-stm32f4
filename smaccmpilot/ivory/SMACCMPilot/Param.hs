@@ -41,17 +41,12 @@ paramTypeU16   = 1
 paramTypeU32   = 2
 paramTypeFloat = 3
 
--- | The maximum number of parameters supported at run-time.
-type MaxParams = 512
-
--- | Index type for the parameters array.
-type ParamCount = Ix Uint16 MaxParams
-
 -- | Run-time information about a parameter.
 [ivory|
  struct param_info
  { param_type      :: Stored Uint8
  ; param_name      :: Array 32 (Stored IChar)
+ ; param_index     :: Stored (Ix Uint16 512) -- argh
  ; param_ptr_u8    :: Stored (Ptr Global (Stored Uint8))
  ; param_ptr_u16   :: Stored (Ptr Global (Stored Uint16))
  ; param_ptr_u32   :: Stored (Ptr Global (Stored Uint32))
@@ -61,11 +56,11 @@ type ParamCount = Ix Uint16 MaxParams
 
 -- | Global array of "param_info" structures containing all known
 -- parameters.  This is filled in by calling "param_init".
-param_info :: MemArea (Array MaxParams (Struct "param_info"))
+param_info :: MemArea (Array 512 (Struct "param_info"))
 param_info = area "g_param_info" Nothing
 
 -- | Global containing the number of entries in "param_info".
-param_count :: MemArea (Stored ParamCount)
+param_count :: MemArea (Stored (Ix Uint16 512))
 param_count = area "g_param_count" Nothing
 
 -- FIXME: This should be defined in "ivory-language" somewhere.
@@ -82,6 +77,7 @@ new_param = proc "new_param" $ body $ do
 
   info  <- addrOf param_info
   entry <- assign (info ! count)
+  store (entry ~> param_index) count
   ret entry
 
 -- | Initialize a parameter of type "Uint8".
@@ -125,7 +121,7 @@ init_param_float = proc "init_param_float" $ \name ref -> body $ do
   store  (entry ~> param_ptr_float) (refToPtr ref)
 
 -- | Return the number of defined parameters.
-get_param_count :: Ivory s r ParamCount
+get_param_count :: Ivory s r (Ix Uint16 512)
 get_param_count = deref =<< addrOf param_count
 
 -- | Look up a parameter by name and retrieve its "param_info" entry
@@ -151,7 +147,7 @@ get_param_by_name = proc "get_param_by_name" $ \name -> body $ do
 -- | Look up a parameter by index and retrieve its "param_info" entry
 -- if it exists.  Returns "nullPtr" if no parameter with that index is
 -- defined.
-get_param_by_index :: Def ('[ParamCount]
+get_param_by_index :: Def ('[Ix Uint16 512]
                            :-> Ptr Global (Struct "param_info"))
 get_param_by_index = proc "get_param_by_index" $ \ix -> body $ do
   count <- get_param_count
@@ -160,6 +156,34 @@ get_param_by_index = proc "get_param_by_index" $ \ix -> body $ do
 
   info <- addrOf param_info
   ret (refToPtr (info ! ix))
+
+-- | Extract the value of a parameter, casted to an IFloat.
+get_float_value :: Def ('[Ref s (Struct "param_info")] :-> IFloat)
+get_float_value = proc "get_float_value" $ \info -> body $ do
+  type_code <- deref (info ~> param_type)
+
+  -- ick...
+  ift (type_code ==? paramTypeU8)
+    (do ptr <- deref (info ~> param_ptr_u8)
+        withRef ptr (\x -> do val <- deref x
+                              ret (toFloat val)) (ret 0.0))
+
+  ift (type_code ==? paramTypeU16)
+    (do ptr <- deref (info ~> param_ptr_u16)
+        withRef ptr (\x -> do val <- deref x
+                              ret (toFloat val)) (ret 0.0))
+
+  ift (type_code ==? paramTypeU32)
+    (do ptr <- deref (info ~> param_ptr_u32)
+        withRef ptr (\x -> do val <- deref x
+                              ret (toFloat val)) (ret 0.0))
+
+  ift (type_code ==? paramTypeFloat)
+    (do ptr <- deref (info ~> param_ptr_float)
+        withRef ptr (\x -> do val <- deref x
+                              ret val) (ret 0.0))
+
+  ret 0.0
 
 ----------------------------------------------------------------------
 -- Parameter Initialization
@@ -206,3 +230,4 @@ paramModule = package "param" $ do
   incl init_param_float
   incl get_param_by_name
   incl get_param_by_index
+  incl get_float_value

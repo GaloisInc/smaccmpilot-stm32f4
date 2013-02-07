@@ -10,6 +10,7 @@ extern "C" {
 #include <smavlink/channel.h>
 #include <smavlink/system.h>
 #include "motorsoutput_type.h"
+#include "param.h"
 #include "position_type.h"
 #include "sensors_type.h"
 #include "servo_type.h"
@@ -17,6 +18,7 @@ extern "C" {
 #include "smavlink_message_global_position_int.h"
 #include "smavlink_message_gps_raw_int.h"
 #include "smavlink_message_heartbeat.h"
+#include "smavlink_message_param_value.h"
 #include "smavlink_message_servo_output_raw.h"
 #include "smavlink_message_vfr_hud.h"
 #include "userinput_type.h"
@@ -43,6 +45,9 @@ void gcs_transmit_send_global_position_int(struct position_result* n_var0,
                                            struct sensors_result* n_var1,
                                            struct smavlink_out_channel* n_var2,
                                            struct smavlink_system* n_var3);
+void gcs_transmit_send_param_value(struct param_info* n_var0,
+                                   struct smavlink_out_channel* n_var1,
+                                   struct smavlink_system* n_var2);
 
 #ifdef __cplusplus
 }

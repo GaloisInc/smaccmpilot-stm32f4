@@ -38,6 +38,9 @@ static struct motorsoutput_result shared_motors;
 static struct servo_result       shared_servo;
 static struct userinput_result   shared_user;
 
+static struct smavlink_out_channel ch;
+static struct smavlink_system sys;
+
 static size_t gcstx_write(void* delegate, const uint8_t *data, size_t len);
 static bool   gcstx_begin_atomic(void*, size_t);
 static void   gcstx_end_atomic(void*);
@@ -71,10 +74,15 @@ void gcs_transmit_start_task(void) {
             &gcs_transmit_task_handle);
 }
 
+struct smavlink_out_channel *gcs_transmit_get_channel(void) {
+    return &ch;
+}
+
+struct smavlink_system *gcs_transmit_get_system(void) {
+    return &sys;
+}
 
 static void gcs_transmit_task(void* args) {
-    struct smavlink_out_channel ch;
-    struct smavlink_system sys;
     bool streams_due[GCS_TRANSMIT_NUM_STREAMS];
 
     /* setup channel */

@@ -26,6 +26,9 @@ extern "C" {
 void gcs_transmit_init(void);
 void gcs_transmit_start_task(void);
 
+struct smavlink_out_channel *gcs_transmit_get_channel(void);
+struct smavlink_system *gcs_transmit_get_system(void);
+
 void gcs_transmit_set_states( const struct sensors_result *sensors,
                               const struct position_result *position,
                               const struct motorsoutput_result *motors,

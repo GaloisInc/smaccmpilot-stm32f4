@@ -12,6 +12,7 @@ struct param_info* new_param()
     struct param_info* n_ref2 = g_param_info;
     struct param_info* n_let3 = &n_ref2[n_deref1];
     
+    *&n_let3->param_index = n_deref1;
     return n_let3;
 }
 void init_param_u8(char* n_var0, uint8_t* n_var1)
@@ -76,6 +77,56 @@ struct param_info* get_param_by_index(uint16_t n_var0)
     struct param_info* n_ref2 = g_param_info;
     
     return &n_ref2[n_var0];
+}
+float get_float_value(struct param_info* n_var0)
+{
+    uint8_t n_deref0 = *&n_var0->param_type;
+    
+    if (n_deref0 == 0U) {
+        uint8_t* n_deref1 = *&n_var0->param_ptr_u8;
+        
+        if (NULL != n_deref1) {
+            uint8_t n_deref2 = *n_deref1;
+            
+            return (float) n_deref2;
+        } else {
+            return 0.0f;
+        }
+    } else { }
+    if (n_deref0 == 1U) {
+        uint16_t* n_deref3 = *&n_var0->param_ptr_u16;
+        
+        if (NULL != n_deref3) {
+            uint16_t n_deref4 = *n_deref3;
+            
+            return (float) n_deref4;
+        } else {
+            return 0.0f;
+        }
+    } else { }
+    if (n_deref0 == 2U) {
+        uint32_t* n_deref5 = *&n_var0->param_ptr_u32;
+        
+        if (NULL != n_deref5) {
+            uint32_t n_deref6 = *n_deref5;
+            
+            return (float) n_deref6;
+        } else {
+            return 0.0f;
+        }
+    } else { }
+    if (n_deref0 == 3U) {
+        float* n_deref7 = *&n_var0->param_ptr_float;
+        
+        if (NULL != n_deref7) {
+            float n_deref8 = *n_deref7;
+            
+            return n_deref8;
+        } else {
+            return 0.0f;
+        }
+    } else { }
+    return 0.0f;
 }
 struct param_info g_param_info[512U];
 uint16_t g_param_count;

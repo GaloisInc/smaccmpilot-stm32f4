@@ -10,6 +10,8 @@
 
 #include "smaccmpilot/gcs_receive.h"
 #include "smaccmpilot/gcs_transmit.h"
+#include "smaccmpilot/gcs_transmit_driver.h"
+#include "smaccmpilot/param.h"
 
 #ifdef CONFIG_GCS_UART
 # define GCS_UART CONFIG_GCS_UART
@@ -35,6 +37,7 @@ static void gcs_receive_handler(const mavlink_message_t *msg);
 /* Handled Messages */
 static void gcs_receive_handle_request_datastream(const mavlink_message_t *msg);
 static void gcs_receive_handle_hil_state(const mavlink_message_t *msg);
+static void gcs_receive_handle_param_request_read(const mavlink_message_t *msg);
 static void gcs_receive_handle_unknown(const mavlink_message_t *msg);
 
 /* Keep a history of unknown message ids caught by handle_unknown */
@@ -116,6 +119,9 @@ static void gcs_receive_handler(const mavlink_message_t *msg) {
         case MAVLINK_MSG_ID_REQUEST_DATA_STREAM:
             gcs_receive_handle_request_datastream(msg);
             break;
+        case MAVLINK_MSG_ID_PARAM_REQUEST_READ:
+            gcs_receive_handle_param_request_read(msg);
+            break;
         default:
             gcs_receive_handle_unknown(msg);
             break;
@@ -184,6 +190,31 @@ static void gcs_receive_handle_request_datastream(const mavlink_message_t *msg){
                 req.start_stop,
                 req.req_message_rate
                 );
+}
+
+static void gcs_receive_handle_param_request_read(const mavlink_message_t *msg) {
+    mavlink_param_request_read_t req;
+    struct param_info *param;
+
+    mavlink_msg_param_request_read_decode(msg, &req);
+
+    if (req.param_index == -1) {
+        char name[17];
+        memcpy(name, req.param_id, 16);
+        name[16] = '\0';
+        param = get_param_by_name(name);
+    } else {
+        param = get_param_by_index(req.param_index);
+    }
+
+    if (param != NULL) {
+        struct smavlink_out_channel *ch;
+        struct smavlink_system *sys;
+
+        ch  = gcs_transmit_get_channel();
+        sys = gcs_transmit_get_system();
+        gcs_transmit_send_param_value(param, ch, sys);
+    }
 }
 
 static void gcs_receive_handle_unknown(const mavlink_message_t *msg) {

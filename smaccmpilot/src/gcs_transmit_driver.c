@@ -210,3 +210,25 @@ void gcs_transmit_send_global_position_int(struct position_result* n_var0,
     smavlink_send_global_position_int(n_ref1, n_var2, n_var3);
     return;
 }
+void gcs_transmit_send_param_value(struct param_info* n_var0,
+                                   struct smavlink_out_channel* n_var1,
+                                   struct smavlink_system* n_var2)
+{
+    struct param_value_msg n_local0 = {0};
+    struct param_value_msg* n_ref1 = &n_local0;
+    float n_r2 = get_float_value(n_var0);
+    
+    *&n_ref1->param_value = n_r2;
+    
+    uint16_t* n_ref3 = &g_param_count;
+    uint16_t n_deref4 = *n_ref3;
+    
+    *&n_ref1->param_count = n_deref4;
+    
+    uint16_t n_deref5 = *&n_var0->param_index;
+    
+    *&n_ref1->param_index = n_deref5;
+    strncpy((uint8_t*) n_ref1->param_id, (const char*) n_var0->param_name, 16U);
+    *&n_ref1->param_type = 0U;
+    smavlink_send_param_value(n_ref1, n_var1, n_var2);
+}

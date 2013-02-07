@@ -16,6 +16,7 @@ import qualified SensorsType as Sens
 import qualified MotorsOutputType as M
 import qualified UserInputType as U
 import qualified UserInputDecode as U
+import qualified SMACCMPilot.Param as Param
 
 import Smaccm.Mavlink.Send (useSendModule)
 
@@ -25,6 +26,7 @@ import qualified Smaccm.Mavlink.Messages.VfrHud as HUD
 import qualified Smaccm.Mavlink.Messages.ServoOutputRaw as SVO
 import qualified Smaccm.Mavlink.Messages.GpsRawInt as GRI
 import qualified Smaccm.Mavlink.Messages.GlobalPositionInt as GPI
+import qualified Smaccm.Mavlink.Messages.ParamValue as PV
 
 --------------------------------------------------------------------
 -- Module def
@@ -39,6 +41,7 @@ gcsTransmitDriverModule = package "gcs_transmit_driver" $ do
   depend Sens.sensorsTypeModule
   depend M.motorsOutputModule
   depend U.userInputModule
+  depend Param.paramModule
   -- dependencies for all the smavlink types and senders
   depend HB.heartbeatModule
   depend ATT.attitudeModule
@@ -46,6 +49,7 @@ gcsTransmitDriverModule = package "gcs_transmit_driver" $ do
   depend SVO.servoOutputRawModule
   depend GRI.gpsRawIntModule
   depend GPI.globalPositionIntModule
+  depend PV.paramValueModule
   -- module has the following methods
   incl sendHeartbeat
   incl sendAttitude
@@ -53,6 +57,7 @@ gcsTransmitDriverModule = package "gcs_transmit_driver" $ do
   incl sendServoOutputRaw
   incl sendGpsRawInt
   incl sendGlobalPositionInt
+  incl sendParamValue
 
 sendHeartbeat :: Def ('[ (Ref s1 (Struct "motorsoutput_result"))
                        , (Ref s2 (Struct "userinput_result"))
@@ -226,3 +231,29 @@ sendGlobalPositionInt = proc "gcs_transmit_send_global_position_int" $
   (pos ~> P.vz) `into` (msg ~> GPI.vz)
   call_ GPI.globalPositionIntSend msg ch sys
   retVoid 
+
+-- Import "strncpy" to fill in the string field with the correct
+-- behavior and paper over the char/uint8_t difference.
+pv_strncpy :: Def ('[ Ref s1 (CArray (Stored Uint8))
+                    , ConstRef s2 (CArray (Stored IChar))
+                    , Uint32]
+                :-> ())
+pv_strncpy = importProc "strncpy" "string"
+
+sendParamValue :: Def ('[ Ref s1 (Struct "param_info")
+                        , Ref s2 (Struct "smavlink_out_channel")
+                        , Ref s3 (Struct "smavlink_system")]
+                       :-> ())
+sendParamValue = proc "gcs_transmit_send_param_value" $
+  \param ch sys -> body $ do
+  msg   <- local (istruct [])
+  value <- call Param.get_float_value param
+  store (msg ~> PV.param_value) value
+  count <- Param.get_param_count
+  store (msg ~> PV.param_count) (fromIx count)
+  index <- deref (param ~> Param.param_index)
+  store (msg ~> PV.param_index) (fromIx index)
+  call_ pv_strncpy (toCArray (msg ~> PV.param_id))
+                   (constRef (toCArray (param ~> Param.param_name))) 16
+  store (msg ~> PV.param_type) 0 -- FIXME
+  call_ PV.paramValueSend msg ch sys
