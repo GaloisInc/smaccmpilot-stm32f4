@@ -21,16 +21,16 @@ struct ~>* label = deref $ struct~>label
 infixl 8 ~>*
 
 -- | handy shorthand for transfering members
-resultInto :: IvoryStore lex ref a =>
+resultInto :: IvoryStore ref a =>
      Ivory lex r a -> Ref ref (Stored a) -> Ivory lex r ()
 resultInto a b = store b =<< a
 
-into :: IvoryStore lex ref' a =>
+into :: IvoryStore ref' a =>
      Ref ref (Stored a) -> Ref ref' (Stored a) -> Ivory lex r ()
 into a b = store b =<< deref a
 
 -- | Modify the value stored at a reference by a function.
-(%=) :: IvoryStore lex ref a =>
+(%=) :: IvoryStore ref a =>
      Ref ref (Stored a) -> (a -> a) -> Ivory lex r ()
 ref %= f = do
   val <- deref ref
@@ -38,7 +38,7 @@ ref %= f = do
 
 -- | Modify the value stored at a reference by a function that returns
 -- a value in the Ivory monad.
-(%=!) :: IvoryStore lex ref a =>
+(%=!) :: IvoryStore ref a =>
          Ref ref (Stored a) -> (a -> Ivory lex r a) -> Ivory lex r ()
 ref %=! mf = do
   val  <- deref ref
@@ -46,7 +46,7 @@ ref %=! mf = do
   store ref val'
 
 -- | Increment the value stored at a reference.
-(+=) :: (Num a, IvoryStore lex ref a) =>
+(+=) :: (Num a, IvoryStore ref a) =>
         Ref ref (Stored a) -> a -> Ivory lex r ()
 ref += x = ref %= (+ x)
 
