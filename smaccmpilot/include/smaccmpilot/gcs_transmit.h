@@ -21,13 +21,11 @@ extern "C" {
 #define GCS_TRANSMIT_STREAM_GPS_RAW_INT      4
 #define GCS_TRANSMIT_STREAM_VFR_HUD          5
 #define GCS_TRANSMIT_STREAM_GLOBAL_POSITION_INT 6
-#define GCS_TRANSMIT_NUM_STREAMS             7 
+#define GCS_TRANSMIT_STREAM_PARAMS           7
+#define GCS_TRANSMIT_NUM_STREAMS             8
 
 void gcs_transmit_init(void);
 void gcs_transmit_start_task(void);
-
-struct smavlink_out_channel *gcs_transmit_get_channel(void);
-struct smavlink_system *gcs_transmit_get_system(void);
 
 void gcs_transmit_set_states( const struct sensors_result *sensors,
                               const struct position_result *position,
@@ -36,7 +34,6 @@ void gcs_transmit_set_states( const struct sensors_result *sensors,
                               const struct userinput_result *user);
 
 void gcs_transmit_set_stream_rate(int stream, bool enable, uint16_t rate_hz );
-
 
 #ifdef __cplusplus
 }

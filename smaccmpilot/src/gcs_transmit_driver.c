@@ -232,3 +232,15 @@ void gcs_transmit_send_param_value(struct param_info* n_var0,
     *&n_ref1->param_type = 0U;
     smavlink_send_param_value(n_ref1, n_var1, n_var2);
 }
+void gcs_transmit_send_params(struct smavlink_out_channel* n_var0,
+                              struct smavlink_system* n_var1)
+{
+    struct param_info* n_r0 = param_get_requested();
+    
+    if (NULL != n_r0) {
+        *&n_r0->param_requested = 0U;
+        gcs_transmit_send_param_value(n_r0, n_var0, n_var1);
+    } else {
+        return;
+    }
+}

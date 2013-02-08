@@ -58,6 +58,7 @@ gcsTransmitDriverModule = package "gcs_transmit_driver" $ do
   incl sendGpsRawInt
   incl sendGlobalPositionInt
   incl sendParamValue
+  incl sendParams
 
 sendHeartbeat :: Def ('[ (Ref s1 (Struct "motorsoutput_result"))
                        , (Ref s2 (Struct "userinput_result"))
@@ -257,3 +258,15 @@ sendParamValue = proc "gcs_transmit_send_param_value" $
                    (constRef (toCArray (param ~> Param.param_name))) 16
   store (msg ~> PV.param_type) 0 -- FIXME
   call_ PV.paramValueSend msg ch sys
+
+-- | Send the first parameter marked as requested.
+sendParams :: Def ('[ Ref s1 (Struct "smavlink_out_channel")
+                    , Ref s2 (Struct "smavlink_system")]
+                   :-> ())
+sendParams = proc "gcs_transmit_send_params" $ \ch sys -> body $ do
+  pinfo <- call Param.param_get_requested
+  withRef pinfo
+          (\info -> do
+             store (info ~> Param.param_requested) 0
+             call_ sendParamValue info ch sys)
+          retVoid

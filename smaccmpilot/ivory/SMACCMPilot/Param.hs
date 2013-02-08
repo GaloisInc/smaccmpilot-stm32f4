@@ -51,6 +51,7 @@ paramTypeFloat = 3
  ; param_ptr_u16   :: Stored (Ptr Global (Stored Uint16))
  ; param_ptr_u32   :: Stored (Ptr Global (Stored Uint32))
  ; param_ptr_float :: Stored (Ptr Global (Stored IFloat))
+ ; param_requested :: Stored Uint8
  }
 |]
 
@@ -78,6 +79,7 @@ param_new = proc "param_new" $ body $ do
   info  <- addrOf param_info
   entry <- assign (info ! count)
   store (entry ~> param_index) count
+  store (entry ~> param_requested) 0
   ret entry
 
 -- | Initialize a parameter of type "Uint8".
@@ -131,9 +133,11 @@ param_get_by_name :: Def ('[ConstRef s (CArray (Stored IChar))]
                           :-> Ptr Global (Struct "param_info"))
 param_get_by_name = proc "param_get_by_name" $ \name -> body $ do
   count <- param_get_count
-  info  <- addrOf param_info
+  ift (count ==? 0)
+    (ret nullPtr)
 
-  count `times` \ix -> do
+  info  <- addrOf param_info
+  upTo 0 (count - 1) $ \ix -> do
     entry <- assign (info ! ix)
     name' <- assign (constRef (toCArray (entry ~> param_name)))
     len   <- assign (arrayLen (entry ~> param_name))
@@ -156,6 +160,24 @@ param_get_by_index = proc "param_get_by_index" $ \ix -> body $ do
 
   info <- addrOf param_info
   ret (refToPtr (info ! ix))
+
+-- | Return the first requested parameter, or NULL if no parameters
+-- are marked for transmission.
+param_get_requested :: Def ('[] :-> Ptr Global (Struct "param_info"))
+param_get_requested = proc "param_get_requested" $ body $ do
+  count <- param_get_count
+  ift (count ==? 0)
+    (ret nullPtr)
+
+  info  <- addrOf param_info
+  upTo 0 (count - 1) $ \ix -> do
+    entry <- assign (info ! ix)
+    flag  <- deref (entry ~> param_requested)
+
+    ift (flag /=? 0)
+      (ret (refToPtr entry))
+
+  ret nullPtr
 
 -- | Extract the value of a parameter, casted to an IFloat.
 param_get_float_value :: Def ('[Ref s (Struct "param_info")] :-> IFloat)
@@ -230,4 +252,5 @@ paramModule = package "param" $ do
   incl param_init_float
   incl param_get_by_name
   incl param_get_by_index
+  incl param_get_requested
   incl param_get_float_value

@@ -38,6 +38,7 @@ static void gcs_receive_handler(const mavlink_message_t *msg);
 static void gcs_receive_handle_request_datastream(const mavlink_message_t *msg);
 static void gcs_receive_handle_hil_state(const mavlink_message_t *msg);
 static void gcs_receive_handle_param_request_read(const mavlink_message_t *msg);
+static void gcs_receive_handle_param_request_list(const mavlink_message_t *msg);
 static void gcs_receive_handle_unknown(const mavlink_message_t *msg);
 
 /* Keep a history of unknown message ids caught by handle_unknown */
@@ -122,6 +123,9 @@ static void gcs_receive_handler(const mavlink_message_t *msg) {
         case MAVLINK_MSG_ID_PARAM_REQUEST_READ:
             gcs_receive_handle_param_request_read(msg);
             break;
+        case MAVLINK_MSG_ID_PARAM_REQUEST_LIST:
+            gcs_receive_handle_param_request_list(msg);
+            break;
         default:
             gcs_receive_handle_unknown(msg);
             break;
@@ -192,11 +196,25 @@ static void gcs_receive_handle_request_datastream(const mavlink_message_t *msg){
                 );
 }
 
+static void gcs_receive_handle_param_request_list(const mavlink_message_t *msg) {
+    mavlink_param_request_list_t req;
+    uint16_t i;
+
+    mavlink_msg_param_request_list_decode(msg, &req);
+    /* TODO: Check system and component IDs. */
+
+    /* Mark all parameters to be sent. */
+    for (i = 0; i < g_param_count; ++i) {
+        g_param_info[i].param_requested = 1;
+    }
+}
+
 static void gcs_receive_handle_param_request_read(const mavlink_message_t *msg) {
     mavlink_param_request_read_t req;
     struct param_info *param;
 
     mavlink_msg_param_request_read_decode(msg, &req);
+    /* TODO: Check system and component IDs. */
 
     if (req.param_index == -1) {
         char name[17];
@@ -207,13 +225,9 @@ static void gcs_receive_handle_param_request_read(const mavlink_message_t *msg) 
         param = param_get_by_index(req.param_index);
     }
 
+    /* Mark the parameter for the gcs transmit thread to send. */
     if (param != NULL) {
-        struct smavlink_out_channel *ch;
-        struct smavlink_system *sys;
-
-        ch  = gcs_transmit_get_channel();
-        sys = gcs_transmit_get_system();
-        gcs_transmit_send_param_value(param, ch, sys);
+        param->param_requested = 1;
     }
 }
 
