@@ -27,6 +27,7 @@ struct param_info* param_get_by_name(const char* n_var0);
 struct param_info* param_get_by_index(uint16_t n_var0);
 struct param_info* param_get_requested();
 float param_get_float_value(struct param_info* n_var0);
+void param_set_float_value(struct param_info* n_var0, float n_var1);
 extern struct param_info g_param_info[512U];
 extern uint16_t g_param_count;
 

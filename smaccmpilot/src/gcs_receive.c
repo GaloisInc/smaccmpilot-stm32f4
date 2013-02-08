@@ -39,6 +39,7 @@ static void gcs_receive_handle_request_datastream(const mavlink_message_t *msg);
 static void gcs_receive_handle_hil_state(const mavlink_message_t *msg);
 static void gcs_receive_handle_param_request_read(const mavlink_message_t *msg);
 static void gcs_receive_handle_param_request_list(const mavlink_message_t *msg);
+static void gcs_receive_handle_param_set(const mavlink_message_t *msg);
 static void gcs_receive_handle_unknown(const mavlink_message_t *msg);
 
 /* Keep a history of unknown message ids caught by handle_unknown */
@@ -125,6 +126,9 @@ static void gcs_receive_handler(const mavlink_message_t *msg) {
             break;
         case MAVLINK_MSG_ID_PARAM_REQUEST_LIST:
             gcs_receive_handle_param_request_list(msg);
+            break;
+        case MAVLINK_MSG_ID_PARAM_SET:
+            gcs_receive_handle_param_set(msg);
             break;
         default:
             gcs_receive_handle_unknown(msg);
@@ -227,6 +231,25 @@ static void gcs_receive_handle_param_request_read(const mavlink_message_t *msg) 
 
     /* Mark the parameter for the gcs transmit thread to send. */
     if (param != NULL) {
+        param->param_requested = 1;
+    }
+}
+
+static void gcs_receive_handle_param_set(const mavlink_message_t *msg) {
+    mavlink_param_set_t req;
+    struct param_info *param;
+
+    mavlink_msg_param_set_decode(msg, &req);
+    /* TODO: Check system and component IDs. */
+
+    char name[17];
+    memcpy(name, req.param_id, 16);
+    name[16] = '\0';
+    param = param_get_by_name(name);
+
+    /* Set the value and mark the parameter to be sent. */
+    if (param != NULL) {
+        param_set_float_value(param, req.param_value);
         param->param_requested = 1;
     }
 }

@@ -157,5 +157,46 @@ float param_get_float_value(struct param_info* n_var0)
     } else { }
     return 0.0f;
 }
+void param_set_float_value(struct param_info* n_var0, float n_var1)
+{
+    uint8_t n_deref0 = *&n_var0->param_type;
+    
+    if (n_deref0 == 0U) {
+        uint8_t* n_deref1 = *&n_var0->param_ptr_u8;
+        
+        if (NULL != n_deref1) {
+            *n_deref1 = (bool) isnan(n_var1) ? 0U : (uint8_t) truncf(n_var1);
+        } else {
+            return;
+        }
+    } else { }
+    if (n_deref0 == 1U) {
+        uint16_t* n_deref2 = *&n_var0->param_ptr_u16;
+        
+        if (NULL != n_deref2) {
+            *n_deref2 = (bool) isnan(n_var1) ? 0U : (uint16_t) truncf(n_var1);
+        } else {
+            return;
+        }
+    } else { }
+    if (n_deref0 == 2U) {
+        uint32_t* n_deref3 = *&n_var0->param_ptr_u32;
+        
+        if (NULL != n_deref3) {
+            *n_deref3 = (bool) isnan(n_var1) ? 0U : (uint32_t) truncf(n_var1);
+        } else {
+            return;
+        }
+    } else { }
+    if (n_deref0 == 3U) {
+        float* n_deref4 = *&n_var0->param_ptr_float;
+        
+        if (NULL != n_deref4) {
+            *n_deref4 = n_var1;
+        } else {
+            return;
+        }
+    } else { }
+}
 struct param_info g_param_info[512U];
 uint16_t g_param_count;

@@ -207,6 +207,27 @@ param_get_float_value = proc "param_get_float_value" $ \info -> body $ do
 
   ret 0.0
 
+-- | Set the value of a parameter, from an IFloat.
+param_set_float_value :: Def ('[ Ref s (Struct "param_info"), IFloat] :-> ())
+param_set_float_value = proc "param_set_float_value" $ \info val -> body $ do
+  type_code <- deref (info ~> param_type)
+
+  ift (type_code ==? paramTypeU8)
+    (do ptr <- deref (info ~> param_ptr_u8)
+        withRef ptr (\x -> store x (fromFloat 0 val)) (retVoid))
+
+  ift (type_code ==? paramTypeU16)
+    (do ptr <- deref (info ~> param_ptr_u16)
+        withRef ptr (\x -> store x (fromFloat 0 val)) (retVoid))
+
+  ift (type_code ==? paramTypeU32)
+    (do ptr <- deref (info ~> param_ptr_u32)
+        withRef ptr (\x -> store x (fromFloat 0 val)) (retVoid))
+
+  ift (type_code ==? paramTypeFloat)
+    (do ptr <- deref (info ~> param_ptr_float)
+        withRef ptr (\x -> store x val) (retVoid))
+
 ----------------------------------------------------------------------
 -- Parameter Initialization
 
@@ -254,3 +275,4 @@ paramModule = package "param" $ do
   incl param_get_by_index
   incl param_get_requested
   incl param_get_float_value
+  incl param_set_float_value
