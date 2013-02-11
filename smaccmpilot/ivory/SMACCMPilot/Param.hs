@@ -46,7 +46,7 @@ paramTypeFloat = 3
  struct param_info
  { param_type      :: Stored Uint8
  ; param_name      :: Array 32 (Stored IChar)
- ; param_index     :: Stored (Ix Uint16 512) -- argh
+ ; param_index     :: Stored (Ix 512) -- argh
  ; param_ptr_u8    :: Stored (Ptr Global (Stored Uint8))
  ; param_ptr_u16   :: Stored (Ptr Global (Stored Uint16))
  ; param_ptr_u32   :: Stored (Ptr Global (Stored Uint32))
@@ -61,12 +61,11 @@ param_info :: MemArea (Array 512 (Struct "param_info"))
 param_info = area "g_param_info" Nothing
 
 -- | Global containing the number of entries in "param_info".
-param_count :: MemArea (Stored (Ix Uint16 512))
+param_count :: MemArea (Stored (Ix 512))
 param_count = area "g_param_count" Nothing
 
 -- FIXME: This should be defined in "ivory-language" somewhere.
-instance (SingI len, IvoryIx rep, IvoryStore lex s rep) =>
-    IvoryStore lex s (Ix rep len)
+instance (SingI len) => IvoryStore s (Ix len)
 
 -- | Increment "param_count" and return an entry to be filled in when
 -- a new parameter is added.
@@ -123,7 +122,7 @@ param_init_float = proc "param_init_float" $ \name ref -> body $ do
   store  (entry ~> param_ptr_float) (refToPtr ref)
 
 -- | Return the number of defined parameters.
-param_get_count :: Ivory s r (Ix Uint16 512)
+param_get_count :: Ivory s r (Ix 512)
 param_get_count = deref =<< addrOf param_count
 
 -- | Look up a parameter by name and retrieve its "param_info" entry
@@ -133,11 +132,9 @@ param_get_by_name :: Def ('[ConstRef s (CArray (Stored IChar))]
                           :-> Ptr Global (Struct "param_info"))
 param_get_by_name = proc "param_get_by_name" $ \name -> body $ do
   count <- param_get_count
-  ift (count ==? 0)
-    (ret nullPtr)
-
   info  <- addrOf param_info
-  upTo 0 (count - 1) $ \ix -> do
+
+  for count $ \ix -> do
     entry <- assign (info ! ix)
     name' <- assign (constRef (toCArray (entry ~> param_name)))
     len   <- assign (arrayLen (entry ~> param_name))
@@ -151,8 +148,7 @@ param_get_by_name = proc "param_get_by_name" $ \name -> body $ do
 -- | Look up a parameter by index and retrieve its "param_info" entry
 -- if it exists.  Returns "nullPtr" if no parameter with that index is
 -- defined.
-param_get_by_index :: Def ('[Ix Uint16 512]
-                           :-> Ptr Global (Struct "param_info"))
+param_get_by_index :: Def ('[Ix 512] :-> Ptr Global (Struct "param_info"))
 param_get_by_index = proc "param_get_by_index" $ \ix -> body $ do
   count <- param_get_count
   ift (ix >=? count)
@@ -166,11 +162,9 @@ param_get_by_index = proc "param_get_by_index" $ \ix -> body $ do
 param_get_requested :: Def ('[] :-> Ptr Global (Struct "param_info"))
 param_get_requested = proc "param_get_requested" $ body $ do
   count <- param_get_count
-  ift (count ==? 0)
-    (ret nullPtr)
-
   info  <- addrOf param_info
-  upTo 0 (count - 1) $ \ix -> do
+
+  for count $ \ix -> do
     entry <- assign (info ! ix)
     flag  <- deref (entry ~> param_requested)
 

@@ -251,9 +251,9 @@ sendParamValue = proc "gcs_transmit_send_param_value" $
   value <- call Param.param_get_float_value param
   store (msg ~> PV.param_value) value
   count <- Param.param_get_count
-  store (msg ~> PV.param_count) (fromIx count)
+  store (msg ~> PV.param_count) (ixCast count)
   index <- deref (param ~> Param.param_index)
-  store (msg ~> PV.param_index) (fromIx index)
+  store (msg ~> PV.param_index) (ixCast index)
   call_ pv_strncpy (toCArray (msg ~> PV.param_id))
                    (constRef (toCArray (param ~> Param.param_name))) 16
   store (msg ~> PV.param_type) 0 -- FIXME

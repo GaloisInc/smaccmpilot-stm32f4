@@ -48,7 +48,7 @@ decode :: Def ('[ Ref s1 (Array 8 (Stored Uint16))
                 , Ref s3 (Struct "userinput_result")
                 , Uint32 ] :-> ())
 decode = proc "userinput_decode" $ \pwms state out now -> body $ do
-  let chtransform ix f ofield = deref (pwms ! (ix :: Ix Uint8 8)) >>=
+  let chtransform ix f ofield = deref (pwms ! (ix :: Ix 8)) >>=
                                 f >>= \v -> store (out ~> ofield) v
   store (out ~> I.time) now
   chtransform 0 scale_rpy I.roll
@@ -65,9 +65,9 @@ arming_statemachine :: (Ref s1 (Array 8 (Stored Uint16)))
                     -> Uint32
                     -> Ivory s () ()
 arming_statemachine pwms state out now = do
-  ch5_switch <- deref (pwms ! (5 :: Ix Uint8 8))
-  throttle_stick <- deref (pwms ! (2 :: Ix Uint8 8))
-  rudder_stick   <- deref (pwms ! (3 :: Ix Uint8 8))
+  ch5_switch <- deref (pwms ! (5 :: Ix 8))
+  throttle_stick <- deref (pwms ! (2 :: Ix 8))
+  rudder_stick   <- deref (pwms ! (3 :: Ix 8))
 
   ifte (ch5_switch <? 1500)
     (do_disarm)
@@ -112,7 +112,7 @@ mode_statemachine :: (Ref s1 (Array 8 (Stored Uint16)))
                   -> Uint32
                   -> Ivory s () ()
 mode_statemachine pwms state out now = do
-  mode_input_current <- deref (pwms ! (4 :: Ix Uint8 8))
+  mode_input_current <- deref (pwms ! (4 :: Ix 8))
   mode_input_prev    <- deref (state ~> last_modepwm)
   prev_time          <- deref (state ~> last_modepwm_time)
   let pwmtolerance = 10

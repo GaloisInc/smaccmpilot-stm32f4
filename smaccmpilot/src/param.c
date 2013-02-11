@@ -4,10 +4,10 @@
 #include "param.h"
 struct param_info* param_new()
 {
-    uint16_t* n_ref0 = &g_param_count;
-    uint16_t n_deref1 = *n_ref0;
+    int32_t* n_ref0 = &g_param_count;
+    int32_t n_deref1 = *n_ref0;
     
-    *n_ref0 = (n_deref1 + 1U) % 512U;
+    *n_ref0 = (n_deref1 + 1) % 512;
     
     struct param_info* n_ref2 = g_param_info;
     struct param_info* n_let3 = &n_ref2[n_deref1];
@@ -50,17 +50,11 @@ void param_init_float(char* n_var0, float* n_var1)
 }
 struct param_info* param_get_by_name(const char* n_var0)
 {
-    uint16_t* n_ref0 = &g_param_count;
-    uint16_t n_deref1 = *n_ref0;
-    
-    if (n_deref1 == 0U) {
-        return NULL;
-    } else { }
-    
+    int32_t* n_ref0 = &g_param_count;
+    int32_t n_deref1 = *n_ref0;
     struct param_info* n_ref2 = g_param_info;
     
-    for (uint16_t n_ix3 = 0U; n_ix3 <= (n_deref1 - 1U) % 512U; n_ix3 = n_ix3 +
-         1U) {
+    for (int32_t n_ix3 = 0; n_ix3 <= (n_deref1 - 1) % 512; n_ix3 = n_ix3 + 1) {
         struct param_info* n_let4 = &n_ref2[n_ix3];
         const char* n_let5 = (const char*) n_let4->param_name;
         uint32_t n_let6 = 32U;
@@ -72,10 +66,10 @@ struct param_info* param_get_by_name(const char* n_var0)
     }
     return NULL;
 }
-struct param_info* param_get_by_index(uint16_t n_var0)
+struct param_info* param_get_by_index(int32_t n_var0)
 {
-    uint16_t* n_ref0 = &g_param_count;
-    uint16_t n_deref1 = *n_ref0;
+    int32_t* n_ref0 = &g_param_count;
+    int32_t n_deref1 = *n_ref0;
     
     if (n_var0 >= n_deref1) {
         return NULL;
@@ -87,17 +81,11 @@ struct param_info* param_get_by_index(uint16_t n_var0)
 }
 struct param_info* param_get_requested()
 {
-    uint16_t* n_ref0 = &g_param_count;
-    uint16_t n_deref1 = *n_ref0;
-    
-    if (n_deref1 == 0U) {
-        return NULL;
-    } else { }
-    
+    int32_t* n_ref0 = &g_param_count;
+    int32_t n_deref1 = *n_ref0;
     struct param_info* n_ref2 = g_param_info;
     
-    for (uint16_t n_ix3 = 0U; n_ix3 <= (n_deref1 - 1U) % 512U; n_ix3 = n_ix3 +
-         1U) {
+    for (int32_t n_ix3 = 0; n_ix3 <= (n_deref1 - 1) % 512; n_ix3 = n_ix3 + 1) {
         struct param_info* n_let4 = &n_ref2[n_ix3];
         uint8_t n_deref5 = *&n_let4->param_requested;
         
@@ -199,4 +187,4 @@ void param_set_float_value(struct param_info* n_var0, float n_var1)
     } else { }
 }
 struct param_info g_param_info[512U];
-uint16_t g_param_count;
+int32_t g_param_count;
