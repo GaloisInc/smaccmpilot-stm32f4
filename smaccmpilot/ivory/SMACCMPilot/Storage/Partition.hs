@@ -31,7 +31,7 @@ import SMACCMPilot.Storage.EEPROM
 
 -- | Partition data, as a constant global array.
 partition_table :: ConstMemArea (Array 3 (Struct "partition_info"))
-partition_table = constArea "g_partition_table" $ (ival
+partition_table = constArea "g_partition_table" $ iarray
   [ istruct
      [ partition_info_id    .= ival 0
      , partition_info_size  .= ival 0
@@ -44,7 +44,7 @@ partition_table = constArea "g_partition_table" $ (ival
      [ partition_info_id    .= ival 2
      , partition_info_size  .= ival 0x1000
      , partition_info_start .= ival 0x1000]
-  ] :: Init (Array 3 (Struct "partition_info")))
+  ]
 
 ----------------------------------------------------------------------
 -- Ivory Module
