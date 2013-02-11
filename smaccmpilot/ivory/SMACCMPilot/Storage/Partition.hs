@@ -31,6 +31,7 @@ module SMACCMPilot.Storage.Partition (
 import Ivory.Language
 
 import IvoryHelpers
+import SMACCMPilot.Driver.I2C
 import SMACCMPilot.Storage.EEPROM
 
 ----------------------------------------------------------------------
@@ -149,6 +150,36 @@ partition_write = proc "partition_write" $ \pid addr buf len -> body $ do
   write_ok <- call eeprom_write (addr + start) buf (safeCast len)
   ret write_ok
 
+{-
+----------------------------------------------------------------------
+-- Test Code
+
+-- | Test read and write operations on a partition.
+partition_test :: Def ('[PartitionID] :-> IBool)
+partition_test = proc "partition_test" $ \pid -> body $ do
+  drv <- addrOf i2c2
+  call_ eeprom_init drv 0x50
+
+  (buf1 :: Ref (Stack s) (Array 32 (Stored Uint8))) <- local (iarray [])
+  arrayMap $ \ix -> store (buf1 ! ix) (ixCast ix)
+  write_ok <- call partition_write pid 0 (constRef (toCArray buf1)) (arrayLen buf1)
+  ift (iNot write_ok)
+    (ret false)
+
+  (buf2 :: Ref (Stack s) (Array 32 (Stored Uint8))) <- local (iarray [])
+  read_ok  <- call partition_read pid 0 (toCArray buf2) (arrayLen buf2)
+  ift (iNot read_ok)
+    (ret false)
+
+  arrayMap $ \ix -> do
+    v1 <- deref (buf1 ! ix)
+    v2 <- deref (buf2 ! ix)
+    ift (v1 /=? v2)
+      (ret false)
+
+  ret true
+-}
+
 ----------------------------------------------------------------------
 -- Ivory Module
 
@@ -161,3 +192,4 @@ partitionModule = package "storage_partition" $ do
   incl partition_in_bounds
   incl partition_read
   incl partition_write
+  -- incl partition_test
