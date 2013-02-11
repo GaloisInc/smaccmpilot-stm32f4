@@ -63,4 +63,4 @@ bool partition_write(int32_t n_var0, uint16_t n_var1, const uint8_t* n_var2,
     
     return n_r3;
 }
-uint16_t g_partition_table[3U] = {0U, 4096U, 4096U};
+const uint16_t g_partition_table[3U] = {0U, 4096U, 4096U};

@@ -81,8 +81,8 @@ partitionParamB :: PartitionID
 partitionParamB = 2
 
 -- | Partition data, as a constant global array of sizes.
-partition_table :: MemArea (Array MaxPartitions (Stored Uint16))
-partition_table = area "g_partition_table" $ Just $ iarray
+partition_table :: ConstMemArea (Array MaxPartitions (Stored Uint16))
+partition_table = constArea "g_partition_table" $ iarray
   [ ival 0x0000                 -- 0: invalid
   , ival 0x1000                 -- 1: ParamA
   , ival 0x1000                 -- 2: ParamB
@@ -186,7 +186,7 @@ partition_test = proc "partition_test" $ \pid -> body $ do
 partitionModule :: Module
 partitionModule = package "storage_partition" $ do
   depend eepromModule
-  defMemArea partition_table
+  defConstMemArea partition_table
   incl partition_size
   incl partition_start
   incl partition_in_bounds

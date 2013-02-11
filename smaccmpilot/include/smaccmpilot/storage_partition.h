@@ -15,7 +15,7 @@ bool partition_read(int32_t n_var0, uint16_t n_var1, uint8_t* n_var2,
                     uint16_t n_var3);
 bool partition_write(int32_t n_var0, uint16_t n_var1, const uint8_t* n_var2,
                      uint16_t n_var3);
-extern uint16_t g_partition_table[3U];
+extern const uint16_t g_partition_table[3U];
 
 #ifdef __cplusplus
 }
