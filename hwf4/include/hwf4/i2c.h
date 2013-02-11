@@ -17,6 +17,7 @@ extern "C" {
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdlib.h>
 
 #include "hwf4/gpio.h"
 #include "hwf4/rcc.h"
