@@ -48,6 +48,7 @@ SMACCMPILOT_OBJECTS :=       \
   src/pid_stabilize.o        \
   src/ivory_string_prim.o    \
   src/storage_eeprom.o       \
+  src/storage_partition.o    \
   src/param.o
 
 $(eval $(call library,SMACCMPILOT))

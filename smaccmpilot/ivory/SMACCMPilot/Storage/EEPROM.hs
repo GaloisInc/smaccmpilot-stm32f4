@@ -82,6 +82,7 @@ eeprom_test2 = proc "eeprom_test2" $ body $ do
 eepromModule :: Module
 eepromModule = package "storage_eeprom" $ do
   depend i2cModule
+  inclHeader "hwf4/eeprom"
   incl eeprom_init
   incl eeprom_read_byte
   incl eeprom_write_byte

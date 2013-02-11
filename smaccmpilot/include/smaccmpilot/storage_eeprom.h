@@ -6,6 +6,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+#include <hwf4/eeprom.h>
 #include <ivory.h>
 #include "driver_i2c.h"
 
