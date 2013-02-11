@@ -14,9 +14,10 @@ import PositionEstimateType (positionEstimateTypeModule)
 
 import IvoryCString               (cstringModule)
 
-import SMACCMPilot.Driver.I2C     (i2cModule)
-import SMACCMPilot.Storage.EEPROM (eepromModule)
-import SMACCMPilot.Param          (paramModule)
+import SMACCMPilot.Driver.I2C        (i2cModule)
+import SMACCMPilot.Storage.EEPROM    (eepromModule)
+import SMACCMPilot.Storage.Partition (partitionModule)
+import SMACCMPilot.Param             (paramModule)
 
 import Ivory.Compile.C.CmdlineFrontend
 
@@ -34,6 +35,7 @@ main = compile [ positionModule
                , cstringModule
                , i2cModule
                , eepromModule
+               , partitionModule
                , paramModule
                ]
 

@@ -27,6 +27,7 @@ library
                        IvoryCString,
                        SMACCMPilot.Driver.I2C,
                        SMACCMPilot.Storage.EEPROM,
+                       SMACCMPilot.Storage.Partition,
                        SMACCMPilot.Param
 
   build-depends:       base >= 4.6,
