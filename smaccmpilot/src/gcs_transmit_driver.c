@@ -7,7 +7,7 @@ void gcs_transmit_send_heartbeat(struct motorsoutput_result* n_var0,
                                  struct smavlink_out_channel* n_var2,
                                  struct smavlink_system* n_var3)
 {
-    struct heartbeat_msg n_local0 = {0};
+    struct heartbeat_msg n_local0 = {};
     struct heartbeat_msg* n_ref1 = &n_local0;
     bool n_deref2 = *&n_var0->armed;
     uint8_t n_deref3 = *&n_var1->mode;
@@ -29,7 +29,7 @@ void gcs_transmit_send_attitude(struct sensors_result* n_var0,
                                 struct smavlink_out_channel* n_var1,
                                 struct smavlink_system* n_var2)
 {
-    struct attitude_msg n_local0 = {0};
+    struct attitude_msg n_local0 = {};
     struct attitude_msg* n_ref1 = &n_local0;
     uint32_t n_deref2 = *&n_var0->time;
     
@@ -67,7 +67,7 @@ void gcs_transmit_send_vfrhud(struct position_result* n_var0,
                               struct smavlink_out_channel* n_var3,
                               struct smavlink_system* n_var4)
 {
-    struct vfr_hud_msg n_local0 = {0};
+    struct vfr_hud_msg n_local0 = {};
     struct vfr_hud_msg* n_ref1 = &n_local0;
     int16_t n_deref2 = *&n_var0->vx;
     int16_t n_deref3 = *&n_var0->vy;
@@ -112,7 +112,7 @@ void gcs_transmit_send_servo_output(struct servo_result* n_var0,
                                     struct smavlink_out_channel* n_var2,
                                     struct smavlink_system* n_var3)
 {
-    struct servo_output_raw_msg n_local0 = {0};
+    struct servo_output_raw_msg n_local0 = {};
     struct servo_output_raw_msg* n_ref1 = &n_local0;
     uint32_t n_deref2 = *&n_var0->time;
     
@@ -150,7 +150,7 @@ void gcs_transmit_send_gps_raw_int(struct position_result* n_var0,
                                    struct smavlink_out_channel* n_var1,
                                    struct smavlink_system* n_var2)
 {
-    struct gps_raw_int_msg n_local0 = {0};
+    struct gps_raw_int_msg n_local0 = {};
     struct gps_raw_int_msg* n_ref1 = &n_local0;
     int32_t n_deref2 = *&n_var0->lat;
     
@@ -177,7 +177,7 @@ void gcs_transmit_send_global_position_int(struct position_result* n_var0,
                                            struct smavlink_out_channel* n_var2,
                                            struct smavlink_system* n_var3)
 {
-    struct global_position_int_msg n_local0 = {0};
+    struct global_position_int_msg n_local0 = {};
     struct global_position_int_msg* n_ref1 = &n_local0;
     float n_deref2 = *&n_var1->yaw;
     float n_let3 = 1800.0f / 3.1415927f * n_deref2;
@@ -214,7 +214,7 @@ void gcs_transmit_send_param_value(struct param_info* n_var0,
                                    struct smavlink_out_channel* n_var1,
                                    struct smavlink_system* n_var2)
 {
-    struct param_value_msg n_local0 = {0};
+    struct param_value_msg n_local0 = {};
     struct param_value_msg* n_ref1 = &n_local0;
     float n_r2 = param_get_float_value(n_var0);
     
