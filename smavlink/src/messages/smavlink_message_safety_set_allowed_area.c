@@ -47,7 +47,7 @@ void smavlink_send_safety_set_allowed_area(struct safety_set_allowed_area_msg* n
     return;
 }
 void smavlink_unpack_safety_set_allowed_area(struct safety_set_allowed_area_msg* n_var0,
-                                             const uint8_t** n_var1)
+                                             const uint8_t* n_var1)
 {
     float n_r0 = smavlink_unpack_float(n_var1, 0U);
     

@@ -19,7 +19,7 @@ void smavlink_send_mission_request_list(struct mission_request_list_msg* n_var0,
     return;
 }
 void smavlink_unpack_mission_request_list(struct mission_request_list_msg* n_var0,
-                                          const uint8_t** n_var1)
+                                          const uint8_t* n_var1)
 {
     uint8_t n_r0 = smavlink_unpack_uint8_t(n_var1, 0U);
     

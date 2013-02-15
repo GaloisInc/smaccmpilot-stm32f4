@@ -26,7 +26,7 @@ void smavlink_send_set_quad_swarm_led_roll_pitch_yaw_thrust(struct set_quad_swar
                                                             struct smavlink_system* n_var2);
 void smavlink_unpack_set_quad_swarm_led_roll_pitch_yaw_thrust(struct set_quad_swarm_led_roll_pitch_yaw_thrust_msg* n_var0,
                                                               const
-                                                              uint8_t** n_var1);
+                                                              uint8_t* n_var1);
 
 #ifdef __cplusplus
 }

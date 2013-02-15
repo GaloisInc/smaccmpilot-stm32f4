@@ -26,7 +26,7 @@ void smavlink_send_ping(struct ping_msg* n_var0,
     smavlink_send_ivory(n_var1, n_var2, 4U, (uint8_t*) n_ref1, 14U, 237U);
     return;
 }
-void smavlink_unpack_ping(struct ping_msg* n_var0, const uint8_t** n_var1)
+void smavlink_unpack_ping(struct ping_msg* n_var0, const uint8_t* n_var1)
 {
     uint64_t n_r0 = smavlink_unpack_uint64_t(n_var1, 0U);
     

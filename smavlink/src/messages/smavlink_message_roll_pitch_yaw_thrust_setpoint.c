@@ -31,7 +31,7 @@ void smavlink_send_roll_pitch_yaw_thrust_setpoint(struct roll_pitch_yaw_thrust_s
     return;
 }
 void smavlink_unpack_roll_pitch_yaw_thrust_setpoint(struct roll_pitch_yaw_thrust_setpoint_msg* n_var0,
-                                                    const uint8_t** n_var1)
+                                                    const uint8_t* n_var1)
 {
     uint32_t n_r0 = smavlink_unpack_uint32_t(n_var1, 0U);
     

@@ -18,70 +18,72 @@ void smavlink_send_set_quad_swarm_led_roll_pitch_yaw_thrust(struct set_quad_swar
     
     int16_t* n_let4 = n_var0->roll;
     
-    for (uint8_t n_ix5 = 0U % 4U; n_ix5 <= 3U % 4U; n_ix5 = n_ix5 + 1U % 4U) {
+    for (int32_t n_ix5 = 0 % 4; n_ix5 <= 3 % 4; n_ix5 = n_ix5 + 1) {
         int16_t n_deref6 = *&n_let4[n_ix5];
         
-        smavlink_pack_int16_t((uint8_t*) n_ref1, 0U + n_ix5, n_deref6);
+        smavlink_pack_int16_t((uint8_t*) n_ref1, 0U + (uint8_t) n_ix5,
+                              n_deref6);
     }
     
     int16_t* n_let7 = n_var0->pitch;
     
-    for (uint8_t n_ix8 = 0U % 4U; n_ix8 <= 3U % 4U; n_ix8 = n_ix8 + 1U % 4U) {
+    for (int32_t n_ix8 = 0 % 4; n_ix8 <= 3 % 4; n_ix8 = n_ix8 + 1) {
         int16_t n_deref9 = *&n_let7[n_ix8];
         
-        smavlink_pack_int16_t((uint8_t*) n_ref1, 8U + n_ix8, n_deref9);
+        smavlink_pack_int16_t((uint8_t*) n_ref1, 8U + (uint8_t) n_ix8,
+                              n_deref9);
     }
     
     int16_t* n_let10 = n_var0->yaw;
     
-    for (uint8_t n_ix11 = 0U % 4U; n_ix11 <= 3U % 4U; n_ix11 = n_ix11 + 1U %
-         4U) {
+    for (int32_t n_ix11 = 0 % 4; n_ix11 <= 3 % 4; n_ix11 = n_ix11 + 1) {
         int16_t n_deref12 = *&n_let10[n_ix11];
         
-        smavlink_pack_int16_t((uint8_t*) n_ref1, 16U + n_ix11, n_deref12);
+        smavlink_pack_int16_t((uint8_t*) n_ref1, 16U + (uint8_t) n_ix11,
+                              n_deref12);
     }
     
     uint16_t* n_let13 = n_var0->thrust;
     
-    for (uint8_t n_ix14 = 0U % 4U; n_ix14 <= 3U % 4U; n_ix14 = n_ix14 + 1U %
-         4U) {
+    for (int32_t n_ix14 = 0 % 4; n_ix14 <= 3 % 4; n_ix14 = n_ix14 + 1) {
         uint16_t n_deref15 = *&n_let13[n_ix14];
         
-        smavlink_pack_uint16_t((uint8_t*) n_ref1, 24U + n_ix14, n_deref15);
+        smavlink_pack_uint16_t((uint8_t*) n_ref1, 24U + (uint8_t) n_ix14,
+                               n_deref15);
     }
     
     uint8_t* n_let16 = n_var0->led_red;
     
-    for (uint8_t n_ix17 = 0U % 4U; n_ix17 <= 3U % 4U; n_ix17 = n_ix17 + 1U %
-         4U) {
+    for (int32_t n_ix17 = 0 % 4; n_ix17 <= 3 % 4; n_ix17 = n_ix17 + 1) {
         uint8_t n_deref18 = *&n_let16[n_ix17];
         
-        smavlink_pack_uint8_t((uint8_t*) n_ref1, 34U + n_ix17, n_deref18);
+        smavlink_pack_uint8_t((uint8_t*) n_ref1, 34U + (uint8_t) n_ix17,
+                              n_deref18);
     }
     
     uint8_t* n_let19 = n_var0->led_blue;
     
-    for (uint8_t n_ix20 = 0U % 4U; n_ix20 <= 3U % 4U; n_ix20 = n_ix20 + 1U %
-         4U) {
+    for (int32_t n_ix20 = 0 % 4; n_ix20 <= 3 % 4; n_ix20 = n_ix20 + 1) {
         uint8_t n_deref21 = *&n_let19[n_ix20];
         
-        smavlink_pack_uint8_t((uint8_t*) n_ref1, 38U + n_ix20, n_deref21);
+        smavlink_pack_uint8_t((uint8_t*) n_ref1, 38U + (uint8_t) n_ix20,
+                              n_deref21);
     }
     
     uint8_t* n_let22 = n_var0->led_green;
     
-    for (uint8_t n_ix23 = 0U % 4U; n_ix23 <= 3U % 4U; n_ix23 = n_ix23 + 1U %
-         4U) {
+    for (int32_t n_ix23 = 0 % 4; n_ix23 <= 3 % 4; n_ix23 = n_ix23 + 1) {
         uint8_t n_deref24 = *&n_let22[n_ix23];
         
-        smavlink_pack_uint8_t((uint8_t*) n_ref1, 42U + n_ix23, n_deref24);
+        smavlink_pack_uint8_t((uint8_t*) n_ref1, 42U + (uint8_t) n_ix23,
+                              n_deref24);
     }
     smavlink_send_ivory(n_var1, n_var2, 63U, (uint8_t*) n_ref1, 46U, 130U);
     return;
 }
 void smavlink_unpack_set_quad_swarm_led_roll_pitch_yaw_thrust(struct set_quad_swarm_led_roll_pitch_yaw_thrust_msg* n_var0,
                                                               const
-                                                              uint8_t** n_var1)
+                                                              uint8_t* n_var1)
 {
     uint8_t n_r0 = smavlink_unpack_uint8_t(n_var1, 32U);
     
@@ -90,41 +92,38 @@ void smavlink_unpack_set_quad_swarm_led_roll_pitch_yaw_thrust(struct set_quad_sw
     uint8_t n_r1 = smavlink_unpack_uint8_t(n_var1, 33U);
     
     *&n_var0->mode = n_r1;
-    for (uint8_t n_ix2 = 0U % 4U; n_ix2 <= 3U % 4U; n_ix2 = n_ix2 + 1U % 4U) {
-        int16_t n_r3 = smavlink_unpack_int16_t(n_var1, 0U + n_ix2);
+    for (int32_t n_ix2 = 0 % 4; n_ix2 <= 3 % 4; n_ix2 = n_ix2 + 1) {
+        int16_t n_r3 = smavlink_unpack_int16_t(n_var1, 0U + (uint8_t) n_ix2);
         
         *&n_var0->roll[n_ix2] = n_r3;
     }
-    for (uint8_t n_ix4 = 0U % 4U; n_ix4 <= 3U % 4U; n_ix4 = n_ix4 + 1U % 4U) {
-        int16_t n_r5 = smavlink_unpack_int16_t(n_var1, 8U + n_ix4);
+    for (int32_t n_ix4 = 0 % 4; n_ix4 <= 3 % 4; n_ix4 = n_ix4 + 1) {
+        int16_t n_r5 = smavlink_unpack_int16_t(n_var1, 8U + (uint8_t) n_ix4);
         
         *&n_var0->pitch[n_ix4] = n_r5;
     }
-    for (uint8_t n_ix6 = 0U % 4U; n_ix6 <= 3U % 4U; n_ix6 = n_ix6 + 1U % 4U) {
-        int16_t n_r7 = smavlink_unpack_int16_t(n_var1, 16U + n_ix6);
+    for (int32_t n_ix6 = 0 % 4; n_ix6 <= 3 % 4; n_ix6 = n_ix6 + 1) {
+        int16_t n_r7 = smavlink_unpack_int16_t(n_var1, 16U + (uint8_t) n_ix6);
         
         *&n_var0->yaw[n_ix6] = n_r7;
     }
-    for (uint8_t n_ix8 = 0U % 4U; n_ix8 <= 3U % 4U; n_ix8 = n_ix8 + 1U % 4U) {
-        uint16_t n_r9 = smavlink_unpack_uint16_t(n_var1, 24U + n_ix8);
+    for (int32_t n_ix8 = 0 % 4; n_ix8 <= 3 % 4; n_ix8 = n_ix8 + 1) {
+        uint16_t n_r9 = smavlink_unpack_uint16_t(n_var1, 24U + (uint8_t) n_ix8);
         
         *&n_var0->thrust[n_ix8] = n_r9;
     }
-    for (uint8_t n_ix10 = 0U % 4U; n_ix10 <= 3U % 4U; n_ix10 = n_ix10 + 1U %
-         4U) {
-        uint8_t n_r11 = smavlink_unpack_uint8_t(n_var1, 34U + n_ix10);
+    for (int32_t n_ix10 = 0 % 4; n_ix10 <= 3 % 4; n_ix10 = n_ix10 + 1) {
+        uint8_t n_r11 = smavlink_unpack_uint8_t(n_var1, 34U + (uint8_t) n_ix10);
         
         *&n_var0->led_red[n_ix10] = n_r11;
     }
-    for (uint8_t n_ix12 = 0U % 4U; n_ix12 <= 3U % 4U; n_ix12 = n_ix12 + 1U %
-         4U) {
-        uint8_t n_r13 = smavlink_unpack_uint8_t(n_var1, 38U + n_ix12);
+    for (int32_t n_ix12 = 0 % 4; n_ix12 <= 3 % 4; n_ix12 = n_ix12 + 1) {
+        uint8_t n_r13 = smavlink_unpack_uint8_t(n_var1, 38U + (uint8_t) n_ix12);
         
         *&n_var0->led_blue[n_ix12] = n_r13;
     }
-    for (uint8_t n_ix14 = 0U % 4U; n_ix14 <= 3U % 4U; n_ix14 = n_ix14 + 1U %
-         4U) {
-        uint8_t n_r15 = smavlink_unpack_uint8_t(n_var1, 42U + n_ix14);
+    for (int32_t n_ix14 = 0 % 4; n_ix14 <= 3 % 4; n_ix14 = n_ix14 + 1) {
+        uint8_t n_r15 = smavlink_unpack_uint8_t(n_var1, 42U + (uint8_t) n_ix14);
         
         *&n_var0->led_green[n_ix14] = n_r15;
     }

@@ -47,7 +47,7 @@ void smavlink_send_global_position_int(struct global_position_int_msg* n_var0,
     return;
 }
 void smavlink_unpack_global_position_int(struct global_position_int_msg* n_var0,
-                                         const uint8_t** n_var1)
+                                         const uint8_t* n_var1)
 {
     uint32_t n_r0 = smavlink_unpack_uint32_t(n_var1, 0U);
     

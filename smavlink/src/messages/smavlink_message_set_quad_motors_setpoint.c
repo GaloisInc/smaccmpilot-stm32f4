@@ -31,7 +31,7 @@ void smavlink_send_set_quad_motors_setpoint(struct set_quad_motors_setpoint_msg*
     return;
 }
 void smavlink_unpack_set_quad_motors_setpoint(struct set_quad_motors_setpoint_msg* n_var0,
-                                              const uint8_t** n_var1)
+                                              const uint8_t* n_var1)
 {
     uint16_t n_r0 = smavlink_unpack_uint16_t(n_var1, 0U);
     

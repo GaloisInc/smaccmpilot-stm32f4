@@ -20,7 +20,7 @@ void smavlink_send_set_gps_global_origin(struct set_gps_global_origin_msg* n_var
                                          struct smavlink_out_channel* n_var1,
                                          struct smavlink_system* n_var2);
 void smavlink_unpack_set_gps_global_origin(struct set_gps_global_origin_msg* n_var0,
-                                           const uint8_t** n_var1);
+                                           const uint8_t* n_var1);
 
 #ifdef __cplusplus
 }

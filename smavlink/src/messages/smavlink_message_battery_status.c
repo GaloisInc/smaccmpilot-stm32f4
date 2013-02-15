@@ -47,7 +47,7 @@ void smavlink_send_battery_status(struct battery_status_msg* n_var0,
     return;
 }
 void smavlink_unpack_battery_status(struct battery_status_msg* n_var0, const
-                                    uint8_t** n_var1)
+                                    uint8_t* n_var1)
 {
     uint16_t n_r0 = smavlink_unpack_uint16_t(n_var1, 0U);
     

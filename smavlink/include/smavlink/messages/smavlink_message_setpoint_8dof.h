@@ -25,7 +25,7 @@ void smavlink_send_setpoint_8dof(struct setpoint_8dof_msg* n_var0,
                                  struct smavlink_out_channel* n_var1,
                                  struct smavlink_system* n_var2);
 void smavlink_unpack_setpoint_8dof(struct setpoint_8dof_msg* n_var0, const
-                                   uint8_t** n_var1);
+                                   uint8_t* n_var1);
 
 #ifdef __cplusplus
 }

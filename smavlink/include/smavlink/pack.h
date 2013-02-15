@@ -147,42 +147,42 @@ static inline uint64_t smavlink_unpack_swap8(const uint8_t *src) {
             ((uint64_t)src[0] << 56));
 }
 
-#define smavlink_unpack_uint8_t(buf, offs) ((uint8_t)smavlink_unpack_copy1(&(*buf)[offs]))
-#define smavlink_unpack_int8_t(buf, offs)  ((int8_t)smavlink_unpack_copy1(&(*buf)[offs]))
+#define smavlink_unpack_uint8_t(buf, offs) ((uint8_t)smavlink_unpack_copy1(((buf)+(offs))))
+#define smavlink_unpack_int8_t(buf, offs)  ((int8_t)smavlink_unpack_copy1(((buf)+(offs))))
 
 #if SMAVLINK_PACK_BYTE_SWAP
-#define smavlink_unpack_uint16_t(buf, offs) ((uint16_t)smavlink_unpack_swap2(&(*buf)[offs]))
-#define smavlink_unpack_int16_t(buf, offs)  ((int16_t)smavlink_unpack_swap2(&(*buf)[offs]))
-#define smavlink_unpack_uint32_t(buf, offs) ((uint32_t)smavlink_unpack_swap4(&(*buf)[offs]))
-#define smavlink_unpack_int32_t(buf, offs)  ((int32_t)smavlink_unpack_swap4(&(*buf)[offs]))
-#define smavlink_unpack_uint64_t(buf, offs) ((uint64_t)smavlink_unpack_swap8(&(*buf)[offs]))
-#define smavlink_unpack_int64_t(buf, offs)  ((int64_t)smavlink_unpack_swap8(&(*buf)[offs]))
+#define smavlink_unpack_uint16_t(buf, offs) ((uint16_t)smavlink_unpack_swap2(((buf)+(offs))))
+#define smavlink_unpack_int16_t(buf, offs)  ((int16_t)smavlink_unpack_swap2(((buf)+(offs))))
+#define smavlink_unpack_uint32_t(buf, offs) ((uint32_t)smavlink_unpack_swap4(((buf)+(offs))))
+#define smavlink_unpack_int32_t(buf, offs)  ((int32_t)smavlink_unpack_swap4(((buf)+(offs))))
+#define smavlink_unpack_uint64_t(buf, offs) ((uint64_t)smavlink_unpack_swap8(((buf)+(offs))))
+#define smavlink_unpack_int64_t(buf, offs)  ((int64_t)smavlink_unpack_swap8(((buf)+(offs))))
 
-static inline float smavlink_unpack_float(uint8_t *buf[], uint8_t offset) {
-    uint32_t raw = smavlink_unpack_swap4(&(*buf)[offset]);
+static inline float smavlink_unpack_float(const uint8_t *buf, uint8_t offset) {
+    uint32_t raw = smavlink_unpack_swap4(buf+offset);
     return *(float *)(&raw);
 }
 
-static inline double smavlink_unpack_double(uint8_t *buf[], uint8_t offset) {
-    uint64_t raw = smavlink_unpack_swap8(&(*buf)[offset]);
+static inline double smavlink_unpack_double(const uint8_t *buf, uint8_t offset) {
+    uint64_t raw = smavlink_unpack_swap8(buf + offset);
     return *(double *)(&raw);
 }
 
 #else
-#define smavlink_unpack_uint16_t(buf, offs) ((uint16_t)smavlink_unpack_copy2(&(*buf)[offs]))
-#define smavlink_unpack_int16_t(buf, offs)  ((int16_t)smavlink_unpack_copy2(&(*buf)[offs]))
-#define smavlink_unpack_uint32_t(buf, offs) ((uint32_t)smavlink_unpack_copy4(&(*buf)[offs]))
-#define smavlink_unpack_int32_t(buf, offs)  ((int32_t)smavlink_unpack_copy4(&(*buf)[offs]))
-#define smavlink_unpack_uint64_t(buf, offs) ((uint64_t)smavlink_unpack_copy8(&(*buf)[offs]))
-#define smavlink_unpack_int64_t(buf, offs)  ((int64_t)smavlink_unpack_copy8(&(*buf)[offs]))
+#define smavlink_unpack_uint16_t(buf, offs) ((uint16_t)smavlink_unpack_copy2(((buf)+(offs))))
+#define smavlink_unpack_int16_t(buf, offs)  ((int16_t)smavlink_unpack_copy2(((buf)+(offs))))
+#define smavlink_unpack_uint32_t(buf, offs) ((uint32_t)smavlink_unpack_copy4(((buf)+(offs))))
+#define smavlink_unpack_int32_t(buf, offs)  ((int32_t)smavlink_unpack_copy4(((buf)+(offs))))
+#define smavlink_unpack_uint64_t(buf, offs) ((uint64_t)smavlink_unpack_copy8(((buf)+(offs))))
+#define smavlink_unpack_int64_t(buf, offs)  ((int64_t)smavlink_unpack_copy8(((buf)+(offs))))
 
-static inline float smavlink_unpack_float(const uint8_t *buf[], uint8_t offset) {
-    uint32_t raw = smavlink_unpack_copy4(&(*buf)[offset]);
+static inline float smavlink_unpack_float(const uint8_t *buf, uint8_t offset) {
+    uint32_t raw = smavlink_unpack_copy4(buf + offset);
     return *(float *)(&raw);
 }
 
-static inline double smavlink_unpack_double(const uint8_t *buf[], uint8_t offset) {
-    uint64_t raw = smavlink_unpack_copy8(&(*buf)[offset]);
+static inline double smavlink_unpack_double(const uint8_t *buf, uint8_t offset) {
+    uint64_t raw = smavlink_unpack_copy8(buf + offset);
     return *(double *)(&raw);
 }
 

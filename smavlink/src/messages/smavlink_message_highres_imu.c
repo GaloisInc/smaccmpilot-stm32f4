@@ -71,7 +71,7 @@ void smavlink_send_highres_imu(struct highres_imu_msg* n_var0,
     return;
 }
 void smavlink_unpack_highres_imu(struct highres_imu_msg* n_var0, const
-                                 uint8_t** n_var1)
+                                 uint8_t* n_var1)
 {
     uint64_t n_r0 = smavlink_unpack_uint64_t(n_var1, 0U);
     

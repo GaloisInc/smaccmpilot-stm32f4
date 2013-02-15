@@ -23,7 +23,7 @@ void smavlink_send_change_operator_control_ack(struct change_operator_control_ac
     return;
 }
 void smavlink_unpack_change_operator_control_ack(struct change_operator_control_ack_msg* n_var0,
-                                                 const uint8_t** n_var1)
+                                                 const uint8_t* n_var1)
 {
     uint8_t n_r0 = smavlink_unpack_uint8_t(n_var1, 0U);
     

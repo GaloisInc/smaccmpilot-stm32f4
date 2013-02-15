@@ -35,7 +35,7 @@ void smavlink_send_manual_control(struct manual_control_msg* n_var0,
     return;
 }
 void smavlink_unpack_manual_control(struct manual_control_msg* n_var0, const
-                                    uint8_t** n_var1)
+                                    uint8_t* n_var1)
 {
     int16_t n_r0 = smavlink_unpack_int16_t(n_var1, 0U);
     

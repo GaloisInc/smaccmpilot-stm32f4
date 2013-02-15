@@ -22,7 +22,7 @@ void smavlink_send_roll_pitch_yaw_rates_thrust_setpoint(struct roll_pitch_yaw_ra
                                                         struct smavlink_system* n_var2);
 void smavlink_unpack_roll_pitch_yaw_rates_thrust_setpoint(struct roll_pitch_yaw_rates_thrust_setpoint_msg* n_var0,
                                                           const
-                                                          uint8_t** n_var1);
+                                                          uint8_t* n_var1);
 
 #ifdef __cplusplus
 }

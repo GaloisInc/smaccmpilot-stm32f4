@@ -39,7 +39,7 @@ void smavlink_send_local_position_ned(struct local_position_ned_msg* n_var0,
     return;
 }
 void smavlink_unpack_local_position_ned(struct local_position_ned_msg* n_var0,
-                                        const uint8_t** n_var1)
+                                        const uint8_t* n_var1)
 {
     uint32_t n_r0 = smavlink_unpack_uint32_t(n_var1, 0U);
     

@@ -19,7 +19,7 @@ void smavlink_send_param_request_list(struct param_request_list_msg* n_var0,
     return;
 }
 void smavlink_unpack_param_request_list(struct param_request_list_msg* n_var0,
-                                        const uint8_t** n_var1)
+                                        const uint8_t* n_var1)
 {
     uint8_t n_r0 = smavlink_unpack_uint8_t(n_var1, 0U);
     

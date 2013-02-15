@@ -50,7 +50,7 @@ void smavlink_send_raw_imu(struct raw_imu_msg* n_var0,
     smavlink_send_ivory(n_var1, n_var2, 27U, (uint8_t*) n_ref1, 26U, 144U);
     return;
 }
-void smavlink_unpack_raw_imu(struct raw_imu_msg* n_var0, const uint8_t** n_var1)
+void smavlink_unpack_raw_imu(struct raw_imu_msg* n_var0, const uint8_t* n_var1)
 {
     uint64_t n_r0 = smavlink_unpack_uint64_t(n_var1, 0U);
     

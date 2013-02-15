@@ -15,7 +15,7 @@ void smavlink_send_mission_current(struct mission_current_msg* n_var0,
     return;
 }
 void smavlink_unpack_mission_current(struct mission_current_msg* n_var0, const
-                                     uint8_t** n_var1)
+                                     uint8_t* n_var1)
 {
     uint16_t n_r0 = smavlink_unpack_uint16_t(n_var1, 0U);
     

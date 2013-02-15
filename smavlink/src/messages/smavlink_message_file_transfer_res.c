@@ -19,7 +19,7 @@ void smavlink_send_file_transfer_res(struct file_transfer_res_msg* n_var0,
     return;
 }
 void smavlink_unpack_file_transfer_res(struct file_transfer_res_msg* n_var0,
-                                       const uint8_t** n_var1)
+                                       const uint8_t* n_var1)
 {
     uint64_t n_r0 = smavlink_unpack_uint64_t(n_var1, 0U);
     

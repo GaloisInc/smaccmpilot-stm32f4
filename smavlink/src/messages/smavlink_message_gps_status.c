@@ -14,84 +14,79 @@ void smavlink_send_gps_status(struct gps_status_msg* n_var0,
     
     uint8_t* n_let3 = n_var0->satellite_prn;
     
-    for (uint8_t n_ix4 = 0U % 20U; n_ix4 <= 19U % 20U; n_ix4 = n_ix4 + 1U %
-         20U) {
+    for (int32_t n_ix4 = 0 % 20; n_ix4 <= 19 % 20; n_ix4 = n_ix4 + 1) {
         uint8_t n_deref5 = *&n_let3[n_ix4];
         
-        smavlink_pack_uint8_t((uint8_t*) n_ref1, 1U + n_ix4, n_deref5);
+        smavlink_pack_uint8_t((uint8_t*) n_ref1, 1U + (uint8_t) n_ix4,
+                              n_deref5);
     }
     
     uint8_t* n_let6 = n_var0->satellite_used;
     
-    for (uint8_t n_ix7 = 0U % 20U; n_ix7 <= 19U % 20U; n_ix7 = n_ix7 + 1U %
-         20U) {
+    for (int32_t n_ix7 = 0 % 20; n_ix7 <= 19 % 20; n_ix7 = n_ix7 + 1) {
         uint8_t n_deref8 = *&n_let6[n_ix7];
         
-        smavlink_pack_uint8_t((uint8_t*) n_ref1, 21U + n_ix7, n_deref8);
+        smavlink_pack_uint8_t((uint8_t*) n_ref1, 21U + (uint8_t) n_ix7,
+                              n_deref8);
     }
     
     uint8_t* n_let9 = n_var0->satellite_elevation;
     
-    for (uint8_t n_ix10 = 0U % 20U; n_ix10 <= 19U % 20U; n_ix10 = n_ix10 + 1U %
-         20U) {
+    for (int32_t n_ix10 = 0 % 20; n_ix10 <= 19 % 20; n_ix10 = n_ix10 + 1) {
         uint8_t n_deref11 = *&n_let9[n_ix10];
         
-        smavlink_pack_uint8_t((uint8_t*) n_ref1, 41U + n_ix10, n_deref11);
+        smavlink_pack_uint8_t((uint8_t*) n_ref1, 41U + (uint8_t) n_ix10,
+                              n_deref11);
     }
     
     uint8_t* n_let12 = n_var0->satellite_azimuth;
     
-    for (uint8_t n_ix13 = 0U % 20U; n_ix13 <= 19U % 20U; n_ix13 = n_ix13 + 1U %
-         20U) {
+    for (int32_t n_ix13 = 0 % 20; n_ix13 <= 19 % 20; n_ix13 = n_ix13 + 1) {
         uint8_t n_deref14 = *&n_let12[n_ix13];
         
-        smavlink_pack_uint8_t((uint8_t*) n_ref1, 61U + n_ix13, n_deref14);
+        smavlink_pack_uint8_t((uint8_t*) n_ref1, 61U + (uint8_t) n_ix13,
+                              n_deref14);
     }
     
     uint8_t* n_let15 = n_var0->satellite_snr;
     
-    for (uint8_t n_ix16 = 0U % 20U; n_ix16 <= 19U % 20U; n_ix16 = n_ix16 + 1U %
-         20U) {
+    for (int32_t n_ix16 = 0 % 20; n_ix16 <= 19 % 20; n_ix16 = n_ix16 + 1) {
         uint8_t n_deref17 = *&n_let15[n_ix16];
         
-        smavlink_pack_uint8_t((uint8_t*) n_ref1, 81U + n_ix16, n_deref17);
+        smavlink_pack_uint8_t((uint8_t*) n_ref1, 81U + (uint8_t) n_ix16,
+                              n_deref17);
     }
     smavlink_send_ivory(n_var1, n_var2, 25U, (uint8_t*) n_ref1, 101U, 23U);
     return;
 }
 void smavlink_unpack_gps_status(struct gps_status_msg* n_var0, const
-                                uint8_t** n_var1)
+                                uint8_t* n_var1)
 {
     uint8_t n_r0 = smavlink_unpack_uint8_t(n_var1, 0U);
     
     *&n_var0->satellites_visible = n_r0;
-    for (uint8_t n_ix1 = 0U % 20U; n_ix1 <= 19U % 20U; n_ix1 = n_ix1 + 1U %
-         20U) {
-        uint8_t n_r2 = smavlink_unpack_uint8_t(n_var1, 1U + n_ix1);
+    for (int32_t n_ix1 = 0 % 20; n_ix1 <= 19 % 20; n_ix1 = n_ix1 + 1) {
+        uint8_t n_r2 = smavlink_unpack_uint8_t(n_var1, 1U + (uint8_t) n_ix1);
         
         *&n_var0->satellite_prn[n_ix1] = n_r2;
     }
-    for (uint8_t n_ix3 = 0U % 20U; n_ix3 <= 19U % 20U; n_ix3 = n_ix3 + 1U %
-         20U) {
-        uint8_t n_r4 = smavlink_unpack_uint8_t(n_var1, 21U + n_ix3);
+    for (int32_t n_ix3 = 0 % 20; n_ix3 <= 19 % 20; n_ix3 = n_ix3 + 1) {
+        uint8_t n_r4 = smavlink_unpack_uint8_t(n_var1, 21U + (uint8_t) n_ix3);
         
         *&n_var0->satellite_used[n_ix3] = n_r4;
     }
-    for (uint8_t n_ix5 = 0U % 20U; n_ix5 <= 19U % 20U; n_ix5 = n_ix5 + 1U %
-         20U) {
-        uint8_t n_r6 = smavlink_unpack_uint8_t(n_var1, 41U + n_ix5);
+    for (int32_t n_ix5 = 0 % 20; n_ix5 <= 19 % 20; n_ix5 = n_ix5 + 1) {
+        uint8_t n_r6 = smavlink_unpack_uint8_t(n_var1, 41U + (uint8_t) n_ix5);
         
         *&n_var0->satellite_elevation[n_ix5] = n_r6;
     }
-    for (uint8_t n_ix7 = 0U % 20U; n_ix7 <= 19U % 20U; n_ix7 = n_ix7 + 1U %
-         20U) {
-        uint8_t n_r8 = smavlink_unpack_uint8_t(n_var1, 61U + n_ix7);
+    for (int32_t n_ix7 = 0 % 20; n_ix7 <= 19 % 20; n_ix7 = n_ix7 + 1) {
+        uint8_t n_r8 = smavlink_unpack_uint8_t(n_var1, 61U + (uint8_t) n_ix7);
         
         *&n_var0->satellite_azimuth[n_ix7] = n_r8;
     }
-    for (uint8_t n_ix9 = 0U % 20U; n_ix9 <= 19U % 20U; n_ix9 = n_ix9 + 1U %
-         20U) {
-        uint8_t n_r10 = smavlink_unpack_uint8_t(n_var1, 81U + n_ix9);
+    for (int32_t n_ix9 = 0 % 20; n_ix9 <= 19 % 20; n_ix9 = n_ix9 + 1) {
+        uint8_t n_r10 = smavlink_unpack_uint8_t(n_var1, 81U + (uint8_t) n_ix9);
         
         *&n_var0->satellite_snr[n_ix9] = n_r10;
     }

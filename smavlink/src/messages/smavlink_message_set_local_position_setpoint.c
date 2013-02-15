@@ -39,7 +39,7 @@ void smavlink_send_set_local_position_setpoint(struct set_local_position_setpoin
     return;
 }
 void smavlink_unpack_set_local_position_setpoint(struct set_local_position_setpoint_msg* n_var0,
-                                                 const uint8_t** n_var1)
+                                                 const uint8_t* n_var1)
 {
     float n_r0 = smavlink_unpack_float(n_var1, 0U);
     

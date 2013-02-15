@@ -23,7 +23,7 @@ void smavlink_send_gps_global_origin(struct gps_global_origin_msg* n_var0,
     return;
 }
 void smavlink_unpack_gps_global_origin(struct gps_global_origin_msg* n_var0,
-                                       const uint8_t** n_var1)
+                                       const uint8_t* n_var1)
 {
     int32_t n_r0 = smavlink_unpack_int32_t(n_var1, 0U);
     

@@ -25,7 +25,7 @@ void smavlink_send_safety_set_allowed_area(struct safety_set_allowed_area_msg* n
                                            struct smavlink_out_channel* n_var1,
                                            struct smavlink_system* n_var2);
 void smavlink_unpack_safety_set_allowed_area(struct safety_set_allowed_area_msg* n_var0,
-                                             const uint8_t** n_var1);
+                                             const uint8_t* n_var1);
 
 #ifdef __cplusplus
 }

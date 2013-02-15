@@ -22,17 +22,16 @@ void smavlink_send_memory_vect(struct memory_vect_msg* n_var0,
     
     int8_t* n_let5 = n_var0->value;
     
-    for (uint8_t n_ix6 = 0U % 32U; n_ix6 <= 31U % 32U; n_ix6 = n_ix6 + 1U %
-         32U) {
+    for (int32_t n_ix6 = 0 % 32; n_ix6 <= 31 % 32; n_ix6 = n_ix6 + 1) {
         int8_t n_deref7 = *&n_let5[n_ix6];
         
-        smavlink_pack_int8_t((uint8_t*) n_ref1, 4U + n_ix6, n_deref7);
+        smavlink_pack_int8_t((uint8_t*) n_ref1, 4U + (uint8_t) n_ix6, n_deref7);
     }
     smavlink_send_ivory(n_var1, n_var2, 249U, (uint8_t*) n_ref1, 36U, 204U);
     return;
 }
 void smavlink_unpack_memory_vect(struct memory_vect_msg* n_var0, const
-                                 uint8_t** n_var1)
+                                 uint8_t* n_var1)
 {
     uint16_t n_r0 = smavlink_unpack_uint16_t(n_var1, 0U);
     
@@ -45,9 +44,8 @@ void smavlink_unpack_memory_vect(struct memory_vect_msg* n_var0, const
     uint8_t n_r2 = smavlink_unpack_uint8_t(n_var1, 3U);
     
     *&n_var0->memory_vect_type = n_r2;
-    for (uint8_t n_ix3 = 0U % 32U; n_ix3 <= 31U % 32U; n_ix3 = n_ix3 + 1U %
-         32U) {
-        int8_t n_r4 = smavlink_unpack_int8_t(n_var1, 4U + n_ix3);
+    for (int32_t n_ix3 = 0 % 32; n_ix3 <= 31 % 32; n_ix3 = n_ix3 + 1) {
+        int8_t n_r4 = smavlink_unpack_int8_t(n_var1, 4U + (uint8_t) n_ix3);
         
         *&n_var0->value[n_ix3] = n_r4;
     }

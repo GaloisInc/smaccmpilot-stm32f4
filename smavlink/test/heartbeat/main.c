@@ -123,7 +123,7 @@ static void send_heartbeat(void)
 static void receive_heartbeat(const uint8_t *buf)
 {
     struct heartbeat_msg msg;
-    smavlink_unpack_heartbeat(&msg, &buf);
+    smavlink_unpack_heartbeat(&msg, buf);
     debug_printf("heartbeat: %lu %u %u %u %u\r\n",
                  msg.custom_mode, msg.mavtype, msg.autopilot,
                  msg.base_mode, msg.system_status);

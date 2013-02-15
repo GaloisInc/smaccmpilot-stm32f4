@@ -40,7 +40,7 @@ void smavlink_send_local_position_ned_system_global_offset(struct local_position
 }
 void smavlink_unpack_local_position_ned_system_global_offset(struct local_position_ned_system_global_offset_msg* n_var0,
                                                              const
-                                                             uint8_t** n_var1)
+                                                             uint8_t* n_var1)
 {
     uint32_t n_r0 = smavlink_unpack_uint32_t(n_var1, 0U);
     

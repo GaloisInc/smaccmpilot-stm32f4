@@ -67,7 +67,7 @@ void smavlink_send_mission_item(struct mission_item_msg* n_var0,
     return;
 }
 void smavlink_unpack_mission_item(struct mission_item_msg* n_var0, const
-                                  uint8_t** n_var1)
+                                  uint8_t* n_var1)
 {
     float n_r0 = smavlink_unpack_float(n_var1, 0U);
     

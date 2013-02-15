@@ -27,7 +27,7 @@ void smavlink_send_mission_write_partial_list(struct mission_write_partial_list_
     return;
 }
 void smavlink_unpack_mission_write_partial_list(struct mission_write_partial_list_msg* n_var0,
-                                                const uint8_t** n_var1)
+                                                const uint8_t* n_var1)
 {
     int16_t n_r0 = smavlink_unpack_int16_t(n_var1, 0U);
     

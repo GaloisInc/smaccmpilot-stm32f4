@@ -43,7 +43,7 @@ void smavlink_send_nav_controller_output(struct nav_controller_output_msg* n_var
     return;
 }
 void smavlink_unpack_nav_controller_output(struct nav_controller_output_msg* n_var0,
-                                           const uint8_t** n_var1)
+                                           const uint8_t* n_var1)
 {
     float n_r0 = smavlink_unpack_float(n_var1, 0U);
     

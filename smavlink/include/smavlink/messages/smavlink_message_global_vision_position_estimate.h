@@ -23,7 +23,7 @@ void smavlink_send_global_vision_position_estimate(struct global_vision_position
                                                    struct smavlink_out_channel* n_var1,
                                                    struct smavlink_system* n_var2);
 void smavlink_unpack_global_vision_position_estimate(struct global_vision_position_estimate_msg* n_var0,
-                                                     const uint8_t** n_var1);
+                                                     const uint8_t* n_var1);
 
 #ifdef __cplusplus
 }

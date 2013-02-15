@@ -20,7 +20,7 @@ void smavlink_send_mission_write_partial_list(struct mission_write_partial_list_
                                               struct smavlink_out_channel* n_var1,
                                               struct smavlink_system* n_var2);
 void smavlink_unpack_mission_write_partial_list(struct mission_write_partial_list_msg* n_var0,
-                                                const uint8_t** n_var1);
+                                                const uint8_t* n_var1);
 
 #ifdef __cplusplus
 }

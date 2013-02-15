@@ -22,17 +22,17 @@ void smavlink_send_param_request_read(struct param_request_read_msg* n_var0,
     
     uint8_t* n_let5 = n_var0->param_id;
     
-    for (uint8_t n_ix6 = 0U % 16U; n_ix6 <= 15U % 16U; n_ix6 = n_ix6 + 1U %
-         16U) {
+    for (int32_t n_ix6 = 0 % 16; n_ix6 <= 15 % 16; n_ix6 = n_ix6 + 1) {
         uint8_t n_deref7 = *&n_let5[n_ix6];
         
-        smavlink_pack_uint8_t((uint8_t*) n_ref1, 4U + n_ix6, n_deref7);
+        smavlink_pack_uint8_t((uint8_t*) n_ref1, 4U + (uint8_t) n_ix6,
+                              n_deref7);
     }
     smavlink_send_ivory(n_var1, n_var2, 20U, (uint8_t*) n_ref1, 20U, 214U);
     return;
 }
 void smavlink_unpack_param_request_read(struct param_request_read_msg* n_var0,
-                                        const uint8_t** n_var1)
+                                        const uint8_t* n_var1)
 {
     int16_t n_r0 = smavlink_unpack_int16_t(n_var1, 0U);
     
@@ -45,9 +45,8 @@ void smavlink_unpack_param_request_read(struct param_request_read_msg* n_var0,
     uint8_t n_r2 = smavlink_unpack_uint8_t(n_var1, 3U);
     
     *&n_var0->target_component = n_r2;
-    for (uint8_t n_ix3 = 0U % 16U; n_ix3 <= 15U % 16U; n_ix3 = n_ix3 + 1U %
-         16U) {
-        uint8_t n_r4 = smavlink_unpack_uint8_t(n_var1, 4U + n_ix3);
+    for (int32_t n_ix3 = 0 % 16; n_ix3 <= 15 % 16; n_ix3 = n_ix3 + 1) {
+        uint8_t n_r4 = smavlink_unpack_uint8_t(n_var1, 4U + (uint8_t) n_ix3);
         
         *&n_var0->param_id[n_ix3] = n_r4;
     }
