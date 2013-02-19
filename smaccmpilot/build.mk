@@ -47,6 +47,7 @@ SMACCMPILOT_OBJECTS :=       \
   src/position_estimator.o   \
   src/pid_stabilize.o        \
   src/ivory_string_prim.o    \
+  src/console_prim.o         \
   src/storage_eeprom.o       \
   src/storage_partition.o    \
   src/param.o

@@ -25,6 +25,7 @@ library
                        PositionEstimateType,
                        IvoryHelpers,
                        IvoryCString,
+                       SMACCMPilot.Console,
                        SMACCMPilot.Driver.I2C,
                        SMACCMPilot.Storage.EEPROM,
                        SMACCMPilot.Storage.Partition,

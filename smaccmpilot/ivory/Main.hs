@@ -14,6 +14,7 @@ import PositionEstimateType (positionEstimateTypeModule)
 
 import IvoryCString               (cstringModule)
 
+import SMACCMPilot.Console           (consoleModule)
 import SMACCMPilot.Driver.I2C        (i2cModule)
 import SMACCMPilot.Storage.EEPROM    (eepromModule)
 import SMACCMPilot.Storage.Partition (partitionModule)
@@ -33,6 +34,7 @@ main = compile [ positionModule
                , optFlowTypeModule
                , positionEstimateTypeModule
                , cstringModule
+               , consoleModule
                , i2cModule
                , eepromModule
                , partitionModule
