@@ -37,7 +37,7 @@ bool partition_read(int32_t n_var0, uint16_t n_var1, uint8_t* n_var2,
                     uint16_t n_var3)
 {
     bool n_r0 = partition_in_bounds(n_var0, n_var1, 0U);
-    bool n_r1 = partition_in_bounds(n_var0, n_var1, n_var3);
+    bool n_r1 = partition_in_bounds(n_var0, n_var1, n_var3 - 1U);
     
     if (!(n_r0 && n_r1)) {
         return false;

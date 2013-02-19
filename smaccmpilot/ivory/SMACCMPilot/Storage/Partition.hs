@@ -31,7 +31,6 @@ module SMACCMPilot.Storage.Partition (
 import Ivory.Language
 
 import IvoryHelpers
-import SMACCMPilot.Driver.I2C
 import SMACCMPilot.Storage.EEPROM
 
 ----------------------------------------------------------------------
@@ -125,7 +124,7 @@ partition_read :: Def ('[ PartitionID                   -- partition
                         , Uint16] :-> IBool)            -- len
 partition_read = proc "partition_read" $ \pid addr buf len -> body $ do
   start_ok <- call partition_in_bounds pid addr 0
-  end_ok   <- call partition_in_bounds pid addr len
+  end_ok   <- call partition_in_bounds pid addr (len - 1)
   ift (iNot (start_ok .&& end_ok))
     (ret false)
 

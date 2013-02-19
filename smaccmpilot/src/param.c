@@ -20,7 +20,7 @@ void param_init_u8(char* n_var0, uint8_t* n_var1)
 {
     struct param_info* n_r0 = param_new();
     
-    ivory_strlcpy((char*) n_r0->param_name, n_var0, 32U);
+    ivory_strlcpy((char*) n_r0->param_name, n_var0, 17U);
     *&n_r0->param_type = 0U;
     *&n_r0->param_ptr_u8 = n_var1;
 }
@@ -28,7 +28,7 @@ void param_init_u16(char* n_var0, uint16_t* n_var1)
 {
     struct param_info* n_r0 = param_new();
     
-    ivory_strlcpy((char*) n_r0->param_name, n_var0, 32U);
+    ivory_strlcpy((char*) n_r0->param_name, n_var0, 17U);
     *&n_r0->param_type = 1U;
     *&n_r0->param_ptr_u16 = n_var1;
 }
@@ -36,7 +36,7 @@ void param_init_u32(char* n_var0, uint32_t* n_var1)
 {
     struct param_info* n_r0 = param_new();
     
-    ivory_strlcpy((char*) n_r0->param_name, n_var0, 32U);
+    ivory_strlcpy((char*) n_r0->param_name, n_var0, 17U);
     *&n_r0->param_type = 2U;
     *&n_r0->param_ptr_u32 = n_var1;
 }
@@ -44,7 +44,7 @@ void param_init_float(char* n_var0, float* n_var1)
 {
     struct param_info* n_r0 = param_new();
     
-    ivory_strlcpy((char*) n_r0->param_name, n_var0, 32U);
+    ivory_strlcpy((char*) n_r0->param_name, n_var0, 17U);
     *&n_r0->param_type = 3U;
     *&n_r0->param_ptr_float = n_var1;
 }
@@ -57,7 +57,7 @@ struct param_info* param_get_by_name(const char* n_var0)
     for (int32_t n_ix3 = 0; n_ix3 <= (n_deref1 - 1) % 512; n_ix3 = n_ix3 + 1) {
         struct param_info* n_let4 = &n_ref2[n_ix3];
         const char* n_let5 = (const char*) n_let4->param_name;
-        uint32_t n_let6 = 32U;
+        uint32_t n_let6 = 17U;
         int32_t n_r7 = strncmp(n_var0, n_let5, n_let6);
         
         if (n_r7 == 0) {
@@ -106,9 +106,7 @@ float param_get_float_value(struct param_info* n_var0)
             uint8_t n_deref2 = *n_deref1;
             
             return (float) n_deref2;
-        } else {
-            return 0.0f;
-        }
+        } else { }
     } else { }
     if (n_deref0 == 1U) {
         uint16_t* n_deref3 = *&n_var0->param_ptr_u16;
@@ -117,9 +115,7 @@ float param_get_float_value(struct param_info* n_var0)
             uint16_t n_deref4 = *n_deref3;
             
             return (float) n_deref4;
-        } else {
-            return 0.0f;
-        }
+        } else { }
     } else { }
     if (n_deref0 == 2U) {
         uint32_t* n_deref5 = *&n_var0->param_ptr_u32;
@@ -128,9 +124,7 @@ float param_get_float_value(struct param_info* n_var0)
             uint32_t n_deref6 = *n_deref5;
             
             return (float) n_deref6;
-        } else {
-            return 0.0f;
-        }
+        } else { }
     } else { }
     if (n_deref0 == 3U) {
         float* n_deref7 = *&n_var0->param_ptr_float;
@@ -139,9 +133,7 @@ float param_get_float_value(struct param_info* n_var0)
             float n_deref8 = *n_deref7;
             
             return n_deref8;
-        } else {
-            return 0.0f;
-        }
+        } else { }
     } else { }
     return 0.0f;
 }
@@ -154,37 +146,502 @@ void param_set_float_value(struct param_info* n_var0, float n_var1)
         
         if (NULL != n_deref1) {
             *n_deref1 = (bool) isnan(n_var1) ? 0U : (uint8_t) truncf(n_var1);
-        } else {
-            return;
-        }
+        } else { }
     } else { }
     if (n_deref0 == 1U) {
         uint16_t* n_deref2 = *&n_var0->param_ptr_u16;
         
         if (NULL != n_deref2) {
             *n_deref2 = (bool) isnan(n_var1) ? 0U : (uint16_t) truncf(n_var1);
-        } else {
-            return;
-        }
+        } else { }
     } else { }
     if (n_deref0 == 2U) {
         uint32_t* n_deref3 = *&n_var0->param_ptr_u32;
         
         if (NULL != n_deref3) {
             *n_deref3 = (bool) isnan(n_var1) ? 0U : (uint32_t) truncf(n_var1);
-        } else {
-            return;
-        }
+        } else { }
     } else { }
     if (n_deref0 == 3U) {
         float* n_deref4 = *&n_var0->param_ptr_float;
         
         if (NULL != n_deref4) {
             *n_deref4 = n_var1;
-        } else {
-            return;
-        }
+        } else { }
     } else { }
+}
+bool param_read_header(int32_t n_var0, struct param_header* n_var1)
+{
+    uint8_t n_local0[7U] = {};
+    uint8_t* n_ref1 = n_local0;
+    bool n_r2 = partition_read(n_var0, 0U, (uint8_t*) n_ref1, 7U);
+    
+    if (!n_r2) {
+        return false;
+    } else { }
+    
+    uint32_t n_r3 = smavlink_unpack_uint32_t((const uint8_t*) n_ref1, 0U);
+    
+    *&n_var1->ph_signature = n_r3;
+    
+    uint8_t n_r4 = smavlink_unpack_uint8_t((const uint8_t*) n_ref1, 4U);
+    
+    *&n_var1->ph_seq = n_r4;
+    
+    uint16_t n_r5 = smavlink_unpack_uint16_t((const uint8_t*) n_ref1, 5U);
+    
+    *&n_var1->ph_length = n_r5;
+    return true;
+}
+bool param_write_header(int32_t n_var0, const struct param_header* n_var1)
+{
+    uint8_t n_local0[7U] = {};
+    uint8_t* n_ref1 = n_local0;
+    uint32_t n_deref2 = *&n_var1->ph_signature;
+    
+    smavlink_pack_uint32_t((uint8_t*) n_ref1, 0U, n_deref2);
+    
+    uint8_t n_deref3 = *&n_var1->ph_seq;
+    
+    smavlink_pack_uint8_t((uint8_t*) n_ref1, 4U, n_deref3);
+    
+    uint16_t n_deref4 = *&n_var1->ph_length;
+    
+    smavlink_pack_uint16_t((uint8_t*) n_ref1, 5U, n_deref4);
+    
+    bool n_r5 = partition_write(n_var0, 0U, (const uint8_t*) n_ref1, 7U);
+    
+    return n_r5;
+}
+bool param_is_valid_header(const struct param_header* n_var0)
+{
+    uint32_t n_deref0 = *&n_var0->ph_signature;
+    
+    return n_deref0 == 2906522394U;
+}
+bool param_is_valid_seq(uint8_t n_var0)
+{
+    return n_var0 != 0U && n_var0 != 255U;
+}
+uint8_t param_get_next_seq(uint8_t n_var0)
+{
+    if (n_var0 == 254U) {
+        return 1U;
+    } else {
+        return n_var0 + 1U;
+    }
+}
+int32_t param_get_next_pid(int32_t n_var0)
+{
+    if (n_var0 == 1) {
+        return 2;
+    } else {
+        return 1;
+    }
+}
+int32_t param_choose_partition(const struct param_header* n_var0, const
+                               struct param_header* n_var1)
+{
+    uint8_t n_local0 = 0U;
+    uint8_t* n_ref1 = &n_local0;
+    bool n_r2 = param_is_valid_header(n_var0);
+    
+    if (n_r2) {
+        uint8_t n_deref3 = *&n_var0->ph_seq;
+        
+        *n_ref1 = n_deref3;
+    } else { }
+    
+    uint8_t n_deref4 = *n_ref1;
+    bool n_r5 = param_is_valid_seq(n_deref4);
+    uint8_t n_local6 = 0U;
+    uint8_t* n_ref7 = &n_local6;
+    bool n_r8 = param_is_valid_header(n_var1);
+    
+    if (n_r8) {
+        uint8_t n_deref9 = *&n_var1->ph_seq;
+        
+        *n_ref7 = n_deref9;
+    } else { }
+    
+    uint8_t n_deref10 = *n_ref7;
+    bool n_r11 = param_is_valid_seq(n_deref10);
+    
+    if (!n_r5 && !n_r11) {
+        return 0;
+    } else { }
+    if (n_r5 && !n_r11) {
+        return 1;
+    } else { }
+    if (n_r11 && !n_r5) {
+        return 2;
+    } else { }
+    
+    uint8_t n_r12 = param_get_next_seq(n_deref4);
+    
+    if (n_deref10 == n_r12) {
+        return 2;
+    } else { }
+    
+    uint8_t n_r13 = param_get_next_seq(n_deref10);
+    
+    if (n_deref4 == n_r13) {
+        return 1;
+    } else { }
+    return 0;
+}
+bool param_load_1(int32_t n_var0, uint16_t n_var1)
+{
+    uint8_t n_local0[26U] = {};
+    uint8_t* n_ref1 = n_local0;
+    bool n_r2 = partition_read(n_var0, n_var1, (uint8_t*) n_ref1, 26U);
+    
+    if (!n_r2) {
+        return false;
+    } else { }
+    
+    char n_local3[17U] = {};
+    char* n_ref4 = n_local3;
+    
+    for (int32_t n_ix5 = 0; n_ix5 <= 16; n_ix5 = n_ix5 + 1) {
+        char n_r6 = smavlink_unpack_uint8_t((const uint8_t*) n_ref1, 1U +
+                                            (uint8_t) n_ix5);
+        
+        *&n_ref4[n_ix5] = n_r6;
+    }
+    
+    struct param_info* n_r7 = param_get_by_name((const char*) n_ref4);
+    
+    if (NULL != n_r7) {
+        uint8_t n_deref8 = *&n_ref1[0];
+        uint8_t n_deref9 = *&n_r7->param_type;
+        
+        if (n_deref8 != n_deref9) {
+            return false;
+        } else { }
+        
+        uint8_t n_deref10 = *&n_r7->param_type;
+        
+        if (n_deref10 == 0U) {
+            uint8_t* n_deref11 = *&n_r7->param_ptr_u8;
+            
+            if (NULL != n_deref11) {
+                uint8_t n_r12 = smavlink_unpack_uint8_t((const uint8_t*) n_ref1,
+                                                        0U);
+                
+                *&n_r7->param_type = n_r12;
+                for (int32_t n_ix13 = 0; n_ix13 <= 16; n_ix13 = n_ix13 + 1) {
+                    char n_r14 = smavlink_unpack_uint8_t((const
+                                                          uint8_t*) n_ref1, 1U +
+                                                         (uint8_t) n_ix13);
+                    
+                    *&n_r7->param_name[n_ix13] = n_r14;
+                }
+                
+                uint8_t n_r15 = smavlink_unpack_uint8_t((const uint8_t*) n_ref1,
+                                                        18U);
+                
+                *n_deref11 = n_r15;
+            } else { }
+        } else { }
+        if (n_deref10 == 1U) {
+            uint16_t* n_deref16 = *&n_r7->param_ptr_u16;
+            
+            if (NULL != n_deref16) {
+                uint8_t n_r17 = smavlink_unpack_uint8_t((const uint8_t*) n_ref1,
+                                                        0U);
+                
+                *&n_r7->param_type = n_r17;
+                for (int32_t n_ix18 = 0; n_ix18 <= 16; n_ix18 = n_ix18 + 1) {
+                    char n_r19 = smavlink_unpack_uint8_t((const
+                                                          uint8_t*) n_ref1, 1U +
+                                                         (uint8_t) n_ix18);
+                    
+                    *&n_r7->param_name[n_ix18] = n_r19;
+                }
+                
+                uint16_t n_r20 = smavlink_unpack_uint16_t((const
+                                                           uint8_t*) n_ref1,
+                                                          18U);
+                
+                *n_deref16 = n_r20;
+            } else { }
+        } else { }
+        if (n_deref10 == 2U) {
+            uint32_t* n_deref21 = *&n_r7->param_ptr_u32;
+            
+            if (NULL != n_deref21) {
+                uint8_t n_r22 = smavlink_unpack_uint8_t((const uint8_t*) n_ref1,
+                                                        0U);
+                
+                *&n_r7->param_type = n_r22;
+                for (int32_t n_ix23 = 0; n_ix23 <= 16; n_ix23 = n_ix23 + 1) {
+                    char n_r24 = smavlink_unpack_uint8_t((const
+                                                          uint8_t*) n_ref1, 1U +
+                                                         (uint8_t) n_ix23);
+                    
+                    *&n_r7->param_name[n_ix23] = n_r24;
+                }
+                
+                uint32_t n_r25 = smavlink_unpack_uint32_t((const
+                                                           uint8_t*) n_ref1,
+                                                          18U);
+                
+                *n_deref21 = n_r25;
+            } else { }
+        } else { }
+        if (n_deref10 == 3U) {
+            float* n_deref26 = *&n_r7->param_ptr_float;
+            
+            if (NULL != n_deref26) {
+                uint8_t n_r27 = smavlink_unpack_uint8_t((const uint8_t*) n_ref1,
+                                                        0U);
+                
+                *&n_r7->param_type = n_r27;
+                for (int32_t n_ix28 = 0; n_ix28 <= 16; n_ix28 = n_ix28 + 1) {
+                    char n_r29 = smavlink_unpack_uint8_t((const
+                                                          uint8_t*) n_ref1, 1U +
+                                                         (uint8_t) n_ix28);
+                    
+                    *&n_r7->param_name[n_ix28] = n_r29;
+                }
+                
+                float n_r30 = smavlink_unpack_float((const uint8_t*) n_ref1,
+                                                    18U);
+                
+                *n_deref26 = n_r30;
+            } else { }
+        } else { }
+    } else {
+        return false;
+    }
+    return true;
+}
+bool param_load_all(int32_t n_var0, struct param_header* n_var1)
+{
+    uint16_t n_local0 = 7U;
+    uint16_t* n_ref1 = &n_local0;
+    uint16_t n_deref2 = *&n_var1->ph_length;
+    uint16_t n_let3 = n_deref2 / 26U;
+    int32_t n_let4 = (int32_t) n_let3 % 65535;
+    
+    for (int32_t n_ix5 = 0; n_ix5 <= (n_let4 - 1) % 65535; n_ix5 = n_ix5 + 1) {
+        uint16_t n_deref6 = *n_ref1;
+        
+        param_load_1(n_var0, n_deref6);
+        
+        uint16_t n_deref7 = *n_ref1;
+        
+        *n_ref1 = n_deref7 + 26U;
+    }
+    return true;
+}
+bool param_load()
+{
+    struct param_header n_local0 = {};
+    struct param_header* n_ref1 = &n_local0;
+    struct param_header n_local2 = {};
+    struct param_header* n_ref3 = &n_local2;
+    
+    param_read_header(1, n_ref1);
+    param_read_header(2, n_ref3);
+    
+    int32_t n_r4 = param_choose_partition(n_ref1, n_ref3);
+    
+    if (n_r4 == 0) {
+        console_write_string("param: using default parameters\r\n");
+        return false;
+    } else { }
+    console_write_string("param: loading from partition ");
+    console_write_s32((int32_t) n_r4);
+    console_write_string("\r\n");
+    
+    struct param_header* n_let5 = n_r4 == 1 ? n_ref1 : n_ref3;
+    bool n_r6 = param_load_all(n_r4, n_let5);
+    uint8_t* n_ref7 = &g_param_next_seq;
+    int32_t* n_ref8 = &g_param_next_pid;
+    uint8_t n_deref9 = *&n_let5->ph_seq;
+    uint8_t n_r10 = param_get_next_seq(n_deref9);
+    
+    *n_ref7 = n_r10;
+    
+    int32_t n_r11 = param_get_next_pid(n_r4);
+    
+    *n_ref8 = n_r11;
+    return n_r6;
+}
+bool param_save_1(int32_t n_var0, uint16_t n_var1, struct param_info* n_var2)
+{
+    uint8_t n_local0[26U] = {};
+    uint8_t* n_ref1 = n_local0;
+    uint8_t n_deref2 = *&n_var2->param_type;
+    
+    if (n_deref2 == 0U) {
+        uint8_t* n_deref3 = *&n_var2->param_ptr_u8;
+        
+        if (NULL != n_deref3) {
+            uint8_t n_deref4 = *&n_var2->param_type;
+            
+            smavlink_pack_uint8_t((uint8_t*) n_ref1, 0U, n_deref4);
+            
+            char* n_let5 = n_var2->param_name;
+            
+            for (int32_t n_ix6 = 0; n_ix6 <= 16; n_ix6 = n_ix6 + 1) {
+                char n_deref7 = *&n_let5[n_ix6];
+                
+                smavlink_pack_uint8_t((uint8_t*) n_ref1, 1U + (uint8_t) n_ix6,
+                                      n_deref7);
+            }
+            
+            uint8_t n_deref8 = *n_deref3;
+            
+            smavlink_pack_uint8_t((uint8_t*) n_ref1, 18U, n_deref8);
+        } else { }
+    } else { }
+    if (n_deref2 == 1U) {
+        uint16_t* n_deref9 = *&n_var2->param_ptr_u16;
+        
+        if (NULL != n_deref9) {
+            uint8_t n_deref10 = *&n_var2->param_type;
+            
+            smavlink_pack_uint8_t((uint8_t*) n_ref1, 0U, n_deref10);
+            
+            char* n_let11 = n_var2->param_name;
+            
+            for (int32_t n_ix12 = 0; n_ix12 <= 16; n_ix12 = n_ix12 + 1) {
+                char n_deref13 = *&n_let11[n_ix12];
+                
+                smavlink_pack_uint8_t((uint8_t*) n_ref1, 1U + (uint8_t) n_ix12,
+                                      n_deref13);
+            }
+            
+            uint16_t n_deref14 = *n_deref9;
+            
+            smavlink_pack_uint16_t((uint8_t*) n_ref1, 18U, n_deref14);
+        } else { }
+    } else { }
+    if (n_deref2 == 2U) {
+        uint32_t* n_deref15 = *&n_var2->param_ptr_u32;
+        
+        if (NULL != n_deref15) {
+            uint8_t n_deref16 = *&n_var2->param_type;
+            
+            smavlink_pack_uint8_t((uint8_t*) n_ref1, 0U, n_deref16);
+            
+            char* n_let17 = n_var2->param_name;
+            
+            for (int32_t n_ix18 = 0; n_ix18 <= 16; n_ix18 = n_ix18 + 1) {
+                char n_deref19 = *&n_let17[n_ix18];
+                
+                smavlink_pack_uint8_t((uint8_t*) n_ref1, 1U + (uint8_t) n_ix18,
+                                      n_deref19);
+            }
+            
+            uint32_t n_deref20 = *n_deref15;
+            
+            smavlink_pack_uint32_t((uint8_t*) n_ref1, 18U, n_deref20);
+        } else { }
+    } else { }
+    if (n_deref2 == 3U) {
+        float* n_deref21 = *&n_var2->param_ptr_float;
+        
+        if (NULL != n_deref21) {
+            uint8_t n_deref22 = *&n_var2->param_type;
+            
+            smavlink_pack_uint8_t((uint8_t*) n_ref1, 0U, n_deref22);
+            
+            char* n_let23 = n_var2->param_name;
+            
+            for (int32_t n_ix24 = 0; n_ix24 <= 16; n_ix24 = n_ix24 + 1) {
+                char n_deref25 = *&n_let23[n_ix24];
+                
+                smavlink_pack_uint8_t((uint8_t*) n_ref1, 1U + (uint8_t) n_ix24,
+                                      n_deref25);
+            }
+            
+            float n_deref26 = *n_deref21;
+            
+            smavlink_pack_float((uint8_t*) n_ref1, 18U, n_deref26);
+        } else { }
+    } else { }
+    
+    const uint8_t* n_let27 = (const uint8_t*) n_ref1;
+    bool n_r28 = partition_write(n_var0, n_var1, n_let27, 26U);
+    
+    return n_r28;
+}
+bool param_save()
+{
+    uint16_t n_local0 = 7U;
+    uint16_t* n_ref1 = &n_local0;
+    uint16_t n_local2 = 0U;
+    uint16_t* n_ref3 = &n_local2;
+    int32_t* n_ref4 = &g_param_count;
+    int32_t n_deref5 = *n_ref4;
+    struct param_info* n_ref6 = g_param_info;
+    uint8_t* n_ref7 = &g_param_next_seq;
+    int32_t* n_ref8 = &g_param_next_pid;
+    int32_t n_deref9 = *n_ref8;
+    
+    console_write_string("param: writing to partition ");
+    
+    int32_t n_deref10 = *n_ref8;
+    
+    console_write_s32((int32_t) n_deref10);
+    console_write_string(" seq ");
+    
+    uint8_t n_deref11 = *n_ref7;
+    
+    console_write_u8(n_deref11);
+    console_write_string("\r\n");
+    for (int32_t n_ix12 = 0; n_ix12 <= (n_deref5 - 1) % 512; n_ix12 = n_ix12 +
+         1) {
+        struct param_info* n_let13 = &n_ref6[n_ix12];
+        uint16_t n_deref14 = *n_ref1;
+        bool n_r15 = param_save_1(n_deref9, n_deref14, n_let13);
+        
+        if (n_r15) {
+            uint16_t n_deref16 = *n_ref1;
+            
+            *n_ref1 = n_deref16 + 26U;
+            
+            uint16_t n_deref17 = *n_ref3;
+            
+            *n_ref3 = n_deref17 + 26U;
+        } else { }
+    }
+    
+    struct param_header n_local18 = {};
+    struct param_header* n_ref19 = &n_local18;
+    
+    *&n_ref19->ph_signature = 2906522394U;
+    
+    uint8_t n_deref20 = *n_ref7;
+    
+    *&n_ref19->ph_seq = n_deref20;
+    
+    uint16_t n_deref21 = *n_ref3;
+    
+    *&n_ref19->ph_length = n_deref21;
+    
+    bool n_r22 = param_write_header(n_deref9, n_ref19);
+    
+    if (!n_r22) {
+        return false;
+    } else { }
+    
+    uint8_t n_deref23 = *n_ref7;
+    uint8_t n_r24 = param_get_next_seq(n_deref23);
+    
+    *n_ref7 = n_r24;
+    
+    int32_t n_deref25 = *n_ref8;
+    int32_t n_r26 = param_get_next_pid(n_deref25);
+    
+    *n_ref8 = n_r26;
+    return true;
 }
 struct param_info g_param_info[512U];
 int32_t g_param_count;
+int32_t g_param_next_pid = 1 % 3;
+uint8_t g_param_next_seq = 1U;

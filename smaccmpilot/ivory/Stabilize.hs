@@ -103,7 +103,7 @@ pid_param_init name pid = do
   param_init (fromString $ name ++ "_D")    (pid ~> pid_dGain)
   param_init (fromString $ name ++ "_IMAX") (pid ~> pid_iMax)
 
-instance ParamType (Struct "PID") where
+instance ParamInit (Struct "PID") where
   param_init = pid_param_init
 
 ----------------------------------------------------------------------

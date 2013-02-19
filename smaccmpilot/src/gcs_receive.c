@@ -250,6 +250,7 @@ static void gcs_receive_handle_param_set(const mavlink_message_t *msg) {
     /* Set the value and mark the parameter to be sent. */
     if (param != NULL) {
         param_set_float_value(param, req.param_value);
+        param_save();
         param->param_requested = 1;
     }
 }
