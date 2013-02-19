@@ -28,11 +28,13 @@ library
                        SMACCMPilot.Driver.I2C,
                        SMACCMPilot.Storage.EEPROM,
                        SMACCMPilot.Storage.Partition,
+                       SMACCMPilot.SafePack,
                        SMACCMPilot.Param
 
   build-depends:       base >= 4.6,
                        smaccm-mavlink,
-                       ivory
+                       ivory,
+                       monadLib
 
   default-language:    Haskell2010
   ghc-options:         -Wall -fno-warn-orphans
@@ -44,4 +46,5 @@ executable smaccmpilot-gen
                        ivory,
                        ivory-lang-c,
                        smaccm-mavlink,
-                       smaccmpilot
+                       smaccmpilot,
+                       monadLib
