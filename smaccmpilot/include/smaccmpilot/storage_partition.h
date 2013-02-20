@@ -8,6 +8,7 @@ extern "C" {
 #endif
 #include <ivory.h>
 #include "storage_eeprom.h"
+extern const uint16_t g_partition_table[3U];
 uint16_t partition_size(int32_t n_var0);
 uint16_t partition_start(int32_t n_var0);
 bool partition_in_bounds(int32_t n_var0, uint16_t n_var1, uint16_t n_var2);
@@ -15,7 +16,6 @@ bool partition_read(int32_t n_var0, uint16_t n_var1, uint8_t* n_var2,
                     uint16_t n_var3);
 bool partition_write(int32_t n_var0, uint16_t n_var1, const uint8_t* n_var2,
                      uint16_t n_var3);
-extern const uint16_t g_partition_table[3U];
 
 #ifdef __cplusplus
 }

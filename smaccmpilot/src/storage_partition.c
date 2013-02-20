@@ -2,6 +2,7 @@
  * Compiler version  0.1.0.0
  */
 #include "storage_partition.h"
+const uint16_t g_partition_table[3U] = {0U, 4096U, 4096U};
 uint16_t partition_size(int32_t n_var0)
 {
     uint16_t* n_ref0 = g_partition_table;
@@ -19,8 +20,16 @@ uint16_t partition_start(int32_t n_var0)
         uint16_t n_deref4 = *&n_ref0[n_ix3];
         uint16_t n_deref5 = *n_ref2;
         
+        ASSERTS(65535U - n_deref5 >= n_deref4);
         *n_ref2 = n_deref5 + n_deref4;
     }
+    ASSERTS(true);
+    ASSERTS(true);
+    ASSERTS(true);
+    ASSERTS(true);
+    ASSERTS(true);
+    ASSERTS(n_var0 < 0 && 2147483647 + n_var0 >= 0 || n_var0 >= 0);
+    ASSERTS(true);
     
     uint16_t n_deref6 = *n_ref2;
     
@@ -29,6 +38,9 @@ uint16_t partition_start(int32_t n_var0)
 bool partition_in_bounds(int32_t n_var0, uint16_t n_var1, uint16_t n_var2)
 {
     uint16_t n_r0 = partition_size(n_var0);
+    
+    ASSERTS(65535U - n_var1 >= n_var2);
+    
     uint16_t n_let1 = n_var1 + n_var2;
     
     return n_let1 < n_r0;
@@ -63,4 +75,3 @@ bool partition_write(int32_t n_var0, uint16_t n_var1, const uint8_t* n_var2,
     
     return n_r3;
 }
-const uint16_t g_partition_table[3U] = {0U, 4096U, 4096U};

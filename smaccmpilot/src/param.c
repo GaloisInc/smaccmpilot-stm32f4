@@ -2,11 +2,20 @@
  * Compiler version  0.1.0.0
  */
 #include "param.h"
+struct param_info g_param_info[512U];
+int32_t g_param_count;
+int32_t g_param_next_pid = 1 % 3;
+uint8_t g_param_next_seq = 1U;
 struct param_info* param_new()
 {
     int32_t* n_ref0 = &g_param_count;
     int32_t n_deref1 = *n_ref0;
     
+    ASSERTS(true);
+    ASSERTS(n_deref1 > 0 && 2147483647 - n_deref1 >= 1 || n_deref1 <= 0);
+    ASSERTS(true);
+    ASSERTS(true);
+    ASSERTS(true);
     *n_ref0 = (n_deref1 + 1) % 512;
     
     struct param_info* n_ref2 = g_param_info;
@@ -64,6 +73,13 @@ struct param_info* param_get_by_name(const char* n_var0)
             return n_let4;
         } else { }
     }
+    ASSERTS(true);
+    ASSERTS(true);
+    ASSERTS(true);
+    ASSERTS(true);
+    ASSERTS(true);
+    ASSERTS(n_deref1 < 0 && 2147483647 + n_deref1 >= 0 || n_deref1 >= 0);
+    ASSERTS(true);
     return NULL;
 }
 struct param_info* param_get_by_index(int32_t n_var0)
@@ -93,6 +109,13 @@ struct param_info* param_get_requested()
             return n_let4;
         } else { }
     }
+    ASSERTS(true);
+    ASSERTS(true);
+    ASSERTS(true);
+    ASSERTS(true);
+    ASSERTS(true);
+    ASSERTS(n_deref1 < 0 && 2147483647 + n_deref1 >= 0 || n_deref1 >= 0);
+    ASSERTS(true);
     return NULL;
 }
 float param_get_float_value(struct param_info* n_var0)
@@ -228,14 +251,21 @@ uint8_t param_get_next_seq(uint8_t n_var0)
     if (n_var0 == 254U) {
         return 1U;
     } else {
+        ASSERTS(255U - n_var0 >= 1U);
         return n_var0 + 1U;
     }
 }
 int32_t param_get_next_pid(int32_t n_var0)
 {
+    ASSERTS(true);
+    ASSERTS(true);
     if (n_var0 == 1) {
+        ASSERTS(true);
+        ASSERTS(true);
         return 2;
     } else {
+        ASSERTS(true);
+        ASSERTS(true);
         return 1;
     }
 }
@@ -268,26 +298,38 @@ int32_t param_choose_partition(const struct param_header* n_var0, const
     bool n_r11 = param_is_valid_seq(n_deref10);
     
     if (!n_r5 && !n_r11) {
+        ASSERTS(true);
+        ASSERTS(true);
         return 0;
     } else { }
     if (n_r5 && !n_r11) {
+        ASSERTS(true);
+        ASSERTS(true);
         return 1;
     } else { }
     if (n_r11 && !n_r5) {
+        ASSERTS(true);
+        ASSERTS(true);
         return 2;
     } else { }
     
     uint8_t n_r12 = param_get_next_seq(n_deref4);
     
     if (n_deref10 == n_r12) {
+        ASSERTS(true);
+        ASSERTS(true);
         return 2;
     } else { }
     
     uint8_t n_r13 = param_get_next_seq(n_deref10);
     
     if (n_deref4 == n_r13) {
+        ASSERTS(true);
+        ASSERTS(true);
         return 1;
     } else { }
+    ASSERTS(true);
+    ASSERTS(true);
     return 0;
 }
 bool param_load_1(int32_t n_var0, uint16_t n_var1)
@@ -309,10 +351,17 @@ bool param_load_1(int32_t n_var0, uint16_t n_var1)
         
         *&n_ref4[n_ix5] = n_r6;
     }
+    ASSERTS(true);
+    ASSERTS(true);
+    ASSERTS(true);
+    ASSERTS(true);
     
     struct param_info* n_r7 = param_get_by_name((const char*) n_ref4);
     
     if (NULL != n_r7) {
+        ASSERTS(true);
+        ASSERTS(true);
+        
         uint8_t n_deref8 = *&n_ref1[0];
         uint8_t n_deref9 = *&n_r7->param_type;
         
@@ -337,6 +386,10 @@ bool param_load_1(int32_t n_var0, uint16_t n_var1)
                     
                     *&n_r7->param_name[n_ix13] = n_r14;
                 }
+                ASSERTS(true);
+                ASSERTS(true);
+                ASSERTS(true);
+                ASSERTS(true);
                 
                 uint8_t n_r15 = smavlink_unpack_uint8_t((const uint8_t*) n_ref1,
                                                         18U);
@@ -359,6 +412,10 @@ bool param_load_1(int32_t n_var0, uint16_t n_var1)
                     
                     *&n_r7->param_name[n_ix18] = n_r19;
                 }
+                ASSERTS(true);
+                ASSERTS(true);
+                ASSERTS(true);
+                ASSERTS(true);
                 
                 uint16_t n_r20 = smavlink_unpack_uint16_t((const
                                                            uint8_t*) n_ref1,
@@ -382,6 +439,10 @@ bool param_load_1(int32_t n_var0, uint16_t n_var1)
                     
                     *&n_r7->param_name[n_ix23] = n_r24;
                 }
+                ASSERTS(true);
+                ASSERTS(true);
+                ASSERTS(true);
+                ASSERTS(true);
                 
                 uint32_t n_r25 = smavlink_unpack_uint32_t((const
                                                            uint8_t*) n_ref1,
@@ -405,6 +466,10 @@ bool param_load_1(int32_t n_var0, uint16_t n_var1)
                     
                     *&n_r7->param_name[n_ix28] = n_r29;
                 }
+                ASSERTS(true);
+                ASSERTS(true);
+                ASSERTS(true);
+                ASSERTS(true);
                 
                 float n_r30 = smavlink_unpack_float((const uint8_t*) n_ref1,
                                                     18U);
@@ -422,7 +487,15 @@ bool param_load_all(int32_t n_var0, struct param_header* n_var1)
     uint16_t n_local0 = 7U;
     uint16_t* n_ref1 = &n_local0;
     uint16_t n_deref2 = *&n_var1->ph_length;
+    
+    ASSERTS(true);
+    ASSERTS(true);
+    
     uint16_t n_let3 = n_deref2 / 26U;
+    
+    ASSERTS(true);
+    ASSERTS(true);
+    
     int32_t n_let4 = (int32_t) n_let3 % 65535;
     
     for (int32_t n_ix5 = 0; n_ix5 <= (n_let4 - 1) % 65535; n_ix5 = n_ix5 + 1) {
@@ -432,8 +505,16 @@ bool param_load_all(int32_t n_var0, struct param_header* n_var1)
         
         uint16_t n_deref7 = *n_ref1;
         
+        ASSERTS(65535U - n_deref7 >= 26U);
         *n_ref1 = n_deref7 + 26U;
     }
+    ASSERTS(true);
+    ASSERTS(true);
+    ASSERTS(true);
+    ASSERTS(true);
+    ASSERTS(true);
+    ASSERTS(n_let4 < 0 && 2147483647 + n_let4 >= 0 || n_let4 >= 0);
+    ASSERTS(true);
     return true;
 }
 bool param_load()
@@ -448,6 +529,8 @@ bool param_load()
     
     int32_t n_r4 = param_choose_partition(n_ref1, n_ref3);
     
+    ASSERTS(true);
+    ASSERTS(true);
     if (n_r4 == 0) {
         console_write_string("param: using default parameters\r\n");
         return false;
@@ -455,6 +538,8 @@ bool param_load()
     console_write_string("param: loading from partition ");
     console_write_s32((int32_t) n_r4);
     console_write_string("\r\n");
+    ASSERTS(true);
+    ASSERTS(true);
     
     struct param_header* n_let5 = n_r4 == 1 ? n_ref1 : n_ref3;
     bool n_r6 = param_load_all(n_r4, n_let5);
@@ -492,6 +577,10 @@ bool param_save_1(int32_t n_var0, uint16_t n_var1, struct param_info* n_var2)
                 smavlink_pack_uint8_t((uint8_t*) n_ref1, 1U + (uint8_t) n_ix6,
                                       n_deref7);
             }
+            ASSERTS(true);
+            ASSERTS(true);
+            ASSERTS(true);
+            ASSERTS(true);
             
             uint8_t n_deref8 = *n_deref3;
             
@@ -514,6 +603,10 @@ bool param_save_1(int32_t n_var0, uint16_t n_var1, struct param_info* n_var2)
                 smavlink_pack_uint8_t((uint8_t*) n_ref1, 1U + (uint8_t) n_ix12,
                                       n_deref13);
             }
+            ASSERTS(true);
+            ASSERTS(true);
+            ASSERTS(true);
+            ASSERTS(true);
             
             uint16_t n_deref14 = *n_deref9;
             
@@ -536,6 +629,10 @@ bool param_save_1(int32_t n_var0, uint16_t n_var1, struct param_info* n_var2)
                 smavlink_pack_uint8_t((uint8_t*) n_ref1, 1U + (uint8_t) n_ix18,
                                       n_deref19);
             }
+            ASSERTS(true);
+            ASSERTS(true);
+            ASSERTS(true);
+            ASSERTS(true);
             
             uint32_t n_deref20 = *n_deref15;
             
@@ -558,6 +655,10 @@ bool param_save_1(int32_t n_var0, uint16_t n_var1, struct param_info* n_var2)
                 smavlink_pack_uint8_t((uint8_t*) n_ref1, 1U + (uint8_t) n_ix24,
                                       n_deref25);
             }
+            ASSERTS(true);
+            ASSERTS(true);
+            ASSERTS(true);
+            ASSERTS(true);
             
             float n_deref26 = *n_deref21;
             
@@ -603,13 +704,22 @@ bool param_save()
         if (n_r15) {
             uint16_t n_deref16 = *n_ref1;
             
+            ASSERTS(65535U - n_deref16 >= 26U);
             *n_ref1 = n_deref16 + 26U;
             
             uint16_t n_deref17 = *n_ref3;
             
+            ASSERTS(65535U - n_deref17 >= 26U);
             *n_ref3 = n_deref17 + 26U;
         } else { }
     }
+    ASSERTS(true);
+    ASSERTS(true);
+    ASSERTS(true);
+    ASSERTS(true);
+    ASSERTS(true);
+    ASSERTS(n_deref5 < 0 && 2147483647 + n_deref5 >= 0 || n_deref5 >= 0);
+    ASSERTS(true);
     
     struct param_header n_local18 = {};
     struct param_header* n_ref19 = &n_local18;
@@ -641,7 +751,3 @@ bool param_save()
     *n_ref8 = n_r26;
     return true;
 }
-struct param_info g_param_info[512U];
-int32_t g_param_count;
-int32_t g_param_next_pid = 1 % 3;
-uint8_t g_param_next_seq = 1U;

@@ -2,6 +2,21 @@
  * Compiler version  0.1.0.0
  */
 #include "pid_stabilize.h"
+struct PID g_pid_roll_stabilize = {.pid_pGain =2.0f, .pid_iGain =0.0f,
+                                   .pid_dGain =0.0f, .pid_iMin =-8.0f,
+                                   .pid_iMax =8.0f, .pid_reset =1U};
+struct PID g_pid_roll_rate = {.pid_pGain =0.15f, .pid_iGain =1.5e-2f,
+                              .pid_dGain =0.0f, .pid_iMin =-5.0f, .pid_iMax =
+                              5.0f, .pid_reset =1U};
+struct PID g_pid_pitch_stabilize = {.pid_pGain =2.0f, .pid_iGain =0.0f,
+                                    .pid_dGain =0.0f, .pid_iMin =-8.0f,
+                                    .pid_iMax =8.0f, .pid_reset =1U};
+struct PID g_pid_pitch_rate = {.pid_pGain =0.15f, .pid_iGain =1.5e-2f,
+                               .pid_dGain =0.0f, .pid_iMin =-5.0f, .pid_iMax =
+                               5.0f, .pid_reset =1U};
+struct PID g_pid_yaw_rate = {.pid_pGain =0.3f, .pid_iGain =1.5e-2f, .pid_dGain =
+                             0.0f, .pid_iMin =-8.0f, .pid_iMax =8.0f,
+                             .pid_reset =1U};
 float fconstrain(float n_var0, float n_var1, float n_var2)
 {
     if (n_var2 < n_var0) {
@@ -16,6 +31,9 @@ float fconstrain(float n_var0, float n_var1, float n_var2)
 }
 float pid_update(struct PID* n_var0, float n_var1, float n_var2)
 {
+    REQUIRES(!(bool) isnan(n_var1) && !(bool) isinf(n_var1));
+    REQUIRES(!(bool) isnan(n_var2) && !(bool) isinf(n_var2));
+    
     float n_deref0 = *&n_var0->pid_pGain;
     float n_deref1 = *&n_var0->pid_iMin;
     float n_deref2 = *&n_var0->pid_iMax;
@@ -85,6 +103,8 @@ float stabilize_from_angle(struct PID* n_var0, struct PID* n_var1, float n_var2,
                            float n_var3, float n_var4, float n_var5,
                            float n_var6)
 {
+    REQUIRES(n_var6 != 0.0f);
+    
     float n_let0 = n_var2 * n_var3;
     float n_let1 = n_var4 * 57.29578f;
     float n_let2 = n_let0 - n_let1;
@@ -94,31 +114,20 @@ float stabilize_from_angle(struct PID* n_var0, struct PID* n_var1, float n_var2,
     float n_r6 = pid_update(n_var1, n_let5, n_let4);
     float n_r7 = fconstrain(-n_var6, n_var6, n_r6);
     
+    ASSERTS(n_var6 != 0.0f);
     return n_r7 / n_var6;
 }
 float stabilize_from_rate(struct PID* n_var0, float n_var1, float n_var2,
                           float n_var3, float n_var4)
 {
+    REQUIRES(n_var4 != 0.0f);
+    
     float n_let0 = n_var1 * n_var2;
     float n_let1 = n_var3 * 57.29578f;
     float n_let2 = n_let0 - n_let1;
     float n_r3 = pid_update(n_var0, n_let2, n_let1);
     float n_r4 = fconstrain(-n_var4, n_var4, n_r3);
     
+    ASSERTS(n_var4 != 0.0f);
     return n_r4 / n_var4;
 }
-struct PID g_pid_roll_stabilize = {.pid_pGain =2.0f, .pid_iGain =0.0f,
-                                   .pid_dGain =0.0f, .pid_iMin =-8.0f,
-                                   .pid_iMax =8.0f, .pid_reset =1U};
-struct PID g_pid_roll_rate = {.pid_pGain =0.15f, .pid_iGain =1.5e-2f,
-                              .pid_dGain =0.0f, .pid_iMin =-5.0f, .pid_iMax =
-                              5.0f, .pid_reset =1U};
-struct PID g_pid_pitch_stabilize = {.pid_pGain =2.0f, .pid_iGain =0.0f,
-                                    .pid_dGain =0.0f, .pid_iMin =-8.0f,
-                                    .pid_iMax =8.0f, .pid_reset =1U};
-struct PID g_pid_pitch_rate = {.pid_pGain =0.15f, .pid_iGain =1.5e-2f,
-                               .pid_dGain =0.0f, .pid_iMin =-5.0f, .pid_iMax =
-                               5.0f, .pid_reset =1U};
-struct PID g_pid_yaw_rate = {.pid_pGain =0.3f, .pid_iGain =1.5e-2f, .pid_dGain =
-                             0.0f, .pid_iMin =-8.0f, .pid_iMax =8.0f,
-                             .pid_reset =1U};

@@ -26,6 +26,10 @@ struct param_header {
     uint8_t ph_seq;
     uint16_t ph_length;
 };
+extern struct param_info g_param_info[512U];
+extern int32_t g_param_count;
+extern int32_t g_param_next_pid;
+extern uint8_t g_param_next_seq;
 struct param_info* param_new();
 void param_init_u8(char* n_var0, uint8_t* n_var1);
 void param_init_u16(char* n_var0, uint16_t* n_var1);
@@ -49,10 +53,6 @@ bool param_load_all(int32_t n_var0, struct param_header* n_var1);
 bool param_load();
 bool param_save_1(int32_t n_var0, uint16_t n_var1, struct param_info* n_var2);
 bool param_save();
-extern struct param_info g_param_info[512U];
-extern int32_t g_param_count;
-extern int32_t g_param_next_pid;
-extern uint8_t g_param_next_seq;
 
 #ifdef __cplusplus
 }

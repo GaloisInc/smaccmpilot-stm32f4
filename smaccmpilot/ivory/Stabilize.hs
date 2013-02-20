@@ -71,10 +71,15 @@ fconstrain = proc "fconstrain" $ \xmin xmax x -> body $
   }
 |]
 
+notFloatNan :: [IFloat] -> [Cond s r]
+notFloatNan = map (\flt -> (check $ (iNot $ isnan flt) .&& (iNot $ isinf flt)))
+
 -- | Update a PID controller given an error value and measured value
 -- and return the output value.
 pid_update :: Def ('[(Ref s1 (Struct "PID")), IFloat, IFloat] :-> IFloat)
-pid_update = proc "pid_update" $ \pid err pos -> body $ do
+pid_update = proc "pid_update" $ \pid err pos -> body $
+  requires (notFloatNan [err, pos]) $
+  do
   p_term  <- fmap (* err) (pid~>*pid_pGain)
 
   i_min   <- pid~>*pid_iMin
@@ -189,7 +194,9 @@ stabilize_from_angle :: Def ('[
 stabilize_from_angle = proc "stabilize_from_angle" $
   \angle_pid rate_pid stick_angle_norm
    max_stick_angle_deg sensor_angle_rad
-   sensor_rate_rad_s max_servo_rate_rad_s -> body $ do
+   sensor_rate_rad_s max_servo_rate_rad_s -> body $
+  requires [check $ max_servo_rate_rad_s /=? 0] $
+  do
   stick_angle_deg   <- assign $ stick_angle_norm * max_stick_angle_deg
   sensor_angle_deg  <- assign $ degrees sensor_angle_rad
   angle_error       <- assign $ stick_angle_deg - sensor_angle_deg
@@ -212,7 +219,9 @@ stabilize_from_rate :: Def ('[
  ] :-> IFloat)
 stabilize_from_rate = proc "stabilize_from_rate" $
   \rate_pid stick_rate_norm max_stick_rate_deg_s
-   sensor_rate_rad_s max_servo_rate_rad_s -> body $ do
+   sensor_rate_rad_s max_servo_rate_rad_s -> body $
+  requires [check $ max_servo_rate_rad_s /=? 0] $
+  do
   stick_rate_deg_s  <- assign $ stick_rate_norm * max_stick_rate_deg_s
   sensor_rate_deg_s <- assign $ degrees sensor_rate_rad_s
   rate_error        <- assign $ stick_rate_deg_s - sensor_rate_deg_s
