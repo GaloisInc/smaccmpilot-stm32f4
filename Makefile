@@ -40,7 +40,7 @@ endef
 $(foreach p,$(shell find . -name build.mk -exec dirname {} \;), \
           $(eval $(call project,$(p))))
 
-ALL_TARGETS := $(LIBRARIES) $(IMAGES)
+ALL_TARGETS := $(IVORY) $(LIBRARIES) $(IMAGES)
 ALL_DEPS    := $(patsubst %.o,%.d,$(ALL_OBJECTS))
 
 ######################################################################
@@ -51,7 +51,11 @@ all-targets: $(ALL_TARGETS)
 
 .PHONY: clean
 clean:
-	$(Q)rm -f $(ALL_TARGETS) $(ALL_OBJECTS) $(ALL_DEPS) $(EXTRA_CLEAN)
+	$(Q)rm -f $(ALL_TARGETS) $(ALL_OBJECTS) $(ALL_DEPS) $(CLEAN)
+
+.PHONY: veryclean
+veryclean:
+	$(Q)rm -rf $(ALL_TARGETS) $(ALL_OBJECTS) $(ALL_DEPS) $(VERYCLEAN)
 
 ######################################################################
 ## Compilation Rules
