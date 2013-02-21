@@ -58,10 +58,14 @@ $(EXEC):
 CLEAN     += $(HDRS) $(SRCS)
 VERYCLEAN += $(SMACCMDIR)/ivory/dist
 
-# .PHONY: clean
-# clean:
-# 	rm -f $(HDRS) $(SRCS)
+# ------------------------------------------------------------------------------
+# CBMC stuff
+# ------------------------------------------------------------------------------
 
-# .PHONY: veryclean
-# veryclean:
-# 	rm -rf dist
+.PHONY: verify
+verify: # $(HDRS) $(SRCS)
+	sh $(SMACCMDIR)/ivory/cbmc.sh
+
+
+
+
