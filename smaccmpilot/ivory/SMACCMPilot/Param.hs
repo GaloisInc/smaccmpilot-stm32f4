@@ -55,8 +55,7 @@ paramTypeFloat = 3
 -- FIXME: I'm not sure about the "IvoryStore Global a" constraint
 -- here.  Shouldn't we able to store a "ParamType a" in any reference
 -- since it's a value?
-class (Num a, IvoryType a, IvoryStore Global a, MavlinkPackable a,
-       Writable a)
+class (Num a, IvoryType a, IvoryStore a, MavlinkPackable a)
     => ParamType a where
   paramToFloat   :: a -> IFloat
   paramFromFloat :: a -> IFloat -> a
@@ -99,10 +98,6 @@ param_info = area "g_param_info" Nothing
 -- | Global containing the number of entries in "param_info".
 param_count :: MemArea (Stored (Ix 512))
 param_count = area "g_param_count" Nothing
-
--- FIXME: This should be defined in "ivory-language" somewhere.
-instance (SingI len) => IvoryStore s (Ix len)
-instance (SingI len) => IvoryInit (Ix len)
 
 -- | Increment "param_count" and return an entry to be filled in when
 -- a new parameter is added.

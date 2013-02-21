@@ -15,7 +15,7 @@ import Ivory.Language
 
 -- | Infix structure field access and dereference.
 -- This is a shorthand for 'deref $ s~>x'.
-(~>*) :: (IvoryVar a, IvoryStruct sym, IvoryDeref ref,
+(~>*) :: (IvoryVar a, IvoryStruct sym, IvoryRef ref,
           IvoryExpr (ref s (Stored a)),
           IvoryExpr (ref s (Struct sym))) =>
             ref s (Struct sym) -> Label sym (Stored a) -> Ivory lex r a
@@ -23,16 +23,16 @@ struct ~>* label = deref $ struct~>label
 infixl 8 ~>*
 
 -- | handy shorthand for transfering members
-resultInto :: IvoryStore ref a =>
+resultInto :: IvoryStore a =>
      Ivory lex r a -> Ref ref (Stored a) -> Ivory lex r ()
 resultInto a b = store b =<< a
 
-into :: IvoryStore ref' a =>
+into :: IvoryStore a =>
      Ref ref (Stored a) -> Ref ref' (Stored a) -> Ivory lex r ()
 into a b = store b =<< deref a
 
 -- | Modify the value stored at a reference by a function.
-(%=) :: IvoryStore ref a =>
+(%=) :: IvoryStore a =>
      Ref ref (Stored a) -> (a -> a) -> Ivory lex r ()
 ref %= f = do
   val <- deref ref
@@ -40,7 +40,7 @@ ref %= f = do
 
 -- | Modify the value stored at a reference by a function that returns
 -- a value in the Ivory monad.
-(%=!) :: IvoryStore ref a =>
+(%=!) :: IvoryStore a =>
          Ref ref (Stored a) -> (a -> Ivory lex r a) -> Ivory lex r ()
 ref %=! mf = do
   val  <- deref ref
@@ -48,7 +48,7 @@ ref %=! mf = do
   store ref val'
 
 -- | Increment the value stored at a reference.
-(+=) :: (Num a, IvoryStore ref a) =>
+(+=) :: (Num a, IvoryStore a) =>
         Ref ref (Stored a) -> a -> Ivory lex r ()
 ref += x = ref %= (+ x)
 

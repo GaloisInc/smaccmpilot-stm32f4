@@ -140,7 +140,7 @@ instance MonadIvory UnpackM where
 -- by "unpackFrom" into a reference.  An error will be thrown at code
 -- generation time if too much data is unpacked from the array.
 munpack :: forall a s s1 r.
-           (MavlinkPackable a, IvoryStore s1 a)
+           (MavlinkPackable a, IvoryStore a)
         => Ref s1 (Stored a) -> UnpackM s r ()
 munpack ref = UnpackM $ do
   buf    <- ask
@@ -159,7 +159,7 @@ munpack ref = UnpackM $ do
 -- established by "unpackFrom".  An error will be thrown at code
 -- generation time if too much data is unpacked from the array.
 marrayUnpack :: forall a len s s1 r.
-                (MavlinkPackable a, SingI len, IvoryType r, IvoryStore s1 a)
+                (MavlinkPackable a, SingI len, IvoryType r, IvoryStore a)
              => Ref s1 (Array len (Stored a))
              -> UnpackM s r ()
 marrayUnpack arr = UnpackM $ do
