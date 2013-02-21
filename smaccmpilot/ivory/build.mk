@@ -62,9 +62,24 @@ VERYCLEAN += $(SMACCMDIR)/ivory/dist
 # CBMC stuff
 # ------------------------------------------------------------------------------
 
+INCS=                                                    \
+  -I./smaccmpilot/include/smaccmpilot										 \
+  -I./smaccmpilot/include																 \
+  -I./hwf4/include																			 \
+  -I./include																						 \
+  -I./smavlink/include																	 \
+  -I./smavlink/include/smavlink/messages								 \
+  -I./include
+
+STARTS := $(shell $(SANDBOX)/bin/$(GEN) --src-dir=$(SRCDIR) --include-dir=$(INCDIR) --out-proc-syms)
+
+# STARTS = stabilize_from_rate stabilize_from_angle
+
+# >&2 redirects cbmc output from stderr so you can see it.
 .PHONY: verify
-verify: # $(HDRS) $(SRCS)
-	sh $(SMACCMDIR)/ivory/cbmc.sh
+verify: $(HDRS) $(SRCS)
+	$(foreach func, $(STARTS), \
+    $(shell cbmc -D IVORY_CBMC $(INCS) --function $(func) $(SRCS) >&2 ))
 
 
 
