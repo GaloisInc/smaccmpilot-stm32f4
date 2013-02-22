@@ -23,13 +23,7 @@ uint16_t partition_start(int32_t n_var0)
         ASSERTS(65535U - n_deref5 >= n_deref4);
         *n_ref2 = n_deref5 + n_deref4;
     }
-    ASSERTS(true);
-    ASSERTS(true);
-    ASSERTS(true);
-    ASSERTS(true);
-    ASSERTS(true);
     ASSERTS(n_var0 < 0 && 2147483647 + n_var0 >= 0 || n_var0 >= 0);
-    ASSERTS(true);
     
     uint16_t n_deref6 = *n_ref2;
     

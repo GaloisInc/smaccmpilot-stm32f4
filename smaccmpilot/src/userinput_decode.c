@@ -7,59 +7,35 @@ void userinput_decode(uint16_t n_var0[8U],
                       struct userinput_result* n_var2, uint32_t n_var3)
 {
     *&n_var2->time = n_var3;
-    ASSERTS(true);
-    ASSERTS(true);
     
     uint16_t n_deref0 = *&n_var0[0];
     float n_r1 = userinput_scale(1500U, 500U, -1.0f, 1.0f, n_deref0);
     
     *&n_var2->roll = n_r1;
-    ASSERTS(true);
-    ASSERTS(true);
     
     uint16_t n_deref2 = *&n_var0[1];
     float n_r3 = userinput_scale(1500U, 500U, -1.0f, 1.0f, n_deref2);
     
     *&n_var2->pitch = n_r3;
-    ASSERTS(true);
-    ASSERTS(true);
     
     uint16_t n_deref4 = *&n_var0[2];
     float n_r5 = userinput_scale(1000U, 1000U, 0.0f, 1.0f, n_deref4);
     
     *&n_var2->throttle = n_r5;
-    ASSERTS(true);
-    ASSERTS(true);
     
     uint16_t n_deref6 = *&n_var0[3];
     float n_r7 = userinput_scale(1500U, 500U, -1.0f, 1.0f, n_deref6);
     
     *&n_var2->yaw = n_r7;
-    ASSERTS(true);
-    ASSERTS(true);
     
     uint16_t n_deref8 = *&n_var0[5];
-    
-    ASSERTS(true);
-    ASSERTS(true);
-    
     uint16_t n_deref9 = *&n_var0[2];
-    
-    ASSERTS(true);
-    ASSERTS(true);
-    
     uint16_t n_deref10 = *&n_var0[3];
     
     if (n_deref8 < 1500U) {
         *&n_var1->arm_state = 0U;
         *&n_var1->arm_state_time = n_var3;
-        if (true) {
-            *&n_var2->armed = false;
-        } else {
-            if (false) {
-                *&n_var2->armed = true;
-            } else { }
-        }
+        *&n_var2->armed = false;
     } else {
         if (n_deref9 < 1050U && n_deref10 > 1900U) {
             uint8_t n_deref11 = *&n_var1->arm_state;
@@ -70,13 +46,6 @@ void userinput_decode(uint16_t n_var0[8U],
                 if (n_var3 - n_deref12 > 500U) {
                     *&n_var1->arm_state = 1U;
                     *&n_var1->arm_state_time = n_var3;
-                    if (false) {
-                        *&n_var2->armed = false;
-                    } else {
-                        if (false) {
-                            *&n_var2->armed = true;
-                        } else { }
-                    }
                 } else { }
             } else {
                 if (n_deref11 == 1U) {
@@ -84,13 +53,7 @@ void userinput_decode(uint16_t n_var0[8U],
                     if (n_var3 - n_deref12 > 500U) {
                         *&n_var1->arm_state = 2U;
                         *&n_var1->arm_state_time = n_var3;
-                        if (false) {
-                            *&n_var2->armed = false;
-                        } else {
-                            if (true) {
-                                *&n_var2->armed = true;
-                            } else { }
-                        }
+                        *&n_var2->armed = true;
                     } else { }
                 } else { }
             }
@@ -100,18 +63,10 @@ void userinput_decode(uint16_t n_var0[8U],
             if (n_deref13 == 1U) {
                 *&n_var1->arm_state = 0U;
                 *&n_var1->arm_state_time = n_var3;
-                if (true) {
-                    *&n_var2->armed = false;
-                } else {
-                    if (false) {
-                        *&n_var2->armed = true;
-                    } else { }
-                }
+                *&n_var2->armed = false;
             } else { }
         }
     }
-    ASSERTS(true);
-    ASSERTS(true);
     
     uint16_t n_deref14 = *&n_var0[4];
     uint16_t n_deref15 = *&n_var1->last_modepwm;
