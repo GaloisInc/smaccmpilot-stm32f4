@@ -30,3 +30,7 @@ CONFIG_ARDUPILOT_EXTRA_CFLAGS += -DLOGGING_ENABLED=DISABLED
 
 # GCS UART selection (default is "usart1").
 # CONFIG_GCS_UART := uart5
+
+# Optional: add a path to your local installation of the CBMC model-checker
+# executable. <http://www.cprover.org/cbmc/> (Please note the license of CBMC.)
+CONFIG_CBMC_PREFIX := ../cbmc
