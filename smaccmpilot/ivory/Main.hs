@@ -20,10 +20,13 @@ import SMACCMPilot.Storage.EEPROM    (eepromModule)
 import SMACCMPilot.Storage.Partition (partitionModule)
 import SMACCMPilot.Param             (paramModule)
 
+import Tower.Test (towerModules)
+
 import Ivory.Compile.C.CmdlineFrontend
 
 main :: IO ()
-main = compile [ positionModule
+main = compile $ towerModules ++
+               [ positionModule
                , stabilizeModule
                , servoModule
                , sensorsTypeModule
