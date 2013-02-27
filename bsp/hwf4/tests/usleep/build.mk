@@ -15,8 +15,8 @@ USLEEP_TEST_IMG       := usleep_test
 USLEEP_TEST_OBJECTS   := main.o
 
 USLEEP_TEST_CFLAGS    += $(FREERTOS_CFLAGS)
-USLEEP_TEST_CFLAGS    += -I$(TOP)/include
-USLEEP_TEST_CFLAGS    += -I$(TOP)/hwf4/include
+USLEEP_TEST_CFLAGS    += -I$(TOP)/bsp/include
+USLEEP_TEST_CFLAGS    += -I$(TOP)/bsp/hwf4/include
 USLEEP_TEST_LIBRARIES := libhwf4.a libstm32_usb.a libFreeRTOS.a
 
 ifeq "$(CONFIG_BOARD)" "px4"

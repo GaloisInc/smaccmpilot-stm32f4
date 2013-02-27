@@ -34,14 +34,14 @@ CFLAGS := $(BASE_CFLAGS) -std=gnu99
 CXXFLAGS := $(BASE_CFLAGS) -fno-exceptions -fno-rtti
 
 # Path to the linker script.
-LDSCRIPT := stm32_flash.ld
+LDSCRIPT := bsp/stm32_flash.ld
 
 # Linker flags.
 LDFLAGS := -mlittle-endian -mcpu=cortex-m4 -mthumb -mfloat-abi=hard \
            -mfpu=fpv4-sp-d16 -Wl,--script=$(LDSCRIPT)
 
 # Startup code source files.
-STARTUP_OBJECTS := source/startup_stm32f4xx.o \
-                   source/system_stm32f4xx.o
+STARTUP_OBJECTS := bsp/source/startup_stm32f4xx.o \
+                   bsp/source/system_stm32f4xx.o
 
 # vim: set ft=make noet ts=2:

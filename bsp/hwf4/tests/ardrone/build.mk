@@ -15,8 +15,8 @@ ARDRONE_TEST_IMG       := ardrone_test
 ARDRONE_TEST_OBJECTS   := main.o
 
 ARDRONE_TEST_CFLAGS    += $(FREERTOS_CFLAGS)
-ARDRONE_TEST_CFLAGS    += -I$(TOP)/include
-ARDRONE_TEST_CFLAGS    += -I$(TOP)/hwf4/include
+ARDRONE_TEST_CFLAGS    += -I$(TOP)/bsp/include
+ARDRONE_TEST_CFLAGS    += -I$(TOP)/bsp/hwf4/include
 ARDRONE_TEST_LIBRARIES := libhwf4.a libstm32_usb.a libFreeRTOS.a
 
 $(eval $(call image,ARDRONE_TEST))

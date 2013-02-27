@@ -15,8 +15,8 @@ LEDTEST_IMG       := ledtest
 LEDTEST_OBJECTS   := main.o
 
 LEDTEST_CFLAGS    += $(FREERTOS_CFLAGS)
-LEDTEST_CFLAGS    += -I$(TOP)/include
-LEDTEST_CFLAGS    += -I$(TOP)/hwf4/include
+LEDTEST_CFLAGS    += -I$(TOP)/bsp/include
+LEDTEST_CFLAGS    += -I$(TOP)/bsp/hwf4/include
 LEDTEST_LIBRARIES := libhwf4.a libstm32_usb.a libFreeRTOS.a
 
 $(eval $(call image,LEDTEST))

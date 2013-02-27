@@ -14,10 +14,9 @@
 STM32_USB_LIB    := libstm32_usb.a
 
 STM32_USB_CFLAGS += $(FREERTOS_CFLAGS)
-STM32_USB_CFLAGS += -I$(TOP)/include
-STM32_USB_CFLAGS += -I$(TOP)/StdPeriph/include
-STM32_USB_CFLAGS += -I$(TOP)/stm32_usb/include/usb
-STM32_USB_CFLAGS += -I$(TOP)/hwf4/include
+STM32_USB_CFLAGS += -I$(TOP)/bsp/include
+STM32_USB_CFLAGS += -I$(TOP)/bsp/stm32_usb/include/usb
+STM32_USB_CFLAGS += -I$(TOP)/bsp/hwf4/include
 
 STM32_USB_OBJECTS :=           \
   src/usb_bsp.o                \

@@ -15,7 +15,7 @@ SMAVLINK_LIB       := libsmavlink.a
 
 SMAVLINK_INCLUDES  += -I$(TOP)/smavlink/include
 SMAVLINK_INCLUDES  += -I$(TOP)/smavlink/include/smavlink/messages
-SMAVLINK_INCLUDES  += -I$(TOP)/include
+SMAVLINK_INCLUDES  += -I$(TOP)/ivory-runtime
 
 SMAVLINK_CFLAGS    += $(SMAVLINK_INCLUDES)
 

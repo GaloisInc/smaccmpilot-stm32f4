@@ -14,9 +14,9 @@
 I2CTEST_IMG       := i2ctest
 I2CTEST_OBJECTS   := main.o
 
-I2CTEST_CFLAGS    += -I$(TOP)/include
+I2CTEST_CFLAGS    += -I$(TOP)/bsp/include
 I2CTEST_CFLAGS    += $(FREERTOS_CFLAGS)
-I2CTEST_CFLAGS    += -I$(TOP)/hwf4/include
+I2CTEST_CFLAGS    += -I$(TOP)/bsp/hwf4/include
 I2CTEST_LIBRARIES := libhwf4.a libstm32_usb.a libFreeRTOS.a
 
 $(eval $(call image,I2CTEST))

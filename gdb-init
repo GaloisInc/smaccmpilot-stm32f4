@@ -1,1 +1,1 @@
-set tdesc filename gdb-tdesc-cortexm-fpa.xml
+set tdesc filename bsp/gdb-tdesc-cortexm-fpa.xml

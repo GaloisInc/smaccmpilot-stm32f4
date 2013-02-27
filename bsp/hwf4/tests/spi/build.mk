@@ -15,8 +15,8 @@ SPITEST_IMG       := spitest
 SPITEST_OBJECTS   := main.o
 
 SPITEST_CFLAGS    += $(FREERTOS_CFLAGS)
-SPITEST_CFLAGS    += -I$(TOP)/include
-SPITEST_CFLAGS    += -I$(TOP)/hwf4/include
+SPITEST_CFLAGS    += -I$(TOP)/bsp/include
+SPITEST_CFLAGS    += -I$(TOP)/bsp/hwf4/include
 SPITEST_LIBRARIES := libhwf4.a libstm32_usb.a libFreeRTOS.a
 
 $(eval $(call image,SPITEST))

@@ -13,12 +13,12 @@
 
 HWF4_LIB     := libhwf4.a
 
-HWF4_INCLUDES  += -I$(TOP)/hwf4/include
-HWF4_INCLUDES  += -I$(TOP)/include
+HWF4_INCLUDES  += -I$(TOP)/bsp/hwf4/include
+HWF4_INCLUDES  += -I$(TOP)/bsp/include
 
 HWF4_CFLAGS  += $(FREERTOS_CFLAGS)
 HWF4_CFLAGS  += $(HWF4_INCLUDES)
-HWF4_CFLAGS  += -I$(TOP)/stm32_usb/include
+HWF4_CFLAGS  += -I$(TOP)/bsp/stm32_usb/include
 
 HWF4_OBJECTS :=    \
   src/rcc.o        \

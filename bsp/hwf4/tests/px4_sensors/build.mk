@@ -15,8 +15,8 @@ PX4_SENSORS_IMG       := px4_sensors
 PX4_SENSORS_OBJECTS   := main.o
 
 PX4_SENSORS_CFLAGS    += $(FREERTOS_CFLAGS)
-PX4_SENSORS_CFLAGS    += -I$(TOP)/include
-PX4_SENSORS_CFLAGS    += -I$(TOP)/hwf4/include
+PX4_SENSORS_CFLAGS    += -I$(TOP)/bsp/include
+PX4_SENSORS_CFLAGS    += -I$(TOP)/bsp/hwf4/include
 PX4_SENSORS_LIBRARIES := libhwf4.a libstm32_usb.a libFreeRTOS.a
 
 ifeq "$(CONFIG_BOARD)" "px4"

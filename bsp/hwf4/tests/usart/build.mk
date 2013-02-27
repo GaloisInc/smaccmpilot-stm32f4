@@ -15,8 +15,8 @@ USARTTEST_IMG       := usarttest
 USARTTEST_OBJECTS   := main.o
 
 USARTTEST_CFLAGS    += $(FREERTOS_CFLAGS)
-USARTTEST_CFLAGS    += -I$(TOP)/include
-USARTTEST_CFLAGS    += -I$(TOP)/hwf4/include
+USARTTEST_CFLAGS    += -I$(TOP)/bsp/include
+USARTTEST_CFLAGS    += -I$(TOP)/bsp/hwf4/include
 USARTTEST_LIBRARIES := libhwf4.a libstm32_usb.a libFreeRTOS.a
 
 $(eval $(call image,USARTTEST))

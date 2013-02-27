@@ -14,10 +14,10 @@
 USBTEST_IMG       := usbtest
 USBTEST_OBJECTS   := main.o
 
-USBTEST_CFLAGS    += -I$(TOP)/include
-USBTEST_CFLAGS    += -I$(TOP)/stm32_usb/include
+USBTEST_CFLAGS    += -I$(TOP)/bsp/include
+USBTEST_CFLAGS    += -I$(TOP)/bsp/stm32_usb/include
 USBTEST_CFLAGS    += $(FREERTOS_CFLAGS)
-USBTEST_CFLAGS    += -I$(TOP)/hwf4/include
+USBTEST_CFLAGS    += -I$(TOP)/bsp/hwf4/include
 USBTEST_LIBRARIES := libhwf4.a libstm32_usb.a libFreeRTOS.a
 
 $(eval $(call image,USBTEST))

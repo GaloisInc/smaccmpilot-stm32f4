@@ -14,9 +14,9 @@
 TIMERTEST_IMG       := timertest
 TIMERTEST_OBJECTS   := main.o
 
-TIMERTEST_CFLAGS    += -I$(TOP)/include
+TIMERTEST_CFLAGS    += -I$(TOP)/bsp/include
 TIMERTEST_CFLAGS    += $(FREERTOS_CFLAGS)
-TIMERTEST_CFLAGS    += -I$(TOP)/hwf4/include
+TIMERTEST_CFLAGS    += -I$(TOP)/bsp/hwf4/include
 TIMERTEST_LIBRARIES := libhwf4.a libstm32_usb.a libFreeRTOS.a
 
 ifeq "$(CONFIG_BOARD)" "px4"

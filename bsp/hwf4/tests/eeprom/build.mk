@@ -15,8 +15,8 @@ EEPROMTEST_IMG       := eepromtest
 EEPROMTEST_OBJECTS   := main.o
 
 EEPROMTEST_CFLAGS    += $(FREERTOS_CFLAGS)
-EEPROMTEST_CFLAGS    += -I$(TOP)/include
-EEPROMTEST_CFLAGS    += -I$(TOP)/hwf4/include
+EEPROMTEST_CFLAGS    += -I$(TOP)/bsp/include
+EEPROMTEST_CFLAGS    += -I$(TOP)/bsp/hwf4/include
 EEPROMTEST_LIBRARIES := libhwf4.a libstm32_usb.a libFreeRTOS.a
 
 ifeq "$(CONFIG_BOARD)" "px4"
