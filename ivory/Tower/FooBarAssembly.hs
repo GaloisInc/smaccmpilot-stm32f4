@@ -28,7 +28,7 @@ struct bar_state
 |]
 
 fooSource :: Source (Struct "foo_state")
-          -> String -> Object
+          -> String -> Task
 fooSource fooChan uniquename =
   withSource "fooSource" fooChan $ \fooChanSource ->
   let fooDef = proc ("fooSourceDef" ++ uniquename) $ body $ do
@@ -38,14 +38,16 @@ fooSource fooChan uniquename =
           store (state ~> guided) (v + 1)
           source fooChanSource (constRef state)
         retVoid
-      fooModule = package ("fooSourceMod" ++ uniquename) $ do
+      fooModuleName = "fooSourceMod" ++ uniquename
+      fooModuleDefs = do
+        depend applicationTypes
         incl fooDef
-  in object fooDef fooModule
+  in task fooDef fooModuleName fooModuleDefs
 
 
 
 barSource :: Source (Struct "bar_state")
-          -> String -> Object
+          -> String -> Task
 barSource barChan uniquename =
   withSource "barSource" barChan $ \barChanSource ->
   let barDef = proc ("barSourceDef" ++ uniquename) $ body $ do
@@ -55,14 +57,16 @@ barSource barChan uniquename =
           store (state ~> pricks) (v + 1)
           source barChanSource (constRef state)
         retVoid
-      barModule = package ("barSourceMod" ++ uniquename) $ do
+      barModuleName = "barSourceMod" ++ uniquename
+      barModuleDefs = do
+        depend applicationTypes
         incl barDef
-  in object barDef barModule
+  in task barDef barModuleName barModuleDefs
 
 
 fooBarSink :: Sink (Struct "foo_state")
           -> Sink (Struct "bar_state")
-          -> String -> Object
+          -> String -> Task
 fooBarSink fooChan barChan uniquename =
   withSink "fooSink" fooChan $ \fooChanSink ->
   withSink "barSink" barChan $ \barChanSink ->
@@ -73,16 +77,25 @@ fooBarSink fooChan barChan uniquename =
           sink fooChanSink latestFoo
           sink barChanSink latestBar
         retVoid
-      fooBarSinkMod = package ("fooBarSinkMod" ++ uniquename) $ do
+      fooBarSinkModName = "fooBarSinkMod" ++ uniquename
+      fooBarSinkModDefs = do
+        depend applicationTypes
         incl fooBarSinkDef
-  in object fooBarSinkDef fooBarSinkMod
+  in task fooBarSinkDef fooBarSinkModName fooBarSinkModDefs
 
+applicationTypes :: Module
+applicationTypes = package "applicationTypes" $ do
+  defStruct (Proxy :: Proxy "bar_state")
+  defStruct (Proxy :: Proxy "foo_state")
+  
 fooBarAssembly :: Assembly
 fooBarAssembly = adlAssembly $ do
   (source_ss1, sink_ss1) <- connector sharedState
   (source_ss2, sink_ss2) <- connector sharedState
   
-  addObject (fooSource source_ss1)
-  addObject (barSource source_ss2)
-  addObject (fooBarSink sink_ss1 sink_ss2)
+  addTask (fooSource source_ss1)
+  addTask (barSource source_ss2)
+  addTask (fooBarSink sink_ss1 sink_ss2)
+
+  addModule applicationTypes
 
