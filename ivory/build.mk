@@ -14,6 +14,8 @@ IVORY_OPTS=--const-fold --overflow --div-zero
 
 GENERATED_DEP=$(GENERATEDDIR)/dep.mk
 
+GRAPHS_DIR=$(SMACCMDIR)/ivory/graphs
+
 include $(GENERATED_DEP)
 
 # ------------------------------------------------------------------------------
@@ -23,9 +25,17 @@ IVORY += ivory-build
 .PHONY: ivory-build
 ivory-build: $(EXEC) $(FLIGHT_GENERATED_HEADERS) $(FLIGHT_GENERATED_SOURCES)
 
-$(GENERATED_DEP): 
-	$(SANDBOX)/bin/$(GEN) --src-dir=$(SRCDIR) --include-dir=$(INCDIR) \
-		--deps=$(GENERATED_DEP) --dep-prefix=FLIGHT_GENERATED
+$(GENERATED_DEP):
+	mkdir -p $(GRAPHS_DIR)
+	$(SANDBOX)/bin/$(GEN) \
+    --src-dir=$(SRCDIR) \
+    --include-dir=$(INCDIR) \
+		--deps=$(GENERATED_DEP) \
+    --dep-prefix=FLIGHT_GENERATED \
+    --cfg=true \
+    --cfg-dot-dir=$(GRAPHS_DIR) \
+    --cfg-proc=stabilize_from_rate \
+    --cfg-proc=pid_update
 
 # We don't add the .hs files as dependencies.  It's up to the user to clean
 # them.  (It's not even clear if that's the right thing to do, since even if
@@ -60,7 +70,7 @@ CBMCINCS = \
   -I./ivory-freertos-wrapper/include \
   -I./flight-support/include \
   -I./smavlink/include \
-  -I./smavlink/include/smavlink/messages 
+  -I./smavlink/include/smavlink/messages
 
 STARTS := $(shell $(SANDBOX)/bin/$(GEN)\
   --src-dir=$(SRCDIR) \
@@ -76,4 +86,4 @@ CBMC_EXEC := $(addprefix $(CONFIG_CBMC_PREFIX)/, cbmc)
 verify: $(FLIGHT_GENERATED_HEADERS) $(FLIGHT_GENERATED_SOURCES)
 	$(foreach func, $(STARTS), \
     $(shell $(CBMC_EXEC) -D IVORY_CBMC $(CBMCINCS ) \
-    	--function $(func) $(FLIGHT_GENERATED_SOURCES) >&2 ))
+      --function $(func) $(FLIGHT_GENERATED_SOURCES) >&2 ))
