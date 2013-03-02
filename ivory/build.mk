@@ -47,3 +47,33 @@ CLEAN     += $(wildcard $(SRCDIR)/*.c)
 CLEAN     += $(wildcard $(INCDIR)/*.h)
 VERYCLEAN += $(SMACCMDIR)/ivory/dist
 
+# ------------------------------------------------------------------------------
+# CBMC stuff
+# ------------------------------------------------------------------------------
+
+CBMCINCS = \
+  -I./flight-generated/include/smaccmpilot \
+  -I./flight-generated/include \
+  -I./bsp/hwf4/include \
+  -I./bsp/include	\
+  -I./ivory-runtime	\
+  -I./ivory-freertos-wrapper/include \
+  -I./flight-support/include \
+  -I./smavlink/include \
+  -I./smavlink/include/smavlink/messages 
+
+STARTS := $(shell $(SANDBOX)/bin/$(GEN)\
+  --src-dir=$(SRCDIR) \
+  --include-dir=$(INCDIR) \
+  --out-proc-syms)
+
+# STARTS = stabilize_from_rate stabilize_from_angle
+
+CBMC_EXEC := $(addprefix $(CONFIG_CBMC_PREFIX)/, cbmc)
+
+# >&2 redirects cbmc output from stderr so you can see it.
+.PHONY: verify
+verify: $(FLIGHT_GENERATED_HEADERS) $(FLIGHT_GENERATED_SOURCES)
+	$(foreach func, $(STARTS), \
+    $(shell $(CBMC_EXEC) -D IVORY_CBMC $(CBMCINCS ) \
+    	--function $(func) $(FLIGHT_GENERATED_SOURCES) >&2 ))
