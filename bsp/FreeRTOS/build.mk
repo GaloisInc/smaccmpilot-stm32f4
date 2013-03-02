@@ -36,7 +36,7 @@ FREERTOS_OBJECTS :=                              \
 
 # Copy files from the FreeRTOS source tree into our local tree.  Our
 # build system doesn't make it easy to compile out-of-tree sources.
-FreeRTOS/src/%.c: $(FREERTOS_SRC)/%.c
+bsp/FreeRTOS/src/%.c: $(FREERTOS_SRC)/%.c
 	mkdir -p $(dir $@)
 	cp $< $@
 
