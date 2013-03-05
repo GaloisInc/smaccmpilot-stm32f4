@@ -11,6 +11,7 @@ module Tower.FooBarAssembly
 
 import Ivory.Tower
 import Ivory.Language
+import qualified Ivory.OS.FreeRTOS as OS
 
 [ivory|
 struct foo_state
@@ -32,11 +33,15 @@ fooSource :: Source (Struct "foo_state")
 fooSource fooChan uniquename =
   withSource "fooSource" fooChan $ \fooChanSource ->
   let fooDef = proc ("fooSourceDef" ++ uniquename) $ body $ do
+        initTime <- call OS.getTimeMillis
+        lastTime <- local (ival initTime)
         state <- local (istruct [])
         forever $ do
           v <- deref (state ~> guided)
           store (state ~> guided) (v + 1)
           source fooChanSource (constRef state)
+          let period = 50
+          call_ OS.delayUntil lastTime period
         retVoid
       fooModuleName = "fooSourceMod" ++ uniquename
       fooModuleDefs = do
@@ -51,11 +56,15 @@ barSource :: Source (Struct "bar_state")
 barSource barChan uniquename =
   withSource "barSource" barChan $ \barChanSource ->
   let barDef = proc ("barSourceDef" ++ uniquename) $ body $ do
+        initTime <- call OS.getTimeMillis
+        lastTime <- local (ival initTime)
         state <- local (istruct [])
         forever $ do
           v <- deref (state ~> pricks)
           store (state ~> pricks) (v + 1)
           source barChanSource (constRef state)
+          let period = 100
+          call_ OS.delayUntil lastTime period
         retVoid
       barModuleName = "barSourceMod" ++ uniquename
       barModuleDefs = do
@@ -71,11 +80,15 @@ fooBarSink fooChan barChan uniquename =
   withSink "fooSink" fooChan $ \fooChanSink ->
   withSink "barSink" barChan $ \barChanSink ->
   let fooBarSinkDef = proc ("fooBarSinkDef" ++ uniquename) $ body $ do
+        initTime <- call OS.getTimeMillis
+        lastTime <- local (ival initTime)
         latestFoo <- local (istruct [])
         latestBar <- local (istruct [])
         forever $ do
           sink fooChanSink latestFoo
           sink barChanSink latestBar
+          let period = 50
+          call_ OS.delayUntil lastTime period
         retVoid
       fooBarSinkModName = "fooBarSinkMod" ++ uniquename
       fooBarSinkModDefs = do
@@ -98,4 +111,3 @@ fooBarAssembly = tower $ do
   addTask (fooBarSink sink_ss1 sink_ss2)
 
   addModule applicationTypes
-
