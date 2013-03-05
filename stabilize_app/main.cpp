@@ -33,6 +33,8 @@
 #include <smaccmpilot/storage_eeprom.h>
 #include <smaccmpilot/storage_partition.h>
 
+#include <smaccmpilot/tower.h>
+
 const AP_HAL::HAL& hal = AP_HAL_BOARD_DRIVER;
 
 // Handle to the main thread.
@@ -112,6 +114,8 @@ void init(void)
     ioar_relay_start_task();
 
     ioar_relay_set(IOAR_RELAY_BLINK_FAST);
+
+    tower_entry();
 }
 
 // Main thread.  Starts up the GCS thread to communicate with the

@@ -25,6 +25,7 @@ SP_STABILIZE_INCLUDES     += -I$(TOP)/flight-support/include
 SP_STABILIZE_INCLUDES     += -I$(TOP)/flight-generated/include
 SP_STABILIZE_INCLUDES     += -I$(TOP)/flight-support/include/smaccmpilot
 SP_STABILIZE_INCLUDES     += -I$(TOP)/flight-generated/include/smaccmpilot
+SP_STABILIZE_INCLUDES     += -I$(TOP)/ivory-freertos-wrapper/include
 SP_STABILIZE_INCLUDES     += -I$(TOP)/bsp/hwf4/include
 SP_STABILIZE_HIL_INCLUDES  = $(SP_STABILIZE_INCLUDES)
 
@@ -40,6 +41,7 @@ SP_STABILIZE_LIBRARIES    += libsmavlink.a
 SP_STABILIZE_LIBRARIES    += libardupilot.a
 SP_STABILIZE_LIBRARIES    += libhwf4.a
 SP_STABILIZE_LIBRARIES    += libstm32_usb.a
+SP_STABILIZE_LIBRARIES    += libivoryfreertoswrapper.a
 SP_STABILIZE_LIBRARIES    += libFreeRTOS.a
 SP_STABILIZE_HIL_LIBRARIES = $(SP_STABILIZE_LIBRARIES)
 
