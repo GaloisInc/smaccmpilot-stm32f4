@@ -2,8 +2,8 @@
 #include <FreeRTOS.h>
 #include <task.h>
 
-#include <smaccmpilot/ioar_relay.h>
 #include <hwf4/gpio.h>
+#include "smaccmpilot/ioar_relay.h"
 
 #define PATTERN_LEN 8
 #define PATTERN_DT  125

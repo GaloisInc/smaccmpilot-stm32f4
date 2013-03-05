@@ -6,7 +6,7 @@
  * All Rights Reserved.
  */
 
-#include "ivory_string_prim.h"
+#include "smaccmpilot/ivory_string_prim.h"
 
 /*
  * Copy src to string dst of size siz.  At most siz-1 characters

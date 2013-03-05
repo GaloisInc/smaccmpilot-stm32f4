@@ -14,6 +14,7 @@
 FLIGHT_SUPPORT_LIB     := libflight-support.a
 
 FLIGHT_SUPPORT_INCLUDES  += -I$(TOP)/flight-support/include
+FLIGHT_SUPPORT_INCLUDES  += -I$(TOP)/flight-generated/include
 FLIGHT_SUPPORT_INCLUDES  += $(HWF4_INCLUDES)
 FLIGHT_SUPPORT_INCLUDES  += $(ARDUPILOT_LIBINCLUDES)
 FLIGHT_SUPPORT_INCLUDES  += $(SMAVLINK_INCLUDES)
@@ -33,9 +34,23 @@ endif
 # Ignore ASSERTS() REQUIRES() in the source (used by CBMC).
 FLIGHT_SUPPORT_CFLAGS += -DIVORY_DEPLOY
 
-FLIGHT_SUPPORT_CXXFLAGS  += $(SMACCMPILOT_INCLUDES)
+FLIGHT_SUPPORT_CXXFLAGS  += $(FLIGHT_SUPPORT_INCLUDES)
 
-FLIGHT_SUPPORT_OBJECTS := 
+FLIGHT_SUPPORT_OBJECTS := $(addprefix src/,\
+	altitude_controller.o \
+	apmotors_wrapper.o \
+	console_prim.o \
+	gcs_receive.o \
+	gcs_transmit.o \
+	ioar_relay.o \
+	ivory_string_prim.o \
+	motorsoutput.o \
+	optflow_input.o \
+	position_estimator.o \
+	sensors.o \
+	stabilize.o \
+	userinput.o \
+	)
 
 $(eval $(call library,FLIGHT_SUPPORT))
 

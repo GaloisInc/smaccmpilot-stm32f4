@@ -1,6 +1,4 @@
 
-#include "apmotors_wrapper.h"
-
 #include <FreeRTOS.h>
 #include <task.h>
 #include <semphr.h>
@@ -10,6 +8,8 @@
 #include <AP_HAL.h>
 #include <RC_Channel.h>
 #include <AP_Motors.h>
+
+#include "smaccmpilot/apmotors_wrapper.h"
 
 extern const AP_HAL::HAL& hal;
 

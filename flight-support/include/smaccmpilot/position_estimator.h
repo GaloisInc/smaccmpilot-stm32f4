@@ -6,10 +6,10 @@
 extern "C" {
 #endif
 
-#include "sensors_type.h"
-#include "position_type.h"
-#include "optflow_type.h"
-#include "position_estimate_type.h"
+#include "smaccmpilot/sensors_type.h"
+#include "smaccmpilot/position_type.h"
+#include "smaccmpilot/optflow_type.h"
+#include "smaccmpilot/position_estimate_type.h"
 
 void position_estimate(const struct sensors_result *sensors,
                        const struct position_result *position,

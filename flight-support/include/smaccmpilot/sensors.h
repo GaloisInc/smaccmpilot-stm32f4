@@ -9,7 +9,7 @@ extern "C" {
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "sensors_type.h"
+#include "smaccmpilot/sensors_type.h"
 
 void sensors_init(void);
 void sensors_start_task(void);

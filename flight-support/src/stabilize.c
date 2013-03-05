@@ -12,13 +12,13 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include <smaccmpilot/userinput.h>
-#include <smaccmpilot/sensors.h>
-#include <smaccmpilot/stabilize.h>
-#include <smaccmpilot/motorsoutput.h>
+#include "smaccmpilot/userinput.h"
+#include "smaccmpilot/sensors.h"
+#include "smaccmpilot/stabilize.h"
+#include "smaccmpilot/motorsoutput.h"
 
 /* ivory generated pid code: */
-#include <smaccmpilot/pid_stabilize.h>
+#include "smaccmpilot/pid_stabilize.h"
 
 #define MAX_INPUT_ROLL   45.0f  /* deg */
 #define MAX_INPUT_PITCH  45.0f  /* deg */

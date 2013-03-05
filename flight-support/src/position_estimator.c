@@ -2,7 +2,7 @@
 #include <FreeRTOS.h>
 #include <task.h>
 
-#include <smaccmpilot/position_estimator.h>
+#include "smaccmpilot/position_estimator.h"
 
 void position_estimate(const struct sensors_result *sensors,
                        const struct position_result *position,

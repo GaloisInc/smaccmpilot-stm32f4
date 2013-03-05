@@ -14,7 +14,7 @@ IVORY_OPTS=--const-fold --overflow --div-zero
 
 GENERATED_DEP=$(GENERATEDDIR)/dep.mk
 
-GRAPHS_DIR=$(SMACCMDIR)/ivory/graphs
+GRAPHS_DIR=$(TOP)/ivory/graphs
 
 include $(GENERATED_DEP)
 
@@ -47,15 +47,15 @@ $(FLIGHT_GENERATED_HEADERS) $(FLIGHT_GENERATED_SOURCES): $(GENERATED_DEP)
 # Build the binary to generate the code.
 .PRECIOUS: $(EXEC)
 $(EXEC):
-	cabal-dev -s $(SANDBOX) install --builddir=$(SMACCMDIR)/ivory \
-		$(SMACCMDIR)/ivory
+	cabal-dev -s $(SANDBOX) install --builddir=$(TOP)/ivory \
+		$(TOP)/ivory
 
 CLEAN     += $(GENERATED_DEP)
 # use wildcard, not the dep file, to clean subdirs, because if dep file
 # doesn't exist we won't get a proper clean.
 CLEAN     += $(wildcard $(SRCDIR)/*.c)
 CLEAN     += $(wildcard $(INCDIR)/*.h)
-VERYCLEAN += $(SMACCMDIR)/ivory/dist
+VERYCLEAN += $(TOP)/ivory/dist
 
 # ------------------------------------------------------------------------------
 # CBMC stuff

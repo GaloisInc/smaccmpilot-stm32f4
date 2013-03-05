@@ -11,8 +11,8 @@
 #include <smavlink/channel.h>
 #include <smavlink/system.h>
 
-#include "gcs_transmit.h"
-#include "gcs_transmit_driver.h"
+#include "smaccmpilot/gcs_transmit.h"
+#include "smaccmpilot/gcs_transmit_driver.h"
 
 #ifdef CONFIG_GCS_UART
 # define GCS_TRANSMIT_USART CONFIG_GCS_UART

@@ -9,9 +9,9 @@ extern "C" {
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "position_estimate_type.h"
-#include "userinput_type.h"
-#include "sensors_type.h"
+#include "smaccmpilot/position_estimate_type.h"
+#include "smaccmpilot/userinput_type.h"
+#include "smaccmpilot/sensors_type.h"
 
 void altitude_compensate(const struct position_estimate *pos,
                          const struct  sensors_result *sens,

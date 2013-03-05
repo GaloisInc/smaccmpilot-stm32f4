@@ -1,6 +1,6 @@
 
 #include "smaccmpilot/motorsoutput.h"
-#include "apmotors_wrapper.h"
+#include "smaccmpilot/apmotors_wrapper.h"
 
 #include <FreeRTOS.h>
 #include <task.h>

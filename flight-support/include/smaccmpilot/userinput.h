@@ -9,7 +9,7 @@ extern "C" {
 
 #include <FreeRTOS.h>
 
-#include "userinput_type.h"
+#include "smaccmpilot/userinput_type.h"
 
 void userinput_init(void);
 void userinput_start_task(void);
