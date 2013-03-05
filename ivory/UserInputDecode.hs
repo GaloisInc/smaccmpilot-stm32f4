@@ -48,7 +48,12 @@ decode :: Def ('[ Ref s1 (Array 8 (Stored Uint16))
                 , Ref s3 (Struct "userinput_result")
                 , Uint32 ] :-> ())
 decode = proc "userinput_decode" $ \pwms state out now -> body $ do
-  let chtransform ix f ofield = deref (pwms ! (ix :: Ix 8)) >>=
+  let chtransform :: (IvoryStore a1)
+                  => Ix 8
+                  -> (Uint16 -> Ivory s' r a1)
+                  -> Label "userinput_result" (Stored a1)
+                  -> Ivory s' r ()
+      chtransform ix f ofield = deref (pwms ! (ix :: Ix 8)) >>=
                                 f >>= \v -> store (out ~> ofield) v
   store (out ~> I.time) now
   chtransform 0 scale_rpy I.roll
