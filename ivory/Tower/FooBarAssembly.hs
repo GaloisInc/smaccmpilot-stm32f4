@@ -9,7 +9,7 @@ module Tower.FooBarAssembly
   ( fooBarAssembly
   ) where
 
-import Ivory.ADL
+import Ivory.Tower
 import Ivory.Language
 
 [ivory|
@@ -87,12 +87,12 @@ applicationTypes :: Module
 applicationTypes = package "applicationTypes" $ do
   defStruct (Proxy :: Proxy "bar_state")
   defStruct (Proxy :: Proxy "foo_state")
-  
+
 fooBarAssembly :: Assembly
-fooBarAssembly = adlAssembly $ do
+fooBarAssembly = tower $ do
   (source_ss1, sink_ss1) <- connector sharedState
   (source_ss2, sink_ss2) <- connector sharedState
-  
+
   addTask (fooSource source_ss1)
   addTask (barSource source_ss2)
   addTask (fooBarSink sink_ss1 sink_ss2)
