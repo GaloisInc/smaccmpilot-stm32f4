@@ -9,8 +9,9 @@ module Tower.FooBarAssembly
   ( fooBarAssembly
   ) where
 
-import Ivory.Tower
 import Ivory.Language
+import Ivory.Tower
+import Ivory.Tower.Connections.FreeRTOS
 import qualified Ivory.OS.FreeRTOS as OS
 
 [ivory|
