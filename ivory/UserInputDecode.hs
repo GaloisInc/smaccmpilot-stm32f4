@@ -13,7 +13,7 @@ import qualified UserInputType as I
 
 userInputDecodeModule :: Module
 userInputDecodeModule = package "userinput_decode" $ do
-  depend I.userInputModule
+  depend I.userInputTypeModule
   defStruct (Proxy :: Proxy "userinput_decode_state")
   incl decode
   incl scale_proc

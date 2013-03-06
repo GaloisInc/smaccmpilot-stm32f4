@@ -5,8 +5,8 @@
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module Tower.FooBarAssembly
-  ( fooBarAssembly
+module FooBarTasks
+  ( fooSource, barSource, fooBarSink, fooBarTypesModule
   ) where
 
 import Ivory.Language
@@ -46,7 +46,8 @@ fooSource fooChan uniquename =
         retVoid
       fooModuleName = "fooSourceMod" ++ uniquename
       fooModuleDefs = do
-        depend applicationTypes
+        depend OS.taskModule
+        depend fooBarTypesModule
         incl fooDef
   in task fooDef fooModuleName fooModuleDefs
 
@@ -69,7 +70,8 @@ barSource barChan uniquename =
         retVoid
       barModuleName = "barSourceMod" ++ uniquename
       barModuleDefs = do
-        depend applicationTypes
+        depend OS.taskModule
+        depend fooBarTypesModule
         incl barDef
   in task barDef barModuleName barModuleDefs
 
@@ -93,22 +95,13 @@ fooBarSink fooChan barChan uniquename =
         retVoid
       fooBarSinkModName = "fooBarSinkMod" ++ uniquename
       fooBarSinkModDefs = do
-        depend applicationTypes
+        depend OS.taskModule
+        depend fooBarTypesModule
         incl fooBarSinkDef
   in task fooBarSinkDef fooBarSinkModName fooBarSinkModDefs
 
-applicationTypes :: Module
-applicationTypes = package "applicationTypes" $ do
+fooBarTypesModule :: Module
+fooBarTypesModule = package "fooBarTypes" $ do
   defStruct (Proxy :: Proxy "bar_state")
   defStruct (Proxy :: Proxy "foo_state")
 
-fooBarAssembly :: Assembly
-fooBarAssembly = tower $ do
-  (source_ss1, sink_ss1) <- connector sharedState
-  (source_ss2, sink_ss2) <- connector sharedState
-
-  addTask (fooSource source_ss1)
-  addTask (barSource source_ss2)
-  addTask (fooBarSink sink_ss1 sink_ss2)
-
-  addModule applicationTypes

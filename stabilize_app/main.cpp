@@ -17,7 +17,7 @@
 #include <AP_HAL_SMACCM.h>
 #include <AP_Math.h>
 
-#include <smaccmpilot/userinput.h>
+#include <smaccmpilot/userinput_type.h>
 #include <smaccmpilot/motorsoutput.h>
 #include <smaccmpilot/stabilize.h>
 #include <smaccmpilot/pid_stabilize.h>
@@ -85,7 +85,7 @@ void init(void)
 {
     hal.init(0, NULL);
 
-    userinput_init();
+    //userinput_init();
 #ifndef USE_HIL
     sensors_init();
 #endif
@@ -101,7 +101,7 @@ void init(void)
     // dump_partition(2);
     param_load();               // XXX param_init
 
-    userinput_start_task();
+    //userinput_start_task();
 #ifndef USE_HIL
     sensors_start_task();
 #endif
@@ -138,7 +138,7 @@ void main_task(void *arg)
     portTickType last_wake_time = xTaskGetTickCount();
 
     for (;;) {
-        userinput_get(&userinput);
+        //userinput_get(&userinput);
 
 #ifdef USE_HIL
         gcs_receive_get_hilstate(&sensors, &gps_position);

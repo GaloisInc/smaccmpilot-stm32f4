@@ -7,8 +7,8 @@ module UserInputType where
 
 import Ivory.Language
 
-userInputModule :: Module
-userInputModule = package "userinput_type" $ do
+userInputTypeModule :: Module
+userInputTypeModule = package "userinput_type" $ do
   defStruct (Proxy :: Proxy "userinput_result")
 
 [ivory|

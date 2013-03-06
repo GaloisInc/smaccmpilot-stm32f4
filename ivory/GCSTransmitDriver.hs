@@ -40,7 +40,7 @@ gcsTransmitDriverModule = package "gcs_transmit_driver" $ do
   depend Serv.servoModule
   depend Sens.sensorsTypeModule
   depend M.motorsOutputModule
-  depend U.userInputModule
+  depend U.userInputTypeModule
   depend Param.paramModule
   -- dependencies for all the smavlink types and senders
   depend HB.heartbeatModule

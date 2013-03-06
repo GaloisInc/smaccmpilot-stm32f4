@@ -1,14 +1,21 @@
 
 module Main where
 
+import Ivory.Language
+import Ivory.Compile.C.CmdlineFrontend
+
+import Ivory.Tower
+import Ivory.Tower.Compile.FreeRTOS
+import Ivory.Tower.Connections.FreeRTOS
+
 import PositionType      (positionModule)
 import Stabilize         (stabilizeModule)
 import ServoType         (servoModule)
 import SensorsType       (sensorsTypeModule)
 import MotorsOutputType  (motorsOutputModule)
-import UserInputType     (userInputModule)
-import GCSTransmitDriver (gcsTransmitDriverModule)
+import UserInputType     (userInputTypeModule)
 import UserInputDecode   (userInputDecodeModule)
+import GCSTransmitDriver (gcsTransmitDriverModule)
 import OptFlowType       (optFlowTypeModule)
 import PositionEstimateType (positionEstimateTypeModule)
 
@@ -20,27 +27,44 @@ import SMACCMPilot.Storage.EEPROM    (eepromModule)
 import SMACCMPilot.Storage.Partition (partitionModule)
 import SMACCMPilot.Param             (paramModule)
 
-import Tower.Test (towerModules)
+import UserInputTask
+import FooBarTasks
 
-import Ivory.Compile.C.CmdlineFrontend
+otherms :: [Module]
+otherms =
+  [ positionModule
+  , stabilizeModule
+  , servoModule
+  , sensorsTypeModule
+  , motorsOutputModule
+  , gcsTransmitDriverModule
+  , userInputDecodeModule
+  , optFlowTypeModule
+  , positionEstimateTypeModule
+  , cstringModule
+  , consoleModule
+  , i2cModule
+  , eepromModule
+  , partitionModule
+  , paramModule
+  ]
+
+assembly :: Assembly
+assembly = tower $ do
+  (src_foo, sink_foo) <- connector sharedState
+  (src_bar, sink_bar) <- connector sharedState
+  (src_userinput, _)  <- connector sharedState
+
+  addTask (fooSource src_foo)
+  addTask (barSource src_bar)
+  addTask (fooBarSink sink_foo sink_bar)
+
+  addTask (userInputTask src_userinput)
+
+  addConnectorTypeModule fooBarTypesModule
+  addConnectorTypeModule userInputTypeModule
+  mapM_ addModule otherms
 
 main :: IO ()
-main = compile $ towerModules ++
-               [ positionModule
-               , stabilizeModule
-               , servoModule
-               , sensorsTypeModule
-               , motorsOutputModule
-               , userInputModule
-               , gcsTransmitDriverModule
-               , userInputDecodeModule
-               , optFlowTypeModule
-               , positionEstimateTypeModule
-               , cstringModule
-               , consoleModule
-               , i2cModule
-               , eepromModule
-               , partitionModule
-               , paramModule
-               ]
+main = compile $ compileTower assembly
 
