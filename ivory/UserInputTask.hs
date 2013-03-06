@@ -38,7 +38,6 @@ userInputTask s uniquename =
           source userInputSource (constRef result)
           call_ OS.delayUntil lastTime period
 
-      mName = "userinputTask" ++ uniquename
       mDefs = do
         depend userInputTypeModule
         depend userInputDecodeModule
@@ -49,7 +48,7 @@ userInputTask s uniquename =
         private $ do
           incl userInputFailsafe
 
-  in task tDef mName mDefs
+  in task tDef mDefs
   where
   period = 50
 

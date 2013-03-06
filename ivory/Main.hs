@@ -47,6 +47,8 @@ otherms =
   , eepromModule
   , partitionModule
   , paramModule
+  , fooBarTypesModule
+  , userInputTypeModule
   ]
 
 assembly :: Assembly
@@ -61,8 +63,6 @@ assembly = tower $ do
 
   addTask (userInputTask src_userinput)
 
-  addConnectorTypeModule fooBarTypesModule
-  addConnectorTypeModule userInputTypeModule
   mapM_ addModule otherms
 
 main :: IO ()

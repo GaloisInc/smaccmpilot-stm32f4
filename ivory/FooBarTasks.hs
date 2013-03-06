@@ -44,13 +44,11 @@ fooSource fooChan uniquename =
           let period = 50
           call_ OS.delayUntil lastTime period
         retVoid
-      fooModuleName = "fooSourceMod" ++ uniquename
       fooModuleDefs = do
         depend OS.taskModule
         depend fooBarTypesModule
         incl fooDef
-  in task fooDef fooModuleName fooModuleDefs
-
+  in task fooDef fooModuleDefs
 
 
 barSource :: Source (Struct "bar_state")
@@ -68,12 +66,11 @@ barSource barChan uniquename =
           let period = 100
           call_ OS.delayUntil lastTime period
         retVoid
-      barModuleName = "barSourceMod" ++ uniquename
       barModuleDefs = do
         depend OS.taskModule
         depend fooBarTypesModule
         incl barDef
-  in task barDef barModuleName barModuleDefs
+  in task barDef barModuleDefs
 
 
 fooBarSink :: Sink (Struct "foo_state")
@@ -93,12 +90,11 @@ fooBarSink fooChan barChan uniquename =
           let period = 50
           call_ OS.delayUntil lastTime period
         retVoid
-      fooBarSinkModName = "fooBarSinkMod" ++ uniquename
       fooBarSinkModDefs = do
         depend OS.taskModule
         depend fooBarTypesModule
         incl fooBarSinkDef
-  in task fooBarSinkDef fooBarSinkModName fooBarSinkModDefs
+  in task fooBarSinkDef fooBarSinkModDefs
 
 fooBarTypesModule :: Module
 fooBarTypesModule = package "fooBarTypes" $ do
