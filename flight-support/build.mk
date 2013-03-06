@@ -49,7 +49,7 @@ FLIGHT_SUPPORT_OBJECTS := $(addprefix src/,\
 	position_estimator.o \
 	sensors.o \
 	stabilize.o \
-	userinput.o \
+	userinput_capture.o \
 	)
 
 $(eval $(call library,FLIGHT_SUPPORT))

@@ -12,10 +12,11 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "smaccmpilot/userinput.h"
-#include "smaccmpilot/sensors.h"
+#include "smaccmpilot/userinput_type.h"
+#include "smaccmpilot/sensors_type.h"
+#include "smaccmpilot/motorsoutput_type.h"
+
 #include "smaccmpilot/stabilize.h"
-#include "smaccmpilot/motorsoutput.h"
 
 /* ivory generated pid code: */
 #include "smaccmpilot/pid_stabilize.h"
