@@ -4,32 +4,36 @@
 #include <FreeRTOS.h>
 #include <semphr.h>
 
-struct freertos_semaphore {
-    xSemaphoreHandle sem;
-};
 
-void ivory_freertos_semaphore_create(struct freertos_semaphore *wrap)
+void ivory_freertos_semaphore_create(uint8_t **semhandle)
 {
-    wrap->sem = xSemaphoreCreateMutex();
+    *((xSemaphoreHandle*)semhandle) = xSemaphoreCreateMutex();
 }
 
-bool ivory_freertos_semaphore_take(struct freertos_semaphore *wrap,
-        uint32_t max_delay)
+bool ivory_freertos_semaphore_take(uint8_t **semhandle, uint32_t max_delay)
 {
-    if (xSemaphoreTake(wrap->sem, max_delay) == pdTRUE)
+    xSemaphoreHandle sem = *((xSemaphoreHandle*)semhandle);
+    if (xSemaphoreTake(sem, max_delay) == pdTRUE)
         return true;
     else
         return false;
 }
 
-bool ivory_freertos_semaphore_takenonblocking(struct freertos_semaphore *wrap)
+void ivory_freertos_semaphore_takeblocking(uint8_t **semhandle)
 {
-    return ivory_freertos_semaphore_take(wrap,0);
+    xSemaphoreHandle sem = *((xSemaphoreHandle*)semhandle);
+    xSemaphoreTake(sem, portMAX_DELAY);
 }
 
-void ivory_freertos_semaphore_give(struct freertos_semaphore *wrap)
+bool ivory_freertos_semaphore_takenonblocking(uint8_t **semhandle)
 {
-    xSemaphoreGive(wrap->sem);
+    return ivory_freertos_semaphore_take(semhandle,0);
+}
+
+void ivory_freertos_semaphore_give(uint8_t **semhandle)
+{
+    xSemaphoreHandle sem = *((xSemaphoreHandle*)semhandle);
+    xSemaphoreGive(sem);
 }
 
 
