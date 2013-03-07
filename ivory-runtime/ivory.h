@@ -34,6 +34,14 @@
 
 #endif /* IVORY_DEPLOY */
 
+/* So CBMC can handle forever loops. */
+#ifdef IVORY_CBMC
+#define FOREVER forever_loop < 1
+#define FOREVER_INC forever_loop++
+#else
+#define FOREVER true
+#define FOREVER_INC
+#endif
 
 /* abs implementations */
 

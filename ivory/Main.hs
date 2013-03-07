@@ -1,4 +1,3 @@
-
 module Main where
 
 import Ivory.Language
@@ -29,6 +28,8 @@ import SMACCMPilot.Param             (paramModule)
 
 import UserInputTask
 import FooBarTasks
+
+import Arm32SizeMap (sizeMap)
 
 otherms :: [Module]
 otherms =
@@ -67,4 +68,21 @@ assembly = tower $ do
 
 main :: IO ()
 main = compile $ compileTower assembly
-
+-- main = compileWithSizeMap sizeMap $ towerModules ++
+--   [ positionModule
+--   , stabilizeModule
+--   , servoModule
+--   , sensorsTypeModule
+--   , motorsOutputModule
+--   , userInputModule
+--   , gcsTransmitDriverModule
+--   , userInputDecodeModule
+--   , optFlowTypeModule
+--   , positionEstimateTypeModule
+--   , cstringModule
+--   , consoleModule
+--   , i2cModule
+--   , eepromModule
+--   , partitionModule
+--   , paramModule
+--   ]

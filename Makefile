@@ -51,10 +51,10 @@ all-targets: $(ALL_TARGETS)
 
 .PHONY: clean
 clean:
-	$(Q)rm -f $(ALL_TARGETS) $(ALL_OBJECTS) $(ALL_DEPS) $(CLEAN)
+	$(Q)rm -rf $(ALL_TARGETS) $(ALL_OBJECTS) $(ALL_DEPS) $(CLEAN)
 
 .PHONY: veryclean
-veryclean:
+veryclean: clean
 	$(Q)rm -rf $(ALL_TARGETS) $(ALL_OBJECTS) $(ALL_DEPS) $(VERYCLEAN)
 
 ######################################################################

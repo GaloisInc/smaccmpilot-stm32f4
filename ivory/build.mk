@@ -57,6 +57,8 @@ CLEAN     += $(wildcard $(SRCDIR)/*.c)
 CLEAN     += $(wildcard $(INCDIR)/*.h)
 VERYCLEAN += $(TOP)/ivory/dist
 
+CLEAN     += $(GRAPHS_DIR)
+
 # ------------------------------------------------------------------------------
 # CBMC stuff
 # ------------------------------------------------------------------------------
@@ -81,9 +83,13 @@ STARTS := $(shell $(SANDBOX)/bin/$(GEN)\
 
 CBMC_EXEC := $(addprefix $(CONFIG_CBMC_PREFIX)/, cbmc)
 
+
 # >&2 redirects cbmc output from stderr so you can see it.
 .PHONY: verify
 verify: $(FLIGHT_GENERATED_HEADERS) $(FLIGHT_GENERATED_SOURCES)
 	$(foreach func, $(STARTS), \
-    $(shell $(CBMC_EXEC) -D IVORY_CBMC $(CBMCINCS ) \
-      --function $(func) $(FLIGHT_GENERATED_SOURCES) >&2 ))
+		$(shell $(CBMC_EXEC) -D IVORY_CBMC $(CBMCINCS) --all-claims \
+			--function $(func) $(FLIGHT_GENERATED_SOURCES) >&2 ))
+
+
+

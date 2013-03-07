@@ -1,4 +1,3 @@
-
 name:                smaccmpilot
 version:             0.1.0.0
 -- synopsis:
@@ -32,7 +31,11 @@ library
                        SMACCMPilot.Storage.Partition,
                        SMACCMPilot.SafePack,
                        SMACCMPilot.Param,
+
                        FooBarTasks
+
+  other-modules:       Arm32SizeMap
+
 
   build-depends:       base >= 4.6,
                        smaccm-mavlink,
@@ -48,12 +51,16 @@ library
 
 executable smaccmpilot-gen
   main-is:             Main.hs
-  other-modules:       
+  other-modules:       Arm32SizeMap
   build-depends:       base ==4.6.*,
                        ivory,
                        ivory-lang-c,
+
                        ivory-tower,
                        ivory-tower-freertos,
+
+                       ivory-lang-opts,
+
                        smaccm-mavlink,
                        smaccmpilot,
                        monadLib
