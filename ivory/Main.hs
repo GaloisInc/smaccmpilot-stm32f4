@@ -14,7 +14,7 @@ import SMACCMPilot.Flight.Types (typeModules)
 
 import SMACCMPilot.Flight.GCS.TransmitDriver (gcsTransmitDriverModule)
 import SMACCMPilot.Flight.UserInput.Decode (userInputDecodeModule)
-import SMACCMPilot.Flight.Stabilize (stabilizeModules)
+import SMACCMPilot.Flight.Control (controlModules)
 
 import SMACCMPilot.Console           (consoleModule)
 import SMACCMPilot.Driver.I2C        (i2cModule)
@@ -24,7 +24,7 @@ import SMACCMPilot.Storage.Partition (partitionModule)
 import SMACCMPilot.Param             (paramModule)
 import SMACCMPilot.Util.IvoryCString (cstringModule)
 
-import SMACCMPilot.Flight.Stabilize.Task
+import SMACCMPilot.Flight.Control.Task
 import SMACCMPilot.Flight.UserInput.Task
 import SMACCMPilot.Flight.BlinkTask
 
@@ -34,7 +34,7 @@ import FooBarTasks
 import Arm32SizeMap (sizeMap)
 
 otherms :: [Module]
-otherms = typeModules ++ stabilizeModules ++
+otherms = typeModules ++ controlModules ++
   [ gcsTransmitDriverModule
   , userInputDecodeModule
   , cstringModule
@@ -53,22 +53,22 @@ main = compile $ compileTower app
 
 app :: Assembly
 app = tower $ do
-  (src_foo, sink_foo)            <- connector sharedState
-  (src_bar, sink_bar)            <- connector sharedState
-  (src_userinput, snk_userinput) <- connector sharedState
-  (_, snk_sensors)               <- connector sharedState
-  (src_control, _)               <- connector sharedState
-  (_, sink_blinkMode)            <- connector sharedState
+  (src_foo, sink_foo)              <- connector sharedState
+  (src_bar, sink_bar)              <- connector sharedState
+  (src_userinput, snk_userinput)   <- connector sharedState
+  (_, snk_sensors)                 <- connector sharedState
+  (src_control, _)                 <- connector sharedState
+  (src_flightmode, snk_flightmode) <- connector sharedState
 
   addTask $ fooSource src_foo
   addTask $ barSource src_bar
   addTask $ fooBarSink sink_foo sink_bar
 
-  addTask $ userInputTask src_userinput
+  addTask $ userInputTask src_userinput src_flightmode
 
-  addTask $ blinkTask GPIO.pin_b13 sink_blinkMode
+  addTask $ blinkTask GPIO.pin_b13 snk_flightmode
 
-  addTask $ stabilizeTask snk_userinput snk_sensors src_control
+  addTask $ controlTask snk_flightmode snk_userinput snk_sensors src_control
 
   mapM_ addModule otherms
 

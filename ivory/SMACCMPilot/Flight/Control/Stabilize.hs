@@ -4,15 +4,16 @@
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE FlexibleInstances #-}
 
-module SMACCMPilot.Flight.Stabilize.ControlLoops where
+module SMACCMPilot.Flight.Control.Stabilize where
 
 import Ivory.Language
 import SMACCMPilot.Util.IvoryHelpers
 
 import SMACCMPilot.Param
 
-import SMACCMPilot.Flight.Stabilize.PID
+import SMACCMPilot.Flight.Control.PID
 
+import qualified SMACCMPilot.Flight.Types.FlightMode as FM
 import qualified SMACCMPilot.Flight.Types.UserInput as IN
 import qualified SMACCMPilot.Flight.Types.Sensors as SEN
 import qualified SMACCMPilot.Flight.Types.ControlOutput as OUT
@@ -22,8 +23,12 @@ import qualified SMACCMPilot.Flight.Types.ControlOutput as OUT
 
 stabilizeControlLoopsModule :: Module
 stabilizeControlLoopsModule = package "stabilize_controlloops" $ do
+  depend FM.flightModeTypeModule
+  depend IN.userInputTypeModule
+  depend SEN.sensorsTypeModule
+  depend OUT.controlOutputTypeModule
   depend paramModule
-  depend stabilizePIDModule
+  depend controlPIDModule
   defMemArea pid_roll_stabilize
   defMemArea pid_roll_rate
   defMemArea pid_pitch_stabilize
@@ -48,57 +53,64 @@ const_MAX_OUTPUT_PITCH = 50 -- deg/sec
 const_MAX_OUTPUT_YAW   = 45 -- deg/sec
 
 
-stabilize_run :: Def ('[ Ref s1 (Struct "userinput_result")
+stabilize_run :: Def ('[ Ref s0 (Struct "flightmode")
+                       , Ref s1 (Struct "userinput_result")
                        , Ref s2 (Struct "sensors_result")
                        , Ref s3 (Struct "controloutput_result")
                        ] :-> ())
-stabilize_run = proc "stabilize_run" $ \input sensors output -> body $ do
+stabilize_run = proc "stabilize_run" $ \fm input sensors output -> body $ do
   roll_stabilize  <- addrOf pid_roll_stabilize
   pitch_stabilize <- addrOf pid_pitch_stabilize
   roll_rate       <- addrOf pid_roll_rate
   pitch_rate      <- addrOf pid_pitch_rate
   yaw_rate        <- addrOf pid_yaw_rate
 
-  sen_roll    <- (sensors ~>* SEN.roll)
-  sen_pitch   <- (sensors ~>* SEN.pitch)
-  sen_omega_x <- (sensors ~>* SEN.omega_x)
-  sen_omega_y <- (sensors ~>* SEN.omega_y)
-  sen_omega_z <- (sensors ~>* SEN.omega_z)
+  armed <- (fm ~>* FM.armed)
+  ifte (iNot armed)
+    (mapM_ do_reset
+      [roll_stabilize, pitch_stabilize, roll_rate, pitch_rate, yaw_rate] )
+    $ do -- if armed:
+      sen_roll    <- (sensors ~>* SEN.roll)
+      sen_pitch   <- (sensors ~>* SEN.pitch)
+      sen_omega_x <- (sensors ~>* SEN.omega_x)
+      sen_omega_y <- (sensors ~>* SEN.omega_y)
+      sen_omega_z <- (sensors ~>* SEN.omega_z)
 
-  controlinput_roll  <- (input ~>* IN.roll)
-  controlinput_pitch <- (input ~>* IN.pitch)
-  controlinput_yaw   <- (input ~>* IN.yaw)
+      controlinput_roll  <- (input ~>* IN.roll)
+      controlinput_pitch <- (input ~>* IN.pitch)
+      controlinput_yaw   <- (input ~>* IN.yaw)
 
-  roll_out <- call stabilize_from_angle
-                      roll_stabilize
-                      roll_rate
-                      const_MAX_INPUT_ROLL
-                      controlinput_roll
-                      sen_roll
-                      sen_omega_x
-                      const_MAX_OUTPUT_ROLL
+      roll_out <- call stabilize_from_angle
+                          roll_stabilize
+                          roll_rate
+                          const_MAX_INPUT_ROLL
+                          controlinput_roll
+                          sen_roll
+                          sen_omega_x
+                          const_MAX_OUTPUT_ROLL
 
-  pitch_out <- call stabilize_from_angle
-                      pitch_stabilize
-                      pitch_rate
-                      const_MAX_INPUT_ROLL
-                      (-1 * controlinput_pitch)
-                      sen_pitch
-                      sen_omega_y
-                      const_MAX_OUTPUT_ROLL
+      pitch_out <- call stabilize_from_angle
+                          pitch_stabilize
+                          pitch_rate
+                          const_MAX_INPUT_ROLL
+                          (-1 * controlinput_pitch)
+                          sen_pitch
+                          sen_omega_y
+                          const_MAX_OUTPUT_ROLL
 
-  yaw_out <- call stabilize_from_rate
-                      yaw_rate
-                      controlinput_yaw
-                      const_MAX_INPUT_YAW
-                      sen_omega_z
-                      const_MAX_OUTPUT_YAW
+      yaw_out <- call stabilize_from_rate
+                          yaw_rate
+                          controlinput_yaw
+                          const_MAX_INPUT_YAW
+                          sen_omega_z
+                          const_MAX_OUTPUT_YAW
 
-  store (output ~> OUT.roll)  roll_out
-  store (output ~> OUT.pitch) pitch_out
-  store (output ~> OUT.yaw)   yaw_out
-
-
+      store (output ~> OUT.roll)  roll_out
+      store (output ~> OUT.pitch) pitch_out
+      store (output ~> OUT.yaw)   yaw_out
+  where
+  do_reset :: Ref s (Struct "PID") -> Ivory s1 () ()
+  do_reset pid = store (pid ~> pid_reset) 1
 ----------------------------------------------------------------------
 -- PID initializers
 

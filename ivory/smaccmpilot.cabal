@@ -20,10 +20,10 @@ library
                        SMACCMPilot.Flight.BlinkTask,
                        SMACCMPilot.Flight.GCS.TransmitDriver,
 
-                       SMACCMPilot.Flight.Stabilize,
-                       SMACCMPilot.Flight.Stabilize.ControlLoops,
-                       SMACCMPilot.Flight.Stabilize.PID,
-                       SMACCMPilot.Flight.Stabilize.Task,
+                       SMACCMPilot.Flight.Control,
+                       SMACCMPilot.Flight.Control.PID,
+                       SMACCMPilot.Flight.Control.Stabilize,
+                       SMACCMPilot.Flight.Control.Task,
 
                        SMACCMPilot.Flight.Types,
                        SMACCMPilot.Flight.Types.ControlOutput,
@@ -34,6 +34,7 @@ library
                        SMACCMPilot.Flight.Types.Sensors,
                        SMACCMPilot.Flight.Types.Servo,
                        SMACCMPilot.Flight.Types.UserInput,
+                       SMACCMPilot.Flight.Types.FlightMode,
 
                        SMACCMPilot.Flight.UserInput.Decode,
                        SMACCMPilot.Flight.UserInput.Task,

@@ -4,7 +4,7 @@
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE FlexibleInstances #-}
 
-module SMACCMPilot.Flight.Stabilize.PID where
+module SMACCMPilot.Flight.Control.PID where
 
 import Control.Applicative
 import Data.String
@@ -14,8 +14,8 @@ import Ivory.Language
 import SMACCMPilot.Util.IvoryHelpers
 import SMACCMPilot.Param
 
-stabilizePIDModule :: Module
-stabilizePIDModule = package "stabilize_pid" $ do
+controlPIDModule :: Module
+controlPIDModule = package "control_pid" $ do
   defStruct (Proxy :: Proxy "PID")
   incl fconstrain
   incl pid_update

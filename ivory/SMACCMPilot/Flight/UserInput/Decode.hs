@@ -11,10 +11,12 @@ import Ivory.Language
 
 import SMACCMPilot.Util.IvoryHelpers
 import qualified SMACCMPilot.Flight.Types.UserInput as I
+import qualified SMACCMPilot.Flight.Types.FlightMode as FM
 
 userInputDecodeModule :: Module
 userInputDecodeModule = package "userinput_decode" $ do
   depend I.userInputTypeModule
+  depend FM.flightModeTypeModule
   defStruct (Proxy :: Proxy "userinput_decode_state")
   incl userInputDecode
   incl userInputFailsafe
@@ -24,6 +26,7 @@ userInputDecodeModule = package "userinput_decode" $ do
 struct userinput_decode_state
   { last_modepwm      :: Stored Uint16
   ; last_modepwm_time :: Stored Uint32
+  ; valid_modepwm     :: Stored Uint16
   ; arm_state         :: Stored Uint8
   ; arm_state_time    :: Stored Uint32
   }
@@ -34,44 +37,43 @@ as_DISARMED = 0
 as_ARMING   = 1
 as_ARMED    = 2
 
-mode_STABILIZE, mode_ALT_HOLD, mode_LOITER :: Uint8
-mode_STABILIZE = 0
-mode_ALT_HOLD  = 1
-mode_LOITER    = 2
-
 mode_pwm_map :: [(Uint8, (Uint16, Uint16))]    -- on ER9X this should be:
-mode_pwm_map = [(mode_LOITER,    (900, 1300))  -- AUX 3 up
-               ,(mode_ALT_HOLD,  (1301, 1700)) -- AUX 3 center
-               ,(mode_STABILIZE, (1701, 2100)) -- AUX 3 down
+mode_pwm_map = [(FM.flightModeLoiter,    (900, 1300))  -- AUX 3 up
+               ,(FM.flightModeAltHold,   (1301, 1700)) -- AUX 3 center
+               ,(FM.flightModeStabilize, (1701, 2100)) -- AUX 3 down
                ]
 
 userInputDecode :: Def ('[ Ref s1 (Array 8 (Stored Uint16))
                          , Ref s2 (Struct "userinput_decode_state")
                          , Ref s3 (Struct "userinput_result")
+                         , Ref s3 (Struct "flightmode")
                          , Uint32 ] :-> ())
-userInputDecode = proc "userinput_decode" $ \pwms state out now -> body $ do
+userInputDecode = proc "userinput_decode" $ \pwms state ui fm now -> body $ do
   let chtransform :: (IvoryStore a1)
                   => Ix 8
                   -> (Uint16 -> Ivory s' r a1)
                   -> Label "userinput_result" (Stored a1)
                   -> Ivory s' r ()
       chtransform ix f ofield = deref (pwms ! (ix :: Ix 8)) >>=
-                                f >>= \v -> store (out ~> ofield) v
-  store (out ~> I.time) now
+                                f >>= \v -> store (ui ~> ofield) v
   chtransform 0 scale_rpy I.roll
   chtransform 1 scale_rpy I.pitch
   chtransform 2 scale_thr I.throttle
   chtransform 3 scale_rpy I.yaw
-  arming_statemachine pwms state out now
-  mode_statemachine pwms state out now
+  store (ui ~> I.time) now
+
+  armed <- arming_statemachine pwms state now
+  mode  <- mode_statemachine pwms state now
+  store (fm ~> FM.armed) armed
+  store (fm ~> FM.mode)  mode
+  store (fm ~> FM.time)  now
   retVoid
 
 arming_statemachine :: (Ref s1 (Array 8 (Stored Uint16)))
                     -> (Ref s2 (Struct "userinput_decode_state"))
-                    -> (Ref s3 (Struct "userinput_result"))
                     -> Uint32
-                    -> Ivory s () ()
-arming_statemachine pwms state out now = do
+                    -> Ivory s () IBool
+arming_statemachine pwms state now = do
   ch5_switch <- deref (pwms ! (5 :: Ix 8))
   throttle_stick <- deref (pwms ! (2 :: Ix 8))
   rudder_stick   <- deref (pwms ! (3 :: Ix 8))
@@ -81,15 +83,13 @@ arming_statemachine pwms state out now = do
     (ifte ((throttle_stick <? 1050) .&& (rudder_stick >? 1900))
       (do_try_arming)
       (do_not_arming))
+  newstate <- (state ~>* arm_state)
+  return $ (newstate ==? as_ARMED)
   where
   set_arm_state :: Uint8 -> Ivory s () ()
   set_arm_state newstate = do
     store (state ~> arm_state) newstate
     store (state ~> arm_state_time) now
-    ifte (newstate ==? as_DISARMED)
-      (store (out ~> I.armed) false)
-      (ift (newstate ==? as_ARMED)
-        (store (out ~> I.armed) true))
 
   do_disarm :: Ivory s () ()
   do_disarm = set_arm_state as_DISARMED
@@ -115,10 +115,9 @@ arming_statemachine pwms state out now = do
 
 mode_statemachine :: (Ref s1 (Array 8 (Stored Uint16)))
                   -> (Ref s2 (Struct "userinput_decode_state"))
-                  -> (Ref s3 (Struct "userinput_result"))
                   -> Uint32
-                  -> Ivory s () ()
-mode_statemachine pwms state out now = do
+                  -> Ivory s () Uint8
+mode_statemachine pwms state now = do
   mode_input_current <- deref (pwms ! (4 :: Ix 8))
   mode_input_prev    <- deref (state ~> last_modepwm)
   prev_time          <- deref (state ~> last_modepwm_time)
@@ -128,16 +127,17 @@ mode_statemachine pwms state out now = do
     (ift (now - prev_time >? latchtime)
       (newmode mode_input_current))
     (reset_input mode_input_current)
+  m <- deref (state ~> valid_modepwm)
+  return $ mode_from_pwm m
   where
   reset_input m = do
     store (state ~> last_modepwm) m
     store (state ~> last_modepwm_time) now
-  newmode m = do 
+  newmode m = do
     reset_input m
-    new <- assign $ mode_from_pwm m
-    store (out ~> I.mode) new
+    store (state ~> valid_modepwm) m
   mode_from_pwm :: Uint16 -> Uint8
-  mode_from_pwm pwm = foldr matchmodemap mode_STABILIZE mode_pwm_map
+  mode_from_pwm pwm = foldr matchmodemap FM.flightModeStabilize mode_pwm_map
     -- Build up a series of conditional checks using fold. Default to
     -- mode_STABILIZE if none found.
     where
@@ -162,14 +162,16 @@ scale_proc = proc "userinput_scale" $ \center range outmin outmax input -> body 
 
 
 userInputFailsafe :: Def ('[ Ref s1 (Struct "userinput_result")
+                           , Ref s2 (Struct "flightmode")
                            , Uint32 ] :-> ())
-userInputFailsafe = proc "userInputFailsafe" $ \capt now -> body $ do
+userInputFailsafe = proc "userinput_failsafe" $ \capt fm now -> body $ do
   last <- deref ( capt ~> I.time )
   let dt = now - last
   ift (dt >? 150) $ do
-     store (capt ~> I.armed)    false
+     store (fm   ~> FM.armed)   false
      store (capt ~> I.throttle) 0
      store (capt ~> I.yaw)      0
      store (capt ~> I.pitch)    0
      store (capt ~> I.roll)     0
   retVoid
+

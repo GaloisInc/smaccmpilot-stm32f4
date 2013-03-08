@@ -15,8 +15,7 @@ import qualified SMACCMPilot.Flight.Types.Servo        as Serv
 import qualified SMACCMPilot.Flight.Types.Sensors      as Sens
 import qualified SMACCMPilot.Flight.Types.MotorsOutput as M
 import qualified SMACCMPilot.Flight.Types.UserInput    as U
-
-import qualified SMACCMPilot.Flight.UserInput.Decode as U
+import qualified SMACCMPilot.Flight.Types.FlightMode   as FM
 
 import qualified SMACCMPilot.Param as Param
 
@@ -43,6 +42,7 @@ gcsTransmitDriverModule = package "gcs_transmit_driver" $ do
   depend Sens.sensorsTypeModule
   depend M.motorsOutputTypeModule
   depend U.userInputTypeModule
+  depend FM.flightModeTypeModule
   depend Param.paramModule
   -- dependencies for all the smavlink types and senders
   depend HB.heartbeatModule
@@ -62,16 +62,15 @@ gcsTransmitDriverModule = package "gcs_transmit_driver" $ do
   incl sendParamValue
   incl sendParams
 
-sendHeartbeat :: Def ('[ (Ref s1 (Struct "motorsoutput_result"))
-                       , (Ref s2 (Struct "userinput_result"))
-                       , (Ref s3 (Struct "smavlink_out_channel"))
-                       , (Ref s4 (Struct "smavlink_system"))
+sendHeartbeat :: Def ('[ (Ref s1 (Struct "flightmode"))
+                       , (Ref s2 (Struct "smavlink_out_channel"))
+                       , (Ref s3 (Struct "smavlink_system"))
                        ] :-> ())
 sendHeartbeat = proc "gcs_transmit_send_heartbeat" $ 
-  \mot user ch sys -> body $ do
+  \fm ch sys -> body $ do
   hb <- local (istruct [])
-  armed <- (mot ~>* M.armed)
-  mode  <- (user ~>* U.mode)
+  armed <- (fm ~>* FM.armed)
+  mode  <- (fm ~>* FM.mode)
   store (hb ~> HB.custom_mode) (mode_to_ac2mode mode)
   store (hb ~> HB.mavtype)      mavtype_quadrotor
   -- masquerade as an APM so we can use their custom modes, for now
@@ -98,9 +97,9 @@ sendHeartbeat = proc "gcs_transmit_send_heartbeat" $
   mode_to_ac2mode um = foldr translate ac2mode_stabilize t
     where
     translate (umode, ac2mode) c = (um ==? umode) ? (ac2mode, c)
-    t = [(U.mode_STABILIZE, ac2mode_stabilize)
-        ,(U.mode_ALT_HOLD,  ac2mode_alt_hold)
-        ,(U.mode_LOITER,    ac2mode_loiter)
+    t = [ (FM.flightModeStabilize, ac2mode_stabilize)
+        , (FM.flightModeAltHold,   ac2mode_alt_hold)
+        , (FM.flightModeLoiter,    ac2mode_loiter)
         ]
 
 

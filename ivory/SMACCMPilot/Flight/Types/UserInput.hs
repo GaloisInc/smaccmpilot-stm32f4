@@ -13,12 +13,10 @@ userInputTypeModule = package "userinput_type" $ do
 
 [ivory|
 struct userinput_result
-  { armed    :: Stored IBool
-  ; throttle :: Stored IFloat
+  { throttle :: Stored IFloat
   ; roll     :: Stored IFloat
   ; pitch    :: Stored IFloat
   ; yaw      :: Stored IFloat
-  ; mode     :: Stored Uint8
   ; time     :: Stored Uint32
   }
 |]

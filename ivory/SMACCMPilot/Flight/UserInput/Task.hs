@@ -18,20 +18,24 @@ import SMACCMPilot.Util.IvoryHelpers
 import SMACCMPilot.Util.Periodic
 
 userInputTask :: Source (Struct "userinput_result")
-          -> String -> Task
-userInputTask s uniquename =
-  withSource "userInputSource" s $ \userInputSource ->
+              -> Source (Struct "flightmode")
+              -> String -> Task
+userInputTask uis fms uniquename =
+  withSource "userInput"  uis $ \userInputSource ->
+  withSource "flightMode" fms $ \flightModeSource ->
   let tDef = proc ("userInputTaskDef" ++ uniquename) $ body $ do
         chs     <- local (iarray [])
         decoder <- local (istruct [])
-        result  <- local (istruct [])
+        ui_result  <- local (istruct [])
+        fm_result  <- local (istruct [])
         periodic 50 $ do
           now <- call OS.getTimeMillis
           captured <- call userInputCapture chs
           ift captured $ do
-            call_ userInputDecode chs decoder result now
-          call_ userInputFailsafe result now
-          source userInputSource (constRef result)
+            call_ userInputDecode chs decoder ui_result fm_result now
+          call_ userInputFailsafe ui_result fm_result now
+          source userInputSource  (constRef ui_result)
+          source flightModeSource (constRef fm_result)
 
       mDefs = do
         depend userInputTypeModule

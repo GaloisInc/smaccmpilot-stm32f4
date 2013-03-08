@@ -13,6 +13,7 @@ import SMACCMPilot.Flight.Types.PositionEstimate (positionEstimateTypeModule)
 import SMACCMPilot.Flight.Types.Sensors (sensorsTypeModule)
 import SMACCMPilot.Flight.Types.Servo (servoTypeModule)
 import SMACCMPilot.Flight.Types.UserInput (userInputTypeModule)
+import SMACCMPilot.Flight.Types.FlightMode (flightModeTypeModule)
 
 
 typeModules :: [Module]
@@ -25,5 +26,6 @@ typeModules =
   , sensorsTypeModule
   , servoTypeModule
   , userInputTypeModule
+  , flightModeTypeModule
   ]
 

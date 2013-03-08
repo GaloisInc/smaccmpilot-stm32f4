@@ -3,7 +3,9 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE QuasiQuotes #-}
 
-module SMACCMPilot.Flight.BlinkTask where
+module SMACCMPilot.Flight.BlinkTask
+  ( blinkTask
+  ) where
 
 import Ivory.Language
 import Ivory.Tower
@@ -15,35 +17,33 @@ import SMACCMPilot.Driver.Gpio
 import SMACCMPilot.Util.IvoryHelpers
 import SMACCMPilot.Util.Periodic
 
+import qualified SMACCMPilot.Flight.Types.FlightMode as FM
+
 blinkTask :: MemArea (Struct "pin")
-          -> Sink (Stored Uint8)
+          -> Sink (Struct "flightmode")
           -> String -> Task
 blinkTask mempin s uniquename =
-  withSink "blinkModeSink" s $ \blinkModeSink ->
+  withSink "flightMode" s $ \flightModeSink ->
   let tDef = proc ("blinkTaskDef" ++ uniquename) $ body $ do
-        pin <- addrOf mempin 
+        pin <- addrOf mempin
         call_ pin_enable     pin
         call_ pin_set_otype  pin pinTypePushPull
         call_ pin_set_ospeed pin pinSpeed2Mhz
         call_ pin_set_pupd   pin pinPupdNone
         call_ pin_reset      pin
         call_ pin_set_mode   pin pinModeOutput
-        state    <- local (ival (0::Uint8))
-        phase    <- local (ival (0::Uint8))
+        flightMode <- local (istruct [])
+        s_phase    <- local (ival (0::Uint8))
         periodic 125 $ do
-          sink blinkModeSink state
-          output <- findBlinkOutput state phase
+          phase <- deref s_phase
+          sink flightModeSink flightMode
+          bmode  <- flightModeToBlinkMode flightMode
+          output <- blinkOutput bmode phase
           ifte output
             (call_ pin_set  pin)
             (call_ pin_reset pin)
-          nextPhase 8 phase
+          nextPhase 8 s_phase
 
-      findBlinkOutput :: (Ref s1 (Stored Uint8))
-        -> (Ref s2 (Stored Uint8)) -> Ivory s () IBool
-      findBlinkOutput rMode rPhase = do
-        mode <- deref rMode
-        phase <- deref rPhase
-        return $ findBlinkOutput' mode phase
 
       nextPhase :: Uint8 -> (Ref s1 (Stored Uint8)) -> Ivory s () ()
       nextPhase highest r = do
@@ -55,14 +55,18 @@ blinkTask mempin s uniquename =
       mDefs = do
         depend OS.taskModule
         depend gpioModule
-        inclHeader "userinput_capture"
         incl tDef
-
   in task tDef mDefs
 
 
-findBlinkOutput' :: Uint8 -> Uint8 -> IBool
-findBlinkOutput' state phase = switchState
+flightModeToBlinkMode :: Ref s1 (Struct "flightmode") -> Ivory s2 () Uint8
+flightModeToBlinkMode fmRef = do
+  mode  <- (fmRef ~>* FM.mode)
+  armed <- (fmRef ~>* FM.armed)
+  return 2
+
+blinkOutput :: Uint8 -> Uint8 -> Ivory s () IBool
+blinkOutput state phase = return switchState
   where
   switchState = foldl aux false [0..6]
     where aux res s = (state ==? (fromIntegral s)) ? (switchPhase s, res)
