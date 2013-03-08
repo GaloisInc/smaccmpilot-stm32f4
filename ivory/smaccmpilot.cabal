@@ -20,7 +20,9 @@ library
                        SMACCMPilot.Flight.BlinkTask,
                        SMACCMPilot.Flight.GCS.TransmitDriver,
 
-                       SMACCMPilot.Flight.Stabilize.Primitives,
+                       SMACCMPilot.Flight.Stabilize,
+                       SMACCMPilot.Flight.Stabilize.ControlLoops,
+                       SMACCMPilot.Flight.Stabilize.PID,
                        SMACCMPilot.Flight.Stabilize.Task,
 
                        SMACCMPilot.Flight.Types,

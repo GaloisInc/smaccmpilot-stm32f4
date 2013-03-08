@@ -4,107 +4,103 @@
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE FlexibleInstances #-}
 
-module SMACCMPilot.Flight.Stabilize.Primitives where
+module SMACCMPilot.Flight.Stabilize.ControlLoops where
 
-import Control.Applicative
-import Data.String
 import Ivory.Language
-
 import SMACCMPilot.Util.IvoryHelpers
+
 import SMACCMPilot.Param
+
+import SMACCMPilot.Flight.Stabilize.PID
+
+import qualified SMACCMPilot.Flight.Types.UserInput as IN
+import qualified SMACCMPilot.Flight.Types.Sensors as SEN
+import qualified SMACCMPilot.Flight.Types.ControlOutput as OUT
 
 ----------------------------------------------------------------------
 -- Ivory Module
 
-stabilizePrimitivesModule :: Module
-stabilizePrimitivesModule = package "stabilize_primitives" $ do
+stabilizeControlLoopsModule :: Module
+stabilizeControlLoopsModule = package "stabilize_controlloops" $ do
   depend paramModule
-  defStruct (Proxy :: Proxy "PID")
+  depend stabilizePIDModule
   defMemArea pid_roll_stabilize
   defMemArea pid_roll_rate
   defMemArea pid_pitch_stabilize
   defMemArea pid_pitch_rate
   defMemArea pid_yaw_rate
-  incl fconstrain
-  incl pid_update
+  incl stabilize_run
   incl stabilize_init
   incl stabilize_from_angle
   incl stabilize_from_rate
 
 ----------------------------------------------------------------------
--- Math Utilities (move into a Math.hs?)
-
--- | Convert an angle in radians to degrees.
-degrees :: (Fractional a) => a -> a
-degrees x = x * 57.295779513082320876798154814105
-
--- | Constrain a floating point value to the range [xmin..xmax].
-fconstrain :: Def ('[IFloat, IFloat, IFloat] :-> IFloat)
-fconstrain = proc "fconstrain" $ \xmin xmax x -> body $
-  (ifte (x <? xmin)
-    (ret xmin)
-    (ifte (x >? xmax)
-      (ret xmax)
-      (ret x)))
-
-----------------------------------------------------------------------
--- Generic PID Controller
-
-[ivory|
-  struct PID
-    { pid_pGain  :: Stored IFloat
-    ; pid_iGain  :: Stored IFloat
-    ; pid_dGain  :: Stored IFloat
-    ; pid_iState :: Stored IFloat
-    ; pid_iMin   :: Stored IFloat
-    ; pid_iMax   :: Stored IFloat
-    ; pid_dState :: Stored IFloat
-    ; pid_reset  :: Stored Uint8
-  }
-|]
-
-notFloatNan :: [IFloat] -> [Cond s r]
-notFloatNan = map (\flt -> (check $ (iNot $ isnan flt) .&& (iNot $ isinf flt)))
-
--- | Update a PID controller given an error value and measured value
--- and return the output value.
-pid_update :: Def ('[(Ref s1 (Struct "PID")), IFloat, IFloat] :-> IFloat)
-pid_update = proc "pid_update" $ \pid err pos -> body $
-  requires (notFloatNan [err, pos]) $
-  do
-  p_term  <- fmap (* err) (pid~>*pid_pGain)
-
-  i_min   <- pid~>*pid_iMin
-  i_max   <- pid~>*pid_iMax
-  pid~>pid_iState %=! (call fconstrain i_min i_max . (+ err))
-  i_term  <- liftA2 (*) (pid~>*pid_iGain) (pid~>*pid_iState)
-
-  reset      <- pid~>*pid_reset
-  d_term_var <- local (ival 0)
-
-  ifte (reset /=? 0)
-    (store (pid~>pid_reset) 0)
-    (do d_state <- pid~>*pid_dState
-        d_gain  <- pid~>*pid_dGain
-        store d_term_var (d_gain * (pos - d_state)))
-  store (pid~>pid_dState) pos
-
-  d_term <- deref d_term_var
-  ret $ p_term + i_term - d_term
-
--- | Define a group of parameters for a PID controller.
-pid_param_init :: String -> Ref Global (Struct "PID") -> Ivory s r ()
-pid_param_init name pid = do
-  param_init (fromString $ name ++ "_P")    (pid ~> pid_pGain)
-  param_init (fromString $ name ++ "_I")    (pid ~> pid_iGain)
-  param_init (fromString $ name ++ "_D")    (pid ~> pid_dGain)
-  param_init (fromString $ name ++ "_IMAX") (pid ~> pid_iMax)
-
-instance ParamInit (Struct "PID") where
-  param_init = pid_param_init
-
-----------------------------------------------------------------------
 -- Stabilization
+
+const_MAX_INPUT_ROLL, const_MAX_INPUT_PITCH, const_MAX_INPUT_YAW :: IFloat
+const_MAX_INPUT_ROLL  = 45  -- deg
+const_MAX_INPUT_PITCH = 45  -- deg
+const_MAX_INPUT_YAW   = 180 -- deg/sec
+
+const_MAX_OUTPUT_ROLL, const_MAX_OUTPUT_PITCH, const_MAX_OUTPUT_YAW :: IFloat
+const_MAX_OUTPUT_ROLL  = 50 -- deg/sec
+const_MAX_OUTPUT_PITCH = 50 -- deg/sec
+const_MAX_OUTPUT_YAW   = 45 -- deg/sec
+
+
+stabilize_run :: Def ('[ Ref s1 (Struct "userinput_result")
+                       , Ref s2 (Struct "sensors_result")
+                       , Ref s3 (Struct "controloutput_result")
+                       ] :-> ())
+stabilize_run = proc "stabilize_run" $ \input sensors output -> body $ do
+  roll_stabilize  <- addrOf pid_roll_stabilize
+  pitch_stabilize <- addrOf pid_pitch_stabilize
+  roll_rate       <- addrOf pid_roll_rate
+  pitch_rate      <- addrOf pid_pitch_rate
+  yaw_rate        <- addrOf pid_yaw_rate
+
+  sen_roll    <- (sensors ~>* SEN.roll)
+  sen_pitch   <- (sensors ~>* SEN.pitch)
+  sen_omega_x <- (sensors ~>* SEN.omega_x)
+  sen_omega_y <- (sensors ~>* SEN.omega_y)
+  sen_omega_z <- (sensors ~>* SEN.omega_z)
+
+  controlinput_roll  <- (input ~>* IN.roll)
+  controlinput_pitch <- (input ~>* IN.pitch)
+  controlinput_yaw   <- (input ~>* IN.yaw)
+
+  roll_out <- call stabilize_from_angle
+                      roll_stabilize
+                      roll_rate
+                      const_MAX_INPUT_ROLL
+                      controlinput_roll
+                      sen_roll
+                      sen_omega_x
+                      const_MAX_OUTPUT_ROLL
+
+  pitch_out <- call stabilize_from_angle
+                      pitch_stabilize
+                      pitch_rate
+                      const_MAX_INPUT_ROLL
+                      (-1 * controlinput_pitch)
+                      sen_pitch
+                      sen_omega_y
+                      const_MAX_OUTPUT_ROLL
+
+  yaw_out <- call stabilize_from_rate
+                      yaw_rate
+                      controlinput_yaw
+                      const_MAX_INPUT_YAW
+                      sen_omega_z
+                      const_MAX_OUTPUT_YAW
+
+  store (output ~> OUT.roll)  roll_out
+  store (output ~> OUT.pitch) pitch_out
+  store (output ~> OUT.yaw)   yaw_out
+
+
+----------------------------------------------------------------------
+-- PID initializers
 
 pid_roll_stabilize :: MemArea (Struct "PID")
 pid_roll_stabilize = area "g_pid_roll_stabilize" $ Just $ istruct
@@ -221,3 +217,12 @@ stabilize_from_rate = proc "stabilize_from_rate" $
   servo_rate_norm   <- call fconstrain (-max_servo_rate_rad_s)
                             max_servo_rate_rad_s servo_rate_deg_s
   ret $ servo_rate_norm / max_servo_rate_rad_s
+
+
+----------------------------------------------------------------------
+-- Math Utilities (move into a Math.hs?)
+
+-- | Convert an angle in radians to degrees.
+degrees :: (Fractional a) => a -> a
+degrees x = x * 57.295779513082320876798154814105
+

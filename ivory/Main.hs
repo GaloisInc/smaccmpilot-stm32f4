@@ -14,7 +14,7 @@ import SMACCMPilot.Flight.Types (typeModules)
 
 import SMACCMPilot.Flight.GCS.TransmitDriver (gcsTransmitDriverModule)
 import SMACCMPilot.Flight.UserInput.Decode (userInputDecodeModule)
-import SMACCMPilot.Flight.Stabilize.Primitives (stabilizePrimitivesModule)
+import SMACCMPilot.Flight.Stabilize (stabilizeModules)
 
 import SMACCMPilot.Console           (consoleModule)
 import SMACCMPilot.Driver.I2C        (i2cModule)
@@ -34,9 +34,8 @@ import FooBarTasks
 import Arm32SizeMap (sizeMap)
 
 otherms :: [Module]
-otherms = typeModules ++
-  [ stabilizePrimitivesModule
-  , gcsTransmitDriverModule
+otherms = typeModules ++ stabilizeModules ++
+  [ gcsTransmitDriverModule
   , userInputDecodeModule
   , cstringModule
   , consoleModule
