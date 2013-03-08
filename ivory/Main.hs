@@ -4,6 +4,7 @@ import Ivory.Language
 import Ivory.Compile.C.CmdlineFrontend
 
 import Ivory.Tower
+import Ivory.Tower.Graphviz
 import Ivory.Tower.Compile.FreeRTOS
 import Ivory.Tower.Connections.FreeRTOS
 
@@ -49,8 +50,10 @@ otherms = typeModules ++
   ]
 
 main :: IO ()
-main = compile $ compileTower $ tower $ do
+main = compile $ compileTower app
 
+app :: Assembly
+app = tower $ do
   (src_foo, sink_foo)            <- connector sharedState
   (src_bar, sink_bar)            <- connector sharedState
   (src_userinput, snk_userinput) <- connector sharedState
@@ -69,4 +72,7 @@ main = compile $ compileTower $ tower $ do
   addTask $ stabilizeTask snk_userinput snk_sensors src_control
 
   mapM_ addModule otherms
+
+gviz :: IO ()
+gviz = graphvizToFile "out.dot" app
 
