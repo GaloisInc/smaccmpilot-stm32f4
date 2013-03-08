@@ -28,14 +28,14 @@ ivory-build: $(EXEC) $(FLIGHT_GENERATED_HEADERS) $(FLIGHT_GENERATED_SOURCES)
 $(GENERATED_DEP):
 	mkdir -p $(GRAPHS_DIR)
 	$(SANDBOX)/bin/$(GEN) \
-    --src-dir=$(SRCDIR) \
-    --include-dir=$(INCDIR) \
-		--deps=$(GENERATED_DEP) \
-    --dep-prefix=FLIGHT_GENERATED \
-    --cfg=true \
-    --cfg-dot-dir=$(GRAPHS_DIR) \
-    --cfg-proc=stabilize_from_rate \
-    --cfg-proc=pid_update
+	--src-dir=$(SRCDIR) \
+	--include-dir=$(INCDIR) \
+	--deps=$(GENERATED_DEP) \
+	--dep-prefix=FLIGHT_GENERATED \
+	--cfg=true \
+	--cfg-dot-dir=$(GRAPHS_DIR) \
+	--cfg-proc=stabilize_from_rate \
+	--cfg-proc=pid_update
 
 # We don't add the .hs files as dependencies.  It's up to the user to clean
 # them.  (It's not even clear if that's the right thing to do, since even if
@@ -67,8 +67,8 @@ CBMCINCS = \
   -I./flight-generated/include/smaccmpilot \
   -I./flight-generated/include \
   -I./bsp/hwf4/include \
-  -I./bsp/include	\
-  -I./ivory-runtime	\
+  -I./bsp/include \
+  -I./ivory-runtime \
   -I./ivory-freertos-wrapper/include \
   -I./flight-support/include \
   -I./smavlink/include \

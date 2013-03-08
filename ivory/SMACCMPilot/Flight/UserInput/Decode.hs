@@ -3,20 +3,22 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE QuasiQuotes #-}
 
-module UserInputDecode where
+module SMACCMPilot.Flight.UserInput.Decode where
+
+import Prelude hiding (last)
 
 import Ivory.Language
 
-import IvoryHelpers
-
-import qualified UserInputType as I
+import SMACCMPilot.Util.IvoryHelpers
+import qualified SMACCMPilot.Flight.Types.UserInput as I
 
 userInputDecodeModule :: Module
 userInputDecodeModule = package "userinput_decode" $ do
   depend I.userInputTypeModule
   defStruct (Proxy :: Proxy "userinput_decode_state")
-  incl decode
-  incl scale_proc
+  incl userInputDecode
+  incl userInputFailsafe
+  private $ incl scale_proc
 
 [ivory|
 struct userinput_decode_state
@@ -43,11 +45,11 @@ mode_pwm_map = [(mode_LOITER,    (900, 1300))  -- AUX 3 up
                ,(mode_STABILIZE, (1701, 2100)) -- AUX 3 down
                ]
 
-decode :: Def ('[ Ref s1 (Array 8 (Stored Uint16))
-                , Ref s2 (Struct "userinput_decode_state")
-                , Ref s3 (Struct "userinput_result")
-                , Uint32 ] :-> ())
-decode = proc "userinput_decode" $ \pwms state out now -> body $ do
+userInputDecode :: Def ('[ Ref s1 (Array 8 (Stored Uint16))
+                         , Ref s2 (Struct "userinput_decode_state")
+                         , Ref s3 (Struct "userinput_result")
+                         , Uint32 ] :-> ())
+userInputDecode = proc "userinput_decode" $ \pwms state out now -> body $ do
   let chtransform :: (IvoryStore a1)
                   => Ix 8
                   -> (Uint16 -> Ivory s' r a1)
@@ -91,7 +93,7 @@ arming_statemachine pwms state out now = do
 
   do_disarm :: Ivory s () ()
   do_disarm = set_arm_state as_DISARMED
-  
+
   hystresis = 500
 
   do_try_arming :: Ivory s () ()
@@ -157,5 +159,17 @@ scale_proc = proc "userinput_scale" $ \center range outmin outmax input -> body 
     (ifte (ranged >? outmax)
       (ret outmax)
       (ret ranged))
-  
 
+
+userInputFailsafe :: Def ('[ Ref s1 (Struct "userinput_result")
+                           , Uint32 ] :-> ())
+userInputFailsafe = proc "userInputFailsafe" $ \capt now -> body $ do
+  last <- deref ( capt ~> I.time )
+  let dt = now - last
+  ift (dt >? 150) $ do
+     store (capt ~> I.armed)    false
+     store (capt ~> I.throttle) 0
+     store (capt ~> I.yaw)      0
+     store (capt ~> I.pitch)    0
+     store (capt ~> I.roll)     0
+  retVoid

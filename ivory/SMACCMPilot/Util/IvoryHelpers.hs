@@ -3,7 +3,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE QuasiQuotes #-}
 
-module IvoryHelpers where
+module SMACCMPilot.Util.IvoryHelpers where
 
 import Ivory.Language
 

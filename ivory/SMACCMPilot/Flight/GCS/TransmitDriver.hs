@@ -4,18 +4,20 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE QuasiQuotes #-}
 
-module GCSTransmitDriver where
+module SMACCMPilot.Flight.GCS.TransmitDriver where
 
 import Ivory.Language
 
-import IvoryHelpers
+import SMACCMPilot.Util.IvoryHelpers
 
-import qualified PositionType as P
-import qualified ServoType as Serv
-import qualified SensorsType as Sens
-import qualified MotorsOutputType as M
-import qualified UserInputType as U
-import qualified UserInputDecode as U
+import qualified SMACCMPilot.Flight.Types.Position     as P
+import qualified SMACCMPilot.Flight.Types.Servo        as Serv
+import qualified SMACCMPilot.Flight.Types.Sensors      as Sens
+import qualified SMACCMPilot.Flight.Types.MotorsOutput as M
+import qualified SMACCMPilot.Flight.Types.UserInput    as U
+
+import qualified SMACCMPilot.Flight.UserInput.Decode as U
+
 import qualified SMACCMPilot.Param as Param
 
 import Smaccm.Mavlink.Send (useSendModule)
@@ -36,10 +38,10 @@ gcsTransmitDriverModule = package "gcs_transmit_driver" $ do
   -- send module has only abstract defs so we depend on it in a weird way
   useSendModule
   -- dependencies for all the smaccmpilot types
-  depend P.positionModule
-  depend Serv.servoModule
+  depend P.positionTypeModule
+  depend Serv.servoTypeModule
   depend Sens.sensorsTypeModule
-  depend M.motorsOutputModule
+  depend M.motorsOutputTypeModule
   depend U.userInputTypeModule
   depend Param.paramModule
   -- dependencies for all the smavlink types and senders

@@ -3,29 +3,21 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE FlexibleInstances #-}
---
--- Stabilize.hs --- Pitch and roll stabilization PID controller.
---
--- Copyright (C) 2012, Galois, Inc.
--- All Rights Reserved.
---
--- TBD: License terms?
---
 
-module Stabilize where
+module SMACCMPilot.Flight.Stabilize.Primitives where
 
 import Control.Applicative
 import Data.String
 import Ivory.Language
 
-import IvoryHelpers
+import SMACCMPilot.Util.IvoryHelpers
 import SMACCMPilot.Param
 
 ----------------------------------------------------------------------
 -- Ivory Module
 
-stabilizeModule :: Module
-stabilizeModule = package "pid_stabilize" $ do
+stabilizePrimitivesModule :: Module
+stabilizePrimitivesModule = package "stabilize_primitives" $ do
   depend paramModule
   defStruct (Proxy :: Proxy "PID")
   defMemArea pid_roll_stabilize

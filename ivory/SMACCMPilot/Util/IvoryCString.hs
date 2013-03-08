@@ -10,12 +10,12 @@
 -- All Rights Reserved.
 --
 
-module IvoryCString (
-  copy_istring,
-  strcpy,
-  strncmp,
-  cstringModule
-) where
+module SMACCMPilot.Util.IvoryCString
+  ( copy_istring
+  , strcpy
+  , strncmp
+  , cstringModule
+  ) where
 
 import Ivory.Language
 

@@ -3,12 +3,12 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE QuasiQuotes #-}
 
-module PositionType where
+module SMACCMPilot.Flight.Types.Position where
 
 import Ivory.Language
 
-positionModule :: Module
-positionModule = package "position_type" $ do
+positionTypeModule :: Module
+positionTypeModule = package "position_type" $ do
   defStruct (Proxy :: Proxy "position_result")
 
 -- Because trevor wont let me use haskell comments in a quasiquoter:

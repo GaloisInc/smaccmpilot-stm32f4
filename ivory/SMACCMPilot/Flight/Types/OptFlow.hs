@@ -3,7 +3,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE QuasiQuotes #-}
 
-module OptFlowType where
+module SMACCMPilot.Flight.Types.OptFlow where
 
 import Ivory.Language
 

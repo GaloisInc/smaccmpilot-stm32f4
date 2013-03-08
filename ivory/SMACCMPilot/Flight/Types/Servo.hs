@@ -3,12 +3,12 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE QuasiQuotes #-}
 
-module ServoType where
+module SMACCMPilot.Flight.Types.Servo where
 
 import Ivory.Language
 
-servoModule :: Module
-servoModule = package "servo_type" $ do
+servoTypeModule :: Module
+servoTypeModule = package "servo_type" $ do
   defStruct (Proxy :: Proxy "servo_result")
 
 [ivory|

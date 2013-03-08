@@ -3,12 +3,12 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE QuasiQuotes #-}
 
-module MotorsOutputType where
+module SMACCMPilot.Flight.Types.MotorsOutput where
 
 import Ivory.Language
 
-motorsOutputModule :: Module
-motorsOutputModule = package "motorsoutput_type" $ do
+motorsOutputTypeModule :: Module
+motorsOutputTypeModule = package "motorsoutput_type" $ do
   defStruct (Proxy :: Proxy "motorsoutput_result")
 
 [ivory|

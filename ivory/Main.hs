@@ -7,82 +7,66 @@ import Ivory.Tower
 import Ivory.Tower.Compile.FreeRTOS
 import Ivory.Tower.Connections.FreeRTOS
 
-import PositionType      (positionModule)
-import Stabilize         (stabilizeModule)
-import ServoType         (servoModule)
-import SensorsType       (sensorsTypeModule)
-import MotorsOutputType  (motorsOutputModule)
-import UserInputType     (userInputTypeModule)
-import UserInputDecode   (userInputDecodeModule)
-import GCSTransmitDriver (gcsTransmitDriverModule)
-import OptFlowType       (optFlowTypeModule)
-import PositionEstimateType (positionEstimateTypeModule)
+import qualified Smaccm.Stm32f4.GPIO as GPIO
 
-import IvoryCString               (cstringModule)
+import SMACCMPilot.Flight.Types (typeModules)
+
+import SMACCMPilot.Flight.GCS.TransmitDriver (gcsTransmitDriverModule)
+import SMACCMPilot.Flight.UserInput.Decode (userInputDecodeModule)
+import SMACCMPilot.Flight.Stabilize.Primitives (stabilizePrimitivesModule)
 
 import SMACCMPilot.Console           (consoleModule)
 import SMACCMPilot.Driver.I2C        (i2cModule)
+import SMACCMPilot.Driver.Gpio       (gpioModule)
 import SMACCMPilot.Storage.EEPROM    (eepromModule)
 import SMACCMPilot.Storage.Partition (partitionModule)
 import SMACCMPilot.Param             (paramModule)
+import SMACCMPilot.Util.IvoryCString (cstringModule)
 
-import UserInputTask
+import SMACCMPilot.Flight.Stabilize.Task
+import SMACCMPilot.Flight.UserInput.Task
+import SMACCMPilot.Flight.BlinkTask
+
+  -- for debugging, to remove:
 import FooBarTasks
 
 import Arm32SizeMap (sizeMap)
 
 otherms :: [Module]
-otherms =
-  [ positionModule
-  , stabilizeModule
-  , servoModule
-  , sensorsTypeModule
-  , motorsOutputModule
+otherms = typeModules ++
+  [ stabilizePrimitivesModule
   , gcsTransmitDriverModule
   , userInputDecodeModule
-  , optFlowTypeModule
-  , positionEstimateTypeModule
   , cstringModule
   , consoleModule
   , i2cModule
   , eepromModule
   , partitionModule
   , paramModule
+  , gpioModule
+  -- for debugging, to remove:
   , fooBarTypesModule
-  , userInputTypeModule
   ]
 
-assembly :: Assembly
-assembly = tower $ do
-  (src_foo, sink_foo) <- connector sharedState
-  (src_bar, sink_bar) <- connector sharedState
-  (src_userinput, _)  <- connector sharedState
+main :: IO ()
+main = compile $ compileTower $ tower $ do
 
-  addTask (fooSource src_foo)
-  addTask (barSource src_bar)
-  addTask (fooBarSink sink_foo sink_bar)
+  (src_foo, sink_foo)            <- connector sharedState
+  (src_bar, sink_bar)            <- connector sharedState
+  (src_userinput, snk_userinput) <- connector sharedState
+  (_, snk_sensors)               <- connector sharedState
+  (src_control, _)               <- connector sharedState
+  (_, sink_blinkMode)            <- connector sharedState
 
-  addTask (userInputTask src_userinput)
+  addTask $ fooSource src_foo
+  addTask $ barSource src_bar
+  addTask $ fooBarSink sink_foo sink_bar
+
+  addTask $ userInputTask src_userinput
+
+  addTask $ blinkTask GPIO.pin_b13 sink_blinkMode
+
+  addTask $ stabilizeTask snk_userinput snk_sensors src_control
 
   mapM_ addModule otherms
 
-main :: IO ()
-main = compile $ compileTower assembly
--- main = compileWithSizeMap sizeMap $ towerModules ++
---   [ positionModule
---   , stabilizeModule
---   , servoModule
---   , sensorsTypeModule
---   , motorsOutputModule
---   , userInputModule
---   , gcsTransmitDriverModule
---   , userInputDecodeModule
---   , optFlowTypeModule
---   , positionEstimateTypeModule
---   , cstringModule
---   , consoleModule
---   , i2cModule
---   , eepromModule
---   , partitionModule
---   , paramModule
---   ]

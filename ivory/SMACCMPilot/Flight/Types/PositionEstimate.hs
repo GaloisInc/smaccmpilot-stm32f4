@@ -3,7 +3,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE QuasiQuotes #-}
 
-module PositionEstimateType where
+module SMACCMPilot.Flight.Types.PositionEstimate where
 
 import Ivory.Language
 

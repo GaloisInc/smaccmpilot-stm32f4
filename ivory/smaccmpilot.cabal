@@ -12,25 +12,39 @@ build-type:          Simple
 cabal-version:       >= 1.10
 
 library
-  exposed-modules:     Stabilize,
-                       PositionType,
-                       MotorsOutputType,
-                       ServoType,
-                       SensorsType,
-                       UserInputType,
-                       UserInputDecode,
-                       UserInputTask,
-                       GCSTransmitDriver,
-                       OptFlowType,
-                       PositionEstimateType,
-                       IvoryHelpers,
-                       IvoryCString,
-                       SMACCMPilot.Console,
+  exposed-modules:     SMACCMPilot.Console,
+
+                       SMACCMPilot.Driver.Gpio,
                        SMACCMPilot.Driver.I2C,
+
+                       SMACCMPilot.Flight.BlinkTask,
+                       SMACCMPilot.Flight.GCS.TransmitDriver,
+
+                       SMACCMPilot.Flight.Stabilize.Primitives,
+                       SMACCMPilot.Flight.Stabilize.Task,
+
+                       SMACCMPilot.Flight.Types,
+                       SMACCMPilot.Flight.Types.ControlOutput,
+                       SMACCMPilot.Flight.Types.MotorsOutput,
+                       SMACCMPilot.Flight.Types.OptFlow,
+                       SMACCMPilot.Flight.Types.PositionEstimate,
+                       SMACCMPilot.Flight.Types.Position,
+                       SMACCMPilot.Flight.Types.Sensors,
+                       SMACCMPilot.Flight.Types.Servo,
+                       SMACCMPilot.Flight.Types.UserInput,
+
+                       SMACCMPilot.Flight.UserInput.Decode,
+                       SMACCMPilot.Flight.UserInput.Task,
+
                        SMACCMPilot.Storage.EEPROM,
                        SMACCMPilot.Storage.Partition,
-                       SMACCMPilot.SafePack,
+
                        SMACCMPilot.Param,
+                       SMACCMPilot.SafePack,
+
+                       SMACCMPilot.Util.IvoryCString,
+                       SMACCMPilot.Util.IvoryHelpers,
+                       SMACCMPilot.Util.Periodic,
 
                        FooBarTasks
 
@@ -40,6 +54,7 @@ library
   build-depends:       base >= 4.6,
                        smaccm-mavlink,
                        ivory,
+                       smaccm-stm32f4,
                        monadLib,
                        ivory-lang-c,
                        ivory-lang-opts,
@@ -62,5 +77,6 @@ executable smaccmpilot-gen
                        ivory-lang-opts,
 
                        smaccm-mavlink,
+                       smaccm-stm32f4,
                        smaccmpilot,
                        monadLib

@@ -3,7 +3,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE QuasiQuotes #-}
 
-module SensorsType where
+module SMACCMPilot.Flight.Types.Sensors where
 
 import Ivory.Language
 
@@ -31,13 +31,13 @@ sensorsTypeModule = package "sensors_type" $ do
 [ivory|
 struct sensors_result
   { valid    :: Stored IBool
-  ; roll     :: Stored IFloat 
-  ; pitch    :: Stored IFloat 
-  ; yaw      :: Stored IFloat 
-  ; omega_x  :: Stored IFloat 
-  ; omega_y  :: Stored IFloat 
-  ; omega_z  :: Stored IFloat 
-  ; baro_alt :: Stored IFloat 
+  ; roll     :: Stored IFloat
+  ; pitch    :: Stored IFloat
+  ; yaw      :: Stored IFloat
+  ; omega_x  :: Stored IFloat
+  ; omega_y  :: Stored IFloat
+  ; omega_z  :: Stored IFloat
+  ; baro_alt :: Stored IFloat
   ; xacc     :: Stored IFloat
   ; yacc     :: Stored IFloat
   ; zacc     :: Stored IFloat

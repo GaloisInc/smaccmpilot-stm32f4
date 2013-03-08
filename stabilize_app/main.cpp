@@ -20,7 +20,7 @@
 #include <smaccmpilot/userinput_type.h>
 #include <smaccmpilot/motorsoutput.h>
 #include <smaccmpilot/stabilize.h>
-#include <smaccmpilot/pid_stabilize.h>
+#include <smaccmpilot/stabilize_primitives.h>
 #include <smaccmpilot/gcs_receive.h>
 #include <smaccmpilot/gcs_transmit.h>
 #include <smaccmpilot/sensors.h>

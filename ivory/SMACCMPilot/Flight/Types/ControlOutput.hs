@@ -3,23 +3,23 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE QuasiQuotes #-}
 
-module UserInputType where
+module SMACCMPilot.Flight.Types.ControlOutput where
 
 import Ivory.Language
 
-userInputTypeModule :: Module
-userInputTypeModule = package "userinput_type" $ do
-  defStruct (Proxy :: Proxy "userinput_result")
+controlOutputTypeModule :: Module
+controlOutputTypeModule = package "controloutput_type" $ do
+  defStruct (Proxy :: Proxy "controloutput_result")
 
 [ivory|
-struct userinput_result
+struct controloutput_result
   { armed    :: Stored IBool
   ; throttle :: Stored IFloat 
   ; roll     :: Stored IFloat 
   ; pitch    :: Stored IFloat 
   ; yaw      :: Stored IFloat 
-  ; mode     :: Stored Uint8
   ; time     :: Stored Uint32
   }
 |]
+
 
