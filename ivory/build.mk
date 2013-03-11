@@ -63,7 +63,7 @@ CLEAN     += $(GRAPHS_DIR)
 # CBMC stuff
 # ------------------------------------------------------------------------------
 
-CBMCINCS = \
+CBMC_INCS = \
   -I./flight-generated/include/smaccmpilot \
   -I./flight-generated/include \
   -I./bsp/hwf4/include \
@@ -72,24 +72,31 @@ CBMCINCS = \
   -I./ivory-freertos-wrapper/include \
   -I./flight-support/include \
   -I./smavlink/include \
-  -I./smavlink/include/smavlink/messages
+  -I./smavlink/include/smavlink/messages \
+  -I./flight-support/include/smaccmpilot
 
 STARTS := $(shell $(SANDBOX)/bin/$(GEN)\
   --src-dir=$(SRCDIR) \
   --include-dir=$(INCDIR) \
   --out-proc-syms)
 
-# STARTS = stabilize_from_rate stabilize_from_angle
+CBMC_EXEC			:= $(addprefix $(CONFIG_CBMC_PREFIX)/, cbmc)
+CBMC_REPORT		:= $(addprefix $(CONFIG_CBMC_REPORT)/, cbmc-report)
+ENTRY_FUNCS		:= $(patsubst %, --function %, $(STARTS))
+CBMC_SRCS			:= $(patsubst %, --src %, $(FLIGHT_GENERATED_SOURCES))
 
-CBMC_EXEC := $(addprefix $(CONFIG_CBMC_PREFIX)/, cbmc)
+	# $(shell $(CBMC_REPORT) --help --cbmc $(CBMC_EXEC) $(ENTRY_FUNCS) \
+  #   -D IVORY_CBMC $(CBMC_INCS) $(FLIGHT_GENERATED_SOURCES) >&2)
+#--cbmc $(CBMC_EXEC) $(ENTRY_FUNCS) -D IVORY_CBMC
 
+# $(FLIGHT_GENERATED_SOURCES)
 
 # >&2 redirects cbmc output from stderr so you can see it.
 .PHONY: verify
 verify: $(FLIGHT_GENERATED_HEADERS) $(FLIGHT_GENERATED_SOURCES)
-	$(foreach func, $(STARTS), \
-		$(shell $(CBMC_EXEC) -D IVORY_CBMC $(CBMCINCS) --all-claims \
-			--function $(func) $(FLIGHT_GENERATED_SOURCES) >&2 ))
+	# echo $(ENTRY_FUNCS)
+	$(CBMC_REPORT) --verbose --cbmc $(CBMC_EXEC) $(ENTRY_FUNCS) \
+    -- -D IVORY_CBMC $(CBMC_INCS) $(FLIGHT_GENERATED_SOURCES)
 
 
 
