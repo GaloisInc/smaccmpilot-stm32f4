@@ -9,10 +9,10 @@ import Ivory.Language
 
 controlOutputTypeModule :: Module
 controlOutputTypeModule = package "controloutput_type" $ do
-  defStruct (Proxy :: Proxy "controloutput_result")
+  defStruct (Proxy :: Proxy "controloutput")
 
 [ivory|
-struct controloutput_result
+struct controloutput
   { armed    :: Stored IBool
   ; throttle :: Stored IFloat 
   ; roll     :: Stored IFloat 

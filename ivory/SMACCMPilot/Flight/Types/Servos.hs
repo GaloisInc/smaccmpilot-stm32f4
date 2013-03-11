@@ -3,16 +3,16 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE QuasiQuotes #-}
 
-module SMACCMPilot.Flight.Types.Servo where
+module SMACCMPilot.Flight.Types.Servos where
 
 import Ivory.Language
 
-servoTypeModule :: Module
-servoTypeModule = package "servo_type" $ do
-  defStruct (Proxy :: Proxy "servo_result")
+servosTypeModule :: Module
+servosTypeModule = package "servos_type" $ do
+  defStruct (Proxy :: Proxy "servos")
 
 [ivory|
-struct servo_result
+struct servos
   { valid   :: Stored IBool
   ; servo1  :: Stored Uint16
   ; servo2  :: Stored Uint16
@@ -21,5 +21,4 @@ struct servo_result
   ; time    :: Stored Uint32
   }
 |]
-
 

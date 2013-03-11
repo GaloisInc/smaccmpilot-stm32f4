@@ -21,7 +21,7 @@ import SMACCMPilot.Util.Periodic
 controlTask :: Sink (Struct "flightmode")
             -> Sink (Struct "userinput_result")
             -> Sink (Struct "sensors_result")
-            -> Source (Struct "controloutput_result")
+            -> Source (Struct "controloutput")
             -> String -> Task
 controlTask s_fm s_inpt s_sensors s_ctl uniquename =
   withSink   "flightmode" s_fm      $ \flightmodeSink->
