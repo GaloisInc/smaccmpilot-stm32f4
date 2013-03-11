@@ -57,7 +57,7 @@ apmotors_output_init = externProc "apmotors_output_init"
 
 apmotors_output_set :: Def ('[ ConstRef s1 (Struct "controloutput")
                              , ConstRef s2 (Struct "flightmode") ] :-> ())
-apmotors_output_set = externProc "apmotors_output_set "
+apmotors_output_set = externProc "apmotors_output_set"
 
 apmotors_servo_get :: Def ('[Ref s (Struct "servos")] :-> ())
 apmotors_servo_get = externProc "apmotors_servo_get"
