@@ -1,5 +1,5 @@
 
-#include "smaccmpilot/sensors.h"
+#include "smaccmpilot/sensors_capture.h"
 
 #include <FreeRTOS.h>
 #include <task.h>
@@ -15,13 +15,7 @@
 #include <AP_HAL.h>
 extern const AP_HAL::HAL& hal;
 
-static void sensors_task(void* arg);
 static void flash_leds(bool on);
-
-static void sensors_begin(); 
-static void sensors_update();
-static void sensors_getstate(struct sensors_result *state);
-static void sensors_share(const struct sensors_result *state);
 
 // The rate we run the inertial sensor at.
 static const AP_InertialSensor::Sample_rate INS_SAMPLE_RATE =
@@ -33,60 +27,7 @@ static AP_Baro_MS5611 g_baro(&AP_Baro_MS5611::i2c);
 static GPS *g_gps;
 static AP_AHRS_DCM g_ahrs(&g_ins, g_gps);
 
-static xTaskHandle sensors_task_handle;
-static xSemaphoreHandle sensors_mutex;
-
-static struct sensors_result sensors_shared_state;
-
-void sensors_init(void) {
-    sensors_mutex = xSemaphoreCreateMutex();
-}
-
-void sensors_start_task(void) {
-    xTaskCreate(sensors_task, (signed char *)"sens", 1024, NULL, 0,
-            &sensors_task_handle);
-}
-
-/* sensors_get: for external threads to grab the shared state */
-void sensors_get(struct sensors_result *input) {
-    if (xSemaphoreTake(sensors_mutex, 1)) {
-        memcpy(input, &sensors_shared_state, sizeof(struct sensors_result));
-        xSemaphoreGive(sensors_mutex);
-    } else {
-        hal.scheduler->panic("PANIC: sensors_get took too long to take "
-                "memory barrier");
-    }
-}
-
-/* sensors_get: for internal thread to update the shared state */
-static void sensors_share(const struct sensors_result *capt) {
-    if (xSemaphoreTake(sensors_mutex, 1)) {
-        memcpy(&sensors_shared_state, capt, sizeof(struct sensors_result));
-        xSemaphoreGive(sensors_mutex);
-    } else {
-        hal.scheduler->panic("PANIC: sensors_share took too long to take "
-                "memory barrier");
-    }
-}
-
-static void sensors_task(void* arg) {
-    struct sensors_result state = {0};
-    sensors_share(&state);
-    sensors_begin();
-
-    portTickType last_wake = xTaskGetTickCount();
-
-    for (;;) {
-        // Delay to run this loop at 100Hz.
-        vTaskDelayUntil(&last_wake, 10);
-        sensors_update();
-        sensors_getstate(&state);
-        sensors_share(&state);
-    }
-
-}
-
-static void sensors_begin(void) {
+void sensors_begin(void) {
 
     hal.console->printf("init AP_InertialSensor: ");
     g_ins.init(AP_InertialSensor::COLD_START, INS_SAMPLE_RATE, flash_leds);
@@ -115,7 +56,7 @@ static void sensors_begin(void) {
 
 }
 
-static void sensors_update() {
+void sensors_update() {
     static portTickType last_compass = 0;
 
     portTickType now = xTaskGetTickCount();
@@ -131,8 +72,8 @@ static void sensors_update() {
 
 }
 
-static void sensors_getstate(struct sensors_result *capt) {
-    capt->valid   = true;      
+void sensors_getstate(struct sensors_result *capt) {
+    capt->valid   = true;
     capt->roll    = g_ahrs.roll;
     capt->pitch   = g_ahrs.pitch;
     capt->yaw     = g_ahrs.yaw;
@@ -173,3 +114,4 @@ static void sensors_debug() {
 static void flash_leds(bool on) {
   led_set(0, on);
 }
+

@@ -17,7 +17,6 @@
 #include <AP_HAL_SMACCM.h>
 #include <AP_Math.h>
 
-#include <smaccmpilot/sensors.h>
 #include <smaccmpilot/motorsoutput.h>
 #include <ctype.h>
 #include <smaccmpilot/storage_eeprom.h>
@@ -75,12 +74,10 @@ void init(void)
 {
     hal.init(0, NULL);
 
-    sensors_init();
     motorsoutput_init();
 
     param_load();               // XXX param_init
 
-    sensors_start_task();
     motorsoutput_start_task();
 
     tower_entry();
