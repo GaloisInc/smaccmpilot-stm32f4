@@ -7,11 +7,13 @@
 extern "C" {
 #endif
 
-#include "smaccmpilot/motorsoutput.h"
+#include "smaccmpilot/controloutput_type.h"
+#include "smaccmpilot/servos_type.h"
+#include "smaccmpilot/flightmode_type.h"
 
 void apmotors_output_init(void);
-void apmotors_output_set(const struct motorsoutput_result *state);
-void apmotors_output_get(struct servo_result *output);
+void apmotors_output_set(const struct controloutput *);
+void apmotors_servo_get(struct servos *);
 
 #ifdef __cplusplus
 }

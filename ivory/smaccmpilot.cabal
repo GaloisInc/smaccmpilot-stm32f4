@@ -25,16 +25,17 @@ library
                        SMACCMPilot.Flight.Control.Stabilize,
                        SMACCMPilot.Flight.Control.Task,
 
+                       SMACCMPilot.Flight.Motors.Task,
+
                        SMACCMPilot.Flight.Sensors.Task,
 
                        SMACCMPilot.Flight.Types,
                        SMACCMPilot.Flight.Types.ControlOutput,
-                       SMACCMPilot.Flight.Types.MotorsOutput,
                        SMACCMPilot.Flight.Types.OptFlow,
                        SMACCMPilot.Flight.Types.PositionEstimate,
                        SMACCMPilot.Flight.Types.Position,
                        SMACCMPilot.Flight.Types.Sensors,
-                       SMACCMPilot.Flight.Types.Servo,
+                       SMACCMPilot.Flight.Types.Servos,
                        SMACCMPilot.Flight.Types.UserInput,
                        SMACCMPilot.Flight.Types.FlightMode,
 

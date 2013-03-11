@@ -10,12 +10,12 @@ import Ivory.Language
 
 import SMACCMPilot.Util.IvoryHelpers
 
-import qualified SMACCMPilot.Flight.Types.Position     as P
-import qualified SMACCMPilot.Flight.Types.Servo        as Serv
-import qualified SMACCMPilot.Flight.Types.Sensors      as Sens
-import qualified SMACCMPilot.Flight.Types.MotorsOutput as M
-import qualified SMACCMPilot.Flight.Types.UserInput    as U
-import qualified SMACCMPilot.Flight.Types.FlightMode   as FM
+import qualified SMACCMPilot.Flight.Types.Position      as P
+import qualified SMACCMPilot.Flight.Types.Servos        as Serv
+import qualified SMACCMPilot.Flight.Types.Sensors       as Sens
+import qualified SMACCMPilot.Flight.Types.ControlOutput as C
+import qualified SMACCMPilot.Flight.Types.UserInput     as U
+import qualified SMACCMPilot.Flight.Types.FlightMode    as FM
 
 import qualified SMACCMPilot.Param as Param
 
@@ -38,9 +38,9 @@ gcsTransmitDriverModule = package "gcs_transmit_driver" $ do
   useSendModule
   -- dependencies for all the smaccmpilot types
   depend P.positionTypeModule
-  depend Serv.servoTypeModule
+  depend Serv.servosTypeModule
   depend Sens.sensorsTypeModule
-  depend M.motorsOutputTypeModule
+  depend C.controlOutputTypeModule
   depend U.userInputTypeModule
   depend FM.flightModeTypeModule
   depend Param.paramModule
@@ -120,12 +120,12 @@ sendAttitude = proc "gcs_transmit_send_attitude" $ \sensors ch sys -> body $ do
   retVoid 
 
 sendVfrHud :: Def ('[ (Ref s1 (Struct "position_result"))
-                    , (Ref s2 (Struct "motorsoutput_result"))
+                    , (Ref s2 (Struct "controloutput"))
                     , (Ref s3 (Struct "sensors_result"))
                     , (Ref s4 (Struct "smavlink_out_channel"))
                     , (Ref s5 (Struct "smavlink_system"))
                     ] :-> ())
-sendVfrHud = proc "gcs_transmit_send_vfrhud" $ \pos mot sens ch sys -> body $ do
+sendVfrHud = proc "gcs_transmit_send_vfrhud" $ \pos ctl sens ch sys -> body $ do
   hud <- local (istruct [])
   -- Calculating speed from vx/vy/vz int16s in m/s*100, into float in m/s
   (calcSpeed pos) `resultInto` (hud ~> HUD.groundspeed)
@@ -136,8 +136,8 @@ sendVfrHud = proc "gcs_transmit_send_vfrhud" $ \pos mot sens ch sys -> body $ do
   (calcVertSpeed pos) `resultInto` (hud ~> HUD.climb)
   -- Heading from sensors
   (calcHeading sens) `resultInto` (hud ~> HUD.heading)
-  -- Throttle from motor output
-  (calcThrottle mot) `resultInto` (hud ~> HUD.throttle)
+  -- Throttle from control output 
+  (calcThrottle ctl) `resultInto` (hud ~> HUD.throttle)
   call_ HUD.vfrHudSend hud ch sys
   retVoid 
   where
@@ -167,30 +167,32 @@ sendVfrHud = proc "gcs_transmit_send_vfrhud" $ \pos mot sens ch sys -> body $ do
     deg_int <- assign $ fromFloat 0 degrees
     return  deg_int
 
-  calcThrottle :: Ref s (Struct "motorsoutput_result") -> Ivory l () Uint16
-  calcThrottle motors = do
-    thrFloat <- (motors ~>* M.throttle)
+  calcThrottle :: Ref s (Struct "controloutput") -> Ivory l () Uint16
+  calcThrottle control = do
+    thrFloat <- (control ~>* C.throttle)
     return $ fromFloat 0 (thrFloat * 100)
 
-sendServoOutputRaw :: Def ('[ (Ref s1 (Struct "servo_result"))
-                            , (Ref s2 (Struct "userinput_result"))
+sendServoOutputRaw :: Def ('[ (Ref s1 (Struct "servos"))
+                            , (Ref s2 (Struct "controloutput"))
                             , (Ref s3 (Struct "smavlink_out_channel"))
                             , (Ref s4 (Struct "smavlink_system"))
                             ] :-> ())
 sendServoOutputRaw = proc "gcs_transmit_send_servo_output" $
-  \state user ch sys -> body $ do
+  \state ctl ch sys -> body $ do
   msg <- local (istruct [])
   (state ~> Serv.time)   `into` (msg ~> SVO.time_usec)
   (state ~> Serv.servo1) `into` (msg ~> SVO.servo1_raw)
   (state ~> Serv.servo2) `into` (msg ~> SVO.servo2_raw)
   (state ~> Serv.servo3) `into` (msg ~> SVO.servo3_raw)
   (state ~> Serv.servo4) `into` (msg ~> SVO.servo4_raw)
-  pit <- (user  ~>* U.pitch)
-  roll <- (user  ~>* U.roll)
-  thr <- (user  ~>* U.throttle)
-  store (msg ~> SVO.servo6_raw) (fromFloat 9999 ((roll + 1) * 100))
-  store (msg ~> SVO.servo7_raw) (fromFloat 9999 ((pit + 1) * 100))
-  store (msg ~> SVO.servo8_raw) (fromFloat 9999 ((thr + 1) * 100))
+  pitch <- (ctl ~>* C.pitch)
+  roll  <- (ctl ~>* C.roll)
+  thr   <- (ctl ~>* C.throttle)
+  let toSvo :: IFloat -> Uint16
+      toSvo f = fromFloat 9999 ((f + 1) * 100)
+  store (msg ~> SVO.servo6_raw) (toSvo roll)
+  store (msg ~> SVO.servo7_raw) (toSvo pitch)
+  store (msg ~> SVO.servo8_raw) (toSvo thr)
 
   call_ SVO.servoOutputRawSend msg ch sys
 

@@ -54,16 +54,10 @@ main = compileWithSizeMap sizeMap $ compileTower app
 
 app :: Assembly
 app = tower $ do
---  (src_foo, sink_foo)              <- connector sharedState
---  (src_bar, sink_bar)              <- connector sharedState
   (src_userinput, snk_userinput)   <- connector sharedState
   (src_sensors, snk_sensors)       <- connector sharedState
   (src_control, _)                 <- connector sharedState
   (src_flightmode, snk_flightmode) <- connector sharedState
-
---  addTask $ fooSource src_foo
---  addTask $ barSource src_bar
---  addTask $ fooBarSink sink_foo sink_bar
 
   addTask $ sensorsTask src_sensors
   addTask $ userInputTask src_userinput src_flightmode

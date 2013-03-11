@@ -17,7 +17,6 @@
 #include <AP_HAL_SMACCM.h>
 #include <AP_Math.h>
 
-#include <smaccmpilot/motorsoutput.h>
 #include <ctype.h>
 #include <smaccmpilot/storage_eeprom.h>
 #include <smaccmpilot/storage_partition.h>
@@ -74,11 +73,7 @@ void init(void)
 {
     hal.init(0, NULL);
 
-    motorsoutput_init();
-
     param_load();               // XXX param_init
-
-    motorsoutput_start_task();
 
     tower_entry();
 }

@@ -40,7 +40,6 @@ FLIGHT_SUPPORT_OBJECTS := $(addprefix src/,\
 	apmotors_wrapper.o \
 	console_prim.o \
 	ivory_string_prim.o \
-	motorsoutput.o \
 	sensors_capture.o \
 	userinput_capture.o \
 	)
