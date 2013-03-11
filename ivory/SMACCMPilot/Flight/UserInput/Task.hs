@@ -21,8 +21,8 @@ userInputTask :: Source (Struct "userinput_result")
               -> Source (Struct "flightmode")
               -> String -> Task
 userInputTask uis fms uniquename =
-  withSource "userInput"  uis $ \userInputSource ->
   withSource "flightMode" fms $ \flightModeSource ->
+  withSource "userInput"  uis $ \userInputSource ->
   let tDef = proc ("userInputTaskDef" ++ uniquename) $ body $ do
         chs     <- local (iarray [])
         decoder <- local (istruct [])
