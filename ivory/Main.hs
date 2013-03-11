@@ -25,6 +25,7 @@ import SMACCMPilot.Param             (paramModule)
 import SMACCMPilot.Util.IvoryCString (cstringModule)
 
 import SMACCMPilot.Flight.Control.Task
+import SMACCMPilot.Flight.Sensors.Task
 import SMACCMPilot.Flight.UserInput.Task
 import SMACCMPilot.Flight.BlinkTask
 
@@ -49,14 +50,14 @@ otherms = typeModules ++ controlModules ++
   ]
 
 main :: IO ()
-main = compileWithSizeMap sizeMap $ compile $ compileTower app
+main = compileWithSizeMap sizeMap $ compileTower app
 
 app :: Assembly
 app = tower $ do
 --  (src_foo, sink_foo)              <- connector sharedState
 --  (src_bar, sink_bar)              <- connector sharedState
   (src_userinput, snk_userinput)   <- connector sharedState
-  (_, snk_sensors)                 <- connector sharedState
+  (src_sensors, snk_sensors)       <- connector sharedState
   (src_control, _)                 <- connector sharedState
   (src_flightmode, snk_flightmode) <- connector sharedState
 
@@ -64,6 +65,7 @@ app = tower $ do
 --  addTask $ barSource src_bar
 --  addTask $ fooBarSink sink_foo sink_bar
 
+  addTask $ sensorsTask src_sensors
   addTask $ userInputTask src_userinput src_flightmode
   addTask $ blinkTask GPIO.pin_b13 snk_flightmode
   addTask $ controlTask snk_flightmode snk_userinput snk_sensors src_control

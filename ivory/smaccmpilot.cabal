@@ -25,6 +25,8 @@ library
                        SMACCMPilot.Flight.Control.Stabilize,
                        SMACCMPilot.Flight.Control.Task,
 
+                       SMACCMPilot.Flight.Sensors.Task,
+
                        SMACCMPilot.Flight.Types,
                        SMACCMPilot.Flight.Types.ControlOutput,
                        SMACCMPilot.Flight.Types.MotorsOutput,
