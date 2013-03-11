@@ -49,7 +49,7 @@ otherms = typeModules ++ controlModules ++
   ]
 
 main :: IO ()
-main = compile $ compileTower app
+main = compileWithSizeMap sizeMap $ compile $ compileTower app
 
 app :: Assembly
 app = tower $ do
@@ -74,4 +74,3 @@ app = tower $ do
 
 gviz :: IO ()
 gviz = graphvizToFile "out.dot" app
-
