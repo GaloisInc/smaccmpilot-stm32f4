@@ -93,10 +93,3 @@ spi1Bus, spi2Bus, spi3Bus :: SPIBus
 spi1Bus = mkSPIBus 0x40013000
 spi2Bus = mkSPIBus 0x40003800
 spi3Bus = mkSPIBus 0x40003C00
-
--- | Busy wait until a bit in a SPI bus status register is set.
-busyWaitSR :: IvoryType r => SPIBus -> BitField SPI_SR Bit -> Ivory s r ()
-busyWaitSR bus bit =
-  forever $ do
-    p <- isBitSetReg (spiRegSR bus) bit
-    ifte p breakOut (return ())
