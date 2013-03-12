@@ -59,7 +59,7 @@ void main_task(uint8_t* n_var0)
     ivory_hw_io_write_u32(1073873920U, n_r9 & ~((1U << 2U) - 1U << 30U) | 3U <<
                           30U);
     for (int forever_loop = 0; FOREVER; FOREVER_INC) {
-        vTaskDelay(100U);
+        vTaskDelay(250U);
         
         uint32_t n_r10 = ivory_hw_io_read_u32(1073873944U);
         
@@ -74,7 +74,7 @@ void main_task(uint8_t* n_var0)
         
         ivory_hw_io_write_u32(1073873920U, n_r12 & ~((1U << 2U) - 1U << 30U) |
                               3U << 30U);
-        vTaskDelay(100U);
+        vTaskDelay(250U);
         
         uint32_t n_r13 = ivory_hw_io_read_u32(1073873920U);
         
