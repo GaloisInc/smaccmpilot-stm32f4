@@ -1,4 +1,4 @@
-{-# LANGUAGE NoMonomorphismRestriction #-}
+{-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE FlexibleInstances #-}
@@ -19,24 +19,59 @@ import qualified SMACCMPilot.Flight.Types.FlightMode    as FM
 
 import qualified SMACCMPilot.Param as Param
 
-import Smaccm.Mavlink.Send (useSendModule)
+import SMACCMPilot.Mavlink.Send
+import SMACCMPilot.Mavlink.Messages
 
-import qualified Smaccm.Mavlink.Messages.Heartbeat as HB
-import qualified Smaccm.Mavlink.Messages.Attitude as ATT
-import qualified Smaccm.Mavlink.Messages.VfrHud as HUD
-import qualified Smaccm.Mavlink.Messages.ServoOutputRaw as SVO
-import qualified Smaccm.Mavlink.Messages.GpsRawInt as GRI
-import qualified Smaccm.Mavlink.Messages.GlobalPositionInt as GPI
-import qualified Smaccm.Mavlink.Messages.ParamValue as PV
+import qualified SMACCMPilot.Mavlink.Messages.Heartbeat as HB
+import qualified SMACCMPilot.Mavlink.Messages.Attitude as ATT
+import qualified SMACCMPilot.Mavlink.Messages.VfrHud as HUD
+import qualified SMACCMPilot.Mavlink.Messages.ServoOutputRaw as SVO
+import qualified SMACCMPilot.Mavlink.Messages.GpsRawInt as GRI
+import qualified SMACCMPilot.Mavlink.Messages.GlobalPositionInt as GPI
+import qualified SMACCMPilot.Mavlink.Messages.ParamValue as PV
 
 --------------------------------------------------------------------
 -- Module def
 
-gcsTransmitDriverModule :: Module
-gcsTransmitDriverModule = package "gcs_transmit_driver" $ do
-  -- send module has only abstract defs so we depend on it in a weird way
-  useSendModule
-  -- dependencies for all the smaccmpilot types
+
+data GCSTransmitDriver =
+  GCSTransmitDriver
+    { sendHeartbeat      :: forall s
+                          . Def ('[ (Ref s (Struct "flightmode")) ] :-> ())
+    , sendAttitude       :: forall s
+                          . Def ('[ (Ref s (Struct "sensors_result")) ] :-> ())
+    , sendVfrHud         :: forall s1 s2 s3
+                          . Def ('[ (Ref s1 (Struct "position_result"))
+                                  , (Ref s2 (Struct "controloutput"))
+                                  , (Ref s3 (Struct "sensors_result"))
+                                  ] :-> ())
+    , sendServoOutputRaw :: forall s1 s2
+                          . Def ('[ (Ref s1 (Struct "servos"))
+                                  , (Ref s2 (Struct "controloutput"))
+                                  ] :-> ())
+    , sendGpsRawInt      :: forall s
+                          . Def ('[ (Ref s (Struct "position_result"))
+                                  ] :-> ())
+    , sendGlobalPositionInt :: forall s1 s2
+                          . Def ('[ (Ref s1 (Struct "position_result"))
+                                  , (Ref s2 (Struct "sensors_result"))
+                                  ] :-> ())
+    , sendParamValue     :: forall s
+                          . Def ('[ Ref s (Struct "param_info") ] :-> ())
+    , sendParams         :: Def ('[] :-> ())
+    }
+
+gcsTransmitDriverModDefs :: GCSTransmitDriver -> ModuleDef
+gcsTransmitDriverModDefs d = do
+  incl (sendHeartbeat d)
+  incl (sendAttitude d)
+  incl (sendVfrHud d)
+  incl (sendServoOutputRaw d)
+  incl (sendGpsRawInt d)
+  incl (sendGlobalPositionInt d)
+  incl (sendParamValue d)
+  incl (sendParams d)
+  -- dependencies for all the smaccmpilot flight types
   depend P.positionTypeModule
   depend Serv.servosTypeModule
   depend Sens.sensorsTypeModule
@@ -44,7 +79,7 @@ gcsTransmitDriverModule = package "gcs_transmit_driver" $ do
   depend U.userInputTypeModule
   depend FM.flightModeTypeModule
   depend Param.paramModule
-  -- dependencies for all the smavlink types and senders
+  -- dependencies for all the mavlink message types
   depend HB.heartbeatModule
   depend ATT.attitudeModule
   depend HUD.vfrHudModule
@@ -52,22 +87,32 @@ gcsTransmitDriverModule = package "gcs_transmit_driver" $ do
   depend GRI.gpsRawIntModule
   depend GPI.globalPositionIntModule
   depend PV.paramValueModule
-  -- module has the following methods
-  incl sendHeartbeat
-  incl sendAttitude
-  incl sendVfrHud
-  incl sendServoOutputRaw
-  incl sendGpsRawInt
-  incl sendGlobalPositionInt
-  incl sendParamValue
-  incl sendParams
+  inclHeader "string"
 
-sendHeartbeat :: Def ('[ (Ref s1 (Struct "flightmode"))
-                       , (Ref s2 (Struct "smavlink_out_channel"))
-                       , (Ref s3 (Struct "smavlink_system"))
-                       ] :-> ())
-sendHeartbeat = proc "gcs_transmit_send_heartbeat" $ 
-  \fm ch sys -> body $ do
+gcsTransmitDriver :: MavlinkSender -> (GCSTransmitDriver, [Module])
+gcsTransmitDriver sender = (driver, [driverMod,  msgMod])
+  where
+  (msgSenders, msgMod) = mavlinkMessageSenders sender
+  driver =
+    GCSTransmitDriver
+      { sendHeartbeat = mkSendHeartbeat msgSenders
+      , sendAttitude = mkSendAttitude msgSenders
+      , sendVfrHud = mkSendVfrHud msgSenders
+      , sendServoOutputRaw = mkSendServoOutputRaw msgSenders
+      , sendGpsRawInt = mkSendGpsRawInt msgSenders
+      , sendGlobalPositionInt = mkSendGlobalPositionInt msgSenders
+      , sendParamValue = mkSendParamValue msgSenders
+      , sendParams = mkSendParams msgSenders
+      }
+  driverMod = package ("gcs_transmit_driver_" ++ (senderName sender)) $ do
+    depend driverMod
+    gcsTransmitDriverModDefs driver
+
+
+mkSendHeartbeat :: MavlinkMessageSenders
+              -> Def ('[ (Ref s1 (Struct "flightmode")) ] :-> ())
+mkSendHeartbeat senders = proc "gcs_transmit_send_heartbeat" $ 
+  \fm -> body $ do
   hb <- local (istruct [])
   armed <- (fm ~>* FM.armed)
   mode  <- (fm ~>* FM.mode)
@@ -81,7 +126,7 @@ sendHeartbeat = proc "gcs_transmit_send_heartbeat" $
   -- system status stays 0
   store (hb ~> HB.mavlink_version) 3 -- magic number
 
-  call_ HB.heartbeatSend hb ch sys
+  call_ (heartbeatSender senders) (constRef hb)
   retVoid 
   where
   _autopilot_generic      = 0 -- MAV_AUTOPILOT_GENERIC
@@ -103,11 +148,9 @@ sendHeartbeat = proc "gcs_transmit_send_heartbeat" $
         ]
 
 
-sendAttitude :: Def ('[ (Ref s1 (Struct "sensors_result"))
-                      , (Ref s2 (Struct "smavlink_out_channel"))
-                      , (Ref s3 (Struct "smavlink_system"))
-                      ] :-> ())
-sendAttitude = proc "gcs_transmit_send_attitude" $ \sensors ch sys -> body $ do
+mkSendAttitude :: MavlinkMessageSenders
+             -> Def ('[ (Ref s1 (Struct "sensors_result")) ] :-> ())
+mkSendAttitude senders = proc "gcs_transmit_send_attitude" $ \sensors -> body $ do
   att <- local (istruct [])
   (sensors ~> Sens.time)    `into` (att ~> ATT.time_boot_ms)
   (sensors ~> Sens.roll)    `into` (att ~> ATT.roll)
@@ -116,16 +159,15 @@ sendAttitude = proc "gcs_transmit_send_attitude" $ \sensors ch sys -> body $ do
   (sensors ~> Sens.omega_x) `into` (att ~> ATT.rollspeed)
   (sensors ~> Sens.omega_y) `into` (att ~> ATT.rollspeed)
   (sensors ~> Sens.omega_z) `into` (att ~> ATT.rollspeed)
-  call_ ATT.attitudeSend att ch sys
+  call_ (attitudeSender senders) (constRef att)
   retVoid 
 
-sendVfrHud :: Def ('[ (Ref s1 (Struct "position_result"))
+mkSendVfrHud :: MavlinkMessageSenders
+           -> Def ('[ (Ref s1 (Struct "position_result"))
                     , (Ref s2 (Struct "controloutput"))
                     , (Ref s3 (Struct "sensors_result"))
-                    , (Ref s4 (Struct "smavlink_out_channel"))
-                    , (Ref s5 (Struct "smavlink_system"))
                     ] :-> ())
-sendVfrHud = proc "gcs_transmit_send_vfrhud" $ \pos ctl sens ch sys -> body $ do
+mkSendVfrHud senders = proc "gcs_transmit_send_vfrhud" $ \pos ctl sens -> body $ do
   hud <- local (istruct [])
   -- Calculating speed from vx/vy/vz int16s in m/s*100, into float in m/s
   (calcSpeed pos) `resultInto` (hud ~> HUD.groundspeed)
@@ -138,7 +180,7 @@ sendVfrHud = proc "gcs_transmit_send_vfrhud" $ \pos ctl sens ch sys -> body $ do
   (calcHeading sens) `resultInto` (hud ~> HUD.heading)
   -- Throttle from control output 
   (calcThrottle ctl) `resultInto` (hud ~> HUD.throttle)
-  call_ HUD.vfrHudSend hud ch sys
+  call_ (vfrHudSender senders) (constRef hud)
   retVoid 
   where
   calcSpeed :: Ref s (Struct "position_result") -> Ivory lex () IFloat
@@ -172,13 +214,12 @@ sendVfrHud = proc "gcs_transmit_send_vfrhud" $ \pos ctl sens ch sys -> body $ do
     thrFloat <- (control ~>* C.throttle)
     return $ fromFloat 0 (thrFloat * 100)
 
-sendServoOutputRaw :: Def ('[ (Ref s1 (Struct "servos"))
+mkSendServoOutputRaw :: MavlinkMessageSenders
+                   -> Def ('[ (Ref s1 (Struct "servos"))
                             , (Ref s2 (Struct "controloutput"))
-                            , (Ref s3 (Struct "smavlink_out_channel"))
-                            , (Ref s4 (Struct "smavlink_system"))
                             ] :-> ())
-sendServoOutputRaw = proc "gcs_transmit_send_servo_output" $
-  \state ctl ch sys -> body $ do
+mkSendServoOutputRaw senders = proc "gcs_transmit_send_servo_output" $
+  \state ctl -> body $ do
   msg <- local (istruct [])
   (state ~> Serv.time)   `into` (msg ~> SVO.time_usec)
   (state ~> Serv.servo1) `into` (msg ~> SVO.servo1_raw)
@@ -194,15 +235,14 @@ sendServoOutputRaw = proc "gcs_transmit_send_servo_output" $
   store (msg ~> SVO.servo7_raw) (toSvo pitch)
   store (msg ~> SVO.servo8_raw) (toSvo thr)
 
-  call_ SVO.servoOutputRawSend msg ch sys
+  call_ (servoOutputRawSender senders) (constRef msg)
 
 
-sendGpsRawInt :: Def ('[ (Ref s1 (Struct "position_result"))
-                       , (Ref s2 (Struct "smavlink_out_channel"))
-                       , (Ref s3 (Struct "smavlink_system"))
+mkSendGpsRawInt :: MavlinkMessageSenders
+              -> Def ('[ (Ref s (Struct "position_result"))
                        ] :-> ())
-sendGpsRawInt = proc "gcs_transmit_send_gps_raw_int" $
-  \pos ch sys -> body $ do
+mkSendGpsRawInt senders = proc "gcs_transmit_send_gps_raw_int" $
+  \pos -> body $ do
   msg <- local (istruct [])
   (pos ~> P.lat)     `into` (msg ~> GRI.lat)
   (pos ~> P.lon)     `into` (msg ~> GRI.lon)
@@ -213,16 +253,15 @@ sendGpsRawInt = proc "gcs_transmit_send_gps_raw_int" $
   store (msg ~> GRI.cog) 359 -- XXX can calulate this
   store (msg ~> GRI.fix_type) 3 -- 3d fix
   store (msg ~> GRI.satellites_visible) 8
-  call_ GRI.gpsRawIntSend msg ch sys
+  call_ (gpsRawIntSender senders) (constRef msg)
   retVoid 
 
-sendGlobalPositionInt :: Def ('[ (Ref s1 (Struct "position_result"))
+mkSendGlobalPositionInt :: MavlinkMessageSenders
+                      -> Def ('[ (Ref s1 (Struct "position_result"))
                                , (Ref s2 (Struct "sensors_result"))
-                               , (Ref s3 (Struct "smavlink_out_channel"))
-                               , (Ref s4 (Struct "smavlink_system"))
                                ] :-> ())
-sendGlobalPositionInt = proc "gcs_transmit_send_global_position_int" $ 
-  \pos sens ch sys -> body $ do
+mkSendGlobalPositionInt senders = proc "gcs_transmit_send_global_position_int" $ 
+  \pos sens -> body $ do
   msg <- local (istruct [])
   yawfloat <- (sens ~>* Sens.yaw)
   yawscaled <- assign $ (10*180/pi)*yawfloat -- radians to 10*degrees
@@ -233,7 +272,7 @@ sendGlobalPositionInt = proc "gcs_transmit_send_global_position_int" $
   (pos ~> P.vx) `into` (msg ~> GPI.vx)
   (pos ~> P.vy) `into` (msg ~> GPI.vy)
   (pos ~> P.vz) `into` (msg ~> GPI.vz)
-  call_ GPI.globalPositionIntSend msg ch sys
+  call_ (globalPositionIntSender senders) (constRef msg)
   retVoid 
 
 -- Import "strncpy" to fill in the string field with the correct
@@ -244,12 +283,10 @@ pv_strncpy :: Def ('[ Ref s1 (CArray (Stored Uint8))
                 :-> ())
 pv_strncpy = importProc "strncpy" "string"
 
-sendParamValue :: Def ('[ Ref s1 (Struct "param_info")
-                        , Ref s2 (Struct "smavlink_out_channel")
-                        , Ref s3 (Struct "smavlink_system")]
-                       :-> ())
-sendParamValue = proc "gcs_transmit_send_param_value" $
-  \param ch sys -> body $ do
+mkSendParamValue :: MavlinkMessageSenders
+               -> Def ('[ Ref s1 (Struct "param_info") ] :-> ())
+mkSendParamValue senders = proc "gcs_transmit_send_param_value" $
+  \param -> body $ do
   msg   <- local (istruct [])
   value <- call Param.param_get_float_value param
   store (msg ~> PV.param_value) value
@@ -260,16 +297,14 @@ sendParamValue = proc "gcs_transmit_send_param_value" $
   call_ pv_strncpy (toCArray (msg ~> PV.param_id))
                    (constRef (toCArray (param ~> Param.param_name))) 16
   store (msg ~> PV.param_type) 0 -- FIXME
-  call_ PV.paramValueSend msg ch sys
+  call_ (paramValueSender senders) (constRef msg)
 
 -- | Send the first parameter marked as requested.
-sendParams :: Def ('[ Ref s1 (Struct "smavlink_out_channel")
-                    , Ref s2 (Struct "smavlink_system")]
-                   :-> ())
-sendParams = proc "gcs_transmit_send_params" $ \ch sys -> body $ do
+mkSendParams :: MavlinkMessageSenders -> Def ('[] :-> ())
+mkSendParams senders = proc "gcs_transmit_send_params" $ body $ do
   pinfo <- call Param.param_get_requested
   withRef pinfo
           (\info -> do
              store (info ~> Param.param_requested) 0
-             call_ sendParamValue info ch sys)
+             call_ (mkSendParamValue senders) info)
           retVoid
