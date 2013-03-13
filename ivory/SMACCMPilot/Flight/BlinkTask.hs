@@ -23,7 +23,7 @@ blinkTask :: MemArea (Struct "pin")
           -> Sink (Struct "flightmode")
           -> String -> Task
 blinkTask mempin s uniquename =
-  withSink "flightMode" s $ \flightModeSink ->
+  withSink "flightmode" s $ \flightModeSink ->
   let tDef = proc ("blinkTaskDef" ++ uniquename) $ body $ do
         pin <- addrOf mempin
         call_ pin_enable     pin

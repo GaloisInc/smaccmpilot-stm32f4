@@ -51,7 +51,8 @@ otherms = typeModules ++ controlModules ++
   ]
 
 main :: IO ()
-main = compileWithSizeMap sizeMap $ compileTower app
+main = do compileWithSizeMap sizeMap $ compileTower app
+          gviz
 
 app :: Assembly
 app = tower $ do
