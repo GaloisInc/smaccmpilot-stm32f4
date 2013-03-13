@@ -24,7 +24,7 @@ import Prelude hiding (seq)
 
 import SMACCMPilot.Util.IvoryHelpers
 import SMACCMPilot.Util.IvoryCString
-import Smaccm.Mavlink.Pack
+import SMACCMPilot.Mavlink.Pack
 
 import SMACCMPilot.Console
 import SMACCMPilot.Storage.Partition

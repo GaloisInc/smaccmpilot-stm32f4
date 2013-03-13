@@ -26,7 +26,7 @@ import GHC.TypeLits
 import Ivory.Language
 import MonadLib hiding (local)
 
-import Smaccm.Mavlink.Pack
+import SMACCMPilot.Mavlink.Pack
 
 -- TODO: We probably need a "skip" function that adjusts the offset in
 -- PackM/UnpackM in case we want to skip fields.
@@ -95,7 +95,7 @@ marrayPack arr = PackM $ do
     then error $ "packing " ++ (show new_offset) ++ " bytes into "
               ++ "array of length " ++ (show (arrayLen buf :: Int))
     else return ()
-  lift $ lift $ arrayPack (toCArray buf) (fromIntegral offset) arr
+  lift $ lift $ arrayPack (toCArray buf) (fromIntegral offset) (constRef arr)
   set new_offset
 
 -- | Begin a context to pack values into a byte array, given an
