@@ -1,5 +1,6 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE ConstraintKinds #-}
 --
 -- GPIO.hs --- GPIO pin driver.
 --
@@ -100,9 +101,12 @@ data GPIOPin = GPIOPin
 pinEnable :: GPIOPin -> Ivory s r ()
 pinEnable = rccEnable . gpioPinPort
 
--- The type signature of this is a bit ridiculous.  Let's just infer
--- it for now.  It's a good test case to make sure we have enough
--- things exported though...
+setRegF :: (BitData a, BitValue b, IvoryIOReg (BitFieldRep a))
+        => (GPIOPort -> BitDataReg a)
+        -> (GPIOPin  -> BitField a b)
+        -> GPIOPin
+        -> b
+        -> Ivory s r ()
 setRegF reg field pin val = do
   modifyReg (reg $ gpioPinPort pin) $ do
     setField (field pin) val
