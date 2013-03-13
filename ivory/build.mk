@@ -85,17 +85,11 @@ CBMC_REPORT		:= $(addprefix $(CONFIG_CBMC_REPORT)/, cbmc-report)
 ENTRY_FUNCS		:= $(patsubst %, --function %, $(STARTS))
 CBMC_SRCS			:= $(patsubst %, --src %, $(FLIGHT_GENERATED_SOURCES))
 
-	# $(shell $(CBMC_REPORT) --help --cbmc $(CBMC_EXEC) $(ENTRY_FUNCS) \
-  #   -D IVORY_CBMC $(CBMC_INCS) $(FLIGHT_GENERATED_SOURCES) >&2)
-#--cbmc $(CBMC_EXEC) $(ENTRY_FUNCS) -D IVORY_CBMC
-
-# $(FLIGHT_GENERATED_SOURCES)
-
 # >&2 redirects cbmc output from stderr so you can see it.
 .PHONY: verify
 verify: $(FLIGHT_GENERATED_HEADERS) $(FLIGHT_GENERATED_SOURCES)
 	# echo $(ENTRY_FUNCS)
-	$(CBMC_REPORT) --verbose --cbmc $(CBMC_EXEC) $(ENTRY_FUNCS) \
+	$(CBMC_REPORT) --format markdown --timeout 10 --no-asserts --cbmc $(CBMC_EXEC) --function stabilize_from_rate \
     -- -D IVORY_CBMC $(CBMC_INCS) $(FLIGHT_GENERATED_SOURCES)
 
 
