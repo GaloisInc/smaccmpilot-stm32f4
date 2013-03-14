@@ -18,7 +18,8 @@ library
   exposed-modules:     Ivory.BSP.HWF4,
                        Ivory.BSP.HWF4.EEPROM,
                        Ivory.BSP.HWF4.I2C,
-                       Ivory.BSP.HWF4.GPIO
+                       Ivory.BSP.HWF4.GPIO,
+                       Ivory.BSP.HWF4.USART
 
   hs-source-dirs:      src
   build-depends:       base >= 4.6,
