@@ -10,23 +10,26 @@
 -- All Rights Reserved.
 --
 
-module SMACCMPilot.Storage.Partition (
+module SMACCMPilot.Storage.Partition
   -- * Types
-  MaxPartitions, PartitionID,
+  ( MaxPartitions
+  , PartitionID
 
   -- * Partition IDs
-  partitionInvalid, partitionParamA, partitionParamB,
+  , partitionInvalid
+  , partitionParamA
+  , partitionParamB
 
   -- * Ivory Functions
-  partition_size,
-  partition_start,
-  partition_in_bounds,
-  partition_read,
-  partition_write,
+  , partition_size
+  , partition_start
+  , partition_in_bounds
+  , partition_read
+  , partition_write
 
   -- * Ivory Module
-  partitionModule
-) where
+  , partitionModule
+  ) where
 
 import Ivory.Language
 
