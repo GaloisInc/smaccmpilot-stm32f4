@@ -11,9 +11,8 @@ import Ivory.Language
 import Ivory.Tower
 import qualified Ivory.OS.FreeRTOS as OS
 
-import Smaccm.Stm32f4.GPIO
+import Ivory.BSP.HWF4.GPIO
 
-import SMACCMPilot.Driver.Gpio
 import SMACCMPilot.Util.IvoryHelpers
 import SMACCMPilot.Util.Periodic
 

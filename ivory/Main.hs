@@ -8,7 +8,8 @@ import Ivory.Tower.Graphviz
 import Ivory.Tower.Compile.FreeRTOS
 import Ivory.Tower.Connections.FreeRTOS
 
-import qualified Smaccm.Stm32f4.GPIO as GPIO
+import Ivory.BSP.HWF4 (hwf4Modules)
+import qualified Ivory.BSP.HWF4.GPIO as GPIO
 
 import SMACCMPilot.Flight.Types (typeModules)
 
@@ -16,9 +17,6 @@ import SMACCMPilot.Flight.UserInput.Decode (userInputDecodeModule)
 import SMACCMPilot.Flight.Control (controlModules)
 
 import SMACCMPilot.Console           (consoleModule)
-import SMACCMPilot.Driver.I2C        (i2cModule)
-import SMACCMPilot.Driver.Gpio       (gpioModule)
-import SMACCMPilot.Storage.EEPROM    (eepromModule)
 import SMACCMPilot.Storage.Partition (partitionModule)
 import SMACCMPilot.Param             (paramModule)
 import SMACCMPilot.Util.IvoryCString (cstringModule)
@@ -43,15 +41,14 @@ otherms =
   controlModules ++
   -- mavlink system
   mavlinkMessageModules ++ [packModule] ++
+  -- bsp subsystem
+  hwf4Modules ++
   -- the rest:
   [ userInputDecodeModule
   , cstringModule
   , consoleModule
-  , i2cModule
-  , eepromModule
   , partitionModule
   , paramModule
-  , gpioModule
   ]
 
 main :: IO ()

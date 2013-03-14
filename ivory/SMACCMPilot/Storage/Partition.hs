@@ -30,7 +30,8 @@ module SMACCMPilot.Storage.Partition (
 
 import Ivory.Language
 
-import SMACCMPilot.Storage.EEPROM
+import Ivory.BSP.HWF4.EEPROM
+
 import SMACCMPilot.Util.IvoryHelpers
 
 ----------------------------------------------------------------------

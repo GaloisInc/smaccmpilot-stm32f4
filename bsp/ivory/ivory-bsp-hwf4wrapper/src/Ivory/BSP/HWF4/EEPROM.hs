@@ -10,16 +10,33 @@
 -- All Rights Reserved.
 --
 
-module SMACCMPilot.Storage.EEPROM (
-  eeprom_init,
-  eeprom_read_byte, eeprom_write_byte,
-  eeprom_read, eeprom_write,
-  eepromModule
-) where
+module Ivory.BSP.HWF4.EEPROM
+  ( eeprom_init
+  , eeprom_read_byte
+  , eeprom_write_byte
+  , eeprom_read
+  , eeprom_write
+  , eepromModule
+  ) where
 
 import Ivory.Language
 
-import SMACCMPilot.Driver.I2C
+import Ivory.BSP.HWF4.I2C
+
+----------------------------------------------------------------------
+-- Ivory Module
+
+eepromModule :: Module
+eepromModule = package "bsp_hwf4wrapper_eeprom" $ do
+  depend i2cModule
+  inclHeader "hwf4/eeprom"
+  incl eeprom_init
+  incl eeprom_read_byte
+  incl eeprom_write_byte
+  incl eeprom_read
+  incl eeprom_write
+  -- incl eeprom_test1
+  -- incl eeprom_test2
 
 ----------------------------------------------------------------------
 -- HWF4 Bindings
@@ -76,17 +93,3 @@ eeprom_test2 = proc "eeprom_test2" $ body $ do
   call_ eeprom_read 0 (toCArray buf) (arrayLen buf)
 -}
 
-----------------------------------------------------------------------
--- Ivory Module
-
-eepromModule :: Module
-eepromModule = package "storage_eeprom" $ do
-  depend i2cModule
-  inclHeader "hwf4/eeprom"
-  incl eeprom_init
-  incl eeprom_read_byte
-  incl eeprom_write_byte
-  incl eeprom_read
-  incl eeprom_write
-  -- incl eeprom_test1
-  -- incl eeprom_test2
