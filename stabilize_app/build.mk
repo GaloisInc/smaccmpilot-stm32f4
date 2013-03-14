@@ -18,7 +18,6 @@ SP_STABILIZE_OBJECTS      := main.o
 SP_STABILIZE_HIL_OBJECTS  := $(SP_STABILIZE_OBJECTS)
 
 SP_STABILIZE_INCLUDES      = $(SMACCMPILOT_INCLUDES)
-SP_STABILIZE_INCLUDES     += $(SMAVLINK_INCLUDES)
 SP_STABILIZE_INCLUDES     += $(FREERTOS_INCLUDES)
 SP_STABILIZE_INCLUDES     += $(ARDUPILOT_LIBINCLUDES)
 SP_STABILIZE_INCLUDES     += -I$(TOP)/flight-support/include
@@ -26,6 +25,7 @@ SP_STABILIZE_INCLUDES     += -I$(TOP)/flight-generated/include
 SP_STABILIZE_INCLUDES     += -I$(TOP)/flight-support/include/smaccmpilot
 SP_STABILIZE_INCLUDES     += -I$(TOP)/flight-generated/include/smaccmpilot
 SP_STABILIZE_INCLUDES     += -I$(TOP)/ivory-freertos-wrapper/include
+SP_STABILIZE_INCLUDES     += -I$(TOP)/ivory-runtime/
 SP_STABILIZE_INCLUDES     += -I$(TOP)/bsp/hwf4/include
 SP_STABILIZE_HIL_INCLUDES  = $(SP_STABILIZE_INCLUDES)
 
@@ -37,7 +37,6 @@ SP_STABILIZE_HIL_CXXFLAGS  = -DUSE_HIL $(SP_STABILIZE_CXXFLAGS)
 SP_STABILIZE_LIBRARIES    += libflight-generated.a
 SP_STABILIZE_LIBRARIES    += libflight-support.a
 SP_STABILIZE_LIBRARIES    += libflight-generated.a
-SP_STABILIZE_LIBRARIES    += libsmavlink.a
 SP_STABILIZE_LIBRARIES    += libardupilot.a
 SP_STABILIZE_LIBRARIES    += libhwf4.a
 SP_STABILIZE_LIBRARIES    += libstm32_usb.a
