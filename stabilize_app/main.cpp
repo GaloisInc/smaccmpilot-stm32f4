@@ -18,7 +18,6 @@
 #include <AP_Math.h>
 
 #include <ctype.h>
-#include <smaccmpilot/storage_eeprom.h>
 #include <smaccmpilot/storage_partition.h>
 
 #include <smaccmpilot/tower.h>
