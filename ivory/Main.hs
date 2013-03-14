@@ -12,7 +12,6 @@ import qualified Smaccm.Stm32f4.GPIO as GPIO
 
 import SMACCMPilot.Flight.Types (typeModules)
 
-import SMACCMPilot.Flight.GCS.TransmitDriver (gcsTransmitDriverModule)
 import SMACCMPilot.Flight.UserInput.Decode (userInputDecodeModule)
 import SMACCMPilot.Flight.Control (controlModules)
 
@@ -29,16 +28,23 @@ import SMACCMPilot.Flight.Motors.Task
 import SMACCMPilot.Flight.Sensors.Task
 import SMACCMPilot.Flight.UserInput.Task
 import SMACCMPilot.Flight.BlinkTask
+import SMACCMPilot.Flight.GCS.Transmit.Task
 
-  -- for debugging, to remove:
-import FooBarTasks
+import SMACCMPilot.Mavlink.Messages (mavlinkMessageModules)
+import SMACCMPilot.Mavlink.Pack (packModule)
 
 import Arm32SizeMap (sizeMap)
 
 otherms :: [Module]
-otherms = typeModules ++ controlModules ++
-  [ gcsTransmitDriverModule
-  , userInputDecodeModule
+otherms = 
+  -- flight types
+  typeModules ++
+  -- control subsystem
+  controlModules ++
+  -- mavlink system
+  mavlinkMessageModules ++ [packModule] ++
+  -- the rest:
+  [ userInputDecodeModule
   , cstringModule
   , consoleModule
   , i2cModule
@@ -46,8 +52,6 @@ otherms = typeModules ++ controlModules ++
   , partitionModule
   , paramModule
   , gpioModule
-  -- for debugging, to remove:
-  , fooBarTypesModule
   ]
 
 main :: IO ()
@@ -67,6 +71,8 @@ app = tower $ do
   addTask $ blinkTask GPIO.pin_b13 snk_flightmode
   addTask $ controlTask snk_flightmode snk_userinput snk_sensors src_control
   addTask $ motorsTask snk_control snk_flightmode src_servos
+
+  addTask $ gcsTransmitTask snk_flightmode
 
   mapM_ addModule otherms
 

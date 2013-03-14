@@ -18,7 +18,9 @@ library
                        SMACCMPilot.Driver.I2C,
 
                        SMACCMPilot.Flight.BlinkTask,
-                       SMACCMPilot.Flight.GCS.TransmitDriver,
+
+                       SMACCMPilot.Flight.GCS.Transmit.MessageDriver,
+                       SMACCMPilot.Flight.GCS.Transmit.Task,
 
                        SMACCMPilot.Flight.Control,
                        SMACCMPilot.Flight.Control.PID,
