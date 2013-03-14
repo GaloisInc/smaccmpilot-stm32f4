@@ -4,7 +4,10 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE QuasiQuotes #-}
 
-module SMACCMPilot.Flight.GCS.TransmitDriver where
+module SMACCMPilot.Flight.GCS.Transmit.MessageDriver
+  ( MessageDriver(..)
+  , messageDriver
+  ) where
 
 import Ivory.Language
 
@@ -31,11 +34,9 @@ import qualified SMACCMPilot.Mavlink.Messages.GlobalPositionInt as GPI
 import qualified SMACCMPilot.Mavlink.Messages.ParamValue as PV
 
 --------------------------------------------------------------------
--- Module def
-
-
-data GCSTransmitDriver =
-  GCSTransmitDriver
+-- Generated Defs 
+data MessageDriver =
+  MessageDriver
     { sendHeartbeat      :: forall s
                           . Def ('[ (Ref s (Struct "flightmode")) ] :-> ())
     , sendAttitude       :: forall s
@@ -61,8 +62,11 @@ data GCSTransmitDriver =
     , sendParams         :: Def ('[] :-> ())
     }
 
-gcsTransmitDriverModDefs :: GCSTransmitDriver -> ModuleDef
-gcsTransmitDriverModDefs d = do
+--------------------------------------------------------------------
+-- Generated dependencies
+
+moddefs :: MessageDriver -> ModuleDef
+moddefs d = do
   incl (sendHeartbeat d)
   incl (sendAttitude d)
   incl (sendVfrHud d)
@@ -89,12 +93,12 @@ gcsTransmitDriverModDefs d = do
   depend PV.paramValueModule
   inclHeader "string"
 
-gcsTransmitDriver :: MavlinkSender -> (GCSTransmitDriver, [Module])
-gcsTransmitDriver sender = (driver, [driverMod,  msgMod])
+messageDriver :: MavlinkSender -> (MessageDriver, [Module])
+messageDriver sender = (driver, [driverMod,  msgMod])
   where
   (msgSenders, msgMod) = mavlinkMessageSenders sender
   driver =
-    GCSTransmitDriver
+    MessageDriver
       { sendHeartbeat = mkSendHeartbeat msgSenders
       , sendAttitude = mkSendAttitude msgSenders
       , sendVfrHud = mkSendVfrHud msgSenders
@@ -105,8 +109,8 @@ gcsTransmitDriver sender = (driver, [driverMod,  msgMod])
       , sendParams = mkSendParams msgSenders
       }
   driverMod = package ("gcs_transmit_driver_" ++ (senderName sender)) $ do
-    depend driverMod
-    gcsTransmitDriverModDefs driver
+    depend msgMod
+    moddefs driver
 
 
 mkSendHeartbeat :: MavlinkMessageSenders
