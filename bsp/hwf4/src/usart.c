@@ -281,10 +281,10 @@ void usart_enable(struct usart *usart) {
     __usart_update_cr1(usart, USART_CR1_UE);
 }
 
-ssize_t usart_write_timeout(struct usart *usart, uint32_t timeout,
-                            const uint8_t *buf, size_t len) {
+int32_t usart_write_timeout(struct usart *usart, uint32_t timeout,
+                            const uint8_t *buf, uint32_t len) {
 
-    ssize_t i = 0;
+    int32_t i = 0;
 
     for(; i<len; ++i, ++buf) {
         if(pdTRUE != xQueueSend(usart->tx_buf, buf, timeout)) {
@@ -298,12 +298,12 @@ ssize_t usart_write_timeout(struct usart *usart, uint32_t timeout,
     return i;
 }
 
-ssize_t usart_write_blocking(struct usart *usart, const uint8_t *buf,
-                             size_t len)
+int32_t usart_write_blocking(struct usart *usart, const uint8_t *buf,
+                             uint32_t len)
 {
   __usart_disable_txe(usart);
 
-  for (size_t i = 0; i < len; ++i) {
+  for (uint32_t i = 0; i < len; ++i) {
     while (!(usart->dev->SR & USART_SR_TXE))
       ;
     usart->dev->DR = buf[i];
@@ -315,11 +315,11 @@ ssize_t usart_write_blocking(struct usart *usart, const uint8_t *buf,
   return len;
 }
 
-void usart_write_from_isr(struct usart *usart, const uint8_t *buf, size_t len)
+void usart_write_from_isr(struct usart *usart, const uint8_t *buf, uint32_t len)
 {
   portBASE_TYPE should_yield = pdFALSE;
 
-  for (size_t i = 0; i < len; ++i) {
+  for (uint32_t i = 0; i < len; ++i) {
     if (!xQueueSendFromISR(usart->tx_buf, &buf[i], &should_yield))
       break;
   }
@@ -330,10 +330,10 @@ void usart_write_from_isr(struct usart *usart, const uint8_t *buf, size_t len)
     taskYIELD();
 }
 
-ssize_t usart_read_timeout(struct usart *usart, uint32_t timeout, uint8_t *buf,
-                           size_t len) {
+int32_t usart_read_timeout(struct usart *usart, uint32_t timeout, uint8_t *buf,
+                           uint32_t len) {
 
-    ssize_t i = 0;
+    int32_t i = 0;
 
     for(; i<len; ++i, ++buf) {
         if(pdTRUE != xQueueReceive(usart->rx_buf, buf, timeout)) {
@@ -349,12 +349,12 @@ bool usart_is_tx_pending(struct usart *usart)
   return uxQueueMessagesWaiting(usart->tx_buf) != 0;
 }
 
-size_t usart_available(struct usart *usart)
+uint32_t usart_available(struct usart *usart)
 {
   return uxQueueMessagesWaiting(usart->rx_buf);
 }
 
-size_t usart_txspace(struct usart *usart)
+uint32_t usart_txspace(struct usart *usart)
 {
   return BUFFER_SIZE - uxQueueMessagesWaiting(usart->tx_buf);
 }
