@@ -133,6 +133,7 @@ mkSendHeartbeat senders = proc "gcs_transmit_send_heartbeat" $
   call_ (heartbeatSender senders) (constRef hb)
   retVoid 
   where
+  _autopilot_generic, autopilot_ardupilotmega, mavtype_quadrotor :: Uint8
   _autopilot_generic      = 0 -- MAV_AUTOPILOT_GENERIC
   autopilot_ardupilotmega = 3 -- MAV_AUTOPILOT_ARDUPILOTMEGA
   mavtype_quadrotor       = 2 -- MAV_TYPE_QUADROTOR

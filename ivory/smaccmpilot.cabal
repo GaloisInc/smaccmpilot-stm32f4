@@ -17,6 +17,7 @@ library
                        SMACCMPilot.Flight.BlinkTask,
 
                        SMACCMPilot.Flight.GCS.Transmit.MessageDriver,
+                       SMACCMPilot.Flight.GCS.Transmit.USARTSender,
                        SMACCMPilot.Flight.GCS.Transmit.Task,
 
                        SMACCMPilot.Flight.Control,
