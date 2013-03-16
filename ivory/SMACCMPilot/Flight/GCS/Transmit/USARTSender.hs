@@ -16,7 +16,7 @@ usartSender :: MemArea (Struct "usart")
             -> Uint8
             -> Uint8
             -> MavlinkSender
-usartSender usart_area name sysid compid = MavlinkSender $
+usartSender usart_area name sysid compid =
   mavlinkSendWithWriter sysid compid sendername txseq_area (MavlinkWriteMacro write) deps
   where
   sendername = "mavlinksender_" ++ name

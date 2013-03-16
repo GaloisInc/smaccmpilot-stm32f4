@@ -108,7 +108,7 @@ messageDriver sender = (driver, [driverMod,  msgMod])
       , sendParamValue = mkSendParamValue msgSenders
       , sendParams = mkSendParams msgSenders
       }
-  driverMod = package ("gcs_transmit_driver_" ++ (senderName sender)) $ do
+  driverMod = package ("gcs_transmit_driver_" ++ (mavlinkSenderName sender)) $ do
     depend msgMod
     moddefs driver
 
