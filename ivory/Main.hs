@@ -30,6 +30,7 @@ import SMACCMPilot.Flight.GCS.Transmit.Task
 
 import SMACCMPilot.Mavlink.Messages (mavlinkMessageModules)
 import SMACCMPilot.Mavlink.Pack (packModule)
+import SMACCMPilot.Mavlink.CRC (mavlinkCRCModule)
 
 import Arm32SizeMap (sizeMap)
 
@@ -40,7 +41,7 @@ otherms =
   -- control subsystem
   controlModules ++
   -- mavlink system
-  mavlinkMessageModules ++ [packModule] ++
+  mavlinkMessageModules ++ [packModule, mavlinkCRCModule] ++
   -- bsp subsystem
   hwf4Modules ++
   -- the rest:

@@ -12,9 +12,9 @@ import Ivory.BSP.HWF4.USART
 import SMACCMPilot.Mavlink.Send
 
 usartSender :: MemArea (Struct "usart")
-            -> String
-            -> Uint8
-            -> Uint8
+            -> String  -- name
+            -> Uint8   -- sysid
+            -> Uint8   -- compid
             -> MavlinkSender
 usartSender usart_area name sysid compid =
   mavlinkSendWithWriter sysid compid sendername txseq_area (MavlinkWriteMacro write) deps
@@ -31,3 +31,4 @@ usartSender usart_area name sysid compid =
     call_ usartWrite usart buf (safeCast len)
   deps = do
     defMemArea txseq_area
+    depend usartModule
