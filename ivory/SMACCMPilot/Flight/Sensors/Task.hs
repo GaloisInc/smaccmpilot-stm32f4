@@ -13,7 +13,6 @@ import qualified Ivory.OS.FreeRTOS as OS
 
 import qualified SMACCMPilot.Flight.Types.Sensors as S
 
-import SMACCMPilot.Util.IvoryHelpers
 import SMACCMPilot.Util.Periodic
 
 sensorsTask :: Source (Struct "sensors_result")
