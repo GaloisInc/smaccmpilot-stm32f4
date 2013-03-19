@@ -7,6 +7,7 @@ SRCDIR=$(GENERATEDDIR)/src
 INCDIR=$(GENERATEDDIR)/include/smaccmpilot
 
 GEN=smaccmpilot-gen
+GENERATOR_EXE=$(SANDBOX)/bin/$(GEN)
 EXEC=ivory/dist/build/$(GEN)/$(GEN)
 
 IVORY_OPTS=--const-fold --overflow --div-zero
@@ -23,9 +24,9 @@ include $(GENERATED_DEP)
 # Generate the srcs and headers.
 IVORY += ivory-build
 .PHONY: ivory-build
-ivory-build: $(EXEC) $(FLIGHT_GENERATED_HEADERS) $(FLIGHT_GENERATED_SOURCES)
+ivory-build: $(FLIGHT_GENERATED_HEADERS) $(FLIGHT_GENERATED_SOURCES)
 
-$(GENERATED_DEP):
+$(GENERATED_DEP): $(GENERATOR_EXE)
 	mkdir -p $(GRAPHS_DIR)
 	$(SANDBOX)/bin/$(GEN) \
 	--src-dir=$(SRCDIR) \
@@ -40,7 +41,7 @@ $(GENERATED_DEP):
 # We don't add the .hs files as dependencies.  It's up to the user to clean
 # them.  (It's not even clear if that's the right thing to do, since even if
 # they don't change, if the compiler changes, you should rebuild.)
-$(FLIGHT_GENERATED_HEADERS) $(FLIGHT_GENERATED_SOURCES): $(GENERATED_DEP)
+$(FLIGHT_GENERATED_HEADERS) $(FLIGHT_GENERATED_SOURCES): $(GENERATED_DEP) $(GENERATOR_EXE)
 	$(SANDBOX)/bin/$(GEN) --src-dir=$(SRCDIR) --include-dir=$(INCDIR) \
 		$(IVORY_OPTS)
 
