@@ -16,6 +16,8 @@ library
 
                        SMACCMPilot.Flight.BlinkTask,
 
+                       SMACCMPilot.Flight.GCS.Stream,
+
                        SMACCMPilot.Flight.GCS.Transmit.MessageDriver,
                        SMACCMPilot.Flight.GCS.Transmit.USARTSender,
                        SMACCMPilot.Flight.GCS.Transmit.Task,
@@ -31,6 +33,7 @@ library
 
                        SMACCMPilot.Flight.Types,
                        SMACCMPilot.Flight.Types.ControlOutput,
+                       SMACCMPilot.Flight.Types.GCSStreamTiming,
                        SMACCMPilot.Flight.Types.OptFlow,
                        SMACCMPilot.Flight.Types.PositionEstimate,
                        SMACCMPilot.Flight.Types.Position,
