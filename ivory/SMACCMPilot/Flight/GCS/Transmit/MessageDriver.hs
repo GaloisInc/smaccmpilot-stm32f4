@@ -183,10 +183,10 @@ mkSendVfrHud senders = proc "gcs_transmit_send_vfrhud" $ \pos ctl sens -> body $
   (calcVertSpeed pos) `resultInto` (hud ~> HUD.climb)
   -- Heading from sensors
   (calcHeading sens) `resultInto` (hud ~> HUD.heading)
-  -- Throttle from control output 
+  -- Throttle from control output
   (calcThrottle ctl) `resultInto` (hud ~> HUD.throttle)
   call_ (vfrHudSender senders) (constRef hud)
-  retVoid 
+  retVoid
   where
   calcSpeed :: Ref s (Struct "position_result") -> Ivory lex () IFloat
   calcSpeed pos = do
@@ -199,7 +199,7 @@ mkSendVfrHud senders = proc "gcs_transmit_send_vfrhud" $ \pos ctl sens -> body $
   calcAltitude :: Ref s (Struct "position_result") -> Ivory lex () IFloat
   calcAltitude pos = do
     milimeters <- (pos ~>* P.gps_alt)
-    mm_float <- assign $ toFloat milimeters
+    mm_float <- assign $ safeCast milimeters
     return (mm_float / 1000)
 
   calcVertSpeed :: (Ref s (Struct "position_result")) -> Ivory lex () IFloat
@@ -211,13 +211,13 @@ mkSendVfrHud senders = proc "gcs_transmit_send_vfrhud" $ \pos ctl sens -> body $
   calcHeading sens = do
     radians <- (sens ~>* Sens.yaw)
     degrees <- assign $ 180 / pi * radians
-    deg_int <- assign $ fromFloat 0 degrees
+    deg_int <- assign $ castDefault degrees
     return  deg_int
 
   calcThrottle :: Ref s (Struct "controloutput") -> Ivory l () Uint16
   calcThrottle control = do
     thrFloat <- (control ~>* C.throttle)
-    return $ fromFloat 0 (thrFloat * 100)
+    return $ castDefault (thrFloat * 100)
 
 mkSendServoOutputRaw :: MavlinkMessageSenders
                    -> Def ('[ (Ref s1 (Struct "servos"))
@@ -235,7 +235,7 @@ mkSendServoOutputRaw senders = proc "gcs_transmit_send_servo_output" $
   roll  <- (ctl ~>* C.roll)
   thr   <- (ctl ~>* C.throttle)
   let toSvo :: IFloat -> Uint16
-      toSvo f = fromFloat 9999 ((f + 1) * 100)
+      toSvo f = castWith 9999 ((f + 1) * 100)
   store (msg ~> SVO.servo6_raw) (toSvo roll)
   store (msg ~> SVO.servo7_raw) (toSvo pitch)
   store (msg ~> SVO.servo8_raw) (toSvo thr)
@@ -259,18 +259,18 @@ mkSendGpsRawInt senders = proc "gcs_transmit_send_gps_raw_int" $
   store (msg ~> GRI.fix_type) 3 -- 3d fix
   store (msg ~> GRI.satellites_visible) 8
   call_ (gpsRawIntSender senders) (constRef msg)
-  retVoid 
+  retVoid
 
 mkSendGlobalPositionInt :: MavlinkMessageSenders
                       -> Def ('[ (Ref s1 (Struct "position_result"))
                                , (Ref s2 (Struct "sensors_result"))
                                ] :-> ())
-mkSendGlobalPositionInt senders = proc "gcs_transmit_send_global_position_int" $ 
+mkSendGlobalPositionInt senders = proc "gcs_transmit_send_global_position_int" $
   \pos sens -> body $ do
   msg <- local (istruct [])
   yawfloat <- (sens ~>* Sens.yaw)
   yawscaled <- assign $ (10*180/pi)*yawfloat -- radians to 10*degrees
-  store (msg ~> GPI.hdg) (fromFloat 9999 yawscaled)
+  store (msg ~> GPI.hdg) (castWith 9999 yawscaled)
   (pos ~> P.lat)     `into` (msg ~> GPI.lat)
   (pos ~> P.lon)     `into` (msg ~> GPI.lon)
   (pos ~> P.gps_alt) `into` (msg ~> GPI.alt)
@@ -278,7 +278,7 @@ mkSendGlobalPositionInt senders = proc "gcs_transmit_send_global_position_int" $
   (pos ~> P.vy) `into` (msg ~> GPI.vy)
   (pos ~> P.vz) `into` (msg ~> GPI.vz)
   call_ (globalPositionIntSender senders) (constRef msg)
-  retVoid 
+  retVoid
 
 -- Import "strncpy" to fill in the string field with the correct
 -- behavior and paper over the char/uint8_t difference.
@@ -296,9 +296,9 @@ mkSendParamValue senders = proc "gcs_transmit_send_param_value" $
   value <- call Param.param_get_float_value param
   store (msg ~> PV.param_value) value
   count <- Param.param_get_count
-  store (msg ~> PV.param_count) (ixCast count)
+  store (msg ~> PV.param_count) (safeCast count)
   index <- deref (param ~> Param.param_index)
-  store (msg ~> PV.param_index) (ixCast index)
+  store (msg ~> PV.param_index) (safeCast index)
   call_ pv_strncpy (toCArray (msg ~> PV.param_id))
                    (constRef (toCArray (param ~> Param.param_name))) 16
   store (msg ~> PV.param_type) 0 -- FIXME
