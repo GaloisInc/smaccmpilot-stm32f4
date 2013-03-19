@@ -61,16 +61,16 @@ class (Num a, IvoryType a, IvoryStore a, MavlinkPackable a)
   paramFromFloat :: a -> IFloat -> a
 
 instance ParamType Uint8 where
-  paramToFloat   = toFloat
-  paramFromFloat = fromFloat
+  paramToFloat   = safeCast
+  paramFromFloat = castWith
 
 instance ParamType Uint16 where
-  paramToFloat   = toFloat
-  paramFromFloat = fromFloat
+  paramToFloat   = safeCast
+  paramFromFloat = castWith
 
 instance ParamType Uint32 where
-  paramToFloat   = toFloat
-  paramFromFloat = fromFloat
+  paramToFloat   = safeCast
+  paramFromFloat = castWith
 
 instance ParamType IFloat where
   paramToFloat     = id

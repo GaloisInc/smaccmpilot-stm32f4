@@ -82,7 +82,7 @@ instance Writable Sint32 where
   write = call_ write_s32
 
 instance (SingI len) => Writable (Ix len) where
-  write x = call_ write_s32 (ixCast x)
+  write x = call_ write_s32 (safeCast x)
 
 write_float :: Def ('[IFloat] :-> ())
 write_float = importProc "console_write_float" "smaccmpilot/console_prim"
