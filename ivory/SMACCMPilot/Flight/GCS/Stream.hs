@@ -5,6 +5,8 @@
 
 module SMACCMPilot.Flight.GCS.Stream where
 
+import Prelude hiding (last)
+
 import Ivory.Language
 
 import SMACCMPilot.Flight.Types.GCSStreamTiming
@@ -21,6 +23,24 @@ defaultPeriods =
     , params               .= ival 100
     ]
 
+
+setNewPeriods :: ConstRef s1 (Struct "gcsstream_timing") -- NEW periods
+            -> Ref s2 (Struct "gcsstream_timing") -- STATE periods
+            -> Ref s3 (Struct "gcsstream_timing") -- schedule
+            -> Uint32 -- Now
+            -> Ivory s4 () () -- update schedule
+setNewPeriods new state schedule now = do
+  mapM_ update selectors
+  where
+  update :: Label "gcsstream_timing" (Stored Uint32) -> Ivory s () ()
+  update selector = do
+    n <- deref (new ~> selector)
+    s <- deref (state ~> selector)
+    ifte (n ==? s) (return ()) $ do
+      store (state ~> selector) n
+      setNextTime (constRef state) schedule selector now
+  selectors = [ heartbeat, servo_output_raw, attitude, gps_raw_int
+              , vfr_hud, global_position_int, params]
 
 setNextTime :: ConstRef s (Struct "gcsstream_timing") -- periods
             -> Ref s1 (Struct "gcsstream_timing") -- schedule
@@ -45,7 +65,7 @@ streamDue :: ConstRef s1 (Struct "gcsstream_timing")    -- periods
           -> Ivory s3 () IBool
 streamDue periods schedule selector last now = do
   p <- deref (periods ~> selector)
-  active <- assign (p ==? 0)
+  active <- assign (p >? 0)
   duetime <- deref (schedule ~> selector)
   return (active .&& (duetime >? last).&& (duetime <=? now))
 

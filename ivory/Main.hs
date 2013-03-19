@@ -9,6 +9,7 @@ import Ivory.Tower.Compile.FreeRTOS
 import Ivory.Tower.Connections.FreeRTOS
 
 import Ivory.BSP.HWF4 (hwf4Modules)
+import Ivory.BSP.HWF4.USART (usart1)
 import qualified Ivory.BSP.HWF4.GPIO as GPIO
 
 import SMACCMPilot.Flight.Types (typeModules)
@@ -26,7 +27,7 @@ import SMACCMPilot.Flight.Motors.Task
 import SMACCMPilot.Flight.Sensors.Task
 import SMACCMPilot.Flight.UserInput.Task
 import SMACCMPilot.Flight.BlinkTask
-import SMACCMPilot.Flight.GCS.Transmit.Task
+import SMACCMPilot.Flight.GCS.Tower
 
 import SMACCMPilot.Mavlink.Messages (mavlinkMessageModules)
 import SMACCMPilot.Mavlink.Pack (packModule)
@@ -64,13 +65,14 @@ app = tower $ do
   (src_flightmode, snk_flightmode) <- connector sharedState
   (src_servos, _)                  <- connector sharedState
 
+
   addTask $ sensorsTask src_sensors
   addTask $ userInputTask src_userinput src_flightmode
   addTask $ blinkTask GPIO.pin_b13 snk_flightmode
   addTask $ controlTask snk_flightmode snk_userinput snk_sensors src_control
   addTask $ motorsTask snk_control snk_flightmode src_servos
 
-  addTask $ gcsTransmitTask snk_flightmode
+  gcsTower usart1 snk_flightmode
 
   mapM_ addModule otherms
 
