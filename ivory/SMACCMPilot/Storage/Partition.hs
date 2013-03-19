@@ -111,7 +111,9 @@ partition_start = proc "partition_start" $ \pid -> body $ do
 -- | Return true if a partition-relative address plus offset lies
 -- within the bounds of a partition.
 partition_in_bounds :: Def ('[PartitionID, Uint16, Uint16] :-> IBool)
-partition_in_bounds = proc "partition_in_bounds" $ \pid base off -> body $ do
+partition_in_bounds = proc "partition_in_bounds" $ \pid base off -> body
+  $ requires [check $ maxBound - base >=? off]
+  $ do
   size  <- call partition_size pid
   addr  <- assign (base + off)
   ret (addr <? size)
