@@ -146,10 +146,9 @@ mode_statemachine pwms state now = do
     matchmodemap (mode, (minpwm, maxpwm)) dflt =
       ((pwm >=? minpwm) .&& (pwm <=? maxpwm)) ? (mode, dflt)
 
-    magnitude :: Uint16 -> Uint16 -> Uint16
-    magnitude a b = castDefault
-                  $ abs
-                  $ (safeCast a :: Sint32) - (safeCast b)
+  magnitude :: Uint16 -> Uint16 -> Uint16
+  magnitude a b = castDefault
+                $ abs $ (safeCast a :: Sint32) - (safeCast b)
 
 scale_thr :: Uint16 -> Ivory s a IFloat
 scale_thr input = call scale_proc 1000 1000 0.0 1.0 input
