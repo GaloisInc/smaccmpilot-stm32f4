@@ -38,8 +38,7 @@ sensorsTask s uniquename =
           incl sensors_update
           incl sensors_getstate
 
-  in task tDef mDefs
-
+  in withStackSize 1024 $ task tDef mDefs
 
 sensors_begin :: Def ('[] :-> ())
 sensors_begin = externProc "sensors_begin"
