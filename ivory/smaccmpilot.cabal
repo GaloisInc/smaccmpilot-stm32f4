@@ -20,6 +20,7 @@ library
                        SMACCMPilot.Flight.GCS.Transmit.MessageDriver,
                        SMACCMPilot.Flight.GCS.Transmit.USARTSender,
                        SMACCMPilot.Flight.GCS.Transmit.Task,
+                       SMACCMPilot.Flight.GCS.Receive.Handlers,
                        SMACCMPilot.Flight.GCS.Receive.Task,
                        SMACCMPilot.Flight.GCS.Tower,
 

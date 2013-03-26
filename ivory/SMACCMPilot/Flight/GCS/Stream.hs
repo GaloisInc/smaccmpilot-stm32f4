@@ -2,12 +2,16 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE Rank2Types #-}
 
 module SMACCMPilot.Flight.GCS.Stream where
 
 import Prelude hiding (last)
 
 import Ivory.Language
+
+import qualified SMACCMPilot.Mavlink.Enums.MavDataStreams as MavDS
 
 import SMACCMPilot.Flight.Types.GCSStreamTiming
 
@@ -23,6 +27,55 @@ defaultPeriods =
     , params               .= ival 100
     ]
 
+-- hide the scope from the typechecker until application. once we have an
+-- ivory monad without a codescope parameter, we wont need this or the ugly
+-- recursion below
+newtype SelectorAction =
+  SelectorAction
+    { unwrapSelectorAction :: forall s . Label "gcsstream_timing" (Stored Uint32)
+                           -> Ivory s () () }
+
+updateGCSStreamPeriods :: Ref s1 (Struct "gcsstream_timing")
+                       -> Uint8  -- request stream id (mavlink enum typed)
+                       -> IBool  -- enabled
+                       -> Uint16 -- stream rate in hertz
+                       -> Ivory s2 () ()
+updateGCSStreamPeriods periods streamid enabled rate = do
+  ifte (streamid ==? (fromIntegral MavDS.id_ALL))
+    (mapM_ setrate allstreams)
+    (withSelectorFromId streamid (SelectorAction setrate))
+  where
+  allstreams = [ servo_output_raw, attitude, gps_raw_int
+               , vfr_hud, global_position_int ]
+  setrate :: Label "gcsstream_timing" (Stored Uint32) -> Ivory s () ()
+  setrate selector =
+    ifte enabled
+      (store (periods ~> selector) newperiod)
+      (store (periods ~> selector) 0)
+    where
+    --newperiod = castWith 0 $ 1000 / ((safeCast rate) :: IFloat)
+    newperiod = 1000 `iDiv` (safeCast rate)
+
+  withSelectorFromId :: Uint8
+                     -> SelectorAction
+                     -> Ivory s () ()
+  withSelectorFromId tofind act = aux tbl
+    where -- explicit recursion and existential quantification is a little weird
+          -- not foldr, because of nested block typing which is going away soon anyway
+    aux :: forall s . [(Integer, Label "gcsstream_timing" (Stored Uint32))] -> Ivory s () ()
+    aux ((sid, sel):ts) = ifte ((fromIntegral sid) ==? tofind)
+                            --((unwrapSelectorAction act) sel)
+                            ((unwrapSelectorAction act) sel)
+                            (aux ts)
+    aux [] = return ()
+
+  tbl ::[(Integer, Label "gcsstream_timing" (Stored Uint32))]
+  tbl = [ (MavDS.id_RAW_CONTROLLER,  servo_output_raw)
+        , (MavDS.id_EXTRA1,          attitude)
+        , (MavDS.id_POSITION,        global_position_int)
+        , (MavDS.id_EXTENDED_STATUS, gps_raw_int)
+        , (MavDS.id_EXTRA2,          vfr_hud)
+        ]
 
 setNewPeriods :: ConstRef s1 (Struct "gcsstream_timing") -- NEW periods
             -> Ref s2 (Struct "gcsstream_timing") -- STATE periods

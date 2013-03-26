@@ -23,6 +23,7 @@ import qualified SMACCMPilot.Flight.Types.FlightMode    as FM
 import qualified SMACCMPilot.Param as Param
 
 import SMACCMPilot.Mavlink.Send
+import SMACCMPilot.Mavlink.Senders
 import SMACCMPilot.Mavlink.Messages
 
 import qualified SMACCMPilot.Mavlink.Messages.Heartbeat as HB
