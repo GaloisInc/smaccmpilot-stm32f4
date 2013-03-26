@@ -6,8 +6,8 @@
 extern "C" {
 #endif
 
-#include "smaccmpilot/sensors.h"
-#include "smaccmpilot/position_type.h"
+#include "flight-generated/sensors.h"
+#include "flight-generated/position_type.h"
 
 void gcs_receive_init(void);
 void gcs_receive_start_task(void);

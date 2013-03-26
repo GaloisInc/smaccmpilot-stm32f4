@@ -6,8 +6,8 @@
 extern "C" {
 #endif
 
-#include "smaccmpilot/motorsoutput_type.h"
-#include "smaccmpilot/servo_type.h"
+#include "flight-generated/motorsoutput_type.h"
+#include "flight-generated/servo_type.h"
 
 void motorsoutput_init(void);
 void motorsoutput_start_task(void);

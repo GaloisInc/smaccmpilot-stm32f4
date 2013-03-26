@@ -8,7 +8,7 @@
 #include <include/mavlink/v1.0/mavlink_types.h>
 #include <include/mavlink/v1.0/common/mavlink.h>
 
-#include "smaccmpilot/optflow_input.h"
+#include "flight-support/optflow_input.h"
 
 #ifdef CONFIG_OPTFLOW_UART
 # define OPTFLOW_UART CONFIG_GCS_UART

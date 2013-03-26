@@ -9,11 +9,11 @@ extern "C" {
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "smaccmpilot/motorsoutput_type.h"
-#include "smaccmpilot/position_type.h"
-#include "smaccmpilot/sensors_type.h"
-#include "smaccmpilot/servo_type.h"
-#include "smaccmpilot/userinput_type.h"
+#include "flight-generated/motorsoutput_type.h"
+#include "flight-generated/position_type.h"
+#include "flight-generated/sensors_type.h"
+#include "flight-generated/servo_type.h"
+#include "flight-generated/userinput_type.h"
 
 #define GCS_TRANSMIT_STREAM_HEARTBEAT        1
 #define GCS_TRANSMIT_STREAM_SERVO_OUTPUT_RAW 2

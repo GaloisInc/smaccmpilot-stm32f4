@@ -4,7 +4,7 @@ GENERATEDDIR=flight-generated
 SANDBOX=../dsl/cabal-dev
 
 SRCDIR=$(GENERATEDDIR)/src
-INCDIR=$(GENERATEDDIR)/include/smaccmpilot
+INCDIR=$(GENERATEDDIR)/include/flight-generated
 
 GEN=smaccmpilot-gen
 GENERATOR_EXE=$(SANDBOX)/bin/$(GEN)
@@ -81,10 +81,10 @@ STARTS := $(shell $(SANDBOX)/bin/$(GEN)\
   --include-dir=$(INCDIR) \
   --out-proc-syms)
 
-CBMC_EXEC			:= $(addprefix $(CONFIG_CBMC_PREFIX)/, cbmc)
-CBMC_REPORT		:= $(addprefix $(CONFIG_CBMC_REPORT)/, cbmc-report)
-ENTRY_FUNCS		:= $(patsubst %, --function %, $(STARTS))
-CBMC_SRCS			:= $(patsubst %, --src %, $(FLIGHT_GENERATED_SOURCES))
+CBMC_EXEC	:= $(addprefix $(CONFIG_CBMC_PREFIX)/, cbmc)
+CBMC_REPORT	:= $(addprefix $(CONFIG_CBMC_REPORT)/, cbmc-report)
+ENTRY_FUNCS	:= $(patsubst %, --function %, $(STARTS))
+CBMC_SRCS	:= $(patsubst %, --src %, $(FLIGHT_GENERATED_SOURCES))
 
 .PHONY: verify
 verify: $(FLIGHT_GENERATED_HEADERS) $(FLIGHT_GENERATED_SOURCES)

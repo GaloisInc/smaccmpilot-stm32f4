@@ -1,5 +1,5 @@
 
-#include "smaccmpilot/sensors_capture.h"
+#include "flight-support/sensors_capture.h"
 
 #include <FreeRTOS.h>
 #include <task.h>

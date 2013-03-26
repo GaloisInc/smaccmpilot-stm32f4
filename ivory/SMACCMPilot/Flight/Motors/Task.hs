@@ -42,7 +42,7 @@ motorsTask cs ms ss uniquename =
         depend S.servosTypeModule
         depend M.flightModeTypeModule
         depend OS.taskModule
-        inclHeader "apmotors_wrapper"
+        inclHeader "flight-support/apmotors_wrapper"
         incl tDef
         private $ do
           incl apmotors_output_init

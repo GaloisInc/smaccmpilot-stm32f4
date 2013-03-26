@@ -31,7 +31,7 @@ sensorsTask s uniquename =
       mDefs = do
         depend S.sensorsTypeModule
         depend OS.taskModule
-        inclHeader "sensors_capture"
+        inclHeader "flight-support/sensors_capture"
         incl tDef
         private $ do
           incl sensors_begin

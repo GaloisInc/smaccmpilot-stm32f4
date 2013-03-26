@@ -10,6 +10,7 @@
  */
 
 #include <stdint.h>
+#include <ctype.h>
 
 #include <FreeRTOS.h>
 #include <task.h>
@@ -17,10 +18,8 @@
 #include <AP_HAL_SMACCM.h>
 #include <AP_Math.h>
 
-#include <ctype.h>
-#include <smaccmpilot/storage_partition.h>
-
-#include <smaccmpilot/tower.h>
+#include <flight-generated/storage_partition.h>
+#include <flight-generated/tower.h>
 
 const AP_HAL::HAL& hal = AP_HAL_BOARD_DRIVER;
 

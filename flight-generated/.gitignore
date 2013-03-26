@@ -1,3 +1,3 @@
 dep.mk
-include/smaccmpilot/
+include/flight-generated/
 src/

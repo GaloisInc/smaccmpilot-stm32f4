@@ -41,7 +41,7 @@ userInputTask uis fms uniquename =
         depend userInputTypeModule
         depend userInputDecodeModule
         depend OS.taskModule
-        inclHeader "userinput_capture"
+        inclHeader "flight-support/userinput_capture"
         incl tDef
         incl userInputCapture
 

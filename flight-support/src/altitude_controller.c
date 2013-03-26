@@ -1,7 +1,7 @@
 #include <string.h>
 
-#include "smaccmpilot/altitude_controller.h"
-#include "smaccmpilot/stabilize_primitives.h"
+#include "flight-support/altitude_controller.h"
+#include "flight-support/stabilize_primitives.h"
 
 #define MAX_CLIMB_RATE  3.0f
 

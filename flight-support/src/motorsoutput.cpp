@@ -1,6 +1,6 @@
 
-#include "smaccmpilot/motorsoutput.h"
-#include "smaccmpilot/apmotors_wrapper.h"
+#include "flight-support/motorsoutput.h"
+#include "flight-support/apmotors_wrapper.h"
 
 #include <FreeRTOS.h>
 #include <task.h>

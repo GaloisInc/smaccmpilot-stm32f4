@@ -6,7 +6,7 @@
  * All Rights Reserved.
  */
 
-#include "smaccmpilot/console_prim.h"
+#include "flight-support/console_prim.h"
 
 #include <AP_HAL.h>
 

@@ -9,7 +9,7 @@
 #include <RC_Channel.h>
 #include <AP_Motors.h>
 
-#include "smaccmpilot/apmotors_wrapper.h"
+#include "flight-support/apmotors_wrapper.h"
 
 extern const AP_HAL::HAL& hal;
 

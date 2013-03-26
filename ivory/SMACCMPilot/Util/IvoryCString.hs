@@ -25,7 +25,7 @@ copy_istring :: Def ('[ Ref s (CArray (Stored IChar)) -- dest
                       , IString                       -- src
                       , Uint32]                       -- len
                      :-> ())
-copy_istring = importProc "ivory_strlcpy" "smaccmpilot/ivory_string_prim"
+copy_istring = importProc "ivory_strlcpy" "flight-support/ivory_string_prim"
 
 -- | Type class to generate the correct call to a string function to
 -- copy one C string to another.
@@ -47,7 +47,7 @@ strncmp = importProc "strncmp" "string"
 -- | Ivory module definition.
 cstringModule :: Module
 cstringModule = package "ivory_string" $ do
-  inclHeader "smaccmpilot/ivory_string_prim"
+  inclHeader "flight-support/ivory_string_prim"
   inclHeader "string"
   incl copy_istring
   incl strncmp

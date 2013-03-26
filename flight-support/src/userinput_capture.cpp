@@ -1,5 +1,5 @@
 
-#include "smaccmpilot/userinput_capture.h"
+#include "flight-support/userinput_capture.h"
 
 #include <AP_HAL.h>
 #include <AP_HAL_SMACCM.h>

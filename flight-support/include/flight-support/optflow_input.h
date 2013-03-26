@@ -9,7 +9,7 @@ extern "C" {
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "smaccmpilot/optflow_type.h"
+#include "flight-generated/optflow_type.h"
 
 void optflow_input_init(void);
 void optflow_input_start_task(void);

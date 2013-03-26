@@ -7,9 +7,9 @@
 extern "C" {
 #endif
 
-#include "smaccmpilot/controloutput_type.h"
-#include "smaccmpilot/servos_type.h"
-#include "smaccmpilot/flightmode_type.h"
+#include "flight-generated/controloutput_type.h"
+#include "flight-generated/servos_type.h"
+#include "flight-generated/flightmode_type.h"
 
 void apmotors_output_init(void);
 void apmotors_output_set(const struct controloutput *,

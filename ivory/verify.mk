@@ -4,8 +4,6 @@
 # ------------------------------------------------------------------------------
 
 INCS=                                    \
-  -I./smaccmpilot/include/smaccmpilot	 \
-  -I./smaccmpilot/include                \
   -I./hwf4/include			 \
   -I./include				 \
   -I./smavlink/include			 \

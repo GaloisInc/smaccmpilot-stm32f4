@@ -8,10 +8,10 @@
 #include <include/mavlink/v1.0/mavlink_types.h>
 #include <include/mavlink/v1.0/common/mavlink.h>
 
-#include "smaccmpilot/gcs_receive.h"
-#include "smaccmpilot/gcs_transmit.h"
-#include "smaccmpilot/gcs_transmit_driver.h"
-#include "smaccmpilot/param.h"
+#include "flight-support/gcs_receive.h"
+#include "flight-support/gcs_transmit.h"
+#include "flight-support/gcs_transmit_driver.h"
+#include "flight-support/param.h"
 
 #ifdef CONFIG_GCS_UART
 # define GCS_UART CONFIG_GCS_UART

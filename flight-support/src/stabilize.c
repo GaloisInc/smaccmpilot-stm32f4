@@ -12,13 +12,13 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "smaccmpilot/userinput_type.h"
-#include "smaccmpilot/sensors_type.h"
-#include "smaccmpilot/motorsoutput_type.h"
+#include "flight-generated/userinput_type.h"
+#include "flight-generated/sensors_type.h"
+#include "flight-generated/motorsoutput_type.h"
 
-#include "smaccmpilot/stabilize.h"
+#include "flight-support/stabilize.h"
 
-#include "smaccmpilot/stabilize_primitives.h"
+#include "flight-support/stabilize_primitives.h"
 
 #define MAX_INPUT_ROLL   45.0f  /* deg */
 #define MAX_INPUT_PITCH  45.0f  /* deg */
