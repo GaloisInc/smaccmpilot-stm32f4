@@ -63,7 +63,8 @@ app = tower $ do
   (src_sensors, snk_sensors)       <- connector sharedState
   (src_control, snk_control)       <- connector sharedState
   (src_flightmode, snk_flightmode) <- connector sharedState
-  (src_servos, _)                  <- connector sharedState
+  (src_servos, snk_servos)         <- connector sharedState
+  (_, snk_position)                <- connector sharedState
 
 
   addTask $ sensorsTask src_sensors
@@ -72,7 +73,7 @@ app = tower $ do
   addTask $ controlTask snk_flightmode snk_userinput snk_sensors src_control
   addTask $ motorsTask snk_control snk_flightmode src_servos
 
-  gcsTower usart1 snk_flightmode
+  gcsTower usart1 snk_flightmode snk_sensors snk_position snk_control snk_servos
 
   mapM_ addModule otherms
 
