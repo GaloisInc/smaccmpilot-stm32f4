@@ -6,8 +6,8 @@
  * All Rights Reserved.
  */
 
-#ifndef __SMACCMPILOT_CONSOLE_PRIM_H__
-#define __SMACCMPILOT_CONSOLE_PRIM_H__
+#ifndef __FLIGHT_SUPPORT_CONSOLE_PRIM_H__
+#define __FLIGHT_SUPPORT_CONSOLE_PRIM_H__
 
 #include <stdint.h>
 
@@ -32,4 +32,4 @@ void console_write_string_n(const char *x, int32_t len);
 }
 #endif
 
-#endif  /* !defined __SMACCMPILOT_CONSOLE_PRIM_H__ */
+#endif  /* !defined __FLIGHT_SUPPORT_CONSOLE_PRIM_H__ */

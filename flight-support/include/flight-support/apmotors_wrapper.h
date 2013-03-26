@@ -1,7 +1,7 @@
 
 
-#ifndef __SMACCMPILOT_APMOTORS_WRAPPER_H__
-#define __SMACCMPILOT_APMOTORS_WRAPPER_H__
+#ifndef __FLIGHT_SUPPORT_APMOTORS_WRAPPER_H__
+#define __FLIGHT_SUPPORT_APMOTORS_WRAPPER_H__
 
 #ifdef __cplusplus
 extern "C" {
@@ -20,4 +20,4 @@ void apmotors_servo_get(struct servos *);
 }
 #endif
 
-#endif // __SMACCMPILOT_APMOTORS_WRAPPER_H__
+#endif // __FLIGHT_SUPPORT_APMOTORS_WRAPPER_H__
