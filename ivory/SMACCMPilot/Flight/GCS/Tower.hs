@@ -11,11 +11,11 @@ import SMACCMPilot.Flight.GCS.Transmit.Task
 import SMACCMPilot.Flight.GCS.Receive.Task
 
 gcsTower :: MemArea (Struct "usart")
-         -> Sink (Struct "flightmode")
-         -> Sink (Struct "sensors_result")
-         -> Sink (Struct "position_result")
-         -> Sink (Struct "controloutput")
-         -> Sink (Struct "servos")
+         -> DataSink (Struct "flightmode")
+         -> DataSink (Struct "sensors_result")
+         -> DataSink (Struct "position_result")
+         -> DataSink (Struct "controloutput")
+         -> DataSink (Struct "servos")
          -> IvoryTower ()
 gcsTower usart fm_sink sens_sink pos_sink ctl_sink servo_sink = do
   (streamrate_source, streamrate_sink) <- connector sharedState

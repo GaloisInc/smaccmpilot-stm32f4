@@ -15,18 +15,18 @@ import qualified SMACCMPilot.Flight.Types.Sensors as S
 
 import SMACCMPilot.Util.Periodic
 
-sensorsTask :: Source (Struct "sensors_result")
+sensorsTask :: DataSource (Struct "sensors_result")
               -> String -> Task
 sensorsTask s uniquename =
-  withSource "sensors" s $ \sensorSource ->
+  withDataSource "sensors" s $ \sensorSource ->
   let tDef = proc ("sensorTaskDef" ++ uniquename) $ body $ do
         s_result <- local (istruct [ S.valid .= ival false ])
-        source sensorSource (constRef s_result)
-        call (direct_ sensors_begin) -- time consuming: boots up and calibrates sensors
+        dataSource sensorSource (constRef s_result)
+        call_ sensors_begin -- time consuming: boots up and calibrates sensors
         periodic 10 $ do
           call (direct_ sensors_update)
           call (direct_ sensors_getstate s_result)
-          source sensorSource (constRef s_result)
+          dataSource sensorSource (constRef s_result)
 
       mDefs = do
         depend S.sensorsTypeModule

@@ -17,25 +17,25 @@ import qualified SMACCMPilot.Flight.Types.FlightMode    as M
 
 import SMACCMPilot.Util.Periodic
 
-motorsTask :: Sink (Struct "controloutput")
-           -> Sink (Struct "flightmode")
-           -> Source (Struct "servos")
+motorsTask :: DataSink (Struct "controloutput")
+           -> DataSink (Struct "flightmode")
+           -> DataSource (Struct "servos")
            -> String -> Task
 motorsTask cs ms ss uniquename =
-  withSink   "ctlOut"     cs $ \ctlSink ->
-  withSink   "flightMode" ms $ \modeSink ->
-  withSource "servos"     ss $ \servoSource ->
+  withDataSink   "ctlOut"     cs $ \ctlSink ->
+  withDataSink   "flightMode" ms $ \modeSink ->
+  withDataSource "servos"     ss $ \servoSource ->
   let tDef = proc ("motorTaskDef" ++ uniquename) $ body $ do
         s_ctl   <- local (istruct [])
         s_fm    <- local (istruct [])
         s_servo <- local (istruct [])
         call (direct_ apmotors_output_init)
         periodic 10 $ do
-          sink   ctlSink             s_ctl
-          sink   modeSink            s_fm
+          dataSink ctlSink           s_ctl
+          dataSink modeSink          s_fm
           call (direct_  apmotors_output_set (constRef s_ctl) (constRef s_fm))
           call (direct_  apmotors_servo_get  s_servo)
-          source servoSource         (constRef s_servo)
+          dataSource servoSource     (constRef s_servo)
 
       mDefs = do
         depend C.controlOutputTypeModule

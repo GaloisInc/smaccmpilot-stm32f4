@@ -19,10 +19,10 @@ import SMACCMPilot.Util.Periodic
 import qualified SMACCMPilot.Flight.Types.FlightMode as FM
 
 blinkTask :: MemArea (Struct "pin")
-          -> Sink (Struct "flightmode")
+          -> DataSink (Struct "flightmode")
           -> String -> Task
 blinkTask mempin s uniquename =
-  withSink "flightmode" s $ \flightModeSink ->
+  withDataSink "flightmode" s $ \flightModeSink ->
   let tDef = proc ("blinkTaskDef" ++ uniquename) $ body $ do
         pin <- addrOf mempin
         call (direct_ pin_enable     pin)
@@ -35,7 +35,7 @@ blinkTask mempin s uniquename =
         s_phase    <- local (ival (0::Uint8))
         periodic 125 $ do
           phase <- deref s_phase
-          sink flightModeSink flightMode
+          dataSink flightModeSink flightMode
           bmode  <- flightModeToBlinkMode flightMode
           output <- blinkOutput bmode phase
           ifte output

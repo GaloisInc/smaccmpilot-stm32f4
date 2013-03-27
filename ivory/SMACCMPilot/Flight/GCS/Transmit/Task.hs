@@ -25,20 +25,20 @@ sysid = 1
 compid = 0
 
 gcsTransmitTask :: MemArea (Struct "usart")
-                -> Sink (Struct "gcsstream_timing")
-                -> Sink (Struct "flightmode")
-                -> Sink (Struct "sensors_result")
-                -> Sink (Struct "position_result")
-                -> Sink (Struct "controloutput")
-                -> Sink (Struct "servos")
+                -> DataSink (Struct "gcsstream_timing")
+                -> DataSink (Struct "flightmode")
+                -> DataSink (Struct "sensors_result")
+                -> DataSink (Struct "position_result")
+                -> DataSink (Struct "controloutput")
+                -> DataSink (Struct "servos")
                 -> String -> Task
 gcsTransmitTask usart sp_sink fm_sink se_sink ps_sink ct_sink sr_sink uniquename =
-  withSink "streamperiods" sp_sink $ \streamPeriodSink ->
-  withSink "flightmode"    fm_sink $ \flightModeSink ->
-  withSink "sensors"       se_sink $ \sensorsSink    ->
-  withSink "position"      ps_sink $ \positionSink   ->
-  withSink "control"       ct_sink $ \controlSink    ->
-  withSink "servos"        sr_sink $ \servosSink     ->
+  withDataSink "streamperiods" sp_sink $ \streamPeriodSink ->
+  withDataSink "flightmode"    fm_sink $ \flightModeSink ->
+  withDataSink "sensors"       se_sink $ \sensorsSink    ->
+  withDataSink "position"      ps_sink $ \positionSink   ->
+  withDataSink "control"       ct_sink $ \controlSink    ->
+  withDataSink "servos"        sr_sink $ \servosSink     ->
 
   let (chan1, cmods) = messageDriver (usartSender usart uniquename sysid compid)
 
@@ -61,7 +61,7 @@ gcsTransmitTask usart sp_sink fm_sink se_sink ps_sink ct_sink sr_sink uniquename
           now <- deref lastWake
 
           -- Update periods, adding streams to schedule if they are now enabled
-          sink streamPeriodSink s_newperiods
+          dataSink streamPeriodSink s_newperiods
           setNewPeriods (constRef s_newperiods) s_periods s_schedule now
 
           -- Handler for all streams - if due, run action, then update schedule
@@ -76,31 +76,31 @@ gcsTransmitTask usart sp_sink fm_sink se_sink ps_sink ct_sink sr_sink uniquename
                   (return ())
 
           onStream S.heartbeat $ do
-            sink flightModeSink s_fm
+            dataSink flightModeSink s_fm
             call (direct_ (sendHeartbeat chan1) s_fm)
 
           onStream S.servo_output_raw $ do
-            sink servosSink s_serv
-            sink controlSink s_ctl
+            dataSink servosSink s_serv
+            dataSink controlSink s_ctl
             call (direct_ (sendServoOutputRaw chan1) s_serv s_ctl)
 
           onStream S.attitude $ do
-            sink sensorsSink s_sens
+            dataSink sensorsSink s_sens
             call (direct_ (sendAttitude chan1) s_sens)
 
           onStream S.gps_raw_int $ do
-            sink positionSink s_pos
+            dataSink positionSink s_pos
             call (direct_ (sendGpsRawInt chan1) s_pos)
 
           onStream S.vfr_hud $ do
-            sink positionSink s_pos
-            sink controlSink s_ctl
-            sink sensorsSink s_sens
+            dataSink positionSink s_pos
+            dataSink controlSink s_ctl
+            dataSink sensorsSink s_sens
             call (direct_ (sendVfrHud chan1) s_pos s_ctl s_sens)
 
           onStream S.global_position_int $ do
-            sink positionSink s_pos
-            sink sensorsSink s_sens
+            dataSink positionSink s_pos
+            dataSink sensorsSink s_sens
             call (direct_ (sendGlobalPositionInt chan1) s_pos s_sens)
 
           onStream S.params $ do

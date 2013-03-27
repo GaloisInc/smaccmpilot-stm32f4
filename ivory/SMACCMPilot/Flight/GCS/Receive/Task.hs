@@ -20,13 +20,13 @@ import           SMACCMPilot.Flight.GCS.Stream (defaultPeriods)
 import           SMACCMPilot.Flight.GCS.Receive.Handlers
 
 gcsReceiveTask :: MemArea (Struct "usart")
-               -> Source (Struct "gcsstream_timing")
+               -> DataSource (Struct "gcsstream_timing")
                -> String -> Task
 gcsReceiveTask usart_area s_src uniquename =
-  withSource "streamperiods" s_src $ \streamPeriodSource ->
+  withDataSource "streamperiods" s_src $ \streamPeriodSource ->
   let tDef = proc ("gcsReceiveTaskDef" ++ uniquename) $ body $ do
         s_periods <- local defaultPeriods
-        source streamPeriodSource (constRef s_periods)
+        dataSource streamPeriodSource (constRef s_periods)
 
         usart <- addrOf usart_area
         buf <- local (iarray [] :: Init (Array 1 (Stored Uint8)))
@@ -40,7 +40,7 @@ gcsReceiveTask usart_area s_src uniquename =
             ifte (s /=? R.status_GOTMSG) (return ()) $ do
               call (direct_ handlerAux state s_periods)
               R.mavlinkReceiveReset state
-              source streamPeriodSource (constRef s_periods)
+              dataSource streamPeriodSource (constRef s_periods)
 
       handlerAux :: Def ('[ Ref s (Struct "mavlink_receive_state")
                           , Ref s1 (Struct "gcsstream_timing") ] :-> ())

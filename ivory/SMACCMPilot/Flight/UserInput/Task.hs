@@ -17,12 +17,12 @@ import SMACCMPilot.Flight.UserInput.Decode
 import SMACCMPilot.Util.IvoryHelpers
 import SMACCMPilot.Util.Periodic
 
-userInputTask :: Source (Struct "userinput_result")
-              -> Source (Struct "flightmode")
+userInputTask :: DataSource (Struct "userinput_result")
+              -> DataSource (Struct "flightmode")
               -> String -> Task
 userInputTask uis fms uniquename =
-  withSource "flightMode" fms $ \flightModeSource ->
-  withSource "userInput"  uis $ \userInputSource ->
+  withDataSource "flightMode" fms $ \flightModeSource ->
+  withDataSource "userInput"  uis $ \userInputSource ->
   let tDef = proc ("userInputTaskDef" ++ uniquename) $ body $ do
         chs     <- local (iarray [])
         decoder <- local (istruct [])
@@ -34,8 +34,8 @@ userInputTask uis fms uniquename =
           ift captured $ do
             call (direct_ userInputDecode chs decoder ui_result fm_result now)
           call (direct_ userInputFailsafe ui_result fm_result now)
-          source userInputSource  (constRef ui_result)
-          source flightModeSource (constRef fm_result)
+          dataSource userInputSource  (constRef ui_result)
+          dataSource flightModeSource (constRef fm_result)
 
       mDefs = do
         depend userInputTypeModule
