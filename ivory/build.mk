@@ -36,7 +36,8 @@ $(GENERATED_DEP): $(GENERATOR_EXE)
 	--cfg=true \
 	--cfg-dot-dir=$(GRAPHS_DIR) \
 	--cfg-proc=stabilize_from_rate \
-	--cfg-proc=pid_update
+	--cfg-proc=pid_update \
+  $(IVORY_OPTS)
 
 # We don't add the .hs files as dependencies.  It's up to the user to clean
 # them.  (It's not even clear if that's the right thing to do, since even if
@@ -74,7 +75,8 @@ CBMC_INCS = \
   -I./flight-support/include \
   -I./smavlink/include \
   -I./smavlink/include/smavlink/messages \
-  -I./flight-support/include/smaccmpilot
+  -I./flight-support/include/smaccmpilot \
+  $(FREERTOS_INCLUDES)
 
 STARTS := $(shell $(SANDBOX)/bin/$(GEN)\
   --src-dir=$(SRCDIR) \
@@ -101,11 +103,13 @@ verify: $(FLIGHT_GENERATED_HEADERS) $(FLIGHT_GENERATED_SOURCES)
 .PHONY: verify-tmp
 verify-tmp: $(FLIGHT_GENERATED_HEADERS) $(FLIGHT_GENERATED_SOURCES)
 	$(CBMC_REPORT) \
-    --outfile $(TOP)/ivory/claims-table-tmp.md \
-    --format markdown \
-    --timeout 10 \
+    --verbose \
+    --format=markdown \
+    --timeout=1 \
     --no-asserts \
-    --sort result \
-    --cbmc $(CBMC_EXEC) \
-    --function gcs_transmit_send_servo_output \
+    --sort=result \
+    --cbmc=$(CBMC_EXEC) \
+    --function=gcs_transmit_send_vfrhud \
     -- -D IVORY_CBMC $(CBMC_INCS) $(FLIGHT_GENERATED_SOURCES)
+
+    # --outfile=$(TOP)/ivory/claims-table-tmp.md \
