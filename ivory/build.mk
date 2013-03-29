@@ -91,12 +91,12 @@ CBMC_SRCS	:= $(patsubst %, --src %, $(FLIGHT_GENERATED_SOURCES))
 .PHONY: verify
 verify: $(FLIGHT_GENERATED_HEADERS) $(FLIGHT_GENERATED_SOURCES)
 	$(CBMC_REPORT) \
-    --outfile $(TOP)/ivory/claims-table.md \
-    --format markdown \
-    --timeout 10 \
+    --outfile=$(TOP)/ivory/claims-table.md \
+    --format=markdown \
+    --timeout=10 \
     --no-asserts \
-    --sort result \
-    --cbmc $(CBMC_EXEC) \
+    --sort=result \
+    --cbmc=$(CBMC_EXEC) \
     $(ENTRY_FUNCS) \
     -- -D IVORY_CBMC $(CBMC_INCS) $(FLIGHT_GENERATED_SOURCES)
 
@@ -105,7 +105,7 @@ verify-tmp: $(FLIGHT_GENERATED_HEADERS) $(FLIGHT_GENERATED_SOURCES)
 	$(CBMC_REPORT) \
     --verbose \
     --format=markdown \
-    --timeout=1 \
+    --timeout=10 \
     --no-asserts \
     --sort=result \
     --cbmc=$(CBMC_EXEC) \
