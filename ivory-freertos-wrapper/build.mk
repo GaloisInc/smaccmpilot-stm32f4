@@ -20,6 +20,7 @@ IVORY_FREERTOS_WRAPPER_CFLAGS    += $(FREERTOS_CFLAGS)
 
 IVORY_FREERTOS_WRAPPER_OBJECTS :=    \
   src/freertos_semaphore_wrapper.o \
+  src/freertos_queue_wrapper.o \
   src/freertos_task_wrapper.o
 
 $(eval $(call library,IVORY_FREERTOS_WRAPPER))
