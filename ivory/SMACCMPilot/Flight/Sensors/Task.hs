@@ -9,7 +9,7 @@ module SMACCMPilot.Flight.Sensors.Task
 
 import Ivory.Language
 import Ivory.Tower
-import qualified Ivory.OS.FreeRTOS as OS
+import qualified Ivory.OS.FreeRTOS.Task as Task
 
 import qualified SMACCMPilot.Flight.Types.Sensors as S
 
@@ -30,7 +30,7 @@ sensorsTask s uniquename =
 
       mDefs = do
         depend S.sensorsTypeModule
-        depend OS.taskModule
+        depend Task.taskModule
         inclHeader "flight-support/sensors_capture"
         incl tDef
         private $ do

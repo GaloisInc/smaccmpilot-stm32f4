@@ -7,7 +7,7 @@ module SMACCMPilot.Flight.Control.Task where
 
 import Ivory.Language
 import Ivory.Tower
-import qualified Ivory.OS.FreeRTOS as OS
+import qualified Ivory.OS.FreeRTOS.Task as Task
 
 import qualified SMACCMPilot.Flight.Types.FlightMode as FM
 import qualified SMACCMPilot.Flight.Types.UserInput as UI
@@ -41,7 +41,7 @@ controlTask s_fm s_inpt s_sensors s_ctl uniquename =
           dataSource controlSource (constRef ctl)
 
       mDefs = do
-        depend OS.taskModule
+        depend Task.taskModule
         depend FM.flightModeTypeModule
         depend UI.userInputTypeModule
         depend SENS.sensorsTypeModule

@@ -8,13 +8,12 @@ module SMACCMPilot.Util.Periodic
   ) where
 
 import Ivory.Language
-import qualified Ivory.OS.FreeRTOS as OS
+import qualified Ivory.OS.FreeRTOS.Task as Task
 
 periodic :: (eff `AllocsIn` s) => Integer -> Ivory eff () -> Ivory eff ()
 periodic period f = do
-  initTime <- call (direct OS.getTimeMillis)
+  initTime <- call (direct Task.getTimeMillis)
   lastTime <- local (ival initTime)
   forever $ do
     f
-    call (direct_ OS.delayUntil lastTime (fromIntegral period))
-
+    call (direct_ Task.delayUntil lastTime (fromIntegral period))

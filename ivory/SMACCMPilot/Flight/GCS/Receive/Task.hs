@@ -12,7 +12,7 @@ import           Ivory.Language
 import           Ivory.Tower
 import           Ivory.BSP.HWF4.USART
 
-import qualified Ivory.OS.FreeRTOS as OS
+import qualified Ivory.OS.FreeRTOS.Task as Task
 
 import qualified SMACCMPilot.Mavlink.Receive as R
 
@@ -20,13 +20,13 @@ import           SMACCMPilot.Flight.GCS.Stream (defaultPeriods)
 import           SMACCMPilot.Flight.GCS.Receive.Handlers
 
 gcsReceiveTask :: MemArea (Struct "usart")
-               -> DataSource (Struct "gcsstream_timing")
+               -> EventSource (Struct "gcsstream_timing")
                -> String -> Task
 gcsReceiveTask usart_area s_src uniquename =
-  withDataSource "streamperiods" s_src $ \streamPeriodSource ->
+  withEventSource "streamperiods" s_src $ \streamPeriodSource ->
   let tDef = proc ("gcsReceiveTaskDef" ++ uniquename) $ body $ do
         s_periods <- local defaultPeriods
-        dataSource streamPeriodSource (constRef s_periods)
+        emit streamPeriodSource (constRef s_periods)
 
         usart <- addrOf usart_area
         buf <- local (iarray [] :: Init (Array 1 (Stored Uint8)))
@@ -40,7 +40,7 @@ gcsReceiveTask usart_area s_src uniquename =
             ifte (s /=? R.status_GOTMSG) (return ()) $ do
               call (direct_ handlerAux state s_periods)
               R.mavlinkReceiveReset state
-              dataSource streamPeriodSource (constRef s_periods)
+              emit streamPeriodSource (constRef s_periods)
 
       handlerAux :: Def ('[ Ref s (Struct "mavlink_receive_state")
                           , Ref s1 (Struct "gcsstream_timing") ] :-> ())
@@ -54,7 +54,7 @@ gcsReceiveTask usart_area s_src uniquename =
          ]
       runHandlers s = mapM_ ((flip($)) s)
       mDefs = do
-        depend OS.taskModule
+        depend Task.taskModule
         depend usartModule
         defStruct (Proxy :: Proxy "mavlink_receive_state")
         incl tDef

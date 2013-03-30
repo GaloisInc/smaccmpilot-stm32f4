@@ -9,7 +9,7 @@ module SMACCMPilot.Flight.BlinkTask
 
 import Ivory.Language
 import Ivory.Tower
-import qualified Ivory.OS.FreeRTOS as OS
+import qualified Ivory.OS.FreeRTOS.Task as Task
 
 import Ivory.BSP.HWF4.GPIO
 
@@ -52,7 +52,7 @@ blinkTask mempin s uniquename =
             (store r (phase + 1))
 
       mDefs = do
-        depend OS.taskModule
+        depend Task.taskModule
         depend gpioModule
         incl tDef
   in task tDef mDefs

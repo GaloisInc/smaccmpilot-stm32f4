@@ -9,7 +9,7 @@ module SMACCMPilot.Flight.UserInput.Task
 
 import Ivory.Language
 import Ivory.Tower
-import qualified Ivory.OS.FreeRTOS as OS
+import qualified Ivory.OS.FreeRTOS.Task as Task
 
 import SMACCMPilot.Flight.Types.UserInput
 import SMACCMPilot.Flight.UserInput.Decode
@@ -29,7 +29,7 @@ userInputTask uis fms uniquename =
         ui_result  <- local (istruct [])
         fm_result  <- local (istruct [])
         periodic 50 $ do
-          now <- call (direct OS.getTimeMillis)
+          now <- call (direct Task.getTimeMillis)
           captured <- call (direct userInputCapture chs)
           ift captured $ do
             call (direct_ userInputDecode chs decoder ui_result fm_result now)
@@ -40,7 +40,7 @@ userInputTask uis fms uniquename =
       mDefs = do
         depend userInputTypeModule
         depend userInputDecodeModule
-        depend OS.taskModule
+        depend Task.taskModule
         inclHeader "flight-support/userinput_capture"
         incl tDef
         incl userInputCapture

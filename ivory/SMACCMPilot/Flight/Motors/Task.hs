@@ -9,7 +9,7 @@ module SMACCMPilot.Flight.Motors.Task
 
 import Ivory.Language
 import Ivory.Tower
-import qualified Ivory.OS.FreeRTOS as OS
+import qualified Ivory.OS.FreeRTOS.Task as Task
 
 import qualified SMACCMPilot.Flight.Types.ControlOutput as C
 import qualified SMACCMPilot.Flight.Types.Servos        as S
@@ -41,7 +41,7 @@ motorsTask cs ms ss uniquename =
         depend C.controlOutputTypeModule
         depend S.servosTypeModule
         depend M.flightModeTypeModule
-        depend OS.taskModule
+        depend Task.taskModule
         inclHeader "flight-support/apmotors_wrapper"
         incl tDef
         private $ do

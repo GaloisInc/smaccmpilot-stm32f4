@@ -11,7 +11,7 @@ import Prelude hiding (last)
 
 import Ivory.Language
 import Ivory.Tower
-import qualified Ivory.OS.FreeRTOS as OS
+import qualified Ivory.OS.FreeRTOS.Task as Task
 
 import SMACCMPilot.Flight.GCS.Transmit.MessageDriver
 import SMACCMPilot.Flight.GCS.Transmit.USARTSender
@@ -43,7 +43,7 @@ gcsTransmitTask usart sp_sink fm_sink se_sink ps_sink ct_sink sr_sink uniquename
   let (chan1, cmods) = messageDriver (usartSender usart uniquename sysid compid)
 
       tDef = proc ("gcsTransmitTaskDef" ++ uniquename) $ body $ do
-        initTime <- call (direct OS.getTimeMillis)
+        initTime <- call (direct Task.getTimeMillis)
         lastWake <- local (ival initTime)
         lastRun  <- local (ival initTime)
 
@@ -113,12 +113,12 @@ gcsTransmitTask usart sp_sink fm_sink se_sink ps_sink ct_sink sr_sink uniquename
           store lastRun now
           -- Cap sleep time at 500ms so streamPeriodSink can be serviced
           -- periodically
-          call (direct_ OS.delayUntil lastWake
+          call (direct_ Task.delayUntil lastWake
             ((dt >? 500) ? (500, dt)))
 
 
       mDefs = do
-        depend OS.taskModule
+        depend Task.taskModule
         depend FM.flightModeTypeModule
         depend S.gcsStreamTimingTypeModule
         incl tDef
