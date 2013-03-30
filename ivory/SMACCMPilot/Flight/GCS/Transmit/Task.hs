@@ -126,5 +126,5 @@ gcsTransmitTask usart sp_sink fm_sink se_sink ps_sink ct_sink sr_sink uniquename
         incl tDef
         mapM_ depend cmods
 
-  in withModules cmods $ task tDef mDefs
+  in withModules cmods $ withStackSize 512 $ task tDef mDefs
 
