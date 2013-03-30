@@ -131,7 +131,7 @@ mkSendHeartbeat senders = proc "gcs_transmit_send_heartbeat" $
   -- system status stays 0
   store (hb ~> HB.mavlink_version) 3 -- magic number
 
-  call_ (heartbeatSender senders) (constRef hb)
+  call (direct_ (heartbeatSender senders) (constRef hb))
   retVoid 
   where
   _autopilot_generic, autopilot_ardupilotmega, mavtype_quadrotor :: Uint8
@@ -165,7 +165,7 @@ mkSendAttitude senders = proc "gcs_transmit_send_attitude" $ \sensors -> body $ 
   (sensors ~> Sens.omega_x) `into` (att ~> ATT.rollspeed)
   (sensors ~> Sens.omega_y) `into` (att ~> ATT.rollspeed)
   (sensors ~> Sens.omega_z) `into` (att ~> ATT.rollspeed)
-  call_ (attitudeSender senders) (constRef att)
+  call (direct_ (attitudeSender senders) (constRef att))
   retVoid 
 
 mkSendVfrHud :: MavlinkMessageSenders
@@ -186,10 +186,10 @@ mkSendVfrHud senders = proc "gcs_transmit_send_vfrhud" $ \pos ctl sens -> body $
   (calcHeading sens) `resultInto` (hud ~> HUD.heading)
   -- Throttle from control output
   (calcThrottle ctl) `resultInto` (hud ~> HUD.throttle)
-  call_ (vfrHudSender senders) (constRef hud)
+  call (direct_ (vfrHudSender senders) (constRef hud))
   retVoid
   where
-  calcSpeed :: Ref s (Struct "position_result") -> Ivory lex () IFloat
+  calcSpeed :: Ref s (Struct "position_result") -> Ivory eff IFloat
   calcSpeed pos = do
     vx <- (pos ~>* P.vx)
     vy <- (pos ~>* P.vy)
@@ -197,25 +197,25 @@ mkSendVfrHud senders = proc "gcs_transmit_send_vfrhud" $ \pos ctl sens -> body $
     sumsquares <- assign (safeCast (vx * vx + vy * vy + vz * vz) :: IFloat)
     return $ sqrt sumsquares
 
-  calcAltitude :: Ref s (Struct "position_result") -> Ivory lex () IFloat
+  calcAltitude :: Ref s (Struct "position_result") -> Ivory eff IFloat
   calcAltitude pos = do
     milimeters <- (pos ~>* P.gps_alt)
     mm_float <- assign $ safeCast milimeters
     return (mm_float / 1000)
 
-  calcVertSpeed :: (Ref s (Struct "position_result")) -> Ivory lex () IFloat
+  calcVertSpeed :: (Ref s (Struct "position_result")) -> Ivory eff IFloat
   calcVertSpeed pos = do
     meterspersec <- (pos ~>* P.vz)
     return $ (safeCast meterspersec :: IFloat)
 
-  calcHeading :: Ref s (Struct "sensors_result") -> Ivory lex () Sint16
+  calcHeading :: Ref s (Struct "sensors_result") -> Ivory eff Sint16
   calcHeading sens = do
     radians <- (sens ~>* Sens.yaw)
     degrees <- assign $ 180 / pi * radians
     deg_int <- assign $ castDefault degrees
     return  deg_int
 
-  calcThrottle :: Ref s (Struct "controloutput") -> Ivory l () Uint16
+  calcThrottle :: Ref s (Struct "controloutput") -> Ivory eff Uint16
   calcThrottle control = do
     thrFloat <- (control ~>* C.throttle)
     return $ castDefault (thrFloat * 100)
@@ -241,7 +241,7 @@ mkSendServoOutputRaw senders = proc "gcs_transmit_send_servo_output" $
   store (msg ~> SVO.servo7_raw) (toSvo pitch)
   store (msg ~> SVO.servo8_raw) (toSvo thr)
 
-  call_ (servoOutputRawSender senders) (constRef msg)
+  call (direct_ (servoOutputRawSender senders) (constRef msg))
 
 
 mkSendGpsRawInt :: MavlinkMessageSenders
@@ -259,7 +259,7 @@ mkSendGpsRawInt senders = proc "gcs_transmit_send_gps_raw_int" $
   store (msg ~> GRI.cog) 359 -- XXX can calulate this
   store (msg ~> GRI.fix_type) 3 -- 3d fix
   store (msg ~> GRI.satellites_visible) 8
-  call_ (gpsRawIntSender senders) (constRef msg)
+  call (direct_ (gpsRawIntSender senders) (constRef msg))
   retVoid
 
 mkSendGlobalPositionInt :: MavlinkMessageSenders
@@ -278,7 +278,7 @@ mkSendGlobalPositionInt senders = proc "gcs_transmit_send_global_position_int" $
   (pos ~> P.vx) `into` (msg ~> GPI.vx)
   (pos ~> P.vy) `into` (msg ~> GPI.vy)
   (pos ~> P.vz) `into` (msg ~> GPI.vz)
-  call_ (globalPositionIntSender senders) (constRef msg)
+  call (direct_ (globalPositionIntSender senders) (constRef msg))
   retVoid
 
 -- Import "strncpy" to fill in the string field with the correct
@@ -294,23 +294,23 @@ mkSendParamValue :: MavlinkMessageSenders
 mkSendParamValue senders = proc "gcs_transmit_send_param_value" $
   \param -> body $ do
   msg   <- local (istruct [])
-  value <- call Param.param_get_float_value param
+  value <- call (direct Param.param_get_float_value param)
   store (msg ~> PV.param_value) value
   count <- Param.param_get_count
   store (msg ~> PV.param_count) (safeCast count)
   index <- deref (param ~> Param.param_index)
   store (msg ~> PV.param_index) (safeCast index)
-  call_ pv_strncpy (toCArray (msg ~> PV.param_id))
-                   (constRef (toCArray (param ~> Param.param_name))) 16
+  call (direct_ pv_strncpy (toCArray (msg ~> PV.param_id))
+                   (constRef (toCArray (param ~> Param.param_name))) 16)
   store (msg ~> PV.param_type) 0 -- FIXME
-  call_ (paramValueSender senders) (constRef msg)
+  call (direct_ (paramValueSender senders) (constRef msg))
 
 -- | Send the first parameter marked as requested.
 mkSendParams :: MavlinkMessageSenders -> Def ('[] :-> ())
 mkSendParams senders = proc "gcs_transmit_send_params" $ body $ do
-  pinfo <- call Param.param_get_requested
+  pinfo <- call (direct Param.param_get_requested)
   withRef pinfo
           (\info -> do
              store (info ~> Param.param_requested) 0
-             call_ (mkSendParamValue senders) info)
+             call (direct_ (mkSendParamValue senders) info))
           retVoid

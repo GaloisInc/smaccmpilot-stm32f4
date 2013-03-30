@@ -48,14 +48,15 @@ userInputDecode :: Def ('[ Ref s1 (Array 8 (Stored Uint16))
                          , Ref s3 (Struct "userinput_result")
                          , Ref s3 (Struct "flightmode")
                          , Uint32 ] :-> ())
-userInputDecode = proc "userinput_decode" $ \pwms state ui fm now -> body
-  $ requires [satisfy (state ~> arm_state_time) (\ast -> check $ now >=? ast)]
+userInputDecode = proc "userinput_decode" $ \pwms state ui fm now ->
+    requires [satisfy (state ~> arm_state_time) (\ast -> check $ now >=? ast)]
+  $ body
   $ do
   let chtransform :: (IvoryStore a1)
                   => Ix 8
-                  -> (Uint16 -> Ivory s' r a1)
+                  -> (Uint16 -> Ivory eff a1)
                   -> Label "userinput_result" (Stored a1)
-                  -> Ivory s' r ()
+                  -> Ivory eff ()
       chtransform ix f ofield = deref (pwms ! (ix :: Ix 8)) >>=
                                 f >>= \v -> store (ui ~> ofield) v
   chtransform 0 scale_rpy I.roll
@@ -74,7 +75,7 @@ userInputDecode = proc "userinput_decode" $ \pwms state ui fm now -> body
 arming_statemachine :: (Ref s1 (Array 8 (Stored Uint16)))
                     -> (Ref s2 (Struct "userinput_decode_state"))
                     -> Uint32
-                    -> Ivory s () IBool
+                    -> Ivory eff IBool
 arming_statemachine pwms state now = do
   ch5_switch <- deref (pwms ! (5 :: Ix 8))
   throttle_stick <- deref (pwms ! (2 :: Ix 8))
@@ -88,17 +89,17 @@ arming_statemachine pwms state now = do
   newstate <- (state ~>* arm_state)
   return $ (newstate ==? as_ARMED)
   where
-  set_arm_state :: Uint8 -> Ivory s () ()
+  set_arm_state :: Uint8 -> Ivory eff ()
   set_arm_state newstate = do
     store (state ~> arm_state) newstate
     store (state ~> arm_state_time) now
 
-  do_disarm :: Ivory s () ()
+  do_disarm :: Ivory eff ()
   do_disarm = set_arm_state as_DISARMED
 
   hystresis = 500
 
-  do_try_arming :: Ivory s () ()
+  do_try_arming :: Ivory eff ()
   do_try_arming = do
     ast <- deref (state ~> arm_state)
     astime <- deref (state ~> arm_state_time)
@@ -109,7 +110,7 @@ arming_statemachine pwms state now = do
         (ift (now - astime >? hystresis)
           (set_arm_state as_ARMED))))
 
-  do_not_arming :: Ivory s () ()
+  do_not_arming :: Ivory eff ()
   do_not_arming = do
     ast <- deref (state ~> arm_state)
     ift (ast ==? as_ARMING)
@@ -118,7 +119,7 @@ arming_statemachine pwms state now = do
 mode_statemachine :: (Ref s1 (Array 8 (Stored Uint16)))
                   -> (Ref s2 (Struct "userinput_decode_state"))
                   -> Uint32
-                  -> Ivory s () Uint8
+                  -> Ivory eff Uint8
 mode_statemachine pwms state now = do
   mode_input_current <- deref (pwms ! (4 :: Ix 8))
   mode_input_prev    <- deref (state ~> last_modepwm)
@@ -150,38 +151,36 @@ mode_statemachine pwms state now = do
   magnitude a b = castDefault
                 $ abs $ (safeCast a :: Sint32) - (safeCast b)
 
-scale_thr :: Uint16 -> Ivory s a IFloat
-scale_thr input = call scale_proc 1000 1000 0.0 1.0 input
+scale_thr :: Uint16 -> Ivory eff IFloat
+scale_thr input = call (direct scale_proc 1000 1000 0.0 1.0 input)
 
-scale_rpy :: Uint16 -> Ivory s a IFloat
-scale_rpy input = call scale_proc 1500 500 (-1.0) 1.0 input
+scale_rpy :: Uint16 -> Ivory eff IFloat
+scale_rpy input = call (direct scale_proc 1500 500 (-1.0) 1.0 input)
 
 scale_proc :: Def ('[Uint16, Uint16, IFloat, IFloat, Uint16] :-> IFloat)
-scale_proc = proc "userinput_scale" $ \center range outmin outmax input -> body
-  $ requires [check (range /=? 0)]
-  $ do
-  let centered = input - center
-  let ranged = (safeCast centered) / (safeCast range)
-  ifte (ranged <? outmin)
-    (ret outmin)
-    (ifte (ranged >? outmax)
-      (ret outmax)
-      (ret ranged))
+scale_proc = proc "userinput_scale" $ \center range outmin outmax input ->
+  requires [check (range /=? 0)] $ body $ do
+    let centered = input - center
+    let ranged = (safeCast centered) / (safeCast range)
+    ifte (ranged <? outmin)
+      (ret outmin)
+      (ifte (ranged >? outmax)
+        (ret outmax)
+        (ret ranged))
 
 
 userInputFailsafe :: Def ('[ Ref s1 (Struct "userinput_result")
                            , Ref s2 (Struct "flightmode")
                            , Uint32 ] :-> ())
-userInputFailsafe = proc "userinput_failsafe" $ \capt fm now -> body
-  $ requires [ satisfy (capt ~> I.time) (\t -> check $ now >=? t) ]
-  $ do
-  last <- deref ( capt ~> I.time )
-  let dt = now - last
-  ift (dt >? 150) $ do
-     store (fm   ~> FM.armed)   false
-     store (capt ~> I.throttle) 0
-     store (capt ~> I.yaw)      0
-     store (capt ~> I.pitch)    0
-     store (capt ~> I.roll)     0
-  retVoid
+userInputFailsafe = proc "userinput_failsafe" $ \capt fm now ->
+  requires [ satisfy (capt ~> I.time) (\t -> check $ now >=? t) ] $ body $ do
+    last <- deref ( capt ~> I.time )
+    let dt = now - last
+    ift (dt >? 150) $ do
+       store (fm   ~> FM.armed)   false
+       store (capt ~> I.throttle) 0
+       store (capt ~> I.yaw)      0
+       store (capt ~> I.pitch)    0
+       store (capt ~> I.roll)     0
+    retVoid
 

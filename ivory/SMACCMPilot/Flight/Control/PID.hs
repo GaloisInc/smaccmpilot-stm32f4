@@ -36,20 +36,19 @@ controlPIDModule = package "control_pid" $ do
   }
 |]
 
-notFloatNan :: [IFloat] -> [Cond s r]
+notFloatNan :: [IFloat] -> [Cond]
 notFloatNan = map (\flt -> (check $ (iNot $ isnan flt) .&& (iNot $ isinf flt)))
 
 -- | Update a PID controller given an error value and measured value
 -- and return the output value.
 pid_update :: Def ('[(Ref s1 (Struct "PID")), IFloat, IFloat] :-> IFloat)
-pid_update = proc "pid_update" $ \pid err pos -> body $
-  requires (notFloatNan [err, pos]) $
-  do
+pid_update = proc "pid_update" $ \pid err pos ->
+  requires (notFloatNan [err, pos]) $ body $ do
   p_term  <- fmap (* err) (pid~>*pid_pGain)
 
   i_min   <- pid~>*pid_iMin
   i_max   <- pid~>*pid_iMax
-  pid~>pid_iState %=! (call fconstrain i_min i_max . (+ err))
+  pid~>pid_iState %=! (call . direct fconstrain i_min i_max . (+ err))
   i_term  <- liftA2 (*) (pid~>*pid_iGain) (pid~>*pid_iState)
 
   reset      <- pid~>*pid_reset
@@ -75,7 +74,7 @@ fconstrain = proc "fconstrain" $ \xmin xmax x -> body $
       (ret x)))
 
 -- | Define a group of parameters for a PID controller.
-pid_param_init :: String -> Ref Global (Struct "PID") -> Ivory s r ()
+pid_param_init :: String -> Ref Global (Struct "PID") -> Ivory eff ()
 pid_param_init name pid = do
   param_init (fromString $ name ++ "_P")    (pid ~> pid_pGain)
   param_init (fromString $ name ++ "_I")    (pid ~> pid_iGain)

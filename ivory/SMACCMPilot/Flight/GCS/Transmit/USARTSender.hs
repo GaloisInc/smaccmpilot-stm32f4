@@ -25,10 +25,10 @@ usartSender usart_area name sysid compid =
   txseq_area = area txseqname (Just (ival 0))
   write :: ConstRef (Stack s) (CArray (Stored Uint8)) -- buf
         -> Uint8 -- len
-        -> Ivory (Top s) () ()
+        -> Ivory eff ()
   write buf len = do
     usart <- addrOf usart_area
-    call_ usartWrite usart buf (safeCast len)
+    call (direct_ usartWrite usart buf (safeCast len))
   deps = do
     defMemArea txseq_area
     depend usartModule

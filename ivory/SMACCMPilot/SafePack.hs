@@ -37,22 +37,22 @@ import SMACCMPilot.Mavlink.Pack
 -- of Ivory.
 class MonadIvory m where
   -- | Lift an Ivory action into the monad "m".
-  liftI :: Ivory s r a -> m s r a
+  liftI :: Ivory eff a -> m eff a
 
 ----------------------------------------------------------------------
 -- Packing Monad
 
 -- | Monad for safely packing values into an array with bounds
 -- checking (at code-generation time).
-newtype PackM s r a =
+newtype PackM eff a =
   PackM {
-    runPackM :: forall s1 len. (SingI len)
+    runPackM :: forall s len. (SingI len)
              => (StateT Int
-                 (ReaderT (Ref s1 (Array len (Stored Uint8)))
-                  (Ivory s r)) a)
+                 (ReaderT (Ref s (Array len (Stored Uint8)))
+                  (Ivory eff)) a)
   }
 
-instance Monad (PackM s r) where
+instance Monad (PackM eff) where
   return x = PackM (return x)
   (PackM m) >>= f = PackM (m >>= runPackM . f)
 
@@ -65,7 +65,7 @@ instance MonadIvory PackM where
 --
 -- XXX maybe this should just take an "a" instead of a reference?  It
 -- is nice for symmetry with "munpack" though.
-mpack :: (MavlinkPackable a) => ConstRef s1 (Stored a) -> PackM s r ()
+mpack :: (MavlinkPackable a) => ConstRef s (Stored a) -> PackM eff ()
 mpack ref = PackM $ do
   buf    <- ask
   offset <- get
@@ -75,7 +75,7 @@ mpack ref = PackM $ do
     then error $ "packing " ++ (show new_offset) ++ " bytes into "
               ++ "array of length " ++ (show (arrayLen buf :: Int))
     else return ()
-  lift $ lift $ call_ pack (toCArray buf) (fromIntegral offset) val
+  lift $ lift $ call $ direct_ pack (toCArray buf) (fromIntegral offset) val
   set new_offset
 
 -- | Pack an array of packable values into the array stored in the
@@ -83,10 +83,8 @@ mpack ref = PackM $ do
 -- generation time if too much data is packed into the array.
 --
 -- XXX array ref should be const
-marrayPack :: forall a len s s1 r.
-              (MavlinkPackable a, SingI len, IvoryType r)
-           => Ref s1 (Array len (Stored a))
-           -> PackM s r ()
+marrayPack :: forall eff a len s.  (MavlinkPackable a, SingI len)
+           => Ref s (Array len (Stored a)) -> PackM eff ()
 marrayPack arr = PackM $ do
   buf    <- ask
   offset <- get
@@ -101,19 +99,19 @@ marrayPack arr = PackM $ do
 -- | Begin a context to pack values into a byte array, given an
 -- initial offset.  Returns the final offset.
 packInto :: (SingI len)
-         => (Ref s1 (Array len (Stored Uint8))) -- buf
-         -> Int                                 -- offset
-         -> PackM s2 r ()                       -- body
-         -> Ivory s2 r Int
+         => (Ref s (Array len (Stored Uint8))) -- buf
+         -> Int                                -- offset
+         -> PackM eff ()                       -- body
+         -> Ivory eff Int
 packInto buf offset m =
   runReaderT buf (liftM snd (runStateT offset (runPackM m)))
 
 -- | Like "packInto" but doesn't return the final offset.
 packInto_ :: (SingI len)
-          => (Ref s1 (Array len (Stored Uint8))) -- buf
-          -> Int                                 -- offset
-          -> PackM s2 r ()                       -- body
-          -> Ivory s2 r ()
+          => (Ref s (Array len (Stored Uint8))) -- buf
+          -> Int                                -- offset
+          -> PackM eff ()                       -- body
+          -> Ivory eff ()
 packInto_ buf offset m = packInto buf offset m >> return ()
 
 ----------------------------------------------------------------------
@@ -121,15 +119,15 @@ packInto_ buf offset m = packInto buf offset m >> return ()
 
 -- | Monad for safely unpacking values from an array with bounds
 -- checking (at code-generation time).
-newtype UnpackM s r a =
+newtype UnpackM eff a =
   UnpackM {
-    runUnpackM :: forall s1 len. (SingI len)
+    runUnpackM :: forall s len. (SingI len)
                => (StateT Int
-                   (ReaderT (ConstRef s1 (Array len (Stored Uint8)))
-                    (Ivory s r)) a)
+                   (ReaderT (ConstRef s (Array len (Stored Uint8)))
+                    (Ivory eff)) a)
   }
 
-instance Monad (UnpackM s r) where
+instance Monad (UnpackM eff) where
   return x = UnpackM (return x)
   (UnpackM m) >>= f = UnpackM (m >>= runUnpackM . f)
 
@@ -139,9 +137,9 @@ instance MonadIvory UnpackM where
 -- | Unpack a value from the array stored in the context established
 -- by "unpackFrom" into a reference.  An error will be thrown at code
 -- generation time if too much data is unpacked from the array.
-munpack :: forall a s s1 r.
+munpack :: forall eff a s.
            (MavlinkPackable a, IvoryStore a)
-        => Ref s1 (Stored a) -> UnpackM s r ()
+        => Ref s (Stored a) -> UnpackM eff ()
 munpack ref = UnpackM $ do
   buf    <- ask
   offset <- get
@@ -151,17 +149,17 @@ munpack ref = UnpackM $ do
               ++ "array of length " ++ (show (arrayLen buf :: Int))
     else return ()
   lift $ lift $ do
-    val <- call unpack (toCArray buf) (fromIntegral offset)
+    val <- call (direct unpack (toCArray buf) (fromIntegral offset))
     store ref val
   set new_offset
 
 -- | Unpack an array of values from the array stored in the context
 -- established by "unpackFrom".  An error will be thrown at code
 -- generation time if too much data is unpacked from the array.
-marrayUnpack :: forall a len s s1 r.
-                (MavlinkPackable a, SingI len, IvoryType r, IvoryStore a)
-             => Ref s1 (Array len (Stored a))
-             -> UnpackM s r ()
+marrayUnpack :: forall eff a len s.
+                (MavlinkPackable a, SingI len, IvoryStore a)
+             => Ref s (Array len (Stored a))
+             -> UnpackM eff ()
 marrayUnpack arr = UnpackM $ do
   buf    <- ask
   offset <- get
@@ -176,17 +174,17 @@ marrayUnpack arr = UnpackM $ do
 -- | Begin a context to unpack values from a byte array, given an
 -- initial offset.  Returns the final offset.
 unpackFrom :: (SingI len)
-           => (ConstRef s1 (Array len (Stored Uint8))) -- buf
-           -> Int                                      -- offset
-           -> UnpackM s2 r ()                          -- body
-           -> Ivory s2 r Int
+           => (ConstRef s (Array len (Stored Uint8))) -- buf
+           -> Int                                     -- offset
+           -> UnpackM eff ()                          -- body
+           -> Ivory eff Int
 unpackFrom buf offset m =
   runReaderT buf (liftM snd (runStateT offset (runUnpackM m)))
 
 -- | Like "unpackFrom" but doesn't return the final offset.
 unpackFrom_ :: (SingI len)
-            => (ConstRef s1 (Array len (Stored Uint8))) -- buf
-            -> Int                                      -- offset
-            -> UnpackM s2 r ()                          -- body
-            -> Ivory s2 r ()
+            => (ConstRef s (Array len (Stored Uint8))) -- buf
+            -> Int                                     -- offset
+            -> UnpackM eff ()                          -- body
+            -> Ivory eff ()
 unpackFrom_ buf offset m = unpackFrom buf offset m >> return ()

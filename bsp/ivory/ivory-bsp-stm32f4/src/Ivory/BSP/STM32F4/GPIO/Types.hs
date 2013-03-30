@@ -98,7 +98,7 @@ data GPIOPin = GPIOPin
   }
 
 -- | Enable the GPIO port for a pin in the RCC.
-pinEnable :: GPIOPin -> Ivory s r ()
+pinEnable :: GPIOPin -> Ivory eff ()
 pinEnable = rccEnable . gpioPinPort
 
 setRegF :: (BitData a, BitValue b, IvoryIOReg (BitFieldRep a))
@@ -106,35 +106,35 @@ setRegF :: (BitData a, BitValue b, IvoryIOReg (BitFieldRep a))
         -> (GPIOPin  -> BitField a b)
         -> GPIOPin
         -> b
-        -> Ivory s r ()
+        -> Ivory eff ()
 setRegF reg field pin val = do
   modifyReg (reg $ gpioPinPort pin) $ do
     setField (field pin) val
 
-pinSetMode :: GPIOPin -> GPIO_Mode -> Ivory s r ()
+pinSetMode :: GPIOPin -> GPIO_Mode -> Ivory eff ()
 pinSetMode = setRegF gpioPortMODER gpioPinMode_F
 
-pinSetOutputType :: GPIOPin -> GPIO_OutputType -> Ivory s r ()
+pinSetOutputType :: GPIOPin -> GPIO_OutputType -> Ivory eff ()
 pinSetOutputType = setRegF gpioPortOTYPER gpioPinOutputType_F
 
-pinSetSpeed :: GPIOPin -> GPIO_Speed -> Ivory s r ()
+pinSetSpeed :: GPIOPin -> GPIO_Speed -> Ivory eff ()
 pinSetSpeed = setRegF gpioPortOSPEEDR gpioPinSpeed_F
 
-pinSetPUPD :: GPIOPin -> GPIO_PUPD -> Ivory s r ()
+pinSetPUPD :: GPIOPin -> GPIO_PUPD -> Ivory eff ()
 pinSetPUPD = setRegF gpioPortPUPDR gpioPinPUPD_F
 
-pinSetAF :: GPIOPin -> GPIO_AF -> Ivory s r ()
+pinSetAF :: GPIOPin -> GPIO_AF -> Ivory eff ()
 pinSetAF pin af =
   case gpioPinAFR_F pin of
     AFRL field -> setRegF gpioPortAFRL (const field) pin af
     AFRH field -> setRegF gpioPortAFRH (const field) pin af
 
-pinSet :: GPIOPin -> Ivory s r ()
+pinSet :: GPIOPin -> Ivory eff ()
 pinSet pin =
   modifyReg (gpioPortBSRR $ gpioPinPort pin) $ do
     setBit (gpioPinSetBSRR_F pin)
 
-pinClear :: GPIOPin -> Ivory s r ()
+pinClear :: GPIOPin -> Ivory eff ()
 pinClear pin =
   modifyReg (gpioPortBSRR $ gpioPinPort pin) $ do
     setBit (gpioPinClearBSRR_F pin)

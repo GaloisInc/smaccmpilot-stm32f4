@@ -22,10 +22,10 @@ sensorsTask s uniquename =
   let tDef = proc ("sensorTaskDef" ++ uniquename) $ body $ do
         s_result <- local (istruct [ S.valid .= ival false ])
         source sensorSource (constRef s_result)
-        call_ sensors_begin -- time consuming: boots up and calibrates sensors
+        call (direct_ sensors_begin) -- time consuming: boots up and calibrates sensors
         periodic 10 $ do
-          call_ sensors_update
-          call_ sensors_getstate s_result
+          call (direct_ sensors_update)
+          call (direct_ sensors_getstate s_result)
           source sensorSource (constRef s_result)
 
       mDefs = do

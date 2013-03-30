@@ -18,22 +18,22 @@ import Ivory.Language
 (~>*) :: (IvoryVar a, IvoryStruct sym, IvoryRef ref,
           IvoryExpr (ref s (Stored a)),
           IvoryExpr (ref s (Struct sym))) =>
-            ref s (Struct sym) -> Label sym (Stored a) -> Ivory lex r a
+            ref s (Struct sym) -> Label sym (Stored a) -> Ivory eff a
 struct ~>* label = deref $ struct~>label
 infixl 8 ~>*
 
 -- | handy shorthand for transfering members
 resultInto :: IvoryStore a =>
-     Ivory lex r a -> Ref ref (Stored a) -> Ivory lex r ()
+     Ivory eff a -> Ref s (Stored a) -> Ivory eff ()
 resultInto a b = store b =<< a
 
 into :: IvoryStore a =>
-     Ref ref (Stored a) -> Ref ref' (Stored a) -> Ivory lex r ()
+     Ref s (Stored a) -> Ref s' (Stored a) -> Ivory eff ()
 into a b = store b =<< deref a
 
 -- | Modify the value stored at a reference by a function.
 (%=) :: IvoryStore a =>
-     Ref ref (Stored a) -> (a -> a) -> Ivory lex r ()
+     Ref s (Stored a) -> (a -> a) -> Ivory eff ()
 ref %= f = do
   val <- deref ref
   store ref (f val)
@@ -41,7 +41,7 @@ ref %= f = do
 -- | Modify the value stored at a reference by a function that returns
 -- a value in the Ivory monad.
 (%=!) :: IvoryStore a =>
-         Ref ref (Stored a) -> (a -> Ivory lex r a) -> Ivory lex r ()
+         Ref s (Stored a) -> (a -> Ivory eff a) -> Ivory eff ()
 ref %=! mf = do
   val  <- deref ref
   val' <- mf val
@@ -49,9 +49,9 @@ ref %=! mf = do
 
 -- | Increment the value stored at a reference.
 (+=) :: (Num a, IvoryStore a) =>
-        Ref ref (Stored a) -> a -> Ivory lex r ()
+        Ref s (Stored a) -> a -> Ivory eff ()
 ref += x = ref %= (+ x)
 
-ift :: IBool -> Ivory (Block s) r a -> Ivory s r ()
+ift :: IBool -> Ivory eff a -> Ivory eff ()
 ift p c = ifte p c (return ())
 

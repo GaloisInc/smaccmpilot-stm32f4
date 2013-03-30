@@ -21,13 +21,13 @@ import Ivory.Language
 -- It should be possible to define custom printers for structure types
 -- as well (test this with PID).
 class (IvoryExpr a) => Writable a where
-  write :: (IvoryType r) => a -> Ivory s r ()
+  write :: a -> Ivory eff ()
 
 -- TODO: Add a way to write multiple objects in a single call?
 
 -- | Special case for writing a string literal to get around ambiguity
 -- with overloaded strings.
-writes :: (IvoryType r) => String -> Ivory s r ()
+writes :: String -> Ivory eff ()
 writes s = write (fromString s :: IString)
 
 -- | Write a reference to a writable object.
@@ -40,7 +40,7 @@ instance (Writable a) => Writable (ConstRef s (Stored a)) where
 -- | Write an array of characters as a string.  We don't assume the
 -- string is null-terminated, but will stop writing if it is.
 instance (SingI len) => Writable (Ref s (Array len (Stored IChar))) where
-  write x = call_ write_string_n (constRef (toCArray x)) (arrayLen x)
+  write x = call (direct_ write_string_n (constRef (toCArray x)) (arrayLen x))
 
 ----------------------------------------------------------------------
 -- Primitive C Printers
@@ -49,58 +49,58 @@ write_u8 :: Def ('[Uint8] :-> ())
 write_u8 = importProc "console_write_u8" "flight-support/console_prim"
 
 instance Writable Uint8 where
-  write = call_ write_u8
+  write = call . direct_ write_u8
 
 write_s8 :: Def ('[Sint8] :-> ())
 write_s8 = importProc "console_write_s8" "flight-support/console_prim"
 
 instance Writable Sint8 where
-  write = call_ write_s8
+  write = call . direct_ write_s8
 
 write_u16 :: Def ('[Uint16] :-> ())
 write_u16 = importProc "console_write_u16" "flight-support/console_prim"
 
 instance Writable Uint16 where
-  write = call_ write_u16
+  write = call . direct_ write_u16
 
 write_s16 :: Def ('[Sint16] :-> ())
 write_s16 = importProc "console_write_s16" "flight-support/console_prim"
 
 instance Writable Sint16 where
-  write = call_ write_s16
+  write = call . direct_ write_s16
 
 write_u32 :: Def ('[Uint32] :-> ())
 write_u32 = importProc "console_write_u32" "flight-support/console_prim"
 
 instance Writable Uint32 where
-  write = call_ write_u32
+  write = call . direct_ write_u32
 
 write_s32 :: Def ('[Sint32] :-> ())
 write_s32 = importProc "console_write_s32" "flight-support/console_prim"
 
 instance Writable Sint32 where
-  write = call_ write_s32
+  write = call . direct_ write_s32
 
 instance (SingI len) => Writable (Ix len) where
-  write x = call_ write_s32 (safeCast x)
+  write x = call (direct_ write_s32 (safeCast x))
 
 write_float :: Def ('[IFloat] :-> ())
 write_float = importProc "console_write_float" "flight-support/console_prim"
 
 instance Writable IFloat where
-  write = call_ write_float
+  write = call . direct_ write_float
 
 write_double :: Def ('[IDouble] :-> ())
 write_double = importProc "console_write_double" "flight-support/console_prim"
 
 instance Writable IDouble where
-  write = call_ write_double
+  write = call . direct_ write_double
 
 write_istring :: Def ('[IString] :-> ())
 write_istring = importProc "console_write_string" "flight-support/console_prim"
 
 instance Writable IString where
-  write = call_ write_istring
+  write = call . direct_ write_istring
 
 write_string_n :: Def ('[ConstRef s (CArray (Stored IChar)), Sint32] :-> ())
 write_string_n = importProc "console_write_string_n" "flight-support/console_prim"

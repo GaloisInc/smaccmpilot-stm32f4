@@ -118,7 +118,7 @@ param_init_u8 :: Def ('[ IString                    -- name
                        , Ref Global (Stored Uint8)] -- ref
                       :-> ())
 param_init_u8 = proc "param_init_u8" $ \name ref -> body $ do
-  entry <- call param_new
+  entry <- call (direct param_new)
   strcpy (entry ~> param_name)   name
   store  (entry ~> param_type)   paramTypeU8
   store  (entry ~> param_ptr_u8) (refToPtr ref)
@@ -128,7 +128,7 @@ param_init_u16 :: Def ('[ IString                     -- name
                         , Ref Global (Stored Uint16)] -- ref
                        :-> ())
 param_init_u16 = proc "param_init_u16" $ \name ref -> body $ do
-  entry <- call param_new
+  entry <- call (direct param_new)
   strcpy (entry ~> param_name)    name
   store  (entry ~> param_type)    paramTypeU16
   store  (entry ~> param_ptr_u16) (refToPtr ref)
@@ -138,7 +138,7 @@ param_init_u32 :: Def ('[ IString                     -- name
                         , Ref Global (Stored Uint32)] -- ref
                        :-> ())
 param_init_u32 = proc "param_init_u32" $ \name ref -> body $ do
-  entry <- call param_new
+  entry <- call (direct param_new)
   strcpy (entry ~> param_name)    name
   store  (entry ~> param_type)    paramTypeU32
   store  (entry ~> param_ptr_u32) (refToPtr ref)
@@ -148,13 +148,13 @@ param_init_float :: Def ('[ IString                     -- name
                           , Ref Global (Stored IFloat)] -- ref
                          :-> ())
 param_init_float = proc "param_init_float" $ \name ref -> body $ do
-  entry <- call param_new
+  entry <- call (direct param_new)
   strcpy (entry ~> param_name)      name
   store  (entry ~> param_type)      paramTypeFloat
   store  (entry ~> param_ptr_float) (refToPtr ref)
 
 -- | Return the number of defined parameters.
-param_get_count :: Ivory s r (Ix 512)
+param_get_count :: Ivory eff (Ix 512)
 param_get_count = deref =<< addrOf param_count
 
 -- | Look up a parameter by name and retrieve its "param_info" entry
@@ -170,7 +170,7 @@ param_get_by_name = proc "param_get_by_name" $ \name -> body $ do
     entry <- assign (info ! ix)
     name' <- assign (constRef (toCArray (entry ~> param_name)))
     len   <- assign (arrayLen (entry ~> param_name))
-    r     <- call strncmp name name' len
+    r     <- call (direct strncmp name name' len)
 
     ift (r ==? 0)
       (ret (refToPtr entry))
@@ -211,8 +211,8 @@ param_get_requested = proc "param_get_requested" $ body $ do
 -- XXX ref type should be polymorphic but "withRef" isn't.
 withParamRef :: Ref s1 (Struct "param_info")
              -> (forall a. ParamType a =>
-                 Ref Global (Stored a) -> Ivory (Block (Block s)) r ())
-             -> Ivory s r ()
+                 Ref Global (Stored a) -> Ivory eff ())
+             -> Ivory eff ()
 withParamRef param f = do
   type_code <- param ~>* param_type
 
@@ -257,23 +257,23 @@ param_set_float_value = proc "param_set_float_value" $ \info val -> body $ do
 -- and initialize multiple fields at once by appending suffixes to the
 -- strings.
 class ParamInit a where
-  param_init :: String -> Ref Global a -> Ivory s r ()
+  param_init :: String -> Ref Global a -> Ivory eff ()
 
 instance ParamInit (Stored Uint8) where
-  param_init name ref = call_ param_init_u8 (fromString name) ref
+  param_init name ref = call (direct_ param_init_u8 (fromString name) ref)
 
 instance ParamInit (Stored Uint16) where
-  param_init name ref = call_ param_init_u16 (fromString name) ref
+  param_init name ref = call (direct_ param_init_u16 (fromString name) ref)
 
 instance ParamInit (Stored Uint32) where
-  param_init name ref = call_ param_init_u32 (fromString name) ref
+  param_init name ref = call (direct_ param_init_u32 (fromString name) ref)
 
 instance ParamInit (Stored IFloat) where
-  param_init name ref = call_ param_init_float (fromString name) ref
+  param_init name ref = call (direct_ param_init_float (fromString name) ref)
 
 -- | Initialize a parameter with value stored in a "MemArea".
 param_init_area :: (ParamInit a, IvoryType a) =>
-                   String -> MemArea a -> Ivory s r ()
+                   String -> MemArea a -> Ivory eff ()
 param_init_area name a = param_init name =<< addrOf a
 
 ----------------------------------------------------------------------
@@ -374,9 +374,9 @@ fromNat :: forall len a. (SingI (len :: Nat), Num a) => Proxy len -> a
 fromNat _ = fromInteger (fromSing (sing :: Sing len))
 
 -- | Shorthand for creating a byte array of "len" elements.
-localBuf :: (SingI len)
+localBuf :: (eff `AllocsIn` s, SingI len)
          => Proxy len
-         -> Ivory (Top s) r (Ref (Stack s) (Array len (Stored Uint8)))
+         -> Ivory eff (Ref (Stack s) (Array len (Stored Uint8)))
 localBuf _ = local (iarray [])
 
 -- | Partition ID that parameters are written to on the next save.
@@ -392,7 +392,7 @@ param_read_header :: Def ('[ PartitionID
                            , Ref s (Struct "param_header")] :-> IBool)
 param_read_header = proc "param_read_header" $ \pid header -> body $ do
   buf     <- localBuf (Proxy :: Proxy (Len ParamHeader))
-  read_ok <- call partition_read pid 0 (toCArray buf) (arrayLen buf)
+  read_ok <- call (direct partition_read pid 0 (toCArray buf) (arrayLen buf))
   ift (iNot read_ok)
     (ret false)
 
@@ -413,7 +413,7 @@ param_write_header = proc "param_write_header" $ \pid header -> body $ do
     mpack $ header ~> ph_seq
     mpack $ header ~> ph_length
 
-  ret =<< call partition_write pid 0 (constRef (toCArray buf)) (arrayLen buf)
+  ret =<< call (direct partition_write pid 0 (constRef (toCArray buf)) (arrayLen buf))
 
 -- | Return true if a param header has a valid signature.
 param_is_valid_header :: Def ('[ConstRef s (Struct "param_header")] :-> IBool)
@@ -443,18 +443,18 @@ param_choose_partition :: Def ('[ ConstRef s (Struct "param_header")
 param_choose_partition = proc "param_choose_partition" $
     \hdrA hdrB -> body $ do
   seqA_ref <- local $ ival 0
-  okA      <- call param_is_valid_header hdrA
+  okA      <- call (direct param_is_valid_header hdrA)
   -- TODO: Validate CRC.
   ift okA (store seqA_ref =<< (deref (hdrA ~> ph_seq)))
   seqA     <- deref seqA_ref
-  seqOkA   <- call param_is_valid_seq seqA
+  seqOkA   <- call (direct param_is_valid_seq seqA)
 
   seqB_ref <- local $ ival 0
-  okB      <- call param_is_valid_header hdrB
+  okB      <- call (direct param_is_valid_header hdrB)
   -- TODO: Validate CRC.
   ift okB (store seqB_ref =<< (deref (hdrB ~> ph_seq)))
   seqB     <- deref seqB_ref
-  seqOkB   <- call param_is_valid_seq seqB
+  seqOkB   <- call (direct param_is_valid_seq seqB)
 
   -- Case 1: Both sequences are invalid, use nothing.
   ift ((iNot seqOkA) .&& (iNot seqOkB))
@@ -469,11 +469,11 @@ param_choose_partition = proc "param_choose_partition" $
   -- Case 4: Both sequences are valid.  If one is the successor of the
   -- other, then use it.  Otherwise, assume corruption since we can't
   -- compare them properly.
-  nextA <- call param_get_next_seq seqA
+  nextA <- call (direct param_get_next_seq seqA)
   ift (seqB ==? nextA)
     (ret partitionParamB)
 
-  nextB <- call param_get_next_seq seqB
+  nextB <- call (direct param_get_next_seq seqB)
   ift (seqA ==? nextB)
     (ret partitionParamA)
 
@@ -483,14 +483,14 @@ param_choose_partition = proc "param_choose_partition" $
 param_load_1 :: Def ('[PartitionID, Uint16] :-> IBool)
 param_load_1 = proc "param_load_1" $ \pid off -> body $ do
   buf <- localBuf (Proxy :: Proxy (Len ParamDef))
-  ok  <- call partition_read pid off (toCArray buf) (arrayLen buf)
+  ok  <- call (direct partition_read pid off (toCArray buf) (arrayLen buf))
   ift (iNot ok)
     (ret false)
 
   -- XXX size assumption
   (name :: Ref (Stack s) (Array 17 (Stored IChar))) <- local (iarray [])
   arrayUnpack (constRef (toCArray buf)) 1 name
-  p_info <- call param_get_by_name (constRef (toCArray name))
+  p_info <- call (direct param_get_by_name (constRef (toCArray name)))
 
   flip (withRef p_info) (ret false) $ \param -> do
     -- Make sure the parameter types match.
@@ -519,7 +519,7 @@ param_load_all = proc "param_load_all" $ \pid header -> body $ do
 
   for count' $ \_ -> do
     off <- deref offset
-    call_ param_load_1 pid off
+    call (direct_ param_load_1 pid off)
     -- Ignore errors from "param_load_1" so we skip unrecognized
     -- parameters without giving up entirely.
     offset += (fromNat (Proxy :: Proxy (Len ParamDef)))
@@ -532,10 +532,10 @@ param_load = proc "param_load" $ body $ do
   headerA <- local (istruct [])
   headerB <- local (istruct [])
 
-  call_ param_read_header partitionParamA headerA
-  call_ param_read_header partitionParamB headerB
+  call (direct_ param_read_header partitionParamA headerA)
+  call (direct_ param_read_header partitionParamB headerB)
 
-  pid <- call param_choose_partition (constRef headerA) (constRef headerB)
+  pid <- call (direct param_choose_partition (constRef headerA) (constRef headerB))
   ift (pid ==? partitionInvalid)
     (do writes "param: using default parameters\r\n"
         ret false)
@@ -545,12 +545,12 @@ param_load = proc "param_load" $ body $ do
   writes "\r\n"
 
   header <- assign ((pid ==? partitionParamA) ? (headerA, headerB))
-  ok     <- call param_load_all pid header
+  ok     <- call (direct param_load_all pid header)
 
   next_seq <- addrOf param_next_seq
   next_pid <- addrOf param_next_pid
-  store next_seq =<< call param_get_next_seq =<< deref (header ~> ph_seq)
-  store next_pid =<< call param_get_next_pid pid
+  store next_seq =<< call . direct param_get_next_seq =<< deref (header ~> ph_seq)
+  store next_pid =<< call (direct param_get_next_pid pid)
 
   ret ok
 
@@ -575,7 +575,7 @@ param_save_1 = proc "param_save_1" $ \pid off param -> body $ do
       mpack      $ constRef ref
 
   buf' <- assign $ constRef $ toCArray buf
-  ok   <- call partition_write pid off buf' (arrayLen buf)
+  ok   <- call (direct partition_write pid off buf' (arrayLen buf))
   ret ok
 
 -- | Save parameters to EEPROM.
@@ -601,7 +601,7 @@ param_save = proc "param_save" $ body $ do
   for count $ \ix -> do
     param <- assign (info ! ix)
     off   <- deref offset
-    ok    <- call param_save_1 pid off param
+    ok    <- call (direct param_save_1 pid off param)
 
     ift ok
       (do offset += fromNat (Proxy :: Proxy (Len ParamDef))
@@ -612,15 +612,15 @@ param_save = proc "param_save" $ body $ do
   store (header ~> ph_signature)  paramSig
   store (header ~> ph_seq)    =<< deref next_seq
   store (header ~> ph_length) =<< deref len
-  ok <- call param_write_header pid (constRef header)
+  ok <- call (direct param_write_header pid (constRef header))
   ift (iNot ok)
     (ret false)
 
   -- TODO: Write CRC after the payload.
 
   -- Update the partition ID and sequence for the next save.
-  store next_seq =<< call param_get_next_seq =<< deref next_seq
-  store next_pid =<< call param_get_next_pid =<< deref next_pid
+  store next_seq =<< call . direct param_get_next_seq =<< deref next_seq
+  store next_pid =<< call . direct param_get_next_pid =<< deref next_pid
 
   ret true
 

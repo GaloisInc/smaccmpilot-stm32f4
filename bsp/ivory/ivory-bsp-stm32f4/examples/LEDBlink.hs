@@ -18,7 +18,7 @@ import Ivory.BSP.STM32F4.GPIO
 ledPins :: [GPIOPin]
 ledPins = [pinB14, pinB15]
 
-ledSetupPin :: GPIOPin -> Ivory s r ()
+ledSetupPin :: GPIOPin -> Ivory eff ()
 ledSetupPin pin = do
   pinEnable pin
   pinSetOutputType pin GPIO_OutputType_PushPull
@@ -26,27 +26,27 @@ ledSetupPin pin = do
   pinSetPUPD pin GPIO_PUPD_None
   pinSetMode pin GPIO_Mode_Analog
 
-ledOn :: GPIOPin -> Ivory s r ()
+ledOn :: GPIOPin -> Ivory eff ()
 ledOn pin = do
   pinClear pin
   pinSetMode pin GPIO_Mode_Output
 
-ledOff :: GPIOPin -> Ivory s r ()
+ledOff :: GPIOPin -> Ivory eff ()
 ledOff pin = pinSetMode pin GPIO_Mode_Analog
 
 main_task :: Def ('[Ptr s (Stored Uint8)] :-> ())
 main_task = proc "main_task" $ \_ -> body $ do
   mapM_ ledSetupPin ledPins
   forever $ do
-    call_ taskDelay 250
+    call (direct_ taskDelay 250)
     zipWithM_ ($) (cycle [ledOn, ledOff]) ledPins
-    call_ taskDelay 250
+    call (direct_ taskDelay 250)
     zipWithM_ ($) (cycle [ledOff, ledOn]) ledPins
 
 cmain :: Def ('[] :-> ())
 cmain = proc "main" $ body $ do
-  call_ taskCreate (procPtr main_task) "main_task" 1000 nullPtr 0 nullPtr
-  call_ taskStartScheduler
+  call (direct_ taskCreate (procPtr main_task) "main_task" 1000 nullPtr 0 nullPtr)
+  call (direct_ taskStartScheduler)
   forever $ return ()
 
 ----------------------------------------------------------------------

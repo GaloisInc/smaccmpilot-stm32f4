@@ -25,12 +25,12 @@ blinkTask mempin s uniquename =
   withSink "flightmode" s $ \flightModeSink ->
   let tDef = proc ("blinkTaskDef" ++ uniquename) $ body $ do
         pin <- addrOf mempin
-        call_ pin_enable     pin
-        call_ pin_set_otype  pin pinTypePushPull
-        call_ pin_set_ospeed pin pinSpeed2Mhz
-        call_ pin_set_pupd   pin pinPupdNone
-        call_ pin_reset      pin
-        call_ pin_set_mode   pin pinModeOutput
+        call (direct_ pin_enable     pin)
+        call (direct_ pin_set_otype  pin pinTypePushPull)
+        call (direct_ pin_set_ospeed pin pinSpeed2Mhz)
+        call (direct_ pin_set_pupd   pin pinPupdNone)
+        call (direct_ pin_reset      pin)
+        call (direct_ pin_set_mode   pin pinModeOutput)
         flightMode <- local (istruct [])
         s_phase    <- local (ival (0::Uint8))
         periodic 125 $ do
@@ -39,12 +39,12 @@ blinkTask mempin s uniquename =
           bmode  <- flightModeToBlinkMode flightMode
           output <- blinkOutput bmode phase
           ifte output
-            (call_ pin_set  pin)
-            (call_ pin_reset pin)
+            (call (direct_ pin_set  pin))
+            (call (direct_ pin_reset pin))
           nextPhase 8 s_phase
 
 
-      nextPhase :: Uint8 -> (Ref s1 (Stored Uint8)) -> Ivory s () ()
+      nextPhase :: Uint8 -> (Ref s1 (Stored Uint8)) -> Ivory eff ()
       nextPhase highest r = do
           phase <- deref r
           ifte (phase >? (highest - 1))
@@ -58,13 +58,13 @@ blinkTask mempin s uniquename =
   in task tDef mDefs
 
 
-flightModeToBlinkMode :: Ref s1 (Struct "flightmode") -> Ivory s2 () Uint8
+flightModeToBlinkMode :: Ref s1 (Struct "flightmode") -> Ivory eff Uint8
 flightModeToBlinkMode fmRef = do
   mode  <- (fmRef ~>* FM.mode)
   armed <- (fmRef ~>* FM.armed)
   return 2
 
-blinkOutput :: Uint8 -> Uint8 -> Ivory s () IBool
+blinkOutput :: Uint8 -> Uint8 -> Ivory eff IBool
 blinkOutput state phase = return switchState
   where
   switchState = foldl aux false [0..6]

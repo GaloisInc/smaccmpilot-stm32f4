@@ -30,12 +30,12 @@ copy_istring = importProc "ivory_strlcpy" "flight-support/ivory_string_prim"
 -- | Type class to generate the correct call to a string function to
 -- copy one C string to another.
 class (IvoryType dest, IvoryType src) => Strcpy dest src where
-  strcpy :: dest -> src -> Ivory s r ()
+  strcpy :: dest -> src -> Ivory eff ()
 
 -- | Strcpy instance for copying string constants to arrays of
 -- characters.
 instance (SingI len) => Strcpy (Ref s (Array len (Stored IChar))) IString where
-  strcpy dest src = call_ copy_istring (toCArray dest) src (arrayLen dest)
+  strcpy dest src = call (direct_ copy_istring (toCArray dest) src (arrayLen dest))
 
 -- | Binding to the C "strncmp" function.
 strncmp :: Def ('[ ConstRef s1 (CArray (Stored IChar)) -- s1

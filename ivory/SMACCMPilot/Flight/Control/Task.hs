@@ -37,7 +37,7 @@ controlTask s_fm s_inpt s_sensors s_ctl uniquename =
           sink flightmodeSink fm
           sink userinputSink  inpt
           sink sensorsSink    sens
-          call_ stabilize_run fm inpt sens ctl
+          call (direct_ stabilize_run fm inpt sens ctl)
           source controlSource (constRef ctl)
 
       mDefs = do

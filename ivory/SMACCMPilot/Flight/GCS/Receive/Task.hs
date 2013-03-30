@@ -29,17 +29,16 @@ gcsReceiveTask usart_area s_src uniquename =
         source streamPeriodSource (constRef s_periods)
 
         usart <- addrOf usart_area
-        buf <- local (iarray []) ::
-          Ivory (Top s) () (Ref (Stack s) (Array 1 (Stored Uint8)))
+        buf <- local (iarray [] :: Init (Array 1 (Stored Uint8)))
         state <- local (istruct [ R.status .= ival R.status_IDLE ])
         forever $ do
-          n <- call usartRead usart (toCArray buf) 1
+          n <- call (direct usartRead usart (toCArray buf) 1)
           ifte (n ==? 0) (return ()) $ do
             b <- deref (buf ! 0)
             R.mavlinkReceiveByte state b
             s <- deref (state ~> R.status)
             ifte (s /=? R.status_GOTMSG) (return ()) $ do
-              call_ handlerAux state s_periods
+              call (direct_ handlerAux state s_periods)
               R.mavlinkReceiveReset state
               source streamPeriodSource (constRef s_periods)
 

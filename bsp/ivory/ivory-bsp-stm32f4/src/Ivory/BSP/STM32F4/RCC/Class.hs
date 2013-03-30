@@ -22,6 +22,6 @@ class (IvoryBitRep (BitFieldRep (RCCEnableReg a)),
   rccDeviceEnableReg :: a -> BitDataReg (RCCEnableReg a)
   rccDeviceEnableField :: a -> BitField (RCCEnableReg a) Bit
 
-rccEnable :: RCCDevice a => a -> Ivory s r ()
+rccEnable :: RCCDevice a => a -> Ivory eff ()
 rccEnable dev = do
   modifyReg (rccDeviceEnableReg dev) (setBit (rccDeviceEnableField dev))
