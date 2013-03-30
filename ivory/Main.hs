@@ -5,8 +5,7 @@ import Ivory.Compile.C.CmdlineFrontend
 
 import Ivory.Tower
 import Ivory.Tower.Graphviz
-import Ivory.Tower.Compile.FreeRTOS
-import Ivory.Tower.Connections.FreeRTOS
+import qualified Ivory.Tower.Compile.FreeRTOS as FreeRTOS
 
 import Ivory.BSP.HWF4 (hwf4Modules)
 import Ivory.BSP.HWF4.USART (usart1)
@@ -54,17 +53,21 @@ otherms =
   ]
 
 main :: IO ()
-main = do compileWithSizeMap sizeMap $ compileTower app
-          gviz
+main = do 
+  let asm  = FreeRTOS.assemble app
+      objs = FreeRTOS.compile  asm
+  compileWithSizeMap sizeMap objs
+  gviz asm
 
-app :: Assembly
+
+app :: UncompiledAssembly
 app = tower $ do
-  (src_userinput, snk_userinput)   <- connector sharedState
-  (src_sensors, snk_sensors)       <- connector sharedState
-  (src_control, snk_control)       <- connector sharedState
-  (src_flightmode, snk_flightmode) <- connector sharedState
-  (src_servos, snk_servos)         <- connector sharedState
-  (_, snk_position)                <- connector sharedState
+  (src_userinput, snk_userinput)   <- dataport
+  (src_sensors, snk_sensors)       <- dataport
+  (src_control, snk_control)       <- dataport
+  (src_flightmode, snk_flightmode) <- dataport
+  (src_servos, snk_servos)         <- dataport
+  (_, snk_position)                <- dataport
 
 
   addTask $ sensorsTask src_sensors
@@ -77,5 +80,6 @@ app = tower $ do
 
   mapM_ addModule otherms
 
-gviz :: IO ()
-gviz = graphvizToFile "out.dot" app
+gviz :: Assembly -> IO ()
+gviz a = graphvizToFile "out.dot" a
+

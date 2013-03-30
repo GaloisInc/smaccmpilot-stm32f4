@@ -25,7 +25,7 @@ sysid = 1
 compid = 0
 
 gcsTransmitTask :: MemArea (Struct "usart")
-                -> DataSink (Struct "gcsstream_timing")
+                -> EventSink (Struct "gcsstream_timing")
                 -> DataSink (Struct "flightmode")
                 -> DataSink (Struct "sensors_result")
                 -> DataSink (Struct "position_result")
@@ -33,12 +33,12 @@ gcsTransmitTask :: MemArea (Struct "usart")
                 -> DataSink (Struct "servos")
                 -> String -> Task
 gcsTransmitTask usart sp_sink fm_sink se_sink ps_sink ct_sink sr_sink uniquename =
-  withDataSink "streamperiods" sp_sink $ \streamPeriodSink ->
-  withDataSink "flightmode"    fm_sink $ \flightModeSink ->
-  withDataSink "sensors"       se_sink $ \sensorsSink    ->
-  withDataSink "position"      ps_sink $ \positionSink   ->
-  withDataSink "control"       ct_sink $ \controlSink    ->
-  withDataSink "servos"        sr_sink $ \servosSink     ->
+  withPolledEvent "streamperiods" sp_sink $ \streamPeriodSink ->
+  withDataSink "flightmode" fm_sink $ \flightModeSink ->
+  withDataSink "sensors"    se_sink $ \sensorsSink    ->
+  withDataSink "position"   ps_sink $ \positionSink   ->
+  withDataSink "control"    ct_sink $ \controlSink    ->
+  withDataSink "servos"     sr_sink $ \servosSink     ->
 
   let (chan1, cmods) = messageDriver (usartSender usart uniquename sysid compid)
 
@@ -61,8 +61,10 @@ gcsTransmitTask usart sp_sink fm_sink se_sink ps_sink ct_sink sr_sink uniquename
           now <- deref lastWake
 
           -- Update periods, adding streams to schedule if they are now enabled
-          dataSink streamPeriodSink s_newperiods
-          setNewPeriods (constRef s_newperiods) s_periods s_schedule now
+          got <- poll streamPeriodSink s_newperiods 0
+          ifte got
+            (setNewPeriods (constRef s_newperiods) s_periods s_schedule now)
+            (return ())
 
           -- Handler for all streams - if due, run action, then update schedule
           let onStream :: Label "gcsstream_timing" (Stored Uint32)
