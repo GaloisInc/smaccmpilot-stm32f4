@@ -12,9 +12,9 @@ import qualified Ivory.OS.FreeRTOS as OS
 
 periodic :: (eff `AllocsIn` s) => Integer -> Ivory eff () -> Ivory eff ()
 periodic period f = do
-  initTime <- call (direct OS.getTimeMillis)
+  initTime <- call OS.getTimeMillis
   lastTime <- local (ival initTime)
   forever $ do
     f
-    call (direct_ OS.delayUntil lastTime (fromIntegral period))
+    call_ OS.delayUntil lastTime (fromIntegral period)
 

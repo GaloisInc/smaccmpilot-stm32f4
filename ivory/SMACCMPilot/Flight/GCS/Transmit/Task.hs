@@ -43,7 +43,7 @@ gcsTransmitTask usart sp_sink fm_sink se_sink ps_sink ct_sink sr_sink uniquename
   let (chan1, cmods) = messageDriver (usartSender usart uniquename sysid compid)
 
       tDef = proc ("gcsTransmitTaskDef" ++ uniquename) $ body $ do
-        initTime <- call (direct OS.getTimeMillis)
+        initTime <- call OS.getTimeMillis
         lastWake <- local (ival initTime)
         lastRun  <- local (ival initTime)
 
@@ -77,31 +77,31 @@ gcsTransmitTask usart sp_sink fm_sink se_sink ps_sink ct_sink sr_sink uniquename
 
           onStream S.heartbeat $ do
             sink flightModeSink s_fm
-            call (direct_ (sendHeartbeat chan1) s_fm)
+            call_ (sendHeartbeat chan1) s_fm
 
           onStream S.servo_output_raw $ do
             sink servosSink s_serv
             sink controlSink s_ctl
-            call (direct_ (sendServoOutputRaw chan1) s_serv s_ctl)
+            call_ (sendServoOutputRaw chan1) s_serv s_ctl
 
           onStream S.attitude $ do
             sink sensorsSink s_sens
-            call (direct_ (sendAttitude chan1) s_sens)
+            call_ (sendAttitude chan1) s_sens
 
           onStream S.gps_raw_int $ do
             sink positionSink s_pos
-            call (direct_ (sendGpsRawInt chan1) s_pos)
+            call_ (sendGpsRawInt chan1) s_pos
 
           onStream S.vfr_hud $ do
             sink positionSink s_pos
             sink controlSink s_ctl
             sink sensorsSink s_sens
-            call (direct_ (sendVfrHud chan1) s_pos s_ctl s_sens)
+            call_ (sendVfrHud chan1) s_pos s_ctl s_sens
 
           onStream S.global_position_int $ do
             sink positionSink s_pos
             sink sensorsSink s_sens
-            call (direct_ (sendGlobalPositionInt chan1) s_pos s_sens)
+            call_ (sendGlobalPositionInt chan1) s_pos s_sens
 
           onStream S.params $ do
             -- XXX our whole story for params is broken
@@ -113,8 +113,8 @@ gcsTransmitTask usart sp_sink fm_sink se_sink ps_sink ct_sink sr_sink uniquename
           store lastRun now
           -- Cap sleep time at 500ms so streamPeriodSink can be serviced
           -- periodically
-          call (direct_ OS.delayUntil lastWake
-            ((dt >? 500) ? (500, dt)))
+          call_ OS.delayUntil lastWake
+            ((dt >? 500) ? (500, dt))
 
 
       mDefs = do

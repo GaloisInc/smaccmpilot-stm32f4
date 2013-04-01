@@ -38,15 +38,15 @@ main_task :: Def ('[Ptr s (Stored Uint8)] :-> ())
 main_task = proc "main_task" $ \_ -> body $ do
   mapM_ ledSetupPin ledPins
   forever $ do
-    call (direct_ taskDelay 250)
+    call_ taskDelay 250
     zipWithM_ ($) (cycle [ledOn, ledOff]) ledPins
-    call (direct_ taskDelay 250)
+    call_ taskDelay 250
     zipWithM_ ($) (cycle [ledOff, ledOn]) ledPins
 
 cmain :: Def ('[] :-> ())
 cmain = proc "main" $ body $ do
-  call (direct_ taskCreate (procPtr main_task) "main_task" 1000 nullPtr 0 nullPtr)
-  call (direct_ taskStartScheduler)
+  call_ taskCreate (procPtr main_task) "main_task" 1000 nullPtr 0 nullPtr
+  call_ taskStartScheduler
   forever $ return ()
 
 ----------------------------------------------------------------------

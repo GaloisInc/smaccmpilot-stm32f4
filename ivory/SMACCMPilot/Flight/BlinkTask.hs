@@ -25,12 +25,12 @@ blinkTask mempin s uniquename =
   withSink "flightmode" s $ \flightModeSink ->
   let tDef = proc ("blinkTaskDef" ++ uniquename) $ body $ do
         pin <- addrOf mempin
-        call (direct_ pin_enable     pin)
-        call (direct_ pin_set_otype  pin pinTypePushPull)
-        call (direct_ pin_set_ospeed pin pinSpeed2Mhz)
-        call (direct_ pin_set_pupd   pin pinPupdNone)
-        call (direct_ pin_reset      pin)
-        call (direct_ pin_set_mode   pin pinModeOutput)
+        call_ pin_enable     pin
+        call_ pin_set_otype  pin pinTypePushPull
+        call_ pin_set_ospeed pin pinSpeed2Mhz
+        call_ pin_set_pupd   pin pinPupdNone
+        call_ pin_reset      pin
+        call_ pin_set_mode   pin pinModeOutput
         flightMode <- local (istruct [])
         s_phase    <- local (ival (0::Uint8))
         periodic 125 $ do
@@ -39,8 +39,8 @@ blinkTask mempin s uniquename =
           bmode  <- flightModeToBlinkMode flightMode
           output <- blinkOutput bmode phase
           ifte output
-            (call (direct_ pin_set  pin))
-            (call (direct_ pin_reset pin))
+            (call_ pin_set  pin)
+            (call_ pin_reset pin)
           nextPhase 8 s_phase
 
 

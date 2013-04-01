@@ -75,7 +75,7 @@ mpack ref = PackM $ do
     then error $ "packing " ++ (show new_offset) ++ " bytes into "
               ++ "array of length " ++ (show (arrayLen buf :: Int))
     else return ()
-  lift $ lift $ call $ direct_ pack (toCArray buf) (fromIntegral offset) val
+  lift $ lift $ call_ pack (toCArray buf) (fromIntegral offset) val
   set new_offset
 
 -- | Pack an array of packable values into the array stored in the
@@ -149,7 +149,7 @@ munpack ref = UnpackM $ do
               ++ "array of length " ++ (show (arrayLen buf :: Int))
     else return ()
   lift $ lift $ do
-    val <- call (direct unpack (toCArray buf) (fromIntegral offset))
+    val <- call unpack (toCArray buf) (fromIntegral offset)
     store ref val
   set new_offset
 
