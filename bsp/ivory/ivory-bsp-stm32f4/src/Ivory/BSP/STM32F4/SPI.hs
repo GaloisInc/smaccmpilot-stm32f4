@@ -21,7 +21,7 @@ import Ivory.BSP.STM32F4.GPIO
 -- SPI Registers
 
 [bitdata|
- bitdata SPI_CR1 :: Bits 16 =
+ bitdata SPI_CR1 :: Bits 16 = spi_cr1
    { spi_cr1_cpha     :: Bit
    , spi_cr1_cpol     :: Bit
    , spi_cr1_mstr     :: Bit
@@ -38,7 +38,7 @@ import Ivory.BSP.STM32F4.GPIO
    , spi_cr1_bidimode :: Bit
    }
 
- bitdata SPI_CR2 :: Bits 16 =
+ bitdata SPI_CR2 :: Bits 16 = spi_cr2
    { spi_cr2_rxdmaen  :: Bit
    , spi_cr2_txdmaen  :: Bit
    , spi_cr2_ssoe     :: Bit
@@ -49,7 +49,7 @@ import Ivory.BSP.STM32F4.GPIO
    , _                :: Bits 8
    }
 
-  bitdata SPI_SR :: Bits 16 =
+  bitdata SPI_SR :: Bits 16 = spi_sr
    { spi_sr_rxne      :: Bit
    , spi_sr_txe       :: Bit
    , spi_sr_chside    :: Bit

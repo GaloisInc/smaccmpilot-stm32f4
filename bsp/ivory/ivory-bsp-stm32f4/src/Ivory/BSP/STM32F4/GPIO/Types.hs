@@ -1,6 +1,9 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE DataKinds #-}
 --
 -- GPIO.hs --- GPIO pin driver.
 --
@@ -9,6 +12,8 @@
 --
 
 module Ivory.BSP.STM32F4.GPIO.Types where
+
+import GHC.TypeLits
 
 import Ivory.Language
 import Ivory.BitData
@@ -29,11 +34,11 @@ data GPIOPort = GPIOPort
   , gpioPortBSRR           :: BitDataReg GPIO_BSRR
   , gpioPortAFRL           :: BitDataReg GPIO_AFRL
   , gpioPortAFRH           :: BitDataReg GPIO_AFRH
-  , gpioPortRCCEnableField :: BitField (RCCEnableReg GPIOPort) Bit
+  , gpioPortRCCEnableField :: BitDataField (RCCEnableReg GPIOPort) Bit
   }
 
 -- | Create a GPIO port given the base register address.
-mkGPIOPort :: Integer -> BitField (RCCEnableReg GPIOPort) Bit -> GPIOPort
+mkGPIOPort :: Integer -> BitDataField (RCCEnableReg GPIOPort) Bit -> GPIOPort
 mkGPIOPort base f =
   GPIOPort
     { gpioPortMODER          = mkBitDataReg $ base + 0x00
@@ -80,20 +85,20 @@ instance RCCDevice GPIOPort where
   rccDeviceEnableField = gpioPortRCCEnableField
 
 -- | A GPIO alternate function register and bit field.
-data GPIOPinAFR = AFRL (BitField GPIO_AFRL GPIO_AF)
-                | AFRH (BitField GPIO_AFRH GPIO_AF)
+data GPIOPinAFR = AFRL (BitDataField GPIO_AFRL GPIO_AF)
+                | AFRH (BitDataField GPIO_AFRH GPIO_AF)
 
 -- | A GPIO pin, defined as the accessor functions to manipulate the
 -- bits in the registers for the port the pin belongs to.
 data GPIOPin = GPIOPin
   { gpioPinPort         :: GPIOPort
-  , gpioPinMode_F       :: BitField GPIO_MODER GPIO_Mode
-  , gpioPinOutputType_F :: BitField GPIO_OTYPER GPIO_OutputType
-  , gpioPinSpeed_F      :: BitField GPIO_OSPEEDR GPIO_Speed
-  , gpioPinPUPD_F       :: BitField GPIO_PUPDR GPIO_PUPD
-  , gpioPinIDR_F        :: BitField GPIO_IDR Bit
-  , gpioPinSetBSRR_F    :: BitField GPIO_BSRR Bit
-  , gpioPinClearBSRR_F  :: BitField GPIO_BSRR Bit
+  , gpioPinMode_F       :: BitDataField GPIO_MODER GPIO_Mode
+  , gpioPinOutputType_F :: BitDataField GPIO_OTYPER GPIO_OutputType
+  , gpioPinSpeed_F      :: BitDataField GPIO_OSPEEDR GPIO_Speed
+  , gpioPinPUPD_F       :: BitDataField GPIO_PUPDR GPIO_PUPD
+  , gpioPinIDR_F        :: BitDataField GPIO_IDR Bit
+  , gpioPinSetBSRR_F    :: BitDataField GPIO_BSRR Bit
+  , gpioPinClearBSRR_F  :: BitDataField GPIO_BSRR Bit
   , gpioPinAFR_F        :: GPIOPinAFR
   }
 
@@ -101,9 +106,10 @@ data GPIOPin = GPIOPin
 pinEnable :: GPIOPin -> Ivory eff ()
 pinEnable = rccEnable . gpioPinPort
 
-setRegF :: (BitData a, BitValue b, IvoryIOReg (BitFieldRep a))
+setRegF :: (BitData a, BitData b, IvoryIOReg (BitDataRep a),
+            SafeCast (BitDataRep b) (BitDataRep a))
         => (GPIOPort -> BitDataReg a)
-        -> (GPIOPin  -> BitField a b)
+        -> (GPIOPin  -> BitDataField a b)
         -> GPIOPin
         -> b
         -> Ivory eff ()

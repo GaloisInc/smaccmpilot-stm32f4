@@ -1,5 +1,7 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE DataKinds #-}
 --
 -- Class.hs --- Type class for RCC devices.
 --
@@ -9,19 +11,21 @@
 
 module Ivory.BSP.STM32F4.RCC.Class where
 
+import GHC.TypeLits
+
 import Ivory.Language
 import Ivory.BitData
 import Ivory.HW
 
 import Ivory.BSP.STM32F4.RCC.Regs
 
-class (IvoryBitRep (BitFieldRep (RCCEnableReg a)),
-       IvoryIOReg (BitFieldRep (RCCEnableReg a)))
+class (BitData (RCCEnableReg a),
+       IvoryIOReg (BitDataRep (RCCEnableReg a)))
     => RCCDevice a where
   type RCCEnableReg a
-  rccDeviceEnableReg :: a -> BitDataReg (RCCEnableReg a)
-  rccDeviceEnableField :: a -> BitField (RCCEnableReg a) Bit
+  rccDeviceEnableReg   :: a -> BitDataReg (RCCEnableReg a)
+  rccDeviceEnableField :: a -> BitDataField (RCCEnableReg a) Bit
 
 rccEnable :: RCCDevice a => a -> Ivory eff ()
-rccEnable dev = do
-  modifyReg (rccDeviceEnableReg dev) (setBit (rccDeviceEnableField dev))
+rccEnable dev = modifyReg (rccDeviceEnableReg dev) (setBit field)
+  where field = rccDeviceEnableField dev

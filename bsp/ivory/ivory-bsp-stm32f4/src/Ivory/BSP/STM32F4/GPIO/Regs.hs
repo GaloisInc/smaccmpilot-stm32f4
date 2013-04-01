@@ -19,7 +19,7 @@ import Ivory.BSP.STM32F4.GPIO.RegTypes
 -- As this modules shows, having arrays of bit fields in bit data
 -- definitions would be a useful addition.
 [bitdata|
- bitdata GPIO_MODER :: Bits 32 =
+ bitdata GPIO_MODER :: Bits 32 = gpio_moder
   { gpio_mode_0   :: GPIO_Mode
   , gpio_mode_1   :: GPIO_Mode
   , gpio_mode_2   :: GPIO_Mode
@@ -38,7 +38,7 @@ import Ivory.BSP.STM32F4.GPIO.RegTypes
   , gpio_mode_15  :: GPIO_Mode
   }
 
- bitdata GPIO_OTYPER :: Bits 32 =
+ bitdata GPIO_OTYPER :: Bits 32 = gpio_otyper
   { gpio_otype_0   :: GPIO_OutputType
   , gpio_otype_1   :: GPIO_OutputType
   , gpio_otype_2   :: GPIO_OutputType
@@ -57,7 +57,7 @@ import Ivory.BSP.STM32F4.GPIO.RegTypes
   , gpio_otype_15  :: GPIO_OutputType
   }
 
- bitdata GPIO_OSPEEDR :: Bits 32 =
+ bitdata GPIO_OSPEEDR :: Bits 32 = gpio_ospeedr
   { gpio_ospeed_0  :: GPIO_Speed
   , gpio_ospeed_1  :: GPIO_Speed
   , gpio_ospeed_2  :: GPIO_Speed
@@ -76,7 +76,7 @@ import Ivory.BSP.STM32F4.GPIO.RegTypes
   , gpio_ospeed_15 :: GPIO_Speed
   }
 
- bitdata GPIO_PUPDR :: Bits 32 =
+ bitdata GPIO_PUPDR :: Bits 32 = gpio_pupdr
   { gpio_pupd_0  :: GPIO_PUPD
   , gpio_pupd_1  :: GPIO_PUPD
   , gpio_pupd_2  :: GPIO_PUPD
@@ -95,7 +95,7 @@ import Ivory.BSP.STM32F4.GPIO.RegTypes
   , gpio_pupd_15 :: GPIO_PUPD
   }
 
- bitdata GPIO_IDR :: Bits 32 =
+ bitdata GPIO_IDR :: Bits 32 = gpio_idr
   { gpio_idr_0  :: Bit
   , gpio_idr_1  :: Bit
   , gpio_idr_2  :: Bit
@@ -114,7 +114,7 @@ import Ivory.BSP.STM32F4.GPIO.RegTypes
   , gpio_idr_15 :: Bit
   }
 
- bitdata GPIO_BSRR :: Bits 32 =
+ bitdata GPIO_BSRR :: Bits 32 = gpio_bsrr
   -- pin set bits
   { gpio_bs_0  :: Bit
   , gpio_bs_1  :: Bit
@@ -151,7 +151,7 @@ import Ivory.BSP.STM32F4.GPIO.RegTypes
   , gpio_br_15 :: Bit
   }
 
- bitdata GPIO_AFRL :: Bits 32 =
+ bitdata GPIO_AFRL :: Bits 32 = gpio_afrl
   { gpio_afrl_0  :: GPIO_AF
   , gpio_afrl_1  :: GPIO_AF
   , gpio_afrl_2  :: GPIO_AF
@@ -162,7 +162,7 @@ import Ivory.BSP.STM32F4.GPIO.RegTypes
   , gpio_afrl_7  :: GPIO_AF
   }
 
- bitdata GPIO_AFRH :: Bits 32 =
+ bitdata GPIO_AFRH :: Bits 32 = gpio_afrh
   { gpio_afrh_8  :: GPIO_AF
   , gpio_afrh_9  :: GPIO_AF
   , gpio_afrh_10 :: GPIO_AF

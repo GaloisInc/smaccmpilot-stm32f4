@@ -14,13 +14,13 @@ import Ivory.BitData
 import Ivory.HW
 
 [bitdata|
- bitvalue SPIBaud :: Bits 3
-   = SPIBaudDiv2   as 0
-   | SPIBaudDiv4   as 1
-   | SPIBaudDiv8   as 2
-   | SPIBaudDiv16  as 3
-   | SPIBaudDiv32  as 4
-   | SPIBaudDiv64  as 5
-   | SPIBaudDiv128 as 6
-   | SPIBaudDiv256 as 7
+ bitdata SPIBaud :: Bits 3
+   = spi_baud_div_2   as 0
+   | spi_baud_div_4   as 1
+   | spi_baud_div_8   as 2
+   | spi_baud_div_16  as 3
+   | spi_baud_div_32  as 4
+   | spi_baud_div_64  as 5
+   | spi_baud_div_128 as 6
+   | spi_baud_div_256 as 7
 |]

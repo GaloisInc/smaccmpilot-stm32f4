@@ -15,7 +15,7 @@ import Ivory.BitData
 import Ivory.HW
 
 [bitdata|
- bitdata RCC_AHB1ENR :: Bits 32 =
+ bitdata RCC_AHB1ENR :: Bits 32 = rcc_ahb1enr
   { rcc_ahb1en_gpioa :: Bit
   , rcc_ahb1en_gpiob :: Bit
   , rcc_ahb1en_gpioc :: Bit

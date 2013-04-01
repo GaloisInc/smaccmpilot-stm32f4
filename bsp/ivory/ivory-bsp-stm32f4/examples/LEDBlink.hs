@@ -21,18 +21,18 @@ ledPins = [pinB14, pinB15]
 ledSetupPin :: GPIOPin -> Ivory eff ()
 ledSetupPin pin = do
   pinEnable pin
-  pinSetOutputType pin GPIO_OutputType_PushPull
-  pinSetSpeed pin GPIO_Speed_2MHz
-  pinSetPUPD pin GPIO_PUPD_None
-  pinSetMode pin GPIO_Mode_Analog
+  pinSetOutputType pin gpio_outputtype_pushpull
+  pinSetSpeed pin gpio_speed_2mhz
+  pinSetPUPD pin gpio_pupd_none
+  pinSetMode pin gpio_mode_analog
 
 ledOn :: GPIOPin -> Ivory eff ()
 ledOn pin = do
   pinClear pin
-  pinSetMode pin GPIO_Mode_Output
+  pinSetMode pin gpio_mode_output
 
 ledOff :: GPIOPin -> Ivory eff ()
-ledOff pin = pinSetMode pin GPIO_Mode_Analog
+ledOff pin = pinSetMode pin gpio_mode_analog
 
 main_task :: Def ('[Ptr s (Stored Uint8)] :-> ())
 main_task = proc "main_task" $ \_ -> body $ do
