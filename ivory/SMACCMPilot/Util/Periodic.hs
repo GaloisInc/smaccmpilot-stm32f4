@@ -12,8 +12,8 @@ import qualified Ivory.OS.FreeRTOS.Task as Task
 
 periodic :: (eff `AllocsIn` s) => Integer -> Ivory eff () -> Ivory eff ()
 periodic period f = do
-  initTime <- call (direct Task.getTimeMillis)
+  initTime <- call Task.getTimeMillis
   lastTime <- local (ival initTime)
   forever $ do
     f
-    call (direct_ Task.delayUntil lastTime (fromIntegral period))
+    call_ Task.delayUntil lastTime (fromIntegral period)

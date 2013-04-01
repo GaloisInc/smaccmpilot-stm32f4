@@ -29,11 +29,11 @@ userInputTask uis fms uniquename =
         ui_result  <- local (istruct [])
         fm_result  <- local (istruct [])
         periodic 50 $ do
-          now <- call (direct Task.getTimeMillis)
-          captured <- call (direct userInputCapture chs)
+          now <- call Task.getTimeMillis
+          captured <- call userInputCapture chs
           ift captured $ do
-            call (direct_ userInputDecode chs decoder ui_result fm_result now)
-          call (direct_ userInputFailsafe ui_result fm_result now)
+            call_ userInputDecode chs decoder ui_result fm_result now
+          call_ userInputFailsafe ui_result fm_result now
           dataSource userInputSource  (constRef ui_result)
           dataSource flightModeSource (constRef fm_result)
 

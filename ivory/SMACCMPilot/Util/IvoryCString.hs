@@ -35,7 +35,7 @@ class (IvoryType dest, IvoryType src) => Strcpy dest src where
 -- | Strcpy instance for copying string constants to arrays of
 -- characters.
 instance (SingI len) => Strcpy (Ref s (Array len (Stored IChar))) IString where
-  strcpy dest src = call (direct_ copy_istring (toCArray dest) src (arrayLen dest))
+  strcpy dest src = call_ copy_istring (toCArray dest) src (arrayLen dest)
 
 -- | Binding to the C "strncmp" function.
 strncmp :: Def ('[ ConstRef s1 (CArray (Stored IChar)) -- s1

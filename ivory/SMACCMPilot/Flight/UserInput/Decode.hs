@@ -152,10 +152,10 @@ mode_statemachine pwms state now = do
                 $ abs $ (safeCast a :: Sint32) - (safeCast b)
 
 scale_thr :: Uint16 -> Ivory eff IFloat
-scale_thr input = call (direct scale_proc 1000 1000 0.0 1.0 input)
+scale_thr input = call scale_proc 1000 1000 0.0 1.0 input
 
 scale_rpy :: Uint16 -> Ivory eff IFloat
-scale_rpy input = call (direct scale_proc 1500 500 (-1.0) 1.0 input)
+scale_rpy input = call scale_proc 1500 500 (-1.0) 1.0 input
 
 scale_proc :: Def ('[Uint16, Uint16, IFloat, IFloat, Uint16] :-> IFloat)
 scale_proc = proc "userinput_scale" $ \center range outmin outmax input ->

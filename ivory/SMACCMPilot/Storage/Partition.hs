@@ -114,7 +114,7 @@ partition_in_bounds :: Def ('[PartitionID, Uint16, Uint16] :-> IBool)
 partition_in_bounds = proc "partition_in_bounds" $ \pid base off ->
     requires [check $ maxBound - base >=? off]
   $ body $ do
-  size  <- call (direct partition_size pid)
+  size  <- call partition_size pid
   addr  <- assign (base + off)
   ret (addr <? size)
 
@@ -129,13 +129,13 @@ partition_read :: Def ('[ PartitionID                   -- partition
                         , Ref s (CArray (Stored Uint8)) -- buf
                         , Uint16] :-> IBool)            -- len
 partition_read = proc "partition_read" $ \pid addr buf len -> body $ do
-  start_ok <- call (direct partition_in_bounds pid addr 0)
-  end_ok   <- call (direct partition_in_bounds pid addr (len - 1))
+  start_ok <- call partition_in_bounds pid addr 0
+  end_ok   <- call partition_in_bounds pid addr (len - 1)
   ift (iNot (start_ok .&& end_ok))
     (ret false)
 
-  start   <- call (direct partition_start pid)
-  read_ok <- call (direct eeprom_read (addr + start) buf (safeCast len))
+  start   <- call partition_start pid
+  read_ok <- call eeprom_read (addr + start) buf (safeCast len)
   ret read_ok
 
 -- | Write a block of data to a partition.  Returns true if the write
@@ -146,13 +146,13 @@ partition_write :: Def ('[ PartitionID                        -- partition
                          , ConstRef s (CArray (Stored Uint8)) -- buf
                          , Uint16] :-> IBool)                 -- len
 partition_write = proc "partition_write" $ \pid addr buf len -> body $ do
-  start_ok <- call (direct partition_in_bounds pid addr 0)
-  end_ok   <- call (direct partition_in_bounds pid addr len)
+  start_ok <- call partition_in_bounds pid addr 0
+  end_ok   <- call partition_in_bounds pid addr len
   ift (iNot (start_ok .&& end_ok))
     (ret false)
 
-  start    <- call (direct partition_start pid)
-  write_ok <- call (direct eeprom_write (addr + start) buf (safeCast len))
+  start    <- call partition_start pid
+  write_ok <- call eeprom_write (addr + start) buf (safeCast len)
   ret write_ok
 
 {-

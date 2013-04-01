@@ -56,7 +56,7 @@ handle handler rxstate = do
   rxid <- deref (rxstate ~> R.msgid)
   msg  <- local (istruct [])
   ifte (rxid /=? msgid) (return ()) $ do
-    call (direct_ unpacker msg (toCArray (constRef (rxstate ~> R.payload))))
+    call_ unpacker msg (toCArray (constRef (rxstate ~> R.payload)))
     handler msg
 
 handlerModuleDefs :: ModuleDef

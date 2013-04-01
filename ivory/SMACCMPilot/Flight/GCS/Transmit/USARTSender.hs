@@ -28,7 +28,7 @@ usartSender usart_area name sysid compid =
         -> Ivory eff ()
   write buf len = do
     usart <- addrOf usart_area
-    call (direct_ usartWrite usart buf (safeCast len))
+    call_ usartWrite usart buf (safeCast len)
   deps = do
     defMemArea txseq_area
     depend usartModule

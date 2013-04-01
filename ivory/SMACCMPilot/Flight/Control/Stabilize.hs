@@ -80,30 +80,30 @@ stabilize_run = proc "stabilize_run" $ \fm input sensors output -> body $ do
       controlinput_pitch <- (input ~>* IN.pitch)
       controlinput_yaw   <- (input ~>* IN.yaw)
 
-      roll_out <- call (direct stabilize_from_angle
+      roll_out <- call stabilize_from_angle
                           roll_stabilize
                           roll_rate
                           const_MAX_INPUT_ROLL
                           controlinput_roll
                           sen_roll
                           sen_omega_x
-                          const_MAX_OUTPUT_ROLL)
+                          const_MAX_OUTPUT_ROLL
 
-      pitch_out <- call (direct stabilize_from_angle
+      pitch_out <- call stabilize_from_angle
                           pitch_stabilize
                           pitch_rate
                           const_MAX_INPUT_ROLL
                           (-1 * controlinput_pitch)
                           sen_pitch
                           sen_omega_y
-                          const_MAX_OUTPUT_ROLL)
+                          const_MAX_OUTPUT_ROLL
 
-      yaw_out <- call (direct stabilize_from_rate
+      yaw_out <- call stabilize_from_rate
                           yaw_rate
                           controlinput_yaw
                           const_MAX_INPUT_YAW
                           sen_omega_z
-                          const_MAX_OUTPUT_YAW)
+                          const_MAX_OUTPUT_YAW
 
       store (output ~> OUT.roll)  roll_out
       store (output ~> OUT.pitch) pitch_out
@@ -200,12 +200,12 @@ stabilize_from_angle = proc "stabilize_from_angle" $
   stick_angle_deg   <- assign $ stick_angle_norm * max_stick_angle_deg
   sensor_angle_deg  <- assign $ degrees sensor_angle_rad
   angle_error       <- assign $ stick_angle_deg - sensor_angle_deg
-  rate_deg_s        <- call (direct pid_update angle_pid angle_error sensor_angle_deg)
+  rate_deg_s        <- call pid_update angle_pid angle_error sensor_angle_deg
   sensor_rate_deg_s <- assign $ degrees sensor_rate_rad_s
   rate_error        <- assign $ rate_deg_s - sensor_rate_deg_s
-  servo_rate_deg_s  <- call (direct pid_update rate_pid rate_error sensor_rate_deg_s)
-  servo_rate_norm   <- call (direct fconstrain (-max_servo_rate_rad_s)
-                            max_servo_rate_rad_s servo_rate_deg_s)
+  servo_rate_deg_s  <- call pid_update rate_pid rate_error sensor_rate_deg_s
+  servo_rate_norm   <- call fconstrain (-max_servo_rate_rad_s)
+                            max_servo_rate_rad_s servo_rate_deg_s
   ret $ servo_rate_norm / max_servo_rate_rad_s
 
 -- | Return a normalized servo output given a normalized stick input
@@ -225,9 +225,9 @@ stabilize_from_rate = proc "stabilize_from_rate" $
   stick_rate_deg_s  <- assign $ stick_rate_norm * max_stick_rate_deg_s
   sensor_rate_deg_s <- assign $ degrees sensor_rate_rad_s
   rate_error        <- assign $ stick_rate_deg_s - sensor_rate_deg_s
-  servo_rate_deg_s  <- call (direct pid_update rate_pid rate_error sensor_rate_deg_s)
-  servo_rate_norm   <- call (direct fconstrain (-max_servo_rate_rad_s)
-                            max_servo_rate_rad_s servo_rate_deg_s)
+  servo_rate_deg_s  <- call pid_update rate_pid rate_error sensor_rate_deg_s
+  servo_rate_norm   <- call fconstrain (-max_servo_rate_rad_s)
+                            max_servo_rate_rad_s servo_rate_deg_s
   ret $ servo_rate_norm / max_servo_rate_rad_s
 
 

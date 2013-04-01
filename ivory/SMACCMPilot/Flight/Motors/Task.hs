@@ -29,12 +29,12 @@ motorsTask cs ms ss uniquename =
         s_ctl   <- local (istruct [])
         s_fm    <- local (istruct [])
         s_servo <- local (istruct [])
-        call (direct_ apmotors_output_init)
+        call_ apmotors_output_init
         periodic 10 $ do
           dataSink ctlSink           s_ctl
           dataSink modeSink          s_fm
-          call (direct_  apmotors_output_set (constRef s_ctl) (constRef s_fm))
-          call (direct_  apmotors_servo_get  s_servo)
+          call_ apmotors_output_set  (constRef s_ctl) (constRef s_fm)
+          call_ apmotors_servo_get   s_servo
           dataSource servoSource     (constRef s_servo)
 
       mDefs = do
