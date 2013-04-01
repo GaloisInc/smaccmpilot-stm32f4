@@ -13,81 +13,77 @@ void main_task(uint8_t* n_var0)
 {
     uint32_t n_r0 = ivory_hw_io_read_u32(1073887280U);
     
-    ivory_hw_io_write_u32(1073887280U, n_r0 & 4294967295U | 1U << 1U);
+    ivory_hw_io_write_u32(1073887280U, n_r0 | 1U << 1U);
     
     uint32_t n_r1 = ivory_hw_io_read_u32(1073873924U);
     
-    ivory_hw_io_write_u32(1073873924U, n_r1 & 4294967295U & ~(1U << 14U) | 0U <<
-                          14U);
+    ivory_hw_io_write_u32(1073873924U, n_r1 & ~(1U << 14U) | 0U << 14U);
     
     uint32_t n_r2 = ivory_hw_io_read_u32(1073873928U);
     
-    ivory_hw_io_write_u32(1073873928U, n_r2 & 4294967295U & ~(3U << 28U) | 0U <<
-                          28U);
+    ivory_hw_io_write_u32(1073873928U, n_r2 & ~(3U << 28U) | 0U << 28U);
     
     uint32_t n_r3 = ivory_hw_io_read_u32(1073873932U);
     
-    ivory_hw_io_write_u32(1073873932U, n_r3 & 4294967295U & ~(3U << 28U) | 0U <<
-                          28U);
+    ivory_hw_io_write_u32(1073873932U, n_r3 & ~(3U << 28U) | 0U << 28U);
     
     uint32_t n_r4 = ivory_hw_io_read_u32(1073873920U);
     
-    ivory_hw_io_write_u32(1073873920U, n_r4 & 4294967295U & ~(3U << 28U) |
-                          (uint32_t) (0U | 3U << 0U) << 28U);
+    ivory_hw_io_write_u32(1073873920U, n_r4 & ~(3U << 28U) | (uint32_t) (3U <<
+                                                                         0U) <<
+                          28U);
     
     uint32_t n_r5 = ivory_hw_io_read_u32(1073887280U);
     
-    ivory_hw_io_write_u32(1073887280U, n_r5 & 4294967295U | 1U << 1U);
+    ivory_hw_io_write_u32(1073887280U, n_r5 | 1U << 1U);
     
     uint32_t n_r6 = ivory_hw_io_read_u32(1073873924U);
     
-    ivory_hw_io_write_u32(1073873924U, n_r6 & 4294967295U & ~(1U << 15U) | 0U <<
-                          15U);
+    ivory_hw_io_write_u32(1073873924U, n_r6 & ~(1U << 15U) | 0U << 15U);
     
     uint32_t n_r7 = ivory_hw_io_read_u32(1073873928U);
     
-    ivory_hw_io_write_u32(1073873928U, n_r7 & 4294967295U & ~(3U << 30U) | 0U <<
-                          30U);
+    ivory_hw_io_write_u32(1073873928U, n_r7 & ~(3U << 30U) | 0U << 30U);
     
     uint32_t n_r8 = ivory_hw_io_read_u32(1073873932U);
     
-    ivory_hw_io_write_u32(1073873932U, n_r8 & 4294967295U & ~(3U << 30U) | 0U <<
-                          30U);
+    ivory_hw_io_write_u32(1073873932U, n_r8 & ~(3U << 30U) | 0U << 30U);
     
     uint32_t n_r9 = ivory_hw_io_read_u32(1073873920U);
     
-    ivory_hw_io_write_u32(1073873920U, n_r9 & 4294967295U & ~(3U << 30U) |
-                          (uint32_t) (0U | 3U << 0U) << 30U);
+    ivory_hw_io_write_u32(1073873920U, n_r9 & ~(3U << 30U) | (uint32_t) (3U <<
+                                                                         0U) <<
+                          30U);
     for (int forever_loop = 0; FOREVER; FOREVER_INC) {
-        vTaskDelay(1000U);
+        vTaskDelay(250U);
         
         uint32_t n_r10 = ivory_hw_io_read_u32(1073873944U);
         
-        ivory_hw_io_write_u32(1073873944U, n_r10 & 4294967295U | 1U << 30U);
+        ivory_hw_io_write_u32(1073873944U, n_r10 | 1U << 30U);
         
         uint32_t n_r11 = ivory_hw_io_read_u32(1073873920U);
         
-        ivory_hw_io_write_u32(1073873920U, n_r11 & 4294967295U & ~(3U << 28U) |
-                              (uint32_t) (0U | 1U << 0U) << 28U);
+        ivory_hw_io_write_u32(1073873920U, n_r11 & ~(3U << 28U) |
+                              (uint32_t) (1U << 0U) << 28U);
         
         uint32_t n_r12 = ivory_hw_io_read_u32(1073873920U);
         
-        ivory_hw_io_write_u32(1073873920U, n_r12 & 4294967295U & ~(3U << 30U) |
-                              (uint32_t) (0U | 3U << 0U) << 30U);
-        vTaskDelay(1000U);
+        ivory_hw_io_write_u32(1073873920U, n_r12 & ~(3U << 30U) |
+                              (uint32_t) (3U << 0U) << 30U);
+        vTaskDelay(250U);
         
         uint32_t n_r13 = ivory_hw_io_read_u32(1073873920U);
         
-        ivory_hw_io_write_u32(1073873920U, n_r13 & 4294967295U & ~(3U << 28U) |
-                              (uint32_t) (0U | 3U << 0U) << 28U);
+        ivory_hw_io_write_u32(1073873920U, n_r13 & ~(3U << 28U) |
+                              (uint32_t) (3U << 0U) << 28U);
         
         uint32_t n_r14 = ivory_hw_io_read_u32(1073873944U);
         
-        ivory_hw_io_write_u32(1073873944U, n_r14 & 4294967295U | 1U << 31U);
+        ivory_hw_io_write_u32(1073873944U, n_r14 | 1U << 31U);
         
         uint32_t n_r15 = ivory_hw_io_read_u32(1073873920U);
         
-        ivory_hw_io_write_u32(1073873920U, n_r15 & 4294967295U & ~(3U << 30U) |
-                              (uint32_t) (0U | 1U << 0U) << 30U);
+        ivory_hw_io_write_u32(1073873920U, n_r15 & ~(3U << 30U) |
+                              (uint32_t) (1U << 0U) << 30U);
     }
 }
