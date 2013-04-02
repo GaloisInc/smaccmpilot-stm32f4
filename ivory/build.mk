@@ -76,6 +76,11 @@ CBMC_INCS = \
   -I./smavlink/include \
   -I./smavlink/include/smavlink/messages \
   -I./flight-support/include/smaccmpilot \
+  -I./flight-support/include \
+  -I./flight-support/include/flight-support \
+  -I./flight-generated/include \
+  -I./flight-generated/include/smaccmpilot \
+  -I./flight-generated/include/flight-generated \
   $(FREERTOS_INCLUDES)
 
 STARTS := $(shell $(SANDBOX)/bin/$(GEN)\
@@ -103,7 +108,6 @@ verify: $(FLIGHT_GENERATED_HEADERS) $(FLIGHT_GENERATED_SOURCES)
 .PHONY: verify-tmp
 verify-tmp: $(FLIGHT_GENERATED_HEADERS) $(FLIGHT_GENERATED_SOURCES)
 	$(CBMC_REPORT) \
-    --verbose \
     --format=markdown \
     --timeout=10 \
     --no-asserts \
