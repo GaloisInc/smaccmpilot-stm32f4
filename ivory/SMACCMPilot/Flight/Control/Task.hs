@@ -37,7 +37,11 @@ controlTask s_fm s_inpt s_sensors s_ctl uniquename =
           dataSink flightmodeSink fm
           dataSink userinputSink  inpt
           dataSink sensorsSink    sens
+
           call_ stabilize_run fm inpt sens ctl
+          -- the trivial throttle controller:
+          deref (inpt ~> UI.throttle) >>= store (ctl ~> CO.throttle)
+
           dataSource controlSource (constRef ctl)
 
       mDefs = do
