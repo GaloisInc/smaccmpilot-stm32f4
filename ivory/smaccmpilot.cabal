@@ -53,8 +53,7 @@ library
                        SMACCMPilot.SafePack,
 
                        SMACCMPilot.Util.IvoryCString,
-                       SMACCMPilot.Util.IvoryHelpers,
-                       SMACCMPilot.Util.Periodic
+                       SMACCMPilot.Util.IvoryHelpers
 
   other-modules:       Arm32SizeMap
 
