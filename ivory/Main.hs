@@ -4,7 +4,7 @@ import Ivory.Language
 import Ivory.Compile.C.CmdlineFrontend
 
 import Ivory.Tower
-import Ivory.Tower.Graphviz
+--import Ivory.Tower.Graphviz
 import qualified Ivory.Tower.Compile.FreeRTOS as FreeRTOS
 
 import Ivory.BSP.HWF4 (hwf4Modules)
@@ -54,14 +54,13 @@ otherms =
 
 main :: IO ()
 main = do 
-  let asm  = FreeRTOS.assemble app
-      objs = FreeRTOS.compile  asm
+  let objs = FreeRTOS.compile app
   compileWithSizeMap sizeMap objs
-  gviz asm
+  --gviz asm
 
 
-app :: UncompiledAssembly
-app = tower $ do
+app :: Tower ()
+app = do
   (src_userinput, snk_userinput)   <- dataport
   (src_sensors, snk_sensors)       <- dataport
   (src_control, snk_control)       <- dataport
@@ -70,16 +69,16 @@ app = tower $ do
   (_, snk_position)                <- dataport
 
 
-  addTask $ sensorsTask src_sensors
-  addTask $ userInputTask src_userinput src_flightmode
-  addTask $ blinkTask GPIO.pin_b13 snk_flightmode
-  addTask $ controlTask snk_flightmode snk_userinput snk_sensors src_control
-  addTask $ motorsTask snk_control snk_flightmode src_servos
+  task "sensors"   $ sensorsTask src_sensors
+  task "userInput" $ userInputTask src_userinput src_flightmode
+  task "blink"     $ blinkTask GPIO.pin_b13 snk_flightmode
+  task "control"   $ controlTask snk_flightmode snk_userinput snk_sensors src_control
+  task "motors"    $ motorsTask snk_control snk_flightmode src_servos
 
-  gcsTower usart1 snk_flightmode snk_sensors snk_position snk_control snk_servos
+  gcsTower "usart1" usart1 snk_flightmode snk_sensors snk_position snk_control snk_servos
 
   mapM_ addModule otherms
 
-gviz :: Assembly -> IO ()
-gviz a = graphvizToFile "out.dot" a
+--gviz :: Assembly -> IO ()
+--gviz a = graphvizToFile "out.dot" a
 

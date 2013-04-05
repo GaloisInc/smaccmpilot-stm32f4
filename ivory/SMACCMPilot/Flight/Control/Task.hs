@@ -7,7 +7,6 @@ module SMACCMPilot.Flight.Control.Task where
 
 import Ivory.Language
 import Ivory.Tower
-import qualified Ivory.OS.FreeRTOS.Task as Task
 
 import qualified SMACCMPilot.Flight.Types.FlightMode as FM
 import qualified SMACCMPilot.Flight.Types.UserInput as UI
@@ -16,40 +15,37 @@ import qualified SMACCMPilot.Flight.Types.ControlOutput as CO
 
 import SMACCMPilot.Flight.Control.Stabilize
 
-import SMACCMPilot.Util.Periodic
-
 controlTask :: DataSink (Struct "flightmode")
             -> DataSink (Struct "userinput_result")
             -> DataSink (Struct "sensors_result")
             -> DataSource (Struct "controloutput")
-            -> String -> Task
-controlTask s_fm s_inpt s_sensors s_ctl uniquename =
-  withDataSink   "flightmode" s_fm      $ \flightmodeSink->
-  withDataSink   "userinput"  s_inpt    $ \userinputSink ->
-  withDataSink   "sensors"    s_sensors $ \sensorsSink ->
-  withDataSource "control"    s_ctl     $ \controlSource ->
-  let tDef = proc ("stabilizeTaskDef" ++ uniquename) $ body $ do
-        fm   <- local (istruct [])
-        inpt <- local (istruct [])
-        sens <- local (istruct [])
-        ctl  <- local (istruct [])
-        periodic 50 $ do
-          dataSink flightmodeSink fm
-          dataSink userinputSink  inpt
-          dataSink sensorsSink    sens
+            -> Task ()
+controlTask s_fm s_inpt s_sens s_ctl = do
+  fmReader   <- withDataReader s_fm   "flightmode"
+  uiReader   <- withDataReader s_inpt "userinput"
+  sensReader <- withDataReader s_sens "sensors"
+  ctlWriter  <- withDataWriter s_ctl  "control"
+  p <- withPeriod 50
+  n <- freshname
+  taskBody $ proc ("stabilizeTaskDef" ++ n) $ body $ do
+    fm   <- local (istruct [])
+    inpt <- local (istruct [])
+    sens <- local (istruct [])
+    ctl  <- local (istruct [])
+    periodic p $ do
+      readData fmReader   fm
+      readData uiReader   inpt
+      readData sensReader sens
 
-          call_ stabilize_run fm inpt sens ctl
-          -- the trivial throttle controller:
-          deref (inpt ~> UI.throttle) >>= store (ctl ~> CO.throttle)
+      call_ stabilize_run fm inpt sens ctl
+      -- the trivial throttle controller:
+      deref (inpt ~> UI.throttle) >>= store (ctl ~> CO.throttle)
 
-          dataSource controlSource (constRef ctl)
+      writeData ctlWriter (constRef ctl)
 
-      mDefs = do
-        depend Task.taskModule
-        depend FM.flightModeTypeModule
-        depend UI.userInputTypeModule
-        depend SENS.sensorsTypeModule
-        depend CO.controlOutputTypeModule
-        depend stabilizeControlLoopsModule
-        incl tDef
-  in task tDef mDefs
+  taskModuleDef $ do
+    depend FM.flightModeTypeModule
+    depend UI.userInputTypeModule
+    depend SENS.sensorsTypeModule
+    depend CO.controlOutputTypeModule
+    depend stabilizeControlLoopsModule

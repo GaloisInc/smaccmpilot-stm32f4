@@ -9,36 +9,32 @@ module SMACCMPilot.Flight.Sensors.Task
 
 import Ivory.Language
 import Ivory.Tower
-import qualified Ivory.OS.FreeRTOS.Task as Task
 
 import qualified SMACCMPilot.Flight.Types.Sensors as S
 
-import SMACCMPilot.Util.Periodic
-
 sensorsTask :: DataSource (Struct "sensors_result")
-              -> String -> Task
-sensorsTask s uniquename =
-  withDataSource "sensors" s $ \sensorSource ->
-  let tDef = proc ("sensorTaskDef" ++ uniquename) $ body $ do
-        s_result <- local (istruct [ S.valid .= ival false ])
-        dataSource sensorSource (constRef s_result)
-        call_ sensors_begin -- time consuming: boots up and calibrates sensors
-        periodic 10 $ do
-          call_ sensors_update
-          call_ sensors_getstate s_result
-          dataSource sensorSource (constRef s_result)
+              -> Task ()
+sensorsTask s = do
+  n <- freshname
+  sensorsWriter <- withDataWriter s "sensors"
+  p <- withPeriod 10
+  withStackSize 1024
+  taskBody $ proc ("sensorTaskDef" ++ n) $ body $ do
+    s_result <- local (istruct [ S.valid .= ival false ])
+    writeData sensorsWriter (constRef s_result)
+    call_ sensors_begin -- time consuming: boots up and calibrates sensors
+    periodic p $ do
+      call_ sensors_update
+      call_ sensors_getstate s_result
+      writeData sensorsWriter (constRef s_result)
 
-      mDefs = do
-        depend S.sensorsTypeModule
-        depend Task.taskModule
-        inclHeader "flight-support/sensors_capture"
-        incl tDef
-        private $ do
-          incl sensors_begin
-          incl sensors_update
-          incl sensors_getstate
-
-  in withStackSize 1024 $ task tDef mDefs
+  taskModuleDef $ do
+    depend S.sensorsTypeModule
+    inclHeader "flight-support/sensors_capture"
+    private $ do
+      incl sensors_begin
+      incl sensors_update
+      incl sensors_getstate
 
 sensors_begin :: Def ('[] :-> ())
 sensors_begin = externProc "sensors_begin"

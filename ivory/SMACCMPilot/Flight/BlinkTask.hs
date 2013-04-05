@@ -9,55 +9,49 @@ module SMACCMPilot.Flight.BlinkTask
 
 import Ivory.Language
 import Ivory.Tower
-import qualified Ivory.OS.FreeRTOS.Task as Task
 
 import Ivory.BSP.HWF4.GPIO
 
 import SMACCMPilot.Util.IvoryHelpers
-import SMACCMPilot.Util.Periodic
 
 import qualified SMACCMPilot.Flight.Types.FlightMode as FM
 
 blinkTask :: MemArea (Struct "pin")
           -> DataSink (Struct "flightmode")
-          -> String -> Task
-blinkTask mempin s uniquename =
-  withDataSink "flightmode" s $ \flightModeSink ->
-  let tDef = proc ("blinkTaskDef" ++ uniquename) $ body $ do
-        pin <- addrOf mempin
-        call_ pin_enable     pin
-        call_ pin_set_otype  pin pinTypePushPull
-        call_ pin_set_ospeed pin pinSpeed2Mhz
-        call_ pin_set_pupd   pin pinPupdNone
-        call_ pin_reset      pin
-        call_ pin_set_mode   pin pinModeOutput
-        flightMode <- local (istruct [])
-        s_phase    <- local (ival (0::Uint8))
-        periodic 125 $ do
-          phase <- deref s_phase
-          dataSink flightModeSink flightMode
-          bmode  <- flightModeToBlinkMode flightMode
-          output <- blinkOutput bmode phase
-          ifte output
-            (call_ pin_reset pin) -- relay LEDs are active low.
-            (call_ pin_set   pin)
-          nextPhase 8 s_phase
+          -> Task ()
+blinkTask mempin s = do
+  n <- freshname
+  fmReader <- withDataReader s "flightmode"
+  p <- withPeriod 125
+  taskBody $ proc ("blinkTaskDef" ++ n) $ body $ do
+    pin <- addrOf mempin
+    call_ pin_enable     pin
+    call_ pin_set_otype  pin pinTypePushPull
+    call_ pin_set_ospeed pin pinSpeed2Mhz
+    call_ pin_set_pupd   pin pinPupdNone
+    call_ pin_reset      pin
+    call_ pin_set_mode   pin pinModeOutput
+    flightMode <- local (istruct [])
+    s_phase    <- local (ival (0::Uint8))
+    periodic p $ do
+      readData fmReader flightMode
+      bmode  <- flightModeToBlinkMode flightMode
+      phase  <- nextPhase 8 s_phase
+      output <- blinkOutput bmode phase
+      ifte output
+        (call_ pin_reset pin) -- relay LEDs are active low.
+        (call_ pin_set   pin)
+  taskModuleDef $ do
+    depend gpioModule
 
-
-      nextPhase :: Uint8 -> (Ref s1 (Stored Uint8)) -> Ivory eff ()
-      nextPhase highest r = do
-          phase <- deref r
-          next <- assign (phase + 1)
-          ifte (next >=? highest)
-            (store r 0)
-            (store r next)
-
-      mDefs = do
-        depend Task.taskModule
-        depend gpioModule
-        incl tDef
-  in task tDef mDefs
-
+nextPhase :: Uint8 -> (Ref s1 (Stored Uint8)) -> Ivory eff Uint8
+nextPhase highest r = do
+    phase <- deref r
+    next <- assign (phase + 1)
+    ifte (next >=? highest)
+      (store r 0)
+      (store r next)
+    return phase
 
 flightModeToBlinkMode :: Ref s1 (Struct "flightmode") -> Ivory eff Uint8
 flightModeToBlinkMode fmRef = do

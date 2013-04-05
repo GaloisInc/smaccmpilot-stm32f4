@@ -15,41 +15,38 @@ import qualified SMACCMPilot.Flight.Types.ControlOutput as C
 import qualified SMACCMPilot.Flight.Types.Servos        as S
 import qualified SMACCMPilot.Flight.Types.FlightMode    as M
 
-import SMACCMPilot.Util.Periodic
-
 motorsTask :: DataSink (Struct "controloutput")
            -> DataSink (Struct "flightmode")
            -> DataSource (Struct "servos")
-           -> String -> Task
-motorsTask cs ms ss uniquename =
-  withDataSink   "ctlOut"     cs $ \ctlSink ->
-  withDataSink   "flightMode" ms $ \modeSink ->
-  withDataSource "servos"     ss $ \servoSource ->
-  let tDef = proc ("motorTaskDef" ++ uniquename) $ body $ do
-        s_ctl   <- local (istruct [])
-        s_fm    <- local (istruct [])
-        s_servo <- local (istruct [])
-        call_ apmotors_output_init
-        periodic 10 $ do
-          dataSink ctlSink           s_ctl
-          dataSink modeSink          s_fm
-          call_ apmotors_output_set  (constRef s_ctl) (constRef s_fm)
-          call_ apmotors_servo_get   s_servo
-          dataSource servoSource     (constRef s_servo)
+           -> Task ()
+motorsTask cs ms ss = do
+  n <- freshname
+  ctlReader <- withDataReader cs "ctlOut"
+  fmReader  <- withDataReader ms "flightMode"
+  srvWriter <- withDataWriter ss "servos"
+  p <- withPeriod 10
+  taskBody $ proc ("motorTaskDef" ++ n) $ body $ do
+    s_ctl   <- local (istruct [])
+    s_fm    <- local (istruct [])
+    s_servo <- local (istruct [])
+    call_ apmotors_output_init
+    periodic p $ do
+      readData ctlReader s_ctl
+      readData fmReader  s_fm
+      call_ apmotors_output_set  (constRef s_ctl) (constRef s_fm)
+      call_ apmotors_servo_get   s_servo
+      writeData srvWriter        (constRef s_servo)
 
-      mDefs = do
-        depend C.controlOutputTypeModule
-        depend S.servosTypeModule
-        depend M.flightModeTypeModule
-        depend Task.taskModule
-        inclHeader "flight-support/apmotors_wrapper"
-        incl tDef
-        private $ do
-          incl apmotors_output_init
-          incl apmotors_output_set
-          incl apmotors_servo_get
-
-  in task tDef mDefs
+  taskModuleDef $ do
+    depend C.controlOutputTypeModule
+    depend S.servosTypeModule
+    depend M.flightModeTypeModule
+    depend Task.taskModule
+    inclHeader "flight-support/apmotors_wrapper"
+    private $ do
+      incl apmotors_output_init
+      incl apmotors_output_set
+      incl apmotors_servo_get
 
 
 apmotors_output_init :: Def ('[] :-> ())

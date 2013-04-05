@@ -9,43 +9,40 @@ module SMACCMPilot.Flight.UserInput.Task
 
 import Ivory.Language
 import Ivory.Tower
-import qualified Ivory.OS.FreeRTOS.Task as Task
 
 import SMACCMPilot.Flight.Types.UserInput
 import SMACCMPilot.Flight.UserInput.Decode
 
 import SMACCMPilot.Util.IvoryHelpers
-import SMACCMPilot.Util.Periodic
 
 userInputTask :: DataSource (Struct "userinput_result")
               -> DataSource (Struct "flightmode")
-              -> String -> Task
-userInputTask uis fms uniquename =
-  withDataSource "flightMode" fms $ \flightModeSource ->
-  withDataSource "userInput"  uis $ \userInputSource ->
-  let tDef = proc ("userInputTaskDef" ++ uniquename) $ body $ do
-        chs     <- local (iarray [])
-        decoder <- local (istruct [])
-        ui_result  <- local (istruct [])
-        fm_result  <- local (istruct [])
-        periodic 50 $ do
-          now <- call Task.getTimeMillis
-          captured <- call userInputCapture chs
-          ift captured $ do
-            call_ userInputDecode chs decoder ui_result fm_result now
-          call_ userInputFailsafe ui_result fm_result now
-          dataSource userInputSource  (constRef ui_result)
-          dataSource flightModeSource (constRef fm_result)
+              -> Task ()
+userInputTask uis fms = do
+  n <- freshname
+  fmWriter <- withDataWriter fms "flightMode"
+  uiWriter <- withDataWriter uis "userInput"
+  p <- withPeriod 50
+  t <- withGetTimeMillis
+  taskBody $ proc ("userInputTaskDef" ++ n) $ body $ do
+    chs     <- local (iarray [])
+    decoder <- local (istruct [])
+    ui_result  <- local (istruct [])
+    fm_result  <- local (istruct [])
+    periodic p $ do
+      now <- getTimeMillis t
+      captured <- call userInputCapture chs
+      ift captured $ do
+        call_ userInputDecode chs decoder ui_result fm_result now
+      call_ userInputFailsafe ui_result fm_result now
+      writeData uiWriter (constRef ui_result)
+      writeData fmWriter (constRef fm_result)
 
-      mDefs = do
-        depend userInputTypeModule
-        depend userInputDecodeModule
-        depend Task.taskModule
-        inclHeader "flight-support/userinput_capture"
-        incl tDef
-        incl userInputCapture
-
-  in task tDef mDefs
+  taskModuleDef $ do
+    depend userInputTypeModule
+    depend userInputDecodeModule
+    inclHeader "flight-support/userinput_capture"
+    incl userInputCapture
 
 -- This talks to the AP_HAL via c++, so we have to extern it completely
 userInputCapture :: Def ('[ Ref s1 (Array 8 (Stored Uint16)) ] :-> IBool)
