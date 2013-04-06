@@ -4,7 +4,7 @@ import Ivory.Language
 import Ivory.Compile.C.CmdlineFrontend
 
 import Ivory.Tower
---import Ivory.Tower.Graphviz
+import Ivory.Tower.Graphviz
 import qualified Ivory.Tower.Compile.FreeRTOS as FreeRTOS
 
 import Ivory.BSP.HWF4 (hwf4Modules)
@@ -54,9 +54,9 @@ otherms =
 
 main :: IO ()
 main = do 
-  let objs = FreeRTOS.compile app
+  let (asm, objs) = FreeRTOS.compile app
   compileWithSizeMap sizeMap objs
-  --gviz asm
+  gviz asm
 
 
 app :: Tower ()
@@ -79,6 +79,6 @@ app = do
 
   mapM_ addModule otherms
 
---gviz :: Assembly -> IO ()
---gviz a = graphvizToFile "out.dot" a
+gviz :: Assembly -> IO ()
+gviz a = graphvizToFile "out.dot" a
 
