@@ -62,20 +62,25 @@ main = do
 app :: Tower ()
 app = do
   (src_userinput, snk_userinput)   <- dataport
-  (src_sensors, snk_sensors)       <- dataport
-  (src_control, snk_control)       <- dataport
   (src_flightmode, snk_flightmode) <- dataport
   (src_servos, snk_servos)         <- dataport
-  (_, snk_position)                <- dataport
 
+  (_, snk_position)                <- dataport
+  (_, snk_sensor_state)            <- dataport
+  (_, snk_control_state)           <- dataport
+
+  (src_sensors, snk_sensors)       <- channel
+  (src_control, snk_control)       <- channel
 
   task "sensors"   $ sensorsTask src_sensors
   task "userInput" $ userInputTask src_userinput src_flightmode
   task "blink"     $ blinkTask GPIO.pin_b13 snk_flightmode
-  task "control"   $ controlTask snk_flightmode snk_userinput snk_sensors src_control
+  task "control"   $ controlTask snk_flightmode snk_userinput
+                      snk_sensors src_control
   task "motors"    $ motorsTask snk_control snk_flightmode src_servos
 
-  gcsTower "usart1" usart1 snk_flightmode snk_sensors snk_position snk_control snk_servos
+  gcsTower "usart1" usart1 snk_flightmode snk_sensor_state snk_position
+    snk_control_state snk_servos
 
   mapM_ addModule otherms
 

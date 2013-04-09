@@ -15,23 +15,22 @@ import qualified SMACCMPilot.Flight.Types.ControlOutput as C
 import qualified SMACCMPilot.Flight.Types.Servos        as S
 import qualified SMACCMPilot.Flight.Types.FlightMode    as M
 
-motorsTask :: DataSink (Struct "controloutput")
+motorsTask :: EventSink (Struct "controloutput")
            -> DataSink (Struct "flightmode")
            -> DataSource (Struct "servos")
            -> Task ()
 motorsTask cs ms ss = do
   n <- freshname
-  ctlReader <- withDataReader cs "ctlOut"
+  ctlRxer   <- withEventReceiver cs "ctlOut"
   fmReader  <- withDataReader ms "flightMode"
   srvWriter <- withDataWriter ss "servos"
-  p <- withPeriod 10
   taskBody $ proc ("motorTaskDef" ++ n) $ body $ do
     s_ctl   <- local (istruct [])
     s_fm    <- local (istruct [])
     s_servo <- local (istruct [])
     call_ apmotors_output_init
-    periodic p $ do
-      readData ctlReader s_ctl
+    forever $ do
+      receive  ctlRxer   s_ctl
       readData fmReader  s_fm
       call_ apmotors_output_set  (constRef s_ctl) (constRef s_fm)
       call_ apmotors_servo_get   s_servo

@@ -12,21 +12,21 @@ import Ivory.Tower
 
 import qualified SMACCMPilot.Flight.Types.Sensors as S
 
-sensorsTask :: DataSource (Struct "sensors_result")
+sensorsTask :: EventSource (Struct "sensors_result")
               -> Task ()
 sensorsTask s = do
   n <- freshname
-  sensorsWriter <- withDataWriter s "sensors"
+  sensorsEmitter <- withEventEmitter s "sensors"
   p <- withPeriod 10
   withStackSize 1024
   taskBody $ proc ("sensorTaskDef" ++ n) $ body $ do
     s_result <- local (istruct [ S.valid .= ival false ])
-    writeData sensorsWriter (constRef s_result)
+    emit sensorsEmitter (constRef s_result)
     call_ sensors_begin -- time consuming: boots up and calibrates sensors
     periodic p $ do
       call_ sensors_update
       call_ sensors_getstate s_result
-      writeData sensorsWriter (constRef s_result)
+      emit sensorsEmitter (constRef s_result)
 
   taskModuleDef $ do
     depend S.sensorsTypeModule

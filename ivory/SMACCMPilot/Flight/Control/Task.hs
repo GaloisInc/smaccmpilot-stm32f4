@@ -17,31 +17,30 @@ import SMACCMPilot.Flight.Control.Stabilize
 
 controlTask :: DataSink (Struct "flightmode")
             -> DataSink (Struct "userinput_result")
-            -> DataSink (Struct "sensors_result")
-            -> DataSource (Struct "controloutput")
+            -> EventSink (Struct "sensors_result")
+            -> EventSource (Struct "controloutput")
             -> Task ()
 controlTask s_fm s_inpt s_sens s_ctl = do
   fmReader   <- withDataReader s_fm   "flightmode"
   uiReader   <- withDataReader s_inpt "userinput"
-  sensReader <- withDataReader s_sens "sensors"
-  ctlWriter  <- withDataWriter s_ctl  "control"
-  p <- withPeriod 50
+  sensRxer   <- withEventReceiver s_sens "sensors"
+  ctlEmitter <- withEventEmitter s_ctl  "control"
   n <- freshname
   taskBody $ proc ("stabilizeTaskDef" ++ n) $ body $ do
     fm   <- local (istruct [])
     inpt <- local (istruct [])
     sens <- local (istruct [])
     ctl  <- local (istruct [])
-    periodic p $ do
+    forever $ do
+      receive  sensRxer sens
       readData fmReader   fm
       readData uiReader   inpt
-      readData sensReader sens
 
       call_ stabilize_run fm inpt sens ctl
       -- the trivial throttle controller:
       deref (inpt ~> UI.throttle) >>= store (ctl ~> CO.throttle)
 
-      writeData ctlWriter (constRef ctl)
+      emit ctlEmitter (constRef ctl)
 
   taskModuleDef $ do
     depend FM.flightModeTypeModule
@@ -49,3 +48,4 @@ controlTask s_fm s_inpt s_sens s_ctl = do
     depend SENS.sensorsTypeModule
     depend CO.controlOutputTypeModule
     depend stabilizeControlLoopsModule
+
