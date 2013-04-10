@@ -66,20 +66,14 @@ CLEAN     += $(GRAPHS_DIR)
 # ------------------------------------------------------------------------------
 
 CBMC_INCS = \
-  -I./flight-generated/include/smaccmpilot \
-  -I./flight-generated/include \
   -I./bsp/hwf4/include \
   -I./bsp/include \
   -I./ivory-runtime \
   -I./ivory-freertos-wrapper/include \
-  -I./flight-support/include \
   -I./smavlink/include \
   -I./smavlink/include/smavlink/messages \
-  -I./flight-support/include/smaccmpilot \
   -I./flight-support/include \
-  -I./flight-support/include/flight-support \
   -I./flight-generated/include \
-  -I./flight-generated/include/smaccmpilot \
   -I./flight-generated/include/flight-generated \
   $(FREERTOS_INCLUDES)
 
@@ -88,32 +82,38 @@ STARTS := $(shell $(SANDBOX)/bin/$(GEN)\
   --include-dir=$(INCDIR) \
   --out-proc-syms)
 
-CBMC_EXEC	:= $(addprefix $(CONFIG_CBMC_PREFIX)/, cbmc)
-CBMC_REPORT	:= $(addprefix $(CONFIG_CBMC_REPORT)/, cbmc-report)
-ENTRY_FUNCS	:= $(patsubst %, --function %, $(STARTS))
-CBMC_SRCS	:= $(patsubst %, --src %, $(FLIGHT_GENERATED_SOURCES))
+CBMC_EXEC		:= $(addprefix $(CONFIG_CBMC_PREFIX)/, cbmc)
+CBMC_REPORT	:= $(addprefix $(CONFIG_CBMC_REPORT)/, cbmc-reporter)
+ENTRY_FUNCS	:= $(patsubst %, --function=%, $(STARTS))
+CBMC_SRCS		:= $(patsubst %, --src=%, $(FLIGHT_GENERATED_SOURCES))
 
 .PHONY: verify
 verify: $(FLIGHT_GENERATED_HEADERS) $(FLIGHT_GENERATED_SOURCES)
 	$(CBMC_REPORT) \
     --outfile=$(TOP)/ivory/claims-table.md \
     --format=markdown \
-    --timeout=10 \
+    --timeout=60 \
     --no-asserts \
+    --threads=2 \
     --sort=result \
     --cbmc=$(CBMC_EXEC) \
+    $(CBMC_INCS) \
+    $(CBMC_SRCS) \
     $(ENTRY_FUNCS) \
-    -- -D IVORY_CBMC $(CBMC_INCS) $(FLIGHT_GENERATED_SOURCES)
+    -- -D IVORY_CBMC
 
-.PHONY: verify-tmp
-verify-tmp: $(FLIGHT_GENERATED_HEADERS) $(FLIGHT_GENERATED_SOURCES)
+# Just for testing
+.PHONY: verify-test
+verify-test: $(FLIGHT_GENERATED_HEADERS) $(FLIGHT_GENERATED_SOURCES)
 	$(CBMC_REPORT) \
     --format=markdown \
-    --timeout=10 \
+    --timeout=60 \
     --no-asserts \
     --sort=result \
     --cbmc=$(CBMC_EXEC) \
-    --function=gcs_transmit_send_vfrhud \
-    -- -D IVORY_CBMC $(CBMC_INCS) $(FLIGHT_GENERATED_SOURCES)
+    $(CBMC_INCS) \
+    $(CBMC_SRCS) \
+    --function=foo \
+    -- -D IVORY_CBMC
 
     # --outfile=$(TOP)/ivory/claims-table-tmp.md \
