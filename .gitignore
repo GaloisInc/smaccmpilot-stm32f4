@@ -5,3 +5,7 @@ build
 mav.log
 mav.log.raw
 status.txt
+mkpdf.sh
+out.dot
+out.pdf
+.gdbinit
