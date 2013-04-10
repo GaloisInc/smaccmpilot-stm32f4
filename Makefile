@@ -40,7 +40,7 @@ endef
 $(foreach p,$(shell find . -name build.mk -exec dirname {} \;), \
           $(eval $(call project,$(p))))
 
-ALL_TARGETS := $(IVORY) $(LIBRARIES) $(IMAGES)
+ALL_TARGETS := $(IVORY) $(LIBRARIES) $(IMAGES) $(TWRTEST)
 ALL_DEPS    := $(patsubst %.o,%.d,$(ALL_OBJECTS))
 
 ######################################################################
