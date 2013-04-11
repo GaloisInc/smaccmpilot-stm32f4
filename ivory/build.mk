@@ -86,11 +86,14 @@ CBMC_EXEC		:= $(addprefix $(CONFIG_CBMC_PREFIX)/, cbmc)
 CBMC_REPORT	:= $(addprefix $(CONFIG_CBMC_REPORT)/, cbmc-reporter)
 ENTRY_FUNCS	:= $(patsubst %, --function=%, $(STARTS))
 CBMC_SRCS		:= $(patsubst %, --src=%, $(FLIGHT_GENERATED_SOURCES))
+TABLE        = $(TOP)/ivory/claims-table
+
+CLEAN += $(TABLE).html
 
 .PHONY: verify
 verify: $(FLIGHT_GENERATED_HEADERS) $(FLIGHT_GENERATED_SOURCES)
 	$(CBMC_REPORT) \
-    --outfile=$(TOP)/ivory/claims-table.md \
+    --outfile=$(TABLE).md \
     --format=markdown \
     --timeout=60 \
     --no-asserts \
@@ -101,6 +104,7 @@ verify: $(FLIGHT_GENERATED_HEADERS) $(FLIGHT_GENERATED_SOURCES)
     $(CBMC_SRCS) \
     $(ENTRY_FUNCS) \
     -- -D IVORY_CBMC
+	pandoc -o $(TABLE).html $(TABLE).md
 
 # Just for testing
 .PHONY: verify-test
