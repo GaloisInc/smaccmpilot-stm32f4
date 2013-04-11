@@ -194,7 +194,10 @@ mkSendVfrHud senders = proc "gcs_transmit_send_vfrhud" $ \pos ctl sens -> body $
     vx <- (pos ~>* P.vx)
     vy <- (pos ~>* P.vy)
     vz <- (pos ~>* P.vz)
-    sumsquares <- assign (safeCast (vx * vx + vy * vy + vz * vz) :: IFloat)
+    vxf <- assign (safeCast vx)
+    vyf <- assign (safeCast vy)
+    vzf <- assign (safeCast vz)
+    sumsquares <- assign (vxf * vxf + vyf * vyf + vzf * vzf)
     return $ sqrt sumsquares
 
   calcAltitude :: Ref s (Struct "position_result") -> Ivory eff IFloat
