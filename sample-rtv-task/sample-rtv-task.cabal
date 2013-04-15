@@ -1,0 +1,28 @@
+name:                sample-rtv-task
+version:             0.1.0.0
+build-type:          Simple
+cabal-version:       >=1.10
+
+executable sample-rtv-task-checker-gen
+  main-is:             checker.hs
+  hs-source-dirs:      haskell-src
+  build-depends:       base >= 4.6
+                     , ivory
+                     , ivory-lang-c
+                     , ivory-rtverification
+                     , language-c-quote >= 0.5.0
+                     , mainland-pretty
+                     , srcloc
+                     , monadLib
+
+
+executable sample-rtv-task-setget-gen
+  main-is:             generate.hs
+  hs-source-dirs:      haskell-src
+  build-depends:       base >= 4.6
+                     , ivory
+                     , ivory-lang-c
+                     , ivory-rtverification
+                     , language-c-quote >= 0.5.0
+                     , mainland-pretty
+                     , srcloc
