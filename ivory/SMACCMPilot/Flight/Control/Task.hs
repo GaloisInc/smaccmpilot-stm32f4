@@ -25,18 +25,15 @@ controlTask s_fm s_inpt s_sens s_ctl = do
   uiReader   <- withDataReader s_inpt "userinput"
   sensRxer   <- withEventReceiver s_sens "sensors"
   ctlEmitter <- withEventEmitter s_ctl  "control"
-  n <- freshname
-  taskBody $ proc ("stabilizeTaskDef" ++ n) $ body $ do
+  taskLoop $ do
     fm   <- local (istruct [])
     inpt <- local (istruct [])
-    sens <- local (istruct [])
     ctl  <- local (istruct [])
-    forever $ do
-      receive  sensRxer sens
+    handlers $ onEvent sensRxer $ \sens -> do
       readData fmReader   fm
       readData uiReader   inpt
 
-      call_ stabilize_run fm inpt sens ctl
+      call_ stabilize_run (constRef fm) (constRef inpt) sens ctl
       -- the trivial throttle controller:
       deref (inpt ~> UI.throttle) >>= store (ctl ~> CO.throttle)
 

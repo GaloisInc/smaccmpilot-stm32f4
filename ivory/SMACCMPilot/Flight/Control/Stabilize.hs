@@ -53,9 +53,9 @@ const_MAX_OUTPUT_PITCH = 50 -- deg/sec
 const_MAX_OUTPUT_YAW   = 45 -- deg/sec
 
 
-stabilize_run :: Def ('[ Ref s0 (Struct "flightmode")
-                       , Ref s1 (Struct "userinput_result")
-                       , Ref s2 (Struct "sensors_result")
+stabilize_run :: Def ('[ ConstRef s0 (Struct "flightmode")
+                       , ConstRef s1 (Struct "userinput_result")
+                       , ConstRef s2 (Struct "sensors_result")
                        , Ref s3 (Struct "controloutput")
                        ] :-> ())
 stabilize_run = proc "stabilize_run" $ \fm input sensors output -> body $ do

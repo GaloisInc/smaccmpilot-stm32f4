@@ -19,18 +19,16 @@ userInputTask :: DataSource (Struct "userinput_result")
               -> DataSource (Struct "flightmode")
               -> Task ()
 userInputTask uis fms = do
-  n <- freshname
   fmWriter <- withDataWriter fms "flightMode"
   uiWriter <- withDataWriter uis "userInput"
   p <- withPeriod 50
   t <- withGetTimeMillis
-  taskBody $ proc ("userInputTaskDef" ++ n) $ body $ do
+  taskLoop $ do
     chs     <- local (iarray [])
     decoder <- local (istruct [])
     ui_result  <- local (istruct [])
     fm_result  <- local (istruct [])
-    periodic p $ do
-      now <- getTimeMillis t
+    handlers $ onTimer p $ \now -> do
       captured <- call userInputCapture chs
       ift captured $ do
         call_ userInputDecode chs decoder ui_result fm_result now

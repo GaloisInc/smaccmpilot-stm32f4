@@ -8,6 +8,7 @@ module SMACCMPilot.Flight.GCS.Transmit.Task
   ) where
 
 import Prelude hiding (last)
+import Data.Monoid
 
 import Ivory.Language
 import Ivory.Tower
@@ -32,7 +33,7 @@ gcsTransmitTask :: String -> MemArea (Struct "usart")
                 -> DataSink (Struct "servos")
                 -> Task ()
 gcsTransmitTask usartname usart sp_sink fm_sink se_sink ps_sink ct_sink sr_sink = do
-  streamPeriodPoll <- withEventPoll  sp_sink 0 "streamperiods"
+  streamPeriodRxer <- withEventReceiver sp_sink  "streamperiods"
   fmReader         <- withDataReader fm_sink "flightmode"
   sensorsReader    <- withDataReader se_sink "sensors"
   posReader        <- withDataReader ps_sink "position"
@@ -45,11 +46,10 @@ gcsTransmitTask usartname usart sp_sink fm_sink se_sink ps_sink ct_sink sr_sink 
   withStackSize 512
   p <- withPeriod 50
   t <- withGetTimeMillis
-  taskBody $ proc ("gcsTransmitTaskDef_" ++ usartname ++ n) $ body $ do
+  taskLoop $ do
     initTime <- getTimeMillis t
     lastRun  <- local (ival initTime)
 
-    s_newperiods  <- local (istruct [])
     s_periods     <- local (istruct [])
     s_schedule    <- local (istruct [])
 
@@ -59,60 +59,57 @@ gcsTransmitTask usartname usart sp_sink fm_sink se_sink ps_sink ct_sink sr_sink 
     s_ctl  <- local (istruct [])
     s_serv <- local (istruct [])
 
-    periodic p $ do
-      now <- getTimeMillis t
+    let hstream = onEvent streamPeriodRxer $ \newperiods -> do
+          now <- getTimeMillis t
+          setNewPeriods newperiods s_periods s_schedule now
 
-      -- Update periods, adding streams to schedule if they are now enabled
-      got <- poll streamPeriodPoll s_newperiods
-      ifte got
-        (setNewPeriods (constRef s_newperiods) s_periods s_schedule now)
-        (return ())
+    let htimer = onTimer p $ \now -> do
+          -- Handler for all streams - if due, run action, then update schedule
+          let onStream :: Label "gcsstream_timing" (Stored Uint32)
+                       -> Ivory eff () -> Ivory eff ()
+              onStream selector action = do
+                last <- deref lastRun
+                due <- streamDue (constRef s_periods) (constRef s_schedule) selector last now
+                ifte due
+                  (do action
+                      setNextTime (constRef s_periods) s_schedule selector now)
+                  (return ())
 
-      -- Handler for all streams - if due, run action, then update schedule
-      let onStream :: Label "gcsstream_timing" (Stored Uint32)
-                   -> Ivory eff () -> Ivory eff ()
-          onStream selector action = do
-            last <- deref lastRun
-            due <- streamDue (constRef s_periods) (constRef s_schedule) selector last now
-            ifte due
-              (do action
-                  setNextTime (constRef s_periods) s_schedule selector now)
-              (return ())
+          onStream S.heartbeat $ do
+            readData fmReader s_fm
+            call_ (sendHeartbeat chan1) s_fm
 
-      onStream S.heartbeat $ do
-        readData fmReader s_fm
-        call_ (sendHeartbeat chan1) s_fm
+          onStream S.servo_output_raw $ do
+            readData servoReader s_serv
+            readData ctlReader s_ctl
+            call_ (sendServoOutputRaw chan1) s_serv s_ctl
 
-      onStream S.servo_output_raw $ do
-        readData servoReader s_serv
-        readData ctlReader s_ctl
-        call_ (sendServoOutputRaw chan1) s_serv s_ctl
+          onStream S.attitude $ do
+            readData sensorsReader s_sens
+            call_ (sendAttitude chan1) s_sens
 
-      onStream S.attitude $ do
-        readData sensorsReader s_sens
-        call_ (sendAttitude chan1) s_sens
+          onStream S.gps_raw_int $ do
+            readData posReader s_pos
+            call_ (sendGpsRawInt chan1) s_pos
 
-      onStream S.gps_raw_int $ do
-        readData posReader s_pos
-        call_ (sendGpsRawInt chan1) s_pos
+          onStream S.vfr_hud $ do
+            readData posReader s_pos
+            readData ctlReader s_ctl
+            readData sensorsReader s_sens
+            call_ (sendVfrHud chan1) s_pos s_ctl s_sens
 
-      onStream S.vfr_hud $ do
-        readData posReader s_pos
-        readData ctlReader s_ctl
-        readData sensorsReader s_sens
-        call_ (sendVfrHud chan1) s_pos s_ctl s_sens
+          onStream S.global_position_int $ do
+            readData posReader s_pos
+            readData sensorsReader s_sens
+            call_ (sendGlobalPositionInt chan1) s_pos s_sens
 
-      onStream S.global_position_int $ do
-        readData posReader s_pos
-        readData sensorsReader s_sens
-        call_ (sendGlobalPositionInt chan1) s_pos s_sens
+          onStream S.params $ do
+            -- XXX our whole story for params is broken
+            return ()
 
-      onStream S.params $ do
-        -- XXX our whole story for params is broken
-        return ()
-
-      -- Keep track of last run for internal scheduler
-      store lastRun now
+          -- Keep track of last run for internal scheduler
+          store lastRun now
+    handlers $ hstream <> htimer
 
   taskModuleDef $ do
     depend FM.flightModeTypeModule

@@ -20,10 +20,9 @@ blinkTask :: MemArea (Struct "pin")
           -> DataSink (Struct "flightmode")
           -> Task ()
 blinkTask mempin s = do
-  n <- freshname
   fmReader <- withDataReader s "flightmode"
   p <- withPeriod 125
-  taskBody $ proc ("blinkTaskDef" ++ n) $ body $ do
+  taskLoop $ do
     pin <- addrOf mempin
     call_ pin_enable     pin
     call_ pin_set_otype  pin pinTypePushPull
@@ -33,7 +32,7 @@ blinkTask mempin s = do
     call_ pin_set_mode   pin pinModeOutput
     flightMode <- local (istruct [])
     s_phase    <- local (ival (0::Uint8))
-    periodic p $ do
+    handlers $ onTimer p $ \_now -> do
       readData fmReader flightMode
       bmode  <- flightModeToBlinkMode flightMode
       phase  <- nextPhase 8 s_phase

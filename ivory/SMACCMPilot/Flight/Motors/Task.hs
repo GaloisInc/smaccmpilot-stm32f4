@@ -20,21 +20,18 @@ motorsTask :: EventSink (Struct "controloutput")
            -> DataSource (Struct "servos")
            -> Task ()
 motorsTask cs ms ss = do
-  n <- freshname
   ctlRxer   <- withEventReceiver cs "ctlOut"
   fmReader  <- withDataReader ms "flightMode"
   srvWriter <- withDataWriter ss "servos"
-  taskBody $ proc ("motorTaskDef" ++ n) $ body $ do
-    s_ctl   <- local (istruct [])
+  taskLoop $ do
     s_fm    <- local (istruct [])
     s_servo <- local (istruct [])
     call_ apmotors_output_init
-    forever $ do
-      receive  ctlRxer   s_ctl
+    handlers $ onEvent ctlRxer $ \ctl -> do
       readData fmReader  s_fm
-      call_ apmotors_output_set  (constRef s_ctl) (constRef s_fm)
-      call_ apmotors_servo_get   s_servo
-      writeData srvWriter        (constRef s_servo)
+      call_ apmotors_output_set ctl (constRef s_fm)
+      call_ apmotors_servo_get  s_servo
+      writeData srvWriter       (constRef s_servo)
 
   taskModuleDef $ do
     depend C.controlOutputTypeModule

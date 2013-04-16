@@ -35,16 +35,18 @@ gcsReceiveTask usartname usart_area s_src = do
          , handle hilState
          ]
          where runHandlers s = mapM_ ((flip($)) s)
-
-  taskBody $ proc ("gcsReceiveTaskDef_" ++ usartname ++ n) $ body $ do
+  p <- withPeriod 1
+  taskLoop $ do
     s_periods <- local defaultPeriods
     emit streamPeriodEmitter (constRef s_periods)
 
     usart <- addrOf usart_area
     buf <- local (iarray [] :: Init (Array 1 (Stored Uint8)))
     state <- local (istruct [ R.status .= ival R.status_IDLE ])
-    forever $ do
-      n <- call usartRead usart (toCArray buf) 1  -- at some point, turn this into event driven
+    handlers $ onTimer p $ \_now -> do
+      -- XXX this task is totally invalid until we fix this to be part of the
+      -- event loop
+      n <- call usartReadTimeout usart 1 (toCArray buf) 1
       ifte (n ==? 0) (return ()) $ do
         b <- deref (buf ! 0)
         R.mavlinkReceiveByte state b
