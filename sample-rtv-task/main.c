@@ -14,6 +14,8 @@ void verify_updates(void *args);
 /* Global variable that keeps track of time. */
 int32_t curr_time __attribute__((instrument(0)));
 
+int32_t dummy __attribute__((instrument(1))) = 100;
+
 /* Task simulating reading from a clock every second and putting the result in
  * the given queue */
 void read_clock_task(void *args)
