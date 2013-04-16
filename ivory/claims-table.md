@@ -1,22 +1,16 @@
+Claims Table
+------------
 
 Result|File                                                              |Function                                                                              |Line|Entry                                                                                 
 :-----|:-----------------------------------------------------------------|:-------------------------------------------------------------------------------------|:---|:-------------------------------------------------------------------------------------
-False |flight-generated/src/gcs\_transmit\_driver\_mavlinksender\_\_15\.c|gcs\_transmit\_send\_vfrhud                                                           |69  |gcs\_transmit\_send\_vfrhud                                                           
 False |flight-generated/src/tower\.c                                     |gcsReceiveHandlerAux\_14                                                              |1021|gcsReceiveHandlerAux\_14                                                              
 False |flight-generated/src/userinput\_decode\.c                         |userinput\_decode                                                                     |109 |userinput\_decode                                                                     
-False |flight-generated/src/userinput\_decode\.c                         |userinput\_failsafe                                                                   |140 |userinput\_failsafe                                                                   
-True  |flight-generated/src/gcs\_transmit\_driver\_mavlinksender\_\_15\.c|gcs\_transmit\_send\_vfrhud                                                           |86  |gcs\_transmit\_send\_vfrhud                                                           
-True  |flight-generated/src/gcs\_transmit\_driver\_mavlinksender\_\_15\.c|gcs\_transmit\_send\_vfrhud                                                           |101 |gcs\_transmit\_send\_vfrhud                                                           
-True  |flight-generated/src/gcs\_transmit\_driver\_mavlinksender\_\_15\.c|gcs\_transmit\_send\_vfrhud                                                           |112 |gcs\_transmit\_send\_vfrhud                                                           
-True  |flight-generated/src/gcs\_transmit\_driver\_mavlinksender\_\_15\.c|gcs\_transmit\_send\_vfrhud                                                           |123 |gcs\_transmit\_send\_vfrhud                                                           
-True  |flight-generated/src/gcs\_transmit\_driver\_mavlinksender\_\_15\.c|gcs\_transmit\_send\_vfrhud                                                           |144 |gcs\_transmit\_send\_vfrhud                                                           
-True  |flight-generated/src/gcs\_transmit\_driver\_mavlinksender\_\_15\.c|gcs\_transmit\_send\_vfrhud                                                           |161 |gcs\_transmit\_send\_vfrhud                                                           
-True  |flight-generated/src/gcs\_transmit\_driver\_mavlinksender\_\_15\.c|gcs\_transmit\_send\_vfrhud                                                           |176 |gcs\_transmit\_send\_vfrhud                                                           
-True  |flight-generated/src/gcs\_transmit\_driver\_mavlinksender\_\_15\.c|gcs\_transmit\_send\_vfrhud                                                           |187 |gcs\_transmit\_send\_vfrhud                                                           
-True  |flight-generated/src/gcs\_transmit\_driver\_mavlinksender\_\_15\.c|gcs\_transmit\_send\_vfrhud                                                           |198 |gcs\_transmit\_send\_vfrhud                                                           
 True  |flight-generated/src/mavlink\_msg\_senders\_mavlinksender\_\_15\.c|mavlink\_attitude\_msg\_sendmavlinksender\_\_15                                       |1318|gcs\_transmit\_send\_attitude                                                         
 True  |flight-generated/src/mavlink\_msg\_senders\_mavlinksender\_\_15\.c|mavlink\_attitude\_quaternion\_msg\_sendmavlinksender\_\_15                           |1397|mavlink\_attitude\_quaternion\_msg\_sendmavlinksender\_\_15                           
+True  |flight-generated/src/mavlink\_msg\_senders\_mavlinksender\_\_15\.c|mavlink\_auth\_key\_msg\_sendmavlinksender\_\_15                                      |435 |mavlink\_auth\_key\_msg\_sendmavlinksender\_\_15                                      
 True  |flight-generated/src/mavlink\_msg\_senders\_mavlinksender\_\_15\.c|mavlink\_battery\_status\_msg\_sendmavlinksender\_\_15                                |5536|mavlink\_battery\_status\_msg\_sendmavlinksender\_\_15                                
+True  |flight-generated/src/mavlink\_msg\_senders\_mavlinksender\_\_15\.c|mavlink\_change\_operator\_control\_ack\_msg\_sendmavlinksender\_\_15                 |380 |mavlink\_change\_operator\_control\_ack\_msg\_sendmavlinksender\_\_15                 
+True  |flight-generated/src/mavlink\_msg\_senders\_mavlinksender\_\_15\.c|mavlink\_change\_operator\_control\_msg\_sendmavlinksender\_\_15                      |321 |mavlink\_change\_operator\_control\_msg\_sendmavlinksender\_\_15                      
 True  |flight-generated/src/mavlink\_msg\_senders\_mavlinksender\_\_15\.c|mavlink\_command\_ack\_msg\_sendmavlinksender\_\_15                                   |4267|mavlink\_command\_ack\_msg\_sendmavlinksender\_\_15                                   
 True  |flight-generated/src/mavlink\_msg\_senders\_mavlinksender\_\_15\.c|mavlink\_command\_long\_msg\_sendmavlinksender\_\_15                                  |4212|mavlink\_command\_long\_msg\_sendmavlinksender\_\_15                                  
 True  |flight-generated/src/mavlink\_msg\_senders\_mavlinksender\_\_15\.c|mavlink\_data\_stream\_msg\_sendmavlinksender\_\_15                                   |3893|mavlink\_data\_stream\_msg\_sendmavlinksender\_\_15                                   
@@ -77,10 +71,10 @@ True  |flight-generated/src/mavlink\_msg\_senders\_mavlinksender\_\_15\.c|mavlin
 True  |flight-generated/src/mavlink\_msg\_senders\_mavlinksender\_\_15\.c|mavlink\_set\_global\_position\_setpoint\_int\_msg\_sendmavlinksender\_\_15           |2899|mavlink\_set\_global\_position\_setpoint\_int\_msg\_sendmavlinksender\_\_15           
 True  |flight-generated/src/mavlink\_msg\_senders\_mavlinksender\_\_15\.c|mavlink\_set\_gps\_global\_origin\_msg\_sendmavlinksender\_\_15                       |2564|mavlink\_set\_gps\_global\_origin\_msg\_sendmavlinksender\_\_15                       
 True  |flight-generated/src/mavlink\_msg\_senders\_mavlinksender\_\_15\.c|mavlink\_set\_local\_position\_setpoint\_msg\_sendmavlinksender\_\_15                 |2698|mavlink\_set\_local\_position\_setpoint\_msg\_sendmavlinksender\_\_15                 
+True  |flight-generated/src/mavlink\_msg\_senders\_mavlinksender\_\_15\.c|mavlink\_set\_mode\_msg\_sendmavlinksender\_\_15                                      |494 |mavlink\_set\_mode\_msg\_sendmavlinksender\_\_15                                      
 True  |flight-generated/src/mavlink\_msg\_senders\_mavlinksender\_\_15\.c|mavlink\_set\_quad\_motors\_setpoint\_msg\_sendmavlinksender\_\_15                    |3400|mavlink\_set\_quad\_motors\_setpoint\_msg\_sendmavlinksender\_\_15                    
 True  |flight-generated/src/mavlink\_msg\_senders\_mavlinksender\_\_15\.c|mavlink\_set\_quad\_swarm\_led\_roll\_pitch\_yaw\_thrust\_msg\_sendmavlinksender\_\_15|3684|mavlink\_set\_quad\_swarm\_led\_roll\_pitch\_yaw\_thrust\_msg\_sendmavlinksender\_\_15
 True  |flight-generated/src/mavlink\_msg\_senders\_mavlinksender\_\_15\.c|mavlink\_set\_quad\_swarm\_roll\_pitch\_yaw\_thrust\_msg\_sendmavlinksender\_\_15     |3489|mavlink\_set\_quad\_swarm\_roll\_pitch\_yaw\_thrust\_msg\_sendmavlinksender\_\_15     
-True  |flight-generated/src/mavlink\_msg\_senders\_mavlinksender\_\_15\.c|mavlink\_set\_roll\_pitch\_yaw\_speed\_thrust\_msg\_sendmavlinksender\_\_15           |3199|mavlink\_set\_roll\_pitch\_yaw\_speed\_thrust\_msg\_sendmavlinksender\_\_15           
 True  |flight-generated/src/mavlink\_msg\_senders\_mavlinksender\_\_15\.c|mavlink\_set\_roll\_pitch\_yaw\_thrust\_msg\_sendmavlinksender\_\_15                  |3128|mavlink\_set\_roll\_pitch\_yaw\_thrust\_msg\_sendmavlinksender\_\_15                  
 True  |flight-generated/src/mavlink\_msg\_senders\_mavlinksender\_\_15\.c|mavlink\_setpoint\_6dof\_msg\_sendmavlinksender\_\_15                                 |5694|mavlink\_setpoint\_6dof\_msg\_sendmavlinksender\_\_15                                 
 True  |flight-generated/src/mavlink\_msg\_senders\_mavlinksender\_\_15\.c|mavlink\_setpoint\_8dof\_msg\_sendmavlinksender\_\_15                                 |5619|mavlink\_setpoint\_8dof\_msg\_sendmavlinksender\_\_15                                 
@@ -92,11 +86,11 @@ True  |flight-generated/src/mavlink\_msg\_senders\_mavlinksender\_\_15\.c|mavlin
 True  |flight-generated/src/mavlink\_msg\_senders\_mavlinksender\_\_15\.c|mavlink\_vicon\_position\_estimate\_msg\_sendmavlinksender\_\_15                      |5156|mavlink\_vicon\_position\_estimate\_msg\_sendmavlinksender\_\_15                      
 True  |flight-generated/src/mavlink\_msg\_senders\_mavlinksender\_\_15\.c|mavlink\_vision\_position\_estimate\_msg\_sendmavlinksender\_\_15                     |5018|mavlink\_vision\_position\_estimate\_msg\_sendmavlinksender\_\_15                     
 True  |flight-generated/src/mavlink\_msg\_senders\_mavlinksender\_\_15\.c|mavlink\_vision\_speed\_estimate\_msg\_sendmavlinksender\_\_15                        |5081|mavlink\_vision\_speed\_estimate\_msg\_sendmavlinksender\_\_15                        
-True  |flight-generated/src/param\.c                                     |param\_get\_by\_name                                                                  |77  |param\_get\_by\_name                                                                  
-True  |flight-generated/src/param\.c                                     |param\_get\_next\_seq                                                                 |248 |param\_save                                                                           
-True  |flight-generated/src/param\.c                                     |param\_get\_requested                                                                 |107 |gcs\_transmit\_send\_params                                                           
-True  |flight-generated/src/param\.c                                     |param\_new                                                                            |19  |param\_init\_float                                                                    
-True  |flight-generated/src/param\.c                                     |param\_save                                                                           |631 |param\_save                                                                           
+True  |flight-generated/src/param\.c                                     |param\_get\_by\_name                                                                  |72  |param\_get\_by\_name                                                                  
+True  |flight-generated/src/param\.c                                     |param\_get\_next\_seq                                                                 |243 |param\_save                                                                           
+True  |flight-generated/src/param\.c                                     |param\_get\_requested                                                                 |102 |gcs\_transmit\_send\_params                                                           
+True  |flight-generated/src/param\.c                                     |param\_new                                                                            |14  |param\_init\_float                                                                    
+True  |flight-generated/src/param\.c                                     |param\_save                                                                           |626 |param\_save                                                                           
 True  |flight-generated/src/stabilize\_controlloops\.c                   |stabilize\_from\_angle                                                                |110 |stabilize\_run                                                                        
 True  |flight-generated/src/stabilize\_controlloops\.c                   |stabilize\_from\_rate                                                                 |124 |stabilize\_run                                                                        
 True  |flight-generated/src/storage\_partition\.c                        |partition\_in\_bounds                                                                 |38  |param\_save                                                                           
@@ -117,6 +111,7 @@ True  |flight-generated/src/userinput\_decode\.c                         |userin
 True  |flight-generated/src/userinput\_decode\.c                         |userinput\_decode                                                                     |81  |userinput\_decode                                                                     
 True  |flight-generated/src/userinput\_decode\.c                         |userinput\_decode                                                                     |89  |userinput\_decode                                                                     
 True  |flight-generated/src/userinput\_decode\.c                         |userinput\_decode                                                                     |97  |userinput\_decode                                                                     
+True  |flight-generated/src/userinput\_decode\.c                         |userinput\_failsafe                                                                   |140 |userinput\_failsafe                                                                   
 True  |flight-generated/src/userinput\_decode\.c                         |userinput\_scale                                                                      |154 |userinput\_decode                                                                     
 True  |flight-generated/src/userinput\_decode\.c                         |userinput\_scale                                                                      |155 |userinput\_decode                                                                     
 True  |flight-generated/src/userinput\_decode\.c                         |userinput\_scale                                                                      |159 |userinput\_decode                                                                     
@@ -125,10 +120,11 @@ True  |flight-generated/src/userinput\_decode\.c                         |userin
 True  |flight-generated/src/userinput\_decode\.c                         |userinput\_scale                                                                      |165 |userinput\_decode                                                                     
 
 
-Analyzed 118 true claims and 4 false claims.
+Analyzed 113 true claims and 2 false claims.
 
 ************
-* Warnings *
+Warnings
+--------
 
   * Did not cover claim  in file flight-generated/src/tower.c in function gcsTransmitTaskDef_usart1_15 at line 1431
 
@@ -260,77 +256,53 @@ Analyzed 118 true claims and 4 false claims.
 
   * Did not cover claim  in file flight-generated/src/tower.c in function gcsReceiveTaskDef_usart1_14 at line 508
 
-  * Did not cover claim  in file flight-generated/src/param.c in function foo at line 11
-
-  * Did not cover claim  in file flight-generated/src/param.c in function param_save at line 627
-
   * Did not cover claim  in file flight-generated/src/param.c in function param_save at line 622
 
-  * Did not cover claim  in file flight-generated/src/param.c in function param_load_all at line 452
+  * Did not cover claim  in file flight-generated/src/param.c in function param_save at line 617
 
-  * Did not cover claim  in file flight-generated/src/param.c in function param_load_all at line 449
+  * Did not cover claim  in file flight-generated/src/param.c in function param_load_all at line 447
+
+  * Did not cover claim  in file flight-generated/src/param.c in function param_load_all at line 444
 
   * Did not cover claim  in file flight-generated/src/mavlink_msg_senders_mavlinksender__15.c in function mavlink_file_transfer_dir_list_msg_sendmavlinksender__15 at line 5398
 
   * Did not cover claim  in file flight-generated/src/mavlink_msg_senders_mavlinksender__15.c in function mavlink_file_transfer_start_msg_sendmavlinksender__15 at line 5335
 
-  * Did not cover claim  in file flight-generated/src/mavlink_msg_senders_mavlinksender__15.c in function mavlink_set_mode_msg_sendmavlinksender__15 at line 494
+  * Did not cover claim  in file flight-generated/src/mavlink_msg_senders_mavlinksender__15.c in function mavlink_set_roll_pitch_yaw_speed_thrust_msg_sendmavlinksender__15 at line 3199
 
-  * Did not cover claim  in file flight-generated/src/mavlink_msg_senders_mavlinksender__15.c in function mavlink_auth_key_msg_sendmavlinksender__15 at line 435
+  * timeout: cbmc with args: --function mavlink_change_operator_control_msg_sendmavlinksender__15
 
-  * Did not cover claim  in file flight-generated/src/mavlink_msg_senders_mavlinksender__15.c in function mavlink_change_operator_control_ack_msg_sendmavlinksender__15 at line 380
+  * Can't parse output from func: mavlink_change_operator_control_msg_sendmavlinksender__15
 
-  * Did not cover claim  in file flight-generated/src/mavlink_msg_senders_mavlinksender__15.c in function mavlink_change_operator_control_msg_sendmavlinksender__15 at line 321
+  * timeout: cbmc with args: --function mavlink_ping_msg_sendmavlinksender__15
 
-  * timeout: cbmc with args: --function mavlink_scaled_imu_msg_sendmavlinksender__15
+  * Can't parse output from func: mavlink_ping_msg_sendmavlinksender__15
 
-  * Can't parse output from func: mavlink_scaled_imu_msg_sendmavlinksender__15
+  * timeout: cbmc with args: --function mavlink_change_operator_control_ack_msg_sendmavlinksender__15
 
-  * timeout: cbmc with args: --function mavlink_gps_status_msg_sendmavlinksender__15
+  * Can't parse output from func: mavlink_change_operator_control_ack_msg_sendmavlinksender__15
 
-  * Can't parse output from func: mavlink_gps_status_msg_sendmavlinksender__15
+  * timeout: cbmc with args: --function mavlink_auth_key_msg_sendmavlinksender__15
 
-  * timeout: cbmc with args: --function mavlink_raw_imu_msg_sendmavlinksender__15
+  * Can't parse output from func: mavlink_auth_key_msg_sendmavlinksender__15
 
-  * Can't parse output from func: mavlink_raw_imu_msg_sendmavlinksender__15
+  * Can't parse output from func: mavlink_param_request_read_msg_sendmavlinksender__15
 
-  * timeout: cbmc with args: --function mavlink_raw_pressure_msg_sendmavlinksender__15
+  * timeout: cbmc with args: --function mavlink_set_quad_swarm_led_roll_pitch_yaw_thrust_msg_sendmavlinksender__15
 
-  * Can't parse output from func: mavlink_raw_pressure_msg_sendmavlinksender__15
+  * Can't parse output from func: mavlink_set_quad_swarm_led_roll_pitch_yaw_thrust_msg_sendmavlinksender__15
 
-  * timeout: cbmc with args: --function mavlink_scaled_pressure_msg_sendmavlinksender__15
+  * timeout: cbmc with args: --function mavlink_set_quad_swarm_roll_pitch_yaw_thrust_msg_sendmavlinksender__15
 
-  * Can't parse output from func: mavlink_scaled_pressure_msg_sendmavlinksender__15
+  * Can't parse output from func: mavlink_set_quad_swarm_roll_pitch_yaw_thrust_msg_sendmavlinksender__15
 
-  * Can't parse output from func: mavlink_local_position_ned_msg_sendmavlinksender__15
+  * timeout: cbmc with args: --function mavlink_nav_controller_output_msg_sendmavlinksender__15
 
-  * timeout: cbmc with args: --function mavlink_set_roll_pitch_yaw_speed_thrust_msg_sendmavlinksender__15
+  * Can't parse output from func: mavlink_nav_controller_output_msg_sendmavlinksender__15
 
-  * Can't parse output from func: mavlink_set_roll_pitch_yaw_speed_thrust_msg_sendmavlinksender__15
+  * Can't parse output from func: mavlink_roll_pitch_yaw_rates_thrust_setpoint_msg_sendmavlinksender__15
 
-  * timeout: cbmc with args: --function mavlink_roll_pitch_yaw_thrust_setpoint_msg_sendmavlinksender__15
+  * timeout: cbmc with args: --function mavlink_manual_setpoint_msg_sendmavlinksender__15
 
-  * Can't parse output from func: mavlink_roll_pitch_yaw_thrust_setpoint_msg_sendmavlinksender__15
-
-  * timeout: cbmc with args: --function mavlink_roll_pitch_yaw_speed_thrust_setpoint_msg_sendmavlinksender__15
-
-  * Can't parse output from func: mavlink_roll_pitch_yaw_speed_thrust_setpoint_msg_sendmavlinksender__15
-
-  * timeout: cbmc with args: --function mavlink_set_quad_motors_setpoint_msg_sendmavlinksender__15
-
-  * Can't parse output from func: mavlink_set_quad_motors_setpoint_msg_sendmavlinksender__15
-
-  * timeout: cbmc with args: --function mavlink_file_transfer_res_msg_sendmavlinksender__15
-
-  * timeout: cbmc with args: --function mavlink_battery_status_msg_sendmavlinksender__15
-
-  * Can't parse output from func: mavlink_battery_status_msg_sendmavlinksender__15
-
-  * timeout: cbmc with args: --function mavlink_setpoint_8dof_msg_sendmavlinksender__15
-
-  * Can't parse output from func: mavlink_setpoint_8dof_msg_sendmavlinksender__15
-
-  * timeout: cbmc with args: --function mavlink_setpoint_6dof_msg_sendmavlinksender__15
-
-  * Can't parse output from func: mavlink_setpoint_6dof_msg_sendmavlinksender__15
+  * Can't parse output from func: mavlink_manual_setpoint_msg_sendmavlinksender__15
 
