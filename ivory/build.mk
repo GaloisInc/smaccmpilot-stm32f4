@@ -8,7 +8,7 @@ INCDIR=$(GENERATEDDIR)/include/flight-generated
 
 GEN=smaccmpilot-gen
 GENERATOR_EXE=$(SANDBOX)/bin/$(GEN)
-EXEC=ivory/dist/build/$(GEN)/$(GEN)
+# EXEC=ivory/dist/build/$(GEN)/$(GEN)
 
 IVORY_OPTS=--const-fold --overflow --div-zero
 # A little too noisy: --fp-check
@@ -46,11 +46,12 @@ $(FLIGHT_GENERATED_HEADERS) $(FLIGHT_GENERATED_SOURCES): $(GENERATED_DEP) $(GENE
 	$(SANDBOX)/bin/$(GEN) --src-dir=$(SRCDIR) --include-dir=$(INCDIR) \
 		$(IVORY_OPTS)
 
+# Currently created by the Makefile in the dsl/ dir.
 # Build the binary to generate the code.
-.PRECIOUS: $(EXEC)
-$(EXEC):
-	cabal-dev -s $(SANDBOX) install --builddir=$(TOP)/ivory \
-		$(TOP)/ivory
+# .PRECIOUS: $(EXEC)
+# $(EXEC):
+# 	cabal-dev -s $(SANDBOX) install --builddir=$(TOP)/ivory \
+# 		$(TOP)/ivory
 
 CLEAN     += $(GENERATED_DEP)
 # use wildcard, not the dep file, to clean subdirs, because if dep file
