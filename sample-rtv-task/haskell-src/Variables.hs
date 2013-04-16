@@ -1,6 +1,6 @@
 module Variables where
 
-import Ivory.RTVerifiation.GenSettersGetters (Type(..))
+import Ivory.RTVerification.GenSettersGetters (Type(..))
 
 variables :: [Type]
 variables = [Int, Int]

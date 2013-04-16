@@ -1,25 +1,26 @@
-{-# Language TypeOperators #-}
-{-# Language DataKinds #-}
+{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 import Ivory.Language
 import Ivory.Compile.C.CmdlineFrontend
 
 import Ivory.RTVerification.Operators
 import Ivory.RTVerification.GenChecker
+import Ivory.RTVerification.GenSettersGetters
 
-get_var0 :: Getter Sint32
-get_var0 = importProc "get_var0" "instrumented"
+import Variables (variables)
 
-get_var1 :: Getter Sint32
-get_var1 = importProc "get_var1" "instrumented"
+gettersAndHists variables
 
 checksMod :: Module
 checksMod = createModule $ properties $ do
-  historically [get_var0] (\[x] -> x >? 0)
-  historically [get_var1] (\[x] -> x ==? 100)
+  historically [get_id0] (\[x] -> x >? 0)
+  historically [get_id1] (\[x] -> x ==? 100)
 
 main :: IO ()
 main = do
-  runCompiler [checksMod] initialOpts { includeDir = "generated", srcDir = "generated" }
+  runCompiler [checksMod]
+    initialOpts { includeDir = "generated", srcDir = "generated" }
