@@ -1,6 +1,6 @@
 # -*- Mode: makefile-gmake; indent-tabs-mode: t; tab-width: 2 -*-
 
-# IVORY += rtv-sample-task
+# IVORY += rtv-sample-task sample-rtv
 
 RTV_GEN_HEADERS := $(OUTDIR)/instrumented.h $(OUTDIR)/runtime-checker.h
 RTV_GEN_SOURCES := $(OUTDIR)/instrumented.c $(OUTDIR)/runtime-checker.c
@@ -21,8 +21,6 @@ APP_RTV_OBJECTS     := main.o record_assignment.o checker_task.o \
 
 IVORY_RTV_SANDBOX   := $(TOP)/../dsl/cabal-dev
 
-RTV_GETSET_GEN_EXE  := \
-  $(IVORY_RTV_SANDBOX)/bin/$(PRJ)-setget-gen
 RTV_CHECKER_GEN_EXE := \
   $(IVORY_RTV_SANDBOX)/bin/$(PRJ)-checker-gen
 
@@ -45,14 +43,13 @@ APP_RTV_LIBS         += -lm
 $(eval $(call image,APP_RTV))
 
 $(RTV_GEN_HEADERS) $(RTV_GEN_SOURCES): \
-  $(RTV_GETSET_GEN_EXE) $(RTV_CHECKER_GEN_EXE)
+  $(RTV_CHECKER_GEN_EXE)
 	# XXX fix where to put output dir
-	cd $(PRJ) && ../$(RTV_GETSET_GEN_EXE)
 	cd $(PRJ) && ../$(RTV_CHECKER_GEN_EXE)
 
 # Made from DSL file.
-# .PRECIOUS: $(RTV_GETSET_GEN_EXE) $(RTV_CHECKER_GEN_EXE)
-# $(RTV_GETSET_GEN_EXE) $(RTV_CHECKER_GEN_EXE):
+# .PRECIOUS: $(RTV_CHECKER_GEN_EXE)
+# $(RTV_CHECKER_GEN_EXE):
 # 	cabal-dev -s $(IVORY_RTV_SANDBOX) install --builddir=$(TOP)/$(PRJ) \
 # 	          $(TOP)/$(PRJ)
 
