@@ -1,13 +1,13 @@
 # -*- Mode: makefile-gmake; indent-tabs-mode: t; tab-width: 2 -*-
 
-IVORY += ivory-rtv-sample-task-build
+# IVORY += rtv-sample-task
 
 RTV_GEN_HEADERS := $(OUTDIR)/instrumented.h $(OUTDIR)/runtime-checker.h
 RTV_GEN_SOURCES := $(OUTDIR)/instrumented.c $(OUTDIR)/runtime-checker.c
 
 # Main build entry point.
-.PHONY: ivory-rtv-sample-task-build
-ivory-rtv-sample-task-build: $(RTV_GEN_HEADERS) $(RTV_GEN_SOURCES) $(APP_RTV_IMG)
+.PHONY: rtv-sample-task
+rtv-sample-task: $(RTV_GEN_HEADERS) $(RTV_GEN_SOURCES) $(APP_RTV_IMG)
 
 # $(IVORY_BSP_STM32F4_SOURCES)
 
@@ -32,6 +32,8 @@ APP_RTV_INCLUDES     += -I$(TOP)/ivory-runtime/
 APP_RTV_INCLUDES     += -I$(TOP)/bsp/hwf4/include
 
 APP_RTV_CFLAGS        = $(APP_RTV_INCLUDES)
+APP_RTV_CFLAGS       += -fplugin=$(TOP)/../../ARM-analysis/GCC_plugin/instrument_plugin.so
+
 APP_RTV_CXXFLAGS      = $(APP_RTV_INCLUDES)
 
 APP_RTV_LIBRARIES    += libhwf4.a
