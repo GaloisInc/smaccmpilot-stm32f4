@@ -1,26 +1,17 @@
 # -*- Mode: makefile-gmake; indent-tabs-mode: t; tab-width: 2 -*-
 
-# IVORY += rtv-sample-task sample-rtv
-
+# Should be the sample name as the project directory.
+PRJ := sample-rtv-task
+OUTDIR := $(PRJ)/generated
 RTV_GEN_HEADERS := $(OUTDIR)/instrumented.h $(OUTDIR)/runtime-checker.h
 RTV_GEN_SOURCES := $(OUTDIR)/instrumented.c $(OUTDIR)/runtime-checker.c
 
-# Main build entry point.
-.PHONY: rtv-sample-task
-rtv-sample-task: $(RTV_GEN_HEADERS) $(RTV_GEN_SOURCES) $(APP_RTV_IMG)
-
 # $(IVORY_BSP_STM32F4_SOURCES)
 
-PRJ := sample-rtv-task
-OUTDIR := $(PRJ)/generated
-
 APP_RTV_IMG         := sample-rtv
-
 APP_RTV_OBJECTS     := main.o record_assignment.o checker_task.o \
                          generated/instrumented.o generated/runtime-checker.o
-
 IVORY_RTV_SANDBOX   := $(TOP)/../dsl/cabal-dev
-
 RTV_CHECKER_GEN_EXE := \
   $(IVORY_RTV_SANDBOX)/bin/$(PRJ)-checker-gen
 
@@ -30,9 +21,8 @@ APP_RTV_INCLUDES     += -I$(TOP)/ivory-runtime/
 APP_RTV_INCLUDES     += -I$(TOP)/bsp/hwf4/include
 
 APP_RTV_CFLAGS        = $(APP_RTV_INCLUDES)
-APP_RTV_CFLAGS       += -fplugin=$(TOP)/../../ARM-analysis/GCC_plugin/instrument_plugin.so
-
-APP_RTV_CXXFLAGS      = $(APP_RTV_INCLUDES)
+APP_RTV_CFLAGS       +=
+  -fplugin=$(TOP)/../../ARM-analysis/GCC_plugin/instrument_plugin.so
 
 APP_RTV_LIBRARIES    += libhwf4.a
 APP_RTV_LIBRARIES    += libstm32_usb.a
@@ -40,11 +30,17 @@ APP_RTV_LIBRARIES    += libFreeRTOS.a
 
 APP_RTV_LIBS         += -lm
 
+# Build target for the entire project.
+$(APP_RTV_IMG): $(PRJ)
+
+.PHONY: $(PRJ)
+$(PRJ): $(RTV_GEN_HEADERS) $(RTV_GEN_SOURCES)
+
 $(eval $(call image,APP_RTV))
 
-$(RTV_GEN_HEADERS) $(RTV_GEN_SOURCES): \
-  $(RTV_CHECKER_GEN_EXE)
-	# XXX fix where to put output dir
+$(RTV_GEN_HEADERS) $(RTV_GEN_SOURCES): $(RTV_CHECKER_GEN_EXE)
+  # XXX fix where to put output dir
+	echo "Generating RTV sources..."
 	cd $(PRJ) && ../$(RTV_CHECKER_GEN_EXE)
 
 # Made from DSL file.
@@ -56,3 +52,4 @@ $(RTV_GEN_HEADERS) $(RTV_GEN_SOURCES): \
 # vim: set ft=make noet ts=2:
 
 CLEAN += $(OUTDIR)
+CLEAN += $(addprefix $(OBJ_DIR)/, $(PRJ))

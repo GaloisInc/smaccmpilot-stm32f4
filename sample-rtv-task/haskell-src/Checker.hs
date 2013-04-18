@@ -22,5 +22,6 @@ checksMod = createModule $ properties $ do
 
 main :: IO ()
 main = do
+  writeCFilesForVariables variables "generated"
   runCompiler [checksMod]
     initialOpts { includeDir = "generated", srcDir = "generated" }
