@@ -63,10 +63,12 @@ JTAG/SWD debugger to flash and debug on the PX4FMU hardware.
   10. Interrupt the debugger with Control-C to reflash by running `load` and
     `run` again.
 
+You may wish to place the commands in steps 3-6 in a .gdbinit file.
+
 [3]: http://www.blacksphere.co.nz/main/blackmagic
 [4]: https://pixhawk.ethz.ch/px4/dev/jtag/black_magic_probe
 
-## Installing OpenOCD (required for STM32F4-Discovery board) 
+## Installing OpenOCD (required for STM32F4-Discovery board)
 
 On the STM32F4-Discovery board, we find it easier to use the builtin STLink
 debugger with OpenOCD.  (If you're only using the Black Magic Probe with the
