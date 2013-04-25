@@ -8,6 +8,9 @@ RTV_GEN_SOURCES := $(OUTDIR)/instrumented.c $(OUTDIR)/runtime-checker.c
 
 # $(IVORY_BSP_STM32F4_SOURCES)
 
+# Build Haskell-generated stuff first
+IVORY += $(RTV_GEN_HEADERS) $(RTV_GEN_SOURCES)
+
 APP_RTV_IMG         := sample-rtv
 APP_RTV_OBJECTS     := main.o record_assignment.o checker_task.o \
                          generated/instrumented.o generated/runtime-checker.o
@@ -31,10 +34,7 @@ APP_RTV_LIBRARIES    += libFreeRTOS.a
 APP_RTV_LIBS         += -lm
 
 # Build target for the entire project.
-$(APP_RTV_IMG): $(PRJ)
-
-.PHONY: $(PRJ)
-$(PRJ): $(RTV_GEN_HEADERS) $(RTV_GEN_SOURCES)
+$(APP_RTV_IMG): $(RTV_GEN_HEADERS) $(RTV_GEN_SOURCES)
 
 $(eval $(call image,APP_RTV))
 
