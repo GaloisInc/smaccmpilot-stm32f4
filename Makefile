@@ -13,6 +13,7 @@ include Config.mk
 
 include mk/arch/$(CONFIG_TOOLCHAIN).mk
 include mk/board/$(CONFIG_BOARD).mk
+include mk/export.mk
 
 TOP := .
 
