@@ -28,7 +28,7 @@ Clone the [Galois fork of the ArduPilot repo][22], using the `master` branch.
 Keep this clone in a directory near the smaccmpilot-stm32f4 tree, as you did
 with the FreeRTOS sources.
 
-[22]:https://github.com/GaloisInc/diydrones/ardupilot.git
+[22]:https://github.com/GaloisInc/ardupilot.git
 
 ## Configuration File
 
