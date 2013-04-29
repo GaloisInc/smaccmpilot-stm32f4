@@ -23,9 +23,8 @@ APP_RTV_INCLUDES     += -I$(TOP)/ivory-freertos-wrapper/include
 APP_RTV_INCLUDES     += -I$(TOP)/ivory-runtime/
 APP_RTV_INCLUDES     += -I$(TOP)/bsp/hwf4/include
 
-APP_RTV_CFLAGS        = $(APP_RTV_INCLUDES)
-APP_RTV_CFLAGS       +=
-  -fplugin=$(TOP)/../../ARM-analysis/GCC_plugin/instrument_plugin.so
+APP_RTV_CFLAGS       += $(APP_RTV_INCLUDES)
+APP_RTV_CFLAGS       += -fplugin=$(TOP)/../../ARM-analysis/GCC_plugin/instrument_plugin.so
 
 APP_RTV_LIBRARIES    += libhwf4.a
 APP_RTV_LIBRARIES    += libstm32_usb.a
