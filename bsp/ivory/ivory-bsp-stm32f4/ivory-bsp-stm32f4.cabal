@@ -37,7 +37,7 @@ executable ledblink-gen
   hs-source-dirs:      examples
   build-depends:       base >= 4.6,
                        ivory,
-                       ivory-lang-c,
+                       ivory-backend-c,
                        ivory-bitdata,
                        ivory-hw,
                        ivory-bsp-stm32f4

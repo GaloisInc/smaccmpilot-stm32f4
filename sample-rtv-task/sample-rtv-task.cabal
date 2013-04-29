@@ -8,7 +8,7 @@ executable sample-rtv-task-checker-gen
   hs-source-dirs:      haskell-src
   build-depends:       base >= 4.6
                      , ivory
-                     , ivory-lang-c
+                     , ivory-backend-c
                      , ivory-rtverification
                      , language-c-quote >= 0.5.0
                      , mainland-pretty
@@ -21,7 +21,7 @@ executable sample-rtv-task-setget-gen
   hs-source-dirs:      haskell-src
   build-depends:       base >= 4.6
                      , ivory
-                     , ivory-lang-c
+                     , ivory-backend-c
                      , ivory-rtverification
                      , language-c-quote >= 0.5.0
                      , mainland-pretty
