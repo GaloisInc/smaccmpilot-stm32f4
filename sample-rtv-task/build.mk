@@ -1,46 +1,55 @@
 # -*- Mode: makefile-gmake; indent-tabs-mode: t; tab-width: 2 -*-
 
-IVORY += ivory-rtv-sample-task-build
+# Should be the sample name as the project directory.
+PRJ := sample-rtv-task
+OUTDIR := $(PRJ)/generated
+RTV_GEN_HEADERS := $(OUTDIR)/instrumented.h $(OUTDIR)/runtime-checker.h
+RTV_GEN_SOURCES := $(OUTDIR)/instrumented.c $(OUTDIR)/runtime-checker.c
 
-.PHONY: ivory-rtv-sample-task-build
-ivory-rtv-sample-task-build: $(IVORY_RTV_GEN_EXEC) $(IVORY_RTV_HEADERS) # $(IVORY_BSP_STM32F4_SOURCES)
+# $(IVORY_BSP_STM32F4_SOURCES)
 
-APP_RTVTEST_IMG          := sample-rtv
+# Build Haskell-generated stuff first
+IVORY += $(RTV_GEN_HEADERS) $(RTV_GEN_SOURCES)
 
-APP_RTVTEST_OBJECTS      := main.o record_assignment.o checker_task.o \
-                            generated/instrumented.o generated/runtime-checker.o
-
+APP_RTV_IMG         := sample-rtv
+APP_RTV_OBJECTS     := main.o record_assignment.o checker_task.o \
+                         generated/instrumented.o generated/runtime-checker.o
 IVORY_RTV_SANDBOX   := $(TOP)/../dsl/cabal-dev
+RTV_CHECKER_GEN_EXE := \
+  $(IVORY_RTV_SANDBOX)/bin/$(PRJ)-checker-gen
 
-RTVTEST_GETSET_GENERATOR_EXE := $(TOP)/../dsl/cabal-dev/bin/sample-rtv-task-setget-gen
-RTVTEST_CHECKER_GENERATOR_EXE := $(TOP)/../dsl/cabal-dev/bin/sample-rtv-task-checker-gen
-RTVTEST_GENERATED_HEADERS := sample-rtv-task/generated/instrumented.h sample-rtv-task/generated/runtime-checker.h
-RTVTEST_GENERATED_SOURCES := generated/instrumented.c generated/runtime-checker.c
+APP_RTV_INCLUDES     += $(FREERTOS_INCLUDES)
+APP_RTV_INCLUDES     += -I$(TOP)/ivory-freertos-wrapper/include
+APP_RTV_INCLUDES     += -I$(TOP)/ivory-runtime/
+APP_RTV_INCLUDES     += -I$(TOP)/bsp/hwf4/include
 
-APP_RTVTEST_INCLUDES     += $(FREERTOS_INCLUDES)
-APP_RTVTEST_INCLUDES     += -I$(TOP)/ivory-freertos-wrapper/include
-APP_RTVTEST_INCLUDES     += -I$(TOP)/ivory-runtime/
-APP_RTVTEST_INCLUDES     += -I$(TOP)/bsp/hwf4/include
+APP_RTV_CFLAGS        = $(APP_RTV_INCLUDES)
+APP_RTV_CFLAGS       +=
+  -fplugin=$(TOP)/../../ARM-analysis/GCC_plugin/instrument_plugin.so
 
-APP_RTVTEST_CFLAGS        = $(APP_RTVTEST_INCLUDES)
-APP_RTVTEST_CXXFLAGS      = $(APP_RTVTEST_INCLUDES)
+APP_RTV_LIBRARIES    += libhwf4.a
+APP_RTV_LIBRARIES    += libstm32_usb.a
+APP_RTV_LIBRARIES    += libFreeRTOS.a
 
-APP_RTVTEST_LIBRARIES    += libhwf4.a
-APP_RTVTEST_LIBRARIES    += libstm32_usb.a
-APP_RTVTEST_LIBRARIES    += libFreeRTOS.a
+APP_RTV_LIBS         += -lm
 
-APP_RTVTEST_LIBS         += -lm
+# Build target for the entire project.
+$(APP_RTV_IMG): $(RTV_GEN_HEADERS) $(RTV_GEN_SOURCES)
 
-$(eval $(call image,APP_RTVTEST))
+$(eval $(call image,APP_RTV))
 
-$(RTVTEST_GENERATED_HEADERS) $(RTVTEST_GENERATED_SOURCES): $(RTVTEST_GETSET_GENERATOR_EXE) $(RTVTEST_CHECKER_GENERATOR_EXE)
-	# blargh
-	cd sample-rtv-task && ../$(RTVTEST_GETSET_GENERATOR_EXE)
-	cd sample-rtv-task && ../$(RTVTEST_CHECKER_GENERATOR_EXE)
+$(RTV_GEN_HEADERS) $(RTV_GEN_SOURCES): $(RTV_CHECKER_GEN_EXE)
+  # XXX fix where to put output dir
+	echo "Generating RTV sources..."
+	cd $(PRJ) && ../$(RTV_CHECKER_GEN_EXE)
 
-.PRECIOUS: $(RTVTEST_GETSET_GENERATOR_EXE) $(RTVTEST_CHECKER_GENERATOR_EXE)
-$(RTVTEST_GETSET_GENERATOR_EXE) $(RTVTEST_CHECKER_GENERATOR_EXE):
-	cabal-dev -s $(IVORY_RTV_SANDBOX) install --builddir=$(TOP)/sample-rtv-task \
-	          $(TOP)/sample-rtv-task
+# Made from DSL file.
+# .PRECIOUS: $(RTV_CHECKER_GEN_EXE)
+# $(RTV_CHECKER_GEN_EXE):
+# 	cabal-dev -s $(IVORY_RTV_SANDBOX) install --builddir=$(TOP)/$(PRJ) \
+# 	          $(TOP)/$(PRJ)
 
 # vim: set ft=make noet ts=2:
+
+CLEAN += $(OUTDIR)
+CLEAN += $(addprefix $(OBJ_DIR)/, $(PRJ))

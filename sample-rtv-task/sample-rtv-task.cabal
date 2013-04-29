@@ -4,7 +4,7 @@ build-type:          Simple
 cabal-version:       >=1.10
 
 executable sample-rtv-task-checker-gen
-  main-is:             checker.hs
+  main-is:             Checker.hs
   hs-source-dirs:      haskell-src
   build-depends:       base >= 4.6
                      , ivory
@@ -14,15 +14,5 @@ executable sample-rtv-task-checker-gen
                      , mainland-pretty
                      , srcloc
                      , monadLib
-
-
-executable sample-rtv-task-setget-gen
-  main-is:             generate.hs
-  hs-source-dirs:      haskell-src
-  build-depends:       base >= 4.6
-                     , ivory
-                     , ivory-backend-c
-                     , ivory-rtverification
-                     , language-c-quote >= 0.5.0
-                     , mainland-pretty
-                     , srcloc
+                     , template-haskell >= 2.8
+  other-modules:     Variables
