@@ -85,11 +85,9 @@ STARTS := $(shell $(SANDBOX)/bin/$(GEN)\
 
 CBMC_EXEC		:= $(addprefix $(CONFIG_CBMC_PREFIX)/, cbmc)
 CBMC_REPORT	:= $(addprefix $(CONFIG_CBMC_REPORT)/, cbmc-reporter)
-ENTRY_FUNCS	:= $(patsubst %, --function=%, $(STARTS))
 CBMC_SRCS		:= $(patsubst %, --src=%, $(FLIGHT_GENERATED_SOURCES))
 TABLE        = $(TOP)/ivory/claims-table
-
-CLEAN += $(TABLE).html
+ENTRY_FUNCS	:= $(patsubst %, --function=%, $(STARTS))
 
 .PHONY: verify
 verify: $(FLIGHT_GENERATED_HEADERS) $(FLIGHT_GENERATED_SOURCES)
@@ -118,7 +116,9 @@ verify-test: $(FLIGHT_GENERATED_HEADERS) $(FLIGHT_GENERATED_SOURCES)
     --cbmc=$(CBMC_EXEC) \
     $(CBMC_INCS) \
     $(CBMC_SRCS) \
-    --function=foo \
+    --function=tower_entry \
     -- -D IVORY_CBMC
 
     # --outfile=$(TOP)/ivory/claims-table-tmp.md \
+
+CLEAN += $(TABLE).html
