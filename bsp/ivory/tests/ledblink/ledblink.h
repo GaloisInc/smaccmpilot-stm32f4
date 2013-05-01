@@ -7,9 +7,9 @@
 extern "C" {
 #endif
 #include <FreeRTOS.h>
-#include <ivory.h>
 #include <task.h>
 #include "ivory_hw.h"
+#include "/home/trevor/work/smaccm/smaccm-project/source/dsl/cabal-dev//share/ivory-backend-c-0.1.0.0/runtime/ivory.h"
 void main();
 void main_task(uint8_t* n_var0);
 

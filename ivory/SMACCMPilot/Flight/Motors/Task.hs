@@ -38,7 +38,7 @@ motorsTask cs ms ss = do
     depend S.servosTypeModule
     depend M.flightModeTypeModule
     depend Task.taskModule
-    inclHeader "flight-support/apmotors_wrapper"
+    inclHeader "flight-support/apmotors_wrapper.h"
     private $ do
       incl apmotors_output_init
       incl apmotors_output_set

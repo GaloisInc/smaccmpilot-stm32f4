@@ -29,7 +29,7 @@ sensorsTask s = do
 
   taskModuleDef $ do
     depend S.sensorsTypeModule
-    inclHeader "flight-support/sensors_capture"
+    inclHeader "flight-support/sensors_capture.h"
     private $ do
       incl sensors_begin
       incl sensors_update

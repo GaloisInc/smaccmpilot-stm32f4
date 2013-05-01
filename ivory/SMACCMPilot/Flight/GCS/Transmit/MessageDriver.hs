@@ -92,7 +92,7 @@ moddefs d = do
   depend GRI.gpsRawIntModule
   depend GPI.globalPositionIntModule
   depend PV.paramValueModule
-  inclHeader "string"
+  inclHeader "string.h"
 
 messageDriver :: MavlinkSender -> (MessageDriver, [Module])
 messageDriver sender = (driver, [driverMod,  msgMod])
@@ -290,7 +290,7 @@ pv_strncpy :: Def ('[ Ref s1 (CArray (Stored Uint8))
                     , ConstRef s2 (CArray (Stored IChar))
                     , Uint32]
                 :-> ())
-pv_strncpy = importProc "strncpy" "string"
+pv_strncpy = importProc "strncpy" "string.h"
 
 mkSendParamValue :: MavlinkMessageSenders
                -> Def ('[ Ref s1 (Struct "param_info") ] :-> ())

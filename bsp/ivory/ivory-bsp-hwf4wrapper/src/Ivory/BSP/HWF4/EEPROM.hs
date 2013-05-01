@@ -29,7 +29,7 @@ import Ivory.BSP.HWF4.I2C
 eepromModule :: Module
 eepromModule = package "bsp_hwf4wrapper_eeprom" $ do
   depend i2cModule
-  inclHeader "hwf4/eeprom"
+  inclHeader "hwf4/eeprom.h"
   incl eeprom_init
   incl eeprom_read_byte
   incl eeprom_write_byte
@@ -43,29 +43,29 @@ eepromModule = package "bsp_hwf4wrapper_eeprom" $ do
 
 -- | Initialize the EEPROM driver given its I2C bus and address.
 eeprom_init :: Def ('[Ref s (Struct "i2cdrv_t"), Uint8] :-> ())
-eeprom_init = importProc "eeprom_init" "hwf4/eeprom"
+eeprom_init = importProc "eeprom_init" "hwf4/eeprom.h"
 
 -- | Read a single byte from the EEPROM at an address.
 eeprom_read_byte :: Def ('[Uint16, Ref s (Stored Uint8)] :-> IBool)
-eeprom_read_byte = importProc "eeprom_read_byte" "hwf4/eeprom"
+eeprom_read_byte = importProc "eeprom_read_byte" "hwf4/eeprom.h"
 
 -- | Write a single byte to the EEPROM at an address.
 eeprom_write_byte :: Def ('[Uint16, Uint8] :-> IBool)
-eeprom_write_byte = importProc "eeprom_write_byte" "hwf4/eeprom"
+eeprom_write_byte = importProc "eeprom_write_byte" "hwf4/eeprom.h"
 
 -- | Read multiple bytes from the EEPROM into a byte array.
 eeprom_read :: Def ('[ Uint16                        -- addr
                      , Ref s (CArray (Stored Uint8)) -- buf
                      , Uint32]                       -- len
                     :-> IBool)
-eeprom_read = importProc "eeprom_read" "hwf4/eeprom"
+eeprom_read = importProc "eeprom_read" "hwf4/eeprom.h"
 
 -- | Write multiple bytes to the EEPROM from a byte array.
 eeprom_write :: Def ('[ Uint16                             -- addr
                       , ConstRef s (CArray (Stored Uint8)) -- buf
                       , Uint32]                            -- len
                      :-> IBool)
-eeprom_write = importProc "eeprom_write" "hwf4/eeprom"
+eeprom_write = importProc "eeprom_write" "hwf4/eeprom.h"
 
 {-
 ----------------------------------------------------------------------

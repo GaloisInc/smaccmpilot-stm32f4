@@ -46,37 +46,37 @@ instance (SingI len) => Writable (Ref s (Array len (Stored IChar))) where
 -- Primitive C Printers
 
 write_u8 :: Def ('[Uint8] :-> ())
-write_u8 = importProc "console_write_u8" "flight-support/console_prim"
+write_u8 = importProc "console_write_u8" "flight-support/console_prim.h"
 
 instance Writable Uint8 where
   write = call_ write_u8
 
 write_s8 :: Def ('[Sint8] :-> ())
-write_s8 = importProc "console_write_s8" "flight-support/console_prim"
+write_s8 = importProc "console_write_s8" "flight-support/console_prim.h"
 
 instance Writable Sint8 where
   write = call_ write_s8
 
 write_u16 :: Def ('[Uint16] :-> ())
-write_u16 = importProc "console_write_u16" "flight-support/console_prim"
+write_u16 = importProc "console_write_u16" "flight-support/console_prim.h"
 
 instance Writable Uint16 where
   write = call_ write_u16
 
 write_s16 :: Def ('[Sint16] :-> ())
-write_s16 = importProc "console_write_s16" "flight-support/console_prim"
+write_s16 = importProc "console_write_s16" "flight-support/console_prim.h"
 
 instance Writable Sint16 where
   write = call_ write_s16
 
 write_u32 :: Def ('[Uint32] :-> ())
-write_u32 = importProc "console_write_u32" "flight-support/console_prim"
+write_u32 = importProc "console_write_u32" "flight-support/console_prim.h"
 
 instance Writable Uint32 where
   write = call_ write_u32
 
 write_s32 :: Def ('[Sint32] :-> ())
-write_s32 = importProc "console_write_s32" "flight-support/console_prim"
+write_s32 = importProc "console_write_s32" "flight-support/console_prim.h"
 
 instance Writable Sint32 where
   write = call_ write_s32
@@ -85,32 +85,32 @@ instance (SingI len) => Writable (Ix len) where
   write x = call_ write_s32 (safeCast x)
 
 write_float :: Def ('[IFloat] :-> ())
-write_float = importProc "console_write_float" "flight-support/console_prim"
+write_float = importProc "console_write_float" "flight-support/console_prim.h"
 
 instance Writable IFloat where
   write = call_ write_float
 
 write_double :: Def ('[IDouble] :-> ())
-write_double = importProc "console_write_double" "flight-support/console_prim"
+write_double = importProc "console_write_double" "flight-support/console_prim.h"
 
 instance Writable IDouble where
   write = call_ write_double
 
 write_istring :: Def ('[IString] :-> ())
-write_istring = importProc "console_write_string" "flight-support/console_prim"
+write_istring = importProc "console_write_string" "flight-support/console_prim.h"
 
 instance Writable IString where
   write = call_ write_istring
 
 write_string_n :: Def ('[ConstRef s (CArray (Stored IChar)), Sint32] :-> ())
-write_string_n = importProc "console_write_string_n" "flight-support/console_prim"
+write_string_n = importProc "console_write_string_n" "flight-support/console_prim.h"
 
 ----------------------------------------------------------------------
 -- Ivory Module
 
 consoleModule :: Module
 consoleModule = package "console" $ do
-  inclHeader "flight-support/console_prim"
+  inclHeader "flight-support/console_prim.h"
   incl write_u8
   incl write_s8
   incl write_u16

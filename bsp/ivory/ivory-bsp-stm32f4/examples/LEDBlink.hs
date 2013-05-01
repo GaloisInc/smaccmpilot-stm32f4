@@ -60,19 +60,19 @@ taskCreate :: Def ('[ ProcPtr ('[Ptr s (Stored Uint8)] :-> ())
                     , Ptr s (Stored Uint8)
                     , Uint32
                     , Ptr s (Stored Uint8)] :-> Uint32)
-taskCreate = importProc "xTaskCreate" "FreeRTOS"
+taskCreate = importProc "xTaskCreate" "FreeRTOS.h"
 
 taskStartScheduler :: Def ('[] :-> ())
-taskStartScheduler = importProc "vTaskStartScheduler" "FreeRTOS"
+taskStartScheduler = importProc "vTaskStartScheduler" "FreeRTOS.h"
 
 taskDelay :: Def ('[Uint32] :-> ())
-taskDelay = importProc "vTaskDelay" "FreeRTOS"
+taskDelay = importProc "vTaskDelay" "FreeRTOS.h"
 
 cmodule :: Module
 cmodule = package "ledblink" $ do
   depend hwModule
-  inclHeader "FreeRTOS"
-  inclHeader "task"
+  inclHeader "FreeRTOS.h"
+  inclHeader "task.h"
   incl cmain
   incl main_task
   incl taskCreate

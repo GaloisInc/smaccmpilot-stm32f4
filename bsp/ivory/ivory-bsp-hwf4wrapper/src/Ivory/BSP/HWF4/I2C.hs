@@ -24,21 +24,21 @@ module Ivory.BSP.HWF4.I2C
 import Ivory.Language
 
 -- | Opaque structure for an I2C bus driver.
-[ivory| abstract struct i2cdrv_t "hwf4/i2c"|]
+[ivory| abstract struct i2cdrv_t "hwf4/i2c.h"|]
 
 -- | Ivory module for this driver.
 i2cModule :: Module
 i2cModule = package "bsp_hwf4wrapper_i2c" $ do
-  inclHeader "hwf4/i2c"
+  inclHeader "hwf4/i2c.h"
   defStruct (Proxy :: Proxy "i2cdrv_t")
   defMemArea i2c1
   defMemArea i2c2
 
 -- | Driver handle for the I2C1 bus.
 i2c1 :: MemArea (Struct "i2cdrv_t")
-i2c1 = importArea "_i2c1_drv" "hwf4/i2c"
+i2c1 = importArea "_i2c1_drv" "hwf4/i2c.h"
 
 -- | Driver handle for the I2C2 bus.
 i2c2 :: MemArea (Struct "i2cdrv_t")
-i2c2 = importArea "_i2c2_drv" "hwf4/i2c"
+i2c2 = importArea "_i2c2_drv" "hwf4/i2c.h"
 
