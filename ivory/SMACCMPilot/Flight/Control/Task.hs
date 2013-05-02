@@ -17,32 +17,33 @@ import SMACCMPilot.Flight.Control.Stabilize
 
 controlTask :: DataSink (Struct "flightmode")
             -> DataSink (Struct "userinput_result")
-            -> EventSink (Struct "sensors_result")
-            -> EventSource (Struct "controloutput")
-            -> Task ()
+            -> ChannelSink (Struct "sensors_result")
+            -> ChannelSource (Struct "controloutput")
+            -> TaskConstructor
 controlTask s_fm s_inpt s_sens s_ctl = do
-  fmReader   <- withDataReader s_fm   "flightmode"
-  uiReader   <- withDataReader s_inpt "userinput"
-  sensRxer   <- withEventReceiver s_sens "sensors"
-  ctlEmitter <- withEventEmitter s_ctl  "control"
-  taskLoop $ do
-    fm   <- local (istruct [])
-    inpt <- local (istruct [])
-    ctl  <- local (istruct [])
-    handlers $ onEvent sensRxer $ \sens -> do
-      readData fmReader   fm
-      readData uiReader   inpt
+  sensRxer   <- withChannelReceiver s_sens "sensors"
+  withContext $ do
+    fmReader   <- withDataReader s_fm   "flightmode"
+    uiReader   <- withDataReader s_inpt "userinput"
+    ctlEmitter <- withChannelEmitter s_ctl  "control"
+    taskLoop $ do
+      fm   <- local (istruct [])
+      inpt <- local (istruct [])
+      ctl  <- local (istruct [])
+      handlers $ onChannel sensRxer $ \sens -> do
+        readData fmReader   fm
+        readData uiReader   inpt
 
-      call_ stabilize_run (constRef fm) (constRef inpt) sens ctl
-      -- the trivial throttle controller:
-      deref (inpt ~> UI.throttle) >>= store (ctl ~> CO.throttle)
+        call_ stabilize_run (constRef fm) (constRef inpt) sens ctl
+        -- the trivial throttle controller:
+        deref (inpt ~> UI.throttle) >>= store (ctl ~> CO.throttle)
 
-      emit ctlEmitter (constRef ctl)
+        emit ctlEmitter (constRef ctl)
 
-  taskModuleDef $ do
-    depend FM.flightModeTypeModule
-    depend UI.userInputTypeModule
-    depend SENS.sensorsTypeModule
-    depend CO.controlOutputTypeModule
-    depend stabilizeControlLoopsModule
+    taskModuleDef $ do
+      depend FM.flightModeTypeModule
+      depend UI.userInputTypeModule
+      depend SENS.sensorsTypeModule
+      depend CO.controlOutputTypeModule
+      depend stabilizeControlLoopsModule
 

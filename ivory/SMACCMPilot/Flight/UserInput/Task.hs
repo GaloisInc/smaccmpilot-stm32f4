@@ -17,8 +17,8 @@ import SMACCMPilot.Util.IvoryHelpers
 
 userInputTask :: DataSource (Struct "userinput_result")
               -> DataSource (Struct "flightmode")
-              -> Task ()
-userInputTask uis fms = do
+              -> TaskConstructor
+userInputTask uis fms = withContext $ do
   fmWriter <- withDataWriter fms "flightMode"
   uiWriter <- withDataWriter uis "userInput"
   p <- withPeriod 50

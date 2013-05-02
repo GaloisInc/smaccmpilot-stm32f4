@@ -18,11 +18,11 @@ import           SMACCMPilot.Flight.GCS.Stream (defaultPeriods)
 import           SMACCMPilot.Flight.GCS.Receive.Handlers
 
 gcsReceiveTask :: String -> MemArea (Struct "usart")
-               -> EventSource (Struct "gcsstream_timing")
-               -> Task ()
-gcsReceiveTask usartname usart_area s_src = do
+               -> ChannelSource (Struct "gcsstream_timing")
+               -> TaskConstructor
+gcsReceiveTask usartname usart_area s_src = withContext $ do
   n <- freshname
-  streamPeriodEmitter <- withEventEmitter s_src "streamperiods"
+  streamPeriodEmitter <- withChannelEmitter s_src "streamperiods"
 
   let handlerAux :: Def ('[ Ref s (Struct "mavlink_receive_state")
                       , Ref s1 (Struct "gcsstream_timing") ] :-> ())

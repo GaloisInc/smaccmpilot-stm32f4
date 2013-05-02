@@ -12,10 +12,10 @@ import Ivory.Tower
 
 import qualified SMACCMPilot.Flight.Types.Sensors as S
 
-sensorsTask :: EventSource (Struct "sensors_result")
-              -> Task ()
-sensorsTask s = do
-  sensorsEmitter <- withEventEmitter s "sensors"
+sensorsTask :: ChannelSource (Struct "sensors_result")
+            -> TaskConstructor
+sensorsTask s = withContext $ do
+  sensorsEmitter <- withChannelEmitter s "sensors"
   p <- withPeriod 10
   withStackSize 1024
   taskLoop $ do

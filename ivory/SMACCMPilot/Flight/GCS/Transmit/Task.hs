@@ -25,94 +25,95 @@ sysid = 1
 compid = 0
 
 gcsTransmitTask :: String -> MemArea (Struct "usart")
-                -> EventSink (Struct "gcsstream_timing")
+                -> ChannelSink (Struct "gcsstream_timing")
                 -> DataSink (Struct "flightmode")
                 -> DataSink (Struct "sensors_result")
                 -> DataSink (Struct "position_result")
                 -> DataSink (Struct "controloutput")
                 -> DataSink (Struct "servos")
-                -> Task ()
+                -> TaskConstructor
 gcsTransmitTask usartname usart sp_sink fm_sink se_sink ps_sink ct_sink sr_sink = do
-  streamPeriodRxer <- withEventReceiver sp_sink  "streamperiods"
-  fmReader         <- withDataReader fm_sink "flightmode"
-  sensorsReader    <- withDataReader se_sink "sensors"
-  posReader        <- withDataReader ps_sink "position"
-  ctlReader        <- withDataReader ct_sink "control"
-  servoReader      <- withDataReader sr_sink "servos"
+  streamPeriodRxer <- withChannelReceiver sp_sink  "streamperiods"
+  withContext $ do
+    fmReader         <- withDataReader fm_sink "flightmode"
+    sensorsReader    <- withDataReader se_sink "sensors"
+    posReader        <- withDataReader ps_sink "position"
+    ctlReader        <- withDataReader ct_sink "control"
+    servoReader      <- withDataReader sr_sink "servos"
 
-  n <- freshname
-  let (chan1, cmods) = messageDriver (usartSender usart n sysid compid)
-  mapM_ withModule cmods
-  withStackSize 512
-  p <- withPeriod 50
-  t <- withGetTimeMillis
-  taskLoop $ do
-    initTime <- getTimeMillis t
-    lastRun  <- local (ival initTime)
+    n <- freshname
+    let (chan1, cmods) = messageDriver (usartSender usart n sysid compid)
+    mapM_ withModule cmods
+    withStackSize 512
+    p <- withPeriod 50
+    t <- withGetTimeMillis
+    taskLoop $ do
+      initTime <- getTimeMillis t
+      lastRun  <- local (ival initTime)
 
-    s_periods     <- local (istruct [])
-    s_schedule    <- local (istruct [])
+      s_periods     <- local (istruct [])
+      s_schedule    <- local (istruct [])
 
-    s_fm   <- local (istruct [])
-    s_sens <- local (istruct [])
-    s_pos  <- local (istruct [])
-    s_ctl  <- local (istruct [])
-    s_serv <- local (istruct [])
+      s_fm   <- local (istruct [])
+      s_sens <- local (istruct [])
+      s_pos  <- local (istruct [])
+      s_ctl  <- local (istruct [])
+      s_serv <- local (istruct [])
 
-    let hstream = onEvent streamPeriodRxer $ \newperiods -> do
-          now <- getTimeMillis t
-          setNewPeriods newperiods s_periods s_schedule now
+      let hstream = onChannel streamPeriodRxer $ \newperiods -> do
+            now <- getTimeMillis t
+            setNewPeriods newperiods s_periods s_schedule now
 
-    let htimer = onTimer p $ \now -> do
-          -- Handler for all streams - if due, run action, then update schedule
-          let onStream :: Label "gcsstream_timing" (Stored Uint32)
-                       -> Ivory eff () -> Ivory eff ()
-              onStream selector action = do
-                last <- deref lastRun
-                due <- streamDue (constRef s_periods) (constRef s_schedule) selector last now
-                ifte due
-                  (do action
-                      setNextTime (constRef s_periods) s_schedule selector now)
-                  (return ())
+      let htimer = onTimer p $ \now -> do
+            -- Handler for all streams - if due, run action, then update schedule
+            let onStream :: Label "gcsstream_timing" (Stored Uint32)
+                         -> Ivory eff () -> Ivory eff ()
+                onStream selector action = do
+                  last <- deref lastRun
+                  due <- streamDue (constRef s_periods) (constRef s_schedule) selector last now
+                  ifte due
+                    (do action
+                        setNextTime (constRef s_periods) s_schedule selector now)
+                    (return ())
 
-          onStream S.heartbeat $ do
-            readData fmReader s_fm
-            call_ (sendHeartbeat chan1) s_fm
+            onStream S.heartbeat $ do
+              readData fmReader s_fm
+              call_ (sendHeartbeat chan1) s_fm
 
-          onStream S.servo_output_raw $ do
-            readData servoReader s_serv
-            readData ctlReader s_ctl
-            call_ (sendServoOutputRaw chan1) s_serv s_ctl
+            onStream S.servo_output_raw $ do
+              readData servoReader s_serv
+              readData ctlReader s_ctl
+              call_ (sendServoOutputRaw chan1) s_serv s_ctl
 
-          onStream S.attitude $ do
-            readData sensorsReader s_sens
-            call_ (sendAttitude chan1) s_sens
+            onStream S.attitude $ do
+              readData sensorsReader s_sens
+              call_ (sendAttitude chan1) s_sens
 
-          onStream S.gps_raw_int $ do
-            readData posReader s_pos
-            call_ (sendGpsRawInt chan1) s_pos
+            onStream S.gps_raw_int $ do
+              readData posReader s_pos
+              call_ (sendGpsRawInt chan1) s_pos
 
-          onStream S.vfr_hud $ do
-            readData posReader s_pos
-            readData ctlReader s_ctl
-            readData sensorsReader s_sens
-            call_ (sendVfrHud chan1) s_pos s_ctl s_sens
+            onStream S.vfr_hud $ do
+              readData posReader s_pos
+              readData ctlReader s_ctl
+              readData sensorsReader s_sens
+              call_ (sendVfrHud chan1) s_pos s_ctl s_sens
 
-          onStream S.global_position_int $ do
-            readData posReader s_pos
-            readData sensorsReader s_sens
-            call_ (sendGlobalPositionInt chan1) s_pos s_sens
+            onStream S.global_position_int $ do
+              readData posReader s_pos
+              readData sensorsReader s_sens
+              call_ (sendGlobalPositionInt chan1) s_pos s_sens
 
-          onStream S.params $ do
-            -- XXX our whole story for params is broken
-            return ()
+            onStream S.params $ do
+              -- XXX our whole story for params is broken
+              return ()
 
-          -- Keep track of last run for internal scheduler
-          store lastRun now
-    handlers $ hstream <> htimer
+            -- Keep track of last run for internal scheduler
+            store lastRun now
+      handlers $ hstream <> htimer
 
-  taskModuleDef $ do
-    depend FM.flightModeTypeModule
-    depend S.gcsStreamTimingTypeModule
-    mapM_ depend cmods
+    taskModuleDef $ do
+      depend FM.flightModeTypeModule
+      depend S.gcsStreamTimingTypeModule
+      mapM_ depend cmods
 

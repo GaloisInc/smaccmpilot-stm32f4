@@ -15,34 +15,35 @@ import qualified SMACCMPilot.Flight.Types.ControlOutput as C
 import qualified SMACCMPilot.Flight.Types.Servos        as S
 import qualified SMACCMPilot.Flight.Types.FlightMode    as M
 
-motorsTask :: EventSink (Struct "controloutput")
+motorsTask :: ChannelSink (Struct "controloutput")
            -> DataSink (Struct "flightmode")
            -> DataSource (Struct "servos")
-           -> Task ()
+           -> TaskConstructor
 motorsTask cs ms ss = do
-  ctlRxer   <- withEventReceiver cs "ctlOut"
-  fmReader  <- withDataReader ms "flightMode"
-  srvWriter <- withDataWriter ss "servos"
-  taskLoop $ do
-    s_fm    <- local (istruct [])
-    s_servo <- local (istruct [])
-    call_ apmotors_output_init
-    handlers $ onEvent ctlRxer $ \ctl -> do
-      readData fmReader  s_fm
-      call_ apmotors_output_set ctl (constRef s_fm)
-      call_ apmotors_servo_get  s_servo
-      writeData srvWriter       (constRef s_servo)
+  ctlRxer   <- withChannelReceiver cs "ctlOut"
+  withContext $ do
+    fmReader  <- withDataReader ms "flightMode"
+    srvWriter <- withDataWriter ss "servos"
+    taskLoop $ do
+      s_fm    <- local (istruct [])
+      s_servo <- local (istruct [])
+      call_ apmotors_output_init
+      handlers $ onChannel ctlRxer $ \ctl -> do
+        readData fmReader  s_fm
+        call_ apmotors_output_set ctl (constRef s_fm)
+        call_ apmotors_servo_get  s_servo
+        writeData srvWriter       (constRef s_servo)
 
-  taskModuleDef $ do
-    depend C.controlOutputTypeModule
-    depend S.servosTypeModule
-    depend M.flightModeTypeModule
-    depend Task.taskModule
-    inclHeader "flight-support/apmotors_wrapper.h"
-    private $ do
-      incl apmotors_output_init
-      incl apmotors_output_set
-      incl apmotors_servo_get
+    taskModuleDef $ do
+      depend C.controlOutputTypeModule
+      depend S.servosTypeModule
+      depend M.flightModeTypeModule
+      depend Task.taskModule
+      inclHeader "flight-support/apmotors_wrapper.h"
+      private $ do
+        incl apmotors_output_init
+        incl apmotors_output_set
+        incl apmotors_servo_get
 
 
 apmotors_output_init :: Def ('[] :-> ())
