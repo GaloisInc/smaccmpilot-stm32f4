@@ -36,14 +36,15 @@ controlPIDModule = package "control_pid" $ do
   }
 |]
 
-notFloatNan :: [IFloat] -> [Cond]
-notFloatNan = map (\flt -> (check $ (iNot $ isnan flt) .&& (iNot $ isinf flt)))
+notFloatNan :: IFloat -> IBool
+notFloatNan flt = (iNot $ isnan flt) .&& (iNot $ isinf flt)
 
 -- | Update a PID controller given an error value and measured value
 -- and return the output value.
 pid_update :: Def ('[(Ref s1 (Struct "PID")), IFloat, IFloat] :-> IFloat)
 pid_update = proc "pid_update" $ \pid err pos ->
-  requires (notFloatNan [err, pos]) $ body $ do
+  requires (notFloatNan err) $ requires (notFloatNan pos)
+  $ body $ do
   p_term  <- fmap (* err) (pid~>*pid_pGain)
 
   i_min   <- pid~>*pid_iMin

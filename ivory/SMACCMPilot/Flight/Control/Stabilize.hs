@@ -195,7 +195,7 @@ stabilize_from_angle = proc "stabilize_from_angle" $
   \angle_pid rate_pid stick_angle_norm
    max_stick_angle_deg sensor_angle_rad
    sensor_rate_rad_s max_servo_rate_rad_s ->
-  requires [check $ max_servo_rate_rad_s /=? 0] $ body $ 
+  requires (max_servo_rate_rad_s /=? 0) $ body $
   do
   stick_angle_deg   <- assign $ stick_angle_norm * max_stick_angle_deg
   sensor_angle_deg  <- assign $ degrees sensor_angle_rad
@@ -220,7 +220,7 @@ stabilize_from_rate :: Def ('[
 stabilize_from_rate = proc "stabilize_from_rate" $
   \rate_pid stick_rate_norm max_stick_rate_deg_s
    sensor_rate_rad_s max_servo_rate_rad_s ->
-  requires [check $ max_servo_rate_rad_s /=? 0] $ body $
+  requires (max_servo_rate_rad_s /=? 0) $ body $
   do
   stick_rate_deg_s  <- assign $ stick_rate_norm * max_stick_rate_deg_s
   sensor_rate_deg_s <- assign $ degrees sensor_rate_rad_s

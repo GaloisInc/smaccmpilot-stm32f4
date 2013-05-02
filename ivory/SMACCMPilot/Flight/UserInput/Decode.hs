@@ -49,9 +49,8 @@ userInputDecode :: Def ('[ Ref s1 (Array 8 (Stored Uint16))
                          , Ref s3 (Struct "flightmode")
                          , Uint32 ] :-> ())
 userInputDecode = proc "userinput_decode" $ \pwms state ui fm now ->
-    requires [satisfy (state ~> arm_state_time) (\ast -> check $ now >=? ast)]
-  $ body
-  $ do
+    requires (checkStored (state ~> arm_state_time) (\ast -> now >=? ast))
+  $ body $ do
   let chtransform :: (IvoryStore a1)
                   => Ix 8
                   -> (Uint16 -> Ivory eff a1)
@@ -159,7 +158,7 @@ scale_rpy input = call scale_proc 1500 500 (-1.0) 1.0 input
 
 scale_proc :: Def ('[Uint16, Uint16, IFloat, IFloat, Uint16] :-> IFloat)
 scale_proc = proc "userinput_scale" $ \center range outmin outmax input ->
-  requires [check (range /=? 0)] $ body $ do
+  requires (range /=? 0) $ body $ do
     let centered = input - center
     let ranged = (safeCast centered) / (safeCast range)
     ifte (ranged <? outmin)
@@ -173,7 +172,8 @@ userInputFailsafe :: Def ('[ Ref s1 (Struct "userinput_result")
                            , Ref s2 (Struct "flightmode")
                            , Uint32 ] :-> ())
 userInputFailsafe = proc "userinput_failsafe" $ \capt fm now ->
-  requires [ satisfy (capt ~> I.time) (\t -> check $ now >=? t) ] $ body $ do
+  requires (checkStored (capt ~> I.time) (\t -> now >=? t))
+  $ body $ do
     last <- deref ( capt ~> I.time )
     let dt = now - last
     ift (dt >? 150) $ do
