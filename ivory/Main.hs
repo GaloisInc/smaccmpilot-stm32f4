@@ -58,6 +58,16 @@ main = do
   compileWithSizeMap sizeMap objs
   gviz asm
 
+stateProxy :: (IvoryType area, IvoryZero area) => ChannelSink area -> Tower (DataSink area)
+stateProxy chsink = do
+  (src_data, snk_data) <- dataport
+  task "stateProxy" $ do
+    chrxer <- withChannelReceiver chsink "proxy event"
+    withContext $ do
+      data_writer <- withDataWriter src_data "proxy data"
+      taskLoop $ handlers $ onChannel chrxer $ \val -> do
+          writeData data_writer val
+  return snk_data
 
 app :: Tower ()
 app = do
@@ -66,11 +76,11 @@ app = do
   (src_servos, snk_servos)         <- dataport
 
   (_, snk_position)                <- dataport
-  (_, snk_sensor_state)            <- dataport
-  (_, snk_control_state)           <- dataport
 
   (src_sensors, snk_sensors)       <- channel
   (src_control, snk_control)       <- channel
+  snk_sensor_state                 <- stateProxy snk_sensors
+  snk_control_state                <- stateProxy snk_control
 
   task "sensors"   $ sensorsTask src_sensors
   task "userInput" $ userInputTask src_userinput src_flightmode
