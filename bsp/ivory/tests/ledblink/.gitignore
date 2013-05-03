@@ -1,2 +1,5 @@
 ledblink.c
+ledblink.h
+ivory_hw.c
+ivory_hw.h
 dep.mk
