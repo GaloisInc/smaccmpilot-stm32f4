@@ -1,0 +1,130 @@
+
+name:                smaccm-mavlink
+version:             0.0.1.0
+author:              Galois, Inc.
+maintainer:          pat@galois.com
+category:            Language
+build-type:          Simple
+cabal-version:       >= 1.10
+
+library
+  exposed-modules:      SMACCMPilot.Mavlink.Pack,
+                        SMACCMPilot.Mavlink.Unpack,
+                        SMACCMPilot.Mavlink.Send,
+                        SMACCMPilot.Mavlink.Senders,
+                        SMACCMPilot.Mavlink.CRC,
+                        SMACCMPilot.Mavlink.Receive,
+                        SMACCMPilot.Mavlink.Enums.MavDataStreams,
+                        SMACCMPilot.Mavlink.Messages,
+                        SMACCMPilot.Mavlink.Messages.Heartbeat,
+                        SMACCMPilot.Mavlink.Messages.SysStatus,
+                        SMACCMPilot.Mavlink.Messages.SystemTime,
+                        SMACCMPilot.Mavlink.Messages.Ping,
+                        SMACCMPilot.Mavlink.Messages.ChangeOperatorControl,
+                        SMACCMPilot.Mavlink.Messages.ChangeOperatorControlAck,
+                        SMACCMPilot.Mavlink.Messages.AuthKey,
+                        SMACCMPilot.Mavlink.Messages.SetMode,
+                        SMACCMPilot.Mavlink.Messages.ParamRequestRead,
+                        SMACCMPilot.Mavlink.Messages.ParamRequestList,
+                        SMACCMPilot.Mavlink.Messages.ParamValue,
+                        SMACCMPilot.Mavlink.Messages.ParamSet,
+                        SMACCMPilot.Mavlink.Messages.GpsRawInt,
+                        SMACCMPilot.Mavlink.Messages.GpsStatus,
+                        SMACCMPilot.Mavlink.Messages.ScaledImu,
+                        SMACCMPilot.Mavlink.Messages.RawImu,
+                        SMACCMPilot.Mavlink.Messages.RawPressure,
+                        SMACCMPilot.Mavlink.Messages.ScaledPressure,
+                        SMACCMPilot.Mavlink.Messages.Attitude,
+                        SMACCMPilot.Mavlink.Messages.AttitudeQuaternion,
+                        SMACCMPilot.Mavlink.Messages.LocalPositionNed,
+                        SMACCMPilot.Mavlink.Messages.GlobalPositionInt,
+                        SMACCMPilot.Mavlink.Messages.RcChannelsScaled,
+                        SMACCMPilot.Mavlink.Messages.RcChannelsRaw,
+                        SMACCMPilot.Mavlink.Messages.ServoOutputRaw,
+                        SMACCMPilot.Mavlink.Messages.MissionRequestPartialList,
+                        SMACCMPilot.Mavlink.Messages.MissionWritePartialList,
+                        SMACCMPilot.Mavlink.Messages.MissionItem,
+                        SMACCMPilot.Mavlink.Messages.MissionRequest,
+                        SMACCMPilot.Mavlink.Messages.MissionSetCurrent,
+                        SMACCMPilot.Mavlink.Messages.MissionCurrent,
+                        SMACCMPilot.Mavlink.Messages.MissionRequestList,
+                        SMACCMPilot.Mavlink.Messages.MissionCount,
+                        SMACCMPilot.Mavlink.Messages.MissionClearAll,
+                        SMACCMPilot.Mavlink.Messages.MissionItemReached,
+                        SMACCMPilot.Mavlink.Messages.MissionAck,
+                        SMACCMPilot.Mavlink.Messages.SetGpsGlobalOrigin,
+                        SMACCMPilot.Mavlink.Messages.GpsGlobalOrigin,
+                        SMACCMPilot.Mavlink.Messages.SetLocalPositionSetpoint,
+                        SMACCMPilot.Mavlink.Messages.LocalPositionSetpoint,
+                        SMACCMPilot.Mavlink.Messages.GlobalPositionSetpointInt,
+                        SMACCMPilot.Mavlink.Messages.SetGlobalPositionSetpointInt,
+                        SMACCMPilot.Mavlink.Messages.SafetySetAllowedArea,
+                        SMACCMPilot.Mavlink.Messages.SafetyAllowedArea,
+                        SMACCMPilot.Mavlink.Messages.SetRollPitchYawThrust,
+                        SMACCMPilot.Mavlink.Messages.SetRollPitchYawSpeedThrust,
+                        SMACCMPilot.Mavlink.Messages.RollPitchYawThrustSetpoint,
+                        SMACCMPilot.Mavlink.Messages.RollPitchYawSpeedThrustSetpoint,
+                        SMACCMPilot.Mavlink.Messages.SetQuadMotorsSetpoint,
+                        SMACCMPilot.Mavlink.Messages.SetQuadSwarmRollPitchYawThrust,
+                        SMACCMPilot.Mavlink.Messages.NavControllerOutput,
+                        SMACCMPilot.Mavlink.Messages.SetQuadSwarmLedRollPitchYawThrust,
+                        SMACCMPilot.Mavlink.Messages.StateCorrection,
+                        SMACCMPilot.Mavlink.Messages.RequestDataStream,
+                        SMACCMPilot.Mavlink.Messages.DataStream,
+                        SMACCMPilot.Mavlink.Messages.ManualControl,
+                        SMACCMPilot.Mavlink.Messages.RcChannelsOverride,
+                        SMACCMPilot.Mavlink.Messages.VfrHud,
+                        SMACCMPilot.Mavlink.Messages.CommandLong,
+                        SMACCMPilot.Mavlink.Messages.CommandAck,
+                        SMACCMPilot.Mavlink.Messages.RollPitchYawRatesThrustSetpoint,
+                        SMACCMPilot.Mavlink.Messages.ManualSetpoint,
+                        SMACCMPilot.Mavlink.Messages.LocalPositionNedSystemGlobalOffset,
+                        SMACCMPilot.Mavlink.Messages.HilState,
+                        SMACCMPilot.Mavlink.Messages.HilControls,
+                        SMACCMPilot.Mavlink.Messages.HilRcInputsRaw,
+                        SMACCMPilot.Mavlink.Messages.OpticalFlow,
+                        SMACCMPilot.Mavlink.Messages.GlobalVisionPositionEstimate,
+                        SMACCMPilot.Mavlink.Messages.VisionPositionEstimate,
+                        SMACCMPilot.Mavlink.Messages.VisionSpeedEstimate,
+                        SMACCMPilot.Mavlink.Messages.ViconPositionEstimate,
+                        SMACCMPilot.Mavlink.Messages.HighresImu,
+                        SMACCMPilot.Mavlink.Messages.FileTransferStart,
+                        SMACCMPilot.Mavlink.Messages.FileTransferDirList,
+                        SMACCMPilot.Mavlink.Messages.FileTransferRes,
+                        SMACCMPilot.Mavlink.Messages.BatteryStatus,
+                        SMACCMPilot.Mavlink.Messages.Setpoint8dof,
+                        SMACCMPilot.Mavlink.Messages.Setpoint6dof,
+                        SMACCMPilot.Mavlink.Messages.MemoryVect,
+                        SMACCMPilot.Mavlink.Messages.DebugVect,
+                        SMACCMPilot.Mavlink.Messages.NamedValueFloat,
+                        SMACCMPilot.Mavlink.Messages.NamedValueInt,
+                        SMACCMPilot.Mavlink.Messages.Statustext,
+                        SMACCMPilot.Mavlink.Messages.Debug
+
+  build-depends:        base >= 4.6,
+                        ivory
+  hs-source-dirs:       src
+  default-language:     Haskell2010
+  ghc-options:          -Wall -fno-warn-orphans
+
+executable smaccm-mavlink-debugger
+
+  main-is:              Main.hs
+  other-modules:        Debugger,
+                        CRC
+  hs-source-dirs:       debugger
+
+  build-depends:        base >= 4.6,
+                        bytestring,
+                        serialport,
+                        smaccm-mavlink
+
+-- executable smaccm-mavlink-crctest
+--
+--   main-is:              CRCTest.hs
+--   other-modules:        CanonicalCRC,
+--                         CRC
+--   hs-source-dirs:       debugger
+--
+--   build-depends:        base >= 4.6
+
