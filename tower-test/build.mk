@@ -3,7 +3,7 @@ TWRTEST_GENERATEDDIR=tower-test/generated
 TWRTEST_GRAPHS_DIR=tower-test/graphs
 
 # Relative to current dir
-TWRTEST_SANDBOX=../dsl/cabal-dev
+TWRTEST_SANDBOX=$(CONFIG_CABAL_SANDBOX)
 
 TWRTEST_SRCDIR=$(TWRTEST_GENERATEDDIR)/src
 TWRTEST_INCDIR=$(TWRTEST_GENERATEDDIR)/include/generated

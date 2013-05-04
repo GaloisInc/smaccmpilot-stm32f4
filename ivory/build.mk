@@ -1,7 +1,7 @@
 GENERATEDDIR=flight-generated
 
 # Relative to current dir
-SANDBOX=../dsl/cabal-dev
+SANDBOX=$(CONFIG_CABAL_SANDBOX)
 
 SRCDIR=$(GENERATEDDIR)/src
 INCDIR=$(GENERATEDDIR)/include/flight-generated
@@ -45,13 +45,6 @@ $(GENERATED_DEP): $(GENERATOR_EXE)
 $(FLIGHT_GENERATED_HEADERS) $(FLIGHT_GENERATED_SOURCES): $(GENERATED_DEP) $(GENERATOR_EXE)
 	$(SANDBOX)/bin/$(GEN) --src-dir=$(SRCDIR) --include-dir=$(INCDIR) \
 		$(IVORY_OPTS)
-
-# Currently created by the Makefile in the dsl/ dir.
-# Build the binary to generate the code.
-# .PRECIOUS: $(EXEC)
-# $(EXEC):
-# 	cabal-dev -s $(SANDBOX) install --builddir=$(TOP)/ivory \
-# 		$(TOP)/ivory
 
 CLEAN     += $(GENERATED_DEP)
 # use wildcard, not the dep file, to clean subdirs, because if dep file

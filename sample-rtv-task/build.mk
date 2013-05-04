@@ -1,6 +1,8 @@
 # -*- Mode: makefile-gmake; indent-tabs-mode: t; tab-width: 2 -*-
 # vim: set ft=make noet ts=2:
 
+ifneq ($(CONFIG_BUILD_RTV),)
+
 # Should be the sample name as the project directory.
 PRJ := sample-rtv-task
 OUTDIR := $(PRJ)/generated
@@ -15,7 +17,7 @@ IVORY += $(RTV_GEN_HEADERS) $(RTV_GEN_SOURCES)
 APP_RTV_IMG         := sample-rtv
 APP_RTV_OBJECTS     := main.o record_assignment.o checker_task.o \
                          generated/instrumented.o generated/runtime-checker.o
-IVORY_RTV_SANDBOX   := $(TOP)/../dsl/cabal-dev
+IVORY_RTV_SANDBOX   := $(CONFIG_CABAL_SANDBOX)
 RTV_CHECKER_GEN_EXE := \
   $(IVORY_RTV_SANDBOX)/bin/$(PRJ)-checker-gen
 
@@ -48,3 +50,4 @@ $(RTV_GEN_HEADERS) $(RTV_GEN_SOURCES): $(RTV_CHECKER_GEN_EXE)
 CLEAN += $(OUTDIR)
 CLEAN += $(addprefix $(OBJ_DIR)/, $(PRJ))
 
+endif

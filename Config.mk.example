@@ -16,15 +16,24 @@ CONFIG_TOOLCHAIN := cortex-m4
 # Or if the toolchain is in your PATH:
 CONFIG_CORTEX_M4_PREFIX := arm-none-eabi-
 
+# Path to cabal-dev sandbox where code generators are built
+CONFIG_CABAL_SANDBOX := ../cabal-dev
+
+# Path to ivory language repository
+CONFIG_IVORY_REPOSITORY := ../ivory
+
+# Path to tower repository
+CONFIG_TOWER_REPOSITORY := ../tower
+
 # Target board (one of mk/board/*.mk).
 CONFIG_BOARD := px4
 
 # Root directory of the FreeRTOS source tree.
-CONFIG_FREERTOS_PREFIX := ../../OutsideSrcs/FreeRTOS
+CONFIG_FREERTOS_PREFIX := ../FreeRTOS
 
 # Root directory of the ArduPilot source tree.
 # Note: this should be a clone of https://github.com/galoisinc/ardupilot
-CONFIG_ARDUPILOT_PREFIX := ../../OutsideSrcs/ardupilot
+CONFIG_ARDUPILOT_PREFIX := ../ardupilot
 
 # Extra arguments to pass to ArduPilot as build flags.
 CONFIG_ARDUPILOT_EXTRA_CFLAGS += -DLOGGING_ENABLED=DISABLED
@@ -41,4 +50,4 @@ CONFIG_ARDUPILOT_EXTRA_CFLAGS += -DLOGGING_ENABLED=DISABLED
 CONFIG_CBMC_PREFIX := ../../OutsideSrcs/cbmc/src/cbmc
 
 # location of CBMC driver (cbmc-report)
-CONFIG_CBMC_REPORT := ../dsl/cabal-dev/bin
+CONFIG_CBMC_REPORT := $(CONFIG_CABAL_SANDBOX)/bin
