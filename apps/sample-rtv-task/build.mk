@@ -28,6 +28,7 @@ RTV_GEN_SOURCES += $(TOWER_PREFIX)queueStruct.c
 IVORY += $(RTV_GEN_HEADERS) $(RTV_GEN_SOURCES)
 
 APP_RTV_IMG         := sample-rtv
+
 # APP_RTV_OBJECTS     := main.o record_assignment.o checker_task.o \
 #                          generated/instrumented.o generated/runtime-checker.o
 
