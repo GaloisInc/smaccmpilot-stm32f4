@@ -10,9 +10,12 @@ executable sample-rtv-task-checker-gen
                      , ivory
                      , ivory-backend-c
                      , ivory-rtverification
+                     , ivory-tower
+                     , ivory-tower-freertos
                      , language-c-quote >= 0.5.0
                      , mainland-pretty
                      , srcloc
                      , monadLib
                      , template-haskell >= 2.8
-  other-modules:     Variables
+  other-modules:       Variables
+                     , TowerSetup
