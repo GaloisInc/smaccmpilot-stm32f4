@@ -4,12 +4,14 @@
 
 #include <hwf4/led.h>
 
+#include "tower-hdrs/tower.h"
+
 xTaskHandle update_time_task_handle;
 xTaskHandle read_clock_task_handle;
 xTaskHandle checker_task_handle;
 
-extern xQueueHandle update_queue;
-void verify_updates(void *args);
+/* xQueueHandle update_queue; */
+/* void verify_updates(void *args); */
 
 /* Global variable that keeps track of time. */
 int32_t curr_time __attribute__((instrument(0)));
@@ -50,12 +52,18 @@ void update_time_task(void *args)
 
 int main(void)
 {
-    /* The communication channel between the two tasks is simply a one-element queue */
+    /* The communication channel between the two tasks is simply a one-element
+       queue */
     xQueueHandle update_time_queue = xQueueCreate(1, sizeof(int));
-    update_queue = xQueueCreate(128, sizeof(int32_t));
-    xTaskCreate(verify_updates, (signed char *)"verify_updates", 1000, update_queue, 100, &checker_task_handle);
+    /* update_queue = xQueueCreate(128, sizeof(int32_t)); */
+
+    tower_entry();
+
+    /* The checker task.  Defined in checker_task.c */
+    /* xTaskCreate(verify_updates, (signed char *)"verify_updates", 1000, update_queue, 100, &checker_task_handle); */
 
     xTaskCreate(read_clock_task, (signed char *)"read_clock_task", 1000, update_time_queue, 1, &read_clock_task_handle);
+
     xTaskCreate(update_time_task, (signed char *)"update_time_task", 1000, update_time_queue, 0, &update_time_task_handle);
 
     vTaskStartScheduler();
