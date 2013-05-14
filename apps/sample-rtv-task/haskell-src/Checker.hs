@@ -4,6 +4,8 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TemplateHaskell #-}
 
+module Checker where
+
 import Ivory.Language
 import Ivory.Compile.C.CmdlineFrontend
 
