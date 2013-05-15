@@ -36,7 +36,7 @@ gcsReceiveTask usartname usart_area s_src = withContext $ do
          ]
          where runHandlers s = mapM_ ((flip($)) s)
   p <- withPeriod 1
-  taskLoop $ do
+  taskBody $ do
     s_periods <- local defaultPeriods
     emit streamPeriodEmitter (constRef s_periods)
 

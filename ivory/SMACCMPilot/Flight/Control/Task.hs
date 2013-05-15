@@ -26,7 +26,7 @@ controlTask s_fm s_inpt s_sens s_ctl = do
     fmReader   <- withDataReader s_fm   "flightmode"
     uiReader   <- withDataReader s_inpt "userinput"
     ctlEmitter <- withChannelEmitter s_ctl  "control"
-    taskLoop $ do
+    taskBody $ do
       fm   <- local (istruct [])
       inpt <- local (istruct [])
       ctl  <- local (istruct [])

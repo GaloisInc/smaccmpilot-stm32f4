@@ -65,7 +65,7 @@ stateProxy chsink = do
     chrxer <- withChannelReceiver chsink "proxy event"
     withContext $ do
       data_writer <- withDataWriter src_data "proxy data"
-      taskLoop $ handlers $ onChannel chrxer $ \val -> do
+      taskBody $ handlers $ onChannel chrxer $ \val -> do
           writeData data_writer val
   return snk_data
 

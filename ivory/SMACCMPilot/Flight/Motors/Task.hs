@@ -24,7 +24,7 @@ motorsTask cs ms ss = do
   withContext $ do
     fmReader  <- withDataReader ms "flightMode"
     srvWriter <- withDataWriter ss "servos"
-    taskLoop $ do
+    taskBody $ do
       s_fm    <- local (istruct [])
       s_servo <- local (istruct [])
       call_ apmotors_output_init

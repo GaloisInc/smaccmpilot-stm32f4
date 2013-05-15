@@ -22,7 +22,7 @@ blinkTask :: MemArea (Struct "pin")
 blinkTask mempin s = withContext $ do
   fmReader <- withDataReader s "flightmode"
   p <- withPeriod 125
-  taskLoop $ do
+  taskBody $ do
     pin <- addrOf mempin
     call_ pin_enable     pin
     call_ pin_set_otype  pin pinTypePushPull

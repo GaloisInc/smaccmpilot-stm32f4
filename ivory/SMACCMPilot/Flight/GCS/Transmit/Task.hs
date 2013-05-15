@@ -47,7 +47,7 @@ gcsTransmitTask usartname usart sp_sink fm_sink se_sink ps_sink ct_sink sr_sink 
     withStackSize 512
     p <- withPeriod 50
     t <- withGetTimeMillis
-    taskLoop $ do
+    taskBody $ do
       initTime <- getTimeMillis t
       lastRun  <- local (ival initTime)
 

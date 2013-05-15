@@ -23,7 +23,7 @@ userInputTask uis fms = withContext $ do
   uiWriter <- withDataWriter uis "userInput"
   p <- withPeriod 50
   t <- withGetTimeMillis
-  taskLoop $ do
+  taskBody $ do
     chs     <- local (iarray [])
     decoder <- local (istruct [])
     ui_result  <- local (istruct [])

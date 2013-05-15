@@ -18,7 +18,7 @@ sensorsTask s = withContext $ do
   sensorsEmitter <- withChannelEmitter s "sensors"
   p <- withPeriod 10
   withStackSize 1024
-  taskLoop $ do
+  taskBody $ do
     s_result <- local (istruct [ S.valid .= ival false ])
     emit sensorsEmitter (constRef s_result)
     call_ sensors_begin -- time consuming: boots up and calibrates sensors
