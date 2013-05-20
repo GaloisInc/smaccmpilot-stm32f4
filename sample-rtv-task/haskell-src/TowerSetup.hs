@@ -146,6 +146,16 @@ readClockTask src = withContext $ do
       call_ read_clock_block $ procPtr $ clkEmitter clk
 
 --------------------------------------------------------------------------------
+-- Legacy tasks
+--------------------------------------------------------------------------------
+
+-- Read clock
+
+-- portTICK_RATE_MS :: Sint32
+-- portTICK_RATE_MS = extern "portTICK_RATE_MS"
+
+type Clk = Stored Sint32
+type ClkEmitterType s = '[ConstRef s Clk] :-> ()
 
 update_time_init :: Def ('[ProcPtr ('[AssignRef s] :-> ())] :-> ())
 update_time_init = importProc "update_time_init" legacyHdr
