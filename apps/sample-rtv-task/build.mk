@@ -30,16 +30,15 @@ IVORY += $(RTV_GEN_HEADERS) $(RTV_GEN_SOURCES)
 APP_RTV_IMG         := sample-rtv
 # APP_RTV_OBJECTS     := main.o record_assignment.o checker_task.o \
 #                          generated/instrumented.o generated/runtime-checker.o
-APP_RTV_OBJECTS     := main.o record_assignment.o \
-                         generated/instrumented.o generated/runtime-checker.o
+
 IVORY_RTV_SANDBOX   := $(CONFIG_CABAL_SANDBOX)
 
 RTV_CHECKER_GEN_EXE := \
   $(IVORY_RTV_SANDBOX)/bin/$(PRJ)-checker-gen
 
 APP_RTV_INCLUDES     += $(FREERTOS_INCLUDES)
-APP_RTV_INCLUDES     += -I$(TOP)/src/ivory-freertos-wrapper/include
-APP_RTV_INCLUDES     += -I$(TOP)/src/bsp/hwf4/include
+APP_RTV_INCLUDES     += -I$(TOP)/$(PRJ)
+APP_RTV_INCLUDES     += -I$(TOP)/ivory-freertos-wrapper/include
 APP_RTV_INCLUDES     += -I$(TOP)/$(OUTDIR)
 APP_RTV_INCLUDES     += -I$(TOP)/$(TOWER_HDRS)
 APP_RTV_INCLUDES     += -I$(TOP)/bsp/hwf4/include
@@ -47,9 +46,11 @@ APP_RTV_INCLUDES     += -I$(TOP)/bsp/hwf4/include
 APP_RTV_CFLAGS       += $(APP_RTV_INCLUDES)
 APP_RTV_CFLAGS       += \
   -fplugin=$(TOP)/../../ARM-analysis/GCC_plugin/instrument_plugin.so
+APP_RTV_CFLAGS       += -DIVORY_DEPLOY
 
 APP_RTV_LIBRARIES    += libhwf4.a
 APP_RTV_LIBRARIES    += libstm32_usb.a
+APP_RTV_LIBRARIES    += libivoryfreertoswrapper.a
 APP_RTV_LIBRARIES    += libFreeRTOS.a
 
 APP_RTV_LIBS         += -lm
@@ -68,3 +69,4 @@ CLEAN += $(OUTDIR)
 CLEAN += $(addprefix $(OBJ_DIR)/, $(PRJ))
 
 endif
+
