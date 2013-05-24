@@ -62,7 +62,6 @@ CLEAN     += $(GRAPHS_DIR)
 CBMC_INCS = \
   -I./bsp/hwf4/include \
   -I./bsp/include \
-  -I./ivory-runtime \
   -I./ivory-freertos-wrapper/include \
   -I./smavlink/include \
   -I./smavlink/include/smavlink/messages \

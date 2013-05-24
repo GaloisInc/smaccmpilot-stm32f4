@@ -25,7 +25,6 @@ SP_STABILIZE_INCLUDES     += -I$(TOP)/flight-generated/include
 SP_STABILIZE_INCLUDES     += -I$(TOP)/flight-support/include/smaccmpilot
 SP_STABILIZE_INCLUDES     += -I$(TOP)/flight-generated/include/smaccmpilot
 SP_STABILIZE_INCLUDES     += -I$(TOP)/ivory-freertos-wrapper/include
-SP_STABILIZE_INCLUDES     += -I$(TOP)/ivory-runtime/
 SP_STABILIZE_INCLUDES     += -I$(TOP)/bsp/hwf4/include
 SP_STABILIZE_HIL_INCLUDES  = $(SP_STABILIZE_INCLUDES)
 

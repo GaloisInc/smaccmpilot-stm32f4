@@ -23,7 +23,6 @@ RTV_CHECKER_GEN_EXE := \
 
 APP_RTV_INCLUDES     += $(FREERTOS_INCLUDES)
 APP_RTV_INCLUDES     += -I$(TOP)/ivory-freertos-wrapper/include
-APP_RTV_INCLUDES     += -I$(TOP)/ivory-runtime/
 APP_RTV_INCLUDES     += -I$(TOP)/$(OUTDIR)
 APP_RTV_INCLUDES     += -I$(TOP)/bsp/hwf4/include
 

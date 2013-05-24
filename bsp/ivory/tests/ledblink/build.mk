@@ -14,7 +14,6 @@
 IVORY_LEDTEST_IMG       := ivory_ledtest
 IVORY_LEDTEST_OBJECTS   := ledblink.o ivory_hw.o
 
-IVORY_LEDTEST_INCLUDES  += -I$(TOP)/ivory-runtime
 IVORY_LEDTEST_INCLUDES  += $(FREERTOS_CFLAGS)
 IVORY_LEDTEST_INCLUDES  += -I$(TOP)/bsp/include
 IVORY_LEDTEST_INCLUDES  += -I$(TOP)/$(CONFIG_IVORY_REPOSITORY)/ivory-hw/include
