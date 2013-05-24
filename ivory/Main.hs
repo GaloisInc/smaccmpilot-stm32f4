@@ -63,10 +63,10 @@ stateProxy chsink = do
   (src_data, snk_data) <- dataport
   task "stateProxy" $ do
     chrxer <- withChannelReceiver chsink "proxy event"
-    withContext $ do
-      data_writer <- withDataWriter src_data "proxy data"
-      taskBody $ handlers $ onChannel chrxer $ \val -> do
-          writeData data_writer val
+    data_writer <- withDataWriter src_data "proxy data"
+    taskBody $ \schedule ->
+      eventLoop schedule $ onChannel chrxer $ \val -> do
+        writeData schedule data_writer val
   return snk_data
 
 app :: Tower ()

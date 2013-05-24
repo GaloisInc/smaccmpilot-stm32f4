@@ -13,19 +13,19 @@ import Ivory.Tower
 import qualified SMACCMPilot.Flight.Types.Sensors as S
 
 sensorsTask :: ChannelSource (Struct "sensors_result")
-            -> TaskConstructor
-sensorsTask s = withContext $ do
+            -> Task ()
+sensorsTask s = do
   sensorsEmitter <- withChannelEmitter s "sensors"
   p <- withPeriod 10
   withStackSize 1024
-  taskBody $ do
+  taskBody $ \sch -> do
     s_result <- local (istruct [ S.valid .= ival false ])
-    emit sensorsEmitter (constRef s_result)
+    emit sch sensorsEmitter (constRef s_result)
     call_ sensors_begin -- time consuming: boots up and calibrates sensors
-    handlers $ onTimer p $ \_now -> do
+    eventLoop sch $ onTimer p $ \_now -> do
       call_ sensors_update
       call_ sensors_getstate s_result
-      emit sensorsEmitter (constRef s_result)
+      emit sch sensorsEmitter (constRef s_result)
 
   taskModuleDef $ do
     depend S.sensorsTypeModule

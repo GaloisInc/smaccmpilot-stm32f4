@@ -18,11 +18,11 @@ import qualified SMACCMPilot.Flight.Types.FlightMode as FM
 
 blinkTask :: MemArea (Struct "pin")
           -> DataSink (Struct "flightmode")
-          -> TaskConstructor
-blinkTask mempin s = withContext $ do
+          -> Task ()
+blinkTask mempin s =  do
   fmReader <- withDataReader s "flightmode"
   p <- withPeriod 125
-  taskBody $ do
+  taskBody $ \sch -> do
     pin <- addrOf mempin
     call_ pin_enable     pin
     call_ pin_set_otype  pin pinTypePushPull
@@ -32,8 +32,8 @@ blinkTask mempin s = withContext $ do
     call_ pin_set_mode   pin pinModeOutput
     flightMode <- local (istruct [])
     s_phase    <- local (ival (0::Uint8))
-    handlers $ onTimer p $ \_now -> do
-      readData fmReader flightMode
+    eventLoop sch $ onTimer p $ \_now -> do
+      readData sch fmReader flightMode
       bmode  <- flightModeToBlinkMode flightMode
       phase  <- nextPhase 8 s_phase
       output <- blinkOutput bmode phase

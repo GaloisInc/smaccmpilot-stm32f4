@@ -19,31 +19,30 @@ controlTask :: DataSink (Struct "flightmode")
             -> DataSink (Struct "userinput_result")
             -> ChannelSink (Struct "sensors_result")
             -> ChannelSource (Struct "controloutput")
-            -> TaskConstructor
+            -> Task ()
 controlTask s_fm s_inpt s_sens s_ctl = do
   sensRxer   <- withChannelReceiver s_sens "sensors"
-  withContext $ do
-    fmReader   <- withDataReader s_fm   "flightmode"
-    uiReader   <- withDataReader s_inpt "userinput"
-    ctlEmitter <- withChannelEmitter s_ctl  "control"
-    taskBody $ do
-      fm   <- local (istruct [])
-      inpt <- local (istruct [])
-      ctl  <- local (istruct [])
-      handlers $ onChannel sensRxer $ \sens -> do
-        readData fmReader   fm
-        readData uiReader   inpt
+  fmReader   <- withDataReader s_fm   "flightmode"
+  uiReader   <- withDataReader s_inpt "userinput"
+  ctlEmitter <- withChannelEmitter s_ctl  "control"
+  taskBody $ \schedule -> do
+    fm   <- local (istruct [])
+    inpt <- local (istruct [])
+    ctl  <- local (istruct [])
+    eventLoop schedule $ onChannel sensRxer $ \sens -> do
+      readData schedule fmReader   fm
+      readData schedule uiReader   inpt
 
-        call_ stabilize_run (constRef fm) (constRef inpt) sens ctl
-        -- the trivial throttle controller:
-        deref (inpt ~> UI.throttle) >>= store (ctl ~> CO.throttle)
+      call_ stabilize_run (constRef fm) (constRef inpt) sens ctl
+      -- the trivial throttle controller:
+      deref (inpt ~> UI.throttle) >>= store (ctl ~> CO.throttle)
 
-        emit ctlEmitter (constRef ctl)
+      emit schedule ctlEmitter (constRef ctl)
 
-    taskModuleDef $ do
-      depend FM.flightModeTypeModule
-      depend UI.userInputTypeModule
-      depend SENS.sensorsTypeModule
-      depend CO.controlOutputTypeModule
-      depend stabilizeControlLoopsModule
+  taskModuleDef $ do
+    depend FM.flightModeTypeModule
+    depend UI.userInputTypeModule
+    depend SENS.sensorsTypeModule
+    depend CO.controlOutputTypeModule
+    depend stabilizeControlLoopsModule
 

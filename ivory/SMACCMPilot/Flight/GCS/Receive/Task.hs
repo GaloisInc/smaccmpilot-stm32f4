@@ -19,8 +19,8 @@ import           SMACCMPilot.Flight.GCS.Receive.Handlers
 
 gcsReceiveTask :: String -> MemArea (Struct "usart")
                -> ChannelSource (Struct "gcsstream_timing")
-               -> TaskConstructor
-gcsReceiveTask usartname usart_area s_src = withContext $ do
+               -> Task ()
+gcsReceiveTask usartname usart_area s_src = do
   n <- freshname
   streamPeriodEmitter <- withChannelEmitter s_src "streamperiods"
 
@@ -36,14 +36,14 @@ gcsReceiveTask usartname usart_area s_src = withContext $ do
          ]
          where runHandlers s = mapM_ ((flip($)) s)
   p <- withPeriod 1
-  taskBody $ do
+  taskBody $ \schedule -> do
     s_periods <- local defaultPeriods
-    emit streamPeriodEmitter (constRef s_periods)
+    emit schedule streamPeriodEmitter (constRef s_periods)
 
     usart <- addrOf usart_area
     buf <- local (iarray [] :: Init (Array 1 (Stored Uint8)))
     state <- local (istruct [ R.status .= ival R.status_IDLE ])
-    handlers $ onTimer p $ \_now -> do
+    eventLoop schedule $ onTimer p $ \_now -> do
       -- XXX this task is totally invalid until we fix this to be part of the
       -- event loop
       n <- call usartReadTimeout usart 1 (toCArray buf) 1
@@ -54,7 +54,7 @@ gcsReceiveTask usartname usart_area s_src = withContext $ do
         ifte (s /=? R.status_GOTMSG) (return ()) $ do
           call_ handlerAux state s_periods
           R.mavlinkReceiveReset state
-          emit streamPeriodEmitter (constRef s_periods)
+          emit schedule streamPeriodEmitter (constRef s_periods)
 
 
   taskModuleDef $ do

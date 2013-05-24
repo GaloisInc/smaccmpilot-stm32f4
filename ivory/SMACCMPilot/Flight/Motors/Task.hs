@@ -18,32 +18,31 @@ import qualified SMACCMPilot.Flight.Types.FlightMode    as M
 motorsTask :: ChannelSink (Struct "controloutput")
            -> DataSink (Struct "flightmode")
            -> DataSource (Struct "servos")
-           -> TaskConstructor
+           -> Task ()
 motorsTask cs ms ss = do
   ctlRxer   <- withChannelReceiver cs "ctlOut"
-  withContext $ do
-    fmReader  <- withDataReader ms "flightMode"
-    srvWriter <- withDataWriter ss "servos"
-    taskBody $ do
-      s_fm    <- local (istruct [])
-      s_servo <- local (istruct [])
-      call_ apmotors_output_init
-      handlers $ onChannel ctlRxer $ \ctl -> do
-        readData fmReader  s_fm
-        call_ apmotors_output_set ctl (constRef s_fm)
-        call_ apmotors_servo_get  s_servo
-        writeData srvWriter       (constRef s_servo)
+  fmReader  <- withDataReader ms "flightMode"
+  srvWriter <- withDataWriter ss "servos"
+  taskBody $ \sch -> do
+    s_fm    <- local (istruct [])
+    s_servo <- local (istruct [])
+    call_ apmotors_output_init
+    eventLoop sch $ onChannel ctlRxer $ \ctl -> do
+      readData sch fmReader  s_fm
+      call_ apmotors_output_set ctl (constRef s_fm)
+      call_ apmotors_servo_get  s_servo
+      writeData sch srvWriter       (constRef s_servo)
 
-    taskModuleDef $ do
-      depend C.controlOutputTypeModule
-      depend S.servosTypeModule
-      depend M.flightModeTypeModule
-      depend Task.taskModule
-      inclHeader "flight-support/apmotors_wrapper.h"
-      private $ do
-        incl apmotors_output_init
-        incl apmotors_output_set
-        incl apmotors_servo_get
+  taskModuleDef $ do
+    depend C.controlOutputTypeModule
+    depend S.servosTypeModule
+    depend M.flightModeTypeModule
+    depend Task.taskModule
+    inclHeader "flight-support/apmotors_wrapper.h"
+    private $ do
+      incl apmotors_output_init
+      incl apmotors_output_set
+      incl apmotors_servo_get
 
 
 apmotors_output_init :: Def ('[] :-> ())
