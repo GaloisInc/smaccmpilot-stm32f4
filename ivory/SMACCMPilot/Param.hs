@@ -515,7 +515,7 @@ param_load_all = proc "param_load_all" $ \pid header -> body $ do
   offset <- local (ival (fromNat (Proxy :: Proxy (Len ParamHeader))))
   len    <- header ~>* ph_length
   count  <- assign $ len `iDiv` (fromNat (Proxy :: Proxy (Len ParamDef)))
-  count' <- assign (toIx (safeCast count) :: Ix 65535)
+  count' <- assign (toIx (safeCast count :: Sint32) :: Ix 65535)
 
   for count' $ \_ -> do
     off <- deref offset
