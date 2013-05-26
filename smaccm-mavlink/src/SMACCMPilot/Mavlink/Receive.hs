@@ -99,7 +99,7 @@ mavlinkReceiveByte state b = do
     gotPayload off = do
       assert (off >=? 6) -- state machine enforced
       assert (off <? arrayLen (state ~> payload)) -- uint8 type enforced
-      store ((state ~> payload) ! (toIx ((safeCast off) - 6))) b
+      store ((state ~> payload) ! (toIx (off - 6))) b
       continue
     gotCRCLo = do
       id <- deref (state ~> msgid)
