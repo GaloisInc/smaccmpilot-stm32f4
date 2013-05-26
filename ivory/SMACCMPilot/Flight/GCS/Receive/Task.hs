@@ -17,10 +17,10 @@ import qualified SMACCMPilot.Mavlink.Receive as R
 import           SMACCMPilot.Flight.GCS.Stream (defaultPeriods)
 import           SMACCMPilot.Flight.GCS.Receive.Handlers
 
-gcsReceiveTask :: String -> MemArea (Struct "usart")
+gcsReceiveTask :: MemArea (Struct "usart")
                -> ChannelSource (Struct "gcsstream_timing")
                -> Task ()
-gcsReceiveTask usartname usart_area s_src = do
+gcsReceiveTask usart_area s_src = do
   n <- freshname
   streamPeriodEmitter <- withChannelEmitter s_src "streamperiods"
 
@@ -46,8 +46,8 @@ gcsReceiveTask usartname usart_area s_src = do
     eventLoop schedule $ onTimer p $ \_now -> do
       -- XXX this task is totally invalid until we fix this to be part of the
       -- event loop
-      n <- call usartReadTimeout usart 1 (toCArray buf) 1
-      ifte (n ==? 0) (return ()) $ do
+      n' <- call usartReadTimeout usart 1 (toCArray buf) 1
+      ifte (n' ==? 0) (return ()) $ do
         b <- deref (buf ! 0)
         R.mavlinkReceiveByte state b
         s <- deref (state ~> R.status)

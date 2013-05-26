@@ -19,7 +19,7 @@ gcsTower :: String -> MemArea (Struct "usart")
 gcsTower usartname usart fm_sink sens_sink pos_sink ctl_sink servo_sink = do
   (streamrate_source, streamrate_sink) <- channel
   task ("gcsReceiveTask" ++ usartname) $
-    gcsReceiveTask  usartname usart streamrate_source
+    gcsReceiveTask usart streamrate_source
   task ("gcsTransmitTask" ++ usartname) $
-    gcsTransmitTask usartname usart streamrate_sink fm_sink sens_sink
+    gcsTransmitTask usart streamrate_sink fm_sink sens_sink
       pos_sink ctl_sink servo_sink

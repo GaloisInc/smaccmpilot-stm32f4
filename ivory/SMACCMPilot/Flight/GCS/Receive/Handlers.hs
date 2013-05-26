@@ -16,7 +16,7 @@ import           SMACCMPilot.Flight.GCS.Stream (updateGCSStreamPeriods)
 import qualified SMACCMPilot.Param as P
 
 paramRequestList :: Ref s (Struct "param_request_list_msg") -> Ivory eff ()
-paramRequestList msg = do
+paramRequestList _ = do
   infotbl <- addrOf P.param_info
   count <- (deref =<< addrOf P.param_count)
   arrayMap $ \ix -> do
@@ -25,12 +25,12 @@ paramRequestList msg = do
       (return ())
 
 paramRequestRead :: Ref s (Struct "param_request_read_msg") -> Ivory eff ()
-paramRequestRead msg =
+paramRequestRead _ =
   -- XXX need to implement. requires local allocation, so could be best to wait
   return ()
 
 paramSet :: Ref s (Struct "param_set_msg") -> Ivory eff ()
-paramSet msg =
+paramSet _ =
   -- XXX need to implement. requires local allocation, so could be best to wait
   return ()
 
@@ -44,7 +44,8 @@ requestDatastream streamperiods msg = do
   updateGCSStreamPeriods streamperiods rsid (enable >? 0) rate
 
 hilState :: Ref s (Struct "hil_state_msg") -> Ivory eff ()
-hilState msg =
+hilState _ =
+  -- XXX need to implement.
   return ()
 
 handle :: (eff `AllocsIn` s, MavlinkUnpackableMsg t, IvoryStruct t)

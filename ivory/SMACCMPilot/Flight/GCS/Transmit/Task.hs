@@ -24,7 +24,7 @@ sysid, compid :: Uint8
 sysid = 1
 compid = 0
 
-gcsTransmitTask :: String -> MemArea (Struct "usart")
+gcsTransmitTask :: MemArea (Struct "usart")
                 -> ChannelSink (Struct "gcsstream_timing")
                 -> DataSink (Struct "flightmode")
                 -> DataSink (Struct "sensors_result")
@@ -32,7 +32,7 @@ gcsTransmitTask :: String -> MemArea (Struct "usart")
                 -> DataSink (Struct "controloutput")
                 -> DataSink (Struct "servos")
                 -> Task ()
-gcsTransmitTask usartname usart sp_sink fm_sink se_sink ps_sink ct_sink sr_sink = do
+gcsTransmitTask usart sp_sink fm_sink se_sink ps_sink ct_sink sr_sink = do
   streamPeriodRxer <- withChannelReceiver sp_sink  "streamperiods"
   fmReader         <- withDataReader fm_sink "flightmode"
   sensorsReader    <- withDataReader se_sink "sensors"
@@ -69,7 +69,8 @@ gcsTransmitTask usartname usart sp_sink fm_sink se_sink ps_sink ct_sink sr_sink 
                        -> Ivory eff () -> Ivory eff ()
               onStream selector action = do
                 last <- deref lastRun
-                due <- streamDue (constRef s_periods) (constRef s_schedule) selector last now
+                due <- streamDue (constRef s_periods) (constRef s_schedule)
+                         selector last now
                 ifte due
                   (do action
                       setNextTime (constRef s_periods) s_schedule selector now)

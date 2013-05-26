@@ -22,7 +22,6 @@ userInputTask uis fms = do
   fmWriter <- withDataWriter fms "flightMode"
   uiWriter <- withDataWriter uis "userInput"
   p <- withPeriod 50
-  t <- withGetTimeMillis
   taskBody $ \sch -> do
     chs     <- local (iarray [])
     decoder <- local (istruct [])
