@@ -34,11 +34,15 @@ CFLAGS := $(BASE_CFLAGS) -std=gnu99
 CXXFLAGS := $(BASE_CFLAGS) -fno-exceptions -fno-rtti
 
 # Path to the linker script.
-LDSCRIPT := bsp/stm32_flash.ld
+LDSCRIPT := bsp/stm32_flash.lds.S
 
 # Linker flags.
 LDFLAGS := -mlittle-endian -mcpu=cortex-m4 -mthumb -mfloat-abi=hard \
-           -mfpu=fpv4-sp-d16 -Wl,--script=$(LDSCRIPT)
+           -mfpu=fpv4-sp-d16
+
+LDSCRIPT_OPTS := -DCONFIG_PX4FMU_BOOTLOADER=$(CONFIG_PX4FMU_BOOTLOADER)
+
+## -Wl,--script=$(LDSCRIPT)
 
 # Startup code source files.
 STARTUP_OBJECTS := bsp/source/startup_stm32f4xx.o \

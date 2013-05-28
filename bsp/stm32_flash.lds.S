@@ -51,8 +51,11 @@
 
 MEMORY
 {
-/*  flash (rx)   : ORIGIN = 0x08004000, LENGTH = 1008K */
+#if (CONFIG_PX4FMU_BOOTLOADER == 1)
+  flash (rx)   : ORIGIN = 0x08004000, LENGTH = 1008K
+#else
   flash (rx)   : ORIGIN = 0x08000000, LENGTH = 1024K
+#endif
   sram (rwx)   : ORIGIN = 0x20000000, LENGTH = 128K
   ccsram (rwx) : ORIGIN = 0x10000000, LENGTH = 64K
 }
