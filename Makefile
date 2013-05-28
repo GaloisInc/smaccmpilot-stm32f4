@@ -105,6 +105,11 @@ $(OBJ_DIR)/%.o: %.s
 quiet_cmd_elf_to_bin = OBJCOPY $@
       cmd_elf_to_bin = $(OBJCOPY) -O binary $(2) $(2).bin
 
+quiet_cmd_bin_to_px4 = PX4IMG  $@
+      cmd_bin_to_px4 = $(PYTHON) $(TOP)/boot/px_mkfw.py
+      cmd_bin_to_px4+= --prototype mk/board/$(CONFIG_BOARD).prototype
+      cmd_bin_to_px4+= --image $(2) > $(2:.bin=.px4)
+
 # Make all object files depend on all included Makefiles, to force a
 # rebuild if the build system or configuration is modified.
 $(ALL_OBJECTS): $(MAKEFILE_LIST)

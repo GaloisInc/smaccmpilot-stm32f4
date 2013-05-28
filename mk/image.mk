@@ -57,6 +57,18 @@ $$($(1)_REAL_BIN): $$($(1)_REAL_IMG)
 
 $($(1)_IMG): $$($(1)_REAL_IMG)
 
+ifeq ($(CONFIG_ARCH),px4)
+
+$(1)_REAL_PX4IMG    := $$($(1)_REAL_IMG).px4
+
+$$($(1)_REAL_PX4IMG): $$($(1)_REAL_BIN)
+	$$(call cmd,bin_to_px4,$$($(1)_REAL_BIN))
+
+$($(1)_IMG): $$($(1)_REAL_PX4IMG)
+IMAGES += $$($(1)_REAL_PX4IMG)
+
+endif
+
 endef
 
 # vim: set ft=make noet ts=2:
