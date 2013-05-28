@@ -11,14 +11,14 @@
 
 include Config.mk
 
-include mk/arch/$(CONFIG_TOOLCHAIN).mk
+include mk/arch/$(CONFIG_ARCH).mk
 include mk/board/$(CONFIG_BOARD).mk
 include mk/export.mk
 
 TOP := .
 
 # Per arch and board output directories.
-BUILD_DIR := $(TOP)/build/$(CONFIG_TOOLCHAIN)/$(CONFIG_BOARD)
+BUILD_DIR := $(TOP)/build/$(CONFIG_ARCH)/$(CONFIG_BOARD)
 OBJ_DIR   := $(BUILD_DIR)/obj
 LIB_DIR   := $(BUILD_DIR)/lib
 IMG_DIR   := $(BUILD_DIR)/img

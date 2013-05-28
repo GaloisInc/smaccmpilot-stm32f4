@@ -1,6 +1,6 @@
 # -*- Mode: makefile-gmake; indent-tabs-mode: t; tab-width: 2 -*-
 #
-# cortex-m4.mk --- Cortex-M4 toolchain configuration.
+# arch/px4.mk --- PX4 board (STM32F4 Cortex-M4) toolchain configuration.
 #
 # Copyright (C) 2012, Galois, Inc.
 # All Rights Reserved.
@@ -41,8 +41,6 @@ LDFLAGS := -mlittle-endian -mcpu=cortex-m4 -mthumb -mfloat-abi=hard \
            -mfpu=fpv4-sp-d16
 
 LDSCRIPT_OPTS := -DCONFIG_PX4FMU_BOOTLOADER=$(CONFIG_PX4FMU_BOOTLOADER)
-
-## -Wl,--script=$(LDSCRIPT)
 
 # Startup code source files.
 STARTUP_OBJECTS := bsp/source/startup_stm32f4xx.o \
