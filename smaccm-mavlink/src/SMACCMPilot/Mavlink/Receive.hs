@@ -47,7 +47,7 @@ mavlinkReceiveByte state b = do
       (ifte (b ==? mavlink_STX)
         (beginActive state) -- start state machine when got stx
         (return ()))
-      (active state b)) -- when running 
+      (active state b)) -- when running
   where
 
   beginActive :: Ref s1 (Struct "mavlink_receive_state") -> Ivory eff ()
@@ -57,62 +57,62 @@ mavlinkReceiveByte state b = do
     store (s ~> crc)    crc_init_v
 
 
-  active :: Ref s1 (Struct "mavlink_receive_state") -> Uint8 -> Ivory eff ()
-  active state b = do
+active :: Ref s1 (Struct "mavlink_receive_state") -> Uint8 -> Ivory eff ()
+active state b = do
+  o <- deref (state ~> offs)
+  ifte (o ==? 1)
+    (store (state ~> paylen) b >> continue)
+    (ifte (o ==? 2)
+      (store (state ~> seqnum) b >> continue)
+      (ifte (o ==? 3)
+        (store (state ~> sysid)  b >> continue)
+        (ifte (o ==? 4)
+          (store (state ~> compid) b >> continue)
+          (ifte (o ==? 5)
+            (checkMsgID)
+            (do len <- deref (state ~> paylen)
+                ifte ((o - len) <? 6)
+                  (gotPayload o)
+                  (ifte ((o - len) ==? 6)
+                    (gotCRCLo) -- crc1
+                    (ifte ((o - len) ==? 7)
+                      (gotCRCHi) -- crc2
+                      (fail {- should be impossible -}))))))))
+  where
+  incrOffs = do
     o <- deref (state ~> offs)
-    ifte (o ==? 1)
-      (store (state ~> paylen) b >> continue)
-      (ifte (o ==? 2)
-        (store (state ~> seqnum) b >> continue)
-        (ifte (o ==? 3)
-          (store (state ~> sysid)  b >> continue)
-          (ifte (o ==? 4)
-            (store (state ~> compid) b >> continue)
-            (ifte (o ==? 5)
-              (checkMsgID)
-              (do len <- deref (state ~> paylen)
-                  ifte ((o - len) <? 6)
-                    (gotPayload o)
-                    (ifte ((o - len) ==? 6)
-                      (gotCRCLo) -- crc1
-                      (ifte ((o - len) ==? 7)
-                        (gotCRCHi) -- crc2
-                        (fail {- should be impossible -}))))))))
-    where
-    incrOffs = do
-      o <- deref (state ~> offs)
-      store (state ~> offs) (o + 1)
-    continue = do
-      call_ crc_accumulate b (state ~> crc)
-      incrOffs
-    checkMsgID = do
-      l <- deref (state ~> paylen)
-      ifte (msgValidLen b l)
-        (do store (state ~> msgid) b
-            continue)
-        fail
-    fail = do
-      store (state ~> status) status_IDLE
-    success = do
-      store (state ~> status) status_GOTMSG
+    store (state ~> offs) (o + 1)
+  continue = do
+    call_ crc_accumulate b (state ~> crc)
+    incrOffs
+  checkMsgID = do
+    l <- deref (state ~> paylen)
+    ifte (msgValidLen b l)
+      (do store (state ~> msgid) b
+          continue)
+      fail
+  fail = do
+    store (state ~> status) status_IDLE
+  success = do
+    store (state ~> status) status_GOTMSG
 
-    gotPayload off = do
-      assert (off >=? 6) -- state machine enforced
-      assert (off <? arrayLen (state ~> payload)) -- uint8 type enforced
-      store ((state ~> payload) ! (toIx (off - 6))) b
-      continue
-    gotCRCLo = do
-      id <- deref (state ~> msgid)
-      call_ crc_accumulate (msgCRCExtra id) (state ~> crc)
-      (lo, _) <- crc_lo_hi (state ~> crc)
-      ifte (lo ==? b)
-        incrOffs
-        fail
-    gotCRCHi = do
-      (_, hi) <- crc_lo_hi (state ~> crc)
-      ifte (hi ==? b)
-        success
-        fail
+  gotPayload off = do
+    assert (off >=? 6) -- state machine enforced
+    assert (off <? arrayLen (state ~> payload)) -- uint8 type enforced
+    store ((state ~> payload) ! (toIx (off - 6))) b
+    continue
+  gotCRCLo = do
+    id <- deref (state ~> msgid)
+    call_ crc_accumulate (msgCRCExtra id) (state ~> crc)
+    (lo, _) <- crc_lo_hi (state ~> crc)
+    ifte (lo ==? b)
+      incrOffs
+      fail
+  gotCRCHi = do
+    (_, hi) <- crc_lo_hi (state ~> crc)
+    ifte (hi ==? b)
+      success
+      fail
 
 msgValidLen :: Uint8 -> Uint8 -> IBool
 msgValidLen id len = foldr aux false messageLensCRCs
