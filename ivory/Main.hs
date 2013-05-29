@@ -35,7 +35,7 @@ import SMACCMPilot.Mavlink.CRC (mavlinkCRCModule)
 import Arm32SizeMap (sizeMap)
 
 otherms :: [Module]
-otherms = 
+otherms =
   -- flight types
   typeModules ++
   -- control subsystem
@@ -53,12 +53,13 @@ otherms =
   ]
 
 main :: IO ()
-main = do 
+main = do
   let (asm, objs) = FreeRTOS.compile app
   compileWithSizeMap sizeMap objs
   gviz asm
 
-stateProxy :: (IvoryType area, IvoryZero area) => ChannelSink area -> Tower (DataSink area)
+stateProxy :: (IvoryType area, IvoryZero area)
+           => ChannelSink area -> Tower (DataSink area)
 stateProxy chsink = do
   (src_data, snk_data) <- dataport
   task "stateProxy" $ do
