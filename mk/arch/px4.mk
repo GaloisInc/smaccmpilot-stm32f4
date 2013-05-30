@@ -34,7 +34,7 @@ CFLAGS := $(BASE_CFLAGS) -std=gnu99
 CXXFLAGS := $(BASE_CFLAGS) -fno-exceptions -fno-rtti
 
 # Path to the linker script.
-LDSCRIPT := bsp/stm32_flash.lds.S
+LDSCRIPT := src/bsp/stm32_flash.lds.S
 
 # Linker flags.
 LDFLAGS := -mlittle-endian -mcpu=cortex-m4 -mthumb -mfloat-abi=hard \
@@ -43,7 +43,7 @@ LDFLAGS := -mlittle-endian -mcpu=cortex-m4 -mthumb -mfloat-abi=hard \
 LDSCRIPT_OPTS := -DCONFIG_PX4FMU_BOOTLOADER=$(CONFIG_PX4FMU_BOOTLOADER)
 
 # Startup code source files.
-STARTUP_OBJECTS := bsp/source/startup_stm32f4xx.o \
-                   bsp/source/system_stm32f4xx.o
+STARTUP_OBJECTS := src/bsp/source/startup_stm32f4xx.o \
+                   src/bsp/source/system_stm32f4xx.o
 
 # vim: set ft=make noet ts=2:

@@ -1,4 +1,4 @@
-GENERATEDDIR=flight-generated
+GENERATEDDIR=generated/flight-generated
 
 # Relative to current dir
 SANDBOX=$(CONFIG_CABAL_SANDBOX)
@@ -60,14 +60,12 @@ CLEAN     += $(GRAPHS_DIR)
 # ------------------------------------------------------------------------------
 
 CBMC_INCS = \
-  -I./bsp/hwf4/include \
-  -I./bsp/include \
-  -I./ivory-freertos-wrapper/include \
-  -I./smavlink/include \
-  -I./smavlink/include/smavlink/messages \
-  -I./flight-support/include \
-  -I./flight-generated/include \
-  -I./flight-generated/include/flight-generated \
+  -I./src/bsp/hwf4/include \
+  -I./src/bsp/include \
+  -I./src/ivory-freertos-wrapper/include \
+  -I./src/flight-support/include \
+  -I./generated/flight-generated/include \
+  -I./generated/flight-generated/include/flight-generated \
   $(FREERTOS_INCLUDES)
 
 STARTS := $(shell $(SANDBOX)/bin/$(GEN)\
