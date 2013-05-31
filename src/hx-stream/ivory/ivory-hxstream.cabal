@@ -1,5 +1,5 @@
 
-name:                ivory-hx-stream
+name:                ivory-hxstream
 version:             0.0.1.0
 author:              Galois, Inc.
 maintainer:          pat@galois.com
@@ -28,5 +28,6 @@ executable ivory-hxstream-test
                         ivory-backend-c,
                         ivory-opts,
                         ivory-tower,
-                        ivory-tower-freertos
+                        ivory-tower-freertos,
+                        ivory-hxstream
 

@@ -1,5 +1,5 @@
 
-name:                hx-stream
+name:                hxstream
 version:             0.0.1.0
 author:              Galois, Inc.
 maintainer:          pat@galois.com
@@ -27,5 +27,5 @@ executable hxstream-serial-test
   build-depends:        base >= 4.6,
                         bytestring,
                         serialport,
-                        hx-stream
+                        hxstream
 
