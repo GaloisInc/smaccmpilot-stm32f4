@@ -137,7 +137,7 @@ ARDUPILOT_OBJECTS :=                                                    \
 
 # Copy files from the Ardupilot source tree into our local tree.  Our
 # build system doesn't make it easy to compile out-of-tree sources.
-flight-support/ardupilot/%.cpp: $(ARDUPILOT_SRC)/%.cpp
+src/flight-support/ardupilot/%.cpp: $(ARDUPILOT_SRC)/%.cpp
 	mkdir -p $(dir $@)
 	cp $< $@
 
