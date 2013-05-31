@@ -43,7 +43,7 @@ LDFLAGS := -mlittle-endian -mcpu=cortex-m4 -mthumb -mfloat-abi=hard \
 LDSCRIPT_OPTS := -DCONFIG_PX4FMU_BOOTLOADER=$(CONFIG_PX4FMU_BOOTLOADER)
 
 # Startup code source files.
-STARTUP_OBJECTS := src/bsp/source/startup_stm32f4xx.o \
-                   src/bsp/source/system_stm32f4xx.o
+STARTUP_OBJECTS := src/bsp/init/startup_stm32f4xx.o \
+                   src/bsp/init/system_stm32f4xx.o
 
 # vim: set ft=make noet ts=2:
