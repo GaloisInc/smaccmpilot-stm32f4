@@ -68,10 +68,10 @@ encodeK :: (SingI n, eff `AllocsIn` cs)
         -> (Uint8 -> Ivory eff IBool) -- Returns true if successful
         -> Ivory eff IBool -- Returns true if successful
 encodeK input k = do
-  fail <- local (ival false)
+  afail <- local (ival false)
   let send b = do
         success <- k b
-        ifte success (return ()) (store fail true)
+        ifte success (return ()) (store afail true)
         return success
 
   arrayMap $ \i -> do
@@ -85,7 +85,7 @@ encodeK input k = do
       (send v >>= \s ->
        ifte (s) (return ()) breakOut)
 
-  f <- deref fail
-  return (iNot fail)
+  f <- deref afail
+  return (iNot afail)
 
 
