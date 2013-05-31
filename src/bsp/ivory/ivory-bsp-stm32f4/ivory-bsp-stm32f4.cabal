@@ -15,7 +15,8 @@ build-type:          Simple
 cabal-version:       >=1.8
 
 library
-  exposed-modules:     Ivory.BSP.STM32F4.SPITypes,
+  exposed-modules:     Ivory.BSP.STM32F4.MemoryMap,
+                       Ivory.BSP.STM32F4.SPITypes,
                        Ivory.BSP.STM32F4.SPI,
                        Ivory.BSP.STM32F4.RCC.Regs,
                        Ivory.BSP.STM32F4.RCC.Class,
@@ -23,7 +24,9 @@ library
                        Ivory.BSP.STM32F4.GPIO.RegTypes,
                        Ivory.BSP.STM32F4.GPIO.Regs,
                        Ivory.BSP.STM32F4.GPIO.Pins,
-                       Ivory.BSP.STM32F4.GPIO.Types
+                       Ivory.BSP.STM32F4.GPIO.Types,
+                       Ivory.BSP.STM32F4.UART
+
   other-modules:       Ivory.BSP.STM32F4.GPIO.TH
   hs-source-dirs:      src
   build-depends:       base >= 4.6,
