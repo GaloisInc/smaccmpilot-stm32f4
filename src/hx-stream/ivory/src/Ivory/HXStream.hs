@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Ivory.HXStream where
 
@@ -61,4 +62,30 @@ decodeSM state b = do
        ({- IMPOSSIBLE: restore sanity. -} emptyStreamState state))))
 
   deref (state ~> fstate) >>= \s -> return (s ==? hxstream_fstate_Complete)
+
+encodeK :: (SingI n, eff `AllocsIn` cs)
+        => Ref s (Array n (Stored Uint8))
+        -> (Uint8 -> Ivory eff IBool) -- Returns true if successful
+        -> Ivory eff IBool -- Returns true if successful
+encodeK input k = do
+  fail <- local (ival false)
+  let send b = do
+        success <- k b
+        ifte success (return ()) (store fail true)
+        return success
+
+  arrayMap $ \i -> do
+    v <- deref (input ! i)
+    ifte ((v ==? fbo) .|| (v ==? ceo))
+      (send ceo >>= \s ->
+       ifte (s)
+         (send (escape v) >>= \s' ->
+          ifte (s') (return ()) (breakOut))
+         (breakOut))
+      (send v >>= \s ->
+       ifte (s) (return ()) breakOut)
+
+  f <- deref fail
+  return (iNot fail)
+
 
