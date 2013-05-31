@@ -40,7 +40,7 @@ blinkTask mempin s =  do
       ifte output
         (call_ pin_reset pin) -- relay LEDs are active low.
         (call_ pin_set   pin)
-  taskModuleDef $ do
+  taskModuleDef $ \_sch -> do
     depend gpioModule
 
 nextPhase :: Uint8 -> (Ref s1 (Stored Uint8)) -> Ivory eff Uint8

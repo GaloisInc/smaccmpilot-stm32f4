@@ -39,7 +39,7 @@ controlTask s_fm s_inpt s_sens s_ctl = do
 
       emit schedule ctlEmitter (constRef ctl)
 
-  taskModuleDef $ do
+  taskModuleDef $ \_sch -> do
     depend FM.flightModeTypeModule
     depend UI.userInputTypeModule
     depend SENS.sensorsTypeModule

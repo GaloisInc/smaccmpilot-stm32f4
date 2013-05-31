@@ -57,7 +57,7 @@ gcsReceiveTask usart_area s_src = do
           emit schedule streamPeriodEmitter (constRef s_periods)
 
 
-  taskModuleDef $ do
+  taskModuleDef $ \_sch -> do
     depend usartModule
     defStruct (Proxy :: Proxy "mavlink_receive_state")
     incl handlerAux

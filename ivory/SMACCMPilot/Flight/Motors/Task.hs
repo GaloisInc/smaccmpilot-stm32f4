@@ -33,7 +33,7 @@ motorsTask cs ms ss = do
       call_ apmotors_servo_get  s_servo
       writeData sch srvWriter       (constRef s_servo)
 
-  taskModuleDef $ do
+  taskModuleDef $ \_sch -> do
     depend C.controlOutputTypeModule
     depend S.servosTypeModule
     depend M.flightModeTypeModule

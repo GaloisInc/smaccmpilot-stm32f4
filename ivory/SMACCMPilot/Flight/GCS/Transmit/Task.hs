@@ -112,7 +112,7 @@ gcsTransmitTask usart sp_sink fm_sink se_sink ps_sink ct_sink sr_sink = do
           store lastRun now
     eventLoop schedule $ hstream <> htimer
 
-  taskModuleDef $ do
+  taskModuleDef $ \_sch -> do
     depend FM.flightModeTypeModule
     depend S.gcsStreamTimingTypeModule
     mapM_ depend cmods

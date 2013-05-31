@@ -27,7 +27,7 @@ sensorsTask s = do
       call_ sensors_getstate s_result
       emit sch sensorsEmitter (constRef s_result)
 
-  taskModuleDef $ do
+  taskModuleDef $ \_sch -> do
     depend S.sensorsTypeModule
     inclHeader "flight-support/sensors_capture.h"
     private $ do

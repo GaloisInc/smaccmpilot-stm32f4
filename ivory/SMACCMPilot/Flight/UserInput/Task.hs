@@ -35,7 +35,7 @@ userInputTask uis fms = do
       writeData sch uiWriter (constRef ui_result)
       writeData sch fmWriter (constRef fm_result)
 
-  taskModuleDef $ do
+  taskModuleDef $ \_sch -> do
     depend userInputTypeModule
     depend userInputDecodeModule
     inclHeader "flight-support/userinput_capture.h"
