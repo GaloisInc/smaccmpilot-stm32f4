@@ -1,5 +1,5 @@
 --
--- RCC.hs --- RCC peripheral driver.
+-- RCC.hs --- RCC (Reset and Clock Control) peripheral driver.
 --
 -- Copyright (C) 2013, Galois, Inc.
 -- All Rights Reserved.

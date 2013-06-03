@@ -22,6 +22,7 @@ import Ivory.HW
 import Ivory.BSP.STM32F4.GPIO.RegTypes
 import Ivory.BSP.STM32F4.GPIO.Regs
 import Ivory.BSP.STM32F4.RCC
+import Ivory.BSP.STM32F4.MemoryMap
 
 -- | A GPIO port, defined as the set of registers that operate on all
 -- the pins for that port.
@@ -53,31 +54,31 @@ mkGPIOPort base f =
     }
 
 gpioA :: GPIOPort
-gpioA = mkGPIOPort 0x40020000 rcc_ahb1en_gpioa
+gpioA = mkGPIOPort gpioa_periph_base rcc_ahb1en_gpioa
 
 gpioB :: GPIOPort
-gpioB = mkGPIOPort 0x40020400 rcc_ahb1en_gpiob
+gpioB = mkGPIOPort gpiob_periph_base rcc_ahb1en_gpiob
 
 gpioC :: GPIOPort
-gpioC = mkGPIOPort 0x40020800 rcc_ahb1en_gpioc
+gpioC = mkGPIOPort gpioc_periph_base rcc_ahb1en_gpioc
 
 gpioD :: GPIOPort
-gpioD = mkGPIOPort 0x40020C00 rcc_ahb1en_gpiod
+gpioD = mkGPIOPort gpiod_periph_base rcc_ahb1en_gpiod
 
 gpioE :: GPIOPort
-gpioE = mkGPIOPort 0x40021000 rcc_ahb1en_gpioe
+gpioE = mkGPIOPort gpioe_periph_base rcc_ahb1en_gpioe
 
 gpioF :: GPIOPort
-gpioF = mkGPIOPort 0x40021400 rcc_ahb1en_gpiof
+gpioF = mkGPIOPort gpiof_periph_base rcc_ahb1en_gpiof
 
 gpioG :: GPIOPort
-gpioG = mkGPIOPort 0x40021800 rcc_ahb1en_gpiog
+gpioG = mkGPIOPort gpiog_periph_base rcc_ahb1en_gpiog
 
 gpioH :: GPIOPort
-gpioH = mkGPIOPort 0x40021C00 rcc_ahb1en_gpioh
+gpioH = mkGPIOPort gpioh_periph_base rcc_ahb1en_gpioh
 
 gpioI :: GPIOPort
-gpioI = mkGPIOPort 0x40022000 rcc_ahb1en_gpioi
+gpioI = mkGPIOPort gpioi_periph_base rcc_ahb1en_gpioi
 
 instance RCCDevice GPIOPort where
   type RCCEnableReg GPIOPort = RCC_AHB1ENR

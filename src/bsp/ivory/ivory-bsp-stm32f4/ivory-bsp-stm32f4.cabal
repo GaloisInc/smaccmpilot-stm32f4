@@ -25,7 +25,8 @@ library
                        Ivory.BSP.STM32F4.GPIO.Regs,
                        Ivory.BSP.STM32F4.GPIO.Pins,
                        Ivory.BSP.STM32F4.GPIO.Types,
-                       Ivory.BSP.STM32F4.UART
+                       Ivory.BSP.STM32F4.UART,
+                       Ivory.BSP.STM32F4.UART.HW
 
   other-modules:       Ivory.BSP.STM32F4.GPIO.TH
   hs-source-dirs:      src
