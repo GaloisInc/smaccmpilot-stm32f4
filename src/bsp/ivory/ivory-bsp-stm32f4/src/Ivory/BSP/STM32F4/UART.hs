@@ -11,5 +11,5 @@ module Ivory.BSP.STM32F4.UART
   , uart1, uart2, uart3, uart4, uart5, uart6
   ) where
 
-import Ivory.BSP.STM32F4.UART.HW
+import Ivory.BSP.STM32F4.UART.Peripheral
 

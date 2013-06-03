@@ -5,13 +5,14 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE DataKinds #-}
 --
--- GPIO.hs --- GPIO pin driver.
+-- GPIO.hs --- GPIO Peripheral driver.
+-- Defines peripheral types, instances, and public API.
 --
 -- Copyright (C) 2013, Galois, Inc.
 -- All Rights Reserved.
 --
 
-module Ivory.BSP.STM32F4.GPIO.Types where
+module Ivory.BSP.STM32F4.GPIO.Peripheral where
 
 import GHC.TypeLits
 
@@ -40,7 +41,7 @@ data GPIOPort = GPIOPort
 
 -- | Create a GPIO port given the base register address.
 mkGPIOPort :: Integer -> BitDataField (RCCEnableReg GPIOPort) Bit -> GPIOPort
-mkGPIOPort base f =
+mkGPIOPort base rccenable =
   GPIOPort
     { gpioPortMODER          = mkBitDataReg $ base + 0x00
     , gpioPortOTYPER         = mkBitDataReg $ base + 0x04
@@ -50,7 +51,7 @@ mkGPIOPort base f =
     , gpioPortBSRR           = mkBitDataReg $ base + 0x18
     , gpioPortAFRL           = mkBitDataReg $ base + 0x20
     , gpioPortAFRH           = mkBitDataReg $ base + 0x24
-    , gpioPortRCCEnableField = f
+    , gpioPortRCCEnableField = rccenable
     }
 
 gpioA :: GPIOPort

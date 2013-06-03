@@ -1,6 +1,6 @@
 {-# LANGUAGE TemplateHaskell #-}
 --
--- GPIO_TH.hs --- Template Haskell macros for STM32F4 GPIO.
+-- GPIO_TH.hs --- Template Haskell macros for STM32F4 GPIO pins
 --
 -- Copyright (C) 2013, Galois, Inc.
 -- All Rights Reserved.
@@ -10,7 +10,7 @@ module Ivory.BSP.STM32F4.GPIO.TH where
 
 import Language.Haskell.TH
 
-import Ivory.BSP.STM32F4.GPIO.Types
+import Ivory.BSP.STM32F4.GPIO.Peripheral
 
 mkVar :: String -> Integer -> ExpQ
 mkVar name n = do

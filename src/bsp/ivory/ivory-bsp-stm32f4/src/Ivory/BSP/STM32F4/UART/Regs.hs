@@ -2,19 +2,18 @@
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TypeFamilies #-}
 --
--- HW.hs --- UART HW Description
+-- Regs.hs --- UART Register Description
 --
 -- Copyright (C) 2013, Galois, Inc.
 -- All Rights Reserved.
 --
 
-module Ivory.BSP.STM32F4.UART.HW where
+module Ivory.BSP.STM32F4.UART.Regs where
 
 import Ivory.Language
 import Ivory.BitData
 import Ivory.HW
 
-import Ivory.BSP.STM32F4.MemoryMap
 
 ----------------------------------------------------------------------
 -- UART Registers
@@ -98,39 +97,5 @@ import Ivory.BSP.STM32F4.MemoryMap
    { uart_gtpr_gt      :: Bits 8
    , uart_gtpr_psc     :: Bits 8
    }
-
 |]
-
-----------------------------------------------------------------------
--- UART Data Structures
-
-data UART = UART
-  { uartRegSR   :: BitDataReg UART_SR
-  , uartRegDR   :: BitDataReg UART_DR
-  , uartRegBRR  :: BitDataReg UART_BRR
-  , uartRegCR1  :: BitDataReg UART_CR1
-  , uartRegCR2  :: BitDataReg UART_CR2
-  , uartRegCR3  :: BitDataReg UART_CR3
-  , uartRegGTPR :: BitDataReg UART_GTPR
-  }
-
--- | Construct a "UART" given a base address for the registers.
-mkUART :: Integer -> UART
-mkUART base = UART
-  { uartRegSR   = mkBitDataReg (base + 0x00)
-  , uartRegDR   = mkBitDataReg (base + 0x04)
-  , uartRegBRR  = mkBitDataReg (base + 0x08)
-  , uartRegCR1  = mkBitDataReg (base + 0x0C)
-  , uartRegCR2  = mkBitDataReg (base + 0x10)
-  , uartRegCR3  = mkBitDataReg (base + 0x14)
-  , uartRegGTPR = mkBitDataReg (base + 0x18)
-  }
-
-uart1, uart2, uart3, uart4, uart5, uart6 :: UART
-uart1 = mkUART uart1_periph_base
-uart2 = mkUART uart2_periph_base
-uart3 = mkUART uart3_periph_base
-uart4 = mkUART uart4_periph_base
-uart5 = mkUART uart5_periph_base
-uart6 = mkUART uart6_periph_base
 

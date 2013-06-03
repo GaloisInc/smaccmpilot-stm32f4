@@ -19,5 +19,5 @@ module Ivory.BSP.STM32F4.GPIO (
 ) where
 
 import Ivory.BSP.STM32F4.GPIO.RegTypes
-import Ivory.BSP.STM32F4.GPIO.Types
+import Ivory.BSP.STM32F4.GPIO.Peripheral
 import Ivory.BSP.STM32F4.GPIO.Pins
