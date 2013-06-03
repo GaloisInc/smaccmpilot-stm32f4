@@ -11,15 +11,18 @@ OUTDIR := $(PRJ)/generated
 TOWER_HDRS = $(PRJ)/tower-hdrs
 TOWER_SRCS = $(PRJ)/tower-srcs
 
-RTV_GEN_HEADERS := $(TOWER_HDRS)/*.h $(PRJ)/*.h $(OUTDIR)/*.h
-RTV_GEN_SOURCES := $(TOWER_SRCS)/*.c $(PRJ)/*.c $(OUTDIR)/*.c
+RTV_GEN_HEADERS := \
+  $(TOWER_HDRS)/*.h $(PRJ)/legacy/*.h $(PRJ)/record_assignment/*.h $(OUTDIR)/*.h
+RTV_GEN_SOURCES := \
+  $(TOWER_SRCS)/*.c $(PRJ)/legacy/*.c $(PRJ)/record_assignment/*.c $(OUTDIR)/*.c
 
 # Build Haskell-generated stuff first
-IVORY += $(RTV_GEN_HEADERS) $(RTV_GEN_SOURCES)
+# IVORY += $(RTV_GEN_HEADERS) $(RTV_GEN_SOURCES)
 
 APP_RTV_IMG         := sample-rtv
 
-APP_RTV_OBJECTS     := record_assignment.o tower-srcs/tower.o legacy.o
+APP_RTV_OBJECTS     := \
+  record_assignment/record_assignment.o tower-srcs/tower.o legacy/legacy.o
 APP_RTV_OBJECTS     += generated/instrumented.o generated/runtime-checker.o
 
 IVORY_RTV_SANDBOX   := $(CONFIG_CABAL_SANDBOX)
@@ -31,6 +34,8 @@ APP_RTV_INCLUDES     += -I$(TOP)/$(PRJ)
 APP_RTV_INCLUDES     += -I$(TOP)/src/ivory-freertos-wrapper/include
 APP_RTV_INCLUDES     += -I$(TOP)/$(OUTDIR)
 APP_RTV_INCLUDES     += -I$(TOP)/$(TOWER_HDRS)
+APP_RTV_INCLUDES     += -I$(TOP)/$(PRJ)/legacy
+APP_RTV_INCLUDES     += -I$(TOP)/$(PRJ)/record_assignment
 APP_RTV_INCLUDES     += -I$(TOP)/src/bsp/hwf4/include
 
 APP_RTV_CFLAGS       += $(APP_RTV_INCLUDES)
@@ -55,7 +60,7 @@ $(eval $(call image,APP_RTV))
 # 	echo "Generating RTV sources..."
 # 	cd $(PRJ) && $(RTV_CHECKER_GEN_EXE)
 
-CLEAN += $(OUTDIR)
-CLEAN += $(addprefix $(OBJ_DIR)/, $(PRJ))
+# CLEAN += $(OUTDIR)
+# CLEAN += $(addprefix $(OBJ_DIR)/, $(PRJ))
 
 # endif
