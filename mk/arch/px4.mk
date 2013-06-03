@@ -40,7 +40,9 @@ LDSCRIPT := src/bsp/stm32_flash.lds.S
 LDFLAGS := -mlittle-endian -mcpu=cortex-m4 -mthumb -mfloat-abi=hard \
            -mfpu=fpv4-sp-d16
 
-LDSCRIPT_OPTS := -DCONFIG_PX4FMU_BOOTLOADER=$(CONFIG_PX4FMU_BOOTLOADER)
+ifneq ($(CONFIG_PX4FMU_BOOTLOADER),)
+LDSCRIPT_OPTS := -DCONFIG_PX4FMU_BOOTLOADER
+endif
 
 # Startup code source files.
 STARTUP_OBJECTS := src/bsp/init/startup_stm32f4xx.o \
