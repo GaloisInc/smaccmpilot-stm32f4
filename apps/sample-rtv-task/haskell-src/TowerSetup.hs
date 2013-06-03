@@ -108,6 +108,7 @@ checkerTask sink = do
   rx <- withChannelReceiver sink "rvSink"
   taskModuleDef $ \_sch -> assignStructDef
   taskModuleDef $ \_sch -> incl mkHistory
+  taskModuleDef $ \_sch -> incl action
   taskBody $ \sch -> do
     lastVal <- local (istruct [])
     call_ mkHistory (constRef lastVal)
@@ -161,8 +162,8 @@ updateTimeTask :: ChannelSink Clk -> ChannelSource AssignStruct -> Task ()
 updateTimeTask clk chk = do
   rx <- withChannelReceiver clk "timeRx"
   newVal <- withChannelEmitter chk "newVal"
-  taskModuleDef $ \sch -> incl $ recordEmit sch newVal
---    taskModuleDef (incl update_time_init)
+  taskModuleDef $ \sch  -> incl $ recordEmit sch newVal
+  taskModuleDef $ \_sch -> incl update_time_init
   taskBody $ \sch -> do
     call_ update_time_init $ procPtr $ recordEmit sch newVal
     eventLoop sch $ onChannel rx $ \time -> do
@@ -171,18 +172,18 @@ updateTimeTask clk chk = do
 
 --------------------------------------------------------------------------------
 
-otherIncls :: Module
-otherIncls = package "queueStruct" $ do
+-- otherIncls :: Module
+-- otherIncls = package "queueStruct" $ do
   -- Package up queue type
-  assignStructDef
-  inclHeader legacyHdr
+  -- assignStructDef
+  --  inclHeader legacyHdr
   -- inclHeader "freertos_queue_wrapper.h"
   -- inclHeader "freertos_semaphore_wrapper.h"
   -- inclHeader "freertos_task_wrapper.h"
 
 tasks :: Tower ()
 tasks = do
-  addModule otherIncls
+--  addModule otherIncls
 
   (chkSrc, chkSink) <- channel
   (clkSrc, clkSink) <- channel

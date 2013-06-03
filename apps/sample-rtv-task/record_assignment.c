@@ -1,7 +1,7 @@
 #include <FreeRTOS.h>
 #include <queue.h>
 
-#include "queueStruct.h"
+#include "tower.h"
 
 /* extern xQueueHandle update_queue; */
 extern xQueueHandle eventHeapchannel_0_endpoint_verify_updates_1;

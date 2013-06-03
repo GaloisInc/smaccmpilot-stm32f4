@@ -59,4 +59,3 @@ CLEAN += $(OUTDIR)
 CLEAN += $(addprefix $(OBJ_DIR)/, $(PRJ))
 
 # endif
-
