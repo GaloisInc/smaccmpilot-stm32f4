@@ -68,8 +68,8 @@ recordEmit sch ch = proc "recordEmit" $ \r -> body $ emit sch ch r
 --------------------------------------------------------------------------------
 
 -- What to do if a property fails (in this case, led_set(1, 1))?
-action :: Def ('[] :-> ())
-action = importProc "led_set" "FreeRTOS.h"
+action :: Def ('[Sint32, IBool] :-> ())
+action = importProc "led_set" "hwf4/led.h"
 
 append_to_history :: Def ('[Ix 100, Uint32] :-> ())
 append_to_history = importProc "append_to_history" "instrumented.h"
@@ -94,10 +94,10 @@ mkHistory = proc "mkHistory" $ \s -> body $ do
 check_properties :: Def ('[] :-> IBool)
 check_properties = importProc "check_properties" "runtime-checker.h"
 
-runCheck :: Def ('[] :-> ()) -> Ivory s ()
-runCheck action = do
+runCheck :: Ivory s ()
+runCheck = do
   bool <- call check_properties
-  ifte bool (return ()) (call_ action)
+  ifte bool (return ()) (call_ action 1 true)
 
 --------------------------------------------------------------------------------
 
@@ -112,7 +112,7 @@ checkerTask sink = do
   taskBody $ \sch -> do
     lastVal <- local (istruct [])
     call_ mkHistory (constRef lastVal)
-    eventLoop sch $ onChannel rx $ \_ -> runCheck action
+    eventLoop sch $ onChannel rx $ \_ -> runCheck
 
 --------------------------------------------------------------------------------
 -- Legacy tasks

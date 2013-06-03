@@ -44,12 +44,12 @@ void update_time_init(void (*check_send)(const struct assignment *)) {
 
 /* Task that updates the global time variable when a new time reading is
      * received */
-void update_time_block(int32_t new_time, void (*send)(const int32_t *))
+void update_time_block(int32_t new_time)
 {
   /* This assignment is what gets instrumented with a call to
            record_assignment() */
-    curr_time = new_time; 
-   led_set(0, curr_time % 2);
+  curr_time = new_time;
+  led_set(0, curr_time % 2);
  }
 
 int main(void) {
