@@ -24,34 +24,20 @@ import qualified Ivory.Compile.C.CmdlineFrontend as C
 legacyHdr :: String
 legacyHdr = "legacy.h"
 
-recordEmit :: Schedule
-           -> ChannelEmitter AssignStruct
-           -> Def ('[AssignRef s] :-> ())
-recordEmit sch ch = proc "recordEmit" $ \r -> body $ emit sch ch r
-
 --------------------------------------------------------------------------------
--- Legacy tasks
+-- Legacy tasks: wrappers for the tasks.
 --------------------------------------------------------------------------------
 
+-- Types
 type Clk = Stored Sint32
 type ClkEmitterType s = '[ConstRef s Clk] :-> ()
 
+-- Externs
 clkEmitter :: Schedule -> ChannelEmitter Clk -> Def (ClkEmitterType s)
 clkEmitter sch ch = proc "clkEmitter" $ \r -> body $ emit sch ch r
 
 read_clock_block :: Def ('[ProcPtr (ClkEmitterType s)] :-> ())
 read_clock_block = importProc "read_clock_block" legacyHdr
-
--- XXX I'd really like to be able to name channels so they're not given
--- mangled names
-readClockTask :: ChannelSource Clk -> Task ()
-readClockTask src = do
-  clk <- withChannelEmitter src "clkSrc"
-  taskModuleDef $ \sch -> (incl $ clkEmitter sch clk)
-  p <- withPeriod 1000 -- once per ms
-  taskBody $ \sch -> do
-    eventLoop sch $ onTimer p $ \_now ->
-      call_ read_clock_block $ procPtr $ clkEmitter sch clk
 
 update_time_init :: Def ('[ProcPtr ('[AssignRef s] :-> ())] :-> ())
 update_time_init = importProc "update_time_init" legacyHdr
@@ -59,6 +45,19 @@ update_time_init = importProc "update_time_init" legacyHdr
 update_time_block :: Def ('[Sint32] :-> ())
 update_time_block = importProc "update_time_block" legacyHdr
 
+-- Task wrapper: task reads a logical clock and passes the result to
+-- updateTimeTask.
+readClockTask :: ChannelSource Clk -> Task ()
+readClockTask src = do
+  clk <- withChannelEmitter src "clkSrc"
+  taskModuleDef $ \sch -> (incl $ clkEmitter sch clk)
+  p <- withPeriod 1000 -- once per sec
+  taskBody $ \sch -> do
+    eventLoop sch $ onTimer p $ \_now ->
+      call_ read_clock_block $ procPtr $ clkEmitter sch clk
+
+-- Task wrapper: task reads the channel and updates its local state witht the
+-- time.
 updateTimeTask :: ChannelSink Clk -> ChannelSource AssignStruct -> Task ()
 updateTimeTask clk chk = do
   rx <- withChannelReceiver clk "timeRx"
@@ -77,7 +76,6 @@ tasks :: Tower ()
 tasks = do
   (chkSrc, chkSink) <- channel
   (clkSrc, clkSink) <- channel
-
   task "verify_updates" $ checkerTask chkSink
   task "readClockTask"  $ readClockTask clkSrc
   task "updateTimeTask" $ updateTimeTask clkSink chkSrc

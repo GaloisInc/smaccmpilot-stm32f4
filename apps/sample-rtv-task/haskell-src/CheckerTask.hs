@@ -1,11 +1,10 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
 
-
-module CheckerTask (
-  checkerTask
+module CheckerTask
+  ( checkerTask
+  , recordEmit
   ) where
-
 
 import Types
 
@@ -14,19 +13,31 @@ import Ivory.Language
 
 --------------------------------------------------------------------------------
 
+-- XXX impl specific
+-- Set the red LED.
+led_set :: Def ('[Sint32, IBool] :-> ())
+led_set = importProc "led_set" "hwf4/led.h"
+
+-- XXX impl specific
 -- What to do if a property fails (in this case, led_set(1, 1))?
-action :: Def ('[Sint32, IBool] :-> ())
-action = importProc "led_set" "hwf4/led.h"
+action :: Ivory eff ()
+action = call_ led_set 1 true
 
 append_to_history :: Def ('[Ix 100, Uint32] :-> ())
 append_to_history = importProc "append_to_history" "instrumented.h"
 
--- -- XXX Seems cool to redefine imported types...
--- append_to_history' :: Def ('[Ix 100, Uint16] :-> ())
--- append_to_history' = importProc "append_to_history" "instrumented.h"
+--------------------------------------------------------------------------------
+
+-- | Emitter a monitored task uses to send values to the checker task.  The
+-- emitter is called by record_assignment(), instrumented by the plugin.
+recordEmit :: Schedule
+           -> ChannelEmitter AssignStruct
+           -> Def ('[AssignRef s] :-> ())
+recordEmit sch ch = proc "recordEmit" $ \r -> body $ emit sch ch r
 
 --------------------------------------------------------------------------------
 
+-- | History buffer managed by the checker task.
 mkHistory :: Def ('[AssignRef s] :-> ())
 mkHistory = proc "mkHistory" $ \s -> body $ do
   var <- deref (s ~> var_id)
@@ -43,7 +54,7 @@ check_properties = importProc "check_properties" "runtime-checker.h"
 runCheck :: Ivory s ()
 runCheck = do
   bool <- call check_properties
-  ifte bool (return ()) (call_ action 1 true)
+  ifte bool (return ()) action
 
 --------------------------------------------------------------------------------
 
@@ -54,7 +65,7 @@ checkerTask sink = do
   rx <- withChannelReceiver sink "rvSink"
   taskModuleDef $ \_sch -> defStruct (Proxy :: Proxy "assignment")
   taskModuleDef $ \_sch -> incl mkHistory
-  taskModuleDef $ \_sch -> incl action
+  taskModuleDef $ \_sch -> incl led_set
   taskBody $ \sch -> do
     eventLoop sch $ onChannel rx $ \latestVal -> do
       call_ mkHistory latestVal

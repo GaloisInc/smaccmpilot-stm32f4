@@ -10,15 +10,21 @@ OUTDIR := $(PRJ)/generated
 
 TOWER_HDRS = $(PRJ)/tower-hdrs
 TOWER_SRCS = $(PRJ)/tower-srcs
+RECORD = $(PRJ)/record_assignment
+LEGACY = $(PRJ)/legacy
 
 RTV_GEN_HEADERS := \
-  $(TOWER_HDRS)/*.h $(PRJ)/legacy/*.h $(PRJ)/record_assignment/*.h $(OUTDIR)/*.h
+  $(TOWER_HDRS)/*.h \
+  $(LEGACY)/*.h \
+  $(RECORD)/*.h \
+  $(OUTDIR)/*.h
 RTV_GEN_SOURCES := \
-  $(TOWER_SRCS)/*.c $(PRJ)/legacy/*.c $(PRJ)/record_assignment/*.c $(OUTDIR)/*.c
+  $(TOWER_SRCS)/*.c \
+  $(LEGACY)/*.c \
+  $(RECORD)/*.c \
+  $(OUTDIR)/*.c
 
-# Build Haskell-generated stuff first
-# IVORY += $(RTV_GEN_HEADERS) $(RTV_GEN_SOURCES)
-
+# Target to build
 APP_RTV_IMG         := sample-rtv
 
 APP_RTV_OBJECTS     := \
@@ -33,8 +39,8 @@ APP_RTV_INCLUDES     += $(FREERTOS_INCLUDES)
 APP_RTV_INCLUDES     += -I$(TOP)/$(PRJ)
 APP_RTV_INCLUDES     += -I$(TOP)/$(OUTDIR)
 APP_RTV_INCLUDES     += -I$(TOP)/$(TOWER_HDRS)
-APP_RTV_INCLUDES     += -I$(TOP)/$(PRJ)/legacy
-APP_RTV_INCLUDES     += -I$(TOP)/$(PRJ)/record_assignment
+APP_RTV_INCLUDES     += -I$(TOP)/$(LEGACY)
+APP_RTV_INCLUDES     += -I$(TOP)/$(RECORD)
 APP_RTV_INCLUDES     += -I$(TOP)/src/bsp/hwf4/include
 
 APP_RTV_CFLAGS       += $(APP_RTV_INCLUDES)
@@ -52,6 +58,10 @@ APP_RTV_LIBS         += -lm
 $(APP_RTV_IMG): $(RTV_GEN_HEADERS) $(RTV_GEN_SOURCES)
 
 $(eval $(call image,APP_RTV))
+
+# ------------------------------------------------------------------------------
+# IVORY var tell the build system what to blow away.
+# IVORY += $(RTV_GEN_HEADERS) $(RTV_GEN_SOURCES)
 
 # $(RTV_GEN_HEADERS) $(RTV_GEN_SOURCES): $(RTV_CHECKER_GEN_EXE)
 #   # XXX fix where to put output dir
