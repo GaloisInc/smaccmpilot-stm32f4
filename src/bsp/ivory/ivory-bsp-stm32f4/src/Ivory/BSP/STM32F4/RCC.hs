@@ -6,7 +6,7 @@
 --
 
 module Ivory.BSP.STM32F4.RCC (
-    RCCDevice(..), rccEnable
+    RCCDevice(..), rccEnable, rccDisable
   , module Ivory.BSP.STM32F4.RCC.Regs
 ) where
 

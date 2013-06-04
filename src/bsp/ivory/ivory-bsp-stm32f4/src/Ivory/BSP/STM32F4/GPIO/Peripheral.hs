@@ -4,6 +4,7 @@
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE Rank2Types #-}
 --
 -- GPIO.hs --- GPIO Peripheral driver.
 -- Defines peripheral types, instances, and public API.
@@ -28,20 +29,21 @@ import Ivory.BSP.STM32F4.MemoryMap
 -- | A GPIO port, defined as the set of registers that operate on all
 -- the pins for that port.
 data GPIOPort = GPIOPort
-  { gpioPortMODER          :: BitDataReg GPIO_MODER
-  , gpioPortOTYPER         :: BitDataReg GPIO_OTYPER
-  , gpioPortOSPEEDR        :: BitDataReg GPIO_OSPEEDR
-  , gpioPortPUPDR          :: BitDataReg GPIO_PUPDR
-  , gpioPortIDR            :: BitDataReg GPIO_IDR
-  , gpioPortBSRR           :: BitDataReg GPIO_BSRR
-  , gpioPortAFRL           :: BitDataReg GPIO_AFRL
-  , gpioPortAFRH           :: BitDataReg GPIO_AFRH
-  , gpioPortRCCEnableField :: BitDataField (RCCEnableReg GPIOPort) Bit
+  { gpioPortMODER       :: BitDataReg GPIO_MODER
+  , gpioPortOTYPER      :: BitDataReg GPIO_OTYPER
+  , gpioPortOSPEEDR     :: BitDataReg GPIO_OSPEEDR
+  , gpioPortPUPDR       :: BitDataReg GPIO_PUPDR
+  , gpioPortIDR         :: BitDataReg GPIO_IDR
+  , gpioPortBSRR        :: BitDataReg GPIO_BSRR
+  , gpioPortAFRL        :: BitDataReg GPIO_AFRL
+  , gpioPortAFRH        :: BitDataReg GPIO_AFRH
+  , gpioPortRCCEnable   :: forall eff . Ivory eff ()
+  , gpioPortRCCDisable  :: forall eff . Ivory eff ()
   }
 
 -- | Create a GPIO port given the base register address.
-mkGPIOPort :: Integer -> BitDataField (RCCEnableReg GPIOPort) Bit -> GPIOPort
-mkGPIOPort base rccenable =
+mkGPIOPort :: Integer -> BitDataField RCC_AHB1ENR Bit -> GPIOPort
+mkGPIOPort base rccfield =
   GPIOPort
     { gpioPortMODER          = mkBitDataReg $ base + 0x00
     , gpioPortOTYPER         = mkBitDataReg $ base + 0x04
@@ -51,8 +53,10 @@ mkGPIOPort base rccenable =
     , gpioPortBSRR           = mkBitDataReg $ base + 0x18
     , gpioPortAFRL           = mkBitDataReg $ base + 0x20
     , gpioPortAFRH           = mkBitDataReg $ base + 0x24
-    , gpioPortRCCEnableField = rccenable
+    , gpioPortRCCEnable      = rccEnable  rccreg rccfield
+    , gpioPortRCCDisable     = rccDisable rccreg rccfield
     }
+  where rccreg = regRCC_AHB1ENR -- All GPIO are in AHB1.
 
 gpioA :: GPIOPort
 gpioA = mkGPIOPort gpioa_periph_base rcc_ahb1en_gpioa
@@ -82,9 +86,8 @@ gpioI :: GPIOPort
 gpioI = mkGPIOPort gpioi_periph_base rcc_ahb1en_gpioi
 
 instance RCCDevice GPIOPort where
-  type RCCEnableReg GPIOPort = RCC_AHB1ENR
-  rccDeviceEnableReg _ = regRCC_AHB1ENR
-  rccDeviceEnableField = gpioPortRCCEnableField
+  rccDeviceEnable  d = gpioPortRCCEnable  d
+  rccDeviceDisable d = gpioPortRCCDisable d
 
 -- | A GPIO alternate function register and bit field.
 data GPIOPinAFR = AFRL (BitDataField GPIO_AFRL GPIO_AF)
@@ -106,7 +109,7 @@ data GPIOPin = GPIOPin
 
 -- | Enable the GPIO port for a pin in the RCC.
 pinEnable :: GPIOPin -> Ivory eff ()
-pinEnable = rccEnable . gpioPinPort
+pinEnable = rccDeviceEnable . gpioPinPort
 
 setRegF :: (BitData a, BitData b, IvoryIOReg (BitDataRep a),
             SafeCast (BitDataRep b) (BitDataRep a))

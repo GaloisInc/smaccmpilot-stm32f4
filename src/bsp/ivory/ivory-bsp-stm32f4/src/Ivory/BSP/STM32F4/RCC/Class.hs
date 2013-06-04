@@ -19,13 +19,22 @@ import Ivory.HW
 
 import Ivory.BSP.STM32F4.RCC.Regs
 
-class (BitData (RCCEnableReg a),
-       IvoryIOReg (BitDataRep (RCCEnableReg a)))
-    => RCCDevice a where
-  type RCCEnableReg a
-  rccDeviceEnableReg   :: a -> BitDataReg (RCCEnableReg a)
-  rccDeviceEnableField :: a -> BitDataField (RCCEnableReg a) Bit
+class RCCDevice a where
+  rccDeviceEnable  :: a -> Ivory eff ()
+  rccDeviceDisable :: a -> Ivory eff ()
 
-rccEnable :: RCCDevice a => a -> Ivory eff ()
-rccEnable dev = modifyReg (rccDeviceEnableReg dev) (setBit field)
-  where field = rccDeviceEnableField dev
+--class (BitData (RCCEnableReg a),
+--       IvoryIOReg (BitDataRep (RCCEnableReg a)))
+--    => RCCDevice a where
+--  type RCCEnableReg a
+--  rccDeviceEnableReg   :: a -> BitDataReg (RCCEnableReg a)
+--  rccDeviceEnableField :: a -> BitDataField (RCCEnableReg a) Bit
+
+rccEnable :: (BitData a, IvoryIOReg (BitDataRep a))
+          => BitDataReg a -> BitDataField a Bit -> Ivory eff ()
+rccEnable reg field = modifyReg reg (setBit field)
+
+rccDisable :: (BitData a, IvoryIOReg (BitDataRep a))
+           => BitDataReg a -> BitDataField a Bit -> Ivory eff ()
+rccDisable reg field = modifyReg reg (clearBit field)
+
