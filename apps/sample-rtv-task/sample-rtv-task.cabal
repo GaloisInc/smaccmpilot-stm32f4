@@ -19,3 +19,5 @@ executable sample-rtv-task-checker-gen
                      , template-haskell >= 2.8
   other-modules:       Variables
                      , TowerSetup
+                     , CheckerTask
+                     , Types
