@@ -15,6 +15,7 @@ import Ivory.BSP.STM32F4.GPIO.TH
 import Ivory.BSP.STM32F4.GPIO.Peripheral
 
 -- Each mkGPIOPins creates 16 pin values (with 0..15) using TH.
+-- so, pins will have values pinA0, pinA1 ... pinA15, etc.
 
 mkGPIOPins 'gpioA "pinA"
 mkGPIOPins 'gpioB "pinB"

@@ -426,7 +426,6 @@ void USART6_IRQHandler(void) {
 
 /* USART Handle Definition ****************************************************/
 
-
 struct usart _usart1 = {
     INIT_USART,
     .dev     = USART1,
