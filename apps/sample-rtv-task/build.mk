@@ -1,7 +1,7 @@
 # -*- Mode: makefile-gmake; indent-tabs-mode: t; tab-width: 2 -*-
 # vim: set ft=make noet ts=2:
 
-# ifneq ($(CONFIG_BUILD_RTV),)
+ifneq ($(CONFIG_BUILD_RTV),)
 
 # Should be the sample name as the project directory.
 TEST := sample-rtv-task
@@ -63,4 +63,4 @@ $(eval $(call image,APP_RTV))
 # CLEAN += $(OUTDIR)
 # CLEAN += $(addprefix $(OBJ_DIR)/, $(PRJ))
 
-# endif
+endif
