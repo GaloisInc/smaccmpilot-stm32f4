@@ -25,6 +25,7 @@ library
                        Ivory.BSP.STM32F4.GPIO.Regs,
                        Ivory.BSP.STM32F4.GPIO.Peripheral,
                        Ivory.BSP.STM32F4.GPIO.Pins,
+                       Ivory.BSP.STM32F4.GPIO.AF,
                        Ivory.BSP.STM32F4.UART,
                        Ivory.BSP.STM32F4.UART.Regs,
                        Ivory.BSP.STM32F4.UART.Peripheral
