@@ -42,7 +42,7 @@ $$($(1)_REAL_IMG): LIBS     += $$($(1)_LIBS)
 
 IMAGES      += $$($(1)_REAL_IMG) $$($(1)_REAL_BIN)
 ALL_OBJECTS += $$($(1)_REAL_OBJECTS)
-CLEAN       += $$($(1)_REAL_IMG).map
+CLEAN       += $$($(1)_REAL_IMG).map $$($(1)_REAL_LDS)
 
 $$($(1)_REAL_LDS): $(LDSCRIPT)
 	$$(Q)mkdir -p $$(dir $$@)
