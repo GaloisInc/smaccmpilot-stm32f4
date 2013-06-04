@@ -19,12 +19,13 @@ xTaskHandle checker_task_handle;
 /* Global variable that keeps track of time. */
 int32_t curr_time __attribute__((instrument(0)));
 
-int32_t dummy __attribute__((instrument(1))) = 100;
+int32_t dummy __attribute__((instrument(1)));
 
 /* Task simulating reading from a clock every second and putting the result in
      * the given queue */
 
-int32_t fake_clock_time = 0x7ffffff6; /* uh-oh! this will overflow after 10 seconds */
+/* uh-oh! this will overflow after 10 seconds */
+int32_t fake_clock_time = 0x7ffffff6;
 
 void read_clock_block(void (*send)(const int32_t *))
 {
@@ -36,16 +37,20 @@ void read_clock_block(void (*send)(const int32_t *))
 void (*record_send)(const struct assignment *);
 
 void update_time_init(void (*check_send)(const struct assignment *)) {
-    record_send = check_send;
-    led_init();
-    led_set(0, 0);
-    led_set(1, 0);
+
+  record_send = check_send;
+  led_init();
+  led_set(0, 0);
+  led_set(1, 0);
   }
 
 /* Task that updates the global time variable when a new time reading is
      * received */
 void update_time_block(int32_t new_time)
 {
+  /* XXX just so the dummy var has some assignment to call the plugin. */
+  dummy = 100;
+
   /* This assignment is what gets instrumented with a call to
            record_assignment() */
   curr_time = new_time;

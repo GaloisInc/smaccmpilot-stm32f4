@@ -19,6 +19,7 @@ gettersAndHists variables
 
 checksMod :: Module
 checksMod = createModule $ properties $ do
+     -- historically [get_id0] (\_ -> true)
   historically [get_id0] (\[x] -> x >? 0)
   historically [get_id1] (\[x] -> x ==? 100)
 
