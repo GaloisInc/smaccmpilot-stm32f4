@@ -18,7 +18,6 @@ library
   exposed-modules:     Ivory.BSP.STM32F4.MemoryMap,
                        Ivory.BSP.STM32F4.Interrupt,
                        Ivory.BSP.STM32F4.Interrupt.API,
-                       Ivory.BSP.STM32F4.Interrupt.NVIC,
                        Ivory.BSP.STM32F4.Interrupt.Types,
                        Ivory.BSP.STM32F4.SPITypes,
                        Ivory.BSP.STM32F4.SPI,

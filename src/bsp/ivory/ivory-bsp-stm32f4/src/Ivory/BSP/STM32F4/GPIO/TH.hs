@@ -38,7 +38,7 @@ mkGPIOPin portName pinName n =
              ]
 
 -- | Define 16 GPIO pins for a GPIO port.
--- mkGPIOPins :: Name -> String -> Q [Dec]
+mkGPIOPins :: Name -> String -> Q [Dec]
 mkGPIOPins portName baseName = sequence $ concat $ decls
   where decls = zipWith (mkGPIOPin portName) names nums
         nums  = [0..15]
