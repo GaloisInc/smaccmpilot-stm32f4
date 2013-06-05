@@ -2,4 +2,5 @@ ledblink.c
 ledblink.h
 ivory_hw.c
 ivory_hw.h
+ivory.h
 dep.mk
