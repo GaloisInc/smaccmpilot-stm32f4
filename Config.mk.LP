@@ -56,3 +56,7 @@ CONFIG_CBMC_PREFIX := ../../OutsideSrcs/cbmc/src/cbmc
 
 # location of CBMC driver (cbmc-report)
 CONFIG_CBMC_REPORT := $(CONFIG_CABAL_SANDBOX)/bin
+
+# ------------------------------------------------------------------------------
+# Optional: Runtime verification
+GCC_PLUGIN := ../dsl/ivory-rtverification/GCC-Plugin

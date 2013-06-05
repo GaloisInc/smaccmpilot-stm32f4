@@ -44,8 +44,7 @@ APP_RTV_INCLUDES     += -I$(TOP)/$(RECORD)
 APP_RTV_INCLUDES     += -I$(TOP)/src/bsp/hwf4/include
 
 APP_RTV_CFLAGS       += $(APP_RTV_INCLUDES)
-APP_RTV_CFLAGS       += \
-  -fplugin=$(TOP)/../../ARM-analysis/GCC_plugin/instrument_plugin.so
+APP_RTV_CFLAGS       += -fplugin=$(GCC_PLUGIN)/instrument_plugin.so
 APP_RTV_CFLAGS       += -DIVORY_DEPLOY
 
 APP_RTV_LIBRARIES    += libhwf4.a
