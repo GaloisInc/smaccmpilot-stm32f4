@@ -55,7 +55,7 @@ otherms =
 main :: IO ()
 main = do
   let (asm, objs) = FreeRTOS.compile app
-  compileWithSizeMap sizeMap objs
+  compileWith (Just sizeMap) Nothing objs
   gviz asm
 
 stateProxy :: (IvoryType area, IvoryZero area)
