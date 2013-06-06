@@ -15,9 +15,9 @@ APP_TWRTEST_IMG          := tower-test
 
 APP_TWRTEST_OBJECTS      := main.o
 
+APP_TWRTEST_INCLUDES     += -I$(TOP)/apps/tower-test/generated/include/generated
 APP_TWRTEST_INCLUDES     += -I$(TOP)/apps/tower-test/generated/include
 APP_TWRTEST_INCLUDES     += $(FREERTOS_INCLUDES)
-APP_TWRTEST_INCLUDES     += -I$(TOP)/src/ivory-freertos-wrapper/include
 APP_TWRTEST_INCLUDES     += -I$(TOP)/src/bsp/hwf4/include
 
 APP_TWRTEST_CFLAGS        = $(APP_TWRTEST_INCLUDES)
@@ -27,7 +27,6 @@ APP_TWRTEST_CXXFLAGS      = $(APP_TWRTEST_INCLUDES)
 APP_TWRTEST_LIBRARIES    += libtwrtest-generated.a
 APP_TWRTEST_LIBRARIES    += libhwf4.a
 APP_TWRTEST_LIBRARIES    += libstm32_usb.a
-APP_TWRTEST_LIBRARIES    += libivoryfreertoswrapper.a
 APP_TWRTEST_LIBRARIES    += libFreeRTOS.a
 
 APP_TWRTEST_LIBS         += -lm

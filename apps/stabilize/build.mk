@@ -21,9 +21,9 @@ SP_STABILIZE_INCLUDES      = $(SMACCMPILOT_INCLUDES)
 SP_STABILIZE_INCLUDES     += $(FREERTOS_INCLUDES)
 SP_STABILIZE_INCLUDES     += $(ARDUPILOT_LIBINCLUDES)
 SP_STABILIZE_INCLUDES     += -I$(TOP)/src/flight-support/include
-SP_STABILIZE_INCLUDES     += -I$(TOP)/src/ivory-freertos-wrapper/include
 SP_STABILIZE_INCLUDES     += -I$(TOP)/src/bsp/hwf4/include
 SP_STABILIZE_INCLUDES     += -I$(TOP)/generated/flight-generated/include
+SP_STABILIZE_INCLUDES     += -I$(TOP)/generated/flight-generated/include/flight-generated
 SP_STABILIZE_HIL_INCLUDES  = $(SP_STABILIZE_INCLUDES)
 
 SP_STABILIZE_CFLAGS        = $(SP_STABILIZE_INCLUDES)
@@ -37,7 +37,6 @@ SP_STABILIZE_LIBRARIES    += libflight-generated.a
 SP_STABILIZE_LIBRARIES    += libardupilot.a
 SP_STABILIZE_LIBRARIES    += libhwf4.a
 SP_STABILIZE_LIBRARIES    += libstm32_usb.a
-SP_STABILIZE_LIBRARIES    += libivoryfreertoswrapper.a
 SP_STABILIZE_LIBRARIES    += libFreeRTOS.a
 SP_STABILIZE_HIL_LIBRARIES = $(SP_STABILIZE_LIBRARIES)
 

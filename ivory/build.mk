@@ -62,7 +62,6 @@ CLEAN     += $(GRAPHS_DIR)
 CBMC_INCS = \
   -I./src/bsp/hwf4/include \
   -I./src/bsp/include \
-  -I./src/ivory-freertos-wrapper/include \
   -I./src/flight-support/include \
   -I./generated/flight-generated/include \
   -I./generated/flight-generated/include/flight-generated \

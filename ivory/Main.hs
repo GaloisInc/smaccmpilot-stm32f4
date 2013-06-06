@@ -55,7 +55,7 @@ otherms =
 main :: IO ()
 main = do
   let (asm, objs) = FreeRTOS.compile app
-  compileWith (Just sizeMap) Nothing objs
+  compileWith (Just sizeMap) (Just [FreeRTOS.searchDir]) objs
   gviz asm
 
 app :: Tower ()

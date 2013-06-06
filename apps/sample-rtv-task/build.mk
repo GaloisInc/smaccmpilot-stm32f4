@@ -31,7 +31,6 @@ RTV_CHECKER_GEN_EXE := $(IVORY_RTV_SANDBOX)/bin/$(TEST)-checker-gen
 
 APP_RTV_INCLUDES     += $(FREERTOS_INCLUDES)
 APP_RTV_INCLUDES     += -I$(TOP)/$(PRJ)
-APP_RTV_INCLUDES     += -I$(TOP)/src/ivory-freertos-wrapper/include
 APP_RTV_INCLUDES     += -I$(TOP)/$(OUTDIR)
 APP_RTV_INCLUDES     += -I$(TOP)/$(TOWER_HDRS)
 APP_RTV_INCLUDES     += -I$(TOP)/$(PRJ)/legacy
@@ -45,7 +44,6 @@ APP_RTV_CFLAGS       += -DIVORY_DEPLOY
 
 APP_RTV_LIBRARIES    += libhwf4.a
 APP_RTV_LIBRARIES    += libstm32_usb.a
-APP_RTV_LIBRARIES    += libivoryfreertoswrapper.a
 APP_RTV_LIBRARIES    += libFreeRTOS.a
 
 APP_RTV_LIBS         += -lm
