@@ -58,18 +58,6 @@ main = do
   compileWith (Just sizeMap) Nothing objs
   gviz asm
 
-stateProxy :: (IvoryType area, IvoryZero area)
-           => ChannelSink area -> Tower (DataSink area)
-stateProxy chsink = do
-  (src_data, snk_data) <- dataport
-  task "stateProxy" $ do
-    chrxer <- withChannelReceiver chsink "proxy event"
-    data_writer <- withDataWriter src_data "proxy data"
-    taskBody $ \schedule ->
-      eventLoop schedule $ onChannel chrxer $ \val -> do
-        writeData schedule data_writer val
-  return snk_data
-
 app :: Tower ()
 app = do
   (src_userinput, snk_userinput)   <- dataport
