@@ -56,3 +56,14 @@ executable ledblink-gen
                        ivory-bitdata,
                        ivory-hw,
                        ivory-bsp-stm32f4
+
+executable bsp-uart-test-gen
+  main-is:             UARTTest.hs
+  hs-source-dirs:      examples
+  build-depends:       base >= 4.6,
+                       ivory,
+                       ivory-backend-c,
+                       ivory-bitdata,
+                       ivory-hw,
+                       ivory-bsp-stm32f4
+
