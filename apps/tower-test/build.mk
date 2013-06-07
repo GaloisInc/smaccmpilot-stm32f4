@@ -23,7 +23,7 @@ include $(TWRTEST_GENERATED_DEP)
 # Generate the srcs and headers.
 TWRTEST += twrtest-build
 .PHONY: twrtest-build
-twrtest-build: $(TWRTEST_GENERATED_HEADERS) $(FLIGHT_GENERATED_SOURCES)
+twrtest-build: $(TWRTEST_GENERATED_HEADERS) $(TWRTEST_GENERATED_SOURCES)
 
 $(TWRTEST_GENERATED_DEP): $(TWRTEST_GENERATOR_EXE)
 	mkdir -p $(TWRTEST_GRAPHS_DIR)

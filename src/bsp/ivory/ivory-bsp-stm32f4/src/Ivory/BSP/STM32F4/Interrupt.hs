@@ -9,6 +9,7 @@ module Ivory.BSP.STM32F4.Interrupt
   , interrupt_enable
   , interrupt_disable
   , interrupt_set_priority
+  , interrupt_moduledef
   ) where
 
 import Ivory.BSP.STM32F4.Interrupt.Types

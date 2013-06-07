@@ -14,6 +14,7 @@ import Ivory.BSP.STM32F4.Interrupt.Types
 
 import Ivory.Language
 
+
 -- Based on convention used in init/startup_stm43f4xx.s
 handlerName :: Interrupt -> String
 handlerName i = (show i) ++ "_IRQHandler"
@@ -44,3 +45,7 @@ interrupt_set_priority i priority =
   extern_set_priority = importProc "interrupt_num_set_priority"
                                    "ivory_stm32f4_interrupt.h"
 
+interrupt_moduledef :: ModuleDef
+interrupt_moduledef = do
+  sourceDep "ivory_stm32f4_interrupt.h"
+  sourceDep "ivory_stm32f4_interrupt.c"

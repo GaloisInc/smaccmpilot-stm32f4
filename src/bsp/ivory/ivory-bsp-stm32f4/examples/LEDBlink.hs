@@ -15,6 +15,8 @@ import Ivory.HW
 import Ivory.HW.Module
 import Ivory.BSP.STM32F4.GPIO
 
+import qualified Ivory.HW.SearchDir as HW
+
 ledPins :: [GPIOPin]
 ledPins = [pinB14, pinB15]
 
@@ -70,7 +72,7 @@ taskDelay = importProc "vTaskDelay" "FreeRTOS.h"
 
 cmodule :: Module
 cmodule = package "ledblink" $ do
-  depend hwModule
+  hw_moduledef
   inclHeader "FreeRTOS.h"
   inclHeader "task.h"
   incl cmain
@@ -79,4 +81,4 @@ cmodule = package "ledblink" $ do
   incl taskStartScheduler
 
 main :: IO ()
-main = compile [hwModule, cmodule]
+main = compileWith Nothing (Just [HW.searchDir]) [cmodule]
