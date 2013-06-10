@@ -13,9 +13,8 @@ import Ivory.RTVerification.Operators
 import Ivory.RTVerification.GenChecker
 import Ivory.RTVerification.GenSettersGetters
 
-import Variables (variables)
-
-gettersAndHists variables
+-- Generates all the setters and getters using TH.
+gettersAndHists
 
 checksMod :: Module
 checksMod = createModule $ properties $ do
@@ -25,6 +24,6 @@ checksMod = createModule $ properties $ do
 
 main :: IO ()
 main = do
-  writeCFilesForVariables variables "generated"
+  writeCFilesForVariables "generated"
   runCompiler [checksMod]
     initialOpts { includeDir = "generated", srcDir = "generated" }

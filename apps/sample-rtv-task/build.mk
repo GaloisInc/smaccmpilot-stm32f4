@@ -1,7 +1,7 @@
 # -*- Mode: makefile-gmake; indent-tabs-mode: t; tab-width: 2 -*-
 # vim: set ft=make noet ts=2:
 
-ifneq ($(CONFIG_BUILD_RTV),)
+# ifneq ($(CONFIG_BUILD_RTV),)
 
 # Should be the sample name as the project directory.
 TEST := sample-rtv-task
@@ -58,6 +58,23 @@ $(APP_RTV_IMG): $(RTV_GEN_HEADERS) $(RTV_GEN_SOURCES)
 
 $(eval $(call image,APP_RTV))
 
+# INSTR_FILES = $(shell cd $(LEGACY); find `pwd` -name "*.c")
+# INSTR_INCLS = $(shell find `pwd` -name $(APP_RTV_INCLUDES))
+	# echo $(INSTR_INCLS)
+
+	# echo "arm-none-eabi-gcc" "--sysroot="$(shell pwd) $(APP_RTV_INCLUDES) $(INSTR_F
+# ILES) > $@
+
+FOO := /tmp/$(TEST)
+
+.PHONY: foo
+foo: $(LEGACY)/*.c
+	rm -rf $(FOO)
+	mkdir -p $(FOO)
+	$(CC) -E $(APP_RTV_INCLUDES) $(LEGACY)/*.c -o$(FOO)/foo.cpp
+	echo $(FOO)/foo.cpp > $(PRJ)/build_args
+
+
 # ------------------------------------------------------------------------------
 # IVORY var tell the build system what to blow away.
 # IVORY += $(RTV_GEN_HEADERS) $(RTV_GEN_SOURCES)
@@ -67,7 +84,9 @@ $(eval $(call image,APP_RTV))
 # 	echo "Generating RTV sources..."
 # 	cd $(PRJ) && $(RTV_CHECKER_GEN_EXE)
 
+CLEAN += $(PRJ)/build_args
+
 # CLEAN += $(OUTDIR)
 # CLEAN += $(addprefix $(OBJ_DIR)/, $(PRJ))
 
-endif
+# endif

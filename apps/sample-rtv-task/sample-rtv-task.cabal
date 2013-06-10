@@ -17,7 +17,6 @@ executable sample-rtv-task-checker-gen
                      , srcloc
                      , monadLib
                      , template-haskell >= 2.8
-  other-modules:       Variables
-                     , TowerSetup
+  other-modules:       TowerSetup
                      , CheckerTask
                      , Types
