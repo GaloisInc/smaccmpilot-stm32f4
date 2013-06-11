@@ -11,6 +11,7 @@
 module Ivory.BSP.STM32F4.RCC.GetFreq where
 
 import Ivory.Language
+import Ivory.Stdlib
 import Ivory.BitData
 import Ivory.HW
 
@@ -28,16 +29,14 @@ hseFreq = 24000000 -- Actually depends on preprocessor value!
 getFreqSysClk :: (eff `AllocsIn` s) => Ivory eff Uint32
 getFreqSysClk = do
   cfg <- getReg regRCC_CFGR
-  clk <- local (ival 0)
   let sws = getBitDataField rcc_cfgr_sws cfg
-  ifte_ (eqBits sws rcc_sysclk_hsi)
-    (store clk hsiFreq)
-    (ifte_ (eqBits sws rcc_sysclk_hse)
-          (store clk hseFreq)
-          (ifte_ (eqBits sws rcc_sysclk_pll)
-                (pllSysClk >>= (store clk))
-                ({- DEFAULT CASE -} store clk hsiFreq)))
-  deref clk
+  ifte (eqBits sws rcc_sysclk_hsi)
+    (return hsiFreq)
+    (ifte (eqBits sws rcc_sysclk_hse)
+          (return hseFreq)
+          (ifte (eqBits sws rcc_sysclk_pll)
+                pllSysClk
+                ({- DEFAULT CASE -} return hsiFreq)))
 
 pllSysClk :: (eff `AllocsIn` s) => Ivory eff Uint32
 pllSysClk = undefined
