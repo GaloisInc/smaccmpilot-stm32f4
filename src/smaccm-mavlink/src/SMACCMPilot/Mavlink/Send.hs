@@ -10,6 +10,7 @@
 module SMACCMPilot.Mavlink.Send where
 
 import Ivory.Language
+import Ivory.Stdlib (unless)
 
 import SMACCMPilot.Mavlink.CRC
 
@@ -49,10 +50,11 @@ mavlinkChecksum :: (SingI n, eff `AllocsIn` s)
 mavlinkChecksum header payload crcextra = do
   ck <- local (ival crc_init_v)
   arrayMap $ \i ->
-    ifte (i ==? 0) -- mavlink doesn't use the magic number
-      (return ())  -- in header[0] for crc calculation.
-      (do b <- deref (header ! i)
-          call_ crc_accumulate b ck)
+    -- mavlink doesn't use the magic number
+    -- in header[0] for crc calculation.
+    unless (i ==? 0) $ do
+      b <- deref (header ! i)
+      call_ crc_accumulate b ck
 
   arrayMap $ \i -> do
     b <- deref (payload ! i)

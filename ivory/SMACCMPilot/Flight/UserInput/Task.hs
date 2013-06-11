@@ -8,12 +8,11 @@ module SMACCMPilot.Flight.UserInput.Task
   ) where
 
 import Ivory.Language
+import Ivory.Stdlib
 import Ivory.Tower
 
 import SMACCMPilot.Flight.Types.UserInput
 import SMACCMPilot.Flight.UserInput.Decode
-
-import SMACCMPilot.Util.IvoryHelpers
 
 userInputTask :: DataSource (Struct "userinput_result")
               -> DataSource (Struct "flightmode")
@@ -29,7 +28,7 @@ userInputTask uis fms = do
     fm_result  <- local (istruct [])
     eventLoop sch $ onTimer p $ \now -> do
       captured <- call userInputCapture chs
-      ift captured $ do
+      when captured $ do
         call_ userInputDecode chs decoder ui_result fm_result now
       call_ userInputFailsafe ui_result fm_result now
       writeData sch uiWriter (constRef ui_result)

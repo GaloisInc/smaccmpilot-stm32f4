@@ -8,11 +8,10 @@ module SMACCMPilot.Flight.BlinkTask
   ) where
 
 import Ivory.Language
+import Ivory.Stdlib
 import Ivory.Tower
 
 import Ivory.BSP.HWF4.GPIO
-
-import SMACCMPilot.Util.IvoryHelpers
 
 import qualified SMACCMPilot.Flight.Types.FlightMode as FM
 
@@ -37,7 +36,7 @@ blinkTask mempin s =  do
       bmode  <- flightModeToBlinkMode flightMode
       phase  <- nextPhase 8 s_phase
       output <- blinkOutput bmode phase
-      ifte output
+      ifte_ output
         (call_ pin_reset pin) -- relay LEDs are active low.
         (call_ pin_set   pin)
   taskModuleDef $ \_sch -> do
@@ -47,7 +46,7 @@ nextPhase :: Uint8 -> (Ref s1 (Stored Uint8)) -> Ivory eff Uint8
 nextPhase highest r = do
     phase <- deref r
     next <- assign (phase + 1)
-    ifte (next >=? highest)
+    ifte_ (next >=? highest)
       (store r 0)
       (store r next)
     return phase

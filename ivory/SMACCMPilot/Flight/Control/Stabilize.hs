@@ -7,7 +7,7 @@
 module SMACCMPilot.Flight.Control.Stabilize where
 
 import Ivory.Language
-import SMACCMPilot.Util.IvoryHelpers
+import Ivory.Stdlib
 
 import SMACCMPilot.Param
 
@@ -66,7 +66,7 @@ stabilize_run = proc "stabilize_run" $ \fm input sensors output -> body $ do
   yaw_rate        <- addrOf pid_yaw_rate
 
   armed <- (fm ~>* FM.armed)
-  ifte (iNot armed)
+  ifte_ (iNot armed)
     (mapM_ do_reset
       [roll_stabilize, pitch_stabilize, roll_rate, pitch_rate, yaw_rate] )
     $ do -- if armed:

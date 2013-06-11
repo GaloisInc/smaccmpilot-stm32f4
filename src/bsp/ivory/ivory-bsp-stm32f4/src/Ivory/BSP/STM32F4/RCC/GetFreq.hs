@@ -30,11 +30,11 @@ getFreqSysClk = do
   cfg <- getReg regRCC_CFGR
   clk <- local (ival 0)
   let sws = getBitDataField rcc_cfgr_sws cfg
-  ifte (eqBits sws rcc_sysclk_hsi)
+  ifte_ (eqBits sws rcc_sysclk_hsi)
     (store clk hsiFreq)
-    (ifte (eqBits sws rcc_sysclk_hse)
+    (ifte_ (eqBits sws rcc_sysclk_hse)
           (store clk hseFreq)
-          (ifte (eqBits sws rcc_sysclk_pll)
+          (ifte_ (eqBits sws rcc_sysclk_pll)
                 (pllSysClk >>= (store clk))
                 ({- DEFAULT CASE -} store clk hsiFreq)))
   deref clk

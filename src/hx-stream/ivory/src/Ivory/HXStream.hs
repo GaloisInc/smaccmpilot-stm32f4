@@ -5,6 +5,7 @@
 module Ivory.HXStream where
 
 import Ivory.Language
+import Ivory.Stdlib
 
 import Ivory.HXStream.Types
 
@@ -48,17 +49,16 @@ decodeSM state b = do
   off <- deref (state ~> offset)
   esc <- deref (state ~> escaped)
 
-  (ifte (sta ==? hxstream_fstate_Begin)
-       (ifte (b ==? fbo)
-        (emptyStreamState state >> setEscaped false state)
-        (return ()))
-   (ifte (sta ==? hxstream_fstate_Progress)
-       (ifte (esc) (setEscaped false state >> appendFrame (escape b) state)
-        (ifte (b ==? ceo) (setEscaped true state)
-         (ifte (b ==? fbo) (setComplete state)
+  (ifte_ (sta ==? hxstream_fstate_Begin)
+       (when (b ==? fbo)
+        (emptyStreamState state >> setEscaped false state))
+   (ifte_ (sta ==? hxstream_fstate_Progress)
+       (ifte_ (esc) (setEscaped false state >> appendFrame (escape b) state)
+        (ifte_ (b ==? ceo) (setEscaped true state)
+         (ifte_ (b ==? fbo) (setComplete state)
           {- else -}       (appendFrame b state))))
-     (ifte (sta ==? hxstream_fstate_Complete)
-        (return ())
+     (ifte_ (sta ==? hxstream_fstate_Complete)
+        (return ()) -- Do nothing.
        ({- IMPOSSIBLE: restore sanity. -} emptyStreamState state))))
 
   deref (state ~> fstate) >>= \s -> return (s ==? hxstream_fstate_Complete)
@@ -76,14 +76,14 @@ encodeK input k = do
 
   arrayMap $ \i -> do
     v <- deref (input ! i)
-    ifte ((v ==? fbo) .|| (v ==? ceo))
+    ifte_ ((v ==? fbo) .|| (v ==? ceo))
       (send ceo >>= \s ->
-       ifte (s)
+       ifte_ (s)
          (send (escape v) >>= \s' ->
-          ifte (s') (return ()) (breakOut))
+          unless (s') (breakOut))
          (breakOut))
       (send v >>= \s ->
-       ifte (s) (return ()) breakOut)
+       unless (s) breakOut)
 
   f <- deref afail
   return (iNot afail)

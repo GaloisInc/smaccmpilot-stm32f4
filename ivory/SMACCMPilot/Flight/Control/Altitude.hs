@@ -7,7 +7,6 @@
 module SMACCMPilot.Flight.Control.Altitude where
 
 import Ivory.Language
-import SMACCMPilot.Util.IvoryHelpers
 
 import SMACCMPilot.Param
 

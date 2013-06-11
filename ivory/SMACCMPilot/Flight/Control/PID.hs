@@ -10,8 +10,8 @@ import Control.Applicative
 import Data.String
 
 import Ivory.Language
+import Ivory.Stdlib
 
-import SMACCMPilot.Util.IvoryHelpers
 import SMACCMPilot.Param
 
 controlPIDModule :: Module
@@ -55,7 +55,7 @@ pid_update = proc "pid_update" $ \pid err pos ->
   reset      <- pid~>*pid_reset
   d_term_var <- local (ival 0)
 
-  ifte (reset /=? 0)
+  ifte_ (reset /=? 0)
     (store (pid~>pid_reset) 0)
     (do d_state <- pid~>*pid_dState
         d_gain  <- pid~>*pid_dGain
@@ -68,9 +68,9 @@ pid_update = proc "pid_update" $ \pid err pos ->
 -- | Constrain a floating point value to the range [xmin..xmax].
 fconstrain :: Def ('[IFloat, IFloat, IFloat] :-> IFloat)
 fconstrain = proc "fconstrain" $ \xmin xmax x -> body $
-  (ifte (x <? xmin)
+  (ifte_ (x <? xmin)
     (ret xmin)
-    (ifte (x >? xmax)
+    (ifte_ (x >? xmax)
       (ret xmax)
       (ret x)))
 

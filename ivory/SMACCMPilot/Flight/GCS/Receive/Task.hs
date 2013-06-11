@@ -9,6 +9,7 @@ module SMACCMPilot.Flight.GCS.Receive.Task
 import Prelude hiding (last, id)
 
 import           Ivory.Language
+import           Ivory.Stdlib.Control
 import           Ivory.Tower
 import           Ivory.BSP.HWF4.USART
 
@@ -47,11 +48,11 @@ gcsReceiveTask usart_area s_src = do
       -- XXX this task is totally invalid until we fix this to be part of the
       -- event loop
       n' <- call usartReadTimeout usart 1 (toCArray buf) 1
-      ifte (n' ==? 0) (return ()) $ do
+      unless (n' ==? 0) $ do
         b <- deref (buf ! 0)
         R.mavlinkReceiveByte state b
         s <- deref (state ~> R.status)
-        ifte (s /=? R.status_GOTMSG) (return ()) $ do
+        when (s ==? R.status_GOTMSG) $ do
           call_ handlerAux state s_periods
           R.mavlinkReceiveReset state
           emit schedule streamPeriodEmitter (constRef s_periods)

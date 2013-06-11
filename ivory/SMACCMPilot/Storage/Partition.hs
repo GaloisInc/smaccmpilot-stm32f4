@@ -32,10 +32,10 @@ module SMACCMPilot.Storage.Partition
   ) where
 
 import Ivory.Language
+import Ivory.Stdlib
 
 import Ivory.BSP.HWF4.EEPROM
 
-import SMACCMPilot.Util.IvoryHelpers
 
 ----------------------------------------------------------------------
 -- Partition Table
@@ -131,7 +131,7 @@ partition_read :: Def ('[ PartitionID                   -- partition
 partition_read = proc "partition_read" $ \pid addr buf len -> body $ do
   start_ok <- call partition_in_bounds pid addr 0
   end_ok   <- call partition_in_bounds pid addr (len - 1)
-  ift (iNot (start_ok .&& end_ok))
+  unless (start_ok .&& end_ok)
     (ret false)
 
   start   <- call partition_start pid
@@ -148,7 +148,7 @@ partition_write :: Def ('[ PartitionID                        -- partition
 partition_write = proc "partition_write" $ \pid addr buf len -> body $ do
   start_ok <- call partition_in_bounds pid addr 0
   end_ok   <- call partition_in_bounds pid addr len
-  ift (iNot (start_ok .&& end_ok))
+  unless (start_ok .&& end_ok)
     (ret false)
 
   start    <- call partition_start pid

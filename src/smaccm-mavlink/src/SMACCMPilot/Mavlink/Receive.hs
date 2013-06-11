@@ -9,6 +9,7 @@ module SMACCMPilot.Mavlink.Receive where
 import Prelude hiding (id,fail)
 
 import Ivory.Language
+import Ivory.Stdlib
 import SMACCMPilot.Mavlink.CRC
 import SMACCMPilot.Mavlink.Messages (messageLensCRCs)
 
@@ -41,12 +42,10 @@ mavlinkReceiveByte :: Ref s1 (Struct "mavlink_receive_state")
                    -> Uint8 -> Ivory eff ()
 mavlinkReceiveByte state b = do
   s <- deref (state ~> status)
-  ifte (s ==? status_GOTMSG)
-    (return ()) -- Do nothing until statemachine cleared externally
-    (ifte (s ==? status_IDLE) -- When idle, look for STX
-      (ifte (b ==? mavlink_STX)
-        (beginActive state) -- start state machine when got stx
-        (return ()))
+  unless (s ==? status_GOTMSG) -- Do nothing until statemachine cleared externally
+    (ifte_ (s ==? status_IDLE) -- When idle, look for STX
+      (when (b ==? mavlink_STX)
+        (beginActive state)) -- start state machine when got stx
       (active state b)) -- when running
   where
 
@@ -60,22 +59,22 @@ mavlinkReceiveByte state b = do
 active :: Ref s1 (Struct "mavlink_receive_state") -> Uint8 -> Ivory eff ()
 active state b = do
   o <- deref (state ~> offs)
-  ifte (o ==? 1)
+  ifte_ (o ==? 1)
     (store (state ~> paylen) b >> continue)
-    (ifte (o ==? 2)
+    (ifte_ (o ==? 2)
       (store (state ~> seqnum) b >> continue)
-      (ifte (o ==? 3)
+      (ifte_ (o ==? 3)
         (store (state ~> sysid)  b >> continue)
-        (ifte (o ==? 4)
+        (ifte_ (o ==? 4)
           (store (state ~> compid) b >> continue)
-          (ifte (o ==? 5)
+          (ifte_ (o ==? 5)
             (checkMsgID)
             (do len <- deref (state ~> paylen)
-                ifte ((o - len) <? 6)
+                ifte_ ((o - len) <? 6)
                   (gotPayload o)
-                  (ifte ((o - len) ==? 6)
+                  (ifte_ ((o - len) ==? 6)
                     (gotCRCLo) -- crc1
-                    (ifte ((o - len) ==? 7)
+                    (ifte_ ((o - len) ==? 7)
                       (gotCRCHi) -- crc2
                       (fail {- should be impossible -}))))))))
   where
@@ -87,7 +86,7 @@ active state b = do
     incrOffs
   checkMsgID = do
     l <- deref (state ~> paylen)
-    ifte (msgValidLen b l)
+    ifte_ (msgValidLen b l)
       (do store (state ~> msgid) b
           continue)
       fail
@@ -105,12 +104,12 @@ active state b = do
     id <- deref (state ~> msgid)
     call_ crc_accumulate (msgCRCExtra id) (state ~> crc)
     (lo, _) <- crc_lo_hi (state ~> crc)
-    ifte (lo ==? b)
+    ifte_ (lo ==? b)
       incrOffs
       fail
   gotCRCHi = do
     (_, hi) <- crc_lo_hi (state ~> crc)
-    ifte (hi ==? b)
+    ifte_ (hi ==? b)
       success
       fail
 

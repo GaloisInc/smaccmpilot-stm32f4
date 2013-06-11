@@ -19,10 +19,11 @@ module SMACCMPilot.Param where
 
 import Data.String
 import GHC.TypeLits
-import Ivory.Language
 import Prelude hiding (seq)
 
-import SMACCMPilot.Util.IvoryHelpers
+import Ivory.Language
+import Ivory.Stdlib
+
 import SMACCMPilot.Util.IvoryCString
 import SMACCMPilot.Mavlink.Pack
 
@@ -172,7 +173,7 @@ param_get_by_name = proc "param_get_by_name" $ \name -> body $ do
     len   <- assign (arrayLen (entry ~> param_name))
     r     <- call strncmp name name' len
 
-    ift (r ==? 0)
+    when (r ==? 0)
       (ret (refToPtr entry))
 
   ret nullPtr
@@ -183,7 +184,7 @@ param_get_by_name = proc "param_get_by_name" $ \name -> body $ do
 param_get_by_index :: Def ('[Ix 512] :-> Ptr Global (Struct "param_info"))
 param_get_by_index = proc "param_get_by_index" $ \ix -> body $ do
   count <- param_get_count
-  ift (ix >=? count)
+  when (ix >=? count)
     (ret nullPtr)
 
   info <- addrOf param_info
@@ -200,7 +201,7 @@ param_get_requested = proc "param_get_requested" $ body $ do
     entry <- assign (info ! ix)
     flag  <- deref (entry ~> param_requested)
 
-    ift (flag /=? 0)
+    when (flag /=? 0)
       (ret (refToPtr entry))
 
   ret nullPtr
@@ -216,19 +217,19 @@ withParamRef :: Ref s1 (Struct "param_info")
 withParamRef param f = do
   type_code <- param ~>* param_type
 
-  ift (type_code ==? paramTypeU8)
+  when (type_code ==? paramTypeU8)
     (do ptr <- param ~>* param_ptr_u8
         withRef ptr f (return ()))
 
-  ift (type_code ==? paramTypeU16)
+  when (type_code ==? paramTypeU16)
     (do ptr <- param ~>* param_ptr_u16
         withRef ptr f (return ()))
 
-  ift (type_code ==? paramTypeU32)
+  when (type_code ==? paramTypeU32)
     (do ptr <- param ~>* param_ptr_u32
         withRef ptr f (return ()))
 
-  ift (type_code ==? paramTypeFloat)
+  when (type_code ==? paramTypeFloat)
     (do ptr <- param ~>* param_ptr_float
         withRef ptr f (return ()))
 
@@ -393,7 +394,7 @@ param_read_header :: Def ('[ PartitionID
 param_read_header = proc "param_read_header" $ \pid header -> body $ do
   buf     <- localBuf (Proxy :: Proxy (Len ParamHeader))
   read_ok <- call partition_read pid 0 (toCArray buf) (arrayLen buf)
-  ift (iNot read_ok)
+  when (iNot read_ok)
     (ret false)
 
   unpackFrom_ (constRef buf) 0 $ do
@@ -430,7 +431,7 @@ param_is_valid_seq = proc "param_is_valid_seq" $ \seq_n -> body $ do
 -- '255' are never valid sequence numbers.
 param_get_next_seq :: Def ('[Uint8] :-> Uint8)
 param_get_next_seq = proc "param_get_next_seq" $ \seq_n -> body $ do
-  ifte (seq_n ==? 254)
+  ifte_ (seq_n ==? 254)
     (ret 1)
     (ret $ seq_n + 1)
 
@@ -445,36 +446,36 @@ param_choose_partition = proc "param_choose_partition" $
   seqA_ref <- local $ ival 0
   okA      <- call param_is_valid_header hdrA
   -- TODO: Validate CRC.
-  ift okA (store seqA_ref =<< (deref (hdrA ~> ph_seq)))
+  when okA (store seqA_ref =<< (deref (hdrA ~> ph_seq)))
   seqA     <- deref seqA_ref
   seqOkA   <- call param_is_valid_seq seqA
 
   seqB_ref <- local $ ival 0
   okB      <- call param_is_valid_header hdrB
   -- TODO: Validate CRC.
-  ift okB (store seqB_ref =<< (deref (hdrB ~> ph_seq)))
+  when okB (store seqB_ref =<< (deref (hdrB ~> ph_seq)))
   seqB     <- deref seqB_ref
   seqOkB   <- call param_is_valid_seq seqB
 
   -- Case 1: Both sequences are invalid, use nothing.
-  ift ((iNot seqOkA) .&& (iNot seqOkB))
+  when ((iNot seqOkA) .&& (iNot seqOkB))
     (ret partitionInvalid)
 
   -- Case 2 and 3: Only one sequence is valid, use it.
-  ift (seqOkA .&& (iNot seqOkB))
+  when (seqOkA .&& (iNot seqOkB))
     (ret partitionParamA)
-  ift (seqOkB .&& (iNot seqOkA))
+  when (seqOkB .&& (iNot seqOkA))
     (ret partitionParamB)
 
   -- Case 4: Both sequences are valid.  If one is the successor of the
   -- other, then use it.  Otherwise, assume corruption since we can't
   -- compare them properly.
   nextA <- call param_get_next_seq seqA
-  ift (seqB ==? nextA)
+  when (seqB ==? nextA)
     (ret partitionParamB)
 
   nextB <- call param_get_next_seq seqB
-  ift (seqA ==? nextB)
+  when (seqA ==? nextB)
     (ret partitionParamA)
 
   ret partitionInvalid
@@ -484,7 +485,7 @@ param_load_1 :: Def ('[PartitionID, Uint16] :-> IBool)
 param_load_1 = proc "param_load_1" $ \pid off -> body $ do
   buf <- localBuf (Proxy :: Proxy (Len ParamDef))
   ok  <- call partition_read pid off (toCArray buf) (arrayLen buf)
-  ift (iNot ok)
+  when (iNot ok)
     (ret false)
 
   -- XXX size assumption
@@ -496,7 +497,7 @@ param_load_1 = proc "param_load_1" $ \pid off -> body $ do
     -- Make sure the parameter types match.
     type1 <- deref $ buf ! 0
     type2 <- deref $ param ~> param_type
-    ift (type1 /=? type2)
+    when (type1 /=? type2)
       (ret false)
 
     withParamRef param $ \ref -> do
@@ -536,7 +537,7 @@ param_load = proc "param_load" $ body $ do
   call_ param_read_header partitionParamB headerB
 
   pid <- call param_choose_partition (constRef headerA) (constRef headerB)
-  ift (pid ==? partitionInvalid)
+  when (pid ==? partitionInvalid)
     (do writes "param: using default parameters\r\n"
         ret false)
 
@@ -557,7 +558,7 @@ param_load = proc "param_load" $ body $ do
 -- | Return the next partition to write to after "pid".
 param_get_next_pid :: Def ('[PartitionID] :-> PartitionID)
 param_get_next_pid = proc "param_get_next_pid" $ \pid -> body $ do
-  ifte (pid ==? partitionParamA)
+  ifte_ (pid ==? partitionParamA)
     (ret partitionParamB)
     (ret partitionParamA)
 
@@ -603,7 +604,7 @@ param_save = proc "param_save" $ body $ do
     off   <- deref offset
     ok    <- call param_save_1 pid off param
 
-    ift ok
+    when ok
       (do offset += fromNat (Proxy :: Proxy (Len ParamDef))
           len    += fromNat (Proxy :: Proxy (Len ParamDef)))
 
@@ -613,7 +614,7 @@ param_save = proc "param_save" $ body $ do
   store (header ~> ph_seq)    =<< deref next_seq
   store (header ~> ph_length) =<< deref len
   ok <- call param_write_header pid (constRef header)
-  ift (iNot ok)
+  when (iNot ok)
     (ret false)
 
   -- TODO: Write CRC after the payload.

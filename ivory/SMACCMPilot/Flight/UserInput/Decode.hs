@@ -8,8 +8,8 @@ module SMACCMPilot.Flight.UserInput.Decode where
 import Prelude hiding (last)
 
 import Ivory.Language
+import Ivory.Stdlib
 
-import SMACCMPilot.Util.IvoryHelpers
 import qualified SMACCMPilot.Flight.Types.UserInput as I
 import qualified SMACCMPilot.Flight.Types.FlightMode as FM
 
@@ -80,9 +80,9 @@ arming_statemachine pwms state now = do
   throttle_stick <- deref (pwms ! (2 :: Ix 8))
   rudder_stick   <- deref (pwms ! (3 :: Ix 8))
 
-  ifte (ch5_switch <? 1500)
+  ifte_ (ch5_switch <? 1500)
     (do_disarm)
-    (ifte ((throttle_stick <? 1050) .&& (rudder_stick >? 1900))
+    (ifte_ ((throttle_stick <? 1050) .&& (rudder_stick >? 1900))
       (do_try_arming)
       (do_not_arming))
   newstate <- (state ~>* arm_state)
@@ -102,17 +102,17 @@ arming_statemachine pwms state now = do
   do_try_arming = do
     ast <- deref (state ~> arm_state)
     astime <- deref (state ~> arm_state_time)
-    (ifte (ast ==? as_DISARMED)
-      (ift (now - astime >? hystresis)
+    (ifte_ (ast ==? as_DISARMED)
+      (when (now - astime >? hystresis)
         (set_arm_state as_ARMING))
-      (ift (ast ==? as_ARMING)
-        (ift (now - astime >? hystresis)
+      (when (ast ==? as_ARMING)
+        (when (now - astime >? hystresis)
           (set_arm_state as_ARMED))))
 
   do_not_arming :: Ivory eff ()
   do_not_arming = do
     ast <- deref (state ~> arm_state)
-    ift (ast ==? as_ARMING)
+    when (ast ==? as_ARMING)
       (set_arm_state as_DISARMED)
 
 mode_statemachine :: (Ref s1 (Array 8 (Stored Uint16)))
@@ -125,8 +125,8 @@ mode_statemachine pwms state now = do
   prev_time          <- deref (state ~> last_modepwm_time)
   let pwmtolerance = 10
   let latchtime    = 250
-  ifte (magnitude mode_input_current mode_input_prev >? pwmtolerance)
-    (ift (now - prev_time >? latchtime)
+  ifte_ (magnitude mode_input_current mode_input_prev >? pwmtolerance)
+    (when (now - prev_time >? latchtime)
       (newmode mode_input_current))
     (reset_input mode_input_current)
   m <- deref (state ~> valid_modepwm)
@@ -161,9 +161,9 @@ scale_proc = proc "userinput_scale" $ \center range outmin outmax input ->
   requires (range /=? 0) $ body $ do
     let centered = input - center
     let ranged = (safeCast centered) / (safeCast range)
-    ifte (ranged <? outmin)
+    ifte_ (ranged <? outmin)
       (ret outmin)
-      (ifte (ranged >? outmax)
+      (ifte_ (ranged >? outmax)
         (ret outmax)
         (ret ranged))
 
@@ -176,7 +176,7 @@ userInputFailsafe = proc "userinput_failsafe" $ \capt fm now ->
   $ body $ do
     last <- deref ( capt ~> I.time )
     let dt = now - last
-    ift (dt >? 150) $ do
+    when (dt >? 150) $ do
        store (fm   ~> FM.armed)   false
        store (capt ~> I.throttle) 0
        store (capt ~> I.yaw)      0

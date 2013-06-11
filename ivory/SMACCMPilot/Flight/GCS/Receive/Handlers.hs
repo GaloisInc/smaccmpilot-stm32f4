@@ -5,6 +5,7 @@
 module SMACCMPilot.Flight.GCS.Receive.Handlers where
 
 import Ivory.Language
+import Ivory.Stdlib
 
 import           SMACCMPilot.Mavlink.Messages (mavlinkMessageModules)
 import qualified SMACCMPilot.Mavlink.Messages.RequestDataStream as RDS
@@ -20,9 +21,8 @@ paramRequestList _ = do
   infotbl <- addrOf P.param_info
   count <- (deref =<< addrOf P.param_count)
   arrayMap $ \ix -> do
-    ifte (ix <? count)
-      (store ((infotbl ! ix) ~> P.param_requested) 1)
-      (return ())
+    when (ix <? count) $ do
+      store ((infotbl ! ix) ~> P.param_requested) 1
 
 paramRequestRead :: Ref s (Struct "param_request_read_msg") -> Ivory eff ()
 paramRequestRead _ =
@@ -56,7 +56,7 @@ handle handler rxstate = do
   let (unpacker, msgid) = unpackMsg
   rxid <- deref (rxstate ~> R.msgid)
   msg  <- local (istruct [])
-  ifte (rxid /=? msgid) (return ()) $ do
+  ifte_ (rxid /=? msgid) (return ()) $ do
     call_ unpacker msg (toCArray (constRef (rxstate ~> R.payload)))
     handler msg
 

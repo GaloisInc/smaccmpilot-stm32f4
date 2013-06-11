@@ -10,8 +10,7 @@ module SMACCMPilot.Flight.GCS.Transmit.MessageDriver
   ) where
 
 import Ivory.Language
-
-import SMACCMPilot.Util.IvoryHelpers
+import Ivory.Stdlib
 
 import qualified SMACCMPilot.Flight.Types.Position      as P
 import qualified SMACCMPilot.Flight.Types.Servos        as Serv
@@ -124,7 +123,7 @@ mkSendHeartbeat senders = proc "gcs_transmit_send_heartbeat" $
   store (hb ~> HB.mavtype)      mavtype_quadrotor
   -- masquerade as an APM so we can use their custom modes, for now
   store (hb ~> HB.autopilot)    autopilot_ardupilotmega
-  ifte armed
+  ifte_ armed
     (store (hb ~> HB.base_mode) (mavl_armed + mavl_custom_mode))
     (store (hb ~> HB.base_mode) (mavl_custom_mode))
   -- system status stays 0

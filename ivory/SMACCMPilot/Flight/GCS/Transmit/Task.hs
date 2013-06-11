@@ -11,6 +11,7 @@ import Prelude hiding (last)
 import Data.Monoid
 
 import Ivory.Language
+import Ivory.Stdlib (when)
 import Ivory.Tower
 
 import SMACCMPilot.Flight.GCS.Transmit.MessageDriver
@@ -71,10 +72,9 @@ gcsTransmitTask usart sp_sink fm_sink se_sink ps_sink ct_sink sr_sink = do
                 last <- deref lastRun
                 due <- streamDue (constRef s_periods) (constRef s_schedule)
                          selector last now
-                ifte due
-                  (do action
-                      setNextTime (constRef s_periods) s_schedule selector now)
-                  (return ())
+                when due $ do
+                  action
+                  setNextTime (constRef s_periods) s_schedule selector now
 
           onStream S.heartbeat $ do
             readData schedule fmReader s_fm

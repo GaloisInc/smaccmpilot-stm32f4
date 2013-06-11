@@ -10,6 +10,7 @@ module SMACCMPilot.Flight.GCS.Stream where
 import Prelude hiding (last)
 
 import Ivory.Language
+import Ivory.Stdlib
 
 import qualified SMACCMPilot.Mavlink.Enums.MavDataStreams as MavDS
 
@@ -41,7 +42,7 @@ updateGCSStreamPeriods :: Ref s (Struct "gcsstream_timing")
                        -> Uint16 -- stream rate in hertz
                        -> Ivory eff ()
 updateGCSStreamPeriods periods streamid enabled rate = do
-  ifte (streamid ==? (fromIntegral MavDS.id_ALL))
+  ifte_ (streamid ==? (fromIntegral MavDS.id_ALL))
     (mapM_ setrate allstreams)
     (withSelectorFromId streamid (SelectorAction setrate))
   where
@@ -49,7 +50,7 @@ updateGCSStreamPeriods periods streamid enabled rate = do
                , vfr_hud, global_position_int ]
   setrate :: Label "gcsstream_timing" (Stored Uint32) -> Ivory eff ()
   setrate selector =
-    ifte enabled
+    ifte_ enabled
       (store (periods ~> selector) newperiod)
       (store (periods ~> selector) 0)
     where
@@ -63,8 +64,7 @@ updateGCSStreamPeriods periods streamid enabled rate = do
     where -- explicit recursion and existential quantification is a little weird
           -- not foldr, because of nested block typing which is going away soon anyway
     aux ::  [(Integer, Label "gcsstream_timing" (Stored Uint32))] -> Ivory eff ()
-    aux ((sid, sel):ts) = ifte ((fromIntegral sid) ==? tofind)
-                            --((unwrapSelectorAction act) sel)
+    aux ((sid, sel):ts) = ifte_ ((fromIntegral sid) ==? tofind)
                             ((unwrapSelectorAction act) sel)
                             (aux ts)
     aux [] = return ()
@@ -89,7 +89,7 @@ setNewPeriods new state schedule now = do
   update selector = do
     n <- deref (new ~> selector)
     s <- deref (state ~> selector)
-    ifte (n ==? s) (return ()) $ do
+    unless (n ==? s) $ do
       store (state ~> selector) n
       setNextTime (constRef state) schedule selector now
   selectors = [ heartbeat, servo_output_raw, attitude, gps_raw_int
