@@ -157,3 +157,7 @@ hash_periph_base :: Integer
 hash_periph_base = ahb2_periph_base + 0x60400
 rng_periph_base :: Integer
 rng_periph_base = ahb2_periph_base + 0x60800
+
+-- Cortex-M4 peripherals
+nvic_base :: Integer
+nvic_base = 0xE000E100

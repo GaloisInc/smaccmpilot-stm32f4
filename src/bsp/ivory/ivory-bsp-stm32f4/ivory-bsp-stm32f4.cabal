@@ -21,6 +21,7 @@ library
                        Ivory.BSP.STM32F4.Interrupt,
                        Ivory.BSP.STM32F4.Interrupt.API,
                        Ivory.BSP.STM32F4.Interrupt.Types,
+                       Ivory.BSP.STM32F4.Interrupt.Regs,
                        Ivory.BSP.STM32F4.SPITypes,
                        Ivory.BSP.STM32F4.SPI,
                        Ivory.BSP.STM32F4.RCC.GetFreq,

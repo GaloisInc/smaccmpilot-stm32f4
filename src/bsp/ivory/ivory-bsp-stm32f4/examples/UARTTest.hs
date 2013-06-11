@@ -51,7 +51,6 @@ blinkModule :: Module
 blinkModule = package "ledblink" $ do
   incl main_task
   hw_moduledef
-  ISR.interrupt_moduledef
 
 main :: IO ()
 main = compileWith Nothing (Just [BSP.searchDir, HW.searchDir]) [blinkModule]
