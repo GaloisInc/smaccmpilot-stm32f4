@@ -16,10 +16,35 @@ import Ivory.HW
 
 import Ivory.BSP.STM32F4.MemoryMap (rcc_periph_base)
 
--- This driver is, for now, incomplete: it only covers the peripheral clock
--- enable registers, and leaves out the various other system clock, peripheral
--- reset, and peripheral clock low power mode registers which we have no use for
--- at the moment.
+import Ivory.BSP.STM32F4.RCC.RegTypes
+
+-- This driver is, for now, incomplete: it only covers the config regiseter and
+-- peripheral clock enable registers, and leaves out the various other system
+-- clock, peripheral reset, and peripheral clock low power mode registers which
+-- we have no use for at the moment.
+
+-- Clock Configuration Register ------------------------------------------------
+
+[bitdata|
+ bitdata RCC_CFGR :: Bits 32 = rcc_cfgr
+  { rcc_cfgr_mco2         :: RCC_MCOx
+  , rcc_cfgr_mco2_pre     :: RCC_MCOxPre
+  , rcc_cfgr_mco1_pre     :: RCC_MCOxPre
+  , rcc_cfgr_i2ssrc       :: Bit
+  , rcc_cfgr_mco1         :: RCC_MCOx
+  , rcc_cfgr_rtcpre       :: Bits 5
+  , rcc_cfgr_ppre2        :: RCC_PPREx
+  , rcc_cfgr_ppre1        :: RCC_PPREx
+  , _                     :: Bits 2
+  , rcc_cfgr_hpre         :: RCC_HPRE
+  , rcc_cfgr_sws          :: RCC_SYSCLK
+  , rcc_cfgr_sw           :: RCC_SYSCLK
+  }
+|]
+
+regRCC_CFGR :: BitDataReg RCC_CFGR
+regRCC_CFGR = mkBitDataReg $ rcc_periph_base + 0x08
+
 
 -- AHB Peripheral Clock Enable Registers ---------------------------------------
 

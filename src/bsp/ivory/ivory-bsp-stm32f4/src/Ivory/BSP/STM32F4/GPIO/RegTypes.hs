@@ -2,7 +2,7 @@
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TypeFamilies #-}
 --
--- GPIOTypes.hs --- GPIO pin driver.
+-- RegTypes.hs --- Types for register fields in GPIO pin driver.
 --
 -- Copyright (C) 2013, Galois, Inc.
 -- All Rights Reserved.

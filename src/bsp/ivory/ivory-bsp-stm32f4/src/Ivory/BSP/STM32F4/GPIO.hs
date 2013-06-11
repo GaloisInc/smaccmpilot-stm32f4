@@ -16,6 +16,7 @@ module Ivory.BSP.STM32F4.GPIO (
 
   , module Ivory.BSP.STM32F4.GPIO.Pins
   , module Ivory.BSP.STM32F4.GPIO.RegTypes
+  , GPIO_AF(),
 ) where
 
 import Ivory.BSP.STM32F4.GPIO.RegTypes

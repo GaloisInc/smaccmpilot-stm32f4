@@ -23,6 +23,8 @@ library
                        Ivory.BSP.STM32F4.Interrupt.Types,
                        Ivory.BSP.STM32F4.SPITypes,
                        Ivory.BSP.STM32F4.SPI,
+                       Ivory.BSP.STM32F4.RCC.GetFreq,
+                       Ivory.BSP.STM32F4.RCC.RegTypes,
                        Ivory.BSP.STM32F4.RCC.Regs,
                        Ivory.BSP.STM32F4.RCC.Class,
                        Ivory.BSP.STM32F4.GPIO,
