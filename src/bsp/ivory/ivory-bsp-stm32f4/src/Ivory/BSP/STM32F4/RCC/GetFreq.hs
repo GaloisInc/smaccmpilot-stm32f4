@@ -29,11 +29,11 @@ hseFreq = 24000000 -- Actually depends on preprocessor value!
 
 getFreqSysClk :: (eff `AllocsIn` s) => Ivory eff Uint32
 getFreqSysClk = do
-  cfg <- getReg regRCC_CFGR
-  let sws = getBitDataField rcc_cfgr_sws cfg
-  sysClkSource sws
+  cfgr <- getReg regRCC_CFGR
+  sysClkSource (cfgr #. rcc_cfgr_sws)
   where
-  sysClkSource sws = foldl aux hsiFreq tbl -- Catchall is hsiFreq, should be impossible.
+  -- Catchall is hsiFreq, should be impossible.
+  sysClkSource sws = foldl aux (return hsiFreq) tbl
     where aux k (v,d) = ifte (eqBits sws v) d k
           tbl = [(rcc_sysclk_hsi, return hsiFreq)
                 ,(rcc_sysclk_hse, return hseFreq)
@@ -43,12 +43,11 @@ getFreqSysClk = do
 pllSysClk :: (eff `AllocsIn` s) => Ivory eff Uint32
 pllSysClk = do
   pllcfgr <- getReg regRCC_PLLCFGR
-  let pllsrc  = getBitDataField rcc_pllcfgr_pllsrc pllcfgr
-      pllm    = safeCast $ toRep $ getBitDataField rcc_pllcfgr_pllm   pllcfgr
-      plln    = safeCast $ toRep $ getBitDataField rcc_pllcfgr_plln   pllcfgr
-      srcFreq = (toRep pllsrc >? 0) ? (hseFreq,hsiFreq)
+  let pllm    = safeCast $ toRep $ pllcfgr #. rcc_pllcfgr_pllm
+      plln    = safeCast $ toRep $ pllcfgr #. rcc_pllcfgr_plln
+      srcFreq = (toRep (pllcfgr #. rcc_pllcfgr_pllsrc) >? 0) ? (hseFreq,hsiFreq)
       pllvco  = (srcFreq `iDiv` pllm) * plln
-      pllp    = pllpToInt $ getBitDataField rcc_pllcfgr_pllp pllcfgr
+      pllp    = pllpToInt $ pllcfgr #. rcc_pllcfgr_pllp
   return (pllvco `iDiv` pllp)
   where
   pllpToInt p = foldl aux 1 tbl -- Catchall is 1, should be impossible.
@@ -64,25 +63,22 @@ getFreqHClk :: (eff `AllocsIn` s) => Ivory eff Uint32
 getFreqHClk = do
   sysclk <- getFreqSysClk
   cfgr <- getReg regRCC_CFGR
-  let hpre = getBitDataField rcc_cfgr_hpre cfgr
-  return $ divideHPRE hpre sysclk
+  return $ divideHPRE (cfgr #. rcc_cfgr_hpre) sysclk
 
-getFreqPClk1 :: Ivory eff Uint32
-getFreqPClk1 = undefined
+getFreqPClk1 :: (eff `AllocsIn` s) => Ivory eff Uint32
+getFreqPClk1 = do
   sysclk <- getFreqSysClk
   cfgr <- getReg regRCC_CFGR
-  let ppre1 = getBitDataField rcc_cfgr_ppre1 cfgr
-  return $ dividePPREx ppre1 sysclk
+  return $ dividePPREx (cfgr #. rcc_cfgr_ppre1) sysclk
 
-getFreqPClk2 :: Ivory eff Uint32
-getFreqPClk2 = undefined
+getFreqPClk2 :: (eff `AllocsIn` s) => Ivory eff Uint32
+getFreqPClk2 = do
   sysclk <- getFreqSysClk
   cfgr <- getReg regRCC_CFGR
-  let ppre2 = getBitDataField rcc_cfgr_ppre2 cfgr
-  return $ dividePPREx ppre2 sysclk
+  return $ dividePPREx (cfgr #. rcc_cfgr_ppre2) sysclk
 
 divideHPRE :: RCC_HPRE -> Uint32 -> Uint32
-divideHPRE hpre n = n `div` divisor
+divideHPRE hpre n = n `iDiv` divisor
   where
   divisor = foldl aux 1 tbl -- Catchall is 1: none has bits 0b0xxx
   aux k (hpreV, d) = (eqBits hpreV hpre) ? (d,k)
@@ -98,10 +94,10 @@ divideHPRE hpre n = n `div` divisor
         ]
 
 dividePPREx :: RCC_PPREx -> Uint32 -> Uint32
-dividePPREx pprex n = n `div` divisor
+dividePPREx pprex n = n `iDiv` divisor
   where
   divisor = foldl aux 1 tbl -- Catchall is 1: none has bits 0b0xx
-  aux k (ppreV, d) = (eqBits ppreV ppre) ? (d,k)
+  aux k (ppreV, d) = (eqBits ppreV pprex) ? (d,k)
   tbl = [(rcc_pprex_none,   1)
         ,(rcc_pprex_div2,   2)
         ,(rcc_pprex_div4,   4)
