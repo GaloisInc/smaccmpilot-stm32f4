@@ -23,6 +23,25 @@ import Ivory.BSP.STM32F4.RCC.RegTypes
 -- clock, peripheral reset, and peripheral clock low power mode registers which
 -- we have no use for at the moment.
 
+
+-- PLL Configuration Register --------------------------------------------------
+
+[bitdata|
+ bitdata RCC_PLLCFGR :: Bits 32 = rcc_pllcfgr
+  { rcc_pllcfgr_pllq      :: Bits 4 --  2 <= pllq <= 15
+  , _                     :: Bit
+  , rcc_pllcfgr_pllsrc    :: Bit
+  , _                     :: Bits 4
+  , rcc_pllcfgr_pllp      :: RCC_PLLP
+  , _                     :: Bit
+  , rcc_pllcfgr_plln      :: Bits 9 -- 192 <= plln <= 432
+  , rcc_pllcfgr_pllm      :: Bits 6 --   2 <= pllm <= 63
+  }
+|]
+
+regRCC_PLLCFGR :: BitDataReg RCC_PLLCFGR
+regRCC_PLLCFGR = mkBitDataReg $ rcc_periph_base + 0x04
+
 -- Clock Configuration Register ------------------------------------------------
 
 [bitdata|

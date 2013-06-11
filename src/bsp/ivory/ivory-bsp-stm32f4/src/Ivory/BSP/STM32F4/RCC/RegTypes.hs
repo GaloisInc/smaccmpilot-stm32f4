@@ -16,11 +16,17 @@ import Ivory.BitData
 import Ivory.HW
 
 [bitdata|
+ bitdata RCC_PLLP     :: Bits 2
+ = rcc_pllp_div2      as 0
+ | rcc_pllp_div4      as 1
+ | rcc_pllp_div6      as 2
+ | rcc_pllp_div8      as 3
+
  bitdata RCC_MCOx     :: Bits 2
  = rcc_mcox_sysclk    as 0
  | rcc_mcox_plli2s    as 1
  | rcc_mcox_hse       as 2
- | rcc_mcox_pll       as 2
+ | rcc_mcox_pll       as 3
 
  bitdata RCC_MCOxPre  :: Bits 3
   = rcc_mcoxpre_none  as 0 -- 0b0xx
