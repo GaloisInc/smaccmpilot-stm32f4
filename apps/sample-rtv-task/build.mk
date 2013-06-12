@@ -1,92 +1,53 @@
 # -*- Mode: makefile-gmake; indent-tabs-mode: t; tab-width: 2 -*-
 # vim: set ft=make noet ts=2:
 
-# ifneq ($(CONFIG_BUILD_RTV),)
+RTV_DIR=apps/sample-rtv-task
+RTV_GENERATEDDIR=$(RTV_DIR)/generated
+RTV_GRAPHS_DIR=$(RTV_DIR)/graphs
 
-# Should be the sample name as the project directory.
-TEST := sample-rtv-task
-PRJ := apps/$(TEST)
-OUTDIR := $(PRJ)/generated
+RTV_SRCDIR=$(RTV_GENERATEDDIR)/src
+RTV_INCDIR=$(RTV_GENERATEDDIR)/include/generated
 
-TOWER_HDRS = $(PRJ)/tower-hdrs
-TOWER_SRCS = $(PRJ)/tower-srcs
-RECORD = $(PRJ)/record_assignment
-LEGACY = $(PRJ)/legacy
+RTV_GENERATOR_EXE=$(CONFIG_CABAL_SANDBOX)/bin/sample-rtv-task-checker-gen
 
-RTV_GEN_HEADERS := \
-  $(TOWER_HDRS)/*.h \
-  $(LEGACY)/*.h \
-  $(RECORD)/*.h \
-  $(OUTDIR)/*.h
-RTV_GEN_SOURCES := \
-  $(TOWER_SRCS)/*.c \
-  $(LEGACY)/*.c \
-  $(RECORD)/*.c \
-  $(OUTDIR)/*.c
+RTV_IVORY_OPTS=--const-fold --overflow --div-zero
+# A little too noisy: --fp-check
 
-# Target to build
-APP_RTV_IMG         := sample-rtv
+RTV_GENERATED_DEP=$(RTV_GENERATEDDIR)/dep.mk
 
-APP_RTV_OBJECTS     := \
-  record_assignment/record_assignment.o tower-srcs/tower.o legacy/legacy.o
-APP_RTV_OBJECTS     += generated/instrumented.o generated/runtime-checker.o
-
-IVORY_RTV_SANDBOX   := $(CONFIG_CABAL_SANDBOX)
-
-RTV_CHECKER_GEN_EXE := $(IVORY_RTV_SANDBOX)/bin/$(TEST)-checker-gen
-
-APP_RTV_INCLUDES     += $(FREERTOS_INCLUDES)
-APP_RTV_INCLUDES     += -I$(TOP)/$(PRJ)
-APP_RTV_INCLUDES     += -I$(TOP)/$(OUTDIR)
-APP_RTV_INCLUDES     += -I$(TOP)/$(TOWER_HDRS)
-APP_RTV_INCLUDES     += -I$(TOP)/$(LEGACY)
-APP_RTV_INCLUDES     += -I$(TOP)/$(RECORD)
-APP_RTV_INCLUDES     += -I$(TOP)/src/bsp/hwf4/include
-
-APP_RTV_CFLAGS       += $(APP_RTV_INCLUDES)
-APP_RTV_CFLAGS       += -fplugin=$(GCC_PLUGIN)/instrument_plugin.so
-APP_RTV_CFLAGS       += -DIVORY_DEPLOY
-
-APP_RTV_LIBRARIES    += libhwf4.a
-APP_RTV_LIBRARIES    += libstm32_usb.a
-APP_RTV_LIBRARIES    += libFreeRTOS.a
-
-APP_RTV_LIBS         += -lm
-
-# Build target for the entire project.
-$(APP_RTV_IMG): $(RTV_GEN_HEADERS) $(RTV_GEN_SOURCES)
-
-$(eval $(call image,APP_RTV))
-
-# INSTR_FILES = $(shell cd $(LEGACY); find `pwd` -name "*.c")
-# INSTR_INCLS = $(shell find `pwd` -name $(APP_RTV_INCLUDES))
-	# echo $(INSTR_INCLS)
-
-	# echo "arm-none-eabi-gcc" "--sysroot="$(shell pwd) $(APP_RTV_INCLUDES) $(INSTR_F
-# ILES) > $@
-
-FOO := /tmp/$(TEST)
-
-.PHONY: foo
-foo: $(LEGACY)/*.c
-	rm -rf $(FOO)
-	mkdir -p $(FOO)
-	$(CC) -E $(APP_RTV_INCLUDES) $(LEGACY)/*.c -o$(FOO)/foo.cpp
-	echo $(FOO)/foo.cpp > $(PRJ)/build_args
-
+include $(RTV_GENERATED_DEP)
 
 # ------------------------------------------------------------------------------
-# IVORY var tell the build system what to blow away.
-# IVORY += $(RTV_GEN_HEADERS) $(RTV_GEN_SOURCES)
 
-# $(RTV_GEN_HEADERS) $(RTV_GEN_SOURCES): $(RTV_CHECKER_GEN_EXE)
-#   # XXX fix where to put output dir
-# 	echo "Generating RTV sources..."
-# 	cd $(PRJ) && $(RTV_CHECKER_GEN_EXE)
+# Generate the srcs and headers.
+RTV += rtvtest-build
+.PHONY: rtvtest-build
+rtvtest-build: $(RTV_GENERATED_HEADERS) $(RTV_GENERATED_SOURCES)
 
-CLEAN += $(PRJ)/build_args
+# This is the first build.
+$(RTV_GENERATED_DEP): $(TWRTEST_GENERATOR_EXE)
+	mkdir -p $(RTV_GRAPHS_DIR)
+	mkdir -p $(RTV_SRCDIR)
+	mkdir -p $(RTV_INCDIR)
+	$(RTV_GENERATOR_EXE) \
+	--src-dir=$(RTV_SRCDIR) \
+	--include-dir=$(RTV_INCDIR) \
+	--deps=$(RTV_GENERATED_DEP) \
+	--dep-prefix=RTV_GENERATED \
+	$(RTV_IVORY_OPTS)
 
-# CLEAN += $(OUTDIR)
-# CLEAN += $(addprefix $(OBJ_DIR)/, $(PRJ))
+$(RTV_GENERATED_HEADERS) $(RTV_GENERATED_SOURCES): $(RTV_GENERATED_DEP)
+	$(RTV_GENERATOR_EXE) $(TWRTEST_GENERATOR_EXE) \
+	--src-dir=$(RTV_SRCDIR) \
+	--include-dir=$(RTV_INCDIR) \
+	$(RTV_IVORY_OPTS)
 
-# endif
+CLEAN     += $(RTV_GENERATED_DEP)
+# use wildcard, not the dep file, to clean subdirs, because if dep file
+# doesn't exist we won't get a proper clean.
+CLEAN     += $(wildcard $(RTV_SRCDIR)/*.c)
+CLEAN     += $(wildcard $(RTV_INCDIR)/*.h)
+
+CLEAN     += $(RTV_GRAPHS_DIR)
+
+include apps/sample-rtv-task/app.mk
