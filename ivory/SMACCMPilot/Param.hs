@@ -273,7 +273,7 @@ instance ParamInit (Stored IFloat) where
   param_init name ref = call_ param_init_float (fromString name) ref
 
 -- | Initialize a parameter with value stored in a "MemArea".
-param_init_area :: (ParamInit a, IvoryType a) =>
+param_init_area :: (ParamInit a, IvoryArea a) =>
                    String -> MemArea a -> Ivory eff ()
 param_init_area name a = param_init name =<< addrOf a
 
