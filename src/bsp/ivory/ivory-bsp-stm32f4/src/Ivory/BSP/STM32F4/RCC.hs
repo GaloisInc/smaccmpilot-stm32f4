@@ -8,7 +8,16 @@
 module Ivory.BSP.STM32F4.RCC (
     RCCDevice(..), rccEnable, rccDisable
   , module Ivory.BSP.STM32F4.RCC.Regs
+
+  -- * system clock frequency
+  , PClk(..)
+  , getFreqSysClk
+  , getFreqHClk
+  , getFreqPClk1
+  , getFreqPClk2
+  , getFreqPClk
 ) where
 
 import Ivory.BSP.STM32F4.RCC.Class
 import Ivory.BSP.STM32F4.RCC.Regs
+import Ivory.BSP.STM32F4.RCC.GetFreq

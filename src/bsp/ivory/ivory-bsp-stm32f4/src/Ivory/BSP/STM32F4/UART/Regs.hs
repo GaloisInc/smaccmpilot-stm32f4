@@ -15,6 +15,7 @@ import Ivory.Language
 import Ivory.BitData
 import Ivory.HW
 
+import Ivory.BSP.STM32F4.UART.Types
 
 ----------------------------------------------------------------------
 -- UART Registers
@@ -40,15 +41,14 @@ import Ivory.HW
    }
 
  bitdata UART_BRR :: Bits 16 = uart_brr
-   { uart_brr_div_mantissa :: Bits 12
-   , uart_brr_div_fraction :: Bits 4
+   { uart_brr_div :: Bits 16
    }
 
  bitdata UART_CR1 :: Bits 16 = uart_cr1
    { uart_cr1_over8    :: Bit
    , _                 :: Bit
    , uart_cr1_ue       :: Bit
-   , uart_cr1_m        :: Bit
+   , uart_cr1_m        :: UART_WordLen
    , uart_cr1_wake     :: Bit
    , uart_cr1_pce      :: Bit
    , uart_cr1_ps       :: Bit
@@ -66,7 +66,7 @@ import Ivory.HW
  bitdata UART_CR2 :: Bits 16 = uart_cr2
    { _                 :: Bit
    , uart_cr2_linen    :: Bit
-   , uart_cr2_stop     :: Bits 2
+   , uart_cr2_stop     :: UART_StopBits
    , uart_cr2_clken    :: Bit
    , uart_cr2_cpol     :: Bit
    , uart_cr2_cpha     :: Bit

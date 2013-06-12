@@ -77,6 +77,12 @@ getFreqPClk2 = do
   cfgr <- getReg regRCC_CFGR
   return $ dividePPREx (cfgr #. rcc_cfgr_ppre2) sysclk
 
+data PClk = PClk1 | PClk2
+
+getFreqPClk :: (eff `AllocsIn` s) => PClk -> Ivory eff Uint32
+getFreqPClk PClk1 = getFreqPClk1
+getFreqPClk PClk2 = getFreqPClk2
+
 divideHPRE :: RCC_HPRE -> Uint32 -> Uint32
 divideHPRE hpre n = n `iDiv` divisor
   where
