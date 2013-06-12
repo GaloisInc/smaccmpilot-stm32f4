@@ -9,4 +9,4 @@ mkpdf.sh
 out.dot
 out.pdf
 .gdbinit
-generated
+./generated
