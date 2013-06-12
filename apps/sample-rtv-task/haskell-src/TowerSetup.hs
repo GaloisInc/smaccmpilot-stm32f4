@@ -74,15 +74,6 @@ updateTimeTask clk chk = do
 
 --------------------------------------------------------------------------------
 
--- XXX?
-rtv :: Module
-rtv = package "rtv" $ do
-  mapM_ inclHeader headerdeps
-  mapM_ sourceDep headerdeps
-  mapM_ sourceDep sourcedeps
-
---------------------------------------------------------------------------------
-
 tasks :: Tower ()
 tasks = do
   (chkSrc, chkSink) <- channel
@@ -90,9 +81,6 @@ tasks = do
   task "verify_updates" $ checkerTask chkSink
   task "readClockTask"  $ readClockTask clkSrc
   task "updateTimeTask" $ updateTimeTask clkSink chkSrc
-
-  -- XXX
-  -- addModule rtv
 
 --------------------------------------------------------------------------------
 
@@ -111,17 +99,3 @@ main = do
   -- graphvizToFile "out.dot" asm
 
 --------------------------------------------------------------------------------
-
-headerdeps :: [FilePath]
-headerdeps =
-  [ "freertos_queue_wrapper.h"
-  , "freertos_semaphore_wrapper.h"
-  , "freertos_task_wrapper.h"
-  ]
-
-sourcedeps :: [FilePath]
-sourcedeps =
-  [ "freertos_queue_wrapper.c"
-  , "freertos_semaphore_wrapper.c"
-  , "freertos_task_wrapper.c"
-  ]

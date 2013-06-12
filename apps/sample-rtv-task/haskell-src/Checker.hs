@@ -24,18 +24,9 @@ checksMod = createModule $ properties $ do
   historically [get_id0] (\[x] -> x >? 0)
   historically [get_id1] (\[x] -> x ==? 100)
 
--- out :: String
--- out = "rv-gen"
-
+-- XXX remove location-specific stuff from HS sources.  Can do this when
+-- executed in the current dir.
 checker :: IO ()
 checker = do
-  dir <- getCurrentDirectory
-  writeCFilesForVariables $ dir </> "apps/sample-rtv-task" </> "checker"
-
--- checker :: IO ()
--- checker = do
---   writeCFilesForVariables out
---   C.compileWith [checksMod]
---   runCompiler [checksMod] initialOpts { includeDir = out
---                                       , srcDir = out
---                                       }
+  curr <- getCurrentDirectory
+  writeCFilesForVariables (curr </> "apps/sample-rtv-task"  </> "checker")

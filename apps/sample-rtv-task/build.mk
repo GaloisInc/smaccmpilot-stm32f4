@@ -22,7 +22,15 @@ include $(RTV_GENERATED_DEP)
 # Generate the srcs and headers.
 RTV += rtvtest-build
 .PHONY: rtvtest-build
+
 rtvtest-build: $(RTV_GENERATED_HEADERS) $(RTV_GENERATED_SOURCES)
+
+# XXX until we execute in project files, cp instrumented-decls over
+$(TWRTEST_GENERATOR_EXE): instrumented-decls
+
+# see note above
+instrumented-decls: $(RTV_DIR)/instrumented-decls
+	cp $< $@
 
 # This is the first build.
 $(RTV_GENERATED_DEP): $(TWRTEST_GENERATOR_EXE)
@@ -36,11 +44,14 @@ $(RTV_GENERATED_DEP): $(TWRTEST_GENERATOR_EXE)
 	--dep-prefix=RTV_GENERATED \
 	$(RTV_IVORY_OPTS)
 
+# 2nd build.
 $(RTV_GENERATED_HEADERS) $(RTV_GENERATED_SOURCES): $(RTV_GENERATED_DEP)
 	$(RTV_GENERATOR_EXE) $(TWRTEST_GENERATOR_EXE) \
 	--src-dir=$(RTV_SRCDIR) \
 	--include-dir=$(RTV_INCDIR) \
 	$(RTV_IVORY_OPTS)
+  # XXX see note above
+	rm instrumented-decls
 
 CLEAN     += $(RTV_GENERATED_DEP)
 # use wildcard, not the dep file, to clean subdirs, because if dep file
