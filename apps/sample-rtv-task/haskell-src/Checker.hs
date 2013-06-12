@@ -7,11 +7,13 @@
 module Checker where
 
 import Ivory.Language
-import Ivory.Compile.C.CmdlineFrontend
 
 import Ivory.RTVerification.Operators
 import Ivory.RTVerification.GenChecker
 import Ivory.RTVerification.GenSettersGetters
+
+import System.Directory
+import System.FilePath
 
 -- Generates all the setters and getters using TH.
 gettersAndHists
@@ -22,8 +24,18 @@ checksMod = createModule $ properties $ do
   historically [get_id0] (\[x] -> x >? 0)
   historically [get_id1] (\[x] -> x ==? 100)
 
-main :: IO ()
-main = do
-  writeCFilesForVariables "generated"
-  runCompiler [checksMod]
-    initialOpts { includeDir = "generated", srcDir = "generated" }
+-- out :: String
+-- out = "rv-gen"
+
+checker :: IO ()
+checker = do
+  dir <- getCurrentDirectory
+  writeCFilesForVariables $ dir </> "apps/sample-rtv-task" </> "checker"
+
+-- checker :: IO ()
+-- checker = do
+--   writeCFilesForVariables out
+--   C.compileWith [checksMod]
+--   runCompiler [checksMod] initialOpts { includeDir = out
+--                                       , srcDir = out
+--                                       }

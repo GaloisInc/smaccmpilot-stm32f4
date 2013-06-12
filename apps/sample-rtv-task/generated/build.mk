@@ -7,28 +7,27 @@
 #
 # This software is released under the "BSD3" license.  Read the file
 # "LICENSE" for more information.
-#
-# Written by Pat Hickey <pat@galois.com>, 17 Jan 2013
-#
 
-include apps/tower-test/generated/dep.mk
+include apps/sample-rtv-task/generated/dep.mk
 
-TWRTEST_GENERATED_LIB     := libtwrtest-generated.a
+RTV_GENERATED_LIB     := librtvtest-generated.a
 
-TWRTEST_GENERATED_INCLUDES  += -I$(TOP)/apps/tower-test/generated/include/generated
-TWRTEST_GENERATED_INCLUDES  += $(HWF4_INCLUDES)
-TWRTEST_GENERATED_INCLUDES  += $(FREERTOS_CFLAGS)
+RTV_GENERATED_INCLUDES  += \
+  -I$(TOP)/apps/sample-rtv-task/generated/include/generated
+RTV_GENERATED_INCLUDES  += $(HWF4_INCLUDES)
+RTV_GENERATED_INCLUDES  += $(FREERTOS_CFLAGS)
 
-TWRTEST_GENERATED_CFLAGS    += $(TWRTEST_GENERATED_INCLUDES)
+RTV_GENERATED_CFLAGS    += $(RTV_GENERATED_INCLUDES)
 
 # Ignore ASSERTS() REQUIRES() in the source (used by CBMC).
-TWRTEST_GENERATED_CFLAGS += -DIVORY_DEPLOY
+RTV_GENERATED_CFLAGS += -DIVORY_DEPLOY
 
-TWRTEST_GENERATED_CXXFLAGS  += $(TWRTEST_INCLUDES)
+RTV_GENERATED_CXXFLAGS  += $(RTV_INCLUDES)
 
 #eliminate local prefix before using in a library macro
-TWRTEST_GENERATED_OBJECTS = $(subst apps/tower-test/generated/,,$(TWRTEST_GENERATED_SOURCES:.c=.o))
+RTV_GENERATED_OBJECTS = \
+  $(subst apps/sample-rtv-task/generated/,,$(RTV_GENERATED_SOURCES:.c=.o))
 
-$(eval $(call library,TWRTEST_GENERATED))
+$(eval $(call library,RTV_GENERATED))
 
 # vim: set ft=make noet ts=2:

@@ -1,4 +1,4 @@
--- XXX
+
 -- Put all includes, etc. in Tower () and out of tasks
 -- Make use of queues easier by external tasks
 -- unused vars in, e.g., taskbody_verify_updates_2 in tower.c
@@ -6,16 +6,18 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
 
-module TowerSetup where
+module Main where
 
 import Types
 import CheckerTask
+import Checker
 
 import Ivory.Tower
 
 import Ivory.Language
 import qualified Ivory.Tower.Compile.FreeRTOS as F
 import qualified Ivory.Compile.C.CmdlineFrontend as C
+
 
 --------------------------------------------------------------------------------
 -- Record Assigment
@@ -72,6 +74,15 @@ updateTimeTask clk chk = do
 
 --------------------------------------------------------------------------------
 
+-- XXX?
+rtv :: Module
+rtv = package "rtv" $ do
+  mapM_ inclHeader headerdeps
+  mapM_ sourceDep headerdeps
+  mapM_ sourceDep sourcedeps
+
+--------------------------------------------------------------------------------
+
 tasks :: Tower ()
 tasks = do
   (chkSrc, chkSink) <- channel
@@ -80,14 +91,37 @@ tasks = do
   task "readClockTask"  $ readClockTask clkSrc
   task "updateTimeTask" $ updateTimeTask clkSink chkSrc
 
+  -- XXX
+  -- addModule rtv
+
 --------------------------------------------------------------------------------
 
 main :: IO ()
 main = do
   let (_, objs) = F.compile tasks
-  C.runCompiler objs C.initialOpts { C.srcDir = "tower-srcs"
-                                   , C.includeDir = "tower-hdrs"
-                                   }
+
+  -- C.runCompiler objs C.initialOpts
+  C.compileWith
+    Nothing
+    (Just [F.searchDir])
+    (checksMod : objs)
+
+  checker
+
   -- graphvizToFile "out.dot" asm
 
 --------------------------------------------------------------------------------
+
+headerdeps :: [FilePath]
+headerdeps =
+  [ "freertos_queue_wrapper.h"
+  , "freertos_semaphore_wrapper.h"
+  , "freertos_task_wrapper.h"
+  ]
+
+sourcedeps :: [FilePath]
+sourcedeps =
+  [ "freertos_queue_wrapper.c"
+  , "freertos_semaphore_wrapper.c"
+  , "freertos_task_wrapper.c"
+  ]

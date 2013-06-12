@@ -10,7 +10,6 @@ import Types
 
 import Ivory.Tower
 import Ivory.Language
-import Ivory.Stdlib
 
 --------------------------------------------------------------------------------
 
@@ -55,7 +54,7 @@ check_properties = importProc "check_properties" "runtime-checker.h"
 runCheck :: Ivory s ()
 runCheck = do
   bool <- call check_properties
-  when bool action
+  ifte_ bool (return ()) action
 
 --------------------------------------------------------------------------------
 
