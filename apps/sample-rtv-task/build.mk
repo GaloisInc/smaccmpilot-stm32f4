@@ -1,6 +1,8 @@
 # -*- Mode: makefile-gmake; indent-tabs-mode: t; tab-width: 2 -*-
 # vim: set ft=make noet ts=2:
 
+ifneq ($(GCC_PLUGIN),)
+
 RTV_DIR=apps/sample-rtv-task
 RTV_GENERATEDDIR=$(RTV_DIR)/generated
 RTV_GRAPHS_DIR=$(RTV_DIR)/graphs
@@ -62,3 +64,5 @@ CLEAN     += $(wildcard $(RTV_INCDIR)/*.h)
 CLEAN     += $(RTV_GRAPHS_DIR)
 
 include apps/sample-rtv-task/app.mk
+
+endif
