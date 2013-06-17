@@ -9,6 +9,9 @@
 # "LICENSE" for more information.
 #
 
+.SUFFIXES:
+MAKEFLAGS += -r
+
 include Config.mk
 
 include mk/arch/$(CONFIG_ARCH).mk

@@ -35,7 +35,7 @@ instrumented-decls: $(RTV_DIR)/instrumented-decls
 	cp $< $@
 
 # This is the first build.
-$(RTV_GENERATED_DEP): $(TWRTEST_GENERATOR_EXE)
+$(RTV_GENERATED_DEP): $(TWRTEST_GENERATOR_EXE) instrumented-decls
 	mkdir -p $(RTV_GRAPHS_DIR)
 	mkdir -p $(RTV_SRCDIR)
 	mkdir -p $(RTV_INCDIR)
@@ -47,7 +47,7 @@ $(RTV_GENERATED_DEP): $(TWRTEST_GENERATOR_EXE)
 	$(RTV_IVORY_OPTS)
 
 # 2nd build.
-$(RTV_GENERATED_HEADERS) $(RTV_GENERATED_SOURCES): $(RTV_GENERATED_DEP)
+$(RTV_GENERATED_HEADERS) $(RTV_GENERATED_SOURCES): $(RTV_GENERATED_DEP) instrumented-decls
 	$(RTV_GENERATOR_EXE) $(TWRTEST_GENERATOR_EXE) \
 	--src-dir=$(RTV_SRCDIR) \
 	--include-dir=$(RTV_INCDIR) \

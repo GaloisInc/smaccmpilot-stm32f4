@@ -12,7 +12,7 @@
 #
 
 IVORY_LEDTEST_IMG       := ivory_ledtest
-IVORY_LEDTEST_OBJECTS   := ledblink.o ivory_hw.o
+IVORY_LEDTEST_OBJECTS   := ledblink.o
 
 IVORY_LEDTEST_INCLUDES  += $(FREERTOS_CFLAGS)
 IVORY_LEDTEST_INCLUDES  += -I$(TOP)/src/bsp/ivory/tests/ledblink

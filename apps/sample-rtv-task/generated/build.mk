@@ -14,6 +14,8 @@ RTV_GENERATED_LIB     := librtvtest-generated.a
 
 RTV_GENERATED_INCLUDES  += \
   -I$(TOP)/apps/sample-rtv-task/generated/include/generated
+RTV_GENERATED_INCLUDES  += -I$(TOP)/apps/sample-rtv-task/checker
+RTV_GENERATED_INCLUDES  += -I$(TOP)/apps/sample-rtv-task/legacy
 RTV_GENERATED_INCLUDES  += $(HWF4_INCLUDES)
 RTV_GENERATED_INCLUDES  += $(FREERTOS_CFLAGS)
 
