@@ -14,7 +14,7 @@
 
 #include <FreeRTOS.h>
 #include <task.h>
-#include <generated/tower.h>
+#include <tower.h>
 
 void main_task(void *arg)
 {

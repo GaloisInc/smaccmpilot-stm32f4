@@ -18,8 +18,8 @@
 #include <AP_HAL_SMACCM.h>
 #include <AP_Math.h>
 
-#include <flight-generated/storage_partition.h>
-#include <flight-generated/tower.h>
+#include <flight/storage_partition.h>
+#include <flight/tower.h>
 
 const AP_HAL::HAL& hal = AP_HAL_BOARD_DRIVER;
 

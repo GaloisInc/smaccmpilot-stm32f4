@@ -52,7 +52,7 @@ library
                        ivory-bitdata,
                        ivory-hw
 
-executable ledblink-gen
+executable bsp-led-test-gen
   main-is:             LEDBlink.hs
   hs-source-dirs:      examples
   build-depends:       base >= 4.6,

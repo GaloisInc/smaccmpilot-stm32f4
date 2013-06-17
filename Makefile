@@ -26,6 +26,9 @@ OBJ_DIR   := $(BUILD_DIR)/obj
 LIB_DIR   := $(BUILD_DIR)/lib
 IMG_DIR   := $(BUILD_DIR)/img
 
+# Build output directory containing generated sources.
+GEN_DIR   := $(BUILD_DIR)/gen
+
 # Add the built library directory to the default linker flags.
 LDFLAGS += -L$(LIB_DIR)
 
@@ -35,6 +38,7 @@ all: all-targets
 include mk/cmd.lib
 include mk/library.mk
 include mk/image.mk
+include mk/ivory.mk
 
 define project
   include $(1)/build.mk
@@ -55,11 +59,11 @@ all-targets: $(ALL_TARGETS)
 
 .PHONY: clean
 clean:
-	$(Q)rm -rf $(ALL_TARGETS) $(ALL_OBJECTS) $(ALL_DEPS) $(CLEAN)
+	$(Q)rm -rf $(BUILD_DIR)
 
 .PHONY: veryclean
 veryclean: clean
-	$(Q)rm -rf $(ALL_TARGETS) $(ALL_OBJECTS) $(ALL_DEPS) $(VERYCLEAN)
+	$(Q)rm -rf $(BUILD_DIR)
 
 ######################################################################
 ## Compilation Rules
@@ -69,6 +73,11 @@ quiet_cmd_cc_o_c = CC      $<
 
 # Compile a C source file to an object and dependency file.
 $(OBJ_DIR)/%.o: %.c
+	$(Q)mkdir -p $(dir $@)
+	$(call cmd,cc_o_c)
+
+# Compile a generated C source file to an object and dependency file.
+$(OBJ_DIR)/%.o: $(GEN_DIR)/%.c
 	$(Q)mkdir -p $(dir $@)
 	$(call cmd,cc_o_c)
 

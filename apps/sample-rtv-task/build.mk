@@ -1,68 +1,43 @@
 # -*- Mode: makefile-gmake; indent-tabs-mode: t; tab-width: 2 -*-
+#
+# build.mk
+#
+# Copyright (C) 2012, Galois, Inc.
+# All Rights Reserved.
+#
+# This software is released under the "BSD3" license.  Read the file
+# "LICENSE" for more information.
+#
+
+export RTV_DECLS := $(TOP)/apps/sample-rtv-task/instrumented-decls
+$(eval $(call ivory_pkg,IVORY_PKG_SAMPLE_RTV_TASK,sample-rtv-task-checker-gen))
+
+APP_RTV_IMG       := sample-rtv
+
+APP_RTV_OBJECTS   :=                    \
+	legacy/legacy.o                       \
+	record_assignment/record_assignment.o \
+	checker/instrumented.o
+
+APP_RTV_REAL_OBJECTS += $(IVORY_PKG_SAMPLE_RTV_TASK_OBJECTS)
+
+APP_RTV_INCLUDES  += -I$(TOP)/apps/sample-rtv-task/record_assignment
+APP_RTV_INCLUDES  += -I$(TOP)/apps/sample-rtv-task/legacy
+APP_RTV_INCLUDES  += -I$(TOP)/apps/sample-rtv-task/checker
+APP_RTV_INCLUDES  += $(HWF4_INCLUDES)
+APP_RTV_INCLUDES  += $(FREERTOS_INCLUDES)
+APP_RTV_INCLUDES  += $(IVORY_PKG_SAMPLE_RTV_TASK_CFLAGS)
+
+APP_RTV_CFLAGS    += $(APP_RTV_INCLUDES)
+APP_RTV_CFLAGS    += -fplugin=$(GCC_PLUGIN)/instrument_plugin.so
+APP_RTV_CFLAGS    += -DIVORY_DEPLOY
+
+APP_RTV_LIBRARIES += libhwf4.a
+APP_RTV_LIBRARIES += libstm32_usb.a
+APP_RTV_LIBRARIES += libFreeRTOS.a
+
+APP_RTV_LIBS      += -lm
+
+$(eval $(call image,APP_RTV))
+
 # vim: set ft=make noet ts=2:
-
-ifneq ($(GCC_PLUGIN),)
-
-RTV_DIR=apps/sample-rtv-task
-RTV_GENERATEDDIR=$(RTV_DIR)/generated
-RTV_GRAPHS_DIR=$(RTV_DIR)/graphs
-
-RTV_SRCDIR=$(RTV_GENERATEDDIR)/src
-RTV_INCDIR=$(RTV_GENERATEDDIR)/include/generated
-
-RTV_GENERATOR_EXE=$(CONFIG_CABAL_SANDBOX)/bin/sample-rtv-task-checker-gen
-
-RTV_IVORY_OPTS=--const-fold --overflow --div-zero
-# A little too noisy: --fp-check
-
-RTV_GENERATED_DEP=$(RTV_GENERATEDDIR)/dep.mk
-
-include $(RTV_GENERATED_DEP)
-
-# ------------------------------------------------------------------------------
-
-# Generate the srcs and headers.
-RTV += rtvtest-build
-.PHONY: rtvtest-build
-
-rtvtest-build: $(RTV_GENERATED_HEADERS) $(RTV_GENERATED_SOURCES)
-
-# XXX until we execute in project files, cp instrumented-decls over
-$(TWRTEST_GENERATOR_EXE): instrumented-decls
-
-# see note above
-instrumented-decls: $(RTV_DIR)/instrumented-decls
-	cp $< $@
-
-# This is the first build.
-$(RTV_GENERATED_DEP): $(TWRTEST_GENERATOR_EXE) instrumented-decls
-	mkdir -p $(RTV_GRAPHS_DIR)
-	mkdir -p $(RTV_SRCDIR)
-	mkdir -p $(RTV_INCDIR)
-	$(RTV_GENERATOR_EXE) \
-	--src-dir=$(RTV_SRCDIR) \
-	--include-dir=$(RTV_INCDIR) \
-	--deps=$(RTV_GENERATED_DEP) \
-	--dep-prefix=RTV_GENERATED \
-	$(RTV_IVORY_OPTS)
-
-# 2nd build.
-$(RTV_GENERATED_HEADERS) $(RTV_GENERATED_SOURCES): $(RTV_GENERATED_DEP) instrumented-decls
-	$(RTV_GENERATOR_EXE) $(TWRTEST_GENERATOR_EXE) \
-	--src-dir=$(RTV_SRCDIR) \
-	--include-dir=$(RTV_INCDIR) \
-	$(RTV_IVORY_OPTS)
-  # XXX see note above
-	rm instrumented-decls
-
-CLEAN     += $(RTV_GENERATED_DEP)
-# use wildcard, not the dep file, to clean subdirs, because if dep file
-# doesn't exist we won't get a proper clean.
-CLEAN     += $(wildcard $(RTV_SRCDIR)/*.c)
-CLEAN     += $(wildcard $(RTV_INCDIR)/*.h)
-
-CLEAN     += $(RTV_GRAPHS_DIR)
-
-include apps/sample-rtv-task/app.mk
-
-endif

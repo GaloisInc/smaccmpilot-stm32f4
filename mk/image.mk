@@ -26,7 +26,7 @@
 # FOO_LIBRARIES   built libraries to link against (eg: libFreeRTOS.a)
 # FOO_LIBS        system libraries to link against (eg: -lfoo)
 define image
-$(1)_PREFIX         := $(dir $(lastword $(MAKEFILE_LIST)))
+$(1)_PREFIX         := $(dir $(lastword $(filter %/build.mk,$(MAKEFILE_LIST))))
 $(1)_REAL_OBJECTS   += $$(addprefix $$(OBJ_DIR)/,$$(STARTUP_OBJECTS))
 $(1)_REAL_OBJECTS   += $$(addprefix $$(OBJ_DIR)/$$($(1)_PREFIX),$$($(1)_OBJECTS))
 $(1)_REAL_IMG       := $$(addprefix $$(IMG_DIR)/,$$($(1)_IMG))
