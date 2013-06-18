@@ -35,8 +35,8 @@ type Clk = Stored Sint32
 type ClkEmitterType s = '[ConstRef s Clk] :-> ()
 
 -- Externs
-clkEmitter :: Schedule -> ChannelEmitter Clk -> Def (ClkEmitterType s)
-clkEmitter sch ch = proc "clkEmitter" $ \r -> body $ emit sch ch r
+clkEmitter :: TaskSchedule -> ChannelEmitter Clk -> Def (ClkEmitterType s)
+clkEmitter sch ch = proc "clkEmitter" $ \r -> body $ emit_ sch ch r
 
 read_clock_block :: Def ('[ProcPtr (ClkEmitterType s)] :-> ())
 read_clock_block = importProc "read_clock_block" legacyHdr

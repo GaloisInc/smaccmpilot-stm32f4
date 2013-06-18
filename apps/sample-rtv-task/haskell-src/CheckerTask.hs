@@ -30,10 +30,10 @@ append_to_history = importProc "append_to_history" "instrumented.h"
 
 -- | Emitter a monitored task uses to send values to the checker task.  The
 -- emitter is called by record_assignment(), instrumented by the plugin.
-recordEmit :: Schedule
+recordEmit :: TaskSchedule
            -> ChannelEmitter AssignStruct
            -> Def ('[AssignRef s] :-> ())
-recordEmit sch ch = proc "recordEmit" $ \r -> body $ emit sch ch r
+recordEmit sch ch = proc "recordEmit" $ \r -> body $ emit_ sch ch r
 
 --------------------------------------------------------------------------------
 
