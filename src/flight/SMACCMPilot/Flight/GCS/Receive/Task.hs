@@ -26,8 +26,9 @@ gcsReceiveTask usart_area s_src = do
   n <- freshname
   streamPeriodEmitter <- withChannelEmitter s_src "streamperiods"
 
-  let handlerAux :: Def ('[ Ref s (Struct "mavlink_receive_state")
-                      , Ref s1 (Struct "gcsstream_timing") ] :-> ())
+  let handlerAux :: Def ('[ Ref s  (Struct "mavlink_receive_state")
+                          , Ref s1 (Struct "gcsstream_timing")
+                          ] :-> ())
       handlerAux = proc ("gcsReceiveHandlerAux" ++ n) $ \s streams -> body $
         runHandlers s
          [ handle paramRequestList
@@ -36,7 +37,7 @@ gcsReceiveTask usart_area s_src = do
          , handle (requestDatastream streams)
          , handle hilState
          ]
-         where runHandlers s = mapM_ ((flip($)) s)
+         where runHandlers s = mapM_ ((flip ($)) s)
   p <- withPeriod 1
   taskBody $ \schedule -> do
     s_periods <- local defaultPeriods
