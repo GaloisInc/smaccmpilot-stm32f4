@@ -37,7 +37,7 @@ controlTask s_fm s_inpt s_sens s_ctl = do
       -- the trivial throttle controller:
       deref (inpt ~> UI.throttle) >>= store (ctl ~> CO.throttle)
 
-      emit schedule ctlEmitter (constRef ctl)
+      emit_ schedule ctlEmitter (constRef ctl)
 
   taskModuleDef $ \_sch -> do
     depend FM.flightModeTypeModule

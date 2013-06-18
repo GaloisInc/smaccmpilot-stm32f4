@@ -39,7 +39,7 @@ gcsReceiveTask usart_area s_src = do
   p <- withPeriod 1
   taskBody $ \schedule -> do
     s_periods <- local defaultPeriods
-    emit schedule streamPeriodEmitter (constRef s_periods)
+    emit_ schedule streamPeriodEmitter (constRef s_periods)
 
     usart <- addrOf usart_area
     buf <- local (iarray [] :: Init (Array 1 (Stored Uint8)))
@@ -55,7 +55,7 @@ gcsReceiveTask usart_area s_src = do
         when (s ==? R.status_GOTMSG) $ do
           call_ handlerAux state s_periods
           R.mavlinkReceiveReset state
-          emit schedule streamPeriodEmitter (constRef s_periods)
+          emit_ schedule streamPeriodEmitter (constRef s_periods)
 
 
   taskModuleDef $ \_sch -> do
