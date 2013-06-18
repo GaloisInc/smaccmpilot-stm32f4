@@ -26,7 +26,7 @@ checksMod = createModule $ properties $ do
 
 -- XXX remove location-specific stuff from HS sources.  Can do this when
 -- executed in the current dir.
-checker :: IO ()
-checker = do
+checker :: Bool -> IO ()
+checker verbose = do
   curr <- getCurrentDirectory
-  writeCFilesForVariables (curr </> "apps/sample-rtv-task"  </> "checker")
+  writeCFilesForVariables verbose (curr </> "apps/sample-rtv-task"  </> "checker")

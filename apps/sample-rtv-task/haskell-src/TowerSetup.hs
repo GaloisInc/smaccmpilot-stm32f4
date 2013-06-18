@@ -8,6 +8,8 @@
 
 module Main where
 
+import System.Environment (getArgs)
+
 import Types
 import CheckerTask
 import Checker
@@ -86,6 +88,7 @@ tasks = do
 
 main :: IO ()
 main = do
+  args <- getArgs
   let (_, objs) = F.compile tasks
 
   -- C.runCompiler objs C.initialOpts
@@ -94,8 +97,11 @@ main = do
     (Just [F.searchDir])
     (checksMod : objs)
 
-  checker
+  checker (verbose args)
 
   -- graphvizToFile "out.dot" asm
+  where
+  verbose args = "--verbose" `elem` args
+              || "-v" `elem` args
 
 --------------------------------------------------------------------------------
