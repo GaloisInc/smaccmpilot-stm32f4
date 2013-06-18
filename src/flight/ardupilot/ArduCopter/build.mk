@@ -46,7 +46,11 @@ $(ARDUCOPTER_SKETCH_CPP): $(ARDUCOPTER_SKETCH_CPP_SRC)
 .DELETE_ON_ERROR: $(ARDUCOPTER_SKETCH_CPP)
 
 ifdef CONFIG_ARDUPILOT_PREFIX
-$(eval $(call image,ARDUCOPTER))
+# It was nice to have the capability to build this image - at one point it
+# helped us bootstrap smaccmpilot. However, there is evidence that this image
+# actually works once built, and we have no reason to maintain it. Therefore,
+# disabled from build.
+# $(eval $(call image,ARDUCOPTER))
 endif
 
 # vim: set ft=make noet ts=2:
