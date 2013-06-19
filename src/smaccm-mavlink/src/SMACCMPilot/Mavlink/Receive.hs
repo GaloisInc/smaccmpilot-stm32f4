@@ -42,7 +42,8 @@ mavlinkReceiveByte :: Ref s1 (Struct "mavlink_receive_state")
                    -> Uint8 -> Ivory eff ()
 mavlinkReceiveByte state b = do
   s <- deref (state ~> status)
-  unless (s ==? status_GOTMSG) -- Do nothing until statemachine cleared externally
+  unless (s ==? status_GOTMSG) -- Do nothing until statemachine cleared
+                               -- externally
     (ifte_ (s ==? status_IDLE) -- When idle, look for STX
       (when (b ==? mavlink_STX)
         (beginActive state)) -- start state machine when got stx
@@ -59,24 +60,19 @@ mavlinkReceiveByte state b = do
 active :: Ref s1 (Struct "mavlink_receive_state") -> Uint8 -> Ivory eff ()
 active state b = do
   o <- deref (state ~> offs)
-  ifte_ (o ==? 1)
-    (store (state ~> paylen) b >> continue)
-    (ifte_ (o ==? 2)
-      (store (state ~> seqnum) b >> continue)
-      (ifte_ (o ==? 3)
-        (store (state ~> sysid)  b >> continue)
-        (ifte_ (o ==? 4)
-          (store (state ~> compid) b >> continue)
-          (ifte_ (o ==? 5)
-            (checkMsgID)
-            (do len <- deref (state ~> paylen)
-                ifte_ ((o - len) <? 6)
-                  (gotPayload o)
-                  (ifte_ ((o - len) ==? 6)
-                    (gotCRCLo) -- crc1
-                    (ifte_ ((o - len) ==? 7)
-                      (gotCRCHi) -- crc2
-                      (fail {- should be impossible -}))))))))
+  len <- deref (state ~> paylen)
+  cond_
+    [ (o ==? 1)       ==> (store (state ~> paylen) b >> continue)
+    , (o ==? 2)       ==> (store (state ~> seqnum) b >> continue)
+    , (o ==? 3)       ==> (store (state ~> sysid)  b >> continue)
+    , (o ==? 4)       ==> (store (state ~> compid) b >> continue)
+    , (o ==? 5)       ==> checkMsgID
+    , (o - len <? 6)  ==> gotPayload o
+    , (o - len ==? 6) ==> gotCRCLo -- crc1
+    , (o - len ==? 7) ==> gotCRCHi -- crc1
+    , true            ==> fail --- should be impossible!!
+      ]
+
   where
   incrOffs = do
     o <- deref (state ~> offs)
