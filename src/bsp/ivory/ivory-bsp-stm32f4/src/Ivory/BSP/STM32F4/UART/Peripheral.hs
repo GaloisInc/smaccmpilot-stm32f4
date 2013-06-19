@@ -166,7 +166,13 @@ uartInit uart baud = do
     setBit uart_cr1_te
     setBit uart_cr1_re
 
-  -- TODO: Enable the UART interrupt.
+uartInitISR :: (eff `AllocsIn` s) => UART -> Uint8 -> Ivory eff ()
+uartInitISR uart priority = do
+  interrupt_set_priority inter priority
+  interrupt_enable       inter
+  setRXNEIE uart true
+  where
+  inter = uartInterrupt uart
 
 -- | Set the UART data register.
 setDR :: UART -> Uint8 -> Ivory eff ()

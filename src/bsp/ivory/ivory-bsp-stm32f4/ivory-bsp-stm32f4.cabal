@@ -38,7 +38,7 @@ library
                        Ivory.BSP.STM32F4.UART.Types,
                        Ivory.BSP.STM32F4.UART.Regs,
                        Ivory.BSP.STM32F4.UART.Peripheral,
-                       Ivory.BSP.STM32F4.UART.API,
+                       Ivory.BSP.STM32F4.UART.Tower,
                        Ivory.BSP.STM32F4.SearchDir
 
   other-modules:       Ivory.BSP.STM32F4.GPIO.TH,
@@ -50,7 +50,8 @@ library
                        ivory,
                        ivory-stdlib,
                        ivory-bitdata,
-                       ivory-hw
+                       ivory-hw,
+                       ivory-tower
 
 executable bsp-uart-tower-test-gen
   main-is:             UARTTowerCompiler.hs
