@@ -92,7 +92,7 @@ if __name__=="__main__":
     (opts, args) = parser.parse_args()
 
     if len(args) < 1:
-        args = ["../../message_definitions/common.xml"]
+        args = [ "../../message_definitions/smaccmpilot.xml" ]
     opts.wire_protocol = '1.0'
     mavgen(opts, args)
 
