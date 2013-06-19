@@ -9,15 +9,19 @@
 # "LICENSE" for more information.
 #
 
-$(eval $(call ivory_pkg,IVORY_PKG_LED_TEST,bsp-led-test-gen))
+$(eval $(call ivory_pkg,IVORY_PKG_LED_TEST,bsp-led-tower-test-gen))
 
 BSP_LED_TEST_IMG          := bsp-led-test
+BSP_LED_TEST_OBJECTS      := main.o
 BSP_LED_TEST_REAL_OBJECTS += $(IVORY_PKG_LED_TEST_OBJECTS)
 BSP_LED_TEST_LIBRARIES    += libFreeRTOS.a
 
 BSP_LED_TEST_INCLUDES     += $(FREERTOS_CFLAGS)
 BSP_LED_TEST_INCLUDES     += -I$(TOP)/src/bsp/include
 BSP_LED_TEST_INCLUDES     += $(IVORY_PKG_LED_TEST_CFLAGS)
+BSP_LED_TEST_CFLAGS       += -DIVORY_DEPLOY
 BSP_LED_TEST_CFLAGS       += -O2 $(BSP_LED_TEST_INCLUDES)
+
+BSP_LED_TEST_LIBRARIES    += libFreeRTOS.a
 
 $(eval $(call image,BSP_LED_TEST))
