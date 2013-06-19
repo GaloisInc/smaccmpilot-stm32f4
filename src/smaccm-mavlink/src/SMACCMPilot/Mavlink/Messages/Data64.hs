@@ -19,7 +19,7 @@ data64MsgId :: Uint8
 data64MsgId = 171
 
 data64CrcExtra :: Uint8
-data64CrcExtra = 181
+data64CrcExtra = 170
 
 data64Module :: Module
 data64Module = package "mavlink_data64_msg" $ do
@@ -31,7 +31,7 @@ data64Module = package "mavlink_data64_msg" $ do
 struct data64_msg
   { data64_type :: Stored Uint8
   ; len :: Stored Uint8
-  ; data :: Array 64 (Stored Uint8)
+  ; data64 :: Array 64 (Stored Uint8)
   }
 |]
 
@@ -53,7 +53,7 @@ data64Pack sender msg = do
   let buf = toCArray arr
   call_ pack buf 0 =<< deref (msg ~> data64_type)
   call_ pack buf 1 =<< deref (msg ~> len)
-  arrayPack buf 2 (msg ~> data)
+  arrayPack buf 2 (msg ~> data64)
   sender data64MsgId (constRef arr) data64CrcExtra
   retVoid
 
@@ -66,5 +66,5 @@ data64Unpack :: Def ('[ Ref s1 (Struct "data64_msg")
 data64Unpack = proc "mavlink_data64_unpack" $ \ msg buf -> body $ do
   store (msg ~> data64_type) =<< call unpack buf 0
   store (msg ~> len) =<< call unpack buf 1
-  arrayUnpack buf 2 (msg ~> data)
+  arrayUnpack buf 2 (msg ~> data64)
 

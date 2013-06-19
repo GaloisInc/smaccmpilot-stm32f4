@@ -19,7 +19,7 @@ data16MsgId :: Uint8
 data16MsgId = 169
 
 data16CrcExtra :: Uint8
-data16CrcExtra = 234
+data16CrcExtra = 46
 
 data16Module :: Module
 data16Module = package "mavlink_data16_msg" $ do
@@ -31,7 +31,7 @@ data16Module = package "mavlink_data16_msg" $ do
 struct data16_msg
   { data16_type :: Stored Uint8
   ; len :: Stored Uint8
-  ; data :: Array 16 (Stored Uint8)
+  ; data16 :: Array 16 (Stored Uint8)
   }
 |]
 
@@ -53,7 +53,7 @@ data16Pack sender msg = do
   let buf = toCArray arr
   call_ pack buf 0 =<< deref (msg ~> data16_type)
   call_ pack buf 1 =<< deref (msg ~> len)
-  arrayPack buf 2 (msg ~> data)
+  arrayPack buf 2 (msg ~> data16)
   sender data16MsgId (constRef arr) data16CrcExtra
   retVoid
 
@@ -66,5 +66,5 @@ data16Unpack :: Def ('[ Ref s1 (Struct "data16_msg")
 data16Unpack = proc "mavlink_data16_unpack" $ \ msg buf -> body $ do
   store (msg ~> data16_type) =<< call unpack buf 0
   store (msg ~> len) =<< call unpack buf 1
-  arrayUnpack buf 2 (msg ~> data)
+  arrayUnpack buf 2 (msg ~> data16)
 
