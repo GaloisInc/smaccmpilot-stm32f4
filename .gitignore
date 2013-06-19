@@ -6,7 +6,7 @@ mav.log
 mav.log.raw
 status.txt
 mkpdf.sh
-out.dot
+*.dot
 out.pdf
 .gdbinit
 gcc-plugin/
