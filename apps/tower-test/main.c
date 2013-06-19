@@ -1,7 +1,5 @@
 // -*- Mode: C++; indent-tabs-mode: nil; c-basic-offset: 4 -*-
 /*
- * main.cpp --- Tower Test App
- *
  * Copyright (C) 2013, Galois, Inc.
  * All Rights Reserved.
  *
@@ -10,7 +8,6 @@
  */
 
 #include <stdint.h>
-#include <ctype.h>
 
 #include <FreeRTOS.h>
 #include <task.h>
@@ -22,7 +19,6 @@ void main_task(void *arg)
     for (;;) {}
 }
 
-extern "C"
 int main()
 {
     xTaskCreate(main_task, (signed char *)"main", 256, NULL, 0, NULL);
