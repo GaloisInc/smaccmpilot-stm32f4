@@ -99,7 +99,11 @@ library
                         SMACCMPilot.Mavlink.Messages.NamedValueFloat,
                         SMACCMPilot.Mavlink.Messages.NamedValueInt,
                         SMACCMPilot.Mavlink.Messages.Statustext,
-                        SMACCMPilot.Mavlink.Messages.Debug
+                        SMACCMPilot.Mavlink.Messages.Debug,
+                        SMACCMPilot.Mavlink.Messages.Data16,
+                        SMACCMPilot.Mavlink.Messages.Data32,
+                        SMACCMPilot.Mavlink.Messages.Data64,
+                        SMACCMPilot.Mavlink.Messages.Data96
 
   build-depends:        base >= 4.6,
                         ivory,
