@@ -10,3 +10,4 @@ mkpdf.sh
 out.pdf
 .gdbinit
 gcc-plugin/
+generated/
