@@ -368,15 +368,18 @@ def process_xml(basename, xml):
                 f.putname = f.const_value
     return xml
 
-
 def generate_messages(basename, xml_list):
+    messages = []
+    print("Generating SMACCMPilot.Mavlink.Messages modules in directory %s" %
+          basename)
+    mavparse.mkdir_p(basename)
+
     for xml in xml_list:
-        x = process_xml(basename, xml);
-        print("Generating SMACCMPilot.Mavlink.Messages modules in directory %s" %
-                        basename)
-        mavparse.mkdir_p(basename)
-        generate_messages_hs(basename, xml.message)
-        generate_senders_hs(basename, xml.message)
+        process_xml(basename, xml);
         for m in xml.message:
             generate_message_ivory(basename, m)
+            messages.append(m)
+
+    generate_messages_hs(basename, messages)
+    generate_senders_hs(basename, messages)
 
