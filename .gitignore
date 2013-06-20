@@ -11,3 +11,4 @@ out.pdf
 .gdbinit
 gcc-plugin/
 generated/
+cabal-dev
