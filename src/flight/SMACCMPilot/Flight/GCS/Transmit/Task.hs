@@ -30,7 +30,6 @@ gcsTransmitTask :: (SingI n, SingI m)
                 => MemArea (Struct "usart")
                 -> ChannelSink n (Struct "gcsstream_timing")
                 -> ChannelSink m (Struct "data_rate_state")
- number of dropped messages.
                 -> DataSink (Struct "flightmode")
                 -> DataSink (Struct "sensors_result")
                 -> DataSink (Struct "position_result")
