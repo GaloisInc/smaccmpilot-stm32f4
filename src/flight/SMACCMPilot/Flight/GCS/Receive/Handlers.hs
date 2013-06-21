@@ -34,7 +34,6 @@ paramSet _ =
   -- XXX need to implement. requires local allocation, so could be best to wait
   return ()
 
-
 requestDatastream :: Ref s1 (Struct "gcsstream_timing")
                   -> Ref s2 (Struct "request_data_stream_msg") -> Ivory eff ()
 requestDatastream streamperiods msg = do
@@ -48,8 +47,10 @@ hilState _ =
   -- XXX need to implement.
   return ()
 
+-- | Handles a specific Mavlink message, where 'unpack' is a method of the
+-- 'MavlinkUnpackageMsg'.
 handle :: (eff `AllocsIn` s, MavlinkUnpackableMsg t, IvoryStruct t)
-       => (Ref (Stack s) (Struct t) -> Ivory eff () )
+       => (Ref (Stack s) (Struct t) -> Ivory eff ())
        -> Ref s1 (Struct "mavlink_receive_state")
        -> Ivory eff ()
 handle handler rxstate = do
