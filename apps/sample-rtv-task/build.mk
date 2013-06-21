@@ -38,6 +38,8 @@ APP_RTV_LIBRARIES += libFreeRTOS.a
 
 APP_RTV_LIBS      += -lm
 
+ifneq ($(CONFIG_BUILD_RTV),)
 $(eval $(call image,APP_RTV))
+endif
 
 # vim: set ft=make noet ts=2:
