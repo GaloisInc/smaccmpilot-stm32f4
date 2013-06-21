@@ -19,7 +19,8 @@ import SMACCMPilot.Flight.GCS.Transmit.USARTSender
 import SMACCMPilot.Flight.GCS.Stream
 
 import qualified SMACCMPilot.Flight.Types.GCSStreamTiming as S
-import qualified SMACCMPilot.Flight.Types.FlightMode as FM
+import qualified SMACCMPilot.Flight.Types.FlightMode      as FM
+import qualified SMACCMPilot.Flight.Types.DataRate        as D
 
 sysid, compid :: Uint8
 sysid = 1
@@ -28,14 +29,17 @@ compid = 0
 gcsTransmitTask :: (SingI n)
                 => MemArea (Struct "usart")
                 -> ChannelSink n (Struct "gcsstream_timing")
+ number of dropped messages.
                 -> DataSink (Struct "flightmode")
                 -> DataSink (Struct "sensors_result")
                 -> DataSink (Struct "position_result")
                 -> DataSink (Struct "controloutput")
                 -> DataSink (Struct "servos")
                 -> Task ()
-gcsTransmitTask usart sp_sink fm_sink se_sink ps_sink ct_sink sr_sink = do
+gcsTransmitTask usart sp_sink dr_sink fm_sink se_sink ps_sink ct_sink sr_sink
+  = do
   streamPeriodRxer <- withChannelReceiver sp_sink  "streamperiods"
+  drRxer           <- withChannelReceiver dr_sink  "data_rate"
   fmReader         <- withDataReader fm_sink "flightmode"
   sensorsReader    <- withDataReader se_sink "sensors"
   posReader        <- withDataReader ps_sink "position"
@@ -64,6 +68,12 @@ gcsTransmitTask usart sp_sink fm_sink se_sink ps_sink ct_sink sr_sink = do
     let hstream = onChannel streamPeriodRxer $ \newperiods -> do
           now <- getTimeMillis t
           setNewPeriods newperiods s_periods s_schedule now
+
+    -- If the Mavlink receiver sends new data rate info, broadcast it.
+    let dataRateInfo = onChannel drRxer $ \dr -> do
+          d <- local (istruct [])
+          refCopy d dr
+          call_ (sendDataRate chan1) d
 
     let htimer = onTimer p $ \now -> do
           -- Handler for all streams - if due, run action, then update schedule
@@ -111,10 +121,11 @@ gcsTransmitTask usart sp_sink fm_sink se_sink ps_sink ct_sink sr_sink = do
 
           -- Keep track of last run for internal scheduler
           store lastRun now
-    eventLoop schedule $ hstream <> htimer
+    eventLoop schedule $ hstream <> htimer <> dataRateInfo
 
   taskModuleDef $ \_sch -> do
     depend FM.flightModeTypeModule
+    depend D.dataRateTypeModule
     depend S.gcsStreamTimingTypeModule
     mapM_ depend cmods
 

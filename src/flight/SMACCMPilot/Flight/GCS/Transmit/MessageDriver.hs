@@ -9,6 +9,9 @@ module SMACCMPilot.Flight.GCS.Transmit.MessageDriver
   , messageDriver
   ) where
 
+import qualified MonadLib        as M
+import qualified MonadLib.Monads as M
+
 import Ivory.Language
 import Ivory.Stdlib
 
@@ -18,6 +21,7 @@ import qualified SMACCMPilot.Flight.Types.Sensors       as Sens
 import qualified SMACCMPilot.Flight.Types.ControlOutput as C
 import qualified SMACCMPilot.Flight.Types.UserInput     as U
 import qualified SMACCMPilot.Flight.Types.FlightMode    as FM
+import qualified SMACCMPilot.Flight.Types.DataRate      as R
 
 import qualified SMACCMPilot.Param as Param
 
@@ -31,9 +35,10 @@ import qualified SMACCMPilot.Mavlink.Messages.ServoOutputRaw as SVO
 import qualified SMACCMPilot.Mavlink.Messages.GpsRawInt as GRI
 import qualified SMACCMPilot.Mavlink.Messages.GlobalPositionInt as GPI
 import qualified SMACCMPilot.Mavlink.Messages.ParamValue as PV
+import qualified SMACCMPilot.Mavlink.Messages.Data16 as D
 
 --------------------------------------------------------------------
--- Generated Defs 
+-- Generated Defs
 data MessageDriver =
   MessageDriver
     { sendHeartbeat      :: forall s
@@ -59,6 +64,8 @@ data MessageDriver =
     , sendParamValue     :: forall s
                           . Def ('[ Ref s (Struct "param_info") ] :-> ())
     , sendParams         :: Def ('[] :-> ())
+    , sendDataRate       :: forall s
+                          . Def ('[ Ref s (Struct "data_rate_state") ] :-> ())
     }
 
 --------------------------------------------------------------------
@@ -74,6 +81,7 @@ moddefs d = do
   incl (sendGlobalPositionInt d)
   incl (sendParamValue d)
   incl (sendParams d)
+  incl (sendDataRate d)
   -- dependencies for all the smaccmpilot flight types
   depend P.positionTypeModule
   depend Serv.servosTypeModule
@@ -82,6 +90,7 @@ moddefs d = do
   depend U.userInputTypeModule
   depend FM.flightModeTypeModule
   depend Param.paramModule
+  depend R.dataRateTypeModule
   -- dependencies for all the mavlink message types
   depend HB.heartbeatModule
   depend ATT.attitudeModule
@@ -90,6 +99,7 @@ moddefs d = do
   depend GRI.gpsRawIntModule
   depend GPI.globalPositionIntModule
   depend PV.paramValueModule
+  depend D.data16Module
   inclHeader "string.h"
 
 messageDriver :: MavlinkSender -> (MessageDriver, [Module])
@@ -98,23 +108,50 @@ messageDriver sender = (driver, [driverMod,  msgMod])
   (msgSenders, msgMod) = mavlinkMessageSenders sender
   driver =
     MessageDriver
-      { sendHeartbeat = mkSendHeartbeat msgSenders
-      , sendAttitude = mkSendAttitude msgSenders
-      , sendVfrHud = mkSendVfrHud msgSenders
-      , sendServoOutputRaw = mkSendServoOutputRaw msgSenders
-      , sendGpsRawInt = mkSendGpsRawInt msgSenders
+      { sendHeartbeat         = mkSendHeartbeat msgSenders
+      , sendAttitude          = mkSendAttitude msgSenders
+      , sendVfrHud            = mkSendVfrHud msgSenders
+      , sendServoOutputRaw    = mkSendServoOutputRaw msgSenders
+      , sendGpsRawInt         = mkSendGpsRawInt msgSenders
       , sendGlobalPositionInt = mkSendGlobalPositionInt msgSenders
-      , sendParamValue = mkSendParamValue msgSenders
-      , sendParams = mkSendParams msgSenders
+      , sendParamValue        = mkSendParamValue msgSenders
+      , sendParams            = mkSendParams msgSenders
+      , sendDataRate          = mkSendDataRate msgSenders
       }
-  driverMod = package ("gcs_transmit_driver_" ++ (mavlinkSenderName sender)) $ do
-    depend msgMod
-    moddefs driver
+  driverMod = package ("gcs_transmit_driver_" ++ (mavlinkSenderName sender))
+    $ do depend msgMod
+         moddefs driver
 
+packUint32 :: Ix 16
+           -> Ref s (Array 16 (Stored Uint8))
+           -> Uint32
+           -> Ivory eff ()
+packUint32 initIx arr val =
+  mapM_ (\(ix,b) -> store (arr ! ix) b) (zip ixes bytes)
+  where
+  ixes  = [initIx, initIx+1, initIx+2, initIx + 3]
+  bytes = fst $ M.runState val $ do
+    b0 <- ex
+    b1 <- ex
+    b2 <- ex
+    b3 <- ex
+    return [b0,b1,b2,b3]
+    where ex = M.sets extractByte
+
+mkSendDataRate :: MavlinkMessageSenders
+             -> Def ('[ Ref s (Struct "data_rate_state") ] :-> ())
+mkSendDataRate senders = proc "gcs_transmit_send_data16" $ \dr -> body $ do
+  msg <- local (istruct [])
+  d   <- dr ~>* R.dropped
+  l   <- dr ~>* R.lastSucc
+  store (msg ~> D.len) 8 -- 4 bytes for the time, 4 for the number dropped
+  packUint32 0 (msg ~> D.data16) d
+  packUint32 4 (msg ~> D.data16) l
+  call_ (data16Sender senders) (constRef msg)
 
 mkSendHeartbeat :: MavlinkMessageSenders
               -> Def ('[ (Ref s1 (Struct "flightmode")) ] :-> ())
-mkSendHeartbeat senders = proc "gcs_transmit_send_heartbeat" $ 
+mkSendHeartbeat senders = proc "gcs_transmit_send_heartbeat" $
   \fm -> body $ do
   hb <- local (istruct [])
   armed <- (fm ~>* FM.armed)
@@ -130,7 +167,7 @@ mkSendHeartbeat senders = proc "gcs_transmit_send_heartbeat" $
   store (hb ~> HB.mavlink_version) 3 -- magic number
 
   call_ (heartbeatSender senders) (constRef hb)
-  retVoid 
+  retVoid
   where
   _autopilot_generic, autopilot_ardupilotmega, mavtype_quadrotor :: Uint8
   _autopilot_generic      = 0 -- MAV_AUTOPILOT_GENERIC

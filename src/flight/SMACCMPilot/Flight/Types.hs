@@ -14,7 +14,7 @@ import SMACCMPilot.Flight.Types.Servos (servosTypeModule)
 import SMACCMPilot.Flight.Types.UserInput (userInputTypeModule)
 import SMACCMPilot.Flight.Types.FlightMode (flightModeTypeModule)
 import SMACCMPilot.Flight.Types.GCSStreamTiming (gcsStreamTimingTypeModule)
-
+import SMACCMPilot.Flight.Types.DataRate (dataRateTypeModule)
 
 typeModules :: [Module]
 typeModules =
@@ -27,5 +27,6 @@ typeModules =
   , userInputTypeModule
   , flightModeTypeModule
   , gcsStreamTimingTypeModule
+  , dataRateTypeModule
   ]
 

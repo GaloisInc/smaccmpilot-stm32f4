@@ -14,23 +14,25 @@ import SMACCMPilot.Mavlink.CRC
 import SMACCMPilot.Mavlink.Messages (messageLensCRCs)
 
 [ivory|
+
 struct mavlink_receive_state
-  { status  :: Stored Uint8
-  ; offs    :: Stored Uint8
-  ; paylen  :: Stored Uint8
-  ; seqnum  :: Stored Uint8
-  ; sysid   :: Stored Uint8
-  ; compid  :: Stored Uint8
-  ; msgid   :: Stored Uint8
-  ; payload :: Array 256 (Stored Uint8)
-  ; crc     :: Stored CRC
+  { status   :: Stored Uint8
+  ; offs     :: Stored Uint8
+  ; paylen   :: Stored Uint8
+  ; seqnum   :: Stored Uint8
+  ; sysid    :: Stored Uint8
+  ; compid   :: Stored Uint8
+  ; msgid    :: Stored Uint8
+  ; payload  :: Array 256 (Stored Uint8)
+  ; crc      :: Stored CRC
   }
 |]
 
-status_IDLE, status_ACTIVE, status_GOTMSG :: Uint8
+status_IDLE, status_ACTIVE, status_GOTMSG, status_FAIL :: Uint8
 status_IDLE   = 0
 status_ACTIVE = 1
 status_GOTMSG = 2
+status_FAIL = 3
 
 mavlink_STX :: Uint8
 mavlink_STX = 254
@@ -46,7 +48,7 @@ mavlinkReceiveByte state b = do
                                -- externally
     (ifte_ (s ==? status_IDLE) -- When idle, look for STX
       (when (b ==? mavlink_STX)
-        (beginActive state)) -- start state machine when got stx
+        (beginActive state)) -- start state machine when got STX
       (active state b)) -- when running
   where
 
@@ -71,31 +73,29 @@ active state b = do
     , (o - len ==? 6) ==> gotCRCLo -- crc1
     , (o - len ==? 7) ==> gotCRCHi -- crc1
     , true            ==> fail --- should be impossible!!
-      ]
+    ]
 
   where
+  fail     = store (state ~> status) status_FAIL
+  success  = store (state ~> status) status_GOTMSG
+  continue = call_ crc_accumulate b (state ~> crc) >> incrOffs
+
   incrOffs = do
     o <- deref (state ~> offs)
     store (state ~> offs) (o + 1)
-  continue = do
-    call_ crc_accumulate b (state ~> crc)
-    incrOffs
+
   checkMsgID = do
     l <- deref (state ~> paylen)
     ifte_ (msgValidLen b l)
-      (do store (state ~> msgid) b
-          continue)
+      (store (state ~> msgid) b >> continue)
       fail
-  fail = do
-    store (state ~> status) status_IDLE
-  success = do
-    store (state ~> status) status_GOTMSG
 
   gotPayload off = do
     assert (off >=? 6) -- state machine enforced
     assert (off <? arrayLen (state ~> payload)) -- uint8 type enforced
     store ((state ~> payload) ! (toIx (off - 6))) b
     continue
+
   gotCRCLo = do
     id <- deref (state ~> msgid)
     call_ crc_accumulate (msgCRCExtra id) (state ~> crc)
@@ -103,6 +103,7 @@ active state b = do
     ifte_ (lo ==? b)
       incrOffs
       fail
+
   gotCRCHi = do
     (_, hi) <- crc_lo_hi (state ~> crc)
     ifte_ (hi ==? b)

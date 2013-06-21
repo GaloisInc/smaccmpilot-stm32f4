@@ -43,6 +43,7 @@ library
                        SMACCMPilot.Flight.Types.Servos,
                        SMACCMPilot.Flight.Types.UserInput,
                        SMACCMPilot.Flight.Types.FlightMode,
+                       SMACCMPilot.Flight.Types.DataRate,
 
                        SMACCMPilot.Flight.UserInput.Decode,
                        SMACCMPilot.Flight.UserInput.Task,
