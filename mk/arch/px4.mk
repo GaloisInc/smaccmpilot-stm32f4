@@ -26,7 +26,7 @@ OBJCOPY := $(TOOLCHAIN_PREFIX)objcopy
 # Base compiler flags for C and C++.
 BASE_CFLAGS := -g -Wall -O2 -mlittle-endian -mthumb -mcpu=cortex-m4 \
                -mfloat-abi=hard -mfpu=fpv4-sp-d16 \
-               -Wno-parentheses -Wno-unused-variable
+               -Wno-parentheses
 # C compiler flags.
 CFLAGS := $(BASE_CFLAGS) -std=gnu99
 
