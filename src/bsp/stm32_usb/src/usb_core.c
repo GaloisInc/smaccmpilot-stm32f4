@@ -30,6 +30,13 @@
 #include "usb_bsp.h"
 
 
+/* This file contains a few spots that break GCC's strict aliasing rules.
+ * We trust code the code to be correct on blind faith in ST. (This faith is likely
+ * misplaced given some egregious mistakes we've discovered in ST code before, but...)
+ * - pch 21 june 2013
+ */
+#pragma GCC diagnostic ignored "-Wstrict-aliasing"
+
 /** @addtogroup USB_OTG_DRIVER
 * @{
 */
