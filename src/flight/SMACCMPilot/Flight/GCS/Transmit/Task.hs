@@ -26,10 +26,10 @@ sysid, compid :: Uint8
 sysid = 1
 compid = 0
 
-gcsTransmitTask :: (SingI n)
+gcsTransmitTask :: (SingI n, SingI m)
                 => MemArea (Struct "usart")
                 -> ChannelSink n (Struct "gcsstream_timing")
- number of dropped messages.
+                -> ChannelSink m (Struct "data_rate_state")
                 -> DataSink (Struct "flightmode")
                 -> DataSink (Struct "sensors_result")
                 -> DataSink (Struct "position_result")

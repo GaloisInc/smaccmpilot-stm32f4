@@ -20,9 +20,10 @@ import qualified SMACCMPilot.Flight.Types.DataRate as D
 import           SMACCMPilot.Flight.GCS.Stream (defaultPeriods)
 import           SMACCMPilot.Flight.GCS.Receive.Handlers
 
-gcsReceiveTask :: (SingI n)
+gcsReceiveTask :: (SingI n, SingI m)
                => MemArea (Struct "usart")
                -> ChannelSource n (Struct "gcsstream_timing")
+               -> ChannelSource m (Struct "data_rate_state")
                -> Task ()
 gcsReceiveTask usart_area s_src dr_src = do
   n <- freshname
