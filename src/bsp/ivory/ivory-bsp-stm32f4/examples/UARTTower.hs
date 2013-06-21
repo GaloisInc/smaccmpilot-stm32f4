@@ -21,37 +21,53 @@ import Ivory.BSP.STM32F4.UART.Regs
 
 app :: Tower ()
 app = do
-  LEDTower.blinkApp period leds
+  LEDTower.blinkApp period [blue]
 
   (i :: Channel 128 (Stored Uint8)) <- channelWithSize
   (o :: Channel 128 (Stored Uint8)) <- channelWithSize
 
+  ledctl <- channel
+
   uartTower uart1 115200 (snk i) (src o)
-  echoPrompt             (src i) (snk o)
+  echoPrompt             (src i) (snk o) (src ledctl)
+
+  task "settableLED" $ LEDTower.ledController [red] (snk ledctl)
 
   where
   period = 333
   -- On PX4FMU 1.x, these are the blue and red leds:
-  leds = [pinB14, pinB15]
+  red = pinB15
+  blue = pinB14
 
-echoPrompt :: (SingI n, SingI m)
+echoPrompt :: (SingI n, SingI m, SingI o)
            => ChannelSource n (Stored Uint8)
-           -> ChannelSink  m (Stored Uint8)
+           -> ChannelSink   m (Stored Uint8)
+           -> ChannelSource o (Stored IBool)
            -> Tower ()
-echoPrompt ostream istream = task "echoprompt" $ do
+echoPrompt ostream istream ledctlstream = task "echoprompt" $ do
   o <- withChannelEmitter  ostream "ostream"
   i <- withChannelReceiver istream "istream"
+  ledctl <- withChannelEmitter ledctlstream "ledctl"
   withStackSize 1024
   taskBody $ \sch -> do
     let puts str = mapM_ (\c -> putc (fromIntegral (ord c))) str
         putc c = local (ival c) >>= \r -> emit_ sch o (constRef r)
+        ledset b = local (ival b) >>= \r -> emit_ sch ledctl (constRef r)
     puts "Hello, World:\n"
-    puts "tower>"
+    puts "tower> "
     eventLoop sch $ onChannel i $ \inref -> do
       input <- deref inref
-      putc input
-      when (input ==? (fromIntegral (ord '\n'))) $
-        puts "tower>"
+      putc input -- echo to terminal
+      cond_
+        [ input `isChar` '1' ==>
+            ledset true
+        , input `isChar` '2' ==>
+            ledset false
+        , input `isChar` '\n' ==>
+            puts "tower> "
+        ]
 
 
+isChar :: Uint8 -> Char -> IBool
+isChar b c = b ==? (fromIntegral (ord c))
 
