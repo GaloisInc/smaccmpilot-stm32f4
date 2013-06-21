@@ -198,33 +198,3 @@ setRXNEIE uart x =
   modifyReg (uartRegCR1 uart) $
     setField uart_cr1_rxneie (boolToBit x)
 
-----------------------------------------------------------------------
--- ISR
---
--- This is just an example implementation and will likely change
--- significantly to be used with Tower.
-
--- | Queue interface used by the UART to communicate with the RTOS.
-class Queue q where
-  queueSend        :: q -> Uint8 -> Ivory eff ()
-  queueSendFromISR :: q -> Uint8 -> Ivory eff ()
-  queueRecv        :: q -> Ref s (Stored Uint8) -> Ivory eff IBool
-  queueRecvFromISR :: q -> Ref s (Stored Uint8) -> Ivory eff IBool
-
--- | Generic ISR for each UART.
-uartISR :: (Queue rx, Queue tx, eff `AllocsIn` s)
-        => UART -> (rx, tx) -> Ivory eff ()
-uartISR uart (rxq, txq) = do
-  sr <- getReg (uartRegSR uart)
-
-  cond_
-   [ bitToBool (sr #. uart_sr_rxne) ==> do
-       byte <- readDR uart
-       queueSendFromISR rxq byte
-   , bitToBool (sr #. uart_sr_txe)  ==> do
-       byte <- local (ival 0)
-       rv   <- queueRecvFromISR txq byte
-       ifte_ rv
-         (setDR uart =<< deref byte)
-         (setTXEIE uart false)
-   ]
