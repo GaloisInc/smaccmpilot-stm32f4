@@ -25,8 +25,9 @@ sysid, compid :: Uint8
 sysid = 1
 compid = 0
 
-gcsTransmitTask :: MemArea (Struct "usart")
-                -> ChannelSink (Struct "gcsstream_timing")
+gcsTransmitTask :: (SingI n)
+                => MemArea (Struct "usart")
+                -> ChannelSink n (Struct "gcsstream_timing")
                 -> DataSink (Struct "flightmode")
                 -> DataSink (Struct "sensors_result")
                 -> DataSink (Struct "position_result")

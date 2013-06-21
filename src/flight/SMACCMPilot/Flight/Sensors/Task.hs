@@ -12,7 +12,8 @@ import Ivory.Tower
 
 import qualified SMACCMPilot.Flight.Types.Sensors as S
 
-sensorsTask :: ChannelSource (Struct "sensors_result")
+sensorsTask :: (SingI n)
+            => ChannelSource n (Struct "sensors_result")
             -> Task ()
 sensorsTask s = do
   sensorsEmitter <- withChannelEmitter s "sensors"

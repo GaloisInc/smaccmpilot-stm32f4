@@ -15,10 +15,11 @@ import qualified SMACCMPilot.Flight.Types.ControlOutput as CO
 
 import SMACCMPilot.Flight.Control.Stabilize
 
-controlTask :: DataSink (Struct "flightmode")
+controlTask :: (SingI n, SingI m)
+            => DataSink (Struct "flightmode")
             -> DataSink (Struct "userinput_result")
-            -> ChannelSink (Struct "sensors_result")
-            -> ChannelSource (Struct "controloutput")
+            -> ChannelSink n (Struct "sensors_result")
+            -> ChannelSource m (Struct "controloutput")
             -> Task ()
 controlTask s_fm s_inpt s_sens s_ctl = do
   sensRxer   <- withChannelReceiver s_sens "sensors"

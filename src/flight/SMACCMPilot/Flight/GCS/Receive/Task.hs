@@ -18,8 +18,9 @@ import qualified SMACCMPilot.Mavlink.Receive as R
 import           SMACCMPilot.Flight.GCS.Stream (defaultPeriods)
 import           SMACCMPilot.Flight.GCS.Receive.Handlers
 
-gcsReceiveTask :: MemArea (Struct "usart")
-               -> ChannelSource (Struct "gcsstream_timing")
+gcsReceiveTask :: (SingI n)
+               => MemArea (Struct "usart")
+               -> ChannelSource n (Struct "gcsstream_timing")
                -> Task ()
 gcsReceiveTask usart_area s_src = do
   n <- freshname

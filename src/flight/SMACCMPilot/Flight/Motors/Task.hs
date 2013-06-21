@@ -14,7 +14,8 @@ import qualified SMACCMPilot.Flight.Types.ControlOutput as C
 import qualified SMACCMPilot.Flight.Types.Servos        as S
 import qualified SMACCMPilot.Flight.Types.FlightMode    as M
 
-motorsTask :: ChannelSink (Struct "controloutput")
+motorsTask :: (SingI n)
+           => ChannelSink n (Struct "controloutput")
            -> DataSink (Struct "flightmode")
            -> DataSource (Struct "servos")
            -> Task ()
