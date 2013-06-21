@@ -3,6 +3,9 @@ module Main where
 import Ivory.Language
 import Ivory.Compile.C.CmdlineFrontend
 
+import Ivory.Stdlib.String (stdlibStringModule)
+import qualified Ivory.Stdlib.SearchDir as Stdlib
+
 import Ivory.Tower
 import Ivory.Tower.Graphviz
 import qualified Ivory.Tower.Compile.FreeRTOS as FreeRTOS
@@ -19,7 +22,6 @@ import SMACCMPilot.Flight.Control (controlModules)
 import SMACCMPilot.Console           (consoleModule)
 import SMACCMPilot.Storage.Partition (partitionModule)
 import SMACCMPilot.Param             (paramModule)
-import SMACCMPilot.Util.IvoryCString (cstringModule)
 
 import SMACCMPilot.Flight.Control.Task
 import SMACCMPilot.Flight.Motors.Task
@@ -46,16 +48,16 @@ otherms =
   hwf4Modules ++
   -- the rest:
   [ userInputDecodeModule
-  , cstringModule
   , consoleModule
   , partitionModule
   , paramModule
+  , stdlibStringModule
   ]
 
 main :: IO ()
 main = do
   let (asm, objs) = FreeRTOS.compile app
-  compileWith (Just sizeMap) (Just [FreeRTOS.searchDir]) objs
+  compileWith (Just sizeMap) (Just [FreeRTOS.searchDir, Stdlib.searchDir]) objs
   gviz asm
 
 app :: Tower ()

@@ -44,7 +44,6 @@ FLIGHT_CXXFLAGS  += $(FLIGHT_INCLUDES)
 FLIGHT_OBJECTS := $(addprefix src/,\
 	apmotors_wrapper.o \
 	console_prim.o \
-	ivory_string_prim.o \
 	sensors_capture.o \
 	userinput_capture.o \
 	)

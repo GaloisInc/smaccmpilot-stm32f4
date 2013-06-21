@@ -14,6 +14,7 @@ import qualified MonadLib.Monads as M
 
 import Ivory.Language
 import Ivory.Stdlib
+import Ivory.Stdlib.String
 
 import qualified SMACCMPilot.Flight.Types.Position      as P
 import qualified SMACCMPilot.Flight.Types.Servos        as Serv
@@ -83,6 +84,7 @@ moddefs d = do
   incl (sendParams d)
   incl (sendDataRate d)
   -- dependencies for all the smaccmpilot flight types
+  depend stdlibStringModule
   depend P.positionTypeModule
   depend Serv.servosTypeModule
   depend Sens.sensorsTypeModule
@@ -100,7 +102,6 @@ moddefs d = do
   depend GPI.globalPositionIntModule
   depend PV.paramValueModule
   depend D.data16Module
-  inclHeader "string.h"
 
 messageDriver :: MavlinkSender -> (MessageDriver, [Module])
 messageDriver sender = (driver, [driverMod,  msgMod])
@@ -319,14 +320,6 @@ mkSendGlobalPositionInt senders = proc "gcs_transmit_send_global_position_int" $
   call_ (globalPositionIntSender senders) (constRef msg)
   retVoid
 
--- Import "strncpy" to fill in the string field with the correct
--- behavior and paper over the char/uint8_t difference.
-pv_strncpy :: Def ('[ Ref s1 (CArray (Stored Uint8))
-                    , ConstRef s2 (CArray (Stored IChar))
-                    , Uint32]
-                :-> ())
-pv_strncpy = importProc "strncpy" "string.h"
-
 mkSendParamValue :: MavlinkMessageSenders
                -> Def ('[ Ref s1 (Struct "param_info") ] :-> ())
 mkSendParamValue senders = proc "gcs_transmit_send_param_value" $
@@ -338,8 +331,8 @@ mkSendParamValue senders = proc "gcs_transmit_send_param_value" $
   store (msg ~> PV.param_count) (safeCast count)
   index <- deref (param ~> Param.param_index)
   store (msg ~> PV.param_index) (safeCast index)
-  call_ pv_strncpy (toCArray (msg ~> PV.param_id))
-                   (constRef (toCArray (param ~> Param.param_name))) 16
+  call_ strncpy_uint8 (toCArray (msg ~> PV.param_id))
+            (constRef (toCArray (param ~> Param.param_name))) 16
   store (msg ~> PV.param_type) 0 -- FIXME
   call_ (paramValueSender senders) (constRef msg)
 

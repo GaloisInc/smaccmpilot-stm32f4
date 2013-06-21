@@ -23,8 +23,8 @@ import Prelude hiding (seq)
 
 import Ivory.Language
 import Ivory.Stdlib
+import Ivory.Stdlib.String
 
-import SMACCMPilot.Util.IvoryCString
 import SMACCMPilot.Mavlink.Pack
 
 import SMACCMPilot.Console
@@ -630,7 +630,7 @@ param_save = proc "param_save" $ body $ do
 
 paramModule :: Module
 paramModule = package "param" $ do
-  depend cstringModule
+  depend stdlibStringModule
   depend consoleModule
   depend partitionModule
   depend packModule

@@ -51,12 +51,9 @@ library
                        SMACCMPilot.Storage.Partition,
 
                        SMACCMPilot.Param,
-                       SMACCMPilot.SafePack,
-
-                       SMACCMPilot.Util.IvoryCString
+                       SMACCMPilot.SafePack
 
   other-modules:       Arm32SizeMap
-
 
   build-depends:       base >= 4.6,
                        monadLib,
