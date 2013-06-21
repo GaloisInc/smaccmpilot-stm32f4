@@ -3,6 +3,8 @@
 
 module Ivory.BSP.STM32F4.UART.Tower where
 
+import GHC.TypeLits
+
 import Ivory.Language
 import Ivory.Stdlib
 import Ivory.Tower
@@ -14,9 +16,10 @@ import Ivory.BSP.STM32F4.GPIO
 import Ivory.BSP.STM32F4.UART.Regs
 import Ivory.BSP.STM32F4.UART.Peripheral
 
-uartTower :: UART -> Integer
-          -> ChannelSink (Stored Uint8)
-          -> ChannelSource (Stored Uint8)
+uartTower :: (SingI n, SingI m)
+          => UART -> Integer
+          -> ChannelSink  n (Stored Uint8)
+          -> ChannelSource m (Stored Uint8)
           -> Tower ()
 uartTower uart baud ostream istream = do
   let max_syscall_priority = 191 -- XXX MAGIC NUMBER: freertos port specific

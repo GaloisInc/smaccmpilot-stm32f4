@@ -23,6 +23,7 @@ import qualified Ivory.BSP.STM32F4.Interrupt as ISR
 import qualified Ivory.BSP.STM32F4.SearchDir as BSP
 
 import Ivory.BSP.STM32F4.UART
+import Ivory.BSP.STM32F4.UART.Peripheral
 
 ledPins :: [GPIOPin]
 ledPins = [pinB14, pinB15]

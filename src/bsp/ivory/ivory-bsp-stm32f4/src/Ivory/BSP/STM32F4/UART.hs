@@ -9,7 +9,9 @@
 module Ivory.BSP.STM32F4.UART
   ( UART()
   , uart1, uart2, uart3, uart4, uart5, uart6
-  , module Ivory.BSP.STM32F4.UART.Peripheral -- for now
+  , uartInit
+  , uartInitISR
+  , setBaudRate
   , uartTower
   ) where
 

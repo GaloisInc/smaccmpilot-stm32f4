@@ -1,3 +1,4 @@
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE DataKinds #-}
 
@@ -22,18 +23,21 @@ app :: Tower ()
 app = do
   LEDTower.blinkApp period leds
 
-  (src_in, snk_in)   <- channel
-  (src_out, snk_out) <- channel
+  (i :: Channel 128 (Stored Uint8)) <- channelWithSize
+  (o :: Channel 128 (Stored Uint8)) <- channelWithSize
 
-  uartTower uart1 115200 snk_in src_out
-  echoPrompt src_in snk_out
+  uartTower uart1 115200 (snk i) (src o)
+  echoPrompt             (src i) (snk o)
 
   where
   period = 333
   -- On PX4FMU 1.x, these are the blue and red leds:
   leds = [pinB14, pinB15]
 
-echoPrompt :: ChannelSource (Stored Uint8) -> ChannelSink (Stored Uint8) -> Tower ()
+echoPrompt :: (SingI n, SingI m)
+           => ChannelSource n (Stored Uint8)
+           -> ChannelSink  m (Stored Uint8)
+           -> Tower ()
 echoPrompt ostream istream = task "echoprompt" $ do
   o <- withChannelEmitter  ostream "ostream"
   i <- withChannelReceiver istream "istream"

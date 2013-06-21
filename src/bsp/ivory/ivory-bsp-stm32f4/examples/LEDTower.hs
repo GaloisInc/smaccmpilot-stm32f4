@@ -27,7 +27,7 @@ ledOff pin = pinSetMode pin gpio_mode_analog
 
 ------------------------------
 
-blink :: Integer -> ChannelSource (Stored IBool) -> Task ()
+blink :: (SingI n) => Integer -> ChannelSource n (Stored IBool) -> Task ()
 blink per outputSource = do
   outputEmitter <- withChannelEmitter outputSource "output"
   p <- withPeriod per
@@ -37,7 +37,7 @@ blink per outputSource = do
       store out ((time .% (fromIntegral (2*per))) <? (fromIntegral per))
       emit_ sch outputEmitter (constRef out)
 
-ledController :: [GPIOPin] -> ChannelSink (Stored IBool) -> Task ()
+ledController :: (SingI n) => [GPIOPin] -> ChannelSink n (Stored IBool) -> Task ()
 ledController pins outputSink = do
   rxer <- withChannelReceiver outputSink "outputSink"
   p <- withPeriod 250
