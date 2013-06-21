@@ -102,6 +102,7 @@ moddefs d = do
   depend GPI.globalPositionIntModule
   depend PV.paramValueModule
   depend D.data16Module
+  inclHeader "string.h"
 
 messageDriver :: MavlinkSender -> (MessageDriver, [Module])
 messageDriver sender = (driver, [driverMod,  msgMod])
