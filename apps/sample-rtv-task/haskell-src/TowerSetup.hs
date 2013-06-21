@@ -37,7 +37,7 @@ type Clk = Stored Sint32
 type ClkEmitterType s = '[ConstRef s Clk] :-> ()
 
 -- Externs
-clkEmitter :: TaskSchedule -> ChannelEmitter Clk -> Def (ClkEmitterType s)
+clkEmitter :: (SingI n) => TaskSchedule -> ChannelEmitter n Clk -> Def (ClkEmitterType s)
 clkEmitter sch ch = proc "clkEmitter" $ \r -> body $ emit_ sch ch r
 
 read_clock_block :: Def ('[ProcPtr (ClkEmitterType s)] :-> ())
@@ -51,9 +51,9 @@ update_time_block = importProc "update_time_block" legacyHdr
 
 -- Task wrapper: task reads a logical clock and passes the result to
 -- updateTimeTask.
-readClockTask :: ChannelSource Clk -> Task ()
-readClockTask src = do
-  clk <- withChannelEmitter src "clkSrc"
+readClockTask :: (SingI n) => ChannelSource n Clk -> Task ()
+readClockTask clkSrc = do
+  clk <- withChannelEmitter clkSrc "clkSrc"
   taskModuleDef $ \sch -> (incl $ clkEmitter sch clk)
   p <- withPeriod 1000 -- once per sec
   taskBody $ \sch -> do
@@ -62,7 +62,8 @@ readClockTask src = do
 
 -- Task wrapper: task reads the channel and updates its local state witht the
 -- time.
-updateTimeTask :: ChannelSink Clk -> ChannelSource AssignStruct -> Task ()
+updateTimeTask :: (SingI n, SingI m)
+               => ChannelSink n Clk -> ChannelSource m AssignStruct -> Task ()
 updateTimeTask clk chk = do
   rx <- withChannelReceiver clk "timeRx"
   newVal <- withChannelEmitter chk "newVal"
