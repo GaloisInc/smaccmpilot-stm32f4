@@ -2,13 +2,13 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 --
--- SPITypes.hs --- SPI driver for the STM32F4.
+-- RegTypes.hs --- SPI register types
 --
 -- Copyright (C) 2013, Galois, Inc.
 -- All Rights Reserved.
 --
 
-module Ivory.BSP.STM32F4.SPITypes where
+module Ivory.BSP.STM32F4.SPI.RegTypes where
 
 import Ivory.Language
 import Ivory.BitData

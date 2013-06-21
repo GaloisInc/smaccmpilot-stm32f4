@@ -3,20 +3,19 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 --
--- SPI.hs --- SPI driver for the STM32F4.
+-- Regs.hs --- SPI peripheral registers for the STM32F4.
 --
 -- Copyright (C) 2013, Galois, Inc.
 -- All Rights Reserved.
 --
 
-module Ivory.BSP.STM32F4.SPI where
+module Ivory.BSP.STM32F4.SPI.Regs where
 
 import Ivory.Language
 import Ivory.BitData
 import Ivory.HW
 
-import Ivory.BSP.STM32F4.SPITypes
-import Ivory.BSP.STM32F4.GPIO
+import Ivory.BSP.STM32F4.SPI.RegTypes
 
 ----------------------------------------------------------------------
 -- SPI Registers
@@ -64,35 +63,24 @@ import Ivory.BSP.STM32F4.GPIO
    }
 |]
 
-data SPIBus = SPIBus
+data SPIRegs = SPIRegs
   { spiRegCR1 :: BitDataReg SPI_CR1
   , spiRegCR2 :: BitDataReg SPI_CR2
   , spiRegSR  :: BitDataReg SPI_SR
   , spiRegDR  :: Reg Uint16
   }
 
-data SPIBitOrder = LSBFirst | MSBFirst
-
-data SPIDevice = SPIDevice
-  { spiDevCSPin         :: GPIOPin
-  , spiDevCSActive      :: Bool        -- CS active high?
-  , spiDevBaud          :: SPIBaud
-  , spiDevClockPolarity :: Bool
-  , spiDevClockPhase    :: Bool
-  , spiDevBitOrder      :: SPIBitOrder
-  }
-
--- | Construct a "SPIBus" given a base address for the registers.
-mkSPIBus :: Integer -> SPIBus
-mkSPIBus base =
-  SPIBus
+-- | Construct a 'SPIRegs' given a base address for the registers.
+mkSPIRegs :: Integer -> SPIRegs
+mkSPIRegs base =
+  SPIRegs
     { spiRegCR1 = mkBitDataReg (base + 0x00)
     , spiRegCR2 = mkBitDataReg (base + 0x04)
     , spiRegSR  = mkBitDataReg (base + 0x08)
     , spiRegDR  = mkReg (base + 0x0C)
     }
 
-spi1Bus, spi2Bus, spi3Bus :: SPIBus
-spi1Bus = mkSPIBus 0x40013000
-spi2Bus = mkSPIBus 0x40003800
-spi3Bus = mkSPIBus 0x40003C00
+spi1Regs, spi2Regs, spi3Regs :: SPIRegs
+spi1Regs = mkSPIRegs 0x40013000
+spi2Regs = mkSPIRegs 0x40003800
+spi3Regs = mkSPIRegs 0x40003C00
