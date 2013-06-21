@@ -8,6 +8,11 @@ extern "C" {
 
 #include <stdint.h>
 
+/* GCC is wary of these packing functions, as they rely on pointer
+ * alignment tricks. With our toolchain on the cortex-m3, we're
+ * confident this aliasing is valid. */
+#pragma GCC diagnostic ignored "-Wstrict-aliasing"
+
 static inline void mavlink_pack_swap2(uint8_t *dst, const uint8_t *src) {
     dst[0] = src[1];
     dst[1] = src[0];
@@ -188,6 +193,8 @@ static inline double mavlink_unpack_double(const uint8_t *buf, uint8_t offset) {
 #ifdef __cplusplus
 }
 #endif
+
+#pragma GCC diagnostic pop
 
 #endif // __FLIGHT_SUPPORT_PACK_H__
 

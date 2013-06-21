@@ -87,6 +87,8 @@ void sensors_getstate(struct sensors_result *capt) {
     capt->baro_alt = g_baro.get_altitude();
 }
 
+/* This is dead code, used in the past for debugging. */
+#pragma GCC diagnostic ignored "-Wunused-function"
 static void sensors_debug() {
     static int divider = 0;
     if (divider++ == 20) {
