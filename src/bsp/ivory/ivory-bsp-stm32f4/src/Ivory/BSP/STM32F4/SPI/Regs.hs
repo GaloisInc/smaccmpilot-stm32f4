@@ -15,6 +15,7 @@ import Ivory.Language
 import Ivory.BitData
 import Ivory.HW
 
+import Ivory.BSP.STM32F4.MemoryMap
 import Ivory.BSP.STM32F4.SPI.RegTypes
 
 ----------------------------------------------------------------------
@@ -63,24 +64,3 @@ import Ivory.BSP.STM32F4.SPI.RegTypes
    }
 |]
 
-data SPIRegs = SPIRegs
-  { spiRegCR1 :: BitDataReg SPI_CR1
-  , spiRegCR2 :: BitDataReg SPI_CR2
-  , spiRegSR  :: BitDataReg SPI_SR
-  , spiRegDR  :: Reg Uint16
-  }
-
--- | Construct a 'SPIRegs' given a base address for the registers.
-mkSPIRegs :: Integer -> SPIRegs
-mkSPIRegs base =
-  SPIRegs
-    { spiRegCR1 = mkBitDataReg (base + 0x00)
-    , spiRegCR2 = mkBitDataReg (base + 0x04)
-    , spiRegSR  = mkBitDataReg (base + 0x08)
-    , spiRegDR  = mkReg (base + 0x0C)
-    }
-
-spi1Regs, spi2Regs, spi3Regs :: SPIRegs
-spi1Regs = mkSPIRegs 0x40013000
-spi2Regs = mkSPIRegs 0x40003800
-spi3Regs = mkSPIRegs 0x40003C00

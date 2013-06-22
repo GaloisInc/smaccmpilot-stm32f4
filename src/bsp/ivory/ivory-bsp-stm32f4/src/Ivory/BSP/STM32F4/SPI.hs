@@ -1,11 +1,12 @@
 
 module Ivory.BSP.STM32F4.SPI
-  -- Regs definitions:
-  ( SPIRegs()
-  , spi1Regs, spi2Regs, spi3Regs
   -- Peripheral definitions:
-  , SPIDevice()
+  ( SPIPeriph()
+  , spi1, spi2, spi3
+  -- Device definitions:
+  , SPIDevice(..)
+  , SPIBitOrder(..)
+
   ) where
 
-import Ivory.BSP.STM32F4.SPI.Regs
 import Ivory.BSP.STM32F4.SPI.Peripheral
