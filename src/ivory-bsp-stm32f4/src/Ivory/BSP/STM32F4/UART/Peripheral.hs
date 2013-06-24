@@ -90,14 +90,6 @@ uart5 = mkUART uart5_periph_base
 uart6 = mkUART uart6_periph_base
                 regRCC_APB2ENR rcc_apb2en_uart6 pinC6  pinC7  gpio_af_uart6 USART6 PClk2
 
--- | Convert a single bit bitdata to an Ivory boolean.
-bitToBool :: Bit -> IBool
-bitToBool b = (toRep b ==? 0) ? (false, true)
-
--- | Convert an Ivory boolean to a single bit.
-boolToBit :: IBool -> Bit
-boolToBit b = b ? (fromRep 1, fromRep 0)
-
 -- | Initialize GPIO pins for a UART.
 initPin :: GPIOPin -> GPIO_AF -> Ivory eff ()
 initPin p af = do
