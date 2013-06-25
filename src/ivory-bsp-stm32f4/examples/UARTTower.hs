@@ -28,8 +28,8 @@ app = do
 
   ledctl <- channel
 
-  uartTower uart1 115200 (snk i) (src o)
-  echoPrompt             (src i) (snk o) (src ledctl)
+  uartTower uart1 115200   (snk i) (src o)
+  echoPrompt "hello world" (src i) (snk o) (src ledctl)
 
   task "settableLED" $ LEDTower.ledController [red] (snk ledctl)
 
@@ -40,11 +40,12 @@ app = do
   blue = pinB14
 
 echoPrompt :: (SingI n, SingI m, SingI o)
-           => ChannelSource n (Stored Uint8)
+           => String
+           -> ChannelSource n (Stored Uint8)
            -> ChannelSink   m (Stored Uint8)
            -> ChannelSource o (Stored IBool)
            -> Tower ()
-echoPrompt ostream istream ledctlstream = task "echoprompt" $ do
+echoPrompt greet ostream istream ledctlstream = task "echoprompt" $ do
   o <- withChannelEmitter  ostream "ostream"
   i <- withChannelReceiver istream "istream"
   ledctl <- withChannelEmitter ledctlstream "ledctl"
@@ -53,7 +54,7 @@ echoPrompt ostream istream ledctlstream = task "echoprompt" $ do
     let puts str = mapM_ (\c -> putc (fromIntegral (ord c))) str
         putc c = local (ival c) >>= \r -> emit_ sch o (constRef r)
         ledset b = local (ival b) >>= \r -> emit_ sch ledctl (constRef r)
-    puts "Hello, World:\n"
+    puts (greet ++ "\n")
     puts "tower> "
     eventLoop sch $ onChannel i $ \inref -> do
       input <- deref inref
@@ -66,7 +67,6 @@ echoPrompt ostream istream ledctlstream = task "echoprompt" $ do
         , input `isChar` '\n' ==>
             puts "tower> "
         ]
-
 
 isChar :: Uint8 -> Char -> IBool
 isChar b c = b ==? (fromIntegral (ord c))
