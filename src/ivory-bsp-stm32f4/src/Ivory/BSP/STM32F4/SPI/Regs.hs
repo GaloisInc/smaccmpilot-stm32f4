@@ -62,5 +62,10 @@ import Ivory.BSP.STM32F4.SPI.RegTypes
    , spi_sr_txe       :: Bit
    , spi_sr_rxne      :: Bit
    }
+
+  bitdata SPI_DR :: Bits 16 = spi_dr
+   { _                :: Bits 8
+   , spi_dr_data      :: Bits 8
+   }
 |]
 

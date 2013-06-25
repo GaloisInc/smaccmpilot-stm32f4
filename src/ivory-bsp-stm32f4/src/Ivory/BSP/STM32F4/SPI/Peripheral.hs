@@ -30,7 +30,7 @@ data SPIPeriph = SPIPeriph
   { spiRegCR1      :: BitDataReg SPI_CR1
   , spiRegCR2      :: BitDataReg SPI_CR2
   , spiRegSR       :: BitDataReg SPI_SR
-  , spiRegDR       :: Reg Uint16
+  , spiRegDR       :: BitDataReg SPI_DR
   , spiRCCEnable   :: forall eff . Ivory eff ()
   , spiRCCDisable  :: forall eff . Ivory eff ()
   , spiPinMiso     :: GPIOPin
@@ -57,7 +57,7 @@ mkSPIPeriph base rccreg rccfield miso mosi sck af inter pclk =
     { spiRegCR1      = mkBitDataReg (base + 0x00)
     , spiRegCR2      = mkBitDataReg (base + 0x04)
     , spiRegSR       = mkBitDataReg (base + 0x08)
-    , spiRegDR       = mkReg (base + 0x0C)
+    , spiRegDR       = mkBitDataReg (base + 0x0C)
     , spiRCCEnable   = rccEnable  rccreg rccfield
     , spiRCCDisable  = rccDisable rccreg rccfield
     , spiPinMiso     = miso
@@ -90,7 +90,8 @@ initOutPin pin af = do
   pinSetMode       pin gpio_mode_af
   pinSetOutputType pin gpio_outputtype_pushpull
 
--- | Enable peripheral and setup GPIOs
+-- | Enable peripheral and setup GPIOs. Must be performed
+--   before any other SPI peripheral actions.
 spiInit :: (eff `AllocsIn` s) => SPIPeriph -> Ivory eff ()
 spiInit spi = do
   spiRCCEnable spi
@@ -98,19 +99,95 @@ spiInit spi = do
   initOutPin (spiPinMosi spi) (spiPinAF spi)
   initOutPin (spiPinSck  spi) (spiPinAF spi)
 
+spiInitISR :: (eff `AllocsIn` s) => SPIPeriph -> Uint8 -> Ivory eff ()
+spiInitISR spi priority = do
+  ISR.interrupt_set_priority inter priority
+  ISR.interrupt_enable       inter
+  where
+  inter = spiInterrupt spi
 
-data SPIBitOrder = LSBFirst | MSBFirst
-data SPICSActive = ActiveHigh | ActiveLow
+spiISRHandlerName :: SPIPeriph -> String
+spiISRHandlerName spi = ISR.handlerName (spiInterrupt spi)
+
+-- Clock Polarity and Phase: see description
+-- of CPOL and CPHA in ST reference manual RM0090
+data SPICSActive      = ActiveHigh | ActiveLow
+data SPIClockPolarity = ClockPolarityLow | ClockPolarityHigh
+data SPIClockPhase    = ClockPhase1 | ClockPhase2
+data SPIBitOrder      = LSBFirst | MSBFirst
 
 data SPIDevice = SPIDevice
   { spiDevPeripheral    :: SPIPeriph
   , spiDevCSPin         :: GPIOPin
   , spiDevClockHz       :: Integer
   , spiDevCSActive      :: SPICSActive
-  , spiDevClockPolarity :: Bool -- Clock Polarity and Phase: see description
-  , spiDevClockPhase    :: Bool -- of CPOL and CPHA in ST reference manual RM0090
+  , spiDevClockPolarity :: SPIClockPolarity
+  , spiDevClockPhase    :: SPIClockPhase
   , spiDevBitOrder      :: SPIBitOrder
   }
+
+spiDeviceInit :: (eff `AllocsIn` s) => SPIDevice -> Ivory eff ()
+spiDeviceInit dev = do
+  let pin = spiDevCSPin dev
+  pinEnable         pin
+  spiDeviceDeselect dev
+  pinSetMode        pin gpio_mode_output
+  pinSetOutputType  pin gpio_outputtype_pushpull
+  pinSetSpeed       pin gpio_speed_2mhz
+
+spiDeviceBegin :: (eff `AllocsIn` s) => SPIDevice -> Ivory eff ()
+spiDeviceBegin dev = do
+  spiBusEnable
+  spiDeviceSelect dev
+  -- Enable transfer interrupts:
+  modifyReg (spiRegCR2 (spiDevPeripheral dev)) $ do
+    let t = fromRep 1
+    setField spi_cr2_txeie t
+    setField spi_cr2_errie t
+  where
+  periph = spiDevPeripheral dev
+  spiBusEnable = do
+    spiModifyCr1        periph [ spi_cr1_spe ] true
+    spiClearCr1         periph
+    spiClearCr2         periph
+    spiModifyCr1        periph [ spi_cr1_mstr, spi_cr1_ssm, spi_cr1_ssi ] true
+    baud <- spiDevBaud  periph (spiDevClockHz dev)
+    spiSetBaud          periph baud
+    spiSetClockPolarity periph (spiDevClockPolarity dev)
+    spiSetClockPhase    periph (spiDevClockPhase    dev)
+    spiSetBitOrder      periph (spiDevBitOrder      dev)
+    spiModifyCr1        periph [ spi_cr1_spe ] true
+
+spiDeviceEnd   :: SPIDevice -> Ivory eff ()
+spiDeviceEnd dev = do
+  spiDeviceDeselect dev
+  spiModifyCr1      periph [ spi_cr1_spe ] false
+  where periph = spiDevPeripheral dev
+
+
+spiSetTXEIE :: SPIPeriph -> Ivory eff ()
+spiSetTXEIE spi = modifyReg (spiRegCR2 spi) $ setField spi_cr2_txeie (fromRep 1)
+
+spiClearTXEIE :: SPIPeriph -> Ivory eff ()
+spiClearTXEIE spi = modifyReg (spiRegCR2 spi) $ setField spi_cr2_txeie (fromRep 0)
+
+spiSetRXNEIE :: SPIPeriph -> Ivory eff ()
+spiSetRXNEIE spi = modifyReg (spiRegCR2 spi) $ setField spi_cr2_rxneie (fromRep 1)
+
+spiClearRXNEIE :: SPIPeriph -> Ivory eff ()
+spiClearRXNEIE spi = modifyReg (spiRegCR2 spi) $ setField spi_cr2_rxneie (fromRep 0)
+
+spiGetDR :: SPIPeriph -> Ivory eff Uint8
+spiGetDR spi = do
+  r <- getReg (spiRegDR spi)
+  return (toRep (r #. spi_dr_data))
+
+spiSetDR :: SPIPeriph -> Uint8 -> Ivory eff ()
+spiSetDR spi b =
+  setReg (spiRegDR spi) $
+    setField spi_dr_data (fromRep b)
+
+-- Internal Helper Functions ---------------------------------------------------
 
 spiDevBaud :: (eff `AllocsIn` s)
            => SPIPeriph -> Integer -> Ivory eff SPIBaud
@@ -140,41 +217,6 @@ spiDeviceDeselect :: SPIDevice -> Ivory eff ()
 spiDeviceDeselect dev = case spiDevCSActive dev of
   ActiveHigh -> pinClear (spiDevCSPin dev)
   ActiveLow  -> pinSet   (spiDevCSPin dev)
-
-spiDeviceInit :: (eff `AllocsIn` s) => SPIDevice -> Ivory eff ()
-spiDeviceInit dev = do
-  let pin = spiDevCSPin dev
-  pinEnable         pin
-  spiDeviceDeselect dev
-  pinSetMode        pin gpio_mode_output
-  pinSetOutputType  pin gpio_outputtype_pushpull
-  pinSetSpeed       pin gpio_speed_2mhz
-
-spiDeviceBegin :: (eff `AllocsIn` s) => SPIDevice -> Ivory eff ()
-spiDeviceBegin dev = do
-  spiBusEnable
-  spiDeviceSelect dev
-  where
-  periph = spiDevPeripheral dev
-  spiBusEnable = do
-    baud <- spiDevBaud  periph (spiDevClockHz dev)
-    spiModifyCr1        periph [ spi_cr1_spe ] true
-    spiClearCr1         periph
-    spiClearCr2         periph
-    spiModifyCr1        periph [ spi_cr1_mstr, spi_cr1_ssm, spi_cr1_ssi ] true
-    spiSetBaud          periph baud
-    spiSetClockPolarity periph (spiDevClockPolarity dev)
-    spiSetClockPhase    periph (spiDevClockPhase    dev)
-    spiSetBitOrder      periph (spiDevBitOrder      dev)
-    spiModifyCr1        periph [ spi_cr1_spe ] true
-
-spiDeviceEnd   :: SPIDevice -> Ivory eff ()
-spiDeviceEnd dev = do
-  spiDeviceDeselect dev
-  spiModifyCr1      periph [ spi_cr1_spe ] false
-  where periph = spiDevPeripheral dev
-
--- Internal Helper Functions ---------------------------------------------------
 
 spiSetBaud :: SPIPeriph -> SPIBaud -> Ivory eff ()
 spiSetBaud periph baud = modifyReg (spiRegCR1 periph) $ setField spi_cr1_br baud
@@ -217,16 +259,21 @@ spiClearCr2 periph = modifyReg (spiRegCR2 periph) $ do
   where
   f = fromRep 0
 
-hboolToBit :: Bool -> Bit
-hboolToBit b = if b then fromRep 1 else fromRep 0
-
-spiSetClockPolarity :: SPIPeriph -> Bool -> Ivory eff ()
+spiSetClockPolarity :: SPIPeriph -> SPIClockPolarity -> Ivory eff ()
 spiSetClockPolarity periph polarity =
-  modifyReg (spiRegCR1 periph) $ setField spi_cr1_cpol (hboolToBit polarity)
+  modifyReg (spiRegCR1 periph) $ setField spi_cr1_cpol b
+  where
+  b = case polarity of
+    ClockPolarityLow  -> fromRep 0
+    ClockPolarityHigh -> fromRep 1
 
-spiSetClockPhase :: SPIPeriph -> Bool -> Ivory eff ()
+spiSetClockPhase :: SPIPeriph -> SPIClockPhase -> Ivory eff ()
 spiSetClockPhase periph phase =
-  modifyReg (spiRegCR1 periph) $ setField spi_cr1_cpha (hboolToBit phase)
+  modifyReg (spiRegCR1 periph) $ setField spi_cr1_cpha b
+  where
+  b = case phase of
+    ClockPhase1 -> fromRep 0
+    ClockPhase2 -> fromRep 1
 
 spiSetBitOrder :: SPIPeriph -> SPIBitOrder -> Ivory eff ()
 spiSetBitOrder periph bitorder =
