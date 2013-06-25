@@ -22,20 +22,20 @@
 define ivory_pkg
 $(1)_PREFIX           := $(dir $(lastword $(filter %/build.mk,$(MAKEFILE_LIST))))
 $(1)_GEN_DIR          := $$(GEN_DIR)/$$($(1)_PREFIX)
-$(1)_DEPS             := $$($(1)_GEN_DIR)/dep.mk
+$(1)_DEP_FILE         := $$($(1)_GEN_DIR)/dep.mk
 $(1)_GEN_EXE          := $$(CONFIG_CABAL_SANDBOX)/bin/$(2)
 $(1)_CFLAGS           := -I$$($(1)_GEN_DIR)
 
--include $$($(1)_DEPS)
+-include $$($(1)_DEP_FILE)
 
-$$($(1)_DEPS): $$($(1)_GEN_EXE) $(MAKEFILE_LIST)
+$$($(1)_DEP_FILE): $$($(1)_GEN_EXE) $(MAKEFILE_LIST)
 	$$($(1)_GEN_EXE)                                    \
 	--src-dir=$$($(1)_GEN_DIR)                          \
 	--include-dir=$$($(1)_GEN_DIR)/$$($(1)_INCLUDE_DIR) \
-	--deps=$$($(1)_DEPS)                                \
+	--dep-file=$$($(1)_DEP_FILE)                                \
 	--dep-prefix=$(1)
 
-$$($(1)_HEADERS) $$($(1)_SOURCES): $$($(1)_DEPS)
+$$($(1)_HEADERS) $$($(1)_SOURCES): $$($(1)_DEP_FILE)
 	$$($(1)_GEN_EXE)                                    \
 	--src-dir=$$($(1)_GEN_DIR)                          \
 	--include-dir=$$($(1)_GEN_DIR)/$$($(1)_INCLUDE_DIR) \
