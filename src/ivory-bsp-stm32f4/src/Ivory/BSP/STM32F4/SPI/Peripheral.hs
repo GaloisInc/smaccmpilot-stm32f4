@@ -140,10 +140,8 @@ spiDeviceBegin dev = do
   spiBusEnable
   spiDeviceSelect dev
   -- Enable transfer interrupts:
-  modifyReg (spiRegCR2 (spiDevPeripheral dev)) $ do
-    let t = fromRep 1
-    setField spi_cr2_txeie t
-    setField spi_cr2_errie t
+  spiSetTXEIE periph
+  spiSetRXNEIE periph
   where
   periph = spiDevPeripheral dev
   spiBusEnable = do
