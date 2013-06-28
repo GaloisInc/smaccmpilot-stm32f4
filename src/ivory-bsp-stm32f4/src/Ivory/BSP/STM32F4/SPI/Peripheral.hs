@@ -164,16 +164,16 @@ spiDeviceEnd dev = do
 
 
 spiSetTXEIE :: SPIPeriph -> Ivory eff ()
-spiSetTXEIE spi = modifyReg (spiRegCR2 spi) $ setField spi_cr2_txeie (fromRep 1)
+spiSetTXEIE spi = modifyReg (spiRegCR2 spi) $ setBit spi_cr2_txeie
 
 spiClearTXEIE :: SPIPeriph -> Ivory eff ()
-spiClearTXEIE spi = modifyReg (spiRegCR2 spi) $ setField spi_cr2_txeie (fromRep 0)
+spiClearTXEIE spi = modifyReg (spiRegCR2 spi) $ clearBit spi_cr2_txeie
 
 spiSetRXNEIE :: SPIPeriph -> Ivory eff ()
-spiSetRXNEIE spi = modifyReg (spiRegCR2 spi) $ setField spi_cr2_rxneie (fromRep 1)
+spiSetRXNEIE spi = modifyReg (spiRegCR2 spi) $ setBit spi_cr2_rxneie
 
 spiClearRXNEIE :: SPIPeriph -> Ivory eff ()
-spiClearRXNEIE spi = modifyReg (spiRegCR2 spi) $ setField spi_cr2_rxneie (fromRep 0)
+spiClearRXNEIE spi = modifyReg (spiRegCR2 spi) $ clearBit spi_cr2_rxneie
 
 spiGetDR :: SPIPeriph -> Ivory eff Uint8
 spiGetDR spi = do
@@ -227,57 +227,47 @@ spiClearCr1 :: SPIPeriph -> Ivory eff ()
 spiClearCr1 periph = modifyReg (spiRegCR1 periph) $ do
   -- It may not be strictly necessary to clear all of these fields.
   -- I'm copying the implementation of the HWF4 lib, where REG->CR1 is set to 0
-  setField spi_cr1_bidimode f
-  setField spi_cr1_bidioe   f
-  setField spi_cr1_crcen    f
-  setField spi_cr1_crcnext  f
-  setField spi_cr1_dff      f
-  setField spi_cr1_rxonly   f
-  setField spi_cr1_ssm      f
-  setField spi_cr1_ssi      f
-  setField spi_cr1_lsbfirst f
-  setField spi_cr1_spe      f
-  setField spi_cr1_br       spi_baud_div_2
-  setField spi_cr1_mstr     f
-  setField spi_cr1_cpol     f
-  setField spi_cr1_cpha     f
-  where
-  f = fromRep 0
+  clearBit spi_cr1_bidimode
+  clearBit spi_cr1_bidioe
+  clearBit spi_cr1_crcen
+  clearBit spi_cr1_crcnext
+  clearBit spi_cr1_dff
+  clearBit spi_cr1_rxonly
+  clearBit spi_cr1_ssm
+  clearBit spi_cr1_ssi
+  clearBit spi_cr1_lsbfirst
+  clearBit spi_cr1_spe
+  setField spi_cr1_br spi_baud_div_2
+  clearBit spi_cr1_mstr
+  clearBit spi_cr1_cpol
+  clearBit spi_cr1_cpha
 
 spiClearCr2 :: SPIPeriph -> Ivory eff ()
 spiClearCr2 periph = modifyReg (spiRegCR2 periph) $ do
   -- May not be strictly necessary to set all these fields, see comment
   -- for spiClearCr1
-  setField spi_cr2_txeie    f
-  setField spi_cr2_rxneie   f
-  setField spi_cr2_errie    f
-  setField spi_cr2_ssoe     f
-  setField spi_cr2_txdmaen  f
-  setField spi_cr2_rxdmaen  f
-  where
-  f = fromRep 0
+  clearBit spi_cr2_txeie
+  clearBit spi_cr2_rxneie
+  clearBit spi_cr2_errie
+  clearBit spi_cr2_ssoe
+  clearBit spi_cr2_txdmaen
+  clearBit spi_cr2_rxdmaen
 
 spiSetClockPolarity :: SPIPeriph -> SPIClockPolarity -> Ivory eff ()
 spiSetClockPolarity periph polarity =
-  modifyReg (spiRegCR1 periph) $ setField spi_cr1_cpol b
-  where
-  b = case polarity of
-    ClockPolarityLow  -> fromRep 0
-    ClockPolarityHigh -> fromRep 1
+  modifyReg (spiRegCR1 periph) $ case polarity of
+    ClockPolarityLow  -> clearBit spi_cr1_cpol
+    ClockPolarityHigh -> setBit  spi_cr1_cpol
 
 spiSetClockPhase :: SPIPeriph -> SPIClockPhase -> Ivory eff ()
 spiSetClockPhase periph phase =
-  modifyReg (spiRegCR1 periph) $ setField spi_cr1_cpha b
-  where
-  b = case phase of
-    ClockPhase1 -> fromRep 0
-    ClockPhase2 -> fromRep 1
+  modifyReg (spiRegCR1 periph) $ case phase of
+    ClockPhase1 -> clearBit spi_cr1_cpha
+    ClockPhase2 -> setBit   spi_cr1_cpha
 
 spiSetBitOrder :: SPIPeriph -> SPIBitOrder -> Ivory eff ()
 spiSetBitOrder periph bitorder =
-  modifyReg (spiRegCR1 periph) $ setField spi_cr1_lsbfirst b
-  where
-  b = case bitorder of
-    LSBFirst -> fromRep 1
-    MSBFirst -> fromRep 0
+  modifyReg (spiRegCR1 periph) $ case bitorder of
+    LSBFirst -> setBit   spi_cr1_lsbfirst
+    MSBFirst -> clearBit spi_cr1_lsbfirst
 
