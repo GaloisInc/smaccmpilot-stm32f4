@@ -19,6 +19,7 @@ usartSender :: MemArea (Struct "usart")
 usartSender usart_area name sysid compid =
   mavlinkSendWithWriter sysid compid sendername txseq_area (MavlinkWriteMacro write) deps
   where
+  usart = addrOf usart_area
   sendername = "mavlinksender_" ++ name
   txseqname = sendername ++ "_txseq"
   txseq_area :: MemArea (Stored Uint8)
@@ -27,7 +28,6 @@ usartSender usart_area name sysid compid =
         -> Uint8 -- len
         -> Ivory eff ()
   write buf len = do
-    usart <- addrOf usart_area
     call_ usartWrite usart buf (safeCast len)
   deps = do
     defMemArea txseq_area

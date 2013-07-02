@@ -59,12 +59,6 @@ stabilize_run :: Def ('[ ConstRef s0 (Struct "flightmode")
                        , Ref s3 (Struct "controloutput")
                        ] :-> ())
 stabilize_run = proc "stabilize_run" $ \fm input sensors output -> body $ do
-  roll_stabilize  <- addrOf pid_roll_stabilize
-  pitch_stabilize <- addrOf pid_pitch_stabilize
-  roll_rate       <- addrOf pid_roll_rate
-  pitch_rate      <- addrOf pid_pitch_rate
-  yaw_rate        <- addrOf pid_yaw_rate
-
   armed <- (fm ~>* FM.armed)
   ifte_ (iNot armed)
     (mapM_ do_reset
@@ -111,6 +105,12 @@ stabilize_run = proc "stabilize_run" $ \fm input sensors output -> body $ do
   where
   do_reset :: Ref s (Struct "PID") -> Ivory eff ()
   do_reset pid = store (pid ~> pid_reset) 1
+  roll_stabilize  = addrOf pid_roll_stabilize
+  pitch_stabilize = addrOf pid_pitch_stabilize
+  roll_rate       = addrOf pid_roll_rate
+  pitch_rate      = addrOf pid_pitch_rate
+  yaw_rate        = addrOf pid_yaw_rate
+
 ----------------------------------------------------------------------
 -- PID initializers
 

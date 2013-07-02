@@ -18,11 +18,10 @@ import qualified SMACCMPilot.Param as P
 
 paramRequestList :: Ref s (Struct "param_request_list_msg") -> Ivory eff ()
 paramRequestList _ = do
-  infotbl <- addrOf P.param_info
-  count <- (deref =<< addrOf P.param_count)
+  count <- deref P.param_count_ref
   arrayMap $ \ix -> do
     when (ix <? count) $ do
-      store ((infotbl ! ix) ~> P.param_requested) 1
+      store ((P.param_info_ref ! ix) ~> P.param_requested) 1
 
 paramRequestRead :: Ref s (Struct "param_request_read_msg") -> Ivory eff ()
 paramRequestRead _ =

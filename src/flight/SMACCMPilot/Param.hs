@@ -93,23 +93,27 @@ instance ParamType IFloat where
 
 -- | Global array of "param_info" structures containing all known
 -- parameters.  This is filled in by calling "param_init".
-param_info :: MemArea (Array 512 (Struct "param_info"))
-param_info = area "g_param_info" Nothing
+param_info_area :: MemArea (Array 512 (Struct "param_info"))
+param_info_area = area "g_param_info" Nothing
+
+param_info_ref :: Ref Global (Array 512 (Struct "param_info"))
+param_info_ref = addrOf param_info_area
 
 -- | Global containing the number of entries in "param_info".
-param_count :: MemArea (Stored (Ix 512))
-param_count = area "g_param_count" Nothing
+param_count_area :: MemArea (Stored (Ix 512))
+param_count_area = area "g_param_count" Nothing
+
+param_count_ref :: Ref Global (Stored (Ix 512))
+param_count_ref = addrOf param_count_area
 
 -- | Increment "param_count" and return an entry to be filled in when
 -- a new parameter is added.
 param_new :: Def ('[] :-> Ref Global (Struct "param_info"))
 param_new = proc "param_new" $ body $ do
-  count_ref <- addrOf param_count
-  count     <- deref count_ref
-  store count_ref (count + 1)
+  count     <- deref param_count_ref
+  store param_count_ref (count + 1)
 
-  info  <- addrOf param_info
-  entry <- assign (info ! count)
+  entry <- assign (param_info_ref ! count)
   store (entry ~> param_index) count
   store (entry ~> param_requested) 0
   ret entry
@@ -156,7 +160,7 @@ param_init_float = proc "param_init_float" $ \name ref -> body $ do
 
 -- | Return the number of defined parameters.
 param_get_count :: Ivory eff (Ix 512)
-param_get_count = deref =<< addrOf param_count
+param_get_count = deref param_count_ref
 
 -- | Look up a parameter by name and retrieve its "param_info" entry
 -- if it exists.  Returns "nullPtr" if no parameter with that name is
@@ -165,10 +169,9 @@ param_get_by_name :: Def ('[ConstRef s (CArray (Stored IChar))]
                           :-> Ptr Global (Struct "param_info"))
 param_get_by_name = proc "param_get_by_name" $ \name -> body $ do
   count <- param_get_count
-  info  <- addrOf param_info
 
   for count $ \ix -> do
-    entry <- assign (info ! ix)
+    entry <- assign (param_info_ref ! ix)
     name' <- assign (constRef (toCArray (entry ~> param_name)))
     len   <- assign (arrayLen (entry ~> param_name))
     r     <- call strncmp name name' len
@@ -187,18 +190,16 @@ param_get_by_index = proc "param_get_by_index" $ \ix -> body $ do
   when (ix >=? count)
     (ret nullPtr)
 
-  info <- addrOf param_info
-  ret (refToPtr (info ! ix))
+  ret (refToPtr (param_info_ref ! ix))
 
 -- | Return the first requested parameter, or NULL if no parameters
 -- are marked for transmission.
 param_get_requested :: Def ('[] :-> Ptr Global (Struct "param_info"))
 param_get_requested = proc "param_get_requested" $ body $ do
   count <- param_get_count
-  info  <- addrOf param_info
 
   for count $ \ix -> do
-    entry <- assign (info ! ix)
+    entry <- assign (param_info_ref ! ix)
     flag  <- deref (entry ~> param_requested)
 
     when (flag /=? 0)
@@ -275,7 +276,7 @@ instance ParamInit (Stored IFloat) where
 -- | Initialize a parameter with value stored in a "MemArea".
 param_init_area :: (ParamInit a, IvoryArea a) =>
                    String -> MemArea a -> Ivory eff ()
-param_init_area name a = param_init name =<< addrOf a
+param_init_area name a = param_init name (addrOf a)
 
 ----------------------------------------------------------------------
 -- Parameter Storage
@@ -548,8 +549,8 @@ param_load = proc "param_load" $ body $ do
   header <- assign ((pid ==? partitionParamA) ? (headerA, headerB))
   ok     <- call param_load_all pid header
 
-  next_seq <- addrOf param_next_seq
-  next_pid <- addrOf param_next_pid
+  let next_seq = addrOf param_next_seq
+      next_pid = addrOf param_next_pid
   store next_seq =<< call param_get_next_seq =<< deref (header ~> ph_seq)
   store next_pid =<< call param_get_next_pid pid
 
@@ -586,9 +587,8 @@ param_save = proc "param_save" $ body $ do
   offset   <- local (ival (fromNat (Proxy :: Proxy (Len ParamHeader))))
   len      <- local (ival 0)
   count    <- param_get_count
-  info     <- addrOf param_info
-  next_seq <- addrOf param_next_seq
-  next_pid <- addrOf param_next_pid
+  let next_seq = addrOf param_next_seq
+      next_pid = addrOf param_next_pid
   pid      <- deref next_pid
 
   writes "param: writing to partition "
@@ -600,7 +600,7 @@ param_save = proc "param_save" $ body $ do
   -- Write the parameter values first, following where the header will
   -- be written.
   for count $ \ix -> do
-    param <- assign (info ! ix)
+    param <- assign (param_info_ref ! ix)
     off   <- deref offset
     ok    <- call param_save_1 pid off param
 
@@ -636,8 +636,8 @@ paramModule = package "param" $ do
   depend packModule
   defStruct (Proxy :: Proxy "param_info")
   defStruct (Proxy :: Proxy "param_header")
-  defMemArea param_info
-  defMemArea param_count
+  defMemArea param_info_area
+  defMemArea param_count_area
   incl param_new
   incl param_init_u8
   incl param_init_u16

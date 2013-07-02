@@ -84,27 +84,28 @@ partitionParamB :: PartitionID
 partitionParamB = 2
 
 -- | Partition data, as a constant global array of sizes.
-partition_table :: ConstMemArea (Array MaxPartitions (Stored Uint16))
-partition_table = constArea "g_partition_table" $ iarray
+partition_table_area :: ConstMemArea (Array MaxPartitions (Stored Uint16))
+partition_table_area = constArea "g_partition_table" $ iarray
   [ ival 0x0000                 -- 0: invalid
   , ival 0x1000                 -- 1: ParamA
   , ival 0x1000                 -- 2: ParamB
   ]
 
+partition_table_ref :: ConstRef Global (Array MaxPartitions (Stored Uint16))
+partition_table_ref = addrOf partition_table_area
+
 -- | Return the size in bytes of a partition.
 partition_size :: Def ('[PartitionID] :-> Uint16)
 partition_size = proc "partition_size" $ \pid -> body $ do
-  tab  <- addrOf partition_table
-  size <- deref (tab ! pid)
+  size <- deref (partition_table_ref ! pid)
   ret size
 
 -- | Return the start address of a partition.
 partition_start :: Def ('[PartitionID] :-> Uint16)
 partition_start = proc "partition_start" $ \pid -> body $ do
-  tab    <- addrOf partition_table
   result <- local (ival 0)
   for pid $ \ix -> do
-    size <- deref (tab ! ix)
+    size <- deref (partition_table_ref ! ix)
     result += size
   ret =<< deref result
 
@@ -191,7 +192,7 @@ partition_test = proc "partition_test" $ \pid -> body $ do
 partitionModule :: Module
 partitionModule = package "storage_partition" $ do
   depend eepromModule
-  defConstMemArea partition_table
+  defConstMemArea partition_table_area
   incl partition_size
   incl partition_start
   incl partition_in_bounds

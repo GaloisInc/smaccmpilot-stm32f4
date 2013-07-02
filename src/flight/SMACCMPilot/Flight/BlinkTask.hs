@@ -18,11 +18,10 @@ import qualified SMACCMPilot.Flight.Types.FlightMode as FM
 blinkTask :: MemArea (Struct "pin")
           -> DataSink (Struct "flightmode")
           -> Task ()
-blinkTask mempin s =  do
+blinkTask pin_area s = do
   fmReader <- withDataReader s "flightmode"
   p <- withPeriod 125
   taskBody $ \sch -> do
-    pin <- addrOf mempin
     call_ pin_enable     pin
     call_ pin_set_otype  pin pinTypePushPull
     call_ pin_set_ospeed pin pinSpeed2Mhz
@@ -41,6 +40,7 @@ blinkTask mempin s =  do
         (call_ pin_set   pin)
   taskModuleDef $ \_sch -> do
     depend gpioModule
+  where pin = addrOf pin_area
 
 nextPhase :: Uint8 -> (Ref s1 (Stored Uint8)) -> Ivory eff Uint8
 nextPhase highest r = do

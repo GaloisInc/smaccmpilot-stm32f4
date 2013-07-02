@@ -52,7 +52,6 @@ gcsReceiveTask usart_area s_src dr_src = do
     spe
 
     drInfo <- local (istruct [])
-    usart  <- addrOf usart_area
     buf    <- local (iarray [] :: Init (Array 1 (Stored Uint8)))
     state  <- local (istruct [ R.status .= ival R.status_IDLE ])
 
@@ -93,5 +92,6 @@ gcsReceiveTask usart_area s_src dr_src = do
     incl handlerAux
     handlerModuleDefs
 
-    where
+  where
+  usart = addrOf usart_area
 
