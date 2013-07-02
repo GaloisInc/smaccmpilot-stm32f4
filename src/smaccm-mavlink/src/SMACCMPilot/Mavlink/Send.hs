@@ -102,7 +102,7 @@ mavlinkSendWithWriter sysid compid name seqnum_area cwriter writerdeps =
     write (constRef ckbuf)
   getSeqnum = do
     -- Increment and return sequence number
-    seqnum <- addrOf seqnum_area
+    let seqnum = addrOf seqnum_area
     s <- deref seqnum
     store seqnum (s + 1)
     return s
