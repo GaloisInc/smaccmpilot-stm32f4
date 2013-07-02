@@ -162,12 +162,11 @@ spiSig spi froCtl toCtl = do
     defMemArea rx_left_area
     defMemArea tx_idx_area
   signalBody $ \sch -> do
-    -- Scope Boilerplate
-    activestate <- addrOf isr_act_area
-    txstate     <- addrOf tx_state_area
-    rxstate     <- addrOf rx_state_area
-    rxleft      <- addrOf rx_left_area
-    txidx       <- addrOf tx_idx_area
+    let activestate = addrOf isr_act_area
+        txstate     = addrOf tx_state_area
+        rxstate     = addrOf rx_state_area
+        rxleft      = addrOf rx_left_area
+        txidx       = addrOf tx_idx_area
 
     active <- deref activestate
     unless active $ do
