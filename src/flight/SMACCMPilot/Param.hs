@@ -1,4 +1,5 @@
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE FlexibleInstances #-}
@@ -376,7 +377,7 @@ fromNat :: forall len a. (SingI (len :: Nat), Num a) => Proxy len -> a
 fromNat _ = fromInteger (fromSing (sing :: Sing len))
 
 -- | Shorthand for creating a byte array of "len" elements.
-localBuf :: (eff `AllocsIn` s, SingI len)
+localBuf :: (GetAlloc eff ~ Scope s, SingI len)
          => Proxy len
          -> Ivory eff (Ref (Stack s) (Array len (Stored Uint8)))
 localBuf _ = local (iarray [])

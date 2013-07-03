@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
 
 module SMACCMPilot.Flight.GCS.Receive.Handlers where
@@ -48,7 +49,7 @@ hilState _ =
 
 -- | Handles a specific Mavlink message, where 'unpack' is a method of the
 -- 'MavlinkUnpackageMsg'.
-handle :: (eff `AllocsIn` s, MavlinkUnpackableMsg t, IvoryStruct t)
+handle :: (GetAlloc eff ~ Scope s, MavlinkUnpackableMsg t, IvoryStruct t)
        => (Ref (Stack s) (Struct t) -> Ivory eff ())
        -> Ref s1 (Struct "mavlink_receive_state")
        -> Ivory eff ()
