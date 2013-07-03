@@ -9,6 +9,7 @@ import Ivory.Language
 import Ivory.Stdlib
 import Ivory.Tower
 import Ivory.HW
+import Ivory.HW.Module
 import Ivory.BitData
 
 import Ivory.BSP.STM32F4.Interrupt
@@ -32,6 +33,7 @@ uartTower uart baud ostream istream = do
   -- from the task that writes to the ostream.
   task "uartManager" $ do
     o <- withChannelReceiver ostream "ostream"
+    taskModuleDef $ const hw_moduledef
     taskBody $ \sch -> do
       uartInit    uart (fromIntegral baud)
       uartInitISR uart max_syscall_priority
@@ -45,6 +47,7 @@ uartTower uart baud ostream istream = do
     o <- withChannelReceiver ostream "ostream"
     i <- withChannelEmitter  istream "istream"
     signalName (handlerName (uartInterrupt uart))
+    signalModuleDef $ const hw_moduledef
     signalBody $ \sch -> do
       sr <- getReg (uartRegSR uart)
       cond_

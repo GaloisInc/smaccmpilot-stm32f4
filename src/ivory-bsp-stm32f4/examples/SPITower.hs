@@ -80,6 +80,7 @@ app = do
   task   "spiCtl" $ spiCtl spi1 mpu6k (src toSig) (snk froSig) (snk start) (src uarto)
   signal "spiSig" $ spiSig spi1       (snk toSig) (src froSig)
 
+  addDepends spiTowerTypes
   addModule spiTowerTypes
 
 spiCtl :: (SingI n, SingI m, SingI o, SingI p)
@@ -95,8 +96,7 @@ spiCtl spi device toSig froSig chStart chdbg = do
   rSig   <- withChannelReceiver froSig  "froSig"
   rStart <- withChannelReceiver chStart "chStart"
   eDbg   <- withChannelEmitter  chdbg   "chdbg"
-  taskModuleDef $ \_sch -> do
-    depend spiTowerTypes
+  taskModuleDef $ const hw_moduledef
   taskBody $ \sch -> do
     let putc c = local (ival (fromIntegral (ord c))) >>= \r -> emit_ sch eDbg (constRef r)
         puts str = mapM_ putc str 
@@ -143,6 +143,7 @@ spiSig spi froCtl toCtl = do
   eCtl <- withChannelEmitter  toCtl "toCtl"
   rCtl <- withChannelReceiver froCtl "froCtl"
   signalName $ spiISRHandlerName spi
+  signalModuleDef $ const hw_moduledef
   let unique n = (n ++ (spiISRHandlerName spi))
       isr_act_area :: MemArea (Stored IBool)
       isr_act_area = area (unique "isract") Nothing

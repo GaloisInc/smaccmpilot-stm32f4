@@ -83,6 +83,7 @@ app = do
   gcsTower "usart1" usart1 snk_flightmode snk_sensor_state snk_position
     snk_control_state snk_servos
 
+  mapM_ addDepends typeModules
   mapM_ addModule otherms
 
 gviz :: Assembly -> IO ()
