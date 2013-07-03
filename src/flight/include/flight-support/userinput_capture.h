@@ -7,6 +7,7 @@ extern "C" {
 #endif
 
 #include <stdint.h>
+#include <stdbool.h>
 
 bool userinput_capture(uint16_t *); /* should have 8 elems! */
 
