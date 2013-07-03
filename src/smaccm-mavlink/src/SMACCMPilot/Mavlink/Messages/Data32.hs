@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE QuasiQuotes #-}
@@ -44,7 +45,7 @@ mkData32Sender sender =
 instance MavlinkSendable "data32_msg" 34 where
   mkSender = mkData32Sender
 
-data32Pack :: (eff `AllocsIn` s, eff `Returns` ())
+data32Pack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
                   => SenderMacro eff s 34
                   -> ConstRef s1 (Struct "data32_msg")
                   -> Ivory eff ()

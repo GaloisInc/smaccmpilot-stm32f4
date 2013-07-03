@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE QuasiQuotes #-}
@@ -48,7 +49,7 @@ mkAttitudeSender sender =
 instance MavlinkSendable "attitude_msg" 28 where
   mkSender = mkAttitudeSender
 
-attitudePack :: (eff `AllocsIn` s, eff `Returns` ())
+attitudePack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
                   => SenderMacro eff s 28
                   -> ConstRef s1 (Struct "attitude_msg")
                   -> Ivory eff ()

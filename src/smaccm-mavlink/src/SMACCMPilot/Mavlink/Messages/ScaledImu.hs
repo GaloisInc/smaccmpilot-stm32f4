@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE QuasiQuotes #-}
@@ -51,7 +52,7 @@ mkScaledImuSender sender =
 instance MavlinkSendable "scaled_imu_msg" 22 where
   mkSender = mkScaledImuSender
 
-scaledImuPack :: (eff `AllocsIn` s, eff `Returns` ())
+scaledImuPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
                   => SenderMacro eff s 22
                   -> ConstRef s1 (Struct "scaled_imu_msg")
                   -> Ivory eff ()

@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE QuasiQuotes #-}
@@ -48,7 +49,7 @@ mkManualSetpointSender sender =
 instance MavlinkSendable "manual_setpoint_msg" 22 where
   mkSender = mkManualSetpointSender
 
-manualSetpointPack :: (eff `AllocsIn` s, eff `Returns` ())
+manualSetpointPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
                   => SenderMacro eff s 22
                   -> ConstRef s1 (Struct "manual_setpoint_msg")
                   -> Ivory eff ()

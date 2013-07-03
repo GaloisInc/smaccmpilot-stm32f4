@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE QuasiQuotes #-}
@@ -43,7 +44,7 @@ mkCommandAckSender sender =
 instance MavlinkSendable "command_ack_msg" 3 where
   mkSender = mkCommandAckSender
 
-commandAckPack :: (eff `AllocsIn` s, eff `Returns` ())
+commandAckPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
                   => SenderMacro eff s 3
                   -> ConstRef s1 (Struct "command_ack_msg")
                   -> Ivory eff ()

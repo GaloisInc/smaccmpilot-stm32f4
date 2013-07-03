@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE QuasiQuotes #-}
@@ -46,7 +47,7 @@ mkRawPressureSender sender =
 instance MavlinkSendable "raw_pressure_msg" 16 where
   mkSender = mkRawPressureSender
 
-rawPressurePack :: (eff `AllocsIn` s, eff `Returns` ())
+rawPressurePack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
                   => SenderMacro eff s 16
                   -> ConstRef s1 (Struct "raw_pressure_msg")
                   -> Ivory eff ()

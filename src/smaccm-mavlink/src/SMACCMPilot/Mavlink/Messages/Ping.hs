@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE QuasiQuotes #-}
@@ -45,7 +46,7 @@ mkPingSender sender =
 instance MavlinkSendable "ping_msg" 14 where
   mkSender = mkPingSender
 
-pingPack :: (eff `AllocsIn` s, eff `Returns` ())
+pingPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
                   => SenderMacro eff s 14
                   -> ConstRef s1 (Struct "ping_msg")
                   -> Ivory eff ()

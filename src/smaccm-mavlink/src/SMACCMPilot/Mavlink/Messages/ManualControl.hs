@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE QuasiQuotes #-}
@@ -47,7 +48,7 @@ mkManualControlSender sender =
 instance MavlinkSendable "manual_control_msg" 11 where
   mkSender = mkManualControlSender
 
-manualControlPack :: (eff `AllocsIn` s, eff `Returns` ())
+manualControlPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
                   => SenderMacro eff s 11
                   -> ConstRef s1 (Struct "manual_control_msg")
                   -> Ivory eff ()

@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE QuasiQuotes #-}
@@ -45,7 +46,7 @@ mkVisionSpeedEstimateSender sender =
 instance MavlinkSendable "vision_speed_estimate_msg" 20 where
   mkSender = mkVisionSpeedEstimateSender
 
-visionSpeedEstimatePack :: (eff `AllocsIn` s, eff `Returns` ())
+visionSpeedEstimatePack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
                   => SenderMacro eff s 20
                   -> ConstRef s1 (Struct "vision_speed_estimate_msg")
                   -> Ivory eff ()

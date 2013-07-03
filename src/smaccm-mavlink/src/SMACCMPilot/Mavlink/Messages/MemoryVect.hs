@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE QuasiQuotes #-}
@@ -45,7 +46,7 @@ mkMemoryVectSender sender =
 instance MavlinkSendable "memory_vect_msg" 36 where
   mkSender = mkMemoryVectSender
 
-memoryVectPack :: (eff `AllocsIn` s, eff `Returns` ())
+memoryVectPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
                   => SenderMacro eff s 36
                   -> ConstRef s1 (Struct "memory_vect_msg")
                   -> Ivory eff ()

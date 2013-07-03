@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE QuasiQuotes #-}
@@ -43,7 +44,7 @@ mkMissionClearAllSender sender =
 instance MavlinkSendable "mission_clear_all_msg" 2 where
   mkSender = mkMissionClearAllSender
 
-missionClearAllPack :: (eff `AllocsIn` s, eff `Returns` ())
+missionClearAllPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
                   => SenderMacro eff s 2
                   -> ConstRef s1 (Struct "mission_clear_all_msg")
                   -> Ivory eff ()

@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE QuasiQuotes #-}
@@ -52,7 +53,7 @@ mkRcChannelsRawSender sender =
 instance MavlinkSendable "rc_channels_raw_msg" 22 where
   mkSender = mkRcChannelsRawSender
 
-rcChannelsRawPack :: (eff `AllocsIn` s, eff `Returns` ())
+rcChannelsRawPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
                   => SenderMacro eff s 22
                   -> ConstRef s1 (Struct "rc_channels_raw_msg")
                   -> Ivory eff ()

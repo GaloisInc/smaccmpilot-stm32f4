@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE QuasiQuotes #-}
@@ -55,7 +56,7 @@ mkHilRcInputsRawSender sender =
 instance MavlinkSendable "hil_rc_inputs_raw_msg" 33 where
   mkSender = mkHilRcInputsRawSender
 
-hilRcInputsRawPack :: (eff `AllocsIn` s, eff `Returns` ())
+hilRcInputsRawPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
                   => SenderMacro eff s 33
                   -> ConstRef s1 (Struct "hil_rc_inputs_raw_msg")
                   -> Ivory eff ()

@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE QuasiQuotes #-}
@@ -44,7 +45,7 @@ mkFileTransferDirListSender sender =
 instance MavlinkSendable "file_transfer_dir_list_msg" 249 where
   mkSender = mkFileTransferDirListSender
 
-fileTransferDirListPack :: (eff `AllocsIn` s, eff `Returns` ())
+fileTransferDirListPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
                   => SenderMacro eff s 249
                   -> ConstRef s1 (Struct "file_transfer_dir_list_msg")
                   -> Ivory eff ()

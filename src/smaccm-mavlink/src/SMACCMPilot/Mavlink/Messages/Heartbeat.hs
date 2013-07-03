@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE QuasiQuotes #-}
@@ -47,7 +48,7 @@ mkHeartbeatSender sender =
 instance MavlinkSendable "heartbeat_msg" 9 where
   mkSender = mkHeartbeatSender
 
-heartbeatPack :: (eff `AllocsIn` s, eff `Returns` ())
+heartbeatPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
                   => SenderMacro eff s 9
                   -> ConstRef s1 (Struct "heartbeat_msg")
                   -> Ivory eff ()

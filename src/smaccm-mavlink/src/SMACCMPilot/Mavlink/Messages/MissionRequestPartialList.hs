@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE QuasiQuotes #-}
@@ -45,7 +46,7 @@ mkMissionRequestPartialListSender sender =
 instance MavlinkSendable "mission_request_partial_list_msg" 6 where
   mkSender = mkMissionRequestPartialListSender
 
-missionRequestPartialListPack :: (eff `AllocsIn` s, eff `Returns` ())
+missionRequestPartialListPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
                   => SenderMacro eff s 6
                   -> ConstRef s1 (Struct "mission_request_partial_list_msg")
                   -> Ivory eff ()

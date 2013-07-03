@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE QuasiQuotes #-}
@@ -49,7 +50,7 @@ mkAttitudeQuaternionSender sender =
 instance MavlinkSendable "attitude_quaternion_msg" 32 where
   mkSender = mkAttitudeQuaternionSender
 
-attitudeQuaternionPack :: (eff `AllocsIn` s, eff `Returns` ())
+attitudeQuaternionPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
                   => SenderMacro eff s 32
                   -> ConstRef s1 (Struct "attitude_quaternion_msg")
                   -> Ivory eff ()

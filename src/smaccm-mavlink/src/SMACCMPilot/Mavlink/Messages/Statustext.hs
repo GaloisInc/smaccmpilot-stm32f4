@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE QuasiQuotes #-}
@@ -43,7 +44,7 @@ mkStatustextSender sender =
 instance MavlinkSendable "statustext_msg" 51 where
   mkSender = mkStatustextSender
 
-statustextPack :: (eff `AllocsIn` s, eff `Returns` ())
+statustextPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
                   => SenderMacro eff s 51
                   -> ConstRef s1 (Struct "statustext_msg")
                   -> Ivory eff ()

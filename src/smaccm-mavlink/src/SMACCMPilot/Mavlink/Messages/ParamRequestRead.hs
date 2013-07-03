@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE QuasiQuotes #-}
@@ -45,7 +46,7 @@ mkParamRequestReadSender sender =
 instance MavlinkSendable "param_request_read_msg" 20 where
   mkSender = mkParamRequestReadSender
 
-paramRequestReadPack :: (eff `AllocsIn` s, eff `Returns` ())
+paramRequestReadPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
                   => SenderMacro eff s 20
                   -> ConstRef s1 (Struct "param_request_read_msg")
                   -> Ivory eff ()

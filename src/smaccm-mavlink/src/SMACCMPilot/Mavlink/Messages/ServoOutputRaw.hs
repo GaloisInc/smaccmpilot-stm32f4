@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE QuasiQuotes #-}
@@ -51,7 +52,7 @@ mkServoOutputRawSender sender =
 instance MavlinkSendable "servo_output_raw_msg" 21 where
   mkSender = mkServoOutputRawSender
 
-servoOutputRawPack :: (eff `AllocsIn` s, eff `Returns` ())
+servoOutputRawPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
                   => SenderMacro eff s 21
                   -> ConstRef s1 (Struct "servo_output_raw_msg")
                   -> Ivory eff ()

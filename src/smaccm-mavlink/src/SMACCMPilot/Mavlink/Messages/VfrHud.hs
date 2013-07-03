@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE QuasiQuotes #-}
@@ -47,7 +48,7 @@ mkVfrHudSender sender =
 instance MavlinkSendable "vfr_hud_msg" 20 where
   mkSender = mkVfrHudSender
 
-vfrHudPack :: (eff `AllocsIn` s, eff `Returns` ())
+vfrHudPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
                   => SenderMacro eff s 20
                   -> ConstRef s1 (Struct "vfr_hud_msg")
                   -> Ivory eff ()

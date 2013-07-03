@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE QuasiQuotes #-}
@@ -44,7 +45,7 @@ mkChangeOperatorControlAckSender sender =
 instance MavlinkSendable "change_operator_control_ack_msg" 3 where
   mkSender = mkChangeOperatorControlAckSender
 
-changeOperatorControlAckPack :: (eff `AllocsIn` s, eff `Returns` ())
+changeOperatorControlAckPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
                   => SenderMacro eff s 3
                   -> ConstRef s1 (Struct "change_operator_control_ack_msg")
                   -> Ivory eff ()

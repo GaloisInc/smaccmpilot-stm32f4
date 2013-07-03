@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE QuasiQuotes #-}
@@ -42,7 +43,7 @@ mkAuthKeySender sender =
 instance MavlinkSendable "auth_key_msg" 32 where
   mkSender = mkAuthKeySender
 
-authKeyPack :: (eff `AllocsIn` s, eff `Returns` ())
+authKeyPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
                   => SenderMacro eff s 32
                   -> ConstRef s1 (Struct "auth_key_msg")
                   -> Ivory eff ()

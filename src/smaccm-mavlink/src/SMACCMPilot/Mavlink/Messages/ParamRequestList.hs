@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE QuasiQuotes #-}
@@ -43,7 +44,7 @@ mkParamRequestListSender sender =
 instance MavlinkSendable "param_request_list_msg" 2 where
   mkSender = mkParamRequestListSender
 
-paramRequestListPack :: (eff `AllocsIn` s, eff `Returns` ())
+paramRequestListPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
                   => SenderMacro eff s 2
                   -> ConstRef s1 (Struct "param_request_list_msg")
                   -> Ivory eff ()

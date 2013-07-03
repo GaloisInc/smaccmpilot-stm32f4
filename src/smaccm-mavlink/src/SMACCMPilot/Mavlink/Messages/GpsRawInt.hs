@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE QuasiQuotes #-}
@@ -51,7 +52,7 @@ mkGpsRawIntSender sender =
 instance MavlinkSendable "gps_raw_int_msg" 30 where
   mkSender = mkGpsRawIntSender
 
-gpsRawIntPack :: (eff `AllocsIn` s, eff `Returns` ())
+gpsRawIntPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
                   => SenderMacro eff s 30
                   -> ConstRef s1 (Struct "gps_raw_int_msg")
                   -> Ivory eff ()

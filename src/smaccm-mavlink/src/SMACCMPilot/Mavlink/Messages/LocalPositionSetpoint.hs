@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE QuasiQuotes #-}
@@ -46,7 +47,7 @@ mkLocalPositionSetpointSender sender =
 instance MavlinkSendable "local_position_setpoint_msg" 17 where
   mkSender = mkLocalPositionSetpointSender
 
-localPositionSetpointPack :: (eff `AllocsIn` s, eff `Returns` ())
+localPositionSetpointPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
                   => SenderMacro eff s 17
                   -> ConstRef s1 (Struct "local_position_setpoint_msg")
                   -> Ivory eff ()

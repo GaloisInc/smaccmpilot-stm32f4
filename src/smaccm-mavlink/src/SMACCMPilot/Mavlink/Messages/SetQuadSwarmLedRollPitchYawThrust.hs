@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE QuasiQuotes #-}
@@ -50,7 +51,7 @@ mkSetQuadSwarmLedRollPitchYawThrustSender sender =
 instance MavlinkSendable "set_quad_swarm_led_roll_pitch_yaw_thrust_msg" 46 where
   mkSender = mkSetQuadSwarmLedRollPitchYawThrustSender
 
-setQuadSwarmLedRollPitchYawThrustPack :: (eff `AllocsIn` s, eff `Returns` ())
+setQuadSwarmLedRollPitchYawThrustPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
                   => SenderMacro eff s 46
                   -> ConstRef s1 (Struct "set_quad_swarm_led_roll_pitch_yaw_thrust_msg")
                   -> Ivory eff ()

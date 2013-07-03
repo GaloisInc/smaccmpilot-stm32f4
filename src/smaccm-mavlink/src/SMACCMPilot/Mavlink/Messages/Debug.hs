@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE QuasiQuotes #-}
@@ -44,7 +45,7 @@ mkDebugSender sender =
 instance MavlinkSendable "debug_msg" 9 where
   mkSender = mkDebugSender
 
-debugPack :: (eff `AllocsIn` s, eff `Returns` ())
+debugPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
                   => SenderMacro eff s 9
                   -> ConstRef s1 (Struct "debug_msg")
                   -> Ivory eff ()

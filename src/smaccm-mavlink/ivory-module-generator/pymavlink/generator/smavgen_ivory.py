@@ -186,6 +186,7 @@ def generate_message_ivory(directory, m):
     t.write(f, '''
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE QuasiQuotes #-}
@@ -228,7 +229,7 @@ mk${name_module}Sender sender =
 instance MavlinkSendable "${name_lower}_msg" ${wire_length} where
   mkSender = mk${name_module}Sender
 
-${name_camel}Pack :: (eff `AllocsIn` s, eff `Returns` ())
+${name_camel}Pack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
                   => SenderMacro eff s ${wire_length}
                   -> ConstRef s1 (Struct "${name_lower}_msg")
                   -> Ivory eff ()

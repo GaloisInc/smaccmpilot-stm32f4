@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE QuasiQuotes #-}
@@ -44,7 +45,7 @@ mkNamedValueFloatSender sender =
 instance MavlinkSendable "named_value_float_msg" 18 where
   mkSender = mkNamedValueFloatSender
 
-namedValueFloatPack :: (eff `AllocsIn` s, eff `Returns` ())
+namedValueFloatPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
                   => SenderMacro eff s 18
                   -> ConstRef s1 (Struct "named_value_float_msg")
                   -> Ivory eff ()

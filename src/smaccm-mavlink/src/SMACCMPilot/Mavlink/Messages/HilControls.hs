@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE QuasiQuotes #-}
@@ -52,7 +53,7 @@ mkHilControlsSender sender =
 instance MavlinkSendable "hil_controls_msg" 42 where
   mkSender = mkHilControlsSender
 
-hilControlsPack :: (eff `AllocsIn` s, eff `Returns` ())
+hilControlsPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
                   => SenderMacro eff s 42
                   -> ConstRef s1 (Struct "hil_controls_msg")
                   -> Ivory eff ()

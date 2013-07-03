@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE QuasiQuotes #-}
@@ -43,7 +44,7 @@ mkFileTransferResSender sender =
 instance MavlinkSendable "file_transfer_res_msg" 9 where
   mkSender = mkFileTransferResSender
 
-fileTransferResPack :: (eff `AllocsIn` s, eff `Returns` ())
+fileTransferResPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
                   => SenderMacro eff s 9
                   -> ConstRef s1 (Struct "file_transfer_res_msg")
                   -> Ivory eff ()

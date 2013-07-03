@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE QuasiQuotes #-}
@@ -48,7 +49,7 @@ mkVisionPositionEstimateSender sender =
 instance MavlinkSendable "vision_position_estimate_msg" 32 where
   mkSender = mkVisionPositionEstimateSender
 
-visionPositionEstimatePack :: (eff `AllocsIn` s, eff `Returns` ())
+visionPositionEstimatePack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
                   => SenderMacro eff s 32
                   -> ConstRef s1 (Struct "vision_position_estimate_msg")
                   -> Ivory eff ()

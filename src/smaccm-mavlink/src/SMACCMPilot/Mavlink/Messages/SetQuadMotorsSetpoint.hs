@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE QuasiQuotes #-}
@@ -46,7 +47,7 @@ mkSetQuadMotorsSetpointSender sender =
 instance MavlinkSendable "set_quad_motors_setpoint_msg" 9 where
   mkSender = mkSetQuadMotorsSetpointSender
 
-setQuadMotorsSetpointPack :: (eff `AllocsIn` s, eff `Returns` ())
+setQuadMotorsSetpointPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
                   => SenderMacro eff s 9
                   -> ConstRef s1 (Struct "set_quad_motors_setpoint_msg")
                   -> Ivory eff ()

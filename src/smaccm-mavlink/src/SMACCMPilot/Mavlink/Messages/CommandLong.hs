@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE QuasiQuotes #-}
@@ -52,7 +53,7 @@ mkCommandLongSender sender =
 instance MavlinkSendable "command_long_msg" 33 where
   mkSender = mkCommandLongSender
 
-commandLongPack :: (eff `AllocsIn` s, eff `Returns` ())
+commandLongPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
                   => SenderMacro eff s 33
                   -> ConstRef s1 (Struct "command_long_msg")
                   -> Ivory eff ()

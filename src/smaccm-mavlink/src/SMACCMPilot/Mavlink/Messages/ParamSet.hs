@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE QuasiQuotes #-}
@@ -46,7 +47,7 @@ mkParamSetSender sender =
 instance MavlinkSendable "param_set_msg" 23 where
   mkSender = mkParamSetSender
 
-paramSetPack :: (eff `AllocsIn` s, eff `Returns` ())
+paramSetPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
                   => SenderMacro eff s 23
                   -> ConstRef s1 (Struct "param_set_msg")
                   -> Ivory eff ()

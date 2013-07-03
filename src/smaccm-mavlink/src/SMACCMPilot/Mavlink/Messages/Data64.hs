@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE QuasiQuotes #-}
@@ -44,7 +45,7 @@ mkData64Sender sender =
 instance MavlinkSendable "data64_msg" 66 where
   mkSender = mkData64Sender
 
-data64Pack :: (eff `AllocsIn` s, eff `Returns` ())
+data64Pack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
                   => SenderMacro eff s 66
                   -> ConstRef s1 (Struct "data64_msg")
                   -> Ivory eff ()

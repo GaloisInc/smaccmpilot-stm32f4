@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE QuasiQuotes #-}
@@ -47,7 +48,7 @@ mkSetRollPitchYawSpeedThrustSender sender =
 instance MavlinkSendable "set_roll_pitch_yaw_speed_thrust_msg" 18 where
   mkSender = mkSetRollPitchYawSpeedThrustSender
 
-setRollPitchYawSpeedThrustPack :: (eff `AllocsIn` s, eff `Returns` ())
+setRollPitchYawSpeedThrustPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
                   => SenderMacro eff s 18
                   -> ConstRef s1 (Struct "set_roll_pitch_yaw_speed_thrust_msg")
                   -> Ivory eff ()

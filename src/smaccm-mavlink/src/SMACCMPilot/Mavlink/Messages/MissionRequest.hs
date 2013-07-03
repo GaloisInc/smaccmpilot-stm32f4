@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE QuasiQuotes #-}
@@ -44,7 +45,7 @@ mkMissionRequestSender sender =
 instance MavlinkSendable "mission_request_msg" 4 where
   mkSender = mkMissionRequestSender
 
-missionRequestPack :: (eff `AllocsIn` s, eff `Returns` ())
+missionRequestPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
                   => SenderMacro eff s 4
                   -> ConstRef s1 (Struct "mission_request_msg")
                   -> Ivory eff ()

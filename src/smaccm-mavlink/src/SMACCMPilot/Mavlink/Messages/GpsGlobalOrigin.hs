@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE QuasiQuotes #-}
@@ -44,7 +45,7 @@ mkGpsGlobalOriginSender sender =
 instance MavlinkSendable "gps_global_origin_msg" 12 where
   mkSender = mkGpsGlobalOriginSender
 
-gpsGlobalOriginPack :: (eff `AllocsIn` s, eff `Returns` ())
+gpsGlobalOriginPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
                   => SenderMacro eff s 12
                   -> ConstRef s1 (Struct "gps_global_origin_msg")
                   -> Ivory eff ()

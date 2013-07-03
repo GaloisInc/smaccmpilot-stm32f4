@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE QuasiQuotes #-}
@@ -43,7 +44,7 @@ mkSystemTimeSender sender =
 instance MavlinkSendable "system_time_msg" 12 where
   mkSender = mkSystemTimeSender
 
-systemTimePack :: (eff `AllocsIn` s, eff `Returns` ())
+systemTimePack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
                   => SenderMacro eff s 12
                   -> ConstRef s1 (Struct "system_time_msg")
                   -> Ivory eff ()

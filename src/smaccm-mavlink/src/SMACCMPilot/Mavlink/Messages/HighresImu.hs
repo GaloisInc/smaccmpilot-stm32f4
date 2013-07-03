@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE QuasiQuotes #-}
@@ -56,7 +57,7 @@ mkHighresImuSender sender =
 instance MavlinkSendable "highres_imu_msg" 62 where
   mkSender = mkHighresImuSender
 
-highresImuPack :: (eff `AllocsIn` s, eff `Returns` ())
+highresImuPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
                   => SenderMacro eff s 62
                   -> ConstRef s1 (Struct "highres_imu_msg")
                   -> Ivory eff ()

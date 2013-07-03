@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE QuasiQuotes #-}
@@ -50,7 +51,7 @@ mkStateCorrectionSender sender =
 instance MavlinkSendable "state_correction_msg" 36 where
   mkSender = mkStateCorrectionSender
 
-stateCorrectionPack :: (eff `AllocsIn` s, eff `Returns` ())
+stateCorrectionPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
                   => SenderMacro eff s 36
                   -> ConstRef s1 (Struct "state_correction_msg")
                   -> Ivory eff ()

@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE QuasiQuotes #-}
@@ -52,7 +53,7 @@ mkRcChannelsScaledSender sender =
 instance MavlinkSendable "rc_channels_scaled_msg" 22 where
   mkSender = mkRcChannelsScaledSender
 
-rcChannelsScaledPack :: (eff `AllocsIn` s, eff `Returns` ())
+rcChannelsScaledPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
                   => SenderMacro eff s 22
                   -> ConstRef s1 (Struct "rc_channels_scaled_msg")
                   -> Ivory eff ()

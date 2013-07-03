@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE QuasiQuotes #-}
@@ -51,7 +52,7 @@ mkRcChannelsOverrideSender sender =
 instance MavlinkSendable "rc_channels_override_msg" 18 where
   mkSender = mkRcChannelsOverrideSender
 
-rcChannelsOverridePack :: (eff `AllocsIn` s, eff `Returns` ())
+rcChannelsOverridePack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
                   => SenderMacro eff s 18
                   -> ConstRef s1 (Struct "rc_channels_override_msg")
                   -> Ivory eff ()

@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE QuasiQuotes #-}
@@ -46,7 +47,7 @@ mkRequestDataStreamSender sender =
 instance MavlinkSendable "request_data_stream_msg" 6 where
   mkSender = mkRequestDataStreamSender
 
-requestDataStreamPack :: (eff `AllocsIn` s, eff `Returns` ())
+requestDataStreamPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
                   => SenderMacro eff s 6
                   -> ConstRef s1 (Struct "request_data_stream_msg")
                   -> Ivory eff ()

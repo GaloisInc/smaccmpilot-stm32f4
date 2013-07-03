@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE QuasiQuotes #-}
@@ -49,7 +50,7 @@ mkOpticalFlowSender sender =
 instance MavlinkSendable "optical_flow_msg" 26 where
   mkSender = mkOpticalFlowSender
 
-opticalFlowPack :: (eff `AllocsIn` s, eff `Returns` ())
+opticalFlowPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
                   => SenderMacro eff s 26
                   -> ConstRef s1 (Struct "optical_flow_msg")
                   -> Ivory eff ()

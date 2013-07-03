@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE QuasiQuotes #-}
@@ -44,7 +45,7 @@ mkSetModeSender sender =
 instance MavlinkSendable "set_mode_msg" 6 where
   mkSender = mkSetModeSender
 
-setModePack :: (eff `AllocsIn` s, eff `Returns` ())
+setModePack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
                   => SenderMacro eff s 6
                   -> ConstRef s1 (Struct "set_mode_msg")
                   -> Ivory eff ()

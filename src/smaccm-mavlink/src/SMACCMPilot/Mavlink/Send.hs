@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE Rank2Types #-}
@@ -21,28 +22,31 @@ type SenderMacro eff s n =  Uint8 -- id
 
 data SizedMavlinkSender n =
   SizedMavlinkSender
-    { senderMacro :: forall eff s . (eff `AllocsIn` s) => SenderMacro eff s n
+    { senderMacro :: forall eff s . (GetAlloc eff ~ Scope s)
+                  => SenderMacro eff s n
     , senderName  :: String
     , senderDeps  :: ModuleDef
     }
 
-newtype MavlinkSender = MavlinkSender (forall n . (SingI n) =>  SizedMavlinkSender n)
+newtype MavlinkSender =
+  MavlinkSender (forall n . (SingI n) =>  SizedMavlinkSender n)
 
 mavlinkSenderName :: MavlinkSender -> String
-mavlinkSenderName (MavlinkSender sized) = senderName (sized :: SizedMavlinkSender 1)
+mavlinkSenderName (MavlinkSender sized) =
+  senderName (sized :: SizedMavlinkSender 1)
 
 class MavlinkSendable t n | t -> n where
   mkSender :: SizedMavlinkSender n -> Def ('[ ConstRef s (Struct t) ] :-> ())
 
 
 newtype MavlinkWriteMacro = MavlinkWriteMacro {
-  unMavlinkWriteMacro :: 
-    (forall eff s . (eff `AllocsIn` s)
+  unMavlinkWriteMacro ::
+    (forall eff s . (GetAlloc eff ~ Scope s)
                     => ConstRef (Stack s) (CArray (Stored Uint8)) -- buf
                     -> Uint8 -- len
                     -> Ivory eff ()) }
 
-mavlinkChecksum :: (SingI n, eff `AllocsIn` s)
+mavlinkChecksum :: (SingI n, GetAlloc eff ~ Scope s)
                              => ConstRef (Stack s) (Array 6 (Stored Uint8))
                              -> ConstRef (Stack s) (Array n (Stored Uint8))
                              -> Uint8
@@ -76,9 +80,13 @@ mavlinkSendWithWriter sysid compid name seqnum_area cwriter writerdeps =
   deps = do
     depend mavlinkCRCModule
     writerdeps
+  write :: (SingI n, GetAlloc eff ~ Scope s)
+        => ConstRef (Stack s) (Array n (Stored Uint8)) -> Ivory eff ()
   write arr = (unMavlinkWriteMacro cwriter) (toCArray arr) (arrayLen arr)
-  const_MAVLINK_STX = 254
-  sender :: (SingI n, eff `AllocsIn` s)
+
+  const_MAVLINK_STX = 254 :: Uint8
+
+  sender :: (SingI n, GetAlloc eff ~ Scope s)
          => Uint8 -> ConstRef (Stack s) (Array n (Stored Uint8))
          -> Uint8 -> Ivory eff ()
   sender msgid payload crcextra = do
@@ -95,16 +103,18 @@ mavlinkSendWithWriter sysid compid name seqnum_area cwriter writerdeps =
 
     -- Calculate checksum
     (lo, hi) <- mavlinkChecksum (constRef header) payload crcextra
-    ckbuf <- local (iarray [ ival lo, ival hi ] :: Init (Array 2 (Stored Uint8)))
+    ckbuf    <- local
+                  (iarray [ ival lo, ival hi ] :: Init (Array 2 (Stored Uint8)))
     -- write each piece in sequence
     write (constRef header)
     write payload
     write (constRef ckbuf)
-  getSeqnum = do
-    -- Increment and return sequence number
-    let seqnum = addrOf seqnum_area
-    s <- deref seqnum
-    store seqnum (s + 1)
-    return s
+    where
+    getSeqnum = do
+      -- Increment and return sequence number
+      let seqnum = addrOf seqnum_area
+      s <- deref seqnum
+      store seqnum (s + 1)
+      return s
 
 

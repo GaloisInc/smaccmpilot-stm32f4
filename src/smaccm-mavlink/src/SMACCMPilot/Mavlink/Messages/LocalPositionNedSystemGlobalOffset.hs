@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE QuasiQuotes #-}
@@ -48,7 +49,7 @@ mkLocalPositionNedSystemGlobalOffsetSender sender =
 instance MavlinkSendable "local_position_ned_system_global_offset_msg" 28 where
   mkSender = mkLocalPositionNedSystemGlobalOffsetSender
 
-localPositionNedSystemGlobalOffsetPack :: (eff `AllocsIn` s, eff `Returns` ())
+localPositionNedSystemGlobalOffsetPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
                   => SenderMacro eff s 28
                   -> ConstRef s1 (Struct "local_position_ned_system_global_offset_msg")
                   -> Ivory eff ()

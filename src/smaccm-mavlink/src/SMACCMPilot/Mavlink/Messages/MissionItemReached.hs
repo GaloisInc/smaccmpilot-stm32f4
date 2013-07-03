@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE QuasiQuotes #-}
@@ -42,7 +43,7 @@ mkMissionItemReachedSender sender =
 instance MavlinkSendable "mission_item_reached_msg" 2 where
   mkSender = mkMissionItemReachedSender
 
-missionItemReachedPack :: (eff `AllocsIn` s, eff `Returns` ())
+missionItemReachedPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
                   => SenderMacro eff s 2
                   -> ConstRef s1 (Struct "mission_item_reached_msg")
                   -> Ivory eff ()

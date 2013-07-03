@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE QuasiQuotes #-}
@@ -50,7 +51,7 @@ mkSafetySetAllowedAreaSender sender =
 instance MavlinkSendable "safety_set_allowed_area_msg" 27 where
   mkSender = mkSafetySetAllowedAreaSender
 
-safetySetAllowedAreaPack :: (eff `AllocsIn` s, eff `Returns` ())
+safetySetAllowedAreaPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
                   => SenderMacro eff s 27
                   -> ConstRef s1 (Struct "safety_set_allowed_area_msg")
                   -> Ivory eff ()

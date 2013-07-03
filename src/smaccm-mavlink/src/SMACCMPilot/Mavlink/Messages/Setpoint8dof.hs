@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE QuasiQuotes #-}
@@ -50,7 +51,7 @@ mkSetpoint8dofSender sender =
 instance MavlinkSendable "setpoint_8dof_msg" 33 where
   mkSender = mkSetpoint8dofSender
 
-setpoint8dofPack :: (eff `AllocsIn` s, eff `Returns` ())
+setpoint8dofPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
                   => SenderMacro eff s 33
                   -> ConstRef s1 (Struct "setpoint_8dof_msg")
                   -> Ivory eff ()

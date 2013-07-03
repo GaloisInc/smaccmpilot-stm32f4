@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE QuasiQuotes #-}
@@ -47,7 +48,7 @@ mkGpsStatusSender sender =
 instance MavlinkSendable "gps_status_msg" 101 where
   mkSender = mkGpsStatusSender
 
-gpsStatusPack :: (eff `AllocsIn` s, eff `Returns` ())
+gpsStatusPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
                   => SenderMacro eff s 101
                   -> ConstRef s1 (Struct "gps_status_msg")
                   -> Ivory eff ()

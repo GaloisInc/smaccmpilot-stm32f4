@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE QuasiQuotes #-}
@@ -49,7 +50,7 @@ mkNavControllerOutputSender sender =
 instance MavlinkSendable "nav_controller_output_msg" 26 where
   mkSender = mkNavControllerOutputSender
 
-navControllerOutputPack :: (eff `AllocsIn` s, eff `Returns` ())
+navControllerOutputPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
                   => SenderMacro eff s 26
                   -> ConstRef s1 (Struct "nav_controller_output_msg")
                   -> Ivory eff ()

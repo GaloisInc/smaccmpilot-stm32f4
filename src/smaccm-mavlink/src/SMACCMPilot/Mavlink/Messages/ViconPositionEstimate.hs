@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE QuasiQuotes #-}
@@ -48,7 +49,7 @@ mkViconPositionEstimateSender sender =
 instance MavlinkSendable "vicon_position_estimate_msg" 32 where
   mkSender = mkViconPositionEstimateSender
 
-viconPositionEstimatePack :: (eff `AllocsIn` s, eff `Returns` ())
+viconPositionEstimatePack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
                   => SenderMacro eff s 32
                   -> ConstRef s1 (Struct "vicon_position_estimate_msg")
                   -> Ivory eff ()

@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE QuasiQuotes #-}
@@ -46,7 +47,7 @@ mkSetGlobalPositionSetpointIntSender sender =
 instance MavlinkSendable "set_global_position_setpoint_int_msg" 15 where
   mkSender = mkSetGlobalPositionSetpointIntSender
 
-setGlobalPositionSetpointIntPack :: (eff `AllocsIn` s, eff `Returns` ())
+setGlobalPositionSetpointIntPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
                   => SenderMacro eff s 15
                   -> ConstRef s1 (Struct "set_global_position_setpoint_int_msg")
                   -> Ivory eff ()

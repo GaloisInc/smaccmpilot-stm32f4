@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE QuasiQuotes #-}
@@ -50,7 +51,7 @@ mkBatteryStatusSender sender =
 instance MavlinkSendable "battery_status_msg" 16 where
   mkSender = mkBatteryStatusSender
 
-batteryStatusPack :: (eff `AllocsIn` s, eff `Returns` ())
+batteryStatusPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
                   => SenderMacro eff s 16
                   -> ConstRef s1 (Struct "battery_status_msg")
                   -> Ivory eff ()
