@@ -3,6 +3,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeFamilies #-}
 
 module SPITower where
 
@@ -99,7 +100,7 @@ spiCtl spi device toSig froSig chStart chdbg = do
   taskModuleDef $ const hw_moduledef
   taskBody $ \sch -> do
     let putc c = local (ival (fromIntegral (ord c))) >>= \r -> emit_ sch eDbg (constRef r)
-        puts str = mapM_ putc str 
+        puts str = mapM_ putc str
         putdig d = do  -- Put an integer between 0 and 10
           r <- local (ival (d + (fromIntegral (ord '0'))))
           emit_ sch eDbg (constRef r)
@@ -248,7 +249,7 @@ rxStore rxstate rxleft v = do
   store rxleft (left - 1)
   return (left - 1)
 
-mpu6kGetWhoAmI :: (SingI n, eff `AllocsIn` s)
+mpu6kGetWhoAmI :: (SingI n, GetAlloc eff ~ Scope s)
                => TaskSchedule
                -> ChannelEmitter n (Struct "spi_transmission")
                -> Ivory eff ()

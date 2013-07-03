@@ -63,7 +63,7 @@ blink per outSource = do
     eventLoop sch $ onTimer t $ \time ->
       -- Emit boolean value which will alternate each period.
       emitV_ sch outEmitter ((time .% 2*p) <? p)
-  where p = fromIntegral per
+  where p = fromIntegral per :: Uint32
 
 blinkApp :: Integer -> [GPIOPin] -> Tower ()
 blinkApp period pins = do

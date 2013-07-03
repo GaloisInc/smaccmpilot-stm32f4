@@ -1,5 +1,6 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE TypeFamilies #-}
 
 module Ivory.BSP.STM32F4.UART.Tower where
 
@@ -23,7 +24,7 @@ uartTower :: (SingI n, SingI m)
           -> ChannelSource m (Stored Uint8)
           -> Tower ()
 uartTower uart baud ostream istream = do
-  let max_syscall_priority = 191 -- XXX MAGIC NUMBER: freertos port specific
+  let max_syscall_priority = (191::Uint8) -- XXX MAGIC NUMBER: freertos port specific
   -- Manager task:
   -- Initializes the UART and sets up the interrupt
   -- for FreeRTOS.
@@ -37,7 +38,7 @@ uartTower uart baud ostream istream = do
     taskBody $ \sch -> do
       uartInit    uart (fromIntegral baud)
       uartInitISR uart max_syscall_priority
-      let ohandler = onChannel o $ const $ 
+      let ohandler = onChannel o $ const $
             setTXEIE uart true
       eventLoop sch ohandler
 

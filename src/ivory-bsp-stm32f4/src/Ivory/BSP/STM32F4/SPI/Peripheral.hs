@@ -2,6 +2,7 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE TypeFamilies #-}
 --
 -- Peripheral.hs --- SPI peripheral driver for the STM32F4.
 --
@@ -92,14 +93,14 @@ initOutPin pin af = do
 
 -- | Enable peripheral and setup GPIOs. Must be performed
 --   before any other SPI peripheral actions.
-spiInit :: (eff `AllocsIn` s) => SPIPeriph -> Ivory eff ()
+spiInit :: (GetAlloc eff ~ Scope s) => SPIPeriph -> Ivory eff ()
 spiInit spi = do
   spiRCCEnable spi
   initInPin  (spiPinMiso spi) (spiPinAF spi)
   initOutPin (spiPinMosi spi) (spiPinAF spi)
   initOutPin (spiPinSck  spi) (spiPinAF spi)
 
-spiInitISR :: (eff `AllocsIn` s) => SPIPeriph -> Uint8 -> Ivory eff ()
+spiInitISR :: (GetAlloc eff ~ Scope s) => SPIPeriph -> Uint8 -> Ivory eff ()
 spiInitISR spi priority = do
   ISR.interrupt_set_priority inter priority
   ISR.interrupt_enable       inter
@@ -126,7 +127,7 @@ data SPIDevice = SPIDevice
   , spiDevBitOrder      :: SPIBitOrder
   }
 
-spiDeviceInit :: (eff `AllocsIn` s) => SPIDevice -> Ivory eff ()
+spiDeviceInit :: (GetAlloc eff ~ Scope s) => SPIDevice -> Ivory eff ()
 spiDeviceInit dev = do
   let pin = spiDevCSPin dev
   pinEnable         pin
@@ -135,7 +136,7 @@ spiDeviceInit dev = do
   pinSetOutputType  pin gpio_outputtype_pushpull
   pinSetSpeed       pin gpio_speed_2mhz
 
-spiDeviceBegin :: (eff `AllocsIn` s) => SPIDevice -> Ivory eff ()
+spiDeviceBegin :: (GetAlloc eff ~ Scope s) => SPIDevice -> Ivory eff ()
 spiDeviceBegin dev = do
   spiBusEnable
   spiDeviceSelect dev
@@ -187,7 +188,7 @@ spiSetDR spi b =
 
 -- Internal Helper Functions ---------------------------------------------------
 
-spiDevBaud :: (eff `AllocsIn` s)
+spiDevBaud :: (GetAlloc eff ~ Scope s)
            => SPIPeriph -> Integer -> Ivory eff SPIBaud
 spiDevBaud periph hz = do
   fplk <- getFreqPClk (spiPClk periph)

@@ -1,5 +1,8 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 --
 -- GetFreq.hs --- Run-time frequency information from RCC driver
@@ -27,20 +30,23 @@ hsiFreq, hseFreq :: Uint32
 hsiFreq = 16000000 -- from stm32f4xx.h
 hseFreq = 24000000 -- Actually depends on preprocessor value!
 
-getFreqSysClk :: (eff `AllocsIn` s) => Ivory eff Uint32
+getFreqSysClk :: (GetAlloc eff ~ Scope s)
+              => Ivory eff Uint32
 getFreqSysClk = do
   cfgr <- getReg regRCC_CFGR
   sysClkSource (cfgr #. rcc_cfgr_sws)
-  where
-  -- Catchall is hsiFreq, should be impossible.
-  sysClkSource sws = foldl aux (return hsiFreq) tbl
-    where aux k (v,d) = ifte (eqBits sws v) d k
-          tbl = [(rcc_sysclk_hsi, return hsiFreq)
-                ,(rcc_sysclk_hse, return hseFreq)
-                ,(rcc_sysclk_pll, pllSysClk)
-                ]
 
-pllSysClk :: (eff `AllocsIn` s) => Ivory eff Uint32
+-- Catchall is hsiFreq, should be impossible.
+sysClkSource :: (GetAlloc eff ~ Scope s)
+             => RCC_SYSCLK -> Ivory eff Uint32
+sysClkSource sws = foldl aux (return hsiFreq) tbl
+  where aux k (v,d) = ifte (eqBits sws v) d k
+        tbl = [(rcc_sysclk_hsi, return hsiFreq)
+              ,(rcc_sysclk_hse, return hseFreq)
+              ,(rcc_sysclk_pll, pllSysClk)
+              ]
+
+pllSysClk :: Ivory eff Uint32
 pllSysClk = do
   pllcfgr <- getReg regRCC_PLLCFGR
   let pllm    = safeCast $ toRep $ pllcfgr #. rcc_pllcfgr_pllm
@@ -59,19 +65,19 @@ pllSysClk = do
           ,(rcc_pllp_div8,   8)
           ]
 
-getFreqHClk :: (eff `AllocsIn` s) => Ivory eff Uint32
+getFreqHClk :: (GetAlloc eff ~ Scope s) => Ivory eff Uint32
 getFreqHClk = do
   sysclk <- getFreqSysClk
   cfgr <- getReg regRCC_CFGR
   return $ divideHPRE (cfgr #. rcc_cfgr_hpre) sysclk
 
-getFreqPClk1 :: (eff `AllocsIn` s) => Ivory eff Uint32
+getFreqPClk1 :: (GetAlloc eff ~ Scope s) => Ivory eff Uint32
 getFreqPClk1 = do
   sysclk <- getFreqSysClk
   cfgr <- getReg regRCC_CFGR
   return $ dividePPREx (cfgr #. rcc_cfgr_ppre1) sysclk
 
-getFreqPClk2 :: (eff `AllocsIn` s) => Ivory eff Uint32
+getFreqPClk2 :: (GetAlloc eff ~ Scope s) => Ivory eff Uint32
 getFreqPClk2 = do
   sysclk <- getFreqSysClk
   cfgr <- getReg regRCC_CFGR
@@ -79,7 +85,7 @@ getFreqPClk2 = do
 
 data PClk = PClk1 | PClk2
 
-getFreqPClk :: (eff `AllocsIn` s) => PClk -> Ivory eff Uint32
+getFreqPClk :: (GetAlloc eff ~ Scope s) => PClk -> Ivory eff Uint32
 getFreqPClk PClk1 = getFreqPClk1
 getFreqPClk PClk2 = getFreqPClk2
 
