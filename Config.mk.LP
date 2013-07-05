@@ -18,23 +18,23 @@ CONFIG_ARCH := px4
 CONFIG_CORTEX_M4_PREFIX := $(HOME)/Galois/SMACCM/smaccm-project/OutsideSrcs/gcc-arm-none-eabi-4_7-2012q4/bin/arm-none-eabi-
 
 # Path to cabal-dev sandbox where code generators are built
-CONFIG_CABAL_SANDBOX := ../dsl/cabal-dev
+CONFIG_CABAL_SANDBOX := ../cabal-dev
 
 # Path to ivory language repository
-CONFIG_IVORY_REPOSITORY := ../dsl/ivory
+CONFIG_IVORY_REPOSITORY := ../ivory
 
 # Path to tower repository
-CONFIG_TOWER_REPOSITORY := ../dsl/tower
+CONFIG_TOWER_REPOSITORY := ../tower
 
 # Target board (one of mk/board/*.mk).
 CONFIG_BOARD := fmu_v17
 
 # Root directory of the FreeRTOS source tree.
-CONFIG_FREERTOS_PREFIX := ../../OutsideSrcs/FreeRTOS
+CONFIG_FREERTOS_PREFIX := ../FreeRTOS
 
 # Root directory of the ArduPilot source tree.
 # Note: this should be a clone of https://github.com/galoisinc/ardupilot
-CONFIG_ARDUPILOT_PREFIX := ../../OutsideSrcs/ardupilot
+CONFIG_ARDUPILOT_PREFIX := ../ardupilot
 
 # Extra arguments to pass to ArduPilot as build flags.
 CONFIG_ARDUPILOT_EXTRA_CFLAGS += -DLOGGING_ENABLED=DISABLED
