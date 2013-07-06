@@ -57,9 +57,6 @@ CONFIG_CBMC_PREFIX := ../../OutsideSrcs/cbmc/src/cbmc
 CONFIG_CBMC_REPORT := $(CONFIG_CABAL_SANDBOX)/bin
 
 # ------------------------------------------------------------------------------
-# Optional: Runtime verification
-GCC_PLUGIN := gcc-plugin
-
 # Uncomment the following line if you wish to build apps that use runtime
 # verification:
 # CONFIG_BUILD_RTV := 1
