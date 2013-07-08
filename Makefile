@@ -68,7 +68,7 @@ veryclean: clean
 ######################################################################
 ## Compilation Rules
 
-quiet_cmd_cc_o_c = CC      $<
+quiet_cmd_cc_o_c = CC       $<
       cmd_cc_o_c = $(CC) $(CFLAGS) -MMD -c -o $@ $<
 
 # Compile a C source file to an object and dependency file.
@@ -81,7 +81,7 @@ $(OBJ_DIR)/%.o: $(GEN_DIR)/%.c
 	$(Q)mkdir -p $(dir $@)
 	$(call cmd,cc_o_c)
 
-quiet_cmd_cxx_o_c = CXX     $<
+quiet_cmd_cxx_o_c = CXX      $<
       cmd_cxx_o_c = $(CXX) $(CXXFLAGS) -MMD -c -o $@ $<
 
 # Compile a C++ source file to an object and dependency file.
@@ -89,16 +89,16 @@ $(OBJ_DIR)/%.o: %.cpp
 	$(Q)mkdir -p $(dir $@)
 	$(call cmd,cxx_o_c)
 
-quiet_cmd_link = LINK    $@
+quiet_cmd_link = LINK     $@
       cmd_link = $(CC) -o $@ $(LDFLAGS) -Wl,-Map=$@.map $(2) $(LIBS)
 
-quiet_cmd_lib = AR      $@
+quiet_cmd_lib = AR       $@
       cmd_lib = $(AR) rcs $@ $(2) && $(RANLIB) $@
 
-quiet_cmd_as_o_S = AS      $<
+quiet_cmd_as_o_S = AS       $<
       cmd_as_o_S = $(CC) $(CFLAGS) -c -o $@ $<
 
-quiet_cmd_cpp_lds_S = CPP     $<
+quiet_cmd_cpp_lds_S = CPP      $<
       cmd_cpp_lds_S = $(CPP) -P $(LDSCRIPT_OPTS) -o $@ $<
 
 # Compile an assembly source (.S) file to an object file.
@@ -106,7 +106,7 @@ $(OBJ_DIR)/%.o: %.S
 	$(Q)mkdir -p $(dir $@)
 	$(call cmd,as_o_S)
 
-quiet_cmd_as_o_s = AS      $<
+quiet_cmd_as_o_s = AS       $<
       cmd_as_o_s = $(CC) $(CFLAGS) -c -o $@ $<
 
 # Compile an assembly source (.s) file to an object file.
@@ -114,10 +114,10 @@ $(OBJ_DIR)/%.o: %.s
 	$(Q)mkdir -p $(dir $@)
 	$(call cmd,as_o_s)
 
-quiet_cmd_elf_to_bin = OBJCOPY $@
+quiet_cmd_elf_to_bin = OBJCOPY  $@
       cmd_elf_to_bin = $(OBJCOPY) -O binary $(2) $(2).bin
 
-quiet_cmd_bin_to_px4 = PX4IMG  $@
+quiet_cmd_bin_to_px4 = PX4IMG   $@
       cmd_bin_to_px4 = $(PYTHON) $(TOP)/boot/px_mkfw.py
       cmd_bin_to_px4+= --prototype mk/board/$(CONFIG_BOARD).prototype
       cmd_bin_to_px4+= --image $(2) > $(2:.bin=.px4)

@@ -1,4 +1,4 @@
-# -*- Mode: makefile-gmake; indent-tabs-mode: t; tab-width: 2 -*-
+# -*- Mode: makefile-gmake; indent-tabs-mode: t; tab-width: 8 -*-
 #
 # ivory.mk --- Compiling generated Ivory packages.
 #
@@ -19,6 +19,12 @@
 #   $(1)_INCLUDE_DIR -- rel. subdirectory include files are placed in
 #   $(1)_GEN_SYMS    -- if defined, generate $(1)_SYMS
 
+quiet_cmd_ivory_dep = IVORYDEP $2
+      cmd_ivory_dep = $3
+
+quiet_cmd_ivory_gen = IVORYGEN $2
+      cmd_ivory_gen = $3
+
 define ivory_pkg
 $(1)_PREFIX           := $(dir $(lastword $(filter %/build.mk,$(MAKEFILE_LIST))))
 $(1)_GEN_DIR          := $$(GEN_DIR)/$$($(1)_PREFIX)
@@ -29,17 +35,19 @@ $(1)_CFLAGS           := -I$$($(1)_GEN_DIR)
 -include $$($(1)_DEP_FILE)
 
 $$($(1)_DEP_FILE): $$($(1)_GEN_EXE) $(MAKEFILE_LIST)
-	$$($(1)_GEN_EXE)                                    \
-	--src-dir=$$($(1)_GEN_DIR)                          \
-	--include-dir=$$($(1)_GEN_DIR)/$$($(1)_INCLUDE_DIR) \
-	--dep-file=$$($(1)_DEP_FILE)                                \
-	--dep-prefix=$(1)
+	$(call cmd,ivory_dep,$1,                              \
+	  $$($(1)_GEN_EXE)                                    \
+	  --src-dir=$$($(1)_GEN_DIR)                          \
+	  --include-dir=$$($(1)_GEN_DIR)/$$($(1)_INCLUDE_DIR) \
+	  --dep-file=$$($(1)_DEP_FILE)                        \
+	  --dep-prefix=$(1))
 
 $$($(1)_HEADERS) $$($(1)_SOURCES): $$($(1)_DEP_FILE)
-	$$($(1)_GEN_EXE)                                    \
-	--src-dir=$$($(1)_GEN_DIR)                          \
-	--include-dir=$$($(1)_GEN_DIR)/$$($(1)_INCLUDE_DIR) \
-	$$(IVORY_OPTS)
+	$(call cmd,ivory_gen,$1,                              \
+	  $$($(1)_GEN_EXE)                                    \
+	  --src-dir=$$($(1)_GEN_DIR)                          \
+	  --include-dir=$$($(1)_GEN_DIR)/$$($(1)_INCLUDE_DIR) \
+	  $$(IVORY_OPTS))
 
 ifdef $(1)_GEN_SYMS
 $(1)_SYMS := $$(shell $$($(1)_GEN_EXE)                \
