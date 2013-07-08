@@ -67,7 +67,7 @@ CBMC_INCS = \
 CBMC_EXEC		:= $(addprefix $(CONFIG_CBMC_PREFIX)/, cbmc)
 CBMC_REPORT	:= $(addprefix $(CONFIG_CBMC_REPORT)/, cbmc-reporter)
 CBMC_SRCS		:= $(patsubst %, --src=%, $(IVORY_PKG_FLIGHT_SOURCES))
-TABLE        = $(TOP)/ivory/claims-table
+TABLE        = $(TOP)/src/flight/claims-table
 ENTRY_FUNCS	:= $(patsubst %, --function=%, $(IVORY_PKG_FLIGHT_SYMS))
 
 .PHONY: verify
