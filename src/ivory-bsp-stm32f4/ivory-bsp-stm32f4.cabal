@@ -89,6 +89,8 @@ executable bsp-led-tower-test-gen
 executable bsp-spi-tower-test-gen
   main-is:             SPITowerCompiler.hs
   other-modules:       SPITower,
+                       SPITypes,
+                       MPU6000,
                        UARTTower,
                        LEDTower
   hs-source-dirs:      examples

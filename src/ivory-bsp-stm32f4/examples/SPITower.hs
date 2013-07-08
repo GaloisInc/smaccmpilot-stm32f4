@@ -1,5 +1,3 @@
-{-# LANGUAGE QuasiQuotes #-}
-{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
@@ -26,26 +24,9 @@ import Ivory.BSP.STM32F4.SPI.Peripheral
 
 import LEDTower (ledController)
 import UARTTower (echoPrompt)
+import SPITypes
 
-[ivory|
-struct spi_transmission
-  { tx_buf  :: Array 128 (Stored Uint8)
-  ; tx_len  :: Stored (Ix 128)
-  }
-|]
-
-[ivory|
-struct spi_transaction_result
-  { resultcode :: Stored Uint8
-  ; rx_buf     :: Array 128 (Stored Uint8)
-  ; rx_idx     :: Stored (Ix 128)
-  }
-|]
-
-spiTowerTypes :: Module
-spiTowerTypes = package "spiTowerTypes" $ do
-  defStruct (Proxy :: Proxy "spi_transmission")
-  defStruct (Proxy :: Proxy "spi_transaction_result")
+import qualified MPU6000
 
 mpu6k :: SPIDevice
 mpu6k = SPIDevice
@@ -107,29 +88,56 @@ spiCtl spi device toSig froSig chStart chdbg = do
     spiInit spi
     spiInitISR spi 191
     spiDeviceInit device
-    state <- local (ival 0)
+    (state :: Ref (Stack s) (Stored Uint8)) <- local (ival 0)
     eventLoop sch $ mconcat
-      [ onChannel rStart $ \_ -> do
+      [ onChannelV rStart $ \v -> do
           s <- deref state
           when (s ==? 0) $ do
             store state 1
-            mpu6kGetWhoAmI sch eSig
+            MPU6000.getWhoAmI sch eSig
             spiDeviceBegin mpu6k
-            puts "\nstart\n"
+            puts "\ninitializing mpu6k\n"
+          when (s ==? 2) $ do
+            store state 3
+            MPU6000.disableI2C sch eSig
+            spiDeviceBegin mpu6k
+            puts "\ndisabling i2c\n"
+          when (s ==? 4) $ do
+            store state 5
+            MPU6000.wake sch eSig
+            spiDeviceBegin mpu6k
+            puts "\nwaking device\n"
+          when (s ==? 6) $ do
+            store state 7
+            MPU6000.setScale sch eSig
+            spiDeviceBegin mpu6k
+            puts "\nsetting gyro scale\n"
+          when (s ==? 8) $ do -- begin getsensors
+            store state 9 -- Fetching sensors
+            MPU6000.getSensors sch eSig
+            spiDeviceBegin mpu6k
+            puts "\ngetsensors\n"
 
       , onChannel rSig $ \result -> do
+          spiDeviceEnd mpu6k
           s <- deref state
-          when (s ==? 1) $ do
-            spiDeviceEnd mpu6k
-            store state 0
+          cond_
+            [ s <? 9 ==>
+                store state (s+1)
+            , s ==? 9 ==>
+                -- XXX do something with fetched sensors here.
+                store state 8 -- Ready to grab sensors again.
+            , true ==> -- Error
+                store state 0
+            ]
 
           res <- deref (result ~> resultcode)
-          (s :: Uint32) <- deref state
           cond_
             [ res >? 0 ==> do
                 puts "transaction error: "
                 putdig res
                 puts "\n"
+                store state 0 -- RESET STATE MACHINE
             , res ==? 0 ==> do
                 puts "transaction successful\n"
             ]
@@ -145,39 +153,23 @@ spiSig spi froCtl toCtl = do
   rCtl <- withChannelReceiver froCtl "froCtl"
   signalName $ spiISRHandlerName spi
   signalModuleDef $ const hw_moduledef
-  let unique n = (n ++ (spiISRHandlerName spi))
-      isr_act_area :: MemArea (Stored IBool)
-      isr_act_area = area (unique "isract") Nothing
-      tx_state_area :: MemArea (Struct "spi_transmission")
-      tx_state_area = area (unique "txstate") Nothing
-      rx_state_area :: MemArea (Struct "spi_transaction_result")
-      rx_state_area = area (unique "rxstate") Nothing
-      rx_left_area :: MemArea (Stored Uint8)
-      rx_left_area = area (unique "rxleft") Nothing
-      tx_idx_area :: MemArea (Stored (Ix 128))
-      tx_idx_area = area (unique "txidx") Nothing
+  (activestate :: Ref Global (Stored IBool)) <- signalLocal "activestate"
+  (txstate     :: Ref Global (Struct "spi_transmission")) <- signalLocal "txstate"
+  (txidx       :: Ref Global (Stored (Ix 128))) <- signalLocal "txidx"
+  (rxstate     :: Ref Global (Struct "spi_transaction_result")) <- signalLocal "rxstate"
+  (rxleft      :: Ref Global (Stored Uint8)) <- signalLocal "rxleft"
   signalModuleDef $ \_sch -> private $ do
     depend spiTowerTypes
-    defMemArea isr_act_area
-    defMemArea tx_state_area
-    defMemArea rx_state_area
-    defMemArea rx_left_area
-    defMemArea tx_idx_area
   signalBody $ \sch -> do
-    let activestate = addrOf isr_act_area
-        txstate     = addrOf tx_state_area
-        rxstate     = addrOf rx_state_area
-        rxleft      = addrOf rx_left_area
-        txidx       = addrOf tx_idx_area
-
     active <- deref activestate
     unless active $ do
       got <- sigReceive sch rCtl txstate
       ifte_ got (do
         expected <- deref (txstate ~> tx_len)
-        store rxleft (safeCast expected)
         store txidx  0
         store activestate true
+        store rxleft (safeCast expected)
+        store (rxstate ~> rx_idx) 0
         ) 
         -- The ISR should only go off when inactive if a new
         -- ctl has been posted to rCtl.
@@ -249,15 +241,6 @@ rxStore rxstate rxleft v = do
   store rxleft (left - 1)
   return (left - 1)
 
-mpu6kGetWhoAmI :: (SingI n, GetAlloc eff ~ Scope s)
-               => TaskSchedule
-               -> ChannelEmitter n (Struct "spi_transmission")
-               -> Ivory eff ()
-mpu6kGetWhoAmI sch ch = do
-  tx <- local (istruct [ tx_buf .= iarray [ ival (0x75 .| 0x80)
-                                          , ival 0 ]
-                       , tx_len .= ival 2 ])
-  emit_ sch ch (constRef tx)
 
 
 
