@@ -18,13 +18,13 @@ import Ivory.HW.Module
 import Ivory.BSP.STM32F4.GPIO
 import Ivory.BSP.STM32F4.UART
 import Ivory.BSP.STM32F4.SPI
+import Ivory.BSP.STM32F4.SPI.Tower
 
 import Ivory.BSP.STM32F4.SPI.Regs
 import Ivory.BSP.STM32F4.SPI.Peripheral
 
 import LEDTower (ledController)
 import UARTTower (echoPrompt)
-import SPITypes
 
 import qualified MPU6000
 
@@ -57,10 +57,8 @@ app = do
   uartTower uart1 115200 (snk uarti) (src uarto)
   echoPrompt greeting    (src uarti) (snk uarto) (src start)
 
-  toSig  <- channel
-  froSig <- channel
-  task   "spiCtl" $ spiCtl spi1 mpu6k (src toSig) (snk froSig) (snk start) (src uarto)
-  signal "spiSig" $ spiSig spi1       (snk toSig) (src froSig)
+  (toSig, froSig) <- spiTower spi1
+  task   "spiCtl" $ spiCtl    spi1 mpu6k toSig froSig (snk start) (src uarto)
 
   addDepends spiTowerTypes
   addModule spiTowerTypes
@@ -142,104 +140,6 @@ spiCtl spi device toSig froSig chStart chdbg = do
                 puts "transaction successful\n"
             ]
       ]
-
-spiSig :: (SingI n, SingI m)
-       => SPIPeriph
-       -> ChannelSink   n (Struct "spi_transmission")
-       -> ChannelSource m (Struct "spi_transaction_result")
-       -> Signal ()
-spiSig spi froCtl toCtl = do
-  eCtl <- withChannelEmitter  toCtl "toCtl"
-  rCtl <- withChannelReceiver froCtl "froCtl"
-  signalName $ spiISRHandlerName spi
-  signalModuleDef $ const hw_moduledef
-  (activestate :: Ref Global (Stored IBool)) <- signalLocal "activestate"
-  (txstate     :: Ref Global (Struct "spi_transmission")) <- signalLocal "txstate"
-  (txidx       :: Ref Global (Stored (Ix 128))) <- signalLocal "txidx"
-  (rxstate     :: Ref Global (Struct "spi_transaction_result")) <- signalLocal "rxstate"
-  (rxleft      :: Ref Global (Stored Uint8)) <- signalLocal "rxleft"
-  signalModuleDef $ \_sch -> private $ do
-    depend spiTowerTypes
-  signalBody $ \sch -> do
-    active <- deref activestate
-    unless active $ do
-      got <- sigReceive sch rCtl txstate
-      ifte_ got (do
-        expected <- deref (txstate ~> tx_len)
-        store txidx  0
-        store activestate true
-        store rxleft (safeCast expected)
-        store (rxstate ~> rx_idx) 0
-        ) 
-        -- The ISR should only go off when inactive if a new
-        -- ctl has been posted to rCtl.
-        (postError 1 sch eCtl)
-
-    -- then check if there is a new transaction available on
-    -- the rCtl channel
-    sr <- getReg (spiRegSR spi)
-    cond_
-      [ bitToBool (sr #. spi_sr_rxne) ==> do
-          -- Got rxinterrupt, so 
-          dr <- spiGetDR spi
-          remaining <- rxStore rxstate rxleft dr
-          -- Check if we have received all of the bytes expected
-          ifte_ (remaining >? 0)
-            -- If there are bytes remaining, enable the tx interrupt
-            (spiSetTXEIE spi) $ do
-                -- Otherwise, we're done receiving, so disable the
-                -- receive interrupt
-                spiClearRXNEIE spi
-                -- set the isr state to take a new message again next time
-                store activestate false
-                -- Send eCtl signal indicating transaction complete.
-                transactionComplete rxstate sch eCtl
-      , bitToBool (sr #. spi_sr_txe) ==> do
-          -- Got tx interrupt: disable it
-          spiClearTXEIE spi
-          -- Check if we have sent all of the bytes expected
-          txremain <- txRemaining txstate txidx
-          when (txremain >? 0) $ do
-            -- Enable rx interrupt, allowing state machine to continue.
-            spiSetRXNEIE spi
-            -- Get the next byte, and transmit it.
-            outgoing <- txPop txstate txidx
-            spiSetDR spi outgoing
-      ]
-
-  where
-  postError ecode sch ch = do
-    r <- local (istruct [ resultcode .= (ival ecode)])
-    emit_ sch ch (constRef r)
-  transactionComplete r sch ch = do
-    store (r ~> resultcode) 0 -- Success
-    emit_ sch ch (constRef r)
-
-txRemaining :: Ref s (Struct "spi_transmission") -> Ref s' (Stored (Ix 128))
-            -> Ivory eff (Ix 128)
-txRemaining  txstate txidx = do
-  len <- deref (txstate ~> tx_len)
-  idx <- deref txidx
-  return (len - idx)
-
-txPop :: Ref s (Struct "spi_transmission") -> Ref s' (Stored (Ix 128))
-            -> Ivory eff Uint8
-txPop txstate txidx = do
-  -- Invariant: txidx <= (txstate ~> tx_len)
-  idx <- deref txidx
-  v <- deref ((txstate ~> tx_buf) ! idx)
-  store txidx (idx + 1)
-  return v
-
-rxStore :: Ref s (Struct "spi_transaction_result") -> Ref s (Stored Uint8)
-        -> Uint8 -> Ivory eff Uint8
-rxStore rxstate rxleft v = do
-  offs <- deref (rxstate ~> rx_idx)
-  store ((rxstate ~> rx_buf) ! offs) v
-  store (rxstate ~> rx_idx) (offs + 1)
-  left <- deref rxleft
-  store rxleft (left - 1)
-  return (left - 1)
 
 
 

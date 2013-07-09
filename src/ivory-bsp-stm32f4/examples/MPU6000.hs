@@ -6,7 +6,7 @@ module MPU6000 where
 import Ivory.Language
 import Ivory.Tower
 
-import SPITypes
+import Ivory.BSP.STM32F4.SPI.Tower
 
 getWhoAmI :: (SingI n, GetAlloc eff ~ Scope s)
           => TaskSchedule
