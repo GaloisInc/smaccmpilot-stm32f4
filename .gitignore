@@ -12,3 +12,5 @@ out.pdf
 gcc-plugin/
 generated/
 cabal-dev
+setup-config
+package.conf.inplace
