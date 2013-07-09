@@ -60,9 +60,6 @@ app = do
   (toSig, froSig) <- spiTower spi1
   task   "spiCtl" $ spiCtl    spi1 mpu6k toSig froSig (snk start) (src uarto)
 
-  addDepends spiTowerTypes
-  addModule spiTowerTypes
-
 spiCtl :: (SingI n, SingI m, SingI o, SingI p)
        => SPIPeriph
        -> SPIDevice

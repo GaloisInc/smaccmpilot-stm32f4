@@ -38,11 +38,12 @@ spiTower :: SPIPeriph
          -> Tower ( ChannelSource 16 (Struct "spi_transmission")
                   , ChannelSink   16 (Struct "spi_transaction_result"))
 spiTower spi = do
+  addDepends spiTowerTypes
+  addModule  spiTowerTypes
   toSig  <- channel
   froSig <- channel
   signal "spiSignal" $ spiSignal spi (snk toSig) (src froSig)
   return (src toSig, snk froSig)
-
 
 spiTowerTypes :: Module
 spiTowerTypes = package "spiTowerTypes" $ do
