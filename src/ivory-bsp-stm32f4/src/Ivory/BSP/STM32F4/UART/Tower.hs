@@ -55,7 +55,7 @@ uartTower uart baud ostream istream = do
        [ bitToBool (sr #. uart_sr_rxne) ==> do
            byte <- readDR uart
            bref <- local (ival byte)
-           emit_ sch i (constRef bref)
+           emit_ i (constRef bref)
        , bitToBool (sr #. uart_sr_txe)  ==> do
            byte <- local (ival 0)
            rv   <- sigReceive sch o byte

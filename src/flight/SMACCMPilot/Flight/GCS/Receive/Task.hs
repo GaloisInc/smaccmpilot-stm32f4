@@ -48,7 +48,7 @@ gcsReceiveTask usart_area s_src dr_src = do
   p <- withPeriod 1
   taskBody $ \schedule -> do
     s_periods <- local defaultPeriods
-    let spe = emit_ schedule streamPeriodEmitter (constRef s_periods)
+    let spe = emit_ streamPeriodEmitter (constRef s_periods)
     spe
 
     drInfo <- local (istruct [])
@@ -84,7 +84,7 @@ gcsReceiveTask usart_area s_src dr_src = do
           [ (s ==? R.status_GOTMSG) ==> getMsg
           , (s ==? R.status_FAIL)   ==> recFailure
           ]
-        emit_ schedule drEmitter (constRef drInfo)
+        emit_ drEmitter (constRef drInfo)
 
   taskModuleDef $ \_sch -> do
     depend usartModule

@@ -75,11 +75,11 @@ spiCtl spi device toSig froSig chStart chdbg = do
   eDbg   <- withChannelEmitter  chdbg   "chdbg"
   taskModuleDef $ const hw_moduledef
   taskBody $ \sch -> do
-    let putc c = local (ival (fromIntegral (ord c))) >>= \r -> emit_ sch eDbg (constRef r)
+    let putc c = local (ival (fromIntegral (ord c))) >>= \r -> emit_ eDbg (constRef r)
         puts str = mapM_ putc str
         putdig d = do  -- Put an integer between 0 and 10
           r <- local (ival (d + (fromIntegral (ord '0'))))
-          emit_ sch eDbg (constRef r)
+          emit_ eDbg (constRef r)
     spiInit spi
     spiInitISR spi 191
     spiDeviceInit device
@@ -89,27 +89,27 @@ spiCtl spi device toSig froSig chStart chdbg = do
           s <- deref state
           when (s ==? 0) $ do
             store state 1
-            MPU6000.getWhoAmI sch eSig
+            MPU6000.getWhoAmI eSig
             spiDeviceBegin mpu6k
             puts "\ninitializing mpu6k\n"
           when (s ==? 2) $ do
             store state 3
-            MPU6000.disableI2C sch eSig
+            MPU6000.disableI2C eSig
             spiDeviceBegin mpu6k
             puts "\ndisabling i2c\n"
           when (s ==? 4) $ do
             store state 5
-            MPU6000.wake sch eSig
+            MPU6000.wake eSig
             spiDeviceBegin mpu6k
             puts "\nwaking device\n"
           when (s ==? 6) $ do
             store state 7
-            MPU6000.setScale sch eSig
+            MPU6000.setScale eSig
             spiDeviceBegin mpu6k
             puts "\nsetting gyro scale\n"
           when (s ==? 8) $ do -- begin getsensors
             store state 9 -- Fetching sensors
-            MPU6000.getSensors sch eSig
+            MPU6000.getSensors eSig
             spiDeviceBegin mpu6k
             puts "\ngetsensors\n"
 

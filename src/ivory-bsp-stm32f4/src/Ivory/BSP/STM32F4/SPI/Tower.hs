@@ -80,7 +80,7 @@ spiSignal spi froCtl toCtl = do
         ) 
         -- The ISR should only go off when inactive if a new
         -- ctl has been posted to rCtl.
-        (postError 1 sch eCtl)
+        (postError 1 eCtl)
 
     -- then check if there is a new transaction available on
     -- the rCtl channel
@@ -100,7 +100,7 @@ spiSignal spi froCtl toCtl = do
                 -- set the isr state to take a new message again next time
                 store activestate false
                 -- Send eCtl signal indicating transaction complete.
-                transactionComplete rxstate sch eCtl
+                transactionComplete rxstate eCtl
       , bitToBool (sr #. spi_sr_txe) ==> do
           -- Got tx interrupt: disable it
           spiClearTXEIE spi
@@ -115,12 +115,12 @@ spiSignal spi froCtl toCtl = do
       ]
 
   where
-  postError ecode sch ch = do
+  postError ecode ch = do
     r <- local (istruct [ resultcode .= (ival ecode)])
-    emit_ sch ch (constRef r)
-  transactionComplete r sch ch = do
+    emit_ ch (constRef r)
+  transactionComplete r ch = do
     store (r ~> resultcode) 0 -- Success
-    emit_ sch ch (constRef r)
+    emit_ ch (constRef r)
 
   txRemaining :: Ref s (Struct "spi_transmission") -> Ref s' (Stored (Ix 128))
               -> Ivory eff (Ix 128)

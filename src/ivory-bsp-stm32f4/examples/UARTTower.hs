@@ -52,8 +52,8 @@ echoPrompt greet ostream istream ledctlstream = task "echoprompt" $ do
   withStackSize 1024
   taskBody $ \sch -> do
     let puts str = mapM_ (\c -> putc (fromIntegral (ord c))) str
-        putc c = local (ival c) >>= \r -> emit_ sch o (constRef r)
-        ledset b = local (ival b) >>= \r -> emit_ sch ledctl (constRef r)
+        putc c = local (ival c) >>= \r -> emit_ o (constRef r)
+        ledset b = local (ival b) >>= \r -> emit_ ledctl (constRef r)
     puts (greet ++ "\n")
     puts "tower> "
     eventLoop sch $ onChannel i $ \inref -> do
