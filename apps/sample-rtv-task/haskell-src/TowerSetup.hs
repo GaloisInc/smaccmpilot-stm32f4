@@ -69,8 +69,9 @@ updateTimeTask clk chk = do
   rx <- withChannelReceiver clk "timeRx"
   newVal <- withChannelEmitter chk "newVal"
   let recordEmitProc = recordEmit newVal
-  taskModuleDef $ \sch  -> incl recordEmitProc
-  taskModuleDef $ \_sch -> incl update_time_init
+  taskModuleDef $ \_sch -> do
+    incl recordEmitProc
+    incl update_time_init
   taskBody $ \sch -> do
     call_ update_time_init $ procPtr recordEmitProc
     eventLoop sch $ onChannel rx $ \time -> do
