@@ -63,14 +63,12 @@ checkerTask :: (SingI n) => ChannelSink n AssignStruct -> Task ()
 checkerTask sink = do
   -- "src" string only is for graphviz output for now
   rx <- withChannelReceiver sink "rvSink"
-  defs
-  taskBody $ \sch -> do
-    eventLoop sch $ onChannel rx $ \latestVal -> do
-      call_ mkHistory latestVal
-      runCheck
-  where
-  defs = taskModuleDef $ \_sch ->    defStruct (Proxy :: Proxy "assignment")
-                                  >> incl mkHistory
-                                  >> incl led_set
+  taskModuleDef $ do
+    defStruct (Proxy :: Proxy "assignment")
+    incl mkHistory
+    incl led_set
+  onChannel rx $ \latestVal -> do
+     call_ mkHistory latestVal
+     runCheck
 
 --------------------------------------------------------------------------------

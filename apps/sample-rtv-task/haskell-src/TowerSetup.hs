@@ -55,11 +55,10 @@ readClockTask :: (SingI n) => ChannelSource n Clk -> Task ()
 readClockTask clkSrc = do
   clk <- withChannelEmitter clkSrc "clkSrc"
   let clkEmitterProc = clkEmitter clk
-  taskModuleDef $ \_sch -> incl clkEmitterProc
+  taskModuleDef $ incl clkEmitterProc
   p <- withPeriod 1000 -- once per sec
-  taskBody $ \sch -> do
-    eventLoop sch $ onTimer p $ \_now ->
-      call_ read_clock_block $ procPtr clkEmitterProc
+  onPeriod p $ \_now ->
+    call_ read_clock_block $ procPtr clkEmitterProc
 
 -- Task wrapper: task reads the channel and updates its local state witht the
 -- time.
@@ -69,14 +68,13 @@ updateTimeTask clk chk = do
   rx <- withChannelReceiver clk "timeRx"
   newVal <- withChannelEmitter chk "newVal"
   let recordEmitProc = recordEmit newVal
-  taskModuleDef $ \_sch -> do
+  taskModuleDef $ do
     incl recordEmitProc
     incl update_time_init
-  taskBody $ \sch -> do
+  taskInit $
     call_ update_time_init $ procPtr recordEmitProc
-    eventLoop sch $ onChannel rx $ \time -> do
-      t <- deref time
-      call_ update_time_block t
+  onChannelV rx $ \time -> do
+    call_ update_time_block time
 
 --------------------------------------------------------------------------------
 
