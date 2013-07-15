@@ -35,20 +35,16 @@ ledController pins outputSink = do
   -- Bring the channel into scope for this Task
   rxer <- withChannelReceiver outputSink "outputSink"
   -- Bookkeeping: this task uses Ivory.HW.Module.hw_moduledef
-  taskModuleDef $ const hw_moduledef
-  -- Task Body is parameterized on receiver
-  taskBody (ledTaskBody rxer)
-  where
-  -- Task body takes receiver and schedule
-  ledTaskBody rxer sch = do
-    -- First, setup hardware
+  taskModuleDef $ hw_moduledef
+  -- Setup hardware before running any event handlers
+  taskInit $
     mapM_ ledSetupPin pins
-    -- Then, make an event loop with one handler.
-    eventLoop sch $ onChannelV rxer $ \out-> do
-      -- Turn pins on or off according to event value
-      ifte_ out
-        (mapM_ ledOn pins)
-        (mapM_ ledOff pins)
+  -- Run a callback on each message posted to the channel
+  onChannelV rxer $ \out -> do
+    -- Turn pins on or off according to event value
+    ifte_ out
+      (mapM_ ledOn pins)
+      (mapM_ ledOff pins)
 
 -- | Blink task: Given a period and a channel source, output an alternating
 --   stream of true / false on each period.
@@ -58,11 +54,9 @@ blink per outSource = do
   outEmitter <- withChannelEmitter outSource "output"
   -- Declare a period for this Task
   t <- withPeriod per
-  taskBody $ \sch -> do
-    -- Make an event loop with a handler for the period declared above
-    eventLoop sch $ onTimer t $ \time ->
-      -- Emit boolean value which will alternate each period.
-      emitV_ outEmitter ((time .% 2*p) <? p)
+  onPeriod t $ \time ->
+    -- Emit boolean value which will alternate each period.
+    emitV_ outEmitter ((time .% 2*p) <? p)
   where p = fromIntegral per :: Uint32
 
 blinkApp :: Integer -> [GPIOPin] -> Tower ()

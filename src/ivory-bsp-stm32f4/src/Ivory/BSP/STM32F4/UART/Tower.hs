@@ -34,13 +34,12 @@ uartTower uart baud ostream istream = do
   -- from the task that writes to the ostream.
   task "uartManager" $ do
     o <- withChannelReceiver ostream "ostream"
-    taskModuleDef $ const hw_moduledef
-    taskBody $ \sch -> do
+    taskModuleDef $ hw_moduledef
+    taskInit $ do
       uartInit    uart (fromIntegral baud)
       uartInitISR uart max_syscall_priority
-      let ohandler = onChannel o $ const $
-            setTXEIE uart true
-      eventLoop sch ohandler
+    onChannel o $ const $
+      setTXEIE uart true
 
   -- Signal:
   -- runs the UART Interrupt Service Routine
@@ -48,8 +47,8 @@ uartTower uart baud ostream istream = do
     o <- withChannelReceiver ostream "ostream"
     i <- withChannelEmitter  istream "istream"
     signalName (handlerName (uartInterrupt uart))
-    signalModuleDef $ const hw_moduledef
-    signalBody $ \sch -> do
+    signalModuleDef $ hw_moduledef
+    signalBody $ do
       sr <- getReg (uartRegSR uart)
       cond_
        [ bitToBool (sr #. uart_sr_rxne) ==> do
@@ -58,7 +57,7 @@ uartTower uart baud ostream istream = do
            emit_ i (constRef bref)
        , bitToBool (sr #. uart_sr_txe)  ==> do
            byte <- local (ival 0)
-           rv   <- sigReceive sch o byte
+           rv   <- receive o byte
            ifte_ rv
              (setDR uart =<< deref byte)
              (setTXEIE uart false)

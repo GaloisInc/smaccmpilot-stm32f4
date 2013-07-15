@@ -73,70 +73,73 @@ spiCtl spi device toSig froSig chStart chdbg = do
   rSig   <- withChannelReceiver froSig  "froSig"
   rStart <- withChannelReceiver chStart "chStart"
   eDbg   <- withChannelEmitter  chdbg   "chdbg"
-  taskModuleDef $ const hw_moduledef
-  taskBody $ \sch -> do
-    let putc c = local (ival (fromIntegral (ord c))) >>= \r -> emit_ eDbg (constRef r)
-        puts str = mapM_ putc str
-        putdig d = do  -- Put an integer between 0 and 10
-          r <- local (ival (d + (fromIntegral (ord '0'))))
-          emit_ eDbg (constRef r)
+  taskModuleDef $ hw_moduledef
+  let putc :: (GetAlloc eff ~ Scope cs) => Char -> Ivory eff ()
+      putc c = local (ival (fromIntegral (ord c))) >>= \r -> emit_ eDbg (constRef r)
+      puts :: (GetAlloc eff ~ Scope cs) => String -> Ivory eff ()
+      puts str = mapM_ putc str
+      putdig :: (GetAlloc eff ~ Scope cs) => Uint8 -> Ivory eff ()
+      putdig d = do  -- Put an integer between 0 and 10
+        r <- local (ival (d + (fromIntegral (ord '0'))))
+        emit_ eDbg (constRef r)
+  (state :: Ref Global (Stored Uint8)) <- taskLocal "state"
+  taskInit $ do
     spiInit spi
     spiInitISR spi 191
     spiDeviceInit device
-    (state :: Ref (Stack s) (Stored Uint8)) <- local (ival 0)
-    eventLoop sch $ mconcat
-      [ onChannelV rStart $ \v -> do
-          s <- deref state
-          when (s ==? 0) $ do
-            store state 1
-            MPU6000.getWhoAmI eSig
-            spiDeviceBegin mpu6k
-            puts "\ninitializing mpu6k\n"
-          when (s ==? 2) $ do
-            store state 3
-            MPU6000.disableI2C eSig
-            spiDeviceBegin mpu6k
-            puts "\ndisabling i2c\n"
-          when (s ==? 4) $ do
-            store state 5
-            MPU6000.wake eSig
-            spiDeviceBegin mpu6k
-            puts "\nwaking device\n"
-          when (s ==? 6) $ do
-            store state 7
-            MPU6000.setScale eSig
-            spiDeviceBegin mpu6k
-            puts "\nsetting gyro scale\n"
-          when (s ==? 8) $ do -- begin getsensors
-            store state 9 -- Fetching sensors
-            MPU6000.getSensors eSig
-            spiDeviceBegin mpu6k
-            puts "\ngetsensors\n"
+    store state 0
 
-      , onChannel rSig $ \result -> do
-          spiDeviceEnd mpu6k
-          s <- deref state
-          cond_
-            [ s <? 9 ==>
-                store state (s+1)
-            , s ==? 9 ==>
-                -- XXX do something with fetched sensors here.
-                store state 8 -- Ready to grab sensors again.
-            , true ==> -- Error
-                store state 0
-            ]
+  onChannelV rStart $ \v -> do
+        s <- deref state
+        when (s ==? 0) $ do
+          store state 1
+          MPU6000.getWhoAmI eSig
+          spiDeviceBegin mpu6k
+          puts "\ninitializing mpu6k\n"
+        when (s ==? 2) $ do
+          store state 3
+          MPU6000.disableI2C eSig
+          spiDeviceBegin mpu6k
+          puts "\ndisabling i2c\n"
+        when (s ==? 4) $ do
+          store state 5
+          MPU6000.wake eSig
+          spiDeviceBegin mpu6k
+          puts "\nwaking device\n"
+        when (s ==? 6) $ do
+          store state 7
+          MPU6000.setScale eSig
+          spiDeviceBegin mpu6k
+          puts "\nsetting gyro scale\n"
+        when (s ==? 8) $ do -- begin getsensors
+          store state 9 -- Fetching sensors
+          MPU6000.getSensors eSig
+          spiDeviceBegin mpu6k
+          puts "\ngetsensors\n"
 
-          res <- deref (result ~> resultcode)
-          cond_
-            [ res >? 0 ==> do
-                puts "transaction error: "
-                putdig res
-                puts "\n"
-                store state 0 -- RESET STATE MACHINE
-            , res ==? 0 ==> do
-                puts "transaction successful\n"
-            ]
-      ]
+  onChannel rSig $ \result -> do
+        spiDeviceEnd mpu6k
+        s <- deref state
+        cond_
+          [ s <? 9 ==>
+              store state (s+1)
+          , s ==? 9 ==>
+              -- XXX do something with fetched sensors here.
+              store state 8 -- Ready to grab sensors again.
+          , true ==> -- Error
+              store state 0
+          ]
+
+        res <- deref (result ~> resultcode)
+        cond_
+          [ res >? 0 ==> do
+              puts "transaction error: "
+              putdig res
+              puts "\n"
+              store state 0 -- RESET STATE MACHINE
+          , res ==? 0 ==> do
+              puts "transaction successful\n"
+          ]
 
 
 

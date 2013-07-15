@@ -50,23 +50,23 @@ echoPrompt greet ostream istream ledctlstream = task "echoprompt" $ do
   i <- withChannelReceiver istream "istream"
   ledctl <- withChannelEmitter ledctlstream "ledctl"
   withStackSize 1024
-  taskBody $ \sch -> do
-    let puts str = mapM_ (\c -> putc (fromIntegral (ord c))) str
-        putc c = local (ival c) >>= \r -> emit_ o (constRef r)
-        ledset b = local (ival b) >>= \r -> emit_ ledctl (constRef r)
+  let puts str = mapM_ (\c -> putc (fromIntegral (ord c))) str
+      putc c = local (ival c) >>= \r -> emit_ o (constRef r)
+      ledset b = local (ival b) >>= \r -> emit_ ledctl (constRef r)
+  taskInit $ do
     puts (greet ++ "\n")
     puts "tower> "
-    eventLoop sch $ onChannel i $ \inref -> do
-      input <- deref inref
-      putc input -- echo to terminal
-      cond_
-        [ input `isChar` '1' ==>
-            ledset true
-        , input `isChar` '2' ==>
-            ledset false
-        , input `isChar` '\n' ==>
-            puts "tower> "
-        ]
+  onChannel i $ \inref -> do
+    input <- deref inref
+    putc input -- echo to terminal
+    cond_
+      [ input `isChar` '1' ==>
+          ledset true
+      , input `isChar` '2' ==>
+          ledset false
+      , input `isChar` '\n' ==>
+          puts "tower> "
+      ]
 
 isChar :: Uint8 -> Char -> IBool
 isChar b c = b ==? (fromIntegral (ord c))

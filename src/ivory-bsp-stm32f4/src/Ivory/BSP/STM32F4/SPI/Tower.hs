@@ -59,18 +59,18 @@ spiSignal spi froCtl toCtl = do
   eCtl <- withChannelEmitter  toCtl "toCtl"
   rCtl <- withChannelReceiver froCtl "froCtl"
   signalName $ spiISRHandlerName spi
-  signalModuleDef $ const hw_moduledef
   (activestate :: Ref Global (Stored IBool)) <- signalLocal "activestate"
   (txstate     :: Ref Global (Struct "spi_transmission")) <- signalLocal "txstate"
   (txidx       :: Ref Global (Stored (Ix 128))) <- signalLocal "txidx"
   (rxstate     :: Ref Global (Struct "spi_transaction_result")) <- signalLocal "rxstate"
   (rxleft      :: Ref Global (Stored Uint8)) <- signalLocal "rxleft"
-  signalModuleDef $ \_sch -> private $ do
-    depend spiTowerTypes
-  signalBody $ \sch -> do
+  signalModuleDef $ do
+    hw_moduledef
+    private $ depend spiTowerTypes
+  signalBody $ do
     active <- deref activestate
     unless active $ do
-      got <- sigReceive sch rCtl txstate
+      got <- receive rCtl txstate
       ifte_ got (do
         expected <- deref (txstate ~> tx_len)
         store txidx  0
