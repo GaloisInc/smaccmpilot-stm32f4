@@ -21,24 +21,26 @@ blinkTask :: MemArea (Struct "pin")
 blinkTask pin_area s = do
   fmReader <- withDataReader s "flightmode"
   p <- withPeriod 125
-  taskBody $ \sch -> do
+  taskInit $ do
     call_ pin_enable     pin
     call_ pin_set_otype  pin pinTypePushPull
     call_ pin_set_ospeed pin pinSpeed2Mhz
     call_ pin_set_pupd   pin pinPupdNone
     call_ pin_reset      pin
     call_ pin_set_mode   pin pinModeOutput
-    flightMode <- local (istruct [])
-    s_phase    <- local (ival (0::Uint8))
-    eventLoop sch $ onTimer p $ \_now -> do
-      readData sch fmReader flightMode
-      bmode  <- flightModeToBlinkMode flightMode
-      phase  <- nextPhase 8 s_phase
-      output <- blinkOutput bmode phase
-      ifte_ output
-        (call_ pin_reset pin) -- relay LEDs are active low.
-        (call_ pin_set   pin)
-  taskModuleDef $ \_sch -> do
+
+  flightMode <- taskLocal "flightmode"
+  s_phase    <- taskLocal "phase"
+
+  onPeriod p $ \_now -> do
+    readData fmReader flightMode
+    bmode  <- flightModeToBlinkMode flightMode
+    phase  <- nextPhase 8 s_phase
+    output <- blinkOutput bmode phase
+    ifte_ output
+      (call_ pin_reset pin) -- relay LEDs are active low.
+      (call_ pin_set   pin)
+  taskModuleDef $ do
     depend gpioModule
   where pin = addrOf pin_area
 

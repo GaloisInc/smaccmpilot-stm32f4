@@ -23,17 +23,17 @@ motorsTask cs ms ss = do
   ctlRxer   <- withChannelReceiver cs "ctlOut"
   fmReader  <- withDataReader ms "flightMode"
   srvWriter <- withDataWriter ss "servos"
-  taskBody $ \sch -> do
-    s_fm    <- local (istruct [])
-    s_servo <- local (istruct [])
+  s_fm <- taskLocal "flightMode"
+  s_servo <- taskLocal "servos"
+  taskInit $
     call_ apmotors_output_init
-    eventLoop sch $ onChannel ctlRxer $ \ctl -> do
-      readData sch fmReader  s_fm
-      call_ apmotors_output_set ctl (constRef s_fm)
-      call_ apmotors_servo_get  s_servo
-      writeData sch srvWriter       (constRef s_servo)
+  onChannel ctlRxer $ \ctl -> do
+    readData fmReader  s_fm
+    call_ apmotors_output_set ctl (constRef s_fm)
+    call_ apmotors_servo_get  s_servo
+    writeData srvWriter       (constRef s_servo)
 
-  taskModuleDef $ \_sch -> do
+  taskModuleDef $ do
     depend C.controlOutputTypeModule
     depend S.servosTypeModule
     depend M.flightModeTypeModule

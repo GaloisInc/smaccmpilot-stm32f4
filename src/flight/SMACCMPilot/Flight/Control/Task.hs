@@ -26,13 +26,12 @@ controlTask s_fm s_inpt s_sens s_ctl = do
   fmReader   <- withDataReader s_fm   "flightmode"
   uiReader   <- withDataReader s_inpt "userinput"
   ctlEmitter <- withChannelEmitter s_ctl  "control"
-  taskBody $ \schedule -> do
-    fm   <- local (istruct [])
-    inpt <- local (istruct [])
-    ctl  <- local (istruct [])
-    eventLoop schedule $ onChannel sensRxer $ \sens -> do
-      readData schedule fmReader   fm
-      readData schedule uiReader   inpt
+  fm   <- taskLocal "flightmode"
+  inpt <- taskLocal "input"
+  ctl  <- taskLocal "control"
+  onChannel sensRxer $ \sens -> do
+      readData fmReader   fm
+      readData uiReader   inpt
 
       call_ stabilize_run (constRef fm) (constRef inpt) sens ctl
       -- the trivial throttle controller:
@@ -40,7 +39,7 @@ controlTask s_fm s_inpt s_sens s_ctl = do
 
       emit_ ctlEmitter (constRef ctl)
 
-  taskModuleDef $ \_sch -> do
+  taskModuleDef $ do
     depend FM.flightModeTypeModule
     depend UI.userInputTypeModule
     depend SENS.sensorsTypeModule

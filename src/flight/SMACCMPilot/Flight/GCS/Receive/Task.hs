@@ -46,29 +46,15 @@ gcsReceiveTask usart_area s_src dr_src = do
   drEmitter <- withChannelEmitter dr_src "data_rate_chan"
 
   p <- withPeriod 1
-  taskBody $ \schedule -> do
-    s_periods <- local defaultPeriods
-    let spe = emit_ streamPeriodEmitter (constRef s_periods)
-    spe
+  s_periods <- taskLocalInit "periods" defaultPeriods
+  drInfo    <- taskLocal     "dropInfo"
+  (buf :: Ref Global (Array 1 (Stored Uint8))) <- taskLocal     "buf"
+  state     <- taskLocalInit "state" (istruct [ R.status .= ival R.status_IDLE ])
 
-    drInfo <- local (istruct [])
-    buf    <- local (iarray [] :: Init (Array 1 (Stored Uint8)))
-    state  <- local (istruct [ R.status .= ival R.status_IDLE ])
+  taskInit $
+    emit_ streamPeriodEmitter (constRef s_periods)
 
-    let getMsg = do
-          -- XXX We need to have a story for messages that are parsed correctly
-          -- but are not recognized by the system---one could launch a DoS with
-          -- those, too.
-          t <- call F.getTimeMillis
-          store (drInfo ~> D.lastSucc) t
-          call_ handlerAux state s_periods
-          R.mavlinkReceiveReset state
-          -- XXX This should only be called if we got a request_data_stream msg.
-          -- Here it's called regardless of what incoming Mavlink message there
-          -- is.
-          spe
-
-    eventLoop schedule $ onTimer p $ \_now -> do
+  onPeriod p $ \_now -> do
       -- XXX this task is totally invalid until we fix this to be part of the
       -- event loop
       n' <- call usartReadTimeout usart 1 (toCArray buf) 1
@@ -76,17 +62,26 @@ gcsReceiveTask usart_area s_src dr_src = do
         b <- deref (buf ! 0)
         R.mavlinkReceiveByte state b
         s <- deref (state ~> R.status)
-
-        let recFailure = do (drInfo ~> D.dropped) += 1
-                            store (state ~> R.status) R.status_IDLE
-
         cond_
-          [ (s ==? R.status_GOTMSG) ==> getMsg
-          , (s ==? R.status_FAIL)   ==> recFailure
+          [ (s ==? R.status_GOTMSG) ==> do
+              -- XXX We need to have a story for messages that are parsed correctly
+              -- but are not recognized by the system---one could launch a DoS with
+              -- those, too.
+              t <- call F.getTimeMillis
+              store (drInfo ~> D.lastSucc) t
+              call_ handlerAux state s_periods
+              R.mavlinkReceiveReset state
+              -- XXX This should only be called if we got a request_data_stream msg.
+              -- Here it's called regardless of what incoming Mavlink message there
+              -- is.
+              emit_ streamPeriodEmitter (constRef s_periods)
+          , (s ==? R.status_FAIL)   ==> do
+              (drInfo ~> D.dropped) += 1
+              store (state ~> R.status) R.status_IDLE
           ]
         emit_ drEmitter (constRef drInfo)
 
-  taskModuleDef $ \_sch -> do
+  taskModuleDef $ do
     depend usartModule
     defStruct (Proxy :: Proxy "mavlink_receive_state")
     incl handlerAux
