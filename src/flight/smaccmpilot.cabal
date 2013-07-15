@@ -61,8 +61,8 @@ library
                        ivory-stdlib,
                        ivory-backend-c,
                        ivory-opts,
-                       ivory-tower,
-                       ivory-tower-freertos,
+                       ivory-tower >= 0.6.0.0,
+                       ivory-tower-freertos >= 0.6.0.0,
                        ivory-bsp-hwf4wrapper,
                        smaccm-mavlink
 
@@ -78,8 +78,8 @@ executable smaccmpilot-gen
                        ivory-stdlib,
                        ivory-backend-c,
                        ivory-opts,
-                       ivory-tower,
-                       ivory-tower-freertos,
+                       ivory-tower >= 0.6.0.0,
+                       ivory-tower-freertos >= 0.6.0.0,
                        ivory-bsp-hwf4wrapper,
                        smaccm-mavlink,
                        smaccmpilot
