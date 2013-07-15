@@ -20,7 +20,7 @@ usartSender usart_area name sysid compid =
   mavlinkSendWithWriter sysid compid sendername txseq_area (MavlinkWriteMacro write) deps
   where
   usart = addrOf usart_area
-  sendername = "mavlinksender_" ++ name
+  sendername = "mavlinksender" ++ name
   txseqname = sendername ++ "_txseq"
   txseq_area :: MemArea (Stored Uint8)
   txseq_area = area txseqname (Just (ival 0))
