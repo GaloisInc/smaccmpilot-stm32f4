@@ -20,12 +20,11 @@ userInputTask :: DataSource (Struct "userinput_result")
 userInputTask uis fms = do
   fmWriter <- withDataWriter fms "flightMode"
   uiWriter <- withDataWriter uis "userInput"
-  p <- withPeriod 50
   chs        <- taskLocal "channels"
   decoder    <- taskLocal "decoder"
   ui_result  <- taskLocal "userinput"
   fm_result  <- taskLocal "flightmode"
-  onPeriod p $ \now -> do
+  onPeriod 50 $ \now -> do
     captured <- call userInputCapture chs
     when captured $ do
       call_ userInputDecode chs decoder ui_result fm_result now

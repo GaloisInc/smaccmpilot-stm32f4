@@ -49,7 +49,6 @@ gcsTransmitTask usart sp_sink dr_sink fm_sink se_sink ps_sink ct_sink sr_sink
   let (chan1, cmods) = messageDriver (usartSender usart n sysid compid)
   mapM_ withModule cmods
   withStackSize 512
-  p <- withPeriod 50
   t <- withGetTimeMillis
 
 
@@ -76,7 +75,7 @@ gcsTransmitTask usart sp_sink dr_sink fm_sink se_sink ps_sink ct_sink sr_sink
     refCopy d dr
     call_ (sendDataRate chan1) d
 
-  onPeriod p $ \now -> do
+  onPeriod 50 $ \now -> do
     -- Handler for all streams - if due, run action, then update schedule
     let onStream :: Label "gcsstream_timing" (Stored Uint32)
                  -> Ivory eff () -> Ivory eff ()

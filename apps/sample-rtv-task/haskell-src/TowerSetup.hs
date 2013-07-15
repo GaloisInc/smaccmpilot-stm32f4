@@ -56,8 +56,7 @@ readClockTask clkSrc = do
   clk <- withChannelEmitter clkSrc "clkSrc"
   let clkEmitterProc = clkEmitter clk
   taskModuleDef $ incl clkEmitterProc
-  p <- withPeriod 1000 -- once per sec
-  onPeriod p $ \_now ->
+  onPeriod 1000 $ \_now -> -- once per sec
     call_ read_clock_block $ procPtr clkEmitterProc
 
 -- Task wrapper: task reads the channel and updates its local state witht the

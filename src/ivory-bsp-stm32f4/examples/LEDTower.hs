@@ -53,8 +53,7 @@ blink per outSource = do
   -- Bring the emitter into scope for this Task
   outEmitter <- withChannelEmitter outSource "output"
   -- Declare a period for this Task
-  t <- withPeriod per
-  onPeriod t $ \time ->
+  onPeriod per $ \time ->
     -- Emit boolean value which will alternate each period.
     emitV_ outEmitter ((time .% 2*p) <? p)
   where p = fromIntegral per :: Uint32

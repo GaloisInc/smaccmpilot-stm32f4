@@ -45,7 +45,6 @@ gcsReceiveTask usart_area s_src dr_src = do
 
   drEmitter <- withChannelEmitter dr_src "data_rate_chan"
 
-  p <- withPeriod 1
   s_periods <- taskLocalInit "periods" defaultPeriods
   drInfo    <- taskLocal     "dropInfo"
   (buf :: Ref Global (Array 1 (Stored Uint8))) <- taskLocal     "buf"
@@ -54,7 +53,7 @@ gcsReceiveTask usart_area s_src dr_src = do
   taskInit $
     emit_ streamPeriodEmitter (constRef s_periods)
 
-  onPeriod p $ \_now -> do
+  onPeriod 1 $ \_now -> do
       -- XXX this task is totally invalid until we fix this to be part of the
       -- event loop
       n' <- call usartReadTimeout usart 1 (toCArray buf) 1

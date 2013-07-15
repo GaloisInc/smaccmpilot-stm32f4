@@ -20,7 +20,6 @@ blinkTask :: MemArea (Struct "pin")
           -> Task ()
 blinkTask pin_area s = do
   fmReader <- withDataReader s "flightmode"
-  p <- withPeriod 125
   taskInit $ do
     call_ pin_enable     pin
     call_ pin_set_otype  pin pinTypePushPull
@@ -32,7 +31,7 @@ blinkTask pin_area s = do
   flightMode <- taskLocal "flightmode"
   s_phase    <- taskLocal "phase"
 
-  onPeriod p $ \_now -> do
+  onPeriod 125 $ \_now -> do
     readData fmReader flightMode
     bmode  <- flightModeToBlinkMode flightMode
     phase  <- nextPhase 8 s_phase
