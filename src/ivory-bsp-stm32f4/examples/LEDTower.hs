@@ -55,7 +55,7 @@ blink per outSource = do
   -- Declare a period for this Task
   onPeriod per $ \time ->
     -- Emit boolean value which will alternate each period.
-    emitV_ outEmitter ((time .% 2*p) <? p)
+    emitV_ outEmitter (time .% (2*p) <? p)
   where p = fromIntegral per :: Uint32
 
 blinkApp :: Integer -> [GPIOPin] -> Tower ()
