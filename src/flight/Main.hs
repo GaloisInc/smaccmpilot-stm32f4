@@ -75,7 +75,7 @@ app = do
 
   task "sensors"   $ sensorsTask src_sensors
   task "userInput" $ userInputTask src_userinput src_flightmode
-  task "blink"     $ blinkTask GPIO.pin_b13 snk_flightmode
+  task "blink"     $ blinkTask [ relaypin, redledpin ] snk_flightmode
   task "control"   $ controlTask snk_flightmode snk_userinput
                       snk_sensors src_control
   task "motors"    $ motorsTask snk_control snk_flightmode src_servos
@@ -85,6 +85,9 @@ app = do
 
   mapM_ addDepends typeModules
   mapM_ addModule otherms
+  where
+  relaypin = GPIO.pin_b13
+  redledpin = GPIO.pin_b14
 
 gviz :: Assembly -> IO ()
 gviz a = graphvizToFile "out.dot" a

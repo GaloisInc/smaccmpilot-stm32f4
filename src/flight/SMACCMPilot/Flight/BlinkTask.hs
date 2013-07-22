@@ -15,18 +15,12 @@ import Ivory.BSP.HWF4.GPIO
 
 import qualified SMACCMPilot.Flight.Types.FlightMode as FM
 
-blinkTask :: MemArea (Struct "pin")
+blinkTask :: [MemArea (Struct "pin")]
           -> DataSink (Struct "flightmode")
           -> Task ()
-blinkTask pin_area s = do
+blinkTask pinAreas s = do
   fmReader <- withDataReader s "flightmode"
-  taskInit $ do
-    call_ pin_enable     pin
-    call_ pin_set_otype  pin pinTypePushPull
-    call_ pin_set_ospeed pin pinSpeed2Mhz
-    call_ pin_set_pupd   pin pinPupdNone
-    call_ pin_reset      pin
-    call_ pin_set_mode   pin pinModeOutput
+  taskInit $ mapM_ pinInit pins
 
   flightMode <- taskLocal "flightmode"
   s_phase    <- taskLocal "phase"
@@ -37,11 +31,27 @@ blinkTask pin_area s = do
     phase  <- nextPhase 8 s_phase
     output <- blinkOutput bmode phase
     ifte_ output
-      (call_ pin_reset pin) -- relay LEDs are active low.
-      (call_ pin_set   pin)
+      (mapM_ pinOn pins)
+      (mapM_ pinOff pins)
   taskModuleDef $ do
     depend gpioModule
-  where pin = addrOf pin_area
+  where pins = map addrOf pinAreas
+
+pinInit :: Ref Global (Struct "pin") -> Ivory eff ()
+pinInit pin = do
+    call_ pin_enable     pin
+    call_ pin_set_otype  pin pinTypePushPull
+    call_ pin_set_ospeed pin pinSpeed2Mhz
+    call_ pin_set_pupd   pin pinPupdNone
+    call_ pin_reset      pin
+    call_ pin_set_mode   pin pinModeOutput
+
+-- relay LEDs are active low.
+pinOn :: Ref Global (Struct "pin") -> Ivory eff ()
+pinOn p = call_ pin_reset p
+
+pinOff :: Ref Global (Struct "pin") -> Ivory eff ()
+pinOff p = call_ pin_set p
 
 nextPhase :: Uint8 -> (Ref s1 (Stored Uint8)) -> Ivory eff Uint8
 nextPhase highest r = do
