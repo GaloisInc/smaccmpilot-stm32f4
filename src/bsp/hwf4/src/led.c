@@ -24,8 +24,8 @@
 # define LED_ON_HIGH            /* drive high to turn on */
 # define LED_OFF_LOW            /* drive log to turn off */
 #elif defined(CONFIG_BOARD_PX4)
-# define LED_COUNT 2
-# define LED_PINS  { pin_b15, pin_b14 }
+# define LED_COUNT 1
+# define LED_PINS  { pin_b15 }
 # define LED_ON_LOW             /* drive low to turn on */
 # define LED_OFF_FLOAT          /* float to turn off */
 #else
