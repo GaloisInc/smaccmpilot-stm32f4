@@ -56,3 +56,8 @@ CONFIG_CBMC_PREFIX := ../../OutsideSrcs/cbmc/src/cbmc
 
 # location of CBMC driver (cbmc-report)
 CONFIG_CBMC_REPORT := $(CONFIG_CABAL_SANDBOX)/bin
+
+# ------------------------------------------------------------------------------
+# Uncomment the following line if you wish to build apps that use runtime
+# verification:
+CONFIG_BUILD_RTV := 1
