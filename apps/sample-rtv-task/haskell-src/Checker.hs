@@ -29,4 +29,6 @@ checksMod = createModule $ properties $ do
 checker :: Bool -> IO ()
 checker verbose = do
   curr <- getCurrentDirectory
-  writeCFilesForVariables verbose (curr </> "apps/sample-rtv-task"  </> "checker")
+  writeCFilesForVariables
+    verbose
+    (curr </> "apps/sample-rtv-task"  </> "checker")

@@ -54,28 +54,32 @@ update_time_block = importProc "update_time_block" legacyHdr
 readClockTask :: (SingI n) => ChannelSource n Clk -> Task ()
 readClockTask clkSrc = do
   clk <- withChannelEmitter clkSrc "clkSrc"
+
   let clkEmitterProc = clkEmitter clk
-  taskModuleDef $ incl clkEmitterProc
+  taskModuleDef (incl clkEmitterProc)
+
   onPeriod 1000 $ \_now -> -- once per sec
     call_ read_clock_block $ procPtr clkEmitterProc
 
--- Task wrapper: task reads the channel and updates its local state witht the
+-- Task wrapper: task reads the channel and updates its local state with the
 -- time.
 updateTimeTask :: (SingI n, SingI m)
                => ChannelSink n Clk -> ChannelSource m AssignStruct -> Task ()
 updateTimeTask clk chk = do
   rx <- withChannelReceiver clk "timeRx"
   newVal <- withChannelEmitter chk "newVal"
+
   let recordEmitProc = recordEmit newVal
-  taskModuleDef $ do
-    incl recordEmitProc
-    incl update_time_init
-  taskInit $
-    call_ update_time_init $ procPtr recordEmitProc
+  taskModuleDef (incl recordEmitProc)
+
+  taskInit (call_ update_time_init $ procPtr recordEmitProc)
   onChannelV rx $ \time -> do
     call_ update_time_block time
 
 --------------------------------------------------------------------------------
+
+assignModule :: Module
+assignModule = package "assignment" $ defStruct (Proxy :: Proxy "assignment")
 
 tasks :: Tower ()
 tasks = do
@@ -84,6 +88,11 @@ tasks = do
   task "verify_updates" $ checkerTask chkSink
   task "readClockTask"  $ readClockTask clkSrc
   task "updateTimeTask" $ updateTimeTask clkSink chkSrc
+
+  -- Create assignments definition
+  addModule assignModule
+  -- Include it everywhere
+  addDepends assignModule
 
 --------------------------------------------------------------------------------
 
