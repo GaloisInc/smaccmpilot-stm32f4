@@ -13,8 +13,6 @@ export RTV_DECLS := $(TOP)/apps/sample-rtv-task/instrumented-decls
 
 $(eval $(call ivory_pkg,IVORY_PKG_SAMPLE_RTV_TASK,sample-rtv-task-checker-gen))
 
-$(eval $(call cbmc_pkg,APP_RTV,IVORY_PKG_SAMPLE))
-
 APP_RTV_IMG       := sample-rtv
 
 APP_RTV_OBJECTS   :=                    \
@@ -40,6 +38,8 @@ APP_RTV_LIBRARIES += libstm32_usb.a
 APP_RTV_LIBRARIES += libFreeRTOS.a
 
 APP_RTV_LIBS      += -lm
+
+$(eval $(call cbmc_pkg,APP_RTV,IVORY_PKG_SAMPLE))
 
 ifneq ($(CONFIG_BUILD_RTV),)
 $(eval $(call image,APP_RTV))
