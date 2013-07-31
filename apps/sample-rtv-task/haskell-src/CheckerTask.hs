@@ -61,12 +61,11 @@ runCheck = do
 -- Checker task
 checkerTask :: (SingI n) => ChannelSink n AssignStruct -> Task ()
 checkerTask sink = do
+  -- Add dependencies
+  taskModuleDef $ incl mkHistory >> incl led_set
+
   -- "src" string only is for graphviz output for now
   rx <- withChannelReceiver sink "rvSink"
-  taskModuleDef $ do
-    defStruct (Proxy :: Proxy "assignment")
-    incl mkHistory
-    incl led_set
   onChannel rx $ \latestVal -> do
      call_ mkHistory latestVal
      runCheck

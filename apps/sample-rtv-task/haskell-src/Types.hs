@@ -24,6 +24,6 @@ struct assignment
 --------------------------------------------------------------------------------
 
 type AssignStruct = Struct "assignment"
-type AssignRef s = ConstRef s AssignStruct
+type AssignRef s  = ConstRef s AssignStruct
 
 --------------------------------------------------------------------------------

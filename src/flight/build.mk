@@ -50,58 +50,59 @@ FLIGHT_OBJECTS := $(addprefix src/,\
 
 FLIGHT_REAL_OBJECTS += $(IVORY_PKG_FLIGHT_OBJECTS)
 
+$(eval $(call cbmc_pkg,FLIGHT,IVORY_PKG_FLIGHT))
+
 $(eval $(call library,FLIGHT))
 
 # ------------------------------------------------------------------------------
 # CBMC stuff
 # ------------------------------------------------------------------------------
 
-CBMC_INCS = \
-  -I./src/bsp/hwf4/include \
-  -I./src/bsp/include \
-  -I./src/flight/include \
-	$(IVORY_PKG_FLIGHT_CFLAGS) \
-	-I$(GEN_DIR)/src/flight/flight \
-  $(FREERTOS_INCLUDES)
+# CBMC_SRCS		:= $(patsubst %, --src=%, $(IVORY_PKG_FLIGHT_SOURCES))
+# CBMC_INCLS  := \
+#   -I./src/bsp/hwf4/include \
+#   -I./src/bsp/include \
+#   -I./src/flight/include \
+# 	$(IVORY_PKG_FLIGHT_CFLAGS) \
+# 	-I$(GEN_DIR)/src/flight/flight \
+#   $(FREERTOS_INCLUDES)
 
-CBMC_EXEC		:= $(addprefix $(CONFIG_CBMC_PREFIX)/, cbmc)
-CBMC_REPORT	:= $(addprefix $(CONFIG_CBMC_REPORT)/, cbmc-reporter)
-CBMC_SRCS		:= $(patsubst %, --src=%, $(IVORY_PKG_FLIGHT_SOURCES))
-TABLE        = $(TOP)/src/flight/claims-table
-ENTRY_FUNCS	:= $(patsubst %, --function=%, $(IVORY_PKG_FLIGHT_SYMS))
 
-.PHONY: verify
-verify: $(IVORY_PKG_FLIGHT_HEADERS) $(IVORY_PKG_FLIGHT_SOURCES)
-	$(CBMC_REPORT) \
-    --outfile=$(TABLE).md \
-    --format=markdown \
-    --timeout=60 \
-    --no-asserts \
-    --threads=2 \
-    --sort=result \
-    --cbmc=$(CBMC_EXEC) \
-    $(CBMC_INCS) \
-    $(CBMC_SRCS) \
-    $(ENTRY_FUNCS) \
-    -- -D IVORY_CBMC
-	pandoc -o $(TABLE).html $(TABLE).md
+# TABLE        = $(TOP)/src/flight/claims-table
+# ENTRY_FUNCS	:= $(patsubst %, --function=%, $(IVORY_PKG_FLIGHT_SYMS))
 
-# Just for testing
-.PHONY: verify-test
-verify-test: $(IVORY_PKG_FLIGHT_HEADERS) $(IVORY_PKG_FLIGHT_SOURCES)
-	$(CBMC_REPORT) \
-    --format=markdown \
-    --timeout=60 \
-    --no-asserts \
-    --sort=result \
-    --cbmc=$(CBMC_EXEC) \
-    $(CBMC_INCS) \
-    $(CBMC_SRCS) \
-    --function=tower_entry \
-    -- -D IVORY_CBMC
+# .PHONY: verify
+# verify: $(IVORY_PKG_FLIGHT_HEADERS) $(IVORY_PKG_FLIGHT_SOURCES)
+# 	$(CBMC_REPORT) \
+# 		--outfile=$(TABLE).md \
+# 		--format=markdown \
+# 		--timeout=60 \
+# 		--no-asserts \
+# 		--threads=2 \
+# 		--sort=result \
+# 		--cbmc=$(CBMC_EXEC) \
+# 		$(CBMC_INCS) \
+# 		$(CBMC_SRCS) \
+# 		$(ENTRY_FUNCS) \
+# 		-- -D IVORY_CBMC
+# 	pandoc -o $(TABLE).html $(TABLE).md
+
+# # Just for testing
+# .PHONY: verify-test
+# verify-test: $(IVORY_PKG_FLIGHT_HEADERS) $(IVORY_PKG_FLIGHT_SOURCES)
+# 	$(CBMC_REPORT) \
+#     --format=markdown \
+#     --timeout=60 \
+#     --no-asserts \
+#     --sort=result \
+#     --cbmc=$(CBMC_EXEC) \
+#     $(CBMC_INCS) \
+#     $(CBMC_SRCS) \
+#     --function=tower_entry \
+#     -- -D IVORY_CBMC
 
     # --outfile=$(TOP)/ivory/claims-table-tmp.md \
 
-CLEAN += $(TABLE).html
+# CLEAN += $(TABLE).html
 
 # vim: set ft=make noet ts=2:

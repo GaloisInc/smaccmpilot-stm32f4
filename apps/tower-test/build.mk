@@ -13,6 +13,8 @@
 
 $(eval $(call ivory_pkg,IVORY_PKG_TOWER_TEST,ivory-tower-freertos-example))
 
+$(eval $(call cbmc_pkg,APP_TWRTEST,IVORY_PKG_TOWER_TEST))
+
 APP_TWRTEST_IMG          := tower-test
 
 APP_TWRTEST_OBJECTS      := main.o

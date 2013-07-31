@@ -11,6 +11,8 @@
 
 $(eval $(call ivory_pkg,IVORY_PKG_SPI_TEST,bsp-spi-tower-test-gen))
 
+$(eval $(call cbmc_pkg,BSP_SPI_TEST,IVORY_PKG_SPI_TEST))
+
 BSP_SPI_TEST_IMG          := bsp-spi-test
 BSP_SPI_TEST_OBJECTS      := main.o
 BSP_SPI_TEST_REAL_OBJECTS += $(IVORY_PKG_SPI_TEST_OBJECTS)
