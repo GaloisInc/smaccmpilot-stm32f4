@@ -86,7 +86,7 @@ uint32_t securePkg_dec(commsec_ctx *ctx, uint8_t *pkg, uint32_t pkgLen)
     theirCounter += ((uint32_t)pkg[5]) << 16;
     theirCounter += ((uint32_t)pkg[6]) << 8;
     theirCounter += ((uint32_t)pkg[7]);
-    if(theirID >= MAX_BASE_STATIONS || theirID == ctx->myId) {
+    if(theirID >= MAX_BASE_STATIONS) {
         // the ID is invalid
         ret = COMMSEC_FAIL_BAD_BASE_STATION;
     } else if(ctx->mostRecentCounter[theirID] >= theirCounter) {
