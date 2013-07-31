@@ -92,6 +92,7 @@ foreign import ccall "securePkg_init"
 
 secPkgInit :: BaseId -> Word32 -> ByteString -> Word32 -> ByteString -> IO SecureContext
 secPkgInit bid dsalt dkey esalt ekey = do
+    -- FIXME sizeof is giving bad values!
     fptr <- mallocForeignPtrBytes ({#sizeof commsec_ctx#} + 10000)
     b <- withForeignPtr fptr $ \ctx ->
           BC.unsafeUseAsCString dkey $ \ptrD ->
@@ -268,16 +269,50 @@ prop_encEq dKeySmall eKeySmall ptSmall dsalt esalt ctr
   = monadicIO $ do
     let dkey = B.take 16 (B.append dKeySmall (B.replicate 16 0))
     let ekey = B.take 16 (B.append eKeySmall (B.replicate 16 0))
-    let pt   = B.take (max (B.length pt) 1) (B.append pt (B.replicate 1 1))
-    sctx <- run $ secPkgInit (BaseId 0) dsalt dkey esalt ekey
+    let pt   = B.take (max (B.length ptSmall) 1) (B.append ptSmall (B.replicate 1 1))
+    sctx <- run $ secPkgInit    (BaseId 0) dsalt dkey esalt ekey
     rctx <- run $ secPkgInit_HS (BaseId 0) dsalt dkey esalt ekey
     rPKG <- run $ secPkgEnc_HS rctx pt
     sPKG <- run $ secPkgEnc sctx pt
     assert $ sPKG == rPKG
 
+prop_decCompat :: ByteString -> ByteString -> ByteString -> Word32 -> Word32 -> Word32 -> Property
+prop_decCompat dKeySmall eKeySmall ptSmall dsalt esalt ctr
+  = monadicIO $ do
+    let dkey = B.take 16 (B.append dKeySmall (B.replicate 16 0))
+    let ekey = B.take 16 (B.append eKeySmall (B.replicate 16 0))
+    let pt   = B.take (max (B.length ptSmall) 1) (B.append ptSmall (B.replicate 1 1))
+    sctx <- run $ secPkgInit (BaseId 0) dsalt dkey esalt ekey
+    rctx <- run $ secPkgInit_HS (BaseId 0) dsalt dkey esalt ekey
+    Just rPKG <- run $ secPkgEncInPlace_HS rctx pt
+    Just sPKG <- run $ secPkgEncInPlace sctx pt
+    dec1 <- run $ secPkgDec_HS rctx sPKG
+    dec2 <- run $ secPkgDec sctx rPKG
+    assert $ sPKG == rPKG && dec1 == dec2
+
+prop_decFail :: ByteString -> ByteString -> ByteString -> Word32 -> Word32 -> Word32 -> Property
+prop_decFail dKeySmall eKeySmall ptSmall dsalt esalt ctr
+  = monadicIO $ do
+    let dkey = B.take 16 (B.append dKeySmall (B.replicate 16 0))
+    let ekey = B.take 16 (B.append eKeySmall (B.replicate 16 0))
+    let pt   = B.take (max (B.length ptSmall) 1) (B.append ptSmall (B.replicate 1 1))
+    sctx <- run $ secPkgInit (BaseId 0) dsalt dkey esalt ekey
+    rctx <- run $ secPkgInit_HS (BaseId 0) dsalt dkey esalt ekey
+    Just sPKG0 <- run $ secPkgEncInPlace sctx pt
+    i <- pick $ fmap ((`rem` B.length sPKG0) . abs) arbitrary
+    let sPKG = B.pack . incIth i . B.unpack $ sPKG0
+    dec1 <- run $ secPkgDec_HS rctx sPKG
+    dec2 <- run $ secPkgDec sctx sPKG
+    assert $ dec1 == dec2 && dec1 == Nothing
+ where
+ incIth i ls = take i ls ++ [(ls !! i) + 1] ++ drop (i+1) ls
+
 data Test = forall a. Testable a => T a String
 
-tests = [T prop_encEq "prop_encEq"]
+tests = [T prop_encEq "prop_encEq"
+        ,T prop_decFail "prop_decFail"
+        ,T prop_decCompat "prop_decCompat"
+        ]
 
 runTest :: Test -> IO ()
 runTest (T a s) = putStrLn ("Testing: " ++ s) >> quickCheck a
@@ -286,7 +321,8 @@ runTests :: [Test] -> IO ()
 runTests = mapM_ runTest
 
 main :: IO ()
--- main = runTests
+main = runTests tests
+{-
 main = do
     putStrLn "Notice the commsec_ctx structure is ~9k, depending on configuration.  However, c2hs believes it is smaller (see the below number) so we manually ad 10K to make this test work.   This is a definite FIXME."
     print {#sizeof commsec_ctx#}
@@ -303,3 +339,4 @@ main = do
     secPkgDec ctx pkg2 >>= print
     secPkgDec ctx pkg3 >>= print
     return ()
+-}
