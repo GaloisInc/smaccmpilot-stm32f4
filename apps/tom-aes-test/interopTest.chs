@@ -92,7 +92,7 @@ foreign import ccall "securePkg_init"
 
 secPkgInit :: BaseId -> Word32 -> ByteString -> Word32 -> ByteString -> IO SecureContext
 secPkgInit bid dsalt dkey esalt ekey = do
-    fptr <- mallocForeignPtrBytes ({#sizeof commsec_ctx#} + 5000)
+    fptr <- mallocForeignPtrBytes ({#sizeof commsec_ctx#} + 10000)
     b <- withForeignPtr fptr $ \ctx ->
           BC.unsafeUseAsCString dkey $ \ptrD ->
            BC.unsafeUseAsCString ekey $ \ptrE ->
@@ -288,15 +288,18 @@ runTests = mapM_ runTest
 main :: IO ()
 -- main = runTests
 main = do
+    putStrLn "Notice the commsec_ctx structure is ~9k, depending on configuration.  However, c2hs believes it is smaller (see the below number) so we manually ad 10K to make this test work.   This is a definite FIXME."
+    print {#sizeof commsec_ctx#}
     let key = B.replicate 16 0
     ctx <- secPkgInit (BaseId 0) 1 key 1 key
-    Just pkg1 <- secPkgEncInPlace ctx (B.replicate 94 4)
-    Just pkg2 <- secPkgEncInPlace ctx (B.replicate 94 4)
-    Just pkg3 <- secPkgEncInPlace ctx (B.replicate 94 4)
+    ctx2 <- secPkgInit_HS (BaseId 0) 1 key 1 key
+    Just pkg1 <- secPkgEncInPlace_HS ctx2 (B.pack [1..100])
+    Just pkg2 <- secPkgEncInPlace ctx (B.pack [1..100])
+    Just pkg3 <- secPkgEncInPlace ctx (B.pack [1..100])
     print pkg1
     print pkg2
     print pkg3
-    secPkgDec ctx pkg1 >>= print
+    secPkgDec_HS ctx2 pkg1 >>= print
     secPkgDec ctx pkg2 >>= print
     secPkgDec ctx pkg3 >>= print
     return ()
