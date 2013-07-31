@@ -24,8 +24,6 @@ uint32_t securePkg_enc_in_place(commsec_ctx *ctx, uint8_t *msg, uint32_t msgStar
     uint32_t ret;
     if(msgStartIdx < 8) {
         ret = COMMSEC_FAIL_BAD_INPUT;
-    } else if(msgLen > 512) {
-        ret = COMMSEC_FAIL_MSG_LENGTH_VIOLATES_ASSUMPTIONS;
     } else {
         ret = securePkg_enc(ctx, msg+msgStartIdx, msgLen
                            , msg+msgStartIdx-HEADER_LEN
@@ -41,6 +39,8 @@ uint32_t securePkg_enc(commsec_ctx *ctx, uint8_t *msg, uint32_t msgLen
     uint32_t ret=0;
     if(msgLen > MAX_MESSAGE_LEN) {
         ret = COMMSEC_FAIL_MSG_LENGTH_VIOLATES_ASSUMPTIONS;
+    } else if(ctx->myCounter == UINT32_MAX) {
+        ret = COMMSEC_FAIL_CTR_ROLLOVER;
     } else {
         uint8_t iv[IV_LEN];
         ret_type gcmRet;
@@ -56,6 +56,7 @@ uint32_t securePkg_enc(commsec_ctx *ctx, uint8_t *msg, uint32_t msgLen
         iv[9]  = (ctx->myCounter >> 16) & 0xFF;
         iv[10] = (ctx->myCounter >> 8 ) & 0xFF;
         iv[11] = (ctx->myCounter      ) & 0xFF;
+        ctx->myCounter++;
         gcmRet = gcm_encrypt_message( (const unsigned char *)iv, 12
                                     , NULL, 0
                                     , msg, msgLen
