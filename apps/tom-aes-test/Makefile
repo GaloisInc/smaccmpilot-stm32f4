@@ -1,15 +1,25 @@
-CFLAGS = -g
+CFLAGS        := -g
+CABAL         := cabal-dev
+CABAL_INSTALL := $(CABAL) install
 
-all: interopTest.hs *.c *.h
-	gcc $(CFLAGS) -c aescrypt.c
-	gcc $(CFLAGS) -c aeskey.c
-	gcc $(CFLAGS) -c aestab.c
-	gcc $(CFLAGS) -c commsec.c
-	gcc $(CFLAGS) -c gcm.c
-	gcc $(CFLAGS) -c gf128mul.c
-	gcc $(CFLAGS) -c gf_convert.c
-#	gcc -c interopTest_hsc_make.c
-#	gcc -c test-main.c
-	ar cr commsec.a aescrypt.o aeskey.o aestab.o commsec.o gcm.o gf128mul.o gf_convert.o 
-	c2hs interopTest.chs
+all: interopTest
+
+interopTest: interopTest.hs commsec.a *.c *.h
+	$(CABAL) install cereal
+	$(CABAL) install cipher-aes
 	ghc -O2 interopTest.hs -o interopTest commsec.a
+
+%.hs: %.chs
+	c2hs $<
+
+%.o: %.c
+	gcc $(CFLAGS) -c $<
+
+commsec.a:
+	ar cr commsec.a aescrypt.o aeskey.o aestab.o commsec.o gcm.o gf128mul.o gf_convert.o
+
+.PHONY: clean
+clean:
+	@rm -rf cabal-dev
+	@rm interopTest.hs
+	@rm interopTest
