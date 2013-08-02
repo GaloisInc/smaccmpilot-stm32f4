@@ -13,7 +13,7 @@
 
 $(eval $(call ivory_pkg,IVORY_PKG_TOWER_RPC_TEST,ivory-tower-freertos-example-rpc))
 
-$(eval $(call cbmc_pkg,APP_TWRTEST,IVORY_PKG_TOWER_RPC_TEST))
+$(eval $(call cbmc_pkg,APP_TOWER_RPC_TEST,IVORY_PKG_TOWER_RPC_TEST))
 
 APP_TOWER_RPC_TEST_IMG          := tower-rpc-test
 
