@@ -30,7 +30,7 @@ ledOff pin = pinSetMode pin gpio_mode_analog
 -- | LED Controller: Given a set of GPIO pins and a control channel of booleans,
 --   setup the pin hardware, and turn the pins on when the control channel is
 --   true.
-ledController :: (SingI n) => [GPIOPin] -> ChannelSink n (Stored IBool) -> Task ()
+ledController :: (SingI n) => [GPIOPin] -> ChannelSink n (Stored IBool) -> Task p ()
 ledController pins outputSink = do
   -- Bring the channel into scope for this Task
   rxer <- withChannelReceiver outputSink "outputSink"
@@ -48,7 +48,7 @@ ledController pins outputSink = do
 
 -- | Blink task: Given a period and a channel source, output an alternating
 --   stream of true / false on each period.
-blink :: (SingI n) => Integer -> ChannelSource n (Stored IBool) -> Task ()
+blink :: (SingI n) => Integer -> ChannelSource n (Stored IBool) -> Task p ()
 blink per outSource = do
   -- Bring the emitter into scope for this Task
   outEmitter <- withChannelEmitter outSource "output"
@@ -58,7 +58,7 @@ blink per outSource = do
     emitV_ outEmitter (time .% (2*p) <? p)
   where p = fromIntegral per :: Uint32
 
-blinkApp :: Integer -> [GPIOPin] -> Tower ()
+blinkApp :: Integer -> [GPIOPin] -> Tower p ()
 blinkApp period pins = do
   (src_led, sink_led) <- channel
   task "blink"  $ blink         period src_led

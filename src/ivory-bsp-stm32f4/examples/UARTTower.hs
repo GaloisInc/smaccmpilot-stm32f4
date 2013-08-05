@@ -19,7 +19,7 @@ import Ivory.BSP.STM32F4.GPIO
 import Ivory.BSP.STM32F4.UART
 import Ivory.BSP.STM32F4.UART.Regs
 
-app :: Tower ()
+app :: Tower p ()
 app = do
   LEDTower.blinkApp period [blue]
 
@@ -44,7 +44,7 @@ echoPrompt :: (SingI n, SingI m, SingI o)
            -> ChannelSource n (Stored Uint8)
            -> ChannelSink   m (Stored Uint8)
            -> ChannelSource o (Stored IBool)
-           -> Tower ()
+           -> Tower p ()
 echoPrompt greet ostream istream ledctlstream = task "echoprompt" $ do
   o <- withChannelEmitter  ostream "ostream"
   i <- withChannelReceiver istream "istream"

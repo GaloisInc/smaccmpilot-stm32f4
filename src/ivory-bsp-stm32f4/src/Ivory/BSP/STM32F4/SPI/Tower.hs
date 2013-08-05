@@ -35,8 +35,8 @@ struct spi_transaction_result
 |]
 
 spiTower :: SPIPeriph
-         -> Tower ( ChannelSource 16 (Struct "spi_transmission")
-                  , ChannelSink   16 (Struct "spi_transaction_result"))
+         -> Tower p ( ChannelSource 16 (Struct "spi_transmission")
+                    , ChannelSink   16 (Struct "spi_transaction_result"))
 spiTower spi = do
   addDepends spiTowerTypes
   addModule  spiTowerTypes
@@ -54,7 +54,7 @@ spiSignal :: (SingI n, SingI m)
        => SPIPeriph
        -> ChannelSink   n (Struct "spi_transmission")
        -> ChannelSource m (Struct "spi_transaction_result")
-       -> Signal ()
+       -> Signal p ()
 spiSignal spi froCtl toCtl = do
   eCtl <- withChannelEmitter  toCtl "toCtl"
   rCtl <- withChannelReceiver froCtl "froCtl"

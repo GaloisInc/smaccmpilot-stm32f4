@@ -42,7 +42,7 @@ mpu6k = SPIDevice
 greeting :: String
 greeting = "spi console. 1 to start:"
 
-app ::  Tower ()
+app ::  Tower p ()
 app = do
   -- Red led : pinB14
   -- Blue led : pinB15
@@ -60,14 +60,14 @@ app = do
   (toSig, froSig) <- spiTower spi1
   task   "spiCtl" $ spiCtl    spi1 mpu6k toSig froSig (snk start) (src uarto)
 
-spiCtl :: (SingI n, SingI m, SingI o, SingI p)
+spiCtl :: (SingI n, SingI m, SingI o, SingI q)
        => SPIPeriph
        -> SPIDevice
        -> ChannelSource n (Struct "spi_transmission")
        -> ChannelSink   m (Struct "spi_transaction_result")
        -> ChannelSink   o (Stored IBool)
-       -> ChannelSource p (Stored Uint8)
-       -> Task ()
+       -> ChannelSource q (Stored Uint8)
+       -> Task p ()
 spiCtl spi device toSig froSig chStart chdbg = do
   eSig   <- withChannelEmitter  toSig   "toSig"
   rSig   <- withChannelReceiver froSig  "froSig"

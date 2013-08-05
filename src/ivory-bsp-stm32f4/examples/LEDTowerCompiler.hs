@@ -13,7 +13,7 @@ import Ivory.BSP.STM32F4.GPIO
 
 import LEDTower (blinkApp)
 
-app :: Tower ()
+app :: Tower p ()
 app = blinkApp period leds
   where
   period = 250
