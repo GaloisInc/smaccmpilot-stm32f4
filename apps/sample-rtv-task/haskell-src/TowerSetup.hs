@@ -51,7 +51,7 @@ update_time_block = importProc "update_time_block" legacyHdr
 
 -- Task wrapper: task reads a logical clock and passes the result to
 -- updateTimeTask.
-readClockTask :: (SingI n) => ChannelSource n Clk -> Task ()
+readClockTask :: (SingI n) => ChannelSource n Clk -> Task p ()
 readClockTask clkSrc = do
   clk <- withChannelEmitter clkSrc "clkSrc"
 
@@ -64,7 +64,7 @@ readClockTask clkSrc = do
 -- Task wrapper: task reads the channel and updates its local state with the
 -- time.
 updateTimeTask :: (SingI n, SingI m)
-               => ChannelSink n Clk -> ChannelSource m AssignStruct -> Task ()
+               => ChannelSink n Clk -> ChannelSource m AssignStruct -> Task p ()
 updateTimeTask clk chk = do
   rx <- withChannelReceiver clk "timeRx"
   newVal <- withChannelEmitter chk "newVal"
@@ -81,7 +81,7 @@ updateTimeTask clk chk = do
 assignModule :: Module
 assignModule = package "assignment" $ defStruct (Proxy :: Proxy "assignment")
 
-tasks :: Tower ()
+tasks :: Tower p ()
 tasks = do
   (chkSrc, chkSink) <- channel
   (clkSrc, clkSink) <- channel
