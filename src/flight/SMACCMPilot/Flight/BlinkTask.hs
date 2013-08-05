@@ -17,7 +17,7 @@ import qualified SMACCMPilot.Flight.Types.FlightMode as FM
 
 blinkTask :: [MemArea (Struct "pin")]
           -> DataSink (Struct "flightmode")
-          -> Task ()
+          -> Task p ()
 blinkTask pinAreas s = do
   fmReader <- withDataReader s "flightmode"
   taskInit $ mapM_ pinInit pins

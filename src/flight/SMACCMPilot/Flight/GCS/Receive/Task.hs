@@ -24,7 +24,7 @@ gcsReceiveTask :: (SingI n, SingI m)
                => MemArea (Struct "usart")
                -> ChannelSource n (Struct "gcsstream_timing")
                -> ChannelSource m (Struct "data_rate_state")
-               -> Task ()
+               -> Task p ()
 gcsReceiveTask usart_area s_src dr_src = do
   n <- freshname
 

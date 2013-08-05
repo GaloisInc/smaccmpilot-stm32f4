@@ -18,7 +18,7 @@ motorsTask :: (SingI n)
            => ChannelSink n (Struct "controloutput")
            -> DataSink (Struct "flightmode")
            -> DataSource (Struct "servos")
-           -> Task ()
+           -> Task p ()
 motorsTask cs ms ss = do
   ctlRxer   <- withChannelReceiver cs "ctlOut"
   fmReader  <- withDataReader ms "flightMode"

@@ -34,7 +34,7 @@ gcsTransmitTask :: (SingI n, SingI m)
                 -> DataSink (Struct "position_result")
                 -> DataSink (Struct "controloutput")
                 -> DataSink (Struct "servos")
-                -> Task ()
+                -> Task p ()
 gcsTransmitTask usart sp_sink dr_sink fm_sink se_sink ps_sink ct_sink sr_sink
   = do
   streamPeriodRxer <- withChannelReceiver sp_sink  "streamperiods"

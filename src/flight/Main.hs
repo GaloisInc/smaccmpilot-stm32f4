@@ -60,7 +60,7 @@ main = do
   compileWith (Just sizeMap) (Just [FreeRTOS.searchDir, Stdlib.searchDir]) objs
   gviz asm
 
-app :: Tower ()
+app :: Tower p ()
 app = do
   (src_userinput, snk_userinput)   <- dataport
   (src_flightmode, snk_flightmode) <- dataport
