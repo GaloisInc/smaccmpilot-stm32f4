@@ -11,7 +11,7 @@
 # Written by Pat Hickey <pat@galois.com>, January 08, 2013
 #
 
-$(eval $(call ivory_pkg,IVORY_PKG_TOWER_TEST,ivory-tower-freertos-example))
+$(eval $(call ivory_pkg,IVORY_PKG_TOWER_TEST,tower-example-simple))
 
 APP_TWRTEST_IMG          := tower-test
 
