@@ -25,13 +25,27 @@ quiet_cmd_ivory_dep = IVORYDEP $2
 quiet_cmd_ivory_gen = IVORYGEN $2
       cmd_ivory_gen = $3
 
+quiet_cmd_dot       = DOT      $2
+      cmd_dot       = dot -Tpdf $3 -o $4
+
 # tower_pkg:
 # $1 package name
 # $2 package generator exe
 
 define tower_pkg
+$(1)_TOWER_DOT  = $$($(1)_GEN_DIR)/$(2).dot
+$(1)_TOWER_PDF  = $$($(1)_GEN_DIR)/$(2).pdf
+
 $(call ivory_pkg,$1,$2,--platform=$$($(CONFIG_PLATFORM)_TOWER_PLATFORM) \
                        --operating-system=$$($(CONFIG_PLATFORM)_TOWER_OS))
+
+$$($(1)_TOWER_PDF): $$($(1)_TOWER_DOT)
+	$(call cmd,dot,$1,$$($(1)_TOWER_DOT),$$($(1)_TOWER_PDF))
+
+ifneq ($(CONFIG_BUILD_DOT_PDF),)
+IMAGES += $$($(1)_TOWER_PDF)
+endif
+
 endef
 
 # ivory_pkg:
@@ -48,7 +62,7 @@ $(1)_CFLAGS           := -I$$($(1)_GEN_DIR)
 
 -include $$($(1)_DEP_FILE)
 
-$$($(1)_DEP_FILE): $$($(1)_GEN_EXE) $(MAKEFILE_LIST)
+$$($(1)_DEP_FILE) $$($(1)_TOWER_DOT): $$($(1)_GEN_EXE) $(MAKEFILE_LIST)
 	$(call cmd,ivory_dep,$1,                              \
 	  $$($(1)_GEN_EXE)                                    \
 	  --src-dir=$$($(1)_GEN_DIR)                          \
