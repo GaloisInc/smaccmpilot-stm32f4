@@ -70,11 +70,11 @@ $$($(1)_HEADERS) $$($(1)_SOURCES): $$($(1)_DEP_FILE)
 	  $(3))
 
 ifdef $(1)_GEN_SYMS
-$(1)_SYMS := $$(shell $$($(1)_GEN_EXE)                \
-  --src-dir=$$($(1)_GEN_DIR)                          \
-	--include-dir=$$($(1)_GEN_DIR)/$$($(1)_INCLUDE_DIR) \
-	--out-proc-syms                                     \
-	$(3))
+$(1)_SYMS := $$(shell $$($(1)_GEN_EXE)                  \
+	  --src-dir=$$($(1)_GEN_DIR)                          \
+	  --include-dir=$$($(1)_GEN_DIR)/$$($(1)_INCLUDE_DIR) \
+	  --out-proc-syms                                     \
+	  $(3))
 endif
 
 $(1)_OBJECTS := $$(patsubst $$($(1)_GEN_DIR)%.c,$$(OBJ_DIR)/$$($(1)_PREFIX)%.o,$$($(1)_SOURCES))
