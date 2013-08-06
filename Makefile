@@ -21,15 +21,18 @@ PLATFORMS = $(subst platform_,,$(basename $(notdir $(wildcard $(PLATFORM_DIR)pla
 MQUIET = --no-print-directory
 #MQUIET = --print-directory
 
-default: allplatforms
+default: px4fmu17_freertos
 
 allplatforms:
 	@for platform in $(PLATFORMS); do \
 		make -f mk/main.mk $(MQUIET) $(TARGET) CONFIG_PLATFORM=$$platform; \
 	done
 
-px4fmu17_freertos: PLATFORMS := px4fmu17_freertos
+px4fmu17_freertos: PLATFORMS = px4fmu17_freertos
 px4fmu17_freertos: allplatforms
+
+aadl: PLATFORMS = px4fmu17_aadl
+aadl: allplatforms
 
 clean:
 	-rm -rf ./build
