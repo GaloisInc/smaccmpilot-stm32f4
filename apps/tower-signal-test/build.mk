@@ -11,7 +11,7 @@
 # Written by Pat Hickey <pat@galois.com>, January 08, 2013
 #
 
-$(eval $(call ivory_pkg,IVORY_PKG_TOWER_SIGNALS_TEST,tower-example-signals))
+$(eval $(call tower_pkg,IVORY_PKG_TOWER_SIGNALS_TEST,tower-example-signals))
 
 $(eval $(call cbmc_pkg,APP_TOWER_SIGNALS_TEST,IVORY_PKG_TOWER_SIGNALS_TEST))
 

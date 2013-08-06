@@ -11,7 +11,7 @@
 # Written by Pat Hickey <pat@galois.com>, January 08, 2013
 #
 
-$(eval $(call ivory_pkg,IVORY_PKG_TOWER_RPC_TEST,tower-example-rpc))
+$(eval $(call tower_pkg,IVORY_PKG_TOWER_RPC_TEST,tower-example-rpc))
 
 $(eval $(call cbmc_pkg,APP_TOWER_RPC_TEST,IVORY_PKG_TOWER_RPC_TEST))
 
