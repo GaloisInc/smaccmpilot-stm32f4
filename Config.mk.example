@@ -8,9 +8,6 @@
 # "LICENSE" for more information.
 #
 
-# Architecture to compile for (one of mk/arch/*.mk).
-CONFIG_ARCH := px4
-
 # GCC prefix for the Cortex-M4 toolchain.
 #CONFIG_CORTEX_M4_PREFIX := $(HOME)/local/gcc-arm-none-eabi-4_6-2012q1/bin/arm-none-eabi-
 # Or if the toolchain is in your PATH:
@@ -24,9 +21,6 @@ CONFIG_IVORY_REPOSITORY := ../ivory
 
 # Path to tower repository
 CONFIG_TOWER_REPOSITORY := ../tower
-
-# Target board (one of mk/board/*.mk).
-CONFIG_BOARD := fmu_v17
 
 # Root directory of the FreeRTOS source tree.
 CONFIG_FREERTOS_PREFIX := ../FreeRTOS
@@ -43,8 +37,11 @@ CONFIG_ARDUPILOT_EXTRA_CFLAGS += -DLOGGING_ENABLED=DISABLED
 # unset if flashing purely via JTAG.
 CONFIG_PX4FMU_BOOTLOADER := 1
 
-# GCS UART selection (default is "usart1").
-# CONFIG_GCS_UART := uart5
+# ------------------------------------------------------------------------------
+# Optional: use graphviz to generate PDF from tower graph output.
+# Uncomment this option if you have the `dot` tool installed.
+#
+# CONFIG_BUILD_DOT_PDF := 1
 
 # ------------------------------------------------------------------------------
 # Optional: for model-checking with CBMC
@@ -57,6 +54,7 @@ CONFIG_CBMC_PREFIX := ../../OutsideSrcs/cbmc/src/cbmc
 CONFIG_CBMC_REPORT := $(CONFIG_CABAL_SANDBOX)/bin
 
 # ------------------------------------------------------------------------------
-# Comment the following line if you wish to build apps that use runtime
+# Comment the following line to disable building apps that use runtime
 # verification:
 CONFIG_BUILD_RTV := 1
+
