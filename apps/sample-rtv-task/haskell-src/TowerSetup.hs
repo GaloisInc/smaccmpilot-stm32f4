@@ -14,11 +14,9 @@ import Types
 import CheckerTask
 import Checker
 
-import Ivory.Tower
-
 import Ivory.Language
-import qualified Ivory.Tower.Compile.FreeRTOS as F
-import qualified Ivory.Compile.C.CmdlineFrontend as C
+import Ivory.Tower
+import Ivory.Tower.Frontend
 
 
 --------------------------------------------------------------------------------
@@ -99,17 +97,8 @@ tasks = do
 main :: IO ()
 main = do
   args <- getArgs
-  let (_, objs) = F.compile tasks
-
-  -- C.runCompiler objs C.initialOpts
-  C.compileWith
-    Nothing
-    (Just [F.searchDir])
-    (checksMod : objs)
-
+  compile defaultBuildConf (tasks >> addModule checksMod)
   checker (verbose args)
-
-  -- graphvizToFile "out.dot" asm
   where
   verbose args = "--verbose" `elem` args
               || "-v" `elem` args

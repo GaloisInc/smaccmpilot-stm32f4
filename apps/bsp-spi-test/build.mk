@@ -9,7 +9,7 @@
 # "LICENSE" for more information.
 #
 
-$(eval $(call ivory_pkg,IVORY_PKG_SPI_TEST,bsp-spi-tower-test-gen))
+$(eval $(call tower_pkg,IVORY_PKG_SPI_TEST,bsp-spi-tower-test-gen))
 
 BSP_SPI_TEST_IMG          := bsp-spi-test
 BSP_SPI_TEST_OBJECTS      := main.o

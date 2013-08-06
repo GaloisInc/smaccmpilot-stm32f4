@@ -11,7 +11,7 @@
 
 export RTV_DECLS := $(TOP)/apps/sample-rtv-task/instrumented-decls
 
-$(eval $(call ivory_pkg,IVORY_PKG_SAMPLE_RTV_TASK,sample-rtv-task-checker-gen))
+$(eval $(call tower_pkg,IVORY_PKG_SAMPLE_RTV_TASK,sample-rtv-task-checker-gen))
 
 APP_RTV_IMG       := sample-rtv
 

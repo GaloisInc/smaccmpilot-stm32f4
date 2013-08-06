@@ -12,6 +12,7 @@ executable sample-rtv-task-checker-gen
                      , rtv-lib
                      , ivory-tower
                      , ivory-tower-freertos
+                     , ivory-tower-frontend
                      , language-c-quote >= 0.5.0
                      , mainland-pretty
                      , srcloc

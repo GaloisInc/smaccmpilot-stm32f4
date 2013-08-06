@@ -14,7 +14,7 @@
 IVORY_PKG_FLIGHT_INCLUDE_DIR := flight
 IVORY_PKG_FLIGHT_GEN_SYMS    := true
 
-$(eval $(call ivory_pkg,IVORY_PKG_FLIGHT,smaccmpilot-gen))
+$(eval $(call tower_pkg,IVORY_PKG_FLIGHT,smaccmpilot-gen))
 
 FLIGHT_LIB       := libflight.a
 

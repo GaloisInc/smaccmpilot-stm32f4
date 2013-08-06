@@ -71,6 +71,7 @@ executable bsp-uart-tower-test-gen
                        ivory-hw,
                        ivory-tower >= 0.6.0.0,
                        ivory-tower-freertos >= 0.6.0.0,
+                       ivory-tower-frontend,
                        ivory-bsp-stm32f4
 
 executable bsp-led-tower-test-gen
@@ -85,6 +86,7 @@ executable bsp-led-tower-test-gen
                        ivory-hw,
                        ivory-tower >= 0.6.0.0,
                        ivory-tower-freertos >= 0.6.0.0,
+                       ivory-tower-frontend,
                        ivory-bsp-stm32f4
 
 executable bsp-spi-tower-test-gen
@@ -103,6 +105,7 @@ executable bsp-spi-tower-test-gen
                        ivory-hw,
                        ivory-tower >= 0.6.0.0,
                        ivory-tower-freertos >= 0.6.0.0,
+                       ivory-tower-frontend,
                        ivory-bsp-stm32f4
 
 ---------------------------------------------
