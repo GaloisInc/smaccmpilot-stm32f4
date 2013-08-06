@@ -25,6 +25,20 @@ quiet_cmd_ivory_dep = IVORYDEP $2
 quiet_cmd_ivory_gen = IVORYGEN $2
       cmd_ivory_gen = $3
 
+# tower_pkg:
+# $1 package name
+# $2 package generator exe
+
+define tower_pkg
+$(call ivory_pkg,$1,$2,--platform=$$($(CONFIG_PLATFORM)_TOWER_PLATFORM) \
+                       --operating-system=$$($(CONFIG_PLATFORM)_TOWER_OS))
+endef
+
+# ivory_pkg:
+# $1 package name
+# $2 package generator exe
+# $3 extra flags for package generator exe
+
 define ivory_pkg
 $(1)_PREFIX           := $(dir $(lastword $(filter %/build.mk,$(MAKEFILE_LIST))))
 $(1)_GEN_DIR          := $$(GEN_DIR)/$$($(1)_PREFIX)
@@ -40,7 +54,8 @@ $$($(1)_DEP_FILE): $$($(1)_GEN_EXE) $(MAKEFILE_LIST)
 	  --src-dir=$$($(1)_GEN_DIR)                          \
 	  --include-dir=$$($(1)_GEN_DIR)/$$($(1)_INCLUDE_DIR) \
 	  --dep-file=$$($(1)_DEP_FILE)                        \
-	  --dep-prefix=$(1))
+	  --dep-prefix=$(1)                                   \
+	  $(3))
 
 $$($(1)_HEADERS) $$($(1)_SOURCES): $$($(1)_DEP_FILE)
 	$(call cmd,ivory_gen,$1,                              \
@@ -51,13 +66,15 @@ $$($(1)_HEADERS) $$($(1)_SOURCES): $$($(1)_DEP_FILE)
           --div-zero                                          \
           --ix-check                                          \
           --const-fold                                        \
-	  $$(IVORY_OPTS))
+	  $$(IVORY_OPTS)                                            \
+	  $(3))
 
 ifdef $(1)_GEN_SYMS
 $(1)_SYMS := $$(shell $$($(1)_GEN_EXE)                \
   --src-dir=$$($(1)_GEN_DIR)                          \
 	--include-dir=$$($(1)_GEN_DIR)/$$($(1)_INCLUDE_DIR) \
-	--out-proc-syms)
+	--out-proc-syms                                     \
+	$(3))
 endif
 
 $(1)_OBJECTS := $$(patsubst $$($(1)_GEN_DIR)%.c,$$(OBJ_DIR)/$$($(1)_PREFIX)%.o,$$($(1)_SOURCES))

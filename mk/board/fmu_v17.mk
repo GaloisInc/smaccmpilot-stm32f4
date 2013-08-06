@@ -1,6 +1,6 @@
 # -*- Mode: makefile-gmake; indent-tabs-mode: t; tab-width: 2 -*-
 #
-# px4.mk --- PX4 board support.
+# fmu_17.mk --- PX4FMU v1.7 board support.
 #
 # Copyright (C) 2012, Galois, Inc.
 # All Rights Reserved.
