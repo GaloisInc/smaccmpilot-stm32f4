@@ -11,7 +11,7 @@
 # Written by James Bielman <jamesjb@galois.com>, December 07, 2012
 #
 
-EEPROMTEST_IMG       := eepromtest
+EEPROMTEST_IMG       := hwf4-eepromtest
 EEPROMTEST_OBJECTS   := main.o
 
 EEPROMTEST_CFLAGS    += $(FREERTOS_CFLAGS)
@@ -19,6 +19,6 @@ EEPROMTEST_CFLAGS    += -I$(TOP)/src/bsp/include
 EEPROMTEST_CFLAGS    += -I$(TOP)/src/bsp/hwf4/include
 EEPROMTEST_LIBRARIES := libhwf4.a libstm32_usb.a libFreeRTOS.a
 
-ifeq "$(CONFIG_BOARD)" "px4"
+ifeq "$(CONFIG_PLATFORM)" "px4fmu17_freertos"
 $(eval $(call image,EEPROMTEST))
 endif

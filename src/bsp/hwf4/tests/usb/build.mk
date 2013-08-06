@@ -11,7 +11,7 @@
 # Written by James Bielman <jamesjb@galois.com>, December 07, 2012
 #
 
-USBTEST_IMG       := usbtest
+USBTEST_IMG       := hwf4-usbtest
 USBTEST_OBJECTS   := main.o
 
 USBTEST_CFLAGS    += -I$(TOP)/src/bsp/include
@@ -20,4 +20,6 @@ USBTEST_CFLAGS    += $(FREERTOS_CFLAGS)
 USBTEST_CFLAGS    += -I$(TOP)/src/bsp/hwf4/include
 USBTEST_LIBRARIES := libhwf4.a libstm32_usb.a libFreeRTOS.a
 
+ifeq "$(CONFIG_PLATFORM)" "px4fmu17_freertos"
 $(eval $(call image,USBTEST))
+endif
