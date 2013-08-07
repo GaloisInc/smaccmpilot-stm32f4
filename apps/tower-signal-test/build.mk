@@ -37,4 +37,13 @@ $(eval $(call when_os,freertos,cbmc_pkg,APP_TOWER_SIGNALS_TEST,IVORY_PKG_TOWER_S
 
 $(eval $(call when_os,freertos,image,APP_TOWER_SIGNALS_TEST))
 
+LIB_TOWER_SIGNALS_TEST_LIB          := libtower-signals-test.a
+LIB_TOWER_SIGNALS_TEST_REAL_OBJECTS := $(call filteroutstring,tower_signal_comm_, \
+                                        $(call filteroutstring,tower_task_loop_, \
+                                         $(IVORY_PKG_TOWER_SIGNALS_TEST_OBJECTS)))
+LIB_TOWER_SIGNALS_TEST_CFLAGS       := $(IVORY_PKG_TOWER_SIGNALS_TEST_CFLAGS)
+LIB_TOWER_SIGNALS_TEST_CFLAGS       += -DIVORY_DEPLOY
+
+$(eval $(call when_os,aadl,library,LIB_TOWER_SIGNALS_TEST))
+
 # vim: set ft=make noet ts=2:
