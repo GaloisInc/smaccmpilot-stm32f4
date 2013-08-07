@@ -45,7 +45,7 @@ $$($(1)_CBMC_MD): $$($(2)_DEP_FILE)
             --format=markdown \
 	   --timeout=10 \
 	   --no-asserts \
-	   --threads=2 \
+	   --threads=8 \
 	   --sort=result \
 	   --cbmc=$(CBMC_EXEC) \
            $$($(1)_INCLS) \
