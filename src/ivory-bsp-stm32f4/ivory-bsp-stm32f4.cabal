@@ -61,7 +61,8 @@ library
 executable bsp-uart-tower-test-gen
   main-is:             UARTTowerCompiler.hs
   other-modules:       UARTTower,
-                       LEDTower
+                       LEDTower,
+                       Platforms
   hs-source-dirs:      examples
   build-depends:       base >= 4.6,
                        ivory,
@@ -71,11 +72,13 @@ executable bsp-uart-tower-test-gen
                        ivory-hw,
                        ivory-tower >= 0.6.0.0,
                        ivory-tower-freertos >= 0.6.0.0,
+                       ivory-tower-frontend,
                        ivory-bsp-stm32f4
 
 executable bsp-led-tower-test-gen
   main-is:             LEDTowerCompiler.hs
-  other-modules:       LEDTower
+  other-modules:       LEDTower,
+                       Platforms
   hs-source-dirs:      examples
   build-depends:       base >= 4.6,
                        ivory,
@@ -85,6 +88,7 @@ executable bsp-led-tower-test-gen
                        ivory-hw,
                        ivory-tower >= 0.6.0.0,
                        ivory-tower-freertos >= 0.6.0.0,
+                       ivory-tower-frontend,
                        ivory-bsp-stm32f4
 
 executable bsp-spi-tower-test-gen
@@ -93,7 +97,8 @@ executable bsp-spi-tower-test-gen
                        SPITypes,
                        MPU6000,
                        UARTTower,
-                       LEDTower
+                       LEDTower,
+                       Platforms
   hs-source-dirs:      examples
   build-depends:       base >= 4.6,
                        ivory,
@@ -103,6 +108,7 @@ executable bsp-spi-tower-test-gen
                        ivory-hw,
                        ivory-tower >= 0.6.0.0,
                        ivory-tower-freertos >= 0.6.0.0,
+                       ivory-tower-frontend,
                        ivory-bsp-stm32f4
 
 ---------------------------------------------

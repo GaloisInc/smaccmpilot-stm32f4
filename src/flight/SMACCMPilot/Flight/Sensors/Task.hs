@@ -14,7 +14,7 @@ import qualified SMACCMPilot.Flight.Types.Sensors as S
 
 sensorsTask :: (SingI n)
             => ChannelSource n (Struct "sensors_result")
-            -> Task ()
+            -> Task p ()
 sensorsTask s = do
   sensorsEmitter <- withChannelEmitter s "sensors"
   withStackSize 1024

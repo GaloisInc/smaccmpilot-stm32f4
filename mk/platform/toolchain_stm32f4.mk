@@ -1,14 +1,16 @@
 # -*- Mode: makefile-gmake; indent-tabs-mode: t; tab-width: 2 -*-
 #
-# arch/px4.mk --- PX4 board (STM32F4 Cortex-M4) toolchain configuration.
+# platform/toolchain_stm32f4.mk
+# STM32F4 ARM Cortex-M4 gcc toolchain configuration
 #
-# Copyright (C) 2012, Galois, Inc.
+# Copyright (C) 2013, Galois, Inc.
 # All Rights Reserved.
 #
 # This software is released under the "BSD3" license.  Read the file
 # "LICENSE" for more information.
 #
 # Written by James Bielman <jamesjb@galois.com>, December 07, 2012
+#            Pat Hickey    <pat@galois.com>,     August 06, 2013
 #
 
 # Prefix for GCC commands for the ARM toolchain.  This must be set

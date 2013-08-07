@@ -11,7 +11,7 @@
 # Written by James Bielman <jamesjb@galois.com>, December 07, 2012
 #
 
-I2CTEST_IMG       := i2ctest
+I2CTEST_IMG       := hwf4-i2ctest
 I2CTEST_OBJECTS   := main.o
 
 I2CTEST_CFLAGS    += -I$(TOP)/src/bsp/include
@@ -19,4 +19,4 @@ I2CTEST_CFLAGS    += $(FREERTOS_CFLAGS)
 I2CTEST_CFLAGS    += -I$(TOP)/src/bsp/hwf4/include
 I2CTEST_LIBRARIES := libhwf4.a libstm32_usb.a libFreeRTOS.a
 
-$(eval $(call image,I2CTEST))
+$(eval $(call when_os,freertos,image,I2CTEST))

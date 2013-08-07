@@ -1,14 +1,11 @@
 module Main where
 
 import Ivory.Language
-import Ivory.Compile.C.CmdlineFrontend
 
 import Ivory.Stdlib.String (stdlibStringModule)
-import qualified Ivory.Stdlib.SearchDir as Stdlib
 
 import Ivory.Tower
-import Ivory.Tower.Graphviz
-import qualified Ivory.Tower.Compile.FreeRTOS as FreeRTOS
+import Ivory.Tower.Frontend
 
 import Ivory.BSP.HWF4 (hwf4Modules)
 import Ivory.BSP.HWF4.USART (usart1)
@@ -36,31 +33,12 @@ import SMACCMPilot.Mavlink.CRC (mavlinkCRCModule)
 
 import Arm32SizeMap (sizeMap)
 
-otherms :: [Module]
-otherms =
-  -- flight types
-  typeModules ++
-  -- control subsystem
-  controlModules ++
-  -- mavlink system
-  mavlinkMessageModules ++ [packModule, mavlinkCRCModule] ++
-  -- bsp subsystem
-  hwf4Modules ++
-  -- the rest:
-  [ userInputDecodeModule
-  , consoleModule
-  , partitionModule
-  , paramModule
-  , stdlibStringModule
-  ]
-
 main :: IO ()
-main = do
-  let (asm, objs) = FreeRTOS.compile app
-  compileWith (Just sizeMap) (Just [FreeRTOS.searchDir, Stdlib.searchDir]) objs
-  gviz asm
+main = compile conf app
+  where
+  conf = defaultBuildConf { bc_sizemap = Just sizeMap }
 
-app :: Tower ()
+app :: Tower p ()
 app = do
   (src_userinput, snk_userinput)   <- dataport
   (src_flightmode, snk_flightmode) <- dataport
@@ -89,6 +67,20 @@ app = do
   relaypin = GPIO.pin_b13
   redledpin = GPIO.pin_b14
 
-gviz :: Assembly -> IO ()
-gviz a = graphvizToFile "out.dot" a
-
+otherms :: [Module]
+otherms =
+  -- flight types
+  typeModules ++
+  -- control subsystem
+  controlModules ++
+  -- mavlink system
+  mavlinkMessageModules ++ [packModule, mavlinkCRCModule] ++
+  -- bsp subsystem
+  hwf4Modules ++
+  -- the rest:
+  [ userInputDecodeModule
+  , consoleModule
+  , partitionModule
+  , paramModule
+  , stdlibStringModule
+  ]

@@ -11,7 +11,7 @@
 # Written by James Bielman <jamesjb@galois.com>, December 07, 2012
 #
 
-LEDTEST_IMG       := ledtest
+LEDTEST_IMG       := hwf4-ledtest
 LEDTEST_OBJECTS   := main.o
 
 LEDTEST_CFLAGS    += $(FREERTOS_CFLAGS)
@@ -19,4 +19,4 @@ LEDTEST_CFLAGS    += -I$(TOP)/src/bsp/include
 LEDTEST_CFLAGS    += -I$(TOP)/src/bsp/hwf4/include
 LEDTEST_LIBRARIES := libhwf4.a libstm32_usb.a libFreeRTOS.a
 
-$(eval $(call image,LEDTEST))
+$(eval $(call when_os,freertos,image,LEDTEST))

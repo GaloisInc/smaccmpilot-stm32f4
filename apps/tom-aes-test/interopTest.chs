@@ -1,4 +1,7 @@
-{-# LANGUAGE ExistentialQuantification, ForeignFunctionInterface, EmptyDataDecls #-}
+{-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE ForeignFunctionInterface #-}
+{-# LANGUAGE  EmptyDataDecls #-}
+
 {- interopTest.hs
  - This interoperability test is not ment to replace KATs and other
  - validation techniques that should be applied prior to fielding of the
@@ -41,7 +44,7 @@ import Data.Serialize
 
 import Debug.Trace
 
-#include "commsec.h"
+#include "aeslib/commsec.h"
 
 ----------------------------------------------------------------------
 -- Foreign import the securePkg_* calls which should be used
@@ -50,7 +53,9 @@ import Debug.Trace
 -- If this were production code you would want to track the SecureContext
 -- being zeroed and throw a run-time error when using a zeroed Ctx.
 newtype SecureContext = SCtx (ForeignPtr Ctx)
+
 data Ctx
+
 newtype BaseId = BaseId Word32
                  deriving (Eq, Ord, Show)
 
@@ -77,12 +82,14 @@ foreign import ccall "securePkg_size_of_message"
     c_securePkg_size_of_message :: CInt -> CInt
 
 secPkg_size_of_message :: Int -> Int
-secPkg_size_of_message = fromIntegral . c_securePkg_size_of_message . fromIntegral
+secPkg_size_of_message =
+  fromIntegral . c_securePkg_size_of_message . fromIntegral
 
 foreign import ccall "securePkg_size_of_package"
     c_securePkg_size_of_package :: CInt -> CInt
 secPkg_size_of_package :: Int -> Int
-secPkg_size_of_package = fromIntegral . c_securePkg_size_of_package . fromIntegral
+secPkg_size_of_package =
+  fromIntegral . c_securePkg_size_of_package . fromIntegral
 
 foreign import ccall "securePkg_init"
     c_securePkg_init :: Ptr Ctx -> BaseId ->
@@ -90,7 +97,8 @@ foreign import ccall "securePkg_init"
                         Word32 -> Ptr Word8 -> -- Encrypt Key
                         IO Word32
 
-secPkgInit :: BaseId -> Word32 -> ByteString -> Word32 -> ByteString -> IO SecureContext
+secPkgInit :: BaseId -> Word32 -> ByteString -> Word32 -> ByteString
+           -> IO SecureContext
 secPkgInit bid dsalt dkey esalt ekey = do
     -- FIXME sizeof is giving bad values!
     fptr <- mallocForeignPtrBytes ({#sizeof commsec_ctx#} + 10000)
@@ -123,7 +131,11 @@ secPkgEncInPlace (SCtx c) pt = do
           BC.unsafeUseAsCStringLen pt $ \(ptrPT,lenPT) -> do
             copyBytes (castPtr ptrCT `plusPtr` 8) ptrPT lenPT
             withForeignPtr c $ \ctxPtr ->
-             c_securePkg_enc_in_place ctxPtr (castPtr ptrCT) 8 (fromIntegral lenPT)
+             c_securePkg_enc_in_place
+               ctxPtr
+               (castPtr ptrCT)
+               8
+               (fromIntegral lenPT)
     let b = 0
     return (if b == 0 then Just (BI.fromForeignPtr pkg 0 pkgSz)
                       else Nothing)
@@ -138,7 +150,8 @@ foreign import ccall "securePkg_enc"
 
 -- Encrypting data in place requires room for the header (8 bytes)
 -- and room for the trailing tag (8 bytes)
-secPkgEnc :: SecureContext -> ByteString -> IO (Maybe (ByteString,ByteString,ByteString))
+secPkgEnc :: SecureContext -> ByteString
+          -> IO (Maybe (ByteString,ByteString,ByteString))
 secPkgEnc (SCtx c) pt = do
     let tagLen = 8 -- C and IVORY could should use the C #define
         hdrLen = 8
@@ -194,7 +207,8 @@ data SecureContext_HS = SC { inbound    :: InContext
                            , outbound   :: OutContext }
 type ReferenceContext = MVar SecureContext_HS
 
-refPkg :: OutContext -> ByteString -> (OutContext, Maybe (ByteString,ByteString,ByteString))
+refPkg :: OutContext -> ByteString
+       -> (OutContext, Maybe (ByteString,ByteString,ByteString))
 refPkg ctx@(key,salt,bid,ctr) pt
     | ctr == maxBound = (ctx, Nothing)
     | otherwise       =
@@ -234,7 +248,8 @@ refInitInContext :: ByteString -> Word32 -> InContext
 refInitInContext key salt
   = (initKey key, salt, zip (map BaseId [0..]) (replicate 16 0))
 
-secPkgInit_HS :: BaseId -> Word32 -> ByteString -> Word32 -> ByteString -> IO ReferenceContext
+secPkgInit_HS :: BaseId -> Word32 -> ByteString -> Word32 -> ByteString
+              -> IO ReferenceContext
 secPkgInit_HS b dsalt dkey esalt ekey
   = newMVar (SC (refInitInContext dkey dsalt)
                 (refInitOutContext ekey esalt b))
@@ -248,7 +263,8 @@ secPkgEncInPlace_HS rc pt = do
 
 ----------------------------------------------------------------------
 -- Lifting the reference implementation to match the API
-secPkgEnc_HS :: ReferenceContext -> ByteString -> IO (Maybe (ByteString,ByteString,ByteString))
+secPkgEnc_HS :: ReferenceContext -> ByteString
+             -> IO (Maybe (ByteString,ByteString,ByteString))
 secPkgEnc_HS rc pt =
   modifyMVar rc $ \(SC _in outbound) ->
     let (newOut,res) = refPkg outbound pt in do
@@ -264,24 +280,28 @@ secPkgDec_HS rc pkg =
 
 -- FIXME more tests, use monadic guard to not test trivial pt==null case.
 
-prop_encEq :: ByteString -> ByteString -> ByteString -> Word32 -> Word32 -> Word32 -> Property
+prop_encEq :: ByteString -> ByteString -> ByteString -> Word32 -> Word32
+           -> Word32 -> Property
 prop_encEq dKeySmall eKeySmall ptSmall dsalt esalt ctr
   = monadicIO $ do
     let dkey = B.take 16 (B.append dKeySmall (B.replicate 16 0))
     let ekey = B.take 16 (B.append eKeySmall (B.replicate 16 0))
-    let pt   = B.take (max (B.length ptSmall) 1) (B.append ptSmall (B.replicate 1 1))
+    let pt   = B.take (max (B.length ptSmall) 1)
+                      (B.append ptSmall (B.replicate 1 1))
     sctx <- run $ secPkgInit    (BaseId 0) dsalt dkey esalt ekey
     rctx <- run $ secPkgInit_HS (BaseId 0) dsalt dkey esalt ekey
     rPKG <- run $ secPkgEnc_HS rctx pt
     sPKG <- run $ secPkgEnc sctx pt
     assert $ sPKG == rPKG
 
-prop_decCompat :: ByteString -> ByteString -> ByteString -> Word32 -> Word32 -> Word32 -> Property
+prop_decCompat :: ByteString -> ByteString -> ByteString -> Word32
+               -> Word32 -> Word32 -> Property
 prop_decCompat dKeySmall eKeySmall ptSmall dsalt esalt ctr
   = monadicIO $ do
     let dkey = B.take 16 (B.append dKeySmall (B.replicate 16 0))
     let ekey = B.take 16 (B.append eKeySmall (B.replicate 16 0))
-    let pt   = B.take (max (B.length ptSmall) 1) (B.append ptSmall (B.replicate 1 1))
+    let pt   = B.take (max (B.length ptSmall) 1)
+                      (B.append ptSmall (B.replicate 1 1))
     sctx <- run $ secPkgInit (BaseId 0) dsalt dkey esalt ekey
     rctx <- run $ secPkgInit_HS (BaseId 0) dsalt dkey esalt ekey
     Just rPKG <- run $ secPkgEncInPlace_HS rctx pt
@@ -290,12 +310,14 @@ prop_decCompat dKeySmall eKeySmall ptSmall dsalt esalt ctr
     dec2 <- run $ secPkgDec sctx rPKG
     assert $ sPKG == rPKG && dec1 == dec2
 
-prop_decFail :: ByteString -> ByteString -> ByteString -> Word32 -> Word32 -> Word32 -> Property
+prop_decFail :: ByteString -> ByteString -> ByteString -> Word32 -> Word32
+             -> Word32 -> Property
 prop_decFail dKeySmall eKeySmall ptSmall dsalt esalt ctr
   = monadicIO $ do
     let dkey = B.take 16 (B.append dKeySmall (B.replicate 16 0))
     let ekey = B.take 16 (B.append eKeySmall (B.replicate 16 0))
-    let pt   = B.take (max (B.length ptSmall) 1) (B.append ptSmall (B.replicate 1 1))
+    let pt   = B.take (max (B.length ptSmall) 1)
+                      (B.append ptSmall (B.replicate 1 1))
     sctx <- run $ secPkgInit (BaseId 0) dsalt dkey esalt ekey
     rctx <- run $ secPkgInit_HS (BaseId 0) dsalt dkey esalt ekey
     Just sPKG0 <- run $ secPkgEncInPlace sctx pt

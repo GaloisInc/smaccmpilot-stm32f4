@@ -59,7 +59,7 @@ runCheck = do
 --------------------------------------------------------------------------------
 
 -- Checker task
-checkerTask :: (SingI n) => ChannelSink n AssignStruct -> Task ()
+checkerTask :: (SingI n) => ChannelSink n AssignStruct -> Task p ()
 checkerTask sink = do
   -- Add dependencies
   taskModuleDef $ incl mkHistory >> incl led_set

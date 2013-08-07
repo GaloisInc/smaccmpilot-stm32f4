@@ -20,7 +20,7 @@ controlTask :: (SingI n, SingI m)
             -> DataSink (Struct "userinput_result")
             -> ChannelSink n (Struct "sensors_result")
             -> ChannelSource m (Struct "controloutput")
-            -> Task ()
+            -> Task p ()
 controlTask s_fm s_inpt s_sens s_ctl = do
   sensRxer   <- withChannelReceiver s_sens "sensors"
   fmReader   <- withDataReader s_fm   "flightmode"

@@ -11,7 +11,7 @@
 # Written by Pat Hickey <pat@galois.com>, January 08, 2013
 #
 
-$(eval $(call ivory_pkg,IVORY_PKG_TOWER_TEST,ivory-tower-freertos-example))
+$(eval $(call tower_pkg,IVORY_PKG_TOWER_TEST,tower-example-simple))
 
 APP_TWRTEST_IMG          := tower-test
 
@@ -19,7 +19,6 @@ APP_TWRTEST_OBJECTS      := main.o
 APP_TWRTEST_REAL_OBJECTS += $(IVORY_PKG_TOWER_TEST_OBJECTS)
 
 APP_TWRTEST_INCLUDES     += $(FREERTOS_INCLUDES)
-APP_TWRTEST_INCLUDES     += -I$(TOP)/src/bsp/hwf4/include
 
 APP_TWRTEST_CFLAGS        = $(APP_TWRTEST_INCLUDES)
 APP_TWRTEST_CFLAGS       += -DIVORY_DEPLOY
@@ -35,6 +34,13 @@ APP_TWRTEST_LIBS         += -lm
 
 $(eval $(call cbmc_pkg,APP_TWRTEST,IVORY_PKG_TOWER_TEST))
 
-$(eval $(call image,APP_TWRTEST))
+$(eval $(call when_os,freertos,image,APP_TWRTEST))
+
+
+LIB_TWRTEST_LIB          := libtower-test.a
+LIB_TWRTEST_REAL_OBJECTS := $(IVORY_PKG_TOWER_TEST_OBJECTS)
+LIB_TWRTEST_CFLAGS       := $(IVORY_PKG_TOWER_TEST_CFLAGS)
+
+$(eval $(call when_os,aadl,library,LIB_TWRTEST))
 
 # vim: set ft=make noet ts=2:

@@ -80,6 +80,7 @@ executable smaccmpilot-gen
                        ivory-opts,
                        ivory-tower >= 0.6.0.0,
                        ivory-tower-freertos >= 0.6.0.0,
+                       ivory-tower-frontend,
                        ivory-bsp-hwf4wrapper,
                        smaccm-mavlink,
                        smaccmpilot

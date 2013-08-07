@@ -34,6 +34,6 @@ SP_STABILIZE_LIBRARIES    += libFreeRTOS.a
 
 SP_STABILIZE_LIBS         += -lm
 
-$(eval $(call image,SP_STABILIZE))
+$(eval $(call when_os,freertos,image,SP_STABILIZE))
 
 # vim: set ft=make noet ts=2:

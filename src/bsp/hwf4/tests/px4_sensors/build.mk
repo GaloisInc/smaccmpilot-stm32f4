@@ -11,7 +11,7 @@
 # Written by James Bielman <jamesjb@galois.com>, December 07, 2012
 #
 
-PX4_SENSORS_IMG       := px4_sensors
+PX4_SENSORS_IMG       := hwf4-px4-sensors-test
 PX4_SENSORS_OBJECTS   := main.o
 
 PX4_SENSORS_CFLAGS    += $(FREERTOS_CFLAGS)
@@ -19,6 +19,4 @@ PX4_SENSORS_CFLAGS    += -I$(TOP)/src/bsp/include
 PX4_SENSORS_CFLAGS    += -I$(TOP)/src/bsp/hwf4/include
 PX4_SENSORS_LIBRARIES := libhwf4.a libstm32_usb.a libFreeRTOS.a
 
-ifeq "$(CONFIG_BOARD)" "px4"
-$(eval $(call image,PX4_SENSORS))
-endif
+$(eval $(call when_os,freertos,image,PX4_SENSORS))

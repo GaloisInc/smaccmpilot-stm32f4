@@ -14,7 +14,7 @@
 IVORY_PKG_FLIGHT_INCLUDE_DIR := flight
 IVORY_PKG_FLIGHT_GEN_SYMS    := true
 
-$(eval $(call ivory_pkg,IVORY_PKG_FLIGHT,smaccmpilot-gen))
+$(eval $(call when_os,freertos,tower_pkg,IVORY_PKG_FLIGHT,smaccmpilot-gen))
 
 FLIGHT_LIB       := libflight.a
 
@@ -50,9 +50,9 @@ FLIGHT_OBJECTS := $(addprefix src/,\
 
 FLIGHT_REAL_OBJECTS += $(IVORY_PKG_FLIGHT_OBJECTS)
 
-$(eval $(call cbmc_pkg,FLIGHT,IVORY_PKG_FLIGHT))
+$(eval $(call when_os,freertos,cbmc_pkg,FLIGHT,IVORY_PKG_FLIGHT))
 
-$(eval $(call library,FLIGHT))
+$(eval $(call when_os,freertos,library,FLIGHT))
 
 # ------------------------------------------------------------------------------
 # CBMC stuff

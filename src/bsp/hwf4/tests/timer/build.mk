@@ -11,7 +11,7 @@
 # Written by James Bielman <jamesjb@galois.com>, December 07, 2012
 #
 
-TIMERTEST_IMG       := timertest
+TIMERTEST_IMG       := hwf4-timertest
 TIMERTEST_OBJECTS   := main.o
 
 TIMERTEST_CFLAGS    += -I$(TOP)/src/bsp/include
@@ -19,6 +19,5 @@ TIMERTEST_CFLAGS    += $(FREERTOS_CFLAGS)
 TIMERTEST_CFLAGS    += -I$(TOP)/src/bsp/hwf4/include
 TIMERTEST_LIBRARIES := libhwf4.a libstm32_usb.a libFreeRTOS.a
 
-ifeq "$(CONFIG_BOARD)" "px4"
-$(eval $(call image,TIMERTEST))
-endif
+$(eval $(call when_os,freertos, \
+                image,TIMERTEST))

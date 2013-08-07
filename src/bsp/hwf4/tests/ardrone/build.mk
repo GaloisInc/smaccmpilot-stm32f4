@@ -11,7 +11,7 @@
 # Written by James Bielman <jamesjb@galois.com>, December 07, 2012
 #
 
-ARDRONE_TEST_IMG       := ardrone_test
+ARDRONE_TEST_IMG       := hwf4-ardrone-test
 ARDRONE_TEST_OBJECTS   := main.o
 
 ARDRONE_TEST_CFLAGS    += $(FREERTOS_CFLAGS)
@@ -19,4 +19,4 @@ ARDRONE_TEST_CFLAGS    += -I$(TOP)/src/bsp/include
 ARDRONE_TEST_CFLAGS    += -I$(TOP)/src/bsp/hwf4/include
 ARDRONE_TEST_LIBRARIES := libhwf4.a libstm32_usb.a libFreeRTOS.a
 
-$(eval $(call image,ARDRONE_TEST))
+$(eval $(call when_os,freertos,image,ARDRONE_TEST))

@@ -25,7 +25,7 @@ AP_HAL_SENSORS_TEST_LIBRARIES += libFreeRTOS.a
 AP_HAL_SENSORS_TEST_LIBS += -lm
 
 ifdef CONFIG_ARDUPILOT_PREFIX
-$(eval $(call image,AP_HAL_SENSORS_TEST))
+$(eval $(call when_os,freertos,image,AP_HAL_SENSORS_TEST))
 endif
 
 # vim: set ft=make noet ts=2:

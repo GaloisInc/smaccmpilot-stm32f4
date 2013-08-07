@@ -57,7 +57,7 @@ $$($(1)_REAL_BIN): $$($(1)_REAL_IMG)
 
 $($(1)_IMG): $$($(1)_REAL_IMG)
 
-ifeq ($(CONFIG_ARCH),px4)
+ifneq ($$($(CONFIG_PLATFORM)_SUPPORT_PX4IMG),)
 
 $(1)_REAL_PX4IMG    := $$($(1)_REAL_IMG).px4
 

@@ -11,7 +11,7 @@
 # Written by Pat Hickey <pat@galois.com>, January 08, 2013
 #
 
-$(eval $(call ivory_pkg,IVORY_PKG_UART_TEST,bsp-uart-tower-test-gen))
+$(eval $(call tower_pkg,IVORY_PKG_UART_TEST,bsp-uart-tower-test-gen))
 
 APP_BSPUARTTEST_IMG          := bsp-uart-test
 APP_BSPUARTTEST_OBJECTS      := main.o
@@ -28,6 +28,6 @@ APP_BSPUARTTEST_CFLAGS       += -DIVORY_DEPLOY
 
 $(eval $(call cbmc_pkg,APP_BSPUARTTEST,IVORY_PKG_UART_TEST))
 
-$(eval $(call image,APP_BSPUARTTEST))
+$(eval $(call when_os,freertos,image,APP_BSPUARTTEST))
 
 # vim: set ft=make noet ts=2:

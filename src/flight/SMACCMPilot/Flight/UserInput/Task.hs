@@ -16,7 +16,7 @@ import SMACCMPilot.Flight.UserInput.Decode
 
 userInputTask :: DataSource (Struct "userinput_result")
               -> DataSource (Struct "flightmode")
-              -> Task ()
+              -> Task p ()
 userInputTask uis fms = do
   fmWriter <- withDataWriter fms "flightMode"
   uiWriter <- withDataWriter uis "userInput"

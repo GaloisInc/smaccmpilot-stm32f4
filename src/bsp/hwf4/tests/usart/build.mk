@@ -11,7 +11,7 @@
 # Written by James Bielman <jamesjb@galois.com>, December 07, 2012
 #
 
-USARTTEST_IMG       := usarttest
+USARTTEST_IMG       := hwf4-usarttest
 USARTTEST_OBJECTS   := main.o
 
 USARTTEST_CFLAGS    += $(FREERTOS_CFLAGS)
@@ -19,4 +19,5 @@ USARTTEST_CFLAGS    += -I$(TOP)/src/bsp/include
 USARTTEST_CFLAGS    += -I$(TOP)/src/bsp/hwf4/include
 USARTTEST_LIBRARIES := libhwf4.a libstm32_usb.a libFreeRTOS.a
 
-$(eval $(call image,USARTTEST))
+$(eval $(call when_os,freertos, \
+                image,USARTTEST))

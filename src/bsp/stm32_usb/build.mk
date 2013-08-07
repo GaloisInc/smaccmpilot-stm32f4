@@ -31,6 +31,6 @@ STM32_USB_OBJECTS :=           \
   src/usbd_cdc_core.o          \
   src/usbd_cdc_vcp.o
 
-$(eval $(call library,STM32_USB))
+$(eval $(call when_os,freertos,library,STM32_USB))
 
 # vim: set ft=make noet ts=2:

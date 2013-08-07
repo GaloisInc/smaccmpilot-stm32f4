@@ -22,7 +22,7 @@ uartTower :: (SingI n, SingI m)
           => UART -> Integer
           -> ChannelSink  n (Stored Uint8)
           -> ChannelSource m (Stored Uint8)
-          -> Tower ()
+          -> Tower p ()
 uartTower uart baud ostream istream = do
   let max_syscall_priority = (191::Uint8) -- XXX MAGIC NUMBER: freertos port specific
   -- Manager task:

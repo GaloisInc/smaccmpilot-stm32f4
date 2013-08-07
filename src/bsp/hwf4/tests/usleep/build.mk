@@ -11,7 +11,7 @@
 # Written by James Bielman <jamesjb@galois.com>, December 07, 2012
 #
 
-USLEEP_TEST_IMG       := usleep_test
+USLEEP_TEST_IMG       := hwf4-usleep-test
 USLEEP_TEST_OBJECTS   := main.o
 
 USLEEP_TEST_CFLAGS    += $(FREERTOS_CFLAGS)
@@ -19,6 +19,4 @@ USLEEP_TEST_CFLAGS    += -I$(TOP)/src/bsp/include
 USLEEP_TEST_CFLAGS    += -I$(TOP)/src/bsp/hwf4/include
 USLEEP_TEST_LIBRARIES := libhwf4.a libstm32_usb.a libFreeRTOS.a
 
-ifeq "$(CONFIG_BOARD)" "px4"
-$(eval $(call image,USLEEP_TEST))
-endif
+$(eval $(call when_os,freertos,image,USLEEP_TEST))

@@ -1,18 +1,36 @@
-CFLAGS = -g
+# -*- Mode: makefile-gmake; indent-tabs-mode: t; tab-width: 2 -*-
 
-all: interopTest.chs *.c *.h commsec.a
-	c2hs interopTest.chs
+CFLAGS        := -g
+CABAL         := cabal
+CABAL_INSTALL := $(CABAL) install
+CLIB          := aeslib
+
+all: interopTest
+
+example: example.c $(CLIB)/commsec.a
+	gcc $(CFLAGS) example.c -o example commsec.a
+
+interopTest: interopTest.hs $(CLIB)/commsec.a $(CLIB)/*.c $(CLIB)/*.h
+	$(CABAL_INSTALL) cereal
+	$(CABAL_INSTALL) cipher-aes
 	ghc -O2 interopTest.hs -o interopTest commsec.a
 
-commsec.a: *.c *.h
-	gcc $(CFLAGS) -c aescrypt.c
-	gcc $(CFLAGS) -c aeskey.c
-	gcc $(CFLAGS) -c aestab.c
-	gcc $(CFLAGS) -c commsec.c
-	gcc $(CFLAGS) -c gcm.c
-	gcc $(CFLAGS) -c gf128mul.c
-	gcc $(CFLAGS) -c gf_convert.c
-	ar cr commsec.a aescrypt.o aeskey.o aestab.o commsec.o gcm.o gf128mul.o gf_convert.o 
+%.hs: %.chs
+	c2hs $<
 
-example: example.c commsec.a
-	gcc $(CFLAGS) example.c -o example commsec.a
+%.o: $(CLIB)/%.c
+	gcc $(CFLAGS) -c $<
+
+$(CLIB)/commsec.a: $(CLIB)/aescrypt.o $(CLIB)/aescrypt.o $(CLIB)/aeskey.o \
+    $(CLIB)/aestab.o $(CLIB)/commsec.o $(CLIB)/gcm.o $(CLIB)/gf128mul.o \
+    $(CLIB)/gf_convert.o
+	ar cr $@ $?
+
+.PHONY: clean
+clean:
+	@rm -f $(CLIB)/*.o
+	@rm -rf cabal-dev
+	@rm -f interopTest.hs
+	@rm -f interopTest
+
+# vim: set ft=make noet ts=2:

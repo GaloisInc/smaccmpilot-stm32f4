@@ -15,7 +15,7 @@ gcsTower :: String -> MemArea (Struct "usart")
          -> DataSink (Struct "position_result")
          -> DataSink (Struct "controloutput")
          -> DataSink (Struct "servos")
-         -> Tower ()
+         -> Tower p ()
 gcsTower usartname usart fm_sink sens_sink pos_sink ctl_sink servo_sink = do
   (streamrate_source, streamrate_sink) <- channel
   (dataRateSrc, dataRateSink)          <- channel
