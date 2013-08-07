@@ -37,6 +37,9 @@ aadl: allplatforms
 discovery: PLATFORMS = stm32f4discovery
 discovery: allplatforms
 
+cbmc: TARGET = cbmc
+cbmc: default
+
 clean:
 	-rm -rf ./build
 
