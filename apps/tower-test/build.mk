@@ -37,4 +37,11 @@ $(eval $(call cbmc_pkg,APP_TWRTEST,IVORY_PKG_TOWER_TEST))
 
 $(eval $(call when_os,freertos,image,APP_TWRTEST))
 
+
+LIB_TWRTEST_LIB          := libtower-test.a
+LIB_TWRTEST_REAL_OBJECTS := $(IVORY_PKG_TOWER_TEST_OBJECTS)
+LIB_TWRTEST_CFLAGS       := $(IVORY_PKG_TOWER_TEST_CFLAGS)
+
+$(eval $(call when_os,aadl,library,LIB_TWRTEST))
+
 # vim: set ft=make noet ts=2:
