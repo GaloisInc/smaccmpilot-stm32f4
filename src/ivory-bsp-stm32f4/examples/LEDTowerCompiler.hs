@@ -14,7 +14,6 @@ app :: forall p . (ColoredLEDs p) => Tower p ()
 app = blinkApp period leds
   where
   period = 250
-  -- On PX4FMU 1.x, these are the blue and red leds:
   leds = [redLED p, blueLED p]
   p = (undefined :: p) -- ugly, is there a better way?
 
