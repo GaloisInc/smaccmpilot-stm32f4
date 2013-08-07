@@ -25,6 +25,7 @@ default: px4fmu17_freertos
 
 allplatforms:
 	@for platform in $(PLATFORMS); do \
+		echo building for platform $$platform; \
 		make -f mk/main.mk $(MQUIET) $(TARGET) CONFIG_PLATFORM=$$platform; \
 	done
 
