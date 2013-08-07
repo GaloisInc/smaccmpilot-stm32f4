@@ -12,6 +12,7 @@ import Ivory.Tower
 import Ivory.HW
 import Ivory.BitData
 
+import Platforms
 import qualified LEDTower
 
 import Ivory.BSP.STM32F4.Interrupt
@@ -19,7 +20,7 @@ import Ivory.BSP.STM32F4.GPIO
 import Ivory.BSP.STM32F4.UART
 import Ivory.BSP.STM32F4.UART.Regs
 
-app :: Tower p ()
+app :: forall p . (ColoredLEDs p) => Tower p ()
 app = do
   LEDTower.blinkApp period [blue]
 
@@ -36,8 +37,8 @@ app = do
   where
   period = 333
   -- On PX4FMU 1.x, these are the blue and red leds:
-  red = pinB15
-  blue = pinB14
+  red = redLED (undefined :: p)
+  blue = blueLED (undefined :: p)
 
 echoPrompt :: (SingI n, SingI m, SingI o)
            => String

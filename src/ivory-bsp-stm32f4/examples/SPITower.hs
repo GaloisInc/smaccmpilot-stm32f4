@@ -23,6 +23,7 @@ import Ivory.BSP.STM32F4.SPI.Tower
 import Ivory.BSP.STM32F4.SPI.Regs
 import Ivory.BSP.STM32F4.SPI.Peripheral
 
+import Platforms
 import LEDTower (ledController)
 import UARTTower (echoPrompt)
 
@@ -42,7 +43,7 @@ mpu6k = SPIDevice
 greeting :: String
 greeting = "spi console. 1 to start:"
 
-app ::  Tower p ()
+app ::  forall p . (ColoredLEDs p) => Tower p ()
 app = do
   -- Red led : pinB14
   -- Blue led : pinB15
@@ -50,7 +51,7 @@ app = do
   -- red <- channel
   -- task "redLed"  $ ledController [pinB14] (snk red)
   start  <- channel
-  task "blueLed"   $ ledController [pinB15] (snk start)
+  task "blueLed"   $ ledController [blue] (snk start)
 
   (uarti :: Channel 128 (Stored Uint8)) <- channelWithSize
   (uarto :: Channel 128 (Stored Uint8)) <- channelWithSize
@@ -59,6 +60,8 @@ app = do
 
   (toSig, froSig) <- spiTower spi1
   task   "spiCtl" $ spiCtl    spi1 mpu6k toSig froSig (snk start) (src uarto)
+  where
+  blue = blueLED (undefined :: p)
 
 spiCtl :: (SingI n, SingI m, SingI o, SingI q)
        => SPIPeriph
