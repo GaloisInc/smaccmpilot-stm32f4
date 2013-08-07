@@ -1,10 +1,9 @@
 # -*- Mode: makefile-gmake; indent-tabs-mode: t; tab-width: 2 -*-
 #
-# platform/platform_px4fmu17_freertos.mk
-# PX4FMU 1.7 (STM32F4 Cortex-M4) toolchain and board support package
-# configuration.
+# platform/toolchain_stm32f4.mk
+# STM32F4 ARM Cortex-M4 gcc toolchain configuration
 #
-# Copyright (C) 2012, Galois, Inc.
+# Copyright (C) 2013, Galois, Inc.
 # All Rights Reserved.
 #
 # This software is released under the "BSD3" license.  Read the file
@@ -50,26 +49,5 @@ endif
 # Startup code source files.
 STARTUP_OBJECTS := src/bsp/init/startup_stm32f4xx.o \
                    src/bsp/init/system_stm32f4xx.o
-
-# Frequency of the HSE crystal in Hz.
-BOARD_HSE_FREQ := 24000000
-
-# Add the HSE frequency to the default CFLAGS.
-CFLAGS += -DHSE_VALUE=$(BOARD_HSE_FREQ)
-
-# Add a preprocessor definition for this board.
-CFLAGS += -DCONFIG_BOARD_PX4
-
-# Select the full-speed USB OTG core.
-CFLAGS += -DUSE_USB_OTG_FS
-
-# support building PX4 images for this platform
-px4fmu17_freertos_SUPPORT_PX4IMG := 1
-
-# platform argument for tower builds
-px4fmu17_freertos_TOWER_PLATFORM := px4fmu17
-
-# operating system argument for tower builds
-px4fmu17_freertos_TOWER_OS := freertos
 
 # vim: set ft=make noet ts=2:

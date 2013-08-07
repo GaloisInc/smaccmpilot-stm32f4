@@ -1,8 +1,6 @@
 # -*- Mode: makefile-gmake; indent-tabs-mode: t; tab-width: 2 -*-
 #
-# platform/platform_px4fmu17_freertos.mk
-# PX4FMU 1.7 (STM32F4 Cortex-M4) toolchain and board support package
-# configuration.
+# platform_stm32f4discovery.mk --- STM32F4 Discovery platform support.
 #
 # Copyright (C) 2012, Galois, Inc.
 # All Rights Reserved.
@@ -15,15 +13,12 @@
 #
 
 include mk/platform/toolchain_stm32f4.mk
-include mk/platform/board_px4fmu17.mk
-
-# support building PX4 images for this platform
-px4fmu17_freertos_SUPPORT_PX4IMG := 1
+include mk/platform/board_stm32f4discovery.mk
 
 # platform argument for tower builds
-px4fmu17_freertos_TOWER_PLATFORM := px4fmu17
+stm32f4discovery_TOWER_PLATFORM := stm32f4discovery
 
 # operating system argument for tower builds
-px4fmu17_freertos_TOWER_OS := freertos
+stm32f4discovery_TOWER_OS := freertos
 
 # vim: set ft=make noet ts=2:

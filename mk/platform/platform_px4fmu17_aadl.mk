@@ -14,7 +14,8 @@
 #            Pat Hickey    <pat@galois.com>,     August 06, 2013
 #
 
-include mk/platform/common_px4fmu17.mk
+include mk/platform/toolchain_stm32f4.mk
+include mk/platform/board_px4fmu17.mk
 
 # support building PX4 images for this platform
 px4fmu17_aadl_SUPPORT_PX4IMG := 1

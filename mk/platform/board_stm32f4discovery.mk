@@ -1,6 +1,6 @@
 # -*- Mode: makefile-gmake; indent-tabs-mode: t; tab-width: 2 -*-
 #
-# stm32f4-discovery.mk --- STM32F4 Discovery board support.
+# board_stm32f4discovery.mk --- STM32F4 Discovery board support.
 #
 # Copyright (C) 2012, Galois, Inc.
 # All Rights Reserved.

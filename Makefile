@@ -34,6 +34,9 @@ px4fmu17_freertos: allplatforms
 aadl: PLATFORMS = px4fmu17_aadl
 aadl: allplatforms
 
+discovery: PLATFORMS = stm32f4discovery
+discovery: allplatforms
+
 clean:
 	-rm -rf ./build
 
