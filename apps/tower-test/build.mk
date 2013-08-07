@@ -35,6 +35,6 @@ APP_TWRTEST_LIBS         += -lm
 
 $(eval $(call cbmc_pkg,APP_TWRTEST,IVORY_PKG_TOWER_TEST))
 
-$(eval $(call image,APP_TWRTEST))
+$(eval $(call when_os,freertos,image,APP_TWRTEST))
 
 # vim: set ft=make noet ts=2:

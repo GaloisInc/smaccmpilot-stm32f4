@@ -50,7 +50,7 @@ ifdef CONFIG_ARDUPILOT_PREFIX
 # helped us bootstrap smaccmpilot. However, there is evidence that this image
 # actually works once built, and we have no reason to maintain it. Therefore,
 # disabled from build.
-# $(eval $(call image,ARDUCOPTER))
+# $(eval $(call when_os,freertos,image,ARDUCOPTER))
 endif
 
 # vim: set ft=make noet ts=2:

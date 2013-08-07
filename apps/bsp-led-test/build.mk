@@ -28,5 +28,5 @@ BSP_LED_TEST_LIBRARIES    += libFreeRTOS.a
 
 $(eval $(call cbmc_pkg,BSP_LED_TEST,IVORY_PKG_LED_TEST))
 
-$(eval $(call image,BSP_LED_TEST))
+$(eval $(call when_os,freertos,image,BSP_LED_TEST))
 

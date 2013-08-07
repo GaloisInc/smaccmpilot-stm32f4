@@ -42,7 +42,7 @@ APP_RTV_LIBS      += -lm
 $(eval $(call cbmc_pkg,APP_RTV,IVORY_PKG_SAMPLE))
 
 ifneq ($(CONFIG_BUILD_RTV),)
-$(eval $(call image,APP_RTV))
+$(eval $(call when_os,freertos,image,APP_RTV))
 endif
 
 # vim: set ft=make noet ts=2:

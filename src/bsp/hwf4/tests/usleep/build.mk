@@ -19,6 +19,4 @@ USLEEP_TEST_CFLAGS    += -I$(TOP)/src/bsp/include
 USLEEP_TEST_CFLAGS    += -I$(TOP)/src/bsp/hwf4/include
 USLEEP_TEST_LIBRARIES := libhwf4.a libstm32_usb.a libFreeRTOS.a
 
-ifeq "$(CONFIG_PLATFORM)" "px4fmu17_freertos"
-$(eval $(call image,USLEEP_TEST))
-endif
+$(eval $(call when_os,freertos,image,USLEEP_TEST))

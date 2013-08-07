@@ -19,6 +19,4 @@ I2CTEST_CFLAGS    += $(FREERTOS_CFLAGS)
 I2CTEST_CFLAGS    += -I$(TOP)/src/bsp/hwf4/include
 I2CTEST_LIBRARIES := libhwf4.a libstm32_usb.a libFreeRTOS.a
 
-ifeq "$(CONFIG_PLATFORM)" "px4fmu17_freertos"
-$(eval $(call image,I2CTEST))
-endif
+$(eval $(call when_os,freertos,image,I2CTEST))

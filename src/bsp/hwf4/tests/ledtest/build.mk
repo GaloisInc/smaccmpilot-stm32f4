@@ -19,6 +19,4 @@ LEDTEST_CFLAGS    += -I$(TOP)/src/bsp/include
 LEDTEST_CFLAGS    += -I$(TOP)/src/bsp/hwf4/include
 LEDTEST_LIBRARIES := libhwf4.a libstm32_usb.a libFreeRTOS.a
 
-ifeq "$(CONFIG_PLATFORM)" "px4fmu17_freertos"
-$(eval $(call image,LEDTEST))
-endif
+$(eval $(call when_os,freertos,image,LEDTEST))

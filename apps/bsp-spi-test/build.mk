@@ -27,4 +27,4 @@ BSP_SPI_TEST_LIBRARIES    += libFreeRTOS.a
 
 $(eval $(call cbmc_pkg,BSP_SPI_TEST,IVORY_PKG_SPI_TEST))
 
-$(eval $(call image,BSP_SPI_TEST))
+$(eval $(call when_os,freertos,image,BSP_SPI_TEST))

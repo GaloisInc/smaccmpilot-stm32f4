@@ -35,6 +35,6 @@ APP_TOWER_RPC_TEST_LIBRARIES    += libFreeRTOS.a
 
 APP_TOWER_RPC_TEST_LIBS         += -lm
 
-$(eval $(call image,APP_TOWER_RPC_TEST))
+$(eval $(call when_os,freertos,image,APP_TOWER_RPC_TEST))
 
 # vim: set ft=make noet ts=2:

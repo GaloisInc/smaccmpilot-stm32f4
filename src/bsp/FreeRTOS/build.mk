@@ -40,6 +40,6 @@ src/bsp/FreeRTOS/src/%.c: $(FREERTOS_SRC)/%.c
 	mkdir -p $(dir $@)
 	cp $< $@
 
-$(eval $(call library,FREERTOS))
+$(eval $(call when_os,freertos,library,FREERTOS))
 
 # vim: set ft=make noet ts=2:

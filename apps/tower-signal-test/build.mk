@@ -34,8 +34,8 @@ APP_TOWER_SIGNALS_TEST_LIBRARIES    += libFreeRTOS.a
 
 APP_TOWER_SIGNALS_TEST_LIBS         += -lm
 
-$(eval $(call cbmc_pkg,APP_TOWER_SIGNALS_TEST,IVORY_PKG_TOWER_SIGNALS_TEST))
+$(eval $(call when_os,freertos,cbmc_pkg,APP_TOWER_SIGNALS_TEST,IVORY_PKG_TOWER_SIGNALS_TEST))
 
-$(eval $(call image,APP_TOWER_SIGNALS_TEST))
+$(eval $(call when_os,freertos,image,APP_TOWER_SIGNALS_TEST))
 
 # vim: set ft=make noet ts=2:

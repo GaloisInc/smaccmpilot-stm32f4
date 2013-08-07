@@ -28,6 +28,6 @@ APP_BSPUARTTEST_CFLAGS       += -DIVORY_DEPLOY
 
 $(eval $(call cbmc_pkg,APP_BSPUARTTEST,IVORY_PKG_UART_TEST))
 
-$(eval $(call image,APP_BSPUARTTEST))
+$(eval $(call when_os,freertos,image,APP_BSPUARTTEST))
 
 # vim: set ft=make noet ts=2:
