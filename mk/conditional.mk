@@ -20,3 +20,5 @@ endef
 define unless_os
 $(if $(findstring $($(CONFIG_PLATFORM)_TOWER_OS),$1),,$(call $2,$3,$4,$5))
 endef
+
+filteroutstring = $(foreach v,$2,$(if $(findstring $1,$v),,$v))

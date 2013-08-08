@@ -38,8 +38,10 @@ $(eval $(call when_os,freertos,image,APP_TWRTEST))
 
 
 LIB_TWRTEST_LIB          := libtower-test.a
-LIB_TWRTEST_REAL_OBJECTS := $(IVORY_PKG_TOWER_TEST_OBJECTS)
+LIB_TWRTEST_REAL_OBJECTS := $(call filteroutstring,tower_task_loop_, \
+                                      $(IVORY_PKG_TOWER_TEST_OBJECTS))
 LIB_TWRTEST_CFLAGS       := $(IVORY_PKG_TOWER_TEST_CFLAGS)
+LIB_TWRTEST_CFLAGS       += -DIVORY_DEPLOY
 
 $(eval $(call when_os,aadl,library,LIB_TWRTEST))
 
