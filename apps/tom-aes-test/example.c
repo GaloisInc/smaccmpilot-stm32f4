@@ -30,7 +30,7 @@ int main()
     // would be build in-place in a larger buffer we call the "package".
     // Thus, this example with a static "msg" variable whose memory must be
     // copied is not representative of the intended use case.
-    unsigned char *msg = "This is a message"; // Message to encrypt
+    char *msg = "This is a message"; // Message to encrypt
     unsigned char msgLen = strlen(msg);
 
     // package_* variables are used to store the ciphertext from one
@@ -71,18 +71,21 @@ int main()
                                   , b2uSalt, base_to_uav_key);
     securePkg_init(&base1, base1ID, u2bSalt, uav_to_base_key
                                   , b2uSalt, base_to_uav_key);
+
     // NB securePkg_init does not zero the raw key (*_key)
     // for security reasons, that memory should be zeroed
 
 #if 1
     fprintf(stderr, "Plaintext: ");
-    for(i=0; i<10; i++) {
-        fprintf(stderr, "%02x", package_from_uav[HEADER_LEN+i] & 0xFF);
+    for(i=0; i<msgLen; i++) {
+        /* fprintf(stderr, "%02x", package_from_uav[HEADER_LEN+i] & 0xFF); */
+        fprintf(stderr, "%c", package_from_uav[HEADER_LEN+i]);
     }
     fprintf(stderr, "\n");
     fprintf(stderr, "Plaintext: ");
-    for(i=0; i<10; i++) {
-        fprintf(stderr, "%02x", package_from_base0[HEADER_LEN+i] & 0xFF);
+    for(i=0; i<msgLen; i++) {
+        /* fprintf(stderr, "%02x", package_from_base0[HEADER_LEN+i] & 0xFF); */
+        fprintf(stderr, "%c", package_from_base0[HEADER_LEN+i]);
     }
     fprintf(stderr, "\n");
 #endif
@@ -132,7 +135,7 @@ int main()
     memcpy(package_from_uav   + HEADER_LEN, msg, msgLen);
     memcpy(package_from_base0 + HEADER_LEN, msg, msgLen);
     memcpy(package_from_base1 + HEADER_LEN, msg, msgLen);
-    securePkg_enc_in_place(&uav, package_from_uav , HEADER_LEN, msgLen);
+    securePkg_enc_in_place(&uav, package_from_uav,     HEADER_LEN, msgLen);
     securePkg_enc_in_place(&base0, package_from_base0, HEADER_LEN, msgLen);
     securePkg_enc_in_place(&base1, package_from_base1, HEADER_LEN, msgLen);
 
@@ -143,13 +146,15 @@ int main()
 
 #if 1
     fprintf(stderr, "Plaintext: ");
-    for(i=0; i<10; i++) {
-        fprintf(stderr, "%02x", package_from_base0[HEADER_LEN+i] & 0xFF);
+    for(i=0; i<msgLen; i++) {
+        /* fprintf(stderr, "%02x", package_from_base0[HEADER_LEN+i] & 0xFF); */
+      fprintf(stderr, "%c", package_from_base0[HEADER_LEN+i]);
     }
     fprintf(stderr, "\n");
     fprintf(stderr, "Plaintext: ");
-    for(i=0; i<10; i++) {
-        fprintf(stderr, "%02x", package_from_base1[HEADER_LEN+i] & 0xFF);
+    for(i=0; i<msgLen; i++) {
+        /* fprintf(stderr, "%02x", package_from_base1[HEADER_LEN+i] & 0xFF); */
+        fprintf(stderr, "%c", package_from_base1[HEADER_LEN+i]);
     }
     fprintf(stderr, "\n");
 #endif
