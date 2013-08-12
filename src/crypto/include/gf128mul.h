@@ -175,7 +175,7 @@ typedef enum { REVERSE_NONE = 0, REVERSE_BITS = 1, REVERSE_BYTES = 2 } transform
 
 void convert_representation(gf_t dest, const gf_t source, transform rev);
 
-void gf_mul(gf_t a, const gf_t b);      /* slow field multiply  */  
+void gf_mulTMD(gf_t a, const gf_t b);      /* slow field multiply  */
 
 /* types and calls for 64k table driven field multiplier        */
 
