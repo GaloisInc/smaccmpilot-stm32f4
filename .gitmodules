@@ -1,0 +1,3 @@
+[submodule "src/gcs/mavlink"]
+	path = src/gcs/mavlink
+	url = git@github.com:GaloisInc/mavlink.git
