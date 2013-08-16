@@ -12,6 +12,7 @@ and SMACCMPilot.
 
 module Main where
 
+import           Text.Printf
 import           System.Environment
 import           System.Timeout
 import           Control.Monad
@@ -36,7 +37,8 @@ runSerial port mavMVar serMVar = do
 
     forever $ do
       -- Maybe read some bytes.
-      mrx <- timeout 100 (P.recv s maxBytes)
+
+      mrx <- timeout theTimeout (P.recv s maxBytes)
       -- Send them to the TCP thread.  Don't block.
       maybeUnit (M.putMVar serMVar) mrx
       -- if (B.null sbs) then return ()
@@ -60,7 +62,8 @@ runTCP :: N.HostName
 runTCP host port mavMVar serMVar =
   S.serve (S.Host host) port $ \(mavSocket, _) -> forever $ do
     -- Wait for 100 microseconds for input.
-    mrx <- timeout 100 (S.recv mavSocket maxBytes)
+
+    mrx <- timeout theTimeout (S.recv mavSocket maxBytes)
     -- Send them to the serial thread.  Don't block.
     maybeUnit (M.putMVar mavMVar) (mm mrx)
 
@@ -73,7 +76,16 @@ runTCP host port mavMVar serMVar =
 main :: IO ()
 main = do
   -- XXX get opts properly
-  [host, port, serialPort] <- getArgs
+  args <- getArgs
+  if length args /= 3 then putStrLn "Takes a host port, and serial device as arguments (e.g., 127.0.0.1 6000 \"/dev/ttyUSB0\""
+     else run args
+
+run :: [String] -> IO ()
+run [host, port, serialPort] = do
+  _ <- printf ("Starting server on %s:%s and listening on serial device... %s"
+               ++ " at baud %s\n")
+         host port serialPort (show speed)
+
   putStrLn "Enter to exit."
 
   fromMavProxyMVar <- M.newEmptyMVar :: IO (M.MVar B.ByteString)
@@ -91,6 +103,7 @@ main = do
   quit = do
     _ <- getLine
     return ()
+run _ = error "Bad arguments."
 
 --------------------------------------------------------------------------------
 -- Helpers
@@ -98,7 +111,12 @@ main = do
 -- Make this big enough so that it's unlikely the buffer will fill and we'll
 -- block.
 maxBytes :: Int
-maxBytes = 1
+maxBytes = 1024
+
+-- Microseconds to wait for a packet (note: this probably needs to be increased
+-- on something other than localhost).
+theTimeout :: Int
+theTimeout = 100
 
 maybeUnit :: (a -> IO b) -> Maybe a -> IO ()
 maybeUnit f = maybe (return ()) (void . f)

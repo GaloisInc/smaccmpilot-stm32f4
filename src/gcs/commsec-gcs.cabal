@@ -3,7 +3,7 @@ version:             0.1.0.0
 synopsis:            Commsec server to interact with mavproxy.py.
 
 license:             BSD3
-license-file:        LICENSE
+license-file:      ../../LICENSE
 author:              Lee Pike
 maintainer:          leepike@galois.com
 copyright:           Galois, Inc.
@@ -14,12 +14,16 @@ cabal-version:       >=1.8
 executable commsec-gcs
   hs-source-dirs:      src
   main-is:             CommsecServer.hs
-  -- other-modules:       
+  other-modules:       Commsec
   build-depends:       base,
                        serialport,
                        network,
                        network-simple,
                        bytestring,
-                       unix
+                       unix,
+                       cipher-aes >= 0.2.2,
+                       crypto-cipher-types,
+                       cereal,
+                       pretty-hex
 
   ghc-options:         -Wall -O -threaded -rtsopts -with-rtsopts=-N3
