@@ -177,8 +177,8 @@ const float AP_InertialSensor_MPU6000::_gyro_scale = (0.0174532 / 16.4);
 const uint8_t AP_InertialSensor_MPU6000::_gyro_data_index[3]  = { 5, 4, 6 };
 const uint8_t AP_InertialSensor_MPU6000::_accel_data_index[3] = { 1, 0, 2 };
 
-const int8_t AP_InertialSensor_MPU6000::_gyro_data_sign[3]   = { 1, 1, -1 };
-const int8_t AP_InertialSensor_MPU6000::_accel_data_sign[3]  = { 1, 1, -1 };
+const int8_t AP_InertialSensor_MPU6000::_gyro_data_sign[3]   = { 1, -1, 1 };
+const int8_t AP_InertialSensor_MPU6000::_accel_data_sign[3]  = { 1, -1, 1 };
 
 const uint8_t AP_InertialSensor_MPU6000::_temp_data_index = 3;
 
