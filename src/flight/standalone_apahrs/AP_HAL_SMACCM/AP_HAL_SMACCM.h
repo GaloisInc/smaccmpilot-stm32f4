@@ -3,7 +3,7 @@
 #define __AP_HAL_SMACCM_H__
 
 /* Your layer exports should depend on AP_HAL.h ONLY. */
-#include <AP_HAL.h>
+#include <AP_HAL/AP_HAL.h>
 
 /**
  * Umbrella header for AP_HAL_SMACCM module.
@@ -28,6 +28,5 @@
  */
 
 #include "HAL_SMACCM_Class.h"
-#include "AP_HAL_SMACCM_Main.h"
 
 #endif //__AP_HAL_SMACCM_H__

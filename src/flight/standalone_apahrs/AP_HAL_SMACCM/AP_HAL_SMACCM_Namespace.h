@@ -23,7 +23,6 @@ namespace SMACCM {
     class SMACCMSemaphore;
     class SMACCMScheduler;
     class SMACCMUtil;
-    class SMACCMPrivateMember;
 }
 
 #endif // __AP_HAL_SMACCM_NAMESPACE_H__

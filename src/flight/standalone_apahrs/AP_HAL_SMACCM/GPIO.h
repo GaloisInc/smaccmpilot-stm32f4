@@ -2,7 +2,7 @@
 #ifndef __AP_HAL_SMACCM_GPIO_H__
 #define __AP_HAL_SMACCM_GPIO_H__
 
-#include <AP_HAL_SMACCM.h>
+#include "AP_HAL_SMACCM.h"
 
 class SMACCM::SMACCMGPIO : public AP_HAL::GPIO {
 public:

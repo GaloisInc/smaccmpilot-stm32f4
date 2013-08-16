@@ -11,7 +11,7 @@
 #ifndef __AP_HAL_SMACCM_CONSOLE_H__
 #define __AP_HAL_SMACCM_CONSOLE_H__
 
-#include <AP_HAL_SMACCM.h>
+#include "AP_HAL_SMACCM.h"
 
 class SMACCM::SMACCMConsoleDriver : public AP_HAL::ConsoleDriver {
 public:

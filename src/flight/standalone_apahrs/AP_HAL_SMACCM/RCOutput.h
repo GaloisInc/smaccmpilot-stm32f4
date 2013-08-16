@@ -2,7 +2,7 @@
 #ifndef __AP_HAL_SMACCM_RCOUTPUT_H__
 #define __AP_HAL_SMACCM_RCOUTPUT_H__
 
-#include <AP_HAL_SMACCM.h>
+#include "AP_HAL_SMACCM.h"
 
 class SMACCM::SMACCMRCOutput : public AP_HAL::RCOutput {
     void     init(void* machtnichts);

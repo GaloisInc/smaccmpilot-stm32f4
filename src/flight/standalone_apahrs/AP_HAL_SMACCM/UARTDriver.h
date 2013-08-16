@@ -2,11 +2,11 @@
 #ifndef __AP_HAL_SMACCM_UARTDRIVER_H__
 #define __AP_HAL_SMACCM_UARTDRIVER_H__
 
-#include <AP_HAL_Boards.h>
+#include <AP_HAL/AP_HAL_Boards.h>
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_SMACCM
 
-#include <AP_HAL_SMACCM.h>
+#include "AP_HAL_SMACCM.h"
 #include <hwf4/usart.h>
 
 class SMACCM::SMACCMUARTDriver : public AP_HAL::UARTDriver

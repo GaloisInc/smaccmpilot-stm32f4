@@ -14,7 +14,7 @@
 #ifndef __AP_HAL_SMACCM_I2CDRIVER_H__
 #define __AP_HAL_SMACCM_I2CDRIVER_H__
 
-#include <AP_HAL_SMACCM.h>
+#include "AP_HAL_SMACCM.h"
 #include "Semaphores.h"
 
 class SMACCM::SMACCMI2CDriver : public AP_HAL::I2CDriver {

@@ -18,7 +18,6 @@
 #include "Semaphores.h"
 #include "Scheduler.h"
 #include "Util.h"
-#include "PrivateMember.h"
 
 #endif // __AP_HAL_SMACCM_PRIVATE_H__
 

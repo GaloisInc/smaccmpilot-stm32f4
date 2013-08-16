@@ -48,4 +48,30 @@ STANDALONE_APAHRS_OBJECTS :=                                           \
 
 $(eval $(call when_os,freertos,library,STANDALONE_APAHRS))
 
+STANDALONE_HAL_LIB       := libstandalone-aphal.a
+
+STANDALONE_HAL_INCLUDES  += -I$(TOP)/src/flight/standalone_apahrs
+
+STANDALONE_HAL_CFLAGS    += $(STANDALONE_HAL_INCLUDES)
+STANDALONE_HAL_CXXFLAGS  += $(STANDALONE_HAL_INCLUDES)
+STANDALONE_HAL_CXXFLAGS  += -Wno-psabi
+
+STANDALONE_HAL_OBJECTS := $(addprefix AP_HAL_SMACCM/,\
+        RCInput.o                                    \
+        SPIDriver.o                                  \
+        Util.o                                       \
+        Console.o                                    \
+        Storage.o                                    \
+        I2CDriver.o                                  \
+        GPIO.o                                       \
+        HAL_SMACCM_Class.o                           \
+        UARTDriver.o                                 \
+        Scheduler.o                                  \
+        AnalogIn.o                                   \
+        Semaphores.o                                 \
+        RCOutput.o                                   \
+        )
+
+$(eval $(call when_os,freertos,library,STANDALONE_HAL))
+
 # vim: set ft=make noet ts=2:
