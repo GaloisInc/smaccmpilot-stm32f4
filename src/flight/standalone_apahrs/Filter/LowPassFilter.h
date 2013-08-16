@@ -14,7 +14,7 @@
 #ifndef __LOW_PASS_FILTER_H__
 #define __LOW_PASS_FILTER_H__
 
-#include <AP_Math.h>
+#include <AP_Math/AP_Math.h>
 #include "FilterClass.h"
 
 // 1st parameter <T> is the type of data being filtered.

@@ -11,14 +11,15 @@
  *  version 2.1 of the License, or (at your option) any later version.
  */
 
-#include <AP_Math.h>
 #include <inttypes.h>
-#include <AP_Compass.h>
-#include <AP_Airspeed.h>
-#include <AP_GPS.h>
-#include <AP_InertialSensor.h>
-#include <AP_Baro.h>
-#include <AP_Param.h>
+
+#include <AP_Math/AP_Math.h>
+#include <AP_Compass/AP_Compass.h>
+#include <AP_Airspeed/AP_Airspeed.h>
+#include <AP_GPS/AP_GPS.h>
+#include <AP_InertialSensor/AP_InertialSensor.h>
+#include <AP_Baro/AP_Baro.h>
+#include <AP_Param/AP_Param.h>
 
 #define AP_AHRS_TRIM_LIMIT 10.0f        // maximum trim angle in degrees
 
@@ -263,9 +264,5 @@ protected:
 	Vector2f _hp; // ground vector high-pass filter
     Vector2f _lastGndVelADS; // previous HPF input		
 };
-
-#include <AP_AHRS_DCM.h>
-#include <AP_AHRS_MPU6000.h>
-#include <AP_AHRS_HIL.h>
 
 #endif // __AP_AHRS_H__

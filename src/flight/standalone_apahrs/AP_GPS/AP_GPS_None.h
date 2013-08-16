@@ -3,7 +3,7 @@
 #ifndef __AP_GPS_NONE_H__
 #define __AP_GPS_NONE_H__
 
-#include <AP_HAL.h>
+#include <AP_HAL/AP_HAL.h>
 #include "GPS.h"
 
 class AP_GPS_None : public GPS

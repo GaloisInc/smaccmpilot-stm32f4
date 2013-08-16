@@ -5,7 +5,7 @@
 #include "AP_HAL_Namespace.h"
 
 #include <stdint.h>
-#include <AP_Progmem.h>
+#include <AP_Progmem/AP_Progmem.h>
 
 class AP_HAL::Scheduler {
 public:

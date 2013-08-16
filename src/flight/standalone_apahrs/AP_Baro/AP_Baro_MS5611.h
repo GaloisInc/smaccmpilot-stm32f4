@@ -3,7 +3,7 @@
 #ifndef __AP_BARO_MS5611_H__
 #define __AP_BARO_MS5611_H__
 
-#include <AP_HAL.h>
+#include <AP_HAL/AP_HAL.h>
 #include "AP_Baro.h"
 
 /** Abstract serial device driver for MS5611. */

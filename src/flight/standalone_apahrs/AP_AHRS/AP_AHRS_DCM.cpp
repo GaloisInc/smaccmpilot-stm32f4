@@ -13,9 +13,9 @@
  *       as published by the Free Software Foundation; either version 2.1
  *       of the License, or (at your option) any later version.
  */
-#include <AP_AHRS.h>
-#include <AP_HAL.h>
+#include "AP_AHRS_DCM.h"
 
+#include <AP_HAL/AP_HAL.h>
 extern const AP_HAL::HAL& hal;
 
 // this is the speed in cm/s above which we first get a yaw lock with

@@ -8,8 +8,8 @@
 #define AP_INERTIAL_SENSOR_ACCEL_MAX_OFFSET             250.0f
 
 #include <stdint.h>
-#include <AP_HAL.h>
-#include <AP_Math.h>
+#include <AP_HAL/AP_HAL.h>
+#include <AP_Math/AP_Math.h>
 #include "AP_InertialSensor_UserInteract.h"
 /* AP_InertialSensor is an abstraction for gyro and accel measurements
  * which are correctly aligned to the body axes and scaled to SI units.
@@ -178,11 +178,7 @@ protected:
     enum Rotation			_board_orientation;
 };
 
-#include "AP_InertialSensor_Oilpan.h"
 #include "AP_InertialSensor_MPU6000.h"
-#include "AP_InertialSensor_Stub.h"
-#include "AP_InertialSensor_PX4.h"
 #include "AP_InertialSensor_UserInteract_Stream.h"
-#include "AP_InertialSensor_UserInteract_MAVLink.h"
 
 #endif // __AP_INERTIAL_SENSOR_H__

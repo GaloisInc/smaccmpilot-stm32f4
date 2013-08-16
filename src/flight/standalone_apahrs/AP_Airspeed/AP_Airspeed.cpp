@@ -8,34 +8,14 @@
  *   of the License, or (at your option) any later version.
  */
 
-#include <AP_HAL.h>
-#include <AP_Math.h>
-#include <AP_Common.h>
-#include <AP_ADC.h>
-#include <AP_Airspeed.h>
+#include <AP_HAL/AP_HAL.h>
+#include <AP_Math/AP_Math.h>
+#include <AP_Common/AP_Common.h>
+#include "AP_Airspeed.h"
 
 extern const AP_HAL::HAL& hal;
 
-#if CONFIG_HAL_BOARD == HAL_BOARD_APM1
- #include <AP_ADC_AnalogSource.h>
- #define ARSPD_DEFAULT_PIN 64
- extern AP_ADC_ADS7844 apm1_adc;
-#elif CONFIG_HAL_BOARD == HAL_BOARD_APM2
- #define ARSPD_DEFAULT_PIN 0
-#elif CONFIG_HAL_BOARD == HAL_BOARD_AVR_SITL
- #define ARSPD_DEFAULT_PIN 0
-#elif CONFIG_HAL_BOARD == HAL_BOARD_PX4
- #include <sys/stat.h>
- #include <sys/types.h>
- #include <fcntl.h>
- #include <unistd.h>
- #include <systemlib/airspeed.h>
- #include <drivers/drv_airspeed.h>
- #include <uORB/topics/differential_pressure.h>
- #define ARSPD_DEFAULT_PIN 11
-#else
- #define ARSPD_DEFAULT_PIN 0
-#endif
+#define ARSPD_DEFAULT_PIN 0
 
 // table of user settable parameters
 const AP_Param::GroupInfo AP_Airspeed::var_info[] PROGMEM = {
@@ -90,26 +70,7 @@ const AP_Param::GroupInfo AP_Airspeed::var_info[] PROGMEM = {
 void AP_Airspeed::init()
 {
     _last_pressure = 0;
-#if CONFIG_HAL_BOARD == HAL_BOARD_PX4
-    if (_pin == 65) {
-        _ets_fd = open(AIRSPEED_DEVICE_PATH, O_RDONLY);
-        if (_ets_fd == -1) {
-            hal.console->println("Failed to open ETS airspeed driver");
-            _enable.set(0);
-        }
-        if (OK != ioctl(_ets_fd, SENSORIOCSPOLLRATE, 100) ||
-            OK != ioctl(_ets_fd, SENSORIOCSQUEUEDEPTH, 15)) {
-            hal.console->println("Failed to setup ETS driver rate and queue");
-        }
-        return;
-    }
-#endif
-#if CONFIG_HAL_BOARD == HAL_BOARD_APM1
-    if (_pin == 64) {
-        _source = new AP_ADC_AnalogSource( &apm1_adc, 7, 1.0f);
-        return;
-    }
-#endif
+
     _source = hal.analogin->channel(_pin);
 
     _calibration.init(_ratio);
@@ -123,25 +84,6 @@ float AP_Airspeed::get_pressure(void)
     if (!_enable) {
         return 0;
     }
-
-#if CONFIG_HAL_BOARD == HAL_BOARD_PX4
-    if (_ets_fd != -1) {
-        // read from the ETS airspeed sensor
-        float sum = 0;
-        uint16_t count = 0;
-        struct differential_pressure_s report;
-
-        while (::read(_ets_fd, &report, sizeof(report)) == sizeof(report)) {
-            sum += report.differential_pressure_pa;
-            count++;
-        }
-        if (count == 0) {
-            return _last_pressure;
-        }
-        _last_pressure = sum / count;
-        return _last_pressure;
-    }
-#endif
 
     if (_source == NULL) {
         return 0;

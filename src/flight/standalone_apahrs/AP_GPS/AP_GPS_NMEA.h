@@ -42,9 +42,9 @@
 #ifndef __AP_GPS_NMEA_H__
 #define __AP_GPS_NMEA_H__
 
-#include <AP_HAL.h>
+#include <AP_HAL/AP_HAL.h>
 #include "GPS.h"
-#include <AP_Progmem.h>
+#include <AP_Progmem/AP_Progmem.h>
 
 
 /// NMEA parser

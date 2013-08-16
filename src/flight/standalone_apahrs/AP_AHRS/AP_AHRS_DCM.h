@@ -10,6 +10,10 @@
  *  version 2.1 of the License, or (at your option) any later version.
  */
 
+#include <AP_InertialSensor/AP_InertialSensor.h>
+#include <AP_GPS/AP_GPS.h>
+#include "AP_AHRS.h"
+
 class AP_AHRS_DCM : public AP_AHRS
 {
 public:

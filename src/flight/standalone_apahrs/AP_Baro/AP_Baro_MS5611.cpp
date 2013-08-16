@@ -32,7 +32,7 @@
  *
  */
 
-#include <AP_HAL.h>
+#include <AP_HAL/AP_HAL.h>
 #include "AP_Baro_MS5611.h"
 
 extern const AP_HAL::HAL& hal;

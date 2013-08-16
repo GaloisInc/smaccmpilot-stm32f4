@@ -3,9 +3,9 @@
 #ifndef __AP_BARO_H__
 #define __AP_BARO_H__
 
-#include <AP_Param.h>
-#include <Filter.h>
-#include <DerivativeFilter.h>
+#include <AP_Param/AP_Param.h>
+#include <Filter/Filter.h>
+#include <Filter/DerivativeFilter.h>
 
 class AP_Baro
 {
@@ -72,8 +72,5 @@ private:
 };
 
 #include "AP_Baro_MS5611.h"
-#include "AP_Baro_BMP085.h"
-#include "AP_Baro_BMP085_hil.h"
-#include "AP_Baro_PX4.h"
 
 #endif // __AP_BARO_H__

@@ -8,10 +8,10 @@
  *   of the License, or (at your option) any later version.
  */
 
-#include <AP_Math.h>
-#include <AP_Common.h>
-#include <AP_Baro.h>
-#include <AP_HAL.h>
+#include <AP_Math/AP_Math.h>
+#include <AP_Common/AP_Common.h>
+#include <AP_Baro/AP_Baro.h>
+#include <AP_HAL/AP_HAL.h>
 
 extern const AP_HAL::HAL& hal;
 

@@ -1,6 +1,7 @@
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
-#include <AP_Progmem.h>
 #include "Compass.h"
+#include <AP_Progmem/AP_Progmem.h>
+#include <AP_Math/AP_Math.h>
 
 const AP_Param::GroupInfo Compass::var_info[] PROGMEM = {
     // index 0 was used for the old orientation matrix
@@ -99,7 +100,7 @@ Compass::save_offsets()
 Vector3f &
 Compass::get_offsets()
 {
-    return _offset;
+    return (Vector3f&) _offset;
 }
 
 void
@@ -195,7 +196,7 @@ Compass::calculate_heading(const Matrix3f &dcm_matrix)
     headY = mag_y*dcm_matrix.c.z/cos_pitch - mag_z*dcm_matrix.c.y/cos_pitch;
     // magnetic heading
     // 6/4/11 - added constrain to keep bad values from ruining DCM Yaw - Jason S.
-    heading = constrain(atan2f(-headY,headX), -3.15f, 3.15f);
+    heading = constrain_float(atan2f(-headY,headX), -3.15f, 3.15f);
 
     // Declination correction (if supplied)
     if( fabsf(_declination) > 0.0f )

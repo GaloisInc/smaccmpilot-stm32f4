@@ -10,12 +10,11 @@
 //
 #include <stdint.h>
 
-#include <AP_HAL.h>
-
-#define UBLOX_DEBUGGING 0
+#include <AP_HAL/AP_HAL.h>
 
 extern const AP_HAL::HAL& hal;
 
+#define UBLOX_DEBUGGING 0
 #if UBLOX_DEBUGGING
  # define Debug(fmt, args ...)  do {hal.console->printf("%s:%d: " fmt "\n", __FUNCTION__, __LINE__, ## args); hal.scheduler->delay(1); } while(0)
 #else
