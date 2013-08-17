@@ -2,31 +2,31 @@
 
 module Commsec
   ( BaseId(..)
+  , SecureContext_HS(..)
+  , Context(..)
   , secPkgInit_HS
   , secPkgEncInPlace_HS
   , secPkgDec_HS
   ) where
 
 import Data.Word
-import Data.Maybe
+
 
 import qualified Data.ByteString as B
-import qualified Data.ByteString.Char8 as BC
 import Data.ByteString (ByteString)
 
 import Crypto.Cipher.AES                -- Vincent's GCM routine
 import Crypto.Cipher.Types
 import Data.IORef
 import Data.Serialize
-import Hexdump
+
+-- Import for testing
+-- import Data.Maybe
+-- import qualified Data.ByteString.Char8 as BC
+-- import Hexdump
 
 --------------------------------------------------------------------------------
-
--- If this were production code you would want to track the SecureContext
--- being zeroed and throw a run-time error when using a zeroed Ctx.
--- newtype SecureContext = SCtx (ForeignPtr Ctx)
-
--- data Ctx
+--Types
 
 newtype BaseId = BaseId Word32
                  deriving (Eq, Ord, Show, Num)
@@ -34,13 +34,6 @@ newtype BaseId = BaseId Word32
 instance Serialize BaseId where
     get = BaseId `fmap` getWord32be
     put (BaseId x) = putWord32be x
-
-----------------------------------------------------------------------
--- Haskell re-implementation of the SecurePkg format.  This code uses
--- a completely separate C AES routine.  This is NOT a reference
--- in that it is easy to read, it is simply a re-implementation which
--- serves as a light sanity check on the functionallity of the prior
--- implementation.
 
 -- Key, salt, station ID, counter
 
@@ -56,6 +49,8 @@ data SecureContext_HS = SC { inContext    :: InContext
 
 type Context = IORef SecureContext_HS
 
+----------------------------------------------------------------------
+
 commsecPkg :: OutContext -> ByteString
        -> (OutContext, Maybe (ByteString,ByteString,ByteString))
 commsecPkg ctx@(key,salt,bid,ctr) pt
@@ -68,6 +63,13 @@ commsecPkg ctx@(key,salt,bid,ctr) pt
       tagLen   = 8
       header   = runPut (put bid >> putWord32be ctr)
   in (new, Just (header, ct, B.take tagLen tag))
+
+secPkgEnc_HS :: Context -> ByteString
+             -> IO (Maybe (ByteString,ByteString,ByteString))
+secPkgEnc_HS rc pt = do
+  atomicModifyIORef' rc $ \(SC _in outbound') ->
+    let (newOut,res) = commsecPkg outbound' pt in
+    (SC _in newOut,res)
 
 dec :: InContext -> ByteString -> (InContext, Maybe ByteString)
 dec old@(key,salt,bidList) pkg =
@@ -97,12 +99,6 @@ dec old@(key,salt,bidList) pkg =
           | B.take (B.length tag) decTag == tag -> (new,Just pt)
           | otherwise                           -> (old,Nothing)
 
-secPkgDec_HS :: Context -> ByteString -> IO (Maybe ByteString)
-secPkgDec_HS rc pkg =
-  atomicModifyIORef' rc $ \(SC inbound' _out) ->
-    let (newIn, res) = dec inbound' pkg in
-    (SC newIn _out, res)
-
 initOutContext :: ByteString -> Word32 -> BaseId -> OutContext
 initOutContext key salt bid = (initAES key, salt, bid, 1)
 
@@ -110,19 +106,29 @@ initInContext :: ByteString -> Word32 -> InContext
 initInContext key salt
   = (initAES key, salt, zip (map BaseId [0..]) (replicate 16 0))
 
+--------------------------------------------------------------------------------
+-- Main interface functions
+
+-- | Initialize a package returning a context.  Takes your ID, salt and key for
+-- others to send to you, and salt and key for sending to others.  Returns an
+-- updated context.
 secPkgInit_HS :: BaseId -> Word32 -> ByteString -> Word32 -> ByteString
               -> IO Context
 secPkgInit_HS b dsalt dkey esalt ekey
   = newIORef (SC (initInContext dkey dsalt)
                  (initOutContext ekey esalt b))
 
-secPkgEnc_HS :: Context -> ByteString
-             -> IO (Maybe (ByteString,ByteString,ByteString))
-secPkgEnc_HS rc pt = do
-  atomicModifyIORef' rc $ \(SC _in outbound') ->
-    let (newOut,res) = commsecPkg outbound' pt in
-    (SC _in newOut,res)
+-- | Decrypt a package given a context.  Returns the decrypted message, if
+-- successful.
+secPkgDec_HS :: Context -> ByteString -> IO (Maybe ByteString)
+secPkgDec_HS rc pkg =
+  atomicModifyIORef' rc $ \(SC inbound' _out) ->
+    let (newIn, res) = dec inbound' pkg in
+    (SC newIn _out, res)
 
+-- | Encrypt a message given a context.  Returns the concatenated header
+-- (including the sender's ID and message counter), the encrypted message, and
+-- the authentication tag.
 secPkgEncInPlace_HS :: Context -> ByteString -> IO (Maybe ByteString)
 secPkgEncInPlace_HS rc pt = do
     r <- secPkgEnc_HS rc pt
@@ -133,9 +139,9 @@ secPkgEncInPlace_HS rc pt = do
 --------------------------------------------------------------------------------
 -- Testing
 
-maxMsgLen, headerLen :: Int
+{-
+maxMsgLen: :: Int
 maxMsgLen = 84
-headerLen = 8
 
 uavID, base0ID, base1ID :: BaseId
 uavID   = 0
@@ -168,9 +174,7 @@ main = do
 
   putStrLn (simpleHex uavPkg)
 
-  secPkgDec_HS base0Ctx uavPkg >>= B.putStrLn . fromJust
+  secPkgDec_HS base0Ctx uavPkg >>= BC.putStrLn . fromJust
   -- Can't decrypt twice.
-  -- secPkgDec_HS base0Ctx uavPkg >>= B.putStrLn . fromJust
-
-
-
+  -- secPkgDec_HS base0Ctx uavPkg >>= BC.putStrLn . fromJust
+-}
