@@ -20,7 +20,7 @@ FLIGHT_LIB       := libflight.a
 
 FLIGHT_INCLUDES  += -I$(TOP)/src/flight/include
 FLIGHT_INCLUDES  += $(HWF4_INCLUDES)
-FLIGHT_INCLUDES  += $(ARDUPILOT_LIBINCLUDES)
+FLIGHT_INCLUDES  += -I$(TOP)/src/flight/standalone_apahrs
 FLIGHT_INCLUDES  += $(FREERTOS_CFLAGS)
 
 # XXX some users of this library include it without putting the
@@ -42,7 +42,7 @@ FLIGHT_CFLAGS += -DIVORY_DEPLOY
 FLIGHT_CXXFLAGS  += $(FLIGHT_INCLUDES)
 
 FLIGHT_OBJECTS := $(addprefix src/,\
-	apmotors_wrapper.o \
+	apmotors_wrapper_stub.o \
 	console_prim.o \
 	sensors_capture.o \
 	userinput_capture.o \

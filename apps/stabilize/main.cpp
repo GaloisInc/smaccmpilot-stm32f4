@@ -15,13 +15,13 @@
 #include <FreeRTOS.h>
 #include <task.h>
 
-#include <AP_HAL_SMACCM.h>
-#include <AP_Math.h>
+#include <AP_HAL_SMACCM/AP_HAL_SMACCM.h>
+#include <AP_Math/AP_Math.h>
 
 #include <flight/storage_partition.h>
 #include <flight/tower.h>
 
-const AP_HAL::HAL& hal = AP_HAL_BOARD_DRIVER;
+const AP_HAL::HAL& hal = AP_HAL_SMACCM;
 
 // Handle to the main thread.
 static xTaskHandle g_main_task;
