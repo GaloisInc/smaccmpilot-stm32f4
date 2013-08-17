@@ -1,20 +1,15 @@
 name:                smaccmpilot
 version:             0.1.0.0
--- synopsis:
--- description:
 license:             BSD3
-license-file:        LICENSE
 author:              Galois, Inc.
-maintainer:          jamesjb@galois.com
+maintainer:          pat@galois.com
 -- copyright:
 category:            System
 build-type:          Simple
 cabal-version:       >= 1.10
 
 library
-  exposed-modules:     SMACCMPilot.Console,
-
-                       SMACCMPilot.Flight.BlinkTask,
+  exposed-modules:     SMACCMPilot.Flight.BlinkTask,
 
                        SMACCMPilot.Flight.GCS.Stream,
                        SMACCMPilot.Flight.GCS.Transmit.MessageDriver,
@@ -48,8 +43,8 @@ library
                        SMACCMPilot.Flight.UserInput.Decode,
                        SMACCMPilot.Flight.UserInput.Task,
 
+                       SMACCMPilot.Console,
                        SMACCMPilot.Storage.Partition,
-
                        SMACCMPilot.Param,
                        SMACCMPilot.SafePack
 
@@ -61,9 +56,12 @@ library
                        ivory-stdlib,
                        ivory-backend-c,
                        ivory-opts,
+                       ivory-hw,
+                       ivory-bitdata,
                        ivory-tower >= 0.6.0.0,
                        ivory-tower-freertos >= 0.6.0.0,
                        ivory-bsp-hwf4wrapper,
+                       ivory-bsp-stm32f4,
                        smaccm-mavlink
 
   default-language:    Haskell2010
@@ -78,10 +76,13 @@ executable smaccmpilot-gen
                        ivory-stdlib,
                        ivory-backend-c,
                        ivory-opts,
+                       ivory-hw,
+                       ivory-bitdata,
                        ivory-tower >= 0.6.0.0,
                        ivory-tower-freertos >= 0.6.0.0,
                        ivory-tower-frontend,
                        ivory-bsp-hwf4wrapper,
+                       ivory-bsp-stm32f4,
                        smaccm-mavlink,
                        smaccmpilot
 

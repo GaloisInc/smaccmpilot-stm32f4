@@ -6,19 +6,12 @@ import Ivory.Stdlib.String (stdlibStringModule)
 
 import Ivory.Tower
 import Ivory.Tower.Frontend
-
-import Ivory.BSP.HWF4 (hwf4Modules)
-import Ivory.BSP.HWF4.USART (usart1)
-import qualified Ivory.BSP.HWF4.GPIO as GPIO
+import qualified Ivory.HW.SearchDir as HW
 
 import SMACCMPilot.Flight.Types (typeModules)
 
 import SMACCMPilot.Flight.UserInput.Decode (userInputDecodeModule)
 import SMACCMPilot.Flight.Control (controlModules)
-
-import SMACCMPilot.Console           (consoleModule)
-import SMACCMPilot.Storage.Partition (partitionModule)
-import SMACCMPilot.Param             (paramModule)
 
 import SMACCMPilot.Flight.Control.Task
 import SMACCMPilot.Flight.Motors.Task
@@ -31,12 +24,19 @@ import SMACCMPilot.Mavlink.Messages (mavlinkMessageModules)
 import SMACCMPilot.Mavlink.Pack (packModule)
 import SMACCMPilot.Mavlink.CRC (mavlinkCRCModule)
 
+import qualified Ivory.BSP.HWF4.EEPROM as HWF4
+
+import qualified Ivory.BSP.STM32F4.SearchDir as BSP
+import qualified Ivory.BSP.STM32F4.GPIO as GPIO
+import qualified Ivory.BSP.STM32F4.UART as UART
+
 import Arm32SizeMap (sizeMap)
 
 main :: IO ()
 main = compile conf app
   where
-  conf = defaultBuildConf { bc_sizemap = Just sizeMap }
+  sp   = searchPathConf [HW.searchDir, BSP.searchDir]
+  conf = sp { bc_sizemap = Just sizeMap }
 
 app :: Tower p ()
 app = do
@@ -58,14 +58,14 @@ app = do
                       snk_sensors src_control
   task "motors"    $ motorsTask snk_control snk_flightmode src_servos
 
-  gcsTower "usart1" usart1 snk_flightmode snk_sensor_state snk_position
+  gcsTower "uart1" UART.uart1 snk_flightmode snk_sensor_state snk_position
     snk_control_state snk_servos
 
   mapM_ addDepends typeModules
   mapM_ addModule otherms
   where
-  relaypin = GPIO.pin_b13
-  redledpin = GPIO.pin_b14
+  relaypin = GPIO.pinB13
+  redledpin = GPIO.pinB14
 
 otherms :: [Module]
 otherms =
@@ -75,12 +75,9 @@ otherms =
   controlModules ++
   -- mavlink system
   mavlinkMessageModules ++ [packModule, mavlinkCRCModule] ++
-  -- bsp subsystem
-  hwf4Modules ++
+  -- hwf4 bsp
+  [ HWF4.eepromModule ] ++
   -- the rest:
   [ userInputDecodeModule
-  , consoleModule
-  , partitionModule
-  , paramModule
   , stdlibStringModule
   ]

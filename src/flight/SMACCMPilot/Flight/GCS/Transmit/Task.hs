@@ -25,8 +25,8 @@ sysid, compid :: Uint8
 sysid = 1
 compid = 0
 
-gcsTransmitTask :: (SingI n, SingI m)
-                => MemArea (Struct "usart")
+gcsTransmitTask :: (SingI nn, SingI n, SingI m)
+                => ChannelSource nn (Stored Uint8)
                 -> ChannelSink n (Struct "gcsstream_timing")
                 -> ChannelSink m (Struct "data_rate_state")
                 -> DataSink (Struct "flightmode")
@@ -35,7 +35,7 @@ gcsTransmitTask :: (SingI n, SingI m)
                 -> DataSink (Struct "controloutput")
                 -> DataSink (Struct "servos")
                 -> Task p ()
-gcsTransmitTask usart sp_sink dr_sink fm_sink se_sink ps_sink ct_sink sr_sink
+gcsTransmitTask ostream sp_sink dr_sink fm_sink se_sink ps_sink ct_sink sr_sink
   = do
   streamPeriodRxer <- withChannelReceiver sp_sink  "streamperiods"
   drRxer           <- withChannelReceiver dr_sink  "data_rate"
@@ -46,6 +46,9 @@ gcsTransmitTask usart sp_sink dr_sink fm_sink se_sink ps_sink ct_sink sr_sink
   servoReader      <- withDataReader sr_sink "servos"
 
   n <- freshname
+  -- XXX current issue: need a way to change usartSender to be defined in terms
+  -- of the ChannelReceiver. This means it will depend on the Task
+  -- tower_task_loop_ module, which generates the code for the emitter.
   let (chan1, cmods) = messageDriver (usartSender usart n sysid compid)
   mapM_ withModule cmods
   withStackSize 512
