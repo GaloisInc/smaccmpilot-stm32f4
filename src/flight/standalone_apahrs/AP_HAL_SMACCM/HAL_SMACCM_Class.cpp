@@ -1,17 +1,14 @@
 
 #include <AP_HAL/AP_HAL.h>
-#include <AP_HAL/AP_HAL_Boards.h>
-
-#if CONFIG_HAL_BOARD == HAL_BOARD_SMACCM
 
 #include "HAL_SMACCM_Class.h"
 #include "AP_HAL_SMACCM_Private.h"
 
 using namespace SMACCM;
 
-// XXX make sure these are assigned correctly
-static SMACCMUARTDriver uartADriver(usart1);
-static SMACCMUARTDriver uartBDriver(usart6);
+/* All UART drivers are stubs. */
+static SMACCMUARTDriver uartADriver(NULL);
+static SMACCMUARTDriver uartBDriver(NULL);
 static SMACCMUARTDriver uartCDriver(NULL);
 
 static SMACCMI2CDriver  i2cDriver;
@@ -59,4 +56,3 @@ void HAL_SMACCM::init(int argc,char* const argv[]) const
 
 const HAL_SMACCM AP_HAL_SMACCM;
 
-#endif // CONFIG_HAL_BOARD == HAL_BOARD_SMACCM

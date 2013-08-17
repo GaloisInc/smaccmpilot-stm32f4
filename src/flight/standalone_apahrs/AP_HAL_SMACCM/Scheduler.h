@@ -14,7 +14,7 @@
 #ifndef __AP_HAL_SMACCM_SCHEDULER_H__
 #define __AP_HAL_SMACCM_SCHEDULER_H__
 
-#include <AP_HAL_SMACCM.h>
+#include "AP_HAL_SMACCM.h"
 
 #define SMACCM_SCHEDULER_MAX_TIMER_PROCS 4
 
@@ -53,6 +53,9 @@ public:
 
   /** Register a callback to run every 1ms (1kHz). */
   void register_timer_process(AP_HAL::TimedProc);
+
+  /** register a low priority IO task */
+  void register_io_process(AP_HAL::TimedProc);
 
   /**
    * Register a callback to run if a timer process takes too long to

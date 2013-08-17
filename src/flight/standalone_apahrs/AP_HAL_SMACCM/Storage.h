@@ -14,7 +14,7 @@
 #ifndef __AP_HAL_SMACCM_STORAGE_H__
 #define __AP_HAL_SMACCM_STORAGE_H__
 
-#include <AP_HAL_SMACCM.h>
+#include "AP_HAL_SMACCM.h"
 
 class SMACCM::SMACCMStorage : public AP_HAL::Storage
 {

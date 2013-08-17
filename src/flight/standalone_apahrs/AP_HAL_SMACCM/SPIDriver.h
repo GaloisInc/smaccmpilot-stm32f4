@@ -11,11 +11,7 @@
 #ifndef __AP_HAL_SMACCM_SPIDRIVER_H__
 #define __AP_HAL_SMACCM_SPIDRIVER_H__
 
-#include <AP_HAL_Boards.h>
-
-#if CONFIG_HAL_BOARD == HAL_BOARD_SMACCM
-
-#include <AP_HAL_SMACCM.h>
+#include "AP_HAL_SMACCM.h"
 #include "Semaphores.h"
 
 #include <hwf4/spi.h>
@@ -44,5 +40,4 @@ public:
     AP_HAL::SPIDeviceDriver* device(AP_HAL::SPIDevice);
 };
 
-#endif // CONFIG_HAL_BOARD == HAL_BOARD_SMACCM
 #endif // __AP_HAL_SMACCM_SPIDRIVER_H__

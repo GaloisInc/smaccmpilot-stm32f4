@@ -11,10 +11,6 @@
  * Written by James Bielman <jamesjb@galois.com>, 20 December 2012
  */
 
-#include <AP_HAL/AP_HAL_Boards.h>
-
-#if CONFIG_HAL_BOARD == HAL_BOARD_SMACCM
-
 #include <hwf4/gpio.h>
 #include <hwf4/timer.h>
 
@@ -211,6 +207,10 @@ void SMACCMScheduler::register_timer_process(AP_HAL::TimedProc k)
   }
 }
 
+void SMACCMScheduler::register_io_process(AP_HAL::TimedProc k)
+{
+}
+
 void SMACCMScheduler::register_timer_failsafe(AP_HAL::TimedProc k, uint32_t)
 {
   m_failsafe_cb = k;
@@ -298,4 +298,3 @@ void SMACCMScheduler::system_initialized()
   m_initializing = false;
 }
 
-#endif // CONFIG_HAL_BOARD == HAL_BOARD_SMACCM

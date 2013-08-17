@@ -2,7 +2,7 @@
 #ifndef __AP_HAL_SMACCM_RCINPUT_H__
 #define __AP_HAL_SMACCM_RCINPUT_H__
 
-#include <AP_HAL_SMACCM.h>
+#include "AP_HAL_SMACCM.h"
 
 #define SMACCM_RCINPUT_CHANNELS 8
 

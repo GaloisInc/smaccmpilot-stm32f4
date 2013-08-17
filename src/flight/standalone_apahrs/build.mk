@@ -44,6 +44,7 @@ STANDALONE_APAHRS_OBJECTS :=                                           \
         AP_Math/vector2.o                                              \
         AP_Compass/Compass.o                                           \
         AP_Compass/AP_Compass_HMC5843.o                                \
+        AP_Common/c++.o                                                \
         Filter/DerivativeFilter.o
 
 $(eval $(call when_os,freertos,library,STANDALONE_APAHRS))
@@ -51,6 +52,8 @@ $(eval $(call when_os,freertos,library,STANDALONE_APAHRS))
 STANDALONE_HAL_LIB       := libstandalone-aphal.a
 
 STANDALONE_HAL_INCLUDES  += -I$(TOP)/src/flight/standalone_apahrs
+STANDALONE_HAL_INCLUDES  += -I$(TOP)/src/bsp/hwf4/include
+STANDALONE_HAL_INCLUDES  += $(FREERTOS_CFLAGS)
 
 STANDALONE_HAL_CFLAGS    += $(STANDALONE_HAL_INCLUDES)
 STANDALONE_HAL_CXXFLAGS  += $(STANDALONE_HAL_INCLUDES)

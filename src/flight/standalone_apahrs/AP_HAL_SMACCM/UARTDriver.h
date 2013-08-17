@@ -2,10 +2,6 @@
 #ifndef __AP_HAL_SMACCM_UARTDRIVER_H__
 #define __AP_HAL_SMACCM_UARTDRIVER_H__
 
-#include <AP_HAL/AP_HAL_Boards.h>
-
-#if CONFIG_HAL_BOARD == HAL_BOARD_SMACCM
-
 #include "AP_HAL_SMACCM.h"
 #include <hwf4/usart.h>
 
@@ -46,5 +42,4 @@ private:
   bool m_blocking;
 };
 
-#endif // CONFIG_HAL_BOARD == HAL_BOARD_SMACCM
 #endif // __AP_HAL_SMACCM_UARTDRIVER_H__
