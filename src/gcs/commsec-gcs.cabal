@@ -24,6 +24,7 @@ executable commsec-gcs
                        cipher-aes >= 0.2.2,
                        crypto-cipher-types,
                        cereal,
+                       array,
                        pretty-hex
 
   ghc-options:         -Wall -O -threaded -rtsopts -with-rtsopts=-N3

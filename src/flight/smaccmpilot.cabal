@@ -3,7 +3,6 @@ version:             0.1.0.0
 -- synopsis:
 -- description:
 license:             BSD3
-license-file:        LICENSE
 author:              Galois, Inc.
 maintainer:          jamesjb@galois.com
 -- copyright:
