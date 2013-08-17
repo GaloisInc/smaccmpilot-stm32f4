@@ -1,4 +1,3 @@
-
 module Data.HXStream where
 
 import           Data.Bits
@@ -79,8 +78,7 @@ encode :: Frame -> B.ByteString
 encode (Frame ws) = B.pack $ map (C.chr . fromIntegral) $
   [fbo] ++ go ws ++ [fbo]
   where
-  go (x:xs) | x == fbo  = ceo:(escape x):(go xs)
-            | x == ceo  = ceo:(escape x):(go xs)
-            | otherwise = x:(go xs)
+  go (x:xs) | x == fbo  = ceo : escape x : go xs
+            | x == ceo  = ceo : escape x : go xs
+            | otherwise = x : go xs
   go [] = []
-
