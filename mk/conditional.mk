@@ -6,11 +6,11 @@
 # $4 proxied arg2
 
 define when_platforms
-$(if $(findstring $(CONFIG_PLATFORM),$1),$(call $2,$3,$4),)
+$(if $(findstring $(CONFIG_PLATFORM),$1),$(call $2,$3,$4,$5),)
 endef
 
 define unless_platforms
-$(if $(findstring $(CONFIG_PLATFORM),$1),,$(call $2,$3,$4))
+$(if $(findstring $(CONFIG_PLATFORM),$1),,$(call $2,$3,$4,$5))
 endef
 
 define when_os
