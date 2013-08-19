@@ -9,7 +9,8 @@ import Ivory.Tower
 import Ivory.HW.Module
 import Ivory.BSP.STM32F4.GPIO
 
-data LED = LED GPIOPin Bool
+data LEDPolarity = ActiveHigh | ActiveLow
+data LED = LED GPIOPin LEDPolarity
 
 ledSetup :: LED -> Ivory eff ()
 ledSetup led@(LED pin polarity) = do
@@ -20,20 +21,24 @@ ledSetup led@(LED pin polarity) = do
   ledOff led
 
 ledOn :: LED -> Ivory eff ()
-ledOn (LED pin False) = pinOff pin
-ledOn (LED pin True)  = pinOn  pin
+ledOn (LED pin ActiveHigh) = pinHigh pin
+ledOn (LED pin ActiveLow)  = pinLow  pin
 
 ledOff :: LED -> Ivory eff ()
-ledOff (LED pin False) = pinOn  pin
-ledOff (LED pin True)  = pinOff pin
+ledOff (LED pin _) = pinHiZ pin
 
-pinOn :: GPIOPin -> Ivory eff ()
-pinOn pin = do
+pinLow :: GPIOPin -> Ivory eff ()
+pinLow pin = do
   pinClear pin
   pinSetMode pin gpio_mode_output
 
-pinOff :: GPIOPin -> Ivory eff ()
-pinOff pin = pinSetMode pin gpio_mode_analog
+pinHigh :: GPIOPin -> Ivory eff ()
+pinHigh pin = do
+  pinSet pin
+  pinSetMode pin gpio_mode_output
+
+pinHiZ :: GPIOPin -> Ivory eff ()
+pinHiZ pin = pinSetMode pin gpio_mode_analog
 ------------------------------
 
 -- | LED Controller: Given a set of leds and a control channel of booleans,

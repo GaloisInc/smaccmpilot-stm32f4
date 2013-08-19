@@ -38,6 +38,9 @@ aadl: allplatforms
 discovery: PLATFORMS = stm32f4discovery
 discovery: allplatforms
 
+open407: PLATFORMS = open407vc
+open407: allplatforms
+
 cbmc: TARGET = cbmc
 cbmc: default
 
