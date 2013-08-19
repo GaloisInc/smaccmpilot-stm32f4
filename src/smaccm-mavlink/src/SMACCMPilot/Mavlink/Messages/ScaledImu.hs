@@ -47,15 +47,14 @@ mkScaledImuSender :: SizedMavlinkSender 22
                        -> Def ('[ ConstRef s (Struct "scaled_imu_msg") ] :-> ())
 mkScaledImuSender sender =
   proc ("mavlink_scaled_imu_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    scaledImuPack (senderMacro sender) msg
+    noReturn $ scaledImuPack (senderMacro sender) msg
 
 instance MavlinkSendable "scaled_imu_msg" 22 where
   mkSender = mkScaledImuSender
 
-scaledImuPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
-                  => SenderMacro eff s 22
+scaledImuPack :: SenderMacro cs (Stack cs) 22
                   -> ConstRef s1 (Struct "scaled_imu_msg")
-                  -> Ivory eff ()
+                  -> Ivory (AllocEffects cs) ()
 scaledImuPack sender msg = do
   arr <- local (iarray [] :: Init (Array 22 (Stored Uint8)))
   let buf = toCArray arr
@@ -70,7 +69,6 @@ scaledImuPack sender msg = do
   call_ pack buf 18 =<< deref (msg ~> ymag)
   call_ pack buf 20 =<< deref (msg ~> zmag)
   sender scaledImuMsgId (constRef arr) scaledImuCrcExtra
-  retVoid
 
 instance MavlinkUnpackableMsg "scaled_imu_msg" where
     unpackMsg = ( scaledImuUnpack , scaledImuMsgId )

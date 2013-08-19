@@ -41,15 +41,14 @@ mkMissionWritePartialListSender :: SizedMavlinkSender 6
                        -> Def ('[ ConstRef s (Struct "mission_write_partial_list_msg") ] :-> ())
 mkMissionWritePartialListSender sender =
   proc ("mavlink_mission_write_partial_list_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    missionWritePartialListPack (senderMacro sender) msg
+    noReturn $ missionWritePartialListPack (senderMacro sender) msg
 
 instance MavlinkSendable "mission_write_partial_list_msg" 6 where
   mkSender = mkMissionWritePartialListSender
 
-missionWritePartialListPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
-                  => SenderMacro eff s 6
+missionWritePartialListPack :: SenderMacro cs (Stack cs) 6
                   -> ConstRef s1 (Struct "mission_write_partial_list_msg")
-                  -> Ivory eff ()
+                  -> Ivory (AllocEffects cs) ()
 missionWritePartialListPack sender msg = do
   arr <- local (iarray [] :: Init (Array 6 (Stored Uint8)))
   let buf = toCArray arr
@@ -58,7 +57,6 @@ missionWritePartialListPack sender msg = do
   call_ pack buf 4 =<< deref (msg ~> target_system)
   call_ pack buf 5 =<< deref (msg ~> target_component)
   sender missionWritePartialListMsgId (constRef arr) missionWritePartialListCrcExtra
-  retVoid
 
 instance MavlinkUnpackableMsg "mission_write_partial_list_msg" where
     unpackMsg = ( missionWritePartialListUnpack , missionWritePartialListMsgId )

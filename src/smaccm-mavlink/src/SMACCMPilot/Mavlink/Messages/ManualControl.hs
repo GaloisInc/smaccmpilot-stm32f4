@@ -43,15 +43,14 @@ mkManualControlSender :: SizedMavlinkSender 11
                        -> Def ('[ ConstRef s (Struct "manual_control_msg") ] :-> ())
 mkManualControlSender sender =
   proc ("mavlink_manual_control_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    manualControlPack (senderMacro sender) msg
+    noReturn $ manualControlPack (senderMacro sender) msg
 
 instance MavlinkSendable "manual_control_msg" 11 where
   mkSender = mkManualControlSender
 
-manualControlPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
-                  => SenderMacro eff s 11
+manualControlPack :: SenderMacro cs (Stack cs) 11
                   -> ConstRef s1 (Struct "manual_control_msg")
-                  -> Ivory eff ()
+                  -> Ivory (AllocEffects cs) ()
 manualControlPack sender msg = do
   arr <- local (iarray [] :: Init (Array 11 (Stored Uint8)))
   let buf = toCArray arr
@@ -62,7 +61,6 @@ manualControlPack sender msg = do
   call_ pack buf 8 =<< deref (msg ~> buttons)
   call_ pack buf 10 =<< deref (msg ~> target)
   sender manualControlMsgId (constRef arr) manualControlCrcExtra
-  retVoid
 
 instance MavlinkUnpackableMsg "manual_control_msg" where
     unpackMsg = ( manualControlUnpack , manualControlMsgId )

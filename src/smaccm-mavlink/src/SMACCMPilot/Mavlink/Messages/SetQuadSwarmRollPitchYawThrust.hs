@@ -43,15 +43,14 @@ mkSetQuadSwarmRollPitchYawThrustSender :: SizedMavlinkSender 34
                        -> Def ('[ ConstRef s (Struct "set_quad_swarm_roll_pitch_yaw_thrust_msg") ] :-> ())
 mkSetQuadSwarmRollPitchYawThrustSender sender =
   proc ("mavlink_set_quad_swarm_roll_pitch_yaw_thrust_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    setQuadSwarmRollPitchYawThrustPack (senderMacro sender) msg
+    noReturn $ setQuadSwarmRollPitchYawThrustPack (senderMacro sender) msg
 
 instance MavlinkSendable "set_quad_swarm_roll_pitch_yaw_thrust_msg" 34 where
   mkSender = mkSetQuadSwarmRollPitchYawThrustSender
 
-setQuadSwarmRollPitchYawThrustPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
-                  => SenderMacro eff s 34
+setQuadSwarmRollPitchYawThrustPack :: SenderMacro cs (Stack cs) 34
                   -> ConstRef s1 (Struct "set_quad_swarm_roll_pitch_yaw_thrust_msg")
-                  -> Ivory eff ()
+                  -> Ivory (AllocEffects cs) ()
 setQuadSwarmRollPitchYawThrustPack sender msg = do
   arr <- local (iarray [] :: Init (Array 34 (Stored Uint8)))
   let buf = toCArray arr
@@ -62,7 +61,6 @@ setQuadSwarmRollPitchYawThrustPack sender msg = do
   arrayPack buf 16 (msg ~> yaw)
   arrayPack buf 24 (msg ~> thrust)
   sender setQuadSwarmRollPitchYawThrustMsgId (constRef arr) setQuadSwarmRollPitchYawThrustCrcExtra
-  retVoid
 
 instance MavlinkUnpackableMsg "set_quad_swarm_roll_pitch_yaw_thrust_msg" where
     unpackMsg = ( setQuadSwarmRollPitchYawThrustUnpack , setQuadSwarmRollPitchYawThrustMsgId )

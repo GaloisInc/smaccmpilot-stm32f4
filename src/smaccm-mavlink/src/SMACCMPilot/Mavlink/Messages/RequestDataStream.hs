@@ -42,15 +42,14 @@ mkRequestDataStreamSender :: SizedMavlinkSender 6
                        -> Def ('[ ConstRef s (Struct "request_data_stream_msg") ] :-> ())
 mkRequestDataStreamSender sender =
   proc ("mavlink_request_data_stream_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    requestDataStreamPack (senderMacro sender) msg
+    noReturn $ requestDataStreamPack (senderMacro sender) msg
 
 instance MavlinkSendable "request_data_stream_msg" 6 where
   mkSender = mkRequestDataStreamSender
 
-requestDataStreamPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
-                  => SenderMacro eff s 6
+requestDataStreamPack :: SenderMacro cs (Stack cs) 6
                   -> ConstRef s1 (Struct "request_data_stream_msg")
-                  -> Ivory eff ()
+                  -> Ivory (AllocEffects cs) ()
 requestDataStreamPack sender msg = do
   arr <- local (iarray [] :: Init (Array 6 (Stored Uint8)))
   let buf = toCArray arr
@@ -60,7 +59,6 @@ requestDataStreamPack sender msg = do
   call_ pack buf 4 =<< deref (msg ~> req_stream_id)
   call_ pack buf 5 =<< deref (msg ~> start_stop)
   sender requestDataStreamMsgId (constRef arr) requestDataStreamCrcExtra
-  retVoid
 
 instance MavlinkUnpackableMsg "request_data_stream_msg" where
     unpackMsg = ( requestDataStreamUnpack , requestDataStreamMsgId )

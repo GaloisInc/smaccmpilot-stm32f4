@@ -48,15 +48,14 @@ mkHilControlsSender :: SizedMavlinkSender 42
                        -> Def ('[ ConstRef s (Struct "hil_controls_msg") ] :-> ())
 mkHilControlsSender sender =
   proc ("mavlink_hil_controls_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    hilControlsPack (senderMacro sender) msg
+    noReturn $ hilControlsPack (senderMacro sender) msg
 
 instance MavlinkSendable "hil_controls_msg" 42 where
   mkSender = mkHilControlsSender
 
-hilControlsPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
-                  => SenderMacro eff s 42
+hilControlsPack :: SenderMacro cs (Stack cs) 42
                   -> ConstRef s1 (Struct "hil_controls_msg")
-                  -> Ivory eff ()
+                  -> Ivory (AllocEffects cs) ()
 hilControlsPack sender msg = do
   arr <- local (iarray [] :: Init (Array 42 (Stored Uint8)))
   let buf = toCArray arr
@@ -72,7 +71,6 @@ hilControlsPack sender msg = do
   call_ pack buf 40 =<< deref (msg ~> mode)
   call_ pack buf 41 =<< deref (msg ~> nav_mode)
   sender hilControlsMsgId (constRef arr) hilControlsCrcExtra
-  retVoid
 
 instance MavlinkUnpackableMsg "hil_controls_msg" where
     unpackMsg = ( hilControlsUnpack , hilControlsMsgId )

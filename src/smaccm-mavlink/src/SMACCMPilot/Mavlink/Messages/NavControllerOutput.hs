@@ -45,15 +45,14 @@ mkNavControllerOutputSender :: SizedMavlinkSender 26
                        -> Def ('[ ConstRef s (Struct "nav_controller_output_msg") ] :-> ())
 mkNavControllerOutputSender sender =
   proc ("mavlink_nav_controller_output_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    navControllerOutputPack (senderMacro sender) msg
+    noReturn $ navControllerOutputPack (senderMacro sender) msg
 
 instance MavlinkSendable "nav_controller_output_msg" 26 where
   mkSender = mkNavControllerOutputSender
 
-navControllerOutputPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
-                  => SenderMacro eff s 26
+navControllerOutputPack :: SenderMacro cs (Stack cs) 26
                   -> ConstRef s1 (Struct "nav_controller_output_msg")
-                  -> Ivory eff ()
+                  -> Ivory (AllocEffects cs) ()
 navControllerOutputPack sender msg = do
   arr <- local (iarray [] :: Init (Array 26 (Stored Uint8)))
   let buf = toCArray arr
@@ -66,7 +65,6 @@ navControllerOutputPack sender msg = do
   call_ pack buf 22 =<< deref (msg ~> target_bearing)
   call_ pack buf 24 =<< deref (msg ~> wp_dist)
   sender navControllerOutputMsgId (constRef arr) navControllerOutputCrcExtra
-  retVoid
 
 instance MavlinkUnpackableMsg "nav_controller_output_msg" where
     unpackMsg = ( navControllerOutputUnpack , navControllerOutputMsgId )

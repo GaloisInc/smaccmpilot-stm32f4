@@ -45,15 +45,14 @@ mkOpticalFlowSender :: SizedMavlinkSender 26
                        -> Def ('[ ConstRef s (Struct "optical_flow_msg") ] :-> ())
 mkOpticalFlowSender sender =
   proc ("mavlink_optical_flow_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    opticalFlowPack (senderMacro sender) msg
+    noReturn $ opticalFlowPack (senderMacro sender) msg
 
 instance MavlinkSendable "optical_flow_msg" 26 where
   mkSender = mkOpticalFlowSender
 
-opticalFlowPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
-                  => SenderMacro eff s 26
+opticalFlowPack :: SenderMacro cs (Stack cs) 26
                   -> ConstRef s1 (Struct "optical_flow_msg")
-                  -> Ivory eff ()
+                  -> Ivory (AllocEffects cs) ()
 opticalFlowPack sender msg = do
   arr <- local (iarray [] :: Init (Array 26 (Stored Uint8)))
   let buf = toCArray arr
@@ -66,7 +65,6 @@ opticalFlowPack sender msg = do
   call_ pack buf 24 =<< deref (msg ~> sensor_id)
   call_ pack buf 25 =<< deref (msg ~> quality)
   sender opticalFlowMsgId (constRef arr) opticalFlowCrcExtra
-  retVoid
 
 instance MavlinkUnpackableMsg "optical_flow_msg" where
     unpackMsg = ( opticalFlowUnpack , opticalFlowMsgId )

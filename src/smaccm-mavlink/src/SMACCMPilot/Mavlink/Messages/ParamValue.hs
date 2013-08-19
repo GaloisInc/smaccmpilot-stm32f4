@@ -42,15 +42,14 @@ mkParamValueSender :: SizedMavlinkSender 25
                        -> Def ('[ ConstRef s (Struct "param_value_msg") ] :-> ())
 mkParamValueSender sender =
   proc ("mavlink_param_value_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    paramValuePack (senderMacro sender) msg
+    noReturn $ paramValuePack (senderMacro sender) msg
 
 instance MavlinkSendable "param_value_msg" 25 where
   mkSender = mkParamValueSender
 
-paramValuePack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
-                  => SenderMacro eff s 25
+paramValuePack :: SenderMacro cs (Stack cs) 25
                   -> ConstRef s1 (Struct "param_value_msg")
-                  -> Ivory eff ()
+                  -> Ivory (AllocEffects cs) ()
 paramValuePack sender msg = do
   arr <- local (iarray [] :: Init (Array 25 (Stored Uint8)))
   let buf = toCArray arr
@@ -60,7 +59,6 @@ paramValuePack sender msg = do
   call_ pack buf 24 =<< deref (msg ~> param_type)
   arrayPack buf 8 (msg ~> param_id)
   sender paramValueMsgId (constRef arr) paramValueCrcExtra
-  retVoid
 
 instance MavlinkUnpackableMsg "param_value_msg" where
     unpackMsg = ( paramValueUnpack , paramValueMsgId )

@@ -44,15 +44,14 @@ mkLocalPositionNedSystemGlobalOffsetSender :: SizedMavlinkSender 28
                        -> Def ('[ ConstRef s (Struct "local_position_ned_system_global_offset_msg") ] :-> ())
 mkLocalPositionNedSystemGlobalOffsetSender sender =
   proc ("mavlink_local_position_ned_system_global_offset_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    localPositionNedSystemGlobalOffsetPack (senderMacro sender) msg
+    noReturn $ localPositionNedSystemGlobalOffsetPack (senderMacro sender) msg
 
 instance MavlinkSendable "local_position_ned_system_global_offset_msg" 28 where
   mkSender = mkLocalPositionNedSystemGlobalOffsetSender
 
-localPositionNedSystemGlobalOffsetPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
-                  => SenderMacro eff s 28
+localPositionNedSystemGlobalOffsetPack :: SenderMacro cs (Stack cs) 28
                   -> ConstRef s1 (Struct "local_position_ned_system_global_offset_msg")
-                  -> Ivory eff ()
+                  -> Ivory (AllocEffects cs) ()
 localPositionNedSystemGlobalOffsetPack sender msg = do
   arr <- local (iarray [] :: Init (Array 28 (Stored Uint8)))
   let buf = toCArray arr
@@ -64,7 +63,6 @@ localPositionNedSystemGlobalOffsetPack sender msg = do
   call_ pack buf 20 =<< deref (msg ~> pitch)
   call_ pack buf 24 =<< deref (msg ~> yaw)
   sender localPositionNedSystemGlobalOffsetMsgId (constRef arr) localPositionNedSystemGlobalOffsetCrcExtra
-  retVoid
 
 instance MavlinkUnpackableMsg "local_position_ned_system_global_offset_msg" where
     unpackMsg = ( localPositionNedSystemGlobalOffsetUnpack , localPositionNedSystemGlobalOffsetMsgId )

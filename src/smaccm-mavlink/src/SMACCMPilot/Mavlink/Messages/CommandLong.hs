@@ -48,15 +48,14 @@ mkCommandLongSender :: SizedMavlinkSender 33
                        -> Def ('[ ConstRef s (Struct "command_long_msg") ] :-> ())
 mkCommandLongSender sender =
   proc ("mavlink_command_long_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    commandLongPack (senderMacro sender) msg
+    noReturn $ commandLongPack (senderMacro sender) msg
 
 instance MavlinkSendable "command_long_msg" 33 where
   mkSender = mkCommandLongSender
 
-commandLongPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
-                  => SenderMacro eff s 33
+commandLongPack :: SenderMacro cs (Stack cs) 33
                   -> ConstRef s1 (Struct "command_long_msg")
-                  -> Ivory eff ()
+                  -> Ivory (AllocEffects cs) ()
 commandLongPack sender msg = do
   arr <- local (iarray [] :: Init (Array 33 (Stored Uint8)))
   let buf = toCArray arr
@@ -72,7 +71,6 @@ commandLongPack sender msg = do
   call_ pack buf 31 =<< deref (msg ~> target_component)
   call_ pack buf 32 =<< deref (msg ~> confirmation)
   sender commandLongMsgId (constRef arr) commandLongCrcExtra
-  retVoid
 
 instance MavlinkUnpackableMsg "command_long_msg" where
     unpackMsg = ( commandLongUnpack , commandLongMsgId )

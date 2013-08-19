@@ -40,15 +40,14 @@ mkData64Sender :: SizedMavlinkSender 66
                        -> Def ('[ ConstRef s (Struct "data64_msg") ] :-> ())
 mkData64Sender sender =
   proc ("mavlink_data64_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    data64Pack (senderMacro sender) msg
+    noReturn $ data64Pack (senderMacro sender) msg
 
 instance MavlinkSendable "data64_msg" 66 where
   mkSender = mkData64Sender
 
-data64Pack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
-                  => SenderMacro eff s 66
+data64Pack :: SenderMacro cs (Stack cs) 66
                   -> ConstRef s1 (Struct "data64_msg")
-                  -> Ivory eff ()
+                  -> Ivory (AllocEffects cs) ()
 data64Pack sender msg = do
   arr <- local (iarray [] :: Init (Array 66 (Stored Uint8)))
   let buf = toCArray arr
@@ -56,7 +55,6 @@ data64Pack sender msg = do
   call_ pack buf 1 =<< deref (msg ~> len)
   arrayPack buf 2 (msg ~> data64)
   sender data64MsgId (constRef arr) data64CrcExtra
-  retVoid
 
 instance MavlinkUnpackableMsg "data64_msg" where
     unpackMsg = ( data64Unpack , data64MsgId )

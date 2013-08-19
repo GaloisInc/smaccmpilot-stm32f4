@@ -41,15 +41,14 @@ mkScaledPressureSender :: SizedMavlinkSender 14
                        -> Def ('[ ConstRef s (Struct "scaled_pressure_msg") ] :-> ())
 mkScaledPressureSender sender =
   proc ("mavlink_scaled_pressure_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    scaledPressurePack (senderMacro sender) msg
+    noReturn $ scaledPressurePack (senderMacro sender) msg
 
 instance MavlinkSendable "scaled_pressure_msg" 14 where
   mkSender = mkScaledPressureSender
 
-scaledPressurePack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
-                  => SenderMacro eff s 14
+scaledPressurePack :: SenderMacro cs (Stack cs) 14
                   -> ConstRef s1 (Struct "scaled_pressure_msg")
-                  -> Ivory eff ()
+                  -> Ivory (AllocEffects cs) ()
 scaledPressurePack sender msg = do
   arr <- local (iarray [] :: Init (Array 14 (Stored Uint8)))
   let buf = toCArray arr
@@ -58,7 +57,6 @@ scaledPressurePack sender msg = do
   call_ pack buf 8 =<< deref (msg ~> press_diff)
   call_ pack buf 12 =<< deref (msg ~> temperature)
   sender scaledPressureMsgId (constRef arr) scaledPressureCrcExtra
-  retVoid
 
 instance MavlinkUnpackableMsg "scaled_pressure_msg" where
     unpackMsg = ( scaledPressureUnpack , scaledPressureMsgId )

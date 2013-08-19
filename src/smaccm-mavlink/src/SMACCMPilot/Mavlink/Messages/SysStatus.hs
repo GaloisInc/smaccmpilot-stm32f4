@@ -50,15 +50,14 @@ mkSysStatusSender :: SizedMavlinkSender 31
                        -> Def ('[ ConstRef s (Struct "sys_status_msg") ] :-> ())
 mkSysStatusSender sender =
   proc ("mavlink_sys_status_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    sysStatusPack (senderMacro sender) msg
+    noReturn $ sysStatusPack (senderMacro sender) msg
 
 instance MavlinkSendable "sys_status_msg" 31 where
   mkSender = mkSysStatusSender
 
-sysStatusPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
-                  => SenderMacro eff s 31
+sysStatusPack :: SenderMacro cs (Stack cs) 31
                   -> ConstRef s1 (Struct "sys_status_msg")
-                  -> Ivory eff ()
+                  -> Ivory (AllocEffects cs) ()
 sysStatusPack sender msg = do
   arr <- local (iarray [] :: Init (Array 31 (Stored Uint8)))
   let buf = toCArray arr
@@ -76,7 +75,6 @@ sysStatusPack sender msg = do
   call_ pack buf 28 =<< deref (msg ~> errors_count4)
   call_ pack buf 30 =<< deref (msg ~> battery_remaining)
   sender sysStatusMsgId (constRef arr) sysStatusCrcExtra
-  retVoid
 
 instance MavlinkUnpackableMsg "sys_status_msg" where
     unpackMsg = ( sysStatusUnpack , sysStatusMsgId )

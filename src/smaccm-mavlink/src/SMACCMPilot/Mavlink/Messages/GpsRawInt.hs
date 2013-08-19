@@ -47,15 +47,14 @@ mkGpsRawIntSender :: SizedMavlinkSender 30
                        -> Def ('[ ConstRef s (Struct "gps_raw_int_msg") ] :-> ())
 mkGpsRawIntSender sender =
   proc ("mavlink_gps_raw_int_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    gpsRawIntPack (senderMacro sender) msg
+    noReturn $ gpsRawIntPack (senderMacro sender) msg
 
 instance MavlinkSendable "gps_raw_int_msg" 30 where
   mkSender = mkGpsRawIntSender
 
-gpsRawIntPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
-                  => SenderMacro eff s 30
+gpsRawIntPack :: SenderMacro cs (Stack cs) 30
                   -> ConstRef s1 (Struct "gps_raw_int_msg")
-                  -> Ivory eff ()
+                  -> Ivory (AllocEffects cs) ()
 gpsRawIntPack sender msg = do
   arr <- local (iarray [] :: Init (Array 30 (Stored Uint8)))
   let buf = toCArray arr
@@ -70,7 +69,6 @@ gpsRawIntPack sender msg = do
   call_ pack buf 28 =<< deref (msg ~> fix_type)
   call_ pack buf 29 =<< deref (msg ~> satellites_visible)
   sender gpsRawIntMsgId (constRef arr) gpsRawIntCrcExtra
-  retVoid
 
 instance MavlinkUnpackableMsg "gps_raw_int_msg" where
     unpackMsg = ( gpsRawIntUnpack , gpsRawIntMsgId )

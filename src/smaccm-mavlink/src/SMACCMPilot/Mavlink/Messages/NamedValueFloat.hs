@@ -40,15 +40,14 @@ mkNamedValueFloatSender :: SizedMavlinkSender 18
                        -> Def ('[ ConstRef s (Struct "named_value_float_msg") ] :-> ())
 mkNamedValueFloatSender sender =
   proc ("mavlink_named_value_float_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    namedValueFloatPack (senderMacro sender) msg
+    noReturn $ namedValueFloatPack (senderMacro sender) msg
 
 instance MavlinkSendable "named_value_float_msg" 18 where
   mkSender = mkNamedValueFloatSender
 
-namedValueFloatPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
-                  => SenderMacro eff s 18
+namedValueFloatPack :: SenderMacro cs (Stack cs) 18
                   -> ConstRef s1 (Struct "named_value_float_msg")
-                  -> Ivory eff ()
+                  -> Ivory (AllocEffects cs) ()
 namedValueFloatPack sender msg = do
   arr <- local (iarray [] :: Init (Array 18 (Stored Uint8)))
   let buf = toCArray arr
@@ -56,7 +55,6 @@ namedValueFloatPack sender msg = do
   call_ pack buf 4 =<< deref (msg ~> value)
   arrayPack buf 8 (msg ~> name)
   sender namedValueFloatMsgId (constRef arr) namedValueFloatCrcExtra
-  retVoid
 
 instance MavlinkUnpackableMsg "named_value_float_msg" where
     unpackMsg = ( namedValueFloatUnpack , namedValueFloatMsgId )

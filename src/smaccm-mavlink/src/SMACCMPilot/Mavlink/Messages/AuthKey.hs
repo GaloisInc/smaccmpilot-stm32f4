@@ -38,21 +38,19 @@ mkAuthKeySender :: SizedMavlinkSender 32
                        -> Def ('[ ConstRef s (Struct "auth_key_msg") ] :-> ())
 mkAuthKeySender sender =
   proc ("mavlink_auth_key_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    authKeyPack (senderMacro sender) msg
+    noReturn $ authKeyPack (senderMacro sender) msg
 
 instance MavlinkSendable "auth_key_msg" 32 where
   mkSender = mkAuthKeySender
 
-authKeyPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
-                  => SenderMacro eff s 32
+authKeyPack :: SenderMacro cs (Stack cs) 32
                   -> ConstRef s1 (Struct "auth_key_msg")
-                  -> Ivory eff ()
+                  -> Ivory (AllocEffects cs) ()
 authKeyPack sender msg = do
   arr <- local (iarray [] :: Init (Array 32 (Stored Uint8)))
   let buf = toCArray arr
   arrayPack buf 0 (msg ~> key)
   sender authKeyMsgId (constRef arr) authKeyCrcExtra
-  retVoid
 
 instance MavlinkUnpackableMsg "auth_key_msg" where
     unpackMsg = ( authKeyUnpack , authKeyMsgId )

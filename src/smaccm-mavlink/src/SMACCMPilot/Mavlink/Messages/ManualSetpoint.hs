@@ -44,15 +44,14 @@ mkManualSetpointSender :: SizedMavlinkSender 22
                        -> Def ('[ ConstRef s (Struct "manual_setpoint_msg") ] :-> ())
 mkManualSetpointSender sender =
   proc ("mavlink_manual_setpoint_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    manualSetpointPack (senderMacro sender) msg
+    noReturn $ manualSetpointPack (senderMacro sender) msg
 
 instance MavlinkSendable "manual_setpoint_msg" 22 where
   mkSender = mkManualSetpointSender
 
-manualSetpointPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
-                  => SenderMacro eff s 22
+manualSetpointPack :: SenderMacro cs (Stack cs) 22
                   -> ConstRef s1 (Struct "manual_setpoint_msg")
-                  -> Ivory eff ()
+                  -> Ivory (AllocEffects cs) ()
 manualSetpointPack sender msg = do
   arr <- local (iarray [] :: Init (Array 22 (Stored Uint8)))
   let buf = toCArray arr
@@ -64,7 +63,6 @@ manualSetpointPack sender msg = do
   call_ pack buf 20 =<< deref (msg ~> mode_switch)
   call_ pack buf 21 =<< deref (msg ~> manual_override_switch)
   sender manualSetpointMsgId (constRef arr) manualSetpointCrcExtra
-  retVoid
 
 instance MavlinkUnpackableMsg "manual_setpoint_msg" where
     unpackMsg = ( manualSetpointUnpack , manualSetpointMsgId )

@@ -44,15 +44,14 @@ mkAttitudeSender :: SizedMavlinkSender 28
                        -> Def ('[ ConstRef s (Struct "attitude_msg") ] :-> ())
 mkAttitudeSender sender =
   proc ("mavlink_attitude_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    attitudePack (senderMacro sender) msg
+    noReturn $ attitudePack (senderMacro sender) msg
 
 instance MavlinkSendable "attitude_msg" 28 where
   mkSender = mkAttitudeSender
 
-attitudePack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
-                  => SenderMacro eff s 28
+attitudePack :: SenderMacro cs (Stack cs) 28
                   -> ConstRef s1 (Struct "attitude_msg")
-                  -> Ivory eff ()
+                  -> Ivory (AllocEffects cs) ()
 attitudePack sender msg = do
   arr <- local (iarray [] :: Init (Array 28 (Stored Uint8)))
   let buf = toCArray arr
@@ -64,7 +63,6 @@ attitudePack sender msg = do
   call_ pack buf 20 =<< deref (msg ~> pitchspeed)
   call_ pack buf 24 =<< deref (msg ~> yawspeed)
   sender attitudeMsgId (constRef arr) attitudeCrcExtra
-  retVoid
 
 instance MavlinkUnpackableMsg "attitude_msg" where
     unpackMsg = ( attitudeUnpack , attitudeMsgId )

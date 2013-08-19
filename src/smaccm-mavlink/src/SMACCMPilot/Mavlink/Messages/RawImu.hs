@@ -47,15 +47,14 @@ mkRawImuSender :: SizedMavlinkSender 26
                        -> Def ('[ ConstRef s (Struct "raw_imu_msg") ] :-> ())
 mkRawImuSender sender =
   proc ("mavlink_raw_imu_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    rawImuPack (senderMacro sender) msg
+    noReturn $ rawImuPack (senderMacro sender) msg
 
 instance MavlinkSendable "raw_imu_msg" 26 where
   mkSender = mkRawImuSender
 
-rawImuPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
-                  => SenderMacro eff s 26
+rawImuPack :: SenderMacro cs (Stack cs) 26
                   -> ConstRef s1 (Struct "raw_imu_msg")
-                  -> Ivory eff ()
+                  -> Ivory (AllocEffects cs) ()
 rawImuPack sender msg = do
   arr <- local (iarray [] :: Init (Array 26 (Stored Uint8)))
   let buf = toCArray arr
@@ -70,7 +69,6 @@ rawImuPack sender msg = do
   call_ pack buf 22 =<< deref (msg ~> ymag)
   call_ pack buf 24 =<< deref (msg ~> zmag)
   sender rawImuMsgId (constRef arr) rawImuCrcExtra
-  retVoid
 
 instance MavlinkUnpackableMsg "raw_imu_msg" where
     unpackMsg = ( rawImuUnpack , rawImuMsgId )

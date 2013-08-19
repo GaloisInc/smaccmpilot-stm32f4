@@ -47,15 +47,14 @@ mkServoOutputRawSender :: SizedMavlinkSender 21
                        -> Def ('[ ConstRef s (Struct "servo_output_raw_msg") ] :-> ())
 mkServoOutputRawSender sender =
   proc ("mavlink_servo_output_raw_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    servoOutputRawPack (senderMacro sender) msg
+    noReturn $ servoOutputRawPack (senderMacro sender) msg
 
 instance MavlinkSendable "servo_output_raw_msg" 21 where
   mkSender = mkServoOutputRawSender
 
-servoOutputRawPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
-                  => SenderMacro eff s 21
+servoOutputRawPack :: SenderMacro cs (Stack cs) 21
                   -> ConstRef s1 (Struct "servo_output_raw_msg")
-                  -> Ivory eff ()
+                  -> Ivory (AllocEffects cs) ()
 servoOutputRawPack sender msg = do
   arr <- local (iarray [] :: Init (Array 21 (Stored Uint8)))
   let buf = toCArray arr
@@ -70,7 +69,6 @@ servoOutputRawPack sender msg = do
   call_ pack buf 18 =<< deref (msg ~> servo8_raw)
   call_ pack buf 20 =<< deref (msg ~> port)
   sender servoOutputRawMsgId (constRef arr) servoOutputRawCrcExtra
-  retVoid
 
 instance MavlinkUnpackableMsg "servo_output_raw_msg" where
     unpackMsg = ( servoOutputRawUnpack , servoOutputRawMsgId )

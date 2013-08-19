@@ -40,15 +40,14 @@ mkChangeOperatorControlAckSender :: SizedMavlinkSender 3
                        -> Def ('[ ConstRef s (Struct "change_operator_control_ack_msg") ] :-> ())
 mkChangeOperatorControlAckSender sender =
   proc ("mavlink_change_operator_control_ack_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    changeOperatorControlAckPack (senderMacro sender) msg
+    noReturn $ changeOperatorControlAckPack (senderMacro sender) msg
 
 instance MavlinkSendable "change_operator_control_ack_msg" 3 where
   mkSender = mkChangeOperatorControlAckSender
 
-changeOperatorControlAckPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
-                  => SenderMacro eff s 3
+changeOperatorControlAckPack :: SenderMacro cs (Stack cs) 3
                   -> ConstRef s1 (Struct "change_operator_control_ack_msg")
-                  -> Ivory eff ()
+                  -> Ivory (AllocEffects cs) ()
 changeOperatorControlAckPack sender msg = do
   arr <- local (iarray [] :: Init (Array 3 (Stored Uint8)))
   let buf = toCArray arr
@@ -56,7 +55,6 @@ changeOperatorControlAckPack sender msg = do
   call_ pack buf 1 =<< deref (msg ~> control_request)
   call_ pack buf 2 =<< deref (msg ~> ack)
   sender changeOperatorControlAckMsgId (constRef arr) changeOperatorControlAckCrcExtra
-  retVoid
 
 instance MavlinkUnpackableMsg "change_operator_control_ack_msg" where
     unpackMsg = ( changeOperatorControlAckUnpack , changeOperatorControlAckMsgId )

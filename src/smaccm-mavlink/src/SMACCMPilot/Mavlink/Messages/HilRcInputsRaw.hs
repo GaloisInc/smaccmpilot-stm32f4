@@ -51,15 +51,14 @@ mkHilRcInputsRawSender :: SizedMavlinkSender 33
                        -> Def ('[ ConstRef s (Struct "hil_rc_inputs_raw_msg") ] :-> ())
 mkHilRcInputsRawSender sender =
   proc ("mavlink_hil_rc_inputs_raw_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    hilRcInputsRawPack (senderMacro sender) msg
+    noReturn $ hilRcInputsRawPack (senderMacro sender) msg
 
 instance MavlinkSendable "hil_rc_inputs_raw_msg" 33 where
   mkSender = mkHilRcInputsRawSender
 
-hilRcInputsRawPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
-                  => SenderMacro eff s 33
+hilRcInputsRawPack :: SenderMacro cs (Stack cs) 33
                   -> ConstRef s1 (Struct "hil_rc_inputs_raw_msg")
-                  -> Ivory eff ()
+                  -> Ivory (AllocEffects cs) ()
 hilRcInputsRawPack sender msg = do
   arr <- local (iarray [] :: Init (Array 33 (Stored Uint8)))
   let buf = toCArray arr
@@ -78,7 +77,6 @@ hilRcInputsRawPack sender msg = do
   call_ pack buf 30 =<< deref (msg ~> chan12_raw)
   call_ pack buf 32 =<< deref (msg ~> rssi)
   sender hilRcInputsRawMsgId (constRef arr) hilRcInputsRawCrcExtra
-  retVoid
 
 instance MavlinkUnpackableMsg "hil_rc_inputs_raw_msg" where
     unpackMsg = ( hilRcInputsRawUnpack , hilRcInputsRawMsgId )

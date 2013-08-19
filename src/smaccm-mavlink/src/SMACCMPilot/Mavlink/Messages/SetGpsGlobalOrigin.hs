@@ -41,15 +41,14 @@ mkSetGpsGlobalOriginSender :: SizedMavlinkSender 13
                        -> Def ('[ ConstRef s (Struct "set_gps_global_origin_msg") ] :-> ())
 mkSetGpsGlobalOriginSender sender =
   proc ("mavlink_set_gps_global_origin_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    setGpsGlobalOriginPack (senderMacro sender) msg
+    noReturn $ setGpsGlobalOriginPack (senderMacro sender) msg
 
 instance MavlinkSendable "set_gps_global_origin_msg" 13 where
   mkSender = mkSetGpsGlobalOriginSender
 
-setGpsGlobalOriginPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
-                  => SenderMacro eff s 13
+setGpsGlobalOriginPack :: SenderMacro cs (Stack cs) 13
                   -> ConstRef s1 (Struct "set_gps_global_origin_msg")
-                  -> Ivory eff ()
+                  -> Ivory (AllocEffects cs) ()
 setGpsGlobalOriginPack sender msg = do
   arr <- local (iarray [] :: Init (Array 13 (Stored Uint8)))
   let buf = toCArray arr
@@ -58,7 +57,6 @@ setGpsGlobalOriginPack sender msg = do
   call_ pack buf 8 =<< deref (msg ~> altitude)
   call_ pack buf 12 =<< deref (msg ~> target_system)
   sender setGpsGlobalOriginMsgId (constRef arr) setGpsGlobalOriginCrcExtra
-  retVoid
 
 instance MavlinkUnpackableMsg "set_gps_global_origin_msg" where
     unpackMsg = ( setGpsGlobalOriginUnpack , setGpsGlobalOriginMsgId )

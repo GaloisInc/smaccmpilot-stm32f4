@@ -40,15 +40,14 @@ mkSetModeSender :: SizedMavlinkSender 6
                        -> Def ('[ ConstRef s (Struct "set_mode_msg") ] :-> ())
 mkSetModeSender sender =
   proc ("mavlink_set_mode_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    setModePack (senderMacro sender) msg
+    noReturn $ setModePack (senderMacro sender) msg
 
 instance MavlinkSendable "set_mode_msg" 6 where
   mkSender = mkSetModeSender
 
-setModePack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
-                  => SenderMacro eff s 6
+setModePack :: SenderMacro cs (Stack cs) 6
                   -> ConstRef s1 (Struct "set_mode_msg")
-                  -> Ivory eff ()
+                  -> Ivory (AllocEffects cs) ()
 setModePack sender msg = do
   arr <- local (iarray [] :: Init (Array 6 (Stored Uint8)))
   let buf = toCArray arr
@@ -56,7 +55,6 @@ setModePack sender msg = do
   call_ pack buf 4 =<< deref (msg ~> target_system)
   call_ pack buf 5 =<< deref (msg ~> base_mode)
   sender setModeMsgId (constRef arr) setModeCrcExtra
-  retVoid
 
 instance MavlinkUnpackableMsg "set_mode_msg" where
     unpackMsg = ( setModeUnpack , setModeMsgId )

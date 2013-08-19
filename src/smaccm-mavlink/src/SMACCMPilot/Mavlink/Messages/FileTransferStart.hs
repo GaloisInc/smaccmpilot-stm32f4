@@ -42,15 +42,14 @@ mkFileTransferStartSender :: SizedMavlinkSender 254
                        -> Def ('[ ConstRef s (Struct "file_transfer_start_msg") ] :-> ())
 mkFileTransferStartSender sender =
   proc ("mavlink_file_transfer_start_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    fileTransferStartPack (senderMacro sender) msg
+    noReturn $ fileTransferStartPack (senderMacro sender) msg
 
 instance MavlinkSendable "file_transfer_start_msg" 254 where
   mkSender = mkFileTransferStartSender
 
-fileTransferStartPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
-                  => SenderMacro eff s 254
+fileTransferStartPack :: SenderMacro cs (Stack cs) 254
                   -> ConstRef s1 (Struct "file_transfer_start_msg")
-                  -> Ivory eff ()
+                  -> Ivory (AllocEffects cs) ()
 fileTransferStartPack sender msg = do
   arr <- local (iarray [] :: Init (Array 254 (Stored Uint8)))
   let buf = toCArray arr
@@ -60,7 +59,6 @@ fileTransferStartPack sender msg = do
   call_ pack buf 253 =<< deref (msg ~> flags)
   arrayPack buf 12 (msg ~> dest_path)
   sender fileTransferStartMsgId (constRef arr) fileTransferStartCrcExtra
-  retVoid
 
 instance MavlinkUnpackableMsg "file_transfer_start_msg" where
     unpackMsg = ( fileTransferStartUnpack , fileTransferStartMsgId )

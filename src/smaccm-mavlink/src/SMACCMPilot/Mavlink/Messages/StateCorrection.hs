@@ -46,15 +46,14 @@ mkStateCorrectionSender :: SizedMavlinkSender 36
                        -> Def ('[ ConstRef s (Struct "state_correction_msg") ] :-> ())
 mkStateCorrectionSender sender =
   proc ("mavlink_state_correction_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    stateCorrectionPack (senderMacro sender) msg
+    noReturn $ stateCorrectionPack (senderMacro sender) msg
 
 instance MavlinkSendable "state_correction_msg" 36 where
   mkSender = mkStateCorrectionSender
 
-stateCorrectionPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
-                  => SenderMacro eff s 36
+stateCorrectionPack :: SenderMacro cs (Stack cs) 36
                   -> ConstRef s1 (Struct "state_correction_msg")
-                  -> Ivory eff ()
+                  -> Ivory (AllocEffects cs) ()
 stateCorrectionPack sender msg = do
   arr <- local (iarray [] :: Init (Array 36 (Stored Uint8)))
   let buf = toCArray arr
@@ -68,7 +67,6 @@ stateCorrectionPack sender msg = do
   call_ pack buf 28 =<< deref (msg ~> vyErr)
   call_ pack buf 32 =<< deref (msg ~> vzErr)
   sender stateCorrectionMsgId (constRef arr) stateCorrectionCrcExtra
-  retVoid
 
 instance MavlinkUnpackableMsg "state_correction_msg" where
     unpackMsg = ( stateCorrectionUnpack , stateCorrectionMsgId )
