@@ -3,7 +3,7 @@
 module Commsec
   ( BaseId(..)
   , SecureContext_HS(..)
-  , Context(..)
+  , Context
   , secPkgInit_HS
   , secPkgEncInPlace_HS
   , secPkgDec_HS
@@ -127,14 +127,12 @@ secPkgDec_HS rc pkg =
     (SC newIn _out, res)
 
 -- | Encrypt a message given a context.  Returns the concatenated header
--- (including the sender's ID and message counter), the encrypted message, and
+p-- (including the sender's ID and message counter), the encrypted message, and
 -- the authentication tag.
 secPkgEncInPlace_HS :: Context -> ByteString -> IO (Maybe ByteString)
 secPkgEncInPlace_HS rc pt = do
     r <- secPkgEnc_HS rc pt
-    case r of
-        Just (a,b,c) -> return (Just (B.concat [a,b,c]))
-        Nothing -> return Nothing
+    return $ fmap (\(a,b,c) -> B.concat [a,b,c]) r
 
 --------------------------------------------------------------------------------
 -- Testing

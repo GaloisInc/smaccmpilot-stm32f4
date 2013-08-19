@@ -4,9 +4,37 @@
 Read serial, perform encryption/decryption, and pass data between mavproxy.py
 and SMACCMPilot.
 
+Here's the architecture:
+
 ------------  TCP  ------------------  Serial  ---------------
 | mavproxy |  -->  | commsec-server |    -->   | SMACCMPilot |
 ------------  <--  ------------------    <--   ---------------
+
+Inside the commsec-server (this module) is the following:
+
+
+        ---------------------------------------
+        |               fromSerMVar            |
+        |               ---------->            |
+        | SerialHandler             TCPHandler |
+        |               fromTCPMVar            |
+        |               <----------            |
+        ---------------------------------------
+
+The two handlers talk back and forth via MVars.
+
+Inside each handler are two data buffers.  For example, in the TCPHandler, we have
+
+               --------------
+  to mavproxy  |            |  fromSerMVar
+ <-------------|-- buffer <-|---------------
+ from mavproxy |            |  fromTPMVar
+ --------------|-> buffer --|-------------->
+               --------------
+
+The buffers accumulate data until we have a package big enough to encrypt and
+send over.  Note that buffers from the MVars buffer an entire package (including
+the header) and not just the message itself.
 
 -}
 
@@ -15,7 +43,6 @@ module Main where
 import           Data.Maybe
 import           Text.Printf
 import           System.Environment
-import           System.Timeout
 import           Control.Monad
 import qualified Network.Simple.TCP         as S
 import qualified Network.Socket             as N
@@ -37,8 +64,9 @@ import           Commsec
 
 -- Number of bytes we're going to encrypt: 128 chunks minus 8 bytes for the
 -- header (stationID | counter) and 8 bytes for the tag.
-msgSize :: Int
-msgSize = 128 - 8 - 8
+pkgSize, msgSize :: Int
+pkgSize = 128
+msgSize = pkgSize - 8 - 8
 
 uavID, baseID :: BaseId
 uavID  = 0
@@ -57,8 +85,8 @@ type Ix = Int
 -- Unboxed IOArray
 type MsgBuf = A.IOUArray Ix Word8
 
-initMsgBuf :: IO MsgBuf
-initMsgBuf = A.newArray_ (0, msgSize-1)
+initMsgBuf :: Int -> IO MsgBuf
+initMsgBuf sz = A.newArray_ (0, sz-1)
 
 initializeBase :: IO Context
 initializeBase = secPkgInit_HS baseID u2bSalt uavToBaseKey b2uSalt baseToUavKey
@@ -66,30 +94,69 @@ initializeBase = secPkgInit_HS baseID u2bSalt uavToBaseKey b2uSalt baseToUavKey
 bufReady :: MsgBuf -> Ix -> IO Bool
 bufReady arr i = do
   rng <- A.getBounds arr
-  return (I.inRange rng i)
+  return $ not (I.inRange rng i)
 
-packBuf :: MsgBuf -> IO Y.ByteString
-packBuf buf = A.getElems buf >>= return . Y.pack
-
--- Encrypt the buffer, returning True if encryption was successful.
-encryptBuf :: Context -> MsgBuf -> IO (Maybe Y.ByteString)
-encryptBuf ctx buf = secPkgEncInPlace_HS ctx =<< packBuf buf
-
-decryptBuf :: Context -> MsgBuf -> IO (Maybe Y.ByteString)
-decryptBuf ctx buf = secPkgDec_HS ctx =<< packBuf buf
+extractBuf :: MsgBuf -> IO Y.ByteString
+extractBuf buf = A.getElems buf >>= return . Y.pack
 
 -- Fill up the buffer, returning values we couldn't fit in and the new index.
 writesArray :: MsgBuf -> Ix -> Y.ByteString -> IO (Y.ByteString, Ix)
 writesArray buf ix bs = do
+  top             <- return . (+1) . snd =<< A.getBounds buf
   let wrds         = Y.unpack bs
-  let remainingBuf = msgSize - ix
-  let wrdsLen = Y.length bs
-  if remainingBuf >= wrdsLen
-    then inBuf wrds >> return (Y.empty, ix + msgSize)
-    else do inBuf (take remainingBuf wrds)
-            return ( Y.drop (wrdsLen - remainingBuf) bs, 0)
+  let wrdsLen      = length wrds
+  let remainingBuf = top - ix
+--  if remainingBuf >= wrdsLen
+--    then inBuf wrds >> return (Y.empty, ix + wrdsLen)
+  inBuf (take remainingBuf wrds)
+  return ( Y.drop remainingBuf bs, min top (ix + wrdsLen))
   where
-  inBuf wrds = mapM_ (\(i, v) -> A.writeArray buf i v) (zip [ix..] wrds)
+  inBuf wrds = mapM_ (\(i, v) -> A.writeArray buf i v) (zip [ix, ix+1 ..] wrds)
+
+--------------------------------------------------------------------------------
+
+-- Buffered handler.  The first action is the action to perform when the buffer
+-- is full and the second is the action to perform to fill the buffer.
+bufferedExec :: Int
+             -> (Y.ByteString -> IO ())
+             -> IO (Maybe Y.ByteString)
+             -> IO ()
+bufferedExec sz fullAction fillAction = do
+  buf <- initMsgBuf sz
+  loop buf Y.empty 0
+  where
+  loop buf bytes ix = do
+    ready <- bufReady buf ix
+    if ready
+      then do
+        pkg <- extractBuf buf
+        fullAction pkg
+        -- Now put any leftover bytes into our buffer.
+        (remB, ix') <- writesArray buf 0 bytes
+        loop buf remB ix'
+      else do
+        bs <- fillAction
+        -- If there's anything, put them in the buffer.
+        (remB, ix') <- maybe (return (bytes, ix))
+                             (writesArray buf ix)
+                             bs
+        loop buf remB ix'
+
+--------------------------------------------------------------------------------
+
+-- Helper decrypt function.
+decFrom :: Context -> (Y.ByteString -> IO ()) -> Y.ByteString -> IO ()
+decFrom ctx action pkg = do
+  msg <- secPkgDec_HS ctx pkg
+  when (isNothing msg) (putStrLn "Decryption failed!")
+  maybeUnit action msg
+
+-- Helper encrypt function.
+encTo :: Context -> (Y.ByteString -> IO ()) -> Y.ByteString -> IO ()
+encTo ctx action bs = do
+  pkg <- secPkgEncInPlace_HS ctx bs
+  when (isNothing pkg) (putStrLn "Warning! GCS encryption failed!")
+  maybeUnit action pkg
 
 --------------------------------------------------------------------------------
 -- Set up TCP server for mavproxy
@@ -99,56 +166,32 @@ runTCP :: N.HostName
        -> M.MVar B.ByteString
        -> M.MVar B.ByteString
        -> IO ()
-runTCP host port mavMVar serMVar =
+runTCP host port fromMavMVar fromSerMVar =
   S.serve (S.Host host) port $ \(mavSocket, _) -> do
     putStrLn "Connected to mavproxy client..."
 
     ctx <- initializeBase
-    buf <- initMsgBuf
-    _ <- C.forkIO $ forever $ do
-      -- See if there are contents in the serial MVar and pass them to mavproxy.
-      -- Dont' block if none are available.
-      sbs <- M.tryTakeMVar serMVar
-      maybeUnit (S.send mavSocket) sbs
+    -- To TCP socket:
+    -- When the buffer is full, send to the socket.  Fill with bytes from the
+    -- serial MVar.
+    _   <- C.forkIO $ bufferedExec
+                        pkgSize
+                        (decFrom ctx (S.send mavSocket))
+                        (M.tryTakeMVar fromSerMVar)
 
-    loop mavSocket ctx buf 0
+-- Testing
+--    _     <- C.forkIO $ bufferedExec (S.send mavSocket) (M.tryTakeMVar fromSerMVar)
 
-{-   --No crypto
+    -- To Serial:
+    -- When the buffer is full, put bytes into the outbound MVar.  Fill the
+    -- buffer by receiving bytes from the socket.
+    bufferedExec
+      msgSize
+      (encTo ctx (M.putMVar fromMavMVar))
+      (S.recv mavSocket maxBytes)
 
-      _ <- C.forkIO $ forever $ do
-
-        -- See if there are contents in the serial MVar and pass them to
-        -- mavproxy.  Dont' block if none are available.
-
-        sbs <- M.tryTakeMVar serMVar
-        maybeUnit (S.send mavSocket) sbs
-
-      forever $ do
-        -- Wait for 100 microseconds for input.
-        mrx <- timeout theTimeout (S.recv mavSocket maxBytes)
-        -- If there's anything, put them in the buffer.
-        maybeUnit (M.putMVar mavMVar) (mm mrx)
- -}
-
-    where
-    loop mavSocket ctx buf ix = do
-      ready <- bufReady buf ix
-      when ready $ do
-        pkg <- encryptBuf ctx buf
-        when (isNothing pkg) (putStrLn "Warning! GCS encryption failed!")
-
-        -- Send the whole thing to the serial thread.
-        maybeUnit (M.putMVar mavMVar) pkg
-
-        loop mavSocket ctx buf 0
-
-      -- Wait for 100 microseconds for input.
-      mrx <- timeout theTimeout (S.recv mavSocket maxBytes)
-      -- If there's anything, put them in the buffer.
-      (remB, ix') <- maybe (return (Y.empty, ix)) (writesArray buf ix) (mm mrx)
-      unless (Y.null remB) (loop mavSocket ctx buf ix')
-
-      loop mavSocket ctx buf ix'
+-- Testing
+--    bufferedExec (M.putMVar fromMavMVar) (S.recv mavSocket maxBytes)
 
 --------------------------------------------------------------------------------
 -- Set up serial
@@ -156,21 +199,71 @@ runTCP host port mavMVar serMVar =
 speed :: P.CommSpeed
 speed = P.CS57600
 
+{-
 runSerial :: FilePath -> M.MVar B.ByteString -> M.MVar B.ByteString -> IO ()
-runSerial port mavMVar serMVar =
+runSerial port fromMavMVar fromSerMVar =
   P.withSerial port P.defaultSerialSettings { P.commSpeed = speed } $ \s -> do
 
     _ <- C.forkIO $ forever $ do
       -- See if there are contents in the MavLink MVar.  Don't block if none are
       -- available.
-      mbs <- M.tryTakeMVar mavMVar
+      mbs <- M.tryTakeMVar fromMavMVar
       maybeUnit (P.send s) mbs
 
     forever $ do
       -- Maybe read some bytes.  Timeout if nothing sent.
-      mrx <- timeout theTimeout (P.recv s maxBytes)
+      mrx <- P.recv s maxBytes
       -- Send them to the TCP thread.
-      maybeUnit (M.putMVar serMVar) mrx
+      maybeUnit (M.putMVar fromSerMVar) mrx
+-}
+
+initializeUAV :: IO Context
+initializeUAV = secPkgInit_HS uavID b2uSalt baseToUavKey u2bSalt uavToBaseKey
+
+runSerial :: FilePath -> M.MVar B.ByteString -> M.MVar B.ByteString -> IO ()
+runSerial port fromMavMVar fromSerMVar =
+  S.serve (S.Host "127.0.0.1") "6001" $ \(testSocket, _) -> do
+    putStrLn "Connected to testing client..."
+
+    ctx <- initializeUAV
+
+    -- To serial socket:
+    -- When the buffer is full, send to the socket.  Fill with bytes from the
+    -- fromMavMVar.
+    _  <- C.forkIO $ bufferedExec
+                       pkgSize
+                       (decFrom ctx (S.send testSocket))
+                       (M.tryTakeMVar fromMavMVar)
+-- Testing
+--    _  <- C.forkIO $ bufferedExec (S.send testSocket) (M.tryTakeMVar fromMavMVar)
+
+    -- To TCP:
+    -- When the buffer is full, put bytes into the outbound MVar.  Fill the
+    -- buffer by receiving bytes from the socket.
+    bufferedExec
+      msgSize
+      (encTo ctx (M.putMVar fromSerMVar))
+      (S.recv testSocket maxBytes)
+-- Testing
+--    bufferedExec (M.putMVar fromSerMVar) (S.recv testSocket maxBytes)
+
+
+  -- S.serve (S.Host "127.0.0.1") "6001" $ \(testSocket, _) -> do
+  --   putStrLn "Connected to testing client..."
+
+  --   ctx <- initializeUAV
+  --   buf <- initMsgBuf
+
+  --   _ <- C.forkIO $ forever $ do
+
+  --     sbs <- M.tryTakeMVar fromMavMVar
+  --     maybeUnit (S.send testSocket) sbs
+
+  --   forever $ do
+  --     -- Wait for 100 microseconds for input.
+  --     mrx <- S.recv testSocket maxBytes
+  --     -- If there's anything, put them in the buffer.
+  --     maybeUnit (M.putMVar fromSerMVar) mrx
 
 --------------------------------------------------------------------------------
 
