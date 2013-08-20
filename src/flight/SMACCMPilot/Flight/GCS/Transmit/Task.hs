@@ -14,16 +14,39 @@ import Ivory.Stdlib (when)
 import Ivory.Tower
 
 import SMACCMPilot.Flight.GCS.Transmit.MessageDriver
-import SMACCMPilot.Flight.GCS.Transmit.USARTSender
 import SMACCMPilot.Flight.GCS.Stream
 
 import qualified SMACCMPilot.Flight.Types.GCSStreamTiming as S
 import qualified SMACCMPilot.Flight.Types.FlightMode      as FM
 import qualified SMACCMPilot.Flight.Types.DataRate        as D
 
+import SMACCMPilot.Mavlink.Send (mavlinkSendWithWriter, MavlinkWriteMacro(..))
+
 sysid, compid :: Uint8
 sysid = 1
 compid = 0
+
+gcsTransmitDriver :: (SingI n)
+                  => ChannelSource n (Stored Uint8)
+                  -> Task p MessageDriver
+gcsTransmitDriver chan = do
+  ostream <- withChannelEmitter chan "ostream"
+  taskdep <- taskDependency
+  txseq   <- taskLocalInit "txseq" (ival 0)
+  name <- freshname
+  let w :: (SingI m)
+        => ConstRef s (Array m (Stored Uint8))
+        -> Ivory (AllocEffects cs) ()
+      w arrref = arrayMap $ \i ->
+          emit_ ostream (arrref ! i)
+      s = mkSender name txseq (MavlinkWriteMacro w) taskdep
+      (driver, ms) = messageDriver s
+  taskModuleDef $ mapM_ depend ms
+  mapM_ withModule ms
+  return driver
+  where
+  mkSender n txseq writer deps =
+    mavlinkSendWithWriter sysid compid ("mavlinksender" ++ n) txseq writer deps
 
 gcsTransmitTask :: (SingI nn, SingI n, SingI m)
                 => ChannelSource nn (Stored Uint8)
@@ -45,15 +68,12 @@ gcsTransmitTask ostream sp_sink dr_sink fm_sink se_sink ps_sink ct_sink sr_sink
   ctlReader        <- withDataReader ct_sink "control"
   servoReader      <- withDataReader sr_sink "servos"
 
-  n <- freshname
   -- XXX current issue: need a way to change usartSender to be defined in terms
   -- of the ChannelReceiver. This means it will depend on the Task
   -- tower_task_loop_ module, which generates the code for the emitter.
-  let (chan1, cmods) = messageDriver (usartSender usart n sysid compid)
-  mapM_ withModule cmods
+  chan1 <- gcsTransmitDriver ostream
   withStackSize 512
   t <- withGetTimeMillis
-
 
   lastRun    <- taskLocal "lastrun"
   s_periods  <- taskLocal "periods"
@@ -129,5 +149,4 @@ gcsTransmitTask ostream sp_sink dr_sink fm_sink se_sink ps_sink ct_sink sr_sink
     depend FM.flightModeTypeModule
     depend D.dataRateTypeModule
     depend S.gcsStreamTimingTypeModule
-    mapM_ depend cmods
 
