@@ -11,20 +11,20 @@ import Ivory.Language
 import Ivory.Tower
 
 import qualified SMACCMPilot.Flight.Types.ControlOutput as C
-import qualified SMACCMPilot.Flight.Types.Servos        as S
-import qualified SMACCMPilot.Flight.Types.FlightMode    as M
+import qualified SMACCMPilot.Flight.Types.Motors        as M
+import qualified SMACCMPilot.Flight.Types.FlightMode    as FM
 
 motorsTask :: (SingI n)
            => ChannelSink n (Struct "controloutput")
            -> DataSink (Struct "flightmode")
-           -> DataSource (Struct "servos")
+           -> DataSource (Struct "motors")
            -> Task p ()
 motorsTask cs ms ss = do
   ctlRxer   <- withChannelReceiver cs "ctlOut"
   fmReader  <- withDataReader ms "flightMode"
-  srvWriter <- withDataWriter ss "servos"
+  srvWriter <- withDataWriter ss "motors"
   s_fm <- taskLocal "flightMode"
-  s_servo <- taskLocal "servos"
+  s_servo <- taskLocal "motors"
   taskInit $
     call_ apmotors_output_init
   onChannel ctlRxer $ \ctl -> do
@@ -35,8 +35,8 @@ motorsTask cs ms ss = do
 
   taskModuleDef $ do
     depend C.controlOutputTypeModule
-    depend S.servosTypeModule
-    depend M.flightModeTypeModule
+    depend M.motorsTypeModule
+    depend FM.flightModeTypeModule
     inclHeader "flight-support/apmotors_wrapper.h"
     private $ do
       incl apmotors_output_init
@@ -51,5 +51,5 @@ apmotors_output_set :: Def ('[ ConstRef s1 (Struct "controloutput")
                              , ConstRef s2 (Struct "flightmode") ] :-> ())
 apmotors_output_set = externProc "apmotors_output_set"
 
-apmotors_servo_get :: Def ('[Ref s (Struct "servos")] :-> ())
+apmotors_servo_get :: Def ('[Ref s (Struct "motors")] :-> ())
 apmotors_servo_get = externProc "apmotors_servo_get"

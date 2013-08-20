@@ -17,7 +17,7 @@ import Ivory.Stdlib
 import Ivory.Stdlib.String
 
 import qualified SMACCMPilot.Flight.Types.Position      as P
-import qualified SMACCMPilot.Flight.Types.Servos        as Serv
+import qualified SMACCMPilot.Flight.Types.Motors        as M
 import qualified SMACCMPilot.Flight.Types.Sensors       as Sens
 import qualified SMACCMPilot.Flight.Types.ControlOutput as C
 import qualified SMACCMPilot.Flight.Types.UserInput     as U
@@ -52,7 +52,7 @@ data MessageDriver =
                                   , (Ref s3 (Struct "sensors_result"))
                                   ] :-> ())
     , sendServoOutputRaw :: forall s1 s2
-                          . Def ('[ (Ref s1 (Struct "servos"))
+                          . Def ('[ (Ref s1 (Struct "motors"))
                                   , (Ref s2 (Struct "controloutput"))
                                   ] :-> ())
     , sendGpsRawInt      :: forall s
@@ -86,7 +86,7 @@ moddefs d = do
   -- dependencies for all the smaccmpilot flight types
   depend stdlibStringModule
   depend P.positionTypeModule
-  depend Serv.servosTypeModule
+  depend M.motorsTypeModule
   depend Sens.sensorsTypeModule
   depend C.controlOutputTypeModule
   depend U.userInputTypeModule
@@ -261,17 +261,17 @@ mkSendVfrHud senders = proc "gcs_transmit_send_vfrhud" $ \pos ctl sens -> body $
     return $ castDefault (thrFloat * 100)
 
 mkSendServoOutputRaw :: MavlinkMessageSenders
-                   -> Def ('[ (Ref s1 (Struct "servos"))
+                   -> Def ('[ (Ref s1 (Struct "motors"))
                             , (Ref s2 (Struct "controloutput"))
                             ] :-> ())
 mkSendServoOutputRaw senders = proc "gcs_transmit_send_servo_output" $
   \state ctl -> body $ do
   msg <- local (istruct [])
-  (state ~> Serv.time)   `into` (msg ~> SVO.time_usec)
-  (state ~> Serv.servo1) `into` (msg ~> SVO.servo1_raw)
-  (state ~> Serv.servo2) `into` (msg ~> SVO.servo2_raw)
-  (state ~> Serv.servo3) `into` (msg ~> SVO.servo3_raw)
-  (state ~> Serv.servo4) `into` (msg ~> SVO.servo4_raw)
+  (state ~> M.time)   `into` (msg ~> SVO.time_usec)
+  (state ~> M.motor1) `into` (msg ~> SVO.servo1_raw)
+  (state ~> M.motor2) `into` (msg ~> SVO.servo2_raw)
+  (state ~> M.motor3) `into` (msg ~> SVO.servo3_raw)
+  (state ~> M.motor4) `into` (msg ~> SVO.servo4_raw)
   pitch <- (ctl ~>* C.pitch)
   roll  <- (ctl ~>* C.roll)
   thr   <- (ctl ~>* C.throttle)

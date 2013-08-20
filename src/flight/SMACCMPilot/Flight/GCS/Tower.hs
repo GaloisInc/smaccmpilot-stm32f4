@@ -18,9 +18,9 @@ gcsTower :: String
          -> DataSink (Struct "sensors_result")
          -> DataSink (Struct "position_result")
          -> DataSink (Struct "controloutput")
-         -> DataSink (Struct "servos")
+         -> DataSink (Struct "motors")
          -> Tower p ()
-gcsTower uartname uart fm_sink sens_sink pos_sink ctl_sink servo_sink = do
+gcsTower uartname uart fm_sink sens_sink pos_sink ctl_sink motor_sink = do
   (streamrate_source, streamrate_sink) <- channel
   (dataRateSrc, dataRateSink)          <- channel
 
@@ -32,4 +32,4 @@ gcsTower uartname uart fm_sink sens_sink pos_sink ctl_sink servo_sink = do
     gcsReceiveTask (snk o) streamrate_source dataRateSrc
   task ("gcsTransmitTask" ++ uartname) $
     gcsTransmitTask (src i) streamrate_sink dataRateSink fm_sink sens_sink
-      pos_sink ctl_sink servo_sink
+      pos_sink ctl_sink motor_sink

@@ -56,9 +56,9 @@ gcsTransmitTask :: (SingI nn, SingI n, SingI m)
                 -> DataSink (Struct "sensors_result")
                 -> DataSink (Struct "position_result")
                 -> DataSink (Struct "controloutput")
-                -> DataSink (Struct "servos")
+                -> DataSink (Struct "motors")
                 -> Task p ()
-gcsTransmitTask ostream sp_sink dr_sink fm_sink se_sink ps_sink ct_sink sr_sink
+gcsTransmitTask ostream sp_sink dr_sink fm_sink se_sink ps_sink ct_sink mo_sink
   = do
   streamPeriodRxer <- withChannelReceiver sp_sink  "streamperiods"
   drRxer           <- withChannelReceiver dr_sink  "data_rate"
@@ -66,7 +66,7 @@ gcsTransmitTask ostream sp_sink dr_sink fm_sink se_sink ps_sink ct_sink sr_sink
   sensorsReader    <- withDataReader se_sink "sensors"
   posReader        <- withDataReader ps_sink "position"
   ctlReader        <- withDataReader ct_sink "control"
-  servoReader      <- withDataReader sr_sink "servos"
+  motorReader      <- withDataReader mo_sink "motors"
 
   -- XXX current issue: need a way to change usartSender to be defined in terms
   -- of the ChannelReceiver. This means it will depend on the Task
@@ -82,7 +82,7 @@ gcsTransmitTask ostream sp_sink dr_sink fm_sink se_sink ps_sink ct_sink sr_sink
   s_sens     <- taskLocal "sensors"
   s_pos      <- taskLocal "position"
   s_ctl      <- taskLocal "control"
-  s_serv     <- taskLocal "servos"
+  s_motor    <- taskLocal "motor"
 
   taskInit $ do
     initTime <- getTimeMillis t
@@ -115,9 +115,9 @@ gcsTransmitTask ostream sp_sink dr_sink fm_sink se_sink ps_sink ct_sink sr_sink
       call_ (sendHeartbeat chan1) s_fm
 
     onStream S.servo_output_raw $ do
-      readData servoReader s_serv
+      readData motorReader s_motor
       readData ctlReader s_ctl
-      call_ (sendServoOutputRaw chan1) s_serv s_ctl
+      call_ (sendServoOutputRaw chan1) s_motor s_ctl
 
     onStream S.attitude $ do
       readData sensorsReader s_sens

@@ -34,7 +34,7 @@ library
                        SMACCMPilot.Flight.Types.PositionEstimate,
                        SMACCMPilot.Flight.Types.Position,
                        SMACCMPilot.Flight.Types.Sensors,
-                       SMACCMPilot.Flight.Types.Servos,
+                       SMACCMPilot.Flight.Types.Motors,
                        SMACCMPilot.Flight.Types.UserInput,
                        SMACCMPilot.Flight.Types.FlightMode,
                        SMACCMPilot.Flight.Types.DataRate,
