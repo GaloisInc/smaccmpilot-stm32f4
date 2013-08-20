@@ -16,7 +16,7 @@ IVORY_PKG_FLIGHT_GEN_SYMS    := true
 
 $(eval $(call when_os,freertos,tower_pkg,IVORY_PKG_FLIGHT,smaccmpilot-gen))
 
-FLIGHT_LIB       := libflight.a
+FLIGHT_IMG       := stabilize
 
 FLIGHT_INCLUDES  += -I$(TOP)/src/flight/include
 FLIGHT_INCLUDES  += $(HWF4_INCLUDES)
@@ -46,13 +46,20 @@ FLIGHT_OBJECTS := $(addprefix src/,\
 	console_prim.o \
 	sensors_capture.o \
 	userinput_capture.o \
+	main.o \
 	)
 
 FLIGHT_REAL_OBJECTS += $(IVORY_PKG_FLIGHT_OBJECTS)
 
+FLIGHT_LIBRARIES    += libstandalone-apahrs.a
+FLIGHT_LIBRARIES    += libstandalone-aphal.a
+FLIGHT_LIBRARIES    += libhwf4-nouart.a
+FLIGHT_LIBRARIES    += libFreeRTOS.a
+FLIGHT_LIBS         += -lm
+
 $(eval $(call when_os,freertos,cbmc_pkg,FLIGHT,IVORY_PKG_FLIGHT))
 
-$(eval $(call when_os,freertos,library,FLIGHT))
+$(eval $(call when_os,freertos,image,FLIGHT))
 
 # ------------------------------------------------------------------------------
 # CBMC stuff
