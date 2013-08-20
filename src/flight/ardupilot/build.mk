@@ -142,7 +142,7 @@ src/flight/ardupilot/%.cpp: $(ARDUPILOT_SRC)/%.cpp
 	cp $< $@
 
 ifdef CONFIG_ARDUPILOT_PREFIX
-$(eval $(call when_os,freertos,library,ARDUPILOT))
+# $(eval $(call when_os,freertos,library,ARDUPILOT))
 endif
 
 # vim: set ft=make noet ts=2:
