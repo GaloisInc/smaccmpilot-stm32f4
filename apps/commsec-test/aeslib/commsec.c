@@ -77,49 +77,53 @@ uint32_t securePkg_dec(commsec_ctx *ctx, uint8_t *pkg, uint32_t pkgLen)
     uint32_t theirCounter=0, theirID=0;
     uint32_t ret = 0;
 
-    // Extract the ID and counter
-    theirID      += ((uint32_t)pkg[0]) << 24;
-    theirID      += ((uint32_t)pkg[1]) << 16;
-    theirID      += ((uint32_t)pkg[2]) << 8;
-    theirID      += ((uint32_t)pkg[3]);
-    theirCounter += ((uint32_t)pkg[4]) << 24;
-    theirCounter += ((uint32_t)pkg[5]) << 16;
-    theirCounter += ((uint32_t)pkg[6]) << 8;
-    theirCounter += ((uint32_t)pkg[7]);
-    if(theirID >= MAX_BASE_STATIONS) {
-        // the ID is invalid
-        ret = COMMSEC_FAIL_BAD_BASE_STATION;
-    } else if(ctx->mostRecentCounter[theirID] >= theirCounter) {
-        // the counter is too old
-        ret = COMMSEC_FAIL_DUP_CTR;
+    if(pkgLen < HEADER_LEN + TAG_LEN + 1) {
+        ret = COMMSEC_FAIL_MSG_LENGTH_VIOLATES_ASSUMPTIONS;
     } else {
-        ret_type gcmRet;
-        // Perform the decryption and update the recorded counter
-        iv[0]  = (ctx->decSalt   >> 24) & 0xFF;
-        iv[1]  = (ctx->decSalt   >> 16) & 0xFF;
-        iv[2]  = (ctx->decSalt   >> 8 ) & 0xFF;
-        iv[3]  = (ctx->decSalt        ) & 0xFF;
-        iv[4]  = (theirID        >> 24) & 0xFF;
-        iv[5]  = (theirID        >> 16) & 0xFF;
-        iv[6]  = (theirID        >> 8 ) & 0xFF;
-        iv[7]  = (theirID             ) & 0xFF;
-        iv[8]  = (theirCounter   >> 24) & 0xFF;
-        iv[9]  = (theirCounter   >> 16) & 0xFF;
-        iv[10] = (theirCounter   >> 8 ) & 0xFF;
-        iv[11] = (theirCounter        ) & 0xFF;
+        // Extract the ID and counter
+        theirID      += ((uint32_t)pkg[0]) << 24;
+        theirID      += ((uint32_t)pkg[1]) << 16;
+        theirID      += ((uint32_t)pkg[2]) << 8;
+        theirID      += ((uint32_t)pkg[3]);
+        theirCounter += ((uint32_t)pkg[4]) << 24;
+        theirCounter += ((uint32_t)pkg[5]) << 16;
+        theirCounter += ((uint32_t)pkg[6]) << 8;
+        theirCounter += ((uint32_t)pkg[7]);
+        if(theirID >= MAX_BASE_STATIONS) {
+            // the ID is invalid
+            ret = COMMSEC_FAIL_BAD_BASE_STATION;
+        } else if(ctx->mostRecentCounter[theirID] >= theirCounter) {
+            // the counter is too old
+            ret = COMMSEC_FAIL_DUP_CTR;
+        } else {
+            ret_type gcmRet;
+            // Perform the decryption and update the recorded counter
+            iv[0]  = (ctx->decSalt   >> 24) & 0xFF;
+            iv[1]  = (ctx->decSalt   >> 16) & 0xFF;
+            iv[2]  = (ctx->decSalt   >> 8 ) & 0xFF;
+            iv[3]  = (ctx->decSalt        ) & 0xFF;
+            iv[4]  = (theirID        >> 24) & 0xFF;
+            iv[5]  = (theirID        >> 16) & 0xFF;
+            iv[6]  = (theirID        >> 8 ) & 0xFF;
+            iv[7]  = (theirID             ) & 0xFF;
+            iv[8]  = (theirCounter   >> 24) & 0xFF;
+            iv[9]  = (theirCounter   >> 16) & 0xFF;
+            iv[10] = (theirCounter   >> 8 ) & 0xFF;
+            iv[11] = (theirCounter        ) & 0xFF;
 
-        gcmRet = gcm_decrypt_message( (const unsigned char *)iv, IV_LEN
-                                    , NULL, 0
-                                    , pkg + HEADER_LEN // msg ptr
-                                    , pkgLen - HEADER_LEN - TAG_LEN // msg len
-                                    , pkg + pkgLen - TAG_LEN // Tag ptr
-                                    , TAG_LEN
-                                    , &ctx->decCtx);
-        if(RETURN_GOOD == gcmRet) {
-            ret = COMMSEC_SUCCEED;
-            ctx->mostRecentCounter[theirID] = theirCounter;
+            gcmRet = gcm_decrypt_message( (const unsigned char *)iv, IV_LEN
+                                        , NULL, 0
+                                        , pkg + HEADER_LEN // msg ptr
+                                        , pkgLen - HEADER_LEN - TAG_LEN // msg len
+                                        , pkg + pkgLen - TAG_LEN // Tag ptr
+                                        , TAG_LEN
+                                        , &ctx->decCtx);
+            if(RETURN_GOOD == gcmRet) {
+                ret = COMMSEC_SUCCEED;
+                ctx->mostRecentCounter[theirID] = theirCounter;
+            }
+            else ret = COMMSEC_FAIL_GCM;
         }
-        else ret = COMMSEC_FAIL_GCM;
     }
     return ret;
 }
