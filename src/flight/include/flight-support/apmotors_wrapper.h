@@ -8,13 +8,13 @@ extern "C" {
 #endif
 
 #include "flight/controloutput_type.h"
-#include "flight/servos_type.h"
+#include "flight/motors_type.h"
 #include "flight/flightmode_type.h"
 
 void apmotors_output_init(void);
 void apmotors_output_set(const struct controloutput *,
                          const struct flightmode *);
-void apmotors_servo_get(struct servos *);
+void apmotors_servo_get(struct motors *);
 
 #ifdef __cplusplus
 }

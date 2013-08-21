@@ -30,6 +30,7 @@ FLIGHT_INCLUDES  += -I$(GEN_DIR)/src/flight/flight
 
 FLIGHT_CFLAGS    += $(FLIGHT_INCLUDES)
 FLIGHT_CXXFLAGS  += $(FLIGHT_INCLUDES)
+FLIGHT_CXXFLAGS  += -Wno-psabi
 
 # Allow overriding the GCS UART from Config.mk:
 ifdef CONFIG_GCS_UART
