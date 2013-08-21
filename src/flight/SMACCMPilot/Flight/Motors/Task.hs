@@ -26,33 +26,24 @@ motorMixerTask cs fms ms = do
   ctlRxer   <- withChannelReceiver cs "ctlOut"
   fmReader  <- withDataReader fms "flightMode"
   motEmit   <- withChannelEmitter ms "motors"
-  millis    <- withGetTimeMillis
   taskInit $ do
-    t <- getTimeMillis millis
-    d <- disabled t
+    d <- disabled
     emit_ motEmit d
   onChannel ctlRxer $ \ctl -> do
     fm <- local (istruct [])
     readData fmReader fm
-    t <- getTimeMillis millis
     armed <- deref (fm ~> FM.armed)
     let output = emit_ motEmit
     ifte_ armed
-      ((mixer ctl t) >>= output)
-      ((disabled t) >>= output)
+      ((mixer ctl) >>= output)
+      (disabled >>= output)
   taskModuleDef $ do
     depend C.controlOutputTypeModule
     depend M.motorsTypeModule
     depend FM.flightModeTypeModule
 
-disabled :: (GetAlloc eff ~ Scope cs) => Uint32 -> Ivory eff (ConstRef (Stack cs) (Struct "motors"))
-disabled t = do
-  v <- local $ istruct
-                 [ M.motor1 .= ival 0
-                 , M.motor2 .= ival 0
-                 , M.motor3 .= ival 0
-                 , M.motor4 .= ival 0
-                 , M.time   .= ival t
-                 ]
+disabled :: (GetAlloc eff ~ Scope cs) => Ivory eff (ConstRef (Stack cs) (Struct "motors"))
+disabled = do
+  v <- local $ istruct [ M.ms .= iarray [ ival 0, ival 0, ival 0, ival 0 ] ]
   return (constRef v)
 

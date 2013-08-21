@@ -12,7 +12,6 @@ import qualified SMACCMPilot.Flight.Types.Motors        as M
 
 mixer :: (GetAlloc eff ~ Scope cs)
       => ConstRef s1 (Struct "controloutput")
-      -> Uint32
       -> Ivory eff (ConstRef (Stack cs) (Struct "motors"))
-mixer control t = local (istruct [M.time .= ival t]) >>= (return . constRef)
+mixer control = local (istruct [ M.ms .= iarray [] ]) >>= (return . constRef)
 
