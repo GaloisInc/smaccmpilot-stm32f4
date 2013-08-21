@@ -39,6 +39,7 @@ import qualified Data.ByteString.Internal as BI
 import qualified Data.ByteString.Unsafe as BC
 
 import Crypto.Cipher.AES                -- Vincent's GCM routine
+import Crypto.Cipher.Types
 import Control.Concurrent.MVar
 import Data.Serialize
 
@@ -201,8 +202,8 @@ secPkgDec (SCtx c) ct =
 -- implementation.
 
 -- Key, salt, station ID, counter
-type OutContext = (Key,Word32,BaseId,Word32)
-type InContext = (Key,Word32,[(BaseId,Word32)])
+type OutContext = (AES,Word32,BaseId,Word32)
+type InContext = (AES,Word32,[(BaseId,Word32)])
 data SecureContext_HS = SC { inbound    :: InContext
                            , outbound   :: OutContext }
 type ReferenceContext = MVar SecureContext_HS
@@ -215,38 +216,46 @@ refPkg ctx@(key,salt,bid,ctr) pt
   let iv  = runPut (putWord32be salt >> put bid >> putWord32be ctr)
       new = (key,salt,bid,ctr+1)
       aad = B.empty
-      (ct,tag) = encryptGCM key (IV iv) aad pt
+      (ct, AuthTag tag) = encryptGCM key iv aad pt
       tagLen   = 8
       header   = runPut (put bid >> putWord32be ctr)
   in (new, Just (header, ct, B.take tagLen tag))
 
 refDec :: InContext -> ByteString -> (InContext, Maybe ByteString)
 refDec old@(key,salt,bidList) pkg =
-    let iv  = runPut (putWord32be salt >> put bid >> putWord32be newCtr)
-        aad = B.empty
+    let aad = B.empty
+        -- Get the iv out of the send package.
         Right (bid,newCtr,ct,tag) =
-           runGet (do bid    <- get
-                      newCtr <- getWord32be
-                      pt <- getByteString . (subtract 8) =<< remaining
-                      tag <- getByteString =<< remaining
-                      return (bid,newCtr,pt,tag)
-                      ) pkg
+           runGet (do bid'    <- get
+                      newCtr' <- getWord32be
+                      pt'     <- getByteString . (subtract 8) =<< remaining
+                      tag'    <- getByteString =<< remaining
+                      return (bid',newCtr',pt',tag')
+                  ) pkg
+        -- Serialize the salt I have with the sent baseID and updated counter.
+        iv  = runPut (putWord32be salt >> put bid >> putWord32be newCtr)
+        -- Replace the BaseID/Counter pair in the list with the updated pair.
         newBids = (bid,newCtr) : filter ((/= bid) . fst) bidList
-        new     = (key,salt,newBids)
-        (pt,decTag) = decryptGCM key (IV iv) aad ct
+        new     = (key, salt, newBids)
+        -- Decrypt the message.  I get the sent message and auth. tag, if all
+        -- goes well.
+        (pt, AuthTag decTag) = decryptGCM key iv aad ct
     in case lookup bid bidList of
         Nothing -> (old, Nothing)
-        Just cnt | cnt == maxBound || cnt >= newCtr    -> (old,Nothing)
-                 | B.take (B.length tag) decTag == tag -> (new,Just pt)
-                 | otherwise                           -> (old,Nothing)
+        Just cnt
+          -- Counter is too high or old.
+          | cnt == maxBound || cnt >= newCtr    -> (old,Nothing)
+          -- Return my updated inContext with the decrypted message.
+          | B.take (B.length tag) decTag == tag -> (new,Just pt)
+          | otherwise                           -> (old,Nothing)
 
 
 refInitOutContext :: ByteString -> Word32 -> BaseId -> OutContext
-refInitOutContext key salt bid = (initKey key, salt, bid, 1)
+refInitOutContext key salt bid = (initAES key, salt, bid, 1)
 
 refInitInContext :: ByteString -> Word32 -> InContext
 refInitInContext key salt
-  = (initKey key, salt, zip (map BaseId [0..]) (replicate 16 0))
+  = (initAES key, salt, zip (map BaseId [0..]) (replicate 16 0))
 
 secPkgInit_HS :: BaseId -> Word32 -> ByteString -> Word32 -> ByteString
               -> IO ReferenceContext
