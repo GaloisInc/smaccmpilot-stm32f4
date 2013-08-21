@@ -24,6 +24,7 @@ library
                        SMACCMPilot.Flight.Control.Task,
 
                        SMACCMPilot.Flight.Motors.Task,
+                       SMACCMPilot.Flight.Motors.Mixing,
 
                        SMACCMPilot.Flight.Sensors.Task,
 

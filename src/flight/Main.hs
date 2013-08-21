@@ -48,12 +48,13 @@ app :: Tower p ()
 app = do
   (src_userinput, snk_userinput)   <- dataport
   (src_flightmode, snk_flightmode) <- dataport
-  (src_servos, snk_servos)         <- dataport
 
   (_, snk_position)                <- dataport
 
+  (src_motors,  snk_motors)        <- channel
   (src_sensors, snk_sensors)       <- channel
   (src_control, snk_control)       <- channel
+  snk_motors_state                 <- stateProxy snk_motors
   snk_sensor_state                 <- stateProxy snk_sensors
   snk_control_state                <- stateProxy snk_control
 
@@ -62,10 +63,11 @@ app = do
   task "blink"     $ blinkTask [ relaypin, redledpin ] snk_flightmode
   task "control"   $ controlTask snk_flightmode snk_userinput
                       snk_sensors src_control
-  task "motors"    $ motorsTask snk_control snk_flightmode src_servos
+  task "motmix"    $ motorMixerTask snk_control snk_flightmode src_motors
+  -- px4ioarTower snk_motors
 
   gcsTower "uart1" UART.uart1 snk_flightmode snk_sensor_state snk_position
-    snk_control_state snk_servos
+    snk_control_state snk_motors_state
 
   mapM_ addDepends typeModules
   mapM_ addModule otherms
