@@ -127,7 +127,7 @@ secPkgDec_HS rc pkg =
     (SC newIn _out, res)
 
 -- | Encrypt a message given a context.  Returns the concatenated header
-p-- (including the sender's ID and message counter), the encrypted message, and
+-- (including the sender's ID and message counter), the encrypted message, and
 -- the authentication tag.
 secPkgEncInPlace_HS :: Context -> ByteString -> IO (Maybe ByteString)
 secPkgEncInPlace_HS rc pt = do
