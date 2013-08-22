@@ -23,13 +23,12 @@ motorMixerTask :: (SingI n, SingI m)
                -> ChannelSource m (Struct "motors")
                -> Task p ()
 motorMixerTask cs fms ms = do
-  ctlRxer   <- withChannelReceiver cs "ctlOut"
   fmReader  <- withDataReader fms "flightMode"
   motEmit   <- withChannelEmitter ms "motors"
   taskInit $ do
     d <- disabled
     emit_ motEmit d
-  onChannel ctlRxer $ \ctl -> do
+  onChannel cs "control" $ \ctl -> do
     fm <- local (istruct [])
     readData fmReader fm
     armed <- deref (fm ~> FM.armed)

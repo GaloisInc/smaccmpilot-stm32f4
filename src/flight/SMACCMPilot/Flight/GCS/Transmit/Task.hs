@@ -60,8 +60,6 @@ gcsTransmitTask :: (SingI nn, SingI n, SingI m)
                 -> Task p ()
 gcsTransmitTask ostream sp_sink dr_sink fm_sink se_sink ps_sink ct_sink mo_sink
   = do
-  streamPeriodRxer <- withChannelReceiver sp_sink  "streamperiods"
-  drRxer           <- withChannelReceiver dr_sink  "data_rate"
   fmReader         <- withDataReader fm_sink "flightmode"
   sensorsReader    <- withDataReader se_sink "sensors"
   posReader        <- withDataReader ps_sink "position"
@@ -88,12 +86,12 @@ gcsTransmitTask ostream sp_sink dr_sink fm_sink se_sink ps_sink ct_sink mo_sink
     initTime <- getTimeMillis t
     store lastRun initTime
 
-  onChannel streamPeriodRxer $ \newperiods -> do
+  onChannel sp_sink "streamPeriod" $ \newperiods -> do
     now <- getTimeMillis t
     setNewPeriods newperiods s_periods s_schedule now
 
   -- If the Mavlink receiver sends new data rate info, broadcast it.
-  onChannel drRxer $ \dr -> do
+  onChannel dr_sink "dataRate" $ \dr -> do
     d <- local (istruct [])
     refCopy d dr
     call_ (sendDataRate chan1) d

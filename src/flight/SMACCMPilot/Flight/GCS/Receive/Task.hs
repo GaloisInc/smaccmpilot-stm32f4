@@ -50,8 +50,7 @@ gcsReceiveTask istream s_src dr_src = do
 
   taskInit $ emit_ streamPeriodEmitter (constRef s_periods)
 
-  rxer <- withChannelReceiver istream "istream"
-  onChannelV rxer $ \b -> do
+  onChannelV istream "istream" $ \b -> do
     R.mavlinkReceiveByte state b
     s <- deref (state ~> R.status)
     cond_
