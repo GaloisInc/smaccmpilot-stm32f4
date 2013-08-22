@@ -33,12 +33,11 @@ uartTower uart baud ostream istream = do
   -- In a typical architectures, you'd set the TXEIE bit
   -- from the task that writes to the ostream.
   task "uartManager" $ do
-    o <- withChannelReceiver ostream "ostream"
     taskModuleDef $ hw_moduledef
     taskInit $ do
       uartInit    uart (fromIntegral baud)
       uartInitISR uart max_syscall_priority
-    onChannel o $ const $
+    onChannel ostream "ostream" $ const $
       setTXEIE uart true
 
   -- Signal:

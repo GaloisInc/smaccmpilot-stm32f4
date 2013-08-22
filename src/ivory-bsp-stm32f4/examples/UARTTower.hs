@@ -48,7 +48,6 @@ echoPrompt :: (SingI n, SingI m, SingI o)
            -> Tower p ()
 echoPrompt greet ostream istream ledctlstream = task "echoprompt" $ do
   o <- withChannelEmitter  ostream "ostream"
-  i <- withChannelReceiver istream "istream"
   ledctl <- withChannelEmitter ledctlstream "ledctl"
   withStackSize 1024
   let puts str = mapM_ (\c -> putc (fromIntegral (ord c))) str
@@ -57,8 +56,7 @@ echoPrompt greet ostream istream ledctlstream = task "echoprompt" $ do
   taskInit $ do
     puts (greet ++ "\n")
     puts "tower> "
-  onChannel i $ \inref -> do
-    input <- deref inref
+  onChannelV istream "istream" $ \input -> do
     putc input -- echo to terminal
     cond_
       [ input `isChar` '1' ==>

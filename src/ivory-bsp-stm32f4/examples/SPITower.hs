@@ -73,8 +73,6 @@ spiCtl :: (SingI n, SingI m, SingI o, SingI q)
        -> Task p ()
 spiCtl spi device toSig froSig chStart chdbg = do
   eSig   <- withChannelEmitter  toSig   "toSig"
-  rSig   <- withChannelReceiver froSig  "froSig"
-  rStart <- withChannelReceiver chStart "chStart"
   eDbg   <- withChannelEmitter  chdbg   "chdbg"
   taskModuleDef $ hw_moduledef
   let putc :: (GetAlloc eff ~ Scope cs) => Char -> Ivory eff ()
@@ -92,7 +90,7 @@ spiCtl spi device toSig froSig chStart chdbg = do
     spiDeviceInit device
     store state 0
 
-  onChannelV rStart $ \v -> do
+  onChannelV chStart "startSignal" $ \v -> do
         s <- deref state
         when (s ==? 0) $ do
           store state 1
@@ -120,7 +118,7 @@ spiCtl spi device toSig froSig chStart chdbg = do
           spiDeviceBegin mpu6k
           puts "\ngetsensors\n"
 
-  onChannel rSig $ \result -> do
+  onChannel froSig "eventFromSignal" $ \result -> do
         spiDeviceEnd mpu6k
         s <- deref state
         cond_
