@@ -37,6 +37,7 @@ uartTower uart baud ostream istream = do
   task "uartManager" $ do
     needed <- taskLocal "needed"
     taskModuleDef $ hw_moduledef
+    withPriority 4 -- max priority
     taskInit $ do
       store needed true
       uartInit    uart (fromIntegral baud)
