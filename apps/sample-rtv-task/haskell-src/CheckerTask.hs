@@ -65,8 +65,7 @@ checkerTask sink = do
   taskModuleDef $ incl mkHistory >> incl led_set
 
   -- "src" string only is for graphviz output for now
-  rx <- withChannelReceiver sink "rvSink"
-  onChannel rx $ \latestVal -> do
+  onChannel sink "rvSink" $ \latestVal -> do
      call_ mkHistory latestVal
      runCheck
 
