@@ -22,10 +22,10 @@ gcsTower :: String
          -> Tower p ()
 gcsTower uartname uart fm_sink sens_sink pos_sink ctl_sink motor_sink = do
   (streamrate_source, streamrate_sink) <- channel
-  (dataRateSrc, dataRateSink)          <- channel
+  (dataRateSrc,        dataRateSink)   <- channel
 
   (i :: Channel 128 (Stored Uint8)) <- channelWithSize
-  (o :: Channel 128 (Stored Uint8)) <- channelWithSize
+  (o :: Channel 1024 (Stored Uint8)) <- channelWithSize
   uartTower uart 57600 (snk i) (src o)
 
   task ("gcsReceiveTask" ++ uartname) $
