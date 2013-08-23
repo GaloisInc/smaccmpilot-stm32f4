@@ -1,6 +1,7 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Ivory.BSP.STM32F4.UART.Tower where
 
@@ -32,19 +33,28 @@ uartTower uart baud ostream istream = do
   -- read from the ISR unless the TXEIE goes off.
   -- In a typical architectures, you'd set the TXEIE bit
   -- from the task that writes to the ostream.
+  (c :: Channel 1 (Stored IBool)) <- channelWithSize
   task "uartManager" $ do
+    needed <- taskLocal "needed"
     taskModuleDef $ hw_moduledef
     taskInit $ do
+      store needed true
       uartInit    uart (fromIntegral baud)
       uartInitISR uart max_syscall_priority
-    onChannel ostream "ostream" $ const $
-      setTXEIE uart true
+    onChannelV (snk c) "needed" $ \n -> do
+      store needed n
+    onChannel ostream "ostream" $ const $ do
+      n <- deref needed
+      when n $ do
+        setTXEIE uart true
+        store needed false
 
   -- Signal:
   -- runs the UART Interrupt Service Routine
   signal "uartISR" $ do
     o <- withChannelReceiver ostream "ostream"
     i <- withChannelEmitter  istream "istream"
+    n <- withChannelEmitter  (src c) "needtxeie"
     signalName (handlerName (uartInterrupt uart))
     signalModuleDef $ hw_moduledef
     signalBody $ do
@@ -58,6 +68,8 @@ uartTower uart baud ostream istream = do
            byte <- local (ival 0)
            rv   <- receive o byte
            ifte_ rv
-             (setDR uart =<< deref byte)
-             (setTXEIE uart false)
+             (setDR uart =<< deref byte) $ do
+               emitV_ n true
+               setTXEIE uart false
        ]
+
