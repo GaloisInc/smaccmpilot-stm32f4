@@ -41,15 +41,14 @@ mkParamRequestReadSender :: SizedMavlinkSender 20
                        -> Def ('[ ConstRef s (Struct "param_request_read_msg") ] :-> ())
 mkParamRequestReadSender sender =
   proc ("mavlink_param_request_read_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    paramRequestReadPack (senderMacro sender) msg
+    noReturn $ paramRequestReadPack (senderMacro sender) msg
 
 instance MavlinkSendable "param_request_read_msg" 20 where
   mkSender = mkParamRequestReadSender
 
-paramRequestReadPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
-                  => SenderMacro eff s 20
+paramRequestReadPack :: SenderMacro cs (Stack cs) 20
                   -> ConstRef s1 (Struct "param_request_read_msg")
-                  -> Ivory eff ()
+                  -> Ivory (AllocEffects cs) ()
 paramRequestReadPack sender msg = do
   arr <- local (iarray [] :: Init (Array 20 (Stored Uint8)))
   let buf = toCArray arr
@@ -58,7 +57,6 @@ paramRequestReadPack sender msg = do
   call_ pack buf 3 =<< deref (msg ~> target_component)
   arrayPack buf 4 (msg ~> param_id)
   sender paramRequestReadMsgId (constRef arr) paramRequestReadCrcExtra
-  retVoid
 
 instance MavlinkUnpackableMsg "param_request_read_msg" where
     unpackMsg = ( paramRequestReadUnpack , paramRequestReadMsgId )

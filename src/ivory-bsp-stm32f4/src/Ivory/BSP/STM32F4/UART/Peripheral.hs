@@ -184,6 +184,12 @@ setTXEIE uart x =
   modifyReg (uartRegCR1 uart) $
     setField uart_cr1_txeie (boolToBit x)
 
+-- | See whether "TXE" interrupt is enabled.
+getTXEIE :: UART -> Ivory eff IBool
+getTXEIE uart = do
+  cr1 <- getReg (uartRegCR1 uart)
+  return $ bitToBool (cr1 #. uart_cr1_txeie)
+
 -- | Enable or disable the "RXNE" interrupt.
 setRXNEIE :: UART -> IBool -> Ivory eff ()
 setRXNEIE uart x =

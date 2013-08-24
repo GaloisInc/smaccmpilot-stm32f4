@@ -53,13 +53,13 @@ app = do
   start  <- channel
   task "blueLed"   $ ledController [blue] (snk start)
 
-  (uarti :: Channel 128 (Stored Uint8)) <- channelWithSize
-  (uarto :: Channel 128 (Stored Uint8)) <- channelWithSize
-  uartTower uart1 115200 (snk uarti) (src uarto)
-  echoPrompt greeting    (src uarti) (snk uarto) (src start)
+  ((uarti :: ChannelSink 128 (Stored Uint8))
+   ,(uarto :: ChannelSource 128 (Stored Uint8))) <- uartTower uart1 115200
+
+  echoPrompt greeting uarto uarti (src start)
 
   (toSig, froSig) <- spiTower spi1
-  task   "spiCtl" $ spiCtl    spi1 mpu6k toSig froSig (snk start) (src uarto)
+  task   "spiCtl" $ spiCtl    spi1 mpu6k toSig froSig (snk start) uarto
   where
   blue = blueLED (undefined :: p)
 
@@ -73,8 +73,6 @@ spiCtl :: (SingI n, SingI m, SingI o, SingI q)
        -> Task p ()
 spiCtl spi device toSig froSig chStart chdbg = do
   eSig   <- withChannelEmitter  toSig   "toSig"
-  rSig   <- withChannelReceiver froSig  "froSig"
-  rStart <- withChannelReceiver chStart "chStart"
   eDbg   <- withChannelEmitter  chdbg   "chdbg"
   taskModuleDef $ hw_moduledef
   let putc :: (GetAlloc eff ~ Scope cs) => Char -> Ivory eff ()
@@ -92,7 +90,7 @@ spiCtl spi device toSig froSig chStart chdbg = do
     spiDeviceInit device
     store state 0
 
-  onChannelV rStart $ \v -> do
+  onChannelV chStart "startSignal" $ \v -> do
         s <- deref state
         when (s ==? 0) $ do
           store state 1
@@ -120,7 +118,7 @@ spiCtl spi device toSig froSig chStart chdbg = do
           spiDeviceBegin mpu6k
           puts "\ngetsensors\n"
 
-  onChannel rSig $ \result -> do
+  onChannel froSig "eventFromSignal" $ \result -> do
         spiDeviceEnd mpu6k
         s <- deref state
         cond_

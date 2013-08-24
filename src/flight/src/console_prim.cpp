@@ -8,7 +8,7 @@
 
 #include "flight-support/console_prim.h"
 
-#include <AP_HAL.h>
+#include <AP_HAL/AP_HAL.h>
 
 extern const AP_HAL::HAL& hal;
 

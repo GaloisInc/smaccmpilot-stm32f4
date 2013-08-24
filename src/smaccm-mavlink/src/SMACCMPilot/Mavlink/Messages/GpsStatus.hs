@@ -43,15 +43,14 @@ mkGpsStatusSender :: SizedMavlinkSender 101
                        -> Def ('[ ConstRef s (Struct "gps_status_msg") ] :-> ())
 mkGpsStatusSender sender =
   proc ("mavlink_gps_status_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    gpsStatusPack (senderMacro sender) msg
+    noReturn $ gpsStatusPack (senderMacro sender) msg
 
 instance MavlinkSendable "gps_status_msg" 101 where
   mkSender = mkGpsStatusSender
 
-gpsStatusPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
-                  => SenderMacro eff s 101
+gpsStatusPack :: SenderMacro cs (Stack cs) 101
                   -> ConstRef s1 (Struct "gps_status_msg")
-                  -> Ivory eff ()
+                  -> Ivory (AllocEffects cs) ()
 gpsStatusPack sender msg = do
   arr <- local (iarray [] :: Init (Array 101 (Stored Uint8)))
   let buf = toCArray arr
@@ -62,7 +61,6 @@ gpsStatusPack sender msg = do
   arrayPack buf 61 (msg ~> satellite_azimuth)
   arrayPack buf 81 (msg ~> satellite_snr)
   sender gpsStatusMsgId (constRef arr) gpsStatusCrcExtra
-  retVoid
 
 instance MavlinkUnpackableMsg "gps_status_msg" where
     unpackMsg = ( gpsStatusUnpack , gpsStatusMsgId )

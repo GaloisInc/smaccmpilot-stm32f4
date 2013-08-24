@@ -40,15 +40,14 @@ mkFileTransferDirListSender :: SizedMavlinkSender 249
                        -> Def ('[ ConstRef s (Struct "file_transfer_dir_list_msg") ] :-> ())
 mkFileTransferDirListSender sender =
   proc ("mavlink_file_transfer_dir_list_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    fileTransferDirListPack (senderMacro sender) msg
+    noReturn $ fileTransferDirListPack (senderMacro sender) msg
 
 instance MavlinkSendable "file_transfer_dir_list_msg" 249 where
   mkSender = mkFileTransferDirListSender
 
-fileTransferDirListPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
-                  => SenderMacro eff s 249
+fileTransferDirListPack :: SenderMacro cs (Stack cs) 249
                   -> ConstRef s1 (Struct "file_transfer_dir_list_msg")
-                  -> Ivory eff ()
+                  -> Ivory (AllocEffects cs) ()
 fileTransferDirListPack sender msg = do
   arr <- local (iarray [] :: Init (Array 249 (Stored Uint8)))
   let buf = toCArray arr
@@ -56,7 +55,6 @@ fileTransferDirListPack sender msg = do
   call_ pack buf 248 =<< deref (msg ~> flags)
   arrayPack buf 8 (msg ~> dir_path)
   sender fileTransferDirListMsgId (constRef arr) fileTransferDirListCrcExtra
-  retVoid
 
 instance MavlinkUnpackableMsg "file_transfer_dir_list_msg" where
     unpackMsg = ( fileTransferDirListUnpack , fileTransferDirListMsgId )

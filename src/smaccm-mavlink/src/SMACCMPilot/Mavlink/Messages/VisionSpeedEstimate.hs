@@ -41,15 +41,14 @@ mkVisionSpeedEstimateSender :: SizedMavlinkSender 20
                        -> Def ('[ ConstRef s (Struct "vision_speed_estimate_msg") ] :-> ())
 mkVisionSpeedEstimateSender sender =
   proc ("mavlink_vision_speed_estimate_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    visionSpeedEstimatePack (senderMacro sender) msg
+    noReturn $ visionSpeedEstimatePack (senderMacro sender) msg
 
 instance MavlinkSendable "vision_speed_estimate_msg" 20 where
   mkSender = mkVisionSpeedEstimateSender
 
-visionSpeedEstimatePack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
-                  => SenderMacro eff s 20
+visionSpeedEstimatePack :: SenderMacro cs (Stack cs) 20
                   -> ConstRef s1 (Struct "vision_speed_estimate_msg")
-                  -> Ivory eff ()
+                  -> Ivory (AllocEffects cs) ()
 visionSpeedEstimatePack sender msg = do
   arr <- local (iarray [] :: Init (Array 20 (Stored Uint8)))
   let buf = toCArray arr
@@ -58,7 +57,6 @@ visionSpeedEstimatePack sender msg = do
   call_ pack buf 12 =<< deref (msg ~> y)
   call_ pack buf 16 =<< deref (msg ~> z)
   sender visionSpeedEstimateMsgId (constRef arr) visionSpeedEstimateCrcExtra
-  retVoid
 
 instance MavlinkUnpackableMsg "vision_speed_estimate_msg" where
     unpackMsg = ( visionSpeedEstimateUnpack , visionSpeedEstimateMsgId )

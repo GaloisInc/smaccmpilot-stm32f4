@@ -40,15 +40,14 @@ mkMissionSetCurrentSender :: SizedMavlinkSender 4
                        -> Def ('[ ConstRef s (Struct "mission_set_current_msg") ] :-> ())
 mkMissionSetCurrentSender sender =
   proc ("mavlink_mission_set_current_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    missionSetCurrentPack (senderMacro sender) msg
+    noReturn $ missionSetCurrentPack (senderMacro sender) msg
 
 instance MavlinkSendable "mission_set_current_msg" 4 where
   mkSender = mkMissionSetCurrentSender
 
-missionSetCurrentPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
-                  => SenderMacro eff s 4
+missionSetCurrentPack :: SenderMacro cs (Stack cs) 4
                   -> ConstRef s1 (Struct "mission_set_current_msg")
-                  -> Ivory eff ()
+                  -> Ivory (AllocEffects cs) ()
 missionSetCurrentPack sender msg = do
   arr <- local (iarray [] :: Init (Array 4 (Stored Uint8)))
   let buf = toCArray arr
@@ -56,7 +55,6 @@ missionSetCurrentPack sender msg = do
   call_ pack buf 2 =<< deref (msg ~> target_system)
   call_ pack buf 3 =<< deref (msg ~> target_component)
   sender missionSetCurrentMsgId (constRef arr) missionSetCurrentCrcExtra
-  retVoid
 
 instance MavlinkUnpackableMsg "mission_set_current_msg" where
     unpackMsg = ( missionSetCurrentUnpack , missionSetCurrentMsgId )

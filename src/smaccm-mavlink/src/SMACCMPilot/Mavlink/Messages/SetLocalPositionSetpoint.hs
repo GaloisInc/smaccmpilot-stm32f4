@@ -44,15 +44,14 @@ mkSetLocalPositionSetpointSender :: SizedMavlinkSender 19
                        -> Def ('[ ConstRef s (Struct "set_local_position_setpoint_msg") ] :-> ())
 mkSetLocalPositionSetpointSender sender =
   proc ("mavlink_set_local_position_setpoint_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    setLocalPositionSetpointPack (senderMacro sender) msg
+    noReturn $ setLocalPositionSetpointPack (senderMacro sender) msg
 
 instance MavlinkSendable "set_local_position_setpoint_msg" 19 where
   mkSender = mkSetLocalPositionSetpointSender
 
-setLocalPositionSetpointPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
-                  => SenderMacro eff s 19
+setLocalPositionSetpointPack :: SenderMacro cs (Stack cs) 19
                   -> ConstRef s1 (Struct "set_local_position_setpoint_msg")
-                  -> Ivory eff ()
+                  -> Ivory (AllocEffects cs) ()
 setLocalPositionSetpointPack sender msg = do
   arr <- local (iarray [] :: Init (Array 19 (Stored Uint8)))
   let buf = toCArray arr
@@ -64,7 +63,6 @@ setLocalPositionSetpointPack sender msg = do
   call_ pack buf 17 =<< deref (msg ~> target_component)
   call_ pack buf 18 =<< deref (msg ~> coordinate_frame)
   sender setLocalPositionSetpointMsgId (constRef arr) setLocalPositionSetpointCrcExtra
-  retVoid
 
 instance MavlinkUnpackableMsg "set_local_position_setpoint_msg" where
     unpackMsg = ( setLocalPositionSetpointUnpack , setLocalPositionSetpointMsgId )

@@ -41,15 +41,14 @@ mkPingSender :: SizedMavlinkSender 14
                        -> Def ('[ ConstRef s (Struct "ping_msg") ] :-> ())
 mkPingSender sender =
   proc ("mavlink_ping_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    pingPack (senderMacro sender) msg
+    noReturn $ pingPack (senderMacro sender) msg
 
 instance MavlinkSendable "ping_msg" 14 where
   mkSender = mkPingSender
 
-pingPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
-                  => SenderMacro eff s 14
+pingPack :: SenderMacro cs (Stack cs) 14
                   -> ConstRef s1 (Struct "ping_msg")
-                  -> Ivory eff ()
+                  -> Ivory (AllocEffects cs) ()
 pingPack sender msg = do
   arr <- local (iarray [] :: Init (Array 14 (Stored Uint8)))
   let buf = toCArray arr
@@ -58,7 +57,6 @@ pingPack sender msg = do
   call_ pack buf 12 =<< deref (msg ~> target_system)
   call_ pack buf 13 =<< deref (msg ~> target_component)
   sender pingMsgId (constRef arr) pingCrcExtra
-  retVoid
 
 instance MavlinkUnpackableMsg "ping_msg" where
     unpackMsg = ( pingUnpack , pingMsgId )

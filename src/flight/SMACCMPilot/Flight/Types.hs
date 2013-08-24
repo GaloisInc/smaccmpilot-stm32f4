@@ -10,7 +10,7 @@ import SMACCMPilot.Flight.Types.OptFlow (optFlowTypeModule)
 import SMACCMPilot.Flight.Types.Position (positionTypeModule)
 import SMACCMPilot.Flight.Types.PositionEstimate (positionEstimateTypeModule)
 import SMACCMPilot.Flight.Types.Sensors (sensorsTypeModule)
-import SMACCMPilot.Flight.Types.Servos (servosTypeModule)
+import SMACCMPilot.Flight.Types.Motors (motorsTypeModule)
 import SMACCMPilot.Flight.Types.UserInput (userInputTypeModule)
 import SMACCMPilot.Flight.Types.FlightMode (flightModeTypeModule)
 import SMACCMPilot.Flight.Types.GCSStreamTiming (gcsStreamTimingTypeModule)
@@ -23,7 +23,7 @@ typeModules =
   , positionTypeModule
   , positionEstimateTypeModule
   , sensorsTypeModule
-  , servosTypeModule
+  , motorsTypeModule
   , userInputTypeModule
   , flightModeTypeModule
   , gcsStreamTimingTypeModule

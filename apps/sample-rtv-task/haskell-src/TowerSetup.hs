@@ -64,14 +64,13 @@ readClockTask clkSrc = do
 updateTimeTask :: (SingI n, SingI m)
                => ChannelSink n Clk -> ChannelSource m AssignStruct -> Task p ()
 updateTimeTask clk chk = do
-  rx <- withChannelReceiver clk "timeRx"
   newVal <- withChannelEmitter chk "newVal"
 
   let recordEmitProc = recordEmit newVal
   taskModuleDef (incl recordEmitProc)
 
   taskInit (call_ update_time_init $ procPtr recordEmitProc)
-  onChannelV rx $ \time -> do
+  onChannelV clk "timeRx" $ \time -> do
     call_ update_time_block time
 
 --------------------------------------------------------------------------------

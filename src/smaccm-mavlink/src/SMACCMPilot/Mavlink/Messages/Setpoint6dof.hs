@@ -44,15 +44,14 @@ mkSetpoint6dofSender :: SizedMavlinkSender 25
                        -> Def ('[ ConstRef s (Struct "setpoint_6dof_msg") ] :-> ())
 mkSetpoint6dofSender sender =
   proc ("mavlink_setpoint_6dof_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    setpoint6dofPack (senderMacro sender) msg
+    noReturn $ setpoint6dofPack (senderMacro sender) msg
 
 instance MavlinkSendable "setpoint_6dof_msg" 25 where
   mkSender = mkSetpoint6dofSender
 
-setpoint6dofPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
-                  => SenderMacro eff s 25
+setpoint6dofPack :: SenderMacro cs (Stack cs) 25
                   -> ConstRef s1 (Struct "setpoint_6dof_msg")
-                  -> Ivory eff ()
+                  -> Ivory (AllocEffects cs) ()
 setpoint6dofPack sender msg = do
   arr <- local (iarray [] :: Init (Array 25 (Stored Uint8)))
   let buf = toCArray arr
@@ -64,7 +63,6 @@ setpoint6dofPack sender msg = do
   call_ pack buf 20 =<< deref (msg ~> rot_z)
   call_ pack buf 24 =<< deref (msg ~> target_system)
   sender setpoint6dofMsgId (constRef arr) setpoint6dofCrcExtra
-  retVoid
 
 instance MavlinkUnpackableMsg "setpoint_6dof_msg" where
     unpackMsg = ( setpoint6dofUnpack , setpoint6dofMsgId )

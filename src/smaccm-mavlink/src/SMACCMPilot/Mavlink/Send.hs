@@ -15,15 +15,14 @@ import Ivory.Stdlib (unless)
 
 import SMACCMPilot.Mavlink.CRC
 
-type SenderMacro eff s n =  Uint8 -- id
-                         -> ConstRef (Stack s) (Array n (Stored Uint8)) -- buf
-                         -> Uint8 -- crcextra
-                         -> Ivory eff ()
+type SenderMacro cs s n =  Uint8 -- id
+                        -> ConstRef s (Array n (Stored Uint8)) -- buf
+                        -> Uint8 -- crcextra
+                        -> Ivory (AllocEffects cs) ()
 
 data SizedMavlinkSender n =
   SizedMavlinkSender
-    { senderMacro :: forall eff s . (GetAlloc eff ~ Scope s)
-                  => SenderMacro eff s n
+    { senderMacro :: forall s cs . SenderMacro cs s n
     , senderName  :: String
     , senderDeps  :: ModuleDef
     }
@@ -41,14 +40,14 @@ class MavlinkSendable t n | t -> n where
 
 newtype MavlinkWriteMacro = MavlinkWriteMacro {
   unMavlinkWriteMacro ::
-    (forall eff s . (GetAlloc eff ~ Scope s)
-                    => ConstRef (Stack s) (CArray (Stored Uint8)) -- buf
-                    -> Uint8 -- len
-                    -> Ivory eff ()) }
+    (forall s cs n 
+    . (SingI n)
+    => ConstRef s (Array n (Stored Uint8)) -- buf
+    -> Ivory (AllocEffects cs) ()) }
 
 mavlinkChecksum :: (SingI n, GetAlloc eff ~ Scope s)
-                             => ConstRef (Stack s) (Array 6 (Stored Uint8))
-                             -> ConstRef (Stack s) (Array n (Stored Uint8))
+                             => ConstRef s1 (Array 6 (Stored Uint8))
+                             -> ConstRef s2 (Array n (Stored Uint8))
                              -> Uint8
                              -> Ivory eff (Uint8, Uint8)
 mavlinkChecksum header payload crcextra = do
@@ -70,25 +69,25 @@ mavlinkChecksum header payload crcextra = do
 mavlinkSendWithWriter :: Uint8 -- Sysid
                       -> Uint8 -- Compid
                       -> String -- Writer name
-                      -> MemArea (Stored Uint8) -- TX Sequence Number
+                      -> Ref s (Stored Uint8) -- TX Sequence Number
                       -> MavlinkWriteMacro -- Ivory macro
                       -> ModuleDef -- Deps of tx seq mem area, ivory macro
                       -> MavlinkSender
-mavlinkSendWithWriter sysid compid name seqnum_area cwriter writerdeps =
+mavlinkSendWithWriter sysid compid name seqnum cwriter writerdeps =
   MavlinkSender (SizedMavlinkSender sender name deps)
   where
   deps = do
     depend mavlinkCRCModule
     writerdeps
-  write :: (SingI n, GetAlloc eff ~ Scope s)
-        => ConstRef (Stack s) (Array n (Stored Uint8)) -> Ivory eff ()
-  write arr = (unMavlinkWriteMacro cwriter) (toCArray arr) (arrayLen arr)
+  write :: (SingI n)
+        => ConstRef s (Array n (Stored Uint8)) -> Ivory (AllocEffects cs) ()
+  write arr = unMavlinkWriteMacro cwriter arr
 
   const_MAVLINK_STX = 254 :: Uint8
 
-  sender :: (SingI n, GetAlloc eff ~ Scope s)
-         => Uint8 -> ConstRef (Stack s) (Array n (Stored Uint8))
-         -> Uint8 -> Ivory eff ()
+  sender :: (SingI n)
+         => Uint8 -> ConstRef s' (Array n (Stored Uint8))
+         -> Uint8 -> Ivory (AllocEffects cs) ()
   sender msgid payload crcextra = do
     seqnum <- getSeqnum
     -- Create header
@@ -112,7 +111,6 @@ mavlinkSendWithWriter sysid compid name seqnum_area cwriter writerdeps =
     where
     getSeqnum = do
       -- Increment and return sequence number
-      let seqnum = addrOf seqnum_area
       s <- deref seqnum
       store seqnum (s + 1)
       return s

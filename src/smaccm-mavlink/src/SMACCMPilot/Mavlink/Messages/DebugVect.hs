@@ -42,15 +42,14 @@ mkDebugVectSender :: SizedMavlinkSender 30
                        -> Def ('[ ConstRef s (Struct "debug_vect_msg") ] :-> ())
 mkDebugVectSender sender =
   proc ("mavlink_debug_vect_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    debugVectPack (senderMacro sender) msg
+    noReturn $ debugVectPack (senderMacro sender) msg
 
 instance MavlinkSendable "debug_vect_msg" 30 where
   mkSender = mkDebugVectSender
 
-debugVectPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
-                  => SenderMacro eff s 30
+debugVectPack :: SenderMacro cs (Stack cs) 30
                   -> ConstRef s1 (Struct "debug_vect_msg")
-                  -> Ivory eff ()
+                  -> Ivory (AllocEffects cs) ()
 debugVectPack sender msg = do
   arr <- local (iarray [] :: Init (Array 30 (Stored Uint8)))
   let buf = toCArray arr
@@ -60,7 +59,6 @@ debugVectPack sender msg = do
   call_ pack buf 16 =<< deref (msg ~> z)
   arrayPack buf 20 (msg ~> name)
   sender debugVectMsgId (constRef arr) debugVectCrcExtra
-  retVoid
 
 instance MavlinkUnpackableMsg "debug_vect_msg" where
     unpackMsg = ( debugVectUnpack , debugVectMsgId )

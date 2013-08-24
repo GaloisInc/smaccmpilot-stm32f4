@@ -46,15 +46,14 @@ mkGlobalPositionIntSender :: SizedMavlinkSender 28
                        -> Def ('[ ConstRef s (Struct "global_position_int_msg") ] :-> ())
 mkGlobalPositionIntSender sender =
   proc ("mavlink_global_position_int_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    globalPositionIntPack (senderMacro sender) msg
+    noReturn $ globalPositionIntPack (senderMacro sender) msg
 
 instance MavlinkSendable "global_position_int_msg" 28 where
   mkSender = mkGlobalPositionIntSender
 
-globalPositionIntPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
-                  => SenderMacro eff s 28
+globalPositionIntPack :: SenderMacro cs (Stack cs) 28
                   -> ConstRef s1 (Struct "global_position_int_msg")
-                  -> Ivory eff ()
+                  -> Ivory (AllocEffects cs) ()
 globalPositionIntPack sender msg = do
   arr <- local (iarray [] :: Init (Array 28 (Stored Uint8)))
   let buf = toCArray arr
@@ -68,7 +67,6 @@ globalPositionIntPack sender msg = do
   call_ pack buf 24 =<< deref (msg ~> vz)
   call_ pack buf 26 =<< deref (msg ~> hdg)
   sender globalPositionIntMsgId (constRef arr) globalPositionIntCrcExtra
-  retVoid
 
 instance MavlinkUnpackableMsg "global_position_int_msg" where
     unpackMsg = ( globalPositionIntUnpack , globalPositionIntMsgId )

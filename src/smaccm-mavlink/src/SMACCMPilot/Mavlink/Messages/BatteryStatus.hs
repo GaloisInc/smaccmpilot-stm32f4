@@ -46,15 +46,14 @@ mkBatteryStatusSender :: SizedMavlinkSender 16
                        -> Def ('[ ConstRef s (Struct "battery_status_msg") ] :-> ())
 mkBatteryStatusSender sender =
   proc ("mavlink_battery_status_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    batteryStatusPack (senderMacro sender) msg
+    noReturn $ batteryStatusPack (senderMacro sender) msg
 
 instance MavlinkSendable "battery_status_msg" 16 where
   mkSender = mkBatteryStatusSender
 
-batteryStatusPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
-                  => SenderMacro eff s 16
+batteryStatusPack :: SenderMacro cs (Stack cs) 16
                   -> ConstRef s1 (Struct "battery_status_msg")
-                  -> Ivory eff ()
+                  -> Ivory (AllocEffects cs) ()
 batteryStatusPack sender msg = do
   arr <- local (iarray [] :: Init (Array 16 (Stored Uint8)))
   let buf = toCArray arr
@@ -68,7 +67,6 @@ batteryStatusPack sender msg = do
   call_ pack buf 14 =<< deref (msg ~> accu_id)
   call_ pack buf 15 =<< deref (msg ~> battery_remaining)
   sender batteryStatusMsgId (constRef arr) batteryStatusCrcExtra
-  retVoid
 
 instance MavlinkUnpackableMsg "battery_status_msg" where
     unpackMsg = ( batteryStatusUnpack , batteryStatusMsgId )

@@ -43,15 +43,14 @@ mkHeartbeatSender :: SizedMavlinkSender 9
                        -> Def ('[ ConstRef s (Struct "heartbeat_msg") ] :-> ())
 mkHeartbeatSender sender =
   proc ("mavlink_heartbeat_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    heartbeatPack (senderMacro sender) msg
+    noReturn $ heartbeatPack (senderMacro sender) msg
 
 instance MavlinkSendable "heartbeat_msg" 9 where
   mkSender = mkHeartbeatSender
 
-heartbeatPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
-                  => SenderMacro eff s 9
+heartbeatPack :: SenderMacro cs (Stack cs) 9
                   -> ConstRef s1 (Struct "heartbeat_msg")
-                  -> Ivory eff ()
+                  -> Ivory (AllocEffects cs) ()
 heartbeatPack sender msg = do
   arr <- local (iarray [] :: Init (Array 9 (Stored Uint8)))
   let buf = toCArray arr
@@ -62,7 +61,6 @@ heartbeatPack sender msg = do
   call_ pack buf 7 =<< deref (msg ~> system_status)
   call_ pack buf 8 =<< deref (msg ~> mavlink_version)
   sender heartbeatMsgId (constRef arr) heartbeatCrcExtra
-  retVoid
 
 instance MavlinkUnpackableMsg "heartbeat_msg" where
     unpackMsg = ( heartbeatUnpack , heartbeatMsgId )

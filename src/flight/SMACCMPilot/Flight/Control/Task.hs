@@ -22,14 +22,13 @@ controlTask :: (SingI n, SingI m)
             -> ChannelSource m (Struct "controloutput")
             -> Task p ()
 controlTask s_fm s_inpt s_sens s_ctl = do
-  sensRxer   <- withChannelReceiver s_sens "sensors"
   fmReader   <- withDataReader s_fm   "flightmode"
   uiReader   <- withDataReader s_inpt "userinput"
   ctlEmitter <- withChannelEmitter s_ctl  "control"
   fm   <- taskLocal "flightmode"
   inpt <- taskLocal "input"
   ctl  <- taskLocal "control"
-  onChannel sensRxer $ \sens -> do
+  onChannel s_sens "sensors" $ \sens -> do
       readData fmReader   fm
       readData uiReader   inpt
 

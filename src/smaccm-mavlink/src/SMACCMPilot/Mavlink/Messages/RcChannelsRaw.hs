@@ -48,15 +48,14 @@ mkRcChannelsRawSender :: SizedMavlinkSender 22
                        -> Def ('[ ConstRef s (Struct "rc_channels_raw_msg") ] :-> ())
 mkRcChannelsRawSender sender =
   proc ("mavlink_rc_channels_raw_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    rcChannelsRawPack (senderMacro sender) msg
+    noReturn $ rcChannelsRawPack (senderMacro sender) msg
 
 instance MavlinkSendable "rc_channels_raw_msg" 22 where
   mkSender = mkRcChannelsRawSender
 
-rcChannelsRawPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
-                  => SenderMacro eff s 22
+rcChannelsRawPack :: SenderMacro cs (Stack cs) 22
                   -> ConstRef s1 (Struct "rc_channels_raw_msg")
-                  -> Ivory eff ()
+                  -> Ivory (AllocEffects cs) ()
 rcChannelsRawPack sender msg = do
   arr <- local (iarray [] :: Init (Array 22 (Stored Uint8)))
   let buf = toCArray arr
@@ -72,7 +71,6 @@ rcChannelsRawPack sender msg = do
   call_ pack buf 20 =<< deref (msg ~> port)
   call_ pack buf 21 =<< deref (msg ~> rssi)
   sender rcChannelsRawMsgId (constRef arr) rcChannelsRawCrcExtra
-  retVoid
 
 instance MavlinkUnpackableMsg "rc_channels_raw_msg" where
     unpackMsg = ( rcChannelsRawUnpack , rcChannelsRawMsgId )

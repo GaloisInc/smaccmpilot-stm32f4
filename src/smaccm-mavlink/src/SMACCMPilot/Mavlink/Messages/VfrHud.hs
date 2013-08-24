@@ -43,15 +43,14 @@ mkVfrHudSender :: SizedMavlinkSender 20
                        -> Def ('[ ConstRef s (Struct "vfr_hud_msg") ] :-> ())
 mkVfrHudSender sender =
   proc ("mavlink_vfr_hud_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    vfrHudPack (senderMacro sender) msg
+    noReturn $ vfrHudPack (senderMacro sender) msg
 
 instance MavlinkSendable "vfr_hud_msg" 20 where
   mkSender = mkVfrHudSender
 
-vfrHudPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
-                  => SenderMacro eff s 20
+vfrHudPack :: SenderMacro cs (Stack cs) 20
                   -> ConstRef s1 (Struct "vfr_hud_msg")
-                  -> Ivory eff ()
+                  -> Ivory (AllocEffects cs) ()
 vfrHudPack sender msg = do
   arr <- local (iarray [] :: Init (Array 20 (Stored Uint8)))
   let buf = toCArray arr
@@ -62,7 +61,6 @@ vfrHudPack sender msg = do
   call_ pack buf 16 =<< deref (msg ~> heading)
   call_ pack buf 18 =<< deref (msg ~> throttle)
   sender vfrHudMsgId (constRef arr) vfrHudCrcExtra
-  retVoid
 
 instance MavlinkUnpackableMsg "vfr_hud_msg" where
     unpackMsg = ( vfrHudUnpack , vfrHudMsgId )

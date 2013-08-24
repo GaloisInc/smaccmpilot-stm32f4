@@ -42,15 +42,14 @@ mkSetQuadMotorsSetpointSender :: SizedMavlinkSender 9
                        -> Def ('[ ConstRef s (Struct "set_quad_motors_setpoint_msg") ] :-> ())
 mkSetQuadMotorsSetpointSender sender =
   proc ("mavlink_set_quad_motors_setpoint_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    setQuadMotorsSetpointPack (senderMacro sender) msg
+    noReturn $ setQuadMotorsSetpointPack (senderMacro sender) msg
 
 instance MavlinkSendable "set_quad_motors_setpoint_msg" 9 where
   mkSender = mkSetQuadMotorsSetpointSender
 
-setQuadMotorsSetpointPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
-                  => SenderMacro eff s 9
+setQuadMotorsSetpointPack :: SenderMacro cs (Stack cs) 9
                   -> ConstRef s1 (Struct "set_quad_motors_setpoint_msg")
-                  -> Ivory eff ()
+                  -> Ivory (AllocEffects cs) ()
 setQuadMotorsSetpointPack sender msg = do
   arr <- local (iarray [] :: Init (Array 9 (Stored Uint8)))
   let buf = toCArray arr
@@ -60,7 +59,6 @@ setQuadMotorsSetpointPack sender msg = do
   call_ pack buf 6 =<< deref (msg ~> motor_left_sw)
   call_ pack buf 8 =<< deref (msg ~> target_system)
   sender setQuadMotorsSetpointMsgId (constRef arr) setQuadMotorsSetpointCrcExtra
-  retVoid
 
 instance MavlinkUnpackableMsg "set_quad_motors_setpoint_msg" where
     unpackMsg = ( setQuadMotorsSetpointUnpack , setQuadMotorsSetpointMsgId )

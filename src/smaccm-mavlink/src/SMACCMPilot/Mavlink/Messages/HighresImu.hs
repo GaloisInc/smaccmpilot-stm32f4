@@ -52,15 +52,14 @@ mkHighresImuSender :: SizedMavlinkSender 62
                        -> Def ('[ ConstRef s (Struct "highres_imu_msg") ] :-> ())
 mkHighresImuSender sender =
   proc ("mavlink_highres_imu_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    highresImuPack (senderMacro sender) msg
+    noReturn $ highresImuPack (senderMacro sender) msg
 
 instance MavlinkSendable "highres_imu_msg" 62 where
   mkSender = mkHighresImuSender
 
-highresImuPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
-                  => SenderMacro eff s 62
+highresImuPack :: SenderMacro cs (Stack cs) 62
                   -> ConstRef s1 (Struct "highres_imu_msg")
-                  -> Ivory eff ()
+                  -> Ivory (AllocEffects cs) ()
 highresImuPack sender msg = do
   arr <- local (iarray [] :: Init (Array 62 (Stored Uint8)))
   let buf = toCArray arr
@@ -80,7 +79,6 @@ highresImuPack sender msg = do
   call_ pack buf 56 =<< deref (msg ~> temperature)
   call_ pack buf 60 =<< deref (msg ~> fields_updated)
   sender highresImuMsgId (constRef arr) highresImuCrcExtra
-  retVoid
 
 instance MavlinkUnpackableMsg "highres_imu_msg" where
     unpackMsg = ( highresImuUnpack , highresImuMsgId )

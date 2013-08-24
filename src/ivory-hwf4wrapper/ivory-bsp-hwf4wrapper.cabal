@@ -5,6 +5,7 @@ name:                ivory-bsp-hwf4wrapper
 version:             0.1.0.0
 -- synopsis:
 -- description:
+license:             BSD3
 author:              Galois, Inc.
 maintainer:          pat@galois.com
 license:             BSD3

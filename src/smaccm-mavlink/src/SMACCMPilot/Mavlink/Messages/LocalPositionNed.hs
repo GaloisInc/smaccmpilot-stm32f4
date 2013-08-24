@@ -44,15 +44,14 @@ mkLocalPositionNedSender :: SizedMavlinkSender 28
                        -> Def ('[ ConstRef s (Struct "local_position_ned_msg") ] :-> ())
 mkLocalPositionNedSender sender =
   proc ("mavlink_local_position_ned_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    localPositionNedPack (senderMacro sender) msg
+    noReturn $ localPositionNedPack (senderMacro sender) msg
 
 instance MavlinkSendable "local_position_ned_msg" 28 where
   mkSender = mkLocalPositionNedSender
 
-localPositionNedPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
-                  => SenderMacro eff s 28
+localPositionNedPack :: SenderMacro cs (Stack cs) 28
                   -> ConstRef s1 (Struct "local_position_ned_msg")
-                  -> Ivory eff ()
+                  -> Ivory (AllocEffects cs) ()
 localPositionNedPack sender msg = do
   arr <- local (iarray [] :: Init (Array 28 (Stored Uint8)))
   let buf = toCArray arr
@@ -64,7 +63,6 @@ localPositionNedPack sender msg = do
   call_ pack buf 20 =<< deref (msg ~> vy)
   call_ pack buf 24 =<< deref (msg ~> vz)
   sender localPositionNedMsgId (constRef arr) localPositionNedCrcExtra
-  retVoid
 
 instance MavlinkUnpackableMsg "local_position_ned_msg" where
     unpackMsg = ( localPositionNedUnpack , localPositionNedMsgId )

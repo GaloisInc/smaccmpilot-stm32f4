@@ -42,15 +42,14 @@ mkRollPitchYawThrustSetpointSender :: SizedMavlinkSender 20
                        -> Def ('[ ConstRef s (Struct "roll_pitch_yaw_thrust_setpoint_msg") ] :-> ())
 mkRollPitchYawThrustSetpointSender sender =
   proc ("mavlink_roll_pitch_yaw_thrust_setpoint_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    rollPitchYawThrustSetpointPack (senderMacro sender) msg
+    noReturn $ rollPitchYawThrustSetpointPack (senderMacro sender) msg
 
 instance MavlinkSendable "roll_pitch_yaw_thrust_setpoint_msg" 20 where
   mkSender = mkRollPitchYawThrustSetpointSender
 
-rollPitchYawThrustSetpointPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
-                  => SenderMacro eff s 20
+rollPitchYawThrustSetpointPack :: SenderMacro cs (Stack cs) 20
                   -> ConstRef s1 (Struct "roll_pitch_yaw_thrust_setpoint_msg")
-                  -> Ivory eff ()
+                  -> Ivory (AllocEffects cs) ()
 rollPitchYawThrustSetpointPack sender msg = do
   arr <- local (iarray [] :: Init (Array 20 (Stored Uint8)))
   let buf = toCArray arr
@@ -60,7 +59,6 @@ rollPitchYawThrustSetpointPack sender msg = do
   call_ pack buf 12 =<< deref (msg ~> yaw)
   call_ pack buf 16 =<< deref (msg ~> thrust)
   sender rollPitchYawThrustSetpointMsgId (constRef arr) rollPitchYawThrustSetpointCrcExtra
-  retVoid
 
 instance MavlinkUnpackableMsg "roll_pitch_yaw_thrust_setpoint_msg" where
     unpackMsg = ( rollPitchYawThrustSetpointUnpack , rollPitchYawThrustSetpointMsgId )

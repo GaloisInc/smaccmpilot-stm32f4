@@ -39,22 +39,20 @@ mkMissionClearAllSender :: SizedMavlinkSender 2
                        -> Def ('[ ConstRef s (Struct "mission_clear_all_msg") ] :-> ())
 mkMissionClearAllSender sender =
   proc ("mavlink_mission_clear_all_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    missionClearAllPack (senderMacro sender) msg
+    noReturn $ missionClearAllPack (senderMacro sender) msg
 
 instance MavlinkSendable "mission_clear_all_msg" 2 where
   mkSender = mkMissionClearAllSender
 
-missionClearAllPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
-                  => SenderMacro eff s 2
+missionClearAllPack :: SenderMacro cs (Stack cs) 2
                   -> ConstRef s1 (Struct "mission_clear_all_msg")
-                  -> Ivory eff ()
+                  -> Ivory (AllocEffects cs) ()
 missionClearAllPack sender msg = do
   arr <- local (iarray [] :: Init (Array 2 (Stored Uint8)))
   let buf = toCArray arr
   call_ pack buf 0 =<< deref (msg ~> target_system)
   call_ pack buf 1 =<< deref (msg ~> target_component)
   sender missionClearAllMsgId (constRef arr) missionClearAllCrcExtra
-  retVoid
 
 instance MavlinkUnpackableMsg "mission_clear_all_msg" where
     unpackMsg = ( missionClearAllUnpack , missionClearAllMsgId )

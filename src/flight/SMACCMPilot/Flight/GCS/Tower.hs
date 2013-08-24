@@ -1,3 +1,4 @@
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE DataKinds #-}
 
 module SMACCMPilot.Flight.GCS.Tower where
@@ -9,18 +10,25 @@ import Ivory.Tower
 import SMACCMPilot.Flight.GCS.Transmit.Task
 import SMACCMPilot.Flight.GCS.Receive.Task
 
-gcsTower :: String -> MemArea (Struct "usart")
+import Ivory.BSP.STM32F4.UART
+
+gcsTower :: String
+         -> UART
          -> DataSink (Struct "flightmode")
          -> DataSink (Struct "sensors_result")
          -> DataSink (Struct "position_result")
          -> DataSink (Struct "controloutput")
-         -> DataSink (Struct "servos")
+         -> DataSink (Struct "motors")
          -> Tower p ()
-gcsTower usartname usart fm_sink sens_sink pos_sink ctl_sink servo_sink = do
+gcsTower uartname uart fm_sink sens_sink pos_sink ctl_sink motor_sink = do
   (streamrate_source, streamrate_sink) <- channel
-  (dataRateSrc, dataRateSink)          <- channel
-  task ("gcsReceiveTask" ++ usartname) $
-    gcsReceiveTask usart streamrate_source dataRateSrc
-  task ("gcsTransmitTask" ++ usartname) $
-    gcsTransmitTask usart streamrate_sink dataRateSink fm_sink sens_sink
-      pos_sink ctl_sink servo_sink
+  (dataRateSrc,        dataRateSink)   <- channel
+
+  ((istream :: ChannelSink 1024 (Stored Uint8))
+   ,(ostream :: ChannelSource 1024 (Stored Uint8))) <- uartTower uart 57600
+
+  task ("gcsReceiveTask" ++ uartname) $
+    gcsReceiveTask istream streamrate_source dataRateSrc
+  task ("gcsTransmitTask" ++ uartname) $
+    gcsTransmitTask ostream streamrate_sink dataRateSink fm_sink sens_sink
+      pos_sink ctl_sink motor_sink

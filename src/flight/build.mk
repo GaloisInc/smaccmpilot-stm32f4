@@ -16,11 +16,11 @@ IVORY_PKG_FLIGHT_GEN_SYMS    := true
 
 $(eval $(call when_os,freertos,tower_pkg,IVORY_PKG_FLIGHT,smaccmpilot-gen))
 
-FLIGHT_LIB       := libflight.a
+FLIGHT_IMG       := stabilize
 
 FLIGHT_INCLUDES  += -I$(TOP)/src/flight/include
 FLIGHT_INCLUDES  += $(HWF4_INCLUDES)
-FLIGHT_INCLUDES  += $(ARDUPILOT_LIBINCLUDES)
+FLIGHT_INCLUDES  += -I$(TOP)/src/flight/standalone_apahrs
 FLIGHT_INCLUDES  += $(FREERTOS_CFLAGS)
 
 # XXX some users of this library include it without putting the
@@ -30,6 +30,7 @@ FLIGHT_INCLUDES  += -I$(GEN_DIR)/src/flight/flight
 
 FLIGHT_CFLAGS    += $(FLIGHT_INCLUDES)
 FLIGHT_CXXFLAGS  += $(FLIGHT_INCLUDES)
+FLIGHT_CXXFLAGS  += -Wno-psabi
 
 # Allow overriding the GCS UART from Config.mk:
 ifdef CONFIG_GCS_UART
@@ -42,17 +43,24 @@ FLIGHT_CFLAGS += -DIVORY_DEPLOY
 FLIGHT_CXXFLAGS  += $(FLIGHT_INCLUDES)
 
 FLIGHT_OBJECTS := $(addprefix src/,\
-	apmotors_wrapper.o \
+	apmotors_wrapper_stub.o \
 	console_prim.o \
 	sensors_capture.o \
 	userinput_capture.o \
+	main.o \
 	)
 
 FLIGHT_REAL_OBJECTS += $(IVORY_PKG_FLIGHT_OBJECTS)
 
+FLIGHT_LIBRARIES    += libstandalone-apahrs.a
+FLIGHT_LIBRARIES    += libstandalone-aphal.a
+FLIGHT_LIBRARIES    += libhwf4-nouart.a
+FLIGHT_LIBRARIES    += libFreeRTOS.a
+FLIGHT_LIBS         += -lm
+
 $(eval $(call when_os,freertos,cbmc_pkg,FLIGHT,IVORY_PKG_FLIGHT))
 
-$(eval $(call when_os,freertos,library,FLIGHT))
+$(eval $(call when_os,freertos,image,FLIGHT))
 
 # ------------------------------------------------------------------------------
 # CBMC stuff

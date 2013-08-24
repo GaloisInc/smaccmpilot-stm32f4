@@ -24,13 +24,12 @@ app :: forall p . (ColoredLEDs p) => Tower p ()
 app = do
   LEDTower.blinkApp period [blue]
 
-  (i :: Channel 128 (Stored Uint8)) <- channelWithSize
-  (o :: Channel 128 (Stored Uint8)) <- channelWithSize
-
   ledctl <- channel
 
-  uartTower uart1 115200   (snk i) (src o)
-  echoPrompt "hello world" (src i) (snk o) (src ledctl)
+  ((istream :: ChannelSink 128 (Stored Uint8))
+   ,(ostream :: ChannelSource 128 (Stored Uint8))) <- uartTower uart1 115200
+
+  echoPrompt "hello world" ostream istream (src ledctl)
 
   task "settableLED" $ LEDTower.ledController [red] (snk ledctl)
 
@@ -48,26 +47,30 @@ echoPrompt :: (SingI n, SingI m, SingI o)
            -> Tower p ()
 echoPrompt greet ostream istream ledctlstream = task "echoprompt" $ do
   o <- withChannelEmitter  ostream "ostream"
-  i <- withChannelReceiver istream "istream"
   ledctl <- withChannelEmitter ledctlstream "ledctl"
   withStackSize 1024
+  initialized <- taskLocalInit "init" (ival false)
   let puts str = mapM_ (\c -> putc (fromIntegral (ord c))) str
       putc c = local (ival c) >>= \r -> emit_ o (constRef r)
       ledset b = local (ival b) >>= \r -> emit_ ledctl (constRef r)
-  taskInit $ do
-    puts (greet ++ "\n")
-    puts "tower> "
-  onChannel i $ \inref -> do
-    input <- deref inref
-    putc input -- echo to terminal
-    cond_
-      [ input `isChar` '1' ==>
-          ledset true
-      , input `isChar` '2' ==>
-          ledset false
-      , input `isChar` '\n' ==>
-          puts "tower> "
-      ]
+  onPeriod 1000 $ const $ do
+    i <- deref initialized
+    unless i $ do
+      puts (greet ++ "\n")
+      puts "tower> "
+      store initialized true
+  onChannelV istream "istream" $ \input -> do
+    i <- deref initialized
+    when i $ do
+      putc input -- echo to terminal
+      cond_
+        [ input `isChar` '1' ==>
+            ledset true
+        , input `isChar` '2' ==>
+            ledset false
+        , input `isChar` '\n' ==>
+            puts "tower> "
+        ]
 
 isChar :: Uint8 -> Char -> IBool
 isChar b c = b ==? (fromIntegral (ord c))

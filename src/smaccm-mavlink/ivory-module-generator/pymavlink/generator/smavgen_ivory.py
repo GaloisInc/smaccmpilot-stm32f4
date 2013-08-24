@@ -224,21 +224,19 @@ mk${name_module}Sender :: SizedMavlinkSender ${wire_length}
                        -> Def ('[ ConstRef s (Struct "${name_lower}_msg") ] :-> ())
 mk${name_module}Sender sender =
   proc ("mavlink_${name_lower}_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    ${name_camel}Pack (senderMacro sender) msg
+    noReturn $ ${name_camel}Pack (senderMacro sender) msg
 
 instance MavlinkSendable "${name_lower}_msg" ${wire_length} where
   mkSender = mk${name_module}Sender
 
-${name_camel}Pack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
-                  => SenderMacro eff s ${wire_length}
+${name_camel}Pack :: SenderMacro cs (Stack cs) ${wire_length}
                   -> ConstRef s1 (Struct "${name_lower}_msg")
-                  -> Ivory eff ()
+                  -> Ivory (AllocEffects cs) ()
 ${name_camel}Pack sender msg = do
   arr <- local (iarray [] :: Init (Array ${wire_length} (Stored Uint8)))
   let buf = toCArray arr
   ${packing}
   sender ${name_camel}MsgId (constRef arr) ${name_camel}CrcExtra
-  retVoid
 
 instance MavlinkUnpackableMsg "${name_lower}_msg" where
     unpackMsg = ( ${name_camel}Unpack , ${name_camel}MsgId )

@@ -39,22 +39,20 @@ mkStatustextSender :: SizedMavlinkSender 51
                        -> Def ('[ ConstRef s (Struct "statustext_msg") ] :-> ())
 mkStatustextSender sender =
   proc ("mavlink_statustext_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    statustextPack (senderMacro sender) msg
+    noReturn $ statustextPack (senderMacro sender) msg
 
 instance MavlinkSendable "statustext_msg" 51 where
   mkSender = mkStatustextSender
 
-statustextPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
-                  => SenderMacro eff s 51
+statustextPack :: SenderMacro cs (Stack cs) 51
                   -> ConstRef s1 (Struct "statustext_msg")
-                  -> Ivory eff ()
+                  -> Ivory (AllocEffects cs) ()
 statustextPack sender msg = do
   arr <- local (iarray [] :: Init (Array 51 (Stored Uint8)))
   let buf = toCArray arr
   call_ pack buf 0 =<< deref (msg ~> severity)
   arrayPack buf 1 (msg ~> text)
   sender statustextMsgId (constRef arr) statustextCrcExtra
-  retVoid
 
 instance MavlinkUnpackableMsg "statustext_msg" where
     unpackMsg = ( statustextUnpack , statustextMsgId )

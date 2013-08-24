@@ -47,15 +47,14 @@ mkRcChannelsOverrideSender :: SizedMavlinkSender 18
                        -> Def ('[ ConstRef s (Struct "rc_channels_override_msg") ] :-> ())
 mkRcChannelsOverrideSender sender =
   proc ("mavlink_rc_channels_override_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    rcChannelsOverridePack (senderMacro sender) msg
+    noReturn $ rcChannelsOverridePack (senderMacro sender) msg
 
 instance MavlinkSendable "rc_channels_override_msg" 18 where
   mkSender = mkRcChannelsOverrideSender
 
-rcChannelsOverridePack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
-                  => SenderMacro eff s 18
+rcChannelsOverridePack :: SenderMacro cs (Stack cs) 18
                   -> ConstRef s1 (Struct "rc_channels_override_msg")
-                  -> Ivory eff ()
+                  -> Ivory (AllocEffects cs) ()
 rcChannelsOverridePack sender msg = do
   arr <- local (iarray [] :: Init (Array 18 (Stored Uint8)))
   let buf = toCArray arr
@@ -70,7 +69,6 @@ rcChannelsOverridePack sender msg = do
   call_ pack buf 16 =<< deref (msg ~> target_system)
   call_ pack buf 17 =<< deref (msg ~> target_component)
   sender rcChannelsOverrideMsgId (constRef arr) rcChannelsOverrideCrcExtra
-  retVoid
 
 instance MavlinkUnpackableMsg "rc_channels_override_msg" where
     unpackMsg = ( rcChannelsOverrideUnpack , rcChannelsOverrideMsgId )

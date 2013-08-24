@@ -40,16 +40,14 @@ pinOff pin = pinSetMode pin gpio_mode_analog
 --   setup the pin hardware, and turn the leds on when the control channel is
 --   true.
 ledController :: (SingI n) => [LED] -> ChannelSink n (Stored IBool) -> Task p ()
-ledController leds outputSink = do
-  -- Bring the channel into scope for this Task
-  rxer <- withChannelReceiver outputSink "outputSink"
+ledController leds rxer = do
   -- Bookkeeping: this task uses Ivory.HW.Module.hw_moduledef
   taskModuleDef $ hw_moduledef
   -- Setup hardware before running any event handlers
   taskInit $
     mapM_ ledSetup leds
   -- Run a callback on each message posted to the channel
-  onChannelV rxer $ \out -> do
+  onChannelV rxer "output" $ \out -> do
     -- Turn pins on or off according to event value
     ifte_ out
       (mapM_ ledOn  leds)

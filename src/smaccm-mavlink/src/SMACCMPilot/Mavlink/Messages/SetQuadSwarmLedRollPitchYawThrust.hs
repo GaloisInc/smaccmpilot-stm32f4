@@ -46,15 +46,14 @@ mkSetQuadSwarmLedRollPitchYawThrustSender :: SizedMavlinkSender 46
                        -> Def ('[ ConstRef s (Struct "set_quad_swarm_led_roll_pitch_yaw_thrust_msg") ] :-> ())
 mkSetQuadSwarmLedRollPitchYawThrustSender sender =
   proc ("mavlink_set_quad_swarm_led_roll_pitch_yaw_thrust_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    setQuadSwarmLedRollPitchYawThrustPack (senderMacro sender) msg
+    noReturn $ setQuadSwarmLedRollPitchYawThrustPack (senderMacro sender) msg
 
 instance MavlinkSendable "set_quad_swarm_led_roll_pitch_yaw_thrust_msg" 46 where
   mkSender = mkSetQuadSwarmLedRollPitchYawThrustSender
 
-setQuadSwarmLedRollPitchYawThrustPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
-                  => SenderMacro eff s 46
+setQuadSwarmLedRollPitchYawThrustPack :: SenderMacro cs (Stack cs) 46
                   -> ConstRef s1 (Struct "set_quad_swarm_led_roll_pitch_yaw_thrust_msg")
-                  -> Ivory eff ()
+                  -> Ivory (AllocEffects cs) ()
 setQuadSwarmLedRollPitchYawThrustPack sender msg = do
   arr <- local (iarray [] :: Init (Array 46 (Stored Uint8)))
   let buf = toCArray arr
@@ -68,7 +67,6 @@ setQuadSwarmLedRollPitchYawThrustPack sender msg = do
   arrayPack buf 38 (msg ~> led_blue)
   arrayPack buf 42 (msg ~> led_green)
   sender setQuadSwarmLedRollPitchYawThrustMsgId (constRef arr) setQuadSwarmLedRollPitchYawThrustCrcExtra
-  retVoid
 
 instance MavlinkUnpackableMsg "set_quad_swarm_led_roll_pitch_yaw_thrust_msg" where
     unpackMsg = ( setQuadSwarmLedRollPitchYawThrustUnpack , setQuadSwarmLedRollPitchYawThrustMsgId )

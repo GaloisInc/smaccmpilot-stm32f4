@@ -41,15 +41,14 @@ mkMemoryVectSender :: SizedMavlinkSender 36
                        -> Def ('[ ConstRef s (Struct "memory_vect_msg") ] :-> ())
 mkMemoryVectSender sender =
   proc ("mavlink_memory_vect_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    memoryVectPack (senderMacro sender) msg
+    noReturn $ memoryVectPack (senderMacro sender) msg
 
 instance MavlinkSendable "memory_vect_msg" 36 where
   mkSender = mkMemoryVectSender
 
-memoryVectPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
-                  => SenderMacro eff s 36
+memoryVectPack :: SenderMacro cs (Stack cs) 36
                   -> ConstRef s1 (Struct "memory_vect_msg")
-                  -> Ivory eff ()
+                  -> Ivory (AllocEffects cs) ()
 memoryVectPack sender msg = do
   arr <- local (iarray [] :: Init (Array 36 (Stored Uint8)))
   let buf = toCArray arr
@@ -58,7 +57,6 @@ memoryVectPack sender msg = do
   call_ pack buf 3 =<< deref (msg ~> memory_vect_type)
   arrayPack buf 4 (msg ~> value)
   sender memoryVectMsgId (constRef arr) memoryVectCrcExtra
-  retVoid
 
 instance MavlinkUnpackableMsg "memory_vect_msg" where
     unpackMsg = ( memoryVectUnpack , memoryVectMsgId )

@@ -53,15 +53,14 @@ mkHilStateSender :: SizedMavlinkSender 56
                        -> Def ('[ ConstRef s (Struct "hil_state_msg") ] :-> ())
 mkHilStateSender sender =
   proc ("mavlink_hil_state_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    hilStatePack (senderMacro sender) msg
+    noReturn $ hilStatePack (senderMacro sender) msg
 
 instance MavlinkSendable "hil_state_msg" 56 where
   mkSender = mkHilStateSender
 
-hilStatePack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
-                  => SenderMacro eff s 56
+hilStatePack :: SenderMacro cs (Stack cs) 56
                   -> ConstRef s1 (Struct "hil_state_msg")
-                  -> Ivory eff ()
+                  -> Ivory (AllocEffects cs) ()
 hilStatePack sender msg = do
   arr <- local (iarray [] :: Init (Array 56 (Stored Uint8)))
   let buf = toCArray arr
@@ -82,7 +81,6 @@ hilStatePack sender msg = do
   call_ pack buf 52 =<< deref (msg ~> yacc)
   call_ pack buf 54 =<< deref (msg ~> zacc)
   sender hilStateMsgId (constRef arr) hilStateCrcExtra
-  retVoid
 
 instance MavlinkUnpackableMsg "hil_state_msg" where
     unpackMsg = ( hilStateUnpack , hilStateMsgId )

@@ -17,7 +17,7 @@ import Ivory.Stdlib
 import Ivory.Stdlib.String
 
 import qualified SMACCMPilot.Flight.Types.Position      as P
-import qualified SMACCMPilot.Flight.Types.Servos        as Serv
+import qualified SMACCMPilot.Flight.Types.Motors        as M
 import qualified SMACCMPilot.Flight.Types.Sensors       as Sens
 import qualified SMACCMPilot.Flight.Types.ControlOutput as C
 import qualified SMACCMPilot.Flight.Types.UserInput     as U
@@ -52,7 +52,7 @@ data MessageDriver =
                                   , (Ref s3 (Struct "sensors_result"))
                                   ] :-> ())
     , sendServoOutputRaw :: forall s1 s2
-                          . Def ('[ (Ref s1 (Struct "servos"))
+                          . Def ('[ (Ref s1 (Struct "motors"))
                                   , (Ref s2 (Struct "controloutput"))
                                   ] :-> ())
     , sendGpsRawInt      :: forall s
@@ -86,7 +86,7 @@ moddefs d = do
   -- dependencies for all the smaccmpilot flight types
   depend stdlibStringModule
   depend P.positionTypeModule
-  depend Serv.servosTypeModule
+  depend M.motorsTypeModule
   depend Sens.sensorsTypeModule
   depend C.controlOutputTypeModule
   depend U.userInputTypeModule
@@ -261,28 +261,31 @@ mkSendVfrHud senders = proc "gcs_transmit_send_vfrhud" $ \pos ctl sens -> body $
     return $ castDefault (thrFloat * 100)
 
 mkSendServoOutputRaw :: MavlinkMessageSenders
-                   -> Def ('[ (Ref s1 (Struct "servos"))
+                   -> Def ('[ (Ref s1 (Struct "motors"))
                             , (Ref s2 (Struct "controloutput"))
                             ] :-> ())
 mkSendServoOutputRaw senders = proc "gcs_transmit_send_servo_output" $
   \state ctl -> body $ do
   msg <- local (istruct [])
-  (state ~> Serv.time)   `into` (msg ~> SVO.time_usec)
-  (state ~> Serv.servo1) `into` (msg ~> SVO.servo1_raw)
-  (state ~> Serv.servo2) `into` (msg ~> SVO.servo2_raw)
-  (state ~> Serv.servo3) `into` (msg ~> SVO.servo3_raw)
-  (state ~> Serv.servo4) `into` (msg ~> SVO.servo4_raw)
-  pitch <- (ctl ~>* C.pitch)
-  roll  <- (ctl ~>* C.roll)
-  thr   <- (ctl ~>* C.throttle)
-  let toSvo :: IFloat -> Uint16
-      toSvo f = castWith 9999 ((f + 1) * 100)
-  store (msg ~> SVO.servo6_raw) (toSvo roll)
-  store (msg ~> SVO.servo7_raw) (toSvo pitch)
-  store (msg ~> SVO.servo8_raw) (toSvo thr)
+  ((state ~> M.ms) ! 0) `motIntoSvo` (msg ~> SVO.servo1_raw)
+  ((state ~> M.ms) ! 1) `motIntoSvo` (msg ~> SVO.servo2_raw)
+  ((state ~> M.ms) ! 2) `motIntoSvo` (msg ~> SVO.servo3_raw)
+  ((state ~> M.ms) ! 3) `motIntoSvo` (msg ~> SVO.servo4_raw)
+
+  (ctl ~> C.pitch)      `ctlIntoSvo` (msg ~> SVO.servo6_raw)
+  (ctl ~> C.roll)       `ctlIntoSvo` (msg ~> SVO.servo7_raw)
+  (ctl ~> C.throttle)   `ctlIntoSvo` (msg ~> SVO.servo8_raw)
 
   call_ (servoOutputRawSender senders) (constRef msg)
-
+  where
+  -- Scale [0.0f .. 1.0f] into [1100..1900] pwm value
+  motIntoSvo mref sref = do
+    m <- deref mref
+    store sref (castWith 0 ((m * 800) + 1100))
+  -- Scale [-1.0f .. 1.0f] into [0..200] debug value
+  ctlIntoSvo cref sref = do
+    c <- deref cref
+    store sref (castWith 9999 ((c * 100) + 100))
 
 mkSendGpsRawInt :: MavlinkMessageSenders
               -> Def ('[ (Ref s (Struct "position_result"))

@@ -12,7 +12,6 @@ import           Ivory.Language
 import           Ivory.Stdlib
 import           Ivory.Tower
 import qualified Ivory.OS.FreeRTOS.Task as F
-import           Ivory.BSP.HWF4.USART
 
 import qualified SMACCMPilot.Mavlink.Receive as R
 import qualified SMACCMPilot.Flight.Types.DataRate as D
@@ -20,12 +19,12 @@ import qualified SMACCMPilot.Flight.Types.DataRate as D
 import           SMACCMPilot.Flight.GCS.Stream (defaultPeriods)
 import           SMACCMPilot.Flight.GCS.Receive.Handlers
 
-gcsReceiveTask :: (SingI n, SingI m)
-               => MemArea (Struct "usart")
+gcsReceiveTask :: (SingI nn, SingI n, SingI m)
+               => ChannelSink  nn (Stored Uint8)
                -> ChannelSource n (Struct "gcsstream_timing")
                -> ChannelSource m (Struct "data_rate_state")
                -> Task p ()
-gcsReceiveTask usart_area s_src dr_src = do
+gcsReceiveTask istream s_src dr_src = do
   n <- freshname
 
   let handlerAux :: Def ('[ Ref s  (Struct "mavlink_receive_state")
@@ -47,45 +46,34 @@ gcsReceiveTask usart_area s_src dr_src = do
 
   s_periods <- taskLocalInit "periods" defaultPeriods
   drInfo    <- taskLocal     "dropInfo"
-  (buf :: Ref Global (Array 1 (Stored Uint8))) <- taskLocal     "buf"
   state     <- taskLocalInit "state" (istruct [ R.status .= ival R.status_IDLE ])
 
-  taskInit $
-    emit_ streamPeriodEmitter (constRef s_periods)
+  taskInit $ emit_ streamPeriodEmitter (constRef s_periods)
 
-  onPeriod 1 $ \_now -> do
-      -- XXX this task is totally invalid until we fix this to be part of the
-      -- event loop
-      n' <- call usartReadTimeout usart 1 (toCArray buf) 1
-      unless (n' ==? 0) $ do
-        b <- deref (buf ! 0)
-        R.mavlinkReceiveByte state b
-        s <- deref (state ~> R.status)
-        cond_
-          [ (s ==? R.status_GOTMSG) ==> do
-              -- XXX We need to have a story for messages that are parsed correctly
-              -- but are not recognized by the system---one could launch a DoS with
-              -- those, too.
-              t <- call F.getTimeMillis
-              store (drInfo ~> D.lastSucc) t
-              call_ handlerAux state s_periods
-              R.mavlinkReceiveReset state
-              -- XXX This should only be called if we got a request_data_stream msg.
-              -- Here it's called regardless of what incoming Mavlink message there
-              -- is.
-              emit_ streamPeriodEmitter (constRef s_periods)
-          , (s ==? R.status_FAIL)   ==> do
-              (drInfo ~> D.dropped) += 1
-              store (state ~> R.status) R.status_IDLE
-          ]
-        emit_ drEmitter (constRef drInfo)
+  onChannelV istream "istream" $ \b -> do
+    R.mavlinkReceiveByte state b
+    s <- deref (state ~> R.status)
+    cond_
+      [ (s ==? R.status_GOTMSG) ==> do
+          -- XXX We need to have a story for messages that are parsed correctly
+          -- but are not recognized by the system---one could launch a DoS with
+          -- those, too.
+          t <- call F.getTimeMillis
+          store (drInfo ~> D.lastSucc) t
+          call_ handlerAux state s_periods
+          R.mavlinkReceiveReset state
+          -- XXX This should only be called if we got a request_data_stream msg.
+          -- Here it's called regardless of what incoming Mavlink message there
+          -- is.
+          emit_ streamPeriodEmitter (constRef s_periods)
+      , (s ==? R.status_FAIL)   ==> do
+          (drInfo ~> D.dropped) += 1
+          store (state ~> R.status) R.status_IDLE
+      ]
+    emit_ drEmitter (constRef drInfo)
 
   taskModuleDef $ do
-    depend usartModule
     defStruct (Proxy :: Proxy "mavlink_receive_state")
     incl handlerAux
     handlerModuleDefs
-
-  where
-  usart = addrOf usart_area
 

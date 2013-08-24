@@ -44,15 +44,14 @@ mkVisionPositionEstimateSender :: SizedMavlinkSender 32
                        -> Def ('[ ConstRef s (Struct "vision_position_estimate_msg") ] :-> ())
 mkVisionPositionEstimateSender sender =
   proc ("mavlink_vision_position_estimate_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    visionPositionEstimatePack (senderMacro sender) msg
+    noReturn $ visionPositionEstimatePack (senderMacro sender) msg
 
 instance MavlinkSendable "vision_position_estimate_msg" 32 where
   mkSender = mkVisionPositionEstimateSender
 
-visionPositionEstimatePack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
-                  => SenderMacro eff s 32
+visionPositionEstimatePack :: SenderMacro cs (Stack cs) 32
                   -> ConstRef s1 (Struct "vision_position_estimate_msg")
-                  -> Ivory eff ()
+                  -> Ivory (AllocEffects cs) ()
 visionPositionEstimatePack sender msg = do
   arr <- local (iarray [] :: Init (Array 32 (Stored Uint8)))
   let buf = toCArray arr
@@ -64,7 +63,6 @@ visionPositionEstimatePack sender msg = do
   call_ pack buf 24 =<< deref (msg ~> pitch)
   call_ pack buf 28 =<< deref (msg ~> yaw)
   sender visionPositionEstimateMsgId (constRef arr) visionPositionEstimateCrcExtra
-  retVoid
 
 instance MavlinkUnpackableMsg "vision_position_estimate_msg" where
     unpackMsg = ( visionPositionEstimateUnpack , visionPositionEstimateMsgId )

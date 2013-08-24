@@ -39,22 +39,20 @@ mkSystemTimeSender :: SizedMavlinkSender 12
                        -> Def ('[ ConstRef s (Struct "system_time_msg") ] :-> ())
 mkSystemTimeSender sender =
   proc ("mavlink_system_time_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    systemTimePack (senderMacro sender) msg
+    noReturn $ systemTimePack (senderMacro sender) msg
 
 instance MavlinkSendable "system_time_msg" 12 where
   mkSender = mkSystemTimeSender
 
-systemTimePack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
-                  => SenderMacro eff s 12
+systemTimePack :: SenderMacro cs (Stack cs) 12
                   -> ConstRef s1 (Struct "system_time_msg")
-                  -> Ivory eff ()
+                  -> Ivory (AllocEffects cs) ()
 systemTimePack sender msg = do
   arr <- local (iarray [] :: Init (Array 12 (Stored Uint8)))
   let buf = toCArray arr
   call_ pack buf 0 =<< deref (msg ~> time_unix_usec)
   call_ pack buf 8 =<< deref (msg ~> time_boot_ms)
   sender systemTimeMsgId (constRef arr) systemTimeCrcExtra
-  retVoid
 
 instance MavlinkUnpackableMsg "system_time_msg" where
     unpackMsg = ( systemTimeUnpack , systemTimeMsgId )

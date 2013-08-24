@@ -7,12 +7,13 @@
 
 #include <hwf4/led.h>
 
-#include <AP_AHRS.h>
-#include <AP_Baro.h>
-#include <AP_Compass_HMC5843.h>
-#include <AP_InertialSensor_MPU6000.h>
-#include <AP_Param.h>
-#include <AP_HAL.h>
+#include <AP_AHRS/AP_AHRS.h>
+#include <AP_AHRS/AP_AHRS_DCM.h>
+#include <AP_Baro/AP_Baro.h>
+#include <AP_Compass/AP_Compass_HMC5843.h>
+#include <AP_InertialSensor/AP_InertialSensor_MPU6000.h>
+#include <AP_Param/AP_Param.h>
+#include <AP_HAL/AP_HAL.h>
 extern const AP_HAL::HAL& hal;
 
 static void flash_leds(bool on);
@@ -51,7 +52,6 @@ void sensors_begin(void) {
     hal.console->printf("init AP_AHRS: ");
     g_ahrs.init();
     g_ahrs.set_compass(&g_compass);
-    g_ahrs.set_barometer(&g_baro);
     hal.console->printf("sensors init done\r\n");
 
 }

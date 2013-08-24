@@ -42,15 +42,14 @@ mkSetGlobalPositionSetpointIntSender :: SizedMavlinkSender 15
                        -> Def ('[ ConstRef s (Struct "set_global_position_setpoint_int_msg") ] :-> ())
 mkSetGlobalPositionSetpointIntSender sender =
   proc ("mavlink_set_global_position_setpoint_int_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    setGlobalPositionSetpointIntPack (senderMacro sender) msg
+    noReturn $ setGlobalPositionSetpointIntPack (senderMacro sender) msg
 
 instance MavlinkSendable "set_global_position_setpoint_int_msg" 15 where
   mkSender = mkSetGlobalPositionSetpointIntSender
 
-setGlobalPositionSetpointIntPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
-                  => SenderMacro eff s 15
+setGlobalPositionSetpointIntPack :: SenderMacro cs (Stack cs) 15
                   -> ConstRef s1 (Struct "set_global_position_setpoint_int_msg")
-                  -> Ivory eff ()
+                  -> Ivory (AllocEffects cs) ()
 setGlobalPositionSetpointIntPack sender msg = do
   arr <- local (iarray [] :: Init (Array 15 (Stored Uint8)))
   let buf = toCArray arr
@@ -60,7 +59,6 @@ setGlobalPositionSetpointIntPack sender msg = do
   call_ pack buf 12 =<< deref (msg ~> yaw)
   call_ pack buf 14 =<< deref (msg ~> coordinate_frame)
   sender setGlobalPositionSetpointIntMsgId (constRef arr) setGlobalPositionSetpointIntCrcExtra
-  retVoid
 
 instance MavlinkUnpackableMsg "set_global_position_setpoint_int_msg" where
     unpackMsg = ( setGlobalPositionSetpointIntUnpack , setGlobalPositionSetpointIntMsgId )

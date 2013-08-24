@@ -45,15 +45,14 @@ mkAttitudeQuaternionSender :: SizedMavlinkSender 32
                        -> Def ('[ ConstRef s (Struct "attitude_quaternion_msg") ] :-> ())
 mkAttitudeQuaternionSender sender =
   proc ("mavlink_attitude_quaternion_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    attitudeQuaternionPack (senderMacro sender) msg
+    noReturn $ attitudeQuaternionPack (senderMacro sender) msg
 
 instance MavlinkSendable "attitude_quaternion_msg" 32 where
   mkSender = mkAttitudeQuaternionSender
 
-attitudeQuaternionPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
-                  => SenderMacro eff s 32
+attitudeQuaternionPack :: SenderMacro cs (Stack cs) 32
                   -> ConstRef s1 (Struct "attitude_quaternion_msg")
-                  -> Ivory eff ()
+                  -> Ivory (AllocEffects cs) ()
 attitudeQuaternionPack sender msg = do
   arr <- local (iarray [] :: Init (Array 32 (Stored Uint8)))
   let buf = toCArray arr
@@ -66,7 +65,6 @@ attitudeQuaternionPack sender msg = do
   call_ pack buf 24 =<< deref (msg ~> pitchspeed)
   call_ pack buf 28 =<< deref (msg ~> yawspeed)
   sender attitudeQuaternionMsgId (constRef arr) attitudeQuaternionCrcExtra
-  retVoid
 
 instance MavlinkUnpackableMsg "attitude_quaternion_msg" where
     unpackMsg = ( attitudeQuaternionUnpack , attitudeQuaternionMsgId )

@@ -44,15 +44,14 @@ mkSafetyAllowedAreaSender :: SizedMavlinkSender 25
                        -> Def ('[ ConstRef s (Struct "safety_allowed_area_msg") ] :-> ())
 mkSafetyAllowedAreaSender sender =
   proc ("mavlink_safety_allowed_area_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    safetyAllowedAreaPack (senderMacro sender) msg
+    noReturn $ safetyAllowedAreaPack (senderMacro sender) msg
 
 instance MavlinkSendable "safety_allowed_area_msg" 25 where
   mkSender = mkSafetyAllowedAreaSender
 
-safetyAllowedAreaPack :: (GetAlloc eff ~ Scope s, GetReturn eff ~ Returns ())
-                  => SenderMacro eff s 25
+safetyAllowedAreaPack :: SenderMacro cs (Stack cs) 25
                   -> ConstRef s1 (Struct "safety_allowed_area_msg")
-                  -> Ivory eff ()
+                  -> Ivory (AllocEffects cs) ()
 safetyAllowedAreaPack sender msg = do
   arr <- local (iarray [] :: Init (Array 25 (Stored Uint8)))
   let buf = toCArray arr
@@ -64,7 +63,6 @@ safetyAllowedAreaPack sender msg = do
   call_ pack buf 20 =<< deref (msg ~> p2z)
   call_ pack buf 24 =<< deref (msg ~> frame)
   sender safetyAllowedAreaMsgId (constRef arr) safetyAllowedAreaCrcExtra
-  retVoid
 
 instance MavlinkUnpackableMsg "safety_allowed_area_msg" where
     unpackMsg = ( safetyAllowedAreaUnpack , safetyAllowedAreaMsgId )

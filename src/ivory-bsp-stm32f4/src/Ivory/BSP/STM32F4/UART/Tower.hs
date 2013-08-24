@@ -1,6 +1,7 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Ivory.BSP.STM32F4.UART.Tower where
 
@@ -20,32 +21,25 @@ import Ivory.BSP.STM32F4.UART.Peripheral
 
 uartTower :: (SingI n, SingI m)
           => UART -> Integer
-          -> ChannelSink  n (Stored Uint8)
-          -> ChannelSource m (Stored Uint8)
-          -> Tower p ()
-uartTower uart baud ostream istream = do
+          -> Tower p (ChannelSink n (Stored Uint8), ChannelSource m (Stored Uint8))
+uartTower uart baud = do
   let max_syscall_priority = (191::Uint8) -- XXX MAGIC NUMBER: freertos port specific
-  -- Manager task:
-  -- Initializes the UART and sets up the interrupt
-  -- for FreeRTOS.
-  -- Event Loop exists because the ostream will not be
-  -- read from the ISR unless the TXEIE goes off.
-  -- In a typical architectures, you'd set the TXEIE bit
-  -- from the task that writes to the ostream.
-  task "uartManager" $ do
-    o <- withChannelReceiver ostream "ostream"
-    taskModuleDef $ hw_moduledef
-    taskInit $ do
-      uartInit    uart (fromIntegral baud)
-      uartInitISR uart max_syscall_priority
-    onChannel o $ const $
-      setTXEIE uart true
 
+  (src_ostream, snk_ostream) <- channelWithSize
+  (src_istream, snk_istream) <- channelWithSize
+
+  let user_src_ostream = channelSourceCallback
+                            (const (setTXEIE uart true))
+                             hw_moduledef
+                             src_ostream
   -- Signal:
   -- runs the UART Interrupt Service Routine
   signal "uartISR" $ do
-    o <- withChannelReceiver ostream "ostream"
-    i <- withChannelEmitter  istream "istream"
+    signalInit $ do
+      uartInit    uart (fromIntegral baud)
+      uartInitISR uart max_syscall_priority
+    o <- withChannelReceiver snk_ostream "ostream"
+    i <- withChannelEmitter  src_istream "istream"
     signalName (handlerName (uartInterrupt uart))
     signalModuleDef $ hw_moduledef
     signalBody $ do
@@ -62,3 +56,5 @@ uartTower uart baud ostream istream = do
              (setDR uart =<< deref byte)
              (setTXEIE uart false)
        ]
+
+  return (snk_istream, user_src_ostream)
