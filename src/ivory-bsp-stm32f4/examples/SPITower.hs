@@ -53,13 +53,13 @@ app = do
   start  <- channel
   task "blueLed"   $ ledController [blue] (snk start)
 
-  (uarti :: Channel 128 (Stored Uint8)) <- channelWithSize
-  (uarto :: Channel 128 (Stored Uint8)) <- channelWithSize
-  uartTower uart1 115200 (snk uarti) (src uarto)
-  echoPrompt greeting    (src uarti) (snk uarto) (src start)
+  ((uarti :: ChannelSink 128 (Stored Uint8))
+   ,(uarto :: ChannelSource 128 (Stored Uint8))) <- uartTower uart1 115200
+
+  echoPrompt greeting uarto uarti (src start)
 
   (toSig, froSig) <- spiTower spi1
-  task   "spiCtl" $ spiCtl    spi1 mpu6k toSig froSig (snk start) (src uarto)
+  task   "spiCtl" $ spiCtl    spi1 mpu6k toSig froSig (snk start) uarto
   where
   blue = blueLED (undefined :: p)
 

@@ -24,13 +24,12 @@ app :: forall p . (ColoredLEDs p) => Tower p ()
 app = do
   LEDTower.blinkApp period [blue]
 
-  (i :: Channel 128 (Stored Uint8)) <- channelWithSize
-  (o :: Channel 128 (Stored Uint8)) <- channelWithSize
-
   ledctl <- channel
 
-  uartTower uart1 115200   (snk i) (src o)
-  echoPrompt "hello world" (src i) (snk o) (src ledctl)
+  ((istream :: ChannelSink 128 (Stored Uint8))
+   ,(ostream :: ChannelSource 128 (Stored Uint8))) <- uartTower uart1 115200
+
+  echoPrompt "hello world" ostream istream (src ledctl)
 
   task "settableLED" $ LEDTower.ledController [red] (snk ledctl)
 

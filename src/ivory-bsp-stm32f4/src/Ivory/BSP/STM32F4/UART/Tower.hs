@@ -21,41 +21,25 @@ import Ivory.BSP.STM32F4.UART.Peripheral
 
 uartTower :: (SingI n, SingI m)
           => UART -> Integer
-          -> ChannelSink  n (Stored Uint8)
-          -> ChannelSource m (Stored Uint8)
-          -> Tower p ()
-uartTower uart baud ostream istream = do
+          -> Tower p (ChannelSink n (Stored Uint8), ChannelSource m (Stored Uint8))
+uartTower uart baud = do
   let max_syscall_priority = (191::Uint8) -- XXX MAGIC NUMBER: freertos port specific
-  -- Manager task:
-  -- Initializes the UART and sets up the interrupt
-  -- for FreeRTOS.
-  -- Event Loop exists because the ostream will not be
-  -- read from the ISR unless the TXEIE goes off.
-  -- In a typical architectures, you'd set the TXEIE bit
-  -- from the task that writes to the ostream.
-  (c :: Channel 1 (Stored IBool)) <- channelWithSize
-  task "uartManager" $ do
-    needed <- taskLocal "needed"
-    taskModuleDef $ hw_moduledef
-    withPriority 4 -- max priority
-    taskInit $ do
-      store needed true
-      uartInit    uart (fromIntegral baud)
-      uartInitISR uart max_syscall_priority
-    onChannelV (snk c) "needed" $ \n -> do
-      store needed n
-    onChannel ostream "ostream" $ const $ do
-      n <- deref needed
-      when n $ do
-        setTXEIE uart true
-        store needed false
 
+  (src_ostream, snk_ostream) <- channelWithSize
+  (src_istream, snk_istream) <- channelWithSize
+
+  let user_src_ostream = channelSourceCallback
+                            (const (setTXEIE uart true))
+                             hw_moduledef
+                             src_ostream
   -- Signal:
   -- runs the UART Interrupt Service Routine
   signal "uartISR" $ do
-    o <- withChannelReceiver ostream "ostream"
-    i <- withChannelEmitter  istream "istream"
-    n <- withChannelEmitter  (src c) "needtxeie"
+    signalInit $ do
+      uartInit    uart (fromIntegral baud)
+      uartInitISR uart max_syscall_priority
+    o <- withChannelReceiver snk_ostream "ostream"
+    i <- withChannelEmitter  src_istream "istream"
     signalName (handlerName (uartInterrupt uart))
     signalModuleDef $ hw_moduledef
     signalBody $ do
@@ -69,8 +53,8 @@ uartTower uart baud ostream istream = do
            byte <- local (ival 0)
            rv   <- receive o byte
            ifte_ rv
-             (setDR uart =<< deref byte) $ do
-               emitV_ n true
-               setTXEIE uart false
+             (setDR uart =<< deref byte)
+             (setTXEIE uart false)
        ]
 
+  return (snk_istream, user_src_ostream)
