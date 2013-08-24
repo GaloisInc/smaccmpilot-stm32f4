@@ -24,12 +24,11 @@ gcsTower uartname uart fm_sink sens_sink pos_sink ctl_sink motor_sink = do
   (streamrate_source, streamrate_sink) <- channel
   (dataRateSrc,        dataRateSink)   <- channel
 
-  (i :: Channel 128 (Stored Uint8)) <- channelWithSize
-  (o :: Channel 1024 (Stored Uint8)) <- channelWithSize
-  uartTower uart 57600 (snk i) (src o)
+  ((istream :: ChannelSink 1024 (Stored Uint8))
+   ,(ostream :: ChannelSource 1024 (Stored Uint8))) <- uartTower uart 57600
 
   task ("gcsReceiveTask" ++ uartname) $
-    gcsReceiveTask (snk o) streamrate_source dataRateSrc
+    gcsReceiveTask istream streamrate_source dataRateSrc
   task ("gcsTransmitTask" ++ uartname) $
-    gcsTransmitTask (src i) streamrate_sink dataRateSink fm_sink sens_sink
+    gcsTransmitTask ostream streamrate_sink dataRateSink fm_sink sens_sink
       pos_sink ctl_sink motor_sink
