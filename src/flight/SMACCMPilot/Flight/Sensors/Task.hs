@@ -9,6 +9,7 @@ module SMACCMPilot.Flight.Sensors.Task
 
 import Ivory.Language
 import Ivory.Tower
+import Ivory.Stdlib
 
 import qualified SMACCMPilot.Flight.Types.Sensors as S
 
@@ -19,14 +20,20 @@ sensorsTask s = do
   sensorsEmitter <- withChannelEmitter s "sensors"
   withStackSize 1024
   s_result <- taskLocal "result"
+  initialized <- taskLocalInit "init" (ival false)
   taskInit $ do
     store (s_result ~> S.valid) false
     emit_ sensorsEmitter (constRef s_result)
-    call_ sensors_begin -- time consuming: boots up and calibrates sensors
   onPeriod 10 $ \_now -> do
-    call_ sensors_update
-    call_ sensors_getstate s_result
-    emit_ sensorsEmitter (constRef s_result)
+    i <- deref initialized
+    unless i $ do
+      -- time consuming: boots up and calibrates sensors
+      call_ sensors_begin
+      store initialized true
+    when i $ do
+      call_ sensors_update
+      call_ sensors_getstate s_result
+      emit_ sensorsEmitter (constRef s_result)
 
   taskModuleDef $ do
     depend S.sensorsTypeModule
