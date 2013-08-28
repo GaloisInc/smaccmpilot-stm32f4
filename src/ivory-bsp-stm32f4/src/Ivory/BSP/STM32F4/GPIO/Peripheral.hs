@@ -150,5 +150,8 @@ pinClear pin =
   modifyReg (gpioPortBSRR $ gpioPinPort pin) $ do
     setBit (gpioPinClearBSRR_F pin)
 
--- TODO: pinToggle
--- TODO: pinRead
+pinRead :: GPIOPin -> Ivory eff IBool
+pinRead pin = do
+  r <- getReg (gpioPortIDR $ gpioPinPort pin)
+  return (bitToBool (r #. (gpioPinIDR_F pin)))
+

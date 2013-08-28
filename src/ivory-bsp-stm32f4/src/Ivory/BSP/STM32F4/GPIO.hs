@@ -13,6 +13,7 @@ module Ivory.BSP.STM32F4.GPIO (
   , GPIOPin(), pinEnable, pinSetMode, pinSetOutputType
   , pinSetSpeed, pinSetPUPD, pinSetAF
   , pinSet, pinClear
+  , pinRead
 
   , module Ivory.BSP.STM32F4.GPIO.Pins
   , module Ivory.BSP.STM32F4.GPIO.RegTypes
