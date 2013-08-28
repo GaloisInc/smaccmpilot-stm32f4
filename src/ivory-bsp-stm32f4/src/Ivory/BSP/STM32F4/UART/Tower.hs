@@ -23,7 +23,8 @@ uartTower :: (SingI n, SingI m)
           => UART -> Integer
           -> Tower p (ChannelSink n (Stored Uint8), ChannelSource m (Stored Uint8))
 uartTower uart baud = do
-  let max_syscall_priority = (191::Uint8) -- XXX MAGIC NUMBER: freertos port specific
+  -- XXX MAGIC NUMBER: freertos syscalls must be lower (numerically greater than) level 11
+  let max_syscall_priority = (12::Uint8)
 
   (src_ostream, snk_ostream) <- channelWithSize
   (src_istream, snk_istream) <- channelWithSize
