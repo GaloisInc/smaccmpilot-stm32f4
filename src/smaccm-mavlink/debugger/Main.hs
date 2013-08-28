@@ -3,18 +3,19 @@ import System.Environment (getArgs)
 import qualified Data.Char as C
 import Control.Monad
 import Control.Concurrent
-import Control.Concurrent.MVar
+import Data.IORef
 import System.IO
 import System.Exit
 
-import qualified Data.ByteString.Char8 as B
+import qualified Data.ByteString as B
 import System.Hardware.Serialport
 
 import Debugger
 
 data DebuggerMode
-  = Continue
+  = Continue Verboseness
   | Exit
+  deriving (Eq, Show)
 
 main :: IO ()
 main = do
@@ -25,26 +26,33 @@ main = do
 
 startDebugger :: FilePath -> IO ()
 startDebugger f = do
-  mode <- newMVar Continue
+  mode <- newIORef (Continue Chatty)
   forkIO (runDebugger mode f)
   hSetBuffering stdin NoBuffering
   controlMode mode
   where
   controlMode dbgsignal = do
+    let continue = controlMode dbgsignal
     c <- getChar
-    case C.toLower c of
-     'q' -> do putMVar dbgsignal Exit
-               exitSuccess
-     _ -> controlMode dbgsignal
+    case c of
+     'q' -> do writeIORef dbgsignal Exit
+               -- exitSuccess
+     'v' -> do writeIORef dbgsignal (Continue Chatty)
+               continue
+     'V' -> do writeIORef dbgsignal (Continue Quiet)
+               continue
+     _ -> continue
 
-runDebugger :: MVar DebuggerMode -> FilePath -> IO ()
+runDebugger :: IORef DebuggerMode -> FilePath -> IO ()
 runDebugger mode port = do
   serial <- openSerial port defaultSerialSettings { commSpeed = CS57600 }
-  loop mode serial emptyDebuggerState
-  where
-  loop mode serial state = do
-    state' <- debuggerLoop serial state
-    m <- readMVar mode
-    case m of
-      Continue -> loop mode serial state'
-      Exit -> closeSerial serial
+  let loop state = do
+        m <- readIORef mode
+        case m of
+          Continue v ->  do
+            bs <- recv serial 1
+            state' <- debuggerLoop (B.unpack bs) state v
+            loop state'
+          Exit -> closeSerial serial
+  loop (emptyDebuggerState, [])
+
