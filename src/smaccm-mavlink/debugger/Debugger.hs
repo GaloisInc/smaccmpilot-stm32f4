@@ -51,7 +51,7 @@ debuggerLoop bs state v = foldM (processByte v) state bs
 
 printProcessed :: Verboseness -> [Result] -> IO ()
 printProcessed Chatty rs  = mapM_ (\r -> putStrLn (show r)) rs
-printProcessed Quiet rs   = mapM_ (putStrLn . unlines . mkQuietMsgs) rs
+printProcessed Quiet rs   = putStrLn (unlines (mkQuietMsgs rs))
 
 processByte :: Verboseness -> (DebuggerState,[Result]) -> Word8 -> IO (DebuggerState,[Result])
 processByte v (s,results) b = do
