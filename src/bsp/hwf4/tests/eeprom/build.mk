@@ -19,4 +19,4 @@ EEPROMTEST_CFLAGS    += -I$(TOP)/src/bsp/include
 EEPROMTEST_CFLAGS    += -I$(TOP)/src/bsp/hwf4/include
 EEPROMTEST_LIBRARIES := libhwf4.a libstm32_usb.a libFreeRTOS.a
 
-$(eval $(call when_platform,px4fmu17_freertos,image,EEPROMTEST))
+$(eval $(call when_platforms,px4fmu17_freertos,image,EEPROMTEST))

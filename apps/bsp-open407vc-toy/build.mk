@@ -11,7 +11,7 @@
 
 IVORY_PKG_OPEN407TOY_GEN_SYMS    := true
 
-$(eval $(call tower_pkg,IVORY_PKG_OPEN407TOY,bsp-open407-toy-gen))
+$(eval $(call when_platforms,open407vc,tower_pkg,IVORY_PKG_OPEN407TOY,bsp-open407-toy-gen))
 
 BSP_OPEN407TOY_IMG          := bsp-open407-toy
 BSP_OPEN407TOY_OBJECTS      := main.o
@@ -26,7 +26,7 @@ BSP_OPEN407TOY_CFLAGS       += -O2 $(BSP_OPEN407TOY_INCLUDES)
 
 BSP_OPEN407TOY_LIBRARIES    += libFreeRTOS.a
 
-$(eval $(call cbmc_pkg,BSP_OPEN407TOY,IVORY_PKG_OPEN407TOY))
+$(eval $(call when_platforms,open407vc,cbmc_pkg,BSP_OPEN407TOY,IVORY_PKG_OPEN407TOY))
 
 $(eval $(call when_platforms,open407vc,image,BSP_OPEN407TOY))
 

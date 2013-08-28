@@ -19,4 +19,4 @@ PX4_SENSORS_CFLAGS    += -I$(TOP)/src/bsp/include
 PX4_SENSORS_CFLAGS    += -I$(TOP)/src/bsp/hwf4/include
 PX4_SENSORS_LIBRARIES := libhwf4.a libstm32_usb.a libFreeRTOS.a
 
-$(eval $(call when_platform,px4fmu17_freertos,image,PX4_SENSORS))
+$(eval $(call when_platforms,px4fmu17_freertos,image,PX4_SENSORS))
