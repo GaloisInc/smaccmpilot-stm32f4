@@ -19,4 +19,4 @@ ARDRONE_TEST_CFLAGS    += -I$(TOP)/src/bsp/include
 ARDRONE_TEST_CFLAGS    += -I$(TOP)/src/bsp/hwf4/include
 ARDRONE_TEST_LIBRARIES := libhwf4.a libstm32_usb.a libFreeRTOS.a
 
-$(eval $(call when_os,freertos,image,ARDRONE_TEST))
+$(eval $(call when_platform,px4fmu17_freertos,image,ARDRONE_TEST))

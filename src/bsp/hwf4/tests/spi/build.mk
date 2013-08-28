@@ -19,4 +19,4 @@ SPITEST_CFLAGS    += -I$(TOP)/src/bsp/include
 SPITEST_CFLAGS    += -I$(TOP)/src/bsp/hwf4/include
 SPITEST_LIBRARIES := libhwf4.a libstm32_usb.a libFreeRTOS.a
 
-$(eval $(call when_os,freertos,image,SPITEST))
+$(eval $(call when_platform,px4fmu17_freertos,image,SPITEST))
