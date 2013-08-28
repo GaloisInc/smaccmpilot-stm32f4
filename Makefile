@@ -17,11 +17,13 @@ include Config.mk
 PLATFORM_DIR := ./mk/platform/
 PLATFORMS = $(subst platform_,,$(basename $(notdir $(wildcard $(PLATFORM_DIR)platform_*.mk))))
 
+CONFIG_DEFAULT_TARGET ?= px4fmu17_freertos
+
 # debugging:
 MQUIET = --no-print-directory
 #MQUIET = --print-directory
 
-default: px4fmu17_freertos
+default: $(CONFIG_DEFAULT_TARGET)
 
 allplatforms:
 	@for platform in $(PLATFORMS); do \
