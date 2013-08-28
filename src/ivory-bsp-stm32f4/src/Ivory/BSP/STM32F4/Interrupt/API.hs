@@ -7,6 +7,8 @@
 
 module Ivory.BSP.STM32F4.Interrupt.API where
 
+import qualified Data.Bits as B
+
 import Ivory.BSP.STM32F4.Interrupt.Types
 import Ivory.BSP.STM32F4.Interrupt.Regs
 
@@ -19,11 +21,6 @@ import Ivory.HW
 handlerName :: Interrupt -> String
 handlerName i = (show i) ++ "_IRQHandler"
 
--- | The STM32F4 NVIC ignores writes to the low 4 bits of the
--- interrupt priority registers.  We hide this from callers, so the
--- API accepts interrupt priority levels from 0 to 15.
-nvic_prio_shift :: Int
-nvic_prio_shift = 4
 
 ----------------------------------------------------------------------
 -- High Level Interface
@@ -40,7 +37,16 @@ interrupt_disable i = do
   setReg reg $ do
     setBit (nvic_icer_clrena #> bitIx bitN)
 
+-- | interrupt_set_priority: always give the priority as level 0 (highest) to 16
+--   (lowest).
 interrupt_set_priority :: Interrupt -> Uint8 -> Ivory eff ()
 interrupt_set_priority i pri = do
-  let pri' = pri `iShiftR` fromIntegral nvic_prio_shift
+  assert (pri <? (1 `iShiftL` nvic_prio_shift))
+  let pri' = pri `iShiftL` nvic_prio_shift
   writeReg (nvic_IPR_int i) pri'
+  where
+  -- | The STM32F4 NVIC ignores writes to the low 4 bits of the
+  -- interrupt priority registers.  We hide this from callers, so the
+  -- API accepts interrupt priority levels from 0 to 15.
+  nvic_prio_shift :: Uint8
+  nvic_prio_shift = 4
