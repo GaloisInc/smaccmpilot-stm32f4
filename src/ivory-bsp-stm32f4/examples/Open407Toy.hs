@@ -44,36 +44,32 @@ button pin = do
     e <- withChannelEmitter (src c) "btnstate"
     ctr <- taskLocalInit "changectr" (ival (0 :: Uint32))
     debouncer <- stateMachine "debouncer" $ mdo
-                         -- XXX periodically:
-      down    <- state $ onTimeout 1 $ liftIvory $ do
+      down    <- state $ period 1 $ liftIvory $ do
                    v <- pinRead pin
                    return $ branch v rising
       rising  <- state $ do
-                   -- XXX really, on entering state should have its own
-                   -- handler...
-                   onTimeout 0 $ liftIvory_ (store ctr 0)
-                   -- XXX periodically:
-                   onTimeout 1 $ liftIvory $ do
+                   entry $ liftIvory_ (store ctr 0)
+                   period 1 $ liftIvory $ do
                      v <- pinRead pin
                      c <- deref ctr
                      return $ do
                        branch (iNot v)          down
                        branch (c >=? threshold) risen
-      risen   <- state $ onTimeout 0 $ do
+      risen   <- state $ entry $ do
                    liftIvory_ (emitV_ e true)
                    goto up
-      up      <- state $ onTimeout 1 $ liftIvory $ do
+      up      <- state $ period 1 $ liftIvory $ do
                    v <- pinRead pin
                    return $ branch (iNot v) falling
       falling <- state $ do
-                   onTimeout 0 $ liftIvory_ (store ctr 0)
-                   onTimeout 1 $ liftIvory $ do
+                   entry $ liftIvory_ (store ctr 0)
+                   period 1 $ liftIvory $ do
                      v <- pinRead pin
                      c <- deref ctr
                      return $ do
                        branch v                 up
                        branch (c >=? threshold) fallen
-      fallen  <- state $ onTimeout 0 $ do
+      fallen  <- state $ entry $ do
                    liftIvory_ (emitV_ e false)
                    goto down
       return down
