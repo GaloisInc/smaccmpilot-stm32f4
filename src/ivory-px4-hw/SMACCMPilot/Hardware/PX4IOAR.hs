@@ -22,24 +22,28 @@ muxdir_pin :: GPIOPin
 muxdir_pin = pinC13
 
 pins_init :: Ivory eff ()
-pins_init = do mapM_ pin_init (muxdir_pin:select_pins)
+pins_init = do
+  pin_init muxdir_pin
+  mapM_ pin_init select_pins
   where
   pin_init p = do
     pinEnable        p
+    pinSetMode       p gpio_mode_output
     pinSetOutputType p gpio_outputtype_pushpull
     pinSetSpeed      p gpio_speed_2mhz
     pinSetPUPD       p gpio_pupd_none
 
 select_set :: Uint8 -> IBool -> Ivory eff ()
-select_set pnum v = foldr sel (return ()) (zip [(0::Int)..] select_pins)
+select_set pnum v = foldl sel (return ()) (zip [(0::Int)..] select_pins)
   where
-  sel (ind,pin) acc = ifte_ ((fromIntegral ind) ==? pnum) (act pin) acc
-  act pin = ifte_ v (pinSet pin) (pinClear pin)
+  sel acc (ind,pin) = ifte_ ((fromIntegral ind) ==? pnum) (act pin) acc
+  -- Active Low:
+  act pin = ifte_ v (pinClear pin) (pinSet pin)
 
 select_set_all :: IBool -> Ivory eff ()
 select_set_all v = mapM_ act select_pins
-  where
-  act pin = ifte_ v (pinSet pin) (pinClear pin)
+  where -- Active Low:
+  act pin = ifte_ v (pinClear pin) (pinSet pin)
 
 px4ioarTower :: (SingI n)
              => ChannelSink n (Array 4 (Stored IFloat))
@@ -50,7 +54,8 @@ px4ioarTower motorChan = do
   task "px4ioar" $ do
     ostream <- withChannelEmitter txchan "uart_ostream"
     istream <- withChannelEvent   motorChan  "motor_istream"
-    motorInit <- taskLocalInit "motorInit" (ival (0 :: Uint8))
+    motorInit <- taskLocal "motorInit"
+    bootAttempts <- taskLocal "bootAttempts"
     let put :: (Scope cs ~ GetAlloc eff) => Uint8 -> Ivory eff ()
         put = emitV_ ostream
         putbyte = liftIvory_ . put
@@ -58,30 +63,35 @@ px4ioarTower motorChan = do
         sendMultiPacket :: (Scope cs ~ GetAlloc eff) => Ivory eff ()
         sendMultiPacket = replicateM_ 5 (put 0xA0)
     sm <- stateMachine "ioar" $ mdo
-      init0 <- stateNamed "init0" $ entry $ do
+      bootBegin <- stateNamed "bootBegin" $ do
+        entry $ liftIvory $ do
+          select_set_all false
+          store motorInit 0
+          return $ goto init0
+      init0 <- stateNamed "init0" $ timeout 2 $ do
         liftIvory $ do
           m <- deref motorInit
           when (m <? 4) $ do
             select_set m true
           return $ goto init1
-      init1 <- stateNamed "init1" $ timeout 1 $ do
+      init1 <- stateNamed "init1" $ timeout 2 $ do
         putbyte (initBytes !! 0)
         goto init2
-      init2 <- stateNamed "init2" $ timeout 1 $ do
+      init2 <- stateNamed "init2" $ timeout 2 $ do
         putbyte (initBytes !! 1)
         goto init3
-      init3 <- stateNamed "init3" $ timeout 1 $ do
+      init3 <- stateNamed "init3" $ timeout 2 $ do
         putbyte (initBytes !! 2)
         goto init4
-      init4 <- stateNamed "init4" $ timeout 1 $ do
+      init4 <- stateNamed "init4" $ timeout 2 $ do
         liftIvory_ $ do
           m <- deref motorInit
           emitV_ ostream (m + 1)
         goto init5
-      init5 <- stateNamed "init5" $ timeout 1 $ do
+      init5 <- stateNamed "init5" $ timeout 2 $ do
         putbyte (initBytes !! 3)
         goto init6
-      init6 <- stateNamed "init6" $ timeout 1 $ do
+      init6 <- stateNamed "init6" $ timeout 2 $ do
         liftIvory_ $ do
           m <- deref motorInit
           select_set m false
@@ -93,27 +103,31 @@ px4ioarTower motorChan = do
           return $ do
             branch (m >=? 3) initMulti1
             goto init0
-      initMulti1 <- stateNamed "initMulti1" $ entry $ do
+      initMulti1 <- stateNamed "initMulti1" $ timeout 100 $ do
         liftIvory_ $ select_set_all true
         goto initMulti2
-      initMulti2 <- stateNamed "initMulti2" $ timeout 1 $ do
-        liftIvory_ $ do
-          sendMultiPacket
+      initMulti2 <- stateNamed "initMulti2" $ timeout 2 $ do
+        liftIvory_ $ sendMultiPacket
         goto initMulti3
       initMulti3 <- stateNamed "initMulti3" $ timeout 2 $ do
-        liftIvory_ $ do
-          sendMultiPacket
-        goto initMulti4
-      initMulti4 <- stateNamed "initMulti4" $ timeout 2 $ do
-        goto loop
-      loop <- stateNamed "loop" $ entry $ do -- XXX implement
-        goto loop
-      return init0
+        liftIvory_ $ sendMultiPacket
+        goto bootCheckComplete
+      bootCheckComplete <- stateNamed "bootCheckComplete" $
+        timeout 2 $ liftIvory $ do
+          t <- deref bootAttempts
+          store bootAttempts (t+1)
+          return $ do
+            branch (t >? 4) reboot
+            goto loop
+      reboot <- stateNamed "reboot" $ timeout 1000 $ goto bootBegin
+      loop <- stateNamed "loop" $ timeout 2000 $ goto loop
+          -- XXX implement properly
+      return bootBegin
 
     taskInit $ do
       pins_init
       pinSet muxdir_pin
-      select_set_all false
+      store bootAttempts (0::Uint32)
       begin sm
 
  -- change motor mixer [0.0f..1.0f] range to to [0..500]
