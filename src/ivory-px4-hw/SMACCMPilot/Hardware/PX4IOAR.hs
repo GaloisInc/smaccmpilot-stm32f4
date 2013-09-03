@@ -28,6 +28,7 @@ pins_init = do
   where
   pin_init p = do
     pinEnable        p
+    pinSet           p -- Pulled high by resistors, ensure stays high
     pinSetMode       p gpio_mode_output
     pinSetOutputType p gpio_outputtype_pushpull
     pinSetSpeed      p gpio_speed_2mhz
@@ -61,67 +62,64 @@ px4ioarTower motorChan = do
         putbyte = liftIvory_ . put
         initBytes = [0xE0, 0x91, 0xA1, 0x40]
         sendMultiPacket :: (Scope cs ~ GetAlloc eff) => Ivory eff ()
-        sendMultiPacket = replicateM_ 5 (put 0xA0)
+        sendMultiPacket = replicateM_ 6 (put 0xA0)
+
+        turnM1OnLow :: (Scope cs ~ GetAlloc eff) => Ivory eff ()
+        turnM1OnLow = do
+          put 0x20
+          put 0xA0
+          put 0x00
+          put 0x00
+          put 0x00
     sm <- stateMachine "ioar" $ mdo
       bootBegin <- stateNamed "bootBegin" $ do
-        entry $ liftIvory $ do
+        timeout 100 $ liftIvory $ do
           select_set_all false
           store motorInit 0
-          return $ goto init0
-      init0 <- stateNamed "init0" $ timeout 2 $ do
-        liftIvory $ do
+          return $ goto init1
+      init1 <- stateNamed "init1" $ timeout 3 $ do
+        liftIvory_ $ do
           m <- deref motorInit
           when (m <? 4) $ do
             select_set m true
-          return $ goto init1
-      init1 <- stateNamed "init1" $ timeout 2 $ do
         putbyte (initBytes !! 0)
-        goto init2
-      init2 <- stateNamed "init2" $ timeout 2 $ do
         putbyte (initBytes !! 1)
-        goto init3
-      init3 <- stateNamed "init3" $ timeout 2 $ do
+        goto init2
+      init2 <- stateNamed "init2" $ timeout 7 $ do
         putbyte (initBytes !! 2)
-        goto init4
-      init4 <- stateNamed "init4" $ timeout 2 $ do
         liftIvory_ $ do
           m <- deref motorInit
           emitV_ ostream (m + 1)
-        goto init5
-      init5 <- stateNamed "init5" $ timeout 2 $ do
         putbyte (initBytes !! 3)
-        goto init6
-      init6 <- stateNamed "init6" $ timeout 2 $ do
+        goto init3
+      init3 <- stateNamed "init3" $ timeout 1 $ do
         liftIvory_ $ do
           m <- deref motorInit
           select_set m false
-        goto init7
-      init7 <- stateNamed "init7" $ timeout 200 $ do
+        goto init4
+      init4 <- stateNamed "init4" $ timeout 200 $ do
         liftIvory $ do
           m <- deref motorInit
           store motorInit (m+1)
           return $ do
-            branch (m >=? 3) initMulti1
-            goto init0
-      initMulti1 <- stateNamed "initMulti1" $ timeout 100 $ do
-        liftIvory_ $ select_set_all true
-        goto initMulti2
-      initMulti2 <- stateNamed "initMulti2" $ timeout 2 $ do
-        liftIvory_ $ sendMultiPacket
-        goto initMulti3
-      initMulti3 <- stateNamed "initMulti3" $ timeout 2 $ do
-        liftIvory_ $ sendMultiPacket
+            branch (m >=? 3) initMulti
+            goto init1
+      initMulti <- stateNamed "initMulti" $ entry $ do
+        liftIvory_ $ do
+          select_set_all true
+          sendMultiPacket
+          sendMultiPacket
         goto bootCheckComplete
       bootCheckComplete <- stateNamed "bootCheckComplete" $
         timeout 2 $ liftIvory $ do
           t <- deref bootAttempts
           store bootAttempts (t+1)
           return $ do
-            branch (t >? 4) reboot
+            branch (t <? 2) bootBegin
             goto loop
-      reboot <- stateNamed "reboot" $ timeout 1000 $ goto bootBegin
-      loop <- stateNamed "loop" $ timeout 2000 $ goto loop
-          -- XXX implement properly
+      loop <- stateNamed "loop" $ timeout 5 $ do
+        liftIvory_ turnM1OnLow
+        goto loop
       return bootBegin
 
     taskInit $ do
