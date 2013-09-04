@@ -15,11 +15,13 @@ import SMACCMPilot.Flight.UserInput.Decode (userInputDecodeModule)
 import SMACCMPilot.Flight.Control (controlModules)
 
 import SMACCMPilot.Flight.Control.Task
-import SMACCMPilot.Flight.Motors.Task
+import SMACCMPilot.Flight.Motors.Task (motorMixerTask, px4ioarMotorDecoder)
 import SMACCMPilot.Flight.Sensors.Task
 import SMACCMPilot.Flight.UserInput.Task
 import SMACCMPilot.Flight.BlinkTask
 import SMACCMPilot.Flight.GCS.Tower
+
+import SMACCMPilot.Hardware.PX4IOAR (px4ioarTower)
 
 import SMACCMPilot.Param (paramModule)
 import SMACCMPilot.Console (consoleModule)
@@ -28,6 +30,7 @@ import SMACCMPilot.Storage.Partition (partitionModule)
 import SMACCMPilot.Mavlink.Messages (mavlinkMessageModules)
 import SMACCMPilot.Mavlink.Pack (packModule)
 import SMACCMPilot.Mavlink.CRC (mavlinkCRCModule)
+
 
 import qualified Ivory.BSP.HWF4.EEPROM as HWF4
 import qualified Ivory.BSP.HWF4.I2C as HWF4
@@ -64,7 +67,7 @@ app = do
   task "control"   $ controlTask snk_flightmode snk_userinput
                       snk_sensors src_control
   task "motmix"    $ motorMixerTask snk_control snk_flightmode src_motors
-  -- px4ioarTower snk_motors
+  px4ioarTower px4ioarMotorDecoder snk_motors
 
   gcsTower "uart1" UART.uart1 snk_flightmode snk_sensor_state snk_position
     snk_control_state snk_motors_state
