@@ -12,7 +12,6 @@ Here's the architecture:
 
 Inside the commsec-server (this module) is the following:
 
-
         ---------------------------------------
         |               fromSerMVar            |
         |               ---------->            |
@@ -23,20 +22,58 @@ Inside the commsec-server (this module) is the following:
 
 The two handlers talk back and forth via MVars.
 
-Inside each handler are two data buffers.  For example, in the TCPHandler, we have
+Inside each handler are two data buffers.  For example, in the TCPHandler, we
+have
+                           ------------------------
+  to mavproxy (plaintext)  |                      | fromSerMVar (encrypted)
+ <-------------------------|-- buffer (pkgSize) <-|------------------------
+ from mavproxy (plaintext) |                      | fromTCPMVar (plaintext)
+ --------------------------|-> buffer (msgSize) --|----------------------->
+                           |                      |
+                           ------------------------
 
-               --------------
-  to mavproxy  |            |  fromSerMVar
- <-------------|-- buffer <-|---------------
- from mavproxy |            |  fromTPMVar
- --------------|-> buffer --|-------------->
-               --------------
+and in the SerialHandler we have
+
+                              ------------------------
+  to SMACCMPilot (encrypt)    |                      | fromTCPMVar (plaintext)
+ <----------------------------|-- buffer (msgSize) <-|------------------------
+ from SMACCMPilot (encrypted) |                      | fromSerMVar (encrypted)
+ -----------------------------|-> buffer (pkgSize) --|----------------------->
+                              |                      |
+                              ------------------------
 
 The buffers accumulate data until we have a package big enough to encrypt and
 send over.  Note that buffers from the MVars buffer an entire package (including
 the header) and not just the message itself.
 
+------------------
+- Message format -
+------------------
+
+Encrypted messages sent to the autopilot or to the GCS from the CommsecServer
+are fixed-width byte-arrays set by the pkgSize constant.  It containts the
+header, consisting of an identifier (8 bytes) and a counter (8 bytes), and the
+encrypted message:
+
+  --------------------
+  | id | cnter | msg |
+  --------------------
+
+These messages are framed by the hxstream protocol to encode the beginning and
+end of the payload to enable resynchronization in case of dropped bytes:
+
+  -------------------------------------------
+  | 0x7e | encoded(id | cnter | msg) | 0x7e |
+  -------------------------------------------
+
+Note that the hxstream protocol does a slight encoding of the payload, but there
+is no CRC, etc.
+
+XXX We probabilisticaly assume the data array is large enough to hold.
+
 -}
+
+-- XXX Fix buffer sizes and where encryption/decryption happens.
 
 module Main where
 
@@ -179,9 +216,6 @@ runTCP host port fromMavMVar fromSerMVar =
                         (decFrom ctx (S.send mavSocket))
                         (M.tryTakeMVar fromSerMVar)
 
--- Testing
---    _     <- C.forkIO $ bufferedExec (S.send mavSocket) (M.tryTakeMVar fromSerMVar)
-
     -- To Serial:
     -- When the buffer is full, put bytes into the outbound MVar.  Fill the
     -- buffer by receiving bytes from the socket.
@@ -189,9 +223,6 @@ runTCP host port fromMavMVar fromSerMVar =
       msgSize
       (encTo ctx (M.putMVar fromMavMVar))
       (S.recv mavSocket maxBytes)
-
--- Testing
---    bufferedExec (M.putMVar fromMavMVar) (S.recv mavSocket maxBytes)
 
 --------------------------------------------------------------------------------
 -- Set up serial
@@ -234,8 +265,6 @@ runSerial port fromMavMVar fromSerMVar =
                        pkgSize
                        (decFrom ctx (S.send testSocket))
                        (M.tryTakeMVar fromMavMVar)
--- Testing
---    _  <- C.forkIO $ bufferedExec (S.send testSocket) (M.tryTakeMVar fromMavMVar)
 
     -- To TCP:
     -- When the buffer is full, put bytes into the outbound MVar.  Fill the
@@ -244,26 +273,6 @@ runSerial port fromMavMVar fromSerMVar =
       msgSize
       (encTo ctx (M.putMVar fromSerMVar))
       (S.recv testSocket maxBytes)
--- Testing
---    bufferedExec (M.putMVar fromSerMVar) (S.recv testSocket maxBytes)
-
-
-  -- S.serve (S.Host "127.0.0.1") "6001" $ \(testSocket, _) -> do
-  --   putStrLn "Connected to testing client..."
-
-  --   ctx <- initializeUAV
-  --   buf <- initMsgBuf
-
-  --   _ <- C.forkIO $ forever $ do
-
-  --     sbs <- M.tryTakeMVar fromMavMVar
-  --     maybeUnit (S.send testSocket) sbs
-
-  --   forever $ do
-  --     -- Wait for 100 microseconds for input.
-  --     mrx <- S.recv testSocket maxBytes
-  --     -- If there's anything, put them in the buffer.
-  --     maybeUnit (M.putMVar fromSerMVar) mrx
 
 --------------------------------------------------------------------------------
 
@@ -272,7 +281,7 @@ main = do
   -- XXX get opts properly
   args <- getArgs
   if length args /= 3
-    then putStrLn $ "Takes a host port, and serial device as arguments "
+    then putStrLn $ "Takes a host, port, and serial device as arguments "
            ++ "(e.g., 127.0.0.1 6000 \"/dev/ttyUSB0\""
      else run args
 
@@ -315,7 +324,3 @@ theTimeout = 100
 
 maybeUnit :: (a -> IO b) -> Maybe a -> IO ()
 maybeUnit f = maybe (return ()) (void . f)
-
---  Collapse Monad.
-mm :: Monad m => m (m a) -> m a
-mm = (id =<<)
