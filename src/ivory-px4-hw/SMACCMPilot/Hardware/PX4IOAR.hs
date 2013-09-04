@@ -1,3 +1,4 @@
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE DataKinds #-}
@@ -45,10 +46,13 @@ select_set_all v = mapM_ act select_pins
   where -- Active Low:
   act pin = ifte_ v (pinClear pin) (pinSet pin)
 
-px4ioarTower :: (SingI n)
-             => ChannelSink n (Array 4 (Stored IFloat))
+px4ioarTower :: (SingI n, IvoryArea a, IvoryZero a)
+             => (forall s cs . ConstRef s a
+                  -> Ivory (AllocEffects cs)
+                       (ConstRef (Stack cs) (Array 4 (Stored IFloat))))
+             -> ChannelSink n a
              -> Tower p ()
-px4ioarTower motorChan = do
+px4ioarTower decode motorChan = do
   ((_unusedRxChan :: ChannelSink 1 (Stored Uint8))
    ,(txchan :: ChannelSource 12 (Stored Uint8))) <- uartTower uart2 115200
   task "px4ioar" $ do
@@ -128,7 +132,8 @@ px4ioarTower motorChan = do
           scaled   <- scale_motors (constRef throttle)
           packet   <- motor_packet scaled
           putPacket packet
-        on istream $ \inputs -> liftIvory_ $
+        on istream $ \encoded -> liftIvory_ $ do
+          inputs <- decode encoded
           arrayMap $ \i -> do
             input <- deref (inputs ! i)
             store (throttle ! i) input
