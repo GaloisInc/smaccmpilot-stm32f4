@@ -2,6 +2,8 @@
 
 {-# LANGUAGE OverloadedStrings #-}
 
+-- XXX Fix buffer sizes and where encryption/decryption happens.
+
 module Main where
 
 import           Text.Printf
@@ -262,4 +264,3 @@ theTimeout = 100
 
 maybeUnit :: (a -> IO b) -> Maybe a -> IO ()
 maybeUnit f = maybe (return ()) (void . f)
-
