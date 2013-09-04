@@ -267,10 +267,11 @@ mkSendServoOutputRaw :: MavlinkMessageSenders
 mkSendServoOutputRaw senders = proc "gcs_transmit_send_servo_output" $
   \state ctl -> body $ do
   msg <- local (istruct [])
-  ((state ~> M.ms) ! 0) `motIntoSvo` (msg ~> SVO.servo1_raw)
-  ((state ~> M.ms) ! 1) `motIntoSvo` (msg ~> SVO.servo2_raw)
-  ((state ~> M.ms) ! 2) `motIntoSvo` (msg ~> SVO.servo3_raw)
-  ((state ~> M.ms) ! 3) `motIntoSvo` (msg ~> SVO.servo4_raw)
+  -- XXX MAPPING FROM MOTOR POSITION TO SERVO VALUE IS PROBABLY NOT CORRECT
+  (state ~> M.frontleft)  `motIntoSvo` (msg ~> SVO.servo1_raw)
+  (state ~> M.frontright) `motIntoSvo` (msg ~> SVO.servo2_raw)
+  (state ~> M.backleft)   `motIntoSvo` (msg ~> SVO.servo3_raw)
+  (state ~> M.backright)  `motIntoSvo` (msg ~> SVO.servo4_raw)
 
   (ctl ~> C.pitch)      `ctlIntoSvo` (msg ~> SVO.servo6_raw)
   (ctl ~> C.roll)       `ctlIntoSvo` (msg ~> SVO.servo7_raw)

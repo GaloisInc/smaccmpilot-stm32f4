@@ -14,7 +14,10 @@ motorsTypeModule = package "motors_type" $ do
 -- Motor values are on a scale of 0 to 1
 [ivory|
 struct motors
-  { ms   :: Array 4 (Stored IFloat)
+  { frontleft  :: Stored IFloat
+  ; frontright :: Stored IFloat
+  ; backleft   :: Stored IFloat
+  ; backright  :: Stored IFloat
   }
 |]
 

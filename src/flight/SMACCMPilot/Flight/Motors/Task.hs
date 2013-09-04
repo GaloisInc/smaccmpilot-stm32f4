@@ -43,6 +43,10 @@ motorMixerTask cs fms ms = do
 
 disabled :: (GetAlloc eff ~ Scope cs) => Ivory eff (ConstRef (Stack cs) (Struct "motors"))
 disabled = do
-  v <- local $ istruct [ M.ms .= iarray [ ival 0, ival 0, ival 0, ival 0 ] ]
+  v <- local $ istruct [ M.frontleft  .= ival 0
+                       , M.frontright .= ival 0
+                       , M.backleft   .= ival 0
+                       , M.backright  .= ival 0
+                       ]
   return (constRef v)
 
