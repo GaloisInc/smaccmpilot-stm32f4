@@ -79,7 +79,7 @@ static void ardrone_motor_deselect(uint8_t motor)
 }
 
 /**
- * Generate the 8-byte motor set packet.
+ * Generate the 5-byte motor set packet.
  */
 static void ardrone_get_motor_packet(uint8_t *buf, uint16_t speed[4])
 {
