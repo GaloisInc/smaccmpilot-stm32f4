@@ -1,11 +1,12 @@
 module Data.HXStream where
 
 import           Data.Bits
-import qualified Data.ByteString.Char8 as B
-import qualified Data.Char as C
+import qualified Data.ByteString as B
 import           Data.Word
+import           Data.DList as D
+import           Data.List
 
-newtype Frame = Frame { unFrame :: [Word8] } deriving (Eq, Show)
+type Frame = [Word8]
 
 data FrameState = FrameBegin
                 | FrameProgress Bool -- indicates escaped mode
@@ -14,27 +15,32 @@ data FrameState = FrameBegin
 
 data StreamState =
   StreamState
-    { frame   :: [Word8]
+    { frame   :: D.DList Word8
     , fstate  :: FrameState
-    } deriving (Eq, Show)
+    }
+
+instance Show StreamState where
+  show (StreamState f st) =
+    "StreamState { " ++ show (D.toList f) ++ ", " ++ show st ++ " }"
 
 emptyStreamState :: StreamState
-emptyStreamState = StreamState [] FrameBegin
+emptyStreamState = StreamState D.empty FrameBegin
 
 appendFrame :: Word8 -> StreamState -> StreamState
-appendFrame b s = s { frame = (frame s) ++ [b] }
+appendFrame b s = s { frame = frame s .++ b }
 
 setEscaped :: Bool -> StreamState -> StreamState
 setEscaped b s = s { fstate = FrameProgress b }
 
 complete :: StreamState -> Bool
-complete s = case fstate s of
-  FrameComplete -> True
-  _ -> False
+complete s =
+  case fstate s of
+    FrameComplete -> True
+    _             -> False
 
 completeFrame :: StreamState -> Maybe Frame
 completeFrame s = case complete s of
-  True  -> Just (Frame (frame s))
+  True  -> Just (D.toList $ frame s)
   False -> Nothing
 
 -- | Frame Boundary Octet
@@ -55,30 +61,36 @@ decodeSM b state =
     FrameBegin ->
       if b == fbo then setEscaped False $ emptyStreamState
       else state
-    FrameProgress escaped ->
-      if escaped        then setEscaped False $ appendFrame (escape b) state
-      else if b == ceo  then setEscaped True state
-      else if b == fbo  then state { fstate = FrameComplete }
-      else appendFrame b state
+    FrameProgress escaped
+      | escaped   -> setEscaped False $ appendFrame (escape b) state
+      | b == ceo  -> setEscaped True state
+      | b == fbo  -> state { fstate = FrameComplete }
+      | otherwise -> appendFrame b state
     FrameComplete -> state
 
-decode :: B.ByteString -> StreamState -> ([Frame],StreamState)
-decode bs istate = foldl aux ([],istate) w8s
+decode :: B.ByteString -> StreamState -> ([Frame], StreamState)
+decode bs istate = (D.toList fr, newSt)
   where
-  w8s :: [Word8]
-  w8s = map (fromIntegral . C.ord) $ B.unpack bs
+  (fr, newSt) = foldl' aux (D.empty, istate) (B.unpack bs)
   aux (fs,st) w =
     case completeFrame s' of
-      Just f -> (fs ++ [f], emptyStreamState)
+      Just f  -> (fs .++ f, emptyStreamState)
       Nothing -> (fs, s')
     where
     s' = decodeSM w st
 
 encode :: Frame -> B.ByteString
-encode (Frame ws) = B.pack $ map (C.chr . fromIntegral) $
-  [fbo] ++ go ws ++ [fbo]
+encode ws = B.pack $ D.toList $ fbo .: (go ws .++ fbo)
   where
-  go (x:xs) | x == fbo  = ceo : escape x : go xs
-            | x == ceo  = ceo : escape x : go xs
-            | otherwise = x : go xs
-  go [] = []
+  go (x:xs) | x == fbo  = ceo .: (escape x .: go xs)
+            | x == ceo  = ceo .: (escape x .: go xs)
+            | otherwise = x .: go xs
+  go [] = D.empty
+
+-- Helpers
+
+(.:) :: a -> D.DList a -> DList a
+(.:) = D.cons
+
+(.++) :: D.DList a -> a -> DList a
+(.++) = D.snoc

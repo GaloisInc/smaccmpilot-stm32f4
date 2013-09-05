@@ -13,6 +13,7 @@ library
 
   build-depends:        base >= 4.6,
                         bytestring,
+                        dlist,
                         QuickCheck
 
   hs-source-dirs:       src
@@ -27,5 +28,6 @@ executable hxstream-serial-test
   build-depends:        base >= 4.6,
                         bytestring,
                         serialport,
+                        dlist,
                         hxstream
 
