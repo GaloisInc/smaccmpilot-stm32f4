@@ -124,7 +124,7 @@ quiet_cmd_elf_to_bin = OBJCOPY  $@
 
 quiet_cmd_bin_to_px4 = PX4IMG   $@
       cmd_bin_to_px4 = $(PYTHON) $(TOP)/boot/px_mkfw.py
-      cmd_bin_to_px4+= --prototype mk/platform/$(CONFIG_PLATFORM).prototype
+      cmd_bin_to_px4+= --prototype mk/platform/$($(CONFIG_PLATFORM)_PX4_IMG_PROTO).prototype
       cmd_bin_to_px4+= --image $(2) > $(2:.bin=.px4)
 
 # Make all object files depend on all included Makefiles, to force a

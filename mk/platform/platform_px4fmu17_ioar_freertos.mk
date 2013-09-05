@@ -1,6 +1,6 @@
 # -*- Mode: makefile-gmake; indent-tabs-mode: t; tab-width: 2 -*-
 #
-# platform/platform_px4fmu17_aadl.mk
+# platform/platform_px4fmu17_freertos.mk
 # PX4FMU 1.7 (STM32F4 Cortex-M4) toolchain and board support package
 # configuration.
 #
@@ -18,12 +18,15 @@ include mk/platform/toolchain_stm32f4.mk
 include mk/platform/board_px4fmu17.mk
 
 # support building PX4 images for this platform
-px4fmu17_aadl_SUPPORT_PX4IMG := 1
+px4fmu17_ioar_freertos_SUPPORT_PX4IMG := 1
 
 # platform argument for tower builds
-px4fmu17_aadl_TOWER_PLATFORM := px4fmu17
+px4fmu17_ioar_freertos_TOWER_PLATFORM := px4fmu17_ioar
 
 # operating system argument for tower builds
-px4fmu17_aadl_TOWER_OS := aadl
+px4fmu17_ioar_freertos_TOWER_OS := freertos
+
+# px4 image prototype
+px4fmu17_ioar_freertos_PX4_IMG_PROTO := px4fmu17
 
 # vim: set ft=make noet ts=2:
