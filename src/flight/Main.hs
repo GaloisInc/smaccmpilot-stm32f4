@@ -21,7 +21,7 @@ import SMACCMPilot.Flight.UserInput.Task
 import SMACCMPilot.Flight.BlinkTask
 import SMACCMPilot.Flight.GCS.Tower
 
-import SMACCMPilot.Hardware.PX4IOAR (px4ioarTower)
+import qualified SMACCMPilot.Hardware.PX4IOAR as PX4IOAR
 
 import SMACCMPilot.Param (paramModule)
 import SMACCMPilot.Console (consoleModule)
@@ -67,7 +67,7 @@ app = do
   task "control"   $ controlTask snk_flightmode snk_userinput
                       snk_sensors src_control
   task "motmix"    $ motorMixerTask snk_control snk_flightmode src_motors
-  px4ioarTower px4ioarMotorDecoder snk_motors
+  PX4IOAR.motorControlTower px4ioarMotorDecoder snk_motors
 
   gcsTower "uart1" UART.uart1 snk_flightmode snk_sensor_state snk_position
     snk_control_state snk_motors_state
