@@ -17,33 +17,20 @@ import qualified Ivory.HW.SearchDir          as HW
 import qualified Ivory.BSP.STM32F4.SearchDir as BSP
 
 import Ivory.BSP.STM32F4.UART
-import SMACCMPilot.Hardware.PX4IOAR
+
+import Platform
 
 main :: IO ()
-main = compile conf app
+main = compilePlatforms conf (motorPlatforms app)
   where
   conf = searchPathConf [ HW.searchDir, BSP.searchDir ]
 
-px4ioarRawMotorTower :: (SingI n)
-             => ChannelSink n (Array 4 (Stored IFloat))
-             -> Tower p ()
-px4ioarRawMotorTower = px4ioarTower cpystack
-  where
-  cpystack :: ConstRef s (Array 4 (Stored IFloat))
-           -> Ivory (AllocEffects cs)
-                (ConstRef (Stack cs) (Array 4 (Stored IFloat)))
-  cpystack v = do
-    l <- local (iarray [])
-    arrayMap $ \i -> deref (v ! i) >>= store (l ! i)
-    return (constRef l)
-
-app :: Tower p ()
+app :: (RawMotorControl p) => Tower p ()
 app = do
   c <- channel
-  px4ioarRawMotorTower (snk c)
+  rawMotorControl (snk c)
   (i,o) <- uartTower uart1 115200
   shell "motor control shell. hard to use? blame pat" o i (src c)
-
 
 shell :: (SingI n)
       => String

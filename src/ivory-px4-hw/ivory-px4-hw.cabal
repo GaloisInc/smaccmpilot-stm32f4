@@ -9,7 +9,10 @@ build-type:          Simple
 cabal-version:       >= 1.10
 
 library
-  exposed-modules:     SMACCMPilot.Hardware.PX4IOAR
+  exposed-modules:     SMACCMPilot.Hardware.PX4IOAR,
+                       SMACCMPilot.Hardware.PX4IOAR.MotorControl,
+                       SMACCMPilot.Hardware.PX4FMU17,
+                       SMACCMPilot.Hardware.PX4FMU17.MotorControl
   build-depends:       base >= 4.6,
                        monadLib,
                        ivory,
@@ -24,9 +27,10 @@ library
   default-language:    Haskell2010
   ghc-options:         -Wall -fno-warn-orphans
 
-executable             px4ioar-hw-test-gen
+executable             copter-motor-test-gen
   main-is:             Main.hs
-  hs-source-dirs:      px4ioar-hw-test
+  hs-source-dirs:      copter-motor-test
+  other-modules:       Platform
   build-depends:       base ==4.6.*,
                        monadLib,
                        ivory,
