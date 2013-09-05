@@ -30,7 +30,8 @@ instance ColoredLEDs Open407VC where
 
 coloredLEDPlatforms :: (forall p . (ColoredLEDs p) => Tower p ()) -> [(String, Twr)]
 coloredLEDPlatforms app =
-    [("px4fmu17",          Twr (app :: Tower PX4FMUv17 ()))
+    [("px4fmu17_bare",     Twr (app :: Tower PX4FMUv17 ()))
+    ,("px4fmu17_ioar",     Twr (app :: Tower PX4FMUv17 ()))
     ,("stm32f4discovery",  Twr (app :: Tower F4Discovery ()))
     ,("open407vc",         Twr (app :: Tower Open407VC ()))
     ]
