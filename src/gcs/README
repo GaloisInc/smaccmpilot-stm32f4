@@ -1,0 +1,103 @@
+Read serial, perform encryption/decryption, and pass data between mavproxy.py
+and SMACCMPilot.
+
+--------------------------------------------------------------------------------
+-- Architecture
+--------------------------------------------------------------------------------
+
+  ------------  TCP  ------------------
+  | mavproxy |  -->  | commsec-server |
+  ------------  <--  ------------------
+
+  Serial ------------- air -------------
+   -->   | 3DR radio | --> | 3DR radio |
+   <--   ------------- <-- -------------
+
+        UART ---------------
+        -->  | SMACCMPilot |
+        <--  ---------------
+
+Inside the commsec-server (this module) is the following:
+
+  ---------------------------------------
+  |               fromSerMVar            |
+  |               ---------->            |
+  | SerialHandler             TCPHandler |
+  |               fromTCPMVar            |
+  |               <----------            |
+  ---------------------------------------
+
+The two handlers talk back and forth via MVars.  The SerialHandler encrypts to
+the autopilot and the TCPHandler decrypts to mavproxy.  Inside each handler are
+two data buffers.
+
+For example, in the TCPHandler, we have
+
+                            --------------
+   to mavproxy (decrypted)  |            | fromSerMVar (encrypted)
+  <-------------------------|-- buffer <-|------------------------
+  from mavproxy (plaintext) |            | fromTCPMVar (plaintext)
+  --------------------------|-> buffer --|----------------------->
+                            |            |
+                            --------------
+
+and in the SerialHandler we have (where SP is 'SMACCMPilot'):
+
+                      --------------
+   to SP (encrypt)    |            | fromTCPMVar (plaintext)
+  <-------------------|-- buffer <-|------------------------
+  from SP (encrypted) |            | fromSerMVar (encrypted)
+  --------------------|-> buffer --|----------------------->
+                      |            |
+                      --------------
+
+--------------------------------------------------------------------------------
+-- Message framing
+--------------------------------------------------------------------------------
+
+Over the air, the radios have their own protocol to frame bytes and perform
+error checks.  We will ensure that each message fits within a single air frame.
+The benfit of doing so is that if an air frame is corrupted, that corruption
+affects a single message.  The air frames are around 250 bytes.  By fiat,
+encrypted packets should be no more than 128 bytes.
+
+Encrypted messages (or a "package") is an instance of Galois/Counter Mode
+(AES-GCM) <http://en.wikipedia.org/wiki/Galois/Counter_Mode>.  A package to be
+sent on the wire contains the header, consisting of an identifier (4 bytes) and
+a counter (4 bytes), the encrypted message itself, and an authentication tag (8
+bytes):
+
+  -------------------------
+  | id | cntr | msg | tag |
+  -------------------------
+
+In our case, messages are Mavlink packets.
+
+Independent of our crypto implementation, we use the hxstream protocol for
+framing between the radio and the ground station and between radio and the
+autopilot respectively.  The hxstream protocol simply marks frame boundaries and
+does no error detection or correction.  Thus, the protocol should only be used
+in transmissions that can be reasonably assumed to have zero loss rates.  So the
+radio receives an air frame, encodes it according to hxstream, and sends it to
+the ground station (autopilot).  Conversely, the ground station (autopilot)
+encodes a message using hxstream to send to the radio.
+
+Note that it is OK for byte streams encoded using hxstream to be larger than 128
+bytes since the radio decodes them before transmission.
+
+In the hxstream protocol, the same special byte (0x7e) is used to mark the
+beginning and end of a frame.  0x73 is then escaped in the message itself,
+guaranteeing that 0x7e is only used as a marker byte.
+
+  -----------------------------
+  | 0x7e | escaped msg | 0x7e |
+  -----------------------------
+
+The purpose of using hxstream is to provide a framing protocol at the link
+level independent of Mavlink or a particular crypto algorithm.  In our case, we
+have the follow sequence of bytes sent from the ground station to the radio:
+
+  --------------------------------------------
+  | 0x7e | escaped( id | cntr | tag ) | 0x7e |
+  --------------------------------------------
+
