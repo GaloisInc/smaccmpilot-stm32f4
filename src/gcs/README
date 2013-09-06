@@ -59,7 +59,8 @@ Over the air, the radios have their own protocol to frame bytes and perform
 error checks.  We will ensure that each message fits within a single air frame.
 The benfit of doing so is that if an air frame is corrupted, that corruption
 affects a single message.  The air frames are around 250 bytes.  By fiat,
-encrypted packets should be no more than 128 bytes.
+encrypted packets should be no more than 128 bytes.  (Messages are padded to
+ensure they are exactly 128 bytes.)
 
 Encrypted messages (or a "package") is an instance of Galois/Counter Mode
 (AES-GCM) <http://en.wikipedia.org/wiki/Galois/Counter_Mode>.  A package to be
