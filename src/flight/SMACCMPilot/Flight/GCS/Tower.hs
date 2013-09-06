@@ -11,8 +11,10 @@ import SMACCMPilot.Flight.GCS.Transmit.Task
 import SMACCMPilot.Flight.GCS.Receive.Task
 
 import Ivory.BSP.STM32F4.UART
+import Ivory.BSP.STM32F4.RCC
 
-gcsTower :: String
+gcsTower :: (BoardHSE p)
+         => String
          -> UART
          -> DataSink (Struct "flightmode")
          -> DataSink (Struct "sensors_result")

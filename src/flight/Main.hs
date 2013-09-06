@@ -1,3 +1,5 @@
+{-# LANGUAGE ScopedTypeVariables #-}
+
 module Main where
 
 import Ivory.Language
@@ -38,16 +40,22 @@ import qualified Ivory.BSP.HWF4.I2C as HWF4
 import qualified Ivory.BSP.STM32F4.SearchDir as BSP
 import qualified Ivory.BSP.STM32F4.GPIO as GPIO
 import qualified Ivory.BSP.STM32F4.UART as UART
+import Ivory.BSP.STM32F4.RCC (BoardHSE(..))
 
 import Arm32SizeMap (sizeMap)
 
+data PX4FMU17_IOAR = PX4FMU17_IOAR
+
+instance BoardHSE PX4FMU17_IOAR where
+  hseFreq _ = 24000000
+
 main :: IO ()
-main = compile conf app
+main = compile conf (app :: Tower PX4FMU17_IOAR ())
   where
   sp   = searchPathConf [Stdlib.searchDir, HW.searchDir, BSP.searchDir]
   conf = sp { bc_sizemap = Just sizeMap }
 
-app :: Tower p ()
+app :: (BoardHSE p) => Tower p ()
 app = do
   (src_userinput, snk_userinput)   <- dataport
   (src_flightmode, snk_flightmode) <- dataport
