@@ -3,7 +3,7 @@ module Data.HXStream where
 import           Data.Bits
 import qualified Data.ByteString as B
 import           Data.Word
-import           Data.DList as D
+import qualified Data.DList as D
 import           Data.List
 
 type Frame = [Word8]
@@ -68,8 +68,8 @@ decodeSM b state =
       | otherwise -> appendFrame b state
     FrameComplete -> state
 
-decode :: B.ByteString -> StreamState -> ([Frame], StreamState)
-decode bs istate = (D.toList fr, newSt)
+decode :: B.ByteString -> StreamState -> ([B.ByteString], StreamState)
+decode bs istate = (map B.pack (D.toList fr), newSt)
   where
   (fr, newSt) = foldl' aux (D.empty, istate) (B.unpack bs)
   aux (fs,st) w =
@@ -89,8 +89,8 @@ encode ws = B.pack $ D.toList $ fbo .: (go ws .++ fbo)
 
 -- Helpers
 
-(.:) :: a -> D.DList a -> DList a
+(.:) :: a -> D.DList a -> D.DList a
 (.:) = D.cons
 
-(.++) :: D.DList a -> a -> DList a
+(.++) :: D.DList a -> a -> D.DList a
 (.++) = D.snoc
