@@ -17,6 +17,7 @@ import Ivory.Tower.StateMachine
 
 import Ivory.BSP.STM32F4.UART
 import Ivory.BSP.STM32F4.GPIO
+import Ivory.BSP.STM32F4.RCC
 
 select_pins :: [GPIOPin]
 select_pins = [ pinC4, pinC5, pinA0, pinA1 ]
@@ -48,7 +49,7 @@ select_set_all v = mapM_ act select_pins
   where -- Active Low:
   act pin = ifte_ v (pinClear pin) (pinSet pin)
 
-motorControlTower :: (SingI n, IvoryArea a, IvoryZero a)
+motorControlTower :: (SingI n, IvoryArea a, IvoryZero a, BoardHSE p)
              => (forall s cs . ConstRef s a
                   -> Ivory (AllocEffects cs)
                        (ConstRef (Stack cs) (Array 4 (Stored IFloat))))

@@ -13,6 +13,7 @@ import Ivory.Tower
 import Ivory.Tower.StateMachine
 import Ivory.Tower.Frontend
 
+import Ivory.BSP.STM32F4.RCC (BoardHSE)
 import qualified Ivory.HW.SearchDir          as HW
 import qualified Ivory.BSP.STM32F4.SearchDir as BSP
 
@@ -25,7 +26,7 @@ main = compilePlatforms conf (motorPlatforms app)
   where
   conf = searchPathConf [ HW.searchDir, BSP.searchDir ]
 
-app :: (RawMotorControl p) => Tower p ()
+app :: (RawMotorControl p, BoardHSE p) => Tower p ()
 app = do
   c <- channel
   rawMotorControl (snk c)
