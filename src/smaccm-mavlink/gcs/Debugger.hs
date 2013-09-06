@@ -2,14 +2,10 @@
 -- Mavlink (1.0) parser.
 module Debugger where
 
-import qualified Data.Char as C
-import Data.List (lookup)
 import Numeric (showHex)
 import Control.Monad
 
-import qualified Data.ByteString as B
 import Data.Word
-import System.Hardware.Serialport
 
 -- Important!  Magic CRCs that are target-specific.
 import SMACCMPilot.Mavlink.Messages (messageLensCRCs)
@@ -46,6 +42,7 @@ data Tag = Start
          | Skip
          deriving (Eq, Show)
 
+emptyDebuggerState :: DebuggerState
 emptyDebuggerState = DebuggerState False 0 0 0 0
 
 debuggerLoop :: [Word8]
@@ -65,12 +62,12 @@ processByte :: Verboseness
 processByte v (s,results) b = do
   let (res, s') = parseByte s b
       res'      = res:results
-      print     = printProcessed v (reverse res') >> return (s', [])
+      prt       = printProcessed v (reverse res') >> return (s', [])
       continue  = return (s', res:results)
   case res_t res of
-    Skip   -> print
-    Fail _ -> print
-    CRC2   -> print
+    Skip   -> prt
+    Fail _ -> prt
+    CRC2   -> prt
     _      -> continue
 
 parseByte :: DebuggerState -> Word8 -> (Result, DebuggerState)
@@ -93,7 +90,7 @@ parseByte s b =
                                          ++ show (crc_lo s')
                  7 -> if b == (crc_hi s)
                          then res CRC2 emptyDebuggerState
-                         else res $ (Fail "invalid crc_hi: expected "
+                         else res (Fail $ "invalid crc_hi: expected "
                                           ++ show (crc_hi s))
                                   emptyDebuggerState
                  _ -> res (Payload (off - 6)) (next b s)
