@@ -43,6 +43,10 @@ library
                        SMACCMPilot.Flight.UserInput.Decode,
                        SMACCMPilot.Flight.UserInput.Task,
 
+                       SMACCMPilot.Param,
+                       SMACCMPilot.Param.Base,
+                       SMACCMPilot.Param.Tower,
+
                        SMACCMPilot.Console,
                        SMACCMPilot.SafePack
 
