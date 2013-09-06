@@ -1,99 +1,19 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-
-
-Read serial, perform encryption/decryption, and pass data between mavproxy.py
-and SMACCMPilot.
-
-Here's the architecture:
-
-------------  TCP  ------------------  Serial  ---------------
-| mavproxy |  -->  | commsec-server |    -->   | SMACCMPilot |
-------------  <--  ------------------    <--   ---------------
-
-Inside the commsec-server (this module) is the following:
-
-        ---------------------------------------
-        |               fromSerMVar            |
-        |               ---------->            |
-        | SerialHandler             TCPHandler |
-        |               fromTCPMVar            |
-        |               <----------            |
-        ---------------------------------------
-
-The two handlers talk back and forth via MVars.
-
-Inside each handler are two data buffers.  For example, in the TCPHandler, we
-have
-                           ------------------------
-  to mavproxy (plaintext)  |                      | fromSerMVar (encrypted)
- <-------------------------|-- buffer (pkgSize) <-|------------------------
- from mavproxy (plaintext) |                      | fromTCPMVar (plaintext)
- --------------------------|-> buffer (msgSize) --|----------------------->
-                           |                      |
-                           ------------------------
-
-and in the SerialHandler we have
-
-                              ------------------------
-  to SMACCMPilot (encrypt)    |                      | fromTCPMVar (plaintext)
- <----------------------------|-- buffer (msgSize) <-|------------------------
- from SMACCMPilot (encrypted) |                      | fromSerMVar (encrypted)
- -----------------------------|-> buffer (pkgSize) --|----------------------->
-                              |                      |
-                              ------------------------
-
-The buffers accumulate data until we have a package big enough to encrypt and
-send over.  Note that buffers from the MVars buffer an entire package (including
-the header) and not just the message itself.
-
-------------------
-- Message format -
-------------------
-
-Encrypted messages sent to the autopilot or to the GCS from the CommsecServer
-are fixed-width byte-arrays set by the pkgSize constant.  It containts the
-header, consisting of an identifier (8 bytes) and a counter (8 bytes), and the
-encrypted message:
-
-  --------------------
-  | id | cnter | msg |
-  --------------------
-
-These messages are framed by the hxstream protocol to encode the beginning and
-end of the payload to enable resynchronization in case of dropped bytes:
-
-  -------------------------------------------
-  | 0x7e | encoded(id | cnter | msg) | 0x7e |
-  -------------------------------------------
-
-Note that the hxstream protocol does a slight encoding of the payload, but there
-is no CRC, etc.
-
-XXX We probabilisticaly assume the data array is large enough to hold.
-
--}
-
--- XXX Fix buffer sizes and where encryption/decryption happens.
 
 module Main where
 
-import           Data.Maybe
 import           Text.Printf
 import           System.Environment
 import           Control.Monad
 import qualified Network.Simple.TCP         as S
 import qualified Network.Socket             as N
 import qualified System.Hardware.Serialport as P
-
 import qualified Control.Concurrent         as C
 import qualified Control.Concurrent.MVar    as M
-import qualified Data.ByteString.Char8      as B
-import qualified Data.ByteString            as Y
-
+import qualified Data.ByteString            as B
+import qualified Data.ByteString.Char8      as C8
 import           Data.Word
-import qualified Data.Array.IO.Safe         as A
-import qualified Data.Ix                    as I
-
+import qualified Data.HXStream              as H
 import           Commsec
 
 --------------------------------------------------------------------------------
@@ -101,128 +21,138 @@ import           Commsec
 
 -- Number of bytes we're going to encrypt: 128 chunks minus 8 bytes for the
 -- header (stationID | counter) and 8 bytes for the tag.
-pkgSize, msgSize :: Int
-pkgSize = 128
-msgSize = pkgSize - 8 - 8
+pkgLen, msgLen :: Int
+pkgLen = 24
+msgLen = pkgLen - 8 - 8
 
 uavID, baseID :: BaseId
 uavID  = 0
 baseID = 0
 
-uavToBaseKey, baseToUavKey :: Y.ByteString
-uavToBaseKey = Y.pack [0..15    :: Word8]
-baseToUavKey = Y.pack [15,14..0 :: Word8]
+uavToBaseKey, baseToUavKey :: B.ByteString
+uavToBaseKey = B.pack [0..15    :: Word8]
+baseToUavKey = B.pack [15,14..0 :: Word8]
 
 b2uSalt, u2bSalt :: Word32
 b2uSalt = 9219834
 u2bSalt = 284920
 
-type Ix = Int
-
--- Unboxed IOArray
-type MsgBuf = A.IOUArray Ix Word8
-
-initMsgBuf :: Int -> IO MsgBuf
-initMsgBuf sz = A.newArray_ (0, sz-1)
-
 initializeBase :: IO Context
 initializeBase = secPkgInit_HS baseID u2bSalt uavToBaseKey b2uSalt baseToUavKey
 
-bufReady :: MsgBuf -> Ix -> IO Bool
-bufReady arr i = do
-  rng <- A.getBounds arr
-  return $ not (I.inRange rng i)
-
-extractBuf :: MsgBuf -> IO Y.ByteString
-extractBuf buf = A.getElems buf >>= return . Y.pack
-
--- Fill up the buffer, returning values we couldn't fit in and the new index.
-writesArray :: MsgBuf -> Ix -> Y.ByteString -> IO (Y.ByteString, Ix)
-writesArray buf ix bs = do
-  top             <- return . (+1) . snd =<< A.getBounds buf
-  let wrds         = Y.unpack bs
-  let wrdsLen      = length wrds
-  let remainingBuf = top - ix
---  if remainingBuf >= wrdsLen
---    then inBuf wrds >> return (Y.empty, ix + wrdsLen)
-  inBuf (take remainingBuf wrds)
-  return ( Y.drop remainingBuf bs, min top (ix + wrdsLen))
-  where
-  inBuf wrds = mapM_ (\(i, v) -> A.writeArray buf i v) (zip [ix, ix+1 ..] wrds)
+type MVar = M.MVar B.ByteString
 
 --------------------------------------------------------------------------------
+-- Frame Mavlink packets
 
--- Buffered handler.  The first action is the action to perform when the buffer
--- is full and the second is the action to perform to fill the buffer.
-bufferedExec :: Int
-             -> (Y.ByteString -> IO ())
-             -> IO (Maybe Y.ByteString)
-             -> IO ()
-bufferedExec sz fullAction fillAction = do
-  buf <- initMsgBuf sz
-  loop buf Y.empty 0
-  where
-  loop buf bytes ix = do
-    ready <- bufReady buf ix
-    if ready
-      then do
-        pkg <- extractBuf buf
-        fullAction pkg
-        -- Now put any leftover bytes into our buffer.
-        (remB, ix') <- writesArray buf 0 bytes
-        loop buf remB ix'
-      else do
-        bs <- fillAction
-        -- If there's anything, put them in the buffer.
-        (remB, ix') <- maybe (return (bytes, ix))
-                             (writesArray buf ix)
-                             bs
-        loop buf remB ix'
+-- | Parse Mavlink packets.  Returns the nexted parsed packet and the rest of
+-- the bytestream.  Packets that are too big or malformed are dropped.
+parseMavLinkStream :: B.ByteString -> (Maybe B.ByteString, B.ByteString)
+parseMavLinkStream bs = (Just (B.take 5 bs), B.drop 5 bs) -- XXX
+
+-- XXX
+-- | Pad messages to make them msgLen bytes.  Assume messages are no greater
+-- than msgLen.
+padMsg :: B.ByteString -> B.ByteString
+padMsg bs =
+  let len = B.length bs in
+  if len > msgLen then error "padMsg requires messages <= msgLen."
+  else B.append bs $ B.replicate (msgLen - len) 0
 
 --------------------------------------------------------------------------------
+-- Encrypt/decrypt AES-GCM packets
 
--- Helper decrypt function.
-decFrom :: Context -> (Y.ByteString -> IO ()) -> Y.ByteString -> IO ()
-decFrom ctx action pkg = do
+-- | Decrypt function.
+decrypt :: Context -> B.ByteString -> IO (Maybe B.ByteString)
+decrypt ctx pkg = do
   msg <- secPkgDec_HS ctx pkg
-  when (isNothing msg) (putStrLn "Decryption failed!")
-  maybeUnit action msg
+  maybe (putStrLn "Warning: decryption failed!" >> return Nothing)
+        (return . Just)
+        msg
 
--- Helper encrypt function.
-encTo :: Context -> (Y.ByteString -> IO ()) -> Y.ByteString -> IO ()
-encTo ctx action bs = do
+-- | Encrypt function.
+encrypt :: Context -> B.ByteString -> IO (Maybe B.ByteString)
+encrypt ctx bs = do
   pkg <- secPkgEncInPlace_HS ctx bs
-  when (isNothing pkg) (putStrLn "Warning! GCS encryption failed!")
-  maybeUnit action pkg
+  maybe (putStrLn "Warning: encryption failed!" >> return Nothing)
+        (return . Just)
+        pkg
+
+--------------------------------------------------------------------------------
+-- Decoding logic for incoming streams.
+
+-- | Forever take an incoming bytestream, decodes the hxstream, decrypts it, and
+-- sends the message on an outbound channel.
+streamDecode ::
+     IO (Maybe B.ByteString)                   -- ^ bytestream source channel
+  -> (B.ByteString -> IO (Maybe B.ByteString)) -- ^ decryption
+  -> (B.ByteString -> IO ())                   -- ^ sink channel for decrypted msgs
+  -> IO ()
+streamDecode rx dec tx = loop H.emptyStreamState
+  where
+  loop st =
+    -- Yield if rx doesn't yield any bytes
+    maybe (C.yield >> loop st) withMsg =<< rx
+    where
+    withMsg bs = do
+      let (frames, newSt) = H.decode bs st
+      mapM_ (go newSt) frames
+      loop newSt
+  go st bs = dec bs >>= maybe (loop st) sendMsg
+    where
+    sendMsg msg =
+      if B.length msg > msgLen
+        then do
+          putStrLn "streamDecode: message greater than msgLen: frame dropped."
+          loop st
+      else tx msg >> loop st
+
+--------------------------------------------------------------------------------
+-- Encoding logic for outgoing streams.
+
+-- | Take a bytestream source for Mavlink packets, frame them checking that
+-- they're small enough, encrypt them, and then frame with hxstream.
+streamEncode ::
+     IO (Maybe B.ByteString)                   -- ^ bytestream source channel
+  -> (B.ByteString -> IO (Maybe B.ByteString)) -- ^ encryption
+  -> (B.ByteString -> IO ())                   -- ^ bytestream sink channel
+  -> IO ()
+streamEncode rx enc tx = loop B.empty
+  where
+  loop buf =
+    -- Yield if rx doesn't yield any bytes
+    maybe (C.yield >> loop buf) withMsg =<< rx
+    where
+    encode = H.encode . B.unpack
+    withMsg msg = go $ parseMavLinkStream (buf `B.append` msg)
+      where
+      go (mmavPacket, rst) =
+        maybe loopRst goEnc mmavPacket
+        where
+        loopRst = loop rst
+        -- Try to encrypt and encode then transmit; just loop if it fails
+        goEnc msg = enc msg >>= maybe loopRst (tx . encode) >> loopRst
 
 --------------------------------------------------------------------------------
 -- Set up TCP server for mavproxy
 
 runTCP :: N.HostName
        -> N.ServiceName
-       -> M.MVar B.ByteString
-       -> M.MVar B.ByteString
+       -> MVar
+       -> MVar
        -> IO ()
 runTCP host port fromMavMVar fromSerMVar =
   S.serve (S.Host host) port $ \(mavSocket, _) -> do
     putStrLn "Connected to mavproxy client..."
-
     ctx <- initializeBase
-    -- To TCP socket:
-    -- When the buffer is full, send to the socket.  Fill with bytes from the
-    -- serial MVar.
-    _   <- C.forkIO $ bufferedExec
-                        pkgSize
-                        (decFrom ctx (S.send mavSocket))
+    _   <- C.forkIO $ streamDecode
                         (M.tryTakeMVar fromSerMVar)
-
-    -- To Serial:
-    -- When the buffer is full, put bytes into the outbound MVar.  Fill the
-    -- buffer by receiving bytes from the socket.
-    bufferedExec
-      msgSize
-      (encTo ctx (M.putMVar fromMavMVar))
+                        (decrypt ctx)
+                        (S.send mavSocket)
+    streamEncode
       (S.recv mavSocket maxBytes)
+      (encrypt ctx)
+      (M.putMVar fromMavMVar)
 
 --------------------------------------------------------------------------------
 -- Set up serial
@@ -251,28 +181,22 @@ runSerial port fromMavMVar fromSerMVar =
 initializeUAV :: IO Context
 initializeUAV = secPkgInit_HS uavID b2uSalt baseToUavKey u2bSalt uavToBaseKey
 
-runSerial :: FilePath -> M.MVar B.ByteString -> M.MVar B.ByteString -> IO ()
+runSerial :: FilePath
+          -> MVar
+          -> MVar
+          -> IO ()
 runSerial port fromMavMVar fromSerMVar =
   S.serve (S.Host "127.0.0.1") "6001" $ \(testSocket, _) -> do
     putStrLn "Connected to testing client..."
-
     ctx <- initializeUAV
-
-    -- To serial socket:
-    -- When the buffer is full, send to the socket.  Fill with bytes from the
-    -- fromMavMVar.
-    _  <- C.forkIO $ bufferedExec
-                       pkgSize
-                       (decFrom ctx (S.send testSocket))
+    _  <- C.forkIO $ streamDecode
                        (M.tryTakeMVar fromMavMVar)
-
-    -- To TCP:
-    -- When the buffer is full, put bytes into the outbound MVar.  Fill the
-    -- buffer by receiving bytes from the socket.
-    bufferedExec
-      msgSize
-      (encTo ctx (M.putMVar fromSerMVar))
+                       (decrypt ctx)
+                       (S.send testSocket)
+    streamEncode
       (S.recv testSocket maxBytes)
+      (encrypt ctx)
+      (M.putMVar fromSerMVar)
 
 --------------------------------------------------------------------------------
 
@@ -293,8 +217,8 @@ run [host, port, serialPort] = do
 
   putStrLn "Enter to exit."
 
-  fromMavProxyMVar <- M.newEmptyMVar :: IO (M.MVar B.ByteString)
-  fromSerialMVar   <- M.newEmptyMVar :: IO (M.MVar B.ByteString)
+  fromMavProxyMVar <- M.newEmptyMVar :: IO MVar
+  fromSerialMVar   <- M.newEmptyMVar :: IO MVar
 
   -- Run the serial device server in a separate thread.
   _ <- C.forkIO (runSerial serialPort fromMavProxyMVar fromSerialMVar)
@@ -324,3 +248,4 @@ theTimeout = 100
 
 maybeUnit :: (a -> IO b) -> Maybe a -> IO ()
 maybeUnit f = maybe (return ()) (void . f)
+
