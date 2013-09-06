@@ -11,7 +11,7 @@
 # Written by Pat Hickey <pat@galois.com>, January 08, 2013
 #
 
-$(eval $(call tower_pkg,IVORY_PKG_COPTER_MOTOR_HW_TEST,px4ioar-hw-test-gen))
+$(eval $(call tower_pkg,IVORY_PKG_COPTER_MOTOR_HW_TEST,copter-motor-test-gen))
 
 APP_COPTER_MOTOR_HW_TEST_IMG          := copter-motor-test
 APP_COPTER_MOTOR_HW_TEST_OBJECTS      := main.o
