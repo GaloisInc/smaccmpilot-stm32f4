@@ -27,7 +27,7 @@ default: $(CONFIG_DEFAULT_TARGET)
 
 allplatforms:
 	@for platform in $(PLATFORMS); do \
-		if [ -a mk/platform/platform_$$platform.mk ] ; then \
+		if [ -e mk/platform/platform_$$platform.mk ] ; then \
 			echo building for platform $$platform; \
 			make -f mk/main.mk $(MQUIET) $(TARGET) CONFIG_PLATFORM=$$platform; \
 		else \
