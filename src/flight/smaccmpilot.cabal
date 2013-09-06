@@ -44,8 +44,6 @@ library
                        SMACCMPilot.Flight.UserInput.Task,
 
                        SMACCMPilot.Console,
-                       SMACCMPilot.Storage.Partition,
-                       SMACCMPilot.Param,
                        SMACCMPilot.SafePack
 
   other-modules:       Arm32SizeMap

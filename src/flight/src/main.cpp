@@ -18,7 +18,6 @@
 #include <AP_HAL_SMACCM/AP_HAL_SMACCM.h>
 #include <AP_Math/AP_Math.h>
 
-#include <flight/storage_partition.h>
 #include <flight/tower.h>
 
 const AP_HAL::HAL& hal = AP_HAL_SMACCM;
@@ -26,53 +25,10 @@ const AP_HAL::HAL& hal = AP_HAL_SMACCM;
 // Handle to the main thread.
 static xTaskHandle g_main_task;
 
-// Hex dump the contents of a partition to the console.
-void dump_partition(int pid)
-{
-    static uint8_t buf[512];
-    uint16_t size = partition_size(pid);
-
-    if (size > sizeof(buf))
-        size = sizeof(buf);
-
-    if (!partition_read(pid, 0, buf, size)) {
-        hal.console->printf("error: reading partition %d failed\r\n", pid);
-        return;
-    }
-
-    hal.console->printf("\r\nDump of partition %d:\r\n", pid);
-
-    for (uint16_t i = 0; i < size; i += 16) {
-        hal.console->printf("%04x:", i);
-
-        for (uint16_t j = 0; j < 16; ++j) {
-            if ((j % 8) == 0) {
-                hal.console->write(" ");
-            }
-
-            hal.console->printf("%02x ", buf[i+j]);
-        }
-
-        hal.console->write("  |");
-
-        for (uint16_t j = 0; j < 16; ++j) {
-            if (isprint(buf[i+j]))
-                hal.console->printf("%c", buf[i+j]);
-            else
-                hal.console->write('.');
-        }
-
-        hal.console->write("|\r\n");
-    }
-}
-
 // Initialize the HAL and sub-tasks before the main loop.
 void init(void)
 {
     hal.init(0, NULL);
-
-    param_load();               // XXX param_init
-
     tower_entry();
 }
 

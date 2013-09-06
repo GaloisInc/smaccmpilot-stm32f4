@@ -24,8 +24,6 @@ import qualified SMACCMPilot.Flight.Types.UserInput     as U
 import qualified SMACCMPilot.Flight.Types.FlightMode    as FM
 import qualified SMACCMPilot.Flight.Types.DataRate      as R
 
-import qualified SMACCMPilot.Param as Param
-
 import SMACCMPilot.Mavlink.Send
 import SMACCMPilot.Mavlink.Senders
 
@@ -62,9 +60,9 @@ data MessageDriver =
                           . Def ('[ (Ref s1 (Struct "position_result"))
                                   , (Ref s2 (Struct "sensors_result"))
                                   ] :-> ())
-    , sendParamValue     :: forall s
-                          . Def ('[ Ref s (Struct "param_info") ] :-> ())
-    , sendParams         :: Def ('[] :-> ())
+--    , sendParamValue     :: forall s
+--                          . Def ('[ Ref s (Struct "param_info") ] :-> ())
+--    , sendParams         :: Def ('[] :-> ())
     , sendDataRate       :: forall s
                           . Def ('[ Ref s (Struct "data_rate_state") ] :-> ())
     }
@@ -80,8 +78,8 @@ moddefs d = do
   incl (sendServoOutputRaw d)
   incl (sendGpsRawInt d)
   incl (sendGlobalPositionInt d)
-  incl (sendParamValue d)
-  incl (sendParams d)
+--  incl (sendParamValue d)
+--  incl (sendParams d)
   incl (sendDataRate d)
   -- dependencies for all the smaccmpilot flight types
   depend stdlibStringModule
@@ -91,7 +89,6 @@ moddefs d = do
   depend C.controlOutputTypeModule
   depend U.userInputTypeModule
   depend FM.flightModeTypeModule
-  depend Param.paramModule
   depend R.dataRateTypeModule
   -- dependencies for all the mavlink message types
   depend HB.heartbeatModule
@@ -116,8 +113,6 @@ messageDriver sender = (driver, [driverMod,  msgMod])
       , sendServoOutputRaw    = mkSendServoOutputRaw msgSenders
       , sendGpsRawInt         = mkSendGpsRawInt msgSenders
       , sendGlobalPositionInt = mkSendGlobalPositionInt msgSenders
-      , sendParamValue        = mkSendParamValue msgSenders
-      , sendParams            = mkSendParams msgSenders
       , sendDataRate          = mkSendDataRate msgSenders
       }
   driverMod = package ("gcs_transmit_driver_" ++ (mavlinkSenderName sender))
@@ -325,6 +320,7 @@ mkSendGlobalPositionInt senders = proc "gcs_transmit_send_global_position_int" $
   call_ (globalPositionIntSender senders) (constRef msg)
   retVoid
 
+{-
 mkSendParamValue :: MavlinkMessageSenders
                -> Def ('[ Ref s1 (Struct "param_info") ] :-> ())
 mkSendParamValue senders = proc "gcs_transmit_send_param_value" $
@@ -350,3 +346,4 @@ mkSendParams senders = proc "gcs_transmit_send_params" $ body $ do
              store (info ~> Param.param_requested) 0
              call_ (mkSendParamValue senders) info)
           retVoid
+-}

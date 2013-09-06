@@ -12,8 +12,6 @@ import Data.String
 import Ivory.Language
 import Ivory.Stdlib
 
-import SMACCMPilot.Param
-
 controlPIDModule :: Module
 controlPIDModule = package "control_pid" $ do
   defStruct (Proxy :: Proxy "PID")
@@ -73,15 +71,4 @@ fconstrain = proc "fconstrain" $ \xmin xmax x -> body $
     (ifte_ (x >? xmax)
       (ret xmax)
       (ret x)))
-
--- | Define a group of parameters for a PID controller.
-pid_param_init :: String -> Ref Global (Struct "PID") -> Ivory eff ()
-pid_param_init name pid = do
-  param_init (fromString $ name ++ "_P")    (pid ~> pid_pGain)
-  param_init (fromString $ name ++ "_I")    (pid ~> pid_iGain)
-  param_init (fromString $ name ++ "_D")    (pid ~> pid_dGain)
-  param_init (fromString $ name ++ "_IMAX") (pid ~> pid_iMax)
-
-instance ParamInit (Struct "PID") where
-  param_init = pid_param_init
 

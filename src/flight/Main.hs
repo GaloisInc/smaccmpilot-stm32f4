@@ -25,9 +25,7 @@ import SMACCMPilot.Flight.GCS.Tower
 
 import qualified SMACCMPilot.Hardware.PX4IOAR as PX4IOAR
 
-import SMACCMPilot.Param (paramModule)
 import SMACCMPilot.Console (consoleModule)
-import SMACCMPilot.Storage.Partition (partitionModule)
 
 import SMACCMPilot.Mavlink.Messages (mavlinkMessageModules)
 import SMACCMPilot.Mavlink.Pack (packModule)
@@ -97,10 +95,7 @@ otherms = concat
   ] ++
   [ packModule
   , mavlinkCRCModule
-  -- Param and related helpers:
-  , paramModule
   , consoleModule
-  , partitionModule
   -- hwf4 bsp is used for I2C, EEPROM
   , HWF4.eepromModule
   , HWF4.i2cModule

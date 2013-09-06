@@ -15,14 +15,10 @@ import           SMACCMPilot.Mavlink.Unpack
 
 import           SMACCMPilot.Flight.GCS.Stream (updateGCSStreamPeriods)
 
-import qualified SMACCMPilot.Param as P
-
 paramRequestList :: Ref s (Struct "param_request_list_msg") -> Ivory eff ()
-paramRequestList _ = do
-  count <- deref P.param_count_ref
-  arrayMap $ \ix -> do
-    when (ix <? count) $ do
-      store ((P.param_info_ref ! ix) ~> P.param_requested) 1
+paramRequestList _ =
+  -- XXX need to implement.
+  return ()
 
 paramRequestRead :: Ref s (Struct "param_request_read_msg") -> Ivory eff ()
 paramRequestRead _ =
@@ -64,5 +60,4 @@ handle handler rxstate = do
 handlerModuleDefs :: ModuleDef
 handlerModuleDefs = do
   mapM_ depend mavlinkMessageModules
-  depend P.paramModule
 
