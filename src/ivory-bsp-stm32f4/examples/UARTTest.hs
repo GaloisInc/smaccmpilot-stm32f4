@@ -1,3 +1,4 @@
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -24,6 +25,7 @@ import qualified Ivory.BSP.STM32F4.SearchDir as BSP
 
 import Ivory.BSP.STM32F4.UART
 import Ivory.BSP.STM32F4.UART.Peripheral
+import Ivory.BSP.STM32F4.RCC
 
 ledPins :: [GPIOPin]
 ledPins = [pinB14, pinB15]
@@ -44,9 +46,15 @@ ledOn pin = do
 ledOff :: GPIOPin -> Ivory eff ()
 ledOff pin = pinSetMode pin gpio_mode_analog
 
+-- We don't have a real Tower frontend for this build
+-- so I'm going to do something unsightly:
+data DummyHSE = DummyHSE
+instance BoardHSE DummyHSE where
+  hseFreq _ = 24000000
+
 main_task :: Def ('[Ptr s (Stored Uint8)] :-> ())
 main_task = proc "main_task" $ \_ -> body $ do
-  uartInit uart1 115200
+  uartInit uart1 (Proxy :: Proxy DummyHSE) 115200
   mapM_ ledSetupPin ledPins
   forever $ do
     call_ taskDelay 250
