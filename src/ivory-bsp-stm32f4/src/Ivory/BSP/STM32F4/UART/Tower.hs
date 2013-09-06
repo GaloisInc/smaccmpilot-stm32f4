@@ -18,8 +18,10 @@ import Ivory.BSP.STM32F4.Interrupt
 import Ivory.BSP.STM32F4.GPIO
 import Ivory.BSP.STM32F4.UART.Regs
 import Ivory.BSP.STM32F4.UART.Peripheral
+import Ivory.BSP.STM32F4.RCC
 
-uartTower :: (SingI n, SingI m)
+uartTower :: forall n m p
+           . (SingI n, SingI m, BoardHSE p)
           => UART -> Integer
           -> Tower p (ChannelSink n (Stored Uint8), ChannelSource m (Stored Uint8))
 uartTower uart baud = do
@@ -37,7 +39,7 @@ uartTower uart baud = do
   -- runs the UART Interrupt Service Routine
   signal "uartISR" $ do
     signalInit $ do
-      uartInit    uart (fromIntegral baud)
+      uartInit    uart (Proxy :: Proxy p) (fromIntegral baud)
       uartInitISR uart max_syscall_priority
     o <- withChannelReceiver snk_ostream "ostream"
     i <- withChannelEmitter  src_istream "istream"

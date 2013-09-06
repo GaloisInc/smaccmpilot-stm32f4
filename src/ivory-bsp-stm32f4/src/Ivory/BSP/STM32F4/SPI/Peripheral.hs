@@ -136,8 +136,9 @@ spiDeviceInit dev = do
   pinSetOutputType  pin gpio_outputtype_pushpull
   pinSetSpeed       pin gpio_speed_2mhz
 
-spiDeviceBegin :: (GetAlloc eff ~ Scope s) => SPIDevice -> Ivory eff ()
-spiDeviceBegin dev = do
+spiDeviceBegin :: (GetAlloc eff ~ Scope s, BoardHSE p)
+               => Proxy p -> SPIDevice -> Ivory eff ()
+spiDeviceBegin platform dev = do
   spiBusEnable
   spiDeviceSelect dev
   -- Enable transfer interrupts:
@@ -150,7 +151,7 @@ spiDeviceBegin dev = do
     spiClearCr1         periph
     spiClearCr2         periph
     spiModifyCr1        periph [ spi_cr1_mstr, spi_cr1_ssm, spi_cr1_ssi ] true
-    baud <- spiDevBaud  periph (spiDevClockHz dev)
+    baud <- spiDevBaud  platform periph (spiDevClockHz dev)
     spiSetBaud          periph baud
     spiSetClockPolarity periph (spiDevClockPolarity dev)
     spiSetClockPhase    periph (spiDevClockPhase    dev)
@@ -188,10 +189,10 @@ spiSetDR spi b =
 
 -- Internal Helper Functions ---------------------------------------------------
 
-spiDevBaud :: (GetAlloc eff ~ Scope s)
-           => SPIPeriph -> Integer -> Ivory eff SPIBaud
-spiDevBaud periph hz = do
-  fplk <- getFreqPClk (spiPClk periph)
+spiDevBaud :: (GetAlloc eff ~ Scope s, BoardHSE p)
+           => Proxy p -> SPIPeriph -> Integer -> Ivory eff SPIBaud
+spiDevBaud platform periph hz = do
+  fplk <- getFreqPClk platform (spiPClk periph)
   let bestWithoutGoingOver = foldl aux spi_baud_div_256 tbl
       target = fromIntegral hz
       aux k (br, brdiv) =

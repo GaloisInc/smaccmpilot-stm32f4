@@ -101,9 +101,9 @@ initPin p af = do
   pinSetMode       p gpio_mode_af
 
 -- | Set the BRR register of a UART given a baud rate.
-setBaudRate :: (GetAlloc eff ~ Scope s) => UART -> Uint32 -> Ivory eff ()
-setBaudRate uart baud = do
-  pclk    <- assign =<< getFreqPClk (uartPClk uart)
+setBaudRate :: (GetAlloc eff ~ Scope s, BoardHSE p) => UART -> Proxy p -> Uint32 -> Ivory eff ()
+setBaudRate uart platform baud = do
+  pclk    <- assign =<< getFreqPClk platform (uartPClk uart)
   cr1     <- getReg (uartRegCR1 uart)
   isOver8 <- assign (bitToBool (cr1 #. uart_cr1_over8))
   ipart   <- assign ((25 * pclk) `iDiv` (baud * (isOver8 ? (2, 4))))
@@ -139,15 +139,16 @@ setParity uart x =
     setField uart_cr1_pce (boolToBit x)
 
 -- | Initialize a UART device given a baud rate.
-uartInit :: (GetAlloc eff ~ Scope s) => UART -> Uint32 -> Ivory eff ()
-uartInit uart baud = do
+uartInit :: (GetAlloc eff ~ Scope s, BoardHSE p)
+         => UART -> Proxy p -> Uint32 -> Ivory eff ()
+uartInit uart platform baud = do
   -- Enable the peripheral clock and set up GPIOs.
   rccDeviceEnable uart
   initPin (uartPinTx uart) (uartPinAF uart)
   initPin (uartPinRx uart) (uartPinAF uart)
 
   -- Initialize the baud rate and other settings.
-  setBaudRate uart baud
+  setBaudRate uart platform baud
   setStopBits uart uart_stop_bits_1_0
   setWordLen  uart uart_word_len_8
   setParity   uart false
