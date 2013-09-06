@@ -1,5 +1,5 @@
 
-module CRC
+module GCS.Mavlink.CRC
   ( crc_accumulate
   , crc_lo_hi
   , crc_init_v

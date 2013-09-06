@@ -104,23 +104,22 @@ library
                         SMACCMPilot.Mavlink.Messages.Data32,
                         SMACCMPilot.Mavlink.Messages.Data64,
                         SMACCMPilot.Mavlink.Messages.Data96,
-                        CRC
+                        GCS.Mavlink.CRC
 
   build-depends:        base >= 4.6,
                         ivory,
                         ivory-stdlib,
                         bytestring,
                         serialport
-  hs-source-dirs:       src, debugger
+  hs-source-dirs:       src, gcs
   default-language:     Haskell2010
   ghc-options:          -Wall -fno-warn-orphans
 
 executable smaccm-mavlink-debugger
 
   main-is:              Main.hs
-  other-modules:        Debugger,
-                        CRC
-  hs-source-dirs:       debugger
+  other-modules:        Debugger
+  hs-source-dirs:       gcs
 
   build-depends:        base >= 4.6,
                         bytestring,

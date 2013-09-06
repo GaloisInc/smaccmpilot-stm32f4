@@ -1,4 +1,5 @@
 
+-- Mavlink (1.0) parser.
 module Debugger where
 
 import qualified Data.Char as C
@@ -10,19 +11,19 @@ import qualified Data.ByteString as B
 import Data.Word
 import System.Hardware.Serialport
 
+-- Important!  Magic CRCs that are target-specific.
 import SMACCMPilot.Mavlink.Messages (messageLensCRCs)
-
-import CRC
+import GCS.Mavlink.CRC
 
 data Verboseness = Chatty | Quiet deriving (Eq, Show)
 
 data DebuggerState =
   DebuggerState
-    { gotMagic :: Bool
+    { gotMagic   :: Bool
     , decodedLen :: Word8
     , packetType :: Word8
     , packetOffs :: Word8
-    , crc :: Word16
+    , crc        :: Word16
     }
 
 data Result =
@@ -31,6 +32,7 @@ data Result =
     , res_t :: Tag
     } deriving (Eq, Show)
 
+-- Just for debugging.
 data Tag = Start
          | Len
          | SeqNum
@@ -46,19 +48,25 @@ data Tag = Start
 
 emptyDebuggerState = DebuggerState False 0 0 0 0
 
-debuggerLoop :: [Word8] -> (DebuggerState,[Result]) -> Verboseness -> IO (DebuggerState,[Result])
+debuggerLoop :: [Word8]
+             -> (DebuggerState,[Result])
+             -> Verboseness
+             -> IO (DebuggerState,[Result])
 debuggerLoop bs state v = foldM (processByte v) state bs
 
 printProcessed :: Verboseness -> [Result] -> IO ()
 printProcessed Chatty rs  = mapM_ (\r -> putStrLn (show r)) rs
 printProcessed Quiet rs   = putStrLn (unlines (mkQuietMsgs rs))
 
-processByte :: Verboseness -> (DebuggerState,[Result]) -> Word8 -> IO (DebuggerState,[Result])
+processByte :: Verboseness
+            -> (DebuggerState,[Result])
+            -> Word8
+            -> IO (DebuggerState,[Result])
 processByte v (s,results) b = do
   let (res, s') = parseByte s b
-      res' = res:results
-      print = printProcessed v (reverse res') >> return (s', [])
-      continue = return (s', res:results)
+      res'      = res:results
+      print     = printProcessed v (reverse res') >> return (s', [])
+      continue  = return (s', res:results)
   case res_t res of
     Skip   -> print
     Fail _ -> print
@@ -66,34 +74,40 @@ processByte v (s,results) b = do
     _      -> continue
 
 parseByte :: DebuggerState -> Word8 -> (Result, DebuggerState)
-parseByte s b = do
+parseByte s b =
   case gotMagic s of
-    True -> do
+    True ->
       case packetOffs s of
-        1 -> do res Len $ next b $ s { decodedLen = b}
+        1 -> res Len $ next b $ s { decodedLen = b}
         2 -> res SeqNum (next b s)
         3 -> res SysId  (next b s)
         4 -> res CompId (next b s)
-        5 -> do let (t, s') = validatePacketLen $ s { packetType = b }
-                res t $ next b $ s'
+        5 -> let (t, s') = validatePacketLen $ s { packetType = b } in
+             res t $ next b $ s'
         off -> case off - (decodedLen s) of
-                 6 -> let s' = withCRCExtra s 
+                 6 -> let s' = withCRCExtra s
                           r t = res t (nextNoCRC s')
                       in if b == (crc_lo s')
                          then r CRC1
-                         else r $ Fail ("invalid crc_lo: expected " ++ (show (crc_lo s')))
-                 7 -> res CRC2 emptyDebuggerState
+                         else r $ Fail $ "invalid crc_lo: expected "
+                                         ++ show (crc_lo s')
+                 7 -> if b == (crc_hi s)
+                         then res CRC2 emptyDebuggerState
+                         else res $ (Fail "invalid crc_hi: expected "
+                                          ++ show (crc_hi s))
+                                  emptyDebuggerState
                  _ -> res (Payload (off - 6)) (next b s)
                  where
                  crc_lo ss = fst (crc_lo_hi (crc ss))
                  crc_hi ss = snd (crc_lo_hi (crc ss))
                  valid expected got =
-                   if expected == got then "ok" else "bad, expected 0x" ++ (showHex got "")
+                   if expected == got then "ok"
+                   else "bad, expected 0x" ++ showHex got ""
 
     False -> do
       case b of
         254 -> res Start $ s { gotMagic = True, crc = 0xFFFF, packetOffs = 1 }
-        _ -> res Skip s
+        _   -> res Skip s
   where
   res :: Tag -> DebuggerState -> (Result, DebuggerState)
   res t ds = (Result b t, ds)
@@ -119,6 +133,7 @@ withCRCExtra s =
 
 mkQuietMsgs :: [Result] -> [String]
 mkQuietMsgs = const [] -- XXX
+
 {-
 data Tag = Start
          | Len

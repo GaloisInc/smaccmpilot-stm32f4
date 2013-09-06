@@ -2,7 +2,7 @@
 module Main where
 
 import qualified CanonicalCRC as Canonical
-import CRC
+import GCS.Mavlink.CRC
 
 import Data.Word
 import Text.Printf
