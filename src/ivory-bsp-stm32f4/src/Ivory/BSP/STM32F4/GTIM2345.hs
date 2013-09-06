@@ -10,9 +10,11 @@ module Ivory.BSP.STM32F4.GTIM2345
   , GTIM32
   , GTIM16
   , tim2
+  , tim2_32
   , tim3
   , tim4
   , tim5
+  , tim5_32
   , module Ivory.BSP.STM32F4.GTIM2345.Regs
   ) where
 

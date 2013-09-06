@@ -75,7 +75,7 @@ mkGTIM base rccfield =
     }
   where rccreg = regRCC_APB1ENR -- All TIM2345 are in APB1
 
-tim2 :: GTIM32
+tim2 :: GTIM16
 tim2 = mkGTIM tim2_periph_base rcc_apb1en_tim2
 
 tim3 :: GTIM16
@@ -84,6 +84,15 @@ tim3 = mkGTIM tim3_periph_base rcc_apb1en_tim3
 tim4 :: GTIM16
 tim4 = mkGTIM tim4_periph_base rcc_apb1en_tim4
 
-tim5 :: GTIM32
+tim5 :: GTIM16
 tim5 = mkGTIM tim5_periph_base rcc_apb1en_tim5
+
+-- Both TIM2 and TIM5 are really 32 bit timers, but you can safely make
+-- believe they are 16 bit.
+
+tim2_32 :: GTIM32
+tim2_32 = mkGTIM tim2_periph_base rcc_apb1en_tim2
+
+tim5_32 :: GTIM32
+tim5_32 = mkGTIM tim5_periph_base rcc_apb1en_tim5
 
