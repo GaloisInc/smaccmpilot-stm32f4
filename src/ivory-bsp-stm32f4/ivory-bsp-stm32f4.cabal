@@ -28,6 +28,7 @@ library
                        Ivory.BSP.STM32F4.SPI.Tower,
                        Ivory.BSP.STM32F4.I2C.Regs,
                        Ivory.BSP.STM32F4.I2C.Peripheral,
+                       Ivory.BSP.STM32F4.RCC,
                        Ivory.BSP.STM32F4.RCC.GetFreq,
                        Ivory.BSP.STM32F4.RCC.RegTypes,
                        Ivory.BSP.STM32F4.RCC.Regs,

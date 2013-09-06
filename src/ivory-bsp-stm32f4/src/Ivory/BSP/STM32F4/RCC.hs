@@ -11,6 +11,7 @@ module Ivory.BSP.STM32F4.RCC (
 
   -- * system clock frequency
   , PClk(..)
+  , BoardHSE(..)
   , getFreqSysClk
   , getFreqHClk
   , getFreqPClk1

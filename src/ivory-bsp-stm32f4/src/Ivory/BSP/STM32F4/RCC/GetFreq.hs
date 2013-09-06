@@ -21,37 +21,37 @@ import Ivory.HW
 import Ivory.BSP.STM32F4.RCC.RegTypes
 import Ivory.BSP.STM32F4.RCC.Regs
 
--- Not sure what class constraints needed to write eqBits
+class BoardHSE p where
+  hseFreq :: Proxy p -> Uint32
 
 eqBits :: (BitData a) => a -> a -> IBool
 eqBits l r = (toBits l) ==? (toBits r)
 
-hsiFreq, hseFreq :: Uint32
+hsiFreq :: Uint32
 hsiFreq = 16000000 -- from stm32f4xx.h
-hseFreq = 24000000 -- Actually depends on preprocessor value!
 
-getFreqSysClk :: (GetAlloc eff ~ Scope s)
-              => Ivory eff Uint32
-getFreqSysClk = do
+getFreqSysClk :: (GetAlloc eff ~ Scope s, BoardHSE p)
+              => Proxy p -> Ivory eff Uint32
+getFreqSysClk p = do
   cfgr <- getReg regRCC_CFGR
-  sysClkSource (cfgr #. rcc_cfgr_sws)
+  sysClkSource p (cfgr #. rcc_cfgr_sws)
 
 -- Catchall is hsiFreq, should be impossible.
-sysClkSource :: (GetAlloc eff ~ Scope s)
-             => RCC_SYSCLK -> Ivory eff Uint32
-sysClkSource sws = foldl aux (return hsiFreq) tbl
+sysClkSource :: (BoardHSE p, GetAlloc eff ~ Scope s)
+             => Proxy p -> RCC_SYSCLK -> Ivory eff Uint32
+sysClkSource p sws = foldl aux (return hsiFreq) tbl
   where aux k (v,d) = ifte (eqBits sws v) d k
         tbl = [(rcc_sysclk_hsi, return hsiFreq)
-              ,(rcc_sysclk_hse, return hseFreq)
-              ,(rcc_sysclk_pll, pllSysClk)
+              ,(rcc_sysclk_hse, return (hseFreq p))
+              ,(rcc_sysclk_pll, pllSysClk p)
               ]
 
-pllSysClk :: Ivory eff Uint32
-pllSysClk = do
+pllSysClk :: (BoardHSE p) => Proxy p -> Ivory eff Uint32
+pllSysClk p = do
   pllcfgr <- getReg regRCC_PLLCFGR
   let pllm    = safeCast $ toRep $ pllcfgr #. rcc_pllcfgr_pllm
       plln    = safeCast $ toRep $ pllcfgr #. rcc_pllcfgr_plln
-      srcFreq = (toRep (pllcfgr #. rcc_pllcfgr_pllsrc) >? 0) ? (hseFreq,hsiFreq)
+      srcFreq = (toRep (pllcfgr #. rcc_pllcfgr_pllsrc) >? 0) ? (hseFreq p,hsiFreq)
       pllvco  = (srcFreq `iDiv` pllm) * plln
       pllp    = pllpToInt $ pllcfgr #. rcc_pllcfgr_pllp
   return (pllvco `iDiv` pllp)
@@ -65,29 +65,32 @@ pllSysClk = do
           ,(rcc_pllp_div8,   8)
           ]
 
-getFreqHClk :: (GetAlloc eff ~ Scope s) => Ivory eff Uint32
-getFreqHClk = do
-  sysclk <- getFreqSysClk
+getFreqHClk :: (GetAlloc eff ~ Scope s, BoardHSE p)
+            => Proxy p -> Ivory eff Uint32
+getFreqHClk p = do
+  sysclk <- getFreqSysClk p
   cfgr <- getReg regRCC_CFGR
   return $ divideHPRE (cfgr #. rcc_cfgr_hpre) sysclk
 
-getFreqPClk1 :: (GetAlloc eff ~ Scope s) => Ivory eff Uint32
-getFreqPClk1 = do
-  sysclk <- getFreqSysClk
+getFreqPClk1 :: (GetAlloc eff ~ Scope s, BoardHSE p)
+             => Proxy p -> Ivory eff Uint32
+getFreqPClk1 p = do
+  sysclk <- getFreqSysClk p
   cfgr <- getReg regRCC_CFGR
   return $ dividePPREx (cfgr #. rcc_cfgr_ppre1) sysclk
 
-getFreqPClk2 :: (GetAlloc eff ~ Scope s) => Ivory eff Uint32
-getFreqPClk2 = do
-  sysclk <- getFreqSysClk
+getFreqPClk2 :: (GetAlloc eff ~ Scope s, BoardHSE p)
+             => Proxy p -> Ivory eff Uint32
+getFreqPClk2 p = do
+  sysclk <- getFreqSysClk p
   cfgr <- getReg regRCC_CFGR
   return $ dividePPREx (cfgr #. rcc_cfgr_ppre2) sysclk
 
 data PClk = PClk1 | PClk2
 
-getFreqPClk :: (GetAlloc eff ~ Scope s) => PClk -> Ivory eff Uint32
-getFreqPClk PClk1 = getFreqPClk1
-getFreqPClk PClk2 = getFreqPClk2
+getFreqPClk :: (GetAlloc eff ~ Scope s, BoardHSE p) => Proxy p -> PClk -> Ivory eff Uint32
+getFreqPClk p PClk1 = getFreqPClk1 p
+getFreqPClk p PClk2 = getFreqPClk2 p
 
 divideHPRE :: RCC_HPRE -> Uint32 -> Uint32
 divideHPRE hpre n = n `iDiv` divisor
