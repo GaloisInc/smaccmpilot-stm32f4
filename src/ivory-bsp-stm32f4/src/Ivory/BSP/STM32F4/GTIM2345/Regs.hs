@@ -14,12 +14,13 @@ module Ivory.BSP.STM32F4.GTIM2345.Regs where
 import Ivory.Language
 import Ivory.BitData
 import Ivory.HW
+import Ivory.BSP.STM32F4.GTIM2345.RegTypes
 
 [bitdata|
  bitdata GTIM_CR1 :: Bits 32 = gtim_cr1
   { _             :: Bits 22
   , gtim_cr1_ckd  :: Bits 2
-  , gtim_cr1_appe :: Bit
+  , gtim_cr1_arpe :: Bit
   , gtim_cr1_cms  :: Bits 2
   , gtim_cr1_dir  :: Bit
   , gtim_cr1_opm  :: Bit
@@ -109,15 +110,15 @@ import Ivory.HW
  bitdata GTIM_CCMR1_OCM    :: Bits 32 = gtim_ccmr1_ocm
   { _                      :: Bits 16
   , gtim_ccmr1_ocm_oc2ce   :: Bit
-  , gtim_ccmr1_ocm_oc2m    :: Bits 3
+  , gtim_ccmr1_ocm_oc2m    :: CCMRMode
   , gtim_ccmr1_ocm_oc2pe   :: Bit
   , gtim_ccmr1_ocm_oc2fe   :: Bit
-  , gtim_ccmr1_ocm_cc2s    :: Bit
+  , gtim_ccmr1_ocm_cc2s    :: CCSMode
   , gtim_ccmr1_ocm_oc1ce   :: Bit
-  , gtim_ccmr1_ocm_oc1m    :: Bits 3
+  , gtim_ccmr1_ocm_oc1m    :: CCMRMode
   , gtim_ccmr1_ocm_oc1pe   :: Bit
   , gtim_ccmr1_ocm_oc1fe   :: Bit
-  , gtim_ccmr1_ocm_cc1s    :: Bit
+  , gtim_ccmr1_ocm_cc1s    :: CCSMode
   }
 |]
 
@@ -126,10 +127,10 @@ import Ivory.HW
   { _                      :: Bits 16
   , gtim_ccmr1_icm_ic2f    :: Bits 4
   , gtim_ccmr1_icm_ic2psc  :: Bits 2
-  , gtim_ccmr1_icm_cc2s    :: Bits 2
+  , gtim_ccmr1_icm_cc2s    :: CCSMode
   , gtim_ccmr1_icm_ic1f    :: Bits 4
   , gtim_ccmr1_icm_ic1psc  :: Bits 2
-  , gtim_ccmr1_icm_cc1s    :: Bits 2
+  , gtim_ccmr1_icm_cc1s    :: CCSMode
   }
 |]
 
@@ -137,15 +138,15 @@ import Ivory.HW
  bitdata GTIM_CCMR2_OCM    :: Bits 32 = gtim_ccmr2_ocm
   { _                      :: Bits 16
   , gtim_ccmr2_ocm_oc4ce   :: Bit
-  , gtim_ccmr2_ocm_oc4m    :: Bits 3
+  , gtim_ccmr2_ocm_oc4m    :: CCMRMode
   , gtim_ccmr2_ocm_oc4pe   :: Bit
   , gtim_ccmr2_ocm_oc4fe   :: Bit
-  , gtim_ccmr2_ocm_cc4s    :: Bit
+  , gtim_ccmr2_ocm_cc4s    :: CCSMode
   , gtim_ccmr2_ocm_oc3ce   :: Bit
-  , gtim_ccmr2_ocm_oc3m    :: Bits 3
+  , gtim_ccmr2_ocm_oc3m    :: CCMRMode
   , gtim_ccmr2_ocm_oc3pe   :: Bit
   , gtim_ccmr2_ocm_oc3fe   :: Bit
-  , gtim_ccmr2_ocm_cc3s    :: Bit
+  , gtim_ccmr2_ocm_cc3s    :: CCSMode
   }
 |]
 
@@ -154,10 +155,10 @@ import Ivory.HW
   { _                      :: Bits 16
   , gtim_ccmr2_icm_ic4f    :: Bits 4
   , gtim_ccmr2_icm_ic4psc  :: Bits 2
-  , gtim_ccmr2_icm_cc4s    :: Bits 2
+  , gtim_ccmr2_icm_cc4s    :: CCSMode
   , gtim_ccmr2_icm_ic3f    :: Bits 4
   , gtim_ccmr2_icm_ic3psc  :: Bits 2
-  , gtim_ccmr2_icm_cc3s    :: Bits 2
+  , gtim_ccmr2_icm_cc3s    :: CCSMode
   }
 |]
 
