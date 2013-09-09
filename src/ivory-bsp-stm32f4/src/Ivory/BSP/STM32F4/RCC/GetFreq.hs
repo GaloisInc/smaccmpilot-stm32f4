@@ -77,14 +77,14 @@ getFreqPClk1 :: (GetAlloc eff ~ Scope s, BoardHSE p)
 getFreqPClk1 p = do
   sysclk <- getFreqSysClk p
   cfgr <- getReg regRCC_CFGR
-  return $ dividePPREx (cfgr #. rcc_cfgr_ppre1) sysclk
+  dividePPREx (cfgr #. rcc_cfgr_ppre1) sysclk
 
 getFreqPClk2 :: (GetAlloc eff ~ Scope s, BoardHSE p)
              => Proxy p -> Ivory eff Uint32
 getFreqPClk2 p = do
   sysclk <- getFreqSysClk p
   cfgr <- getReg regRCC_CFGR
-  return $ dividePPREx (cfgr #. rcc_cfgr_ppre2) sysclk
+  dividePPREx (cfgr #. rcc_cfgr_ppre2) sysclk
 
 data PClk = PClk1 | PClk2
 
@@ -108,8 +108,10 @@ divideHPRE hpre n = n `iDiv` divisor
         ,(rcc_hpre_div512, 512)
         ]
 
-dividePPREx :: RCC_PPREx -> Uint32 -> Uint32
-dividePPREx pprex n = n `iDiv` divisor
+dividePPREx :: RCC_PPREx -> Uint32 -> Ivory eff Uint32
+dividePPREx pprex n = do
+  d <- assign divisor
+  return (n `iDiv` d)
   where
   divisor = foldl aux 1 tbl -- Catchall is 1: none has bits 0b0xx
   aux k (ppreV, d) = (eqBits ppreV pprex) ? (d,k)
