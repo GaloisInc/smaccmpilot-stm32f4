@@ -21,8 +21,8 @@ import Ivory.BSP.STM32F4.RCC
 
 -- In microseconds:
 minPWM, maxPWM :: Uint16
-minPWM = 110000
-maxPWM = 190000
+minPWM = 1100
+maxPWM = 1900
 
 motorControlTower :: forall n a p
                    . (SingI n, IvoryArea a, IvoryZero a, BoardHSE p)
