@@ -60,10 +60,12 @@ tim_init :: (BoardHSE p, GetAlloc eff ~ Scope cs)
 tim_init platform gtim = do
   gtimRCCEnable gtim
   -- Set the timer prescaler for 1MHz operation:
-  inputFreq <- getFreqPClk1 platform
+  -- TIM2345 timer input is 2*PCLK1
+  timFreq <- (2*) `fmap` getFreqPClk1 platform
   let finput = 1000000
-      tdivider = castWith 0 $ (inputFreq `iDiv` finput) - 1
-  setReg (gtimRegPSC gtim) $ setField gtim_16_data (fromRep tdivider)
+  tdivider <- assign $ (timFreq `iDiv` finput) - 1
+  tdividerInt <- assign $ castWith 0 tdivider
+  setReg (gtimRegPSC gtim) $ setField gtim_16_data (fromRep tdividerInt)
   -- Set the auto reload at 50Hz:
   let freload = 50
       tarr = castWith 0 $ finput `iDiv` freload
