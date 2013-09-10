@@ -68,6 +68,8 @@ decodeSM b state =
       | otherwise -> appendFrame b state
     FrameComplete -> state
 
+-- | Decode an hxstream.  Returns a list of decoded frames and a state (which
+-- may contain an incompletely-decoded frame).
 decode :: B.ByteString -> StreamState -> ([B.ByteString], StreamState)
 decode bs istate = (map B.pack (D.toList fr), newSt)
   where
