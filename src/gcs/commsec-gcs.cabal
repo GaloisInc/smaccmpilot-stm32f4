@@ -11,10 +11,10 @@ copyright:           Galois, Inc.
 build-type:          Simple
 cabal-version:       >=1.8
 
-executable commsec-gcs
+library
   hs-source-dirs:      src
-  main-is:             CommsecServer.hs
-  other-modules:       Commsec
+  exposed-modules:     Commsec,
+                       Mavlink.Parser
   build-depends:       base,
                        serialport,
                        network,
@@ -25,6 +25,26 @@ executable commsec-gcs
                        crypto-cipher-types,
                        cereal,
                        pretty-hex,
-                       hxstream
+                       hxstream,
+                       smaccm-mavlink
+
+-- executable commsec-gcs
+--   hs-source-dirs:      src
+--   main-is:             CommsecServer.hs
+--   other-modules:       Commsec,
+--                        Mavlink.Parser,
+--                        Mavlink.CRC
+
+--   build-depends:       base,
+--                        serialport,
+--                        network,
+--                        network-simple,
+--                        bytestring,
+--                        unix,
+--                        cipher-aes >= 0.2.2,
+--                        crypto-cipher-types,
+--                        cereal,
+--                        pretty-hex,
+--                        hxstream
 
   ghc-options:         -Wall -O -threaded -rtsopts -with-rtsopts=-N3

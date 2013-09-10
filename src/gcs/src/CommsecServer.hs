@@ -1,3 +1,5 @@
+-- See README for information on this module.
+
 {-# LANGUAGE OverloadedStrings #-}
 
 module Main where
@@ -11,10 +13,10 @@ import qualified System.Hardware.Serialport as P
 import qualified Control.Concurrent         as C
 import qualified Control.Concurrent.MVar    as M
 import qualified Data.ByteString            as B
-import qualified Data.ByteString.Char8      as C8
 import           Data.Word
 import qualified Data.HXStream              as H
 import           Commsec
+import           Mavlink.Parser
 
 --------------------------------------------------------------------------------
 -- State machine for collecting bytes and encrypting/decrypting them.
@@ -45,12 +47,20 @@ type MVar = M.MVar B.ByteString
 --------------------------------------------------------------------------------
 -- Frame Mavlink packets
 
--- | Parse Mavlink packets.  Returns the nexted parsed packet and the rest of
--- the bytestream.  Packets that are too big or malformed are dropped.
-parseMavLinkStream :: B.ByteString -> (Maybe B.ByteString, B.ByteString)
-parseMavLinkStream bs = (Just (B.take 5 bs), B.drop 5 bs) -- XXX
+-- | Parse Mavlink packets.  Returns the parsed packets and the rest of the
+-- bytestream.  Packets that are too big or malformed are dropped.
+parseMavLinkStream :: ParseSt -> B.ByteString -> ProcessSt
+parseMavLinkStream = parseStream m
 
--- XXX
+  where
+  -- mkPkt = padMsg . B.pack
+  m = if fromIntegral (maxBound :: Word8) < pkgLen
+        then error "Pkg len must be less than 255."
+        else fromIntegral pkgLen
+
+-- Testing
+-- (Just (B.take 5 bs), B.drop 5 bs)
+
 -- | Pad messages to make them msgLen bytes.  Assume messages are no greater
 -- than msgLen.
 padMsg :: B.ByteString -> B.ByteString
@@ -117,21 +127,28 @@ streamEncode ::
   -> (B.ByteString -> IO (Maybe B.ByteString)) -- ^ encryption
   -> (B.ByteString -> IO ())                   -- ^ bytestream sink channel
   -> IO ()
-streamEncode rx enc tx = loop B.empty
+streamEncode rx enc tx = loop emptyParseSt
   where
-  loop buf =
+  loop :: ParseSt -> IO ()
+  loop ps =
     -- Yield if rx doesn't yield any bytes
-    maybe (C.yield >> loop buf) withMsg =<< rx
+    maybe (C.yield >> loop ps) withMsg =<< rx
     where
     encode = H.encode . B.unpack
-    withMsg msg = go $ parseMavLinkStream (buf `B.append` msg)
+
+    withMsg :: B.ByteString -> IO ()
+    withMsg msg = do
+      let (errs, packets, ps') = parseMavLinkStream ps msg
+      when (not $ null errs)
+        $ putStrLn ("Warning: mavlink parse errors: " ++ show errs)
+      mapM_ go packets >> loop ps'
+
       where
-      go (mmavPacket, rst) =
-        maybe loopRst goEnc mmavPacket
-        where
-        loopRst = loop rst
-        -- Try to encrypt and encode then transmit; just loop if it fails
-        goEnc msg = enc msg >>= maybe loopRst (tx . encode) >> loopRst
+      go :: [Word8] -> IO ()
+      go = goEnc . B.pack
+      -- Try to encrypt and encode then transmit.
+      goEnc :: B.ByteString -> IO ()
+      goEnc mav = enc mav >>= maybe (return ()) (tx . encode)
 
 --------------------------------------------------------------------------------
 -- Set up TCP server for mavproxy
@@ -157,27 +174,6 @@ runTCP host port fromMavMVar fromSerMVar =
 --------------------------------------------------------------------------------
 -- Set up serial
 
-speed :: P.CommSpeed
-speed = P.CS57600
-
-{-
-runSerial :: FilePath -> M.MVar B.ByteString -> M.MVar B.ByteString -> IO ()
-runSerial port fromMavMVar fromSerMVar =
-  P.withSerial port P.defaultSerialSettings { P.commSpeed = speed } $ \s -> do
-
-    _ <- C.forkIO $ forever $ do
-      -- See if there are contents in the MavLink MVar.  Don't block if none are
-      -- available.
-      mbs <- M.tryTakeMVar fromMavMVar
-      maybeUnit (P.send s) mbs
-
-    forever $ do
-      -- Maybe read some bytes.  Timeout if nothing sent.
-      mrx <- P.recv s maxBytes
-      -- Send them to the TCP thread.
-      maybeUnit (M.putMVar fromSerMVar) mrx
--}
-
 initializeUAV :: IO Context
 initializeUAV = secPkgInit_HS uavID b2uSalt baseToUavKey u2bSalt uavToBaseKey
 
@@ -197,6 +193,20 @@ runSerial port fromMavMVar fromSerMVar =
       (S.recv testSocket maxBytes)
       (encrypt ctx)
       (M.putMVar fromSerMVar)
+
+-- -- runSerialTest "/dev/ttyUSB0"
+-- runSerialTest :: FilePath -> IO ()
+-- runSerialTest port =
+--   P.withSerial port P.defaultSerialSettings { P.commSpeed = speed } $ \s -> do
+--     putStrLn "Connected to testing client..."
+--     loop emptyParseSt s
+--     where
+--     loop ps s = do
+--       rx <- P.recv s maxBytes
+--       let (errs, packets, ps') = parseMavLinkStream ps rx
+--       when (not $ null $ errs) $  putStrLn ("errs " ++ unlines errs)
+--       when (not $ null $ packets) $ putStrLn ("packets " ++ show packets)
+--       loop ps' s
 
 --------------------------------------------------------------------------------
 
@@ -236,6 +246,10 @@ run _ = error "Bad arguments."
 
 --------------------------------------------------------------------------------
 -- Misc helpers
+
+-- Serial speed
+speed :: P.CommSpeed
+speed = P.CS57600
 
 -- Number of bytes to receive at a time.
 maxBytes :: Int

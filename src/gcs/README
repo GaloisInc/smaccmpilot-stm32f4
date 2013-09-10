@@ -2,6 +2,16 @@ Read serial, perform encryption/decryption, and pass data between mavproxy.py
 and SMACCMPilot.
 
 --------------------------------------------------------------------------------
+-- Directory structure
+--------------------------------------------------------------------------------
+
+* mavlink: submodule containing mavproxy.py, the open-source ground station for
+  interpreting and generating mavlink messages.
+
+* src: smaccmpilot-specific code.
+
+
+--------------------------------------------------------------------------------
 -- Architecture
 --------------------------------------------------------------------------------
 
