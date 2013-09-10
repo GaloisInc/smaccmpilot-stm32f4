@@ -11,19 +11,20 @@ import Ivory.Tower
 import Ivory.Tower.Frontend
 import qualified Ivory.HW.SearchDir as HW
 
+import SMACCMPilot.Flight.Platforms
+
 import SMACCMPilot.Flight.Types (typeModules)
 
 import SMACCMPilot.Flight.UserInput.Decode (userInputDecodeModule)
 import SMACCMPilot.Flight.Control (controlModules)
 
 import SMACCMPilot.Flight.Control.Task
-import SMACCMPilot.Flight.Motors.Task (motorMixerTask, px4ioarMotorDecoder)
+import SMACCMPilot.Flight.Motors.Task
+import SMACCMPilot.Flight.Motors.Platforms
 import SMACCMPilot.Flight.Sensors.Task
 import SMACCMPilot.Flight.UserInput.Task
 import SMACCMPilot.Flight.BlinkTask
 import SMACCMPilot.Flight.GCS.Tower
-
-import qualified SMACCMPilot.Hardware.PX4IOAR as PX4IOAR
 
 import SMACCMPilot.Console (consoleModule)
 
@@ -42,18 +43,16 @@ import Ivory.BSP.STM32F4.RCC (BoardHSE(..))
 
 import Arm32SizeMap (sizeMap)
 
-data PX4FMU17_IOAR = PX4FMU17_IOAR
-
-instance BoardHSE PX4FMU17_IOAR where
-  hseFreq _ = 24000000
-
 main :: IO ()
-main = compile conf (app :: Tower PX4FMU17_IOAR ())
+main = compilePlatforms conf ps
   where
   sp   = searchPathConf [Stdlib.searchDir, HW.searchDir, BSP.searchDir]
   conf = sp { bc_sizemap = Just sizeMap }
+  ps   = [("px4fmu17_ioar", Twr (app :: Tower PX4FMU17_IOAR ()))
+         ,("px4fmu17_bare", Twr (app :: Tower PX4FMU17_Bare ()))
+         ]
 
-app :: (BoardHSE p) => Tower p ()
+app :: (BoardHSE p, MotorOutput p) => Tower p ()
 app = do
   (src_userinput, snk_userinput)   <- dataport
   (src_flightmode, snk_flightmode) <- dataport
@@ -73,7 +72,7 @@ app = do
   task "control"   $ controlTask snk_flightmode snk_userinput
                       snk_sensors src_control
   task "motmix"    $ motorMixerTask snk_control snk_flightmode src_motors
-  PX4IOAR.motorControlTower px4ioarMotorDecoder snk_motors
+  motorOutput snk_motors
 
   gcsTower "uart1" UART.uart1 snk_flightmode snk_sensor_state snk_position
     snk_control_state snk_motors_state

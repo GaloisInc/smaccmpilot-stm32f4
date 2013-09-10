@@ -9,7 +9,9 @@ build-type:          Simple
 cabal-version:       >= 1.10
 
 library
-  exposed-modules:     SMACCMPilot.Flight.BlinkTask,
+  exposed-modules:     SMACCMPilot.Flight.Platforms,
+
+                       SMACCMPilot.Flight.BlinkTask,
 
                        SMACCMPilot.Flight.GCS.Stream,
                        SMACCMPilot.Flight.GCS.Transmit.MessageDriver,
@@ -25,6 +27,7 @@ library
 
                        SMACCMPilot.Flight.Motors.Task,
                        SMACCMPilot.Flight.Motors.Mixing,
+                       SMACCMPilot.Flight.Motors.Platforms,
 
                        SMACCMPilot.Flight.Sensors.Task,
 

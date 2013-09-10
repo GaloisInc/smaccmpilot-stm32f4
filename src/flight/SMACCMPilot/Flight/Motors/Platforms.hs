@@ -1,0 +1,50 @@
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE DataKinds #-}
+
+module SMACCMPilot.Flight.Motors.Platforms
+  ( MotorOutput
+  , motorOutput
+  ) where
+
+import Ivory.Language
+import Ivory.Tower
+
+import SMACCMPilot.Flight.Platforms
+
+import qualified SMACCMPilot.Flight.Types.Motors as M
+import qualified SMACCMPilot.Hardware.PX4IOAR as PX4IOAR
+import qualified SMACCMPilot.Hardware.PX4FMU17 as PX4FMU17
+
+class MotorOutput p where
+  motorOutput :: forall n . (SingI n)
+              => ChannelSink n (Struct "motors") -> Tower p ()
+
+instance MotorOutput PX4FMU17_IOAR where
+  motorOutput = PX4IOAR.motorControlTower ioarMotorDecoder
+
+instance MotorOutput PX4FMU17_Bare where
+  motorOutput = PX4FMU17.motorControlTower fmuPwmMotorDecoder
+
+ioarMotorDecoder :: ConstRef s (Struct "motors")
+                 -> Ivory (AllocEffects cs)
+                       (ConstRef (Stack cs) (Array 4 (Stored IFloat)))
+ioarMotorDecoder ms = do
+  m1 <- deref (ms ~> M.frontleft)
+  m2 <- deref (ms ~> M.frontright)
+  m3 <- deref (ms ~> M.backright)
+  m4 <- deref (ms ~> M.backleft)
+  l <- local (iarray [ival m1, ival m2, ival m3, ival m4])
+  return (constRef l)
+
+fmuPwmMotorDecoder :: ConstRef s (Struct "motors")
+                   -> Ivory (AllocEffects cs)
+                         (ConstRef (Stack cs) (Array 4 (Stored IFloat)))
+fmuPwmMotorDecoder ms = do
+  m1 <- deref (ms ~> M.frontleft)
+  m2 <- deref (ms ~> M.frontright)
+  m3 <- deref (ms ~> M.backright)
+  m4 <- deref (ms ~> M.backleft)
+  l <- local (iarray [ival m1, ival m2, ival m3, ival m4]) -- XXX ORDER MIGHT BE WRONG!
+  return (constRef l)
+
+
