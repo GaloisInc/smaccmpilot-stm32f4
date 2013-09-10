@@ -108,10 +108,8 @@ decodeSM state b = do
 -- | Decode an hxstreamed array into the raw bytes.  The input array can be
 -- arbitrary size.  Decoding stops if (1) the hxstream state we're decoding into
 -- is full (2) a stop byte is encountered (the input array may contain hxstream
--- frame boundaries).  An index to the first byte not decoded is returned.  (If
--- the returned index is 0, and the hxstream state doesn't have the overflow bit
--- set, then the full array was fully decoded (assuming the input array has
--- length of 2 or greater)).
+-- frame boundaries).  An index to the first byte not decoded is returned.  The
+-- index may overflow, and point to 0 if the full input array is processed.
 decode :: SingI n =>
        Def ( '[ Ref s (Array n (Stored Uint8))
               , Ref s Hx

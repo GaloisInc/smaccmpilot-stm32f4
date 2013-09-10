@@ -13,22 +13,24 @@ library
 
   build-depends:        base >= 4.6,
                         ivory,
-                        ivory-stdlib
+                        ivory-stdlib,
+                        ivory-backend-c,
+                        QuickCheck
 
   hs-source-dirs:       src
   default-language:     Haskell2010
   ghc-options:          -Wall -fno-warn-orphans
 
-executable ivory-hxstream-test
+-- executable ivory-hxstream-test
 
-  main-is:              Main.hs
-  hs-source-dirs:       test
+--   main-is:              Main.hs
+--   hs-source-dirs:       test
 
-  build-depends:        base >= 4.6,
-                        ivory,
-                        ivory-backend-c,
-                        ivory-opts,
-                        ivory-tower,
-                        ivory-tower-freertos,
-                        ivory-hxstream
+--   build-depends:        base >= 4.6,
+--                         ivory,
+--                         ivory-backend-c,
+--                         ivory-opts,
+--                         ivory-tower,
+--                         ivory-tower-freertos,
+--                         ivory-hxstream
 
