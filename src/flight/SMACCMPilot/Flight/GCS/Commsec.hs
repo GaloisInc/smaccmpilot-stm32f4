@@ -157,7 +157,6 @@ commsecModule = package "IvoryGCM" $ do
   defConstMemArea baseToUavKey
 
   inclHeader ivoryCommsec
-  inclHeader ivoryCommsec
   incl securePkg_init
   incl securePkg_enc_in_place
   defMemArea uavPkg
