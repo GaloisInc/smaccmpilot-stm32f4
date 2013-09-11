@@ -16,7 +16,7 @@ Author: Lee Pike <leepike@galois.com>
 
 -}
 
-module IvoryGCM where
+module Main where
 
 --------------------------------------------------------------------------------
 
@@ -244,7 +244,8 @@ modulePkg = package "IvoryGCM" $ do
   incl test
 
 main :: IO ()
-main = runCompiler [modulePkg] initialOpts { stdOut = True }
+main = build
+-- runCompiler [modulePkg] initialOpts { stdOut = True }
 
 build :: IO ()
 build = runCompiler [modulePkg]

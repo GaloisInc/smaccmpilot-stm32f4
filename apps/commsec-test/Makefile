@@ -1,11 +1,11 @@
-# -*- Mode: makefile-gmake; indent-tabs-mode: t; tab-width: 2 -*-
+# -*- Mode: makefile-gmake; indent-tabs-mode: t; tab-width: 8 -*-
 
 CFLAGS        := -g -Wall
 CABAL         := cabal
 CABAL_INSTALL := $(CABAL) install
 CLIB          := aeslib
 
-all: interopTest example
+all: interopTest example ivory-example
 
 example: example.c $(CLIB)/commsec.a
 	gcc $(CFLAGS) example.c -o example $(CLIB)/commsec.a
@@ -26,7 +26,13 @@ $(CLIB)/commsec.a: $(CLIB)/aescrypt.o $(CLIB)/aescrypt.o $(CLIB)/aeskey.o \
     $(CLIB)/gf_convert.o
 	ar cr $@ $?
 
+# ------------------------------------------------------------------------------
+
 GEN := ivory-gen
+HS  := Main
+
+%.c %h:
+	../../../cabal-dev/bin/commsec-test
 
 ivory-example: ivory-example.c \
     $(GEN)/IvoryGCM.c $(GEN)/IvoryGCM.h $(GEN)/ivory.h \
@@ -47,5 +53,6 @@ clean:
 	@rm -f interopTest.chi
 	@rm -f interopTest
 	@rm -f example
+	@rm -rf ivory-gen
 
 # vim: set ft=make noet ts=2:
