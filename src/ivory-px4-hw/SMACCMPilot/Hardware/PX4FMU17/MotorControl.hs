@@ -113,9 +113,9 @@ pwm_arm gtim = do
 
 pwm_set :: GTIM16 -> Ref s (Array 4 (Stored Uint16)) -> Ivory eff ()
 pwm_set gtim chs = do
-  set_ccr (gtimRegCCR1 gtim) (chs ! 0)
-  set_ccr (gtimRegCCR2 gtim) (chs ! 1)
-  set_ccr (gtimRegCCR3 gtim) (chs ! 2)
+  set_ccr (gtimRegCCR1 gtim) (chs ! 1)
+  set_ccr (gtimRegCCR2 gtim) (chs ! 2)
+  set_ccr (gtimRegCCR3 gtim) (chs ! 0)
   set_ccr (gtimRegCCR4 gtim) (chs ! 3)
   where
   set_ccr reg chan = do
