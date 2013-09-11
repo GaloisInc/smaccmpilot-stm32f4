@@ -1,7 +1,7 @@
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE RecursiveDo #-}
 
 module SMACCMPilot.Flight.Sensors.Task
   ( sensorsTask
@@ -9,31 +9,33 @@ module SMACCMPilot.Flight.Sensors.Task
 
 import Ivory.Language
 import Ivory.Tower
-import Ivory.Stdlib
-
+import Ivory.Tower.StateMachine
 import qualified SMACCMPilot.Flight.Types.Sensors as S
 
-sensorsTask :: (SingI n)
+import SMACCMPilot.Flight.Sensors.Platforms
+
+sensorsTask :: forall n p
+             . (SensorOrientation p, SingI n)
             => ChannelSource n (Struct "sensors_result")
             -> Task p ()
 sensorsTask s = do
   sensorsEmitter <- withChannelEmitter s "sensors"
   withStackSize 1024
-  s_result <- taskLocal "result"
-  initialized <- taskLocalInit "init" (ival false)
-  taskInit $ do
-    store (s_result ~> S.valid) false
-    emit_ sensorsEmitter (constRef s_result)
-  onPeriod 10 $ \_now -> do
-    i <- deref initialized
-    unless i $ do
+
+  sm <- stateMachine "sensors_capture" $ mdo
+    init <- stateNamed "init" $ entry $ liftIvory $ do
+      res <- local (istruct [ S.valid .= ival false ])
+      emit_ sensorsEmitter (constRef res)
       -- time consuming: boots up and calibrates sensors
-      call_ sensors_begin
-      store initialized true
-    when i $ do
+      call_ sensors_begin (sensorOrientation (Proxy :: Proxy p))
+      return $ goto loop
+    loop <- stateNamed "captureloop" $ period 10 $ liftIvory_ $ do
       call_ sensors_update
-      call_ sensors_getstate s_result
-      emit_ sensorsEmitter (constRef s_result)
+      res <- local (istruct [])
+      call_ sensors_getstate res
+      emit_ sensorsEmitter (constRef res)
+    return init
+  taskInit $ begin sm
 
   taskModuleDef $ do
     depend S.sensorsTypeModule
@@ -43,7 +45,7 @@ sensorsTask s = do
       incl sensors_update
       incl sensors_getstate
 
-sensors_begin :: Def ('[] :-> ())
+sensors_begin :: Def ('[IBool] :-> ())
 sensors_begin = externProc "sensors_begin"
 
 sensors_update :: Def ('[] :-> ())

@@ -22,6 +22,7 @@ import SMACCMPilot.Flight.Control.Task
 import SMACCMPilot.Flight.Motors.Task
 import SMACCMPilot.Flight.Motors.Platforms
 import SMACCMPilot.Flight.Sensors.Task
+import SMACCMPilot.Flight.Sensors.Platforms
 import SMACCMPilot.Flight.UserInput.Task
 import SMACCMPilot.Flight.BlinkTask
 import SMACCMPilot.Flight.GCS.Tower
@@ -52,7 +53,8 @@ main = compilePlatforms conf ps
          ,("px4fmu17_bare", Twr (app :: Tower PX4FMU17_Bare ()))
          ]
 
-app :: (BoardHSE p, MotorOutput p) => Tower p ()
+app :: (BoardHSE p, MotorOutput p, SensorOrientation p)
+    => Tower p ()
 app = do
   (src_userinput, snk_userinput)   <- dataport
   (src_flightmode, snk_flightmode) <- dataport

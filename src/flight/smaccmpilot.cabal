@@ -30,6 +30,7 @@ library
                        SMACCMPilot.Flight.Motors.Platforms,
 
                        SMACCMPilot.Flight.Sensors.Task,
+                       SMACCMPilot.Flight.Sensors.Platforms,
 
                        SMACCMPilot.Flight.Types,
                        SMACCMPilot.Flight.Types.ControlOutput,
