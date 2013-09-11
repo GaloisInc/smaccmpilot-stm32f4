@@ -86,7 +86,7 @@ printMsg = proc "printArr" $ \str arr -> body $ do
 -- Import our API functions.
 
 ivoryShim :: String
-ivoryShim = "ivory-commsec-shim.h"
+ivoryShim = "../../src/crypto/include/ivory-commsec-shim.h"
 
 commsec :: String
 commsec = "aeslib/commsec.h"
