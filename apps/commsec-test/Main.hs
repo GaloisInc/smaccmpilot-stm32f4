@@ -1,6 +1,5 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -24,13 +23,6 @@ import Ivory.Language
 -- XXX testing
 import Ivory.Compile.C.CmdlineFrontend
 import Ivory.Stdlib
-
-[ivory|
-
-abstract struct commsec_ctx "aeslib/commsec.h"
-
-|]
-
 
 --------------------------------------------------------------------------------
 -- Constants
@@ -67,6 +59,17 @@ printf = importProc "printf" "stdio.h"
 printf8 :: Def('[IString, Uint8] :-> ())
 printf8 = importProc "printf" "stdio.h"
 
+printf32 :: Def('[IString, Uint32] :-> ())
+printf32 = importProc "printf" "stdio.h"
+
+-- printf8 :: Def('[Uint8] :-> ())
+-- printf8 = proc "printf8" $ \u -> body $
+--   call_ printf8 "%\"%PRIu8\"" u
+
+-- printf32 :: Def('[Uint32] :-> ())
+-- printf32 = proc "printf32" $ \u -> body $
+--   call_ printf32 "%\"PRIu32\"" u
+
 printMsg :: Def('[IString, Pkg s] :-> ())
 printMsg = proc "printArr" $ \str arr -> body $ do
   call_ printf "msg: "
@@ -88,9 +91,7 @@ ivoryShim = "ivory-commsec-shim.h"
 commsec :: String
 commsec = "aeslib/commsec.h"
 
--- XXX proxy type we'll cast from---doesn't really matter what the type (we
--- don't have void though).
-type Commsec_ctx_proxy = Struct "commsec_ctx" --Stored OpaqueType --Stored Uint8
+type Commsec_ctx_proxy = Stored OpaqueType
 
 type Key = Array 16 (Stored Uint8)
 
@@ -164,6 +165,7 @@ initializePackage msg = iarray $
 test :: Def('[] :-> ())
 test = proc "test" $ body $ do
   -- Allocate memory on the stack for the package (extra room for head/tail)
+  -- packages are arrays we'll encrypt in-place.
   packageFromUAV   <- local $ initializePackage (mkMsg "uav!")
   packageFromBase0 <- local $ initializePackage (mkMsg "base0!")
   packageFromBase1 <- local $ initializePackage (mkMsg "base1!")
@@ -183,15 +185,23 @@ test = proc "test" $ body $ do
 
   printMsgs "%c" packageFromUAV packageFromBase0
 
+  -- uav, base0, etc. are pointers to structs containing crypto-gsm info.
   _ <- encrypt uav   packageFromUAV
   _ <- encrypt base0 packageFromBase0
   _ <- encrypt base1 packageFromBase1
 
   printMsgs "%02x" packageFromUAV packageFromBase0
 
-  decAndCheckRes uav packageFromBase1
+  -- decrypt and check the authentication of the encrypted packageFromBase0
+  -- using uav's crypto info.  This represents the UAV getting a message from
+  -- base0.
+  decAndCheckRes uav packageFromBase0
 
   decAndCheckRes base0 packageFromUAV
+
+  printMsgs "%c" packageFromUAV packageFromBase0
+
+  -- Decrypting twice!
   decAndCheckRes base0 packageFromUAV
 
   printMsgs "%c" packageFromUAV packageFromBase0
@@ -201,7 +211,8 @@ test = proc "test" $ body $ do
 decAndCheckRes :: MemArea Commsec_ctx_proxy -> Pkg s -> Ivory eff ()
 decAndCheckRes ctx pkg = do
   res <- decrypt ctx pkg
-  when (res /=? 0) (call_ printf "error in decryption!")
+  (call_ printf32 " res (should be 0): %u\n" res)
+  -- when (res /=? 0) (call_ printf32 "  error in decryption! %u\n" res)
 
 encrypt :: MemArea Commsec_ctx_proxy
           -> Pkg s
@@ -240,6 +251,7 @@ modulePkg = package "IvoryGCM" $ do
   incl securePkg_enc_in_place
   incl printf
   incl printf8
+  incl printf32
   incl printMsg
   incl test
 
