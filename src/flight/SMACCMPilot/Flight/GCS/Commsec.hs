@@ -1,12 +1,9 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE DataKinds #-}
--- {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE FlexibleInstances #-}
-
--- {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 {-
 
@@ -16,7 +13,7 @@ Author: Lee Pike <leepike@galois.com>
 
 -}
 
-module Commsec
+module SMACCMPilot.Flight.GCS.Commsec
   ( initializePackage
   , encrypt
   , decrypt
@@ -26,28 +23,27 @@ import Ivory.Language
 import Ivory.Stdlib
 
 --------------------------------------------------------------------------------
--- Types
+-- Types and constants
 
-type PkgArr            = Array 100 (Stored Uint8)
+-- Encrypt 128 byte chunks minus room for the header and tag (8 bytes each).
+type PkgArr            = Array 112 (Stored Uint8)
 type Pkg s             = Ref s PkgArr
-type PkgIx             = Ix 100
--- XXX proxy type we'll cast from---doesn't really matter what the type (we
--- don't have void though).
-type Commsec_ctx_proxy = Stored OpaqueType --Stored Uint8
-type Key               = Array 16 (Stored Uint8)
+type PkgIx             = Ix 112
 
---------------------------------------------------------------------------------
--- Constants
+-- Replicates macros TAG_LEN and HEADER_LEN
+-- Must match types given above.
+maxMsgLen, tagLen, headerLen :: Int
+maxMsgLen = 112
+tagLen    = 8
+headerLen = 8
+
+-- Proxy type we'll cast from---doesn't really matter what the type (we don't
+-- have void though).
+type Commsec_ctx_proxy = Stored OpaqueType
+type Key               = Array 16 (Stored Uint8)
 
 packageSize :: Uint32
 packageSize = arrayLen (undefined :: Pkg s)
-
--- Replicates macros TAG_LEN and HEADER_LEN
--- Cannot be bigger than the 100, the size of the array we're using.
-maxMsgLen, tagLen, headerLen :: Int
-maxMsgLen = 84
-tagLen    = 8
-headerLen = 8
 
 mkIx :: Int -> PkgIx
 mkIx c = toIx (fromIntegral c :: Uint32)
@@ -100,11 +96,12 @@ securePkg_dec = importProc "securePkg_dec" commsec
 
 --------------------------------------------------------------------------------
 
+-- Contexts.
 uav, base :: MemArea Commsec_ctx_proxy
-uav  = importArea "uav"   ivoryCommsec
+uav  = importArea "uav"  ivoryCommsec
 base = importArea "base" ivoryCommsec
 
-uavID, base0ID :: Uint32
+uavID, baseID :: Uint32
 uavID  = 0
 baseID = 0
 
@@ -119,20 +116,22 @@ b2uSalt, u2bSalt :: Uint32
 b2uSalt = 9219834
 u2bSalt = 284920
 
-someMsg :: String
-someMsg = "This is a message from "
+-- someMsg :: String
+-- someMsg = "This is a message from "
 
-mkMsg :: String -> String
-mkMsg msg = m ++ replicate n ' '
-  where m = someMsg ++ msg
-        n = maxMsgLen - length m
+-- mkMsg :: String -> String
+-- mkMsg msg = m ++ replicate n ' '
+--   where m = someMsg ++ msg
+--         n = maxMsgLen - length m
 
 --------------------------------------------------------------------------------
 
-initializePackage :: String -> Init PkgArr
-initializePackage msg = iarray $
+initializePackage :: ConstRef s (Array 112 (Stored Uint8)) -> Init PkgArr
+initializePackage arr = do
+  arr <- local (iarray 
+  iarray $
      replicate headerLen izero
-  ++ map (ival . fromIntegral . fromEnum) msg
+  ++ map ival arr
   ++ replicate tagLen izero
 
 encrypt :: MemArea Commsec_ctx_proxy
