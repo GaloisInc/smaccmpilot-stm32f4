@@ -27,7 +27,7 @@ import Ivory.Stdlib
 
 [ivory|
 
-abstract struct commsec_ctx "aeslib/commsec.h"
+abstract struct commsec_ctx "../../src/crypto/include/commsec.h"
 
 |]
 
@@ -83,10 +83,10 @@ printMsg = proc "printArr" $ \str arr -> body $ do
 -- Import our API functions.
 
 ivoryShim :: String
-ivoryShim = "ivory-commsec-shim.h"
+ivoryShim = "../../src/crypto/include/ivory-commsec-shim.h"
 
 commsec :: String
-commsec = "commsec.h"
+commsec = "../../src/crypto/include/commsec.h"
 
 -- XXX proxy type we'll cast from---doesn't really matter what the type (we
 -- don't have void though).

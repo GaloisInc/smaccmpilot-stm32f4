@@ -5,8 +5,6 @@ CABAL         := cabal
 CABAL_INSTALL := $(CABAL) install
 CLIB          := aeslib
 
-all: interopTest example ivory-example
-
 example: example.c $(CLIB)/commsec.a
 	gcc $(CFLAGS) example.c -o example $(CLIB)/commsec.a
 
@@ -34,13 +32,17 @@ HS  := Main
 %.c %h:
 	../../../cabal-dev/bin/commsec-test
 
-ivory-example: ivory-example.c \
-    $(GEN)/IvoryGCM.c $(GEN)/IvoryGCM.h $(GEN)/ivory.h \
-    ivory-commsec-shim.h $(CLIB)/commsec.a
+ivory-example: ivory-example.c
+ivory-example: $(GEN)/IvoryGCM.c
+ivory-example: $(GEN)/IvoryGCM.h
+ivory-example: $(GEN)/ivory.h
+ivory-example: ivory-commsec-shim.h
+ivory-example: $(CLIB)/commsec.a
+ivory-example:
 	gcc -std=c99 -Wall -o $@ -I. -Iivory-gen -Iaeslib \
-    ivory-example.c \
-    $(GEN)/IvoryGCM.c \
-    $(CLIB)/commsec.a
+          ivory-example.c \
+          $(GEN)/IvoryGCM.c \
+          $(CLIB)/commsec.a
 
 .PHONY: clean
 clean:
@@ -53,6 +55,7 @@ clean:
 	@rm -f interopTest.chi
 	@rm -f interopTest
 	@rm -f example
+	@rm -f ivory-example
 	@rm -rf ivory-gen
 
 # vim: set ft=make noet ts=2:

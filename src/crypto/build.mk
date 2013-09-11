@@ -12,7 +12,8 @@ CRYPTO_LIB          := commsec.a
 
 CRYPTO_INCLUDES += -I$(TOP)/src/crypto/include
 
-CRYPTO_CFLAGS   += $(CRYPTO_INCLUDES)
+CRYPTO_CFLAGS   += $(CRYPTO_INCLUDES) \
+                   -D ARM
 
 CRYPTO_OBJECTS :=  \
   src/aescrypt.o   \
