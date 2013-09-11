@@ -11,7 +11,7 @@ extern "C" {
 
 #include "flight/sensors_type.h"
 
-void sensors_begin(void);
+void sensors_begin(bool flipped);
 void sensors_update(void);
 void sensors_getstate(struct sensors_result *sensors);
 

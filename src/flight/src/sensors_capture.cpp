@@ -28,9 +28,12 @@ static AP_Baro_MS5611 g_baro(&AP_Baro_MS5611::i2c);
 static GPS *g_gps;
 static AP_AHRS_DCM g_ahrs(&g_ins, g_gps);
 
-void sensors_begin(void) {
+void sensors_begin(bool flipped) {
 
     hal.console->printf("init AP_InertialSensor: ");
+    if (flipped) {
+        g_ahrs.set_orientation(ROTATION_ROLL_180);
+    }
     g_ins.init(AP_InertialSensor::COLD_START, INS_SAMPLE_RATE, flash_leds);
     g_ins.init_accel(flash_leds);
     hal.console->println();

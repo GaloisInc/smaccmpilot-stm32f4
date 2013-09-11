@@ -67,6 +67,11 @@ public:
 
     // allow for runtime change of orientation
     // this makes initial config easier
+    void set_orientation(enum Rotation rot) {
+        _board_orientation.set(rot);
+        set_orientation();
+    }
+
     void set_orientation() {
         _ins->set_board_orientation((enum Rotation)_board_orientation.get());
         if (_compass != NULL) {
