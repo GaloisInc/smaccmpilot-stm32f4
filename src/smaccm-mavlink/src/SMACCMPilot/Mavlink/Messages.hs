@@ -88,9 +88,6 @@ import qualified SMACCMPilot.Mavlink.Messages.VisionPositionEstimate
 import qualified SMACCMPilot.Mavlink.Messages.VisionSpeedEstimate
 import qualified SMACCMPilot.Mavlink.Messages.ViconPositionEstimate
 import qualified SMACCMPilot.Mavlink.Messages.HighresImu
-import qualified SMACCMPilot.Mavlink.Messages.FileTransferStart
-import qualified SMACCMPilot.Mavlink.Messages.FileTransferDirList
-import qualified SMACCMPilot.Mavlink.Messages.FileTransferRes
 import qualified SMACCMPilot.Mavlink.Messages.BatteryStatus
 import qualified SMACCMPilot.Mavlink.Messages.Setpoint8dof
 import qualified SMACCMPilot.Mavlink.Messages.Setpoint6dof
@@ -179,9 +176,6 @@ mavlinkMessageModules =
   , SMACCMPilot.Mavlink.Messages.VisionSpeedEstimate.visionSpeedEstimateModule
   , SMACCMPilot.Mavlink.Messages.ViconPositionEstimate.viconPositionEstimateModule
   , SMACCMPilot.Mavlink.Messages.HighresImu.highresImuModule
-  , SMACCMPilot.Mavlink.Messages.FileTransferStart.fileTransferStartModule
-  , SMACCMPilot.Mavlink.Messages.FileTransferDirList.fileTransferDirListModule
-  , SMACCMPilot.Mavlink.Messages.FileTransferRes.fileTransferResModule
   , SMACCMPilot.Mavlink.Messages.BatteryStatus.batteryStatusModule
   , SMACCMPilot.Mavlink.Messages.Setpoint8dof.setpoint8dofModule
   , SMACCMPilot.Mavlink.Messages.Setpoint6dof.setpoint6dofModule
@@ -272,9 +266,6 @@ messageLensCRCs =
   , (103, (20, 208))
   , (104, (32, 56))
   , (105, (62, 93))
-  , (110, (254, 235))
-  , (111, (249, 93))
-  , (112, (9, 124))
   , (147, (16, 42))
   , (148, (33, 241))
   , (149, (25, 15))
