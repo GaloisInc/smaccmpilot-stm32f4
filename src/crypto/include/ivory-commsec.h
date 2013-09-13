@@ -2,9 +2,9 @@
 #define IVORY_COMMSEC_SHIM_INCL
 
 #include <stdint.h>
-#include "aeslib/commsec.h"
+#include "commsec.h"
 
-commsec_ctx uav, base0, base1;
+commsec_ctx uav, base;
 
 // Proxy type
 /* typedef uint8_t commsec_ctx_proxy; */
