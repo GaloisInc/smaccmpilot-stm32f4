@@ -22,6 +22,9 @@ FLIGHT_INCLUDES  += -I$(TOP)/src/flight/include
 FLIGHT_INCLUDES  += $(HWF4_INCLUDES)
 FLIGHT_INCLUDES  += -I$(TOP)/src/flight/standalone_apahrs
 FLIGHT_INCLUDES  += $(FREERTOS_CFLAGS)
+FLIGHT_INCLUDES  += -I$(TOP)/src/crypto/include
+# For the cryto lib
+FLIGHT_INCLUDES  += -DARM
 
 # XXX some users of this library include it without putting the
 # directory in the include file name.  We should clean this up.
@@ -56,6 +59,7 @@ FLIGHT_LIBRARIES    += libstandalone-apahrs.a
 FLIGHT_LIBRARIES    += libstandalone-aphal.a
 FLIGHT_LIBRARIES    += libhwf4-nouart.a
 FLIGHT_LIBRARIES    += libFreeRTOS.a
+FLIGHT_LIBRARIES    += commsec.a
 FLIGHT_LIBS         += -lm
 
 $(eval $(call when_os,freertos,cbmc_pkg,FLIGHT,IVORY_PKG_FLIGHT))

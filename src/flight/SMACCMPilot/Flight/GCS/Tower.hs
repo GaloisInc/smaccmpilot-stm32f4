@@ -4,7 +4,6 @@
 module SMACCMPilot.Flight.GCS.Tower where
 
 import Ivory.Language
-
 import Ivory.Tower
 
 import SMACCMPilot.Flight.GCS.Transmit.Task
@@ -26,7 +25,7 @@ gcsTower uartname uart fm_sink sens_sink pos_sink ctl_sink motor_sink = do
   (streamrate_source, streamrate_sink) <- channel
   (dataRateSrc,        dataRateSink)   <- channel
 
-  ((istream :: ChannelSink 1024 (Stored Uint8))
+  ( (istream :: ChannelSink   1024 (Stored Uint8))
    ,(ostream :: ChannelSource 1024 (Stored Uint8))) <- uartTower uart 57600
 
   task ("gcsReceiveTask" ++ uartname) $

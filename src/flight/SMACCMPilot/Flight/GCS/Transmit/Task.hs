@@ -22,34 +22,47 @@ import qualified SMACCMPilot.Flight.Types.DataRate        as D
 
 import SMACCMPilot.Mavlink.Send (mavlinkSendWithWriter, MavlinkWriteMacro(..))
 
+import qualified SMACCMPilot.Flight.GCS.Commsec as C
+
+--------------------------------------------------------------------------------
+
+processMav :: (SingI m, SingI n)
+           => ChannelEmitter n (Stored Uint8)
+           -> ConstRef s (Array m (Stored Uint8))
+           -> Ivory (AllocEffects cs) ()
+processMav ostream arrref = do
+  C.cpyToPkg arrref
+  let pkg = constRef (addrOf C.uavPkg)
+  arrayMap $ \i ->
+--    emit_ ostream (pkg ! i)
+    emit_ ostream (arrref ! i)
+
+--------------------------------------------------------------------------------
+
 sysid, compid :: Uint8
-sysid = 1
+sysid  = 1
 compid = 0
 
 gcsTransmitDriver :: (SingI n)
-                  => ChannelSource n (Stored Uint8)
+                  => ChannelSource n (Stored Uint8) -- 1024 bytes: UART driver
                   -> Task p MessageDriver
 gcsTransmitDriver chan = do
   ostream <- withChannelEmitter chan "ostream"
   taskdep <- taskDependency
   txseq   <- taskLocalInit "txseq" (ival 0)
-  name <- freshname
-  let w :: (SingI m)
-        => ConstRef s (Array m (Stored Uint8))
-        -> Ivory (AllocEffects cs) ()
-      w arrref = arrayMap $ \i ->
-          emit_ ostream (arrref ! i)
-      s = mkSender name txseq (MavlinkWriteMacro w) taskdep
-      (driver, ms) = messageDriver s
-  taskModuleDef $ mapM_ depend ms
+  name    <- freshname
+
+  let s = mkSender name txseq (MavlinkWriteMacro (processMav ostream)) taskdep
+  let (driver, ms) = messageDriver s
+
+  taskModuleDef (mapM_ depend ms)
   mapM_ withModule ms
   return driver
   where
-  mkSender n txseq writer deps =
-    mavlinkSendWithWriter sysid compid ("mavlinksender" ++ n) txseq writer deps
+  mkSender n = mavlinkSendWithWriter sysid compid ("mavlinksender" ++ n)
 
 gcsTransmitTask :: (SingI nn, SingI n, SingI m)
-                => ChannelSource nn (Stored Uint8)
+                => ChannelSource nn (Stored Uint8) -- Channel to UART
                 -> ChannelSink n (Struct "gcsstream_timing")
                 -> ChannelSink m (Struct "data_rate_state")
                 -> DataSink (Struct "flightmode")
@@ -70,7 +83,7 @@ gcsTransmitTask ostream sp_sink dr_sink fm_sink se_sink ps_sink ct_sink mo_sink
   -- of the ChannelReceiver. This means it will depend on the Task
   -- tower_task_loop_ module, which generates the code for the emitter.
   chan1 <- gcsTransmitDriver ostream
-  withStackSize 512
+  withStackSize 1024
   t <- withGetTimeMillis
 
   lastRun    <- taskLocal "lastrun"
@@ -85,6 +98,7 @@ gcsTransmitTask ostream sp_sink dr_sink fm_sink se_sink ps_sink ct_sink mo_sink
   taskInit $ do
     initTime <- getTimeMillis t
     store lastRun initTime
+    C.setupCommsec
 
   onChannel sp_sink "streamPeriod" $ \newperiods -> do
     now <- getTimeMillis t
@@ -147,4 +161,4 @@ gcsTransmitTask ostream sp_sink dr_sink fm_sink se_sink ps_sink ct_sink mo_sink
     depend FM.flightModeTypeModule
     depend D.dataRateTypeModule
     depend S.gcsStreamTimingTypeModule
-
+    depend C.commsecModule

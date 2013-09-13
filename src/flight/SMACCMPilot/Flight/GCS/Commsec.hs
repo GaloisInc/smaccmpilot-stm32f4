@@ -1,4 +1,5 @@
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
@@ -14,10 +15,11 @@ Author: Lee Pike <leepike@galois.com>
 -}
 
 module SMACCMPilot.Flight.GCS.Commsec
-  ( initializePackage
-  , encrypt
-  , decrypt
-  ) where
+  -- ( initializePackage
+  -- , encrypt
+  -- , decrypt
+  -- ) 
+    where
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -101,9 +103,8 @@ uav, base :: MemArea Commsec_ctx_proxy
 uav  = importArea "uav"  ivoryCommsec
 base = importArea "base" ivoryCommsec
 
-uavID, baseID :: Uint32
+uavID :: Uint32
 uavID  = 0
-baseID = 0
 
 mkKey :: [Int] -> Init Key
 mkKey key = iarray $ map (ival . fromIntegral) key
@@ -126,13 +127,13 @@ u2bSalt = 284920
 
 --------------------------------------------------------------------------------
 
-initializePackage :: ConstRef s (Array 112 (Stored Uint8)) -> Init PkgArr
-initializePackage arr = do
-  arr <- local (iarray 
-  iarray $
-     replicate headerLen izero
-  ++ map ival arr
-  ++ replicate tagLen izero
+-- initializePackage :: ConstRef s (Array 112 (Stored Uint8)) -> Init PkgArr
+-- initializePackage arr = undefined -- do
+  -- arr <- local (iarray 
+  -- iarray $
+  --    replicate headerLen izero
+  -- ++ map ival arr
+  -- ++ replicate tagLen izero
 
 encrypt :: MemArea Commsec_ctx_proxy
           -> Pkg s
@@ -149,70 +150,62 @@ decrypt com pkg = call_ securePkg_dec (addrOf com) pkg packageSize
 --------------------------------------------------------------------------------
 -- Packaging and testing.
 
-pkg :: Module
-pkg = package "IvoryGCM" $ do
+commsecModule :: Module
+commsecModule = package "IvoryGCM" $ do
 
   defConstMemArea uavToBaseKey
   defConstMemArea baseToUavKey
 
   inclHeader ivoryCommsec
+  inclHeader ivoryCommsec
   incl securePkg_init
   incl securePkg_enc_in_place
+  defMemArea uavPkg
 
 --------------------------------------------------------------------------------
 
--- test :: Def('[] :-> ())
--- test = proc "test" $ body $ do
---   -- Allocate memory on the stack for the package (extra room for head/tail)
---   packageFromUAV   <- local $ initializePackage (mkMsg "uav!")
---   packageFromBase0 <- local $ initializePackage (mkMsg "base0!")
---   packageFromBase1 <- local $ initializePackage (mkMsg "base1!")
+setupCommsec :: Ivory eff ()
+setupCommsec =
+  call_ securePkg_init (addrOf uav) uavID
+                       b2uSalt (addrOf baseToUavKey)
+                       u2bSalt (addrOf uavToBaseKey)
 
---   call_ securePkg_init
---     (addrOf uav)   uavID
---     b2uSalt (addrOf baseToUavKey)
---     u2bSalt (addrOf uavToBaseKey)
---   call_ securePkg_init
---     (addrOf base0) base0ID
---     u2bSalt (addrOf uavToBaseKey)
---     b2uSalt (addrOf baseToUavKey)
---   call_ securePkg_init
---     (addrOf base1) base1ID
---     u2bSalt (addrOf uavToBaseKey)
---     b2uSalt (addrOf baseToUavKey)
+uavPkg :: MemArea (Array 128 (Stored Uint8))
+uavPkg = area "uavPkg" Nothing
 
---   printMsgs "%c" packageFromUAV packageFromBase0
+-- Copy a messge from an arbitrary-sized array into our package buffer.  If the
+-- message array is too small, the buffer is padded with zeros.  If it's too
+-- large, no copying is done.  Returns True if the copy was successful and False
+-- if no copying is done.
+cpyToPkg :: (SingI n)
+         => ConstRef s (Array n (Stored Uint8))
+         -> Ivory eff ()
+cpyToPkg from =
+  if fromTooBig
+    then err
+    else
+      arrayMap $ \(ix :: Ix 128) ->
+        cond_ [   ix <? headerEndIx
+              ==> return ()
+              ,   ix >=? payloadEndIx
+              ==> return ()
+              ,   fromEnd ix -- from array too short: fill with zeros.
+              ==> store (pkg ! ix) 0
+              ,   true
+              ==> deref (from ! toIx (fromIx ix)) >>= store (pkg ! ix)
+              ]
+  where
+  pkg        = addrOf uavPkg
+  lenFrom    = arrayLen from
+  lenTo      = arrayLen pkg
+  fromEnd    :: Ix 128 -> IBool
+  fromEnd ix = ix >=? fromIntegral lenFrom
+  fromTooBig :: Bool
+  fromTooBig = lenTo - tagLen - headerLen < lenFrom
 
---   encrypt uav   packageFromUAV
---   encrypt base0 packageFromBase0
---   encrypt base1 packageFromBase1
+  headerEndIx  = fromIntegral headerLen
+  payloadEndIx = lenTo - fromIntegral tagLen
 
---   printMsgs "%02x" packageFromUAV packageFromBase0
-
---   decrypt uav   packageFromBase0
--- --  decrypt uav   packageFromBase1
---   decrypt base0 packageFromUAV
-
---   printMsgs "%c" packageFromUAV packageFromBase0
-
---   retVoid
-
--- printMsgs :: IString
---           -> Pkg s
---           -> Pkg s
---           -> Ivory eff ()
--- printMsgs fmt packageFromUAV packageFromBase0 = do
---   call_ printf "From UAV: "
---   call_ printMsg fmt  packageFromUAV
---   call_ printf "From Base0: "
---   call_ printMsg fmt packageFromBase0
-
--- main :: IO ()
--- main = runCompiler [pkg] initialOpts { stdOut = True }
-
--- build :: IO ()
--- build = runCompiler [pkg] initialOpts { stdOut     = False
---                                       , constFold  = True
---                                       , srcDir     = "ivory-gen"
---                                       , includeDir = "ivory-gen"
---                                       }
+  err = error $
+    "cpyToPkg in Flight/GCS/Commsec.hs: mavlink array too big.  " ++
+    "from array length: " ++ show lenFrom

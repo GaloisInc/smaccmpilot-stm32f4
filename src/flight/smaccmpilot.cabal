@@ -20,6 +20,8 @@ library
                        SMACCMPilot.Flight.GCS.Receive.Task,
                        SMACCMPilot.Flight.GCS.Tower,
 
+                       SMACCMPilot.Flight.GCS.Commsec,
+
                        SMACCMPilot.Flight.Control,
                        SMACCMPilot.Flight.Control.PID,
                        SMACCMPilot.Flight.Control.Stabilize,
@@ -53,6 +55,7 @@ library
 
                        SMACCMPilot.Console,
                        SMACCMPilot.SafePack
+
 
   other-modules:       Arm32SizeMap
 

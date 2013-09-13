@@ -119,6 +119,7 @@ messageDriver sender = (driver, [driverMod,  msgMod])
     $ do depend msgMod
          moddefs driver
 
+-- Helper for sending data-rate information to the GCS.
 packUint32 :: Ix 16
            -> Ref s (Array 16 (Stored Uint8))
            -> Uint32
@@ -135,6 +136,8 @@ packUint32 initIx arr val =
     return [b0,b1,b2,b3]
     where ex = M.sets extractByte
 
+-- Data rate info: time since the last good message and how many messages were
+-- dropped.
 mkSendDataRate :: MavlinkMessageSenders
              -> Def ('[ Ref s (Struct "data_rate_state") ] :-> ())
 mkSendDataRate senders = proc "gcs_transmit_send_data16" $ \dr -> body $ do
@@ -148,8 +151,9 @@ mkSendDataRate senders = proc "gcs_transmit_send_data16" $ \dr -> body $ do
 
 mkSendHeartbeat :: MavlinkMessageSenders
               -> Def ('[ (Ref s1 (Struct "flightmode")) ] :-> ())
-mkSendHeartbeat senders = proc "gcs_transmit_send_heartbeat" $
-  \fm -> body $ do
+mkSendHeartbeat senders =
+  proc "gcs_transmit_send_heartbeat"
+  $ \fm -> body $ do
   hb <- local (istruct [])
   armed <- (fm ~>* FM.armed)
   mode  <- (fm ~>* FM.mode)
