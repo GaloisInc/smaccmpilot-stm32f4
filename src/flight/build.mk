@@ -14,7 +14,8 @@
 IVORY_PKG_FLIGHT_INCLUDE_DIR := flight
 IVORY_PKG_FLIGHT_GEN_SYMS    := true
 
-$(eval $(call when_os,freertos,tower_pkg,IVORY_PKG_FLIGHT,smaccmpilot-gen))
+$(eval $(call when_platforms,px4fmu17_ioar_freertos px4fmu17_bare_freertos \
+				,tower_pkg,IVORY_PKG_FLIGHT,smaccmpilot-gen))
 
 FLIGHT_IMG       := stabilize
 
@@ -58,9 +59,11 @@ FLIGHT_LIBRARIES    += libhwf4-nouart.a
 FLIGHT_LIBRARIES    += libFreeRTOS.a
 FLIGHT_LIBS         += -lm
 
-$(eval $(call when_os,freertos,cbmc_pkg,FLIGHT,IVORY_PKG_FLIGHT))
+$(eval $(call when_platforms,px4fmu17_bare_freertos px4fmu17_ioar_freertos \
+				,cbmc_pkg,FLIGHT,IVORY_PKG_FLIGHT))
 
-$(eval $(call when_os,freertos,image,FLIGHT))
+$(eval $(call when_platforms,px4fmu17_bare_freertos px4fmu17_ioar_freertos \
+				,image,FLIGHT))
 
 # ------------------------------------------------------------------------------
 # CBMC stuff
