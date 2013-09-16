@@ -37,10 +37,9 @@ mavlinkSenderName (MavlinkSender sized) =
 class MavlinkSendable t n | t -> n where
   mkSender :: SizedMavlinkSender n -> Def ('[ ConstRef s (Struct t) ] :-> ())
 
-
 newtype MavlinkWriteMacro = MavlinkWriteMacro {
   unMavlinkWriteMacro ::
-    (forall s cs n 
+    (forall s cs n
     . (SingI n)
     => ConstRef s (Array n (Stored Uint8)) -- buf
     -> Ivory (AllocEffects cs) ()) }
@@ -70,7 +69,7 @@ mavlinkSendWithWriter :: Uint8 -- Sysid
                       -> Uint8 -- Compid
                       -> String -- Writer name
                       -> Ref s (Stored Uint8) -- TX Sequence Number
-                      -> MavlinkWriteMacro -- Ivory macro
+                      -> MavlinkWriteMacro -- Ivory macro: send bytes on chan
                       -> ModuleDef -- Deps of tx seq mem area, ivory macro
                       -> MavlinkSender
 mavlinkSendWithWriter sysid compid name seqnum cwriter writerdeps =
@@ -81,7 +80,7 @@ mavlinkSendWithWriter sysid compid name seqnum cwriter writerdeps =
     writerdeps
   write :: (SingI n)
         => ConstRef s (Array n (Stored Uint8)) -> Ivory (AllocEffects cs) ()
-  write arr = unMavlinkWriteMacro cwriter arr
+  write = unMavlinkWriteMacro cwriter
 
   const_MAVLINK_STX = 254 :: Uint8
 

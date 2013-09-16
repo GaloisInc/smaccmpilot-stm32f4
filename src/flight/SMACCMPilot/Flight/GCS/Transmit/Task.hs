@@ -23,20 +23,25 @@ import qualified SMACCMPilot.Flight.Types.DataRate        as D
 import SMACCMPilot.Mavlink.Send (mavlinkSendWithWriter, MavlinkWriteMacro(..))
 
 import qualified SMACCMPilot.Flight.GCS.Commsec as C
+import qualified Ivory.HXStream as H
 
 --------------------------------------------------------------------------------
 
-processMav :: (SingI m, SingI n)
-           => ChannelEmitter n (Stored Uint8)
-           -> ConstRef s (Array m (Stored Uint8))
-           -> Ivory (AllocEffects cs) ()
-processMav ostream arrref = do
-  C.cpyToPkg arrref
-  let pkg = constRef (addrOf C.uavPkg)
-  arrayMap $ \i ->
---    emit_ ostream (pkg ! i)
-    emit_ ostream (arrref ! i)
+-- Take a Mavlink packet, encrypt it, hxstream it, then send it to the uart
+-- ISR.
+processAndEmit :: (SingI m, SingI n)
+  => ChannelEmitter n (Stored Uint8) -- Emitter to uart
+  -> Ref s' (Array 128 (Stored Uint8)) -- commsec package
+  -> ConstRef s (Array m (Stored Uint8)) -- Message
+  -> Ivory (AllocEffects eff) ()
+processAndEmit ostream uavPkg arrref = do
+  C.cpyToPkg arrref uavPkg
+  call_ H.encode uavPkg
+  let pkg = constRef uavPkg
 
+  arrayMap $ \i -> emit_ ostream (pkg ! i)
+
+--    emit_ ostream (arrref ! i)
 --------------------------------------------------------------------------------
 
 sysid, compid :: Uint8
@@ -51,8 +56,13 @@ gcsTransmitDriver chan = do
   taskdep <- taskDependency
   txseq   <- taskLocalInit "txseq" (ival 0)
   name    <- freshname
+  uavPkg  <- taskLocal "uavPkg"
 
-  let s = mkSender name txseq (MavlinkWriteMacro (processMav ostream)) taskdep
+  let s = mkSender
+            name
+            txseq
+            (MavlinkWriteMacro (processAndEmit ostream uavPkg))
+            taskdep
   let (driver, ms) = messageDriver s
 
   taskModuleDef (mapM_ depend ms)

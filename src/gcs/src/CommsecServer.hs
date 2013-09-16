@@ -26,7 +26,7 @@ import           Mavlink.Parser
 -- Number of bytes we're going to encrypt: 128 chunks minus 8 bytes for the
 -- header (stationID | counter) and 8 bytes for the tag.
 pkgLen, msgLen :: Int
-pkgLen = 24
+pkgLen = 128
 msgLen = pkgLen - 8 - 8
 
 uavID, baseID :: BaseId

@@ -15,29 +15,33 @@ Author: Lee Pike <leepike@galois.com>
 -}
 
 module SMACCMPilot.Flight.GCS.Commsec
-  -- ( initializePackage
-  -- , encrypt
-  -- , decrypt
-  -- ) 
-    where
+  ( encrypt
+  , decrypt
+  , uavID
+  , uavCtx
+  , cpyToPkg
+  , setupCommsec
+  , commsecModule
+  ) where
 
 import Ivory.Language
 import Ivory.Stdlib
+
+import qualified GHC.TypeLits as S
 
 --------------------------------------------------------------------------------
 -- Types and constants
 
 -- Encrypt 128 byte chunks minus room for the header and tag (8 bytes each).
-type PkgArr            = Array 112 (Stored Uint8)
+type PkgArr            = Array 128 (Stored Uint8)
 type Pkg s             = Ref s PkgArr
-type PkgIx             = Ix 112
 
 -- Replicates macros TAG_LEN and HEADER_LEN
 -- Must match types given above.
-maxMsgLen, tagLen, headerLen :: Int
-maxMsgLen = 112
-tagLen    = 8
-headerLen = 8
+maxMsgLen, tagLen, headerLen :: Integer
+maxMsgLen = S.fromSing (S.sing :: S.Sing 112)
+tagLen    = S.fromSing (S.sing :: S.Sing 8)
+headerLen = S.fromSing (S.sing :: S.Sing 8)
 
 -- Proxy type we'll cast from---doesn't really matter what the type (we don't
 -- have void though).
@@ -47,13 +51,13 @@ type Key               = Array 16 (Stored Uint8)
 packageSize :: Uint32
 packageSize = arrayLen (undefined :: Pkg s)
 
-mkIx :: Int -> PkgIx
-mkIx c = toIx (fromIntegral c :: Uint32)
+-- mkIx :: Int -> PkgIx
+-- mkIx c = toIx (fromIntegral c :: Uint32)
 
-maxMsgLenI, tagLenI, headerLenI :: PkgIx
-maxMsgLenI = mkIx maxMsgLen
-tagLenI    = mkIx tagLen
-headerLenI = mkIx headerLen
+-- maxMsgLenI, tagLenI, headerLenI :: PkgIx
+-- maxMsgLenI = mkIx maxMsgLen
+-- tagLenI    = mkIx tagLen
+-- headerLenI = mkIx headerLen
 
 --------------------------------------------------------------------------------
 -- Import our API functions.
@@ -98,10 +102,10 @@ securePkg_dec = importProc "securePkg_dec" commsec
 
 --------------------------------------------------------------------------------
 
--- Contexts.
-uav, base :: MemArea Commsec_ctx_proxy
-uav  = importArea "uav"  ivoryCommsec
-base = importArea "base" ivoryCommsec
+-- Contexts.  They're areas so thay can be shared by different tasks.
+uavCtx :: MemArea Commsec_ctx_proxy
+uavCtx  = importArea "uavCtx"  ivoryCommsec
+--base = importArea "base" ivoryCommsec
 
 uavID :: Uint32
 uavID  = 0
@@ -109,32 +113,9 @@ uavID  = 0
 mkKey :: [Int] -> Init Key
 mkKey key = iarray $ map (ival . fromIntegral) key
 
-uavToBaseKey, baseToUavKey :: ConstMemArea Key
-uavToBaseKey = constArea "uav_to_base_key" (mkKey [0..15])
-baseToUavKey = constArea "base_to_uav_key" (mkKey [15,14..0])
-
-b2uSalt, u2bSalt :: Uint32
-b2uSalt = 9219834
-u2bSalt = 284920
-
--- someMsg :: String
--- someMsg = "This is a message from "
-
--- mkMsg :: String -> String
--- mkMsg msg = m ++ replicate n ' '
---   where m = someMsg ++ msg
---         n = maxMsgLen - length m
-
 --------------------------------------------------------------------------------
 
--- initializePackage :: ConstRef s (Array 112 (Stored Uint8)) -> Init PkgArr
--- initializePackage arr = undefined -- do
-  -- arr <- local (iarray 
-  -- iarray $
-  --    replicate headerLen izero
-  -- ++ map ival arr
-  -- ++ replicate tagLen izero
-
+-- | Encrypt a package (with the header and tag) given a context.
 encrypt :: MemArea Commsec_ctx_proxy
           -> Pkg s
           -> Ivory eff ()
@@ -142,6 +123,7 @@ encrypt com pkg =
   call_ securePkg_enc_in_place
     (addrOf com) pkg (fromIntegral headerLen) (fromIntegral maxMsgLen)
 
+-- | Decrypt a package (with the header and tag), given a context.
 decrypt :: MemArea Commsec_ctx_proxy
         -> Pkg s
         -> Ivory eff ()
@@ -159,18 +141,15 @@ commsecModule = package "IvoryGCM" $ do
   inclHeader ivoryCommsec
   incl securePkg_init
   incl securePkg_enc_in_place
-  defMemArea uavPkg
+  -- defMemArea uavPkg
 
 --------------------------------------------------------------------------------
 
 setupCommsec :: Ivory eff ()
 setupCommsec =
-  call_ securePkg_init (addrOf uav) uavID
+  call_ securePkg_init (addrOf uavCtx) uavID
                        b2uSalt (addrOf baseToUavKey)
                        u2bSalt (addrOf uavToBaseKey)
-
-uavPkg :: MemArea (Array 128 (Stored Uint8))
-uavPkg = area "uavPkg" Nothing
 
 -- Copy a messge from an arbitrary-sized array into our package buffer.  If the
 -- message array is too small, the buffer is padded with zeros.  If it's too
@@ -178,8 +157,9 @@ uavPkg = area "uavPkg" Nothing
 -- if no copying is done.
 cpyToPkg :: (SingI n)
          => ConstRef s (Array n (Stored Uint8))
+         -> Ref s' (Array 128 (Stored Uint8))
          -> Ivory eff ()
-cpyToPkg from =
+cpyToPkg from pkg =
   if fromTooBig
     then err
     else
@@ -194,17 +174,27 @@ cpyToPkg from =
               ==> deref (from ! toIx (fromIx ix)) >>= store (pkg ! ix)
               ]
   where
-  pkg        = addrOf uavPkg
   lenFrom    = arrayLen from
+  lenTo      :: Integer
   lenTo      = arrayLen pkg
   fromEnd    :: Ix 128 -> IBool
   fromEnd ix = ix >=? fromIntegral lenFrom
   fromTooBig :: Bool
   fromTooBig = lenTo - tagLen - headerLen < lenFrom
-
   headerEndIx  = fromIntegral headerLen
-  payloadEndIx = lenTo - fromIntegral tagLen
+  payloadEndIx = fromIntegral (lenTo - tagLen)
 
   err = error $
     "cpyToPkg in Flight/GCS/Commsec.hs: mavlink array too big.  " ++
     "from array length: " ++ show lenFrom
+
+--------------------------------------------------------------------------------
+-- Testing
+
+uavToBaseKey, baseToUavKey :: ConstMemArea Key
+uavToBaseKey = constArea "uav_to_base_key" (mkKey [0..15])
+baseToUavKey = constArea "base_to_uav_key" (mkKey [15,14..0])
+
+b2uSalt, u2bSalt :: Uint32
+b2uSalt = 9219834
+u2bSalt = 284920

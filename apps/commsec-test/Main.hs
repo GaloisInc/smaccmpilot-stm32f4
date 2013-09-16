@@ -62,14 +62,6 @@ printf8 = importProc "printf" "stdio.h"
 printf32 :: Def('[IString, Uint32] :-> ())
 printf32 = importProc "printf" "stdio.h"
 
--- printf8 :: Def('[Uint8] :-> ())
--- printf8 = proc "printf8" $ \u -> body $
---   call_ printf8 "%\"%PRIu8\"" u
-
--- printf32 :: Def('[Uint32] :-> ())
--- printf32 = proc "printf32" $ \u -> body $
---   call_ printf32 "%\"PRIu32\"" u
-
 printMsg :: Def('[IString, Pkg s] :-> ())
 printMsg = proc "printArr" $ \str arr -> body $ do
   call_ printf "msg: "
@@ -193,7 +185,7 @@ test = proc "test" $ body $ do
   printMsgs "%02x" packageFromUAV packageFromBase0
 
   -- decrypt and check the authentication of the encrypted packageFromBase0
-  -- using uav's crypto info.  This represents the UAV getting a message from
+C  -- using uav's crypto info.  This represents the UAV getting a message from
   -- base0.
   decAndCheckRes uav packageFromBase0
 
