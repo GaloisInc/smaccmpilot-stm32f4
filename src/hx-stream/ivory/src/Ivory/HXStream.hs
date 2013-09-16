@@ -127,23 +127,20 @@ decode = proc "decode" $ \from state -> body $ do
   ret 0
 
 hxstreamTypeModule :: Module
-hxstreamTypeModule = package "hxstream_type" $ do
+hxstreamTypeModule = package "hxstream_type" $
   defStruct (Proxy :: Proxy "hxstream_state")
 
 -- | Encode from some portion of a 128 byte array, up to and including a stop
 -- index, into a 258 byte array.  This guarantees we have enough storage to hold
--- the 128 bytes.  A pointer is returned into the "to" array pointing to the
--- last encoded element.
+-- the 128 bytes.
 encode :: Def ( '[ Ref s (Array 128 (Stored Uint8)) -- From array
                  , Ref s (Array 258 (Stored Uint8)) -- To array
                  ]
-                :-> Ix 258)
+                :-> ())
 encode = proc "encode" $ \from to -> body $ do
   off <- local (ival (0::Ix 258))
+  -- start byte
   store (to ! 0) fbo
-
-  o <- deref off
-  store off (o+1)
 
   arrayMap $ \ix -> do
     v  <- deref (from ! ix)
@@ -156,12 +153,13 @@ encode = proc "encode" $ \from to -> body $ do
           ==> storeTo to off v
           ]
 
-  ret =<< deref off
+  retVoid
 
   where
+  -- increment then use it as an index.
   storeTo to off v = do
+    off %= (+1)
     o <- deref off
     store (to ! o) v
-    store off (o+1)
 
 
