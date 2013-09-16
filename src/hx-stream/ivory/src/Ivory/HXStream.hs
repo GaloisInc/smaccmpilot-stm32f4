@@ -45,11 +45,12 @@ emptyStreamState state = do
   store (state ~> ovf) false
 
 -- Set the overflow (ovf) bit if we run out of buffer.
+-- Otherwise, store the bytes.
 appendFrame :: Uint8 -> Ref s Hx -> Ivory eff ()
 appendFrame b s = do
   ix <- deref (s ~> offset)
   let arr = (s ~> buf)
-  ifte_ (ix + 1 >=? arrayLen arr)
+  ifte_ (ix >=? arrayLen arr)
         (store (s ~> ovf) true)
         (   store (arr ! toIx ix) b
          >> store (s ~> offset) (ix+1))

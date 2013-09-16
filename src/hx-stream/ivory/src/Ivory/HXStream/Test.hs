@@ -38,7 +38,7 @@ runTest :: (GetAlloc eff ~ Scope s)
 runTest (ls, _) = do
   st <- local (istruct [])
   emptyStreamState st
-  input  <- local (iarray (map ival ls))
+  input  <- local $ iarray (map ival ls)
   output <- local $ iarray (replicate 258 (ival 0))
   call_ encode input output
   call_ decode output st
@@ -46,8 +46,10 @@ runTest (ls, _) = do
   b <- local (ival true)
   arrayMap $ \i -> do
     let arr = st ~> buf
-    when ((arr ! i) ==? (input ! i))
-         (store b false)
+    x <- deref (arr ! i)
+    y <- deref (input ! i)
+    unless (x ==? y)
+           (store b false)
 
   b' <- deref b
   call_ pr b'
