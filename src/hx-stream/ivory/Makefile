@@ -1,14 +1,16 @@
 # -*- Mode: makefile-gmake; indent-tabs-mode: t; tab-width: 8 -*-
 
-.PHONY: all run clean
+EXEC = test/test
 
-all: test
+.PHONY: all $(EXEC) run clean
 
-test: test/hxstream-test.c  test/hxstream-test.h  test/ivory.h
-	gcc -std=c99 -Wall hxstream-test.c -o test
+all: $(EXEC)
+
+$(EXEC): test/hxstream-test.c  test/hxstream-test.h  test/ivory.h
+	gcc -std=c99 -Wall test/hxstream-test.c -o $(EXEC)
 
 run:
-	./test/test
+	$(EXEC)
 
 clean:
 	-rm -rf test
