@@ -35,11 +35,12 @@ processAndEmit :: (SingI m, SingI n)
   -> ConstRef s (Array m (Stored Uint8)) -- Message
   -> Ivory (AllocEffects eff) ()
 processAndEmit ostream uavPkg arrref = do
-  C.cpyToPkg arrref uavPkg
-  call_ H.encode uavPkg
-  let pkg = constRef uavPkg
+  hx <- local (iarray $ replicate 258 izero)
 
-  arrayMap $ \i -> emit_ ostream (pkg ! i)
+  C.cpyToPkg arrref uavPkg
+  call_ H.encode uavPkg hx
+--  let pkg = constRef uavPkg
+  arrayMap $ \i -> emit_ ostream (constRef hx ! i)
 
 --    emit_ ostream (arrref ! i)
 --------------------------------------------------------------------------------

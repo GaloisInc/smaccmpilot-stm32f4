@@ -135,7 +135,7 @@ hxstreamTypeModule = package "hxstream_type" $
 -- index, into a 258 byte array.  This guarantees we have enough storage to hold
 -- the 128 bytes.
 encode :: Def ( '[ Ref s (Array 128 (Stored Uint8)) -- From array
-                 , Ref s (Array 258 (Stored Uint8)) -- To array
+                 , Ref s' (Array 258 (Stored Uint8)) -- To array
                  ]
                 :-> ())
 encode = proc "encode" $ \from to -> body $ do
