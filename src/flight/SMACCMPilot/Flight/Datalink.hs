@@ -40,7 +40,7 @@ decoder link_sink framed_src = do
     decodedCtr     <- taskLocalInit "frames_decoded" (ival (0::Uint32))
     let handler = FrameHandler
           { fh_tag = tag
-          , fh_begin = return ()
+          , fh_begin = arrayMap $ \ix -> store (decoded ! ix) 0
           , fh_data = \v offs -> store (decoded ! (toIx offs)) v
           , fh_end = do
               emit_ framed_ostream (constRef decoded)
