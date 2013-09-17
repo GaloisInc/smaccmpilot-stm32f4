@@ -1,3 +1,4 @@
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module Main where
@@ -76,12 +77,16 @@ app = do
   task "motmix"    $ motorMixerTask snk_control snk_flightmode src_motors
   motorOutput snk_motors
 
-  gcsTower "uart1" UART.uart1 snk_flightmode snk_sensor_state snk_position
+  (uart1istream, uart1ostream) <- uart1twr
+  gcsTower "uart1" uart1istream uart1ostream snk_flightmode snk_sensor_state snk_position
     snk_control_state snk_motors_state
 
   mapM_ addDepends typeModules
   mapM_ addModule otherms
   where
+  uart1twr :: (BoardHSE p) => Tower p ( ChannelSink 1024 (Stored Uint8)
+                                      , ChannelSource 1024 (Stored Uint8))
+  uart1twr = UART.uartTower UART.uart1 57600
   relaypin = GPIO.pinB13
   redledpin = GPIO.pinB14
 
