@@ -37,17 +37,17 @@ ceo  = 0x7c
 escape :: Uint8 -> Uint8
 escape b = b .^ 0x20 -- XOR with 0x20
 
-data FrameHandler =
+data FrameHandler cs =
   FrameHandler
     { fh_tag   :: Uint8
-    , fh_begin :: forall cs . Ivory (AllocEffects cs) ()
-    , fh_data  :: forall cs . Uint8 -> Sint32 -> Ivory (AllocEffects cs) ()
-    , fh_end   :: forall cs . Ivory (AllocEffects cs) ()
+    , fh_begin :: Ivory (AllocEffects cs) ()
+    , fh_data  :: Uint8 -> Sint32 -> Ivory (AllocEffects cs) ()
+    , fh_end   :: Ivory (AllocEffects cs) ()
     }
 
 -- | Decode a byte, given an hxstream state.  Updates the hxstream state with
 -- the decoded value. Gives decoded info to frame handlers.
-decodeSM :: [FrameHandler]
+decodeSM :: [FrameHandler cs]
          -> Ref s Hx
          -> Uint8
          -> Ivory (AllocEffects cs) ()
