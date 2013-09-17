@@ -47,7 +47,7 @@ startDebugger f = do
 
 runDebugger :: IORef DebuggerMode -> FilePath -> IO ()
 runDebugger mode port = do
-  serial <- openSerial port defaultSerialSettings { commSpeed = CS115200 }
+  serial <- openSerial port defaultSerialSettings { commSpeed = CS57600 }
   loop mode serial emptyStreamState
   where
   loop mode serial state = do
@@ -64,7 +64,7 @@ runDebugger mode port = do
         cont
       Exit -> closeSerial serial
 
-  e = encode (Frame (0:payload))
+  e = encode (0:payload)
   payload = [1,2,3,0x7b,0x7c,0x7d,0x7e,9]
   -- f = take 128 (0:[127,128..])
 
@@ -83,10 +83,10 @@ processByte :: StreamState -> Word8 -> IO StreamState
 processByte s b = do
   let s' = decodeSM b s
   putHex b
-  case fstate s' of
-    FrameComplete -> do
+  case completeFrame s' of
+    Just f -> do
       putStr " /fr/\n"
-      putFrame (frame s')
+      putFrame f
       return emptyStreamState
     _ -> return s'
 
