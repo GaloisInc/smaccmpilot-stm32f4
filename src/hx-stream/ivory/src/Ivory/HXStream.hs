@@ -12,6 +12,7 @@ module Ivory.HXStream
   , Hx
   , hx_init
   , hx_ival
+  , hxstream_types
   ) where
 
 import Ivory.Language

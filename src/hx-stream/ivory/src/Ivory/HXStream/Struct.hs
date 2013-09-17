@@ -18,3 +18,6 @@ struct hxstream_state
   }
 |]
 
+hxstream_types :: Module
+hxstream_types = package "hxstream_types" $ do
+  defStruct (Proxy :: Proxy "hxstream_state")
