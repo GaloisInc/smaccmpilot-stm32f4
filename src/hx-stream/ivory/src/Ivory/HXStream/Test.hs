@@ -1,11 +1,13 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Ivory.HXStream.Test where
 
+import Control.Monad (replicateM)
 import Data.Word
+import Data.String (fromString)
 
 import Ivory.HXStream
 import Ivory.Language
@@ -16,51 +18,94 @@ import qualified Test.QuickCheck as Q
 
 --------------------------------------------------------------------------------
 
-pf :: Def ('[IString, IBool] :-> ())
-pf = importProc "printf" "stdio.h"
+puts :: Def ('[IString] :-> ())
+puts = importProc "printf" "stdio.h"
 
-pr :: Def ('[IBool] :-> ())
-pr = proc "pr" $ \b -> body $
-  call_ pf "%i\n" b
+testReport :: Def ('[IBool] :-> ())
+testReport = proc "testReport " $ \b -> body $
+  ifte_ b (c "pass") (c "fail")
+  where
+  c msg = call_ puts (fromString (msg ++ "\n"))
 
 instance Q.Arbitrary Uint8 where
   arbitrary = fmap fromIntegral (Q.arbitrary :: Q.Gen Word8)
 
 -- List that is is 128 bytes or less and an index into the list.
-sampleArrayIx :: Q.Gen ([Uint8], Uint8)
+sampleArrayIx :: Q.Gen [Uint8]
 sampleArrayIx = do
-  sz  <- Q.choose (1::Int, 128)
-  arr <- Q.resize 128 Q.arbitrary
-  return (arr, fromIntegral sz)
+  let item = Q.frequency [(1, return 0x7e), (1,return 0x7c) ,(8, Q.arbitrary) ]
+  arr <- Q.vectorOf 128 item
+  return arr
 
 runTest :: (GetAlloc eff ~ Scope s)
-        => ([Uint8], Uint8) -> Ivory eff ()
-runTest (ls, _) = do
-  st <- local (istruct [])
-  emptyStreamState st
-  input  <- local (iarray (map ival ls))
-  output <- local $ iarray (replicate 258 (ival 0))
-  call_ encode input output
-  call_ decode output st
+        => [Uint8] -> Ivory eff ()
+runTest ls = do
+  input   <- local $ iarray (map ival ls)
+  encoded <- local $ iarray (replicate 259 (ival 0))
+  decoded <- local $ iarray (replicate 128 (ival 0))
+  call_ encode (constRef input)   encoded
+  call_ decode (constRef encoded) decoded
 
   b <- local (ival true)
   arrayMap $ \i -> do
-    let arr = st ~> buf
-    when ((arr ! i) ==? (input ! i))
+    when ((decoded ! i) ==? (input ! i))
          (store b false)
 
   b' <- deref b
-  call_ pr b'
+  call_ testReport b'
 
-test :: [([Uint8], Uint8)] -> Def ('[] :-> Sint32)
+encode :: Def('[ ConstRef s (Array 128 (Stored Uint8))
+               , Ref ss (Array 259 (Stored Uint8))
+               ] :-> ())
+encode = proc "hxstream_test_encode" $ \ pt framed -> body $ do
+  writeix <- local (ival 0)
+  let cb v = do
+        ix <- deref writeix
+        store (framed ! ix) v
+        store writeix (ix + 1)
+  noReturn $ encodeToBS 0 pt cb
+
+decode :: Def('[ ConstRef s (Array 259 (Stored Uint8))
+               , Ref ss (Array 128 (Stored Uint8))
+               ] :-> ())
+decode = proc "hxstream_test_decode" $ \ framed pt -> body $ do
+  hx <- local hx_ival
+  runs <- local (ival (0::Uint32))
+  ends <- local (ival (0::Uint32))
+  let handler = FrameHandler
+        { fh_tag = 0
+        , fh_begin = do
+            n <- deref runs
+            assert (n ==? 0)
+            store runs (n+1)
+        , fh_data = \v writeoffs -> do
+            let writeix = toIx writeoffs
+            assert $ writeoffs <? 128
+            store (pt ! writeix) v
+        , fh_end = do
+            n <- deref ends
+            assert (n ==? 0)
+            store ends (n+1)
+        }
+  arrayMap $ \ix -> do
+    f <- deref (framed ! ix)
+    noBreak $ noReturn $ decodeSM [handler] hx f
+
+  totalruns <- deref runs
+  assert (totalruns ==? 1)
+  totalends <- deref ends
+  assert (totalends ==? 1)
+
+
+test :: [[Uint8]] -> Def ('[] :-> Sint32)
 test gens = proc "main" $ body $ do
     mapM_ runTest gens
     ret 0
 
 main :: IO ()
 main = do
-  vals <- Q.sample' sampleArrayIx
-  let p = test vals
+  vals <- replicateM 100 $ Q.sample' sampleArrayIx
+  let p = test (concat vals)
   runCompiler [cmodule p]
               initialOpts { includeDir = "test"
                           , srcDir     = "test"
@@ -70,9 +115,7 @@ main = do
   cmodule p = package "hxstream-test" $ do
     incl p
     defStruct (Proxy :: Proxy "hxstream_state")
-    incl pf
-    incl pr
+    incl puts
+    incl testReport
     incl encode
-    incl (decode :: Def ( '[ Ref s (Array 128 (Stored Uint8))
-                           , Ref s Hx
-                           ] :-> Ix 128))
+    incl decode
