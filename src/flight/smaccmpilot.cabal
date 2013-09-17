@@ -25,6 +25,9 @@ library
                        SMACCMPilot.Flight.Control.Stabilize,
                        SMACCMPilot.Flight.Control.Task,
 
+                       SMACCMPilot.Flight.Datalink,
+                       SMACCMPilot.Flight.Datalink.TestHarness,
+
                        SMACCMPilot.Flight.Motors.Task,
                        SMACCMPilot.Flight.Motors.Mixing,
                        SMACCMPilot.Flight.Motors.Platforms,
@@ -69,6 +72,7 @@ library
                        ivory-bsp-hwf4wrapper,
                        ivory-bsp-stm32f4,
                        ivory-px4-hw,
+                       ivory-hxstream,
                        smaccm-mavlink
 
   default-language:    Haskell2010
@@ -91,6 +95,7 @@ executable smaccmpilot-gen
                        ivory-bsp-hwf4wrapper,
                        ivory-bsp-stm32f4,
                        ivory-px4-hw,
+                       ivory-hxstream,
                        smaccm-mavlink,
                        smaccmpilot
 
