@@ -19,53 +19,67 @@ main :: IO ()
 main = do
   args <- getArgs
   case args of
-    [f] -> startDebugger f
+    [f] -> do
+      r <- newIORef Continue
+      startDebugger r f
     _ -> error "invalid args. usage: hxstream-serial-test SERIALPORT"
 
 -- Debugger Implementation -----------------------------------------------------
 
 data DebuggerMode
   = Continue
-  | Send
+  | Send [Word8]
   | Exit
 
-startDebugger :: FilePath -> IO ()
-startDebugger f = do
-  mode <- newIORef Continue
-  forkIO (runDebugger mode f)
+startDebugger :: IORef DebuggerMode -> FilePath -> IO ()
+startDebugger sig f = do
+  forkIO (runDebugger sig f)
   hSetBuffering stdin NoBuffering
-  controlMode mode
+  loop
   where
-  controlMode dbgsignal = do
+  loop = do
     c <- getChar
     case C.toLower c of
-     'q' -> do writeIORef dbgsignal Exit
-               exitSuccess
-     's' -> do writeIORef dbgsignal Send
-               controlMode dbgsignal
-     _ -> controlMode dbgsignal
+     'q' -> do writeIORef sig Exit >> exitSuccess
+     '0' -> do sendpacket (radiocmd "ATI0") >> loop
+     '1' -> do sendpacket (radiocmd "ATI1") >> loop
+     '2' -> do sendpacket (radiocmd "ATI2") >> loop
+     '3' -> do sendpacket (radiocmd "ATI2") >> loop
+     '4' -> do sendpacket (radiocmd "ATI4") >> loop
+     '5' -> do sendpacket (radiocmd "ATI5") >> loop
+     '6' -> do sendpacket (radiocmd "ATI6") >> loop
+     '7' -> do sendpacket (radiocmd "ATI7") >> loop
+     's' -> do sendpacket packet1 >> loop
+     'd' -> do sendpacket packet2 >> loop
+     'e' -> do sendpacket [] >> loop
+     _ ->  loop
+  sendpacket p = writeIORef sig (Send p)
+  packet1 = [0,1,2,0xFF,0x7b,0x7c,0x7d,0x7e,9]
+  packet2 = [0,5,6]
+
+radiocmd :: String -> [Word8]
+radiocmd s = 1 : (map (fromIntegral . C.ord) (s ++ "\r"))
 
 runDebugger :: IORef DebuggerMode -> FilePath -> IO ()
-runDebugger mode port = do
+runDebugger sig port = do
   serial <- openSerial port defaultSerialSettings { commSpeed = CS57600 }
-  loop mode serial emptyStreamState
+  loop serial emptyStreamState
   where
-  loop mode serial state = do
+  loop serial state = do
     state' <- debuggerLoop serial state
-    m <- readIORef mode
-    let cont = loop mode serial state'
+    m <- readIORef sig
+    let cont = loop serial state'
     case m of
       Continue -> cont
-      Send -> do
-        writeIORef mode Continue
+      Send payload -> do
+        writeIORef sig Continue
         putStrLn "Sending Frame"
-        putHexBS e
-        send serial e
+        let packetBS = encode payload
+        putHexBS packetBS
+        send serial packetBS
         cont
       Exit -> closeSerial serial
 
-  e = encode (0:payload)
-  payload = [1,2,3,0x7b,0x7c,0x7d,0x7e,9]
   -- f = take 128 (0:[127,128..])
 
 putHex :: Word8 -> IO ()
@@ -82,14 +96,21 @@ debuggerLoop p state = do
 processByte :: StreamState -> Word8 -> IO StreamState
 processByte s b = do
   let s' = decodeSM b s
-  putHex b
   case completeFrame s' of
     Just f -> do
-      putStr " /fr/\n"
       putFrame f
       return emptyStreamState
     _ -> return s'
 
 putFrame :: [Word8] -> IO ()
-putFrame f = putStr "\n> " >> mapM_ putHex f
+putFrame f = do
+  putStr "\n> "
+  mapM_ putHex f
+  putStr "\n"
+  case f of
+    1:rest -> putFrameString rest
+    _ -> return ()
+
+putFrameString :: [Word8] -> IO ()
+putFrameString f = print $ map (C.chr . fromIntegral) f
 
