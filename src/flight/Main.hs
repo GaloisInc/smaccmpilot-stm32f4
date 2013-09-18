@@ -19,6 +19,9 @@ import SMACCMPilot.Flight.Types (typeModules)
 import SMACCMPilot.Flight.UserInput.Decode (userInputDecodeModule)
 import SMACCMPilot.Flight.Control (controlModules)
 
+import SMACCMPilot.Flight.Datalink
+import qualified SMACCMPilot.Flight.Datalink.TestHarness as DLink
+
 import SMACCMPilot.Flight.Control.Task
 import SMACCMPilot.Flight.Motors.Task
 import SMACCMPilot.Flight.Motors.Platforms
@@ -77,16 +80,21 @@ app = do
   task "motmix"    $ motorMixerTask snk_control snk_flightmode src_motors
   motorOutput snk_motors
 
-  (uart1istream, uart1ostream) <- uart1twr
+  (uart5istream, uart5ostream) <- uartTwr UART.uart5
+  (framed_istream, framed_ostream) <- datalink uart5istream uart5ostream
+  DLink.frameLoopback framed_istream framed_ostream
+
+  (uart1istream, uart1ostream) <- uartTwr UART.uart1
   gcsTower "uart1" uart1istream uart1ostream snk_flightmode snk_sensor_state snk_position
     snk_control_state snk_motors_state
 
   mapM_ addDepends typeModules
   mapM_ addModule otherms
   where
-  uart1twr :: (BoardHSE p) => Tower p ( ChannelSink 1024 (Stored Uint8)
-                                      , ChannelSource 1024 (Stored Uint8))
-  uart1twr = UART.uartTower UART.uart1 57600
+  uartTwr :: (BoardHSE p) => UART.UART
+          -> Tower p ( ChannelSink 1024 (Stored Uint8)
+                     , ChannelSource 1024 (Stored Uint8))
+  uartTwr u = UART.uartTower u 57600
   relaypin = GPIO.pinB13
   redledpin = GPIO.pinB14
 
