@@ -13,7 +13,7 @@
 
 STANDALONE_APAHRS_LIB       := libstandalone-apahrs.a
 
-STANDALONE_APAHRS_INCLUDES  += -I$(TOP)/src/flight/standalone_apahrs
+STANDALONE_APAHRS_INCLUDES  += -I$(TOP)/src/standalone_apahrs
 
 STANDALONE_APAHRS_CFLAGS    += $(STANDALONE_APAHRS_INCLUDES)
 STANDALONE_APAHRS_CXXFLAGS  += $(STANDALONE_APAHRS_INCLUDES)
@@ -51,7 +51,7 @@ $(eval $(call when_os,freertos,library,STANDALONE_APAHRS))
 
 STANDALONE_HAL_LIB       := libstandalone-aphal.a
 
-STANDALONE_HAL_INCLUDES  += -I$(TOP)/src/flight/standalone_apahrs
+STANDALONE_HAL_INCLUDES  += -I$(TOP)/src/standalone_apahrs
 STANDALONE_HAL_INCLUDES  += -I$(TOP)/src/bsp/hwf4/include
 STANDALONE_HAL_INCLUDES  += $(FREERTOS_CFLAGS)
 
