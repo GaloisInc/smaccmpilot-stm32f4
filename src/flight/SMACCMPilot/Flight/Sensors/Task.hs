@@ -39,11 +39,13 @@ sensorsTask s = do
 
   taskModuleDef $ do
     depend S.sensorsTypeModule
-    inclHeader "flight-support/sensors_capture.h"
+    inclHeader "apwrapper/sensors_capture.h"
     private $ do
       incl sensors_begin
       incl sensors_update
-      incl sensors_getstate
+      incl sensors_get_rpy
+      incl sensors_get_omega
+      incl sensors_get_baro_alt
 
 sensors_begin :: Def ('[IBool] :-> ())
 sensors_begin = externProc "sensors_begin"
@@ -51,5 +53,11 @@ sensors_begin = externProc "sensors_begin"
 sensors_update :: Def ('[] :-> ())
 sensors_update = externProc "sensors_update"
 
-sensors_getstate :: Def ('[Ref s (Struct "sensors_result")] :-> ())
-sensors_getstate = externProc "sensors_getstate"
+sensors_get_rpy :: Def ('[Ref s (CArray (Stored IFloat))] :-> ())
+sensors_get_rpy = externProc "sensors_get_rpy"
+
+sensors_get_omega :: Def ('[Ref s (CArray (Stored IFloat))] :-> ())
+sensors_get_omega = externProc "sensors_get_omega"
+
+sensors_get_baro_alt :: Def ('[] :-> IFloat)
+sensors_get_baro_alt = externProc "sensors_get_baro_alt"

@@ -35,7 +35,7 @@ userInputTask uis fms = do
   taskModuleDef $ do
     depend userInputTypeModule
     depend userInputDecodeModule
-    inclHeader "flight-support/userinput_capture.h"
+    inclHeader "apwrapper/userinput_capture.h"
     incl userInputCapture
 
 -- This talks to the AP_HAL via c++, so we have to extern it completely

@@ -18,7 +18,7 @@
 #include <AP_HAL_SMACCM/AP_HAL_SMACCM.h>
 #include <AP_Math/AP_Math.h>
 
-#include <flight/tower.h>
+#include "tower.h"
 
 const AP_HAL::HAL& hal = AP_HAL_SMACCM;
 

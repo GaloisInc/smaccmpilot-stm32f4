@@ -18,9 +18,9 @@ $(eval $(call when_platforms,px4fmu17_ioar_freertos px4fmu17_bare_freertos \
 
 FLIGHT_IMG       := flight
 
-FLIGHT_INCLUDES  += -I$(TOP)/apps/flight/include
 FLIGHT_INCLUDES  += $(HWF4_INCLUDES)
 FLIGHT_INCLUDES  += -I$(TOP)/src/standalone_apahrs
+FLIGHT_INCLUDES  += -I$(TOP)/src/apwrapper/include
 FLIGHT_INCLUDES  += $(FREERTOS_CFLAGS)
 FLIGHT_INCLUDES  += $(IVORY_PKG_FLIGHT_CFLAGS)
 
@@ -28,20 +28,16 @@ FLIGHT_INCLUDES  += $(IVORY_PKG_FLIGHT_CFLAGS)
 # directory in the include file name.  We should clean this up.
 
 FLIGHT_CFLAGS    += $(FLIGHT_INCLUDES)
-FLIGHT_CXXFLAGS  += $(FLIGHT_INCLUDES)
-FLIGHT_CXXFLAGS  += -Wno-psabi
 FLIGHT_CFLAGS    += -DIVORY_DEPLOY
 
-FLIGHT_OBJECTS := $(addprefix src/,\
-	apmotors_wrapper_stub.o \
-	console_prim.o \
-	sensors_capture.o \
-	userinput_capture.o \
-	main.o \
-	)
+FLIGHT_CXXFLAGS  += $(FLIGHT_INCLUDES)
+FLIGHT_CXXFLAGS  += -Wno-psabi
+
+FLIGHT_OBJECTS := main.o
 
 FLIGHT_REAL_OBJECTS += $(IVORY_PKG_FLIGHT_OBJECTS)
 
+FLIGHT_LIBRARIES    += libapwrapper.a
 FLIGHT_LIBRARIES    += libstandalone-apahrs.a
 FLIGHT_LIBRARIES    += libstandalone-aphal.a
 FLIGHT_LIBRARIES    += libhwf4-nouart.a

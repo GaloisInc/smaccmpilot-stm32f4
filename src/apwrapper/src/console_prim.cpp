@@ -6,7 +6,7 @@
  * All Rights Reserved.
  */
 
-#include "flight-support/console_prim.h"
+#include "apwrapper/console_prim.h"
 
 #include <AP_HAL/AP_HAL.h>
 

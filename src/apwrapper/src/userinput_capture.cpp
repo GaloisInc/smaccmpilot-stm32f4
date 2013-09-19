@@ -1,5 +1,5 @@
 
-#include "flight-support/userinput_capture.h"
+#include "apwrapper/userinput_capture.h"
 
 #include <AP_HAL/AP_HAL.h>
 #include <AP_HAL_SMACCM/AP_HAL_SMACCM.h>

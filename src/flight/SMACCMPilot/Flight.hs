@@ -70,8 +70,8 @@ flight = do
   DLink.frameLoopback framed_istream framed_ostream
 
   (uart1istream, uart1ostream) <- uartTwr UART.uart1
-  gcsTower "uart1" uart1istream uart1ostream snk_flightmode snk_sensor_state snk_position
-    snk_control_state snk_motors_state
+  gcsTower "uart1" uart1istream uart1ostream snk_flightmode snk_sensor_state
+    snk_position snk_control_state snk_motors_state
 
   mapM_ addDepends typeModules
   mapM_ addModule otherms

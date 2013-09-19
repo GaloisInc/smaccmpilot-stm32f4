@@ -1,5 +1,5 @@
 
-#include "flight-support/sensors_capture.h"
+#include "apwrapper/sensors_capture.h"
 
 #include <FreeRTOS.h>
 #include <task.h>
@@ -75,19 +75,35 @@ void sensors_update() {
 
 }
 
-void sensors_getstate(struct sensors_result *capt) {
-    capt->valid   = true;
-    capt->roll    = g_ahrs.roll;
-    capt->pitch   = g_ahrs.pitch;
-    capt->yaw     = g_ahrs.yaw;
+/* Write roll, pitch, yaw into an array of 3 floats
+ * [ roll, pitch, yaw ]
+ * units: radians
+ */
+void sensors_get_rpy(float *capt) {
+    capt[0] = g_ahrs.roll;
+    capt[1] = g_ahrs.pitch;
+    capt[2] = g_ahrs.yaw;
+}
+
+/* Write omega (angular rate) into an array of 3 floats
+ * [ omega_x, omega_y, omega_z ]
+ * units: radians/sec
+ */
+void sensors_get_omega(float *capt) {
     /* ahrs.get_gyro gives a smoothed (gyro, drift & offset compensated)
      * omega (body frame rate) output */
     const Vector3f omega = g_ahrs.get_gyro();
-    capt->omega_x = omega.x;
-    capt->omega_y = omega.y;
-    capt->omega_z = omega.z;
+    capt[0] = omega.x;
+    capt[1] = omega.y;
+    capt[2] = omega.z;
+}
+
+/* Get barometric altitude estimate
+ * unit: meters
+ */
+float sensors_get_baro_alt(void) {
     /* altitude is only filtered by AP_Baro, no inertial compensation */
-    capt->baro_alt = g_baro.get_altitude();
+    return g_baro.get_altitude();
 }
 
 /* This is dead code, used in the past for debugging. */
