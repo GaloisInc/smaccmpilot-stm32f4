@@ -11,7 +11,6 @@
 # Written by Pat Hickey <pat@galois.com>, 17 Jan 2013
 #
 
-IVORY_PKG_FLIGHT_INCLUDE_DIR := flight
 IVORY_PKG_FLIGHT_GEN_SYMS    := true
 
 $(eval $(call when_platforms,px4fmu17_ioar_freertos px4fmu17_bare_freertos \
@@ -19,15 +18,14 @@ $(eval $(call when_platforms,px4fmu17_ioar_freertos px4fmu17_bare_freertos \
 
 FLIGHT_IMG       := flight
 
-FLIGHT_INCLUDES  += -I$(TOP)/src/flight/include
+FLIGHT_INCLUDES  += -I$(TOP)/apps/flight/include
 FLIGHT_INCLUDES  += $(HWF4_INCLUDES)
-FLIGHT_INCLUDES  += -I$(TOP)/src/flight/standalone_apahrs
+FLIGHT_INCLUDES  += -I$(TOP)/src/standalone_apahrs
 FLIGHT_INCLUDES  += $(FREERTOS_CFLAGS)
+FLIGHT_INCLUDES  += $(IVORY_PKG_FLIGHT_CFLAGS)
 
 # XXX some users of this library include it without putting the
 # directory in the include file name.  We should clean this up.
-FLIGHT_INCLUDES  += $(IVORY_PKG_FLIGHT_CFLAGS)
-FLIGHT_INCLUDES  += -I$(GEN_DIR)/src/flight/flight
 
 FLIGHT_CFLAGS    += $(FLIGHT_INCLUDES)
 FLIGHT_CXXFLAGS  += $(FLIGHT_INCLUDES)
