@@ -11,7 +11,6 @@ import Prelude hiding (last, id)
 import           Ivory.Language
 import           Ivory.Stdlib
 import           Ivory.Tower
-import qualified Ivory.OS.FreeRTOS.Task as F
 
 import qualified SMACCMPilot.Mavlink.Receive as R
 import qualified SMACCMPilot.Flight.Types.DataRate as D
@@ -26,7 +25,7 @@ gcsReceiveTask :: (SingI nn, SingI n, SingI m)
                -> Task p ()
 gcsReceiveTask istream s_src dr_src = do
   n <- freshname
-
+  m <- withGetTimeMillis
   let handlerAux :: Def ('[ Ref s  (Struct "mavlink_receive_state")
                           , Ref s1 (Struct "gcsstream_timing")
                           ] :-> ())
@@ -58,7 +57,7 @@ gcsReceiveTask istream s_src dr_src = do
           -- XXX We need to have a story for messages that are parsed correctly
           -- but are not recognized by the system---one could launch a DoS with
           -- those, too.
-          t <- call F.getTimeMillis
+          t <- getTimeMillis m
           store (drInfo ~> D.lastSucc) t
           call_ handlerAux state s_periods
           R.mavlinkReceiveReset state

@@ -1,24 +1,18 @@
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE ScopedTypeVariables #-}
 
-module Main where
+module SMACCMPilot.Flight
+  ( flight
+  , hil
+  ) where
 
 import Ivory.Language
+import Ivory.Tower
 
 import Ivory.Stdlib.String (stdlibStringModule)
-import qualified Ivory.Stdlib.SearchDir as Stdlib
-
-import Ivory.Tower
-import Ivory.Tower.Frontend
-import qualified Ivory.HW.SearchDir as HW
-
-import SMACCMPilot.Flight.Platforms
 
 import SMACCMPilot.Flight.Types (typeModules)
-
 import SMACCMPilot.Flight.UserInput.Decode (userInputDecodeModule)
 import SMACCMPilot.Flight.Control (controlModules)
-
 import SMACCMPilot.Flight.Datalink
 import qualified SMACCMPilot.Flight.Datalink.TestHarness as DLink
 
@@ -37,29 +31,20 @@ import SMACCMPilot.Mavlink.Messages (mavlinkMessageModules)
 import SMACCMPilot.Mavlink.Pack (packModule)
 import SMACCMPilot.Mavlink.CRC (mavlinkCRCModule)
 
-
 import qualified Ivory.BSP.HWF4.EEPROM as HWF4
 import qualified Ivory.BSP.HWF4.I2C as HWF4
 
-import qualified Ivory.BSP.STM32F4.SearchDir as BSP
 import qualified Ivory.BSP.STM32F4.GPIO as GPIO
 import qualified Ivory.BSP.STM32F4.UART as UART
-import Ivory.BSP.STM32F4.RCC (BoardHSE(..))
+import           Ivory.BSP.STM32F4.RCC (BoardHSE(..))
 
-import Arm32SizeMap (sizeMap)
-
-main :: IO ()
-main = compilePlatforms conf ps
-  where
-  sp   = searchPathConf [Stdlib.searchDir, HW.searchDir, BSP.searchDir]
-  conf = sp { bc_sizemap = Just sizeMap }
-  ps   = [("px4fmu17_ioar", Twr (app :: Tower PX4FMU17_IOAR ()))
-         ,("px4fmu17_bare", Twr (app :: Tower PX4FMU17_Bare ()))
-         ]
-
-app :: (BoardHSE p, MotorOutput p, SensorOrientation p)
+hil :: (BoardHSE p, MotorOutput p, SensorOrientation p)
     => Tower p ()
-app = do
+hil = return () -- XXX
+
+flight :: (BoardHSE p, MotorOutput p, SensorOrientation p)
+    => Tower p ()
+flight = do
   (src_userinput, snk_userinput)   <- dataport
   (src_flightmode, snk_flightmode) <- dataport
 

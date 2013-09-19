@@ -9,7 +9,10 @@ build-type:          Simple
 cabal-version:       >= 1.10
 
 library
-  exposed-modules:     SMACCMPilot.Flight.Platforms,
+  exposed-modules:     SMACCMPilot.Flight,
+                       SMACCMPilot.Flight.Compile,
+
+                       SMACCMPilot.Flight.Platforms,
 
                        SMACCMPilot.Flight.BlinkTask,
 
@@ -57,9 +60,7 @@ library
                        SMACCMPilot.Console,
                        SMACCMPilot.SafePack
 
-  other-modules:       Arm32SizeMap
-
-  build-depends:       base >= 4.6,
+  build-depends:       base ==4.6.*,
                        monadLib,
                        ivory,
                        ivory-stdlib,
@@ -67,8 +68,8 @@ library
                        ivory-opts,
                        ivory-hw,
                        ivory-bitdata,
-                       ivory-tower >= 0.6.0.0,
-                       ivory-tower-freertos >= 0.6.0.0,
+                       ivory-tower,
+                       ivory-tower-frontend,
                        ivory-bsp-hwf4wrapper,
                        ivory-bsp-stm32f4,
                        ivory-px4-hw,
@@ -78,9 +79,8 @@ library
   default-language:    Haskell2010
   ghc-options:         -Wall -fno-warn-orphans
 
-executable smaccmpilot-gen
-  main-is:             Main.hs
-  other-modules:       Arm32SizeMap
+executable flight-gen
+  main-is:             FlightGen.hs
   build-depends:       base ==4.6.*,
                        monadLib,
                        ivory,
@@ -89,8 +89,28 @@ executable smaccmpilot-gen
                        ivory-opts,
                        ivory-hw,
                        ivory-bitdata,
-                       ivory-tower >= 0.6.0.0,
-                       ivory-tower-freertos >= 0.6.0.0,
+                       ivory-tower,
+                       ivory-tower-frontend,
+                       ivory-bsp-hwf4wrapper,
+                       ivory-bsp-stm32f4,
+                       ivory-px4-hw,
+                       ivory-hxstream,
+                       smaccm-mavlink,
+                       smaccmpilot
+
+  default-language:    Haskell2010
+
+executable flight-hil-gen
+  main-is:             HILGen.hs
+  build-depends:       base ==4.6.*,
+                       monadLib,
+                       ivory,
+                       ivory-stdlib,
+                       ivory-backend-c,
+                       ivory-opts,
+                       ivory-hw,
+                       ivory-bitdata,
+                       ivory-tower,
                        ivory-tower-frontend,
                        ivory-bsp-hwf4wrapper,
                        ivory-bsp-stm32f4,
@@ -101,4 +121,5 @@ executable smaccmpilot-gen
 
   default-language:    Haskell2010
   ghc-options:         -Wall -fno-warn-orphans
+
 

@@ -15,9 +15,9 @@ IVORY_PKG_FLIGHT_INCLUDE_DIR := flight
 IVORY_PKG_FLIGHT_GEN_SYMS    := true
 
 $(eval $(call when_platforms,px4fmu17_ioar_freertos px4fmu17_bare_freertos \
-				,tower_pkg,IVORY_PKG_FLIGHT,smaccmpilot-gen))
+				,tower_pkg,IVORY_PKG_FLIGHT,flight-gen))
 
-FLIGHT_IMG       := stabilize
+FLIGHT_IMG       := flight
 
 FLIGHT_INCLUDES  += -I$(TOP)/src/flight/include
 FLIGHT_INCLUDES  += $(HWF4_INCLUDES)
@@ -32,16 +32,7 @@ FLIGHT_INCLUDES  += -I$(GEN_DIR)/src/flight/flight
 FLIGHT_CFLAGS    += $(FLIGHT_INCLUDES)
 FLIGHT_CXXFLAGS  += $(FLIGHT_INCLUDES)
 FLIGHT_CXXFLAGS  += -Wno-psabi
-
-# Allow overriding the GCS UART from Config.mk:
-ifdef CONFIG_GCS_UART
-FLIGHT_CFLAGS    += -DCONFIG_GCS_UART=$(CONFIG_GCS_UART)
-endif
-
-# Ignore ASSERTS() REQUIRES() in the source (used by CBMC).
-FLIGHT_CFLAGS += -DIVORY_DEPLOY
-
-FLIGHT_CXXFLAGS  += $(FLIGHT_INCLUDES)
+FLIGHT_CFLAGS    += -DIVORY_DEPLOY
 
 FLIGHT_OBJECTS := $(addprefix src/,\
 	apmotors_wrapper_stub.o \
