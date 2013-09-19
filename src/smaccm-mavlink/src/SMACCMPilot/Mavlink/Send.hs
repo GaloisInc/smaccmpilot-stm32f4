@@ -4,114 +4,108 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE Rank2Types #-}
+{-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module SMACCMPilot.Mavlink.Send where
 
+import qualified Control.Monad as M
+
 import Ivory.Language
-import Ivory.Stdlib (unless)
+import Ivory.Stdlib
 
 import SMACCMPilot.Mavlink.CRC
 
-type SenderMacro cs s n =  Uint8 -- id
-                        -> ConstRef s (Array n (Stored Uint8)) -- buf
-                        -> Uint8 -- crcextra
-                        -> Ivory (AllocEffects cs) ()
+--------------------------------------------------------------------------------
 
-data SizedMavlinkSender n =
-  SizedMavlinkSender
-    { senderMacro :: forall s cs . SenderMacro cs s n
-    , senderName  :: String
-    , senderDeps  :: ModuleDef
-    }
+-- type SenderMacro cs s n =  Uint8 -- id
+--                         -> ConstRef s (Array n (Stored Uint8)) -- buf
+--                         -> Uint8 -- crcextra
+--                         -> Ivory (AllocEffects cs) ()
 
-newtype MavlinkSender =
-  MavlinkSender (forall n . (SingI n) =>  SizedMavlinkSender n)
+-- data SizedMavlinkSender n =
+--   SizedMavlinkSender
+--     { senderMacro :: forall s cs . SenderMacro cs s n
+--     , senderName  :: String
+--     , senderDeps  :: ModuleDef
+--     }
 
-mavlinkSenderName :: MavlinkSender -> String
-mavlinkSenderName (MavlinkSender sized) =
-  senderName (sized :: SizedMavlinkSender 1)
+-- class MavlinkSendable t n | t -> n where
+--   mkSender :: SizedMavlinkSender n -> Def ('[ ConstRef s (Struct t) ] :-> ())
 
-class MavlinkSendable t n | t -> n where
-  mkSender :: SizedMavlinkSender n -> Def ('[ ConstRef s (Struct t) ] :-> ())
-
-newtype MavlinkWriteMacro = MavlinkWriteMacro {
-  unMavlinkWriteMacro ::
-    (forall s cs n
-    . (SingI n)
-    => ConstRef s (Array n (Stored Uint8)) -- buf
-    -> Ivory (AllocEffects cs) ()) }
-
-mavlinkChecksum :: (SingI n, GetAlloc eff ~ Scope s)
-                             => ConstRef s1 (Array 6 (Stored Uint8))
-                             -> ConstRef s2 (Array n (Stored Uint8))
-                             -> Uint8
-                             -> Ivory eff (Uint8, Uint8)
-mavlinkChecksum header payload crcextra = do
+-- mavlinkChecksum :: Uint8
+--                 -> Uint8
+--                 -> Ref s (Array 128 (Stored Uint8))
+--                 -> Ivory eff ()
+mavlinkChecksum ::
+     (GetAlloc eff ~ Scope cs)
+  => Uint8
+  -> Uint8
+  -> Ref s (Array 128 (Stored Uint8))
+  -> Ivory eff ()
+mavlinkChecksum sz crcextra arr = do
   ck <- local (ival crc_init_v)
-  arrayMap $ \i ->
+  for (toIx sz) $ \i ->
     -- mavlink doesn't use the magic number
     -- in header[0] for crc calculation.
     unless (i ==? 0) $ do
-      b <- deref (header ! i)
+      b <- deref (arr ! i)
       call_ crc_accumulate b ck
 
-  arrayMap $ \i -> do
-    b <- deref (payload ! i)
-    call_ crc_accumulate b ck
-
   call_ crc_accumulate crcextra ck
-  crc_lo_hi ck
+  (lo, hi) <- crc_lo_hi ck
 
-mavlinkSendWithWriter :: Uint8 -- Sysid
-                      -> Uint8 -- Compid
-                      -> String -- Writer name
-                      -> Ref s (Stored Uint8) -- TX Sequence Number
-                      -> MavlinkWriteMacro -- Ivory macro: send bytes on chan
-                      -> ModuleDef -- Deps of tx seq mem area, ivory macro
-                      -> MavlinkSender
-mavlinkSendWithWriter sysid compid name seqnum cwriter writerdeps =
-  MavlinkSender (SizedMavlinkSender sender name deps)
-  where
-  deps = do
-    depend mavlinkCRCModule
-    writerdeps
-  write :: (SingI n)
-        => ConstRef s (Array n (Stored Uint8)) -> Ivory (AllocEffects cs) ()
-  write = unMavlinkWriteMacro cwriter
+  assert (arrayLen arr >? (sz + 1))
+  let szIx = toIx sz
+  store (arr ! szIx) lo
+  store (arr ! (szIx + 1)) hi
 
-  const_MAVLINK_STX = 254 :: Uint8
+-- Magic constants
+sysid, compid :: Uint8
+sysid  = 1
+compid = 0
 
-  sender :: (SingI n)
-         => Uint8 -> ConstRef s' (Array n (Stored Uint8))
-         -> Uint8 -> Ivory (AllocEffects cs) ()
-  sender msgid payload crcextra = do
-    seqnum <- getSeqnum
-    -- Create header
+const_MAVLINK_STX :: Uint8
+const_MAVLINK_STX = 254
+
+-- We assume the payload has already been copied into arr.
+mavlinkSendWithWriter ::
+     Ref s (Array 128 (Stored Uint8))
+  -> Def ('[ Uint8, Uint8, Uint8, Ref s (Stored Uint8)]
+           :-> ()
+         )
+mavlinkSendWithWriter arr =
+--  (SizedMavlinkSender sender (writerName mavlinkData) deps)
+  proc "mavlinkSendWithWriter" $ \msgId crcExtra payloadLen seqNum -> body $ do
+
+    s <- deref seqNum
     header <- local (
       iarray [ ival const_MAVLINK_STX
-             , ival (arrayLen payload)
-             , ival seqnum
+             , ival payloadLen
+             , ival s
              , ival sysid
              , ival compid
-             , ival msgid
+             , ival msgId
              ] :: Init (Array 6 (Stored Uint8)))
 
-    -- Calculate checksum
-    (lo, hi) <- mavlinkChecksum (constRef header) payload crcextra
-    ckbuf    <- local
-                  (iarray [ ival lo, ival hi ] :: Init (Array 2 (Stored Uint8)))
-    -- write each piece in sequence
-    write (constRef header)
-    write payload
-    write (constRef ckbuf)
-    where
-    getSeqnum = do
-      -- Increment and return sequence number
-      s <- deref seqnum
-      store seqnum (s + 1)
-      return s
+    seqNum += 1
+    let sz = 6 + payloadLen :: Uint8
 
+    M.void (arrCopy arr header 0)
 
+    -- Calculate checksum and store in arr
+    mavlinkChecksum sz crcExtra arr
+
+--------------------------------------------------------------------------------
+-- Helpers for auto-generated code, also used by transmitter in SMACCMPILOT
+-- currently.
+
+-- XXX refactor and get rid of this stuff at some point.
+
+-- newtype MavlinkSender =
+--   MavlinkSender (forall n . (SingI n) => SizedMavlinkSender n)
+
+-- mkMessage :: (forall n . (SingI n) => SizedMavlinkSender n) -> MavlinkSender
+-- mkMessage = MavlinkSender

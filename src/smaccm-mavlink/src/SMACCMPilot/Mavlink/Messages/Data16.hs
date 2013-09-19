@@ -15,6 +15,7 @@ import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
 import Ivory.Language
+import Ivory.Stdlib
 
 data16MsgId :: Uint8
 data16MsgId = 169
@@ -36,25 +37,42 @@ struct data16_msg
   }
 |]
 
-mkData16Sender :: SizedMavlinkSender 18
-                       -> Def ('[ ConstRef s (Struct "data16_msg") ] :-> ())
-mkData16Sender sender =
-  proc ("mavlink_data16_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    noReturn $ data16Pack (senderMacro sender) msg
+mkData16Sender :: --SizedMavlinkSender 18
+  Def ('[ ConstRef s0 (Struct "data16_msg")
+        , Ref s1 (Stored Uint8)
+        , Ref s1 (Array 128 (Stored Uint8))
+        ] :-> ())
+mkData16Sender = proc "mavlink_data16_msg_send"
+  $ \msg seqNum sendArr -> body
+  $ do
 
-instance MavlinkSendable "data16_msg" 18 where
-  mkSender = mkData16Sender
-
-data16Pack :: SenderMacro cs (Stack cs) 18
-                  -> ConstRef s1 (Struct "data16_msg")
-                  -> Ivory (AllocEffects cs) ()
-data16Pack sender msg = do
   arr <- local (iarray [] :: Init (Array 18 (Stored Uint8)))
   let buf = toCArray arr
   call_ pack buf 0 =<< deref (msg ~> data16_type)
   call_ pack buf 1 =<< deref (msg ~> len)
   arrayPack buf 2 (msg ~> data16)
-  sender data16MsgId (constRef arr) data16CrcExtra
+  -- Copy leaving enough room for the header
+  _ <- arrCopy sendArr arr 6
+  call_ (mavlinkSendWithWriter sendArr) data16MsgId data16CrcExtra 18 seqNum
+  retVoid
+
+    -- sender data16MsgId (constRef arr) data16CrcExtra
+
+    -- noReturn $ data16Pack msg
+
+-- instance MavlinkSendable "data16_msg" 18 where
+--   mkSender = mkData16Sender
+
+-- data16Pack :: --SenderMacro cs (Stack cs) 18
+--                   -> ConstRef s1 (Struct "data16_msg")
+--                   -> Ivory (AllocEffects cs) ()
+-- data16Pack sender msg = do
+--   arr <- local (iarray [] :: Init (Array 18 (Stored Uint8)))
+--   let buf = toCArray arr
+--   call_ pack buf 0 =<< deref (msg ~> data16_type)
+--   call_ pack buf 1 =<< deref (msg ~> len)
+--   arrayPack buf 2 (msg ~> data16)
+--   sender data16MsgId (constRef arr) data16CrcExtra
 
 instance MavlinkUnpackableMsg "data16_msg" where
     unpackMsg = ( data16Unpack , data16MsgId )

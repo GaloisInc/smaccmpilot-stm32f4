@@ -20,7 +20,7 @@ import qualified SMACCMPilot.Flight.Types.GCSStreamTiming as S
 import qualified SMACCMPilot.Flight.Types.FlightMode      as FM
 import qualified SMACCMPilot.Flight.Types.DataRate        as D
 
-import SMACCMPilot.Mavlink.Send (mavlinkSendWithWriter, MavlinkWriteMacro(..))
+import SMACCMPilot.Mavlink.Send (mavlinkSendWithWriter)
 
 import qualified SMACCMPilot.Flight.GCS.Commsec as C
 import qualified Ivory.HXStream as H
@@ -29,48 +29,45 @@ import qualified Ivory.HXStream as H
 
 -- Take a Mavlink packet, encrypt it, hxstream it, then send it to the uart
 -- ISR.
-processAndEmit :: (SingI m, SingI n)
-  => ChannelEmitter n (Stored Uint8) -- Emitter to uart
-  -> Ref s' (Array 128 (Stored Uint8)) -- commsec package
-  -> ConstRef s (Array m (Stored Uint8)) -- Message
-  -> Ivory (AllocEffects eff) ()
-processAndEmit ostream uavPkg arrref = do
-  hx <- local (iarray $ replicate 258 izero)
+-- processAndEmit :: (SingI m, SingI n)
+--   => ChannelEmitter n (Stored Uint8) -- Emitter to uart
+--   -> Ref s' (Array 128 (Stored Uint8)) -- commsec package
+--   -> ConstRef s (Array m (Stored Uint8)) -- Message
+--   -> Ivory (AllocEffects eff) ()
+-- processAndEmit ostream uavPkg arrref = do
+--   -- C.cpyToPkg arrref uavPkg
+--   -- C.encrypt C.uavCtx uavPkg
 
-  C.cpyToPkg arrref uavPkg
-  call_ H.encode uavPkg hx
---  let pkg = constRef uavPkg
-  arrayMap $ \i -> emit_ ostream (constRef hx ! i)
+--   -- call_ H.encode uavPkg hx
+-- --  let pkg = constRef uavPkg
+--   arrayMap $ \i -> --emit_ ostream (constRef hx ! i)
 
---    emit_ ostream (arrref ! i)
+--     emit_ ostream (arrref ! i)
 --------------------------------------------------------------------------------
 
-sysid, compid :: Uint8
-sysid  = 1
-compid = 0
 
-gcsTransmitDriver :: (SingI n)
-                  => ChannelSource n (Stored Uint8) -- 1024 bytes: UART driver
-                  -> Task p MessageDriver
-gcsTransmitDriver chan = do
-  ostream <- withChannelEmitter chan "ostream"
+-- gcsTransmitDriver :: -- (SingI n)
+--                   -- => ChannelSource n (Stored Uint8) -- 1024 bytes: UART driver
+--                   Task p MessageDriver
+gcsTransmitDriver uavPkg = do
   taskdep <- taskDependency
   txseq   <- taskLocalInit "txseq" (ival 0)
   name    <- freshname
-  uavPkg  <- taskLocal "uavPkg"
 
-  let s = mkSender
-            name
-            txseq
-            (MavlinkWriteMacro (processAndEmit ostream uavPkg))
-            taskdep
-  let (driver, ms) = messageDriver s
+  let mavData =
+        MavlinkData { sysId      = sysid
+                    , compId     = compid
+                    , writerName = "mavlinksender" ++ name
+                    , txSeqNum   = txseq
+                    , writerDeps = taskdep
+                    }
+  -- let s = mavlinkSendWithWriter mavData uavPkg
 
-  taskModuleDef (mapM_ depend ms)
-  mapM_ withModule ms
+  let (driver, mods) = messageDriver mavData uavPkg
+
+  taskModuleDef (mapM_ depend mods)
+  mapM_ withModule mods
   return driver
-  where
-  mkSender n = mavlinkSendWithWriter sysid compid ("mavlinksender" ++ n)
 
 gcsTransmitTask :: (SingI nn, SingI n, SingI m)
                 => ChannelSource nn (Stored Uint8) -- Channel to UART
@@ -84,17 +81,22 @@ gcsTransmitTask :: (SingI nn, SingI n, SingI m)
                 -> Task p ()
 gcsTransmitTask ostream sp_sink dr_sink fm_sink se_sink ps_sink ct_sink mo_sink
   = do
+  withStackSize 1024
+
   fmReader         <- withDataReader fm_sink "flightmode"
   sensorsReader    <- withDataReader se_sink "sensors"
   posReader        <- withDataReader ps_sink "position"
   ctlReader        <- withDataReader ct_sink "control"
   motorReader      <- withDataReader mo_sink "motors"
 
+  uavPkg           <- taskLocal "uavPkg"
+  uartTx           <- withChannelEmitter ostream "ostream"
+
   -- XXX current issue: need a way to change usartSender to be defined in terms
   -- of the ChannelReceiver. This means it will depend on the Task
   -- tower_task_loop_ module, which generates the code for the emitter.
-  chan1 <- gcsTransmitDriver ostream
-  withStackSize 1024
+  msgDriver <- gcsTransmitDriver uavPkg
+
   t <- withGetTimeMillis
 
   lastRun    <- taskLocal "lastrun"
@@ -119,7 +121,7 @@ gcsTransmitTask ostream sp_sink dr_sink fm_sink se_sink ps_sink ct_sink mo_sink
   onChannel dr_sink "dataRate" $ \dr -> do
     d <- local (istruct [])
     refCopy d dr
-    call_ (sendDataRate chan1) d
+    call_ (sendDataRate msgDriver) d
 
   onPeriod 50 $ \now -> do
     -- Handler for all streams - if due, run action, then update schedule
@@ -133,33 +135,41 @@ gcsTransmitTask ostream sp_sink dr_sink fm_sink se_sink ps_sink ct_sink mo_sink
             action
             setNextTime (constRef s_periods) s_schedule selector now
 
+    let send = arrayMap $ \ix -> emit_ uartTx (constRef uavPkg ! ix)
+
     onStream S.heartbeat $ do
       readData fmReader s_fm
-      call_ (sendHeartbeat chan1) s_fm
+      call_ (sendHeartbeat msgDriver) s_fm
+      send
 
     onStream S.servo_output_raw $ do
       readData motorReader s_motor
       readData ctlReader s_ctl
-      call_ (sendServoOutputRaw chan1) s_motor s_ctl
+      call_ (sendServoOutputRaw msgDriver) s_motor s_ctl
+      send
 
     onStream S.attitude $ do
       readData sensorsReader s_sens
-      call_ (sendAttitude chan1) s_sens
+      call_ (sendAttitude msgDriver) s_sens
+      send
 
     onStream S.gps_raw_int $ do
       readData posReader s_pos
-      call_ (sendGpsRawInt chan1) s_pos
+      call_ (sendGpsRawInt msgDriver) s_pos
+      send
 
     onStream S.vfr_hud $ do
       readData posReader s_pos
       readData ctlReader s_ctl
       readData sensorsReader s_sens
-      call_ (sendVfrHud chan1) s_pos s_ctl s_sens
+      call_ (sendVfrHud msgDriver) s_pos s_ctl s_sens
+      send
 
     onStream S.global_position_int $ do
       readData posReader s_pos
       readData sensorsReader s_sens
-      call_ (sendGlobalPositionInt chan1) s_pos s_sens
+      call_ (sendGlobalPositionInt msgDriver) s_pos s_sens
+      send
 
     onStream S.params $ do
       -- XXX our whole story for params is broken
@@ -173,3 +183,5 @@ gcsTransmitTask ostream sp_sink dr_sink fm_sink se_sink ps_sink ct_sink mo_sink
     depend D.dataRateTypeModule
     depend S.gcsStreamTimingTypeModule
     depend C.commsecModule
+    incl H.encode
+--    defStruct (Proxy :: Proxy "hxstream_state")
