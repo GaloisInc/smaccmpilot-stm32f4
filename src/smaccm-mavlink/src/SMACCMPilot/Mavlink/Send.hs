@@ -72,13 +72,19 @@ const_MAVLINK_STX = 254
 
 -- We assume the payload has already been copied into arr.
 mavlinkSendWithWriter ::
-     Ref s (Array 128 (Stored Uint8))
-  -> Def ('[ Uint8, Uint8, Uint8, Ref s (Stored Uint8)]
-           :-> ()
-         )
-mavlinkSendWithWriter arr =
+  Def ('[ Uint8
+        , Uint8
+        , Uint8
+        , Ref s (Stored Uint8)
+        , Ref s (Array 128 (Stored Uint8))
+        ]
+        :-> ()
+      )
+mavlinkSendWithWriter =
 --  (SizedMavlinkSender sender (writerName mavlinkData) deps)
-  proc "mavlinkSendWithWriter" $ \msgId crcExtra payloadLen seqNum -> body $ do
+  proc "mavlinkSendWithWriter"
+  $ \msgId crcExtra payloadLen seqNum arr -> body
+  $ do
 
     s <- deref seqNum
     header <- local (
@@ -97,6 +103,10 @@ mavlinkSendWithWriter arr =
 
     -- Calculate checksum and store in arr
     mavlinkChecksum sz crcExtra arr
+
+mavlinkSendModule :: Module
+mavlinkSendModule = package "mavlinkSendModule" $
+  incl mavlinkSendWithWriter
 
 --------------------------------------------------------------------------------
 -- Helpers for auto-generated code, also used by transmitter in SMACCMPILOT

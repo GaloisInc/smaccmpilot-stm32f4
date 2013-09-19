@@ -37,26 +37,26 @@ struct param_request_read_msg
   }
 |]
 
-mkParamRequestReadSender :: SizedMavlinkSender 20
-                       -> Def ('[ ConstRef s (Struct "param_request_read_msg") ] :-> ())
-mkParamRequestReadSender sender =
-  proc ("mavlink_param_request_read_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    noReturn $ paramRequestReadPack (senderMacro sender) msg
+-- mkParamRequestReadSender :: SizedMavlinkSender 20
+--                        -> Def ('[ ConstRef s (Struct "param_request_read_msg") ] :-> ())
+-- mkParamRequestReadSender sender =
+--   proc ("mavlink_param_request_read_msg_send" ++ (senderName sender)) $ \msg -> body $ do
+--     noReturn $ paramRequestReadPack (senderMacro sender) msg
 
-instance MavlinkSendable "param_request_read_msg" 20 where
-  mkSender = mkParamRequestReadSender
+-- instance MavlinkSendable "param_request_read_msg" 20 where
+--   mkSender = mkParamRequestReadSender
 
-paramRequestReadPack :: SenderMacro cs (Stack cs) 20
-                  -> ConstRef s1 (Struct "param_request_read_msg")
-                  -> Ivory (AllocEffects cs) ()
-paramRequestReadPack sender msg = do
-  arr <- local (iarray [] :: Init (Array 20 (Stored Uint8)))
-  let buf = toCArray arr
-  call_ pack buf 0 =<< deref (msg ~> param_index)
-  call_ pack buf 2 =<< deref (msg ~> target_system)
-  call_ pack buf 3 =<< deref (msg ~> target_component)
-  arrayPack buf 4 (msg ~> param_id)
-  sender paramRequestReadMsgId (constRef arr) paramRequestReadCrcExtra
+-- paramRequestReadPack :: SenderMacro cs (Stack cs) 20
+--                   -> ConstRef s1 (Struct "param_request_read_msg")
+--                   -> Ivory (AllocEffects cs) ()
+-- paramRequestReadPack sender msg = do
+--   arr <- local (iarray [] :: Init (Array 20 (Stored Uint8)))
+--   let buf = toCArray arr
+--   call_ pack buf 0 =<< deref (msg ~> param_index)
+--   call_ pack buf 2 =<< deref (msg ~> target_system)
+--   call_ pack buf 3 =<< deref (msg ~> target_component)
+--   arrayPack buf 4 (msg ~> param_id)
+--   sender paramRequestReadMsgId (constRef arr) paramRequestReadCrcExtra
 
 instance MavlinkUnpackableMsg "param_request_read_msg" where
     unpackMsg = ( paramRequestReadUnpack , paramRequestReadMsgId )

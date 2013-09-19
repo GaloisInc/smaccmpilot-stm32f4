@@ -38,27 +38,27 @@ struct request_data_stream_msg
   }
 |]
 
-mkRequestDataStreamSender :: SizedMavlinkSender 6
-                       -> Def ('[ ConstRef s (Struct "request_data_stream_msg") ] :-> ())
-mkRequestDataStreamSender sender =
-  proc ("mavlink_request_data_stream_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    noReturn $ requestDataStreamPack (senderMacro sender) msg
+-- mkRequestDataStreamSender :: SizedMavlinkSender 6
+--                        -> Def ('[ ConstRef s (Struct "request_data_stream_msg") ] :-> ())
+-- mkRequestDataStreamSender sender =
+--   proc ("mavlink_request_data_stream_msg_send" ++ (senderName sender)) $ \msg -> body $ do
+--     noReturn $ requestDataStreamPack (senderMacro sender) msg
 
-instance MavlinkSendable "request_data_stream_msg" 6 where
-  mkSender = mkRequestDataStreamSender
+-- instance MavlinkSendable "request_data_stream_msg" 6 where
+--   mkSender = mkRequestDataStreamSender
 
-requestDataStreamPack :: SenderMacro cs (Stack cs) 6
-                  -> ConstRef s1 (Struct "request_data_stream_msg")
-                  -> Ivory (AllocEffects cs) ()
-requestDataStreamPack sender msg = do
-  arr <- local (iarray [] :: Init (Array 6 (Stored Uint8)))
-  let buf = toCArray arr
-  call_ pack buf 0 =<< deref (msg ~> req_message_rate)
-  call_ pack buf 2 =<< deref (msg ~> target_system)
-  call_ pack buf 3 =<< deref (msg ~> target_component)
-  call_ pack buf 4 =<< deref (msg ~> req_stream_id)
-  call_ pack buf 5 =<< deref (msg ~> start_stop)
-  sender requestDataStreamMsgId (constRef arr) requestDataStreamCrcExtra
+-- requestDataStreamPack :: SenderMacro cs (Stack cs) 6
+--                   -> ConstRef s1 (Struct "request_data_stream_msg")
+--                   -> Ivory (AllocEffects cs) ()
+-- requestDataStreamPack sender msg = do
+--   arr <- local (iarray [] :: Init (Array 6 (Stored Uint8)))
+--   let buf = toCArray arr
+--   call_ pack buf 0 =<< deref (msg ~> req_message_rate)
+--   call_ pack buf 2 =<< deref (msg ~> target_system)
+--   call_ pack buf 3 =<< deref (msg ~> target_component)
+--   call_ pack buf 4 =<< deref (msg ~> req_stream_id)
+--   call_ pack buf 5 =<< deref (msg ~> start_stop)
+--   sender requestDataStreamMsgId (constRef arr) requestDataStreamCrcExtra
 
 instance MavlinkUnpackableMsg "request_data_stream_msg" where
     unpackMsg = ( requestDataStreamUnpack , requestDataStreamMsgId )

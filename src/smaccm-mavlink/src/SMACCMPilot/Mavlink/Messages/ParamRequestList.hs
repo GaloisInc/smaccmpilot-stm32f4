@@ -35,24 +35,24 @@ struct param_request_list_msg
   }
 |]
 
-mkParamRequestListSender :: SizedMavlinkSender 2
-                       -> Def ('[ ConstRef s (Struct "param_request_list_msg") ] :-> ())
-mkParamRequestListSender sender =
-  proc ("mavlink_param_request_list_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    noReturn $ paramRequestListPack (senderMacro sender) msg
+-- mkParamRequestListSender :: SizedMavlinkSender 2
+--                        -> Def ('[ ConstRef s (Struct "param_request_list_msg") ] :-> ())
+-- mkParamRequestListSender sender =
+--   proc ("mavlink_param_request_list_msg_send" ++ (senderName sender)) $ \msg -> body $ do
+--     noReturn $ paramRequestListPack (senderMacro sender) msg
 
-instance MavlinkSendable "param_request_list_msg" 2 where
-  mkSender = mkParamRequestListSender
+-- instance MavlinkSendable "param_request_list_msg" 2 where
+--   mkSender = mkParamRequestListSender
 
-paramRequestListPack :: SenderMacro cs (Stack cs) 2
-                  -> ConstRef s1 (Struct "param_request_list_msg")
-                  -> Ivory (AllocEffects cs) ()
-paramRequestListPack sender msg = do
-  arr <- local (iarray [] :: Init (Array 2 (Stored Uint8)))
-  let buf = toCArray arr
-  call_ pack buf 0 =<< deref (msg ~> target_system)
-  call_ pack buf 1 =<< deref (msg ~> target_component)
-  sender paramRequestListMsgId (constRef arr) paramRequestListCrcExtra
+-- paramRequestListPack :: SenderMacro cs (Stack cs) 2
+--                   -> ConstRef s1 (Struct "param_request_list_msg")
+--                   -> Ivory (AllocEffects cs) ()
+-- paramRequestListPack sender msg = do
+--   arr <- local (iarray [] :: Init (Array 2 (Stored Uint8)))
+--   let buf = toCArray arr
+--   call_ pack buf 0 =<< deref (msg ~> target_system)
+--   call_ pack buf 1 =<< deref (msg ~> target_component)
+--   sender paramRequestListMsgId (constRef arr) paramRequestListCrcExtra
 
 instance MavlinkUnpackableMsg "param_request_list_msg" where
     unpackMsg = ( paramRequestListUnpack , paramRequestListMsgId )

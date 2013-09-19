@@ -38,27 +38,27 @@ struct param_set_msg
   }
 |]
 
-mkParamSetSender :: SizedMavlinkSender 23
-                       -> Def ('[ ConstRef s (Struct "param_set_msg") ] :-> ())
-mkParamSetSender sender =
-  proc ("mavlink_param_set_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    noReturn $ paramSetPack (senderMacro sender) msg
+-- mkParamSetSender :: SizedMavlinkSender 23
+--                        -> Def ('[ ConstRef s (Struct "param_set_msg") ] :-> ())
+-- mkParamSetSender sender =
+--   proc ("mavlink_param_set_msg_send" ++ (senderName sender)) $ \msg -> body $ do
+--     noReturn $ paramSetPack (senderMacro sender) msg
 
-instance MavlinkSendable "param_set_msg" 23 where
-  mkSender = mkParamSetSender
+-- instance MavlinkSendable "param_set_msg" 23 where
+--   mkSender = mkParamSetSender
 
-paramSetPack :: SenderMacro cs (Stack cs) 23
-                  -> ConstRef s1 (Struct "param_set_msg")
-                  -> Ivory (AllocEffects cs) ()
-paramSetPack sender msg = do
-  arr <- local (iarray [] :: Init (Array 23 (Stored Uint8)))
-  let buf = toCArray arr
-  call_ pack buf 0 =<< deref (msg ~> param_value)
-  call_ pack buf 4 =<< deref (msg ~> target_system)
-  call_ pack buf 5 =<< deref (msg ~> target_component)
-  call_ pack buf 22 =<< deref (msg ~> param_type)
-  arrayPack buf 6 (msg ~> param_id)
-  sender paramSetMsgId (constRef arr) paramSetCrcExtra
+-- paramSetPack :: SenderMacro cs (Stack cs) 23
+--                   -> ConstRef s1 (Struct "param_set_msg")
+--                   -> Ivory (AllocEffects cs) ()
+-- paramSetPack sender msg = do
+--   arr <- local (iarray [] :: Init (Array 23 (Stored Uint8)))
+--   let buf = toCArray arr
+--   call_ pack buf 0 =<< deref (msg ~> param_value)
+--   call_ pack buf 4 =<< deref (msg ~> target_system)
+--   call_ pack buf 5 =<< deref (msg ~> target_component)
+--   call_ pack buf 22 =<< deref (msg ~> param_type)
+--   arrayPack buf 6 (msg ~> param_id)
+--   sender paramSetMsgId (constRef arr) paramSetCrcExtra
 
 instance MavlinkUnpackableMsg "param_set_msg" where
     unpackMsg = ( paramSetUnpack , paramSetMsgId )

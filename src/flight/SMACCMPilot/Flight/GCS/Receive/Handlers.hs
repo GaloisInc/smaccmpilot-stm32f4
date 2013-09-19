@@ -6,7 +6,6 @@
 module SMACCMPilot.Flight.GCS.Receive.Handlers where
 
 import Ivory.Language
-import Ivory.Stdlib
 
 import           SMACCMPilot.Mavlink.Messages (mavlinkMessageModules)
 import qualified SMACCMPilot.Mavlink.Messages.RequestDataStream as RDS

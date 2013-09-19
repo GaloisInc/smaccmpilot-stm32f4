@@ -23,15 +23,7 @@ import           SMACCMPilot.Flight.GCS.Receive.Handlers
 import qualified SMACCMPilot.Flight.GCS.Commsec as C
 import qualified Ivory.HXStream as H
 
---------------------------------------------------------------------------------
-
--- Take bytes from the uart ISR, un hxstream it, decrypt it, then pass the
--- potential mavlink packet on.
--- processPacket :: Uint8 ->
--- processPacket b = do
---   res <- H.decodeSM st b
---   ifte_ res
-
+import SMACCMPilot.Mavlink.Messages (mavlinkMessageModules)
 
 --------------------------------------------------------------------------------
 
@@ -56,6 +48,7 @@ gcsReceiveTask istream s_src dr_src = do
          ]
          where runHandlers s = mapM_ ((flip ($)) s)
 
+  withStackSize 1024
   streamPeriodEmitter <- withChannelEmitter s_src "streamperiods"
 
   drEmitter <- withChannelEmitter dr_src "data_rate_chan"
@@ -70,7 +63,8 @@ gcsReceiveTask istream s_src dr_src = do
     emit_ streamPeriodEmitter (constRef s_periods)
     H.emptyStreamState hxState
 
-  let parseMav :: Uint8 -> Ivory (AllowBreak (ProcEffects s t)) ()
+--  let parseMav :: Uint8 -> Ivory (AllowBreak (ProcEffects s t)) ()
+  let parseMav :: Uint8 -> Ivory (ProcEffects s t) ()
       parseMav b = do
         R.mavlinkReceiveByte state b
         s <- deref (state ~> R.status)
@@ -94,18 +88,27 @@ gcsReceiveTask istream s_src dr_src = do
           ]
         emit_ drEmitter (constRef drInfo)
 
-  onChannelV istream "istream" $ \b -> do
-    -- hxstream state decode
-    res  <- H.decodeSM hxState b
-    -- check for overflow
-    over <- hxState ~>* H.ovf
-    cond_ [ over ==> H.emptyStreamState hxState
-          , res  ==> do let buf = hxState ~> H.buf
-                        C.decrypt C.uavCtx buf
-                        arrayMap $ \ix -> deref (buf ! ix) >>= parseMav
-          ]
+  onChannelV istream "istream" parseMav
+
+  -- XXX
+  -- onChannelV istream "istream" $ \b -> do
+  --   -- hxstream state decode
+  --   res  <- H.decodeSM hxState b
+  --   -- check for overflow
+  --   over <- hxState ~>* H.ovf
+  --   cond_ [ over ==> H.emptyStreamState hxState
+  --         , res  ==> do let buf = hxState ~> H.buf
+  --                       C.decrypt C.uavCtx buf
+  --                       arrayMap $ \ix -> deref (buf ! ix) >>= parseMav
+  --         ]
 
   taskModuleDef $ do
     defStruct (Proxy :: Proxy "mavlink_receive_state")
     incl handlerAux
     handlerModuleDefs
+    defStruct (Proxy :: Proxy "hxstream_state")
+    incl (H.decode :: Def ( '[ Ref s (Array 258 (Stored Uint8))
+                             , Ref s (Struct "hxstream_state")
+                             ] :-> Ix 258))
+    depend C.commsecModule
+    mapM_ depend mavlinkMessageModules

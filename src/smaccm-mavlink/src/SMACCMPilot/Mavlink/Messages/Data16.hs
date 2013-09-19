@@ -26,7 +26,9 @@ data16CrcExtra = 46
 data16Module :: Module
 data16Module = package "mavlink_data16_msg" $ do
   depend packModule
+  incl mkData16Sender
   incl data16Unpack
+  depend mavlinkSendModule
   defStruct (Proxy :: Proxy "data16_msg")
 
 [ivory|
@@ -38,9 +40,9 @@ struct data16_msg
 |]
 
 mkData16Sender :: --SizedMavlinkSender 18
-  Def ('[ ConstRef s0 (Struct "data16_msg")
-        , Ref s1 (Stored Uint8)
-        , Ref s1 (Array 128 (Stored Uint8))
+  Def ('[ ConstRef s (Struct "data16_msg")
+        , Ref s' (Stored Uint8)
+        , Ref s' (Array 128 (Stored Uint8))
         ] :-> ())
 mkData16Sender = proc "mavlink_data16_msg_send"
   $ \msg seqNum sendArr -> body
@@ -51,28 +53,13 @@ mkData16Sender = proc "mavlink_data16_msg_send"
   call_ pack buf 0 =<< deref (msg ~> data16_type)
   call_ pack buf 1 =<< deref (msg ~> len)
   arrayPack buf 2 (msg ~> data16)
+
   -- Copy leaving enough room for the header
-  _ <- arrCopy sendArr arr 6
-  call_ (mavlinkSendWithWriter sendArr) data16MsgId data16CrcExtra 18 seqNum
-  retVoid
-
-    -- sender data16MsgId (constRef arr) data16CrcExtra
-
-    -- noReturn $ data16Pack msg
-
--- instance MavlinkSendable "data16_msg" 18 where
---   mkSender = mkData16Sender
-
--- data16Pack :: --SenderMacro cs (Stack cs) 18
---                   -> ConstRef s1 (Struct "data16_msg")
---                   -> Ivory (AllocEffects cs) ()
--- data16Pack sender msg = do
---   arr <- local (iarray [] :: Init (Array 18 (Stored Uint8)))
---   let buf = toCArray arr
---   call_ pack buf 0 =<< deref (msg ~> data16_type)
---   call_ pack buf 1 =<< deref (msg ~> len)
---   arrayPack buf 2 (msg ~> data16)
---   sender data16MsgId (constRef arr) data16CrcExtra
+  if arrayLen sendArr < (6 + 18 + 2 :: Integer)
+    then error "data16 payload too big!"
+    else do _ <- arrCopy sendArr arr 6
+            call_ mavlinkSendWithWriter data16MsgId data16CrcExtra 18 seqNum sendArr
+            retVoid
 
 instance MavlinkUnpackableMsg "data16_msg" where
     unpackMsg = ( data16Unpack , data16MsgId )
