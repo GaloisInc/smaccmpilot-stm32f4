@@ -48,8 +48,9 @@ runTest ls = do
 
   b <- local (ival true)
   arrayMap $ \i -> do
-    when ((decoded ! i) ==? (input ! i))
-         (store b false)
+    x <- deref (decoded ! i)
+    y <- deref (input   ! i)
+    when (x /=? y) $ store b false
 
   b' <- deref b
   call_ testReport b'
