@@ -18,14 +18,16 @@ import qualified SMACCMPilot.Flight.Types.DataRate as D
 import           SMACCMPilot.Flight.GCS.Stream (defaultPeriods)
 import           SMACCMPilot.Flight.GCS.Receive.Handlers
 
-gcsReceiveTask :: (SingI nn, SingI n, SingI m)
+gcsReceiveTask :: (SingI nn, SingI n, SingI m, SingI o)
                => ChannelSink  nn (Stored Uint8)
                -> ChannelSource n (Struct "gcsstream_timing")
                -> ChannelSource m (Struct "data_rate_state")
+               -> ChannelSource o (Struct "hil_state_msg")
                -> Task p ()
-gcsReceiveTask istream s_src dr_src = do
+gcsReceiveTask istream s_src dr_src hil_src = do
   n <- freshname
   m <- withGetTimeMillis
+  hil_emitter <- withChannelEmitter hil_src "hil_src"
   let handlerAux :: Def ('[ Ref s  (Struct "mavlink_receive_state")
                           , Ref s1 (Struct "gcsstream_timing")
                           ] :-> ())
@@ -35,7 +37,7 @@ gcsReceiveTask istream s_src dr_src = do
          , handle paramRequestRead
          , handle paramSet
          , handle (requestDatastream streams)
-         , handle hilState
+         , handle (hilState hil_emitter)
          ]
          where runHandlers s = mapM_ ((flip ($)) s)
 

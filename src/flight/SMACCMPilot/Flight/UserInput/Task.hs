@@ -5,6 +5,7 @@
 
 module SMACCMPilot.Flight.UserInput.Task
   ( userInputTask
+  , userInputTower
   ) where
 
 import Ivory.Language
@@ -13,6 +14,15 @@ import Ivory.Tower
 
 import SMACCMPilot.Flight.Types.UserInput
 import SMACCMPilot.Flight.UserInput.Decode
+
+userInputTower :: Tower p ( DataSink (Struct "userinput_result")
+                          , DataSink (Struct "flightmode"))
+userInputTower = do
+  (src_userinput, snk_userinput)   <- dataport
+  (src_flightmode, snk_flightmode) <- dataport
+  task "userInput" $ userInputTask src_userinput src_flightmode
+  addModule userInputDecodeModule
+  return (snk_userinput, snk_flightmode)
 
 userInputTask :: DataSource (Struct "userinput_result")
               -> DataSource (Struct "flightmode")

@@ -11,7 +11,6 @@ import Ivory.Tower
 import Ivory.Stdlib.String (stdlibStringModule)
 
 import SMACCMPilot.Flight.Types (typeModules)
-import SMACCMPilot.Flight.UserInput.Decode (userInputDecodeModule)
 import SMACCMPilot.Flight.Control (controlModules)
 import SMACCMPilot.Flight.Datalink
 import qualified SMACCMPilot.Flight.Datalink.TestHarness as DLink
@@ -40,48 +39,74 @@ import           Ivory.BSP.STM32F4.RCC (BoardHSE(..))
 
 hil :: (BoardHSE p, MotorOutput p, SensorOrientation p)
     => Tower p ()
-hil = return () -- XXX
+hil = do
+  -- Communication primitives:
+  sensors       <- channel
+
+  -- Instantiate core:
+  (flightmode, control, motors) <- core (snk sensors)
+  motors_state  <- stateProxy motors
+  control_state <- stateProxy control
+
+  -- HIL-enabled GCS on uart1:
+  (istream, ostream) <- uart UART.uart1
+  gcsTowerHil "uart1" istream ostream flightmode
+    control_state motors_state sensors
 
 flight :: (BoardHSE p, MotorOutput p, SensorOrientation p)
     => Tower p ()
 flight = do
-  (src_userinput, snk_userinput)   <- dataport
-  (src_flightmode, snk_flightmode) <- dataport
+  -- Communication primitives:
+  sensors       <- channel
+  sensor_state  <- stateProxy (snk sensors)
+  position      <- dataport
 
-  (_, snk_position)                <- dataport
+  -- Instantiate core:
+  (flightmode, control, motors) <- core (snk sensors)
+  motors_state  <- stateProxy motors
+  control_state <- stateProxy control
 
-  (src_motors,  snk_motors)        <- channel
-  (src_sensors, snk_sensors)       <- channel
-  (src_control, snk_control)       <- channel
-  snk_motors_state                 <- stateProxy snk_motors
-  snk_sensor_state                 <- stateProxy snk_sensors
-  snk_control_state                <- stateProxy snk_control
+  -- Real sensors and real motor output:
+  task "sensors" $ sensorsTask (src sensors)
+  motorOutput motors
 
-  task "sensors"   $ sensorsTask src_sensors
-  task "userInput" $ userInputTask src_userinput src_flightmode
-  task "blink"     $ blinkTask [ relaypin, redledpin ] snk_flightmode
-  task "control"   $ controlTask snk_flightmode snk_userinput
-                      snk_sensors src_control
-  task "motmix"    $ motorMixerTask snk_control snk_flightmode src_motors
-  motorOutput snk_motors
+  -- GCS on UART1:
+  (uart1istream, uart1ostream) <- uart UART.uart1
+  gcsTower "uart1" uart1istream uart1ostream flightmode sensor_state
+    (snk position) control_state motors_state
 
-  (uart5istream, uart5ostream) <- uartTwr UART.uart5
-  (framed_istream, framed_ostream) <- datalink uart5istream uart5ostream
-  DLink.frameLoopback framed_istream framed_ostream
+  -- Extra: for testing datalink code, not fully integrated yet...
+  datalinkTest UART.uart5
 
-  (uart1istream, uart1ostream) <- uartTwr UART.uart1
-  gcsTower "uart1" uart1istream uart1ostream snk_flightmode snk_sensor_state
-    snk_position snk_control_state snk_motors_state
+core :: (SingI n)
+       => ChannelSink n (Struct "sensors_result")
+       -> Tower p ( DataSink (Struct "flightmode")
+                  , ChannelSink 16 (Struct "controloutput")
+                  , ChannelSink 16 (Struct "motors"))
+core sensors = do
+  motors  <- channel
+  control <- channel
+
+  (userinput, flightmode) <- userInputTower
+  task "blink"     $ blinkTask lights flightmode
+  task "control"   $ controlTask flightmode userinput sensors (src control)
+  task "motmix"    $ motorMixerTask (snk control) flightmode (src motors)
 
   mapM_ addDepends typeModules
   mapM_ addModule otherms
+
+  return (flightmode, snk control, snk motors)
   where
-  uartTwr :: (BoardHSE p) => UART.UART
-          -> Tower p ( ChannelSink 1024 (Stored Uint8)
-                     , ChannelSource 1024 (Stored Uint8))
-  uartTwr u = UART.uartTower u 57600
+  lights = [relaypin, redledpin]
   relaypin = GPIO.pinB13
   redledpin = GPIO.pinB14
+
+
+datalinkTest :: (BoardHSE p) => UART.UART -> Tower p ()
+datalinkTest u = do
+  (byte_istream, byte_ostream) <- uart u
+  (framed_istream, framed_ostream) <- datalink byte_istream byte_ostream
+  DLink.frameLoopback framed_istream framed_ostream
 
 otherms :: [Module]
 otherms = concat
@@ -99,6 +124,12 @@ otherms = concat
   , HWF4.eepromModule
   , HWF4.i2cModule
   -- the rest:
-  , userInputDecodeModule
   , stdlibStringModule
   ]
+
+-- Helper: a uartTower with 1k buffers and 57600 kbaud
+uart :: (BoardHSE p)
+     => UART.UART
+     -> Tower p ( ChannelSink   1024 (Stored Uint8)
+                , ChannelSource 1024 (Stored Uint8))
+uart u = UART.uartTower u 57600
