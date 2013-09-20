@@ -15,6 +15,7 @@ import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
 import Ivory.Language
+import Ivory.Stdlib
 
 systemTimeMsgId :: Uint8
 systemTimeMsgId = 2
@@ -25,6 +26,8 @@ systemTimeCrcExtra = 137
 systemTimeModule :: Module
 systemTimeModule = package "mavlink_system_time_msg" $ do
   depend packModule
+  depend mavlinkSendModule
+  incl mkSystemTimeSender
   incl systemTimeUnpack
   defStruct (Proxy :: Proxy "system_time_msg")
 
@@ -35,24 +38,31 @@ struct system_time_msg
   }
 |]
 
-mkSystemTimeSender :: SizedMavlinkSender 12
-                       -> Def ('[ ConstRef s (Struct "system_time_msg") ] :-> ())
-mkSystemTimeSender sender =
-  proc ("mavlink_system_time_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    noReturn $ systemTimePack (senderMacro sender) msg
-
-instance MavlinkSendable "system_time_msg" 12 where
-  mkSender = mkSystemTimeSender
-
-systemTimePack :: SenderMacro cs (Stack cs) 12
-                  -> ConstRef s1 (Struct "system_time_msg")
-                  -> Ivory (AllocEffects cs) ()
-systemTimePack sender msg = do
+mkSystemTimeSender ::
+  Def ('[ ConstRef s0 (Struct "system_time_msg")
+        , Ref s1 (Stored Uint8) -- seqNum
+        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        ] :-> ())
+mkSystemTimeSender =
+  proc "mavlink_system_time_msg_send"
+  $ \msg seqNum sendArr -> body
+  $ do
   arr <- local (iarray [] :: Init (Array 12 (Stored Uint8)))
   let buf = toCArray arr
   call_ pack buf 0 =<< deref (msg ~> time_unix_usec)
   call_ pack buf 8 =<< deref (msg ~> time_boot_ms)
-  sender systemTimeMsgId (constRef arr) systemTimeCrcExtra
+  -- 6: header len, 2: CRC len
+  if arrayLen sendArr < 6 + 12 + 2
+    then error "systemTime payload is too large for 12 sender!"
+    else do -- Copy, leaving room for the payload
+            _ <- arrCopy sendArr arr 6
+            call_ mavlinkSendWithWriter
+                    systemTimeMsgId
+                    systemTimeCrcExtra
+                    12
+                    seqNum
+                    sendArr
+            retVoid
 
 instance MavlinkUnpackableMsg "system_time_msg" where
     unpackMsg = ( systemTimeUnpack , systemTimeMsgId )

@@ -15,6 +15,7 @@ import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
 import Ivory.Language
+import Ivory.Stdlib
 
 debugVectMsgId :: Uint8
 debugVectMsgId = 250
@@ -25,6 +26,8 @@ debugVectCrcExtra = 49
 debugVectModule :: Module
 debugVectModule = package "mavlink_debug_vect_msg" $ do
   depend packModule
+  depend mavlinkSendModule
+  incl mkDebugVectSender
   incl debugVectUnpack
   defStruct (Proxy :: Proxy "debug_vect_msg")
 
@@ -38,19 +41,15 @@ struct debug_vect_msg
   }
 |]
 
-mkDebugVectSender :: SizedMavlinkSender 30
-                       -> Def ('[ ConstRef s (Struct "debug_vect_msg") ] :-> ())
-mkDebugVectSender sender =
-  proc ("mavlink_debug_vect_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    noReturn $ debugVectPack (senderMacro sender) msg
-
-instance MavlinkSendable "debug_vect_msg" 30 where
-  mkSender = mkDebugVectSender
-
-debugVectPack :: SenderMacro cs (Stack cs) 30
-                  -> ConstRef s1 (Struct "debug_vect_msg")
-                  -> Ivory (AllocEffects cs) ()
-debugVectPack sender msg = do
+mkDebugVectSender ::
+  Def ('[ ConstRef s0 (Struct "debug_vect_msg")
+        , Ref s1 (Stored Uint8) -- seqNum
+        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        ] :-> ())
+mkDebugVectSender =
+  proc "mavlink_debug_vect_msg_send"
+  $ \msg seqNum sendArr -> body
+  $ do
   arr <- local (iarray [] :: Init (Array 30 (Stored Uint8)))
   let buf = toCArray arr
   call_ pack buf 0 =<< deref (msg ~> time_usec)
@@ -58,7 +57,18 @@ debugVectPack sender msg = do
   call_ pack buf 12 =<< deref (msg ~> y)
   call_ pack buf 16 =<< deref (msg ~> z)
   arrayPack buf 20 (msg ~> name)
-  sender debugVectMsgId (constRef arr) debugVectCrcExtra
+  -- 6: header len, 2: CRC len
+  if arrayLen sendArr < 6 + 30 + 2
+    then error "debugVect payload is too large for 30 sender!"
+    else do -- Copy, leaving room for the payload
+            _ <- arrCopy sendArr arr 6
+            call_ mavlinkSendWithWriter
+                    debugVectMsgId
+                    debugVectCrcExtra
+                    30
+                    seqNum
+                    sendArr
+            retVoid
 
 instance MavlinkUnpackableMsg "debug_vect_msg" where
     unpackMsg = ( debugVectUnpack , debugVectMsgId )

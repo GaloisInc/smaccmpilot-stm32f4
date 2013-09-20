@@ -15,6 +15,7 @@ import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
 import Ivory.Language
+import Ivory.Stdlib
 
 namedValueFloatMsgId :: Uint8
 namedValueFloatMsgId = 251
@@ -25,6 +26,8 @@ namedValueFloatCrcExtra = 170
 namedValueFloatModule :: Module
 namedValueFloatModule = package "mavlink_named_value_float_msg" $ do
   depend packModule
+  depend mavlinkSendModule
+  incl mkNamedValueFloatSender
   incl namedValueFloatUnpack
   defStruct (Proxy :: Proxy "named_value_float_msg")
 
@@ -36,25 +39,32 @@ struct named_value_float_msg
   }
 |]
 
-mkNamedValueFloatSender :: SizedMavlinkSender 18
-                       -> Def ('[ ConstRef s (Struct "named_value_float_msg") ] :-> ())
-mkNamedValueFloatSender sender =
-  proc ("mavlink_named_value_float_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    noReturn $ namedValueFloatPack (senderMacro sender) msg
-
-instance MavlinkSendable "named_value_float_msg" 18 where
-  mkSender = mkNamedValueFloatSender
-
-namedValueFloatPack :: SenderMacro cs (Stack cs) 18
-                  -> ConstRef s1 (Struct "named_value_float_msg")
-                  -> Ivory (AllocEffects cs) ()
-namedValueFloatPack sender msg = do
+mkNamedValueFloatSender ::
+  Def ('[ ConstRef s0 (Struct "named_value_float_msg")
+        , Ref s1 (Stored Uint8) -- seqNum
+        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        ] :-> ())
+mkNamedValueFloatSender =
+  proc "mavlink_named_value_float_msg_send"
+  $ \msg seqNum sendArr -> body
+  $ do
   arr <- local (iarray [] :: Init (Array 18 (Stored Uint8)))
   let buf = toCArray arr
   call_ pack buf 0 =<< deref (msg ~> time_boot_ms)
   call_ pack buf 4 =<< deref (msg ~> value)
   arrayPack buf 8 (msg ~> name)
-  sender namedValueFloatMsgId (constRef arr) namedValueFloatCrcExtra
+  -- 6: header len, 2: CRC len
+  if arrayLen sendArr < 6 + 18 + 2
+    then error "namedValueFloat payload is too large for 18 sender!"
+    else do -- Copy, leaving room for the payload
+            _ <- arrCopy sendArr arr 6
+            call_ mavlinkSendWithWriter
+                    namedValueFloatMsgId
+                    namedValueFloatCrcExtra
+                    18
+                    seqNum
+                    sendArr
+            retVoid
 
 instance MavlinkUnpackableMsg "named_value_float_msg" where
     unpackMsg = ( namedValueFloatUnpack , namedValueFloatMsgId )

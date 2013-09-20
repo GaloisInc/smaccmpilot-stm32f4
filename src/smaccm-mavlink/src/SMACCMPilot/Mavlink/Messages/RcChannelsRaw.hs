@@ -15,6 +15,7 @@ import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
 import Ivory.Language
+import Ivory.Stdlib
 
 rcChannelsRawMsgId :: Uint8
 rcChannelsRawMsgId = 35
@@ -25,6 +26,8 @@ rcChannelsRawCrcExtra = 244
 rcChannelsRawModule :: Module
 rcChannelsRawModule = package "mavlink_rc_channels_raw_msg" $ do
   depend packModule
+  depend mavlinkSendModule
+  incl mkRcChannelsRawSender
   incl rcChannelsRawUnpack
   defStruct (Proxy :: Proxy "rc_channels_raw_msg")
 
@@ -44,19 +47,15 @@ struct rc_channels_raw_msg
   }
 |]
 
-mkRcChannelsRawSender :: SizedMavlinkSender 22
-                       -> Def ('[ ConstRef s (Struct "rc_channels_raw_msg") ] :-> ())
-mkRcChannelsRawSender sender =
-  proc ("mavlink_rc_channels_raw_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    noReturn $ rcChannelsRawPack (senderMacro sender) msg
-
-instance MavlinkSendable "rc_channels_raw_msg" 22 where
-  mkSender = mkRcChannelsRawSender
-
-rcChannelsRawPack :: SenderMacro cs (Stack cs) 22
-                  -> ConstRef s1 (Struct "rc_channels_raw_msg")
-                  -> Ivory (AllocEffects cs) ()
-rcChannelsRawPack sender msg = do
+mkRcChannelsRawSender ::
+  Def ('[ ConstRef s0 (Struct "rc_channels_raw_msg")
+        , Ref s1 (Stored Uint8) -- seqNum
+        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        ] :-> ())
+mkRcChannelsRawSender =
+  proc "mavlink_rc_channels_raw_msg_send"
+  $ \msg seqNum sendArr -> body
+  $ do
   arr <- local (iarray [] :: Init (Array 22 (Stored Uint8)))
   let buf = toCArray arr
   call_ pack buf 0 =<< deref (msg ~> time_boot_ms)
@@ -70,7 +69,18 @@ rcChannelsRawPack sender msg = do
   call_ pack buf 18 =<< deref (msg ~> chan8_raw)
   call_ pack buf 20 =<< deref (msg ~> port)
   call_ pack buf 21 =<< deref (msg ~> rssi)
-  sender rcChannelsRawMsgId (constRef arr) rcChannelsRawCrcExtra
+  -- 6: header len, 2: CRC len
+  if arrayLen sendArr < 6 + 22 + 2
+    then error "rcChannelsRaw payload is too large for 22 sender!"
+    else do -- Copy, leaving room for the payload
+            _ <- arrCopy sendArr arr 6
+            call_ mavlinkSendWithWriter
+                    rcChannelsRawMsgId
+                    rcChannelsRawCrcExtra
+                    22
+                    seqNum
+                    sendArr
+            retVoid
 
 instance MavlinkUnpackableMsg "rc_channels_raw_msg" where
     unpackMsg = ( rcChannelsRawUnpack , rcChannelsRawMsgId )

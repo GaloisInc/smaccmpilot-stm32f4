@@ -15,6 +15,7 @@ import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
 import Ivory.Language
+import Ivory.Stdlib
 
 changeOperatorControlMsgId :: Uint8
 changeOperatorControlMsgId = 5
@@ -25,6 +26,8 @@ changeOperatorControlCrcExtra = 217
 changeOperatorControlModule :: Module
 changeOperatorControlModule = package "mavlink_change_operator_control_msg" $ do
   depend packModule
+  depend mavlinkSendModule
+  incl mkChangeOperatorControlSender
   incl changeOperatorControlUnpack
   defStruct (Proxy :: Proxy "change_operator_control_msg")
 
@@ -37,26 +40,33 @@ struct change_operator_control_msg
   }
 |]
 
-mkChangeOperatorControlSender :: SizedMavlinkSender 28
-                       -> Def ('[ ConstRef s (Struct "change_operator_control_msg") ] :-> ())
-mkChangeOperatorControlSender sender =
-  proc ("mavlink_change_operator_control_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    noReturn $ changeOperatorControlPack (senderMacro sender) msg
-
-instance MavlinkSendable "change_operator_control_msg" 28 where
-  mkSender = mkChangeOperatorControlSender
-
-changeOperatorControlPack :: SenderMacro cs (Stack cs) 28
-                  -> ConstRef s1 (Struct "change_operator_control_msg")
-                  -> Ivory (AllocEffects cs) ()
-changeOperatorControlPack sender msg = do
+mkChangeOperatorControlSender ::
+  Def ('[ ConstRef s0 (Struct "change_operator_control_msg")
+        , Ref s1 (Stored Uint8) -- seqNum
+        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        ] :-> ())
+mkChangeOperatorControlSender =
+  proc "mavlink_change_operator_control_msg_send"
+  $ \msg seqNum sendArr -> body
+  $ do
   arr <- local (iarray [] :: Init (Array 28 (Stored Uint8)))
   let buf = toCArray arr
   call_ pack buf 0 =<< deref (msg ~> target_system)
   call_ pack buf 1 =<< deref (msg ~> control_request)
   call_ pack buf 2 =<< deref (msg ~> version)
   arrayPack buf 3 (msg ~> passkey)
-  sender changeOperatorControlMsgId (constRef arr) changeOperatorControlCrcExtra
+  -- 6: header len, 2: CRC len
+  if arrayLen sendArr < 6 + 28 + 2
+    then error "changeOperatorControl payload is too large for 28 sender!"
+    else do -- Copy, leaving room for the payload
+            _ <- arrCopy sendArr arr 6
+            call_ mavlinkSendWithWriter
+                    changeOperatorControlMsgId
+                    changeOperatorControlCrcExtra
+                    28
+                    seqNum
+                    sendArr
+            retVoid
 
 instance MavlinkUnpackableMsg "change_operator_control_msg" where
     unpackMsg = ( changeOperatorControlUnpack , changeOperatorControlMsgId )

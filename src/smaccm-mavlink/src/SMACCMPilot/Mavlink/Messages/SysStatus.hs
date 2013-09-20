@@ -15,6 +15,7 @@ import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
 import Ivory.Language
+import Ivory.Stdlib
 
 sysStatusMsgId :: Uint8
 sysStatusMsgId = 1
@@ -25,6 +26,8 @@ sysStatusCrcExtra = 124
 sysStatusModule :: Module
 sysStatusModule = package "mavlink_sys_status_msg" $ do
   depend packModule
+  depend mavlinkSendModule
+  incl mkSysStatusSender
   incl sysStatusUnpack
   defStruct (Proxy :: Proxy "sys_status_msg")
 
@@ -46,19 +49,15 @@ struct sys_status_msg
   }
 |]
 
-mkSysStatusSender :: SizedMavlinkSender 31
-                       -> Def ('[ ConstRef s (Struct "sys_status_msg") ] :-> ())
-mkSysStatusSender sender =
-  proc ("mavlink_sys_status_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    noReturn $ sysStatusPack (senderMacro sender) msg
-
-instance MavlinkSendable "sys_status_msg" 31 where
-  mkSender = mkSysStatusSender
-
-sysStatusPack :: SenderMacro cs (Stack cs) 31
-                  -> ConstRef s1 (Struct "sys_status_msg")
-                  -> Ivory (AllocEffects cs) ()
-sysStatusPack sender msg = do
+mkSysStatusSender ::
+  Def ('[ ConstRef s0 (Struct "sys_status_msg")
+        , Ref s1 (Stored Uint8) -- seqNum
+        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        ] :-> ())
+mkSysStatusSender =
+  proc "mavlink_sys_status_msg_send"
+  $ \msg seqNum sendArr -> body
+  $ do
   arr <- local (iarray [] :: Init (Array 31 (Stored Uint8)))
   let buf = toCArray arr
   call_ pack buf 0 =<< deref (msg ~> onboard_control_sensors_present)
@@ -74,7 +73,18 @@ sysStatusPack sender msg = do
   call_ pack buf 26 =<< deref (msg ~> errors_count3)
   call_ pack buf 28 =<< deref (msg ~> errors_count4)
   call_ pack buf 30 =<< deref (msg ~> battery_remaining)
-  sender sysStatusMsgId (constRef arr) sysStatusCrcExtra
+  -- 6: header len, 2: CRC len
+  if arrayLen sendArr < 6 + 31 + 2
+    then error "sysStatus payload is too large for 31 sender!"
+    else do -- Copy, leaving room for the payload
+            _ <- arrCopy sendArr arr 6
+            call_ mavlinkSendWithWriter
+                    sysStatusMsgId
+                    sysStatusCrcExtra
+                    31
+                    seqNum
+                    sendArr
+            retVoid
 
 instance MavlinkUnpackableMsg "sys_status_msg" where
     unpackMsg = ( sysStatusUnpack , sysStatusMsgId )

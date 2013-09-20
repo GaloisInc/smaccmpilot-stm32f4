@@ -15,6 +15,7 @@ import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
 import Ivory.Language
+import Ivory.Stdlib
 
 memoryVectMsgId :: Uint8
 memoryVectMsgId = 249
@@ -25,6 +26,8 @@ memoryVectCrcExtra = 204
 memoryVectModule :: Module
 memoryVectModule = package "mavlink_memory_vect_msg" $ do
   depend packModule
+  depend mavlinkSendModule
+  incl mkMemoryVectSender
   incl memoryVectUnpack
   defStruct (Proxy :: Proxy "memory_vect_msg")
 
@@ -37,26 +40,33 @@ struct memory_vect_msg
   }
 |]
 
-mkMemoryVectSender :: SizedMavlinkSender 36
-                       -> Def ('[ ConstRef s (Struct "memory_vect_msg") ] :-> ())
-mkMemoryVectSender sender =
-  proc ("mavlink_memory_vect_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    noReturn $ memoryVectPack (senderMacro sender) msg
-
-instance MavlinkSendable "memory_vect_msg" 36 where
-  mkSender = mkMemoryVectSender
-
-memoryVectPack :: SenderMacro cs (Stack cs) 36
-                  -> ConstRef s1 (Struct "memory_vect_msg")
-                  -> Ivory (AllocEffects cs) ()
-memoryVectPack sender msg = do
+mkMemoryVectSender ::
+  Def ('[ ConstRef s0 (Struct "memory_vect_msg")
+        , Ref s1 (Stored Uint8) -- seqNum
+        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        ] :-> ())
+mkMemoryVectSender =
+  proc "mavlink_memory_vect_msg_send"
+  $ \msg seqNum sendArr -> body
+  $ do
   arr <- local (iarray [] :: Init (Array 36 (Stored Uint8)))
   let buf = toCArray arr
   call_ pack buf 0 =<< deref (msg ~> address)
   call_ pack buf 2 =<< deref (msg ~> ver)
   call_ pack buf 3 =<< deref (msg ~> memory_vect_type)
   arrayPack buf 4 (msg ~> value)
-  sender memoryVectMsgId (constRef arr) memoryVectCrcExtra
+  -- 6: header len, 2: CRC len
+  if arrayLen sendArr < 6 + 36 + 2
+    then error "memoryVect payload is too large for 36 sender!"
+    else do -- Copy, leaving room for the payload
+            _ <- arrCopy sendArr arr 6
+            call_ mavlinkSendWithWriter
+                    memoryVectMsgId
+                    memoryVectCrcExtra
+                    36
+                    seqNum
+                    sendArr
+            retVoid
 
 instance MavlinkUnpackableMsg "memory_vect_msg" where
     unpackMsg = ( memoryVectUnpack , memoryVectMsgId )

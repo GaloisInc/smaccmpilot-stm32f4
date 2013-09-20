@@ -15,6 +15,7 @@ import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
 import Ivory.Language
+import Ivory.Stdlib
 
 paramRequestReadMsgId :: Uint8
 paramRequestReadMsgId = 20
@@ -25,6 +26,8 @@ paramRequestReadCrcExtra = 214
 paramRequestReadModule :: Module
 paramRequestReadModule = package "mavlink_param_request_read_msg" $ do
   depend packModule
+  depend mavlinkSendModule
+  incl mkParamRequestReadSender
   incl paramRequestReadUnpack
   defStruct (Proxy :: Proxy "param_request_read_msg")
 
@@ -37,26 +40,33 @@ struct param_request_read_msg
   }
 |]
 
--- mkParamRequestReadSender :: SizedMavlinkSender 20
---                        -> Def ('[ ConstRef s (Struct "param_request_read_msg") ] :-> ())
--- mkParamRequestReadSender sender =
---   proc ("mavlink_param_request_read_msg_send" ++ (senderName sender)) $ \msg -> body $ do
---     noReturn $ paramRequestReadPack (senderMacro sender) msg
-
--- instance MavlinkSendable "param_request_read_msg" 20 where
---   mkSender = mkParamRequestReadSender
-
--- paramRequestReadPack :: SenderMacro cs (Stack cs) 20
---                   -> ConstRef s1 (Struct "param_request_read_msg")
---                   -> Ivory (AllocEffects cs) ()
--- paramRequestReadPack sender msg = do
---   arr <- local (iarray [] :: Init (Array 20 (Stored Uint8)))
---   let buf = toCArray arr
---   call_ pack buf 0 =<< deref (msg ~> param_index)
---   call_ pack buf 2 =<< deref (msg ~> target_system)
---   call_ pack buf 3 =<< deref (msg ~> target_component)
---   arrayPack buf 4 (msg ~> param_id)
---   sender paramRequestReadMsgId (constRef arr) paramRequestReadCrcExtra
+mkParamRequestReadSender ::
+  Def ('[ ConstRef s0 (Struct "param_request_read_msg")
+        , Ref s1 (Stored Uint8) -- seqNum
+        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        ] :-> ())
+mkParamRequestReadSender =
+  proc "mavlink_param_request_read_msg_send"
+  $ \msg seqNum sendArr -> body
+  $ do
+  arr <- local (iarray [] :: Init (Array 20 (Stored Uint8)))
+  let buf = toCArray arr
+  call_ pack buf 0 =<< deref (msg ~> param_index)
+  call_ pack buf 2 =<< deref (msg ~> target_system)
+  call_ pack buf 3 =<< deref (msg ~> target_component)
+  arrayPack buf 4 (msg ~> param_id)
+  -- 6: header len, 2: CRC len
+  if arrayLen sendArr < 6 + 20 + 2
+    then error "paramRequestRead payload is too large for 20 sender!"
+    else do -- Copy, leaving room for the payload
+            _ <- arrCopy sendArr arr 6
+            call_ mavlinkSendWithWriter
+                    paramRequestReadMsgId
+                    paramRequestReadCrcExtra
+                    20
+                    seqNum
+                    sendArr
+            retVoid
 
 instance MavlinkUnpackableMsg "param_request_read_msg" where
     unpackMsg = ( paramRequestReadUnpack , paramRequestReadMsgId )

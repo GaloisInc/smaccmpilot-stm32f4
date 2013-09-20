@@ -15,6 +15,7 @@ import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
 import Ivory.Language
+import Ivory.Stdlib
 
 visionSpeedEstimateMsgId :: Uint8
 visionSpeedEstimateMsgId = 103
@@ -25,6 +26,8 @@ visionSpeedEstimateCrcExtra = 208
 visionSpeedEstimateModule :: Module
 visionSpeedEstimateModule = package "mavlink_vision_speed_estimate_msg" $ do
   depend packModule
+  depend mavlinkSendModule
+  incl mkVisionSpeedEstimateSender
   incl visionSpeedEstimateUnpack
   defStruct (Proxy :: Proxy "vision_speed_estimate_msg")
 
@@ -37,26 +40,33 @@ struct vision_speed_estimate_msg
   }
 |]
 
-mkVisionSpeedEstimateSender :: SizedMavlinkSender 20
-                       -> Def ('[ ConstRef s (Struct "vision_speed_estimate_msg") ] :-> ())
-mkVisionSpeedEstimateSender sender =
-  proc ("mavlink_vision_speed_estimate_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    noReturn $ visionSpeedEstimatePack (senderMacro sender) msg
-
-instance MavlinkSendable "vision_speed_estimate_msg" 20 where
-  mkSender = mkVisionSpeedEstimateSender
-
-visionSpeedEstimatePack :: SenderMacro cs (Stack cs) 20
-                  -> ConstRef s1 (Struct "vision_speed_estimate_msg")
-                  -> Ivory (AllocEffects cs) ()
-visionSpeedEstimatePack sender msg = do
+mkVisionSpeedEstimateSender ::
+  Def ('[ ConstRef s0 (Struct "vision_speed_estimate_msg")
+        , Ref s1 (Stored Uint8) -- seqNum
+        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        ] :-> ())
+mkVisionSpeedEstimateSender =
+  proc "mavlink_vision_speed_estimate_msg_send"
+  $ \msg seqNum sendArr -> body
+  $ do
   arr <- local (iarray [] :: Init (Array 20 (Stored Uint8)))
   let buf = toCArray arr
   call_ pack buf 0 =<< deref (msg ~> usec)
   call_ pack buf 8 =<< deref (msg ~> x)
   call_ pack buf 12 =<< deref (msg ~> y)
   call_ pack buf 16 =<< deref (msg ~> z)
-  sender visionSpeedEstimateMsgId (constRef arr) visionSpeedEstimateCrcExtra
+  -- 6: header len, 2: CRC len
+  if arrayLen sendArr < 6 + 20 + 2
+    then error "visionSpeedEstimate payload is too large for 20 sender!"
+    else do -- Copy, leaving room for the payload
+            _ <- arrCopy sendArr arr 6
+            call_ mavlinkSendWithWriter
+                    visionSpeedEstimateMsgId
+                    visionSpeedEstimateCrcExtra
+                    20
+                    seqNum
+                    sendArr
+            retVoid
 
 instance MavlinkUnpackableMsg "vision_speed_estimate_msg" where
     unpackMsg = ( visionSpeedEstimateUnpack , visionSpeedEstimateMsgId )

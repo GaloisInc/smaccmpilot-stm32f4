@@ -15,6 +15,7 @@ import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
 import Ivory.Language
+import Ivory.Stdlib
 
 dataStreamMsgId :: Uint8
 dataStreamMsgId = 67
@@ -25,6 +26,8 @@ dataStreamCrcExtra = 21
 dataStreamModule :: Module
 dataStreamModule = package "mavlink_data_stream_msg" $ do
   depend packModule
+  depend mavlinkSendModule
+  incl mkDataStreamSender
   incl dataStreamUnpack
   defStruct (Proxy :: Proxy "data_stream_msg")
 
@@ -36,25 +39,32 @@ struct data_stream_msg
   }
 |]
 
-mkDataStreamSender :: SizedMavlinkSender 4
-                       -> Def ('[ ConstRef s (Struct "data_stream_msg") ] :-> ())
-mkDataStreamSender sender =
-  proc ("mavlink_data_stream_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    noReturn $ dataStreamPack (senderMacro sender) msg
-
-instance MavlinkSendable "data_stream_msg" 4 where
-  mkSender = mkDataStreamSender
-
-dataStreamPack :: SenderMacro cs (Stack cs) 4
-                  -> ConstRef s1 (Struct "data_stream_msg")
-                  -> Ivory (AllocEffects cs) ()
-dataStreamPack sender msg = do
+mkDataStreamSender ::
+  Def ('[ ConstRef s0 (Struct "data_stream_msg")
+        , Ref s1 (Stored Uint8) -- seqNum
+        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        ] :-> ())
+mkDataStreamSender =
+  proc "mavlink_data_stream_msg_send"
+  $ \msg seqNum sendArr -> body
+  $ do
   arr <- local (iarray [] :: Init (Array 4 (Stored Uint8)))
   let buf = toCArray arr
   call_ pack buf 0 =<< deref (msg ~> message_rate)
   call_ pack buf 2 =<< deref (msg ~> stream_id)
   call_ pack buf 3 =<< deref (msg ~> on_off)
-  sender dataStreamMsgId (constRef arr) dataStreamCrcExtra
+  -- 6: header len, 2: CRC len
+  if arrayLen sendArr < 6 + 4 + 2
+    then error "dataStream payload is too large for 4 sender!"
+    else do -- Copy, leaving room for the payload
+            _ <- arrCopy sendArr arr 6
+            call_ mavlinkSendWithWriter
+                    dataStreamMsgId
+                    dataStreamCrcExtra
+                    4
+                    seqNum
+                    sendArr
+            retVoid
 
 instance MavlinkUnpackableMsg "data_stream_msg" where
     unpackMsg = ( dataStreamUnpack , dataStreamMsgId )

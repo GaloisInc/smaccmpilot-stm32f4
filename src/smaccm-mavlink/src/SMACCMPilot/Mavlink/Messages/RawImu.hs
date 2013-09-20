@@ -15,6 +15,7 @@ import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
 import Ivory.Language
+import Ivory.Stdlib
 
 rawImuMsgId :: Uint8
 rawImuMsgId = 27
@@ -25,6 +26,8 @@ rawImuCrcExtra = 144
 rawImuModule :: Module
 rawImuModule = package "mavlink_raw_imu_msg" $ do
   depend packModule
+  depend mavlinkSendModule
+  incl mkRawImuSender
   incl rawImuUnpack
   defStruct (Proxy :: Proxy "raw_imu_msg")
 
@@ -43,19 +46,15 @@ struct raw_imu_msg
   }
 |]
 
-mkRawImuSender :: SizedMavlinkSender 26
-                       -> Def ('[ ConstRef s (Struct "raw_imu_msg") ] :-> ())
-mkRawImuSender sender =
-  proc ("mavlink_raw_imu_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    noReturn $ rawImuPack (senderMacro sender) msg
-
-instance MavlinkSendable "raw_imu_msg" 26 where
-  mkSender = mkRawImuSender
-
-rawImuPack :: SenderMacro cs (Stack cs) 26
-                  -> ConstRef s1 (Struct "raw_imu_msg")
-                  -> Ivory (AllocEffects cs) ()
-rawImuPack sender msg = do
+mkRawImuSender ::
+  Def ('[ ConstRef s0 (Struct "raw_imu_msg")
+        , Ref s1 (Stored Uint8) -- seqNum
+        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        ] :-> ())
+mkRawImuSender =
+  proc "mavlink_raw_imu_msg_send"
+  $ \msg seqNum sendArr -> body
+  $ do
   arr <- local (iarray [] :: Init (Array 26 (Stored Uint8)))
   let buf = toCArray arr
   call_ pack buf 0 =<< deref (msg ~> time_usec)
@@ -68,7 +67,18 @@ rawImuPack sender msg = do
   call_ pack buf 20 =<< deref (msg ~> xmag)
   call_ pack buf 22 =<< deref (msg ~> ymag)
   call_ pack buf 24 =<< deref (msg ~> zmag)
-  sender rawImuMsgId (constRef arr) rawImuCrcExtra
+  -- 6: header len, 2: CRC len
+  if arrayLen sendArr < 6 + 26 + 2
+    then error "rawImu payload is too large for 26 sender!"
+    else do -- Copy, leaving room for the payload
+            _ <- arrCopy sendArr arr 6
+            call_ mavlinkSendWithWriter
+                    rawImuMsgId
+                    rawImuCrcExtra
+                    26
+                    seqNum
+                    sendArr
+            retVoid
 
 instance MavlinkUnpackableMsg "raw_imu_msg" where
     unpackMsg = ( rawImuUnpack , rawImuMsgId )

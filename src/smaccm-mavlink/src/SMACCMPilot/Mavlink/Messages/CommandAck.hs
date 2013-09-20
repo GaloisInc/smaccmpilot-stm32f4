@@ -15,6 +15,7 @@ import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
 import Ivory.Language
+import Ivory.Stdlib
 
 commandAckMsgId :: Uint8
 commandAckMsgId = 77
@@ -25,6 +26,8 @@ commandAckCrcExtra = 143
 commandAckModule :: Module
 commandAckModule = package "mavlink_command_ack_msg" $ do
   depend packModule
+  depend mavlinkSendModule
+  incl mkCommandAckSender
   incl commandAckUnpack
   defStruct (Proxy :: Proxy "command_ack_msg")
 
@@ -35,24 +38,31 @@ struct command_ack_msg
   }
 |]
 
-mkCommandAckSender :: SizedMavlinkSender 3
-                       -> Def ('[ ConstRef s (Struct "command_ack_msg") ] :-> ())
-mkCommandAckSender sender =
-  proc ("mavlink_command_ack_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    noReturn $ commandAckPack (senderMacro sender) msg
-
-instance MavlinkSendable "command_ack_msg" 3 where
-  mkSender = mkCommandAckSender
-
-commandAckPack :: SenderMacro cs (Stack cs) 3
-                  -> ConstRef s1 (Struct "command_ack_msg")
-                  -> Ivory (AllocEffects cs) ()
-commandAckPack sender msg = do
+mkCommandAckSender ::
+  Def ('[ ConstRef s0 (Struct "command_ack_msg")
+        , Ref s1 (Stored Uint8) -- seqNum
+        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        ] :-> ())
+mkCommandAckSender =
+  proc "mavlink_command_ack_msg_send"
+  $ \msg seqNum sendArr -> body
+  $ do
   arr <- local (iarray [] :: Init (Array 3 (Stored Uint8)))
   let buf = toCArray arr
   call_ pack buf 0 =<< deref (msg ~> command)
   call_ pack buf 2 =<< deref (msg ~> result)
-  sender commandAckMsgId (constRef arr) commandAckCrcExtra
+  -- 6: header len, 2: CRC len
+  if arrayLen sendArr < 6 + 3 + 2
+    then error "commandAck payload is too large for 3 sender!"
+    else do -- Copy, leaving room for the payload
+            _ <- arrCopy sendArr arr 6
+            call_ mavlinkSendWithWriter
+                    commandAckMsgId
+                    commandAckCrcExtra
+                    3
+                    seqNum
+                    sendArr
+            retVoid
 
 instance MavlinkUnpackableMsg "command_ack_msg" where
     unpackMsg = ( commandAckUnpack , commandAckMsgId )

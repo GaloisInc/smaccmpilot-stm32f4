@@ -15,6 +15,7 @@ import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
 import Ivory.Language
+import Ivory.Stdlib
 
 highresImuMsgId :: Uint8
 highresImuMsgId = 105
@@ -25,6 +26,8 @@ highresImuCrcExtra = 93
 highresImuModule :: Module
 highresImuModule = package "mavlink_highres_imu_msg" $ do
   depend packModule
+  depend mavlinkSendModule
+  incl mkHighresImuSender
   incl highresImuUnpack
   defStruct (Proxy :: Proxy "highres_imu_msg")
 
@@ -48,19 +51,15 @@ struct highres_imu_msg
   }
 |]
 
-mkHighresImuSender :: SizedMavlinkSender 62
-                       -> Def ('[ ConstRef s (Struct "highres_imu_msg") ] :-> ())
-mkHighresImuSender sender =
-  proc ("mavlink_highres_imu_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    noReturn $ highresImuPack (senderMacro sender) msg
-
-instance MavlinkSendable "highres_imu_msg" 62 where
-  mkSender = mkHighresImuSender
-
-highresImuPack :: SenderMacro cs (Stack cs) 62
-                  -> ConstRef s1 (Struct "highres_imu_msg")
-                  -> Ivory (AllocEffects cs) ()
-highresImuPack sender msg = do
+mkHighresImuSender ::
+  Def ('[ ConstRef s0 (Struct "highres_imu_msg")
+        , Ref s1 (Stored Uint8) -- seqNum
+        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        ] :-> ())
+mkHighresImuSender =
+  proc "mavlink_highres_imu_msg_send"
+  $ \msg seqNum sendArr -> body
+  $ do
   arr <- local (iarray [] :: Init (Array 62 (Stored Uint8)))
   let buf = toCArray arr
   call_ pack buf 0 =<< deref (msg ~> time_usec)
@@ -78,7 +77,18 @@ highresImuPack sender msg = do
   call_ pack buf 52 =<< deref (msg ~> pressure_alt)
   call_ pack buf 56 =<< deref (msg ~> temperature)
   call_ pack buf 60 =<< deref (msg ~> fields_updated)
-  sender highresImuMsgId (constRef arr) highresImuCrcExtra
+  -- 6: header len, 2: CRC len
+  if arrayLen sendArr < 6 + 62 + 2
+    then error "highresImu payload is too large for 62 sender!"
+    else do -- Copy, leaving room for the payload
+            _ <- arrCopy sendArr arr 6
+            call_ mavlinkSendWithWriter
+                    highresImuMsgId
+                    highresImuCrcExtra
+                    62
+                    seqNum
+                    sendArr
+            retVoid
 
 instance MavlinkUnpackableMsg "highres_imu_msg" where
     unpackMsg = ( highresImuUnpack , highresImuMsgId )

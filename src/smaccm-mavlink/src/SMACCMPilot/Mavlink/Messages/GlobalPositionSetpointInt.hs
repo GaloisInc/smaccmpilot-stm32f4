@@ -15,6 +15,7 @@ import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
 import Ivory.Language
+import Ivory.Stdlib
 
 globalPositionSetpointIntMsgId :: Uint8
 globalPositionSetpointIntMsgId = 52
@@ -25,6 +26,8 @@ globalPositionSetpointIntCrcExtra = 141
 globalPositionSetpointIntModule :: Module
 globalPositionSetpointIntModule = package "mavlink_global_position_setpoint_int_msg" $ do
   depend packModule
+  depend mavlinkSendModule
+  incl mkGlobalPositionSetpointIntSender
   incl globalPositionSetpointIntUnpack
   defStruct (Proxy :: Proxy "global_position_setpoint_int_msg")
 
@@ -38,19 +41,15 @@ struct global_position_setpoint_int_msg
   }
 |]
 
-mkGlobalPositionSetpointIntSender :: SizedMavlinkSender 15
-                       -> Def ('[ ConstRef s (Struct "global_position_setpoint_int_msg") ] :-> ())
-mkGlobalPositionSetpointIntSender sender =
-  proc ("mavlink_global_position_setpoint_int_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    noReturn $ globalPositionSetpointIntPack (senderMacro sender) msg
-
-instance MavlinkSendable "global_position_setpoint_int_msg" 15 where
-  mkSender = mkGlobalPositionSetpointIntSender
-
-globalPositionSetpointIntPack :: SenderMacro cs (Stack cs) 15
-                  -> ConstRef s1 (Struct "global_position_setpoint_int_msg")
-                  -> Ivory (AllocEffects cs) ()
-globalPositionSetpointIntPack sender msg = do
+mkGlobalPositionSetpointIntSender ::
+  Def ('[ ConstRef s0 (Struct "global_position_setpoint_int_msg")
+        , Ref s1 (Stored Uint8) -- seqNum
+        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        ] :-> ())
+mkGlobalPositionSetpointIntSender =
+  proc "mavlink_global_position_setpoint_int_msg_send"
+  $ \msg seqNum sendArr -> body
+  $ do
   arr <- local (iarray [] :: Init (Array 15 (Stored Uint8)))
   let buf = toCArray arr
   call_ pack buf 0 =<< deref (msg ~> latitude)
@@ -58,7 +57,18 @@ globalPositionSetpointIntPack sender msg = do
   call_ pack buf 8 =<< deref (msg ~> altitude)
   call_ pack buf 12 =<< deref (msg ~> yaw)
   call_ pack buf 14 =<< deref (msg ~> coordinate_frame)
-  sender globalPositionSetpointIntMsgId (constRef arr) globalPositionSetpointIntCrcExtra
+  -- 6: header len, 2: CRC len
+  if arrayLen sendArr < 6 + 15 + 2
+    then error "globalPositionSetpointInt payload is too large for 15 sender!"
+    else do -- Copy, leaving room for the payload
+            _ <- arrCopy sendArr arr 6
+            call_ mavlinkSendWithWriter
+                    globalPositionSetpointIntMsgId
+                    globalPositionSetpointIntCrcExtra
+                    15
+                    seqNum
+                    sendArr
+            retVoid
 
 instance MavlinkUnpackableMsg "global_position_setpoint_int_msg" where
     unpackMsg = ( globalPositionSetpointIntUnpack , globalPositionSetpointIntMsgId )

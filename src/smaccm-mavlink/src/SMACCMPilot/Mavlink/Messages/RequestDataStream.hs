@@ -15,6 +15,7 @@ import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
 import Ivory.Language
+import Ivory.Stdlib
 
 requestDataStreamMsgId :: Uint8
 requestDataStreamMsgId = 66
@@ -25,6 +26,8 @@ requestDataStreamCrcExtra = 148
 requestDataStreamModule :: Module
 requestDataStreamModule = package "mavlink_request_data_stream_msg" $ do
   depend packModule
+  depend mavlinkSendModule
+  incl mkRequestDataStreamSender
   incl requestDataStreamUnpack
   defStruct (Proxy :: Proxy "request_data_stream_msg")
 
@@ -38,27 +41,34 @@ struct request_data_stream_msg
   }
 |]
 
--- mkRequestDataStreamSender :: SizedMavlinkSender 6
---                        -> Def ('[ ConstRef s (Struct "request_data_stream_msg") ] :-> ())
--- mkRequestDataStreamSender sender =
---   proc ("mavlink_request_data_stream_msg_send" ++ (senderName sender)) $ \msg -> body $ do
---     noReturn $ requestDataStreamPack (senderMacro sender) msg
-
--- instance MavlinkSendable "request_data_stream_msg" 6 where
---   mkSender = mkRequestDataStreamSender
-
--- requestDataStreamPack :: SenderMacro cs (Stack cs) 6
---                   -> ConstRef s1 (Struct "request_data_stream_msg")
---                   -> Ivory (AllocEffects cs) ()
--- requestDataStreamPack sender msg = do
---   arr <- local (iarray [] :: Init (Array 6 (Stored Uint8)))
---   let buf = toCArray arr
---   call_ pack buf 0 =<< deref (msg ~> req_message_rate)
---   call_ pack buf 2 =<< deref (msg ~> target_system)
---   call_ pack buf 3 =<< deref (msg ~> target_component)
---   call_ pack buf 4 =<< deref (msg ~> req_stream_id)
---   call_ pack buf 5 =<< deref (msg ~> start_stop)
---   sender requestDataStreamMsgId (constRef arr) requestDataStreamCrcExtra
+mkRequestDataStreamSender ::
+  Def ('[ ConstRef s0 (Struct "request_data_stream_msg")
+        , Ref s1 (Stored Uint8) -- seqNum
+        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        ] :-> ())
+mkRequestDataStreamSender =
+  proc "mavlink_request_data_stream_msg_send"
+  $ \msg seqNum sendArr -> body
+  $ do
+  arr <- local (iarray [] :: Init (Array 6 (Stored Uint8)))
+  let buf = toCArray arr
+  call_ pack buf 0 =<< deref (msg ~> req_message_rate)
+  call_ pack buf 2 =<< deref (msg ~> target_system)
+  call_ pack buf 3 =<< deref (msg ~> target_component)
+  call_ pack buf 4 =<< deref (msg ~> req_stream_id)
+  call_ pack buf 5 =<< deref (msg ~> start_stop)
+  -- 6: header len, 2: CRC len
+  if arrayLen sendArr < 6 + 6 + 2
+    then error "requestDataStream payload is too large for 6 sender!"
+    else do -- Copy, leaving room for the payload
+            _ <- arrCopy sendArr arr 6
+            call_ mavlinkSendWithWriter
+                    requestDataStreamMsgId
+                    requestDataStreamCrcExtra
+                    6
+                    seqNum
+                    sendArr
+            retVoid
 
 instance MavlinkUnpackableMsg "request_data_stream_msg" where
     unpackMsg = ( requestDataStreamUnpack , requestDataStreamMsgId )

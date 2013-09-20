@@ -15,6 +15,7 @@ import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
 import Ivory.Language
+import Ivory.Stdlib
 
 localPositionNedSystemGlobalOffsetMsgId :: Uint8
 localPositionNedSystemGlobalOffsetMsgId = 89
@@ -25,6 +26,8 @@ localPositionNedSystemGlobalOffsetCrcExtra = 231
 localPositionNedSystemGlobalOffsetModule :: Module
 localPositionNedSystemGlobalOffsetModule = package "mavlink_local_position_ned_system_global_offset_msg" $ do
   depend packModule
+  depend mavlinkSendModule
+  incl mkLocalPositionNedSystemGlobalOffsetSender
   incl localPositionNedSystemGlobalOffsetUnpack
   defStruct (Proxy :: Proxy "local_position_ned_system_global_offset_msg")
 
@@ -40,19 +43,15 @@ struct local_position_ned_system_global_offset_msg
   }
 |]
 
-mkLocalPositionNedSystemGlobalOffsetSender :: SizedMavlinkSender 28
-                       -> Def ('[ ConstRef s (Struct "local_position_ned_system_global_offset_msg") ] :-> ())
-mkLocalPositionNedSystemGlobalOffsetSender sender =
-  proc ("mavlink_local_position_ned_system_global_offset_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    noReturn $ localPositionNedSystemGlobalOffsetPack (senderMacro sender) msg
-
-instance MavlinkSendable "local_position_ned_system_global_offset_msg" 28 where
-  mkSender = mkLocalPositionNedSystemGlobalOffsetSender
-
-localPositionNedSystemGlobalOffsetPack :: SenderMacro cs (Stack cs) 28
-                  -> ConstRef s1 (Struct "local_position_ned_system_global_offset_msg")
-                  -> Ivory (AllocEffects cs) ()
-localPositionNedSystemGlobalOffsetPack sender msg = do
+mkLocalPositionNedSystemGlobalOffsetSender ::
+  Def ('[ ConstRef s0 (Struct "local_position_ned_system_global_offset_msg")
+        , Ref s1 (Stored Uint8) -- seqNum
+        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        ] :-> ())
+mkLocalPositionNedSystemGlobalOffsetSender =
+  proc "mavlink_local_position_ned_system_global_offset_msg_send"
+  $ \msg seqNum sendArr -> body
+  $ do
   arr <- local (iarray [] :: Init (Array 28 (Stored Uint8)))
   let buf = toCArray arr
   call_ pack buf 0 =<< deref (msg ~> time_boot_ms)
@@ -62,7 +61,18 @@ localPositionNedSystemGlobalOffsetPack sender msg = do
   call_ pack buf 16 =<< deref (msg ~> roll)
   call_ pack buf 20 =<< deref (msg ~> pitch)
   call_ pack buf 24 =<< deref (msg ~> yaw)
-  sender localPositionNedSystemGlobalOffsetMsgId (constRef arr) localPositionNedSystemGlobalOffsetCrcExtra
+  -- 6: header len, 2: CRC len
+  if arrayLen sendArr < 6 + 28 + 2
+    then error "localPositionNedSystemGlobalOffset payload is too large for 28 sender!"
+    else do -- Copy, leaving room for the payload
+            _ <- arrCopy sendArr arr 6
+            call_ mavlinkSendWithWriter
+                    localPositionNedSystemGlobalOffsetMsgId
+                    localPositionNedSystemGlobalOffsetCrcExtra
+                    28
+                    seqNum
+                    sendArr
+            retVoid
 
 instance MavlinkUnpackableMsg "local_position_ned_system_global_offset_msg" where
     unpackMsg = ( localPositionNedSystemGlobalOffsetUnpack , localPositionNedSystemGlobalOffsetMsgId )

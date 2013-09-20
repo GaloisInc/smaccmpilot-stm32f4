@@ -26,9 +26,9 @@ data16CrcExtra = 46
 data16Module :: Module
 data16Module = package "mavlink_data16_msg" $ do
   depend packModule
+  depend mavlinkSendModule
   incl mkData16Sender
   incl data16Unpack
-  depend mavlinkSendModule
   defStruct (Proxy :: Proxy "data16_msg")
 
 [ivory|
@@ -39,26 +39,31 @@ struct data16_msg
   }
 |]
 
-mkData16Sender :: --SizedMavlinkSender 18
-  Def ('[ ConstRef s (Struct "data16_msg")
-        , Ref s' (Stored Uint8)
-        , Ref s' (Array 128 (Stored Uint8))
+mkData16Sender ::
+  Def ('[ ConstRef s0 (Struct "data16_msg")
+        , Ref s1 (Stored Uint8) -- seqNum
+        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
         ] :-> ())
-mkData16Sender = proc "mavlink_data16_msg_send"
+mkData16Sender =
+  proc "mavlink_data16_msg_send"
   $ \msg seqNum sendArr -> body
   $ do
-
   arr <- local (iarray [] :: Init (Array 18 (Stored Uint8)))
   let buf = toCArray arr
   call_ pack buf 0 =<< deref (msg ~> data16_type)
   call_ pack buf 1 =<< deref (msg ~> len)
   arrayPack buf 2 (msg ~> data16)
-
-  -- Copy leaving enough room for the header
-  if arrayLen sendArr < (6 + 18 + 2 :: Integer)
-    then error "data16 payload too big!"
-    else do _ <- arrCopy sendArr arr 6
-            call_ mavlinkSendWithWriter data16MsgId data16CrcExtra 18 seqNum sendArr
+  -- 6: header len, 2: CRC len
+  if arrayLen sendArr < 6 + 18 + 2
+    then error "data16 payload is too large for 18 sender!"
+    else do -- Copy, leaving room for the payload
+            _ <- arrCopy sendArr arr 6
+            call_ mavlinkSendWithWriter
+                    data16MsgId
+                    data16CrcExtra
+                    18
+                    seqNum
+                    sendArr
             retVoid
 
 instance MavlinkUnpackableMsg "data16_msg" where

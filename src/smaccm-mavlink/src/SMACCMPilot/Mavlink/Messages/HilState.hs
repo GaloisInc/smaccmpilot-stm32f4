@@ -15,6 +15,7 @@ import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
 import Ivory.Language
+import Ivory.Stdlib
 
 hilStateMsgId :: Uint8
 hilStateMsgId = 90
@@ -25,6 +26,8 @@ hilStateCrcExtra = 183
 hilStateModule :: Module
 hilStateModule = package "mavlink_hil_state_msg" $ do
   depend packModule
+  depend mavlinkSendModule
+  incl mkHilStateSender
   incl hilStateUnpack
   defStruct (Proxy :: Proxy "hil_state_msg")
 
@@ -49,38 +52,45 @@ struct hil_state_msg
   }
 |]
 
--- mkHilStateSender :: SizedMavlinkSender 56
---                        -> Def ('[ ConstRef s (Struct "hil_state_msg") ] :-> ())
--- mkHilStateSender sender =
---   proc ("mavlink_hil_state_msg_send" ++ (senderName sender)) $ \msg -> body $ do
---     noReturn $ hilStatePack (senderMacro sender) msg
-
--- instance MavlinkSendable "hil_state_msg" 56 where
---   mkSender = mkHilStateSender
-
--- hilStatePack :: SenderMacro cs (Stack cs) 56
---                   -> ConstRef s1 (Struct "hil_state_msg")
---                   -> Ivory (AllocEffects cs) ()
--- hilStatePack sender msg = do
---   arr <- local (iarray [] :: Init (Array 56 (Stored Uint8)))
---   let buf = toCArray arr
---   call_ pack buf 0 =<< deref (msg ~> time_usec)
---   call_ pack buf 8 =<< deref (msg ~> roll)
---   call_ pack buf 12 =<< deref (msg ~> pitch)
---   call_ pack buf 16 =<< deref (msg ~> yaw)
---   call_ pack buf 20 =<< deref (msg ~> rollspeed)
---   call_ pack buf 24 =<< deref (msg ~> pitchspeed)
---   call_ pack buf 28 =<< deref (msg ~> yawspeed)
---   call_ pack buf 32 =<< deref (msg ~> lat)
---   call_ pack buf 36 =<< deref (msg ~> lon)
---   call_ pack buf 40 =<< deref (msg ~> alt)
---   call_ pack buf 44 =<< deref (msg ~> vx)
---   call_ pack buf 46 =<< deref (msg ~> vy)
---   call_ pack buf 48 =<< deref (msg ~> vz)
---   call_ pack buf 50 =<< deref (msg ~> xacc)
---   call_ pack buf 52 =<< deref (msg ~> yacc)
---   call_ pack buf 54 =<< deref (msg ~> zacc)
---   sender hilStateMsgId (constRef arr) hilStateCrcExtra
+mkHilStateSender ::
+  Def ('[ ConstRef s0 (Struct "hil_state_msg")
+        , Ref s1 (Stored Uint8) -- seqNum
+        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        ] :-> ())
+mkHilStateSender =
+  proc "mavlink_hil_state_msg_send"
+  $ \msg seqNum sendArr -> body
+  $ do
+  arr <- local (iarray [] :: Init (Array 56 (Stored Uint8)))
+  let buf = toCArray arr
+  call_ pack buf 0 =<< deref (msg ~> time_usec)
+  call_ pack buf 8 =<< deref (msg ~> roll)
+  call_ pack buf 12 =<< deref (msg ~> pitch)
+  call_ pack buf 16 =<< deref (msg ~> yaw)
+  call_ pack buf 20 =<< deref (msg ~> rollspeed)
+  call_ pack buf 24 =<< deref (msg ~> pitchspeed)
+  call_ pack buf 28 =<< deref (msg ~> yawspeed)
+  call_ pack buf 32 =<< deref (msg ~> lat)
+  call_ pack buf 36 =<< deref (msg ~> lon)
+  call_ pack buf 40 =<< deref (msg ~> alt)
+  call_ pack buf 44 =<< deref (msg ~> vx)
+  call_ pack buf 46 =<< deref (msg ~> vy)
+  call_ pack buf 48 =<< deref (msg ~> vz)
+  call_ pack buf 50 =<< deref (msg ~> xacc)
+  call_ pack buf 52 =<< deref (msg ~> yacc)
+  call_ pack buf 54 =<< deref (msg ~> zacc)
+  -- 6: header len, 2: CRC len
+  if arrayLen sendArr < 6 + 56 + 2
+    then error "hilState payload is too large for 56 sender!"
+    else do -- Copy, leaving room for the payload
+            _ <- arrCopy sendArr arr 6
+            call_ mavlinkSendWithWriter
+                    hilStateMsgId
+                    hilStateCrcExtra
+                    56
+                    seqNum
+                    sendArr
+            retVoid
 
 instance MavlinkUnpackableMsg "hil_state_msg" where
     unpackMsg = ( hilStateUnpack , hilStateMsgId )

@@ -15,6 +15,7 @@ import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
 import Ivory.Language
+import Ivory.Stdlib
 
 missionRequestListMsgId :: Uint8
 missionRequestListMsgId = 43
@@ -25,6 +26,8 @@ missionRequestListCrcExtra = 132
 missionRequestListModule :: Module
 missionRequestListModule = package "mavlink_mission_request_list_msg" $ do
   depend packModule
+  depend mavlinkSendModule
+  incl mkMissionRequestListSender
   incl missionRequestListUnpack
   defStruct (Proxy :: Proxy "mission_request_list_msg")
 
@@ -35,24 +38,31 @@ struct mission_request_list_msg
   }
 |]
 
-mkMissionRequestListSender :: SizedMavlinkSender 2
-                       -> Def ('[ ConstRef s (Struct "mission_request_list_msg") ] :-> ())
-mkMissionRequestListSender sender =
-  proc ("mavlink_mission_request_list_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    noReturn $ missionRequestListPack (senderMacro sender) msg
-
-instance MavlinkSendable "mission_request_list_msg" 2 where
-  mkSender = mkMissionRequestListSender
-
-missionRequestListPack :: SenderMacro cs (Stack cs) 2
-                  -> ConstRef s1 (Struct "mission_request_list_msg")
-                  -> Ivory (AllocEffects cs) ()
-missionRequestListPack sender msg = do
+mkMissionRequestListSender ::
+  Def ('[ ConstRef s0 (Struct "mission_request_list_msg")
+        , Ref s1 (Stored Uint8) -- seqNum
+        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        ] :-> ())
+mkMissionRequestListSender =
+  proc "mavlink_mission_request_list_msg_send"
+  $ \msg seqNum sendArr -> body
+  $ do
   arr <- local (iarray [] :: Init (Array 2 (Stored Uint8)))
   let buf = toCArray arr
   call_ pack buf 0 =<< deref (msg ~> target_system)
   call_ pack buf 1 =<< deref (msg ~> target_component)
-  sender missionRequestListMsgId (constRef arr) missionRequestListCrcExtra
+  -- 6: header len, 2: CRC len
+  if arrayLen sendArr < 6 + 2 + 2
+    then error "missionRequestList payload is too large for 2 sender!"
+    else do -- Copy, leaving room for the payload
+            _ <- arrCopy sendArr arr 6
+            call_ mavlinkSendWithWriter
+                    missionRequestListMsgId
+                    missionRequestListCrcExtra
+                    2
+                    seqNum
+                    sendArr
+            retVoid
 
 instance MavlinkUnpackableMsg "mission_request_list_msg" where
     unpackMsg = ( missionRequestListUnpack , missionRequestListMsgId )

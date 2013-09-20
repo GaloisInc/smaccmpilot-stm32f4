@@ -15,6 +15,7 @@ import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
 import Ivory.Language
+import Ivory.Stdlib
 
 setRollPitchYawThrustMsgId :: Uint8
 setRollPitchYawThrustMsgId = 56
@@ -25,6 +26,8 @@ setRollPitchYawThrustCrcExtra = 100
 setRollPitchYawThrustModule :: Module
 setRollPitchYawThrustModule = package "mavlink_set_roll_pitch_yaw_thrust_msg" $ do
   depend packModule
+  depend mavlinkSendModule
+  incl mkSetRollPitchYawThrustSender
   incl setRollPitchYawThrustUnpack
   defStruct (Proxy :: Proxy "set_roll_pitch_yaw_thrust_msg")
 
@@ -39,19 +42,15 @@ struct set_roll_pitch_yaw_thrust_msg
   }
 |]
 
-mkSetRollPitchYawThrustSender :: SizedMavlinkSender 18
-                       -> Def ('[ ConstRef s (Struct "set_roll_pitch_yaw_thrust_msg") ] :-> ())
-mkSetRollPitchYawThrustSender sender =
-  proc ("mavlink_set_roll_pitch_yaw_thrust_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    noReturn $ setRollPitchYawThrustPack (senderMacro sender) msg
-
-instance MavlinkSendable "set_roll_pitch_yaw_thrust_msg" 18 where
-  mkSender = mkSetRollPitchYawThrustSender
-
-setRollPitchYawThrustPack :: SenderMacro cs (Stack cs) 18
-                  -> ConstRef s1 (Struct "set_roll_pitch_yaw_thrust_msg")
-                  -> Ivory (AllocEffects cs) ()
-setRollPitchYawThrustPack sender msg = do
+mkSetRollPitchYawThrustSender ::
+  Def ('[ ConstRef s0 (Struct "set_roll_pitch_yaw_thrust_msg")
+        , Ref s1 (Stored Uint8) -- seqNum
+        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        ] :-> ())
+mkSetRollPitchYawThrustSender =
+  proc "mavlink_set_roll_pitch_yaw_thrust_msg_send"
+  $ \msg seqNum sendArr -> body
+  $ do
   arr <- local (iarray [] :: Init (Array 18 (Stored Uint8)))
   let buf = toCArray arr
   call_ pack buf 0 =<< deref (msg ~> roll)
@@ -60,7 +59,18 @@ setRollPitchYawThrustPack sender msg = do
   call_ pack buf 12 =<< deref (msg ~> thrust)
   call_ pack buf 16 =<< deref (msg ~> target_system)
   call_ pack buf 17 =<< deref (msg ~> target_component)
-  sender setRollPitchYawThrustMsgId (constRef arr) setRollPitchYawThrustCrcExtra
+  -- 6: header len, 2: CRC len
+  if arrayLen sendArr < 6 + 18 + 2
+    then error "setRollPitchYawThrust payload is too large for 18 sender!"
+    else do -- Copy, leaving room for the payload
+            _ <- arrCopy sendArr arr 6
+            call_ mavlinkSendWithWriter
+                    setRollPitchYawThrustMsgId
+                    setRollPitchYawThrustCrcExtra
+                    18
+                    seqNum
+                    sendArr
+            retVoid
 
 instance MavlinkUnpackableMsg "set_roll_pitch_yaw_thrust_msg" where
     unpackMsg = ( setRollPitchYawThrustUnpack , setRollPitchYawThrustMsgId )

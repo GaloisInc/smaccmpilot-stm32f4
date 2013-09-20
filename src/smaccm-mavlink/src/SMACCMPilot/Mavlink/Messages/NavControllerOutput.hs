@@ -15,6 +15,7 @@ import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
 import Ivory.Language
+import Ivory.Stdlib
 
 navControllerOutputMsgId :: Uint8
 navControllerOutputMsgId = 62
@@ -25,6 +26,8 @@ navControllerOutputCrcExtra = 183
 navControllerOutputModule :: Module
 navControllerOutputModule = package "mavlink_nav_controller_output_msg" $ do
   depend packModule
+  depend mavlinkSendModule
+  incl mkNavControllerOutputSender
   incl navControllerOutputUnpack
   defStruct (Proxy :: Proxy "nav_controller_output_msg")
 
@@ -41,19 +44,15 @@ struct nav_controller_output_msg
   }
 |]
 
-mkNavControllerOutputSender :: SizedMavlinkSender 26
-                       -> Def ('[ ConstRef s (Struct "nav_controller_output_msg") ] :-> ())
-mkNavControllerOutputSender sender =
-  proc ("mavlink_nav_controller_output_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    noReturn $ navControllerOutputPack (senderMacro sender) msg
-
-instance MavlinkSendable "nav_controller_output_msg" 26 where
-  mkSender = mkNavControllerOutputSender
-
-navControllerOutputPack :: SenderMacro cs (Stack cs) 26
-                  -> ConstRef s1 (Struct "nav_controller_output_msg")
-                  -> Ivory (AllocEffects cs) ()
-navControllerOutputPack sender msg = do
+mkNavControllerOutputSender ::
+  Def ('[ ConstRef s0 (Struct "nav_controller_output_msg")
+        , Ref s1 (Stored Uint8) -- seqNum
+        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        ] :-> ())
+mkNavControllerOutputSender =
+  proc "mavlink_nav_controller_output_msg_send"
+  $ \msg seqNum sendArr -> body
+  $ do
   arr <- local (iarray [] :: Init (Array 26 (Stored Uint8)))
   let buf = toCArray arr
   call_ pack buf 0 =<< deref (msg ~> nav_roll)
@@ -64,7 +63,18 @@ navControllerOutputPack sender msg = do
   call_ pack buf 20 =<< deref (msg ~> nav_bearing)
   call_ pack buf 22 =<< deref (msg ~> target_bearing)
   call_ pack buf 24 =<< deref (msg ~> wp_dist)
-  sender navControllerOutputMsgId (constRef arr) navControllerOutputCrcExtra
+  -- 6: header len, 2: CRC len
+  if arrayLen sendArr < 6 + 26 + 2
+    then error "navControllerOutput payload is too large for 26 sender!"
+    else do -- Copy, leaving room for the payload
+            _ <- arrCopy sendArr arr 6
+            call_ mavlinkSendWithWriter
+                    navControllerOutputMsgId
+                    navControllerOutputCrcExtra
+                    26
+                    seqNum
+                    sendArr
+            retVoid
 
 instance MavlinkUnpackableMsg "nav_controller_output_msg" where
     unpackMsg = ( navControllerOutputUnpack , navControllerOutputMsgId )

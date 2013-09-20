@@ -15,6 +15,7 @@ import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
 import Ivory.Language
+import Ivory.Stdlib
 
 localPositionNedMsgId :: Uint8
 localPositionNedMsgId = 32
@@ -25,6 +26,8 @@ localPositionNedCrcExtra = 185
 localPositionNedModule :: Module
 localPositionNedModule = package "mavlink_local_position_ned_msg" $ do
   depend packModule
+  depend mavlinkSendModule
+  incl mkLocalPositionNedSender
   incl localPositionNedUnpack
   defStruct (Proxy :: Proxy "local_position_ned_msg")
 
@@ -40,19 +43,15 @@ struct local_position_ned_msg
   }
 |]
 
-mkLocalPositionNedSender :: SizedMavlinkSender 28
-                       -> Def ('[ ConstRef s (Struct "local_position_ned_msg") ] :-> ())
-mkLocalPositionNedSender sender =
-  proc ("mavlink_local_position_ned_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    noReturn $ localPositionNedPack (senderMacro sender) msg
-
-instance MavlinkSendable "local_position_ned_msg" 28 where
-  mkSender = mkLocalPositionNedSender
-
-localPositionNedPack :: SenderMacro cs (Stack cs) 28
-                  -> ConstRef s1 (Struct "local_position_ned_msg")
-                  -> Ivory (AllocEffects cs) ()
-localPositionNedPack sender msg = do
+mkLocalPositionNedSender ::
+  Def ('[ ConstRef s0 (Struct "local_position_ned_msg")
+        , Ref s1 (Stored Uint8) -- seqNum
+        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        ] :-> ())
+mkLocalPositionNedSender =
+  proc "mavlink_local_position_ned_msg_send"
+  $ \msg seqNum sendArr -> body
+  $ do
   arr <- local (iarray [] :: Init (Array 28 (Stored Uint8)))
   let buf = toCArray arr
   call_ pack buf 0 =<< deref (msg ~> time_boot_ms)
@@ -62,7 +61,18 @@ localPositionNedPack sender msg = do
   call_ pack buf 16 =<< deref (msg ~> vx)
   call_ pack buf 20 =<< deref (msg ~> vy)
   call_ pack buf 24 =<< deref (msg ~> vz)
-  sender localPositionNedMsgId (constRef arr) localPositionNedCrcExtra
+  -- 6: header len, 2: CRC len
+  if arrayLen sendArr < 6 + 28 + 2
+    then error "localPositionNed payload is too large for 28 sender!"
+    else do -- Copy, leaving room for the payload
+            _ <- arrCopy sendArr arr 6
+            call_ mavlinkSendWithWriter
+                    localPositionNedMsgId
+                    localPositionNedCrcExtra
+                    28
+                    seqNum
+                    sendArr
+            retVoid
 
 instance MavlinkUnpackableMsg "local_position_ned_msg" where
     unpackMsg = ( localPositionNedUnpack , localPositionNedMsgId )

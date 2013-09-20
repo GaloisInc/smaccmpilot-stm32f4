@@ -15,6 +15,7 @@ import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
 import Ivory.Language
+import Ivory.Stdlib
 
 paramRequestListMsgId :: Uint8
 paramRequestListMsgId = 21
@@ -25,6 +26,8 @@ paramRequestListCrcExtra = 159
 paramRequestListModule :: Module
 paramRequestListModule = package "mavlink_param_request_list_msg" $ do
   depend packModule
+  depend mavlinkSendModule
+  incl mkParamRequestListSender
   incl paramRequestListUnpack
   defStruct (Proxy :: Proxy "param_request_list_msg")
 
@@ -35,24 +38,31 @@ struct param_request_list_msg
   }
 |]
 
--- mkParamRequestListSender :: SizedMavlinkSender 2
---                        -> Def ('[ ConstRef s (Struct "param_request_list_msg") ] :-> ())
--- mkParamRequestListSender sender =
---   proc ("mavlink_param_request_list_msg_send" ++ (senderName sender)) $ \msg -> body $ do
---     noReturn $ paramRequestListPack (senderMacro sender) msg
-
--- instance MavlinkSendable "param_request_list_msg" 2 where
---   mkSender = mkParamRequestListSender
-
--- paramRequestListPack :: SenderMacro cs (Stack cs) 2
---                   -> ConstRef s1 (Struct "param_request_list_msg")
---                   -> Ivory (AllocEffects cs) ()
--- paramRequestListPack sender msg = do
---   arr <- local (iarray [] :: Init (Array 2 (Stored Uint8)))
---   let buf = toCArray arr
---   call_ pack buf 0 =<< deref (msg ~> target_system)
---   call_ pack buf 1 =<< deref (msg ~> target_component)
---   sender paramRequestListMsgId (constRef arr) paramRequestListCrcExtra
+mkParamRequestListSender ::
+  Def ('[ ConstRef s0 (Struct "param_request_list_msg")
+        , Ref s1 (Stored Uint8) -- seqNum
+        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        ] :-> ())
+mkParamRequestListSender =
+  proc "mavlink_param_request_list_msg_send"
+  $ \msg seqNum sendArr -> body
+  $ do
+  arr <- local (iarray [] :: Init (Array 2 (Stored Uint8)))
+  let buf = toCArray arr
+  call_ pack buf 0 =<< deref (msg ~> target_system)
+  call_ pack buf 1 =<< deref (msg ~> target_component)
+  -- 6: header len, 2: CRC len
+  if arrayLen sendArr < 6 + 2 + 2
+    then error "paramRequestList payload is too large for 2 sender!"
+    else do -- Copy, leaving room for the payload
+            _ <- arrCopy sendArr arr 6
+            call_ mavlinkSendWithWriter
+                    paramRequestListMsgId
+                    paramRequestListCrcExtra
+                    2
+                    seqNum
+                    sendArr
+            retVoid
 
 instance MavlinkUnpackableMsg "param_request_list_msg" where
     unpackMsg = ( paramRequestListUnpack , paramRequestListMsgId )

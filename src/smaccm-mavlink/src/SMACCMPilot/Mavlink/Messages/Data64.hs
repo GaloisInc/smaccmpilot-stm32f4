@@ -15,6 +15,7 @@ import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
 import Ivory.Language
+import Ivory.Stdlib
 
 data64MsgId :: Uint8
 data64MsgId = 171
@@ -25,6 +26,8 @@ data64CrcExtra = 170
 data64Module :: Module
 data64Module = package "mavlink_data64_msg" $ do
   depend packModule
+  depend mavlinkSendModule
+  incl mkData64Sender
   incl data64Unpack
   defStruct (Proxy :: Proxy "data64_msg")
 
@@ -36,25 +39,32 @@ struct data64_msg
   }
 |]
 
-mkData64Sender :: SizedMavlinkSender 66
-                       -> Def ('[ ConstRef s (Struct "data64_msg") ] :-> ())
-mkData64Sender sender =
-  proc ("mavlink_data64_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    noReturn $ data64Pack (senderMacro sender) msg
-
-instance MavlinkSendable "data64_msg" 66 where
-  mkSender = mkData64Sender
-
-data64Pack :: SenderMacro cs (Stack cs) 66
-                  -> ConstRef s1 (Struct "data64_msg")
-                  -> Ivory (AllocEffects cs) ()
-data64Pack sender msg = do
+mkData64Sender ::
+  Def ('[ ConstRef s0 (Struct "data64_msg")
+        , Ref s1 (Stored Uint8) -- seqNum
+        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        ] :-> ())
+mkData64Sender =
+  proc "mavlink_data64_msg_send"
+  $ \msg seqNum sendArr -> body
+  $ do
   arr <- local (iarray [] :: Init (Array 66 (Stored Uint8)))
   let buf = toCArray arr
   call_ pack buf 0 =<< deref (msg ~> data64_type)
   call_ pack buf 1 =<< deref (msg ~> len)
   arrayPack buf 2 (msg ~> data64)
-  sender data64MsgId (constRef arr) data64CrcExtra
+  -- 6: header len, 2: CRC len
+  if arrayLen sendArr < 6 + 66 + 2
+    then error "data64 payload is too large for 66 sender!"
+    else do -- Copy, leaving room for the payload
+            _ <- arrCopy sendArr arr 6
+            call_ mavlinkSendWithWriter
+                    data64MsgId
+                    data64CrcExtra
+                    66
+                    seqNum
+                    sendArr
+            retVoid
 
 instance MavlinkUnpackableMsg "data64_msg" where
     unpackMsg = ( data64Unpack , data64MsgId )

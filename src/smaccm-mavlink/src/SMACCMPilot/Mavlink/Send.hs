@@ -2,11 +2,6 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE QuasiQuotes #-}
-{-# LANGUAGE Rank2Types #-}
-{-# LANGUAGE ExistentialQuantification #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module SMACCMPilot.Mavlink.Send where
@@ -20,25 +15,6 @@ import SMACCMPilot.Mavlink.CRC
 
 --------------------------------------------------------------------------------
 
--- type SenderMacro cs s n =  Uint8 -- id
---                         -> ConstRef s (Array n (Stored Uint8)) -- buf
---                         -> Uint8 -- crcextra
---                         -> Ivory (AllocEffects cs) ()
-
--- data SizedMavlinkSender n =
---   SizedMavlinkSender
---     { senderMacro :: forall s cs . SenderMacro cs s n
---     , senderName  :: String
---     , senderDeps  :: ModuleDef
---     }
-
--- class MavlinkSendable t n | t -> n where
---   mkSender :: SizedMavlinkSender n -> Def ('[ ConstRef s (Struct t) ] :-> ())
-
--- mavlinkChecksum :: Uint8
---                 -> Uint8
---                 -> Ref s (Array 128 (Stored Uint8))
---                 -> Ivory eff ()
 mavlinkChecksum ::
      (GetAlloc eff ~ Scope cs)
   => Uint8
@@ -72,16 +48,13 @@ const_MAVLINK_STX = 254
 
 -- We assume the payload has already been copied into arr.
 mavlinkSendWithWriter ::
-  Def ('[ Uint8
-        , Uint8
-        , Uint8
-        , Ref s (Stored Uint8)
-        , Ref s (Array 128 (Stored Uint8))
-        ]
-        :-> ()
-      )
+  Def ('[ Uint8 -- msgID
+        , Uint8 -- crcExtra
+        , Uint8 -- payload length
+        , Ref s (Stored Uint8) -- sequence number (use then increment)
+        , Ref s (Array 128 (Stored Uint8)) -- array we'll put everything into
+        ] :-> ())
 mavlinkSendWithWriter =
---  (SizedMavlinkSender sender (writerName mavlinkData) deps)
   proc "mavlinkSendWithWriter"
   $ \msgId crcExtra payloadLen seqNum arr -> body
   $ do
@@ -105,17 +78,7 @@ mavlinkSendWithWriter =
     mavlinkChecksum sz crcExtra arr
 
 mavlinkSendModule :: Module
-mavlinkSendModule = package "mavlinkSendModule" $
+mavlinkSendModule = package "mavlinkSendModule"
   incl mavlinkSendWithWriter
 
 --------------------------------------------------------------------------------
--- Helpers for auto-generated code, also used by transmitter in SMACCMPILOT
--- currently.
-
--- XXX refactor and get rid of this stuff at some point.
-
--- newtype MavlinkSender =
---   MavlinkSender (forall n . (SingI n) => SizedMavlinkSender n)
-
--- mkMessage :: (forall n . (SingI n) => SizedMavlinkSender n) -> MavlinkSender
--- mkMessage = MavlinkSender

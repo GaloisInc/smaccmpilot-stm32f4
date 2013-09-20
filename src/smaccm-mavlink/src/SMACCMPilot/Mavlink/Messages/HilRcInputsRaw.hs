@@ -15,6 +15,7 @@ import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
 import Ivory.Language
+import Ivory.Stdlib
 
 hilRcInputsRawMsgId :: Uint8
 hilRcInputsRawMsgId = 92
@@ -25,6 +26,8 @@ hilRcInputsRawCrcExtra = 54
 hilRcInputsRawModule :: Module
 hilRcInputsRawModule = package "mavlink_hil_rc_inputs_raw_msg" $ do
   depend packModule
+  depend mavlinkSendModule
+  incl mkHilRcInputsRawSender
   incl hilRcInputsRawUnpack
   defStruct (Proxy :: Proxy "hil_rc_inputs_raw_msg")
 
@@ -47,19 +50,15 @@ struct hil_rc_inputs_raw_msg
   }
 |]
 
-mkHilRcInputsRawSender :: SizedMavlinkSender 33
-                       -> Def ('[ ConstRef s (Struct "hil_rc_inputs_raw_msg") ] :-> ())
-mkHilRcInputsRawSender sender =
-  proc ("mavlink_hil_rc_inputs_raw_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    noReturn $ hilRcInputsRawPack (senderMacro sender) msg
-
-instance MavlinkSendable "hil_rc_inputs_raw_msg" 33 where
-  mkSender = mkHilRcInputsRawSender
-
-hilRcInputsRawPack :: SenderMacro cs (Stack cs) 33
-                  -> ConstRef s1 (Struct "hil_rc_inputs_raw_msg")
-                  -> Ivory (AllocEffects cs) ()
-hilRcInputsRawPack sender msg = do
+mkHilRcInputsRawSender ::
+  Def ('[ ConstRef s0 (Struct "hil_rc_inputs_raw_msg")
+        , Ref s1 (Stored Uint8) -- seqNum
+        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        ] :-> ())
+mkHilRcInputsRawSender =
+  proc "mavlink_hil_rc_inputs_raw_msg_send"
+  $ \msg seqNum sendArr -> body
+  $ do
   arr <- local (iarray [] :: Init (Array 33 (Stored Uint8)))
   let buf = toCArray arr
   call_ pack buf 0 =<< deref (msg ~> time_usec)
@@ -76,7 +75,18 @@ hilRcInputsRawPack sender msg = do
   call_ pack buf 28 =<< deref (msg ~> chan11_raw)
   call_ pack buf 30 =<< deref (msg ~> chan12_raw)
   call_ pack buf 32 =<< deref (msg ~> rssi)
-  sender hilRcInputsRawMsgId (constRef arr) hilRcInputsRawCrcExtra
+  -- 6: header len, 2: CRC len
+  if arrayLen sendArr < 6 + 33 + 2
+    then error "hilRcInputsRaw payload is too large for 33 sender!"
+    else do -- Copy, leaving room for the payload
+            _ <- arrCopy sendArr arr 6
+            call_ mavlinkSendWithWriter
+                    hilRcInputsRawMsgId
+                    hilRcInputsRawCrcExtra
+                    33
+                    seqNum
+                    sendArr
+            retVoid
 
 instance MavlinkUnpackableMsg "hil_rc_inputs_raw_msg" where
     unpackMsg = ( hilRcInputsRawUnpack , hilRcInputsRawMsgId )

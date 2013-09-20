@@ -15,6 +15,7 @@ import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
 import Ivory.Language
+import Ivory.Stdlib
 
 missionClearAllMsgId :: Uint8
 missionClearAllMsgId = 45
@@ -25,6 +26,8 @@ missionClearAllCrcExtra = 232
 missionClearAllModule :: Module
 missionClearAllModule = package "mavlink_mission_clear_all_msg" $ do
   depend packModule
+  depend mavlinkSendModule
+  incl mkMissionClearAllSender
   incl missionClearAllUnpack
   defStruct (Proxy :: Proxy "mission_clear_all_msg")
 
@@ -35,24 +38,31 @@ struct mission_clear_all_msg
   }
 |]
 
-mkMissionClearAllSender :: SizedMavlinkSender 2
-                       -> Def ('[ ConstRef s (Struct "mission_clear_all_msg") ] :-> ())
-mkMissionClearAllSender sender =
-  proc ("mavlink_mission_clear_all_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    noReturn $ missionClearAllPack (senderMacro sender) msg
-
-instance MavlinkSendable "mission_clear_all_msg" 2 where
-  mkSender = mkMissionClearAllSender
-
-missionClearAllPack :: SenderMacro cs (Stack cs) 2
-                  -> ConstRef s1 (Struct "mission_clear_all_msg")
-                  -> Ivory (AllocEffects cs) ()
-missionClearAllPack sender msg = do
+mkMissionClearAllSender ::
+  Def ('[ ConstRef s0 (Struct "mission_clear_all_msg")
+        , Ref s1 (Stored Uint8) -- seqNum
+        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        ] :-> ())
+mkMissionClearAllSender =
+  proc "mavlink_mission_clear_all_msg_send"
+  $ \msg seqNum sendArr -> body
+  $ do
   arr <- local (iarray [] :: Init (Array 2 (Stored Uint8)))
   let buf = toCArray arr
   call_ pack buf 0 =<< deref (msg ~> target_system)
   call_ pack buf 1 =<< deref (msg ~> target_component)
-  sender missionClearAllMsgId (constRef arr) missionClearAllCrcExtra
+  -- 6: header len, 2: CRC len
+  if arrayLen sendArr < 6 + 2 + 2
+    then error "missionClearAll payload is too large for 2 sender!"
+    else do -- Copy, leaving room for the payload
+            _ <- arrCopy sendArr arr 6
+            call_ mavlinkSendWithWriter
+                    missionClearAllMsgId
+                    missionClearAllCrcExtra
+                    2
+                    seqNum
+                    sendArr
+            retVoid
 
 instance MavlinkUnpackableMsg "mission_clear_all_msg" where
     unpackMsg = ( missionClearAllUnpack , missionClearAllMsgId )

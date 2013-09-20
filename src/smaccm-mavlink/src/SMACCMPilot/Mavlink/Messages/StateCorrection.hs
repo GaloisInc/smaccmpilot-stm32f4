@@ -15,6 +15,7 @@ import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
 import Ivory.Language
+import Ivory.Stdlib
 
 stateCorrectionMsgId :: Uint8
 stateCorrectionMsgId = 64
@@ -25,6 +26,8 @@ stateCorrectionCrcExtra = 130
 stateCorrectionModule :: Module
 stateCorrectionModule = package "mavlink_state_correction_msg" $ do
   depend packModule
+  depend mavlinkSendModule
+  incl mkStateCorrectionSender
   incl stateCorrectionUnpack
   defStruct (Proxy :: Proxy "state_correction_msg")
 
@@ -42,19 +45,15 @@ struct state_correction_msg
   }
 |]
 
-mkStateCorrectionSender :: SizedMavlinkSender 36
-                       -> Def ('[ ConstRef s (Struct "state_correction_msg") ] :-> ())
-mkStateCorrectionSender sender =
-  proc ("mavlink_state_correction_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    noReturn $ stateCorrectionPack (senderMacro sender) msg
-
-instance MavlinkSendable "state_correction_msg" 36 where
-  mkSender = mkStateCorrectionSender
-
-stateCorrectionPack :: SenderMacro cs (Stack cs) 36
-                  -> ConstRef s1 (Struct "state_correction_msg")
-                  -> Ivory (AllocEffects cs) ()
-stateCorrectionPack sender msg = do
+mkStateCorrectionSender ::
+  Def ('[ ConstRef s0 (Struct "state_correction_msg")
+        , Ref s1 (Stored Uint8) -- seqNum
+        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        ] :-> ())
+mkStateCorrectionSender =
+  proc "mavlink_state_correction_msg_send"
+  $ \msg seqNum sendArr -> body
+  $ do
   arr <- local (iarray [] :: Init (Array 36 (Stored Uint8)))
   let buf = toCArray arr
   call_ pack buf 0 =<< deref (msg ~> xErr)
@@ -66,7 +65,18 @@ stateCorrectionPack sender msg = do
   call_ pack buf 24 =<< deref (msg ~> vxErr)
   call_ pack buf 28 =<< deref (msg ~> vyErr)
   call_ pack buf 32 =<< deref (msg ~> vzErr)
-  sender stateCorrectionMsgId (constRef arr) stateCorrectionCrcExtra
+  -- 6: header len, 2: CRC len
+  if arrayLen sendArr < 6 + 36 + 2
+    then error "stateCorrection payload is too large for 36 sender!"
+    else do -- Copy, leaving room for the payload
+            _ <- arrCopy sendArr arr 6
+            call_ mavlinkSendWithWriter
+                    stateCorrectionMsgId
+                    stateCorrectionCrcExtra
+                    36
+                    seqNum
+                    sendArr
+            retVoid
 
 instance MavlinkUnpackableMsg "state_correction_msg" where
     unpackMsg = ( stateCorrectionUnpack , stateCorrectionMsgId )

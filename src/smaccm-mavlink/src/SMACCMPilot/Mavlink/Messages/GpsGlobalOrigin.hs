@@ -15,6 +15,7 @@ import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
 import Ivory.Language
+import Ivory.Stdlib
 
 gpsGlobalOriginMsgId :: Uint8
 gpsGlobalOriginMsgId = 49
@@ -25,6 +26,8 @@ gpsGlobalOriginCrcExtra = 39
 gpsGlobalOriginModule :: Module
 gpsGlobalOriginModule = package "mavlink_gps_global_origin_msg" $ do
   depend packModule
+  depend mavlinkSendModule
+  incl mkGpsGlobalOriginSender
   incl gpsGlobalOriginUnpack
   defStruct (Proxy :: Proxy "gps_global_origin_msg")
 
@@ -36,25 +39,32 @@ struct gps_global_origin_msg
   }
 |]
 
-mkGpsGlobalOriginSender :: SizedMavlinkSender 12
-                       -> Def ('[ ConstRef s (Struct "gps_global_origin_msg") ] :-> ())
-mkGpsGlobalOriginSender sender =
-  proc ("mavlink_gps_global_origin_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    noReturn $ gpsGlobalOriginPack (senderMacro sender) msg
-
-instance MavlinkSendable "gps_global_origin_msg" 12 where
-  mkSender = mkGpsGlobalOriginSender
-
-gpsGlobalOriginPack :: SenderMacro cs (Stack cs) 12
-                  -> ConstRef s1 (Struct "gps_global_origin_msg")
-                  -> Ivory (AllocEffects cs) ()
-gpsGlobalOriginPack sender msg = do
+mkGpsGlobalOriginSender ::
+  Def ('[ ConstRef s0 (Struct "gps_global_origin_msg")
+        , Ref s1 (Stored Uint8) -- seqNum
+        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        ] :-> ())
+mkGpsGlobalOriginSender =
+  proc "mavlink_gps_global_origin_msg_send"
+  $ \msg seqNum sendArr -> body
+  $ do
   arr <- local (iarray [] :: Init (Array 12 (Stored Uint8)))
   let buf = toCArray arr
   call_ pack buf 0 =<< deref (msg ~> latitude)
   call_ pack buf 4 =<< deref (msg ~> longitude)
   call_ pack buf 8 =<< deref (msg ~> altitude)
-  sender gpsGlobalOriginMsgId (constRef arr) gpsGlobalOriginCrcExtra
+  -- 6: header len, 2: CRC len
+  if arrayLen sendArr < 6 + 12 + 2
+    then error "gpsGlobalOrigin payload is too large for 12 sender!"
+    else do -- Copy, leaving room for the payload
+            _ <- arrCopy sendArr arr 6
+            call_ mavlinkSendWithWriter
+                    gpsGlobalOriginMsgId
+                    gpsGlobalOriginCrcExtra
+                    12
+                    seqNum
+                    sendArr
+            retVoid
 
 instance MavlinkUnpackableMsg "gps_global_origin_msg" where
     unpackMsg = ( gpsGlobalOriginUnpack , gpsGlobalOriginMsgId )

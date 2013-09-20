@@ -15,6 +15,7 @@ import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
 import Ivory.Language
+import Ivory.Stdlib
 
 servoOutputRawMsgId :: Uint8
 servoOutputRawMsgId = 36
@@ -25,6 +26,8 @@ servoOutputRawCrcExtra = 222
 servoOutputRawModule :: Module
 servoOutputRawModule = package "mavlink_servo_output_raw_msg" $ do
   depend packModule
+  depend mavlinkSendModule
+  incl mkServoOutputRawSender
   incl servoOutputRawUnpack
   defStruct (Proxy :: Proxy "servo_output_raw_msg")
 
@@ -43,19 +46,15 @@ struct servo_output_raw_msg
   }
 |]
 
-mkServoOutputRawSender :: SizedMavlinkSender 21
-                       -> Def ('[ ConstRef s (Struct "servo_output_raw_msg") ] :-> ())
-mkServoOutputRawSender sender =
-  proc ("mavlink_servo_output_raw_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    noReturn $ servoOutputRawPack (senderMacro sender) msg
-
-instance MavlinkSendable "servo_output_raw_msg" 21 where
-  mkSender = mkServoOutputRawSender
-
-servoOutputRawPack :: SenderMacro cs (Stack cs) 21
-                  -> ConstRef s1 (Struct "servo_output_raw_msg")
-                  -> Ivory (AllocEffects cs) ()
-servoOutputRawPack sender msg = do
+mkServoOutputRawSender ::
+  Def ('[ ConstRef s0 (Struct "servo_output_raw_msg")
+        , Ref s1 (Stored Uint8) -- seqNum
+        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        ] :-> ())
+mkServoOutputRawSender =
+  proc "mavlink_servo_output_raw_msg_send"
+  $ \msg seqNum sendArr -> body
+  $ do
   arr <- local (iarray [] :: Init (Array 21 (Stored Uint8)))
   let buf = toCArray arr
   call_ pack buf 0 =<< deref (msg ~> time_usec)
@@ -68,7 +67,18 @@ servoOutputRawPack sender msg = do
   call_ pack buf 16 =<< deref (msg ~> servo7_raw)
   call_ pack buf 18 =<< deref (msg ~> servo8_raw)
   call_ pack buf 20 =<< deref (msg ~> port)
-  sender servoOutputRawMsgId (constRef arr) servoOutputRawCrcExtra
+  -- 6: header len, 2: CRC len
+  if arrayLen sendArr < 6 + 21 + 2
+    then error "servoOutputRaw payload is too large for 21 sender!"
+    else do -- Copy, leaving room for the payload
+            _ <- arrCopy sendArr arr 6
+            call_ mavlinkSendWithWriter
+                    servoOutputRawMsgId
+                    servoOutputRawCrcExtra
+                    21
+                    seqNum
+                    sendArr
+            retVoid
 
 instance MavlinkUnpackableMsg "servo_output_raw_msg" where
     unpackMsg = ( servoOutputRawUnpack , servoOutputRawMsgId )

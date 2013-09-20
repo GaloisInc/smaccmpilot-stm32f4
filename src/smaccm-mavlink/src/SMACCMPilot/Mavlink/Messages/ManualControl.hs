@@ -15,6 +15,7 @@ import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
 import Ivory.Language
+import Ivory.Stdlib
 
 manualControlMsgId :: Uint8
 manualControlMsgId = 69
@@ -25,6 +26,8 @@ manualControlCrcExtra = 243
 manualControlModule :: Module
 manualControlModule = package "mavlink_manual_control_msg" $ do
   depend packModule
+  depend mavlinkSendModule
+  incl mkManualControlSender
   incl manualControlUnpack
   defStruct (Proxy :: Proxy "manual_control_msg")
 
@@ -39,19 +42,15 @@ struct manual_control_msg
   }
 |]
 
-mkManualControlSender :: SizedMavlinkSender 11
-                       -> Def ('[ ConstRef s (Struct "manual_control_msg") ] :-> ())
-mkManualControlSender sender =
-  proc ("mavlink_manual_control_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    noReturn $ manualControlPack (senderMacro sender) msg
-
-instance MavlinkSendable "manual_control_msg" 11 where
-  mkSender = mkManualControlSender
-
-manualControlPack :: SenderMacro cs (Stack cs) 11
-                  -> ConstRef s1 (Struct "manual_control_msg")
-                  -> Ivory (AllocEffects cs) ()
-manualControlPack sender msg = do
+mkManualControlSender ::
+  Def ('[ ConstRef s0 (Struct "manual_control_msg")
+        , Ref s1 (Stored Uint8) -- seqNum
+        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        ] :-> ())
+mkManualControlSender =
+  proc "mavlink_manual_control_msg_send"
+  $ \msg seqNum sendArr -> body
+  $ do
   arr <- local (iarray [] :: Init (Array 11 (Stored Uint8)))
   let buf = toCArray arr
   call_ pack buf 0 =<< deref (msg ~> x)
@@ -60,7 +59,18 @@ manualControlPack sender msg = do
   call_ pack buf 6 =<< deref (msg ~> r)
   call_ pack buf 8 =<< deref (msg ~> buttons)
   call_ pack buf 10 =<< deref (msg ~> target)
-  sender manualControlMsgId (constRef arr) manualControlCrcExtra
+  -- 6: header len, 2: CRC len
+  if arrayLen sendArr < 6 + 11 + 2
+    then error "manualControl payload is too large for 11 sender!"
+    else do -- Copy, leaving room for the payload
+            _ <- arrCopy sendArr arr 6
+            call_ mavlinkSendWithWriter
+                    manualControlMsgId
+                    manualControlCrcExtra
+                    11
+                    seqNum
+                    sendArr
+            retVoid
 
 instance MavlinkUnpackableMsg "manual_control_msg" where
     unpackMsg = ( manualControlUnpack , manualControlMsgId )

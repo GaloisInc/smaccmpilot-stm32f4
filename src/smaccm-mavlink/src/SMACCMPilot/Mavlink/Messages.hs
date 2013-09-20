@@ -13,178 +13,178 @@ import Data.Word (Word8)
 import Ivory.Language
 
 import qualified SMACCMPilot.Mavlink.Messages.Data16
--- import qualified SMACCMPilot.Mavlink.Messages.Data32
--- import qualified SMACCMPilot.Mavlink.Messages.Data64
--- import qualified SMACCMPilot.Mavlink.Messages.Data96
--- import qualified SMACCMPilot.Mavlink.Messages.Heartbeat
--- import qualified SMACCMPilot.Mavlink.Messages.SysStatus
--- import qualified SMACCMPilot.Mavlink.Messages.SystemTime
--- import qualified SMACCMPilot.Mavlink.Messages.Ping
--- import qualified SMACCMPilot.Mavlink.Messages.ChangeOperatorControl
--- import qualified SMACCMPilot.Mavlink.Messages.ChangeOperatorControlAck
--- import qualified SMACCMPilot.Mavlink.Messages.AuthKey
--- import qualified SMACCMPilot.Mavlink.Messages.SetMode
+import qualified SMACCMPilot.Mavlink.Messages.Data32
+import qualified SMACCMPilot.Mavlink.Messages.Data64
+import qualified SMACCMPilot.Mavlink.Messages.Data96
+import qualified SMACCMPilot.Mavlink.Messages.Heartbeat
+import qualified SMACCMPilot.Mavlink.Messages.SysStatus
+import qualified SMACCMPilot.Mavlink.Messages.SystemTime
+import qualified SMACCMPilot.Mavlink.Messages.Ping
+import qualified SMACCMPilot.Mavlink.Messages.ChangeOperatorControl
+import qualified SMACCMPilot.Mavlink.Messages.ChangeOperatorControlAck
+import qualified SMACCMPilot.Mavlink.Messages.AuthKey
+import qualified SMACCMPilot.Mavlink.Messages.SetMode
 import qualified SMACCMPilot.Mavlink.Messages.ParamRequestRead
 import qualified SMACCMPilot.Mavlink.Messages.ParamRequestList
--- import qualified SMACCMPilot.Mavlink.Messages.ParamValue
+import qualified SMACCMPilot.Mavlink.Messages.ParamValue
 import qualified SMACCMPilot.Mavlink.Messages.ParamSet
--- import qualified SMACCMPilot.Mavlink.Messages.GpsRawInt
--- import qualified SMACCMPilot.Mavlink.Messages.GpsStatus
--- import qualified SMACCMPilot.Mavlink.Messages.ScaledImu
--- import qualified SMACCMPilot.Mavlink.Messages.RawImu
--- import qualified SMACCMPilot.Mavlink.Messages.RawPressure
--- import qualified SMACCMPilot.Mavlink.Messages.ScaledPressure
--- import qualified SMACCMPilot.Mavlink.Messages.Attitude
--- import qualified SMACCMPilot.Mavlink.Messages.AttitudeQuaternion
--- import qualified SMACCMPilot.Mavlink.Messages.LocalPositionNed
--- import qualified SMACCMPilot.Mavlink.Messages.GlobalPositionInt
--- import qualified SMACCMPilot.Mavlink.Messages.RcChannelsScaled
--- import qualified SMACCMPilot.Mavlink.Messages.RcChannelsRaw
--- import qualified SMACCMPilot.Mavlink.Messages.ServoOutputRaw
--- import qualified SMACCMPilot.Mavlink.Messages.MissionRequestPartialList
--- import qualified SMACCMPilot.Mavlink.Messages.MissionWritePartialList
--- import qualified SMACCMPilot.Mavlink.Messages.MissionItem
--- import qualified SMACCMPilot.Mavlink.Messages.MissionRequest
--- import qualified SMACCMPilot.Mavlink.Messages.MissionSetCurrent
--- import qualified SMACCMPilot.Mavlink.Messages.MissionCurrent
--- import qualified SMACCMPilot.Mavlink.Messages.MissionRequestList
--- import qualified SMACCMPilot.Mavlink.Messages.MissionCount
--- import qualified SMACCMPilot.Mavlink.Messages.MissionClearAll
--- import qualified SMACCMPilot.Mavlink.Messages.MissionItemReached
--- import qualified SMACCMPilot.Mavlink.Messages.MissionAck
--- import qualified SMACCMPilot.Mavlink.Messages.SetGpsGlobalOrigin
--- import qualified SMACCMPilot.Mavlink.Messages.GpsGlobalOrigin
--- import qualified SMACCMPilot.Mavlink.Messages.SetLocalPositionSetpoint
--- import qualified SMACCMPilot.Mavlink.Messages.LocalPositionSetpoint
--- import qualified SMACCMPilot.Mavlink.Messages.GlobalPositionSetpointInt
--- import qualified SMACCMPilot.Mavlink.Messages.SetGlobalPositionSetpointInt
--- import qualified SMACCMPilot.Mavlink.Messages.SafetySetAllowedArea
--- import qualified SMACCMPilot.Mavlink.Messages.SafetyAllowedArea
--- import qualified SMACCMPilot.Mavlink.Messages.SetRollPitchYawThrust
--- import qualified SMACCMPilot.Mavlink.Messages.SetRollPitchYawSpeedThrust
--- import qualified SMACCMPilot.Mavlink.Messages.RollPitchYawThrustSetpoint
--- import qualified SMACCMPilot.Mavlink.Messages.RollPitchYawSpeedThrustSetpoint
--- import qualified SMACCMPilot.Mavlink.Messages.SetQuadMotorsSetpoint
--- import qualified SMACCMPilot.Mavlink.Messages.SetQuadSwarmRollPitchYawThrust
--- import qualified SMACCMPilot.Mavlink.Messages.NavControllerOutput
--- import qualified SMACCMPilot.Mavlink.Messages.SetQuadSwarmLedRollPitchYawThrust
--- import qualified SMACCMPilot.Mavlink.Messages.StateCorrection
+import qualified SMACCMPilot.Mavlink.Messages.GpsRawInt
+import qualified SMACCMPilot.Mavlink.Messages.GpsStatus
+import qualified SMACCMPilot.Mavlink.Messages.ScaledImu
+import qualified SMACCMPilot.Mavlink.Messages.RawImu
+import qualified SMACCMPilot.Mavlink.Messages.RawPressure
+import qualified SMACCMPilot.Mavlink.Messages.ScaledPressure
+import qualified SMACCMPilot.Mavlink.Messages.Attitude
+import qualified SMACCMPilot.Mavlink.Messages.AttitudeQuaternion
+import qualified SMACCMPilot.Mavlink.Messages.LocalPositionNed
+import qualified SMACCMPilot.Mavlink.Messages.GlobalPositionInt
+import qualified SMACCMPilot.Mavlink.Messages.RcChannelsScaled
+import qualified SMACCMPilot.Mavlink.Messages.RcChannelsRaw
+import qualified SMACCMPilot.Mavlink.Messages.ServoOutputRaw
+import qualified SMACCMPilot.Mavlink.Messages.MissionRequestPartialList
+import qualified SMACCMPilot.Mavlink.Messages.MissionWritePartialList
+import qualified SMACCMPilot.Mavlink.Messages.MissionItem
+import qualified SMACCMPilot.Mavlink.Messages.MissionRequest
+import qualified SMACCMPilot.Mavlink.Messages.MissionSetCurrent
+import qualified SMACCMPilot.Mavlink.Messages.MissionCurrent
+import qualified SMACCMPilot.Mavlink.Messages.MissionRequestList
+import qualified SMACCMPilot.Mavlink.Messages.MissionCount
+import qualified SMACCMPilot.Mavlink.Messages.MissionClearAll
+import qualified SMACCMPilot.Mavlink.Messages.MissionItemReached
+import qualified SMACCMPilot.Mavlink.Messages.MissionAck
+import qualified SMACCMPilot.Mavlink.Messages.SetGpsGlobalOrigin
+import qualified SMACCMPilot.Mavlink.Messages.GpsGlobalOrigin
+import qualified SMACCMPilot.Mavlink.Messages.SetLocalPositionSetpoint
+import qualified SMACCMPilot.Mavlink.Messages.LocalPositionSetpoint
+import qualified SMACCMPilot.Mavlink.Messages.GlobalPositionSetpointInt
+import qualified SMACCMPilot.Mavlink.Messages.SetGlobalPositionSetpointInt
+import qualified SMACCMPilot.Mavlink.Messages.SafetySetAllowedArea
+import qualified SMACCMPilot.Mavlink.Messages.SafetyAllowedArea
+import qualified SMACCMPilot.Mavlink.Messages.SetRollPitchYawThrust
+import qualified SMACCMPilot.Mavlink.Messages.SetRollPitchYawSpeedThrust
+import qualified SMACCMPilot.Mavlink.Messages.RollPitchYawThrustSetpoint
+import qualified SMACCMPilot.Mavlink.Messages.RollPitchYawSpeedThrustSetpoint
+import qualified SMACCMPilot.Mavlink.Messages.SetQuadMotorsSetpoint
+import qualified SMACCMPilot.Mavlink.Messages.SetQuadSwarmRollPitchYawThrust
+import qualified SMACCMPilot.Mavlink.Messages.NavControllerOutput
+import qualified SMACCMPilot.Mavlink.Messages.SetQuadSwarmLedRollPitchYawThrust
+import qualified SMACCMPilot.Mavlink.Messages.StateCorrection
 import qualified SMACCMPilot.Mavlink.Messages.RequestDataStream
--- import qualified SMACCMPilot.Mavlink.Messages.DataStream
--- import qualified SMACCMPilot.Mavlink.Messages.ManualControl
--- import qualified SMACCMPilot.Mavlink.Messages.RcChannelsOverride
--- import qualified SMACCMPilot.Mavlink.Messages.VfrHud
--- import qualified SMACCMPilot.Mavlink.Messages.CommandLong
--- import qualified SMACCMPilot.Mavlink.Messages.CommandAck
--- import qualified SMACCMPilot.Mavlink.Messages.RollPitchYawRatesThrustSetpoint
--- import qualified SMACCMPilot.Mavlink.Messages.ManualSetpoint
--- import qualified SMACCMPilot.Mavlink.Messages.LocalPositionNedSystemGlobalOffset
+import qualified SMACCMPilot.Mavlink.Messages.DataStream
+import qualified SMACCMPilot.Mavlink.Messages.ManualControl
+import qualified SMACCMPilot.Mavlink.Messages.RcChannelsOverride
+import qualified SMACCMPilot.Mavlink.Messages.VfrHud
+import qualified SMACCMPilot.Mavlink.Messages.CommandLong
+import qualified SMACCMPilot.Mavlink.Messages.CommandAck
+import qualified SMACCMPilot.Mavlink.Messages.RollPitchYawRatesThrustSetpoint
+import qualified SMACCMPilot.Mavlink.Messages.ManualSetpoint
+import qualified SMACCMPilot.Mavlink.Messages.LocalPositionNedSystemGlobalOffset
 import qualified SMACCMPilot.Mavlink.Messages.HilState
--- import qualified SMACCMPilot.Mavlink.Messages.HilControls
--- import qualified SMACCMPilot.Mavlink.Messages.HilRcInputsRaw
--- import qualified SMACCMPilot.Mavlink.Messages.OpticalFlow
--- import qualified SMACCMPilot.Mavlink.Messages.GlobalVisionPositionEstimate
--- import qualified SMACCMPilot.Mavlink.Messages.VisionPositionEstimate
--- import qualified SMACCMPilot.Mavlink.Messages.VisionSpeedEstimate
--- import qualified SMACCMPilot.Mavlink.Messages.ViconPositionEstimate
--- import qualified SMACCMPilot.Mavlink.Messages.HighresImu
--- import qualified SMACCMPilot.Mavlink.Messages.BatteryStatus
--- import qualified SMACCMPilot.Mavlink.Messages.Setpoint8dof
--- import qualified SMACCMPilot.Mavlink.Messages.Setpoint6dof
--- import qualified SMACCMPilot.Mavlink.Messages.MemoryVect
--- import qualified SMACCMPilot.Mavlink.Messages.DebugVect
--- import qualified SMACCMPilot.Mavlink.Messages.NamedValueFloat
--- import qualified SMACCMPilot.Mavlink.Messages.NamedValueInt
--- import qualified SMACCMPilot.Mavlink.Messages.Statustext
--- import qualified SMACCMPilot.Mavlink.Messages.Debug
+import qualified SMACCMPilot.Mavlink.Messages.HilControls
+import qualified SMACCMPilot.Mavlink.Messages.HilRcInputsRaw
+import qualified SMACCMPilot.Mavlink.Messages.OpticalFlow
+import qualified SMACCMPilot.Mavlink.Messages.GlobalVisionPositionEstimate
+import qualified SMACCMPilot.Mavlink.Messages.VisionPositionEstimate
+import qualified SMACCMPilot.Mavlink.Messages.VisionSpeedEstimate
+import qualified SMACCMPilot.Mavlink.Messages.ViconPositionEstimate
+import qualified SMACCMPilot.Mavlink.Messages.HighresImu
+import qualified SMACCMPilot.Mavlink.Messages.BatteryStatus
+import qualified SMACCMPilot.Mavlink.Messages.Setpoint8dof
+import qualified SMACCMPilot.Mavlink.Messages.Setpoint6dof
+import qualified SMACCMPilot.Mavlink.Messages.MemoryVect
+import qualified SMACCMPilot.Mavlink.Messages.DebugVect
+import qualified SMACCMPilot.Mavlink.Messages.NamedValueFloat
+import qualified SMACCMPilot.Mavlink.Messages.NamedValueInt
+import qualified SMACCMPilot.Mavlink.Messages.Statustext
+import qualified SMACCMPilot.Mavlink.Messages.Debug
 
 mavlinkMessageModules :: [Module]
 mavlinkMessageModules =
   [ SMACCMPilot.Mavlink.Messages.Data16.data16Module
-  -- , SMACCMPilot.Mavlink.Messages.Data32.data32Module
-  -- , SMACCMPilot.Mavlink.Messages.Data64.data64Module
-  -- , SMACCMPilot.Mavlink.Messages.Data96.data96Module
-  -- , SMACCMPilot.Mavlink.Messages.Heartbeat.heartbeatModule
-  -- , SMACCMPilot.Mavlink.Messages.SysStatus.sysStatusModule
-  -- , SMACCMPilot.Mavlink.Messages.SystemTime.systemTimeModule
-  -- , SMACCMPilot.Mavlink.Messages.Ping.pingModule
-  -- , SMACCMPilot.Mavlink.Messages.ChangeOperatorControl.changeOperatorControlModule
-  -- , SMACCMPilot.Mavlink.Messages.ChangeOperatorControlAck.changeOperatorControlAckModule
-  -- , SMACCMPilot.Mavlink.Messages.AuthKey.authKeyModule
-  -- , SMACCMPilot.Mavlink.Messages.SetMode.setModeModule
+  , SMACCMPilot.Mavlink.Messages.Data32.data32Module
+  , SMACCMPilot.Mavlink.Messages.Data64.data64Module
+  , SMACCMPilot.Mavlink.Messages.Data96.data96Module
+  , SMACCMPilot.Mavlink.Messages.Heartbeat.heartbeatModule
+  , SMACCMPilot.Mavlink.Messages.SysStatus.sysStatusModule
+  , SMACCMPilot.Mavlink.Messages.SystemTime.systemTimeModule
+  , SMACCMPilot.Mavlink.Messages.Ping.pingModule
+  , SMACCMPilot.Mavlink.Messages.ChangeOperatorControl.changeOperatorControlModule
+  , SMACCMPilot.Mavlink.Messages.ChangeOperatorControlAck.changeOperatorControlAckModule
+  , SMACCMPilot.Mavlink.Messages.AuthKey.authKeyModule
+  , SMACCMPilot.Mavlink.Messages.SetMode.setModeModule
   , SMACCMPilot.Mavlink.Messages.ParamRequestRead.paramRequestReadModule
   , SMACCMPilot.Mavlink.Messages.ParamRequestList.paramRequestListModule
-  -- , SMACCMPilot.Mavlink.Messages.ParamValue.paramValueModule
+  , SMACCMPilot.Mavlink.Messages.ParamValue.paramValueModule
   , SMACCMPilot.Mavlink.Messages.ParamSet.paramSetModule
-  -- , SMACCMPilot.Mavlink.Messages.GpsRawInt.gpsRawIntModule
-  -- , SMACCMPilot.Mavlink.Messages.GpsStatus.gpsStatusModule
-  -- , SMACCMPilot.Mavlink.Messages.ScaledImu.scaledImuModule
-  -- , SMACCMPilot.Mavlink.Messages.RawImu.rawImuModule
-  -- , SMACCMPilot.Mavlink.Messages.RawPressure.rawPressureModule
-  -- , SMACCMPilot.Mavlink.Messages.ScaledPressure.scaledPressureModule
-  -- , SMACCMPilot.Mavlink.Messages.Attitude.attitudeModule
-  -- , SMACCMPilot.Mavlink.Messages.AttitudeQuaternion.attitudeQuaternionModule
-  -- , SMACCMPilot.Mavlink.Messages.LocalPositionNed.localPositionNedModule
-  -- , SMACCMPilot.Mavlink.Messages.GlobalPositionInt.globalPositionIntModule
-  -- , SMACCMPilot.Mavlink.Messages.RcChannelsScaled.rcChannelsScaledModule
-  -- , SMACCMPilot.Mavlink.Messages.RcChannelsRaw.rcChannelsRawModule
-  -- , SMACCMPilot.Mavlink.Messages.ServoOutputRaw.servoOutputRawModule
-  -- , SMACCMPilot.Mavlink.Messages.MissionRequestPartialList.missionRequestPartialListModule
-  -- , SMACCMPilot.Mavlink.Messages.MissionWritePartialList.missionWritePartialListModule
-  -- , SMACCMPilot.Mavlink.Messages.MissionItem.missionItemModule
-  -- , SMACCMPilot.Mavlink.Messages.MissionRequest.missionRequestModule
-  -- , SMACCMPilot.Mavlink.Messages.MissionSetCurrent.missionSetCurrentModule
-  -- , SMACCMPilot.Mavlink.Messages.MissionCurrent.missionCurrentModule
-  -- , SMACCMPilot.Mavlink.Messages.MissionRequestList.missionRequestListModule
-  -- , SMACCMPilot.Mavlink.Messages.MissionCount.missionCountModule
-  -- , SMACCMPilot.Mavlink.Messages.MissionClearAll.missionClearAllModule
-  -- , SMACCMPilot.Mavlink.Messages.MissionItemReached.missionItemReachedModule
-  -- , SMACCMPilot.Mavlink.Messages.MissionAck.missionAckModule
-  -- , SMACCMPilot.Mavlink.Messages.SetGpsGlobalOrigin.setGpsGlobalOriginModule
-  -- , SMACCMPilot.Mavlink.Messages.GpsGlobalOrigin.gpsGlobalOriginModule
-  -- , SMACCMPilot.Mavlink.Messages.SetLocalPositionSetpoint.setLocalPositionSetpointModule
-  -- , SMACCMPilot.Mavlink.Messages.LocalPositionSetpoint.localPositionSetpointModule
-  -- , SMACCMPilot.Mavlink.Messages.GlobalPositionSetpointInt.globalPositionSetpointIntModule
-  -- , SMACCMPilot.Mavlink.Messages.SetGlobalPositionSetpointInt.setGlobalPositionSetpointIntModule
-  -- , SMACCMPilot.Mavlink.Messages.SafetySetAllowedArea.safetySetAllowedAreaModule
-  -- , SMACCMPilot.Mavlink.Messages.SafetyAllowedArea.safetyAllowedAreaModule
-  -- , SMACCMPilot.Mavlink.Messages.SetRollPitchYawThrust.setRollPitchYawThrustModule
-  -- , SMACCMPilot.Mavlink.Messages.SetRollPitchYawSpeedThrust.setRollPitchYawSpeedThrustModule
-  -- , SMACCMPilot.Mavlink.Messages.RollPitchYawThrustSetpoint.rollPitchYawThrustSetpointModule
-  -- , SMACCMPilot.Mavlink.Messages.RollPitchYawSpeedThrustSetpoint.rollPitchYawSpeedThrustSetpointModule
-  -- , SMACCMPilot.Mavlink.Messages.SetQuadMotorsSetpoint.setQuadMotorsSetpointModule
-  -- , SMACCMPilot.Mavlink.Messages.SetQuadSwarmRollPitchYawThrust.setQuadSwarmRollPitchYawThrustModule
-  -- , SMACCMPilot.Mavlink.Messages.NavControllerOutput.navControllerOutputModule
-  -- , SMACCMPilot.Mavlink.Messages.SetQuadSwarmLedRollPitchYawThrust.setQuadSwarmLedRollPitchYawThrustModule
-  -- , SMACCMPilot.Mavlink.Messages.StateCorrection.stateCorrectionModule
+  , SMACCMPilot.Mavlink.Messages.GpsRawInt.gpsRawIntModule
+  , SMACCMPilot.Mavlink.Messages.GpsStatus.gpsStatusModule
+  , SMACCMPilot.Mavlink.Messages.ScaledImu.scaledImuModule
+  , SMACCMPilot.Mavlink.Messages.RawImu.rawImuModule
+  , SMACCMPilot.Mavlink.Messages.RawPressure.rawPressureModule
+  , SMACCMPilot.Mavlink.Messages.ScaledPressure.scaledPressureModule
+  , SMACCMPilot.Mavlink.Messages.Attitude.attitudeModule
+  , SMACCMPilot.Mavlink.Messages.AttitudeQuaternion.attitudeQuaternionModule
+  , SMACCMPilot.Mavlink.Messages.LocalPositionNed.localPositionNedModule
+  , SMACCMPilot.Mavlink.Messages.GlobalPositionInt.globalPositionIntModule
+  , SMACCMPilot.Mavlink.Messages.RcChannelsScaled.rcChannelsScaledModule
+  , SMACCMPilot.Mavlink.Messages.RcChannelsRaw.rcChannelsRawModule
+  , SMACCMPilot.Mavlink.Messages.ServoOutputRaw.servoOutputRawModule
+  , SMACCMPilot.Mavlink.Messages.MissionRequestPartialList.missionRequestPartialListModule
+  , SMACCMPilot.Mavlink.Messages.MissionWritePartialList.missionWritePartialListModule
+  , SMACCMPilot.Mavlink.Messages.MissionItem.missionItemModule
+  , SMACCMPilot.Mavlink.Messages.MissionRequest.missionRequestModule
+  , SMACCMPilot.Mavlink.Messages.MissionSetCurrent.missionSetCurrentModule
+  , SMACCMPilot.Mavlink.Messages.MissionCurrent.missionCurrentModule
+  , SMACCMPilot.Mavlink.Messages.MissionRequestList.missionRequestListModule
+  , SMACCMPilot.Mavlink.Messages.MissionCount.missionCountModule
+  , SMACCMPilot.Mavlink.Messages.MissionClearAll.missionClearAllModule
+  , SMACCMPilot.Mavlink.Messages.MissionItemReached.missionItemReachedModule
+  , SMACCMPilot.Mavlink.Messages.MissionAck.missionAckModule
+  , SMACCMPilot.Mavlink.Messages.SetGpsGlobalOrigin.setGpsGlobalOriginModule
+  , SMACCMPilot.Mavlink.Messages.GpsGlobalOrigin.gpsGlobalOriginModule
+  , SMACCMPilot.Mavlink.Messages.SetLocalPositionSetpoint.setLocalPositionSetpointModule
+  , SMACCMPilot.Mavlink.Messages.LocalPositionSetpoint.localPositionSetpointModule
+  , SMACCMPilot.Mavlink.Messages.GlobalPositionSetpointInt.globalPositionSetpointIntModule
+  , SMACCMPilot.Mavlink.Messages.SetGlobalPositionSetpointInt.setGlobalPositionSetpointIntModule
+  , SMACCMPilot.Mavlink.Messages.SafetySetAllowedArea.safetySetAllowedAreaModule
+  , SMACCMPilot.Mavlink.Messages.SafetyAllowedArea.safetyAllowedAreaModule
+  , SMACCMPilot.Mavlink.Messages.SetRollPitchYawThrust.setRollPitchYawThrustModule
+  , SMACCMPilot.Mavlink.Messages.SetRollPitchYawSpeedThrust.setRollPitchYawSpeedThrustModule
+  , SMACCMPilot.Mavlink.Messages.RollPitchYawThrustSetpoint.rollPitchYawThrustSetpointModule
+  , SMACCMPilot.Mavlink.Messages.RollPitchYawSpeedThrustSetpoint.rollPitchYawSpeedThrustSetpointModule
+  , SMACCMPilot.Mavlink.Messages.SetQuadMotorsSetpoint.setQuadMotorsSetpointModule
+  , SMACCMPilot.Mavlink.Messages.SetQuadSwarmRollPitchYawThrust.setQuadSwarmRollPitchYawThrustModule
+  , SMACCMPilot.Mavlink.Messages.NavControllerOutput.navControllerOutputModule
+  , SMACCMPilot.Mavlink.Messages.SetQuadSwarmLedRollPitchYawThrust.setQuadSwarmLedRollPitchYawThrustModule
+  , SMACCMPilot.Mavlink.Messages.StateCorrection.stateCorrectionModule
   , SMACCMPilot.Mavlink.Messages.RequestDataStream.requestDataStreamModule
-  -- , SMACCMPilot.Mavlink.Messages.DataStream.dataStreamModule
-  -- , SMACCMPilot.Mavlink.Messages.ManualControl.manualControlModule
-  -- , SMACCMPilot.Mavlink.Messages.RcChannelsOverride.rcChannelsOverrideModule
-  -- , SMACCMPilot.Mavlink.Messages.VfrHud.vfrHudModule
-  -- , SMACCMPilot.Mavlink.Messages.CommandLong.commandLongModule
-  -- , SMACCMPilot.Mavlink.Messages.CommandAck.commandAckModule
-  -- , SMACCMPilot.Mavlink.Messages.RollPitchYawRatesThrustSetpoint.rollPitchYawRatesThrustSetpointModule
-  -- , SMACCMPilot.Mavlink.Messages.ManualSetpoint.manualSetpointModule
-  -- , SMACCMPilot.Mavlink.Messages.LocalPositionNedSystemGlobalOffset.localPositionNedSystemGlobalOffsetModule
+  , SMACCMPilot.Mavlink.Messages.DataStream.dataStreamModule
+  , SMACCMPilot.Mavlink.Messages.ManualControl.manualControlModule
+  , SMACCMPilot.Mavlink.Messages.RcChannelsOverride.rcChannelsOverrideModule
+  , SMACCMPilot.Mavlink.Messages.VfrHud.vfrHudModule
+  , SMACCMPilot.Mavlink.Messages.CommandLong.commandLongModule
+  , SMACCMPilot.Mavlink.Messages.CommandAck.commandAckModule
+  , SMACCMPilot.Mavlink.Messages.RollPitchYawRatesThrustSetpoint.rollPitchYawRatesThrustSetpointModule
+  , SMACCMPilot.Mavlink.Messages.ManualSetpoint.manualSetpointModule
+  , SMACCMPilot.Mavlink.Messages.LocalPositionNedSystemGlobalOffset.localPositionNedSystemGlobalOffsetModule
   , SMACCMPilot.Mavlink.Messages.HilState.hilStateModule
-  -- , SMACCMPilot.Mavlink.Messages.HilControls.hilControlsModule
-  -- , SMACCMPilot.Mavlink.Messages.HilRcInputsRaw.hilRcInputsRawModule
-  -- , SMACCMPilot.Mavlink.Messages.OpticalFlow.opticalFlowModule
-  -- , SMACCMPilot.Mavlink.Messages.GlobalVisionPositionEstimate.globalVisionPositionEstimateModule
-  -- , SMACCMPilot.Mavlink.Messages.VisionPositionEstimate.visionPositionEstimateModule
-  -- , SMACCMPilot.Mavlink.Messages.VisionSpeedEstimate.visionSpeedEstimateModule
-  -- , SMACCMPilot.Mavlink.Messages.ViconPositionEstimate.viconPositionEstimateModule
-  -- , SMACCMPilot.Mavlink.Messages.HighresImu.highresImuModule
-  -- , SMACCMPilot.Mavlink.Messages.BatteryStatus.batteryStatusModule
-  -- , SMACCMPilot.Mavlink.Messages.Setpoint8dof.setpoint8dofModule
-  -- , SMACCMPilot.Mavlink.Messages.Setpoint6dof.setpoint6dofModule
-  -- , SMACCMPilot.Mavlink.Messages.MemoryVect.memoryVectModule
-  -- , SMACCMPilot.Mavlink.Messages.DebugVect.debugVectModule
-  -- , SMACCMPilot.Mavlink.Messages.NamedValueFloat.namedValueFloatModule
-  -- , SMACCMPilot.Mavlink.Messages.NamedValueInt.namedValueIntModule
-  -- , SMACCMPilot.Mavlink.Messages.Statustext.statustextModule
-  -- , SMACCMPilot.Mavlink.Messages.Debug.debugModule
+  , SMACCMPilot.Mavlink.Messages.HilControls.hilControlsModule
+  , SMACCMPilot.Mavlink.Messages.HilRcInputsRaw.hilRcInputsRawModule
+  , SMACCMPilot.Mavlink.Messages.OpticalFlow.opticalFlowModule
+  , SMACCMPilot.Mavlink.Messages.GlobalVisionPositionEstimate.globalVisionPositionEstimateModule
+  , SMACCMPilot.Mavlink.Messages.VisionPositionEstimate.visionPositionEstimateModule
+  , SMACCMPilot.Mavlink.Messages.VisionSpeedEstimate.visionSpeedEstimateModule
+  , SMACCMPilot.Mavlink.Messages.ViconPositionEstimate.viconPositionEstimateModule
+  , SMACCMPilot.Mavlink.Messages.HighresImu.highresImuModule
+  , SMACCMPilot.Mavlink.Messages.BatteryStatus.batteryStatusModule
+  , SMACCMPilot.Mavlink.Messages.Setpoint8dof.setpoint8dofModule
+  , SMACCMPilot.Mavlink.Messages.Setpoint6dof.setpoint6dofModule
+  , SMACCMPilot.Mavlink.Messages.MemoryVect.memoryVectModule
+  , SMACCMPilot.Mavlink.Messages.DebugVect.debugVectModule
+  , SMACCMPilot.Mavlink.Messages.NamedValueFloat.namedValueFloatModule
+  , SMACCMPilot.Mavlink.Messages.NamedValueInt.namedValueIntModule
+  , SMACCMPilot.Mavlink.Messages.Statustext.statustextModule
+  , SMACCMPilot.Mavlink.Messages.Debug.debugModule
   ]
 
 

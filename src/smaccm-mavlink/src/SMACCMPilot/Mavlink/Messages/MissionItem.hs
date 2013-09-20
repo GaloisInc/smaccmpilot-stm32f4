@@ -15,6 +15,7 @@ import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
 import Ivory.Language
+import Ivory.Stdlib
 
 missionItemMsgId :: Uint8
 missionItemMsgId = 39
@@ -25,6 +26,8 @@ missionItemCrcExtra = 254
 missionItemModule :: Module
 missionItemModule = package "mavlink_mission_item_msg" $ do
   depend packModule
+  depend mavlinkSendModule
+  incl mkMissionItemSender
   incl missionItemUnpack
   defStruct (Proxy :: Proxy "mission_item_msg")
 
@@ -47,19 +50,15 @@ struct mission_item_msg
   }
 |]
 
-mkMissionItemSender :: SizedMavlinkSender 37
-                       -> Def ('[ ConstRef s (Struct "mission_item_msg") ] :-> ())
-mkMissionItemSender sender =
-  proc ("mavlink_mission_item_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    noReturn $ missionItemPack (senderMacro sender) msg
-
-instance MavlinkSendable "mission_item_msg" 37 where
-  mkSender = mkMissionItemSender
-
-missionItemPack :: SenderMacro cs (Stack cs) 37
-                  -> ConstRef s1 (Struct "mission_item_msg")
-                  -> Ivory (AllocEffects cs) ()
-missionItemPack sender msg = do
+mkMissionItemSender ::
+  Def ('[ ConstRef s0 (Struct "mission_item_msg")
+        , Ref s1 (Stored Uint8) -- seqNum
+        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        ] :-> ())
+mkMissionItemSender =
+  proc "mavlink_mission_item_msg_send"
+  $ \msg seqNum sendArr -> body
+  $ do
   arr <- local (iarray [] :: Init (Array 37 (Stored Uint8)))
   let buf = toCArray arr
   call_ pack buf 0 =<< deref (msg ~> param1)
@@ -76,7 +75,18 @@ missionItemPack sender msg = do
   call_ pack buf 34 =<< deref (msg ~> frame)
   call_ pack buf 35 =<< deref (msg ~> current)
   call_ pack buf 36 =<< deref (msg ~> autocontinue)
-  sender missionItemMsgId (constRef arr) missionItemCrcExtra
+  -- 6: header len, 2: CRC len
+  if arrayLen sendArr < 6 + 37 + 2
+    then error "missionItem payload is too large for 37 sender!"
+    else do -- Copy, leaving room for the payload
+            _ <- arrCopy sendArr arr 6
+            call_ mavlinkSendWithWriter
+                    missionItemMsgId
+                    missionItemCrcExtra
+                    37
+                    seqNum
+                    sendArr
+            retVoid
 
 instance MavlinkUnpackableMsg "mission_item_msg" where
     unpackMsg = ( missionItemUnpack , missionItemMsgId )

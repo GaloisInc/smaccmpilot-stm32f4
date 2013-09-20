@@ -15,6 +15,7 @@ import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
 import Ivory.Language
+import Ivory.Stdlib
 
 rollPitchYawThrustSetpointMsgId :: Uint8
 rollPitchYawThrustSetpointMsgId = 58
@@ -25,6 +26,8 @@ rollPitchYawThrustSetpointCrcExtra = 239
 rollPitchYawThrustSetpointModule :: Module
 rollPitchYawThrustSetpointModule = package "mavlink_roll_pitch_yaw_thrust_setpoint_msg" $ do
   depend packModule
+  depend mavlinkSendModule
+  incl mkRollPitchYawThrustSetpointSender
   incl rollPitchYawThrustSetpointUnpack
   defStruct (Proxy :: Proxy "roll_pitch_yaw_thrust_setpoint_msg")
 
@@ -38,19 +41,15 @@ struct roll_pitch_yaw_thrust_setpoint_msg
   }
 |]
 
-mkRollPitchYawThrustSetpointSender :: SizedMavlinkSender 20
-                       -> Def ('[ ConstRef s (Struct "roll_pitch_yaw_thrust_setpoint_msg") ] :-> ())
-mkRollPitchYawThrustSetpointSender sender =
-  proc ("mavlink_roll_pitch_yaw_thrust_setpoint_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    noReturn $ rollPitchYawThrustSetpointPack (senderMacro sender) msg
-
-instance MavlinkSendable "roll_pitch_yaw_thrust_setpoint_msg" 20 where
-  mkSender = mkRollPitchYawThrustSetpointSender
-
-rollPitchYawThrustSetpointPack :: SenderMacro cs (Stack cs) 20
-                  -> ConstRef s1 (Struct "roll_pitch_yaw_thrust_setpoint_msg")
-                  -> Ivory (AllocEffects cs) ()
-rollPitchYawThrustSetpointPack sender msg = do
+mkRollPitchYawThrustSetpointSender ::
+  Def ('[ ConstRef s0 (Struct "roll_pitch_yaw_thrust_setpoint_msg")
+        , Ref s1 (Stored Uint8) -- seqNum
+        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        ] :-> ())
+mkRollPitchYawThrustSetpointSender =
+  proc "mavlink_roll_pitch_yaw_thrust_setpoint_msg_send"
+  $ \msg seqNum sendArr -> body
+  $ do
   arr <- local (iarray [] :: Init (Array 20 (Stored Uint8)))
   let buf = toCArray arr
   call_ pack buf 0 =<< deref (msg ~> time_boot_ms)
@@ -58,7 +57,18 @@ rollPitchYawThrustSetpointPack sender msg = do
   call_ pack buf 8 =<< deref (msg ~> pitch)
   call_ pack buf 12 =<< deref (msg ~> yaw)
   call_ pack buf 16 =<< deref (msg ~> thrust)
-  sender rollPitchYawThrustSetpointMsgId (constRef arr) rollPitchYawThrustSetpointCrcExtra
+  -- 6: header len, 2: CRC len
+  if arrayLen sendArr < 6 + 20 + 2
+    then error "rollPitchYawThrustSetpoint payload is too large for 20 sender!"
+    else do -- Copy, leaving room for the payload
+            _ <- arrCopy sendArr arr 6
+            call_ mavlinkSendWithWriter
+                    rollPitchYawThrustSetpointMsgId
+                    rollPitchYawThrustSetpointCrcExtra
+                    20
+                    seqNum
+                    sendArr
+            retVoid
 
 instance MavlinkUnpackableMsg "roll_pitch_yaw_thrust_setpoint_msg" where
     unpackMsg = ( rollPitchYawThrustSetpointUnpack , rollPitchYawThrustSetpointMsgId )

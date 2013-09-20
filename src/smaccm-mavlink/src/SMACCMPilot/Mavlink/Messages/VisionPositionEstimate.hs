@@ -15,6 +15,7 @@ import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
 import Ivory.Language
+import Ivory.Stdlib
 
 visionPositionEstimateMsgId :: Uint8
 visionPositionEstimateMsgId = 102
@@ -25,6 +26,8 @@ visionPositionEstimateCrcExtra = 158
 visionPositionEstimateModule :: Module
 visionPositionEstimateModule = package "mavlink_vision_position_estimate_msg" $ do
   depend packModule
+  depend mavlinkSendModule
+  incl mkVisionPositionEstimateSender
   incl visionPositionEstimateUnpack
   defStruct (Proxy :: Proxy "vision_position_estimate_msg")
 
@@ -40,19 +43,15 @@ struct vision_position_estimate_msg
   }
 |]
 
-mkVisionPositionEstimateSender :: SizedMavlinkSender 32
-                       -> Def ('[ ConstRef s (Struct "vision_position_estimate_msg") ] :-> ())
-mkVisionPositionEstimateSender sender =
-  proc ("mavlink_vision_position_estimate_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    noReturn $ visionPositionEstimatePack (senderMacro sender) msg
-
-instance MavlinkSendable "vision_position_estimate_msg" 32 where
-  mkSender = mkVisionPositionEstimateSender
-
-visionPositionEstimatePack :: SenderMacro cs (Stack cs) 32
-                  -> ConstRef s1 (Struct "vision_position_estimate_msg")
-                  -> Ivory (AllocEffects cs) ()
-visionPositionEstimatePack sender msg = do
+mkVisionPositionEstimateSender ::
+  Def ('[ ConstRef s0 (Struct "vision_position_estimate_msg")
+        , Ref s1 (Stored Uint8) -- seqNum
+        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        ] :-> ())
+mkVisionPositionEstimateSender =
+  proc "mavlink_vision_position_estimate_msg_send"
+  $ \msg seqNum sendArr -> body
+  $ do
   arr <- local (iarray [] :: Init (Array 32 (Stored Uint8)))
   let buf = toCArray arr
   call_ pack buf 0 =<< deref (msg ~> usec)
@@ -62,7 +61,18 @@ visionPositionEstimatePack sender msg = do
   call_ pack buf 20 =<< deref (msg ~> roll)
   call_ pack buf 24 =<< deref (msg ~> pitch)
   call_ pack buf 28 =<< deref (msg ~> yaw)
-  sender visionPositionEstimateMsgId (constRef arr) visionPositionEstimateCrcExtra
+  -- 6: header len, 2: CRC len
+  if arrayLen sendArr < 6 + 32 + 2
+    then error "visionPositionEstimate payload is too large for 32 sender!"
+    else do -- Copy, leaving room for the payload
+            _ <- arrCopy sendArr arr 6
+            call_ mavlinkSendWithWriter
+                    visionPositionEstimateMsgId
+                    visionPositionEstimateCrcExtra
+                    32
+                    seqNum
+                    sendArr
+            retVoid
 
 instance MavlinkUnpackableMsg "vision_position_estimate_msg" where
     unpackMsg = ( visionPositionEstimateUnpack , visionPositionEstimateMsgId )

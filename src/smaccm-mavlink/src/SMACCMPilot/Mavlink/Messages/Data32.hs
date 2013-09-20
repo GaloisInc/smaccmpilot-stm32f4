@@ -15,6 +15,7 @@ import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
 import Ivory.Language
+import Ivory.Stdlib
 
 data32MsgId :: Uint8
 data32MsgId = 170
@@ -25,6 +26,8 @@ data32CrcExtra = 240
 data32Module :: Module
 data32Module = package "mavlink_data32_msg" $ do
   depend packModule
+  depend mavlinkSendModule
+  incl mkData32Sender
   incl data32Unpack
   defStruct (Proxy :: Proxy "data32_msg")
 
@@ -36,25 +39,32 @@ struct data32_msg
   }
 |]
 
-mkData32Sender :: SizedMavlinkSender 34
-                       -> Def ('[ ConstRef s (Struct "data32_msg") ] :-> ())
-mkData32Sender sender =
-  proc ("mavlink_data32_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    noReturn $ data32Pack (senderMacro sender) msg
-
-instance MavlinkSendable "data32_msg" 34 where
-  mkSender = mkData32Sender
-
-data32Pack :: SenderMacro cs (Stack cs) 34
-                  -> ConstRef s1 (Struct "data32_msg")
-                  -> Ivory (AllocEffects cs) ()
-data32Pack sender msg = do
+mkData32Sender ::
+  Def ('[ ConstRef s0 (Struct "data32_msg")
+        , Ref s1 (Stored Uint8) -- seqNum
+        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        ] :-> ())
+mkData32Sender =
+  proc "mavlink_data32_msg_send"
+  $ \msg seqNum sendArr -> body
+  $ do
   arr <- local (iarray [] :: Init (Array 34 (Stored Uint8)))
   let buf = toCArray arr
   call_ pack buf 0 =<< deref (msg ~> data32_type)
   call_ pack buf 1 =<< deref (msg ~> len)
   arrayPack buf 2 (msg ~> data32)
-  sender data32MsgId (constRef arr) data32CrcExtra
+  -- 6: header len, 2: CRC len
+  if arrayLen sendArr < 6 + 34 + 2
+    then error "data32 payload is too large for 34 sender!"
+    else do -- Copy, leaving room for the payload
+            _ <- arrCopy sendArr arr 6
+            call_ mavlinkSendWithWriter
+                    data32MsgId
+                    data32CrcExtra
+                    34
+                    seqNum
+                    sendArr
+            retVoid
 
 instance MavlinkUnpackableMsg "data32_msg" where
     unpackMsg = ( data32Unpack , data32MsgId )

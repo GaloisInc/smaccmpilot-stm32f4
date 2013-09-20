@@ -15,6 +15,7 @@ import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
 import Ivory.Language
+import Ivory.Stdlib
 
 missionSetCurrentMsgId :: Uint8
 missionSetCurrentMsgId = 41
@@ -25,6 +26,8 @@ missionSetCurrentCrcExtra = 28
 missionSetCurrentModule :: Module
 missionSetCurrentModule = package "mavlink_mission_set_current_msg" $ do
   depend packModule
+  depend mavlinkSendModule
+  incl mkMissionSetCurrentSender
   incl missionSetCurrentUnpack
   defStruct (Proxy :: Proxy "mission_set_current_msg")
 
@@ -36,25 +39,32 @@ struct mission_set_current_msg
   }
 |]
 
-mkMissionSetCurrentSender :: SizedMavlinkSender 4
-                       -> Def ('[ ConstRef s (Struct "mission_set_current_msg") ] :-> ())
-mkMissionSetCurrentSender sender =
-  proc ("mavlink_mission_set_current_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    noReturn $ missionSetCurrentPack (senderMacro sender) msg
-
-instance MavlinkSendable "mission_set_current_msg" 4 where
-  mkSender = mkMissionSetCurrentSender
-
-missionSetCurrentPack :: SenderMacro cs (Stack cs) 4
-                  -> ConstRef s1 (Struct "mission_set_current_msg")
-                  -> Ivory (AllocEffects cs) ()
-missionSetCurrentPack sender msg = do
+mkMissionSetCurrentSender ::
+  Def ('[ ConstRef s0 (Struct "mission_set_current_msg")
+        , Ref s1 (Stored Uint8) -- seqNum
+        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        ] :-> ())
+mkMissionSetCurrentSender =
+  proc "mavlink_mission_set_current_msg_send"
+  $ \msg seqNum sendArr -> body
+  $ do
   arr <- local (iarray [] :: Init (Array 4 (Stored Uint8)))
   let buf = toCArray arr
   call_ pack buf 0 =<< deref (msg ~> mission_set_current_seq)
   call_ pack buf 2 =<< deref (msg ~> target_system)
   call_ pack buf 3 =<< deref (msg ~> target_component)
-  sender missionSetCurrentMsgId (constRef arr) missionSetCurrentCrcExtra
+  -- 6: header len, 2: CRC len
+  if arrayLen sendArr < 6 + 4 + 2
+    then error "missionSetCurrent payload is too large for 4 sender!"
+    else do -- Copy, leaving room for the payload
+            _ <- arrCopy sendArr arr 6
+            call_ mavlinkSendWithWriter
+                    missionSetCurrentMsgId
+                    missionSetCurrentCrcExtra
+                    4
+                    seqNum
+                    sendArr
+            retVoid
 
 instance MavlinkUnpackableMsg "mission_set_current_msg" where
     unpackMsg = ( missionSetCurrentUnpack , missionSetCurrentMsgId )

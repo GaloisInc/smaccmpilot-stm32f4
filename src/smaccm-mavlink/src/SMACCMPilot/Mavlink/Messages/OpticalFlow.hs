@@ -15,6 +15,7 @@ import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
 import Ivory.Language
+import Ivory.Stdlib
 
 opticalFlowMsgId :: Uint8
 opticalFlowMsgId = 100
@@ -25,6 +26,8 @@ opticalFlowCrcExtra = 175
 opticalFlowModule :: Module
 opticalFlowModule = package "mavlink_optical_flow_msg" $ do
   depend packModule
+  depend mavlinkSendModule
+  incl mkOpticalFlowSender
   incl opticalFlowUnpack
   defStruct (Proxy :: Proxy "optical_flow_msg")
 
@@ -41,19 +44,15 @@ struct optical_flow_msg
   }
 |]
 
-mkOpticalFlowSender :: SizedMavlinkSender 26
-                       -> Def ('[ ConstRef s (Struct "optical_flow_msg") ] :-> ())
-mkOpticalFlowSender sender =
-  proc ("mavlink_optical_flow_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    noReturn $ opticalFlowPack (senderMacro sender) msg
-
-instance MavlinkSendable "optical_flow_msg" 26 where
-  mkSender = mkOpticalFlowSender
-
-opticalFlowPack :: SenderMacro cs (Stack cs) 26
-                  -> ConstRef s1 (Struct "optical_flow_msg")
-                  -> Ivory (AllocEffects cs) ()
-opticalFlowPack sender msg = do
+mkOpticalFlowSender ::
+  Def ('[ ConstRef s0 (Struct "optical_flow_msg")
+        , Ref s1 (Stored Uint8) -- seqNum
+        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        ] :-> ())
+mkOpticalFlowSender =
+  proc "mavlink_optical_flow_msg_send"
+  $ \msg seqNum sendArr -> body
+  $ do
   arr <- local (iarray [] :: Init (Array 26 (Stored Uint8)))
   let buf = toCArray arr
   call_ pack buf 0 =<< deref (msg ~> time_usec)
@@ -64,7 +63,18 @@ opticalFlowPack sender msg = do
   call_ pack buf 22 =<< deref (msg ~> flow_y)
   call_ pack buf 24 =<< deref (msg ~> sensor_id)
   call_ pack buf 25 =<< deref (msg ~> quality)
-  sender opticalFlowMsgId (constRef arr) opticalFlowCrcExtra
+  -- 6: header len, 2: CRC len
+  if arrayLen sendArr < 6 + 26 + 2
+    then error "opticalFlow payload is too large for 26 sender!"
+    else do -- Copy, leaving room for the payload
+            _ <- arrCopy sendArr arr 6
+            call_ mavlinkSendWithWriter
+                    opticalFlowMsgId
+                    opticalFlowCrcExtra
+                    26
+                    seqNum
+                    sendArr
+            retVoid
 
 instance MavlinkUnpackableMsg "optical_flow_msg" where
     unpackMsg = ( opticalFlowUnpack , opticalFlowMsgId )

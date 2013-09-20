@@ -15,6 +15,7 @@ import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
 import Ivory.Language
+import Ivory.Stdlib
 
 missionWritePartialListMsgId :: Uint8
 missionWritePartialListMsgId = 38
@@ -25,6 +26,8 @@ missionWritePartialListCrcExtra = 9
 missionWritePartialListModule :: Module
 missionWritePartialListModule = package "mavlink_mission_write_partial_list_msg" $ do
   depend packModule
+  depend mavlinkSendModule
+  incl mkMissionWritePartialListSender
   incl missionWritePartialListUnpack
   defStruct (Proxy :: Proxy "mission_write_partial_list_msg")
 
@@ -37,26 +40,33 @@ struct mission_write_partial_list_msg
   }
 |]
 
-mkMissionWritePartialListSender :: SizedMavlinkSender 6
-                       -> Def ('[ ConstRef s (Struct "mission_write_partial_list_msg") ] :-> ())
-mkMissionWritePartialListSender sender =
-  proc ("mavlink_mission_write_partial_list_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    noReturn $ missionWritePartialListPack (senderMacro sender) msg
-
-instance MavlinkSendable "mission_write_partial_list_msg" 6 where
-  mkSender = mkMissionWritePartialListSender
-
-missionWritePartialListPack :: SenderMacro cs (Stack cs) 6
-                  -> ConstRef s1 (Struct "mission_write_partial_list_msg")
-                  -> Ivory (AllocEffects cs) ()
-missionWritePartialListPack sender msg = do
+mkMissionWritePartialListSender ::
+  Def ('[ ConstRef s0 (Struct "mission_write_partial_list_msg")
+        , Ref s1 (Stored Uint8) -- seqNum
+        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        ] :-> ())
+mkMissionWritePartialListSender =
+  proc "mavlink_mission_write_partial_list_msg_send"
+  $ \msg seqNum sendArr -> body
+  $ do
   arr <- local (iarray [] :: Init (Array 6 (Stored Uint8)))
   let buf = toCArray arr
   call_ pack buf 0 =<< deref (msg ~> start_index)
   call_ pack buf 2 =<< deref (msg ~> end_index)
   call_ pack buf 4 =<< deref (msg ~> target_system)
   call_ pack buf 5 =<< deref (msg ~> target_component)
-  sender missionWritePartialListMsgId (constRef arr) missionWritePartialListCrcExtra
+  -- 6: header len, 2: CRC len
+  if arrayLen sendArr < 6 + 6 + 2
+    then error "missionWritePartialList payload is too large for 6 sender!"
+    else do -- Copy, leaving room for the payload
+            _ <- arrCopy sendArr arr 6
+            call_ mavlinkSendWithWriter
+                    missionWritePartialListMsgId
+                    missionWritePartialListCrcExtra
+                    6
+                    seqNum
+                    sendArr
+            retVoid
 
 instance MavlinkUnpackableMsg "mission_write_partial_list_msg" where
     unpackMsg = ( missionWritePartialListUnpack , missionWritePartialListMsgId )

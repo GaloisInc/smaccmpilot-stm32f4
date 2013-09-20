@@ -15,6 +15,7 @@ import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
 import Ivory.Language
+import Ivory.Stdlib
 
 paramValueMsgId :: Uint8
 paramValueMsgId = 22
@@ -25,6 +26,8 @@ paramValueCrcExtra = 220
 paramValueModule :: Module
 paramValueModule = package "mavlink_param_value_msg" $ do
   depend packModule
+  depend mavlinkSendModule
+  incl mkParamValueSender
   incl paramValueUnpack
   defStruct (Proxy :: Proxy "param_value_msg")
 
@@ -38,19 +41,15 @@ struct param_value_msg
   }
 |]
 
-mkParamValueSender :: SizedMavlinkSender 25
-                       -> Def ('[ ConstRef s (Struct "param_value_msg") ] :-> ())
-mkParamValueSender sender =
-  proc ("mavlink_param_value_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    noReturn $ paramValuePack (senderMacro sender) msg
-
-instance MavlinkSendable "param_value_msg" 25 where
-  mkSender = mkParamValueSender
-
-paramValuePack :: SenderMacro cs (Stack cs) 25
-                  -> ConstRef s1 (Struct "param_value_msg")
-                  -> Ivory (AllocEffects cs) ()
-paramValuePack sender msg = do
+mkParamValueSender ::
+  Def ('[ ConstRef s0 (Struct "param_value_msg")
+        , Ref s1 (Stored Uint8) -- seqNum
+        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        ] :-> ())
+mkParamValueSender =
+  proc "mavlink_param_value_msg_send"
+  $ \msg seqNum sendArr -> body
+  $ do
   arr <- local (iarray [] :: Init (Array 25 (Stored Uint8)))
   let buf = toCArray arr
   call_ pack buf 0 =<< deref (msg ~> param_value)
@@ -58,7 +57,18 @@ paramValuePack sender msg = do
   call_ pack buf 6 =<< deref (msg ~> param_index)
   call_ pack buf 24 =<< deref (msg ~> param_type)
   arrayPack buf 8 (msg ~> param_id)
-  sender paramValueMsgId (constRef arr) paramValueCrcExtra
+  -- 6: header len, 2: CRC len
+  if arrayLen sendArr < 6 + 25 + 2
+    then error "paramValue payload is too large for 25 sender!"
+    else do -- Copy, leaving room for the payload
+            _ <- arrCopy sendArr arr 6
+            call_ mavlinkSendWithWriter
+                    paramValueMsgId
+                    paramValueCrcExtra
+                    25
+                    seqNum
+                    sendArr
+            retVoid
 
 instance MavlinkUnpackableMsg "param_value_msg" where
     unpackMsg = ( paramValueUnpack , paramValueMsgId )

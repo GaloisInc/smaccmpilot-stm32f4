@@ -15,6 +15,7 @@ import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
 import Ivory.Language
+import Ivory.Stdlib
 
 statustextMsgId :: Uint8
 statustextMsgId = 253
@@ -25,6 +26,8 @@ statustextCrcExtra = 83
 statustextModule :: Module
 statustextModule = package "mavlink_statustext_msg" $ do
   depend packModule
+  depend mavlinkSendModule
+  incl mkStatustextSender
   incl statustextUnpack
   defStruct (Proxy :: Proxy "statustext_msg")
 
@@ -35,24 +38,31 @@ struct statustext_msg
   }
 |]
 
-mkStatustextSender :: SizedMavlinkSender 51
-                       -> Def ('[ ConstRef s (Struct "statustext_msg") ] :-> ())
-mkStatustextSender sender =
-  proc ("mavlink_statustext_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    noReturn $ statustextPack (senderMacro sender) msg
-
-instance MavlinkSendable "statustext_msg" 51 where
-  mkSender = mkStatustextSender
-
-statustextPack :: SenderMacro cs (Stack cs) 51
-                  -> ConstRef s1 (Struct "statustext_msg")
-                  -> Ivory (AllocEffects cs) ()
-statustextPack sender msg = do
+mkStatustextSender ::
+  Def ('[ ConstRef s0 (Struct "statustext_msg")
+        , Ref s1 (Stored Uint8) -- seqNum
+        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        ] :-> ())
+mkStatustextSender =
+  proc "mavlink_statustext_msg_send"
+  $ \msg seqNum sendArr -> body
+  $ do
   arr <- local (iarray [] :: Init (Array 51 (Stored Uint8)))
   let buf = toCArray arr
   call_ pack buf 0 =<< deref (msg ~> severity)
   arrayPack buf 1 (msg ~> text)
-  sender statustextMsgId (constRef arr) statustextCrcExtra
+  -- 6: header len, 2: CRC len
+  if arrayLen sendArr < 6 + 51 + 2
+    then error "statustext payload is too large for 51 sender!"
+    else do -- Copy, leaving room for the payload
+            _ <- arrCopy sendArr arr 6
+            call_ mavlinkSendWithWriter
+                    statustextMsgId
+                    statustextCrcExtra
+                    51
+                    seqNum
+                    sendArr
+            retVoid
 
 instance MavlinkUnpackableMsg "statustext_msg" where
     unpackMsg = ( statustextUnpack , statustextMsgId )

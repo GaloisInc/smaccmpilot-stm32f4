@@ -15,6 +15,7 @@ import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
 import Ivory.Language
+import Ivory.Stdlib
 
 paramSetMsgId :: Uint8
 paramSetMsgId = 23
@@ -25,6 +26,8 @@ paramSetCrcExtra = 168
 paramSetModule :: Module
 paramSetModule = package "mavlink_param_set_msg" $ do
   depend packModule
+  depend mavlinkSendModule
+  incl mkParamSetSender
   incl paramSetUnpack
   defStruct (Proxy :: Proxy "param_set_msg")
 
@@ -38,27 +41,34 @@ struct param_set_msg
   }
 |]
 
--- mkParamSetSender :: SizedMavlinkSender 23
---                        -> Def ('[ ConstRef s (Struct "param_set_msg") ] :-> ())
--- mkParamSetSender sender =
---   proc ("mavlink_param_set_msg_send" ++ (senderName sender)) $ \msg -> body $ do
---     noReturn $ paramSetPack (senderMacro sender) msg
-
--- instance MavlinkSendable "param_set_msg" 23 where
---   mkSender = mkParamSetSender
-
--- paramSetPack :: SenderMacro cs (Stack cs) 23
---                   -> ConstRef s1 (Struct "param_set_msg")
---                   -> Ivory (AllocEffects cs) ()
--- paramSetPack sender msg = do
---   arr <- local (iarray [] :: Init (Array 23 (Stored Uint8)))
---   let buf = toCArray arr
---   call_ pack buf 0 =<< deref (msg ~> param_value)
---   call_ pack buf 4 =<< deref (msg ~> target_system)
---   call_ pack buf 5 =<< deref (msg ~> target_component)
---   call_ pack buf 22 =<< deref (msg ~> param_type)
---   arrayPack buf 6 (msg ~> param_id)
---   sender paramSetMsgId (constRef arr) paramSetCrcExtra
+mkParamSetSender ::
+  Def ('[ ConstRef s0 (Struct "param_set_msg")
+        , Ref s1 (Stored Uint8) -- seqNum
+        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        ] :-> ())
+mkParamSetSender =
+  proc "mavlink_param_set_msg_send"
+  $ \msg seqNum sendArr -> body
+  $ do
+  arr <- local (iarray [] :: Init (Array 23 (Stored Uint8)))
+  let buf = toCArray arr
+  call_ pack buf 0 =<< deref (msg ~> param_value)
+  call_ pack buf 4 =<< deref (msg ~> target_system)
+  call_ pack buf 5 =<< deref (msg ~> target_component)
+  call_ pack buf 22 =<< deref (msg ~> param_type)
+  arrayPack buf 6 (msg ~> param_id)
+  -- 6: header len, 2: CRC len
+  if arrayLen sendArr < 6 + 23 + 2
+    then error "paramSet payload is too large for 23 sender!"
+    else do -- Copy, leaving room for the payload
+            _ <- arrCopy sendArr arr 6
+            call_ mavlinkSendWithWriter
+                    paramSetMsgId
+                    paramSetCrcExtra
+                    23
+                    seqNum
+                    sendArr
+            retVoid
 
 instance MavlinkUnpackableMsg "param_set_msg" where
     unpackMsg = ( paramSetUnpack , paramSetMsgId )

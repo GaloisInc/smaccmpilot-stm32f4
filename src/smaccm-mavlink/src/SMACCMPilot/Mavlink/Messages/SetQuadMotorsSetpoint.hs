@@ -15,6 +15,7 @@ import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
 import Ivory.Language
+import Ivory.Stdlib
 
 setQuadMotorsSetpointMsgId :: Uint8
 setQuadMotorsSetpointMsgId = 60
@@ -25,6 +26,8 @@ setQuadMotorsSetpointCrcExtra = 30
 setQuadMotorsSetpointModule :: Module
 setQuadMotorsSetpointModule = package "mavlink_set_quad_motors_setpoint_msg" $ do
   depend packModule
+  depend mavlinkSendModule
+  incl mkSetQuadMotorsSetpointSender
   incl setQuadMotorsSetpointUnpack
   defStruct (Proxy :: Proxy "set_quad_motors_setpoint_msg")
 
@@ -38,19 +41,15 @@ struct set_quad_motors_setpoint_msg
   }
 |]
 
-mkSetQuadMotorsSetpointSender :: SizedMavlinkSender 9
-                       -> Def ('[ ConstRef s (Struct "set_quad_motors_setpoint_msg") ] :-> ())
-mkSetQuadMotorsSetpointSender sender =
-  proc ("mavlink_set_quad_motors_setpoint_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    noReturn $ setQuadMotorsSetpointPack (senderMacro sender) msg
-
-instance MavlinkSendable "set_quad_motors_setpoint_msg" 9 where
-  mkSender = mkSetQuadMotorsSetpointSender
-
-setQuadMotorsSetpointPack :: SenderMacro cs (Stack cs) 9
-                  -> ConstRef s1 (Struct "set_quad_motors_setpoint_msg")
-                  -> Ivory (AllocEffects cs) ()
-setQuadMotorsSetpointPack sender msg = do
+mkSetQuadMotorsSetpointSender ::
+  Def ('[ ConstRef s0 (Struct "set_quad_motors_setpoint_msg")
+        , Ref s1 (Stored Uint8) -- seqNum
+        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        ] :-> ())
+mkSetQuadMotorsSetpointSender =
+  proc "mavlink_set_quad_motors_setpoint_msg_send"
+  $ \msg seqNum sendArr -> body
+  $ do
   arr <- local (iarray [] :: Init (Array 9 (Stored Uint8)))
   let buf = toCArray arr
   call_ pack buf 0 =<< deref (msg ~> motor_front_nw)
@@ -58,7 +57,18 @@ setQuadMotorsSetpointPack sender msg = do
   call_ pack buf 4 =<< deref (msg ~> motor_back_se)
   call_ pack buf 6 =<< deref (msg ~> motor_left_sw)
   call_ pack buf 8 =<< deref (msg ~> target_system)
-  sender setQuadMotorsSetpointMsgId (constRef arr) setQuadMotorsSetpointCrcExtra
+  -- 6: header len, 2: CRC len
+  if arrayLen sendArr < 6 + 9 + 2
+    then error "setQuadMotorsSetpoint payload is too large for 9 sender!"
+    else do -- Copy, leaving room for the payload
+            _ <- arrCopy sendArr arr 6
+            call_ mavlinkSendWithWriter
+                    setQuadMotorsSetpointMsgId
+                    setQuadMotorsSetpointCrcExtra
+                    9
+                    seqNum
+                    sendArr
+            retVoid
 
 instance MavlinkUnpackableMsg "set_quad_motors_setpoint_msg" where
     unpackMsg = ( setQuadMotorsSetpointUnpack , setQuadMotorsSetpointMsgId )

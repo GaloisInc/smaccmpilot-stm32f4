@@ -15,6 +15,7 @@ import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
 import Ivory.Language
+import Ivory.Stdlib
 
 commandLongMsgId :: Uint8
 commandLongMsgId = 76
@@ -25,6 +26,8 @@ commandLongCrcExtra = 152
 commandLongModule :: Module
 commandLongModule = package "mavlink_command_long_msg" $ do
   depend packModule
+  depend mavlinkSendModule
+  incl mkCommandLongSender
   incl commandLongUnpack
   defStruct (Proxy :: Proxy "command_long_msg")
 
@@ -44,19 +47,15 @@ struct command_long_msg
   }
 |]
 
-mkCommandLongSender :: SizedMavlinkSender 33
-                       -> Def ('[ ConstRef s (Struct "command_long_msg") ] :-> ())
-mkCommandLongSender sender =
-  proc ("mavlink_command_long_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    noReturn $ commandLongPack (senderMacro sender) msg
-
-instance MavlinkSendable "command_long_msg" 33 where
-  mkSender = mkCommandLongSender
-
-commandLongPack :: SenderMacro cs (Stack cs) 33
-                  -> ConstRef s1 (Struct "command_long_msg")
-                  -> Ivory (AllocEffects cs) ()
-commandLongPack sender msg = do
+mkCommandLongSender ::
+  Def ('[ ConstRef s0 (Struct "command_long_msg")
+        , Ref s1 (Stored Uint8) -- seqNum
+        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        ] :-> ())
+mkCommandLongSender =
+  proc "mavlink_command_long_msg_send"
+  $ \msg seqNum sendArr -> body
+  $ do
   arr <- local (iarray [] :: Init (Array 33 (Stored Uint8)))
   let buf = toCArray arr
   call_ pack buf 0 =<< deref (msg ~> param1)
@@ -70,7 +69,18 @@ commandLongPack sender msg = do
   call_ pack buf 30 =<< deref (msg ~> target_system)
   call_ pack buf 31 =<< deref (msg ~> target_component)
   call_ pack buf 32 =<< deref (msg ~> confirmation)
-  sender commandLongMsgId (constRef arr) commandLongCrcExtra
+  -- 6: header len, 2: CRC len
+  if arrayLen sendArr < 6 + 33 + 2
+    then error "commandLong payload is too large for 33 sender!"
+    else do -- Copy, leaving room for the payload
+            _ <- arrCopy sendArr arr 6
+            call_ mavlinkSendWithWriter
+                    commandLongMsgId
+                    commandLongCrcExtra
+                    33
+                    seqNum
+                    sendArr
+            retVoid
 
 instance MavlinkUnpackableMsg "command_long_msg" where
     unpackMsg = ( commandLongUnpack , commandLongMsgId )

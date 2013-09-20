@@ -15,6 +15,7 @@ import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
 import Ivory.Language
+import Ivory.Stdlib
 
 vfrHudMsgId :: Uint8
 vfrHudMsgId = 74
@@ -25,6 +26,8 @@ vfrHudCrcExtra = 20
 vfrHudModule :: Module
 vfrHudModule = package "mavlink_vfr_hud_msg" $ do
   depend packModule
+  depend mavlinkSendModule
+  incl mkVfrHudSender
   incl vfrHudUnpack
   defStruct (Proxy :: Proxy "vfr_hud_msg")
 
@@ -39,19 +42,15 @@ struct vfr_hud_msg
   }
 |]
 
-mkVfrHudSender :: SizedMavlinkSender 20
-                       -> Def ('[ ConstRef s (Struct "vfr_hud_msg") ] :-> ())
-mkVfrHudSender sender =
-  proc ("mavlink_vfr_hud_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    noReturn $ vfrHudPack (senderMacro sender) msg
-
-instance MavlinkSendable "vfr_hud_msg" 20 where
-  mkSender = mkVfrHudSender
-
-vfrHudPack :: SenderMacro cs (Stack cs) 20
-                  -> ConstRef s1 (Struct "vfr_hud_msg")
-                  -> Ivory (AllocEffects cs) ()
-vfrHudPack sender msg = do
+mkVfrHudSender ::
+  Def ('[ ConstRef s0 (Struct "vfr_hud_msg")
+        , Ref s1 (Stored Uint8) -- seqNum
+        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        ] :-> ())
+mkVfrHudSender =
+  proc "mavlink_vfr_hud_msg_send"
+  $ \msg seqNum sendArr -> body
+  $ do
   arr <- local (iarray [] :: Init (Array 20 (Stored Uint8)))
   let buf = toCArray arr
   call_ pack buf 0 =<< deref (msg ~> airspeed)
@@ -60,7 +59,18 @@ vfrHudPack sender msg = do
   call_ pack buf 12 =<< deref (msg ~> climb)
   call_ pack buf 16 =<< deref (msg ~> heading)
   call_ pack buf 18 =<< deref (msg ~> throttle)
-  sender vfrHudMsgId (constRef arr) vfrHudCrcExtra
+  -- 6: header len, 2: CRC len
+  if arrayLen sendArr < 6 + 20 + 2
+    then error "vfrHud payload is too large for 20 sender!"
+    else do -- Copy, leaving room for the payload
+            _ <- arrCopy sendArr arr 6
+            call_ mavlinkSendWithWriter
+                    vfrHudMsgId
+                    vfrHudCrcExtra
+                    20
+                    seqNum
+                    sendArr
+            retVoid
 
 instance MavlinkUnpackableMsg "vfr_hud_msg" where
     unpackMsg = ( vfrHudUnpack , vfrHudMsgId )

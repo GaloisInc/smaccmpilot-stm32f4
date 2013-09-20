@@ -15,6 +15,7 @@ import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
 import Ivory.Language
+import Ivory.Stdlib
 
 attitudeMsgId :: Uint8
 attitudeMsgId = 30
@@ -25,6 +26,8 @@ attitudeCrcExtra = 39
 attitudeModule :: Module
 attitudeModule = package "mavlink_attitude_msg" $ do
   depend packModule
+  depend mavlinkSendModule
+  incl mkAttitudeSender
   incl attitudeUnpack
   defStruct (Proxy :: Proxy "attitude_msg")
 
@@ -40,19 +43,15 @@ struct attitude_msg
   }
 |]
 
-mkAttitudeSender :: SizedMavlinkSender 28
-                       -> Def ('[ ConstRef s (Struct "attitude_msg") ] :-> ())
-mkAttitudeSender sender =
-  proc ("mavlink_attitude_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    noReturn $ attitudePack (senderMacro sender) msg
-
-instance MavlinkSendable "attitude_msg" 28 where
-  mkSender = mkAttitudeSender
-
-attitudePack :: SenderMacro cs (Stack cs) 28
-                  -> ConstRef s1 (Struct "attitude_msg")
-                  -> Ivory (AllocEffects cs) ()
-attitudePack sender msg = do
+mkAttitudeSender ::
+  Def ('[ ConstRef s0 (Struct "attitude_msg")
+        , Ref s1 (Stored Uint8) -- seqNum
+        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        ] :-> ())
+mkAttitudeSender =
+  proc "mavlink_attitude_msg_send"
+  $ \msg seqNum sendArr -> body
+  $ do
   arr <- local (iarray [] :: Init (Array 28 (Stored Uint8)))
   let buf = toCArray arr
   call_ pack buf 0 =<< deref (msg ~> time_boot_ms)
@@ -62,7 +61,18 @@ attitudePack sender msg = do
   call_ pack buf 16 =<< deref (msg ~> rollspeed)
   call_ pack buf 20 =<< deref (msg ~> pitchspeed)
   call_ pack buf 24 =<< deref (msg ~> yawspeed)
-  sender attitudeMsgId (constRef arr) attitudeCrcExtra
+  -- 6: header len, 2: CRC len
+  if arrayLen sendArr < 6 + 28 + 2
+    then error "attitude payload is too large for 28 sender!"
+    else do -- Copy, leaving room for the payload
+            _ <- arrCopy sendArr arr 6
+            call_ mavlinkSendWithWriter
+                    attitudeMsgId
+                    attitudeCrcExtra
+                    28
+                    seqNum
+                    sendArr
+            retVoid
 
 instance MavlinkUnpackableMsg "attitude_msg" where
     unpackMsg = ( attitudeUnpack , attitudeMsgId )

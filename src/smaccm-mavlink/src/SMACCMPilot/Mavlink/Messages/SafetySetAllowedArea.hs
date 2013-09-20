@@ -15,6 +15,7 @@ import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
 import Ivory.Language
+import Ivory.Stdlib
 
 safetySetAllowedAreaMsgId :: Uint8
 safetySetAllowedAreaMsgId = 54
@@ -25,6 +26,8 @@ safetySetAllowedAreaCrcExtra = 15
 safetySetAllowedAreaModule :: Module
 safetySetAllowedAreaModule = package "mavlink_safety_set_allowed_area_msg" $ do
   depend packModule
+  depend mavlinkSendModule
+  incl mkSafetySetAllowedAreaSender
   incl safetySetAllowedAreaUnpack
   defStruct (Proxy :: Proxy "safety_set_allowed_area_msg")
 
@@ -42,19 +45,15 @@ struct safety_set_allowed_area_msg
   }
 |]
 
-mkSafetySetAllowedAreaSender :: SizedMavlinkSender 27
-                       -> Def ('[ ConstRef s (Struct "safety_set_allowed_area_msg") ] :-> ())
-mkSafetySetAllowedAreaSender sender =
-  proc ("mavlink_safety_set_allowed_area_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    noReturn $ safetySetAllowedAreaPack (senderMacro sender) msg
-
-instance MavlinkSendable "safety_set_allowed_area_msg" 27 where
-  mkSender = mkSafetySetAllowedAreaSender
-
-safetySetAllowedAreaPack :: SenderMacro cs (Stack cs) 27
-                  -> ConstRef s1 (Struct "safety_set_allowed_area_msg")
-                  -> Ivory (AllocEffects cs) ()
-safetySetAllowedAreaPack sender msg = do
+mkSafetySetAllowedAreaSender ::
+  Def ('[ ConstRef s0 (Struct "safety_set_allowed_area_msg")
+        , Ref s1 (Stored Uint8) -- seqNum
+        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        ] :-> ())
+mkSafetySetAllowedAreaSender =
+  proc "mavlink_safety_set_allowed_area_msg_send"
+  $ \msg seqNum sendArr -> body
+  $ do
   arr <- local (iarray [] :: Init (Array 27 (Stored Uint8)))
   let buf = toCArray arr
   call_ pack buf 0 =<< deref (msg ~> p1x)
@@ -66,7 +65,18 @@ safetySetAllowedAreaPack sender msg = do
   call_ pack buf 24 =<< deref (msg ~> target_system)
   call_ pack buf 25 =<< deref (msg ~> target_component)
   call_ pack buf 26 =<< deref (msg ~> frame)
-  sender safetySetAllowedAreaMsgId (constRef arr) safetySetAllowedAreaCrcExtra
+  -- 6: header len, 2: CRC len
+  if arrayLen sendArr < 6 + 27 + 2
+    then error "safetySetAllowedArea payload is too large for 27 sender!"
+    else do -- Copy, leaving room for the payload
+            _ <- arrCopy sendArr arr 6
+            call_ mavlinkSendWithWriter
+                    safetySetAllowedAreaMsgId
+                    safetySetAllowedAreaCrcExtra
+                    27
+                    seqNum
+                    sendArr
+            retVoid
 
 instance MavlinkUnpackableMsg "safety_set_allowed_area_msg" where
     unpackMsg = ( safetySetAllowedAreaUnpack , safetySetAllowedAreaMsgId )

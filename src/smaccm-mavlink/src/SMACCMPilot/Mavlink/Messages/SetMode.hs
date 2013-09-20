@@ -15,6 +15,7 @@ import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
 import Ivory.Language
+import Ivory.Stdlib
 
 setModeMsgId :: Uint8
 setModeMsgId = 11
@@ -25,6 +26,8 @@ setModeCrcExtra = 89
 setModeModule :: Module
 setModeModule = package "mavlink_set_mode_msg" $ do
   depend packModule
+  depend mavlinkSendModule
+  incl mkSetModeSender
   incl setModeUnpack
   defStruct (Proxy :: Proxy "set_mode_msg")
 
@@ -36,25 +39,32 @@ struct set_mode_msg
   }
 |]
 
-mkSetModeSender :: SizedMavlinkSender 6
-                       -> Def ('[ ConstRef s (Struct "set_mode_msg") ] :-> ())
-mkSetModeSender sender =
-  proc ("mavlink_set_mode_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    noReturn $ setModePack (senderMacro sender) msg
-
-instance MavlinkSendable "set_mode_msg" 6 where
-  mkSender = mkSetModeSender
-
-setModePack :: SenderMacro cs (Stack cs) 6
-                  -> ConstRef s1 (Struct "set_mode_msg")
-                  -> Ivory (AllocEffects cs) ()
-setModePack sender msg = do
+mkSetModeSender ::
+  Def ('[ ConstRef s0 (Struct "set_mode_msg")
+        , Ref s1 (Stored Uint8) -- seqNum
+        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        ] :-> ())
+mkSetModeSender =
+  proc "mavlink_set_mode_msg_send"
+  $ \msg seqNum sendArr -> body
+  $ do
   arr <- local (iarray [] :: Init (Array 6 (Stored Uint8)))
   let buf = toCArray arr
   call_ pack buf 0 =<< deref (msg ~> custom_mode)
   call_ pack buf 4 =<< deref (msg ~> target_system)
   call_ pack buf 5 =<< deref (msg ~> base_mode)
-  sender setModeMsgId (constRef arr) setModeCrcExtra
+  -- 6: header len, 2: CRC len
+  if arrayLen sendArr < 6 + 6 + 2
+    then error "setMode payload is too large for 6 sender!"
+    else do -- Copy, leaving room for the payload
+            _ <- arrCopy sendArr arr 6
+            call_ mavlinkSendWithWriter
+                    setModeMsgId
+                    setModeCrcExtra
+                    6
+                    seqNum
+                    sendArr
+            retVoid
 
 instance MavlinkUnpackableMsg "set_mode_msg" where
     unpackMsg = ( setModeUnpack , setModeMsgId )

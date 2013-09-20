@@ -15,6 +15,7 @@ import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
 import Ivory.Language
+import Ivory.Stdlib
 
 pingMsgId :: Uint8
 pingMsgId = 4
@@ -25,6 +26,8 @@ pingCrcExtra = 237
 pingModule :: Module
 pingModule = package "mavlink_ping_msg" $ do
   depend packModule
+  depend mavlinkSendModule
+  incl mkPingSender
   incl pingUnpack
   defStruct (Proxy :: Proxy "ping_msg")
 
@@ -37,26 +40,33 @@ struct ping_msg
   }
 |]
 
-mkPingSender :: SizedMavlinkSender 14
-                       -> Def ('[ ConstRef s (Struct "ping_msg") ] :-> ())
-mkPingSender sender =
-  proc ("mavlink_ping_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    noReturn $ pingPack (senderMacro sender) msg
-
-instance MavlinkSendable "ping_msg" 14 where
-  mkSender = mkPingSender
-
-pingPack :: SenderMacro cs (Stack cs) 14
-                  -> ConstRef s1 (Struct "ping_msg")
-                  -> Ivory (AllocEffects cs) ()
-pingPack sender msg = do
+mkPingSender ::
+  Def ('[ ConstRef s0 (Struct "ping_msg")
+        , Ref s1 (Stored Uint8) -- seqNum
+        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        ] :-> ())
+mkPingSender =
+  proc "mavlink_ping_msg_send"
+  $ \msg seqNum sendArr -> body
+  $ do
   arr <- local (iarray [] :: Init (Array 14 (Stored Uint8)))
   let buf = toCArray arr
   call_ pack buf 0 =<< deref (msg ~> time_usec)
   call_ pack buf 8 =<< deref (msg ~> ping_seq)
   call_ pack buf 12 =<< deref (msg ~> target_system)
   call_ pack buf 13 =<< deref (msg ~> target_component)
-  sender pingMsgId (constRef arr) pingCrcExtra
+  -- 6: header len, 2: CRC len
+  if arrayLen sendArr < 6 + 14 + 2
+    then error "ping payload is too large for 14 sender!"
+    else do -- Copy, leaving room for the payload
+            _ <- arrCopy sendArr arr 6
+            call_ mavlinkSendWithWriter
+                    pingMsgId
+                    pingCrcExtra
+                    14
+                    seqNum
+                    sendArr
+            retVoid
 
 instance MavlinkUnpackableMsg "ping_msg" where
     unpackMsg = ( pingUnpack , pingMsgId )

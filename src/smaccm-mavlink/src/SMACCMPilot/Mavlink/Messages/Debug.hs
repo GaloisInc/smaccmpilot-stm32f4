@@ -15,6 +15,7 @@ import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
 import Ivory.Language
+import Ivory.Stdlib
 
 debugMsgId :: Uint8
 debugMsgId = 254
@@ -25,6 +26,8 @@ debugCrcExtra = 46
 debugModule :: Module
 debugModule = package "mavlink_debug_msg" $ do
   depend packModule
+  depend mavlinkSendModule
+  incl mkDebugSender
   incl debugUnpack
   defStruct (Proxy :: Proxy "debug_msg")
 
@@ -36,25 +39,32 @@ struct debug_msg
   }
 |]
 
-mkDebugSender :: SizedMavlinkSender 9
-                       -> Def ('[ ConstRef s (Struct "debug_msg") ] :-> ())
-mkDebugSender sender =
-  proc ("mavlink_debug_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    noReturn $ debugPack (senderMacro sender) msg
-
-instance MavlinkSendable "debug_msg" 9 where
-  mkSender = mkDebugSender
-
-debugPack :: SenderMacro cs (Stack cs) 9
-                  -> ConstRef s1 (Struct "debug_msg")
-                  -> Ivory (AllocEffects cs) ()
-debugPack sender msg = do
+mkDebugSender ::
+  Def ('[ ConstRef s0 (Struct "debug_msg")
+        , Ref s1 (Stored Uint8) -- seqNum
+        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        ] :-> ())
+mkDebugSender =
+  proc "mavlink_debug_msg_send"
+  $ \msg seqNum sendArr -> body
+  $ do
   arr <- local (iarray [] :: Init (Array 9 (Stored Uint8)))
   let buf = toCArray arr
   call_ pack buf 0 =<< deref (msg ~> time_boot_ms)
   call_ pack buf 4 =<< deref (msg ~> value)
   call_ pack buf 8 =<< deref (msg ~> ind)
-  sender debugMsgId (constRef arr) debugCrcExtra
+  -- 6: header len, 2: CRC len
+  if arrayLen sendArr < 6 + 9 + 2
+    then error "debug payload is too large for 9 sender!"
+    else do -- Copy, leaving room for the payload
+            _ <- arrCopy sendArr arr 6
+            call_ mavlinkSendWithWriter
+                    debugMsgId
+                    debugCrcExtra
+                    9
+                    seqNum
+                    sendArr
+            retVoid
 
 instance MavlinkUnpackableMsg "debug_msg" where
     unpackMsg = ( debugUnpack , debugMsgId )

@@ -15,6 +15,7 @@ import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
 import Ivory.Language
+import Ivory.Stdlib
 
 gpsStatusMsgId :: Uint8
 gpsStatusMsgId = 25
@@ -25,6 +26,8 @@ gpsStatusCrcExtra = 23
 gpsStatusModule :: Module
 gpsStatusModule = package "mavlink_gps_status_msg" $ do
   depend packModule
+  depend mavlinkSendModule
+  incl mkGpsStatusSender
   incl gpsStatusUnpack
   defStruct (Proxy :: Proxy "gps_status_msg")
 
@@ -39,19 +42,15 @@ struct gps_status_msg
   }
 |]
 
-mkGpsStatusSender :: SizedMavlinkSender 101
-                       -> Def ('[ ConstRef s (Struct "gps_status_msg") ] :-> ())
-mkGpsStatusSender sender =
-  proc ("mavlink_gps_status_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    noReturn $ gpsStatusPack (senderMacro sender) msg
-
-instance MavlinkSendable "gps_status_msg" 101 where
-  mkSender = mkGpsStatusSender
-
-gpsStatusPack :: SenderMacro cs (Stack cs) 101
-                  -> ConstRef s1 (Struct "gps_status_msg")
-                  -> Ivory (AllocEffects cs) ()
-gpsStatusPack sender msg = do
+mkGpsStatusSender ::
+  Def ('[ ConstRef s0 (Struct "gps_status_msg")
+        , Ref s1 (Stored Uint8) -- seqNum
+        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        ] :-> ())
+mkGpsStatusSender =
+  proc "mavlink_gps_status_msg_send"
+  $ \msg seqNum sendArr -> body
+  $ do
   arr <- local (iarray [] :: Init (Array 101 (Stored Uint8)))
   let buf = toCArray arr
   call_ pack buf 0 =<< deref (msg ~> satellites_visible)
@@ -60,7 +59,18 @@ gpsStatusPack sender msg = do
   arrayPack buf 41 (msg ~> satellite_elevation)
   arrayPack buf 61 (msg ~> satellite_azimuth)
   arrayPack buf 81 (msg ~> satellite_snr)
-  sender gpsStatusMsgId (constRef arr) gpsStatusCrcExtra
+  -- 6: header len, 2: CRC len
+  if arrayLen sendArr < 6 + 101 + 2
+    then error "gpsStatus payload is too large for 101 sender!"
+    else do -- Copy, leaving room for the payload
+            _ <- arrCopy sendArr arr 6
+            call_ mavlinkSendWithWriter
+                    gpsStatusMsgId
+                    gpsStatusCrcExtra
+                    101
+                    seqNum
+                    sendArr
+            retVoid
 
 instance MavlinkUnpackableMsg "gps_status_msg" where
     unpackMsg = ( gpsStatusUnpack , gpsStatusMsgId )

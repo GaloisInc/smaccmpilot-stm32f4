@@ -15,6 +15,7 @@ import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
 import Ivory.Language
+import Ivory.Stdlib
 
 scaledPressureMsgId :: Uint8
 scaledPressureMsgId = 29
@@ -25,6 +26,8 @@ scaledPressureCrcExtra = 115
 scaledPressureModule :: Module
 scaledPressureModule = package "mavlink_scaled_pressure_msg" $ do
   depend packModule
+  depend mavlinkSendModule
+  incl mkScaledPressureSender
   incl scaledPressureUnpack
   defStruct (Proxy :: Proxy "scaled_pressure_msg")
 
@@ -37,26 +40,33 @@ struct scaled_pressure_msg
   }
 |]
 
-mkScaledPressureSender :: SizedMavlinkSender 14
-                       -> Def ('[ ConstRef s (Struct "scaled_pressure_msg") ] :-> ())
-mkScaledPressureSender sender =
-  proc ("mavlink_scaled_pressure_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    noReturn $ scaledPressurePack (senderMacro sender) msg
-
-instance MavlinkSendable "scaled_pressure_msg" 14 where
-  mkSender = mkScaledPressureSender
-
-scaledPressurePack :: SenderMacro cs (Stack cs) 14
-                  -> ConstRef s1 (Struct "scaled_pressure_msg")
-                  -> Ivory (AllocEffects cs) ()
-scaledPressurePack sender msg = do
+mkScaledPressureSender ::
+  Def ('[ ConstRef s0 (Struct "scaled_pressure_msg")
+        , Ref s1 (Stored Uint8) -- seqNum
+        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        ] :-> ())
+mkScaledPressureSender =
+  proc "mavlink_scaled_pressure_msg_send"
+  $ \msg seqNum sendArr -> body
+  $ do
   arr <- local (iarray [] :: Init (Array 14 (Stored Uint8)))
   let buf = toCArray arr
   call_ pack buf 0 =<< deref (msg ~> time_boot_ms)
   call_ pack buf 4 =<< deref (msg ~> press_abs)
   call_ pack buf 8 =<< deref (msg ~> press_diff)
   call_ pack buf 12 =<< deref (msg ~> temperature)
-  sender scaledPressureMsgId (constRef arr) scaledPressureCrcExtra
+  -- 6: header len, 2: CRC len
+  if arrayLen sendArr < 6 + 14 + 2
+    then error "scaledPressure payload is too large for 14 sender!"
+    else do -- Copy, leaving room for the payload
+            _ <- arrCopy sendArr arr 6
+            call_ mavlinkSendWithWriter
+                    scaledPressureMsgId
+                    scaledPressureCrcExtra
+                    14
+                    seqNum
+                    sendArr
+            retVoid
 
 instance MavlinkUnpackableMsg "scaled_pressure_msg" where
     unpackMsg = ( scaledPressureUnpack , scaledPressureMsgId )

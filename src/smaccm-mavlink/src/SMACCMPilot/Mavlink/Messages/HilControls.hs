@@ -15,6 +15,7 @@ import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
 import Ivory.Language
+import Ivory.Stdlib
 
 hilControlsMsgId :: Uint8
 hilControlsMsgId = 91
@@ -25,6 +26,8 @@ hilControlsCrcExtra = 63
 hilControlsModule :: Module
 hilControlsModule = package "mavlink_hil_controls_msg" $ do
   depend packModule
+  depend mavlinkSendModule
+  incl mkHilControlsSender
   incl hilControlsUnpack
   defStruct (Proxy :: Proxy "hil_controls_msg")
 
@@ -44,19 +47,15 @@ struct hil_controls_msg
   }
 |]
 
-mkHilControlsSender :: SizedMavlinkSender 42
-                       -> Def ('[ ConstRef s (Struct "hil_controls_msg") ] :-> ())
-mkHilControlsSender sender =
-  proc ("mavlink_hil_controls_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    noReturn $ hilControlsPack (senderMacro sender) msg
-
-instance MavlinkSendable "hil_controls_msg" 42 where
-  mkSender = mkHilControlsSender
-
-hilControlsPack :: SenderMacro cs (Stack cs) 42
-                  -> ConstRef s1 (Struct "hil_controls_msg")
-                  -> Ivory (AllocEffects cs) ()
-hilControlsPack sender msg = do
+mkHilControlsSender ::
+  Def ('[ ConstRef s0 (Struct "hil_controls_msg")
+        , Ref s1 (Stored Uint8) -- seqNum
+        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        ] :-> ())
+mkHilControlsSender =
+  proc "mavlink_hil_controls_msg_send"
+  $ \msg seqNum sendArr -> body
+  $ do
   arr <- local (iarray [] :: Init (Array 42 (Stored Uint8)))
   let buf = toCArray arr
   call_ pack buf 0 =<< deref (msg ~> time_usec)
@@ -70,7 +69,18 @@ hilControlsPack sender msg = do
   call_ pack buf 36 =<< deref (msg ~> aux4)
   call_ pack buf 40 =<< deref (msg ~> mode)
   call_ pack buf 41 =<< deref (msg ~> nav_mode)
-  sender hilControlsMsgId (constRef arr) hilControlsCrcExtra
+  -- 6: header len, 2: CRC len
+  if arrayLen sendArr < 6 + 42 + 2
+    then error "hilControls payload is too large for 42 sender!"
+    else do -- Copy, leaving room for the payload
+            _ <- arrCopy sendArr arr 6
+            call_ mavlinkSendWithWriter
+                    hilControlsMsgId
+                    hilControlsCrcExtra
+                    42
+                    seqNum
+                    sendArr
+            retVoid
 
 instance MavlinkUnpackableMsg "hil_controls_msg" where
     unpackMsg = ( hilControlsUnpack , hilControlsMsgId )

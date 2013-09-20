@@ -15,6 +15,7 @@ import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
 import Ivory.Language
+import Ivory.Stdlib
 
 attitudeQuaternionMsgId :: Uint8
 attitudeQuaternionMsgId = 31
@@ -25,6 +26,8 @@ attitudeQuaternionCrcExtra = 246
 attitudeQuaternionModule :: Module
 attitudeQuaternionModule = package "mavlink_attitude_quaternion_msg" $ do
   depend packModule
+  depend mavlinkSendModule
+  incl mkAttitudeQuaternionSender
   incl attitudeQuaternionUnpack
   defStruct (Proxy :: Proxy "attitude_quaternion_msg")
 
@@ -41,19 +44,15 @@ struct attitude_quaternion_msg
   }
 |]
 
-mkAttitudeQuaternionSender :: SizedMavlinkSender 32
-                       -> Def ('[ ConstRef s (Struct "attitude_quaternion_msg") ] :-> ())
-mkAttitudeQuaternionSender sender =
-  proc ("mavlink_attitude_quaternion_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    noReturn $ attitudeQuaternionPack (senderMacro sender) msg
-
-instance MavlinkSendable "attitude_quaternion_msg" 32 where
-  mkSender = mkAttitudeQuaternionSender
-
-attitudeQuaternionPack :: SenderMacro cs (Stack cs) 32
-                  -> ConstRef s1 (Struct "attitude_quaternion_msg")
-                  -> Ivory (AllocEffects cs) ()
-attitudeQuaternionPack sender msg = do
+mkAttitudeQuaternionSender ::
+  Def ('[ ConstRef s0 (Struct "attitude_quaternion_msg")
+        , Ref s1 (Stored Uint8) -- seqNum
+        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        ] :-> ())
+mkAttitudeQuaternionSender =
+  proc "mavlink_attitude_quaternion_msg_send"
+  $ \msg seqNum sendArr -> body
+  $ do
   arr <- local (iarray [] :: Init (Array 32 (Stored Uint8)))
   let buf = toCArray arr
   call_ pack buf 0 =<< deref (msg ~> time_boot_ms)
@@ -64,7 +63,18 @@ attitudeQuaternionPack sender msg = do
   call_ pack buf 20 =<< deref (msg ~> rollspeed)
   call_ pack buf 24 =<< deref (msg ~> pitchspeed)
   call_ pack buf 28 =<< deref (msg ~> yawspeed)
-  sender attitudeQuaternionMsgId (constRef arr) attitudeQuaternionCrcExtra
+  -- 6: header len, 2: CRC len
+  if arrayLen sendArr < 6 + 32 + 2
+    then error "attitudeQuaternion payload is too large for 32 sender!"
+    else do -- Copy, leaving room for the payload
+            _ <- arrCopy sendArr arr 6
+            call_ mavlinkSendWithWriter
+                    attitudeQuaternionMsgId
+                    attitudeQuaternionCrcExtra
+                    32
+                    seqNum
+                    sendArr
+            retVoid
 
 instance MavlinkUnpackableMsg "attitude_quaternion_msg" where
     unpackMsg = ( attitudeQuaternionUnpack , attitudeQuaternionMsgId )

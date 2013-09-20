@@ -15,6 +15,7 @@ import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
 import Ivory.Language
+import Ivory.Stdlib
 
 setQuadSwarmLedRollPitchYawThrustMsgId :: Uint8
 setQuadSwarmLedRollPitchYawThrustMsgId = 63
@@ -25,6 +26,8 @@ setQuadSwarmLedRollPitchYawThrustCrcExtra = 130
 setQuadSwarmLedRollPitchYawThrustModule :: Module
 setQuadSwarmLedRollPitchYawThrustModule = package "mavlink_set_quad_swarm_led_roll_pitch_yaw_thrust_msg" $ do
   depend packModule
+  depend mavlinkSendModule
+  incl mkSetQuadSwarmLedRollPitchYawThrustSender
   incl setQuadSwarmLedRollPitchYawThrustUnpack
   defStruct (Proxy :: Proxy "set_quad_swarm_led_roll_pitch_yaw_thrust_msg")
 
@@ -42,19 +45,15 @@ struct set_quad_swarm_led_roll_pitch_yaw_thrust_msg
   }
 |]
 
-mkSetQuadSwarmLedRollPitchYawThrustSender :: SizedMavlinkSender 46
-                       -> Def ('[ ConstRef s (Struct "set_quad_swarm_led_roll_pitch_yaw_thrust_msg") ] :-> ())
-mkSetQuadSwarmLedRollPitchYawThrustSender sender =
-  proc ("mavlink_set_quad_swarm_led_roll_pitch_yaw_thrust_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    noReturn $ setQuadSwarmLedRollPitchYawThrustPack (senderMacro sender) msg
-
-instance MavlinkSendable "set_quad_swarm_led_roll_pitch_yaw_thrust_msg" 46 where
-  mkSender = mkSetQuadSwarmLedRollPitchYawThrustSender
-
-setQuadSwarmLedRollPitchYawThrustPack :: SenderMacro cs (Stack cs) 46
-                  -> ConstRef s1 (Struct "set_quad_swarm_led_roll_pitch_yaw_thrust_msg")
-                  -> Ivory (AllocEffects cs) ()
-setQuadSwarmLedRollPitchYawThrustPack sender msg = do
+mkSetQuadSwarmLedRollPitchYawThrustSender ::
+  Def ('[ ConstRef s0 (Struct "set_quad_swarm_led_roll_pitch_yaw_thrust_msg")
+        , Ref s1 (Stored Uint8) -- seqNum
+        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        ] :-> ())
+mkSetQuadSwarmLedRollPitchYawThrustSender =
+  proc "mavlink_set_quad_swarm_led_roll_pitch_yaw_thrust_msg_send"
+  $ \msg seqNum sendArr -> body
+  $ do
   arr <- local (iarray [] :: Init (Array 46 (Stored Uint8)))
   let buf = toCArray arr
   call_ pack buf 32 =<< deref (msg ~> group)
@@ -66,7 +65,18 @@ setQuadSwarmLedRollPitchYawThrustPack sender msg = do
   arrayPack buf 34 (msg ~> led_red)
   arrayPack buf 38 (msg ~> led_blue)
   arrayPack buf 42 (msg ~> led_green)
-  sender setQuadSwarmLedRollPitchYawThrustMsgId (constRef arr) setQuadSwarmLedRollPitchYawThrustCrcExtra
+  -- 6: header len, 2: CRC len
+  if arrayLen sendArr < 6 + 46 + 2
+    then error "setQuadSwarmLedRollPitchYawThrust payload is too large for 46 sender!"
+    else do -- Copy, leaving room for the payload
+            _ <- arrCopy sendArr arr 6
+            call_ mavlinkSendWithWriter
+                    setQuadSwarmLedRollPitchYawThrustMsgId
+                    setQuadSwarmLedRollPitchYawThrustCrcExtra
+                    46
+                    seqNum
+                    sendArr
+            retVoid
 
 instance MavlinkUnpackableMsg "set_quad_swarm_led_roll_pitch_yaw_thrust_msg" where
     unpackMsg = ( setQuadSwarmLedRollPitchYawThrustUnpack , setQuadSwarmLedRollPitchYawThrustMsgId )

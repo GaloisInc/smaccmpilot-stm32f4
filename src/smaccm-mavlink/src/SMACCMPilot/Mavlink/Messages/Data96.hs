@@ -15,6 +15,7 @@ import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
 import Ivory.Language
+import Ivory.Stdlib
 
 data96MsgId :: Uint8
 data96MsgId = 172
@@ -25,6 +26,8 @@ data96CrcExtra = 185
 data96Module :: Module
 data96Module = package "mavlink_data96_msg" $ do
   depend packModule
+  depend mavlinkSendModule
+  incl mkData96Sender
   incl data96Unpack
   defStruct (Proxy :: Proxy "data96_msg")
 
@@ -36,25 +39,32 @@ struct data96_msg
   }
 |]
 
-mkData96Sender :: SizedMavlinkSender 98
-                       -> Def ('[ ConstRef s (Struct "data96_msg") ] :-> ())
-mkData96Sender sender =
-  proc ("mavlink_data96_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    noReturn $ data96Pack (senderMacro sender) msg
-
-instance MavlinkSendable "data96_msg" 98 where
-  mkSender = mkData96Sender
-
-data96Pack :: SenderMacro cs (Stack cs) 98
-                  -> ConstRef s1 (Struct "data96_msg")
-                  -> Ivory (AllocEffects cs) ()
-data96Pack sender msg = do
+mkData96Sender ::
+  Def ('[ ConstRef s0 (Struct "data96_msg")
+        , Ref s1 (Stored Uint8) -- seqNum
+        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        ] :-> ())
+mkData96Sender =
+  proc "mavlink_data96_msg_send"
+  $ \msg seqNum sendArr -> body
+  $ do
   arr <- local (iarray [] :: Init (Array 98 (Stored Uint8)))
   let buf = toCArray arr
   call_ pack buf 0 =<< deref (msg ~> data96_type)
   call_ pack buf 1 =<< deref (msg ~> len)
   arrayPack buf 2 (msg ~> data96)
-  sender data96MsgId (constRef arr) data96CrcExtra
+  -- 6: header len, 2: CRC len
+  if arrayLen sendArr < 6 + 98 + 2
+    then error "data96 payload is too large for 98 sender!"
+    else do -- Copy, leaving room for the payload
+            _ <- arrCopy sendArr arr 6
+            call_ mavlinkSendWithWriter
+                    data96MsgId
+                    data96CrcExtra
+                    98
+                    seqNum
+                    sendArr
+            retVoid
 
 instance MavlinkUnpackableMsg "data96_msg" where
     unpackMsg = ( data96Unpack , data96MsgId )

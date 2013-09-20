@@ -15,6 +15,7 @@ import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
 import Ivory.Language
+import Ivory.Stdlib
 
 globalPositionIntMsgId :: Uint8
 globalPositionIntMsgId = 33
@@ -25,6 +26,8 @@ globalPositionIntCrcExtra = 104
 globalPositionIntModule :: Module
 globalPositionIntModule = package "mavlink_global_position_int_msg" $ do
   depend packModule
+  depend mavlinkSendModule
+  incl mkGlobalPositionIntSender
   incl globalPositionIntUnpack
   defStruct (Proxy :: Proxy "global_position_int_msg")
 
@@ -42,19 +45,15 @@ struct global_position_int_msg
   }
 |]
 
-mkGlobalPositionIntSender :: SizedMavlinkSender 28
-                       -> Def ('[ ConstRef s (Struct "global_position_int_msg") ] :-> ())
-mkGlobalPositionIntSender sender =
-  proc ("mavlink_global_position_int_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    noReturn $ globalPositionIntPack (senderMacro sender) msg
-
-instance MavlinkSendable "global_position_int_msg" 28 where
-  mkSender = mkGlobalPositionIntSender
-
-globalPositionIntPack :: SenderMacro cs (Stack cs) 28
-                  -> ConstRef s1 (Struct "global_position_int_msg")
-                  -> Ivory (AllocEffects cs) ()
-globalPositionIntPack sender msg = do
+mkGlobalPositionIntSender ::
+  Def ('[ ConstRef s0 (Struct "global_position_int_msg")
+        , Ref s1 (Stored Uint8) -- seqNum
+        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        ] :-> ())
+mkGlobalPositionIntSender =
+  proc "mavlink_global_position_int_msg_send"
+  $ \msg seqNum sendArr -> body
+  $ do
   arr <- local (iarray [] :: Init (Array 28 (Stored Uint8)))
   let buf = toCArray arr
   call_ pack buf 0 =<< deref (msg ~> time_boot_ms)
@@ -66,7 +65,18 @@ globalPositionIntPack sender msg = do
   call_ pack buf 22 =<< deref (msg ~> vy)
   call_ pack buf 24 =<< deref (msg ~> vz)
   call_ pack buf 26 =<< deref (msg ~> hdg)
-  sender globalPositionIntMsgId (constRef arr) globalPositionIntCrcExtra
+  -- 6: header len, 2: CRC len
+  if arrayLen sendArr < 6 + 28 + 2
+    then error "globalPositionInt payload is too large for 28 sender!"
+    else do -- Copy, leaving room for the payload
+            _ <- arrCopy sendArr arr 6
+            call_ mavlinkSendWithWriter
+                    globalPositionIntMsgId
+                    globalPositionIntCrcExtra
+                    28
+                    seqNum
+                    sendArr
+            retVoid
 
 instance MavlinkUnpackableMsg "global_position_int_msg" where
     unpackMsg = ( globalPositionIntUnpack , globalPositionIntMsgId )

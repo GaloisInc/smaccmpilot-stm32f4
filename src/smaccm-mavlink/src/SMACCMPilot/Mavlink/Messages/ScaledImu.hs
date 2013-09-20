@@ -15,6 +15,7 @@ import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
 import Ivory.Language
+import Ivory.Stdlib
 
 scaledImuMsgId :: Uint8
 scaledImuMsgId = 26
@@ -25,6 +26,8 @@ scaledImuCrcExtra = 170
 scaledImuModule :: Module
 scaledImuModule = package "mavlink_scaled_imu_msg" $ do
   depend packModule
+  depend mavlinkSendModule
+  incl mkScaledImuSender
   incl scaledImuUnpack
   defStruct (Proxy :: Proxy "scaled_imu_msg")
 
@@ -43,19 +46,15 @@ struct scaled_imu_msg
   }
 |]
 
-mkScaledImuSender :: SizedMavlinkSender 22
-                       -> Def ('[ ConstRef s (Struct "scaled_imu_msg") ] :-> ())
-mkScaledImuSender sender =
-  proc ("mavlink_scaled_imu_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    noReturn $ scaledImuPack (senderMacro sender) msg
-
-instance MavlinkSendable "scaled_imu_msg" 22 where
-  mkSender = mkScaledImuSender
-
-scaledImuPack :: SenderMacro cs (Stack cs) 22
-                  -> ConstRef s1 (Struct "scaled_imu_msg")
-                  -> Ivory (AllocEffects cs) ()
-scaledImuPack sender msg = do
+mkScaledImuSender ::
+  Def ('[ ConstRef s0 (Struct "scaled_imu_msg")
+        , Ref s1 (Stored Uint8) -- seqNum
+        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        ] :-> ())
+mkScaledImuSender =
+  proc "mavlink_scaled_imu_msg_send"
+  $ \msg seqNum sendArr -> body
+  $ do
   arr <- local (iarray [] :: Init (Array 22 (Stored Uint8)))
   let buf = toCArray arr
   call_ pack buf 0 =<< deref (msg ~> time_boot_ms)
@@ -68,7 +67,18 @@ scaledImuPack sender msg = do
   call_ pack buf 16 =<< deref (msg ~> xmag)
   call_ pack buf 18 =<< deref (msg ~> ymag)
   call_ pack buf 20 =<< deref (msg ~> zmag)
-  sender scaledImuMsgId (constRef arr) scaledImuCrcExtra
+  -- 6: header len, 2: CRC len
+  if arrayLen sendArr < 6 + 22 + 2
+    then error "scaledImu payload is too large for 22 sender!"
+    else do -- Copy, leaving room for the payload
+            _ <- arrCopy sendArr arr 6
+            call_ mavlinkSendWithWriter
+                    scaledImuMsgId
+                    scaledImuCrcExtra
+                    22
+                    seqNum
+                    sendArr
+            retVoid
 
 instance MavlinkUnpackableMsg "scaled_imu_msg" where
     unpackMsg = ( scaledImuUnpack , scaledImuMsgId )

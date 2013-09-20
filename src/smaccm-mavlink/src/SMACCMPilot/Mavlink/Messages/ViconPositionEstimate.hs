@@ -15,6 +15,7 @@ import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
 import Ivory.Language
+import Ivory.Stdlib
 
 viconPositionEstimateMsgId :: Uint8
 viconPositionEstimateMsgId = 104
@@ -25,6 +26,8 @@ viconPositionEstimateCrcExtra = 56
 viconPositionEstimateModule :: Module
 viconPositionEstimateModule = package "mavlink_vicon_position_estimate_msg" $ do
   depend packModule
+  depend mavlinkSendModule
+  incl mkViconPositionEstimateSender
   incl viconPositionEstimateUnpack
   defStruct (Proxy :: Proxy "vicon_position_estimate_msg")
 
@@ -40,19 +43,15 @@ struct vicon_position_estimate_msg
   }
 |]
 
-mkViconPositionEstimateSender :: SizedMavlinkSender 32
-                       -> Def ('[ ConstRef s (Struct "vicon_position_estimate_msg") ] :-> ())
-mkViconPositionEstimateSender sender =
-  proc ("mavlink_vicon_position_estimate_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    noReturn $ viconPositionEstimatePack (senderMacro sender) msg
-
-instance MavlinkSendable "vicon_position_estimate_msg" 32 where
-  mkSender = mkViconPositionEstimateSender
-
-viconPositionEstimatePack :: SenderMacro cs (Stack cs) 32
-                  -> ConstRef s1 (Struct "vicon_position_estimate_msg")
-                  -> Ivory (AllocEffects cs) ()
-viconPositionEstimatePack sender msg = do
+mkViconPositionEstimateSender ::
+  Def ('[ ConstRef s0 (Struct "vicon_position_estimate_msg")
+        , Ref s1 (Stored Uint8) -- seqNum
+        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        ] :-> ())
+mkViconPositionEstimateSender =
+  proc "mavlink_vicon_position_estimate_msg_send"
+  $ \msg seqNum sendArr -> body
+  $ do
   arr <- local (iarray [] :: Init (Array 32 (Stored Uint8)))
   let buf = toCArray arr
   call_ pack buf 0 =<< deref (msg ~> usec)
@@ -62,7 +61,18 @@ viconPositionEstimatePack sender msg = do
   call_ pack buf 20 =<< deref (msg ~> roll)
   call_ pack buf 24 =<< deref (msg ~> pitch)
   call_ pack buf 28 =<< deref (msg ~> yaw)
-  sender viconPositionEstimateMsgId (constRef arr) viconPositionEstimateCrcExtra
+  -- 6: header len, 2: CRC len
+  if arrayLen sendArr < 6 + 32 + 2
+    then error "viconPositionEstimate payload is too large for 32 sender!"
+    else do -- Copy, leaving room for the payload
+            _ <- arrCopy sendArr arr 6
+            call_ mavlinkSendWithWriter
+                    viconPositionEstimateMsgId
+                    viconPositionEstimateCrcExtra
+                    32
+                    seqNum
+                    sendArr
+            retVoid
 
 instance MavlinkUnpackableMsg "vicon_position_estimate_msg" where
     unpackMsg = ( viconPositionEstimateUnpack , viconPositionEstimateMsgId )

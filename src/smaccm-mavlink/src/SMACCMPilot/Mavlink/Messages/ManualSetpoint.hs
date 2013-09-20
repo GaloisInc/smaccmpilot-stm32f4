@@ -15,6 +15,7 @@ import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
 import Ivory.Language
+import Ivory.Stdlib
 
 manualSetpointMsgId :: Uint8
 manualSetpointMsgId = 81
@@ -25,6 +26,8 @@ manualSetpointCrcExtra = 106
 manualSetpointModule :: Module
 manualSetpointModule = package "mavlink_manual_setpoint_msg" $ do
   depend packModule
+  depend mavlinkSendModule
+  incl mkManualSetpointSender
   incl manualSetpointUnpack
   defStruct (Proxy :: Proxy "manual_setpoint_msg")
 
@@ -40,19 +43,15 @@ struct manual_setpoint_msg
   }
 |]
 
-mkManualSetpointSender :: SizedMavlinkSender 22
-                       -> Def ('[ ConstRef s (Struct "manual_setpoint_msg") ] :-> ())
-mkManualSetpointSender sender =
-  proc ("mavlink_manual_setpoint_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    noReturn $ manualSetpointPack (senderMacro sender) msg
-
-instance MavlinkSendable "manual_setpoint_msg" 22 where
-  mkSender = mkManualSetpointSender
-
-manualSetpointPack :: SenderMacro cs (Stack cs) 22
-                  -> ConstRef s1 (Struct "manual_setpoint_msg")
-                  -> Ivory (AllocEffects cs) ()
-manualSetpointPack sender msg = do
+mkManualSetpointSender ::
+  Def ('[ ConstRef s0 (Struct "manual_setpoint_msg")
+        , Ref s1 (Stored Uint8) -- seqNum
+        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        ] :-> ())
+mkManualSetpointSender =
+  proc "mavlink_manual_setpoint_msg_send"
+  $ \msg seqNum sendArr -> body
+  $ do
   arr <- local (iarray [] :: Init (Array 22 (Stored Uint8)))
   let buf = toCArray arr
   call_ pack buf 0 =<< deref (msg ~> time_boot_ms)
@@ -62,7 +61,18 @@ manualSetpointPack sender msg = do
   call_ pack buf 16 =<< deref (msg ~> thrust)
   call_ pack buf 20 =<< deref (msg ~> mode_switch)
   call_ pack buf 21 =<< deref (msg ~> manual_override_switch)
-  sender manualSetpointMsgId (constRef arr) manualSetpointCrcExtra
+  -- 6: header len, 2: CRC len
+  if arrayLen sendArr < 6 + 22 + 2
+    then error "manualSetpoint payload is too large for 22 sender!"
+    else do -- Copy, leaving room for the payload
+            _ <- arrCopy sendArr arr 6
+            call_ mavlinkSendWithWriter
+                    manualSetpointMsgId
+                    manualSetpointCrcExtra
+                    22
+                    seqNum
+                    sendArr
+            retVoid
 
 instance MavlinkUnpackableMsg "manual_setpoint_msg" where
     unpackMsg = ( manualSetpointUnpack , manualSetpointMsgId )

@@ -15,6 +15,7 @@ import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
 import Ivory.Language
+import Ivory.Stdlib
 
 gpsRawIntMsgId :: Uint8
 gpsRawIntMsgId = 24
@@ -25,6 +26,8 @@ gpsRawIntCrcExtra = 24
 gpsRawIntModule :: Module
 gpsRawIntModule = package "mavlink_gps_raw_int_msg" $ do
   depend packModule
+  depend mavlinkSendModule
+  incl mkGpsRawIntSender
   incl gpsRawIntUnpack
   defStruct (Proxy :: Proxy "gps_raw_int_msg")
 
@@ -43,19 +46,15 @@ struct gps_raw_int_msg
   }
 |]
 
-mkGpsRawIntSender :: SizedMavlinkSender 30
-                       -> Def ('[ ConstRef s (Struct "gps_raw_int_msg") ] :-> ())
-mkGpsRawIntSender sender =
-  proc ("mavlink_gps_raw_int_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    noReturn $ gpsRawIntPack (senderMacro sender) msg
-
-instance MavlinkSendable "gps_raw_int_msg" 30 where
-  mkSender = mkGpsRawIntSender
-
-gpsRawIntPack :: SenderMacro cs (Stack cs) 30
-                  -> ConstRef s1 (Struct "gps_raw_int_msg")
-                  -> Ivory (AllocEffects cs) ()
-gpsRawIntPack sender msg = do
+mkGpsRawIntSender ::
+  Def ('[ ConstRef s0 (Struct "gps_raw_int_msg")
+        , Ref s1 (Stored Uint8) -- seqNum
+        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        ] :-> ())
+mkGpsRawIntSender =
+  proc "mavlink_gps_raw_int_msg_send"
+  $ \msg seqNum sendArr -> body
+  $ do
   arr <- local (iarray [] :: Init (Array 30 (Stored Uint8)))
   let buf = toCArray arr
   call_ pack buf 0 =<< deref (msg ~> time_usec)
@@ -68,7 +67,18 @@ gpsRawIntPack sender msg = do
   call_ pack buf 26 =<< deref (msg ~> cog)
   call_ pack buf 28 =<< deref (msg ~> fix_type)
   call_ pack buf 29 =<< deref (msg ~> satellites_visible)
-  sender gpsRawIntMsgId (constRef arr) gpsRawIntCrcExtra
+  -- 6: header len, 2: CRC len
+  if arrayLen sendArr < 6 + 30 + 2
+    then error "gpsRawInt payload is too large for 30 sender!"
+    else do -- Copy, leaving room for the payload
+            _ <- arrCopy sendArr arr 6
+            call_ mavlinkSendWithWriter
+                    gpsRawIntMsgId
+                    gpsRawIntCrcExtra
+                    30
+                    seqNum
+                    sendArr
+            retVoid
 
 instance MavlinkUnpackableMsg "gps_raw_int_msg" where
     unpackMsg = ( gpsRawIntUnpack , gpsRawIntMsgId )

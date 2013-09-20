@@ -15,6 +15,7 @@ import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
 import Ivory.Language
+import Ivory.Stdlib
 
 setLocalPositionSetpointMsgId :: Uint8
 setLocalPositionSetpointMsgId = 50
@@ -25,6 +26,8 @@ setLocalPositionSetpointCrcExtra = 214
 setLocalPositionSetpointModule :: Module
 setLocalPositionSetpointModule = package "mavlink_set_local_position_setpoint_msg" $ do
   depend packModule
+  depend mavlinkSendModule
+  incl mkSetLocalPositionSetpointSender
   incl setLocalPositionSetpointUnpack
   defStruct (Proxy :: Proxy "set_local_position_setpoint_msg")
 
@@ -40,19 +43,15 @@ struct set_local_position_setpoint_msg
   }
 |]
 
-mkSetLocalPositionSetpointSender :: SizedMavlinkSender 19
-                       -> Def ('[ ConstRef s (Struct "set_local_position_setpoint_msg") ] :-> ())
-mkSetLocalPositionSetpointSender sender =
-  proc ("mavlink_set_local_position_setpoint_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    noReturn $ setLocalPositionSetpointPack (senderMacro sender) msg
-
-instance MavlinkSendable "set_local_position_setpoint_msg" 19 where
-  mkSender = mkSetLocalPositionSetpointSender
-
-setLocalPositionSetpointPack :: SenderMacro cs (Stack cs) 19
-                  -> ConstRef s1 (Struct "set_local_position_setpoint_msg")
-                  -> Ivory (AllocEffects cs) ()
-setLocalPositionSetpointPack sender msg = do
+mkSetLocalPositionSetpointSender ::
+  Def ('[ ConstRef s0 (Struct "set_local_position_setpoint_msg")
+        , Ref s1 (Stored Uint8) -- seqNum
+        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        ] :-> ())
+mkSetLocalPositionSetpointSender =
+  proc "mavlink_set_local_position_setpoint_msg_send"
+  $ \msg seqNum sendArr -> body
+  $ do
   arr <- local (iarray [] :: Init (Array 19 (Stored Uint8)))
   let buf = toCArray arr
   call_ pack buf 0 =<< deref (msg ~> x)
@@ -62,7 +61,18 @@ setLocalPositionSetpointPack sender msg = do
   call_ pack buf 16 =<< deref (msg ~> target_system)
   call_ pack buf 17 =<< deref (msg ~> target_component)
   call_ pack buf 18 =<< deref (msg ~> coordinate_frame)
-  sender setLocalPositionSetpointMsgId (constRef arr) setLocalPositionSetpointCrcExtra
+  -- 6: header len, 2: CRC len
+  if arrayLen sendArr < 6 + 19 + 2
+    then error "setLocalPositionSetpoint payload is too large for 19 sender!"
+    else do -- Copy, leaving room for the payload
+            _ <- arrCopy sendArr arr 6
+            call_ mavlinkSendWithWriter
+                    setLocalPositionSetpointMsgId
+                    setLocalPositionSetpointCrcExtra
+                    19
+                    seqNum
+                    sendArr
+            retVoid
 
 instance MavlinkUnpackableMsg "set_local_position_setpoint_msg" where
     unpackMsg = ( setLocalPositionSetpointUnpack , setLocalPositionSetpointMsgId )

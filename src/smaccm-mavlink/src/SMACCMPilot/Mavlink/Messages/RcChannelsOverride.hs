@@ -15,6 +15,7 @@ import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
 import Ivory.Language
+import Ivory.Stdlib
 
 rcChannelsOverrideMsgId :: Uint8
 rcChannelsOverrideMsgId = 70
@@ -25,6 +26,8 @@ rcChannelsOverrideCrcExtra = 124
 rcChannelsOverrideModule :: Module
 rcChannelsOverrideModule = package "mavlink_rc_channels_override_msg" $ do
   depend packModule
+  depend mavlinkSendModule
+  incl mkRcChannelsOverrideSender
   incl rcChannelsOverrideUnpack
   defStruct (Proxy :: Proxy "rc_channels_override_msg")
 
@@ -43,19 +46,15 @@ struct rc_channels_override_msg
   }
 |]
 
-mkRcChannelsOverrideSender :: SizedMavlinkSender 18
-                       -> Def ('[ ConstRef s (Struct "rc_channels_override_msg") ] :-> ())
-mkRcChannelsOverrideSender sender =
-  proc ("mavlink_rc_channels_override_msg_send" ++ (senderName sender)) $ \msg -> body $ do
-    noReturn $ rcChannelsOverridePack (senderMacro sender) msg
-
-instance MavlinkSendable "rc_channels_override_msg" 18 where
-  mkSender = mkRcChannelsOverrideSender
-
-rcChannelsOverridePack :: SenderMacro cs (Stack cs) 18
-                  -> ConstRef s1 (Struct "rc_channels_override_msg")
-                  -> Ivory (AllocEffects cs) ()
-rcChannelsOverridePack sender msg = do
+mkRcChannelsOverrideSender ::
+  Def ('[ ConstRef s0 (Struct "rc_channels_override_msg")
+        , Ref s1 (Stored Uint8) -- seqNum
+        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        ] :-> ())
+mkRcChannelsOverrideSender =
+  proc "mavlink_rc_channels_override_msg_send"
+  $ \msg seqNum sendArr -> body
+  $ do
   arr <- local (iarray [] :: Init (Array 18 (Stored Uint8)))
   let buf = toCArray arr
   call_ pack buf 0 =<< deref (msg ~> chan1_raw)
@@ -68,7 +67,18 @@ rcChannelsOverridePack sender msg = do
   call_ pack buf 14 =<< deref (msg ~> chan8_raw)
   call_ pack buf 16 =<< deref (msg ~> target_system)
   call_ pack buf 17 =<< deref (msg ~> target_component)
-  sender rcChannelsOverrideMsgId (constRef arr) rcChannelsOverrideCrcExtra
+  -- 6: header len, 2: CRC len
+  if arrayLen sendArr < 6 + 18 + 2
+    then error "rcChannelsOverride payload is too large for 18 sender!"
+    else do -- Copy, leaving room for the payload
+            _ <- arrCopy sendArr arr 6
+            call_ mavlinkSendWithWriter
+                    rcChannelsOverrideMsgId
+                    rcChannelsOverrideCrcExtra
+                    18
+                    seqNum
+                    sendArr
+            retVoid
 
 instance MavlinkUnpackableMsg "rc_channels_override_msg" where
     unpackMsg = ( rcChannelsOverrideUnpack , rcChannelsOverrideMsgId )
