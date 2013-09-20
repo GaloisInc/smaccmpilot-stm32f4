@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include "commsec.h"
 
-commsec_ctx uav, base;
+commsec_ctx uavCtx, baseCtx;
 
 // Proxy type
 /* typedef uint8_t commsec_ctx_proxy; */

@@ -9,8 +9,8 @@ module Main where
 import           Text.Printf
 import           System.Environment
 import           Control.Monad
-import qualified Network.Simple.TCP         as S
 import qualified Network.Socket             as N
+import qualified Network.Simple.TCP         as S
 import qualified System.Hardware.Serialport as P
 import qualified Control.Concurrent         as C
 import qualified Control.Concurrent.MVar    as M
@@ -18,12 +18,15 @@ import qualified Data.ByteString            as B
 import           Data.Word
 import qualified Data.HXStream              as H
 import           Commsec
-import           Mavlink.Parser
+import qualified Mavlink.Parser             as L
+
+-- XXX
+import Data.Maybe
 
 --------------------------------------------------------------------------------
 -- State machine for collecting bytes and encrypting/decrypting them.
 
--- Number of bytes we're going to encrypt: 128 chunks minus 8 bytes for the
+-- Number of bytes in a message: 128 chunks minus 8 bytes for the
 -- header (stationID | counter) and 8 bytes for the tag.
 pkgLen, msgLen :: Int
 pkgLen = 128
@@ -51,9 +54,8 @@ type MVar = M.MVar B.ByteString
 
 -- | Parse Mavlink packets.  Returns the parsed packets and the rest of the
 -- bytestream.  Packets that are too big or malformed are dropped.
-parseMavLinkStream :: ParseSt -> B.ByteString -> ProcessSt
-parseMavLinkStream = parseStream m
-
+parseMavLinkStream :: L.ParseSt -> B.ByteString -> L.ProcessSt
+parseMavLinkStream = L.parseStream m
   where
   -- mkPkt = padMsg . B.pack
   m = if fromIntegral (maxBound :: Word8) < pkgLen
@@ -98,7 +100,8 @@ encrypt ctx bs = do
 streamDecode ::
      IO (Maybe B.ByteString)                   -- ^ bytestream source channel
   -> (B.ByteString -> IO (Maybe B.ByteString)) -- ^ decryption
-  -> (B.ByteString -> IO ())                   -- ^ sink channel for decrypted msgs
+  -> (B.ByteString -> IO ())                   -- ^ sink channel for decrypted
+                                               -- msgs
   -> IO ()
 streamDecode rx dec tx = loop H.emptyStreamState
   where
@@ -129,28 +132,32 @@ streamEncode ::
   -> (B.ByteString -> IO (Maybe B.ByteString)) -- ^ encryption
   -> (B.ByteString -> IO ())                   -- ^ bytestream sink channel
   -> IO ()
-streamEncode rx enc tx = loop emptyParseSt
+streamEncode rx enc tx = loop L.emptyParseSt
   where
-  loop :: ParseSt -> IO ()
+  loop :: L.ParseSt -> IO ()
   loop ps =
-    -- Yield if rx doesn't yield any bytes
+    -- Yield if rx doesn't yield any bytes.
     maybe (C.yield >> loop ps) withMsg =<< rx
     where
-    encode = H.encode . B.unpack
 
+    -- We got a bytestring; process it.
     withMsg :: B.ByteString -> IO ()
     withMsg msg = do
       let (errs, packets, ps') = parseMavLinkStream ps msg
       when (not $ null errs)
         $ putStrLn ("Warning: mavlink parse errors: " ++ show errs)
       mapM_ go packets >> loop ps'
+--    withMsg msg = go (B.unpack msg) >> loop ps
 
       where
       go :: [Word8] -> IO ()
       go = goEnc . B.pack
+
       -- Try to encrypt and encode then transmit.
       goEnc :: B.ByteString -> IO ()
       goEnc mav = enc mav >>= maybe (return ()) (tx . encode)
+
+      encode = H.encode . B.unpack
 
 --------------------------------------------------------------------------------
 -- Set up TCP server for mavproxy
@@ -185,6 +192,7 @@ runSerial :: FilePath
           -> IO ()
 runSerial port fromMavMVar fromSerMVar =
   S.serve (S.Host "127.0.0.1") "6001" $ \(testSocket, _) -> do
+--  P.withSerial port P.defaultSerialSettings { P.commSpeed = speed } $ \s -> do
     putStrLn "Connected to testing client..."
     ctx <- initializeUAV
     _  <- C.forkIO $ streamDecode
@@ -196,19 +204,6 @@ runSerial port fromMavMVar fromSerMVar =
       (encrypt ctx)
       (M.putMVar fromSerMVar)
 
--- -- runSerialTest "/dev/ttyUSB0"
--- runSerialTest :: FilePath -> IO ()
--- runSerialTest port =
---   P.withSerial port P.defaultSerialSettings { P.commSpeed = speed } $ \s -> do
---     putStrLn "Connected to testing client..."
---     loop emptyParseSt s
---     where
---     loop ps s = do
---       rx <- P.recv s maxBytes
---       let (errs, packets, ps') = parseMavLinkStream ps rx
---       when (not $ null $ errs) $  putStrLn ("errs " ++ unlines errs)
---       when (not $ null $ packets) $ putStrLn ("packets " ++ show packets)
---       loop ps' s
 
 --------------------------------------------------------------------------------
 
@@ -264,3 +259,45 @@ theTimeout = 100
 
 maybeUnit :: (a -> IO b) -> Maybe a -> IO ()
 maybeUnit f = maybe (return ()) (void . f)
+
+--------------------------------------------------------------------------------
+
+-- Testing: just parse the mavlink messages from serial.
+-- runSerialTest "/dev/ttyUSB0"
+-- runSerialTest :: FilePath -> IO ()
+-- runSerialTest port =
+--   P.withSerial port P.defaultSerialSettings { P.commSpeed = speed } $ \s -> do
+--     putStrLn "Connected to testing client..."
+--     ctx <- initializeBase
+--     loop ctx H.emptyStreamState s
+--     where
+--     loop ctx hxSt s = do
+--       rx <- P.recv s maxBytes
+--       putStrLn $ "got " ++ show (B.length rx) ++ " bytes"
+--       when (not $ B.null rx) (putStrLn $ "   bytes: "
+--                                  ++ show (B.unpack $ B.take 12 rx))
+--       let (frames, hxSt') = H.decode rx hxSt
+--       mfrs <- mapM (decrypt ctx) frames
+--       when (length (catMaybes mfrs) /= length frames) (putStrLn "bad decrypt")
+--       mapM_ parseFrame (catMaybes mfrs)
+
+--       loop ctx hxSt' s
+
+--     parseFrame fr = do
+--       let (errs, packets, _) = L.parseStream 128 L.emptyParseSt fr
+--       when (not $ null $ errs) $  putStrLn ("errs " ++ unlines errs)
+--       when (not $ null $ packets) $ putStrLn ("packets " ++ show packets)
+
+-- Testing: just parse the mavlink packets: no hx, no crypto.
+runSerialTest :: FilePath -> IO ()
+runSerialTest port =
+  P.withSerial port P.defaultSerialSettings { P.commSpeed = speed } $ \s -> do
+    putStrLn "Connected to testing client..."
+    loop L.emptyParseSt s
+    where
+    loop ps s = do
+      rx <- P.recv s maxBytes
+      let (errs, packets, ps') = L.parseStream 128 ps rx
+      when (not $ null $ errs) $  putStrLn ("errs " ++ unlines errs)
+      when (not $ null $ packets) $ putStrLn ("packets " ++ show packets)
+      loop ps' s

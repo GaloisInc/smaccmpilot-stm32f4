@@ -105,7 +105,6 @@ securePkg_dec = importProc "securePkg_dec" commsec
 -- Contexts.  They're areas so thay can be shared by different tasks.
 uavCtx :: MemArea Commsec_ctx_proxy
 uavCtx  = importArea "uavCtx"  ivoryCommsec
---base = importArea "base" ivoryCommsec
 
 uavID :: Uint32
 uavID  = 0
@@ -137,11 +136,11 @@ commsecModule = package "IvoryGCM" $ do
 
   defConstMemArea uavToBaseKey
   defConstMemArea baseToUavKey
+  defMemArea uavCtx
 
   inclHeader ivoryCommsec
   incl securePkg_init
   incl securePkg_enc_in_place
-  -- defMemArea uavPkg
 
 --------------------------------------------------------------------------------
 

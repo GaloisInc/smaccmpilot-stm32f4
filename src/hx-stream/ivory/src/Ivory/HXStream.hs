@@ -111,10 +111,10 @@ decodeSM state b = do
 -- is full (2) a stop byte is encountered (the input array may contain hxstream
 -- frame boundaries).  An index to the first byte not decoded is returned.  The
 -- index may overflow, and point to 0 if the full input array is processed.
-decode :: SingI n =>
-       Def ( '[ Ref s (Array n (Stored Uint8))
-              , Ref s Hx
-              ] :-> Ix n)
+decode :: SingI n
+       => Def ( '[ Ref s (Array n (Stored Uint8))
+                 , Ref s Hx
+                 ] :-> Ix n)
 decode = proc "decode" $ \from state -> body $ do
   arrayMap $ \ix -> do
     v    <- deref (from ! ix)
@@ -137,7 +137,7 @@ hxstreamTypeModule = package "hxstream_type" $
 encode :: Def ( '[ Ref s (Array 128 (Stored Uint8)) -- From array
                  , Ref s' (Array 258 (Stored Uint8)) -- To array
                  ]
-                :-> ())
+                 :-> ())
 encode = proc "encode" $ \from to -> body $ do
   off <- local (ival (0::Ix 258))
   -- start byte
