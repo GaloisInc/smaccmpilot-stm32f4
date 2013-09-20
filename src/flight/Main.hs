@@ -31,6 +31,8 @@ import SMACCMPilot.Flight.GCS.Commsec
 import SMACCMPilot.Console (consoleModule)
 
 import SMACCMPilot.Mavlink.Messages (mavlinkMessageModules)
+import SMACCMPilot.Mavlink.Send (mavlinkSendModule)
+import SMACCMPilot.Flight.GCS.Transmit.MessageDriver (senderModules)
 import SMACCMPilot.Mavlink.Pack (packModule)
 import SMACCMPilot.Mavlink.CRC (mavlinkCRCModule)
 
@@ -106,4 +108,8 @@ otherms = concat
   , stdlibStringModule
   -- crypto
   , commsecModule
+
+  , senderModules
+  , mavlinkSendModule
   ]
+
