@@ -52,7 +52,7 @@ mkCommandAckSender =
   call_ pack buf 0 =<< deref (msg ~> command)
   call_ pack buf 2 =<< deref (msg ~> result)
   -- 6: header len, 2: CRC len
-  if arrayLen sendArr < 6 + 3 + 2
+  if arrayLen sendArr < (6 + 3 + 2 :: Integer)
     then error "commandAck payload is too large for 3 sender!"
     else do -- Copy, leaving room for the payload
             _ <- arrCopy sendArr arr 6

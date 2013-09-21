@@ -58,7 +58,7 @@ mkRawPressureSender =
   call_ pack buf 12 =<< deref (msg ~> press_diff2)
   call_ pack buf 14 =<< deref (msg ~> temperature)
   -- 6: header len, 2: CRC len
-  if arrayLen sendArr < 6 + 16 + 2
+  if arrayLen sendArr < (6 + 16 + 2 :: Integer)
     then error "rawPressure payload is too large for 16 sender!"
     else do -- Copy, leaving room for the payload
             _ <- arrCopy sendArr arr 6

@@ -78,7 +78,7 @@ mkHighresImuSender =
   call_ pack buf 56 =<< deref (msg ~> temperature)
   call_ pack buf 60 =<< deref (msg ~> fields_updated)
   -- 6: header len, 2: CRC len
-  if arrayLen sendArr < 6 + 62 + 2
+  if arrayLen sendArr < (6 + 62 + 2 :: Integer)
     then error "highresImu payload is too large for 62 sender!"
     else do -- Copy, leaving room for the payload
             _ <- arrCopy sendArr arr 6

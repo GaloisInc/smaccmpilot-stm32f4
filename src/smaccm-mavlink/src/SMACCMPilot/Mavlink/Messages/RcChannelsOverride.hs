@@ -68,7 +68,7 @@ mkRcChannelsOverrideSender =
   call_ pack buf 16 =<< deref (msg ~> target_system)
   call_ pack buf 17 =<< deref (msg ~> target_component)
   -- 6: header len, 2: CRC len
-  if arrayLen sendArr < 6 + 18 + 2
+  if arrayLen sendArr < (6 + 18 + 2 :: Integer)
     then error "rcChannelsOverride payload is too large for 18 sender!"
     else do -- Copy, leaving room for the payload
             _ <- arrCopy sendArr arr 6

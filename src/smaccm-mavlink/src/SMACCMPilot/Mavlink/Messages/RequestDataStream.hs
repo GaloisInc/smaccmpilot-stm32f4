@@ -58,7 +58,7 @@ mkRequestDataStreamSender =
   call_ pack buf 4 =<< deref (msg ~> req_stream_id)
   call_ pack buf 5 =<< deref (msg ~> start_stop)
   -- 6: header len, 2: CRC len
-  if arrayLen sendArr < 6 + 6 + 2
+  if arrayLen sendArr < (6 + 6 + 2 :: Integer)
     then error "requestDataStream payload is too large for 6 sender!"
     else do -- Copy, leaving room for the payload
             _ <- arrCopy sendArr arr 6

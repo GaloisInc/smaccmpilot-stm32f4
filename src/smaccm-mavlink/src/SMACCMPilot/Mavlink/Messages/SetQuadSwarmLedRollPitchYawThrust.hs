@@ -66,7 +66,7 @@ mkSetQuadSwarmLedRollPitchYawThrustSender =
   arrayPack buf 38 (msg ~> led_blue)
   arrayPack buf 42 (msg ~> led_green)
   -- 6: header len, 2: CRC len
-  if arrayLen sendArr < 6 + 46 + 2
+  if arrayLen sendArr < (6 + 46 + 2 :: Integer)
     then error "setQuadSwarmLedRollPitchYawThrust payload is too large for 46 sender!"
     else do -- Copy, leaving room for the payload
             _ <- arrCopy sendArr arr 6

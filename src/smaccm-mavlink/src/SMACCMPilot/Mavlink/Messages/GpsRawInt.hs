@@ -68,7 +68,7 @@ mkGpsRawIntSender =
   call_ pack buf 28 =<< deref (msg ~> fix_type)
   call_ pack buf 29 =<< deref (msg ~> satellites_visible)
   -- 6: header len, 2: CRC len
-  if arrayLen sendArr < 6 + 30 + 2
+  if arrayLen sendArr < (6 + 30 + 2 :: Integer)
     then error "gpsRawInt payload is too large for 30 sender!"
     else do -- Copy, leaving room for the payload
             _ <- arrCopy sendArr arr 6

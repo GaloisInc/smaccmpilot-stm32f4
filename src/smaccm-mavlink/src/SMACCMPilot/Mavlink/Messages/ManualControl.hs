@@ -60,7 +60,7 @@ mkManualControlSender =
   call_ pack buf 8 =<< deref (msg ~> buttons)
   call_ pack buf 10 =<< deref (msg ~> target)
   -- 6: header len, 2: CRC len
-  if arrayLen sendArr < 6 + 11 + 2
+  if arrayLen sendArr < (6 + 11 + 2 :: Integer)
     then error "manualControl payload is too large for 11 sender!"
     else do -- Copy, leaving room for the payload
             _ <- arrCopy sendArr arr 6

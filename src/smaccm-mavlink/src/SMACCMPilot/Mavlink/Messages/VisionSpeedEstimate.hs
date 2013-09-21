@@ -56,7 +56,7 @@ mkVisionSpeedEstimateSender =
   call_ pack buf 12 =<< deref (msg ~> y)
   call_ pack buf 16 =<< deref (msg ~> z)
   -- 6: header len, 2: CRC len
-  if arrayLen sendArr < 6 + 20 + 2
+  if arrayLen sendArr < (6 + 20 + 2 :: Integer)
     then error "visionSpeedEstimate payload is too large for 20 sender!"
     else do -- Copy, leaving room for the payload
             _ <- arrCopy sendArr arr 6

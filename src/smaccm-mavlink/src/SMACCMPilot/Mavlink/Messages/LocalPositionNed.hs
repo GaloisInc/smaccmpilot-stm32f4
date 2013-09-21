@@ -62,7 +62,7 @@ mkLocalPositionNedSender =
   call_ pack buf 20 =<< deref (msg ~> vy)
   call_ pack buf 24 =<< deref (msg ~> vz)
   -- 6: header len, 2: CRC len
-  if arrayLen sendArr < 6 + 28 + 2
+  if arrayLen sendArr < (6 + 28 + 2 :: Integer)
     then error "localPositionNed payload is too large for 28 sender!"
     else do -- Copy, leaving room for the payload
             _ <- arrCopy sendArr arr 6

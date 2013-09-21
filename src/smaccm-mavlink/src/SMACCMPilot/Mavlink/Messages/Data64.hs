@@ -54,7 +54,7 @@ mkData64Sender =
   call_ pack buf 1 =<< deref (msg ~> len)
   arrayPack buf 2 (msg ~> data64)
   -- 6: header len, 2: CRC len
-  if arrayLen sendArr < 6 + 66 + 2
+  if arrayLen sendArr < (6 + 66 + 2 :: Integer)
     then error "data64 payload is too large for 66 sender!"
     else do -- Copy, leaving room for the payload
             _ <- arrCopy sendArr arr 6

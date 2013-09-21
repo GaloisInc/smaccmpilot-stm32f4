@@ -54,7 +54,7 @@ mkSetModeSender =
   call_ pack buf 4 =<< deref (msg ~> target_system)
   call_ pack buf 5 =<< deref (msg ~> base_mode)
   -- 6: header len, 2: CRC len
-  if arrayLen sendArr < 6 + 6 + 2
+  if arrayLen sendArr < (6 + 6 + 2 :: Integer)
     then error "setMode payload is too large for 6 sender!"
     else do -- Copy, leaving room for the payload
             _ <- arrCopy sendArr arr 6

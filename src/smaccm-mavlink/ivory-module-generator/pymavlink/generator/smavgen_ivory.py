@@ -180,7 +180,7 @@ mk${name_module}Sender =
   let buf = toCArray arr
   ${packing}
   -- 6: header len, 2: CRC len
-  if arrayLen sendArr < 6 + ${wire_length} + 2
+  if arrayLen sendArr < (6 + ${wire_length} + 2 :: Integer)
     then error "${name_camel} payload is too large for ${wire_length} sender!"
     else do -- Copy, leaving room for the payload
             _ <- arrCopy sendArr arr 6

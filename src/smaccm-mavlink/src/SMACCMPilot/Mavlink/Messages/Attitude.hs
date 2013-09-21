@@ -62,7 +62,7 @@ mkAttitudeSender =
   call_ pack buf 20 =<< deref (msg ~> pitchspeed)
   call_ pack buf 24 =<< deref (msg ~> yawspeed)
   -- 6: header len, 2: CRC len
-  if arrayLen sendArr < 6 + 28 + 2
+  if arrayLen sendArr < (6 + 28 + 2 :: Integer)
     then error "attitude payload is too large for 28 sender!"
     else do -- Copy, leaving room for the payload
             _ <- arrCopy sendArr arr 6

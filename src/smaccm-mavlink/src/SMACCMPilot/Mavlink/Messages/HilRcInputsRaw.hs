@@ -76,7 +76,7 @@ mkHilRcInputsRawSender =
   call_ pack buf 30 =<< deref (msg ~> chan12_raw)
   call_ pack buf 32 =<< deref (msg ~> rssi)
   -- 6: header len, 2: CRC len
-  if arrayLen sendArr < 6 + 33 + 2
+  if arrayLen sendArr < (6 + 33 + 2 :: Integer)
     then error "hilRcInputsRaw payload is too large for 33 sender!"
     else do -- Copy, leaving room for the payload
             _ <- arrCopy sendArr arr 6

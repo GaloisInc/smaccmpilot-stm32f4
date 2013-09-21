@@ -58,7 +58,7 @@ mkDebugVectSender =
   call_ pack buf 16 =<< deref (msg ~> z)
   arrayPack buf 20 (msg ~> name)
   -- 6: header len, 2: CRC len
-  if arrayLen sendArr < 6 + 30 + 2
+  if arrayLen sendArr < (6 + 30 + 2 :: Integer)
     then error "debugVect payload is too large for 30 sender!"
     else do -- Copy, leaving room for the payload
             _ <- arrCopy sendArr arr 6

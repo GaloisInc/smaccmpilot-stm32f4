@@ -56,7 +56,7 @@ mkPingSender =
   call_ pack buf 12 =<< deref (msg ~> target_system)
   call_ pack buf 13 =<< deref (msg ~> target_component)
   -- 6: header len, 2: CRC len
-  if arrayLen sendArr < 6 + 14 + 2
+  if arrayLen sendArr < (6 + 14 + 2 :: Integer)
     then error "ping payload is too large for 14 sender!"
     else do -- Copy, leaving room for the payload
             _ <- arrCopy sendArr arr 6

@@ -56,7 +56,7 @@ mkParamRequestReadSender =
   call_ pack buf 3 =<< deref (msg ~> target_component)
   arrayPack buf 4 (msg ~> param_id)
   -- 6: header len, 2: CRC len
-  if arrayLen sendArr < 6 + 20 + 2
+  if arrayLen sendArr < (6 + 20 + 2 :: Integer)
     then error "paramRequestRead payload is too large for 20 sender!"
     else do -- Copy, leaving room for the payload
             _ <- arrCopy sendArr arr 6

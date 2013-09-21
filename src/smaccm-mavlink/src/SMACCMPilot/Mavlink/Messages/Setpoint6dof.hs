@@ -62,7 +62,7 @@ mkSetpoint6dofSender =
   call_ pack buf 20 =<< deref (msg ~> rot_z)
   call_ pack buf 24 =<< deref (msg ~> target_system)
   -- 6: header len, 2: CRC len
-  if arrayLen sendArr < 6 + 25 + 2
+  if arrayLen sendArr < (6 + 25 + 2 :: Integer)
     then error "setpoint6dof payload is too large for 25 sender!"
     else do -- Copy, leaving room for the payload
             _ <- arrCopy sendArr arr 6

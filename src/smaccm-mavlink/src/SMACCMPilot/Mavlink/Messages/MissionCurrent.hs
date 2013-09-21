@@ -50,7 +50,7 @@ mkMissionCurrentSender =
   let buf = toCArray arr
   call_ pack buf 0 =<< deref (msg ~> mission_current_seq)
   -- 6: header len, 2: CRC len
-  if arrayLen sendArr < 6 + 2 + 2
+  if arrayLen sendArr < (6 + 2 + 2 :: Integer)
     then error "missionCurrent payload is too large for 2 sender!"
     else do -- Copy, leaving room for the payload
             _ <- arrCopy sendArr arr 6

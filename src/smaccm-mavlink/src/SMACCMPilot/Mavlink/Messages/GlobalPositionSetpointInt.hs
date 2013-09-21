@@ -58,7 +58,7 @@ mkGlobalPositionSetpointIntSender =
   call_ pack buf 12 =<< deref (msg ~> yaw)
   call_ pack buf 14 =<< deref (msg ~> coordinate_frame)
   -- 6: header len, 2: CRC len
-  if arrayLen sendArr < 6 + 15 + 2
+  if arrayLen sendArr < (6 + 15 + 2 :: Integer)
     then error "globalPositionSetpointInt payload is too large for 15 sender!"
     else do -- Copy, leaving room for the payload
             _ <- arrCopy sendArr arr 6

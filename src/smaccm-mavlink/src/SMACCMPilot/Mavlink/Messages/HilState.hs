@@ -80,7 +80,7 @@ mkHilStateSender =
   call_ pack buf 52 =<< deref (msg ~> yacc)
   call_ pack buf 54 =<< deref (msg ~> zacc)
   -- 6: header len, 2: CRC len
-  if arrayLen sendArr < 6 + 56 + 2
+  if arrayLen sendArr < (6 + 56 + 2 :: Integer)
     then error "hilState payload is too large for 56 sender!"
     else do -- Copy, leaving room for the payload
             _ <- arrCopy sendArr arr 6

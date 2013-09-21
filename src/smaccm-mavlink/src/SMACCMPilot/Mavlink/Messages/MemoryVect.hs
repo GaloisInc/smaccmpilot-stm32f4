@@ -56,7 +56,7 @@ mkMemoryVectSender =
   call_ pack buf 3 =<< deref (msg ~> memory_vect_type)
   arrayPack buf 4 (msg ~> value)
   -- 6: header len, 2: CRC len
-  if arrayLen sendArr < 6 + 36 + 2
+  if arrayLen sendArr < (6 + 36 + 2 :: Integer)
     then error "memoryVect payload is too large for 36 sender!"
     else do -- Copy, leaving room for the payload
             _ <- arrCopy sendArr arr 6

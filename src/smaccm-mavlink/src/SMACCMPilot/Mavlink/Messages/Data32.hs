@@ -54,7 +54,7 @@ mkData32Sender =
   call_ pack buf 1 =<< deref (msg ~> len)
   arrayPack buf 2 (msg ~> data32)
   -- 6: header len, 2: CRC len
-  if arrayLen sendArr < 6 + 34 + 2
+  if arrayLen sendArr < (6 + 34 + 2 :: Integer)
     then error "data32 payload is too large for 34 sender!"
     else do -- Copy, leaving room for the payload
             _ <- arrCopy sendArr arr 6

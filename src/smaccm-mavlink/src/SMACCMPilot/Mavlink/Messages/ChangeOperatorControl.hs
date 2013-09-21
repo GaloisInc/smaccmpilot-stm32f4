@@ -56,7 +56,7 @@ mkChangeOperatorControlSender =
   call_ pack buf 2 =<< deref (msg ~> version)
   arrayPack buf 3 (msg ~> passkey)
   -- 6: header len, 2: CRC len
-  if arrayLen sendArr < 6 + 28 + 2
+  if arrayLen sendArr < (6 + 28 + 2 :: Integer)
     then error "changeOperatorControl payload is too large for 28 sender!"
     else do -- Copy, leaving room for the payload
             _ <- arrCopy sendArr arr 6

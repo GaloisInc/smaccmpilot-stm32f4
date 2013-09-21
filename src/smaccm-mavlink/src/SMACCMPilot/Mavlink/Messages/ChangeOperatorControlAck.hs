@@ -54,7 +54,7 @@ mkChangeOperatorControlAckSender =
   call_ pack buf 1 =<< deref (msg ~> control_request)
   call_ pack buf 2 =<< deref (msg ~> ack)
   -- 6: header len, 2: CRC len
-  if arrayLen sendArr < 6 + 3 + 2
+  if arrayLen sendArr < (6 + 3 + 2 :: Integer)
     then error "changeOperatorControlAck payload is too large for 3 sender!"
     else do -- Copy, leaving room for the payload
             _ <- arrCopy sendArr arr 6

@@ -54,7 +54,7 @@ mkMissionAckSender =
   call_ pack buf 1 =<< deref (msg ~> target_component)
   call_ pack buf 2 =<< deref (msg ~> mission_ack_type)
   -- 6: header len, 2: CRC len
-  if arrayLen sendArr < 6 + 3 + 2
+  if arrayLen sendArr < (6 + 3 + 2 :: Integer)
     then error "missionAck payload is too large for 3 sender!"
     else do -- Copy, leaving room for the payload
             _ <- arrCopy sendArr arr 6

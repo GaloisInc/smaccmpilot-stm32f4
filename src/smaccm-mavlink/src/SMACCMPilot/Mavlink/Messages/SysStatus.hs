@@ -74,7 +74,7 @@ mkSysStatusSender =
   call_ pack buf 28 =<< deref (msg ~> errors_count4)
   call_ pack buf 30 =<< deref (msg ~> battery_remaining)
   -- 6: header len, 2: CRC len
-  if arrayLen sendArr < 6 + 31 + 2
+  if arrayLen sendArr < (6 + 31 + 2 :: Integer)
     then error "sysStatus payload is too large for 31 sender!"
     else do -- Copy, leaving room for the payload
             _ <- arrCopy sendArr arr 6

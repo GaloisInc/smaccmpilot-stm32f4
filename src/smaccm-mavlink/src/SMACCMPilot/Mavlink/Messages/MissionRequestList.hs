@@ -52,7 +52,7 @@ mkMissionRequestListSender =
   call_ pack buf 0 =<< deref (msg ~> target_system)
   call_ pack buf 1 =<< deref (msg ~> target_component)
   -- 6: header len, 2: CRC len
-  if arrayLen sendArr < 6 + 2 + 2
+  if arrayLen sendArr < (6 + 2 + 2 :: Integer)
     then error "missionRequestList payload is too large for 2 sender!"
     else do -- Copy, leaving room for the payload
             _ <- arrCopy sendArr arr 6

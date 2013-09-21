@@ -78,7 +78,7 @@ mavlinkSendWithWriter =
     mavlinkChecksum sz crcExtra arr
 
 mavlinkSendModule :: Module
-mavlinkSendModule = package "mavlinkSendModule"
+mavlinkSendModule = package "mavlinkSendModule" $
   incl mavlinkSendWithWriter
 
 --------------------------------------------------------------------------------

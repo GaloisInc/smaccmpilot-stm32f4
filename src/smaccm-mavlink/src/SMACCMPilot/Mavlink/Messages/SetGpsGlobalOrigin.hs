@@ -56,7 +56,7 @@ mkSetGpsGlobalOriginSender =
   call_ pack buf 8 =<< deref (msg ~> altitude)
   call_ pack buf 12 =<< deref (msg ~> target_system)
   -- 6: header len, 2: CRC len
-  if arrayLen sendArr < 6 + 13 + 2
+  if arrayLen sendArr < (6 + 13 + 2 :: Integer)
     then error "setGpsGlobalOrigin payload is too large for 13 sender!"
     else do -- Copy, leaving room for the payload
             _ <- arrCopy sendArr arr 6

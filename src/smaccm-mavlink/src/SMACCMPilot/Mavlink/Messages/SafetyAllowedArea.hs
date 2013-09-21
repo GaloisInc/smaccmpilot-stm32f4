@@ -62,7 +62,7 @@ mkSafetyAllowedAreaSender =
   call_ pack buf 20 =<< deref (msg ~> p2z)
   call_ pack buf 24 =<< deref (msg ~> frame)
   -- 6: header len, 2: CRC len
-  if arrayLen sendArr < 6 + 25 + 2
+  if arrayLen sendArr < (6 + 25 + 2 :: Integer)
     then error "safetyAllowedArea payload is too large for 25 sender!"
     else do -- Copy, leaving room for the payload
             _ <- arrCopy sendArr arr 6

@@ -68,7 +68,7 @@ mkScaledImuSender =
   call_ pack buf 18 =<< deref (msg ~> ymag)
   call_ pack buf 20 =<< deref (msg ~> zmag)
   -- 6: header len, 2: CRC len
-  if arrayLen sendArr < 6 + 22 + 2
+  if arrayLen sendArr < (6 + 22 + 2 :: Integer)
     then error "scaledImu payload is too large for 22 sender!"
     else do -- Copy, leaving room for the payload
             _ <- arrCopy sendArr arr 6

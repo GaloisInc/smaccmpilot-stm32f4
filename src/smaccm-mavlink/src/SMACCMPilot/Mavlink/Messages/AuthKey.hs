@@ -50,7 +50,7 @@ mkAuthKeySender =
   let buf = toCArray arr
   arrayPack buf 0 (msg ~> key)
   -- 6: header len, 2: CRC len
-  if arrayLen sendArr < 6 + 32 + 2
+  if arrayLen sendArr < (6 + 32 + 2 :: Integer)
     then error "authKey payload is too large for 32 sender!"
     else do -- Copy, leaving room for the payload
             _ <- arrCopy sendArr arr 6

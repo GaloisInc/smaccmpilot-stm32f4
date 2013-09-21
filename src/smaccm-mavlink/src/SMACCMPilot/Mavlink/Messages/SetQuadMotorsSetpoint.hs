@@ -58,7 +58,7 @@ mkSetQuadMotorsSetpointSender =
   call_ pack buf 6 =<< deref (msg ~> motor_left_sw)
   call_ pack buf 8 =<< deref (msg ~> target_system)
   -- 6: header len, 2: CRC len
-  if arrayLen sendArr < 6 + 9 + 2
+  if arrayLen sendArr < (6 + 9 + 2 :: Integer)
     then error "setQuadMotorsSetpoint payload is too large for 9 sender!"
     else do -- Copy, leaving room for the payload
             _ <- arrCopy sendArr arr 6

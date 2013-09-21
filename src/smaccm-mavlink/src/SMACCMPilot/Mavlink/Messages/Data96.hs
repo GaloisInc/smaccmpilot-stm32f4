@@ -54,7 +54,7 @@ mkData96Sender =
   call_ pack buf 1 =<< deref (msg ~> len)
   arrayPack buf 2 (msg ~> data96)
   -- 6: header len, 2: CRC len
-  if arrayLen sendArr < 6 + 98 + 2
+  if arrayLen sendArr < (6 + 98 + 2 :: Integer)
     then error "data96 payload is too large for 98 sender!"
     else do -- Copy, leaving room for the payload
             _ <- arrCopy sendArr arr 6

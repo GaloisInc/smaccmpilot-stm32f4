@@ -66,7 +66,7 @@ mkStateCorrectionSender =
   call_ pack buf 28 =<< deref (msg ~> vyErr)
   call_ pack buf 32 =<< deref (msg ~> vzErr)
   -- 6: header len, 2: CRC len
-  if arrayLen sendArr < 6 + 36 + 2
+  if arrayLen sendArr < (6 + 36 + 2 :: Integer)
     then error "stateCorrection payload is too large for 36 sender!"
     else do -- Copy, leaving room for the payload
             _ <- arrCopy sendArr arr 6

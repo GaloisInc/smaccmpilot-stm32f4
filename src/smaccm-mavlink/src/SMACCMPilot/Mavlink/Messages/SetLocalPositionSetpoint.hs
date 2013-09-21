@@ -62,7 +62,7 @@ mkSetLocalPositionSetpointSender =
   call_ pack buf 17 =<< deref (msg ~> target_component)
   call_ pack buf 18 =<< deref (msg ~> coordinate_frame)
   -- 6: header len, 2: CRC len
-  if arrayLen sendArr < 6 + 19 + 2
+  if arrayLen sendArr < (6 + 19 + 2 :: Integer)
     then error "setLocalPositionSetpoint payload is too large for 19 sender!"
     else do -- Copy, leaving room for the payload
             _ <- arrCopy sendArr arr 6

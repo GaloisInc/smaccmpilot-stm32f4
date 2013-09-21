@@ -68,7 +68,7 @@ mkRawImuSender =
   call_ pack buf 22 =<< deref (msg ~> ymag)
   call_ pack buf 24 =<< deref (msg ~> zmag)
   -- 6: header len, 2: CRC len
-  if arrayLen sendArr < 6 + 26 + 2
+  if arrayLen sendArr < (6 + 26 + 2 :: Integer)
     then error "rawImu payload is too large for 26 sender!"
     else do -- Copy, leaving room for the payload
             _ <- arrCopy sendArr arr 6

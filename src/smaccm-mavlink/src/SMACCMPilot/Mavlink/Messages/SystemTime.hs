@@ -52,7 +52,7 @@ mkSystemTimeSender =
   call_ pack buf 0 =<< deref (msg ~> time_unix_usec)
   call_ pack buf 8 =<< deref (msg ~> time_boot_ms)
   -- 6: header len, 2: CRC len
-  if arrayLen sendArr < 6 + 12 + 2
+  if arrayLen sendArr < (6 + 12 + 2 :: Integer)
     then error "systemTime payload is too large for 12 sender!"
     else do -- Copy, leaving room for the payload
             _ <- arrCopy sendArr arr 6

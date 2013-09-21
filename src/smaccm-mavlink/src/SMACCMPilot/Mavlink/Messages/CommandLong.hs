@@ -70,7 +70,7 @@ mkCommandLongSender =
   call_ pack buf 31 =<< deref (msg ~> target_component)
   call_ pack buf 32 =<< deref (msg ~> confirmation)
   -- 6: header len, 2: CRC len
-  if arrayLen sendArr < 6 + 33 + 2
+  if arrayLen sendArr < (6 + 33 + 2 :: Integer)
     then error "commandLong payload is too large for 33 sender!"
     else do -- Copy, leaving room for the payload
             _ <- arrCopy sendArr arr 6

@@ -58,7 +58,7 @@ mkParamSetSender =
   call_ pack buf 22 =<< deref (msg ~> param_type)
   arrayPack buf 6 (msg ~> param_id)
   -- 6: header len, 2: CRC len
-  if arrayLen sendArr < 6 + 23 + 2
+  if arrayLen sendArr < (6 + 23 + 2 :: Integer)
     then error "paramSet payload is too large for 23 sender!"
     else do -- Copy, leaving room for the payload
             _ <- arrCopy sendArr arr 6
