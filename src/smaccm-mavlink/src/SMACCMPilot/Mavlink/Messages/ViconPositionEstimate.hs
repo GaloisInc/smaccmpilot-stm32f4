@@ -46,7 +46,7 @@ struct vicon_position_estimate_msg
 mkViconPositionEstimateSender ::
   Def ('[ ConstRef s0 (Struct "vicon_position_estimate_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        , Ref s1 MavlinkArray -- tx buffer
         ] :-> ())
 mkViconPositionEstimateSender =
   proc "mavlink_vicon_position_estimate_msg_send"

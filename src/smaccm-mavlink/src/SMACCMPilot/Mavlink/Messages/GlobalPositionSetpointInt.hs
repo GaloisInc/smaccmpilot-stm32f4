@@ -44,7 +44,7 @@ struct global_position_setpoint_int_msg
 mkGlobalPositionSetpointIntSender ::
   Def ('[ ConstRef s0 (Struct "global_position_setpoint_int_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        , Ref s1 MavlinkArray -- tx buffer
         ] :-> ())
 mkGlobalPositionSetpointIntSender =
   proc "mavlink_global_position_setpoint_int_msg_send"

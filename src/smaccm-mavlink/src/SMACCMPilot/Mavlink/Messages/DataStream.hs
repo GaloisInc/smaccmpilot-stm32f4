@@ -42,7 +42,7 @@ struct data_stream_msg
 mkDataStreamSender ::
   Def ('[ ConstRef s0 (Struct "data_stream_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        , Ref s1 MavlinkArray -- tx buffer
         ] :-> ())
 mkDataStreamSender =
   proc "mavlink_data_stream_msg_send"

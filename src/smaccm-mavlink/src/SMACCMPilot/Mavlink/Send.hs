@@ -15,11 +15,13 @@ import SMACCMPilot.Mavlink.CRC
 
 --------------------------------------------------------------------------------
 
+type MavlinkArray = Array 112 (Stored Uint8)
+
 mavlinkChecksum ::
      (GetAlloc eff ~ Scope cs)
   => Uint8
   -> Uint8
-  -> Ref s (Array 128 (Stored Uint8))
+  -> Ref s MavlinkArray
   -> Ivory eff ()
 mavlinkChecksum sz crcextra arr = do
   ck <- local (ival crc_init_v)
@@ -52,7 +54,7 @@ mavlinkSendWithWriter ::
         , Uint8 -- crcExtra
         , Uint8 -- payload length
         , Ref s (Stored Uint8) -- sequence number (use then increment)
-        , Ref s (Array 128 (Stored Uint8)) -- array we'll put everything into
+        , Ref s MavlinkArray -- array we'll put everything into
         ] :-> ())
 mavlinkSendWithWriter =
   proc "mavlinkSendWithWriter"

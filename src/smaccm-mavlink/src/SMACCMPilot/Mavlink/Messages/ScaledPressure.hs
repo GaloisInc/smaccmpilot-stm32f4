@@ -43,7 +43,7 @@ struct scaled_pressure_msg
 mkScaledPressureSender ::
   Def ('[ ConstRef s0 (Struct "scaled_pressure_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        , Ref s1 MavlinkArray -- tx buffer
         ] :-> ())
 mkScaledPressureSender =
   proc "mavlink_scaled_pressure_msg_send"

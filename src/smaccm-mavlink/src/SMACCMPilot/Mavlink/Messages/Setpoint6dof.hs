@@ -46,7 +46,7 @@ struct setpoint_6dof_msg
 mkSetpoint6dofSender ::
   Def ('[ ConstRef s0 (Struct "setpoint_6dof_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        , Ref s1 MavlinkArray -- tx buffer
         ] :-> ())
 mkSetpoint6dofSender =
   proc "mavlink_setpoint_6dof_msg_send"

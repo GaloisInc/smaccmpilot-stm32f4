@@ -44,7 +44,7 @@ struct param_value_msg
 mkParamValueSender ::
   Def ('[ ConstRef s0 (Struct "param_value_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        , Ref s1 MavlinkArray -- tx buffer
         ] :-> ())
 mkParamValueSender =
   proc "mavlink_param_value_msg_send"

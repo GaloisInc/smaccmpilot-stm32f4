@@ -52,7 +52,7 @@ struct sys_status_msg
 mkSysStatusSender ::
   Def ('[ ConstRef s0 (Struct "sys_status_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        , Ref s1 MavlinkArray -- tx buffer
         ] :-> ())
 mkSysStatusSender =
   proc "mavlink_sys_status_msg_send"

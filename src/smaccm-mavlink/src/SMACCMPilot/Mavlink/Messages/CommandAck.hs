@@ -41,7 +41,7 @@ struct command_ack_msg
 mkCommandAckSender ::
   Def ('[ ConstRef s0 (Struct "command_ack_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        , Ref s1 MavlinkArray -- tx buffer
         ] :-> ())
 mkCommandAckSender =
   proc "mavlink_command_ack_msg_send"

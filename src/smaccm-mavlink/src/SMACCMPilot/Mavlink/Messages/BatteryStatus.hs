@@ -48,7 +48,7 @@ struct battery_status_msg
 mkBatteryStatusSender ::
   Def ('[ ConstRef s0 (Struct "battery_status_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        , Ref s1 MavlinkArray -- tx buffer
         ] :-> ())
 mkBatteryStatusSender =
   proc "mavlink_battery_status_msg_send"

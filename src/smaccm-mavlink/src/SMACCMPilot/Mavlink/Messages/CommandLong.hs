@@ -50,7 +50,7 @@ struct command_long_msg
 mkCommandLongSender ::
   Def ('[ ConstRef s0 (Struct "command_long_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        , Ref s1 MavlinkArray -- tx buffer
         ] :-> ())
 mkCommandLongSender =
   proc "mavlink_command_long_msg_send"

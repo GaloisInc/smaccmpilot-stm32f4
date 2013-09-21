@@ -50,7 +50,7 @@ struct hil_controls_msg
 mkHilControlsSender ::
   Def ('[ ConstRef s0 (Struct "hil_controls_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        , Ref s1 MavlinkArray -- tx buffer
         ] :-> ())
 mkHilControlsSender =
   proc "mavlink_hil_controls_msg_send"

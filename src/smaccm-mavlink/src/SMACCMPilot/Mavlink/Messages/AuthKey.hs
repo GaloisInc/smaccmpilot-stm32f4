@@ -40,7 +40,7 @@ struct auth_key_msg
 mkAuthKeySender ::
   Def ('[ ConstRef s0 (Struct "auth_key_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        , Ref s1 MavlinkArray -- tx buffer
         ] :-> ())
 mkAuthKeySender =
   proc "mavlink_auth_key_msg_send"

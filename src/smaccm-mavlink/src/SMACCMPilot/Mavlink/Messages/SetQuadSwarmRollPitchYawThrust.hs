@@ -45,7 +45,7 @@ struct set_quad_swarm_roll_pitch_yaw_thrust_msg
 mkSetQuadSwarmRollPitchYawThrustSender ::
   Def ('[ ConstRef s0 (Struct "set_quad_swarm_roll_pitch_yaw_thrust_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        , Ref s1 MavlinkArray -- tx buffer
         ] :-> ())
 mkSetQuadSwarmRollPitchYawThrustSender =
   proc "mavlink_set_quad_swarm_roll_pitch_yaw_thrust_msg_send"

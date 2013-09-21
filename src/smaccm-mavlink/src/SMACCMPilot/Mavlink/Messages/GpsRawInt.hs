@@ -49,7 +49,7 @@ struct gps_raw_int_msg
 mkGpsRawIntSender ::
   Def ('[ ConstRef s0 (Struct "gps_raw_int_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        , Ref s1 MavlinkArray -- tx buffer
         ] :-> ())
 mkGpsRawIntSender =
   proc "mavlink_gps_raw_int_msg_send"

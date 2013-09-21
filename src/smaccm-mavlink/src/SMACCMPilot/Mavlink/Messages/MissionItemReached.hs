@@ -40,7 +40,7 @@ struct mission_item_reached_msg
 mkMissionItemReachedSender ::
   Def ('[ ConstRef s0 (Struct "mission_item_reached_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        , Ref s1 MavlinkArray -- tx buffer
         ] :-> ())
 mkMissionItemReachedSender =
   proc "mavlink_mission_item_reached_msg_send"

@@ -43,7 +43,7 @@ struct ping_msg
 mkPingSender ::
   Def ('[ ConstRef s0 (Struct "ping_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        , Ref s1 MavlinkArray -- tx buffer
         ] :-> ())
 mkPingSender =
   proc "mavlink_ping_msg_send"

@@ -45,7 +45,7 @@ struct gps_status_msg
 mkGpsStatusSender ::
   Def ('[ ConstRef s0 (Struct "gps_status_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        , Ref s1 MavlinkArray -- tx buffer
         ] :-> ())
 mkGpsStatusSender =
   proc "mavlink_gps_status_msg_send"

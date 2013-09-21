@@ -46,7 +46,7 @@ struct local_position_ned_system_global_offset_msg
 mkLocalPositionNedSystemGlobalOffsetSender ::
   Def ('[ ConstRef s0 (Struct "local_position_ned_system_global_offset_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        , Ref s1 MavlinkArray -- tx buffer
         ] :-> ())
 mkLocalPositionNedSystemGlobalOffsetSender =
   proc "mavlink_local_position_ned_system_global_offset_msg_send"

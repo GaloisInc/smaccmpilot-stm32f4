@@ -47,7 +47,7 @@ struct attitude_quaternion_msg
 mkAttitudeQuaternionSender ::
   Def ('[ ConstRef s0 (Struct "attitude_quaternion_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        , Ref s1 MavlinkArray -- tx buffer
         ] :-> ())
 mkAttitudeQuaternionSender =
   proc "mavlink_attitude_quaternion_msg_send"

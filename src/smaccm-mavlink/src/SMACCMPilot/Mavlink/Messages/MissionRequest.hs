@@ -42,7 +42,7 @@ struct mission_request_msg
 mkMissionRequestSender ::
   Def ('[ ConstRef s0 (Struct "mission_request_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        , Ref s1 MavlinkArray -- tx buffer
         ] :-> ())
 mkMissionRequestSender =
   proc "mavlink_mission_request_msg_send"

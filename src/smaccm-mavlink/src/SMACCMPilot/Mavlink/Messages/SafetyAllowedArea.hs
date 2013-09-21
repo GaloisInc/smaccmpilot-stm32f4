@@ -46,7 +46,7 @@ struct safety_allowed_area_msg
 mkSafetyAllowedAreaSender ::
   Def ('[ ConstRef s0 (Struct "safety_allowed_area_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        , Ref s1 MavlinkArray -- tx buffer
         ] :-> ())
 mkSafetyAllowedAreaSender =
   proc "mavlink_safety_allowed_area_msg_send"

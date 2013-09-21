@@ -47,7 +47,7 @@ struct nav_controller_output_msg
 mkNavControllerOutputSender ::
   Def ('[ ConstRef s0 (Struct "nav_controller_output_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        , Ref s1 MavlinkArray -- tx buffer
         ] :-> ())
 mkNavControllerOutputSender =
   proc "mavlink_nav_controller_output_msg_send"

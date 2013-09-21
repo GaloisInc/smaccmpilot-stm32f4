@@ -42,7 +42,7 @@ struct data64_msg
 mkData64Sender ::
   Def ('[ ConstRef s0 (Struct "data64_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        , Ref s1 MavlinkArray -- tx buffer
         ] :-> ())
 mkData64Sender =
   proc "mavlink_data64_msg_send"

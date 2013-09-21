@@ -46,7 +46,7 @@ struct global_vision_position_estimate_msg
 mkGlobalVisionPositionEstimateSender ::
   Def ('[ ConstRef s0 (Struct "global_vision_position_estimate_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        , Ref s1 MavlinkArray -- tx buffer
         ] :-> ())
 mkGlobalVisionPositionEstimateSender =
   proc "mavlink_global_vision_position_estimate_msg_send"

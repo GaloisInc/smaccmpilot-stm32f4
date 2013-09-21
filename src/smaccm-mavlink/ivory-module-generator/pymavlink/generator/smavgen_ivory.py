@@ -170,7 +170,7 @@ struct ${name_lower}_msg
 mk${name_module}Sender ::
   Def ('[ ConstRef s0 (Struct "${name_lower}_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        , Ref s1 MavlinkArray -- tx buffer
         ] :-> ())
 mk${name_module}Sender =
   proc "mavlink_${name_lower}_msg_send"

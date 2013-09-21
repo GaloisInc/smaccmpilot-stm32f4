@@ -44,7 +44,7 @@ struct local_position_setpoint_msg
 mkLocalPositionSetpointSender ::
   Def ('[ ConstRef s0 (Struct "local_position_setpoint_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        , Ref s1 MavlinkArray -- tx buffer
         ] :-> ())
 mkLocalPositionSetpointSender =
   proc "mavlink_local_position_setpoint_msg_send"

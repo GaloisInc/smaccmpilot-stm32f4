@@ -45,7 +45,7 @@ struct vfr_hud_msg
 mkVfrHudSender ::
   Def ('[ ConstRef s0 (Struct "vfr_hud_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        , Ref s1 MavlinkArray -- tx buffer
         ] :-> ())
 mkVfrHudSender =
   proc "mavlink_vfr_hud_msg_send"

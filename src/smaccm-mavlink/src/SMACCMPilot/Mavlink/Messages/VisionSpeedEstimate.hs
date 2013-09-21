@@ -43,7 +43,7 @@ struct vision_speed_estimate_msg
 mkVisionSpeedEstimateSender ::
   Def ('[ ConstRef s0 (Struct "vision_speed_estimate_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        , Ref s1 MavlinkArray -- tx buffer
         ] :-> ())
 mkVisionSpeedEstimateSender =
   proc "mavlink_vision_speed_estimate_msg_send"

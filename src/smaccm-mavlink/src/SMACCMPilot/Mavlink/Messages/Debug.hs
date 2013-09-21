@@ -42,7 +42,7 @@ struct debug_msg
 mkDebugSender ::
   Def ('[ ConstRef s0 (Struct "debug_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        , Ref s1 MavlinkArray -- tx buffer
         ] :-> ())
 mkDebugSender =
   proc "mavlink_debug_msg_send"

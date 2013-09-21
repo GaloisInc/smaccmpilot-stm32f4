@@ -42,7 +42,7 @@ struct gps_global_origin_msg
 mkGpsGlobalOriginSender ::
   Def ('[ ConstRef s0 (Struct "gps_global_origin_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        , Ref s1 MavlinkArray -- tx buffer
         ] :-> ())
 mkGpsGlobalOriginSender =
   proc "mavlink_gps_global_origin_msg_send"

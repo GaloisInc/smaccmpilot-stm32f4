@@ -40,7 +40,7 @@ struct mission_current_msg
 mkMissionCurrentSender ::
   Def ('[ ConstRef s0 (Struct "mission_current_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        , Ref s1 MavlinkArray -- tx buffer
         ] :-> ())
 mkMissionCurrentSender =
   proc "mavlink_mission_current_msg_send"

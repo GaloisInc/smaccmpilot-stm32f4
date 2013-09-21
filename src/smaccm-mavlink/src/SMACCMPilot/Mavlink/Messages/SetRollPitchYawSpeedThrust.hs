@@ -45,7 +45,7 @@ struct set_roll_pitch_yaw_speed_thrust_msg
 mkSetRollPitchYawSpeedThrustSender ::
   Def ('[ ConstRef s0 (Struct "set_roll_pitch_yaw_speed_thrust_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        , Ref s1 MavlinkArray -- tx buffer
         ] :-> ())
 mkSetRollPitchYawSpeedThrustSender =
   proc "mavlink_set_roll_pitch_yaw_speed_thrust_msg_send"

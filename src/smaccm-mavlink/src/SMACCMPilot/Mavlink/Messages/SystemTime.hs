@@ -41,7 +41,7 @@ struct system_time_msg
 mkSystemTimeSender ::
   Def ('[ ConstRef s0 (Struct "system_time_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        , Ref s1 MavlinkArray -- tx buffer
         ] :-> ())
 mkSystemTimeSender =
   proc "mavlink_system_time_msg_send"

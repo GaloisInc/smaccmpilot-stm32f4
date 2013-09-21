@@ -42,7 +42,7 @@ struct set_mode_msg
 mkSetModeSender ::
   Def ('[ ConstRef s0 (Struct "set_mode_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        , Ref s1 MavlinkArray -- tx buffer
         ] :-> ())
 mkSetModeSender =
   proc "mavlink_set_mode_msg_send"

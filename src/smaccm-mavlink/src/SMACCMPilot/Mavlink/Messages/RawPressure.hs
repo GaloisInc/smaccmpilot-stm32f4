@@ -44,7 +44,7 @@ struct raw_pressure_msg
 mkRawPressureSender ::
   Def ('[ ConstRef s0 (Struct "raw_pressure_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        , Ref s1 MavlinkArray -- tx buffer
         ] :-> ())
 mkRawPressureSender =
   proc "mavlink_raw_pressure_msg_send"

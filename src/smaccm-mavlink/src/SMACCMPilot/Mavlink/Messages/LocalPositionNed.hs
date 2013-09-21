@@ -46,7 +46,7 @@ struct local_position_ned_msg
 mkLocalPositionNedSender ::
   Def ('[ ConstRef s0 (Struct "local_position_ned_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        , Ref s1 MavlinkArray -- tx buffer
         ] :-> ())
 mkLocalPositionNedSender =
   proc "mavlink_local_position_ned_msg_send"

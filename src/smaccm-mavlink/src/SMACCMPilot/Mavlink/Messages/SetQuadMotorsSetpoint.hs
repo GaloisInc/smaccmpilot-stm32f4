@@ -44,7 +44,7 @@ struct set_quad_motors_setpoint_msg
 mkSetQuadMotorsSetpointSender ::
   Def ('[ ConstRef s0 (Struct "set_quad_motors_setpoint_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        , Ref s1 MavlinkArray -- tx buffer
         ] :-> ())
 mkSetQuadMotorsSetpointSender =
   proc "mavlink_set_quad_motors_setpoint_msg_send"

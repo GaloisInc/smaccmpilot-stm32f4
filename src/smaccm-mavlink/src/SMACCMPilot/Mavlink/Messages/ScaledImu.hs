@@ -49,7 +49,7 @@ struct scaled_imu_msg
 mkScaledImuSender ::
   Def ('[ ConstRef s0 (Struct "scaled_imu_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        , Ref s1 MavlinkArray -- tx buffer
         ] :-> ())
 mkScaledImuSender =
   proc "mavlink_scaled_imu_msg_send"

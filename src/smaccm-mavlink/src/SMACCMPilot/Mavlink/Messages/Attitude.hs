@@ -46,7 +46,7 @@ struct attitude_msg
 mkAttitudeSender ::
   Def ('[ ConstRef s0 (Struct "attitude_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 (Array 128 (Stored Uint8)) -- tx buffer
+        , Ref s1 MavlinkArray -- tx buffer
         ] :-> ())
 mkAttitudeSender =
   proc "mavlink_attitude_msg_send"
