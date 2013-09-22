@@ -1,7 +1,8 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE TypeFamilies #-}
+
 
 module SMACCMPilot.Flight.GCS.Transmit.Task
   ( gcsTransmitTask
@@ -68,7 +69,7 @@ gcsTransmitTask ostream sp_sink dr_sink fm_sink se_sink ps_sink ct_sink mo_sink
   -- tower_task_loop_ module, which generates the code for the emitter.
   -- msgDriver <- gcsTransmitDriver uavPkg
 
-  uavPkg  <- taskLocal "uavPkg"
+  mavlinkPacket  <- taskLocal "mavlinkPacket"
   seqNum  <- taskLocalInit "txseqNum" (ival 0)
 
   t <- withGetTimeMillis
@@ -87,6 +88,9 @@ gcsTransmitTask ostream sp_sink dr_sink fm_sink se_sink ps_sink ct_sink mo_sink
     store lastRun initTime
     C.setupCommsec
 
+  let send :: (Scope cs ~ GetAlloc (AllowBreak eff)) => Ivory eff ()
+      send = arrayMap $ \ix -> emit_ uartTx (constRef mavlinkPacket ! ix)
+
   onChannel sp_sink "streamPeriod" $ \newperiods -> do
     setNewPeriods newperiods s_periods s_schedule =<< getTimeMillis t
 
@@ -94,9 +98,11 @@ gcsTransmitTask ostream sp_sink dr_sink fm_sink se_sink ps_sink ct_sink mo_sink
   onChannel dr_sink "dataRate" $ \dr -> do
     d <- local (istruct [])
     refCopy d dr
-    call_ mkSendDataRate d seqNum uavPkg
+    call_ mkSendDataRate d seqNum mavlinkPacket
+    send
 
   onPeriod 50 $ \now -> do
+
     -- Handler for all streams - if due, run action, then update schedule
     let onStream :: Label "gcsstream_timing" (Stored Uint32)
                  -> Ivory eff () -> Ivory eff ()
@@ -108,40 +114,38 @@ gcsTransmitTask ostream sp_sink dr_sink fm_sink se_sink ps_sink ct_sink mo_sink
             action
             setNextTime (constRef s_periods) s_schedule selector now
 
-    let send = arrayMap $ \ix -> emit_ uartTx (constRef uavPkg ! ix)
-
     onStream S.heartbeat $ do
       readData fmReader s_fm
-      call_ mkSendHeartbeat s_fm seqNum uavPkg
+      call_ mkSendHeartbeat s_fm seqNum mavlinkPacket
       send
 
     onStream S.servo_output_raw $ do
       readData motorReader s_motor
       readData ctlReader s_ctl
-      call_ mkSendServoOutputRaw s_motor s_ctl seqNum uavPkg
+      call_ mkSendServoOutputRaw s_motor s_ctl seqNum mavlinkPacket
       send
 
     onStream S.attitude $ do
       readData sensorsReader s_sens
-      call_ mkSendAttitude s_sens seqNum uavPkg
+      call_ mkSendAttitude s_sens seqNum mavlinkPacket
       send
 
     onStream S.gps_raw_int $ do
       readData posReader s_pos
-      call_ mkSendGpsRawInt s_pos seqNum uavPkg
+      call_ mkSendGpsRawInt s_pos seqNum mavlinkPacket
       send
 
     onStream S.vfr_hud $ do
       readData posReader s_pos
       readData ctlReader s_ctl
       readData sensorsReader s_sens
-      call_ mkSendVfrHud s_pos s_ctl s_sens seqNum uavPkg
+      call_ mkSendVfrHud s_pos s_ctl s_sens seqNum mavlinkPacket
       send
 
     onStream S.global_position_int $ do
       readData posReader s_pos
       readData sensorsReader s_sens
-      call_ mkSendGlobalPositionInt s_pos s_sens seqNum uavPkg
+      call_ mkSendGlobalPositionInt s_pos s_sens seqNum mavlinkPacket
       send
 
     onStream S.params $ do
@@ -159,3 +163,4 @@ gcsTransmitTask ostream sp_sink dr_sink fm_sink se_sink ps_sink ct_sink mo_sink
     incl H.encode
     depend senderModules
 --    defStruct (Proxy :: Proxy "hxstream_state")
+
