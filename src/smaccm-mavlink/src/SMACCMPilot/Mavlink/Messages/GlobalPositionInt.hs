@@ -66,7 +66,9 @@ mkGlobalPositionIntSender =
   call_ pack buf 24 =<< deref (msg ~> vz)
   call_ pack buf 26 =<< deref (msg ~> hdg)
   -- 6: header len, 2: CRC len
-  if arrayLen sendArr < (6 + 28 + 2 :: Integer)
+  let usedLen = 6 + 28 + 2 :: Integer
+  let sendArrLen = arrayLen sendArr
+  if sendArrLen < usedLen
     then error "globalPositionInt payload is too large for 28 sender!"
     else do -- Copy, leaving room for the payload
             _ <- arrCopy sendArr arr 6
@@ -76,6 +78,10 @@ mkGlobalPositionIntSender =
                     28
                     seqNum
                     sendArr
+            let usedLenIx = fromInteger usedLen
+            -- Zero out the unused portion of the array.
+            for (fromInteger sendArrLen - usedLenIx) $ \ix ->
+              store (sendArr ! (ix + usedLenIx)) 0
             retVoid
 
 instance MavlinkUnpackableMsg "global_position_int_msg" where

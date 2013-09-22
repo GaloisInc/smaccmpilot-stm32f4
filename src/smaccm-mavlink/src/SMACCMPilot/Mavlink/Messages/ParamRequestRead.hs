@@ -56,7 +56,9 @@ mkParamRequestReadSender =
   call_ pack buf 3 =<< deref (msg ~> target_component)
   arrayPack buf 4 (msg ~> param_id)
   -- 6: header len, 2: CRC len
-  if arrayLen sendArr < (6 + 20 + 2 :: Integer)
+  let usedLen = 6 + 20 + 2 :: Integer
+  let sendArrLen = arrayLen sendArr
+  if sendArrLen < usedLen
     then error "paramRequestRead payload is too large for 20 sender!"
     else do -- Copy, leaving room for the payload
             _ <- arrCopy sendArr arr 6
@@ -66,6 +68,10 @@ mkParamRequestReadSender =
                     20
                     seqNum
                     sendArr
+            let usedLenIx = fromInteger usedLen
+            -- Zero out the unused portion of the array.
+            for (fromInteger sendArrLen - usedLenIx) $ \ix ->
+              store (sendArr ! (ix + usedLenIx)) 0
             retVoid
 
 instance MavlinkUnpackableMsg "param_request_read_msg" where

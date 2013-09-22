@@ -60,7 +60,9 @@ mkManualControlSender =
   call_ pack buf 8 =<< deref (msg ~> buttons)
   call_ pack buf 10 =<< deref (msg ~> target)
   -- 6: header len, 2: CRC len
-  if arrayLen sendArr < (6 + 11 + 2 :: Integer)
+  let usedLen = 6 + 11 + 2 :: Integer
+  let sendArrLen = arrayLen sendArr
+  if sendArrLen < usedLen
     then error "manualControl payload is too large for 11 sender!"
     else do -- Copy, leaving room for the payload
             _ <- arrCopy sendArr arr 6
@@ -70,6 +72,10 @@ mkManualControlSender =
                     11
                     seqNum
                     sendArr
+            let usedLenIx = fromInteger usedLen
+            -- Zero out the unused portion of the array.
+            for (fromInteger sendArrLen - usedLenIx) $ \ix ->
+              store (sendArr ! (ix + usedLenIx)) 0
             retVoid
 
 instance MavlinkUnpackableMsg "manual_control_msg" where

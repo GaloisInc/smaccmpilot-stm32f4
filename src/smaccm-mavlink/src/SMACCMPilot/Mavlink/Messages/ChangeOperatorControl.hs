@@ -56,7 +56,9 @@ mkChangeOperatorControlSender =
   call_ pack buf 2 =<< deref (msg ~> version)
   arrayPack buf 3 (msg ~> passkey)
   -- 6: header len, 2: CRC len
-  if arrayLen sendArr < (6 + 28 + 2 :: Integer)
+  let usedLen = 6 + 28 + 2 :: Integer
+  let sendArrLen = arrayLen sendArr
+  if sendArrLen < usedLen
     then error "changeOperatorControl payload is too large for 28 sender!"
     else do -- Copy, leaving room for the payload
             _ <- arrCopy sendArr arr 6
@@ -66,6 +68,10 @@ mkChangeOperatorControlSender =
                     28
                     seqNum
                     sendArr
+            let usedLenIx = fromInteger usedLen
+            -- Zero out the unused portion of the array.
+            for (fromInteger sendArrLen - usedLenIx) $ \ix ->
+              store (sendArr ! (ix + usedLenIx)) 0
             retVoid
 
 instance MavlinkUnpackableMsg "change_operator_control_msg" where

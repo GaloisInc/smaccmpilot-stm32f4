@@ -78,7 +78,9 @@ mkHighresImuSender =
   call_ pack buf 56 =<< deref (msg ~> temperature)
   call_ pack buf 60 =<< deref (msg ~> fields_updated)
   -- 6: header len, 2: CRC len
-  if arrayLen sendArr < (6 + 62 + 2 :: Integer)
+  let usedLen = 6 + 62 + 2 :: Integer
+  let sendArrLen = arrayLen sendArr
+  if sendArrLen < usedLen
     then error "highresImu payload is too large for 62 sender!"
     else do -- Copy, leaving room for the payload
             _ <- arrCopy sendArr arr 6
@@ -88,6 +90,10 @@ mkHighresImuSender =
                     62
                     seqNum
                     sendArr
+            let usedLenIx = fromInteger usedLen
+            -- Zero out the unused portion of the array.
+            for (fromInteger sendArrLen - usedLenIx) $ \ix ->
+              store (sendArr ! (ix + usedLenIx)) 0
             retVoid
 
 instance MavlinkUnpackableMsg "highres_imu_msg" where

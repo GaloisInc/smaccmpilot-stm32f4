@@ -54,7 +54,9 @@ mkGpsGlobalOriginSender =
   call_ pack buf 4 =<< deref (msg ~> longitude)
   call_ pack buf 8 =<< deref (msg ~> altitude)
   -- 6: header len, 2: CRC len
-  if arrayLen sendArr < (6 + 12 + 2 :: Integer)
+  let usedLen = 6 + 12 + 2 :: Integer
+  let sendArrLen = arrayLen sendArr
+  if sendArrLen < usedLen
     then error "gpsGlobalOrigin payload is too large for 12 sender!"
     else do -- Copy, leaving room for the payload
             _ <- arrCopy sendArr arr 6
@@ -64,6 +66,10 @@ mkGpsGlobalOriginSender =
                     12
                     seqNum
                     sendArr
+            let usedLenIx = fromInteger usedLen
+            -- Zero out the unused portion of the array.
+            for (fromInteger sendArrLen - usedLenIx) $ \ix ->
+              store (sendArr ! (ix + usedLenIx)) 0
             retVoid
 
 instance MavlinkUnpackableMsg "gps_global_origin_msg" where

@@ -60,7 +60,9 @@ mkHeartbeatSender =
   call_ pack buf 7 =<< deref (msg ~> system_status)
   call_ pack buf 8 =<< deref (msg ~> mavlink_version)
   -- 6: header len, 2: CRC len
-  if arrayLen sendArr < (6 + 9 + 2 :: Integer)
+  let usedLen = 6 + 9 + 2 :: Integer
+  let sendArrLen = arrayLen sendArr
+  if sendArrLen < usedLen
     then error "heartbeat payload is too large for 9 sender!"
     else do -- Copy, leaving room for the payload
             _ <- arrCopy sendArr arr 6
@@ -70,6 +72,10 @@ mkHeartbeatSender =
                     9
                     seqNum
                     sendArr
+            let usedLenIx = fromInteger usedLen
+            -- Zero out the unused portion of the array.
+            for (fromInteger sendArrLen - usedLenIx) $ \ix ->
+              store (sendArr ! (ix + usedLenIx)) 0
             retVoid
 
 instance MavlinkUnpackableMsg "heartbeat_msg" where

@@ -66,7 +66,9 @@ mkSafetySetAllowedAreaSender =
   call_ pack buf 25 =<< deref (msg ~> target_component)
   call_ pack buf 26 =<< deref (msg ~> frame)
   -- 6: header len, 2: CRC len
-  if arrayLen sendArr < (6 + 27 + 2 :: Integer)
+  let usedLen = 6 + 27 + 2 :: Integer
+  let sendArrLen = arrayLen sendArr
+  if sendArrLen < usedLen
     then error "safetySetAllowedArea payload is too large for 27 sender!"
     else do -- Copy, leaving room for the payload
             _ <- arrCopy sendArr arr 6
@@ -76,6 +78,10 @@ mkSafetySetAllowedAreaSender =
                     27
                     seqNum
                     sendArr
+            let usedLenIx = fromInteger usedLen
+            -- Zero out the unused portion of the array.
+            for (fromInteger sendArrLen - usedLenIx) $ \ix ->
+              store (sendArr ! (ix + usedLenIx)) 0
             retVoid
 
 instance MavlinkUnpackableMsg "safety_set_allowed_area_msg" where

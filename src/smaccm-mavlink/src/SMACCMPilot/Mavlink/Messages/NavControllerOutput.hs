@@ -64,7 +64,9 @@ mkNavControllerOutputSender =
   call_ pack buf 22 =<< deref (msg ~> target_bearing)
   call_ pack buf 24 =<< deref (msg ~> wp_dist)
   -- 6: header len, 2: CRC len
-  if arrayLen sendArr < (6 + 26 + 2 :: Integer)
+  let usedLen = 6 + 26 + 2 :: Integer
+  let sendArrLen = arrayLen sendArr
+  if sendArrLen < usedLen
     then error "navControllerOutput payload is too large for 26 sender!"
     else do -- Copy, leaving room for the payload
             _ <- arrCopy sendArr arr 6
@@ -74,6 +76,10 @@ mkNavControllerOutputSender =
                     26
                     seqNum
                     sendArr
+            let usedLenIx = fromInteger usedLen
+            -- Zero out the unused portion of the array.
+            for (fromInteger sendArrLen - usedLenIx) $ \ix ->
+              store (sendArr ! (ix + usedLenIx)) 0
             retVoid
 
 instance MavlinkUnpackableMsg "nav_controller_output_msg" where

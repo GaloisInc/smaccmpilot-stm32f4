@@ -50,7 +50,9 @@ mkAuthKeySender =
   let buf = toCArray arr
   arrayPack buf 0 (msg ~> key)
   -- 6: header len, 2: CRC len
-  if arrayLen sendArr < (6 + 32 + 2 :: Integer)
+  let usedLen = 6 + 32 + 2 :: Integer
+  let sendArrLen = arrayLen sendArr
+  if sendArrLen < usedLen
     then error "authKey payload is too large for 32 sender!"
     else do -- Copy, leaving room for the payload
             _ <- arrCopy sendArr arr 6
@@ -60,6 +62,10 @@ mkAuthKeySender =
                     32
                     seqNum
                     sendArr
+            let usedLenIx = fromInteger usedLen
+            -- Zero out the unused portion of the array.
+            for (fromInteger sendArrLen - usedLenIx) $ \ix ->
+              store (sendArr ! (ix + usedLenIx)) 0
             retVoid
 
 instance MavlinkUnpackableMsg "auth_key_msg" where

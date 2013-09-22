@@ -58,7 +58,9 @@ mkRawPressureSender =
   call_ pack buf 12 =<< deref (msg ~> press_diff2)
   call_ pack buf 14 =<< deref (msg ~> temperature)
   -- 6: header len, 2: CRC len
-  if arrayLen sendArr < (6 + 16 + 2 :: Integer)
+  let usedLen = 6 + 16 + 2 :: Integer
+  let sendArrLen = arrayLen sendArr
+  if sendArrLen < usedLen
     then error "rawPressure payload is too large for 16 sender!"
     else do -- Copy, leaving room for the payload
             _ <- arrCopy sendArr arr 6
@@ -68,6 +70,10 @@ mkRawPressureSender =
                     16
                     seqNum
                     sendArr
+            let usedLenIx = fromInteger usedLen
+            -- Zero out the unused portion of the array.
+            for (fromInteger sendArrLen - usedLenIx) $ \ix ->
+              store (sendArr ! (ix + usedLenIx)) 0
             retVoid
 
 instance MavlinkUnpackableMsg "raw_pressure_msg" where

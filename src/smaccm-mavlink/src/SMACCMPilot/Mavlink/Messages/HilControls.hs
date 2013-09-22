@@ -70,7 +70,9 @@ mkHilControlsSender =
   call_ pack buf 40 =<< deref (msg ~> mode)
   call_ pack buf 41 =<< deref (msg ~> nav_mode)
   -- 6: header len, 2: CRC len
-  if arrayLen sendArr < (6 + 42 + 2 :: Integer)
+  let usedLen = 6 + 42 + 2 :: Integer
+  let sendArrLen = arrayLen sendArr
+  if sendArrLen < usedLen
     then error "hilControls payload is too large for 42 sender!"
     else do -- Copy, leaving room for the payload
             _ <- arrCopy sendArr arr 6
@@ -80,6 +82,10 @@ mkHilControlsSender =
                     42
                     seqNum
                     sendArr
+            let usedLenIx = fromInteger usedLen
+            -- Zero out the unused portion of the array.
+            for (fromInteger sendArrLen - usedLenIx) $ \ix ->
+              store (sendArr ! (ix + usedLenIx)) 0
             retVoid
 
 instance MavlinkUnpackableMsg "hil_controls_msg" where

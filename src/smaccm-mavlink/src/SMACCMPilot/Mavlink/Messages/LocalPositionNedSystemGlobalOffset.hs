@@ -62,7 +62,9 @@ mkLocalPositionNedSystemGlobalOffsetSender =
   call_ pack buf 20 =<< deref (msg ~> pitch)
   call_ pack buf 24 =<< deref (msg ~> yaw)
   -- 6: header len, 2: CRC len
-  if arrayLen sendArr < (6 + 28 + 2 :: Integer)
+  let usedLen = 6 + 28 + 2 :: Integer
+  let sendArrLen = arrayLen sendArr
+  if sendArrLen < usedLen
     then error "localPositionNedSystemGlobalOffset payload is too large for 28 sender!"
     else do -- Copy, leaving room for the payload
             _ <- arrCopy sendArr arr 6
@@ -72,6 +74,10 @@ mkLocalPositionNedSystemGlobalOffsetSender =
                     28
                     seqNum
                     sendArr
+            let usedLenIx = fromInteger usedLen
+            -- Zero out the unused portion of the array.
+            for (fromInteger sendArrLen - usedLenIx) $ \ix ->
+              store (sendArr ! (ix + usedLenIx)) 0
             retVoid
 
 instance MavlinkUnpackableMsg "local_position_ned_system_global_offset_msg" where

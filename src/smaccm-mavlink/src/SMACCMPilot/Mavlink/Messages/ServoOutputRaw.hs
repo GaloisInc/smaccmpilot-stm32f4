@@ -68,7 +68,9 @@ mkServoOutputRawSender =
   call_ pack buf 18 =<< deref (msg ~> servo8_raw)
   call_ pack buf 20 =<< deref (msg ~> port)
   -- 6: header len, 2: CRC len
-  if arrayLen sendArr < (6 + 21 + 2 :: Integer)
+  let usedLen = 6 + 21 + 2 :: Integer
+  let sendArrLen = arrayLen sendArr
+  if sendArrLen < usedLen
     then error "servoOutputRaw payload is too large for 21 sender!"
     else do -- Copy, leaving room for the payload
             _ <- arrCopy sendArr arr 6
@@ -78,6 +80,10 @@ mkServoOutputRawSender =
                     21
                     seqNum
                     sendArr
+            let usedLenIx = fromInteger usedLen
+            -- Zero out the unused portion of the array.
+            for (fromInteger sendArrLen - usedLenIx) $ \ix ->
+              store (sendArr ! (ix + usedLenIx)) 0
             retVoid
 
 instance MavlinkUnpackableMsg "servo_output_raw_msg" where

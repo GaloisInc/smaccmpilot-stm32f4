@@ -64,7 +64,9 @@ mkOpticalFlowSender =
   call_ pack buf 24 =<< deref (msg ~> sensor_id)
   call_ pack buf 25 =<< deref (msg ~> quality)
   -- 6: header len, 2: CRC len
-  if arrayLen sendArr < (6 + 26 + 2 :: Integer)
+  let usedLen = 6 + 26 + 2 :: Integer
+  let sendArrLen = arrayLen sendArr
+  if sendArrLen < usedLen
     then error "opticalFlow payload is too large for 26 sender!"
     else do -- Copy, leaving room for the payload
             _ <- arrCopy sendArr arr 6
@@ -74,6 +76,10 @@ mkOpticalFlowSender =
                     26
                     seqNum
                     sendArr
+            let usedLenIx = fromInteger usedLen
+            -- Zero out the unused portion of the array.
+            for (fromInteger sendArrLen - usedLenIx) $ \ix ->
+              store (sendArr ! (ix + usedLenIx)) 0
             retVoid
 
 instance MavlinkUnpackableMsg "optical_flow_msg" where

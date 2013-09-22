@@ -58,7 +58,9 @@ mkSetGlobalPositionSetpointIntSender =
   call_ pack buf 12 =<< deref (msg ~> yaw)
   call_ pack buf 14 =<< deref (msg ~> coordinate_frame)
   -- 6: header len, 2: CRC len
-  if arrayLen sendArr < (6 + 15 + 2 :: Integer)
+  let usedLen = 6 + 15 + 2 :: Integer
+  let sendArrLen = arrayLen sendArr
+  if sendArrLen < usedLen
     then error "setGlobalPositionSetpointInt payload is too large for 15 sender!"
     else do -- Copy, leaving room for the payload
             _ <- arrCopy sendArr arr 6
@@ -68,6 +70,10 @@ mkSetGlobalPositionSetpointIntSender =
                     15
                     seqNum
                     sendArr
+            let usedLenIx = fromInteger usedLen
+            -- Zero out the unused portion of the array.
+            for (fromInteger sendArrLen - usedLenIx) $ \ix ->
+              store (sendArr ! (ix + usedLenIx)) 0
             retVoid
 
 instance MavlinkUnpackableMsg "set_global_position_setpoint_int_msg" where

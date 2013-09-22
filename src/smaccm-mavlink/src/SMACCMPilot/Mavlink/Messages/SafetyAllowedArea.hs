@@ -62,7 +62,9 @@ mkSafetyAllowedAreaSender =
   call_ pack buf 20 =<< deref (msg ~> p2z)
   call_ pack buf 24 =<< deref (msg ~> frame)
   -- 6: header len, 2: CRC len
-  if arrayLen sendArr < (6 + 25 + 2 :: Integer)
+  let usedLen = 6 + 25 + 2 :: Integer
+  let sendArrLen = arrayLen sendArr
+  if sendArrLen < usedLen
     then error "safetyAllowedArea payload is too large for 25 sender!"
     else do -- Copy, leaving room for the payload
             _ <- arrCopy sendArr arr 6
@@ -72,6 +74,10 @@ mkSafetyAllowedAreaSender =
                     25
                     seqNum
                     sendArr
+            let usedLenIx = fromInteger usedLen
+            -- Zero out the unused portion of the array.
+            for (fromInteger sendArrLen - usedLenIx) $ \ix ->
+              store (sendArr ! (ix + usedLenIx)) 0
             retVoid
 
 instance MavlinkUnpackableMsg "safety_allowed_area_msg" where

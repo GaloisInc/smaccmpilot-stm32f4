@@ -68,7 +68,9 @@ mkGpsRawIntSender =
   call_ pack buf 28 =<< deref (msg ~> fix_type)
   call_ pack buf 29 =<< deref (msg ~> satellites_visible)
   -- 6: header len, 2: CRC len
-  if arrayLen sendArr < (6 + 30 + 2 :: Integer)
+  let usedLen = 6 + 30 + 2 :: Integer
+  let sendArrLen = arrayLen sendArr
+  if sendArrLen < usedLen
     then error "gpsRawInt payload is too large for 30 sender!"
     else do -- Copy, leaving room for the payload
             _ <- arrCopy sendArr arr 6
@@ -78,6 +80,10 @@ mkGpsRawIntSender =
                     30
                     seqNum
                     sendArr
+            let usedLenIx = fromInteger usedLen
+            -- Zero out the unused portion of the array.
+            for (fromInteger sendArrLen - usedLenIx) $ \ix ->
+              store (sendArr ! (ix + usedLenIx)) 0
             retVoid
 
 instance MavlinkUnpackableMsg "gps_raw_int_msg" where

@@ -56,7 +56,9 @@ mkMemoryVectSender =
   call_ pack buf 3 =<< deref (msg ~> memory_vect_type)
   arrayPack buf 4 (msg ~> value)
   -- 6: header len, 2: CRC len
-  if arrayLen sendArr < (6 + 36 + 2 :: Integer)
+  let usedLen = 6 + 36 + 2 :: Integer
+  let sendArrLen = arrayLen sendArr
+  if sendArrLen < usedLen
     then error "memoryVect payload is too large for 36 sender!"
     else do -- Copy, leaving room for the payload
             _ <- arrCopy sendArr arr 6
@@ -66,6 +68,10 @@ mkMemoryVectSender =
                     36
                     seqNum
                     sendArr
+            let usedLenIx = fromInteger usedLen
+            -- Zero out the unused portion of the array.
+            for (fromInteger sendArrLen - usedLenIx) $ \ix ->
+              store (sendArr ! (ix + usedLenIx)) 0
             retVoid
 
 instance MavlinkUnpackableMsg "memory_vect_msg" where

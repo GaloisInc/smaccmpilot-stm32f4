@@ -66,7 +66,9 @@ mkSetQuadSwarmLedRollPitchYawThrustSender =
   arrayPack buf 38 (msg ~> led_blue)
   arrayPack buf 42 (msg ~> led_green)
   -- 6: header len, 2: CRC len
-  if arrayLen sendArr < (6 + 46 + 2 :: Integer)
+  let usedLen = 6 + 46 + 2 :: Integer
+  let sendArrLen = arrayLen sendArr
+  if sendArrLen < usedLen
     then error "setQuadSwarmLedRollPitchYawThrust payload is too large for 46 sender!"
     else do -- Copy, leaving room for the payload
             _ <- arrCopy sendArr arr 6
@@ -76,6 +78,10 @@ mkSetQuadSwarmLedRollPitchYawThrustSender =
                     46
                     seqNum
                     sendArr
+            let usedLenIx = fromInteger usedLen
+            -- Zero out the unused portion of the array.
+            for (fromInteger sendArrLen - usedLenIx) $ \ix ->
+              store (sendArr ! (ix + usedLenIx)) 0
             retVoid
 
 instance MavlinkUnpackableMsg "set_quad_swarm_led_roll_pitch_yaw_thrust_msg" where

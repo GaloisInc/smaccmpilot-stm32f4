@@ -54,7 +54,9 @@ mkMissionAckSender =
   call_ pack buf 1 =<< deref (msg ~> target_component)
   call_ pack buf 2 =<< deref (msg ~> mission_ack_type)
   -- 6: header len, 2: CRC len
-  if arrayLen sendArr < (6 + 3 + 2 :: Integer)
+  let usedLen = 6 + 3 + 2 :: Integer
+  let sendArrLen = arrayLen sendArr
+  if sendArrLen < usedLen
     then error "missionAck payload is too large for 3 sender!"
     else do -- Copy, leaving room for the payload
             _ <- arrCopy sendArr arr 6
@@ -64,6 +66,10 @@ mkMissionAckSender =
                     3
                     seqNum
                     sendArr
+            let usedLenIx = fromInteger usedLen
+            -- Zero out the unused portion of the array.
+            for (fromInteger sendArrLen - usedLenIx) $ \ix ->
+              store (sendArr ! (ix + usedLenIx)) 0
             retVoid
 
 instance MavlinkUnpackableMsg "mission_ack_msg" where

@@ -54,7 +54,9 @@ mkData96Sender =
   call_ pack buf 1 =<< deref (msg ~> len)
   arrayPack buf 2 (msg ~> data96)
   -- 6: header len, 2: CRC len
-  if arrayLen sendArr < (6 + 98 + 2 :: Integer)
+  let usedLen = 6 + 98 + 2 :: Integer
+  let sendArrLen = arrayLen sendArr
+  if sendArrLen < usedLen
     then error "data96 payload is too large for 98 sender!"
     else do -- Copy, leaving room for the payload
             _ <- arrCopy sendArr arr 6
@@ -64,6 +66,10 @@ mkData96Sender =
                     98
                     seqNum
                     sendArr
+            let usedLenIx = fromInteger usedLen
+            -- Zero out the unused portion of the array.
+            for (fromInteger sendArrLen - usedLenIx) $ \ix ->
+              store (sendArr ! (ix + usedLenIx)) 0
             retVoid
 
 instance MavlinkUnpackableMsg "data96_msg" where
