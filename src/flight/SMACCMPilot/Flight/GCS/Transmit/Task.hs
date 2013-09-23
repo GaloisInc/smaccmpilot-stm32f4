@@ -11,7 +11,7 @@ module SMACCMPilot.Flight.GCS.Transmit.Task
 import Prelude hiding (last)
 
 import Ivory.Language
-import Ivory.Stdlib (when)
+import Ivory.Stdlib
 import Ivory.Tower
 
 import           SMACCMPilot.Flight.GCS.Transmit.MessageDriver
@@ -41,12 +41,26 @@ import qualified Ivory.HXStream                           as H
 --   arrayMap $ \i -> --emit_ ostream (constRef hx ! i)
 
 --     emit_ ostream (arrref ! i)
+
+processHx :: SingI n
+          => ChannelEmitter n (Stored Uint8)
+          -> Def ('[ Ref Global (Array 112 (Stored Uint8))
+                   ] :-> ())
+processHx uartTx = proc "processHx" $ \mavMsg -> body $ do
+  pkg        <- local (iarray [] :: Init (Array 128 (Stored Uint8)))
+  C.cpyToPkg (constRef mavMsg) pkg
+  C.encrypt C.uavCtx pkg
+
+  hxArr      <- local (iarray [] :: Init (Array 258 (Stored Uint8)))
+  call_ H.encode pkg hxArr
+  arrayMap $ \ix -> emit_ uartTx (constRef hxArr ! ix)
+
 --------------------------------------------------------------------------------
 
-gcsTransmitTask :: (SingI nn, SingI n, SingI m)
-                => ChannelSource nn (Stored Uint8) -- Channel to UART
-                -> ChannelSink n    (Struct "gcsstream_timing")
-                -> ChannelSink m    (Struct "data_rate_state")
+gcsTransmitTask :: (SingI n0, SingI n1, SingI n2)
+                => ChannelSource n0 (Stored Uint8) -- Channel to UART
+                -> ChannelSink n1   (Struct "gcsstream_timing")
+                -> ChannelSink n2   (Struct "data_rate_state")
                 -> DataSink         (Struct "flightmode")
                 -> DataSink         (Struct "sensors_result")
                 -> DataSink         (Struct "position_result")
@@ -64,13 +78,16 @@ gcsTransmitTask ostream sp_sink dr_sink fm_sink se_sink ps_sink ct_sink mo_sink
   motorReader      <- withDataReader mo_sink "motors"
   uartTx           <- withChannelEmitter ostream "ostream"
 
+  let processStream = processHx uartTx
+
   -- XXX current issue: need a way to change usartSender to be defined in terms
   -- of the ChannelReceiver. This means it will depend on the Task
   -- tower_task_loop_ module, which generates the code for the emitter.
   -- msgDriver <- gcsTransmitDriver uavPkg
 
   mavlinkPacket  <- taskLocal "mavlinkPacket"
-  seqNum  <- taskLocalInit "txseqNum" (ival 0)
+  -- mavlink sequence numbers
+  seqNum         <- taskLocalInit "txseqNum" (ival 0)
 
   t <- withGetTimeMillis
 
@@ -88,8 +105,8 @@ gcsTransmitTask ostream sp_sink dr_sink fm_sink se_sink ps_sink ct_sink mo_sink
     store lastRun initTime
     C.setupCommsec
 
-  let send :: (Scope cs ~ GetAlloc (AllowBreak eff)) => Ivory eff ()
-      send = arrayMap $ \ix -> emit_ uartTx (constRef mavlinkPacket ! ix)
+  -- let send :: (Scope cs ~ GetAlloc (AllowBreak eff)) => Ivory eff ()
+  --     send = arrayMap $ \ix -> emit_ uartTx (constRef mavlinkPacket ! ix)
 
   onChannel sp_sink "streamPeriod" $ \newperiods -> do
     setNewPeriods newperiods s_periods s_schedule =<< getTimeMillis t
@@ -99,7 +116,7 @@ gcsTransmitTask ostream sp_sink dr_sink fm_sink se_sink ps_sink ct_sink mo_sink
     d <- local (istruct [])
     refCopy d dr
     call_ mkSendDataRate d seqNum mavlinkPacket
-    send
+    call_ processStream mavlinkPacket
 
   onPeriod 50 $ \now -> do
 
@@ -117,36 +134,36 @@ gcsTransmitTask ostream sp_sink dr_sink fm_sink se_sink ps_sink ct_sink mo_sink
     onStream S.heartbeat $ do
       readData fmReader s_fm
       call_ mkSendHeartbeat s_fm seqNum mavlinkPacket
-      send
+      call_ processStream mavlinkPacket
 
     onStream S.servo_output_raw $ do
       readData motorReader s_motor
       readData ctlReader s_ctl
       call_ mkSendServoOutputRaw s_motor s_ctl seqNum mavlinkPacket
-      send
+      call_ processStream mavlinkPacket
 
     onStream S.attitude $ do
       readData sensorsReader s_sens
       call_ mkSendAttitude s_sens seqNum mavlinkPacket
-      send
+      call_ processStream mavlinkPacket
 
     onStream S.gps_raw_int $ do
       readData posReader s_pos
       call_ mkSendGpsRawInt s_pos seqNum mavlinkPacket
-      send
+      call_ processStream mavlinkPacket
 
     onStream S.vfr_hud $ do
       readData posReader s_pos
       readData ctlReader s_ctl
       readData sensorsReader s_sens
       call_ mkSendVfrHud s_pos s_ctl s_sens seqNum mavlinkPacket
-      send
+      call_ processStream mavlinkPacket
 
     onStream S.global_position_int $ do
       readData posReader s_pos
       readData sensorsReader s_sens
       call_ mkSendGlobalPositionInt s_pos s_sens seqNum mavlinkPacket
-      send
+      call_ processStream mavlinkPacket
 
     onStream S.params $ do
       -- XXX our whole story for params is broken
@@ -159,8 +176,7 @@ gcsTransmitTask ostream sp_sink dr_sink fm_sink se_sink ps_sink ct_sink mo_sink
     depend FM.flightModeTypeModule
     depend D.dataRateTypeModule
     depend S.gcsStreamTimingTypeModule
+    depend senderModules
+    incl processStream
     depend C.commsecModule
     incl H.encode
-    depend senderModules
---    defStruct (Proxy :: Proxy "hxstream_state")
-
