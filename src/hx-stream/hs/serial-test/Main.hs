@@ -42,22 +42,23 @@ startDebugger sig f = do
     case C.toLower c of
      'q' -> writeIORef sig Exit >> exitSuccess
      '0' -> sendpacket (radiocmd "ATI0") >> loop
-     '1' -> sendpacket (radiocmd "ATI1") >> loop
+     '1' -> sendpacket (radiocmd "ATI0") >> loop
      '2' -> sendpacket (radiocmd "ATI2") >> loop
      '3' -> sendpacket (radiocmd "ATI2") >> loop
      '4' -> sendpacket (radiocmd "ATI4") >> loop
      '5' -> sendpacket (radiocmd "ATI5") >> loop
      '6' -> sendpacket (radiocmd "ATI6") >> loop
      '7' -> sendpacket (radiocmd "ATI7") >> loop
-     's' -> sendpacket packet1 >> loop
-     'd' -> sendpacket packet2 >> loop
-     'f' -> sendpacket packet3 >> loop
+     's' -> sendpacket (airdata packet1) >> loop
+     'd' -> sendpacket (airdata packet2) >> loop
+     'f' -> sendpacket (airdata packet3) >> loop
      'e' -> sendpacket [] >> loop
-     _ ->  loop
+     _ -> loop
   sendpacket p = writeIORef sig (Send p)
-  packet1 = [0,1,2,0xFF,0x7b,0x7c,0x7d,0x7e,9]
-  packet2 = [0,5,6]
-  packet3 = take 126 [0..]
+  airdata p = 0:p
+  packet1 = [1,2,0xFF,0x7b,0x7c,0x7d,0x7e,9]
+  packet2 = [5,6]
+  packet3 = take 96 [0..]
 
 radiocmd :: String -> [Word8]
 radiocmd s = 1 : (map (fromIntegral . C.ord) (s ++ "\r"))
