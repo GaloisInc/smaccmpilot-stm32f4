@@ -12,8 +12,8 @@ import Ivory.HXStream
 datalink :: (SingI n, SingI m, SingI nn, SingI mm)
          => ChannelSink   n (Stored Uint8)
          -> ChannelSource m (Stored Uint8)
-         -> Tower p ( ChannelSink   nn (Array 128 (Stored Uint8))
-                    , ChannelSource mm (Array 128 (Stored Uint8)))
+         -> Tower p ( ChannelSink   nn (Array 96 (Stored Uint8))
+                    , ChannelSource mm (Array 96 (Stored Uint8)))
 datalink dlinksink dlinksrc = do --  istream ostream = do
   framed_i <- channelWithSize
   framed_o <- channelWithSize
@@ -29,7 +29,7 @@ tag = 0
 
 decoder :: (SingI n, SingI m)
         => ChannelSink   n (Stored Uint8)
-        -> ChannelSource m (Array 128 (Stored Uint8))
+        -> ChannelSource m (Array 96 (Stored Uint8))
         -> Task p ()
 decoder link_sink framed_src = do
     link_istream   <- withChannelEvent   link_sink  "link_istream"
@@ -44,7 +44,7 @@ decoder link_sink framed_src = do
               store overrun false
               arrayMap $ \ix -> store (decoded ! ix) 0
           , fh_data = \v offs ->
-              ifte_ (offs <? 128)
+              ifte_ (offs <? 96)
                     (store (decoded ! (toIx offs)) v)
                     (store overrun true)
           , fh_end = do
@@ -56,7 +56,7 @@ decoder link_sink framed_src = do
     onEventV link_istream $ \v -> noReturn $ decodeSM [handler] hx v
 
 encoder :: (SingI n, SingI m)
-        => ChannelSink   m (Array 128 (Stored Uint8))
+        => ChannelSink   m (Array 96 (Stored Uint8))
         -> ChannelSource n (Stored Uint8)
         -> Task p ()
 encoder framed_snk link_src = do

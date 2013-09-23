@@ -7,8 +7,8 @@ module SMACCMPilot.Flight.Datalink.TestHarness
 import Ivory.Language
 import Ivory.Tower
 
-frameLoopback :: ChannelSink   2 (Array 128 (Stored Uint8))
-              -> ChannelSource 2 (Array 128 (Stored Uint8))
+frameLoopback :: ChannelSink   2 (Array 96 (Stored Uint8))
+              -> ChannelSource 2 (Array 96 (Stored Uint8))
               -> Tower p ()
 frameLoopback isrc osnk = task "datalinkFrameLoopback" $ do
   istream <- withChannelEvent   isrc "istream"
@@ -18,7 +18,7 @@ frameLoopback isrc osnk = task "datalinkFrameLoopback" $ do
     refCopy o f
     a <- deref (f ! 0)
     b <- deref (f ! 1)
-    store (o ! 2) (a + b)
+    store (o ! 2) (a + b + 0x80)
     emit_ ostream (constRef o)
   return ()
 
