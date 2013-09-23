@@ -20,9 +20,8 @@ import qualified Data.HXStream              as H
 import           Commsec
 import qualified Mavlink.Parser             as L
 
--- XXX
+-- XXXX Testing
 import Data.Maybe
-
 --------------------------------------------------------------------------------
 -- State machine for collecting bytes and encrypting/decrypting them.
 
@@ -33,8 +32,8 @@ pkgLen = 128
 msgLen = pkgLen - 8 - 8
 
 uavID, baseID :: BaseId
-uavID  = 0
-baseID = 0
+uavID  = 5
+baseID = 7
 
 uavToBaseKey, baseToUavKey :: B.ByteString
 uavToBaseKey = B.pack [0..15    :: Word8]
@@ -80,9 +79,9 @@ padMsg bs =
 decrypt :: Context -> B.ByteString -> IO (Maybe B.ByteString)
 decrypt ctx pkg = do
   msg <- secPkgDec_HS ctx pkg
-  maybe (putStrLn "Warning: decryption failed!" >> return Nothing)
-        (return . Just)
-        msg
+  case msg of
+    Left err  -> (putStrLn $ "Warning: " ++ show err) >> return Nothing
+    Right res -> return (Just res)
 
 -- | Encrypt function.
 encrypt :: Context -> B.ByteString -> IO (Maybe B.ByteString)
@@ -273,13 +272,13 @@ maybeUnit f = maybe (return ()) (void . f)
 --     where
 --     loop ctx hxSt s = do
 --       rx <- P.recv s maxBytes
---       putStrLn $ "got " ++ show (B.length rx) ++ " bytes"
---       when (not $ B.null rx) (putStrLn $ "   bytes: "
---                                  ++ show (B.unpack $ B.take 12 rx))
+--       -- putStrLn $ "got " ++ show (B.length rx) ++ " bytes"
+--       -- when (not $ B.null rx) (putStrLn $ "   bytes: "
+--       --                            ++ show (B.unpack $ B.take 12 rx))
 --       let (frames, hxSt') = H.decode rx hxSt
---       mfrs <- mapM (decrypt ctx) frames
---       when (length (catMaybes mfrs) /= length frames) (putStrLn "bad decrypt")
---       mapM_ parseFrame (catMaybes mfrs)
+--       -- mfrs <- mapM (decrypt ctx) frames
+--       -- when (length (catMaybes mfrs) /= length frames) (putStrLn "bad decrypt")
+--       mapM_ parseFrame frames
 
 --       loop ctx hxSt' s
 
@@ -288,16 +287,46 @@ maybeUnit f = maybe (return ()) (void . f)
 --       when (not $ null $ errs) $  putStrLn ("errs " ++ unlines errs)
 --       when (not $ null $ packets) $ putStrLn ("packets " ++ show packets)
 
--- Testing: just parse the mavlink packets: no hx, no crypto.
 runSerialTest :: FilePath -> IO ()
 runSerialTest port =
   P.withSerial port P.defaultSerialSettings { P.commSpeed = speed } $ \s -> do
     putStrLn "Connected to testing client..."
-    loop L.emptyParseSt s
+    ctx <- initializeBase
+    loop ctx H.emptyStreamState s
     where
-    loop ps s = do
+    loop ctx hxSt s = do
       rx <- P.recv s maxBytes
-      let (errs, packets, ps') = L.parseStream 128 ps rx
+      -- putStrLn $ "got " ++ show (B.length rx) ++ " bytes"
+      -- when (not $ B.null rx) (putStrLn $ "   bytes: "
+      --                            ++ show (B.unpack $ B.take 12 rx))
+      let (frames, hxSt') = H.decode rx hxSt
+      when (not $ null frames) (putStrLn $ "frame lens: " ++ unwords (map (show . B.length) frames))
+      mfrs <- mapM (decrypt ctx) frames
+      when (length (catMaybes mfrs) /= length frames) $ do
+        let xs = zip mfrs frames
+        let f (Nothing, fr) = putStrLn $ "header: " ++ show (B.unpack $ B.take 8 fr)
+            f _             = return ()
+        mapM_ f xs
+      mapM_ parseFrame (catMaybes mfrs)
+
+      loop ctx hxSt' s
+
+    parseFrame fr = do
+      putStrLn $ "packet: " ++ show (B.unpack fr) -- $ B.take 8 fr)
+      let (errs, packets, _) = L.parseStream 128 L.emptyParseSt fr
       when (not $ null $ errs) $  putStrLn ("errs " ++ unlines errs)
       when (not $ null $ packets) $ putStrLn ("packets " ++ show packets)
-      loop ps' s
+
+-- -- Testing: just parse the mavlink packets: no hx, no crypto.
+-- runSerialTest :: FilePath -> IO ()
+-- runSerialTest port =
+--   P.withSerial port P.defaultSerialSettings { P.commSpeed = speed } $ \s -> do
+--     putStrLn "Connected to testing client..."
+--     loop L.emptyParseSt s
+--     where
+--     loop ps s = do
+--       rx <- P.recv s maxBytes
+--       let (errs, packets, ps') = L.parseStream 128 ps rx
+--       when (not $ null $ errs) $  putStrLn ("errs " ++ unlines errs)
+--       when (not $ null $ packets) $ putStrLn ("packets " ++ show packets)
+--       loop ps' s
