@@ -131,9 +131,8 @@ hxstreamTypeModule :: Module
 hxstreamTypeModule = package "hxstream_type" $
   defStruct (Proxy :: Proxy "hxstream_state")
 
--- | Encode from some portion of a 128 byte array, up to and including a stop
--- index, into a 258 byte array.  This guarantees we have enough storage to hold
--- the 128 bytes.
+-- | Encode a 128 byte array into a 258 byte array.  This guarantees we have
+-- enough storage to hold the 128 bytes.
 encode :: Def ( '[ Ref s (Array 128 (Stored Uint8)) -- From array
                  , Ref s' (Array 258 (Stored Uint8)) -- To array
                  ]
