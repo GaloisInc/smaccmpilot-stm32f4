@@ -29,6 +29,8 @@ import Ivory.Stdlib
 
 import qualified GHC.TypeLits as S
 
+import Control.Monad
+
 --------------------------------------------------------------------------------
 -- Types and constants
 
@@ -38,9 +40,9 @@ type Pkg s             = Ref s PkgArr
 
 -- Replicates macros TAG_LEN and HEADER_LEN
 -- Must match types given above.
-maxMsgLen, tagLen, headerLen :: Integer
+maxMsgLen, headerLen :: Integer
 maxMsgLen = S.fromSing (S.sing :: S.Sing 112)
-tagLen    = S.fromSing (S.sing :: S.Sing 8)
+--tagLen    = S.fromSing (S.sing :: S.Sing 8)
 headerLen = S.fromSing (S.sing :: S.Sing 8)
 
 -- Proxy type we'll cast from---doesn't really matter what the type (we don't
@@ -107,7 +109,7 @@ uavCtx :: MemArea Commsec_ctx_proxy
 uavCtx  = importArea "uavCtx"  ivoryCommsec
 
 uavID :: Uint32
-uavID  = 0
+uavID  = 5
 
 mkKey :: [Int] -> Init Key
 mkKey key = iarray $ map (ival . fromIntegral) key
@@ -150,42 +152,50 @@ setupCommsec =
                        b2uSalt (addrOf baseToUavKey)
                        u2bSalt (addrOf uavToBaseKey)
 
--- Copy a messge from an arbitrary-sized array into our package buffer.  If the
--- message array is too small, the buffer is padded with zeros.  If it's too
--- large, no copying is done.  Returns True if the copy was successful and False
--- if no copying is done.
-cpyToPkg :: (SingI n)
-         => ConstRef s (Array n (Stored Uint8))
+-- -- Copy a messge from an arbitrary-sized array into our package buffer.  If the
+-- -- message array is too small, the buffer is padded with zeros.  If it's too
+-- -- large, no copying is done.  Returns True if the copy was successful and False
+-- -- if no copying is done.
+-- cpyToPkg :: (SingI n)
+--          => ConstRef s (Array n (Stored Uint8))
+--          -> Ref s' (Array 128 (Stored Uint8))
+--          -> Ivory eff ()
+-- cpyToPkg from pkg =
+--   if fromTooBig
+--     then err
+--     else
+--       arrayMap $ \(ix :: Ix 128) ->
+--         cond_ [   ix <? headerEndIx
+--               ==> return ()
+--               ,   ix >=? payloadEndIx
+--               ==> return ()
+--               ,   fromEnd ix -- from array too short: fill with zeros.
+--               ==> store (pkg ! ix) 0
+--               ,   true
+--               ==> deref (from ! toIx (fromIx ix)) >>= store (pkg ! ix)
+--               ]
+--   where
+--   lenFrom    = arrayLen from
+--   lenTo      :: Integer
+--   lenTo      = arrayLen pkg
+--   fromEnd    :: Ix 128 -> IBool
+--   fromEnd ix = ix >=? fromIntegral lenFrom
+--   fromTooBig :: Bool
+--   fromTooBig = lenTo - tagLen - headerLen < lenFrom
+--   headerEndIx  = fromIntegral headerLen
+--   payloadEndIx = fromIntegral (lenTo - tagLen)
+
+--   err = error $
+--     "cpyToPkg in Flight/GCS/Commsec.hs: mavlink array too big.  " ++
+--     "from array length: " ++ show lenFrom
+
+-- Copy a 112-byte message into our package buffer.  Returns True if the copy
+-- was successful and False if no copying is done.
+cpyToPkg :: (GetAlloc eff ~ Scope s0)
+         => ConstRef s (Array 112 (Stored Uint8))
          -> Ref s' (Array 128 (Stored Uint8))
          -> Ivory eff ()
-cpyToPkg from pkg =
-  if fromTooBig
-    then err
-    else
-      arrayMap $ \(ix :: Ix 128) ->
-        cond_ [   ix <? headerEndIx
-              ==> return ()
-              ,   ix >=? payloadEndIx
-              ==> return ()
-              ,   fromEnd ix -- from array too short: fill with zeros.
-              ==> store (pkg ! ix) 0
-              ,   true
-              ==> deref (from ! toIx (fromIx ix)) >>= store (pkg ! ix)
-              ]
-  where
-  lenFrom    = arrayLen from
-  lenTo      :: Integer
-  lenTo      = arrayLen pkg
-  fromEnd    :: Ix 128 -> IBool
-  fromEnd ix = ix >=? fromIntegral lenFrom
-  fromTooBig :: Bool
-  fromTooBig = lenTo - tagLen - headerLen < lenFrom
-  headerEndIx  = fromIntegral headerLen
-  payloadEndIx = fromIntegral (lenTo - tagLen)
-
-  err = error $
-    "cpyToPkg in Flight/GCS/Commsec.hs: mavlink array too big.  " ++
-    "from array length: " ++ show lenFrom
+cpyToPkg from pkg = void (arrCopy pkg from (fromInteger headerLen))
 
 --------------------------------------------------------------------------------
 -- Testing
