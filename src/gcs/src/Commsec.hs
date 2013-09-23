@@ -28,6 +28,8 @@ import Data.Serialize
 --------------------------------------------------------------------------------
 --Types
 
+-- BaseId includes the UAV.
+
 newtype BaseId = BaseId Word32
                  deriving (Eq, Ord, Show, Num)
 
@@ -36,11 +38,9 @@ instance Serialize BaseId where
     put (BaseId x) = putWord32be x
 
 -- Key, salt, station ID, counter
-
--- You send using just one key (a shared key for bases) or the UAV key.
 type OutContext = (AES, Word32, BaseId, Word32)
 
--- You can have many senders, so we have a list.
+-- You can have many senders, so we have a list of id/counter pairs.
 type InContext  = (AES, Word32, [(BaseId,Word32)])
 
 data SecureContext_HS = SC { inContext    :: InContext
@@ -71,7 +71,13 @@ secPkgEnc_HS rc pt = do
     let (newOut,res) = commsecPkg outbound' pt in
     (SC _in newOut,res)
 
-dec :: InContext -> ByteString -> (InContext, Maybe ByteString)
+data Failure = CntrTooBig
+             | CntTooOld
+             | UnknownId
+             | BadTag B.ByteString B.ByteString
+  deriving (Show, Read, Eq)
+
+dec :: InContext -> ByteString -> (InContext, Either Failure ByteString)
 dec old@(key,salt,bidList) pkg =
     let aad = B.empty
         -- Get the iv out of the send package.
@@ -90,14 +96,19 @@ dec old@(key,salt,bidList) pkg =
         -- Decrypt the message.  I get the sent message and auth. tag, if all
         -- goes well.
         (pt, AuthTag decTag) = decryptGCM key iv aad ct
+        decTag' = B.take (B.length tag) decTag
     in case lookup bid bidList of
-        Nothing -> (old, Nothing)
+        Nothing -> (old, Left UnknownId)
         Just cnt
-          -- Counter is too high or old.
-          | cnt == maxBound || cnt >= newCtr    -> (old,Nothing)
+          -- Counter is too high.
+          | cnt == maxBound                     -> (old, Left CntrTooBig)
+          -- Counter is too old.
+          | cnt >= newCtr                       -> (old, Left CntTooOld)
           -- Return my updated inContext with the decrypted message.
-          | B.take (B.length tag) decTag == tag -> (new,Just pt)
-          | otherwise                           -> (old,Nothing)
+          | decTag' == tag -> (new, Right pt)
+          -- Bad tag.
+          | otherwise                           ->
+            (old, Left (BadTag decTag' tag))
 
 initOutContext :: ByteString -> Word32 -> BaseId -> OutContext
 initOutContext key salt bid = (initAES key, salt, bid, 1)
@@ -120,7 +131,7 @@ secPkgInit_HS b dsalt dkey esalt ekey
 
 -- | Decrypt a package given a context.  Returns the decrypted message, if
 -- successful.
-secPkgDec_HS :: Context -> ByteString -> IO (Maybe ByteString)
+secPkgDec_HS :: Context -> ByteString -> IO (Either Failure ByteString)
 secPkgDec_HS rc pkg =
   atomicModifyIORef' rc $ \(SC inbound' _out) ->
     let (newIn, res) = dec inbound' pkg in
