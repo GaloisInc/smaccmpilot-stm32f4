@@ -14,6 +14,7 @@ library
                         Ivory.HXStream.Test
 
   build-depends:        base >= 4.6,
+                        directory,
                         ivory,
                         ivory-stdlib,
                         ivory-backend-c,
@@ -29,5 +30,6 @@ executable ivory-hxstream-test
   hs-source-dirs:       test
 
   build-depends:        base >= 4.6,
+                        directory,
                         ivory-hxstream
 

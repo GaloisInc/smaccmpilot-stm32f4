@@ -5,13 +5,14 @@
 
 module Ivory.HXStream.Test where
 
-import Control.Monad (replicateM)
+import Control.Monad (replicateM, unless)
 import Data.Word
 import Data.String (fromString)
+import System.Directory (doesFileExist)
 
 import Ivory.HXStream
 import Ivory.Language
-import Ivory.Stdlib
+import Ivory.Stdlib hiding (unless)
 import Ivory.Compile.C.CmdlineFrontend
 
 import qualified Test.QuickCheck as Q
@@ -73,7 +74,7 @@ decode = proc "hxstream_test_decode" $ \ framed pt -> body $ do
   hx <- local hx_ival
   runs <- local (ival (0::Uint32))
   ends <- local (ival (0::Uint32))
-  let handler = FrameHandler
+  let handler = FrameHandler $ ScopedFrameHandler
         { fh_tag = 0
         , fh_begin = do
             n <- deref runs
@@ -112,7 +113,9 @@ main = do
                           , srcDir     = "test"
                           , constFold = True
                           }
+  writeMakefile pkgname
   where
+  pkgname = "hxstream-test"
   cmodule p = package "hxstream-test" $ do
     incl p
     defStruct (Proxy :: Proxy "hxstream_state")
@@ -120,3 +123,28 @@ main = do
     incl testReport
     incl encode
     incl decode
+
+
+writeMakefile :: String -> IO ()
+writeMakefile pkgname = do
+  e <- doesFileExist path
+  unless e $ writeFile path (makefile pkgname)
+  where
+  path = "test/Makefile"
+  makefile fname = unlines
+    [ "CFLAGS += -std=c99"
+    , "CFLAGS += -DIVORY_DEPLOY"
+    , "CFLAGS += -g3"
+    , "default: test"
+    , fname ++ ": " ++ fname ++ ".c"
+    , "\t$(CC) $(CFLAGS) -o $@ $^"
+    , "test: " ++ fname
+    , "\t./" ++ fname ++ " > test_output.tmp"
+    , "\t@echo \"TOTAL TESTS:\""
+    , "\t@cat test_output.tmp | wc -l"
+    , "\t@echo \"TOTAL SUCCESSES:\""
+    , "\t@grep pass test_output.tmp | wc -l"
+    , "clean:"
+    , "\t-rm " ++ fname
+    , "\t-rm test_output.tmp"
+    ]
