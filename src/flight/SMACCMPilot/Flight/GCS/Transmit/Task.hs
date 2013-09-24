@@ -2,12 +2,14 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE NoMonoLocalBinds #-}
 
 module SMACCMPilot.Flight.GCS.Transmit.Task
   ( gcsTransmitTask
   ) where
 
 import Prelude hiding (last)
+import Data.Traversable (traverse)
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -15,6 +17,7 @@ import Ivory.Tower
 
 import           SMACCMPilot.Flight.GCS.Transmit.MessageDriver
 import           SMACCMPilot.Flight.GCS.Stream
+import           SMACCMPilot.Param
 import qualified SMACCMPilot.Flight.Types.GCSStreamTiming as T
 import qualified SMACCMPilot.Flight.Types.FlightMode      as FM
 import qualified SMACCMPilot.Flight.Types.DataRate        as D
@@ -22,7 +25,7 @@ import qualified SMACCMPilot.Communications               as C
 
 --------------------------------------------------------------------------------
 
-gcsTransmitTask :: (SingI n0, SingI n1, SingI n2)
+gcsTransmitTask :: (SingI n0, SingI n1, SingI n2, SingI n3)
                 => ChannelSource n0 C.MAVLinkArray -- Channel to encrypter
                 -> ChannelSink   n1 (Struct "gcsstream_timing")
                 -> ChannelSink   n2 (Struct "data_rate_state")
@@ -31,8 +34,11 @@ gcsTransmitTask :: (SingI n0, SingI n1, SingI n2)
                 -> DataSink         (Struct "position_result")
                 -> DataSink         (Struct "controloutput")
                 -> DataSink         (Struct "motors")
+                -> ChannelSink n3   (Stored Sint16)
+                -> [Param PortPair]
                 -> Task p ()
 gcsTransmitTask mavStream sp_sink _dr_sink fm_sink se_sink ps_sink ct_sink mo_sink
+                param_req_sink params
   = do
   withStackSize 1024
 
@@ -48,6 +54,10 @@ gcsTransmitTask mavStream sp_sink _dr_sink fm_sink se_sink ps_sink ct_sink mo_si
   seqNum         <- taskLocalInit "txseqNum" (ival 0)
 
   t <- withGetTimeMillis
+
+  paramReqs       <- withChannelReceiver param_req_sink "paramReqs"
+  read_params     <- traverse paramReader (map (fmap portPairSink) params)
+  let getParamInfo = makeGetParamInfo read_params
 
   lastRun    <- taskLocal "lastrun"
   s_periods  <- taskLocal "periods"
@@ -124,14 +134,23 @@ gcsTransmitTask mavStream sp_sink _dr_sink fm_sink se_sink ps_sink ct_sink mo_si
       processMav
 
     onStream T.params $ do
-      -- XXX our whole story for params is broken
-      return ()
+      x       <- local (ival 0)
+      success <- receive paramReqs x
+      when success $ do
+        ix    <- deref x
+        msg   <- local (istruct [])
+        found <- call getParamInfo ix msg
+        when found $ do
+          call_ mkSendParamValue msg seqNum mavlinkPacket
+          processMav
 
     -- Keep track of last run for internal scheduler
     store lastRun now
 
   taskModuleDef $ do
+    mapM_ depend stdlibModules
     depend FM.flightModeTypeModule
     depend D.dataRateTypeModule
     depend T.gcsStreamTimingTypeModule
     depend senderModules
+    incl getParamInfo

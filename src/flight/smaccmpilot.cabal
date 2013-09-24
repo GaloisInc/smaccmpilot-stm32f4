@@ -15,6 +15,7 @@ library
                        SMACCMPilot.Flight.Platforms,
 
                        SMACCMPilot.Flight.BlinkTask,
+                       SMACCMPilot.Flight.Param,
 
                        SMACCMPilot.Flight.GCS.Stream,
                        SMACCMPilot.Flight.GCS.Transmit.MessageDriver,
@@ -64,6 +65,7 @@ library
 
                        SMACCMPilot.Param,
                        SMACCMPilot.Param.Base,
+                       SMACCMPilot.Param.TowerTypes,
                        SMACCMPilot.Param.Tower,
 
                        SMACCMPilot.Console,

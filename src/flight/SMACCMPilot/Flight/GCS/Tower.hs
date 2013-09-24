@@ -12,6 +12,7 @@ import Ivory.Tower
 import qualified SMACCMPilot.Mavlink.Messages.HilState as HIL
 
 import SMACCMPilot.Flight.GCS.HIL
+import SMACCMPilot.Param
 import SMACCMPilot.Flight.GCS.Transmit.Task
 import SMACCMPilot.Flight.GCS.Receive.Task
 
@@ -31,9 +32,10 @@ gcsTower :: (SingI n0, SingI n1)
          -> DataSink (Struct "position_result")
          -> DataSink (Struct "controloutput")
          -> DataSink (Struct "motors")
+         -> [Param PortPair]
          -> Tower p ()
-gcsTower name istream ostream fm sens pos ctl motor = do
-  _ <- gcsTowerAux name istream ostream fm sens pos ctl motor
+gcsTower name istream ostream fm sens pos ctl motor params = do
+  _ <- gcsTowerAux name istream ostream fm sens pos ctl motor params
   return ()
 
 --------------------------------------------------------------------------------
@@ -47,11 +49,12 @@ gcsTowerHil :: (SingI n0, SingI n1)
          -> DataSink (Struct "motors")
          -> ( ChannelSource 16 (Struct "sensors_result")
             , ChannelSink 16 (Struct "sensors_result"))
+         -> [Param PortPair]
          -> Tower p ()
-gcsTowerHil name istream ostream fm ctl motor sensors = do
+gcsTowerHil name istream ostream fm ctl motor sensors params = do
   sensors_state <- stateProxy (snk sensors)
   position      <- dataport
-  hil <- gcs fm sensors_state (snk position) ctl motor
+  hil <- gcs fm sensors_state (snk position) ctl motor params
   task "hilTranslator" $ hilTranslator hil (src sensors) (src position)
   where
   gcs = gcsTowerAux name istream ostream
@@ -67,8 +70,9 @@ gcsTowerAux :: (SingI n0, SingI n1)
          -> DataSink (Struct "position_result")
          -> DataSink (Struct "controloutput")
          -> DataSink (Struct "motors")
+         -> [Param PortPair]
          -> Tower p (ChannelSink 4 (Struct "hil_state_msg"))
-gcsTowerAux name istream ostream fm sens pos ctl motor = do
+gcsTowerAux name istream ostream fm sens pos ctl motor params = do
   -- GCS TX and encrypt tasks
   (gcsTxToEncSrc, gcsTxToEncRcv) <- channel
   -- GCS RX and decrypt tasks
@@ -76,6 +80,9 @@ gcsTowerAux name istream ostream fm sens pos ctl motor = do
 
   streamrate <- channel
   datarate   <- channel
+  -- XXX hack to make sure we can send all parameters on "fetch"
+  param_req  <- channelWithSize :: Tower p ( ChannelSource 512 (Stored Sint16)
+                                           , ChannelSink   512 (Stored Sint16))
   hil        <- channelWithSize
 
   (  hxToDecRcv -- from Hx to decrypter
@@ -90,13 +97,13 @@ gcsTowerAux name istream ostream fm sens pos ctl motor = do
   task "decryptTask" $ Dec.decryptTask hxToDecRcv decToGcsRxSrc
   task ("gcsReceiveTask" ++ name) $
     gcsReceiveTask decToGcsRxRcv (src streamrate) (src datarate) (src hil)
+      (src param_req) params
 
   -- TX
   task "encryptTask" $ Enc.encryptTask gcsTxToEncRcv encToHxSrc
   task ("gcsTransmitTask" ++ name) $
     gcsTransmitTask gcsTxToEncSrc (snk streamrate) (snk datarate) fm sens
-      pos ctl motor
-
+      pos ctl motor (snk param_req) params
   addDepends HIL.hilStateModule
   return (snk hil)
 

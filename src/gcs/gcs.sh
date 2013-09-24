@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 HOST=127.0.0.1
 PORT=6000
@@ -10,7 +10,7 @@ EXEC_MAVPROXY="python mavlink/mavproxy.py --master=tcp:$HOST:$PORT --baud=57600"
 echo starting commsec server: $COMMSEC_SERVER
 $DIR/$COMMSEC_SERVER&
 
-if [ -z $TERM_APP]; then
+if [ -z $TERM_APP ]; then
 	if [ -x gnome-terminal ]; then
 		echo starting mavproxy in a new terminal: $EXEC_MAVPROXY;
 		gnome-terminal -x $EXEC_MAVPROXY;
@@ -20,7 +20,7 @@ if [ -z $TERM_APP]; then
 	fi
 else
 	echo starting mavproxy in a new terminal: $EXEC_MAVPROXY;
-	$TERM_APP -x $EXEC_MAVPROXY;
+	$TERM_APP -e $EXEC_MAVPROXY;
 fi
 
 function kill() {
