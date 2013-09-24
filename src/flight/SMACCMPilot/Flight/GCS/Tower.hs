@@ -10,6 +10,8 @@ import Ivory.Language
 
 import Ivory.Tower
 
+import qualified SMACCMPilot.Mavlink.Messages.HilState as HIL
+
 import SMACCMPilot.Flight.GCS.HIL
 import SMACCMPilot.Flight.GCS.Transmit.Task
 import SMACCMPilot.Flight.GCS.Receive.Task
@@ -65,5 +67,6 @@ gcsTowerAux name istream ostream fm sens pos ctl motor = do
   task ("gcsTransmitTask" ++ name) $
     gcsTransmitTask ostream (snk streamrate) (snk datarate) fm sens
       pos ctl motor
+  addDepends HIL.hilStateModule
   return (snk hil)
 
