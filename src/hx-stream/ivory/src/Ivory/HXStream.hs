@@ -7,6 +7,7 @@
 
 module Ivory.HXStream
   ( decodeSM
+  , ScopedFrameHandler(..)
   , FrameHandler(..)
   , encodeToBS
   , Hx
@@ -38,8 +39,10 @@ ceo  = 0x7c
 escape :: Uint8 -> Uint8
 escape b = b .^ 0x20 -- XOR with 0x20
 
-data FrameHandler cs =
-  FrameHandler
+newtype FrameHandler = FrameHandler { unFrameHandler :: forall cs . ScopedFrameHandler cs }
+
+data ScopedFrameHandler cs =
+  ScopedFrameHandler
     { fh_tag   :: Uint8
     , fh_begin :: Ivory (AllocEffects cs) ()
     , fh_data  :: Uint8 -> Sint32 -> Ivory (AllocEffects cs) ()
@@ -48,7 +51,8 @@ data FrameHandler cs =
 
 -- | Decode a byte, given an hxstream state.  Updates the hxstream state with
 -- the decoded value. Gives decoded info to frame handlers.
-decodeSM :: [FrameHandler cs]
+decodeSM :: forall s cs
+          . [FrameHandler]
          -> Ref s Hx
          -> Uint8
          -> Ivory (AllocEffects cs) ()
@@ -62,7 +66,9 @@ decodeSM handls hx c = do
     , (s ==? hxstate_esc)     ==> eschandler
     ]
   where
-  taghandler = cond_ ((fborestart : (map tagdetect handls)) ++
+  hs :: [ScopedFrameHandler cs]
+  hs = map unFrameHandler handls
+  taghandler = cond_ ((fborestart : (map tagdetect hs)) ++
     [true ==> store (hx ~> state) hxstate_idle])
   fborestart = ((c ==? fbo) ==> store (hx ~> state) hxstate_fstart)
   tagdetect fh = (c ==? (fh_tag fh)) ==> do
@@ -73,12 +79,12 @@ decodeSM handls hx c = do
   endcheck tag = c ==? fbo ==> do
     store (hx ~> state) hxstate_idle
     let handleend fh = tag ==? (fh_tag fh) ==> fh_end fh
-    cond_ (map handleend handls)
+    cond_ (map handleend hs)
   incroffs = do
      offs <- deref (hx ~> offset)
      store (hx ~> offset) (offs + 1)
      return offs
-  handlebyte tag cc offs = cond_ (map h handls)
+  handlebyte tag cc offs = cond_ (map h hs)
     where h fh = tag ==? (fh_tag fh) ==> fh_data fh cc offs
   datahandler = do
     tag <- deref (hx ~> ftag)
@@ -94,6 +100,7 @@ decodeSM handls hx c = do
           offs <- incroffs
           handlebyte tag (escape c) offs
     cond_ [endcheck tag, true ==> dispatchescaped]
+    store (hx ~> state) hxstate_data
 
 -- Encode from a framed array to a byte stream.
 encodeToBS :: (SingI n)
