@@ -87,6 +87,7 @@ parseByte s b
         2 -> next b s -- Sequence number
         3 -> next b s -- System ID
         4 -> next b s -- Comp ID
+        -- 6th byte is the message ID
         5 -> do s' <- validatePacketLen s { packetType = b }
                 next b s'
         off -> case off - decodedLen s of
