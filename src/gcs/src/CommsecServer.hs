@@ -6,6 +6,7 @@
 
 module Main where
 
+import qualified System.IO                  as I
 import           Text.Printf
 import           System.Environment
 import           Control.Monad
@@ -19,6 +20,9 @@ import           Data.Word
 import qualified Data.HXStream              as H
 import           Commsec
 import qualified Mavlink.Parser             as L
+
+import qualified Control.Concurrent.STM.TQueue as T
+import qualified Control.Monad.STM as T
 
 -- XXXX Testing
 import Data.Maybe
@@ -94,151 +98,248 @@ encrypt ctx bs = do
 --------------------------------------------------------------------------------
 -- Decoding logic for incoming streams.
 
--- | Forever take an incoming bytestream, decodes the hxstream, decrypts it, and
--- sends the message on an outbound channel.
-streamDecode ::
-     IO (Maybe B.ByteString)                   -- ^ bytestream source channel
-  -> (B.ByteString -> IO (Maybe B.ByteString)) -- ^ decryption
-  -> (B.ByteString -> IO ())                   -- ^ sink channel for decrypted
-                                               -- msgs
-  -> IO ()
-streamDecode rx dec tx = loop H.emptyStreamState
-  where
-  loop st =
-    -- Yield if rx doesn't yield any bytes
-    maybe (C.yield >> loop st) withMsg =<< rx
-    where
-    withMsg bs = do
-      let (frames, newSt) = H.decode bs st
-      mapM_ (go newSt) frames
-      loop newSt
-  go st bs = dec bs >>= maybe (loop st) sendMsg
-    where
-    sendMsg msg =
-      if B.length msg > msgLen
-        then do
-          putStrLn "streamDecode: message greater than msgLen: frame dropped."
-          loop st
-      else tx msg >> loop st
+-- -- | Forever take an incoming bytestream, decodes the hxstream, decrypts it, and
+-- -- sends the message on an outbound channel.
+-- streamDecode ::
+--      IO (Maybe B.ByteString)                   -- ^ bytestream source channel
+--   -> (B.ByteString -> IO (Maybe B.ByteString)) -- ^ decryption
+--   -> (B.ByteString -> IO ())                   -- ^ sink channel for decrypted
+--                                                -- msgs
+--   -> IO ()
+-- streamDecode rx dec tx = loop H.emptyStreamState
+--   where
+--   loop hxSt = do
+--     -- Yield if rx doesn't yield any bytes
+--     mbs <- rx
+--     -- Pattern match to force evaluation.
+--     case mbs of
+--       Nothing -> loop hxSt
+--       Just bs -> withMsg bs
+--     -- maybe (C.yield >> loop hxSt) withMsg =<< rx
+--     where
+--     withMsg bs = do
+--       let (frames, hxSt') = H.decode bs hxSt
+--       mDecFrames <- mapM dec frames
+--       let decFrames = catMaybes mDecFrames
+--       when (length decFrames /= length frames) $
+--         putStrLn "Warning: couldn't decode some frames."
+--       mapM_ tx decFrames
+--       loop hxSt'
 
---------------------------------------------------------------------------------
--- Encoding logic for outgoing streams.
+--   --     mapM_ (go newHxSt) frames
+--   --     loop newHxSt
+--   -- go hxSt bs = dec bs >>= maybe (loop hxSt) sendMsg
+--     -- where
+--     -- sendMsg msg =
+--     --   if B.length msg > msgLen
+--     --     then do
+--     --       putStrLn "streamDecode: message greater than msgLen: frame dropped."
+--     --       loop st
+--     --   else tx msg >> loop st
 
--- | Take a bytestream source for Mavlink packets, frame them checking that
--- they're small enough, encrypt them, and then frame with hxstream.
-streamEncode ::
-     IO (Maybe B.ByteString)                   -- ^ bytestream source channel
-  -> (B.ByteString -> IO (Maybe B.ByteString)) -- ^ encryption
-  -> (B.ByteString -> IO ())                   -- ^ bytestream sink channel
-  -> IO ()
-streamEncode rx enc tx = loop L.emptyParseSt
-  where
-  loop :: L.ParseSt -> IO ()
-  loop ps =
-    -- Yield if rx doesn't yield any bytes.
-    maybe (C.yield >> loop ps) withMsg =<< rx
-    where
+-- --------------------------------------------------------------------------------
+-- -- Encoding logic for outgoing streams.
 
-    -- We got a bytestring; process it.
-    withMsg :: B.ByteString -> IO ()
-    withMsg msg = do
-      let (errs, packets, ps') = parseMavLinkStream ps msg
-      when (not $ null errs)
-        $ putStrLn ("Warning: mavlink parse errors: " ++ show errs)
-      mapM_ go packets >> loop ps'
---    withMsg msg = go (B.unpack msg) >> loop ps
+-- -- | Take a bytestream source for Mavlink packets, frame them checking that
+-- -- they're small enough, encrypt them, and then frame with hxstream.
+-- streamEncode ::
+--      IO (Maybe B.ByteString)                   -- ^ bytestream source channel
+--   -> (B.ByteString -> IO (Maybe B.ByteString)) -- ^ encryption
+--   -> (B.ByteString -> IO ())                   -- ^ bytestream sink channel
+--   -> IO ()
+-- streamEncode rx enc tx = loop L.emptyParseSt
+--   where
+--   loop :: L.ParseSt -> IO ()
+--   loop ps =
+--     -- Yield if rx doesn't yield any bytes.
+--     maybe (C.yield >> loop ps) withMsg =<< rx
+--     where
 
-      where
-      go :: [Word8] -> IO ()
-      go = goEnc . B.pack
+--     -- We got a bytestring; process it.
+--     withMsg :: B.ByteString -> IO ()
+--     withMsg msg = do
+--       let (errs, packets, ps') = parseMavLinkStream ps msg
+--       when (not $ null errs)
+--         $ putStrLn ("Warning: mavlink parse errors: " ++ show errs)
+--       mapM_ go packets >> loop ps'
+-- --    withMsg msg = go (B.unpack msg) >> loop ps
 
-      -- Try to encrypt and encode then transmit.
-      goEnc :: B.ByteString -> IO ()
-      goEnc mav = enc mav >>= maybe (return ()) (tx . encode)
+--       where
+--       go :: [Word8] -> IO ()
+--       go = goEnc . B.pack
 
-      encode = H.encode . B.unpack
+--       -- Try to encrypt and encode then transmit.
+--       goEnc :: B.ByteString -> IO ()
+--       goEnc mav = enc mav >>= maybe (return ()) (tx . encode)
 
---------------------------------------------------------------------------------
--- Set up TCP server for mavproxy
+--       encode = H.encode . B.unpack
 
-runTCP :: N.HostName
-       -> N.ServiceName
-       -> MVar
-       -> MVar
-       -> IO ()
-runTCP host port fromMavMVar fromSerMVar =
-  S.serve (S.Host host) port $ \(mavSocket, _) -> do
-    putStrLn "Connected to mavproxy client..."
-    ctx <- initializeBase
-    _   <- C.forkIO $ streamDecode
-                        (M.tryTakeMVar fromSerMVar)
-                        (decrypt ctx)
-                        (S.send mavSocket)
-    streamEncode
-      (S.recv mavSocket maxBytes)
-      (encrypt ctx)
-      (M.putMVar fromMavMVar)
+-- --------------------------------------------------------------------------------
+-- -- Set up TCP server for mavproxy
 
---------------------------------------------------------------------------------
--- Set up serial
+-- runTCP :: N.HostName
+--        -> N.ServiceName
+--        -> MVar
+--        -> MVar
+--        -> IO ()
+-- runTCP host port fromMavMVar fromSerMVar =
+--   S.serve (S.Host host) port $ \(mavSocket, _) -> do
+--     putStrLn "Connected to mavproxy client..."
+
+--     -- ctx <- initializeBase
+--     -- _   <- C.forkIO $ streamDecode
+--     --                     (M.tryTakeMVar fromSerMVar)
+--     --                     (decrypt ctx)
+--     --                     (S.send mavSocket)
+--                         -- (\fr -> parseFrame fr)--  >>
+--                                   -- S.send mavSocket fr)
+
+--     _   <- C.forkOS $ forever
+--              (do mbs <- M.tryTakeMVar fromSerMVar
+--                  case mbs of
+--                    Nothing -> return ()
+--                    Just bs -> S.send mavSocket bs)
+--              -- )
+--              -- (
+--              -- (S.send mavSocket)
+--              -- (\fr -> parseFrame fr)
+--              --   S.send mavSocket fr
+
+--     forever $ do mrx <- S.recv mavSocket maxBytes
+--                  case mrx of
+--                    Nothing -> C.yield >> return ()
+--                    Just rx -> nonBlockingPut fromMavMVar rx
+--     -- streamEncode
+--     --   (S.recv mavSocket maxBytes)
+--     --   (encrypt ctx)
+--     --   (M.putMVar fromMavMVar)
+
+-- nonBlockingPut mvar v = do
+--   mv <- M.tryTakeMVar mvar
+--   case mv of
+--     Nothing -> M.putMVar mvar v
+--     Just v' -> M.putMVar mvar (v' `B.append` v)
+
+-- --------------------------------------------------------------------------------
+-- -- Set up serial
 
 initializeUAV :: IO Context
 initializeUAV = secPkgInit_HS uavID b2uSalt baseToUavKey u2bSalt uavToBaseKey
 
-runSerial :: FilePath
-          -> MVar
-          -> MVar
-          -> IO ()
-runSerial port fromMavMVar fromSerMVar =
-  S.serve (S.Host "127.0.0.1") "6001" $ \(testSocket, _) -> do
---  P.withSerial port P.defaultSerialSettings { P.commSpeed = speed } $ \s -> do
-    putStrLn "Connected to testing client..."
-    ctx <- initializeUAV
-    _  <- C.forkIO $ streamDecode
-                       (M.tryTakeMVar fromMavMVar)
-                       (decrypt ctx)
-                       (S.send testSocket)
-    streamEncode
-      (S.recv testSocket maxBytes)
-      (encrypt ctx)
-      (M.putMVar fromSerMVar)
+-- runSerial :: FilePath
+--           -> MVar
+--           -> MVar
+--           -> IO ()
+-- runSerial port fromMavMVar fromSerMVar = do
+
+--     -- serialIn <- M.newEmptyMVar :: IO MVar
+
+-- --  S.serve (S.Host "127.0.0.1") "6001" $ \(testSocket, _) -> do
+--   P.withSerial port P.defaultSerialSettings { P.commSpeed = speed } $ \s -> do
+--     putStrLn "Connected to testing client..."
+--     ctx <- initializeBase
+
+--     P.flush s
+--     -- _ <- C.forkIO $ forever $ do bs <- P.recv s maxBytes
+--     --                              M.modifyMVar_ serialIn (\m -> m `B.append` bs)
 
 
---------------------------------------------------------------------------------
+--     -- 
 
-main :: IO ()
-main = do
-  -- XXX get opts properly
-  args <- getArgs
-  if length args /= 3
-    then putStrLn $ "Takes a host, port, and serial device as arguments "
-           ++ "(e.g., 127.0.0.1 6000 \"/dev/ttyUSB0\""
-     else run args
+--     -- _  <- C.forkOS $ forever $ void $ P.send s (B.pack [1,2,3,4,5])-- do mrx <- M.tr
+--           -- yTakeMVar fromMavMVar
+--                  -- case mrx of2
+--                  --   Nothing -> C.yield >> return ()
+--                  --   Just rx -> void $ P.send s rx
 
-run :: [String] -> IO ()
-run [host, port, serialPort] = do
-  _ <- printf ("Starting server on %s:%s and listening on serial device... %s"
-               ++ " at baud %s\n")
-         host port serialPort (show speed)
 
-  putStrLn "Enter to exit."
+--     streamDecode
+--             (do bs <- P.recv s maxBytes
+--                 if B.null bs then return Nothing
+--                   else return (Just bs))
+--             (decrypt ctx)
+--             (\bs -> do nonBlockingPut fromSerMVar bs
+--                        void $ P.send s (B.pack [1,2,3,4,5])
+--             )
+--             -- parseFrame
 
-  fromMavProxyMVar <- M.newEmptyMVar :: IO MVar
-  fromSerialMVar   <- M.newEmptyMVar :: IO MVar
+--             -- nonBlockingPut fromSerMVar bs
 
-  -- Run the serial device server in a separate thread.
-  _ <- C.forkIO (runSerial serialPort fromMavProxyMVar fromSerialMVar)
-  -- Start TCP server to mavproxy
-  _ <- C.forkIO (runTCP host port fromMavProxyMVar fromSerialMVar)
 
-  quit
-  putStrLn "Exited."
 
-  where
-  quit = do
-    _ <- getLine
-    return ()
-run _ = error "Bad arguments."
+--     -- _  <- C.forkIO $ streamDecode
+--     --                    (do bs <- P.recv s maxBytes
+--     --                        if B.null bs then return Nothing
+--     --                           else return (Just bs)
+--     --                    )
+--     --                    (decrypt ctx)
+--     --                    parseFrame
+
+--     -- _  <- C.forkIO $ streamDecode
+--     --        (do bs <- P.recv s maxBytes
+--     --            if B.null bs then return Nothing
+--     --              else return (Just bs))
+--     --        (decrypt ctx)
+--     --        parseFrame
+
+--     -- streamDecode
+--     --   (do bs <- P.recv s maxBytes
+--     --       if B.null bs then return Nothing
+--     --         else return (Just bs))
+--     --   (decrypt ctx)
+--     --   parseFrame
+
+--                        -- (void . P.send s) -- Throw away unsent bytes.  Network
+--                        --                   -- errors should be handled by the
+--                        --                   -- protocol.
+
+
+--     -- _  <- C.forkIO $ streamDecode
+--     --                    (M.tryTakeMVar fromMavMVar)
+--     --                    (decrypt ctx)
+--     --                    (void . P.send s) -- Throw away unsent bytes.  Network
+--     --                                      -- errors should be handled by the
+--     --                                      -- protocol.
+--     -- streamEncode
+--     --   (fmap Just $ P.recv s maxBytes)
+--     --   (encrypt ctx)
+--     --   (M.putMVar fromSerMVar)
+
+-- --------------------------------------------------------------------------------
+
+-- main :: IO ()
+-- main = do
+--   -- XXX get opts properly
+--   args <- getArgs
+--   if length args /= 3
+--     then putStrLn $ "Takes a host, port, and serial device as arguments "
+--            ++ "(e.g., 127.0.0.1 6000 \"/dev/ttyUSB0\""
+--      else run args
+
+-- run :: [String] -> IO ()
+-- run [host, port, serialPort] = do
+--   _ <- printf ("Starting server on %s:%s and listening on serial device... %s"
+--                ++ " at baud %s\n")
+--          host port serialPort (show speed)
+
+--   putStrLn "Enter to exit."
+
+--   fromMavProxyMVar <- M.newEmptyMVar :: IO MVar
+--   fromSerialMVar   <- M.newEmptyMVar :: IO MVar
+
+--   -- Run the serial device server in a separate thread.
+--   _ <- C.forkIO (runSerial serialPort fromMavProxyMVar fromSerialMVar)
+--   -- Start TCP server to mavproxy
+--   _ <- C.forkIO (runTCP host port fromMavProxyMVar fromSerialMVar)
+
+--   quit
+--   putStrLn "Exited."
+
+--   where
+--   quit = do
+--     _ <- getLine
+--     return ()
+-- run _ = error "Bad arguments."
 
 --------------------------------------------------------------------------------
 -- Misc helpers
@@ -260,73 +361,173 @@ maybeUnit :: (a -> IO b) -> Maybe a -> IO ()
 maybeUnit f = maybe (return ()) (void . f)
 
 --------------------------------------------------------------------------------
+-- Testing
 
--- Testing: just parse the mavlink messages from serial.
--- runSerialTest "/dev/ttyUSB0"
+runSerialTest :: IO ()
+runSerialTest =
+  P.withSerial "/dev/ttyUSB0"
+    P.defaultSerialSettings { P.commSpeed = speed } $ \s -> do
+    putStrLn "connected"
+
+    -- putStrLn "Connected to testing client..."
+    ctx <- initializeBase
+
+    rx <- T.newTQueueIO
+    tx <- T.newTQueueIO
+
+    P.flush s
+
+    _ <- C.forkIO $ forever $ do
+      bs <- P.recv s 1
+      unless (B.null bs) (void $ T.atomically $ T.writeTQueue rx bs)
+
+    _ <- C.forkIO $ forever $ do
+      bs <- T.atomically $ T.readTQueue tx
+      P.send s bs
+--      P.setRTS s False
+      -- let sender b = do P.send s (B.singleton b)
+      --                   C.threadDelay 1000000
+      -- mapM_ sender (B.unpack bs)
+
+    _ <- C.forkIO $ forever $ do
+        -- Only give data every second
+      -- C.threadDelay 1000000
+
+      let go b = do T.atomically $ T.writeTQueue tx (B.singleton b)
+                    C.threadDelay 100000
+      mapM_ go $ replicate 128 (0::Word8)
+
+
+
+    -- let loop = forever $ do
+          -- bs <- T.atomically $ T.readTQueue rx
+          -- putStr $ "rx : " ++ show (B.length bs)
+          -- T.atomically $ T.writeTQueue tx (A.pack "000")
+
+    let loop hxSt = do
+        bs <- T.atomically $ T.readTQueue rx
+        let (frames, hxSt') = H.decode bs hxSt
+        when (not $ null frames)
+             (putStrLn $ "frame lens: "
+                      ++ unwords (map (show . B.length) frames))
+        -- let f fr = if B.length fr < 128 then putStrLn (show (B.unpack fr))
+        --              else return ()
+        -- mapM_ f frames
+        mfrs <- mapM (decrypt ctx) frames
+        mapM_ parseFrame (catMaybes mfrs)
+
+        -- T.atomically $ T.writeTQueue tx (A.pack "000")
+
+        loop hxSt'
+
+
+    loop H.emptyStreamState
+
+  -- -- let run hxSt = do
+  -- --       bs <- R.atomicModifyIORef' rxRef (\bs' -> (B.empty, bs'))
+  -- --       if B.null bs then run $! hxSt
+  -- --         else do hxSt' <- loop bs hxSt
+  -- --                 run $! hxSt'
+
+  -- --       unless (B.null bs) $ (putStrLn . show . B.unpack) bs
+  -- --       _ <- R.atomicModifyIORef' txRef (\_ -> (B.pack $ replicate 99 7, ()))
+  -- --       return ()
+
+  --   loop H.emptyStreamState
+
+
 -- runSerialTest :: FilePath -> IO ()
 -- runSerialTest port =
 --   P.withSerial port P.defaultSerialSettings { P.commSpeed = speed } $ \s -> do
+--     P.flush s
 --     putStrLn "Connected to testing client..."
 --     ctx <- initializeBase
 --     loop ctx H.emptyStreamState s
 --     where
 --     loop ctx hxSt s = do
 --       rx <- P.recv s maxBytes
---       -- putStrLn $ "got " ++ show (B.length rx) ++ " bytes"
---       -- when (not $ B.null rx) (putStrLn $ "   bytes: "
---       --                            ++ show (B.unpack $ B.take 12 rx))
 --       let (frames, hxSt') = H.decode rx hxSt
---       -- mfrs <- mapM (decrypt ctx) frames
---       -- when (length (catMaybes mfrs) /= length frames) (putStrLn "bad decrypt")
---       mapM_ parseFrame frames
+--       when (not $ null frames)
+--            (putStrLn $ "frame lens: " ++ unwords (map (show . B.length) frames))
+--       mfrs <- mapM (decrypt ctx) frames
+--       -- when (length (catMaybes mfrs) /= length frames) $ do
+--       --   let xs = zip mfrs frames
+--       --   let f (Nothing, fr) = putStrLn $ "header: "
+--       --                      ++ show (B.unpack fr)
+--       --       f _             = return ()
+--         -- mapM_ f xs
+--       mapM_ parseFrame (catMaybes mfrs)
 
 --       loop ctx hxSt' s
 
---     parseFrame fr = do
---       let (errs, packets, _) = L.parseStream 128 L.emptyParseSt fr
---       when (not $ null $ errs) $  putStrLn ("errs " ++ unlines errs)
---       when (not $ null $ packets) $ putStrLn ("packets " ++ show packets)
+parseFrame fr = do
+  putStrLn "parsing frame"
+  let (errs, packets, _) = L.parseStream 128 L.emptyParseSt fr
+  when (not $ null $ errs) $  putStrLn ("errs " ++ unlines errs)
+  when (not $ null $ packets) $ putStrLn ("packets " ++ show packets)
 
-runSerialTest :: FilePath -> IO ()
-runSerialTest port =
-  P.withSerial port P.defaultSerialSettings { P.commSpeed = speed } $ \s -> do
-    putStrLn "Connected to testing client..."
-    ctx <- initializeBase
-    loop ctx H.emptyStreamState s
-    where
-    loop ctx hxSt s = do
-      rx <- P.recv s maxBytes
-      -- putStrLn $ "got " ++ show (B.length rx) ++ " bytes"
-      -- when (not $ B.null rx) (putStrLn $ "   bytes: "
-      --                            ++ show (B.unpack $ B.take 12 rx))
-      let (frames, hxSt') = H.decode rx hxSt
-      when (not $ null frames) (putStrLn $ "frame lens: " ++ unwords (map (show . B.length) frames))
-      mfrs <- mapM (decrypt ctx) frames
-      when (length (catMaybes mfrs) /= length frames) $ do
-        let xs = zip mfrs frames
-        let f (Nothing, fr) = putStrLn $ "header: " ++ show (B.unpack $ B.take 8 fr)
-            f _             = return ()
-        mapM_ f xs
-      mapM_ parseFrame (catMaybes mfrs)
 
-      loop ctx hxSt' s
+runDev = do
+  devH <- I.openFile "/dev/ttyUSB0" I.ReadMode
+  rx <- B.hGetContents devH
+  unless (B.null rx) (putStrLn $ show $ B.unpack rx)
 
-    parseFrame fr = do
-      putStrLn $ "packet: " ++ show (B.unpack fr) -- $ B.take 8 fr)
-      let (errs, packets, _) = L.parseStream 128 L.emptyParseSt fr
-      when (not $ null $ errs) $  putStrLn ("errs " ++ unlines errs)
-      when (not $ null $ packets) $ putStrLn ("packets " ++ show packets)
 
--- -- Testing: just parse the mavlink packets: no hx, no crypto.
--- runSerialTest :: FilePath -> IO ()
--- runSerialTest port =
---   P.withSerial port P.defaultSerialSettings { P.commSpeed = speed } $ \s -> do
---     putStrLn "Connected to testing client..."
---     loop L.emptyParseSt s
---     where
---     loop ps s = do
---       rx <- P.recv s maxBytes
---       let (errs, packets, ps') = L.parseStream 128 ps rx
---       when (not $ null $ errs) $  putStrLn ("errs " ++ unlines errs)
---       when (not $ null $ packets) $ putStrLn ("packets " ++ show packets)
---       loop ps' s
+
+
+runSerial2 :: IO ()
+runSerial2 =
+  P.withSerial "/dev/ttyUSB0"
+    P.defaultSerialSettings { P.commSpeed = speed } $ \s -> do
+
+    S.serve (S.Host "127.0.0.1") "6000" $ \(mavSocket, _) -> do
+      putStrLn "Connected to mavproxy client..."
+
+      putStrLn "connected"
+
+      -- putStrLn "Connected to testing client..."
+      ctx <- initializeBase
+
+      rx <- T.newTQueueIO
+      tx <- T.newTQueueIO
+
+      P.flush s
+
+      _ <- C.forkIO $ forever $ do
+        bs <- P.recv s 1
+        unless (B.null bs) (void $ T.atomically $ T.writeTQueue rx bs)
+
+      _ <- C.forkIO $ forever $ do
+        bs <- T.atomically $ T.readTQueue tx
+        P.send s bs
+
+      _ <- C.forkIO $ forever $ do
+        let go b = do T.atomically $ T.writeTQueue tx (B.singleton b)
+                      C.threadDelay 100000
+
+        mbs <- S.recv mavSocket maxBytes
+        case mbs of
+          Nothing -> return ()
+          Just bs -> mapM_ go (B.unpack bs)
+
+      let loop hxSt = do
+          bs <- T.atomically $ T.readTQueue rx
+          let (frames, hxSt') = H.decode bs hxSt
+          when (not $ null frames)
+               (putStrLn $ "frame lens: "
+                        ++ unwords (map (show . B.length) frames))
+          -- let f fr = if B.length fr < 128 then putStrLn (show (B.unpack fr))
+          --              else return ()
+          -- mapM_ f frames
+          let frames' = filter (\bs -> B.length bs == 128) frames
+          mfrs <- mapM (decrypt ctx) frames'
+          let parsedFrames = catMaybes mfrs
+          mapM_ parseFrame parsedFrames
+          mapM_ (S.send mavSocket) parsedFrames
+
+          -- T.atomically $ T.writeTQueue tx (A.pack "000")
+
+          loop hxSt'
+
+
+      loop H.emptyStreamState

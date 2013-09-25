@@ -49,6 +49,26 @@ data SecureContext_HS = SC { inContext    :: InContext
 
 type Context = IORef SecureContext_HS
 
+-- Decryption failures
+data Failure = CntrTooBig
+             | CntTooOld
+             | UnknownId
+             | BadTag B.ByteString B.ByteString
+             | CommsecTooShort Int
+  deriving (Read, Eq)
+
+instance Show Failure where
+  show failure = commsecErr (msg failure)
+    where
+    msg CntrTooBig  = "Counter has overflowed!"
+    msg CntTooOld   = "Counter is stale!"
+    msg UnknownId   = "Unknown sender!"
+    msg (BadTag tag tag') = "Incorrect authentication tag! rx tag: "
+      ++ show (B.unpack tag) ++ " computed tag "
+      ++ show (B.unpack tag')
+    msg (CommsecTooShort len) = "Commsec too short: received length: "
+      ++ show len
+
 ----------------------------------------------------------------------
 
 commsecPkg :: OutContext -> ByteString
@@ -71,44 +91,47 @@ secPkgEnc_HS rc pt = do
     let (newOut,res) = commsecPkg outbound' pt in
     (SC _in newOut,res)
 
-data Failure = CntrTooBig
-             | CntTooOld
-             | UnknownId
-             | BadTag B.ByteString B.ByteString
-  deriving (Show, Read, Eq)
+commsecErr :: String -> String
+commsecErr err = "Commsec error: " ++ err
 
-dec :: InContext -> ByteString -> (InContext, Either Failure ByteString)
-dec old@(key,salt,bidList) pkg =
-    let aad = B.empty
-        -- Get the iv out of the send package.
-        Right (bid,newCtr,ct,tag) =
-           runGet (do bid'    <- get
-                      newCtr' <- getWord32be
-                      pt'     <- getByteString . (subtract 8) =<< remaining
-                      tag'    <- getByteString =<< remaining
-                      return (bid',newCtr',pt',tag')
-                  ) pkg
-        -- Serialize the salt I have with the sent baseID and updated counter.
-        iv  = runPut (putWord32be salt >> put bid >> putWord32be newCtr)
-        -- Replace the BaseID/Counter pair in the list with the updated pair.
-        newBids = (bid,newCtr) : filter ((/= bid) . fst) bidList
-        new     = (key, salt, newBids)
-        -- Decrypt the message.  I get the sent message and auth. tag, if all
-        -- goes well.
-        (pt, AuthTag decTag) = decryptGCM key iv aad ct
-        decTag' = B.take (B.length tag) decTag
-    in case lookup bid bidList of
-        Nothing -> (old, Left UnknownId)
-        Just cnt
-          -- Counter is too high.
-          | cnt == maxBound                     -> (old, Left CntrTooBig)
-          -- Counter is too old.
-          | cnt >= newCtr                       -> (old, Left CntTooOld)
-          -- Return my updated inContext with the decrypted message.
-          | decTag' == tag -> (new, Right pt)
-          -- Bad tag.
-          | otherwise                           ->
-            (old, Left (BadTag decTag' tag))
+dec :: InContext -> ByteString -> Either Failure (InContext, ByteString)
+dec (key,salt,bidList) pkg =
+  either (const $ Left $ CommsecTooShort $ B.length pkg)
+         go
+         parseMsg
+
+  where
+  aad = B.empty
+  parseMsg =
+    runGet (do bid'    <- get
+               newCtr' <- getWord32be
+               pt'     <- getByteString . (subtract 8) =<< remaining
+               tag'    <- getByteString =<< remaining
+               return (bid',newCtr',pt',tag')
+           ) pkg
+
+  go (bid,newCtr,ct,tag) =
+    -- Serialize the salt I have with the sent baseID and updated counter.
+    let iv  = runPut (putWord32be salt >> put bid >> putWord32be newCtr) in
+    -- Replace the BaseID/Counter pair in the list with the updated pair.
+    let newBids = (bid,newCtr) : filter ((/= bid) . fst) bidList in
+    let new     = (key, salt, newBids) in
+    -- Decrypt the message.  I get the sent message and auth. tag, if all
+    -- goes well.
+    let (pt, AuthTag decTag) = decryptGCM key iv aad ct in
+    let decTag' = B.take (B.length tag) decTag in
+
+    case lookup bid bidList of
+      Nothing             -> Left UnknownId
+      Just cnt
+        -- Counter is too high.
+        | cnt == maxBound -> Left CntrTooBig
+        -- Counter is too old.
+        | cnt >= newCtr   -> Left CntTooOld
+        -- Return my updated inContext with the decrypted message.
+        | decTag' == tag  -> Right (new, pt)
+        -- Bad tag.
+        | otherwise       -> Left (BadTag tag decTag')
 
 initOutContext :: ByteString -> Word32 -> BaseId -> OutContext
 initOutContext key salt bid = (initAES key, salt, bid, 1)
@@ -131,11 +154,16 @@ secPkgInit_HS b dsalt dkey esalt ekey
 
 -- | Decrypt a package given a context.  Returns the decrypted message, if
 -- successful.
-secPkgDec_HS :: Context -> ByteString -> IO (Either Failure ByteString)
+secPkgDec_HS :: Context
+             -> ByteString
+             -> IO (Either Failure ByteString)
 secPkgDec_HS rc pkg =
-  atomicModifyIORef' rc $ \(SC inbound' _out) ->
-    let (newIn, res) = dec inbound' pkg in
-    (SC newIn _out, res)
+  atomicModifyIORef' rc $ \sc@(SC inbound' _out) ->
+    let resOrFail = dec inbound' pkg in
+    case resOrFail of
+      -- Threw away the message; keep the context the same.
+      Left err           -> (sc, Left err)
+      Right (newIn, res) -> (SC newIn _out, Right res)
 
 -- | Encrypt a message given a context.  Returns the concatenated header
 -- (including the sender's ID and message counter), the encrypted message, and

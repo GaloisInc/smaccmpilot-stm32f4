@@ -26,7 +26,8 @@ library
                        cereal,
                        pretty-hex,
                        hxstream,
-                       smaccm-mavlink
+                       smaccm-mavlink,
+                       stm
 
 -- executable commsec-gcs
 --   hs-source-dirs:      src
