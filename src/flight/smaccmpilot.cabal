@@ -50,6 +50,8 @@ library
                        SMACCMPilot.Flight.Types.UserInput,
                        SMACCMPilot.Flight.Types.FlightMode,
                        SMACCMPilot.Flight.Types.DataRate,
+                       SMACCMPilot.Flight.Types.RadioStat,
+                       SMACCMPilot.Flight.Types.RadioInfo,
 
                        SMACCMPilot.Flight.UserInput.Decode,
                        SMACCMPilot.Flight.UserInput.Task,
