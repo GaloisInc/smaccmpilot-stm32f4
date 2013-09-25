@@ -1,3 +1,4 @@
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE DataKinds #-}
 
 module SMACCMPilot.Flight
@@ -105,8 +106,13 @@ core sensors = do
 datalinkTest :: (BoardHSE p) => UART.UART -> Tower p ()
 datalinkTest u = do
   (byte_istream, byte_ostream) <- uart u
-  (framed_istream, framed_ostream) <- datalink byte_istream byte_ostream
+  (  framed_istream
+   , framed_ostream
+   , stat_istream :: ChannelSink 1 (Struct "radio_stat")
+   , info_istream :: ChannelSink 1 (Struct "radio_info")
+   ) <- datalink byte_istream byte_ostream
   DLink.frameLoopback framed_istream framed_ostream
+  -- XXX do something with stat and info
 
 otherms :: [Module]
 otherms = concat

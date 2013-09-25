@@ -30,6 +30,8 @@ library
                        SMACCMPilot.Flight.Control.Task,
 
                        SMACCMPilot.Flight.Datalink,
+                       SMACCMPilot.Flight.Datalink.AirData,
+                       SMACCMPilot.Flight.Datalink.RadioData,
                        SMACCMPilot.Flight.Datalink.TestHarness,
 
                        SMACCMPilot.Flight.Motors.Task,
