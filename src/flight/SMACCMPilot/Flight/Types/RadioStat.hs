@@ -11,16 +11,21 @@ radioStatTypeModule :: Module
 radioStatTypeModule = package "radio_stat_type" $ do
   defStruct (Proxy :: Proxy "radio_stat")
 
--- XXX this is total rubbish:
 [ivory|
 struct radio_stat
-  { lat     :: Stored Sint32
-  ; lon     :: Stored Sint32
-  ; gps_alt :: Stored Sint32
-  ; vx      :: Stored Sint16
-  ; vy      :: Stored Sint16
-  ; vz      :: Stored Sint16
-  ; time    :: Stored Uint32
+  { sik       :: Stored IBool
+  ; loc_rssi  :: Stored Uint8
+  ; loc_noise :: Stored Uint8
+  ; loc_rxctr :: Stored Uint16
+  ; rem_rssi  :: Stored Uint8
+  ; rem_noise :: Stored Uint8
+  ; rem_rxctr :: Stored Uint16
+  ; tx_err    :: Stored Uint16
+  ; rx_err    :: Stored Uint16
+  ; tx_ovf    :: Stored Uint16
+  ; rx_ovf    :: Stored Uint16
+  ; ecc_errs  :: Stored Uint16
+  ; ecc_pkts  :: Stored Uint16
   }
 |]
 

@@ -8,6 +8,7 @@ module SMACCMPilot.Flight.Datalink
   ) where
 
 import GHC.TypeLits
+import qualified Data.Char as C (ord)
 
 import Ivory.Language
 import Ivory.Tower
@@ -59,5 +60,15 @@ encoder :: (SingI n, SingI m)
 encoder framed_snk link_src = do
   link_ostream   <- withChannelEmitter  link_src   "link_ostream"
   framed_istream <- withChannelEvent    framed_snk "framed_ostream"
-  onEvent framed_istream $ \frame -> noReturn $ encodeToBS airDataTag frame (emitV_ link_ostream)
+  onEvent framed_istream $ \frame -> noReturn $
+    encodeToBS airDataTag frame (emitV_ link_ostream)
+  onPeriod 250 $ \_t -> noReturn $ do
+    (frame :: Ref (Stack s) (Array 2 (Stored Uint8))) <- local $ iarray
+      [ ival (charUint8 'B')
+      , ival (charUint8 '\r')
+      ]
+    encodeToBS radioDataTag (constRef frame) (emitV_ link_ostream)
+  where
+  charUint8 :: Char -> Uint8
+  charUint8 = fromIntegral . C.ord
 
