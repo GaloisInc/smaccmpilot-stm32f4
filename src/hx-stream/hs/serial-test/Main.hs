@@ -52,6 +52,8 @@ startDebugger sig f = do
      's' -> sendpacket (airdata packet1) >> loop
      'd' -> sendpacket (airdata packet2) >> loop
      'f' -> sendpacket (airdata packet3) >> loop
+     'b' -> sendpacket (radiocmd "B1") >> loop
+     'n' -> sendpacket (radiocmd "B2") >> loop
      'e' -> sendpacket [] >> loop
      _ -> loop
   sendpacket p = writeIORef sig (Send p)
