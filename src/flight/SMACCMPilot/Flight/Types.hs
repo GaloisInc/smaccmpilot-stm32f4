@@ -29,6 +29,7 @@ typeModules =
   , userInputTypeModule
   , flightModeTypeModule
   , gcsStreamTimingTypeModule
+  , dataRateTypeModule
   , radioStatTypeModule
   , radioInfoTypeModule
   ]
