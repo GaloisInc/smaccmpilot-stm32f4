@@ -11,7 +11,6 @@ module Commsec
 
 import Data.Word
 
-
 import qualified Data.ByteString as B
 import Data.ByteString (ByteString)
 

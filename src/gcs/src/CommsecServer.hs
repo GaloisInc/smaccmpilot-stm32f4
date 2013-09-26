@@ -4,7 +4,7 @@
 
 -- XXX Fix buffer sizes and where encryption/decryption happens.
 
-module Main where
+module CommsecServer where
 
 import qualified System.IO                  as I
 import           Text.Printf
@@ -491,43 +491,70 @@ runSerial2 =
       rx <- T.newTQueueIO
       tx <- T.newTQueueIO
 
+      -- Gratuitous flush.
       P.flush s
 
+      -- Task to receive bytes from serial.
       _ <- C.forkIO $ forever $ do
-        bs <- P.recv s 1
+        bs <- P.recv s 128
         unless (B.null bs) (void $ T.atomically $ T.writeTQueue rx bs)
 
-      _ <- C.forkIO $ forever $ do
-        bs <- T.atomically $ T.readTQueue tx
-        P.send s bs
+      -- Task to send bytes to serial.
+      _ <- C.forkIO $ rxLoop ctx s tx L.emptyParseSt
 
+      -- Task to read bytes from mavproxy.
       _ <- C.forkIO $ forever $ do
-        let go b = do T.atomically $ T.writeTQueue tx (B.singleton b)
-                      C.threadDelay 100000
-
         mbs <- S.recv mavSocket maxBytes
+        -- Pattern match to force evaluation
         case mbs of
           Nothing -> return ()
-          Just bs -> mapM_ go (B.unpack bs)
+          Just bs -> T.atomically $ T.writeTQueue tx bs
 
-      let loop hxSt = do
-          bs <- T.atomically $ T.readTQueue rx
-          let (frames, hxSt') = H.decode bs hxSt
-          when (not $ null frames)
-               (putStrLn $ "frame lens: "
-                        ++ unwords (map (show . B.length) frames))
-          -- let f fr = if B.length fr < 128 then putStrLn (show (B.unpack fr))
-          --              else return ()
-          -- mapM_ f frames
-          let frames' = filter (\bs -> B.length bs == 128) frames
-          mfrs <- mapM (decrypt ctx) frames'
-          let parsedFrames = catMaybes mfrs
-          mapM_ parseFrame parsedFrames
-          mapM_ (S.send mavSocket) parsedFrames
+      txLoop ctx rx mavSocket H.emptyStreamState
 
-          -- T.atomically $ T.writeTQueue tx (A.pack "000")
+--rxLoop :: L.ProcessSt -> B.ByteString -> IO ()
+rxLoop ctx s tx processSt = do
+  -- Read from mavproxy queue
+  bs <- T.atomically $ T.readTQueue tx
 
-          loop hxSt'
+  -- Parse mavlink up to 112 bytes.
+  let (errs, packets, parseSt') = L.parseStream 112 processSt bs
+  mapM_ putStrLn errs
 
+  -- Pad the mavlink packets
+  let paddedPacket bs =
+        bs `B.append` (B.pack $ replicate (112 - B.length bs) 0)
 
-      loop H.emptyStreamState
+  let paddedPackets = map paddedPacket packets
+
+  -- Encrypt packets
+  mencPackets <- mapM (secPkgEncInPlace_HS ctx) paddedPackets
+
+  when (length (catMaybes mencPackets) /= length paddedPackets)
+       (putStrLn "bad encryption")
+
+  -- hxstream the packets
+  let frames = map (H.encode . B.unpack) (catMaybes mencPackets)
+  -- XXX
+  putStrLn $ "To send frames: " ++ show (map B.unpack frames)
+  mapM_ (P.send s) frames
+  rxLoop ctx s tx parseSt'
+
+txLoop ctx rx mavSocket hxSt = do
+  bs <- T.atomically $ T.readTQueue rx
+  let (frames, hxSt') = H.decode bs hxSt
+  when (not $ null frames)
+       (putStrLn $ "frame lens: "
+                ++ unwords (map (show . B.length) frames))
+  -- let f fr = if B.length fr < 128 then putStrLn (show (B.unpack fr))
+  --              else return ()
+  -- mapM_ f frames
+  let frames' = filter (\bs' -> B.length bs' == 128) frames
+  mfrs <- mapM (decrypt ctx) frames'
+  let parsedFrames = catMaybes mfrs
+  mapM_ parseFrame parsedFrames
+  mapM_ (S.send mavSocket) parsedFrames
+
+  -- T.atomically $ T.writeTQueue tx (A.pack "000")
+
+  txLoop ctx rx mavSocket hxSt'
