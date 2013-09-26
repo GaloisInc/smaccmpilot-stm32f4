@@ -13,7 +13,10 @@
 
 IVORY_PKG_FLIGHT_GEN_SYMS    := true
 
-$(eval $(call when_platforms,px4fmu17_ioar_freertos px4fmu17_bare_freertos \
+$(eval $(call when_platforms, \
+				px4fmu17_ioar_freertos \
+				px4fmu17_bare_freertos \
+				px4fmu17_ioar_aadl \
 				,tower_pkg,IVORY_PKG_FLIGHT,flight-gen))
 
 FLIGHT_IMG       := flight
@@ -51,7 +54,26 @@ $(eval $(call when_platforms,px4fmu17_bare_freertos px4fmu17_ioar_freertos \
 				,image,FLIGHT))
 
 # ------------------------------------------------------------------------------
-# CBMC stuff
+# AADL Build
+# ------------------------------------------------------------------------------
+
+LIB_FLIGHT_LIB          := libflight.a
+LIB_FLIGHT_INCLUDES     += $(HWF4_INCLUDES)
+LIB_FLIGHT_INCLUDES     += -I$(TOP)/src/standalone_apahrs
+LIB_FLIGHT_INCLUDES     += -I$(TOP)/src/apwrapper/include
+LIB_FLIGHT_REAL_OBJECTS += $(call filteroutstring,tower_task_loop_, \
+                                      $(IVORY_PKG_FLIGHT_OBJECTS))
+LIB_FLIGHT_CFLAGS       += $(LIB_FLIGHT_INCLUDES)
+LIB_FLIGHT_CFLAGS       += $(IVORY_PKG_FLIGHT_CFLAGS)
+LIB_FLIGHT_CFLAGS       += -DIVORY_DEPLOY
+
+$(eval $(call when_os,aadl,library,LIB_FLIGHT))
+
+
+
+
+# ------------------------------------------------------------------------------
+# CBMC stuff - deprecated? ask lee
 # ------------------------------------------------------------------------------
 
 # CBMC_SRCS		:= $(patsubst %, --src=%, $(IVORY_PKG_FLIGHT_SOURCES))
