@@ -37,7 +37,7 @@ data ErrSt   = ErrSt { msg :: Error  -- ^ Error mesage
                                      -- done with the current corrupted packet.
                      } deriving (Show, Read, Eq)
 
-type Packets   = [[Word8]] -- Parsed Mavlink packets
+type Packets   = [B.ByteString] -- Parsed Mavlink packets
 type Result    = Either ErrSt ParseSt
 type ProcessSt = ([Error], Packets, ParseSt)
 
@@ -61,7 +61,7 @@ parseStream maxBytes s = parseStream' ([], [], s)
       let t  = B.tail bs in
       case parseByte ps b of
         -- If there's an error, reset the parser and skip the designated number
-        -- of bytes.
+        -- of bytes.  -- XXX fix: might not drop enough bytes.
         Left err -> parseStream'
                       (msg err : errs, packets, emptyParseSt)
                       (B.drop (drp err) bs)
@@ -71,7 +71,7 @@ parseStream maxBytes s = parseStream' ([], [], s)
                       t
                  | done st
                  -> parseStream'
-                      (errs, packets ++ [maybePacket st], emptyParseSt)
+                      (errs, packets ++ [B.pack $ maybePacket st], emptyParseSt)
                       t
                  | otherwise
                  -> parseStream' (errs, packets, st) t
