@@ -73,7 +73,7 @@ mkGpsRawIntSender =
   if sendArrLen < usedLen
     then error "gpsRawInt payload is too large for 30 sender!"
     else do -- Copy, leaving room for the payload
-            _ <- arrCopy sendArr arr 6
+            arrCopy sendArr arr 6
             call_ mavlinkSendWithWriter
                     gpsRawIntMsgId
                     gpsRawIntCrcExtra

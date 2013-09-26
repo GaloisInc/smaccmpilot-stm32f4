@@ -185,7 +185,7 @@ mk${name_module}Sender =
   if sendArrLen < usedLen
     then error "${name_camel} payload is too large for ${wire_length} sender!"
     else do -- Copy, leaving room for the payload
-            _ <- arrCopy sendArr arr 6
+            arrCopy sendArr arr 6
             call_ mavlinkSendWithWriter
                     ${name_camel}MsgId
                     ${name_camel}CrcExtra

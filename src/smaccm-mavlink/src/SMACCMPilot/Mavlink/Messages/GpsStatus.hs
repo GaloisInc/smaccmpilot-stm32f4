@@ -65,7 +65,7 @@ mkGpsStatusSender =
   if sendArrLen < usedLen
     then error "gpsStatus payload is too large for 101 sender!"
     else do -- Copy, leaving room for the payload
-            _ <- arrCopy sendArr arr 6
+            arrCopy sendArr arr 6
             call_ mavlinkSendWithWriter
                     gpsStatusMsgId
                     gpsStatusCrcExtra

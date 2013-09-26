@@ -75,7 +75,7 @@ mkCommandLongSender =
   if sendArrLen < usedLen
     then error "commandLong payload is too large for 33 sender!"
     else do -- Copy, leaving room for the payload
-            _ <- arrCopy sendArr arr 6
+            arrCopy sendArr arr 6
             call_ mavlinkSendWithWriter
                     commandLongMsgId
                     commandLongCrcExtra

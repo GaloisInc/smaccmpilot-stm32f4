@@ -63,7 +63,7 @@ mkGlobalPositionSetpointIntSender =
   if sendArrLen < usedLen
     then error "globalPositionSetpointInt payload is too large for 15 sender!"
     else do -- Copy, leaving room for the payload
-            _ <- arrCopy sendArr arr 6
+            arrCopy sendArr arr 6
             call_ mavlinkSendWithWriter
                     globalPositionSetpointIntMsgId
                     globalPositionSetpointIntCrcExtra

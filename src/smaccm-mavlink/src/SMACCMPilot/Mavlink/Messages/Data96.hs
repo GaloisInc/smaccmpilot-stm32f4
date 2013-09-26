@@ -59,7 +59,7 @@ mkData96Sender =
   if sendArrLen < usedLen
     then error "data96 payload is too large for 98 sender!"
     else do -- Copy, leaving room for the payload
-            _ <- arrCopy sendArr arr 6
+            arrCopy sendArr arr 6
             call_ mavlinkSendWithWriter
                     data96MsgId
                     data96CrcExtra

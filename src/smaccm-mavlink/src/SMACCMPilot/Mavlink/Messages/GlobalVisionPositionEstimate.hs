@@ -67,7 +67,7 @@ mkGlobalVisionPositionEstimateSender =
   if sendArrLen < usedLen
     then error "globalVisionPositionEstimate payload is too large for 32 sender!"
     else do -- Copy, leaving room for the payload
-            _ <- arrCopy sendArr arr 6
+            arrCopy sendArr arr 6
             call_ mavlinkSendWithWriter
                     globalVisionPositionEstimateMsgId
                     globalVisionPositionEstimateCrcExtra

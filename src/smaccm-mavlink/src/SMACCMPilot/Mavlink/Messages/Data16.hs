@@ -59,7 +59,7 @@ mkData16Sender =
   if sendArrLen < usedLen
     then error "data16 payload is too large for 18 sender!"
     else do -- Copy, leaving room for the payload
-            _ <- arrCopy sendArr arr 6
+            arrCopy sendArr arr 6
             call_ mavlinkSendWithWriter
                     data16MsgId
                     data16CrcExtra

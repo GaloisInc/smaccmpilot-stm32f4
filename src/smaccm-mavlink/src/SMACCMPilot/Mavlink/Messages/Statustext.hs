@@ -57,7 +57,7 @@ mkStatustextSender =
   if sendArrLen < usedLen
     then error "statustext payload is too large for 51 sender!"
     else do -- Copy, leaving room for the payload
-            _ <- arrCopy sendArr arr 6
+            arrCopy sendArr arr 6
             call_ mavlinkSendWithWriter
                     statustextMsgId
                     statustextCrcExtra

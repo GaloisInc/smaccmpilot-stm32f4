@@ -73,7 +73,7 @@ mkServoOutputRawSender =
   if sendArrLen < usedLen
     then error "servoOutputRaw payload is too large for 21 sender!"
     else do -- Copy, leaving room for the payload
-            _ <- arrCopy sendArr arr 6
+            arrCopy sendArr arr 6
             call_ mavlinkSendWithWriter
                     servoOutputRawMsgId
                     servoOutputRawCrcExtra

@@ -65,7 +65,7 @@ mkManualControlSender =
   if sendArrLen < usedLen
     then error "manualControl payload is too large for 11 sender!"
     else do -- Copy, leaving room for the payload
-            _ <- arrCopy sendArr arr 6
+            arrCopy sendArr arr 6
             call_ mavlinkSendWithWriter
                     manualControlMsgId
                     manualControlCrcExtra

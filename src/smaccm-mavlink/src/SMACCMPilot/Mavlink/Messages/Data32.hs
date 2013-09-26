@@ -59,7 +59,7 @@ mkData32Sender =
   if sendArrLen < usedLen
     then error "data32 payload is too large for 34 sender!"
     else do -- Copy, leaving room for the payload
-            _ <- arrCopy sendArr arr 6
+            arrCopy sendArr arr 6
             call_ mavlinkSendWithWriter
                     data32MsgId
                     data32CrcExtra

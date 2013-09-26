@@ -67,7 +67,7 @@ mkSetLocalPositionSetpointSender =
   if sendArrLen < usedLen
     then error "setLocalPositionSetpoint payload is too large for 19 sender!"
     else do -- Copy, leaving room for the payload
-            _ <- arrCopy sendArr arr 6
+            arrCopy sendArr arr 6
             call_ mavlinkSendWithWriter
                     setLocalPositionSetpointMsgId
                     setLocalPositionSetpointCrcExtra

@@ -63,7 +63,7 @@ mkDebugVectSender =
   if sendArrLen < usedLen
     then error "debugVect payload is too large for 30 sender!"
     else do -- Copy, leaving room for the payload
-            _ <- arrCopy sendArr arr 6
+            arrCopy sendArr arr 6
             call_ mavlinkSendWithWriter
                     debugVectMsgId
                     debugVectCrcExtra

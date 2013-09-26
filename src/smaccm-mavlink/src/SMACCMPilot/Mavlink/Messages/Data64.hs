@@ -59,7 +59,7 @@ mkData64Sender =
   if sendArrLen < usedLen
     then error "data64 payload is too large for 66 sender!"
     else do -- Copy, leaving room for the payload
-            _ <- arrCopy sendArr arr 6
+            arrCopy sendArr arr 6
             call_ mavlinkSendWithWriter
                     data64MsgId
                     data64CrcExtra

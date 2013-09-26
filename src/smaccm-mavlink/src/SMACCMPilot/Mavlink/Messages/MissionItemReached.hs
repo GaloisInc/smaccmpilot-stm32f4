@@ -55,7 +55,7 @@ mkMissionItemReachedSender =
   if sendArrLen < usedLen
     then error "missionItemReached payload is too large for 2 sender!"
     else do -- Copy, leaving room for the payload
-            _ <- arrCopy sendArr arr 6
+            arrCopy sendArr arr 6
             call_ mavlinkSendWithWriter
                     missionItemReachedMsgId
                     missionItemReachedCrcExtra

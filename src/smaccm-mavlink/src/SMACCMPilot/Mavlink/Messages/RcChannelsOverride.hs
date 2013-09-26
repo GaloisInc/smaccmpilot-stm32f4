@@ -73,7 +73,7 @@ mkRcChannelsOverrideSender =
   if sendArrLen < usedLen
     then error "rcChannelsOverride payload is too large for 18 sender!"
     else do -- Copy, leaving room for the payload
-            _ <- arrCopy sendArr arr 6
+            arrCopy sendArr arr 6
             call_ mavlinkSendWithWriter
                     rcChannelsOverrideMsgId
                     rcChannelsOverrideCrcExtra

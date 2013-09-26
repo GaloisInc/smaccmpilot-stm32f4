@@ -74,7 +74,7 @@ mavlinkSendWithWriter =
     seqNum += 1
     let sz = 6 + payloadLen :: Uint8
 
-    M.void (arrCopy arr header 0)
+    arrCopy arr header 0
 
     -- Calculate checksum and store in arr
     mavlinkChecksum sz crcExtra arr
