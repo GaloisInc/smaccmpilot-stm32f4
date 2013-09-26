@@ -25,30 +25,13 @@ import qualified Ivory.HXStream                           as H
 
 --------------------------------------------------------------------------------
 
--- Take a Mavlink packet, encrypt it, hxstream it, then send it to the uart
--- ISR.
--- processAndEmit :: (SingI m, SingI n)
---   => ChannelEmitter n (Stored Uint8) -- Emitter to uart
---   -> Ref s' (Array 128 (Stored Uint8)) -- commsec package
---   -> ConstRef s (Array m (Stored Uint8)) -- Message
---   -> Ivory (AllocEffects eff) ()
--- processAndEmit ostream uavPkg arrref = do
---   -- C.cpyToPkg arrref uavPkg
---   -- C.encrypt C.uavCtx uavPkg
-
---   -- call_ H.encode uavPkg hx
--- --  let pkg = constRef uavPkg
---   arrayMap $ \i -> --emit_ ostream (constRef hx ! i)
-
---     emit_ ostream (arrref ! i)
-
 processHx :: SingI n
           => ChannelEmitter n (Stored Uint8)
           -> Def ('[ Ref Global (Array 112 (Stored Uint8))
                    ] :-> ())
 processHx uartTx = proc "processHx" $ \mavMsg -> body $ do
   pkg        <- local (iarray [] :: Init (Array 128 (Stored Uint8)))
-  C.cpyToPkg (constRef mavMsg) pkg
+  C.copyToPkg (constRef mavMsg) pkg
   C.encrypt C.uavCtx pkg
 
   hxArr      <- local (iarray [] :: Init (Array 258 (Stored Uint8)))
@@ -104,9 +87,6 @@ gcsTransmitTask ostream sp_sink dr_sink fm_sink se_sink ps_sink ct_sink mo_sink
     initTime <- getTimeMillis t
     store lastRun initTime
     C.setupCommsec
-
-  -- let send :: (Scope cs ~ GetAlloc (AllowBreak eff)) => Ivory eff ()
-  --     send = arrayMap $ \ix -> emit_ uartTx (constRef mavlinkPacket ! ix)
 
   onChannel sp_sink "streamPeriod" $ \newperiods -> do
     setNewPeriods newperiods s_periods s_schedule =<< getTimeMillis t
@@ -179,4 +159,4 @@ gcsTransmitTask ostream sp_sink dr_sink fm_sink se_sink ps_sink ct_sink mo_sink
     depend senderModules
     incl processStream
     depend C.commsecModule
-    incl H.encode
+    depend H.hxstreamTypeModule

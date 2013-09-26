@@ -19,7 +19,8 @@ module SMACCMPilot.Flight.GCS.Commsec
   , decrypt
   , uavID
   , uavCtx
-  , cpyToPkg
+  , copyToPkg
+  , copyFromPkg
   , setupCommsec
   , commsecModule
   ) where
@@ -28,8 +29,6 @@ import Ivory.Language
 import Ivory.Stdlib
 
 import qualified GHC.TypeLits as S
-
-import Control.Monad
 
 --------------------------------------------------------------------------------
 -- Types and constants
@@ -124,14 +123,49 @@ encrypt com pkg =
   call_ securePkg_enc_in_place
     (addrOf com) pkg (fromIntegral headerLen) (fromIntegral maxMsgLen)
 
--- | Decrypt a package (with the header and tag), given a context.
+-- | Decrypt a package (with the header and tag), given a context.  Returns 0 if
+-- all is OK and nonzero otherwise.  It is up to the caller to check the return
+-- value.
 decrypt :: MemArea Commsec_ctx_proxy
         -> Pkg s
-        -> Ivory eff ()
-decrypt com pkg = call_ securePkg_dec (addrOf com) pkg packageSize
+        -> Ivory eff Uint32
+decrypt com pkg = call securePkg_dec (addrOf com) pkg packageSize
 
 --------------------------------------------------------------------------------
--- Packaging and testing.
+
+setupCommsec :: Ivory eff ()
+setupCommsec =
+  call_ securePkg_init (addrOf uavCtx) uavID
+                       b2uSalt (addrOf baseToUavKey)
+                       u2bSalt (addrOf uavToBaseKey)
+
+--------------------------------------------------------------------------------
+
+-- Copy a 112-byte message into our package buffer.
+copyToPkg :: (GetAlloc eff ~ Scope s2)
+         => ConstRef s0 (Array 112 (Stored Uint8))
+         -> Ref      s1 (Array 128 (Stored Uint8))
+         -> Ivory eff ()
+copyToPkg from pkg = arrCopy pkg from (fromInteger headerLen)
+
+--------------------------------------------------------------------------------
+
+-- Copy the payload out of a package buffer.
+copyFromPkg :: (GetAlloc eff ~ Scope s2)
+           => Ref s0 (Array 128 (Stored Uint8))
+           -> Ref s1 (Array 112 (Stored Uint8))
+           -> Ivory eff ()
+copyFromPkg pkg from =
+  arrayMap $ \(ix :: Ix 128) ->
+    when (ix >=? hdr .&& ix <? arrayLen from)
+         $ do v <- deref (pkg ! ix)
+              store (from ! mkIx ix) v
+  where
+  hdr = fromInteger headerLen
+  mkIx = toIx . fromIx
+
+--------------------------------------------------------------------------------
+-- Packaging
 
 commsecModule :: Module
 commsecModule = package "IvoryGCM" $ do
@@ -143,59 +177,6 @@ commsecModule = package "IvoryGCM" $ do
   inclHeader ivoryCommsec
   incl securePkg_init
   incl securePkg_enc_in_place
-
---------------------------------------------------------------------------------
-
-setupCommsec :: Ivory eff ()
-setupCommsec =
-  call_ securePkg_init (addrOf uavCtx) uavID
-                       b2uSalt (addrOf baseToUavKey)
-                       u2bSalt (addrOf uavToBaseKey)
-
--- -- Copy a messge from an arbitrary-sized array into our package buffer.  If the
--- -- message array is too small, the buffer is padded with zeros.  If it's too
--- -- large, no copying is done.  Returns True if the copy was successful and False
--- -- if no copying is done.
--- cpyToPkg :: (SingI n)
---          => ConstRef s (Array n (Stored Uint8))
---          -> Ref s' (Array 128 (Stored Uint8))
---          -> Ivory eff ()
--- cpyToPkg from pkg =
---   if fromTooBig
---     then err
---     else
---       arrayMap $ \(ix :: Ix 128) ->
---         cond_ [   ix <? headerEndIx
---               ==> return ()
---               ,   ix >=? payloadEndIx
---               ==> return ()
---               ,   fromEnd ix -- from array too short: fill with zeros.
---               ==> store (pkg ! ix) 0
---               ,   true
---               ==> deref (from ! toIx (fromIx ix)) >>= store (pkg ! ix)
---               ]
---   where
---   lenFrom    = arrayLen from
---   lenTo      :: Integer
---   lenTo      = arrayLen pkg
---   fromEnd    :: Ix 128 -> IBool
---   fromEnd ix = ix >=? fromIntegral lenFrom
---   fromTooBig :: Bool
---   fromTooBig = lenTo - tagLen - headerLen < lenFrom
---   headerEndIx  = fromIntegral headerLen
---   payloadEndIx = fromIntegral (lenTo - tagLen)
-
---   err = error $
---     "cpyToPkg in Flight/GCS/Commsec.hs: mavlink array too big.  " ++
---     "from array length: " ++ show lenFrom
-
--- Copy a 112-byte message into our package buffer.  Returns True if the copy
--- was successful and False if no copying is done.
-cpyToPkg :: (GetAlloc eff ~ Scope s0)
-         => ConstRef s (Array 112 (Stored Uint8))
-         -> Ref s' (Array 128 (Stored Uint8))
-         -> Ivory eff ()
-cpyToPkg from pkg = void (arrCopy pkg from (fromInteger headerLen))
 
 --------------------------------------------------------------------------------
 -- Testing

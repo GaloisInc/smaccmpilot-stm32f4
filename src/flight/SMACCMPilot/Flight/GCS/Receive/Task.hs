@@ -2,6 +2,7 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE NoMonoLocalBinds #-}
 
 module SMACCMPilot.Flight.GCS.Receive.Task
   ( gcsReceiveTask
@@ -48,33 +49,31 @@ gcsReceiveTask istream s_src dr_src = do
   taskInit $ do
     emit_ streamPeriodEmitter (constRef s_periods)
     H.emptyStreamState hxState
+    -- commsec set up by the Tx Task
 
-  onChannelV istream "istream" $ \b ->
-    (call_ (parseMav drEmitter streamPeriodEmitter)
-           state drInfo s_periods b)
+  let parse = parseMav drEmitter streamPeriodEmitter
 
-  -- XXX
-  -- onChannelV istream "istream" $ \b -> do
-  --   -- hxstream state decode
-  --   res  <- H.decodeSM hxState b
-  --   -- check for overflow
-  --   over <- hxState ~>* H.ovf
-  --   cond_ [ over ==> H.emptyStreamState hxState
-  --         , res  ==> do let buf = hxState ~> H.buf
-  --                       C.decrypt C.uavCtx buf
-  --                       arrayMap $ \ix -> deref (buf ! ix) >>= parseMav
-  --         ]
+  onChannelV istream "istream" $ \b -> do
+    done  <- call H.decodeSM hxState b
+    -- XXX check for overflow
+    when done $ do
+      let rxPkg = hxState ~> H.buf
+      res <- C.decrypt C.uavCtx rxPkg
+      -- Check that the tags match
+      when (res ==? 0) $ do
+        -- Copy the decrypted message out of the pkg
+        payload <- local (iarray [] :: Init (Array 112 (Stored Uint8)))
+        C.copyFromPkg rxPkg payload
+        call_ parse state drInfo s_periods payload
 
   taskModuleDef $ do
     defStruct (Proxy :: Proxy "mavlink_receive_state")
     incl handlerAux
     handlerModuleDefs
-    defStruct (Proxy :: Proxy "hxstream_state")
-    incl (H.decode :: Def ( '[ Ref s (Array 258 (Stored Uint8))
-                             , Ref s (Struct "hxstream_state")
-                             ] :-> Ix 258))
-    depend C.commsecModule
     mapM_ depend mavlinkMessageModules
+    incl parse
+    depend C.commsecModule
+    depend H.hxstreamTypeModule
 
 --------------------------------------------------------------------------------
 
@@ -97,16 +96,16 @@ parseMav :: (SingI n0, SingI n1)
          => ChannelEmitter n0 (Struct "data_rate_state")
          -> ChannelEmitter n1 (Struct "gcsstream_timing")
          -> Def ('[ Ref s0 (Struct "mavlink_receive_state")
-                  , Ref s1 (Struct "data_rate_state")
-                  , Ref s2 (Struct "gcsstream_timing")
-                  , Uint8
+                  , Ref s0 (Struct "data_rate_state")
+                  , Ref s0 (Struct "gcsstream_timing")
+                  , Ref s1 (Array 112 (Stored Uint8))
                   ] :-> ())
 parseMav drEmitter streamPeriodEmitter
   = proc "parseMav"
-  $ \state drInfo s_periods b -> body $ do
-  R.mavlinkReceiveByte state b
+  $ \state drInfo s_periods mav -> body $ do
+  arrayMap $ \ix -> do b <- deref (mav ! ix)
+                       R.mavlinkReceiveByte state b
   s <- deref (state ~> R.status)
-
   cond_
     [ (s ==? R.status_GOTMSG) ==> do
         -- XXX We need to have a story for messages that are parsed

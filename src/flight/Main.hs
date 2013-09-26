@@ -26,7 +26,9 @@ import SMACCMPilot.Flight.Sensors.Platforms
 import SMACCMPilot.Flight.UserInput.Task
 import SMACCMPilot.Flight.BlinkTask
 import SMACCMPilot.Flight.GCS.Tower
+
 import SMACCMPilot.Flight.GCS.Commsec
+import Ivory.HXStream
 
 import SMACCMPilot.Console (consoleModule)
 
@@ -108,6 +110,8 @@ otherms = concat
   , stdlibStringModule
   -- crypto
   , commsecModule
+  -- hxstream
+  , hxstreamTypeModule
 
   , senderModules
   , mavlinkSendModule
