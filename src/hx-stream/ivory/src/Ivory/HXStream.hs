@@ -79,26 +79,24 @@ escape b = b .^ 0x20 -- XOR with 0x20
 
 -- | Decode a byte, given an hxstream state.  Updates the hxstream state with
 -- the decoded value.  Returns true if we've decoded a full frame.
-decodeSM :: Ref s Hx
-         -> Uint8
-         -> Ivory eff IBool
-decodeSM state b = do
+decodeSM :: Def ('[Ref s Hx, Uint8] :-> IBool)
+decodeSM = proc "decodeSM" $ \state b -> body $ do
   sta <- deref (state ~> fstate)
   esc <- deref (state ~> escaped)
   cond_
     [   (sta ==? hxstream_fstate_Begin) .&& (b ==? fbo)
     ==> (emptyStreamState state >> setEscaped false state)
     ,   sta ==? hxstream_fstate_Progress
-    ==> progress esc
+    ==> progress state b esc
     ,   sta ==? hxstream_fstate_Complete
     ==> return ()
     ,   true
     ==> emptyStreamState state
     ]
   s <- deref (state ~> fstate)
-  return (s ==? hxstream_fstate_Complete)
+  ret (s ==? hxstream_fstate_Complete)
     where
-    progress esc =
+    progress state b esc =
       cond_ [ esc       ==> (   setEscaped false state
                              >> appendFrame (escape b) state)
             , b ==? ceo ==> setEscaped true state
@@ -118,7 +116,7 @@ decode :: SingI n
 decode = proc "decode" $ \from state -> body $ do
   arrayMap $ \ix -> do
     v    <- deref (from ! ix)
-    b    <- decodeSM state v
+    b    <- call decodeSM state v
     over <- deref (state ~> ovf)
     -- Couldn't put the current byte in---we overflowed.
     when over (ret ix)
