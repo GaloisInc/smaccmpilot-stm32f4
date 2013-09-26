@@ -78,20 +78,28 @@ escape :: Uint8 -> Uint8
 escape b = b .^ 0x20 -- XOR with 0x20
 
 -- | Decode a byte, given an hxstream state.  Updates the hxstream state with
--- the decoded value.  Returns true if we've decoded a full frame.
+-- the decoded value.  Returns true if we've decoded a full frame.  Safe to have
+-- a start byte follow a stop byte directly.  The caller is responsible for
+-- pulling the decoded array out once `True` is returned.
 decodeSM :: Def ('[Ref s Hx, Uint8] :-> IBool)
 decodeSM = proc "decodeSM" $ \state b -> body $ do
   sta <- deref (state ~> fstate)
   esc <- deref (state ~> escaped)
   cond_
+    -- Begin state and see a start byte.
     [   (sta ==? hxstream_fstate_Begin) .&& (b ==? fbo)
     ==> (emptyStreamState state >> setEscaped false state)
+    -- Progress state: decode the byte.
     ,   sta ==? hxstream_fstate_Progress
     ==> progress state b esc
+    -- Stop state: reset the state and process the curent byte.  This ensures we
+    -- don't miss a byte if there's a start byte directly following a stop byte.
     ,   sta ==? hxstream_fstate_Complete
-    ==> return ()
+    ==> do emptyStreamState state
+           ret =<< call decodeSM state b
+    -- Begin state and no start byte: idle.
     ,   true
-    ==> emptyStreamState state
+    ==> return ()
     ]
   s <- deref (state ~> fstate)
   ret (s ==? hxstream_fstate_Complete)
@@ -125,10 +133,6 @@ decode = proc "decode" $ \from state -> body $ do
   -- Return index 0 if all went well.
   ret 0
 
-hxstreamTypeModule :: Module
-hxstreamTypeModule = package "hxstream_type" $
-  defStruct (Proxy :: Proxy "hxstream_state")
-
 -- | Encode a 128 byte array into a 258 byte array.  This guarantees we have
 -- enough storage to hold the 128 bytes.
 encode :: Def ( '[ Ref s (Array 128 (Stored Uint8)) -- From array
@@ -160,4 +164,8 @@ encode = proc "encode" $ \from to -> body $ do
     o <- deref off
     store (to ! o) v
 
-
+hxstreamTypeModule :: Module
+hxstreamTypeModule = package "hxstream_type" $ do
+  defStruct (Proxy :: Proxy "hxstream_state")
+  incl encode
+  incl decodeSM

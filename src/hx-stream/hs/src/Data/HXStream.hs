@@ -38,6 +38,7 @@ complete s =
     FrameComplete -> True
     _             -> False
 
+-- If we've completed a frame, return it.
 completeFrame :: StreamState -> Maybe Frame
 completeFrame s = case complete s of
   True  -> Just (D.toList $ frame s)
@@ -73,9 +74,9 @@ decodeSM b state =
 decode :: B.ByteString -> StreamState -> ([B.ByteString], StreamState)
 decode bs istate = (frames, newSt)
   where
-  frames = map (B.take 128) byteFrames
-  byteFrames = map B.pack (D.toList fr)
-  (fr, newSt) = foldl' aux (D.empty, istate) (B.unpack bs)
+  frames        = map (B.take 128) byteFrames
+  byteFrames    = map B.pack (D.toList fr)
+  (fr, newSt)   = foldl' aux (D.empty, istate) (B.unpack bs)
   aux (fs,st) w =
     case completeFrame s' of
       Just f  -> (fs .++ f, emptyStreamState)
