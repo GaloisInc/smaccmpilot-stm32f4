@@ -6,6 +6,7 @@
 module SMACCMPilot.Flight.GCS.Receive.Handlers where
 
 import Ivory.Language
+import Ivory.Stdlib
 
 import           SMACCMPilot.Mavlink.Messages (mavlinkMessageModules)
 import qualified SMACCMPilot.Mavlink.Messages.RequestDataStream as RDS
@@ -52,11 +53,10 @@ handle handler rxstate = do
   let (unpacker, msgid) = unpackMsg
   rxid <- deref (rxstate ~> R.msgid)
   msg  <- local (istruct [])
-  ifte_ (rxid /=? msgid) (return ()) $ do
+  when (rxid ==? msgid) $ do
     call_ unpacker msg (toCArray (constRef (rxstate ~> R.payload)))
     handler msg
 
 handlerModuleDefs :: ModuleDef
-handlerModuleDefs = do
-  mapM_ depend mavlinkMessageModules
+handlerModuleDefs = mapM_ depend mavlinkMessageModules
 
