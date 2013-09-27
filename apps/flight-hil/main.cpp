@@ -25,26 +25,20 @@ const AP_HAL::HAL& hal = AP_HAL_SMACCM;
 // Handle to the main thread.
 static xTaskHandle g_main_task;
 
-// Initialize the HAL and sub-tasks before the main loop.
-void init(void)
+// Main task. Start the AP_HAL, then start tower, then delete self.
+void main_task(void *arg)
 {
     hal.init(0, NULL);
     tower_entry();
-}
-
-// Main thread.  Starts up the GCS thread to communicate with the
-// host, then processes incoming sensor data and writes servo output
-// back to MAVLink.
-void main_task(void *arg)
-{
-    init();
+    vTaskDelete(g_main_task);
     for (;;) {}
 }
 
 extern "C"
 int main()
 {
-    xTaskCreate(main_task, (signed char *)"main", 1024, NULL, 0, &g_main_task);
+    xTaskCreate(main_task, (signed char *)"main", 1024, NULL,
+            (configMAX_PRIORITIES - 1), &g_main_task);
     vTaskStartScheduler();
 
     for (;;)
