@@ -2,7 +2,7 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TypeFamilies #-}
-
+{-# LANGUAGE NoMonoLocalBinds #-}
 
 module SMACCMPilot.Flight.GCS.Transmit.Task
   ( gcsTransmitTask
@@ -91,12 +91,15 @@ gcsTransmitTask ostream sp_sink dr_sink fm_sink se_sink ps_sink ct_sink mo_sink
   onChannel sp_sink "streamPeriod" $ \newperiods -> do
     setNewPeriods newperiods s_periods s_schedule =<< getTimeMillis t
 
+  -- XXX
   -- If the Mavlink receiver sends new data rate info, broadcast it.
-  onChannel dr_sink "dataRate" $ \dr -> do
-    d <- local (istruct [])
-    refCopy d dr
-    call_ mkSendDataRate d seqNum mavlinkPacket
-    call_ processStream mavlinkPacket
+  -- onChannel dr_sink "dataRate" $ \dr -> do
+  --   d <- local (istruct [])
+  --   refCopy d dr
+  --   call_ mkSendDataRate d seqNum mavlinkPacket
+  --   call_ processStream mavlinkPacket
+
+  let processMav = call_ processStream mavlinkPacket
 
   onPeriod 50 $ \now -> do
 
@@ -114,36 +117,36 @@ gcsTransmitTask ostream sp_sink dr_sink fm_sink se_sink ps_sink ct_sink mo_sink
     onStream S.heartbeat $ do
       readData fmReader s_fm
       call_ mkSendHeartbeat s_fm seqNum mavlinkPacket
-      call_ processStream mavlinkPacket
+      processMav
 
     onStream S.servo_output_raw $ do
       readData motorReader s_motor
       readData ctlReader s_ctl
       call_ mkSendServoOutputRaw s_motor s_ctl seqNum mavlinkPacket
-      call_ processStream mavlinkPacket
+      processMav
 
     onStream S.attitude $ do
       readData sensorsReader s_sens
       call_ mkSendAttitude s_sens seqNum mavlinkPacket
-      call_ processStream mavlinkPacket
+      processMav
 
     onStream S.gps_raw_int $ do
       readData posReader s_pos
       call_ mkSendGpsRawInt s_pos seqNum mavlinkPacket
-      call_ processStream mavlinkPacket
+      processMav
 
     onStream S.vfr_hud $ do
       readData posReader s_pos
       readData ctlReader s_ctl
       readData sensorsReader s_sens
       call_ mkSendVfrHud s_pos s_ctl s_sens seqNum mavlinkPacket
-      call_ processStream mavlinkPacket
+      processMav
 
     onStream S.global_position_int $ do
       readData posReader s_pos
       readData sensorsReader s_sens
       call_ mkSendGlobalPositionInt s_pos s_sens seqNum mavlinkPacket
-      call_ processStream mavlinkPacket
+      processMav
 
     onStream S.params $ do
       -- XXX our whole story for params is broken

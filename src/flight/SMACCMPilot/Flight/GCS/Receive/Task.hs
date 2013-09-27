@@ -54,12 +54,15 @@ gcsReceiveTask istream s_src dr_src = do
   let parse = parseMav drEmitter streamPeriodEmitter
 
   onChannelV istream "istream" $ \b -> do
-    done  <- call H.decodeSM hxState b
+    done <- call H.decodeSM hxState b
     -- XXX check for overflow
     when done $ do
+
       let rxPkg = hxState ~> H.buf
       res <- C.decrypt C.uavCtx rxPkg
+
       -- Check that the tags match
+      -- XXX report on bad messages?
       when (res ==? 0) $ do
         -- Copy the decrypted message out of the pkg
         payload <- local (iarray [] :: Init (Array 112 (Stored Uint8)))
@@ -123,7 +126,9 @@ parseMav drEmitter streamPeriodEmitter
         (drInfo ~> D.dropped) += 1
         store (state ~> R.status) R.status_IDLE
     ]
-  emit_ drEmitter (constRef drInfo)
+
+  -- XXX data rate stuff
+  -- emit_ drEmitter (constRef drInfo)
   retVoid
 
 --------------------------------------------------------------------------------
