@@ -69,7 +69,8 @@ decrypt errQ ctx = do
 
 -- Pad out Mavlink packets.
 paddedPacket :: B.ByteString -> B.ByteString
-paddedPacket bs = bs `B.append` (B.pack $ replicate (112 - B.length bs) 0)
+paddedPacket bs =
+  bs `B.append` (B.pack $ replicate (S.mavlinkSize - B.length bs) 0)
 
 -- Filter out packets that aren't the right size and report errors.
 filterCommsecLen :: T.TQueue Error -> Commsec ()
@@ -169,7 +170,7 @@ rxLoop errQ ctx s tx =
     -- Read from mavproxy queue
     bs <- lift . T.atomically $ T.readTQueue tx
 
-    -- Parse mavlink up to 112 bytes.
+    -- Parse mavlink up to max-size bytes.
     let (errs, packets, parseSt') = L.parseStream mavSize processSt bs
     unless (null errs) (writeError errQ $ "mavlink parse errors from GCS: "
                                         ++ unlines errs)

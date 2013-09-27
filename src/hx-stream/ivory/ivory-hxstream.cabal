@@ -15,6 +15,7 @@ library
                         ivory,
                         ivory-stdlib,
                         ivory-backend-c,
+                        shared-smaccmpilot,
                         QuickCheck
 
   hs-source-dirs:       src

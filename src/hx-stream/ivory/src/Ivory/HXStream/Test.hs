@@ -14,6 +14,8 @@ import Ivory.Compile.C.CmdlineFrontend
 
 import qualified Test.QuickCheck as Q
 
+import qualified SMACCMPilot.Shared as S
+
 --------------------------------------------------------------------------------
 
 pf :: Def ('[IString, IBool] :-> ())
@@ -26,11 +28,11 @@ pr = proc "pr" $ \b -> body $
 instance Q.Arbitrary Uint8 where
   arbitrary = fmap fromIntegral (Q.arbitrary :: Q.Gen Word8)
 
--- List that is is 128 bytes or less and an index into the list.
+-- List that is commsec sized bytes or less and an index into the list.
 sampleArrayIx :: Q.Gen ([Uint8], Uint8)
 sampleArrayIx = do
-  sz  <- Q.choose (1::Int, 128)
-  arr <- Q.resize 128 Q.arbitrary
+  sz  <- Q.choose (1::Integer, S.commsecPkgSize)
+  arr <- Q.resize (fromInteger S.commsecPkgSize) Q.arbitrary
   return (arr, fromIntegral sz)
 
 runTest :: (GetAlloc eff ~ Scope s)
@@ -39,7 +41,7 @@ runTest (ls, _) = do
   st <- local (istruct [])
   emptyStreamState st
   input  <- local $ iarray (map ival ls)
-  output <- local $ iarray (replicate 258 (ival 0))
+  output <- local $ iarray (replicate (fromInteger S.hxstreamPkgSize) (ival 0))
   call_ encode input output
   call_ decode output st
 
@@ -75,6 +77,6 @@ main = do
     incl pf
     incl pr
     incl encode
-    incl (decode :: Def ( '[ Ref s (Array 128 (Stored Uint8))
+    incl (decode :: Def ( '[ Ref s S.CommsecArray
                            , Ref s Hx
-                           ] :-> Ix 128))
+                           ] :-> S.CommsecIx))

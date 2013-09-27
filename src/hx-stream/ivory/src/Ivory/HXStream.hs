@@ -15,6 +15,8 @@ module Ivory.HXStream where
 import Ivory.Language
 import Ivory.Stdlib
 
+import qualified SMACCMPilot.Shared as S
+
 --------------------------------------------------------------------------------
 
 hxstream_fstate_Begin    :: Uint8
@@ -26,6 +28,9 @@ hxstream_fstate_Complete = 2
 
 type Hx  = Struct "hxstream_state"
 
+
+-- XXX Can't used shared types in TH.  This will throw a type-error if other
+-- types change, though.
 [ivory|
 struct hxstream_state
   { buf     :: Array 128 (Stored Uint8) -- Raw bytes to encode/decoded.
@@ -135,14 +140,14 @@ decode = proc "decode" $ \from state -> body $ do
   -- Return index 0 if all went well.
   ret 0
 
--- | Encode a 128 byte array into a 258 byte array.  This guarantees we have
--- enough storage to hold the 128 bytes.
-encode :: Def ( '[ Ref s (Array 128 (Stored Uint8)) -- From array
-                 , Ref s' (Array 258 (Stored Uint8)) -- To array
+-- | Encode a commsec array byte array into an hxstream byte array.  This
+-- guarantees we have enough storage to hold the input array.
+encode :: Def ( '[ Ref s S.CommsecArray -- From array
+                 , Ref s' S.HxstreamArray -- To array
                  ]
                  :-> ())
 encode = proc "encode" $ \from to -> body $ do
-  off <- local (ival (0::Ix 258))
+  off <- local (ival (0 :: S.HxstreamIx))
   -- start byte
   store (to ! 0) fbo
 

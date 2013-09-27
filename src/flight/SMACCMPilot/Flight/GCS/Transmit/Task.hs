@@ -16,25 +16,26 @@ import Ivory.Tower
 
 import           SMACCMPilot.Flight.GCS.Transmit.MessageDriver
 import           SMACCMPilot.Flight.GCS.Stream
-import qualified SMACCMPilot.Flight.Types.GCSStreamTiming as S
+import qualified SMACCMPilot.Flight.Types.GCSStreamTiming as T
 import qualified SMACCMPilot.Flight.Types.FlightMode      as FM
 import qualified SMACCMPilot.Flight.Types.DataRate        as D
 import qualified SMACCMPilot.Flight.GCS.Commsec           as C
 
 import qualified Ivory.HXStream                           as H
+import qualified SMACCMPilot.Shared                       as S
 
 --------------------------------------------------------------------------------
 
 processHx :: SingI n
           => ChannelEmitter n (Stored Uint8)
-          -> Def ('[ Ref Global (Array 112 (Stored Uint8))
+          -> Def ('[ Ref Global S.MavLinkArray
                    ] :-> ())
 processHx uartTx = proc "processHx" $ \mavMsg -> body $ do
-  pkg        <- local (iarray [] :: Init (Array 128 (Stored Uint8)))
+  pkg        <- local (iarray [] :: Init S.CommsecArray)
   C.copyToPkg (constRef mavMsg) pkg
   C.encrypt C.uavCtx pkg
 
-  hxArr      <- local (iarray [] :: Init (Array 258 (Stored Uint8)))
+  hxArr      <- local (iarray [] :: Init S.HxstreamArray)
   call_ H.encode pkg hxArr
   arrayMap $ \ix -> emit_ uartTx (constRef hxArr ! ix)
 
@@ -114,41 +115,41 @@ gcsTransmitTask ostream sp_sink dr_sink fm_sink se_sink ps_sink ct_sink mo_sink
             action
             setNextTime (constRef s_periods) s_schedule selector now
 
-    onStream S.heartbeat $ do
+    onStream T.heartbeat $ do
       readData fmReader s_fm
       call_ mkSendHeartbeat s_fm seqNum mavlinkPacket
       processMav
 
-    onStream S.servo_output_raw $ do
+    onStream T.servo_output_raw $ do
       readData motorReader s_motor
       readData ctlReader s_ctl
       call_ mkSendServoOutputRaw s_motor s_ctl seqNum mavlinkPacket
       processMav
 
-    onStream S.attitude $ do
+    onStream T.attitude $ do
       readData sensorsReader s_sens
       call_ mkSendAttitude s_sens seqNum mavlinkPacket
       processMav
 
-    onStream S.gps_raw_int $ do
+    onStream T.gps_raw_int $ do
       readData posReader s_pos
       call_ mkSendGpsRawInt s_pos seqNum mavlinkPacket
       processMav
 
-    onStream S.vfr_hud $ do
+    onStream T.vfr_hud $ do
       readData posReader s_pos
       readData ctlReader s_ctl
       readData sensorsReader s_sens
       call_ mkSendVfrHud s_pos s_ctl s_sens seqNum mavlinkPacket
       processMav
 
-    onStream S.global_position_int $ do
+    onStream T.global_position_int $ do
       readData posReader s_pos
       readData sensorsReader s_sens
       call_ mkSendGlobalPositionInt s_pos s_sens seqNum mavlinkPacket
       processMav
 
-    onStream S.params $ do
+    onStream T.params $ do
       -- XXX our whole story for params is broken
       return ()
 
@@ -158,7 +159,7 @@ gcsTransmitTask ostream sp_sink dr_sink fm_sink se_sink ps_sink ct_sink mo_sink
   taskModuleDef $ do
     depend FM.flightModeTypeModule
     depend D.dataRateTypeModule
-    depend S.gcsStreamTimingTypeModule
+    depend T.gcsStreamTimingTypeModule
     depend senderModules
     incl processStream
     depend C.commsecModule
