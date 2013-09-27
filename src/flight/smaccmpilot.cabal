@@ -56,7 +56,6 @@ library
                        SMACCMPilot.Console,
                        SMACCMPilot.SafePack
 
-
   other-modules:       Arm32SizeMap
 
   build-depends:       base >= 4.6,
@@ -73,7 +72,8 @@ library
                        ivory-bsp-stm32f4,
                        ivory-px4-hw,
                        ivory-hxstream,
-                       smaccm-mavlink
+                       smaccm-mavlink,
+                       shared-smaccmpilot
 
   default-language:    Haskell2010
   ghc-options:         -Wall -fno-warn-orphans
@@ -97,7 +97,8 @@ executable smaccmpilot-gen
                        ivory-px4-hw,
                        ivory-hxstream,
                        smaccm-mavlink,
-                       smaccmpilot
+                       smaccmpilot,
+                       shared-smaccmpilot
 
   default-language:    Haskell2010
   ghc-options:         -Wall -fno-warn-orphans

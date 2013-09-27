@@ -14,6 +14,7 @@ library
   build-depends:        base >= 4.6,
                         bytestring,
                         dlist,
+                        shared-smaccmpilot,
                         QuickCheck
 
   hs-source-dirs:       src
@@ -29,5 +30,6 @@ executable hxstream-serial-test
                         bytestring,
                         serialport,
                         dlist,
+                        shared-smaccmpilot,
                         hxstream
 

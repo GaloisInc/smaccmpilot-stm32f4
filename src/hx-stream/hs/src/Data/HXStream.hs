@@ -6,6 +6,8 @@ import           Data.Word
 import qualified Data.DList as D
 import           Data.List
 
+import qualified SMACCMPilot.Shared as S
+
 type Frame = [Word8]
 
 data FrameState = FrameBegin
@@ -69,12 +71,13 @@ decodeSM b state =
       | otherwise -> appendFrame b state
     FrameComplete -> state
 
--- | Decode an hxstream.  Returns a list of decoded frames of no more than 128
--- bytes and a state (which may contain an incompletely-decoded frame).
+-- | Decode an hxstream.  Returns a list of decoded frames of no more than
+-- commsecPkgSize bytes and a state (which may contain an incompletely-decoded
+-- frame).
 decode :: B.ByteString -> StreamState -> ([B.ByteString], StreamState)
 decode bs istate = (frames, newSt)
   where
-  frames        = map (B.take 128) byteFrames
+  frames        = map (B.take $ fromInteger S.commsecPkgSize) byteFrames
   byteFrames    = map B.pack (D.toList fr)
   (fr, newSt)   = foldl' aux (D.empty, istate) (B.unpack bs)
   aux (fs,st) w =
