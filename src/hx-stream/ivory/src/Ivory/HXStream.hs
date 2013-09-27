@@ -39,6 +39,7 @@ struct hxstream_state
 
 emptyStreamState :: Ref s Hx -> Ivory eff ()
 emptyStreamState state = do
+  arrayMap $ \ix -> store ((state ~> buf) ! ix) 0
   store (state ~> offset)  0
   store (state ~> fstate)  hxstream_fstate_Begin
   store (state ~> escaped) false
@@ -101,16 +102,17 @@ decodeSM = proc "decodeSM" $ \state b -> body $ do
     ,   true
     ==> return ()
     ]
-  s <- deref (state ~> fstate)
+
+  s <- state ~>* fstate
   ret (s ==? hxstream_fstate_Complete)
-    where
-    progress state b esc =
-      cond_ [ esc       ==> (   setEscaped false state
-                             >> appendFrame (escape b) state)
-            , b ==? ceo ==> setEscaped true state
-            , b ==? fbo ==> setComplete state
-            , true      ==> appendFrame b state
-            ]
+  where
+  progress state b esc =
+    cond_ [ esc       ==> (   setEscaped false state
+                           >> appendFrame (escape b) state)
+          , b ==? ceo ==> setEscaped true state
+          , b ==? fbo ==> setComplete state
+          , true      ==> appendFrame b state
+          ]
 
 -- | Decode an hxstreamed array into the raw bytes.  The input array can be
 -- arbitrary size.  Decoding stops if (1) the hxstream state we're decoding into
