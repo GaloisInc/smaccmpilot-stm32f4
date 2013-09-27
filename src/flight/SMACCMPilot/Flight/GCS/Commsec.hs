@@ -28,37 +28,18 @@ module SMACCMPilot.Flight.GCS.Commsec
 import Ivory.Language
 import Ivory.Stdlib
 
-import qualified GHC.TypeLits as S
+import qualified SMACCMPilot.Shared as S
 
 --------------------------------------------------------------------------------
 -- Types and constants
 
--- Encrypt 128 byte chunks minus room for the header and tag (8 bytes each).
-type PkgArr            = Array 128 (Stored Uint8)
-type Pkg s             = Ref s PkgArr
-
--- Replicates macros TAG_LEN and HEADER_LEN
--- Must match types given above.
-maxMsgLen, headerLen :: Integer
-maxMsgLen = S.fromSing (S.sing :: S.Sing 112)
---tagLen    = S.fromSing (S.sing :: S.Sing 8)
-headerLen = S.fromSing (S.sing :: S.Sing 8)
+headerLen :: Integer
+headerLen = 8
 
 -- Proxy type we'll cast from---doesn't really matter what the type (we don't
 -- have void though).
 type Commsec_ctx_proxy = Stored OpaqueType
 type Key               = Array 16 (Stored Uint8)
-
-packageSize :: Uint32
-packageSize = arrayLen (undefined :: Pkg s)
-
--- mkIx :: Int -> PkgIx
--- mkIx c = toIx (fromIntegral c :: Uint32)
-
--- maxMsgLenI, tagLenI, headerLenI :: PkgIx
--- maxMsgLenI = mkIx maxMsgLen
--- tagLenI    = mkIx tagLen
--- headerLenI = mkIx headerLen
 
 --------------------------------------------------------------------------------
 -- Import our API functions.
@@ -87,7 +68,7 @@ securePkg_init = importProc "securePkg_init" commsec
 --                                );
 securePkg_enc_in_place ::
   Def ('[ Ref Global Commsec_ctx_proxy
-        , Pkg s
+        , S.CommsecArray Ref s
         , Uint32
         , Uint32
         ] :-> Uint32)
@@ -96,7 +77,7 @@ securePkg_enc_in_place = importProc "securePkg_enc_in_place" commsec
 -- uint32_t securePkg_dec(commsec_ctx *ctx, uint8_t *msg, uint32_t msgLen);
 securePkg_dec ::
   Def ('[ Ref Global Commsec_ctx_proxy
-        , Pkg s
+        , S.CommsecArray Ref s
         , Uint32
         ] :-> Uint32)
 securePkg_dec = importProc "securePkg_dec" commsec
@@ -117,19 +98,20 @@ mkKey key = iarray $ map (ival . fromIntegral) key
 
 -- | Encrypt a package (with the header and tag) given a context.
 encrypt :: MemArea Commsec_ctx_proxy
-          -> Pkg s
+          -> S.CommsecArray Ref s
           -> Ivory eff ()
 encrypt com pkg =
   call_ securePkg_enc_in_place
-    (addrOf com) pkg (fromIntegral headerLen) (fromIntegral maxMsgLen)
+    (addrOf com) pkg (fromIntegral headerLen) (fromInteger S.mavlinkSize)
 
 -- | Decrypt a package (with the header and tag), given a context.  Returns 0 if
 -- all is OK and nonzero otherwise.  It is up to the caller to check the return
 -- value.
 decrypt :: MemArea Commsec_ctx_proxy
-        -> Pkg s
+        -> S.CommsecArray Ref s
         -> Ivory eff Uint32
-decrypt com pkg = call securePkg_dec (addrOf com) pkg packageSize
+decrypt com pkg =
+  call securePkg_dec (addrOf com) pkg (fromInteger S.commsecPkgSize)
 
 --------------------------------------------------------------------------------
 
@@ -143,8 +125,8 @@ setupCommsec =
 
 -- Copy a 112-byte message into our package buffer.
 copyToPkg :: (GetAlloc eff ~ Scope s2)
-         => ConstRef s0 (Array 112 (Stored Uint8))
-         -> Ref      s1 (Array 128 (Stored Uint8))
+         => S.MavLinkArray ConstRef s0
+         -> S.CommsecArray Ref      s1
          -> Ivory eff ()
 copyToPkg from pkg = arrCopy pkg from (fromInteger headerLen)
 
@@ -152,11 +134,11 @@ copyToPkg from pkg = arrCopy pkg from (fromInteger headerLen)
 
 -- Copy the payload out of a package buffer.
 copyFromPkg :: (GetAlloc eff ~ Scope s2)
-           => Ref s0 (Array 128 (Stored Uint8))
-           -> Ref s1 (Array 112 (Stored Uint8))
+           => S.CommsecArray Ref s0
+           -> S.MavLinkArray Ref s1
            -> Ivory eff ()
 copyFromPkg pkg from =
-  arrayMap $ \(ix :: Ix 128) ->
+  arrayMap $ \(ix :: S.CommsecIx) ->
     when (ix >=? hdr .&& ix <? arrayLen from)
          $ do v <- deref (pkg ! ix)
               store (from ! mkIx ix) v
