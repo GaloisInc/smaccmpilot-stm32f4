@@ -27,10 +27,12 @@ def generate_messages_hs(directory, ms):
                   (m.name_module , m.name_camel) for m in ms])
               + "\n  ]\n"
               )
-    messageLCs = ( "messageLensCRCs :: [(Word8, (Word8, Word8))]\n"
+    messageLCs = ( "-- [(Message Id, (Message Length, Message CRC))]\n"
+                 + "messageLensCRCs :: [(Word8, (Word8, Word8))]\n"
                  + "messageLensCRCs =\n"
-                 + "  [ " + ("\n  , ").join(["(%d, (%d, %d))"
-                                            % (m.id, m.wire_length, m.crc_extra)
+                 + "  [ " + ("\n  , ").join(["(%3d, (%3d, %3d)) -- 0x%0.2X %s"
+                                            % (m.id, m.wire_length, m.crc_extra,
+                                                m.id, m.name)
                                             for m in ms])
                  + "\n  ]\n"
                  )
