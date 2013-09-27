@@ -29,6 +29,22 @@ void sensors_get_omega(float *omega);
  */
 float sensors_get_baro_alt(void);
 
+/* Set velocity measurement from GPS
+ * units: meters/second; heading in degrees
+ */
+void sensors_set_gps_velocity(float v_north, float v_east, float v_down,
+        float speed_ground, float heading);
+
+/* Set position measurement from GPS
+ * units: degrees * 10,000,000
+ */
+void sensors_set_gps_position(int32_t lat, int32_t lon);
+
+/* Set satellite fix information from GPS
+ */
+void sensors_set_gps_fix(bool fix2d, bool fix3d, uint8_t num_sats);
+
+
 #ifdef __cplusplus
 }
 #endif
