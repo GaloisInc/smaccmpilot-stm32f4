@@ -29,18 +29,41 @@ main = compilePlatforms conf (gpsPlatforms app)
 
 app :: forall p . (GPSUart p, BoardHSE p) => Tower p ()
 app = do
-  (shelli,shello) <- uartTower (consoleUart (Proxy :: Proxy p)) 115200
-  (gpsi,gpso)     <- uartTower (gpsUart     (Proxy :: Proxy p)) 38400
-  shell "gps test shell. hard to use? blame pat." shello shelli
-  task "ubloxGPS" $ ubloxGPSTask gpso gpsi
+  (shelli :: ChannelSink 128 (Stored Uint8)
+   ,shello :: ChannelSource 128 (Stored Uint8)) <- uartTower
+                                                    (consoleUart (Proxy :: Proxy p))
+                                                    115200
+  (gpsi :: ChannelSink 128 (Stored Uint8)
+   ,gpso :: ChannelSource 128 (Stored Uint8)) <- uartTower
+                                                  (gpsUart (Proxy :: Proxy p))
+                                                  38400
+  packetid <- channel
+  shell "gps test shell, console." shello shelli (snk packetid)
+  task "ubloxGPS" $ ubloxGPSTask gpso gpsi (src packetid)
+--  forward gpso shelli
+--  forward shello gpsi
 
-shell :: String
-      -> ChannelSource 1024 (Stored Uint8)
-      -> ChannelSink   128  (Stored Uint8)
+
+forward :: (SingI n, SingI m, IvoryArea a, IvoryZero a)
+        => ChannelSource n a
+        -> ChannelSink   m a
+        -> Tower p ()
+forward osrc isnk = task "forward" $ do
+  o <- withChannelEmitter  osrc "ostream"
+  i <- withChannelEvent    isnk "istream"
+  onEvent i (emit_ o)
+
+
+shell :: (SingI n, SingI m, SingI o)
+      => String
+      -> ChannelSource n (Stored Uint8)
+      -> ChannelSink   m (Stored Uint8)
+      -> ChannelSink   o (Stored Uint8)
       -> Tower p ()
-shell greet ostream istream = task "shell" $ do
+shell greet ostream istream igps = task "shell" $ do
   out <- withChannelEmitter  ostream "ostream"
   inp <- withChannelEvent    istream "istream"
+  gpsin <- withChannelEvent  igps    "gpsin"
   withStackSize 1024
   let puts str = mapM_ (\c -> putc (fromIntegral (ord c))) str
       putc c = emitV_ out c
@@ -57,8 +80,24 @@ shell greet ostream istream = task "shell" $ do
         putc i -- Echo
         return $ do
           branch (i `isChar` '?')   help
+          branch (i `isChar` 'f')   forward
+          branch (i `isChar` 'r')   rxed
           branch (i `isChar` '\n')  prompt
           goto unknown
+
+    forward <- stateNamed "forward" $ do
+      entry $ liftIvory_ $ puts "\nforwarding gps traffic, any key to exit\n"
+      on inp $ \_ -> goto prompt
+      on gpsin $ \v -> liftIvory_ $ emit_ out v
+
+    rxed <- stateNamed "rxed" $ do
+      entry $ liftIvory_ $ puts "\nshowing recieved gps packet ids, any key to exit\n"
+      on inp $ \_ -> goto prompt
+      on gpsin $ \v -> liftIvory_ $ do
+        packetid <- deref v
+        puts "# "
+        putc (itoa packetid)
+        puts "\n"
 
     unknown <- stateNamed "unknown" $ do
       entry $ do
@@ -77,8 +116,9 @@ shell greet ostream istream = task "shell" $ do
 helpmsg :: String
 helpmsg = unlines $
   [ "\n\nHelp:"
-  , ""
-  , ""
+  , "r: show recieved messageids"
+  , "f: forward gps traffic to console"
+  , "   any key to end forwarding"
   , "? for help"
   ]
 

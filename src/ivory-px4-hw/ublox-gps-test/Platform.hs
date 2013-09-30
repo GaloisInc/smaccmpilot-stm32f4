@@ -11,7 +11,7 @@ import Ivory.BSP.STM32F4.RCC
 import Ivory.BSP.STM32F4.UART
 
 f24MHz :: Uint32
-f24MHz = 2400000
+f24MHz = 24000000
 f8MHz :: Uint32
 f8MHz = 8000000
 
@@ -38,7 +38,7 @@ instance GPSUart PX4FMU17_Bare where
 instance BoardHSE Open407VC where
   hseFreq _ = f8MHz
 instance GPSUart Open407VC where
-  consoleUart _ = uart3
+  consoleUart _ = uart1
   gpsUart _ = uart2
 
 gpsPlatforms :: (forall p . (GPSUart p, BoardHSE p) => Tower p ())
