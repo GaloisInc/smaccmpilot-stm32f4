@@ -28,8 +28,6 @@ import SMACCMPilot.Flight.GPS
 
 import SMACCMPilot.Console (consoleModule)
 
-import SMACCMPilot.Hardware.GPS.UBlox
-
 import SMACCMPilot.Mavlink.Messages (mavlinkMessageModules)
 import SMACCMPilot.Mavlink.Pack (packModule)
 import SMACCMPilot.Mavlink.CRC (mavlinkCRCModule)
@@ -73,7 +71,7 @@ flight = do
   -- GPS Input on uart6 (valid for all px4fmu platforms)
   gps_position <- gpsTower UART.uart6
   -- Sensors managed by AP_HAL
-  task "sensors" $ sensorsTask (src sensors)
+  sensorsTower gps_position (src sensors)
   -- Motor output dependent on platform
   motorOutput motors
 
