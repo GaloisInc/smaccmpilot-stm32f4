@@ -109,13 +109,12 @@ float sensors_get_baro_alt(void) {
 }
 
 
-void sensors_set_gps_velocity(float v_north, float v_east, float v_down,
-        float speed_ground, float heading)
+void sensors_set_gps_velocity(int32_t v_north, int32_t v_east, int32_t v_down,
+        uint32_t speed_ground, float heading)
 {
     gps_shim.set_velocity(v_north,v_east,v_down);
-    float speed_cm   = speed_ground * 100.0f;
     float heading_cd = heading * 100.0f;
-    gps_shim.set_ground_speed_course((uint32_t) speed_cm, (int32_t) heading_cd);
+    gps_shim.set_ground_speed_course(speed_ground, (int32_t) heading_cd);
 }
 
 void sensors_set_gps_position(int32_t lat, int32_t lon) {

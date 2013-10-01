@@ -22,8 +22,8 @@ public:
     // speed in cm/sec, course in 100ths of a degree
     void set_ground_speed_course(uint32_t speed_cm, int32_t course_cd);
 
-    // velocity in meters per second
-    void set_velocity(float v_north, float v_east, float v_down);
+    // velocity in cm/sec
+    void set_velocity(int32_t v_north, int32_t v_east, int32_t v_down);
 
     // satellite fix
     void set_fix(bool fix2d, bool fix3d, uint8_t sats);

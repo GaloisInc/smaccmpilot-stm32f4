@@ -30,10 +30,11 @@ void sensors_get_omega(float *omega);
 float sensors_get_baro_alt(void);
 
 /* Set velocity measurement from GPS
- * units: meters/second; heading in degrees
+ * units: velocities in cm/s
+ *        heading in degrees
  */
-void sensors_set_gps_velocity(float v_north, float v_east, float v_down,
-        float speed_ground, float heading);
+void sensors_set_gps_velocity(int32_t v_north, int32_t v_east, int32_t v_down,
+        uint32_t speed_ground, float heading);
 
 /* Set position measurement from GPS
  * units: degrees * 10,000,000
