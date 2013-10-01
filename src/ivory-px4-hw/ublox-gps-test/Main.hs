@@ -19,6 +19,8 @@ import qualified Ivory.BSP.STM32F4.SearchDir as BSP
 
 import Ivory.BSP.STM32F4.UART
 
+import SMACCMPilot.Hardware.GPS.Types.Position as P
+import SMACCMPilot.Hardware.GPS.Types.GPSFix
 import SMACCMPilot.Hardware.GPS.UBlox
 import Platform
 
@@ -39,7 +41,7 @@ app = do
                                                   38400
   packetid <- channel
   shell "gps test shell, console." shello shelli (snk packetid)
-  task "ubloxGPS" $ ubloxGPSTask gpso gpsi (src packetid)
+  ubloxGPSTower gpso gpsi (src packetid)
 --  forward gpso shelli
 --  forward shello gpsi
 
@@ -58,12 +60,12 @@ shell :: (SingI n, SingI m, SingI o)
       => String
       -> ChannelSource n (Stored Uint8)
       -> ChannelSink   m (Stored Uint8)
-      -> ChannelSink   o (Stored Uint8)
+      -> ChannelSink   o (Struct "position")
       -> Tower p ()
-shell greet ostream istream igps = task "shell" $ do
+shell greet ostream istream ipos = task "shell" $ do
   out <- withChannelEmitter  ostream "ostream"
   inp <- withChannelEvent    istream "istream"
-  gpsin <- withChannelEvent  igps    "gpsin"
+  posin <- withChannelEvent  ipos    "positionin"
   withStackSize 1024
   let puts str = mapM_ (\c -> putc (fromIntegral (ord c))) str
       putc c = emitV_ out c
@@ -80,24 +82,33 @@ shell greet ostream istream igps = task "shell" $ do
         putc i -- Echo
         return $ do
           branch (i `isChar` '?')   help
-          branch (i `isChar` 'f')   forward
-          branch (i `isChar` 'r')   rxed
+          branch (i `isChar` 'f')   showfix
+          branch (i `isChar` 's')   showsats
           branch (i `isChar` '\n')  prompt
           goto unknown
 
-    forward <- stateNamed "forward" $ do
-      entry $ liftIvory_ $ puts "\nforwarding gps traffic, any key to exit\n"
+    showsats <- stateNamed "sats" $ do
+      entry $ liftIvory_ $
+        puts "\nshowing number of gps satellites, any key to exit\n"
       on inp $ \_ -> goto prompt
-      on gpsin $ \v -> liftIvory_ $ emit_ out v
-
-    rxed <- stateNamed "rxed" $ do
-      entry $ liftIvory_ $ puts "\nshowing recieved gps packet ids, any key to exit\n"
-      on inp $ \_ -> goto prompt
-      on gpsin $ \v -> liftIvory_ $ do
-        packetid <- deref v
+      on posin $ \p -> liftIvory_ $ do
+        numsv <- deref (p ~> P.num_sv)
         puts "# "
-        putc (itoa packetid)
+        ifte_ (numsv <? 10)
+              (putc (itoa numsv))
+              (puts "9+")
         puts "\n"
+
+    showfix <- stateNamed "fix" $ do
+      entry $ liftIvory_ $
+        puts "\nshowing gps fix, any key to exit\n"
+      on inp $ \_ -> goto prompt
+      on posin $ \p -> liftIvory_ $ do
+        f <- deref (p ~> P.fix)
+        cond_ [ f ==? fix_none ==> puts "no fix\n"
+              , f ==? fix_2d   ==> puts "2d fix\n"
+              , f ==? fix_3d   ==> puts "3d fix\n"
+              ]
 
     unknown <- stateNamed "unknown" $ do
       entry $ do
@@ -115,10 +126,10 @@ shell greet ostream istream igps = task "shell" $ do
 
 helpmsg :: String
 helpmsg = unlines $
-  [ "\n\nHelp:"
-  , "r: show recieved messageids"
-  , "f: forward gps traffic to console"
-  , "   any key to end forwarding"
+  [ ""
+  , "Help:"
+  , "f: show gps fix status"
+  , "s: show number of satellites visible"
   , "? for help"
   ]
 

@@ -13,6 +13,9 @@ library
                        SMACCMPilot.Hardware.PX4IOAR.MotorControl,
                        SMACCMPilot.Hardware.PX4FMU17,
                        SMACCMPilot.Hardware.PX4FMU17.MotorControl,
+                       SMACCMPilot.Hardware.GPS.Types,
+                       SMACCMPilot.Hardware.GPS.Types.Position,
+                       SMACCMPilot.Hardware.GPS.Types.GPSFix,
                        SMACCMPilot.Hardware.GPS.UBlox,
                        SMACCMPilot.Hardware.GPS.UBlox.Types
   build-depends:       base >= 4.6,
