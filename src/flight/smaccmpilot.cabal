@@ -24,6 +24,8 @@ library
                        SMACCMPilot.Flight.GCS.HIL,
                        SMACCMPilot.Flight.GCS.Tower,
 
+                       SMACCMPilot.Flight.GPS,
+
                        SMACCMPilot.Flight.Control,
                        SMACCMPilot.Flight.Control.PID,
                        SMACCMPilot.Flight.Control.Stabilize,

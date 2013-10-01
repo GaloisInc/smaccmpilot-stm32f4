@@ -24,8 +24,11 @@ import SMACCMPilot.Flight.Sensors.Platforms
 import SMACCMPilot.Flight.UserInput.Task
 import SMACCMPilot.Flight.BlinkTask
 import SMACCMPilot.Flight.GCS.Tower
+import SMACCMPilot.Flight.GPS
 
 import SMACCMPilot.Console (consoleModule)
+
+import SMACCMPilot.Hardware.GPS.UBlox
 
 import SMACCMPilot.Mavlink.Messages (mavlinkMessageModules)
 import SMACCMPilot.Mavlink.Pack (packModule)
@@ -67,8 +70,11 @@ flight = do
   motors_state  <- stateProxy motors
   control_state <- stateProxy control
 
-  -- Real sensors and real motor output:
+  -- GPS Input on uart6 (valid for all px4fmu platforms)
+  gps_position <- gpsTower UART.uart6
+  -- Sensors managed by AP_HAL
   task "sensors" $ sensorsTask (src sensors)
+  -- Motor output dependent on platform
   motorOutput motors
 
   -- GCS on UART1:
