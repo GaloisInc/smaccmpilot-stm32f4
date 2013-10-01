@@ -175,6 +175,8 @@ unpack_sol payload out = do
   pdop_h <- deref (payload ! 45)
   (pdop :: Uint16) <- assign $ (safeCast pdop_l) + (256 *(safeCast pdop_h))
   store (out ~> dop) (0.01*(safeCast pdop))
+  numsv <- deref (payload ! 47)
+  store (out ~> num_sv) numsv
 
 unpack_velned :: Ref s1 (Array 52 (Stored Uint8))
               -> Ref s2 (Struct "position")
