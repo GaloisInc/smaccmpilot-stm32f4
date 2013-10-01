@@ -194,5 +194,5 @@ unpack_velned payload out = do
   store (out ~> veast)   p_veast
   store (out ~> vdown)   p_vdown
   store (out ~> vground) (signCast p_vground)
-  store (out ~> heading) ((safeCast int_head)/10000.0)
+  store (out ~> heading) ((safeCast int_head)/100000.0)
 
