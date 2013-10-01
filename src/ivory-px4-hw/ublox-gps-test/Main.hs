@@ -1,6 +1,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE RecursiveDo #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeOperators #-}
 
 module Main where
 
@@ -36,15 +37,12 @@ app = do
                                                     (consoleUart (Proxy :: Proxy p))
                                                     115200
   (gpsi :: ChannelSink 128 (Stored Uint8)
-   ,gpso :: ChannelSource 128 (Stored Uint8)) <- uartTower
+   ,_gpso :: ChannelSource 128 (Stored Uint8)) <- uartTower
                                                   (gpsUart (Proxy :: Proxy p))
                                                   38400
-  packetid <- channel
-  shell "gps test shell, console." shello shelli (snk packetid)
-  ubloxGPSTower gpso gpsi (src packetid)
---  forward gpso shelli
---  forward shello gpsi
-
+  position <- channel
+  shell "gps test shell, console." shello shelli (snk position)
+  ubloxGPSTower gpsi (src position)
 
 forward :: (SingI n, SingI m, IvoryArea a, IvoryZero a)
         => ChannelSource n a
@@ -141,3 +139,4 @@ itoa :: Uint8 -> Uint8
 itoa i = i + (fromIntegral (ord '0'))
 atoi :: Uint8 -> Uint8
 atoi a = a - (fromIntegral (ord '0'))
+

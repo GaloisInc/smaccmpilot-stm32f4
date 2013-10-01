@@ -13,16 +13,14 @@ import Ivory.Tower
 import SMACCMPilot.Hardware.GPS.Types
 import SMACCMPilot.Hardware.GPS.UBlox.Types
 
-ubloxGPSTower :: (SingI n, SingI m, SingI o)
-               => ChannelSource n (Stored Uint8)
-               -> ChannelSink   m (Stored Uint8)
-               -> ChannelSource o (Struct "position")
+ubloxGPSTower :: (SingI n, SingI m)
+               => ChannelSink   n (Stored Uint8)
+               -> ChannelSource m (Struct "position")
                -> Tower p ()
-ubloxGPSTower osrc isnk psrc = do
+ubloxGPSTower isnk psrc = do
   addModule  gpsTypesModule
   addDepends gpsTypesModule
   task "ubloxGPS" $ do
-    ostream <- withChannelEmitter osrc "ostream"
     istream <- withChannelEvent   isnk "istream"
     pstream <- withChannelEmitter psrc "position"
 
@@ -48,6 +46,9 @@ ubloxGPSTower osrc isnk psrc = do
           b <- deref ck_b
           store ck_a (a+i)
           store ck_b (a+b+i)
+    taskInit $ do
+      store (position ~> fix) fix_none
+      emit_ pstream (constRef position)
     onEventV istream $ \c -> do
       s <- deref state
       cond_
