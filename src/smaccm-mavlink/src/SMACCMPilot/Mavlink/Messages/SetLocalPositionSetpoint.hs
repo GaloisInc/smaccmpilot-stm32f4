@@ -13,6 +13,7 @@ module SMACCMPilot.Mavlink.Messages.SetLocalPositionSetpoint where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
+import qualified SMACCMPilot.Shared as S
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -46,7 +47,7 @@ struct set_local_position_setpoint_msg
 mkSetLocalPositionSetpointSender ::
   Def ('[ ConstRef s0 (Struct "set_local_position_setpoint_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 MavlinkArray -- tx buffer
+        , Ref s1 S.MavLinkArray -- tx buffer
         ] :-> ())
 mkSetLocalPositionSetpointSender =
   proc "mavlink_set_local_position_setpoint_msg_send"
@@ -65,7 +66,7 @@ mkSetLocalPositionSetpointSender =
   let usedLen = 6 + 19 + 2 :: Integer
   let sendArrLen = arrayLen sendArr
   if sendArrLen < usedLen
-    then error "setLocalPositionSetpoint payload is too large for 19 sender!"
+    then error "setLocalPositionSetpoint payload of length 19 is too large!"
     else do -- Copy, leaving room for the payload
             arrCopy sendArr arr 6
             call_ mavlinkSendWithWriter

@@ -13,6 +13,7 @@ module SMACCMPilot.Mavlink.Messages.RawPressure where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
+import qualified SMACCMPilot.Shared as S
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -44,7 +45,7 @@ struct raw_pressure_msg
 mkRawPressureSender ::
   Def ('[ ConstRef s0 (Struct "raw_pressure_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 MavlinkArray -- tx buffer
+        , Ref s1 S.MavLinkArray -- tx buffer
         ] :-> ())
 mkRawPressureSender =
   proc "mavlink_raw_pressure_msg_send"
@@ -61,7 +62,7 @@ mkRawPressureSender =
   let usedLen = 6 + 16 + 2 :: Integer
   let sendArrLen = arrayLen sendArr
   if sendArrLen < usedLen
-    then error "rawPressure payload is too large for 16 sender!"
+    then error "rawPressure payload of length 16 is too large!"
     else do -- Copy, leaving room for the payload
             arrCopy sendArr arr 6
             call_ mavlinkSendWithWriter

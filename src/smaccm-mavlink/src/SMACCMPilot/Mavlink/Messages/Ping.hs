@@ -13,6 +13,7 @@ module SMACCMPilot.Mavlink.Messages.Ping where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
+import qualified SMACCMPilot.Shared as S
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -43,7 +44,7 @@ struct ping_msg
 mkPingSender ::
   Def ('[ ConstRef s0 (Struct "ping_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 MavlinkArray -- tx buffer
+        , Ref s1 S.MavLinkArray -- tx buffer
         ] :-> ())
 mkPingSender =
   proc "mavlink_ping_msg_send"
@@ -59,7 +60,7 @@ mkPingSender =
   let usedLen = 6 + 14 + 2 :: Integer
   let sendArrLen = arrayLen sendArr
   if sendArrLen < usedLen
-    then error "ping payload is too large for 14 sender!"
+    then error "ping payload of length 14 is too large!"
     else do -- Copy, leaving room for the payload
             arrCopy sendArr arr 6
             call_ mavlinkSendWithWriter

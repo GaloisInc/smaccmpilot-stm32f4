@@ -13,6 +13,7 @@ module SMACCMPilot.Mavlink.Messages.MissionRequestPartialList where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
+import qualified SMACCMPilot.Shared as S
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -43,7 +44,7 @@ struct mission_request_partial_list_msg
 mkMissionRequestPartialListSender ::
   Def ('[ ConstRef s0 (Struct "mission_request_partial_list_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 MavlinkArray -- tx buffer
+        , Ref s1 S.MavLinkArray -- tx buffer
         ] :-> ())
 mkMissionRequestPartialListSender =
   proc "mavlink_mission_request_partial_list_msg_send"
@@ -59,7 +60,7 @@ mkMissionRequestPartialListSender =
   let usedLen = 6 + 6 + 2 :: Integer
   let sendArrLen = arrayLen sendArr
   if sendArrLen < usedLen
-    then error "missionRequestPartialList payload is too large for 6 sender!"
+    then error "missionRequestPartialList payload of length 6 is too large!"
     else do -- Copy, leaving room for the payload
             arrCopy sendArr arr 6
             call_ mavlinkSendWithWriter

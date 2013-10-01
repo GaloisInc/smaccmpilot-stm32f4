@@ -13,6 +13,7 @@ module SMACCMPilot.Mavlink.Messages.Setpoint8dof where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
+import qualified SMACCMPilot.Shared as S
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -48,7 +49,7 @@ struct setpoint_8dof_msg
 mkSetpoint8dofSender ::
   Def ('[ ConstRef s0 (Struct "setpoint_8dof_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 MavlinkArray -- tx buffer
+        , Ref s1 S.MavLinkArray -- tx buffer
         ] :-> ())
 mkSetpoint8dofSender =
   proc "mavlink_setpoint_8dof_msg_send"
@@ -69,7 +70,7 @@ mkSetpoint8dofSender =
   let usedLen = 6 + 33 + 2 :: Integer
   let sendArrLen = arrayLen sendArr
   if sendArrLen < usedLen
-    then error "setpoint8dof payload is too large for 33 sender!"
+    then error "setpoint8dof payload of length 33 is too large!"
     else do -- Copy, leaving room for the payload
             arrCopy sendArr arr 6
             call_ mavlinkSendWithWriter

@@ -13,6 +13,7 @@ module SMACCMPilot.Mavlink.Messages.NavControllerOutput where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
+import qualified SMACCMPilot.Shared as S
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -47,7 +48,7 @@ struct nav_controller_output_msg
 mkNavControllerOutputSender ::
   Def ('[ ConstRef s0 (Struct "nav_controller_output_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 MavlinkArray -- tx buffer
+        , Ref s1 S.MavLinkArray -- tx buffer
         ] :-> ())
 mkNavControllerOutputSender =
   proc "mavlink_nav_controller_output_msg_send"
@@ -67,7 +68,7 @@ mkNavControllerOutputSender =
   let usedLen = 6 + 26 + 2 :: Integer
   let sendArrLen = arrayLen sendArr
   if sendArrLen < usedLen
-    then error "navControllerOutput payload is too large for 26 sender!"
+    then error "navControllerOutput payload of length 26 is too large!"
     else do -- Copy, leaving room for the payload
             arrCopy sendArr arr 6
             call_ mavlinkSendWithWriter

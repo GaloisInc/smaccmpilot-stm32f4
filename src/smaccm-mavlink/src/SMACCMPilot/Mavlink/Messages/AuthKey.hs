@@ -13,6 +13,7 @@ module SMACCMPilot.Mavlink.Messages.AuthKey where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
+import qualified SMACCMPilot.Shared as S
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -40,7 +41,7 @@ struct auth_key_msg
 mkAuthKeySender ::
   Def ('[ ConstRef s0 (Struct "auth_key_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 MavlinkArray -- tx buffer
+        , Ref s1 S.MavLinkArray -- tx buffer
         ] :-> ())
 mkAuthKeySender =
   proc "mavlink_auth_key_msg_send"
@@ -53,7 +54,7 @@ mkAuthKeySender =
   let usedLen = 6 + 32 + 2 :: Integer
   let sendArrLen = arrayLen sendArr
   if sendArrLen < usedLen
-    then error "authKey payload is too large for 32 sender!"
+    then error "authKey payload of length 32 is too large!"
     else do -- Copy, leaving room for the payload
             arrCopy sendArr arr 6
             call_ mavlinkSendWithWriter

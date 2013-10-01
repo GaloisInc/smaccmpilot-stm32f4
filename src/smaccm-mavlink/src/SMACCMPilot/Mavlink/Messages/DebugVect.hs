@@ -13,6 +13,7 @@ module SMACCMPilot.Mavlink.Messages.DebugVect where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
+import qualified SMACCMPilot.Shared as S
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -44,7 +45,7 @@ struct debug_vect_msg
 mkDebugVectSender ::
   Def ('[ ConstRef s0 (Struct "debug_vect_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 MavlinkArray -- tx buffer
+        , Ref s1 S.MavLinkArray -- tx buffer
         ] :-> ())
 mkDebugVectSender =
   proc "mavlink_debug_vect_msg_send"
@@ -61,7 +62,7 @@ mkDebugVectSender =
   let usedLen = 6 + 30 + 2 :: Integer
   let sendArrLen = arrayLen sendArr
   if sendArrLen < usedLen
-    then error "debugVect payload is too large for 30 sender!"
+    then error "debugVect payload of length 30 is too large!"
     else do -- Copy, leaving room for the payload
             arrCopy sendArr arr 6
             call_ mavlinkSendWithWriter

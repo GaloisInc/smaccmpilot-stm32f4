@@ -13,6 +13,7 @@ module SMACCMPilot.Mavlink.Messages.BatteryStatus where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
+import qualified SMACCMPilot.Shared as S
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -48,7 +49,7 @@ struct battery_status_msg
 mkBatteryStatusSender ::
   Def ('[ ConstRef s0 (Struct "battery_status_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 MavlinkArray -- tx buffer
+        , Ref s1 S.MavLinkArray -- tx buffer
         ] :-> ())
 mkBatteryStatusSender =
   proc "mavlink_battery_status_msg_send"
@@ -69,7 +70,7 @@ mkBatteryStatusSender =
   let usedLen = 6 + 16 + 2 :: Integer
   let sendArrLen = arrayLen sendArr
   if sendArrLen < usedLen
-    then error "batteryStatus payload is too large for 16 sender!"
+    then error "batteryStatus payload of length 16 is too large!"
     else do -- Copy, leaving room for the payload
             arrCopy sendArr arr 6
             call_ mavlinkSendWithWriter

@@ -13,6 +13,7 @@ module SMACCMPilot.Mavlink.Messages.ParamValue where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
+import qualified SMACCMPilot.Shared as S
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -44,7 +45,7 @@ struct param_value_msg
 mkParamValueSender ::
   Def ('[ ConstRef s0 (Struct "param_value_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 MavlinkArray -- tx buffer
+        , Ref s1 S.MavLinkArray -- tx buffer
         ] :-> ())
 mkParamValueSender =
   proc "mavlink_param_value_msg_send"
@@ -61,7 +62,7 @@ mkParamValueSender =
   let usedLen = 6 + 25 + 2 :: Integer
   let sendArrLen = arrayLen sendArr
   if sendArrLen < usedLen
-    then error "paramValue payload is too large for 25 sender!"
+    then error "paramValue payload of length 25 is too large!"
     else do -- Copy, leaving room for the payload
             arrCopy sendArr arr 6
             call_ mavlinkSendWithWriter

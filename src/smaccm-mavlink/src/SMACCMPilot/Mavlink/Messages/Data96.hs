@@ -13,6 +13,7 @@ module SMACCMPilot.Mavlink.Messages.Data96 where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
+import qualified SMACCMPilot.Shared as S
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -42,7 +43,7 @@ struct data96_msg
 mkData96Sender ::
   Def ('[ ConstRef s0 (Struct "data96_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 MavlinkArray -- tx buffer
+        , Ref s1 S.MavLinkArray -- tx buffer
         ] :-> ())
 mkData96Sender =
   proc "mavlink_data96_msg_send"
@@ -57,7 +58,7 @@ mkData96Sender =
   let usedLen = 6 + 98 + 2 :: Integer
   let sendArrLen = arrayLen sendArr
   if sendArrLen < usedLen
-    then error "data96 payload is too large for 98 sender!"
+    then error "data96 payload of length 98 is too large!"
     else do -- Copy, leaving room for the payload
             arrCopy sendArr arr 6
             call_ mavlinkSendWithWriter

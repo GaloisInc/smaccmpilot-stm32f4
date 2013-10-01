@@ -13,6 +13,7 @@ module SMACCMPilot.Mavlink.Messages.MissionCurrent where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
+import qualified SMACCMPilot.Shared as S
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -40,7 +41,7 @@ struct mission_current_msg
 mkMissionCurrentSender ::
   Def ('[ ConstRef s0 (Struct "mission_current_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 MavlinkArray -- tx buffer
+        , Ref s1 S.MavLinkArray -- tx buffer
         ] :-> ())
 mkMissionCurrentSender =
   proc "mavlink_mission_current_msg_send"
@@ -53,7 +54,7 @@ mkMissionCurrentSender =
   let usedLen = 6 + 2 + 2 :: Integer
   let sendArrLen = arrayLen sendArr
   if sendArrLen < usedLen
-    then error "missionCurrent payload is too large for 2 sender!"
+    then error "missionCurrent payload of length 2 is too large!"
     else do -- Copy, leaving room for the payload
             arrCopy sendArr arr 6
             call_ mavlinkSendWithWriter

@@ -13,6 +13,7 @@ module SMACCMPilot.Mavlink.Messages.SafetyAllowedArea where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
+import qualified SMACCMPilot.Shared as S
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -46,7 +47,7 @@ struct safety_allowed_area_msg
 mkSafetyAllowedAreaSender ::
   Def ('[ ConstRef s0 (Struct "safety_allowed_area_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 MavlinkArray -- tx buffer
+        , Ref s1 S.MavLinkArray -- tx buffer
         ] :-> ())
 mkSafetyAllowedAreaSender =
   proc "mavlink_safety_allowed_area_msg_send"
@@ -65,7 +66,7 @@ mkSafetyAllowedAreaSender =
   let usedLen = 6 + 25 + 2 :: Integer
   let sendArrLen = arrayLen sendArr
   if sendArrLen < usedLen
-    then error "safetyAllowedArea payload is too large for 25 sender!"
+    then error "safetyAllowedArea payload of length 25 is too large!"
     else do -- Copy, leaving room for the payload
             arrCopy sendArr arr 6
             call_ mavlinkSendWithWriter

@@ -13,6 +13,7 @@ module SMACCMPilot.Mavlink.Messages.ManualControl where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
+import qualified SMACCMPilot.Shared as S
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -45,7 +46,7 @@ struct manual_control_msg
 mkManualControlSender ::
   Def ('[ ConstRef s0 (Struct "manual_control_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 MavlinkArray -- tx buffer
+        , Ref s1 S.MavLinkArray -- tx buffer
         ] :-> ())
 mkManualControlSender =
   proc "mavlink_manual_control_msg_send"
@@ -63,7 +64,7 @@ mkManualControlSender =
   let usedLen = 6 + 11 + 2 :: Integer
   let sendArrLen = arrayLen sendArr
   if sendArrLen < usedLen
-    then error "manualControl payload is too large for 11 sender!"
+    then error "manualControl payload of length 11 is too large!"
     else do -- Copy, leaving room for the payload
             arrCopy sendArr arr 6
             call_ mavlinkSendWithWriter

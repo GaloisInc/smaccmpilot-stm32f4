@@ -13,6 +13,7 @@ module SMACCMPilot.Mavlink.Messages.ManualSetpoint where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
+import qualified SMACCMPilot.Shared as S
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -46,7 +47,7 @@ struct manual_setpoint_msg
 mkManualSetpointSender ::
   Def ('[ ConstRef s0 (Struct "manual_setpoint_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 MavlinkArray -- tx buffer
+        , Ref s1 S.MavLinkArray -- tx buffer
         ] :-> ())
 mkManualSetpointSender =
   proc "mavlink_manual_setpoint_msg_send"
@@ -65,7 +66,7 @@ mkManualSetpointSender =
   let usedLen = 6 + 22 + 2 :: Integer
   let sendArrLen = arrayLen sendArr
   if sendArrLen < usedLen
-    then error "manualSetpoint payload is too large for 22 sender!"
+    then error "manualSetpoint payload of length 22 is too large!"
     else do -- Copy, leaving room for the payload
             arrCopy sendArr arr 6
             call_ mavlinkSendWithWriter

@@ -11,9 +11,12 @@ module SMACCMPilot.Mavlink.Pack
 
 import Ivory.Language
 
+packheader :: String
+packheader = "apwrapper/pack.h"
+
 packModule :: Module
 packModule = package "mavlink_pack_ivory" $ do
-  inclHeader "flight-support/pack.h" --  in flight support
+  inclHeader packheader
 
 class (IvoryExpr t) => MavlinkPackable t where
   pack       :: Def ('[Ref s (CArray (Stored Uint8)), Uint8, t]   :-> ())
@@ -21,49 +24,49 @@ class (IvoryExpr t) => MavlinkPackable t where
   packedSize :: t -> Int
 
 instance MavlinkPackable Uint64 where
- pack         = importProc "mavlink_pack_uint64_t"   "flight-support/pack.h"
- unpack       = importProc "mavlink_unpack_uint64_t" "flight-support/pack.h"
+ pack         = importProc "mavlink_pack_uint64_t"   packheader
+ unpack       = importProc "mavlink_unpack_uint64_t" packheader
  packedSize _ = 8
 instance MavlinkPackable Sint64 where
- pack         = importProc "mavlink_pack_int64_t"    "flight-support/pack.h"
- unpack       = importProc "mavlink_unpack_int64_t"  "flight-support/pack.h"
+ pack         = importProc "mavlink_pack_int64_t"    packheader
+ unpack       = importProc "mavlink_unpack_int64_t"  packheader
  packedSize _ = 8
 instance MavlinkPackable Uint32 where
- pack         = importProc "mavlink_pack_uint32_t"   "flight-support/pack.h"
- unpack       = importProc "mavlink_unpack_uint32_t" "flight-support/pack.h"
+ pack         = importProc "mavlink_pack_uint32_t"   packheader
+ unpack       = importProc "mavlink_unpack_uint32_t" packheader
  packedSize _ = 4
 instance MavlinkPackable Sint32 where
- pack         = importProc "mavlink_pack_int32_t"    "flight-support/pack.h"
- unpack       = importProc "mavlink_unpack_int32_t"  "flight-support/pack.h"
+ pack         = importProc "mavlink_pack_int32_t"    packheader
+ unpack       = importProc "mavlink_unpack_int32_t"  packheader
  packedSize _ = 4
 instance MavlinkPackable Uint16 where
- pack         = importProc "mavlink_pack_uint16_t"   "flight-support/pack.h"
- unpack       = importProc "mavlink_unpack_uint16_t" "flight-support/pack.h"
+ pack         = importProc "mavlink_pack_uint16_t"   packheader
+ unpack       = importProc "mavlink_unpack_uint16_t" packheader
  packedSize _ = 2
 instance MavlinkPackable Sint16 where
- pack         = importProc "mavlink_pack_int16_t"    "flight-support/pack.h"
- unpack       = importProc "mavlink_unpack_int16_t"  "flight-support/pack.h"
+ pack         = importProc "mavlink_pack_int16_t"    packheader
+ unpack       = importProc "mavlink_unpack_int16_t"  packheader
  packedSize _ = 2
 instance MavlinkPackable Uint8 where
- pack         = importProc "mavlink_pack_uint8_t"    "flight-support/pack.h"
- unpack       = importProc "mavlink_unpack_uint8_t"  "flight-support/pack.h"
+ pack         = importProc "mavlink_pack_uint8_t"    packheader
+ unpack       = importProc "mavlink_unpack_uint8_t"  packheader
  packedSize _ = 1
 -- Treat "char" as a "uint8_t" for packing purposes.
 instance MavlinkPackable IChar where
- pack         = importProc "mavlink_pack_uint8_t"    "flight-support/pack.h"
- unpack       = importProc "mavlink_unpack_uint8_t"  "flight-support/pack.h"
+ pack         = importProc "mavlink_pack_uint8_t"    packheader
+ unpack       = importProc "mavlink_unpack_uint8_t"  packheader
  packedSize _ = 1
 instance MavlinkPackable Sint8 where
- pack         = importProc "mavlink_pack_int8_t"     "flight-support/pack.h"
- unpack       = importProc "mavlink_unpack_int8_t"   "flight-support/pack.h"
+ pack         = importProc "mavlink_pack_int8_t"     packheader
+ unpack       = importProc "mavlink_unpack_int8_t"   packheader
  packedSize _ = 1
 instance MavlinkPackable IFloat where
- pack         = importProc "mavlink_pack_float"      "flight-support/pack.h"
- unpack       = importProc "mavlink_unpack_float"    "flight-support/pack.h"
+ pack         = importProc "mavlink_pack_float"      packheader
+ unpack       = importProc "mavlink_unpack_float"    packheader
  packedSize _ = 4
 instance MavlinkPackable IDouble where
- pack         = importProc "mavlink_pack_double"     "flight-support/pack.h"
- unpack       = importProc "mavlink_unpack_double"   "flight-support/pack.h"
+ pack         = importProc "mavlink_pack_double"     packheader
+ unpack       = importProc "mavlink_unpack_double"   packheader
  packedSize _ = 8
 
 arrayPack :: (SingI len, MavlinkPackable rep)

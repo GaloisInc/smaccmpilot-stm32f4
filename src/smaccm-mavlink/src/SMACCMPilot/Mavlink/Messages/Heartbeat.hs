@@ -13,6 +13,7 @@ module SMACCMPilot.Mavlink.Messages.Heartbeat where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
+import qualified SMACCMPilot.Shared as S
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -45,7 +46,7 @@ struct heartbeat_msg
 mkHeartbeatSender ::
   Def ('[ ConstRef s0 (Struct "heartbeat_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 MavlinkArray -- tx buffer
+        , Ref s1 S.MavLinkArray -- tx buffer
         ] :-> ())
 mkHeartbeatSender =
   proc "mavlink_heartbeat_msg_send"
@@ -63,7 +64,7 @@ mkHeartbeatSender =
   let usedLen = 6 + 9 + 2 :: Integer
   let sendArrLen = arrayLen sendArr
   if sendArrLen < usedLen
-    then error "heartbeat payload is too large for 9 sender!"
+    then error "heartbeat payload of length 9 is too large!"
     else do -- Copy, leaving room for the payload
             arrCopy sendArr arr 6
             call_ mavlinkSendWithWriter

@@ -13,6 +13,7 @@ module SMACCMPilot.Mavlink.Messages.ScaledPressure where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
+import qualified SMACCMPilot.Shared as S
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -43,7 +44,7 @@ struct scaled_pressure_msg
 mkScaledPressureSender ::
   Def ('[ ConstRef s0 (Struct "scaled_pressure_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 MavlinkArray -- tx buffer
+        , Ref s1 S.MavLinkArray -- tx buffer
         ] :-> ())
 mkScaledPressureSender =
   proc "mavlink_scaled_pressure_msg_send"
@@ -59,7 +60,7 @@ mkScaledPressureSender =
   let usedLen = 6 + 14 + 2 :: Integer
   let sendArrLen = arrayLen sendArr
   if sendArrLen < usedLen
-    then error "scaledPressure payload is too large for 14 sender!"
+    then error "scaledPressure payload of length 14 is too large!"
     else do -- Copy, leaving room for the payload
             arrCopy sendArr arr 6
             call_ mavlinkSendWithWriter

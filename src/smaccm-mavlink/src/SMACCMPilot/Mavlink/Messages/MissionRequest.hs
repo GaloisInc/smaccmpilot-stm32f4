@@ -13,6 +13,7 @@ module SMACCMPilot.Mavlink.Messages.MissionRequest where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
+import qualified SMACCMPilot.Shared as S
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -42,7 +43,7 @@ struct mission_request_msg
 mkMissionRequestSender ::
   Def ('[ ConstRef s0 (Struct "mission_request_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 MavlinkArray -- tx buffer
+        , Ref s1 S.MavLinkArray -- tx buffer
         ] :-> ())
 mkMissionRequestSender =
   proc "mavlink_mission_request_msg_send"
@@ -57,7 +58,7 @@ mkMissionRequestSender =
   let usedLen = 6 + 4 + 2 :: Integer
   let sendArrLen = arrayLen sendArr
   if sendArrLen < usedLen
-    then error "missionRequest payload is too large for 4 sender!"
+    then error "missionRequest payload of length 4 is too large!"
     else do -- Copy, leaving room for the payload
             arrCopy sendArr arr 6
             call_ mavlinkSendWithWriter

@@ -13,6 +13,7 @@ module SMACCMPilot.Mavlink.Messages.HilControls where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
+import qualified SMACCMPilot.Shared as S
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -50,7 +51,7 @@ struct hil_controls_msg
 mkHilControlsSender ::
   Def ('[ ConstRef s0 (Struct "hil_controls_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 MavlinkArray -- tx buffer
+        , Ref s1 S.MavLinkArray -- tx buffer
         ] :-> ())
 mkHilControlsSender =
   proc "mavlink_hil_controls_msg_send"
@@ -73,7 +74,7 @@ mkHilControlsSender =
   let usedLen = 6 + 42 + 2 :: Integer
   let sendArrLen = arrayLen sendArr
   if sendArrLen < usedLen
-    then error "hilControls payload is too large for 42 sender!"
+    then error "hilControls payload of length 42 is too large!"
     else do -- Copy, leaving room for the payload
             arrCopy sendArr arr 6
             call_ mavlinkSendWithWriter

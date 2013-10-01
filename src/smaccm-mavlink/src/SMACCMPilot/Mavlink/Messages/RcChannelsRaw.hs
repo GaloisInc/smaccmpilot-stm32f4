@@ -13,6 +13,7 @@ module SMACCMPilot.Mavlink.Messages.RcChannelsRaw where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
+import qualified SMACCMPilot.Shared as S
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -50,7 +51,7 @@ struct rc_channels_raw_msg
 mkRcChannelsRawSender ::
   Def ('[ ConstRef s0 (Struct "rc_channels_raw_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 MavlinkArray -- tx buffer
+        , Ref s1 S.MavLinkArray -- tx buffer
         ] :-> ())
 mkRcChannelsRawSender =
   proc "mavlink_rc_channels_raw_msg_send"
@@ -73,7 +74,7 @@ mkRcChannelsRawSender =
   let usedLen = 6 + 22 + 2 :: Integer
   let sendArrLen = arrayLen sendArr
   if sendArrLen < usedLen
-    then error "rcChannelsRaw payload is too large for 22 sender!"
+    then error "rcChannelsRaw payload of length 22 is too large!"
     else do -- Copy, leaving room for the payload
             arrCopy sendArr arr 6
             call_ mavlinkSendWithWriter

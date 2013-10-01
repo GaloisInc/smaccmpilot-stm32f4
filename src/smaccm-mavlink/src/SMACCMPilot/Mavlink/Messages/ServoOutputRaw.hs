@@ -13,6 +13,7 @@ module SMACCMPilot.Mavlink.Messages.ServoOutputRaw where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
+import qualified SMACCMPilot.Shared as S
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -49,7 +50,7 @@ struct servo_output_raw_msg
 mkServoOutputRawSender ::
   Def ('[ ConstRef s0 (Struct "servo_output_raw_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 MavlinkArray -- tx buffer
+        , Ref s1 S.MavLinkArray -- tx buffer
         ] :-> ())
 mkServoOutputRawSender =
   proc "mavlink_servo_output_raw_msg_send"
@@ -71,7 +72,7 @@ mkServoOutputRawSender =
   let usedLen = 6 + 21 + 2 :: Integer
   let sendArrLen = arrayLen sendArr
   if sendArrLen < usedLen
-    then error "servoOutputRaw payload is too large for 21 sender!"
+    then error "servoOutputRaw payload of length 21 is too large!"
     else do -- Copy, leaving room for the payload
             arrCopy sendArr arr 6
             call_ mavlinkSendWithWriter

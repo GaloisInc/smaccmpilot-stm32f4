@@ -13,6 +13,7 @@ module SMACCMPilot.Mavlink.Messages.MissionClearAll where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
+import qualified SMACCMPilot.Shared as S
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -41,7 +42,7 @@ struct mission_clear_all_msg
 mkMissionClearAllSender ::
   Def ('[ ConstRef s0 (Struct "mission_clear_all_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 MavlinkArray -- tx buffer
+        , Ref s1 S.MavLinkArray -- tx buffer
         ] :-> ())
 mkMissionClearAllSender =
   proc "mavlink_mission_clear_all_msg_send"
@@ -55,7 +56,7 @@ mkMissionClearAllSender =
   let usedLen = 6 + 2 + 2 :: Integer
   let sendArrLen = arrayLen sendArr
   if sendArrLen < usedLen
-    then error "missionClearAll payload is too large for 2 sender!"
+    then error "missionClearAll payload of length 2 is too large!"
     else do -- Copy, leaving room for the payload
             arrCopy sendArr arr 6
             call_ mavlinkSendWithWriter

@@ -13,6 +13,7 @@ module SMACCMPilot.Mavlink.Messages.SetQuadSwarmLedRollPitchYawThrust where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
+import qualified SMACCMPilot.Shared as S
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -48,7 +49,7 @@ struct set_quad_swarm_led_roll_pitch_yaw_thrust_msg
 mkSetQuadSwarmLedRollPitchYawThrustSender ::
   Def ('[ ConstRef s0 (Struct "set_quad_swarm_led_roll_pitch_yaw_thrust_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 MavlinkArray -- tx buffer
+        , Ref s1 S.MavLinkArray -- tx buffer
         ] :-> ())
 mkSetQuadSwarmLedRollPitchYawThrustSender =
   proc "mavlink_set_quad_swarm_led_roll_pitch_yaw_thrust_msg_send"
@@ -69,7 +70,7 @@ mkSetQuadSwarmLedRollPitchYawThrustSender =
   let usedLen = 6 + 46 + 2 :: Integer
   let sendArrLen = arrayLen sendArr
   if sendArrLen < usedLen
-    then error "setQuadSwarmLedRollPitchYawThrust payload is too large for 46 sender!"
+    then error "setQuadSwarmLedRollPitchYawThrust payload of length 46 is too large!"
     else do -- Copy, leaving room for the payload
             arrCopy sendArr arr 6
             call_ mavlinkSendWithWriter

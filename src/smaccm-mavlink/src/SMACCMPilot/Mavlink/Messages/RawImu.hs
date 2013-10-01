@@ -13,6 +13,7 @@ module SMACCMPilot.Mavlink.Messages.RawImu where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
+import qualified SMACCMPilot.Shared as S
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -49,7 +50,7 @@ struct raw_imu_msg
 mkRawImuSender ::
   Def ('[ ConstRef s0 (Struct "raw_imu_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 MavlinkArray -- tx buffer
+        , Ref s1 S.MavLinkArray -- tx buffer
         ] :-> ())
 mkRawImuSender =
   proc "mavlink_raw_imu_msg_send"
@@ -71,7 +72,7 @@ mkRawImuSender =
   let usedLen = 6 + 26 + 2 :: Integer
   let sendArrLen = arrayLen sendArr
   if sendArrLen < usedLen
-    then error "rawImu payload is too large for 26 sender!"
+    then error "rawImu payload of length 26 is too large!"
     else do -- Copy, leaving room for the payload
             arrCopy sendArr arr 6
             call_ mavlinkSendWithWriter

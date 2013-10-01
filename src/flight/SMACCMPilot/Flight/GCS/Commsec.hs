@@ -123,7 +123,7 @@ setupCommsec =
 
 --------------------------------------------------------------------------------
 
--- Copy a 112-byte message into our package buffer.
+-- Copy a mavlink-sized message into our package buffer.
 copyToPkg :: (GetAlloc eff ~ Scope s2)
          => ConstRef s0 S.MavLinkArray
          -> Ref      s1 S.CommsecArray

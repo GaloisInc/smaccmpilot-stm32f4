@@ -13,6 +13,7 @@ module SMACCMPilot.Mavlink.Messages.GpsStatus where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
+import qualified SMACCMPilot.Shared as S
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -45,7 +46,7 @@ struct gps_status_msg
 mkGpsStatusSender ::
   Def ('[ ConstRef s0 (Struct "gps_status_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 MavlinkArray -- tx buffer
+        , Ref s1 S.MavLinkArray -- tx buffer
         ] :-> ())
 mkGpsStatusSender =
   proc "mavlink_gps_status_msg_send"
@@ -63,7 +64,7 @@ mkGpsStatusSender =
   let usedLen = 6 + 101 + 2 :: Integer
   let sendArrLen = arrayLen sendArr
   if sendArrLen < usedLen
-    then error "gpsStatus payload is too large for 101 sender!"
+    then error "gpsStatus payload of length 101 is too large!"
     else do -- Copy, leaving room for the payload
             arrCopy sendArr arr 6
             call_ mavlinkSendWithWriter

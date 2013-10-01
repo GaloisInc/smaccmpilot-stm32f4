@@ -13,6 +13,7 @@ module SMACCMPilot.Mavlink.Messages.GpsRawInt where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
+import qualified SMACCMPilot.Shared as S
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -49,7 +50,7 @@ struct gps_raw_int_msg
 mkGpsRawIntSender ::
   Def ('[ ConstRef s0 (Struct "gps_raw_int_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 MavlinkArray -- tx buffer
+        , Ref s1 S.MavLinkArray -- tx buffer
         ] :-> ())
 mkGpsRawIntSender =
   proc "mavlink_gps_raw_int_msg_send"
@@ -71,7 +72,7 @@ mkGpsRawIntSender =
   let usedLen = 6 + 30 + 2 :: Integer
   let sendArrLen = arrayLen sendArr
   if sendArrLen < usedLen
-    then error "gpsRawInt payload is too large for 30 sender!"
+    then error "gpsRawInt payload of length 30 is too large!"
     else do -- Copy, leaving room for the payload
             arrCopy sendArr arr 6
             call_ mavlinkSendWithWriter

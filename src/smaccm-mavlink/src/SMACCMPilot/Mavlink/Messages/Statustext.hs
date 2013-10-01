@@ -13,6 +13,7 @@ module SMACCMPilot.Mavlink.Messages.Statustext where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
+import qualified SMACCMPilot.Shared as S
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -41,7 +42,7 @@ struct statustext_msg
 mkStatustextSender ::
   Def ('[ ConstRef s0 (Struct "statustext_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 MavlinkArray -- tx buffer
+        , Ref s1 S.MavLinkArray -- tx buffer
         ] :-> ())
 mkStatustextSender =
   proc "mavlink_statustext_msg_send"
@@ -55,7 +56,7 @@ mkStatustextSender =
   let usedLen = 6 + 51 + 2 :: Integer
   let sendArrLen = arrayLen sendArr
   if sendArrLen < usedLen
-    then error "statustext payload is too large for 51 sender!"
+    then error "statustext payload of length 51 is too large!"
     else do -- Copy, leaving room for the payload
             arrCopy sendArr arr 6
             call_ mavlinkSendWithWriter

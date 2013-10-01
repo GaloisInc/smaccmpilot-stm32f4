@@ -13,6 +13,7 @@ module SMACCMPilot.Mavlink.Messages.CommandAck where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
+import qualified SMACCMPilot.Shared as S
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -41,7 +42,7 @@ struct command_ack_msg
 mkCommandAckSender ::
   Def ('[ ConstRef s0 (Struct "command_ack_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 MavlinkArray -- tx buffer
+        , Ref s1 S.MavLinkArray -- tx buffer
         ] :-> ())
 mkCommandAckSender =
   proc "mavlink_command_ack_msg_send"
@@ -55,7 +56,7 @@ mkCommandAckSender =
   let usedLen = 6 + 3 + 2 :: Integer
   let sendArrLen = arrayLen sendArr
   if sendArrLen < usedLen
-    then error "commandAck payload is too large for 3 sender!"
+    then error "commandAck payload of length 3 is too large!"
     else do -- Copy, leaving room for the payload
             arrCopy sendArr arr 6
             call_ mavlinkSendWithWriter

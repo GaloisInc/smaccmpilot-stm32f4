@@ -1,74 +1,125 @@
 
 import Control.Concurrent
-import Control.Concurrent.MVar
 import Control.Monad
+import Data.IORef
 import System.Environment (getArgs)
 import System.Exit
 import System.IO
 
-import qualified Data.ByteString.Char8 as B
+import qualified Data.ByteString as B
 import qualified Data.Char as C
 import Data.Word
 import Numeric (showHex)
 
 import System.Hardware.Serialport
+import Data.HXStream
 
 
 main :: IO ()
 main = do
   args <- getArgs
   case args of
-    [f] -> startDebugger f
+    [f] -> do
+      r <- newIORef Continue
+      startDebugger r f
     _ -> error "invalid args. usage: hxstream-serial-test SERIALPORT"
 
 -- Debugger Implementation -----------------------------------------------------
 
 data DebuggerMode
   = Continue
+  | Send Word8 [Word8] -- Tag and payload
   | Exit
 
-data DebuggerState =
-  DebuggerState
-    { hello :: Bool -- Placeholder...
-    }
+airDataTag, radioCmdTag :: Word8
+airDataTag  = 0
+radioCmdTag = 1
 
-emptyDebuggerState = DebuggerState False
-
-
-startDebugger :: FilePath -> IO ()
-startDebugger f = do
-  mode <- newMVar Continue
-  forkIO (runDebugger mode f)
+startDebugger :: IORef DebuggerMode -> FilePath -> IO ()
+startDebugger sig f = do
+  forkIO (runDebugger sig f)
   hSetBuffering stdin NoBuffering
-  controlMode mode
+  loop
   where
-  controlMode dbgsignal = do
+  loop = do
     c <- getChar
     case C.toLower c of
-     'q' -> do putMVar dbgsignal Exit
-               exitSuccess
-     _ -> controlMode dbgsignal
+     'q' -> writeIORef sig Exit >> exitSuccess
+     '0' -> sendpacket (radiocmd "ATI0") >> loop
+     '1' -> sendpacket (radiocmd "ATI0") >> loop
+     '2' -> sendpacket (radiocmd "ATI2") >> loop
+     '3' -> sendpacket (radiocmd "ATI2") >> loop
+     '4' -> sendpacket (radiocmd "ATI4") >> loop
+     '5' -> sendpacket (radiocmd "ATI5") >> loop
+     '6' -> sendpacket (radiocmd "ATI6") >> loop
+     '7' -> sendpacket (radiocmd "ATI7") >> loop
+     's' -> sendpacket (airdata packet1) >> loop
+     'd' -> sendpacket (airdata packet2) >> loop
+     'f' -> sendpacket (airdata packet3) >> loop
+     'b' -> sendpacket (radiocmd "B") >> loop
+     'e' -> sendpacket (Send 7 []) >> loop  -- Just for testing
+     _ -> loop
+  sendpacket = writeIORef sig
+  airdata p  = Send airDataTag p
+  packet1 = [1,2,0xFF,0x7b,0x7c,0x7d,0x7e,9]
+  packet2 = [5,6]
+  packet3 = take 96 [0..]
 
-runDebugger :: MVar DebuggerMode -> FilePath -> IO ()
-runDebugger mode port = do
+radiocmd :: String -> DebuggerMode
+radiocmd s = Send radioCmdTag (map (fromIntegral . C.ord) (s ++ "\r"))
+
+runDebugger :: IORef DebuggerMode -> FilePath -> IO ()
+runDebugger sig port = do
   serial <- openSerial port defaultSerialSettings { commSpeed = CS57600 }
-  loop mode serial emptyDebuggerState
+  loop serial emptyStreamState
   where
-  loop mode serial state = do
+  loop serial state = do
     state' <- debuggerLoop serial state
-    m <- readMVar mode
+    m <- readIORef sig
+    let cont = loop serial state'
     case m of
-      Continue -> loop mode serial state'
+      Continue -> cont
+      Send tag payload -> do
+        writeIORef sig Continue
+        putStrLn ( "Sending Frame.  Tag: " ++ show tag
+                ++ " payload: " ++ show payload)
+        let packetBS = encode tag (B.pack payload)
+        putHexBS packetBS
+        send serial packetBS
+        cont
       Exit -> closeSerial serial
 
-debuggerLoop :: SerialPort -> DebuggerState -> IO DebuggerState
+  -- f = take 128 (0:[127,128..])
+
+putHex :: Word8 -> IO ()
+putHex b = putStr ("0x" ++ (showHex b " "))
+
+putHexBS :: B.ByteString -> IO ()
+putHexBS s = mapM_ putHex (B.unpack s) >> putStrLn ""
+
+debuggerLoop :: SerialPort -> StreamState -> IO StreamState
 debuggerLoop p state = do
   bs <- recv p 1
   foldM processByte state (B.unpack bs)
 
-processByte :: DebuggerState -> Char -> IO DebuggerState
-processByte s c = do
-  let b = fromIntegral (C.ord c) :: Word8
-  putStr ("0x" ++ (showHex b " "))
-  return s
+processByte :: StreamState -> Word8 -> IO StreamState
+processByte s b = do
+  let s' = decodeSM b s
+  case completedFrame s' of
+    Just msg -> do
+      putFrame msg
+      return emptyStreamState
+    _ -> return s'
 
+putFrame :: (Word8,B.ByteString) -> IO ()
+putFrame (tag,fr) = do
+  putStr "\n> "
+  let fr' = B.unpack fr
+  mapM_ putHex (tag : fr')
+  putStr "\n"
+  case tag of
+    _ | tag == radioCmdTag -> putFrameString fr'
+      | otherwise          -> return ()
+
+putFrameString :: [Word8] -> IO ()
+putFrameString = print . map (C.chr . fromIntegral)

@@ -13,6 +13,7 @@ module SMACCMPilot.Mavlink.Messages.VfrHud where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
+import qualified SMACCMPilot.Shared as S
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -45,7 +46,7 @@ struct vfr_hud_msg
 mkVfrHudSender ::
   Def ('[ ConstRef s0 (Struct "vfr_hud_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 MavlinkArray -- tx buffer
+        , Ref s1 S.MavLinkArray -- tx buffer
         ] :-> ())
 mkVfrHudSender =
   proc "mavlink_vfr_hud_msg_send"
@@ -63,7 +64,7 @@ mkVfrHudSender =
   let usedLen = 6 + 20 + 2 :: Integer
   let sendArrLen = arrayLen sendArr
   if sendArrLen < usedLen
-    then error "vfrHud payload is too large for 20 sender!"
+    then error "vfrHud payload of length 20 is too large!"
     else do -- Copy, leaving room for the payload
             arrCopy sendArr arr 6
             call_ mavlinkSendWithWriter

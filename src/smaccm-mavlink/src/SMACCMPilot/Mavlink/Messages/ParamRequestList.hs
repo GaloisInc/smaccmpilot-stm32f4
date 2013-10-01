@@ -13,6 +13,7 @@ module SMACCMPilot.Mavlink.Messages.ParamRequestList where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
+import qualified SMACCMPilot.Shared as S
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -41,7 +42,7 @@ struct param_request_list_msg
 mkParamRequestListSender ::
   Def ('[ ConstRef s0 (Struct "param_request_list_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 MavlinkArray -- tx buffer
+        , Ref s1 S.MavLinkArray -- tx buffer
         ] :-> ())
 mkParamRequestListSender =
   proc "mavlink_param_request_list_msg_send"
@@ -55,7 +56,7 @@ mkParamRequestListSender =
   let usedLen = 6 + 2 + 2 :: Integer
   let sendArrLen = arrayLen sendArr
   if sendArrLen < usedLen
-    then error "paramRequestList payload is too large for 2 sender!"
+    then error "paramRequestList payload of length 2 is too large!"
     else do -- Copy, leaving room for the payload
             arrCopy sendArr arr 6
             call_ mavlinkSendWithWriter

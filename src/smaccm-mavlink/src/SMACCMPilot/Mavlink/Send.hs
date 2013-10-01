@@ -6,22 +6,23 @@
 
 module SMACCMPilot.Mavlink.Send where
 
-import qualified Control.Monad as M
+import qualified Control.Monad      as M
 
-import Ivory.Language
-import Ivory.Stdlib
+import           Ivory.Language
+import           Ivory.Stdlib
 
-import SMACCMPilot.Mavlink.CRC
+import           SMACCMPilot.Mavlink.CRC
+import qualified SMACCMPilot.Shared as S
 
 --------------------------------------------------------------------------------
 
-type MavlinkArray = Array 112 (Stored Uint8)
+type MavlinkArray = S.MavLinkArray
 
 mavlinkChecksum ::
      (GetAlloc eff ~ Scope cs)
   => Uint8
   -> Uint8
-  -> Ref s MavlinkArray
+  -> Ref s S.MavLinkArray
   -> Ivory eff ()
 mavlinkChecksum sz crcextra arr = do
   ck <- local (ival crc_init_v)
@@ -54,7 +55,7 @@ mavlinkSendWithWriter ::
         , Uint8 -- crcExtra
         , Uint8 -- payload length
         , Ref s (Stored Uint8) -- sequence number (use then increment)
-        , Ref s MavlinkArray -- array we'll put everything into
+        , Ref s S.MavLinkArray -- array we'll put everything into
         ] :-> ())
 mavlinkSendWithWriter =
   proc "mavlinkSendWithWriter"

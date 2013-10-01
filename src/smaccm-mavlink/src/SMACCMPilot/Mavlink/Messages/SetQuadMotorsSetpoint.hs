@@ -13,6 +13,7 @@ module SMACCMPilot.Mavlink.Messages.SetQuadMotorsSetpoint where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
+import qualified SMACCMPilot.Shared as S
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -44,7 +45,7 @@ struct set_quad_motors_setpoint_msg
 mkSetQuadMotorsSetpointSender ::
   Def ('[ ConstRef s0 (Struct "set_quad_motors_setpoint_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 MavlinkArray -- tx buffer
+        , Ref s1 S.MavLinkArray -- tx buffer
         ] :-> ())
 mkSetQuadMotorsSetpointSender =
   proc "mavlink_set_quad_motors_setpoint_msg_send"
@@ -61,7 +62,7 @@ mkSetQuadMotorsSetpointSender =
   let usedLen = 6 + 9 + 2 :: Integer
   let sendArrLen = arrayLen sendArr
   if sendArrLen < usedLen
-    then error "setQuadMotorsSetpoint payload is too large for 9 sender!"
+    then error "setQuadMotorsSetpoint payload of length 9 is too large!"
     else do -- Copy, leaving room for the payload
             arrCopy sendArr arr 6
             call_ mavlinkSendWithWriter

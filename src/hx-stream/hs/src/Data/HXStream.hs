@@ -1,55 +1,70 @@
-module Data.HXStream where
+{-# OPTIONS_GHC -fno-warn-orphans #-}
+{-# LANGUAGE FlexibleInstances  #-}
+
+-- | Haskell implementation of the Hxstream protocol.
+
+module Data.HXStream
+  ( FrameState(..)
+  , StreamState(..)
+  , fbo
+  , ceo
+  , emptyStreamState
+  , completedFrame
+  , decodeSM
+  , decode
+  , encode
+  ) where
 
 import           Data.Bits
 import qualified Data.ByteString as B
 import           Data.Word
 import qualified Data.DList as D
-import           Data.List
+import           Data.Maybe
 
-import qualified SMACCMPilot.Shared as S
+--------------------------------------------------------------------------------
 
-type Frame = [Word8]
+type Tag = Word8
 
-data FrameState = FrameBegin
-                | FrameProgress Bool -- indicates escaped mode
-                | FrameComplete
+instance Show (D.DList Word8) where
+  show = show . D.toList
+
+data FrameState = FrameComplete
+                | FrameTag
+                | FrameProgress
+                | FrameEscape
                 deriving (Eq, Show)
 
 data StreamState =
   StreamState
-    { frame   :: D.DList Word8
+    { frame   :: D.DList Word8  -- Current frame
+    , ftag    :: Maybe Word8
     , fstate  :: FrameState
-    }
-
-instance Show StreamState where
-  show (StreamState f st) =
-    "StreamState { " ++ show (D.toList f) ++ ", " ++ show st ++ " }"
+    } deriving Show
 
 emptyStreamState :: StreamState
-emptyStreamState = StreamState D.empty FrameBegin
+emptyStreamState = StreamState D.empty Nothing FrameComplete
 
+-- Append a byte to the frame, escaping if needed.  Assumes we're in the
+-- progress state.
 appendFrame :: Word8 -> StreamState -> StreamState
 appendFrame b s = s { frame = frame s .++ b }
 
-setEscaped :: Bool -> StreamState -> StreamState
-setEscaped b s = s { fstate = FrameProgress b }
-
-complete :: StreamState -> Bool
-complete s =
-  case fstate s of
-    FrameComplete -> True
-    _             -> False
+frameProgress :: StreamState -> Bool
+frameProgress st = case fstate st of
+                     FrameProgress -> True
+                     FrameEscape   -> True
+                     _             -> False
 
 -- If we've completed a frame, return it.
-completeFrame :: StreamState -> Maybe Frame
-completeFrame s = case complete s of
-  True  -> Just (D.toList $ frame s)
-  False -> Nothing
+completedFrame :: StreamState -> Maybe (Tag, B.ByteString)
+completedFrame (StreamState fr tag st) =
+  case st == FrameComplete && isJust tag of
+    True  -> Just (fromJust tag, B.pack $ D.toList fr)
+    False -> Nothing
 
 -- | Frame Boundary Octet
 fbo :: Word8
 fbo  = 0x7e
-
 -- | Control Escape Octet
 ceo :: Word8
 ceo  = 0x7c
@@ -58,38 +73,56 @@ ceo  = 0x7c
 escape :: Word8 -> Word8
 escape b = b `xor` 0x20
 
+-- | When fstate state == FrameComplete && there's a tag, we have a completed
+-- frame to pull off.
 decodeSM :: Word8 -> StreamState -> StreamState
-decodeSM b state =
-  case fstate state of
-    FrameBegin ->
-      if b == fbo then setEscaped False $ emptyStreamState
-      else state
-    FrameProgress escaped
-      | escaped   -> setEscaped False $ appendFrame (escape b) state
-      | b == ceo  -> setEscaped True state
-      | b == fbo  -> state { fstate = FrameComplete }
-      | otherwise -> appendFrame b state
-    FrameComplete -> state
-
--- | Decode an hxstream.  Returns a list of decoded frames of no more than
--- commsecPkgSize bytes and a state (which may contain an incompletely-decoded
--- frame).
-decode :: B.ByteString -> StreamState -> ([B.ByteString], StreamState)
-decode bs istate = (frames, newSt)
+decodeSM b state
+  -- If you see fbo and we've accumulated at least a tag, it's an end byte.
+  | b == fbo && fstate state /= FrameComplete
+  = state { fstate = FrameComplete }
+  -- Otherwise an fbo is a start byte, so we expect a tag next.  Throw away any
+  -- legacy state.
+  | b == fbo && fstate state == FrameComplete
+  = emptyStreamState { fstate = FrameTag }
+  -- Get the tag in the tag state and get ready to process the rest.
+  | fstate state == FrameTag
+  = state { ftag = Just b, fstate = FrameProgress }
+  -- Progress
+  | fstate state == FrameProgress
+  = progress
+  -- Handle escpaed bytes.
+  | fstate state == FrameEscape
+  = appendFrame (escape b) state { fstate = FrameProgress }
+  -- The impossible happened.  Reset.
+  | otherwise
+  = emptyStreamState
   where
-  frames        = map (B.take $ fromInteger S.commsecPkgSize) byteFrames
-  byteFrames    = map B.pack (D.toList fr)
-  (fr, newSt)   = foldl' aux (D.empty, istate) (B.unpack bs)
-  aux (fs,st) w =
-    case completeFrame s' of
-      Just f  -> (fs .++ f, emptyStreamState)
-      Nothing -> (fs, s')
+  progress
+    -- If you see ceo, set escape.
+    | b == ceo
+    = state { fstate = FrameEscape }
+    -- Otherwise, append bytes to our current frame.
+    | otherwise
+    = appendFrame b state
+
+-- | Decode an hxstream.  Returns a list of decoded frames and their tags.
+decode :: B.ByteString
+       -> StreamState
+       -> ([(Tag, B.ByteString)], StreamState)
+decode bs state = (D.toList dframes, newSt)
+  where
+  (dframes, newSt) = B.foldl' aux (D.empty, state) bs
+  aux (fs,st) b =
+    case completedFrame s' of
+      Just tagfr -> (fs .++ tagfr, emptyStreamState)
+      Nothing    -> (fs, s')
     where
-    s' = decodeSM w st
+    s' = decodeSM b st
 
-encode :: Frame -> B.ByteString
-encode ws = B.pack $ D.toList $ fbo .: (go ws .++ fbo)
+encode :: Tag -> B.ByteString -> B.ByteString
+encode tag ws' = B.pack $ D.toList $ fbo .: tag .: go ws
   where
+  ws = B.unpack ws'
   go (x:xs) | x == fbo  = ceo .: (escape x .: go xs)
             | x == ceo  = ceo .: (escape x .: go xs)
             | otherwise = x .: go xs
@@ -99,6 +132,7 @@ encode ws = B.pack $ D.toList $ fbo .: (go ws .++ fbo)
 
 (.:) :: a -> D.DList a -> D.DList a
 (.:) = D.cons
+infixr .:
 
 (.++) :: D.DList a -> a -> D.DList a
 (.++) = D.snoc

@@ -13,6 +13,7 @@ module SMACCMPilot.Mavlink.Messages.HighresImu where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
+import qualified SMACCMPilot.Shared as S
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -54,7 +55,7 @@ struct highres_imu_msg
 mkHighresImuSender ::
   Def ('[ ConstRef s0 (Struct "highres_imu_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 MavlinkArray -- tx buffer
+        , Ref s1 S.MavLinkArray -- tx buffer
         ] :-> ())
 mkHighresImuSender =
   proc "mavlink_highres_imu_msg_send"
@@ -81,7 +82,7 @@ mkHighresImuSender =
   let usedLen = 6 + 62 + 2 :: Integer
   let sendArrLen = arrayLen sendArr
   if sendArrLen < usedLen
-    then error "highresImu payload is too large for 62 sender!"
+    then error "highresImu payload of length 62 is too large!"
     else do -- Copy, leaving room for the payload
             arrCopy sendArr arr 6
             call_ mavlinkSendWithWriter

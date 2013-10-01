@@ -11,31 +11,32 @@
 
 module SMACCMPilot.Flight.GCS.Transmit.MessageDriver where
 
-import qualified MonadLib        as M
-import qualified MonadLib.Monads as M
+import qualified MonadLib                                       as M
+import qualified MonadLib.Monads                                as M
 
 import Ivory.Language
 import Ivory.Stdlib
 
-import qualified SMACCMPilot.Flight.Types.Position      as P
-import qualified SMACCMPilot.Flight.Types.Motors        as M
-import qualified SMACCMPilot.Flight.Types.Sensors       as Sens
-import qualified SMACCMPilot.Flight.Types.ControlOutput as C
-import qualified SMACCMPilot.Flight.Types.UserInput     as U
-import qualified SMACCMPilot.Flight.Types.FlightMode    as FM
-import qualified SMACCMPilot.Flight.Types.DataRate      as R
+import qualified SMACCMPilot.Flight.Types.Position              as P
+import qualified SMACCMPilot.Flight.Types.Motors                as M
+import qualified SMACCMPilot.Flight.Types.Sensors               as Sens
+import qualified SMACCMPilot.Flight.Types.ControlOutput         as C
+import qualified SMACCMPilot.Flight.Types.UserInput             as U
+import qualified SMACCMPilot.Flight.Types.FlightMode            as FM
+import qualified SMACCMPilot.Flight.Types.DataRate              as R
 
 import           SMACCMPilot.Mavlink.Messages (mavlinkMessageModules)
 
-import qualified SMACCMPilot.Mavlink.Messages.Heartbeat as HB
-import qualified SMACCMPilot.Mavlink.Messages.Attitude as ATT
-import qualified SMACCMPilot.Mavlink.Messages.VfrHud as HUD
-import qualified SMACCMPilot.Mavlink.Messages.ServoOutputRaw as SVO
-import qualified SMACCMPilot.Mavlink.Messages.GpsRawInt as GRI
+import qualified SMACCMPilot.Mavlink.Messages.Heartbeat         as HB
+import qualified SMACCMPilot.Mavlink.Messages.Attitude          as ATT
+import qualified SMACCMPilot.Mavlink.Messages.VfrHud            as HUD
+import qualified SMACCMPilot.Mavlink.Messages.ServoOutputRaw    as SVO
+import qualified SMACCMPilot.Mavlink.Messages.GpsRawInt         as GRI
 import qualified SMACCMPilot.Mavlink.Messages.GlobalPositionInt as GPI
-import qualified SMACCMPilot.Mavlink.Messages.ParamValue as PV
-import qualified SMACCMPilot.Mavlink.Messages.Data16 as D
+--import qualified SMACCMPilot.Mavlink.Messages.ParamValue        as PV
+import qualified SMACCMPilot.Mavlink.Messages.Data16            as D
 
+import qualified SMACCMPilot.Shared                             as S
 --------------------------------------------------------------------
 
 -- Helper for sending data-rate information to the GCS.
@@ -55,13 +56,11 @@ packUint32 initIx arr val =
     return [b0,b1,b2,b3]
     where ex = M.sets extractByte
 
-type MavlinkArray = Array 112 (Stored Uint8)
-
 -- Helper type for send functions below.
 type Sender a = forall s s'.
-  Def ('[ Ref s (Struct a)
+  Def ('[ Ref s  (Struct a)
         , Ref s' (Stored Uint8)
-        , Ref s' MavlinkArray
+        , Ref s' S.MavLinkArray
         ] :-> ())
 
 -- Data rate info: time since the last good message and how many messages were
@@ -142,7 +141,7 @@ mkSendVfrHud :: Def ('[ (Ref s0 (Struct "position_result"))
                       , (Ref s0 (Struct "sensors_result"))
 
                       , Ref s1 (Stored Uint8)
-                      , Ref s1 MavlinkArray
+                      , Ref s1 S.MavLinkArray
                       ] :-> ())
 mkSendVfrHud = proc "gcs_transmit_send_vfrhud"
   $ \pos ctl sens seqNum sendArr -> body
@@ -199,7 +198,7 @@ mkSendVfrHud = proc "gcs_transmit_send_vfrhud"
 mkSendServoOutputRaw :: Def ('[ (Ref s0 (Struct "motors"))
                               , (Ref s0 (Struct "controloutput"))
                               , Ref s' (Stored Uint8)
-                              , Ref s' MavlinkArray
+                              , Ref s' S.MavLinkArray
                               ] :-> ())
 mkSendServoOutputRaw =
   proc "gcs_transmit_send_servo_output"
@@ -247,7 +246,7 @@ mkSendGpsRawInt = proc "gcs_transmit_send_gps_raw_int" $
 mkSendGlobalPositionInt :: Def ('[ (Ref s (Struct "position_result"))
                                  , (Ref s (Struct "sensors_result"))
                                  , Ref s' (Stored Uint8)
-                                 , Ref s' MavlinkArray
+                                 , Ref s' S.MavLinkArray
                                  ] :-> ())
 mkSendGlobalPositionInt = proc "gcs_transmit_send_global_position_int" $
   \pos sens seqNum sendArr -> body $ do

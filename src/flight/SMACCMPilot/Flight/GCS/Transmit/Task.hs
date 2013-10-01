@@ -36,7 +36,7 @@ processHx uartTx = proc "processHx" $ \mavMsg -> body $ do
   C.encrypt C.uavCtx pkg
 
   hxArr      <- local (iarray [] :: Init S.HxstreamArray)
-  call_ H.encode pkg hxArr
+  call_ H.encode 0 pkg hxArr
   arrayMap $ \ix -> emit_ uartTx (constRef hxArr ! ix)
 
 --------------------------------------------------------------------------------
@@ -163,4 +163,4 @@ gcsTransmitTask ostream sp_sink dr_sink fm_sink se_sink ps_sink ct_sink mo_sink
     depend senderModules
     incl processStream
     depend C.commsecModule
-    depend H.hxstreamTypeModule
+    depend H.hxstreamModule

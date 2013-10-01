@@ -13,6 +13,7 @@ module SMACCMPilot.Mavlink.Messages.MemoryVect where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
+import qualified SMACCMPilot.Shared as S
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -43,7 +44,7 @@ struct memory_vect_msg
 mkMemoryVectSender ::
   Def ('[ ConstRef s0 (Struct "memory_vect_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 MavlinkArray -- tx buffer
+        , Ref s1 S.MavLinkArray -- tx buffer
         ] :-> ())
 mkMemoryVectSender =
   proc "mavlink_memory_vect_msg_send"
@@ -59,7 +60,7 @@ mkMemoryVectSender =
   let usedLen = 6 + 36 + 2 :: Integer
   let sendArrLen = arrayLen sendArr
   if sendArrLen < usedLen
-    then error "memoryVect payload is too large for 36 sender!"
+    then error "memoryVect payload of length 36 is too large!"
     else do -- Copy, leaving room for the payload
             arrCopy sendArr arr 6
             call_ mavlinkSendWithWriter

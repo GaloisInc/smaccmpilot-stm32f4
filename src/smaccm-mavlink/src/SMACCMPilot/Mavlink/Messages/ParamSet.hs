@@ -13,6 +13,7 @@ module SMACCMPilot.Mavlink.Messages.ParamSet where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
+import qualified SMACCMPilot.Shared as S
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -44,7 +45,7 @@ struct param_set_msg
 mkParamSetSender ::
   Def ('[ ConstRef s0 (Struct "param_set_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 MavlinkArray -- tx buffer
+        , Ref s1 S.MavLinkArray -- tx buffer
         ] :-> ())
 mkParamSetSender =
   proc "mavlink_param_set_msg_send"
@@ -61,7 +62,7 @@ mkParamSetSender =
   let usedLen = 6 + 23 + 2 :: Integer
   let sendArrLen = arrayLen sendArr
   if sendArrLen < usedLen
-    then error "paramSet payload is too large for 23 sender!"
+    then error "paramSet payload of length 23 is too large!"
     else do -- Copy, leaving room for the payload
             arrCopy sendArr arr 6
             call_ mavlinkSendWithWriter

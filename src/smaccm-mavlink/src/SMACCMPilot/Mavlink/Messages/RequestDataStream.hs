@@ -13,6 +13,7 @@ module SMACCMPilot.Mavlink.Messages.RequestDataStream where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
+import qualified SMACCMPilot.Shared as S
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -44,7 +45,7 @@ struct request_data_stream_msg
 mkRequestDataStreamSender ::
   Def ('[ ConstRef s0 (Struct "request_data_stream_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 MavlinkArray -- tx buffer
+        , Ref s1 S.MavLinkArray -- tx buffer
         ] :-> ())
 mkRequestDataStreamSender =
   proc "mavlink_request_data_stream_msg_send"
@@ -61,7 +62,7 @@ mkRequestDataStreamSender =
   let usedLen = 6 + 6 + 2 :: Integer
   let sendArrLen = arrayLen sendArr
   if sendArrLen < usedLen
-    then error "requestDataStream payload is too large for 6 sender!"
+    then error "requestDataStream payload of length 6 is too large!"
     else do -- Copy, leaving room for the payload
             arrCopy sendArr arr 6
             call_ mavlinkSendWithWriter

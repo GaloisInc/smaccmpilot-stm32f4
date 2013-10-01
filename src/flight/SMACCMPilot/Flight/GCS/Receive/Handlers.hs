@@ -6,6 +6,7 @@
 module SMACCMPilot.Flight.GCS.Receive.Handlers where
 
 import Ivory.Language
+import Ivory.Tower
 import Ivory.Stdlib
 
 import           SMACCMPilot.Mavlink.Messages (mavlinkMessageModules)
@@ -38,10 +39,11 @@ requestDatastream streamperiods msg = do
   rate   <- deref (msg ~> RDS.req_message_rate)
   updateGCSStreamPeriods streamperiods rsid (enable >? 0) rate
 
-hilState :: Ref s (Struct "hil_state_msg") -> Ivory eff ()
-hilState _ =
-  -- XXX need to implement.
-  return ()
+hilState :: (SingI n, GetAlloc eff ~ Scope cs)
+         => ChannelEmitter n (Struct "hil_state_msg")
+         -> Ref s (Struct "hil_state_msg")
+         -> Ivory eff ()
+hilState e r = emit_ e (constRef r)
 
 -- | Handles a specific Mavlink message, where 'unpack' is a method of the
 -- 'MavlinkUnpackageMsg'.

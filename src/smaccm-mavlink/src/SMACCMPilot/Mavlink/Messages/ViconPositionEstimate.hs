@@ -13,6 +13,7 @@ module SMACCMPilot.Mavlink.Messages.ViconPositionEstimate where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
+import qualified SMACCMPilot.Shared as S
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -46,7 +47,7 @@ struct vicon_position_estimate_msg
 mkViconPositionEstimateSender ::
   Def ('[ ConstRef s0 (Struct "vicon_position_estimate_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 MavlinkArray -- tx buffer
+        , Ref s1 S.MavLinkArray -- tx buffer
         ] :-> ())
 mkViconPositionEstimateSender =
   proc "mavlink_vicon_position_estimate_msg_send"
@@ -65,7 +66,7 @@ mkViconPositionEstimateSender =
   let usedLen = 6 + 32 + 2 :: Integer
   let sendArrLen = arrayLen sendArr
   if sendArrLen < usedLen
-    then error "viconPositionEstimate payload is too large for 32 sender!"
+    then error "viconPositionEstimate payload of length 32 is too large!"
     else do -- Copy, leaving room for the payload
             arrCopy sendArr arr 6
             call_ mavlinkSendWithWriter

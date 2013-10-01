@@ -1,0 +1,55 @@
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE KindSignatures #-}
+
+-- | Shared types and constants shared by SMACCMPILOT and the GCS.
+
+module SMACCMPilot.Shared where
+
+import GHC.TypeLits
+import Ivory.Language
+import Data.Word
+
+--------------------------------------------------------------------------------
+
+-- Must be smaller than 256 (stored as a Word8 sometimes)
+
+type MavLinkIx = Ix 80
+
+type MavLinkArray = Array 80 (Stored Uint8)
+
+mavlinkSize :: Integer
+mavlinkSize = fromSing (sing :: Sing 80)
+
+--------------------------------------------------------------------------------
+-- Must be mavlinkSize + 16
+
+type CommsecIx = Ix 96
+
+type CommsecArray = Array 96 (Stored Uint8)
+
+commsecPkgSize :: Integer
+commsecPkgSize = fromSing (sing :: Sing 96)
+
+--------------------------------------------------------------------------------
+
+-- Must be 2*commsecSize+3.  Must be at greater than 3 (start,stop, and tag
+-- bytes).
+
+type HxstreamIx = Ix 195
+
+type HxstreamArray = Array 195 (Stored Uint8)
+
+hxstreamPkgSize :: Integer
+hxstreamPkgSize = fromSing (sing :: Sing 195)
+
+--------------------------------------------------------------------------------
+
+-- Tags for HXStream messages.
+
+airDataTag, radioTag :: Word8
+airDataTag = 0
+radioTag   = 1
+
+
+
+

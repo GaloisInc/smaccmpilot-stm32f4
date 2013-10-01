@@ -13,6 +13,7 @@ module SMACCMPilot.Mavlink.Messages.Setpoint6dof where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
+import qualified SMACCMPilot.Shared as S
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -46,7 +47,7 @@ struct setpoint_6dof_msg
 mkSetpoint6dofSender ::
   Def ('[ ConstRef s0 (Struct "setpoint_6dof_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 MavlinkArray -- tx buffer
+        , Ref s1 S.MavLinkArray -- tx buffer
         ] :-> ())
 mkSetpoint6dofSender =
   proc "mavlink_setpoint_6dof_msg_send"
@@ -65,7 +66,7 @@ mkSetpoint6dofSender =
   let usedLen = 6 + 25 + 2 :: Integer
   let sendArrLen = arrayLen sendArr
   if sendArrLen < usedLen
-    then error "setpoint6dof payload is too large for 25 sender!"
+    then error "setpoint6dof payload of length 25 is too large!"
     else do -- Copy, leaving room for the payload
             arrCopy sendArr arr 6
             call_ mavlinkSendWithWriter

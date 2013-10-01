@@ -13,6 +13,7 @@ module SMACCMPilot.Mavlink.Messages.Data32 where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
+import qualified SMACCMPilot.Shared as S
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -42,7 +43,7 @@ struct data32_msg
 mkData32Sender ::
   Def ('[ ConstRef s0 (Struct "data32_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 MavlinkArray -- tx buffer
+        , Ref s1 S.MavLinkArray -- tx buffer
         ] :-> ())
 mkData32Sender =
   proc "mavlink_data32_msg_send"
@@ -57,7 +58,7 @@ mkData32Sender =
   let usedLen = 6 + 34 + 2 :: Integer
   let sendArrLen = arrayLen sendArr
   if sendArrLen < usedLen
-    then error "data32 payload is too large for 34 sender!"
+    then error "data32 payload of length 34 is too large!"
     else do -- Copy, leaving room for the payload
             arrCopy sendArr arr 6
             call_ mavlinkSendWithWriter

@@ -13,6 +13,7 @@ module SMACCMPilot.Mavlink.Messages.HilRcInputsRaw where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
+import qualified SMACCMPilot.Shared as S
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -53,7 +54,7 @@ struct hil_rc_inputs_raw_msg
 mkHilRcInputsRawSender ::
   Def ('[ ConstRef s0 (Struct "hil_rc_inputs_raw_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 MavlinkArray -- tx buffer
+        , Ref s1 S.MavLinkArray -- tx buffer
         ] :-> ())
 mkHilRcInputsRawSender =
   proc "mavlink_hil_rc_inputs_raw_msg_send"
@@ -79,7 +80,7 @@ mkHilRcInputsRawSender =
   let usedLen = 6 + 33 + 2 :: Integer
   let sendArrLen = arrayLen sendArr
   if sendArrLen < usedLen
-    then error "hilRcInputsRaw payload is too large for 33 sender!"
+    then error "hilRcInputsRaw payload of length 33 is too large!"
     else do -- Copy, leaving room for the payload
             arrCopy sendArr arr 6
             call_ mavlinkSendWithWriter

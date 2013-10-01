@@ -13,6 +13,7 @@ module SMACCMPilot.Mavlink.Messages.RcChannelsOverride where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
+import qualified SMACCMPilot.Shared as S
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -49,7 +50,7 @@ struct rc_channels_override_msg
 mkRcChannelsOverrideSender ::
   Def ('[ ConstRef s0 (Struct "rc_channels_override_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 MavlinkArray -- tx buffer
+        , Ref s1 S.MavLinkArray -- tx buffer
         ] :-> ())
 mkRcChannelsOverrideSender =
   proc "mavlink_rc_channels_override_msg_send"
@@ -71,7 +72,7 @@ mkRcChannelsOverrideSender =
   let usedLen = 6 + 18 + 2 :: Integer
   let sendArrLen = arrayLen sendArr
   if sendArrLen < usedLen
-    then error "rcChannelsOverride payload is too large for 18 sender!"
+    then error "rcChannelsOverride payload of length 18 is too large!"
     else do -- Copy, leaving room for the payload
             arrCopy sendArr arr 6
             call_ mavlinkSendWithWriter

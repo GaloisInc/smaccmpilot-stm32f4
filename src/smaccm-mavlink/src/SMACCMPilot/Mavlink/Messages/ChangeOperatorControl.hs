@@ -13,6 +13,7 @@ module SMACCMPilot.Mavlink.Messages.ChangeOperatorControl where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
+import qualified SMACCMPilot.Shared as S
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -43,7 +44,7 @@ struct change_operator_control_msg
 mkChangeOperatorControlSender ::
   Def ('[ ConstRef s0 (Struct "change_operator_control_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 MavlinkArray -- tx buffer
+        , Ref s1 S.MavLinkArray -- tx buffer
         ] :-> ())
 mkChangeOperatorControlSender =
   proc "mavlink_change_operator_control_msg_send"
@@ -59,7 +60,7 @@ mkChangeOperatorControlSender =
   let usedLen = 6 + 28 + 2 :: Integer
   let sendArrLen = arrayLen sendArr
   if sendArrLen < usedLen
-    then error "changeOperatorControl payload is too large for 28 sender!"
+    then error "changeOperatorControl payload of length 28 is too large!"
     else do -- Copy, leaving room for the payload
             arrCopy sendArr arr 6
             call_ mavlinkSendWithWriter

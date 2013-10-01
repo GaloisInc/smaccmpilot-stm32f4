@@ -13,6 +13,7 @@ module SMACCMPilot.Mavlink.Messages.GlobalVisionPositionEstimate where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
+import qualified SMACCMPilot.Shared as S
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -46,7 +47,7 @@ struct global_vision_position_estimate_msg
 mkGlobalVisionPositionEstimateSender ::
   Def ('[ ConstRef s0 (Struct "global_vision_position_estimate_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 MavlinkArray -- tx buffer
+        , Ref s1 S.MavLinkArray -- tx buffer
         ] :-> ())
 mkGlobalVisionPositionEstimateSender =
   proc "mavlink_global_vision_position_estimate_msg_send"
@@ -65,7 +66,7 @@ mkGlobalVisionPositionEstimateSender =
   let usedLen = 6 + 32 + 2 :: Integer
   let sendArrLen = arrayLen sendArr
   if sendArrLen < usedLen
-    then error "globalVisionPositionEstimate payload is too large for 32 sender!"
+    then error "globalVisionPositionEstimate payload of length 32 is too large!"
     else do -- Copy, leaving room for the payload
             arrCopy sendArr arr 6
             call_ mavlinkSendWithWriter

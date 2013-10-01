@@ -27,10 +27,12 @@ def generate_messages_hs(directory, ms):
                   (m.name_module , m.name_camel) for m in ms])
               + "\n  ]\n"
               )
-    messageLCs = ( "messageLensCRCs :: [(Word8, (Word8, Word8))]\n"
+    messageLCs = ( "-- [(Message Id, (Message Length, Message CRC))]\n"
+                 + "messageLensCRCs :: [(Word8, (Word8, Word8))]\n"
                  + "messageLensCRCs =\n"
-                 + "  [ " + ("\n  , ").join(["(%d, (%d, %d))"
-                                            % (m.id, m.wire_length, m.crc_extra)
+                 + "  [ " + ("\n  , ").join(["(%3d, (%3d, %3d)) -- 0x%0.2X %s"
+                                            % (m.id, m.wire_length, m.crc_extra,
+                                                m.id, m.name)
                                             for m in ms])
                  + "\n  ]\n"
                  )
@@ -143,6 +145,7 @@ module SMACCMPilot.Mavlink.Messages.${name_module} where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
+import qualified SMACCMPilot.Shared as S
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -170,7 +173,7 @@ struct ${name_lower}_msg
 mk${name_module}Sender ::
   Def ('[ ConstRef s0 (Struct "${name_lower}_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 MavlinkArray -- tx buffer
+        , Ref s1 S.MavLinkArray -- tx buffer
         ] :-> ())
 mk${name_module}Sender =
   proc "mavlink_${name_lower}_msg_send"
@@ -183,7 +186,7 @@ mk${name_module}Sender =
   let usedLen = 6 + ${wire_length} + 2 :: Integer
   let sendArrLen = arrayLen sendArr
   if sendArrLen < usedLen
-    then error "${name_camel} payload is too large for ${wire_length} sender!"
+    then error "${name_camel} payload of length ${wire_length} is too large!"
     else do -- Copy, leaving room for the payload
             arrCopy sendArr arr 6
             call_ mavlinkSendWithWriter

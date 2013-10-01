@@ -13,6 +13,7 @@ module SMACCMPilot.Mavlink.Messages.Data16 where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
+import qualified SMACCMPilot.Shared as S
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -42,7 +43,7 @@ struct data16_msg
 mkData16Sender ::
   Def ('[ ConstRef s0 (Struct "data16_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 MavlinkArray -- tx buffer
+        , Ref s1 S.MavLinkArray -- tx buffer
         ] :-> ())
 mkData16Sender =
   proc "mavlink_data16_msg_send"
@@ -57,7 +58,7 @@ mkData16Sender =
   let usedLen = 6 + 18 + 2 :: Integer
   let sendArrLen = arrayLen sendArr
   if sendArrLen < usedLen
-    then error "data16 payload is too large for 18 sender!"
+    then error "data16 payload of length 18 is too large!"
     else do -- Copy, leaving room for the payload
             arrCopy sendArr arr 6
             call_ mavlinkSendWithWriter

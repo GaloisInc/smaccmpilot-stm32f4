@@ -13,6 +13,7 @@ module SMACCMPilot.Mavlink.Messages.HilState where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
+import qualified SMACCMPilot.Shared as S
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -55,7 +56,7 @@ struct hil_state_msg
 mkHilStateSender ::
   Def ('[ ConstRef s0 (Struct "hil_state_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 MavlinkArray -- tx buffer
+        , Ref s1 S.MavLinkArray -- tx buffer
         ] :-> ())
 mkHilStateSender =
   proc "mavlink_hil_state_msg_send"
@@ -83,7 +84,7 @@ mkHilStateSender =
   let usedLen = 6 + 56 + 2 :: Integer
   let sendArrLen = arrayLen sendArr
   if sendArrLen < usedLen
-    then error "hilState payload is too large for 56 sender!"
+    then error "hilState payload of length 56 is too large!"
     else do -- Copy, leaving room for the payload
             arrCopy sendArr arr 6
             call_ mavlinkSendWithWriter

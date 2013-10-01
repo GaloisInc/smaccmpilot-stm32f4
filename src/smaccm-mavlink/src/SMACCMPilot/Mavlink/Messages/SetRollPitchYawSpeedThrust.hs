@@ -13,6 +13,7 @@ module SMACCMPilot.Mavlink.Messages.SetRollPitchYawSpeedThrust where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
+import qualified SMACCMPilot.Shared as S
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -45,7 +46,7 @@ struct set_roll_pitch_yaw_speed_thrust_msg
 mkSetRollPitchYawSpeedThrustSender ::
   Def ('[ ConstRef s0 (Struct "set_roll_pitch_yaw_speed_thrust_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 MavlinkArray -- tx buffer
+        , Ref s1 S.MavLinkArray -- tx buffer
         ] :-> ())
 mkSetRollPitchYawSpeedThrustSender =
   proc "mavlink_set_roll_pitch_yaw_speed_thrust_msg_send"
@@ -63,7 +64,7 @@ mkSetRollPitchYawSpeedThrustSender =
   let usedLen = 6 + 18 + 2 :: Integer
   let sendArrLen = arrayLen sendArr
   if sendArrLen < usedLen
-    then error "setRollPitchYawSpeedThrust payload is too large for 18 sender!"
+    then error "setRollPitchYawSpeedThrust payload of length 18 is too large!"
     else do -- Copy, leaving room for the payload
             arrCopy sendArr arr 6
             call_ mavlinkSendWithWriter

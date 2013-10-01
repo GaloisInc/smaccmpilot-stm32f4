@@ -13,6 +13,7 @@ module SMACCMPilot.Mavlink.Messages.VisionSpeedEstimate where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
+import qualified SMACCMPilot.Shared as S
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -43,7 +44,7 @@ struct vision_speed_estimate_msg
 mkVisionSpeedEstimateSender ::
   Def ('[ ConstRef s0 (Struct "vision_speed_estimate_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 MavlinkArray -- tx buffer
+        , Ref s1 S.MavLinkArray -- tx buffer
         ] :-> ())
 mkVisionSpeedEstimateSender =
   proc "mavlink_vision_speed_estimate_msg_send"
@@ -59,7 +60,7 @@ mkVisionSpeedEstimateSender =
   let usedLen = 6 + 20 + 2 :: Integer
   let sendArrLen = arrayLen sendArr
   if sendArrLen < usedLen
-    then error "visionSpeedEstimate payload is too large for 20 sender!"
+    then error "visionSpeedEstimate payload of length 20 is too large!"
     else do -- Copy, leaving room for the payload
             arrCopy sendArr arr 6
             call_ mavlinkSendWithWriter

@@ -70,7 +70,7 @@ decrypt errQ ctx = do
 -- Pad out Mavlink packets.
 paddedPacket :: B.ByteString -> B.ByteString
 paddedPacket bs =
-  bs `B.append` (B.pack $ replicate (S.mavlinkSize - B.length bs) 0)
+  bs `B.append` (B.pack $ replicate (fromInteger S.mavlinkSize - B.length bs) 0)
 
 -- Filter out packets that aren't the right size and report errors.
 filterCommsecLen :: T.TQueue Error -> Commsec ()
@@ -180,8 +180,8 @@ rxLoop errQ ctx s tx =
 
     when (length (catMaybes mencPackets) /= length paddedPackets)
          (writeError errQ "bad encryption from GCS: ")
-    -- hxstream the packets
-    let frames = map (H.encode . B.unpack) (catMaybes mencPackets)
+    -- hxstream the packets, all of which are for SMACCMPilot
+    let frames = map (H.encode S.airDataTag) (catMaybes mencPackets)
     lift $ mapM_ (P.send s) frames
     set []
     rxLoop' parseSt'
@@ -201,7 +201,9 @@ txLoop errQ ctx rx mavSocket =
     -- Get messages from the serial device
     bs <- lift $ T.atomically $ T.readTQueue rx
     -- decode them
-    let (frames, hxSt') = H.decode bs hxSt
+    let (tagframes, hxSt') = H.decode bs hxSt
+    -- Get just the frames that are sent to the GCS.
+    let frames = snd $ unzip $ filter ((== S.airDataTag) . fst) tagframes
     set frames
     -- Filter frames based on commsec length and report errors
     filterCommsecLen errQ
