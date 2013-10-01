@@ -138,19 +138,21 @@ unpack_posllh :: Ref s1 (Array 52 (Stored Uint8))
               -> Ref s2 (Struct "position")
               -> Ivory eff ()
 unpack_posllh payload out = do
-  p_lat <- unpackS4 4
-  p_lon <- unpackS4 8
-  p_alt <- unpackS4 12
+  p_lat <- unpackS4 payload 4
+  p_lon <- unpackS4 payload 8
+  p_alt <- unpackS4 payload 12
   store (out ~> lat) p_lat
   store (out ~> lon) p_lon
   store (out ~> alt) p_alt
 
-unpackS4 :: Ix 52 -> Ivory eff Sint32
-unpackS4 off = do
-  b1 <- deref (payload ! (off+0))
-  b2 <- deref (payload ! (off+1))
-  b3 <- deref (payload ! (off+2))
-  b4 <- deref (payload ! (off+3))
+unpackS4 :: Ref s1 (Array 52 (Stored Uint8))
+         -> Ix 52
+         -> Ivory eff Sint32
+unpackS4 a off = do
+  b1 <- deref (a ! (off+0))
+  b2 <- deref (a ! (off+1))
+  b3 <- deref (a ! (off+2))
+  b4 <- deref (a ! (off+3))
   r <- assign ( (256 * 256 * 256 * (safeCast b4))
               + (256 * 256 * (safeCast b3))
               + (256 * (safeCast b2))
@@ -178,16 +180,16 @@ unpack_velned :: Ref s1 (Array 52 (Stored Uint8))
               -> Ref s2 (Struct "position")
               -> Ivory eff ()
 unpack_velned payload out = do
-  p_vnorth   <- unpackS4 4
-  p_veast    <- unpackS4 8
-  p_vdown    <- unpackS4 12
+  p_vnorth   <- unpackS4 payload 4
+  p_veast    <- unpackS4 payload 8
+  p_vdown    <- unpackS4 payload 12
   -- Technically vground is an Uint32. But we'd have to be
   -- going over 0.07*speed of light for it to matter.
-  p_vground  <- unpackS4 16
-  int_head   <- unpackS4 24
+  p_vground  <- unpackS4 payload 16
+  int_head   <- unpackS4 payload 24
   store (out ~> vnorth)  p_vnorth
   store (out ~> veast)   p_veast
   store (out ~> vdown)   p_vdown
-  store (out ~> vground) (castWith 0 p_vground)
+  store (out ~> vground) (signCast p_vground)
   store (out ~> heading) ((safeCast int_head)/10000.0)
 
