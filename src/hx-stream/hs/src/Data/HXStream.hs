@@ -77,7 +77,7 @@ escape b = b `xor` 0x20
 -- frame to pull off.
 decodeSM :: Word8 -> StreamState -> StreamState
 decodeSM b state
-  -- If you see fbo and we've accumulated at least a tag, it's an end byte.
+  -- If you see fbo and but we're not in a complete state, it's an end byte.
   | b == fbo && fstate state /= FrameComplete
   = state { fstate = FrameComplete }
   -- Otherwise an fbo is a start byte, so we expect a tag next.  Throw away any

@@ -1,9 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE QuasiQuotes #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
@@ -16,53 +13,46 @@ import Ivory.Language
 import Ivory.Stdlib
 import Ivory.HXStream.Types
 
-import qualified SMACCMPilot.Shared as S
-
 --------------------------------------------------------------------------------
 
 type Hx  = Struct "hxstream_state"
 
--- XXX Can't used shared types in TH.  This will throw a type-error if other
--- types change, though.
- -- Raw bytes to encode/decoded.
---    buf     :: Array 128 (Stored Uint8)
-
 [ivory|
+
 struct hxstream_state
   { offset  :: Stored Sint32
   ; fstate  :: Stored HXState
-  -- True if we couldn't encode since the input was too big
-  ; ovf     :: Stored IBool
-  -- Frame tag
-  ; ftag    :: Stored Uint8
+  ; ftag    :: Stored Uint8 -- Frame tag
   }
+
 |]
+
+--------------------------------------------------------------------------------
 
 emptyStreamState :: Ref s Hx -> Ivory eff ()
 emptyStreamState state = do
-  -- arrayMap $ \ix -> store ((state ~> buf) ! ix) 0
-  store (state ~> offset)  0
-  store (state ~> fstate)  hxstate_fstart
-  store (state ~> ovf) false
+  store (state ~> offset) 0
+  store (state ~> fstate)  hxstate_complete
   -- Don't care about the frame tag---shouldn't be read unless there's a new
   -- frame.
+
+--------------------------------------------------------------------------------
+-- State-setting helpers
 
 setState :: Ref s Hx -> HXState -> Ivory eff ()
 setState state = store (state ~> fstate)
 
--- Set the overflow (ovf) bit if we run out of buffer.
--- Otherwise, store the bytes.
-appendFrame :: SingI n
-            => Uint8
-            -> Ref s0 Hx
-            -> Ref s1 (Array n (Stored Uint8))
-            -> Ivory eff ()
-appendFrame b s buf = do
-  ix <- deref (s ~> offset)
-  ifte_ (ix >=? arrayLen buf)
-        (store (s ~> ovf) true)
-        (   store (buf ! toIx ix) b
-         >> store (s ~> offset) (ix+1))
+setTag :: Ref s Hx -> Uint8 -> Ivory eff ()
+setTag state = store (state ~> ftag)
+
+-- Increment the offset by one.
+tickOffset :: Ref s Hx -> Ivory eff ()
+tickOffset state = do
+  off <- state ~>* offset
+  store (state ~> offset) (off+1)
+
+--------------------------------------------------------------------------------
+-- Hxstream bytes
 
 fbo :: Uint8
 fbo  = 0x7e
@@ -70,91 +60,126 @@ fbo  = 0x7e
 ceo :: Uint8
 ceo  = 0x7c
 
+--------------------------------------------------------------------------------
+
 escape :: Uint8 -> Uint8
 escape = (.^) 0x20 -- XOR with 0x20
 
--- | Decode a byte, given an hxstream state.  Updates the hxstream state with
--- the decoded value.  Returns true if we've decoded a full frame.  Safe to have
--- a start byte follow a stop byte directly.  The caller is responsible for
--- moving/copying the decoded array out once `True` is returned.
-decodeSM :: SingI n
-         => Def ('[ Ref s0 Hx
-                  , Ref s1 (Array n (Stored Uint8))
-                  , Uint8] :-> IBool)
-decodeSM = proc "decodeSM" $ \state buf b -> body $ do
+--------------------------------------------------------------------------------
+
+-- | Decode a byte, given an hxstream state.  Returns a byte.  When the function
+-- returns, if the hxstate makes the following transitions, we have the
+-- following bytes returned:
+--
+-- hxstate_tag      --> hxstate_progress : tag byte
+-- hxstate_progress --> hxstate_progress : frame byte
+-- hxstate_esc      --> hxstate_progress : escaped frame byte
+--
+-- If we have
+--
+-- hxstate_progress --> hxstate_complete
+--
+-- It's the end of the frame.
+decodeSM :: Def ('[ Ref s Hx, Uint8 ] :-> Uint8)
+decodeSM = proc "decodeSM" $ \state b -> body $ do
   st <- state ~>* fstate
+  byteRef <- local (ival 0)
   cond_
-    -- Begin state and see a start byte.
-    [   (st ==? hxstate_fstart) .&& (b ==? fbo)
+    [   -- If you see fbo and but we're not in a complete state, it's an end
+        -- byte.
+        (b ==? fbo) .&& (st /=? hxstate_complete)
+    ==> setState state hxstate_complete
+        -- Otherwise an fbo is a start byte, so we expect a tag next.  Throw
+        -- away any legacy state.
+    ,   (b ==? fbo) .&& (st ==? hxstate_complete)
     ==> emptyStreamState state >> setState state hxstate_tag
+        -- Get the tag in the tag state and get ready to process the rest.
     ,   st ==? hxstate_tag
-    ==> store (state ~> ftag) b >> setState state hxstate_data
-    -- Progress state: decode the byte.
-    ,   st ==? hxstate_data
-    ==> progress state buf b
-    -- Escape state
+    ==> setTag state b >> setState state hxstate_progress
+        -- Progress
+    ,   st ==? hxstate_progress
+    ==> progress state b byteRef
+        -- Handle escaped bytes.
     ,   st ==? hxstate_esc
-    ==> appendFrame (escape b) state buf >> setState state hxstate_data
-    -- Stop state: reset the state and process the curent byte.  This ensures we
-    -- don't miss a byte if there's a start byte directly following a stop byte.
-    ,   st ==? hxstate_idle
-    ==> do emptyStreamState state -- rests state to hxstate_fstart
-           ret =<< call decodeSM state buf b
-    -- Begin state and no start byte: idle.
+    ==> do setState state hxstate_progress
+           tickOffset state
+           store byteRef (escape b)
+        -- The impossible happened.
     ,   true
     ==> return ()
     ]
-
-  s <- state ~>* fstate
-  ret (s ==? hxstate_idle)
+  ret =<< deref byteRef
   where
-  progress state buf b =
+  progress state b byteRef =
     cond_ [ b ==? ceo ==> setState state hxstate_esc
-          , b ==? fbo ==> setState state hxstate_idle
-          , true      ==> appendFrame b state buf
+          , true      ==> tickOffset state >> store byteRef b
           ]
 
--- Fixed for commsec array length
-decodeSMCommsec :: Def ('[ Ref s0 Hx
-                         , Ref s1 S.CommsecArray
-                         , Uint8] :-> IBool)
-decodeSMCommsec = decodeSM
+--------------------------------------------------------------------------------
 
--- | Encode a commsec array byte array into an hxstream byte array.  This
--- guarantees we have enough storage to hold the input array.
-encode :: Def ( '[ Uint8 -- ^ Message tag
-                 , Ref s0 S.CommsecArray -- ^ From array
-                 , Ref s1 S.HxstreamArray -- ^ To array
-                 ]
-                 :-> ())
-encode = proc "encode" $ \tag from to -> body $ do
-  off <- local (ival (0 :: S.HxstreamIx))
-  -- start byte
-  store (to ! 0) fbo
-  -- store the tag (without escaping)
-  storeTo to off tag
-  -- encode the rest
-  arrayMap $ \ix -> do
-    v  <- deref (from ! ix)
-    cond_ [   -- Handle escape chars.
-              (v ==? fbo) .|| (v ==? ceo)
-          ==> do storeTo to off ceo
-                 storeTo to off (escape v)
-              -- Just add the byte.
-          ,   true
-          ==> storeTo to off v
-          ]
-  retVoid
+data FrameHandler s =
+  FrameHandler
+    { -- ^ Tag to match.  Only matching frames with a matching tag will be
+      -- handled.
+      fhTag   :: Uint8
+      -- ^ What to do with a byte of frame data.  Can use the index.
+    , fhData  :: Uint8 -> Sint32 -> Ivory (AllocEffects s) ()
+      -- ^ What to do at the end of the frame.
+    , fhEnd   :: Ivory (AllocEffects s) ()
+    }
 
+-- | Decode a frame given a frame state and byte and a set of framehandler
+-- functions.
+decode :: FrameHandler s0
+       -> Ref s1 Hx
+       -> Uint8
+       -> Ivory (AllocEffects s0) ()
+decode fh state b = do
+  st0  <- state ~>* fstate
+  off  <- state ~>* offset
+  tag  <- state ~>* ftag
+
+  byte <- call decodeSM state b
+  st1  <- state ~>* fstate
+
+  cond_
+    [   -- Frame ended.
+        (st0 ==? hxstate_progress) .&& (st1 ==? hxstate_complete)
+    ==> fhEnd fh
+        -- Got a frame byte: process it if the tag matches.
+    ,       ((st0 ==? hxstate_progress) .|| (st0 ==? hxstate_esc))
+        .&& (tag ==? fhTag fh)
+    ==> fhData fh byte off
+        -- Idle otherwise.
+    ,   true
+    ==> return ()
+   ]
+
+--------------------------------------------------------------------------------
+
+-- | Takes a tag, frame array, and a 'put' function and encodes according to the
+-- hxstream protocol.
+encode ::   SingI n
+         => Uint8
+         -> ConstRef s (Array n (Stored Uint8))
+         -> (Uint8 -> Ivory (AllocEffects cs) ())
+         -> Ivory (AllocEffects cs) ()
+encode tag arr put = do
+  put fbo
+  put tag
+  putencoded
   where
-  -- increment then use it as an index.
-  storeTo to off v = do
-    off %= (+1)
-    o <- deref off
-    store (to ! o) v
+  putencoded = arrayMap $ \ix -> noBreak $ do
+    v  <- deref (arr ! ix)
+    ifte_ ((v ==? fbo) .|| (v ==? ceo))
+          (put ceo >> put (escape v))
+          (put v)
+
+--------------------------------------------------------------------------------
 
 hxstreamModule :: Module
 hxstreamModule = package "hxstream_state_module" $ do
   defStruct (Proxy :: Proxy "hxstream_state")
-  incl encode
-  incl decodeSMCommsec
+  incl decodeSM
+
+--------------------------------------------------------------------------------
