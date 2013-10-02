@@ -46,10 +46,11 @@ hxstreamPkgSize = fromSing (sing :: Sing 195)
 
 -- Tags for HXStream messages.
 
-airDataTag, radioTag :: Word8
-airDataTag = 0
-radioTag   = 1
+class Num a => FrameTag a where
+  airDataTag :: a
+  airDataTag = 0
+  radioTag   :: a
+  radioTag   = 1
 
-
-
-
+instance FrameTag Word8
+instance FrameTag Uint8
