@@ -6,8 +6,6 @@
 
 module SMACCMPilot.Mavlink.Send where
 
-import qualified Control.Monad      as M
-
 import           Ivory.Language
 import           Ivory.Stdlib
 
