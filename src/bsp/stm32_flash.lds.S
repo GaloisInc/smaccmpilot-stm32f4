@@ -144,7 +144,7 @@ SECTIONS
     *(.gnu.linkonce.d.*)
     CONSTRUCTORS
     _edata = ABSOLUTE(.);
-  } > sram AT > flash
+  } > ccsram AT > flash
 
   . = ALIGN(4);
   .bss : {
@@ -165,7 +165,7 @@ SECTIONS
     . = . + _min_heap_size;
     . = . + _min_stack_size;
     . = ALIGN(4);
-  } > sram
+  } > ccsram
 
   /* Stabs debugging sections. */
   .stab 0 : { *(.stab) }
