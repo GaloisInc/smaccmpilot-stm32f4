@@ -14,7 +14,7 @@ Author: Lee Pike <leepike@galois.com>
 
 -}
 
-module SMACCMPilot.Flight.GCS.Commsec
+module SMACCMPilot.Flight.Commsec.Commsec
   ( encrypt
   , decrypt
   , uavID

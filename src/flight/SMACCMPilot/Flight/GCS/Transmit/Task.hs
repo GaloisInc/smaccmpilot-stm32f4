@@ -2,7 +2,6 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE NoMonoLocalBinds #-}
 
 module SMACCMPilot.Flight.GCS.Transmit.Task
   ( gcsTransmitTask
@@ -19,39 +18,21 @@ import           SMACCMPilot.Flight.GCS.Stream
 import qualified SMACCMPilot.Flight.Types.GCSStreamTiming as T
 import qualified SMACCMPilot.Flight.Types.FlightMode      as FM
 import qualified SMACCMPilot.Flight.Types.DataRate        as D
-import qualified SMACCMPilot.Flight.GCS.Commsec           as C
-
-import qualified Ivory.HXStream                           as H
 import qualified SMACCMPilot.Shared                       as S
 
 --------------------------------------------------------------------------------
 
-processHx :: SingI n
-          => ChannelEmitter n (Stored Uint8)
-          -> Def ('[ Ref Global S.MavLinkArray
-                   ] :-> ())
-processHx uartTx = proc "processHx" $ \mavMsg -> body $ do
-  pkg        <- local (iarray [] :: Init S.CommsecArray)
-  C.copyToPkg (constRef mavMsg) pkg
-  C.encrypt C.uavCtx pkg
-
-  hxArr      <- local (iarray [] :: Init S.HxstreamArray)
-  call_ H.encode 0 pkg hxArr
-  arrayMap $ \ix -> emit_ uartTx (constRef hxArr ! ix)
-
---------------------------------------------------------------------------------
-
 gcsTransmitTask :: (SingI n0, SingI n1, SingI n2)
-                => ChannelSource n0 (Stored Uint8) -- Channel to UART
-                -> ChannelSink n1   (Struct "gcsstream_timing")
-                -> ChannelSink n2   (Struct "data_rate_state")
+                => ChannelSource n0 S.MavLinkArray -- Channel to encrypter
+                -> ChannelSink   n1 (Struct "gcsstream_timing")
+                -> ChannelSink   n2 (Struct "data_rate_state")
                 -> DataSink         (Struct "flightmode")
                 -> DataSink         (Struct "sensors_result")
                 -> DataSink         (Struct "position_result")
                 -> DataSink         (Struct "controloutput")
                 -> DataSink         (Struct "motors")
                 -> Task p ()
-gcsTransmitTask ostream sp_sink dr_sink fm_sink se_sink ps_sink ct_sink mo_sink
+gcsTransmitTask mavStream sp_sink dr_sink fm_sink se_sink ps_sink ct_sink mo_sink
   = do
   withStackSize 1024
 
@@ -60,14 +41,11 @@ gcsTransmitTask ostream sp_sink dr_sink fm_sink se_sink ps_sink ct_sink mo_sink
   posReader        <- withDataReader ps_sink "position"
   ctlReader        <- withDataReader ct_sink "control"
   motorReader      <- withDataReader mo_sink "motors"
-  uartTx           <- withChannelEmitter ostream "ostream"
-
-  let processStream = processHx uartTx
+  mavTx            <- withChannelEmitter mavStream "gcsTxToEncSrc"
 
   -- XXX current issue: need a way to change usartSender to be defined in terms
   -- of the ChannelReceiver. This means it will depend on the Task
   -- tower_task_loop_ module, which generates the code for the emitter.
-  -- msgDriver <- gcsTransmitDriver uavPkg
 
   mavlinkPacket  <- taskLocal "mavlinkPacket"
   -- mavlink sequence numbers
@@ -87,7 +65,6 @@ gcsTransmitTask ostream sp_sink dr_sink fm_sink se_sink ps_sink ct_sink mo_sink
   taskInit $ do
     initTime <- getTimeMillis t
     store lastRun initTime
-    C.setupCommsec
 
   onChannel sp_sink "streamPeriod" $ \newperiods -> do
     setNewPeriods newperiods s_periods s_schedule =<< getTimeMillis t
@@ -100,7 +77,8 @@ gcsTransmitTask ostream sp_sink dr_sink fm_sink se_sink ps_sink ct_sink mo_sink
   --   call_ mkSendDataRate d seqNum mavlinkPacket
   --   call_ processStream mavlinkPacket
 
-  let processMav = call_ processStream mavlinkPacket
+  let processMav :: (Scope s ~ GetAlloc eff) => Ivory eff ()
+      processMav = emit_ mavTx (constRef mavlinkPacket)
 
   onPeriod 50 $ \now -> do
 
@@ -161,6 +139,3 @@ gcsTransmitTask ostream sp_sink dr_sink fm_sink se_sink ps_sink ct_sink mo_sink
     depend D.dataRateTypeModule
     depend T.gcsStreamTimingTypeModule
     depend senderModules
-    incl processStream
-    depend C.commsecModule
-    depend H.hxstreamModule

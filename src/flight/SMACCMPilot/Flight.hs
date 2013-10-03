@@ -13,7 +13,7 @@ import Ivory.Stdlib.String (stdlibStringModule)
 
 import SMACCMPilot.Flight.Types (typeModules)
 import SMACCMPilot.Flight.Control (controlModules)
--- import SMACCMPilot.Flight.Datalink
+-- import qualified SMACCMPilot.Flight.Datalink as D
 -- import qualified SMACCMPilot.Flight.Datalink.TestHarness as DLink
 
 import SMACCMPilot.Flight.Control.Task
@@ -33,7 +33,7 @@ import SMACCMPilot.Mavlink.Send (mavlinkSendModule)
 import SMACCMPilot.Mavlink.Pack (packModule)
 import SMACCMPilot.Mavlink.CRC (mavlinkCRCModule)
 
-import SMACCMPilot.Flight.GCS.Commsec
+import SMACCMPilot.Flight.Commsec.Commsec
 import Ivory.HXStream
 
 import qualified Ivory.BSP.HWF4.EEPROM as HWF4
@@ -76,10 +76,11 @@ flight = do
   task "sensors" $ sensorsTask (src sensors)
   motorOutput motors
 
-  -- GCS on UART1:
-  (uart1istream, uart1ostream) <- uart UART.uart1
-  gcsTower "uart1" uart1istream uart1ostream flightmode sensor_state
-    (snk position) control_state motors_state
+  -- Datalink and uart tasks
+  (istream, ostream) <- uart UART.uart1
+
+  gcsTower "uart1" istream ostream flightmode sensor_state (snk position)
+    control_state motors_state
 
   -- -- Extra: for testing datalink code, not fully integrated yet...
   -- datalinkTest UART.uart5
@@ -107,17 +108,16 @@ core sensors = do
   relaypin = GPIO.pinB13
   redledpin = GPIO.pinB14
 
-
 -- datalinkTest :: (BoardHSE p) => UART.UART -> Tower p ()
 -- datalinkTest u = do
 --   (byte_istream, byte_ostream) <- uart u
---   (  framed_istream
---    , framed_ostream
---    , stat_istream :: ChannelSink 1 (Struct "radio_stat")
---    , info_istream :: ChannelSink 1 (Struct "radio_info")
---    ) <- datalink byte_istream byte_ostream
+--   ( framed_istream
+--   , framed_ostream
+--   , stat_istream :: ChannelSink 1 (Struct "radio_stat")
+--   , info_istream :: ChannelSink 1 (Struct "radio_info")
+--   ) <- datalink byte_istream byte_ostream
 --   DLink.frameLoopback framed_istream framed_ostream
---   -- XXX do something with stat and info
+  -- XXX do something with stat and info
 
 otherms :: [Module]
 otherms = concat
