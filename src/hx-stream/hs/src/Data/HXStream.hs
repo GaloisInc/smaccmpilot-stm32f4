@@ -49,12 +49,6 @@ emptyStreamState = StreamState D.empty Nothing FrameComplete
 appendFrame :: Word8 -> StreamState -> StreamState
 appendFrame b s = s { frame = frame s .++ b }
 
-frameProgress :: StreamState -> Bool
-frameProgress st = case fstate st of
-                     FrameProgress -> True
-                     FrameEscape   -> True
-                     _             -> False
-
 -- If we've completed a frame, return it.
 completedFrame :: StreamState -> Maybe (Tag, B.ByteString)
 completedFrame (StreamState fr tag st) =

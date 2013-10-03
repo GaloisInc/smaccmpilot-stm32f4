@@ -2,6 +2,8 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE Rank2Types #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
@@ -16,6 +18,7 @@ import Ivory.HXStream.Types
 --------------------------------------------------------------------------------
 
 type Hx  = Struct "hxstream_state"
+type Tag = Uint8
 
 [ivory|
 
@@ -36,13 +39,16 @@ emptyStreamState state = do
   -- Don't care about the frame tag---shouldn't be read unless there's a new
   -- frame.
 
+initStreamState :: Init (Struct "hxstream_state")
+initStreamState = istruct [ fstate .= ival hxstate_complete, offset .= ival 0 ]
+
 --------------------------------------------------------------------------------
 -- State-setting helpers
 
 setState :: Ref s Hx -> HXState -> Ivory eff ()
 setState state = store (state ~> fstate)
 
-setTag :: Ref s Hx -> Uint8 -> Ivory eff ()
+setTag :: Ref s Hx -> Tag -> Ivory eff ()
 setTag state = store (state ~> ftag)
 
 -- Increment the offset by one.
@@ -117,50 +123,77 @@ decodeSM = proc "decodeSM" $ \state b -> body $ do
 
 --------------------------------------------------------------------------------
 
-data FrameHandler s =
-  FrameHandler
+newtype FrameHandler =
+  FrameHandler { unFrameHandler :: forall s. ScopedFrameHandler s }
+
+mkFrameHandler :: (forall s. ScopedFrameHandler s) -> FrameHandler
+mkFrameHandler = FrameHandler
+
+data ScopedFrameHandler s =
+  ScopedFrameHandler
     { -- ^ Tag to match.  Only matching frames with a matching tag will be
       -- handled.
-      fhTag   :: Uint8
+      fhTag   :: Tag
+      -- ^ What to do before parsing the frame, after matching the tag.
+    , fhBegin :: Ivory (AllocEffects s) ()
       -- ^ What to do with a byte of frame data.  Can use the index.
     , fhData  :: Uint8 -> Sint32 -> Ivory (AllocEffects s) ()
       -- ^ What to do at the end of the frame.
     , fhEnd   :: Ivory (AllocEffects s) ()
     }
 
--- | Decode a frame given a frame state and byte and a set of framehandler
--- functions.
-decode :: FrameHandler s0
-       -> Ref s1 Hx
-       -> Uint8
-       -> Ivory (AllocEffects s0) ()
-decode fh state b = do
+decodes :: forall s0 s1 . [FrameHandler]
+        -> Ref s1 Hx
+        -> Uint8
+        -> Ivory (AllocEffects s0) ()
+decodes fhs state b = do
+  -- State before decoding byte.
   st0  <- state ~>* fstate
   off  <- state ~>* offset
-  tag  <- state ~>* ftag
 
   byte <- call decodeSM state b
+
+  -- State after decoding byte.
   st1  <- state ~>* fstate
+  tag  <- state ~>* ftag
+
+  -- Run each framehandler for which the tag matches.
+  let fhLookup :: (ScopedFrameHandler s0 -> Ivory (AllocEffects s0) ())
+               -> Ivory (AllocEffects s0) ()
+      fhLookup k =
+        mapM_ (\(FrameHandler fh) -> when (tag ==? fhTag fh)
+                           (k fh))
+              fhs
 
   cond_
     [   -- Frame ended.
         (st0 ==? hxstate_progress) .&& (st1 ==? hxstate_complete)
-    ==> fhEnd fh
-        -- Got a frame byte: process it if the tag matches.
-    ,       ((st0 ==? hxstate_progress) .|| (st0 ==? hxstate_esc))
-        .&& (tag ==? fhTag fh)
-    ==> fhData fh byte off
+    ==> fhLookup fhEnd
+        -- Getting tag.
+    ,   (st0 ==? hxstate_tag)
+    ==> fhLookup fhBegin
+        -- Got a frame byte: process.
+    ,   (st0 ==? hxstate_progress) .|| (st0 ==? hxstate_esc)
+    ==> fhLookup (\fh -> fhData fh byte off)
         -- Idle otherwise.
     ,   true
     ==> return ()
    ]
+
+-- | Decode a frame given a frame state and byte and a set of framehandler
+-- functions.
+decode :: FrameHandler
+       -> Ref s1 Hx
+       -> Uint8
+       -> Ivory (AllocEffects s0) ()
+decode fh = decodes [fh]
 
 --------------------------------------------------------------------------------
 
 -- | Takes a tag, frame array, and a 'put' function and encodes according to the
 -- hxstream protocol.
 encode ::   SingI n
-         => Uint8
+         => Tag
          -> ConstRef s (Array n (Stored Uint8))
          -> (Uint8 -> Ivory (AllocEffects cs) ())
          -> Ivory (AllocEffects cs) ()
