@@ -24,17 +24,19 @@ library
                        SMACCMPilot.Flight.GCS.HIL,
                        SMACCMPilot.Flight.GCS.Tower,
 
-                       SMACCMPilot.Flight.GCS.Commsec,
-
                        SMACCMPilot.Flight.Control,
                        SMACCMPilot.Flight.Control.PID,
                        SMACCMPilot.Flight.Control.Stabilize,
                        SMACCMPilot.Flight.Control.Task,
 
-                       -- SMACCMPilot.Flight.Datalink,
-                       -- SMACCMPilot.Flight.Datalink.AirData,
-                       -- SMACCMPilot.Flight.Datalink.RadioData,
+                       SMACCMPilot.Flight.Datalink,
+                       SMACCMPilot.Flight.Datalink.AirData,
+                       SMACCMPilot.Flight.Datalink.RadioData,
                        -- SMACCMPilot.Flight.Datalink.TestHarness,
+
+                       SMACCMPilot.Flight.Commsec.Commsec
+                       SMACCMPilot.Flight.Commsec.Encrypt
+                       SMACCMPilot.Flight.Commsec.Decrypt
 
                        SMACCMPilot.Flight.Motors.Task,
                        SMACCMPilot.Flight.Motors.Mixing,
