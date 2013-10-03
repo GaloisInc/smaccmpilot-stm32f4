@@ -5,6 +5,7 @@
 
 module CommsecServer ( commsecServer ) where
 
+import           System.IO
 import           Data.Either
 import           Data.Word
 import           Data.Maybe
@@ -15,7 +16,7 @@ import qualified Control.Concurrent.STM.TQueue as T
 import qualified Control.Monad.STM             as T
 
 import qualified Network.Simple.TCP            as N
-import qualified Network                       as N
+import           Network()
 import qualified System.Hardware.Serialport    as P
 import qualified Data.ByteString               as B
 import qualified Data.HXStream                 as H
@@ -120,7 +121,9 @@ commsecServer showErrors baseToUavKey b2uSalt uavToBaseKey u2bSalt = do
   -- Handle all error reporting, if requested.
   _ <- C.forkIO $ forever $ do
     err <- T.atomically $ T.readTQueue errQ
-    when showErrors (putStr "Warning! commsec error:\n   " >> putStrLn err)
+    when showErrors $ do
+      hPutStr stderr "Warning! commsec error:\n   "
+      hPutStrLn stderr err
 
   -- Initialize commsec context
   ctx <- secPkgInit_HS baseID u2bSalt uavToBaseKey b2uSalt baseToUavKey
@@ -152,7 +155,7 @@ commsecServer showErrors baseToUavKey b2uSalt uavToBaseKey u2bSalt = do
           Nothing -> return ()
           Just bs -> T.atomically $ T.writeTQueue tx bs
 
-      -- Loop to decode messages from the UAV.
+      -- Task to decode messages from the UAV.
       txLoop errQ ctx rx mavSocket
 
 --------------------------------------------------------------------------------
