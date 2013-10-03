@@ -16,13 +16,14 @@ import qualified SMACCMPilot.Flight.Types.Sensors as S
 
 import SMACCMPilot.Flight.Sensors.Platforms
 
-sensorsTask :: forall n p
-             . (SensorOrientation p, SingI n)
-            => ChannelSource n (Struct "sensors_result")
-            -> Task p ()
-sensorsTask s = do
+sensorsTower :: forall n m p
+             . (SensorOrientation p, SingI n, SingI m)
+            => ChannelSink   n (Struct "position")
+            -> ChannelSource m (Struct "sensors_result")
+            -> Tower p ()
+sensorsTower psnk osrc = task "sensorsCaptureTask" $ do
   m <- withGetTimeMillis
-  sensorsEmitter <- withChannelEmitter s "sensors"
+  sensorsEmitter <- withChannelEmitter osrc "sensors"
   withStackSize 1024
 
   position <- taskLocal "position"
@@ -130,3 +131,4 @@ sensors_set_gps_position  = externProc "sensors_set_gps_position"
 -- fix2d, fix3d, num_sats
 sensors_set_gps_fix      :: Def('[IBool, IBool, Uint8]:->())
 sensors_set_gps_fix       = externProc "sensors_set_gps_fix"
+
