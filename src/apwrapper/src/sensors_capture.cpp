@@ -10,6 +10,7 @@
 #include <AP_AHRS/AP_AHRS.h>
 #include <AP_AHRS/AP_AHRS_DCM.h>
 #include <AP_Baro/AP_Baro.h>
+#include <AP_GPS/AP_GPS.h>
 #include <AP_Compass/AP_Compass_HMC5843.h>
 #include <AP_InertialSensor/AP_InertialSensor_MPU6000.h>
 #include <AP_Param/AP_Param.h>
@@ -25,7 +26,8 @@ static const AP_InertialSensor::Sample_rate INS_SAMPLE_RATE =
 static AP_InertialSensor_MPU6000 g_ins;
 static AP_Compass_HMC5843 g_compass;
 static AP_Baro_MS5611 g_baro(&AP_Baro_MS5611::i2c);
-static GPS *g_gps;
+static GPS_Shim gps_shim;
+static GPS *g_gps = &gps_shim;
 static AP_AHRS_DCM g_ahrs(&g_ins, g_gps);
 
 void sensors_begin(bool flipped) {
@@ -104,6 +106,23 @@ void sensors_get_omega(float *capt) {
 float sensors_get_baro_alt(void) {
     /* altitude is only filtered by AP_Baro, no inertial compensation */
     return g_baro.get_altitude();
+}
+
+
+void sensors_set_gps_velocity(int32_t v_north, int32_t v_east, int32_t v_down,
+        uint32_t speed_ground, float heading)
+{
+    gps_shim.set_velocity(v_north,v_east,v_down);
+    float heading_cd = heading * 100.0f;
+    gps_shim.set_ground_speed_course(speed_ground, (int32_t) heading_cd);
+}
+
+void sensors_set_gps_position(int32_t lat, int32_t lon) {
+    gps_shim.set_lat_lon(lat,lon);
+}
+
+void sensors_set_gps_fix(bool fix2d, bool fix3d, uint8_t num_sats) {
+    gps_shim.set_fix(fix2d, fix3d, num_sats);
 }
 
 /* This is dead code, used in the past for debugging. */

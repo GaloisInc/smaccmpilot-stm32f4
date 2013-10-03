@@ -29,6 +29,5 @@ executable hxstream-serial-test
                         bytestring,
                         serialport,
                         dlist,
-                        serialport,
                         hxstream
 

@@ -22,10 +22,8 @@ STANDALONE_APAHRS_CXXFLAGS  += -Wno-psabi
 STANDALONE_APAHRS_OBJECTS :=                                           \
         AP_Airspeed/AP_Airspeed.o                                      \
         AP_Airspeed/Airspeed_Calibration.o                             \
-        AP_GPS/AP_GPS_NMEA.o                                           \
-        AP_GPS/AP_GPS_UBLOX.o                                          \
-        AP_GPS/GPS.o                                                   \
         AP_Declination/AP_Declination.o                                \
+        AP_GPS/GPS_Shim.o                                              \
         AP_HAL/utility/Print.o                                         \
         AP_Param/AP_Param.o                                            \
         AP_InertialSensor/AP_InertialSensor.o                          \

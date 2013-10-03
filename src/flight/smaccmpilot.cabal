@@ -24,6 +24,8 @@ library
                        SMACCMPilot.Flight.GCS.HIL,
                        SMACCMPilot.Flight.GCS.Tower,
 
+                       SMACCMPilot.Flight.GPS,
+
                        SMACCMPilot.Flight.Control,
                        SMACCMPilot.Flight.Control.PID,
                        SMACCMPilot.Flight.Control.Stabilize,
@@ -32,7 +34,6 @@ library
                        SMACCMPilot.Flight.Datalink,
                        SMACCMPilot.Flight.Datalink.AirData,
                        SMACCMPilot.Flight.Datalink.RadioData,
-                       -- SMACCMPilot.Flight.Datalink.TestHarness,
 
                        SMACCMPilot.Flight.Commsec.Commsec
                        SMACCMPilot.Flight.Commsec.Encrypt
@@ -49,7 +50,6 @@ library
                        SMACCMPilot.Flight.Types.ControlOutput,
                        SMACCMPilot.Flight.Types.GCSStreamTiming,
                        SMACCMPilot.Flight.Types.OptFlow,
-                       SMACCMPilot.Flight.Types.PositionEstimate,
                        SMACCMPilot.Flight.Types.Position,
                        SMACCMPilot.Flight.Types.Sensors,
                        SMACCMPilot.Flight.Types.Motors,
@@ -106,7 +106,6 @@ executable flight-gen
                        ivory-px4-hw,
                        ivory-hxstream,
                        smaccm-mavlink,
-                       shared-smaccmpilot,
                        smaccmpilot
 
   default-language:    Haskell2010

@@ -13,8 +13,6 @@ import Ivory.Stdlib.String (stdlibStringModule)
 
 import SMACCMPilot.Flight.Types (typeModules)
 import SMACCMPilot.Flight.Control (controlModules)
--- import qualified SMACCMPilot.Flight.Datalink as D
--- import qualified SMACCMPilot.Flight.Datalink.TestHarness as DLink
 
 import SMACCMPilot.Flight.Control.Task
 import SMACCMPilot.Flight.Motors.Task
@@ -25,6 +23,7 @@ import SMACCMPilot.Flight.UserInput.Task
 import SMACCMPilot.Flight.BlinkTask
 import SMACCMPilot.Flight.GCS.Tower
 import SMACCMPilot.Flight.GCS.Transmit.MessageDriver (senderModules)
+import SMACCMPilot.Flight.GPS
 
 import SMACCMPilot.Console (consoleModule)
 
@@ -35,6 +34,9 @@ import SMACCMPilot.Mavlink.CRC (mavlinkCRCModule)
 
 import SMACCMPilot.Flight.Commsec.Commsec
 import Ivory.HXStream
+
+import SMACCMPilot.Mavlink.Pack (packModule)
+import SMACCMPilot.Mavlink.CRC (mavlinkCRCModule)
 
 import qualified Ivory.BSP.HWF4.EEPROM as HWF4
 import qualified Ivory.BSP.HWF4.I2C as HWF4
@@ -72,18 +74,17 @@ flight = do
   motors_state  <- stateProxy motors
   control_state <- stateProxy control
 
-  -- Real sensors and real motor output:
-  task "sensors" $ sensorsTask (src sensors)
+  -- GPS Input on uart6 (valid for all px4fmu platforms)
+  gps_position <- gpsTower UART.uart6
+  -- Sensors managed by AP_HAL
+  sensorsTower gps_position (src sensors)
+  -- Motor output dependent on platform
   motorOutput motors
 
-  -- Datalink and uart tasks
-  (istream, ostream) <- uart UART.uart1
-
-  gcsTower "uart1" istream ostream flightmode sensor_state (snk position)
-    control_state motors_state
-
-  -- -- Extra: for testing datalink code, not fully integrated yet...
-  -- datalinkTest UART.uart5
+  -- GCS on UART1:
+  (uart1istream, uart1ostream) <- uart UART.uart1
+  gcsTower "uart1" uart1istream uart1ostream flightmode sensor_state
+    (snk position) control_state motors_state
 
 core :: (SingI n)
        => ChannelSink n (Struct "sensors_result")
@@ -108,17 +109,6 @@ core sensors = do
   relaypin = GPIO.pinB13
   redledpin = GPIO.pinB14
 
--- datalinkTest :: (BoardHSE p) => UART.UART -> Tower p ()
--- datalinkTest u = do
---   (byte_istream, byte_ostream) <- uart u
---   ( framed_istream
---   , framed_ostream
---   , stat_istream :: ChannelSink 1 (Struct "radio_stat")
---   , info_istream :: ChannelSink 1 (Struct "radio_info")
---   ) <- datalink byte_istream byte_ostream
---   DLink.frameLoopback framed_istream framed_ostream
-  -- XXX do something with stat and info
-
 otherms :: [Module]
 otherms = concat
   -- flight types
@@ -136,7 +126,6 @@ otherms = concat
   , HWF4.i2cModule
   -- the rest:
   , stdlibStringModule
-
   -- crypto
   , commsecModule
   -- hxstream

@@ -43,6 +43,7 @@ FLIGHT_HIL_LIBRARIES    += libstandalone-apahrs.a
 FLIGHT_HIL_LIBRARIES    += libhwf4-nouart.a
 FLIGHT_HIL_LIBRARIES    += libFreeRTOS.a
 FLIGHT_HIL_LIBRARIES    += commsec.a
+
 FLIGHT_HIL_LIBS         += -lm
 
 $(eval $(call when_platforms,px4fmu17_bare_freertos px4fmu17_ioar_freertos \

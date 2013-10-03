@@ -3,7 +3,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
 
--- | Task to re
+-- | Task to process airdata from the GCS.
 
 module SMACCMPilot.Flight.Datalink.AirData
   ( airDataHandler ) where

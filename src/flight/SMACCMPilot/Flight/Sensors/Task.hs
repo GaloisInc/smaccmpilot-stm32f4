@@ -4,12 +4,14 @@
 {-# LANGUAGE RecursiveDo #-}
 
 module SMACCMPilot.Flight.Sensors.Task
-  ( sensorsTask
+  ( sensorsTower
   ) where
 
 import Ivory.Language
 import Ivory.Tower
 import Ivory.Tower.StateMachine
+
+import qualified SMACCMPilot.Hardware.GPS.Types as GPS
 import qualified SMACCMPilot.Flight.Types.Sensors as S
 
 import SMACCMPilot.Flight.Sensors.Platforms
@@ -23,6 +25,26 @@ sensorsTask s = do
   sensorsEmitter <- withChannelEmitter s "sensors"
   withStackSize 1024
 
+  position <- taskLocal "position"
+  onChannel psnk "position" $ \p -> do
+    refCopy position p
+  let sensorsSetPosition :: Def ('[]:->())
+      sensorsSetPosition = proc "sensorsSetPosition" $ body $ do
+        fix      <- deref (position ~> GPS.fix)
+        num_sv   <- deref (position ~> GPS.num_sv)
+        call_ sensors_set_gps_fix (fix ==? GPS.fix_2d) (fix ==? GPS.fix_3d) num_sv
+        lat      <- deref (position ~> GPS.lat)
+        lon      <- deref (position ~> GPS.lon)
+        call_ sensors_set_gps_position lat lon
+        vnorth   <- deref (position ~> GPS.vnorth)
+        veast    <- deref (position ~> GPS.veast)
+        vdown    <- deref (position ~> GPS.vdown)
+        vground  <- deref (position ~> GPS.vground)
+        heading  <- deref (position ~> GPS.heading)
+        call_ sensors_set_gps_velocity vnorth veast vdown vground heading
+
+  taskModuleDef $ incl sensorsSetPosition
+
   sm <- stateMachine "sensors_capture" $ mdo
     init <- stateNamed "init" $ entry $ liftIvory $ do
       res <- local (istruct [ S.valid .= ival false ])
@@ -32,6 +54,7 @@ sensorsTask s = do
       return $ goto loop
 
     loop <- stateNamed "captureloop" $ period 10 $ liftIvory_ $ do
+      call_ sensorsSetPosition
       call_ sensors_update
       time <- getTimeMillis m
 
@@ -76,6 +99,9 @@ sensorsTask s = do
       incl sensors_get_rpy
       incl sensors_get_omega
       incl sensors_get_baro_alt
+      incl sensors_set_gps_velocity
+      incl sensors_set_gps_position
+      incl sensors_set_gps_fix
 
 sensors_begin :: Def ('[IBool] :-> ())
 sensors_begin = externProc "sensors_begin"
@@ -91,3 +117,16 @@ sensors_get_omega = externProc "sensors_get_omega"
 
 sensors_get_baro_alt :: Def ('[] :-> IFloat)
 sensors_get_baro_alt = externProc "sensors_get_baro_alt"
+
+-- v_north, v_east, v_down, speed_ground : all in cm/sec
+-- heading: in degrees
+sensors_set_gps_velocity :: Def('[Sint32, Sint32, Sint32, Uint32, IFloat]:->())
+sensors_set_gps_velocity  = externProc "sensors_set_gps_velocity"
+
+-- lat, lon: degrees * 10,000,000
+sensors_set_gps_position :: Def('[Sint32, Sint32]:->())
+sensors_set_gps_position  = externProc "sensors_set_gps_position"
+
+-- fix2d, fix3d, num_sats
+sensors_set_gps_fix      :: Def('[IBool, IBool, Uint8]:->())
+sensors_set_gps_fix       = externProc "sensors_set_gps_fix"

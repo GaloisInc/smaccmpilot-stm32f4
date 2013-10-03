@@ -69,10 +69,6 @@ gcsTowerAux :: (SingI n0, SingI n1)
          -> DataSink (Struct "motors")
          -> Tower p (ChannelSink 4 (Struct "hil_state_msg"))
 gcsTowerAux name istream ostream fm sens pos ctl motor = do
-  -- Datalink and encrypt tasks
-  -- (enciStream, encoStream)     <- channel
-  -- Datalink and decrypt tasks
-  -- (deciStream, decoStream)     <- channel
   -- GCS TX and encrypt tasks
   (gcsTxToEncSrc, gcsTxToEncRcv) <- channel
   -- GCS RX and decrypt tasks

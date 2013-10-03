@@ -11,6 +11,7 @@ import qualified Data.Char as C (ord)
 
 import Ivory.Language
 import Ivory.Tower
+
 import qualified Ivory.HXStream                        as H
 
 import qualified SMACCMPilot.Flight.Datalink.AirData   as A
@@ -56,7 +57,6 @@ decoder link_sink framed_src stat_src info_src = do
   stat_ostream   <- withChannelEmitter stat_src   "stat_ostream"
   info_ostream   <- withChannelEmitter info_src   "info_ostream"
   hx             <- taskLocalInit "hx_decoder_state" H.initStreamState
-
   airhandler     <- A.airDataHandler framed_ostream
   radiohandler   <- R.radioDataHandler stat_ostream info_ostream
   onEventV link_istream $ \v ->

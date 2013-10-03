@@ -106,33 +106,13 @@ unpackStat raw = do
     , RS.ecc_errs  .= ival16 (val 16) (val 17)
     , RS.ecc_pkts  .= ival16 (val 18) (val 19)
     ]
- -- XXX index into payload?
-  -- b1   <- deref (raw ! 1)
-  -- b2   <- deref (raw ! 2)
-  -- b3   <- deref (raw ! 3)
-  -- b4   <- deref (raw ! 4)
-  -- b5   <- deref (raw ! 5)
-  -- b6   <- deref (raw ! 6)
-  -- b7   <- deref (raw ! 7)
-  -- b8   <- deref (raw ! 8)
-  -- b9   <- deref (raw ! 9)
-  -- b10  <- deref (raw ! 10)
-  -- b11  <- deref (raw ! 11)
-  -- b12  <- deref (raw ! 12)
-  -- b13  <- deref (raw ! 13)
-  -- b14  <- deref (raw ! 14)
-  -- b15  <- deref (raw ! 15)
-  -- b16  <- deref (raw ! 16)
-  -- b17  <- deref (raw ! 17)
-  -- b18  <- deref (raw ! 18)
-  -- b19  <- deref (raw ! 19)
-  -- b20  <- deref (raw ! 20)
 
 mlen_info :: Sint32
 mlen_info = 0 -- XXX
 unpackInfo :: (GetAlloc eff ~ Scope s)
            => Ref Global (Array 48 (Stored Uint8))
            -> Ivory eff (Ref (Stack s) (Struct "radio_info"))
+
 unpackInfo _raw = local (istruct []) -- XXX
 
 charUint8 :: Char -> Uint8
