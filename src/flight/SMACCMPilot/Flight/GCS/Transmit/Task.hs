@@ -32,7 +32,7 @@ gcsTransmitTask :: (SingI n0, SingI n1, SingI n2)
                 -> DataSink         (Struct "controloutput")
                 -> DataSink         (Struct "motors")
                 -> Task p ()
-gcsTransmitTask mavStream sp_sink dr_sink fm_sink se_sink ps_sink ct_sink mo_sink
+gcsTransmitTask mavStream sp_sink _dr_sink fm_sink se_sink ps_sink ct_sink mo_sink
   = do
   withStackSize 1024
 
@@ -42,10 +42,6 @@ gcsTransmitTask mavStream sp_sink dr_sink fm_sink se_sink ps_sink ct_sink mo_sin
   ctlReader        <- withDataReader ct_sink "control"
   motorReader      <- withDataReader mo_sink "motors"
   mavTx            <- withChannelEmitter mavStream "gcsTxToEncSrc"
-
-  -- XXX current issue: need a way to change usartSender to be defined in terms
-  -- of the ChannelReceiver. This means it will depend on the Task
-  -- tower_task_loop_ module, which generates the code for the emitter.
 
   mavlinkPacket  <- taskLocal "mavlinkPacket"
   -- mavlink sequence numbers

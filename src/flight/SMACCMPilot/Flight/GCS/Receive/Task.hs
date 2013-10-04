@@ -19,6 +19,7 @@ import qualified SMACCMPilot.Flight.Types.DataRate  as D
 import           SMACCMPilot.Flight.GCS.Stream (defaultPeriods)
 import           SMACCMPilot.Flight.GCS.Receive.Handlers
 import           SMACCMPilot.Mavlink.Messages (mavlinkMessageModules)
+import           SMACCMPilot.Mavlink.CRC (mavlinkCRCModule)
 import qualified SMACCMPilot.Shared                 as S
 
 --------------------------------------------------------------------------------
@@ -53,6 +54,7 @@ gcsReceiveTask mavStream s_src dr_src hil_src = do
     call_ parse state drInfo s_periods (constRef mav)
 
   taskModuleDef $ do
+    depend mavlinkCRCModule
     defStruct (Proxy :: Proxy "mavlink_receive_state")
     incl (handlerAux hil_emitter)
     handlerModuleDefs
@@ -71,7 +73,7 @@ parseMav :: (SingI n0, SingI n1, SingI n2)
                   , Ref s0 (Struct "gcsstream_timing")
                   , ConstRef s1 S.MavLinkArray
                   ] :-> ())
-parseMav m hil_emitter drEmitter streamPeriodEmitter
+parseMav m hil_emitter _drEmitter streamPeriodEmitter
   = proc "parseMav"
   $ \state drInfo s_periods mav -> body $ do
   arrayMap $ \ix -> do b <- deref (mav ! ix)

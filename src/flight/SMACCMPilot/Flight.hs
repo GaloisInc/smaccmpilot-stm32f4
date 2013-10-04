@@ -30,12 +30,10 @@ import SMACCMPilot.Console (consoleModule)
 import SMACCMPilot.Mavlink.Messages (mavlinkMessageModules)
 import SMACCMPilot.Mavlink.Send (mavlinkSendModule)
 import SMACCMPilot.Mavlink.CRC (mavlinkCRCModule)
+import SMACCMPilot.Mavlink.Pack (packModule)
 
 import SMACCMPilot.Flight.Commsec.Commsec
 import Ivory.HXStream
-
-import SMACCMPilot.Mavlink.Pack (packModule)
-import SMACCMPilot.Mavlink.CRC (mavlinkCRCModule)
 
 import qualified Ivory.BSP.HWF4.EEPROM as HWF4
 import qualified Ivory.BSP.HWF4.I2C as HWF4
