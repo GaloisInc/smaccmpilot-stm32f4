@@ -217,7 +217,7 @@ class mav_include(object):
     def __init__(self, base):
         self.base = base
 
-def process_xml(basename, xml):
+def process_xml_wtf(basename, xml):
     '''generate headers for one XML file'''
 
     directory = basename
@@ -316,6 +316,7 @@ def process_xml(basename, xml):
                 else:
                     f.c_test_value = f.test_value
 
+def process_xml(basename, xml):
     # cope with uint8_t_mavlink_version
     for m in xml.message:
         m.arg_fields = []

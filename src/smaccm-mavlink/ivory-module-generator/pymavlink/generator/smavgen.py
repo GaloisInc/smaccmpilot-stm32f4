@@ -32,7 +32,8 @@ def mavgen(opts, args) :
         mavgen_validate(fname, schemaFile, opts.error_limit);
 
         print("Parsing %s" % fname)
-        xml.append(mavparse.MAVXML(fname, opts.wire_protocol))
+        xml.append(mavparse.MAVXML(fname, opts.wire_protocol,
+            max_valid_wire_length=80))
 
     # expand includes
     for x in xml[:]:
@@ -45,7 +46,8 @@ def mavgen(opts, args) :
 
             ## Parsing
             print("Parsing %s" % fname)
-            xml.append(mavparse.MAVXML(fname, opts.wire_protocol))
+            xml.append(mavparse.MAVXML(fname, opts.wire_protocol,
+                max_valid_wire_length=80))
 
             # include message lengths and CRCs too
             for idx in range(0, 256):
