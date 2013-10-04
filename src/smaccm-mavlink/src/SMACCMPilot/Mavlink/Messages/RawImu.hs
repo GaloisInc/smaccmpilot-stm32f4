@@ -13,7 +13,7 @@ module SMACCMPilot.Mavlink.Messages.RawImu where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
-import qualified SMACCMPilot.Shared as S
+import qualified SMACCMPilot.Communications as Comm
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -50,7 +50,7 @@ struct raw_imu_msg
 mkRawImuSender ::
   Def ('[ ConstRef s0 (Struct "raw_imu_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 S.MavLinkArray -- tx buffer
+        , Ref s1 Comm.MAVLinkArray -- tx buffer
         ] :-> ())
 mkRawImuSender =
   proc "mavlink_raw_imu_msg_send"

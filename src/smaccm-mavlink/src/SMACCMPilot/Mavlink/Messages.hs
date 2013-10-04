@@ -15,7 +15,6 @@ import Ivory.Language
 import qualified SMACCMPilot.Mavlink.Messages.Data16
 import qualified SMACCMPilot.Mavlink.Messages.Data32
 import qualified SMACCMPilot.Mavlink.Messages.Data64
---import qualified SMACCMPilot.Mavlink.Messages.Data96
 import qualified SMACCMPilot.Mavlink.Messages.Heartbeat
 import qualified SMACCMPilot.Mavlink.Messages.SysStatus
 import qualified SMACCMPilot.Mavlink.Messages.SystemTime
@@ -29,7 +28,6 @@ import qualified SMACCMPilot.Mavlink.Messages.ParamRequestList
 import qualified SMACCMPilot.Mavlink.Messages.ParamValue
 import qualified SMACCMPilot.Mavlink.Messages.ParamSet
 import qualified SMACCMPilot.Mavlink.Messages.GpsRawInt
---import qualified SMACCMPilot.Mavlink.Messages.GpsStatus
 import qualified SMACCMPilot.Mavlink.Messages.ScaledImu
 import qualified SMACCMPilot.Mavlink.Messages.RawImu
 import qualified SMACCMPilot.Mavlink.Messages.RawPressure
@@ -88,6 +86,7 @@ import qualified SMACCMPilot.Mavlink.Messages.VisionPositionEstimate
 import qualified SMACCMPilot.Mavlink.Messages.VisionSpeedEstimate
 import qualified SMACCMPilot.Mavlink.Messages.ViconPositionEstimate
 import qualified SMACCMPilot.Mavlink.Messages.HighresImu
+import qualified SMACCMPilot.Mavlink.Messages.OmnidirectionalFlow
 import qualified SMACCMPilot.Mavlink.Messages.BatteryStatus
 import qualified SMACCMPilot.Mavlink.Messages.Setpoint8dof
 import qualified SMACCMPilot.Mavlink.Messages.Setpoint6dof
@@ -103,7 +102,6 @@ mavlinkMessageModules =
   [ SMACCMPilot.Mavlink.Messages.Data16.data16Module
   , SMACCMPilot.Mavlink.Messages.Data32.data32Module
   , SMACCMPilot.Mavlink.Messages.Data64.data64Module
---  , SMACCMPilot.Mavlink.Messages.Data96.data96Module
   , SMACCMPilot.Mavlink.Messages.Heartbeat.heartbeatModule
   , SMACCMPilot.Mavlink.Messages.SysStatus.sysStatusModule
   , SMACCMPilot.Mavlink.Messages.SystemTime.systemTimeModule
@@ -117,7 +115,6 @@ mavlinkMessageModules =
   , SMACCMPilot.Mavlink.Messages.ParamValue.paramValueModule
   , SMACCMPilot.Mavlink.Messages.ParamSet.paramSetModule
   , SMACCMPilot.Mavlink.Messages.GpsRawInt.gpsRawIntModule
---  , SMACCMPilot.Mavlink.Messages.GpsStatus.gpsStatusModule
   , SMACCMPilot.Mavlink.Messages.ScaledImu.scaledImuModule
   , SMACCMPilot.Mavlink.Messages.RawImu.rawImuModule
   , SMACCMPilot.Mavlink.Messages.RawPressure.rawPressureModule
@@ -176,6 +173,7 @@ mavlinkMessageModules =
   , SMACCMPilot.Mavlink.Messages.VisionSpeedEstimate.visionSpeedEstimateModule
   , SMACCMPilot.Mavlink.Messages.ViconPositionEstimate.viconPositionEstimateModule
   , SMACCMPilot.Mavlink.Messages.HighresImu.highresImuModule
+  , SMACCMPilot.Mavlink.Messages.OmnidirectionalFlow.omnidirectionalFlowModule
   , SMACCMPilot.Mavlink.Messages.BatteryStatus.batteryStatusModule
   , SMACCMPilot.Mavlink.Messages.Setpoint8dof.setpoint8dofModule
   , SMACCMPilot.Mavlink.Messages.Setpoint6dof.setpoint6dofModule
@@ -194,7 +192,6 @@ messageLensCRCs =
   [ (169, ( 18,  46)) -- 0xA9 DATA16
   , (170, ( 34, 240)) -- 0xAA DATA32
   , (171, ( 66, 170)) -- 0xAB DATA64
-  , (172, ( 98, 185)) -- 0xAC DATA96
   , (  0, (  9,  50)) -- 0x00 HEARTBEAT
   , (  1, ( 31, 124)) -- 0x01 SYS_STATUS
   , (  2, ( 12, 137)) -- 0x02 SYSTEM_TIME
@@ -208,7 +205,6 @@ messageLensCRCs =
   , ( 22, ( 25, 220)) -- 0x16 PARAM_VALUE
   , ( 23, ( 23, 168)) -- 0x17 PARAM_SET
   , ( 24, ( 30,  24)) -- 0x18 GPS_RAW_INT
-  , ( 25, (101,  23)) -- 0x19 GPS_STATUS
   , ( 26, ( 22, 170)) -- 0x1A SCALED_IMU
   , ( 27, ( 26, 144)) -- 0x1B RAW_IMU
   , ( 28, ( 16,  67)) -- 0x1C RAW_PRESSURE
@@ -267,6 +263,7 @@ messageLensCRCs =
   , (103, ( 20, 208)) -- 0x67 VISION_SPEED_ESTIMATE
   , (104, ( 32,  56)) -- 0x68 VICON_POSITION_ESTIMATE
   , (105, ( 62,  93)) -- 0x69 HIGHRES_IMU
+  , (106, ( 54, 211)) -- 0x6A OMNIDIRECTIONAL_FLOW
   , (147, ( 16,  42)) -- 0x93 BATTERY_STATUS
   , (148, ( 33, 241)) -- 0x94 SETPOINT_8DOF
   , (149, ( 25,  15)) -- 0x95 SETPOINT_6DOF

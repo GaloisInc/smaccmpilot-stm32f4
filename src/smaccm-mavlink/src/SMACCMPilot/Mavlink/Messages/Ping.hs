@@ -13,7 +13,7 @@ module SMACCMPilot.Mavlink.Messages.Ping where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
-import qualified SMACCMPilot.Shared as S
+import qualified SMACCMPilot.Communications as Comm
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -44,7 +44,7 @@ struct ping_msg
 mkPingSender ::
   Def ('[ ConstRef s0 (Struct "ping_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 S.MavLinkArray -- tx buffer
+        , Ref s1 Comm.MAVLinkArray -- tx buffer
         ] :-> ())
 mkPingSender =
   proc "mavlink_ping_msg_send"

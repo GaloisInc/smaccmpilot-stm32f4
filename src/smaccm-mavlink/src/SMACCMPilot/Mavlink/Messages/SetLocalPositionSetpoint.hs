@@ -13,7 +13,7 @@ module SMACCMPilot.Mavlink.Messages.SetLocalPositionSetpoint where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
-import qualified SMACCMPilot.Shared as S
+import qualified SMACCMPilot.Communications as Comm
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -47,7 +47,7 @@ struct set_local_position_setpoint_msg
 mkSetLocalPositionSetpointSender ::
   Def ('[ ConstRef s0 (Struct "set_local_position_setpoint_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 S.MavLinkArray -- tx buffer
+        , Ref s1 Comm.MAVLinkArray -- tx buffer
         ] :-> ())
 mkSetLocalPositionSetpointSender =
   proc "mavlink_set_local_position_setpoint_msg_send"

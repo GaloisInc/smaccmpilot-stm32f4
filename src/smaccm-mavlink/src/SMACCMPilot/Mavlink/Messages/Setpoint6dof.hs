@@ -13,7 +13,7 @@ module SMACCMPilot.Mavlink.Messages.Setpoint6dof where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
-import qualified SMACCMPilot.Shared as S
+import qualified SMACCMPilot.Communications as Comm
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -47,7 +47,7 @@ struct setpoint_6dof_msg
 mkSetpoint6dofSender ::
   Def ('[ ConstRef s0 (Struct "setpoint_6dof_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 S.MavLinkArray -- tx buffer
+        , Ref s1 Comm.MAVLinkArray -- tx buffer
         ] :-> ())
 mkSetpoint6dofSender =
   proc "mavlink_setpoint_6dof_msg_send"

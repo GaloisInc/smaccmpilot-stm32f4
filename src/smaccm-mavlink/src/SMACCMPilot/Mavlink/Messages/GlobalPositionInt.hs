@@ -13,7 +13,7 @@ module SMACCMPilot.Mavlink.Messages.GlobalPositionInt where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
-import qualified SMACCMPilot.Shared as S
+import qualified SMACCMPilot.Communications as Comm
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -49,7 +49,7 @@ struct global_position_int_msg
 mkGlobalPositionIntSender ::
   Def ('[ ConstRef s0 (Struct "global_position_int_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 S.MavLinkArray -- tx buffer
+        , Ref s1 Comm.MAVLinkArray -- tx buffer
         ] :-> ())
 mkGlobalPositionIntSender =
   proc "mavlink_global_position_int_msg_send"

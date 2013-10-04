@@ -13,7 +13,7 @@ module SMACCMPilot.Mavlink.Messages.VfrHud where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
-import qualified SMACCMPilot.Shared as S
+import qualified SMACCMPilot.Communications as Comm
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -46,7 +46,7 @@ struct vfr_hud_msg
 mkVfrHudSender ::
   Def ('[ ConstRef s0 (Struct "vfr_hud_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 S.MavLinkArray -- tx buffer
+        , Ref s1 Comm.MAVLinkArray -- tx buffer
         ] :-> ())
 mkVfrHudSender =
   proc "mavlink_vfr_hud_msg_send"

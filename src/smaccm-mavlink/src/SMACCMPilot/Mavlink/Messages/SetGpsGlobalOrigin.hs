@@ -13,7 +13,7 @@ module SMACCMPilot.Mavlink.Messages.SetGpsGlobalOrigin where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
-import qualified SMACCMPilot.Shared as S
+import qualified SMACCMPilot.Communications as Comm
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -44,7 +44,7 @@ struct set_gps_global_origin_msg
 mkSetGpsGlobalOriginSender ::
   Def ('[ ConstRef s0 (Struct "set_gps_global_origin_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 S.MavLinkArray -- tx buffer
+        , Ref s1 Comm.MAVLinkArray -- tx buffer
         ] :-> ())
 mkSetGpsGlobalOriginSender =
   proc "mavlink_set_gps_global_origin_msg_send"

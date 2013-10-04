@@ -13,7 +13,7 @@ module SMACCMPilot.Mavlink.Messages.HighresImu where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
-import qualified SMACCMPilot.Shared as S
+import qualified SMACCMPilot.Communications as Comm
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -55,7 +55,7 @@ struct highres_imu_msg
 mkHighresImuSender ::
   Def ('[ ConstRef s0 (Struct "highres_imu_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 S.MavLinkArray -- tx buffer
+        , Ref s1 Comm.MAVLinkArray -- tx buffer
         ] :-> ())
 mkHighresImuSender =
   proc "mavlink_highres_imu_msg_send"

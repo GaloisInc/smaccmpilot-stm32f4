@@ -13,7 +13,7 @@ module SMACCMPilot.Mavlink.Messages.SafetySetAllowedArea where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
-import qualified SMACCMPilot.Shared as S
+import qualified SMACCMPilot.Communications as Comm
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -49,7 +49,7 @@ struct safety_set_allowed_area_msg
 mkSafetySetAllowedAreaSender ::
   Def ('[ ConstRef s0 (Struct "safety_set_allowed_area_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 S.MavLinkArray -- tx buffer
+        , Ref s1 Comm.MAVLinkArray -- tx buffer
         ] :-> ())
 mkSafetySetAllowedAreaSender =
   proc "mavlink_safety_set_allowed_area_msg_send"

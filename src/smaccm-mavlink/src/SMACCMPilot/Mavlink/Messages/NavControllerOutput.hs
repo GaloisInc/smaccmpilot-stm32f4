@@ -13,7 +13,7 @@ module SMACCMPilot.Mavlink.Messages.NavControllerOutput where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
-import qualified SMACCMPilot.Shared as S
+import qualified SMACCMPilot.Communications as Comm
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -48,7 +48,7 @@ struct nav_controller_output_msg
 mkNavControllerOutputSender ::
   Def ('[ ConstRef s0 (Struct "nav_controller_output_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 S.MavLinkArray -- tx buffer
+        , Ref s1 Comm.MAVLinkArray -- tx buffer
         ] :-> ())
 mkNavControllerOutputSender =
   proc "mavlink_nav_controller_output_msg_send"
