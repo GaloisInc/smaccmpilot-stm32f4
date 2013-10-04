@@ -29,7 +29,6 @@ import SMACCMPilot.Console (consoleModule)
 
 import SMACCMPilot.Mavlink.Messages (mavlinkMessageModules)
 import SMACCMPilot.Mavlink.Send (mavlinkSendModule)
-import SMACCMPilot.Mavlink.Pack (packModule)
 import SMACCMPilot.Mavlink.CRC (mavlinkCRCModule)
 
 import SMACCMPilot.Flight.Commsec.Commsec
