@@ -185,7 +185,7 @@ test = proc "test" $ body $ do
   printMsgs "%02x" packageFromUAV packageFromBase0
 
   -- decrypt and check the authentication of the encrypted packageFromBase0
-C  -- using uav's crypto info.  This represents the UAV getting a message from
+  -- using uav's crypto info.  This represents the UAV getting a message from
   -- base0.
   decAndCheckRes uav packageFromBase0
 
