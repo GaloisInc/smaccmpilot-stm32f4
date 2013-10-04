@@ -3,7 +3,11 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
-module CommsecServer ( commsecServer ) where
+module CommsecServer
+  ( commsecServer
+  , Options(..)
+  , defaultOpts
+  ) where
 
 import           System.IO
 import           Data.Either
@@ -26,10 +30,25 @@ import qualified SMACCMPilot.Shared            as S
 import           Commsec
 
 --------------------------------------------------------------------------------
--- State machine for collecting bytes and encrypting/decrypting them.
 
-baseID :: BaseId
-baseID = 7
+data Options = Options
+  { baseID   :: Word32  -- 0 - 15 uint32
+  , baseKey  :: [Word8] -- 16 uint8s
+  , baseSalt :: Word32  -- word32
+  , uavKey   :: [Word8] -- 16 uint8s
+  , uavSalt  :: Word32  -- word32
+  , showErrs :: Bool    -- Show commsec errors
+  } deriving (Show, Read, Eq)
+
+defaultOpts :: Options
+defaultOpts = Options
+  { baseID   = 0
+  , baseKey  = []
+  , baseSalt = 0
+  , uavKey   = []
+  , uavSalt  = 0
+  , showErrs = True
+  }
 
 --------------------------------------------------------------------------------
 -- Monad definition.  The state is the good frames.
@@ -103,13 +122,11 @@ parseFrame errQ = do
     return packets
 --------------------------------------------------------------------------------
 
-commsecServer :: Bool
-              -> B.ByteString
-              -> Word32
-              -> B.ByteString
-              -> Word32
-              -> IO ()
-commsecServer showErrors baseToUavKey b2uSalt uavToBaseKey u2bSalt = do
+commsecServer :: Options -> IO ()
+commsecServer (Options ident baseKey b2uSalt uavKey u2bSalt showErrs) = do
+  let baseToUavKey = B.pack baseKey
+  let uavToBaseKey = B.pack uavKey
+  let baseID       = fromIntegral ident
 
   -- Messages from the UAV
   rx <- T.newTQueueIO
@@ -121,7 +138,7 @@ commsecServer showErrors baseToUavKey b2uSalt uavToBaseKey u2bSalt = do
   -- Handle all error reporting, if requested.
   _ <- C.forkIO $ forever $ do
     err <- T.atomically $ T.readTQueue errQ
-    when showErrors $ do
+    when showErrs $ do
       hPutStr stderr "Warning! commsec error:\n   "
       hPutStrLn stderr err
 
@@ -219,3 +236,4 @@ txLoop errQ ctx rx mavSocket =
     txLoop' hxSt'
 
 --------------------------------------------------------------------------------
+
