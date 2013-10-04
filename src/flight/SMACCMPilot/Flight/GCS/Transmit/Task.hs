@@ -18,12 +18,12 @@ import           SMACCMPilot.Flight.GCS.Stream
 import qualified SMACCMPilot.Flight.Types.GCSStreamTiming as T
 import qualified SMACCMPilot.Flight.Types.FlightMode      as FM
 import qualified SMACCMPilot.Flight.Types.DataRate        as D
-import qualified SMACCMPilot.Shared                       as S
+import qualified SMACCMPilot.Communications               as C
 
 --------------------------------------------------------------------------------
 
 gcsTransmitTask :: (SingI n0, SingI n1, SingI n2)
-                => ChannelSource n0 S.MavLinkArray -- Channel to encrypter
+                => ChannelSource n0 C.MAVLinkArray -- Channel to encrypter
                 -> ChannelSink   n1 (Struct "gcsstream_timing")
                 -> ChannelSink   n2 (Struct "data_rate_state")
                 -> DataSink         (Struct "flightmode")

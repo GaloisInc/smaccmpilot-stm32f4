@@ -36,7 +36,7 @@ import qualified SMACCMPilot.Mavlink.Messages.GlobalPositionInt as GPI
 --import qualified SMACCMPilot.Mavlink.Messages.ParamValue        as PV
 import qualified SMACCMPilot.Mavlink.Messages.Data16            as D
 
-import qualified SMACCMPilot.Shared                             as S
+import qualified SMACCMPilot.Communications                     as Comm
 --------------------------------------------------------------------
 
 -- Helper for sending data-rate information to the GCS.
@@ -60,7 +60,7 @@ packUint32 initIx arr val =
 type Sender a = forall s s'.
   Def ('[ Ref s  (Struct a)
         , Ref s' (Stored Uint8)
-        , Ref s' S.MavLinkArray
+        , Ref s' Comm.MAVLinkArray
         ] :-> ())
 
 -- Data rate info: time since the last good message and how many messages were
@@ -141,7 +141,7 @@ mkSendVfrHud :: Def ('[ (Ref s0 (Struct "position_result"))
                       , (Ref s0 (Struct "sensors_result"))
 
                       , Ref s1 (Stored Uint8)
-                      , Ref s1 S.MavLinkArray
+                      , Ref s1 Comm.MAVLinkArray
                       ] :-> ())
 mkSendVfrHud = proc "gcs_transmit_send_vfrhud"
   $ \pos ctl sens seqNum sendArr -> body
@@ -198,7 +198,7 @@ mkSendVfrHud = proc "gcs_transmit_send_vfrhud"
 mkSendServoOutputRaw :: Def ('[ (Ref s0 (Struct "motors"))
                               , (Ref s0 (Struct "controloutput"))
                               , Ref s' (Stored Uint8)
-                              , Ref s' S.MavLinkArray
+                              , Ref s' Comm.MAVLinkArray
                               ] :-> ())
 mkSendServoOutputRaw =
   proc "gcs_transmit_send_servo_output"
@@ -246,7 +246,7 @@ mkSendGpsRawInt = proc "gcs_transmit_send_gps_raw_int" $
 mkSendGlobalPositionInt :: Def ('[ (Ref s (Struct "position_result"))
                                  , (Ref s (Struct "sensors_result"))
                                  , Ref s' (Stored Uint8)
-                                 , Ref s' S.MavLinkArray
+                                 , Ref s' Comm.MAVLinkArray
                                  ] :-> ())
 mkSendGlobalPositionInt = proc "gcs_transmit_send_global_position_int" $
   \pos sens seqNum sendArr -> body $ do

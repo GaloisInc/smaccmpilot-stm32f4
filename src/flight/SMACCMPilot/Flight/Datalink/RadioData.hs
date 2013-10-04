@@ -16,7 +16,7 @@ import Ivory.Stdlib
 import qualified Ivory.HXStream                     as H
 import qualified SMACCMPilot.Flight.Types.RadioStat as RS
 import           SMACCMPilot.Flight.Types.RadioInfo()
-import qualified SMACCMPilot.Shared                 as S
+import qualified SMACCMPilot.Communications         as C
 
 radioDataHandler :: (SingI n0, SingI n1)
                  => ChannelEmitter n0 (Struct "radio_stat")
@@ -29,7 +29,7 @@ radioDataHandler statout infoout = do
   msgLen         <- taskLocal     "rs_len"
   (msgBuf :: Ref Global (Array 48 (Stored Uint8))) <- taskLocal "rs_buf"
   return $ H.mkFrameHandler H.ScopedFrameHandler
-    { H.fhTag = S.radioDataTag
+    { H.fhTag = C.radioDataTag
     , H.fhBegin = do
         store msgType mtype_unknown
         store msgLen (0 :: Sint32)

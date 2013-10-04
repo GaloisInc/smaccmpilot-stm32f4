@@ -20,12 +20,12 @@ import           SMACCMPilot.Flight.GCS.Stream (defaultPeriods)
 import           SMACCMPilot.Flight.GCS.Receive.Handlers
 import           SMACCMPilot.Mavlink.Messages (mavlinkMessageModules)
 import           SMACCMPilot.Mavlink.CRC (mavlinkCRCModule)
-import qualified SMACCMPilot.Shared                 as S
+import qualified SMACCMPilot.Communications         as Comm
 
 --------------------------------------------------------------------------------
 
 gcsReceiveTask :: (SingI n0, SingI n1, SingI n2, SingI n3)
-               => ChannelSink   n0 S.MavLinkArray -- from decryptor
+               => ChannelSink   n0 Comm.MAVLinkArray -- from decryptor
                -> ChannelSource n1 (Struct "gcsstream_timing")
                -> ChannelSource n2 (Struct "data_rate_state")
                -> ChannelSource n3 (Struct "hil_state_msg")
@@ -71,7 +71,7 @@ parseMav :: (SingI n0, SingI n1, SingI n2)
          -> Def ('[ Ref s0 (Struct "mavlink_receive_state")
                   , Ref s0 (Struct "data_rate_state")
                   , Ref s0 (Struct "gcsstream_timing")
-                  , ConstRef s1 S.MavLinkArray
+                  , ConstRef s1 Comm.MAVLinkArray
                   ] :-> ())
 parseMav m hil_emitter _drEmitter streamPeriodEmitter
   = proc "parseMav"
