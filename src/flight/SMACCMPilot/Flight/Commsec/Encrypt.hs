@@ -11,7 +11,6 @@ import qualified SMACCMPilot.Shared                   as S
 
 import           Ivory.Tower
 import           Ivory.Language
-import           Ivory.Stdlib
 
 --------------------------------------------------------------------------------
 
