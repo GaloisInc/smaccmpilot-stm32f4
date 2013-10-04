@@ -3,7 +3,7 @@
 
 -- | Shared types and constants shared by SMACCMPILOT and the GCS.
 
-module SMACCMPilot.Shared where
+module SMACCMPilot.Communications where
 
 import GHC.TypeLits
 import Ivory.Language
@@ -12,10 +12,12 @@ import Data.Word
 --------------------------------------------------------------------------------
 
 -- Must be smaller than 256 (stored as a Word8 sometimes)
+-- SMACCM-SiK restricts Commsec to 96 bytes, so MAVLink must be 16 bytes less
+-- than that.
 
-type MavLinkIx = Ix 80
+type MAVLinkIx = Ix 80
 
-type MavLinkArray = Array 80 (Stored Uint8)
+type MAVLinkArray = Array 80 (Stored Uint8)
 
 mavlinkSize :: Integer
 mavlinkSize = fromSing (sing :: Sing 80)
