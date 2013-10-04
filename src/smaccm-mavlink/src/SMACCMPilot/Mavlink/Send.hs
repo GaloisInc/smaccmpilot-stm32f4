@@ -10,17 +10,15 @@ import           Ivory.Language
 import           Ivory.Stdlib
 
 import           SMACCMPilot.Mavlink.CRC
-import qualified SMACCMPilot.Shared as S
+import qualified SMACCMPilot.Communications as C
 
 --------------------------------------------------------------------------------
-
-type MavlinkArray = S.MavLinkArray
 
 mavlinkChecksum ::
      (GetAlloc eff ~ Scope cs)
   => Uint8
   -> Uint8
-  -> Ref s S.MavLinkArray
+  -> Ref s C.MAVLinkArray
   -> Ivory eff ()
 mavlinkChecksum sz crcextra arr = do
   ck <- local (ival crc_init_v)
@@ -53,7 +51,7 @@ mavlinkSendWithWriter ::
         , Uint8 -- crcExtra
         , Uint8 -- payload length
         , Ref s (Stored Uint8) -- sequence number (use then increment)
-        , Ref s S.MavLinkArray -- array we'll put everything into
+        , Ref s C.MAVLinkArray -- array we'll put everything into
         ] :-> ())
 mavlinkSendWithWriter =
   proc "mavlinkSendWithWriter"
