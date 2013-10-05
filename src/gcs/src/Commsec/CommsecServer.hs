@@ -3,10 +3,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
-module CommsecServer
+module Commsec.CommsecServer
   ( commsecServer
-  , Options(..)
-  , defaultOpts
   ) where
 
 import           System.IO
@@ -28,27 +26,6 @@ import qualified Mavlink.Parser                as L
 
 import qualified SMACCMPilot.Shared            as S
 import           Commsec
-
---------------------------------------------------------------------------------
-
-data Options = Options
-  { baseID   :: Word32  -- 0 - 15 uint32
-  , baseKey  :: [Word8] -- 16 uint8s
-  , baseSalt :: Word32  -- word32
-  , uavKey   :: [Word8] -- 16 uint8s
-  , uavSalt  :: Word32  -- word32
-  , showErrs :: Bool    -- Show commsec errors
-  } deriving (Show, Read, Eq)
-
-defaultOpts :: Options
-defaultOpts = Options
-  { baseID   = 0
-  , baseKey  = []
-  , baseSalt = 0
-  , uavKey   = []
-  , uavSalt  = 0
-  , showErrs = True
-  }
 
 --------------------------------------------------------------------------------
 -- Monad definition.  The state is the good frames.

@@ -13,8 +13,8 @@ cabal-version:       >=1.8
 
 library
   hs-source-dirs:      src
-  exposed-modules:     Commsec,
-                       CommsecServer,
+  exposed-modules:     Commsec.Commsec,
+                       Commsec.CommsecServer,
                        Mavlink.Parser
   build-depends:       base,
                        serialport,
@@ -32,10 +32,9 @@ library
                        shared-smaccmpilot
 
 executable commsec-gcs
-  hs-source-dirs:      src
   main-is:             Main.hs
-  other-modules:       Commsec,
-                       CommsecServer,
+  other-modules:       Commsec.Commsec,
+                       Commsec.CommsecServer,
                        Mavlink.Parser
   build-depends:       base,
                        serialport,

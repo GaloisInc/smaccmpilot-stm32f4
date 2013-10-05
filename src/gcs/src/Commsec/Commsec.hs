@@ -1,6 +1,6 @@
 {-# LANGUAGE  GeneralizedNewtypeDeriving #-}
 
-module Commsec
+module Commsec.Commsec
   ( BaseId(..)
   , SecureContext_HS(..)
   , Context
