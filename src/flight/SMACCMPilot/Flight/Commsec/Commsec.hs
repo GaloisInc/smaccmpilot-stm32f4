@@ -17,7 +17,6 @@ Author: Lee Pike <leepike@galois.com>
 module SMACCMPilot.Flight.Commsec.Commsec
   ( encrypt
   , decrypt
-  , uavID
   , uavCtx
   , copyToPkg
   , copyFromPkg
@@ -27,8 +26,10 @@ module SMACCMPilot.Flight.Commsec.Commsec
 
 import Ivory.Language
 import Ivory.Stdlib
+import Data.Word
 
-import qualified SMACCMPilot.Shared as S
+import qualified SMACCMPilot.Shared  as S
+import qualified Commsec.CommsecOpts as O
 
 --------------------------------------------------------------------------------
 -- Types and constants
@@ -88,12 +89,6 @@ securePkg_dec = importProc "securePkg_dec" commsec
 uavCtx :: MemArea Commsec_ctx_proxy
 uavCtx  = importArea "uavCtx"  ivoryCommsec
 
-uavID :: Uint32
-uavID  = 5
-
-mkKey :: [Int] -> Init Key
-mkKey key = iarray $ map (ival . fromIntegral) key
-
 --------------------------------------------------------------------------------
 
 -- | Encrypt a package (with the header and tag) given a context.
@@ -112,14 +107,6 @@ decrypt :: MemArea Commsec_ctx_proxy
         -> Ivory eff Uint32
 decrypt com pkg =
   call securePkg_dec (addrOf com) pkg (fromInteger S.commsecPkgSize)
-
---------------------------------------------------------------------------------
-
-setupCommsec :: Ivory eff ()
-setupCommsec =
-  call_ securePkg_init (addrOf uavCtx) uavID
-                       b2uSalt (addrOf baseToUavKey)
-                       u2bSalt (addrOf uavToBaseKey)
 
 --------------------------------------------------------------------------------
 
@@ -147,13 +134,24 @@ copyFromPkg pkg from =
   mkIx = toIx . fromIx
 
 --------------------------------------------------------------------------------
+
+setupCommsec :: O.Options -> Ivory eff ()
+setupCommsec opts =
+  call_ securePkg_init (addrOf uavCtx)
+                       (fromIntegral $ O.sendID opts)
+                       (fromIntegral $ O.recvSalt opts)
+                       (addrOf $ baseToUavKey $ O.recvKey opts)
+                       (fromIntegral $ O.sendSalt opts)
+                       (addrOf $ uavToBaseKey $ O.sendKey opts)
+
+--------------------------------------------------------------------------------
 -- Packaging
 
-commsecModule :: Module
-commsecModule = package "IvoryGCM" $ do
+commsecModule :: O.Options -> Module
+commsecModule opts = package "IvoryGCM" $ do
 
-  defConstMemArea uavToBaseKey
-  defConstMemArea baseToUavKey
+  defConstMemArea (uavToBaseKey $ O.sendKey opts)
+  defConstMemArea (baseToUavKey $ O.recvKey opts)
   defMemArea uavCtx
 
   inclHeader ivoryCommsec
@@ -161,12 +159,18 @@ commsecModule = package "IvoryGCM" $ do
   incl securePkg_enc_in_place
 
 --------------------------------------------------------------------------------
--- Testing
 
-uavToBaseKey, baseToUavKey :: ConstMemArea Key
-uavToBaseKey = constArea "uav_to_base_key" (mkKey [0..15])
-baseToUavKey = constArea "base_to_uav_key" (mkKey [15,14..0])
+mkKey :: [Word8] -> Init Key
+mkKey key = iarray $ map (ival . fromIntegral) key
 
-b2uSalt, u2bSalt :: Uint32
-b2uSalt = 9219834
-u2bSalt = 284920
+--------------------------------------------------------------------------------
+
+uavToBaseKey, baseToUavKey :: [Word8] -> ConstMemArea Key
+uavToBaseKey = constArea "uav_to_base_key" . mkKey
+baseToUavKey = constArea "base_to_uav_key" . mkKey
+
+-- b2uSalt, u2bSalt :: Uint32
+-- b2uSalt = 9219834
+-- u2bSalt = 284920
+
+--------------------------------------------------------------------------------

@@ -7,22 +7,23 @@
 module SMACCMPilot.Flight.Commsec.Encrypt where
 
 import qualified SMACCMPilot.Flight.Commsec.Commsec   as C
+import qualified Commsec.CommsecOpts                  as O
 import qualified SMACCMPilot.Shared                   as S
-
 import           Ivory.Tower
 import           Ivory.Language
 
 --------------------------------------------------------------------------------
 
 encryptTask :: (SingI n0, SingI n1)
-            => ChannelSink   n0 S.MavLinkArray -- from GCS Tx
+            => O.Options
+            -> ChannelSink   n0 S.MavLinkArray -- from GCS Tx
             -> ChannelSource n1 S.CommsecArray -- to datalink
             -> Task p ()
-encryptTask rx tx = do
+encryptTask opts rx tx = do
   emitter <- withChannelEmitter tx "encToHxSrc"
 
   -- Sets up commsec for both encryption and decryption.
-  taskInit C.setupCommsec
+  taskInit (C.setupCommsec opts)
 
   onChannel rx "gcsTxToEnc" $ \mavStream -> do
     mav <- local (iarray [])
@@ -33,7 +34,9 @@ encryptTask rx tx = do
     C.encrypt C.uavCtx pkg
     emit_ emitter (constRef pkg)
 
-  taskModuleDef $ depend C.commsecModule
+  let m = C.commsecModule opts
+  taskModuleDef $ depend m
+  withModule m
 
 
 

@@ -6,6 +6,8 @@ module SMACCMPilot.Flight.GCS.Tower
   , gcsTowerHil
   ) where
 
+import Control.Monad(void)
+
 import Ivory.Language
 import Ivory.Tower
 
@@ -18,12 +20,14 @@ import SMACCMPilot.Flight.GCS.Receive.Task
 import qualified SMACCMPilot.Flight.Commsec.Decrypt as Dec
 import qualified SMACCMPilot.Flight.Commsec.Encrypt as Enc
 
-import qualified SMACCMPilot.Flight.Datalink as D
+import qualified SMACCMPilot.Flight.Datalink        as D
+import qualified Commsec.CommsecOpts                as O
 
 --------------------------------------------------------------------------------
 
 gcsTower :: (SingI n0, SingI n1)
          => String
+         -> O.Options
          -> ChannelSink   n0 (Stored Uint8)
          -> ChannelSource n1 (Stored Uint8)
          -> DataSink (Struct "flightmode")
@@ -32,14 +36,14 @@ gcsTower :: (SingI n0, SingI n1)
          -> DataSink (Struct "controloutput")
          -> DataSink (Struct "motors")
          -> Tower p ()
-gcsTower name istream ostream fm sens pos ctl motor = do
-  _ <- gcsTowerAux name istream ostream fm sens pos ctl motor
-  return ()
+gcsTower name opts istream ostream fm sens pos ctl motor =
+  void (gcsTowerAux name opts istream ostream fm sens pos ctl motor)
 
 --------------------------------------------------------------------------------
 
 gcsTowerHil :: (SingI n0, SingI n1)
          => String
+         -> O.Options
          -> ChannelSink   n0 (Stored Uint8)
          -> ChannelSource n1 (Stored Uint8)
          -> DataSink (Struct "flightmode")
@@ -48,18 +52,19 @@ gcsTowerHil :: (SingI n0, SingI n1)
          -> ( ChannelSource 16 (Struct "sensors_result")
             , ChannelSink 16 (Struct "sensors_result"))
          -> Tower p ()
-gcsTowerHil name istream ostream fm ctl motor sensors = do
+gcsTowerHil name opts istream ostream fm ctl motor sensors = do
   sensors_state <- stateProxy (snk sensors)
   position      <- dataport
   hil <- gcs fm sensors_state (snk position) ctl motor
   task "hilTranslator" $ hilTranslator hil (src sensors) (src position)
   where
-  gcs = gcsTowerAux name istream ostream
+  gcs = gcsTowerAux name opts istream ostream
 
 --------------------------------------------------------------------------------
 
 gcsTowerAux :: (SingI n0, SingI n1)
          => String
+         -> O.Options
          -> ChannelSink   n0 (Stored Uint8)
          -> ChannelSource n1 (Stored Uint8)
          -> DataSink (Struct "flightmode")
@@ -68,7 +73,7 @@ gcsTowerAux :: (SingI n0, SingI n1)
          -> DataSink (Struct "controloutput")
          -> DataSink (Struct "motors")
          -> Tower p (ChannelSink 4 (Struct "hil_state_msg"))
-gcsTowerAux name istream ostream fm sens pos ctl motor = do
+gcsTowerAux name opts istream ostream fm sens pos ctl motor = do
   -- GCS TX and encrypt tasks
   (gcsTxToEncSrc, gcsTxToEncRcv) <- channel
   -- GCS RX and decrypt tasks
@@ -87,12 +92,12 @@ gcsTowerAux name istream ostream fm sens pos ctl motor = do
    ) <- D.datalink istream ostream -- also creates task
 
   -- Rx
-  task "decryptTask" $ Dec.decryptTask hxToDecRcv decToGcsRxSrc
+  task "decryptTask" $ Dec.decryptTask opts hxToDecRcv decToGcsRxSrc
   task ("gcsReceiveTask" ++ name) $
     gcsReceiveTask decToGcsRxRcv (src streamrate) (src datarate) (src hil)
 
   -- TX
-  task "encryptTask" $ Enc.encryptTask gcsTxToEncRcv encToHxSrc
+  task "encryptTask" $ Enc.encryptTask opts gcsTxToEncRcv encToHxSrc
   task ("gcsTransmitTask" ++ name) $
     gcsTransmitTask gcsTxToEncSrc (snk streamrate) (snk datarate) fm sens
       pos ctl motor

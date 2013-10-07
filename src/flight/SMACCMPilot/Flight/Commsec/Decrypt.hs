@@ -5,6 +5,7 @@ module SMACCMPilot.Flight.Commsec.Decrypt where
 
 import qualified SMACCMPilot.Flight.Commsec.Commsec as C
 import qualified SMACCMPilot.Shared                 as S
+import qualified Commsec.CommsecOpts                as O
 
 import           Ivory.Language
 import           Ivory.Stdlib
@@ -13,10 +14,11 @@ import           Ivory.Tower
 --------------------------------------------------------------------------------
 
 decryptTask :: (SingI n0, SingI n1)
-            => ChannelSink   n0  S.CommsecArray -- from datalink
+            => O.Options
+            -> ChannelSink   n0  S.CommsecArray -- from datalink
             -> ChannelSource n1  S.MavLinkArray -- to GCS Rx task
             -> Task p ()
-decryptTask rx tx = do
+decryptTask opts rx tx = do
   emitter <- withChannelEmitter tx "decToGcsRxSrc"
   onChannel rx "hxToDecRcv" $ \pkgStream -> do
     pkg <- local (iarray [])
@@ -30,6 +32,6 @@ decryptTask rx tx = do
       C.copyFromPkg pkg payload
       emit_ emitter (constRef payload)
 
-  taskModuleDef $ depend C.commsecModule
+  taskModuleDef $ depend (C.commsecModule opts)
 
 

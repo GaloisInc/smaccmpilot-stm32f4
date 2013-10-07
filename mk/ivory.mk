@@ -28,6 +28,14 @@ quiet_cmd_ivory_gen = IVORYGEN $2
 quiet_cmd_dot       = DOT      $2
       cmd_dot       = dot -Tpdf $3 -o $4
 
+# Commsec keys
+COMMSEC_ARGS = \
+  --senderid=$(UAV_ID) \
+  --sendkey=$(UAV_KEY) \
+  --sendsalt=$(UAV_SALT) \
+  --recvkey=$(BASE_KEY) \
+  --recvsalt=$(BASE_SALT) \
+
 # tower_pkg:
 # $1 package name
 # $2 package generator exe
@@ -81,6 +89,7 @@ $$($(1)_HEADERS) $$($(1)_SOURCES) $$($(1)_TOWER_DOT): $$($(1)_DEP_FILE)
           --ix-check                                          \
           --const-fold                                        \
 	  $$(IVORY_OPTS)                                            \
+          $(COMMSEC_ARGS) \
 	  $(3))
 
 ifdef $(1)_GEN_SYMS

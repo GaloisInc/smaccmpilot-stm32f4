@@ -13,6 +13,8 @@
 MAKEFLAGS += -r
 
 include Config.mk
+# Commsec vars
+include Keys.mk
 include mk/platform/platform_$(CONFIG_PLATFORM).mk
 
 TOP := .

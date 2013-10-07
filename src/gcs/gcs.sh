@@ -7,20 +7,20 @@ DIR=../../../cabal-dev/bin
 
 EXEC_MAVPROXY="python mavlink/mavproxy.py --master=tcp:$HOST:$PORT --baud=57600"
 
-echo starting commsec server: $COMMSEC_SERVER
-$DIR/$COMMSEC_SERVER&
+echo starting commsec server: $COMMSEC_SERVER $1
+$DIR/$COMMSEC_SERVER $1 &
 
-if [ -z $TERM_APP]; then
-	if [ -x gnome-terminal ]; then
-		echo starting mavproxy in a new terminal: $EXEC_MAVPROXY;
-		gnome-terminal -x $EXEC_MAVPROXY;
-	else
+if which gnome-terminal >/dev/null; then
+  echo starting mavproxy in a new terminal: $EXEC_MAVPROXY;
+  gnome-terminal -x $EXEC_MAVPROXY;
+else
+  if [ -z $TERM_APP ]; then
 		echo Cannot find a terminal program. Try setting TERM_APP environment variable;
 		echo User can start mavproxy with: $EXEC_MAVPROXY;
-	fi
-else
-	echo starting mavproxy in a new terminal: $EXEC_MAVPROXY;
-	$TERM_APP -x $EXEC_MAVPROXY;
+  else
+  	echo starting mavproxy in a new terminal: $EXEC_MAVPROXY;
+  	$TERM_APP -x $EXEC_MAVPROXY;
+  fi
 fi
 
 function kill() {

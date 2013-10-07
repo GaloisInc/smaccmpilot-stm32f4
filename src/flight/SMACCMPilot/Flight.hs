@@ -32,7 +32,7 @@ import SMACCMPilot.Mavlink.Send (mavlinkSendModule)
 import SMACCMPilot.Mavlink.CRC (mavlinkCRCModule)
 import SMACCMPilot.Mavlink.Pack (packModule)
 
-import SMACCMPilot.Flight.Commsec.Commsec
+import qualified Commsec.CommsecOpts as O
 import Ivory.HXStream
 
 import qualified Ivory.BSP.HWF4.EEPROM as HWF4
@@ -43,8 +43,9 @@ import qualified Ivory.BSP.STM32F4.UART as UART
 import           Ivory.BSP.STM32F4.RCC (BoardHSE(..))
 
 hil :: (BoardHSE p, MotorOutput p, SensorOrientation p)
-    => Tower p ()
-hil = do
+    => O.Options
+    -> Tower p ()
+hil opts = do
   -- Communication primitives:
   sensors       <- channel
 
@@ -55,12 +56,13 @@ hil = do
 
   -- HIL-enabled GCS on uart1:
   (istream, ostream) <- uart UART.uart1
-  gcsTowerHil "uart1" istream ostream flightmode
+  gcsTowerHil "uart1" opts istream ostream flightmode
     control_state motors_state sensors
 
 flight :: (BoardHSE p, MotorOutput p, SensorOrientation p)
-    => Tower p ()
-flight = do
+       => O.Options
+       -> Tower p ()
+flight opts = do
   -- Communication primitives:
   sensors       <- channel
   sensor_state  <- stateProxy (snk sensors)
@@ -80,7 +82,7 @@ flight = do
 
   -- GCS on UART1:
   (uart1istream, uart1ostream) <- uart UART.uart1
-  gcsTower "uart1" uart1istream uart1ostream flightmode sensor_state
+  gcsTower "uart1" opts uart1istream uart1ostream flightmode sensor_state
     (snk position) control_state motors_state
 
 core :: (SingI n)
@@ -123,8 +125,6 @@ otherms = concat
   , HWF4.i2cModule
   -- the rest:
   , stdlibStringModule
-  -- crypto
-  , commsecModule
   -- hxstream
   , hxstreamModule
 

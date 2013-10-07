@@ -21,8 +21,10 @@ import SMACCMPilot.Flight.Motors.Platforms
 import SMACCMPilot.Flight.Sensors.Platforms
 
 compile :: (forall p . (BSP.BoardHSE p, MotorOutput p, SensorOrientation p)
-        => Tower p ()) -> IO ()
-compile app = compilePlatforms conf ps
+        => Tower p ())
+        -> [String]
+        -> IO ()
+compile app = compilePlatforms' conf ps
   where
   sp   = searchPathConf [Stdlib.searchDir, HW.searchDir, BSP.searchDir]
   conf = sp { bc_sizemap = Just sizeMap }

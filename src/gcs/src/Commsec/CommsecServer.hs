@@ -25,7 +25,8 @@ import qualified Data.HXStream                 as H
 import qualified Mavlink.Parser                as L
 
 import qualified SMACCMPilot.Shared            as S
-import           Commsec
+import           Commsec.Commsec
+import           Commsec.CommsecOpts
 
 --------------------------------------------------------------------------------
 -- Monad definition.  The state is the good frames.
