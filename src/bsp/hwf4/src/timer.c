@@ -119,7 +119,7 @@ volatile struct {
 
   enum {
     SYNC = 0,                   /* waiting for start pulse */
-    ARM,                        /* waiting for first low edge */
+    ARMING,                     /* waiting for first low edge */
     ACTIVE,                     /* waiting for low edge */
     INACTIVE                    /* waiting for high edge */
   } state;                      /* current decoder state */
@@ -303,7 +303,7 @@ static void timer_ppm_decode(uint16_t sr)
     g_ppm_state.sample_time = timer_get_ticks();
     g_ppm_state.sample_len = g_ppm_state.current_len;
     g_ppm_state.current_len = 0;
-    g_ppm_state.state = ARM;
+    g_ppm_state.state = ARMING;
 
     return;
   }
@@ -313,7 +313,7 @@ static void timer_ppm_decode(uint16_t sr)
       /* Continue waiting for a start pulse. */
       return;
 
-    case ARM:
+    case ARMING:
       if (width > PPM_LOW_MAX)
         goto error;             /* pulse was too long */
 
