@@ -1,4 +1,5 @@
 Config.mk
+Keys.mk
 build
 *.o
 *.a

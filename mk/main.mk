@@ -15,6 +15,13 @@ MAKEFLAGS += -r
 include Config.mk
 # Commsec vars
 include Keys.mk
+
+# Test a representative variable.
+ifndef UAV_ID
+$(error "Make sure a Keys.mk is defined.  See Keys.mk.example at the top level")
+endif
+
+
 include mk/platform/platform_$(CONFIG_PLATFORM).mk
 
 TOP := .

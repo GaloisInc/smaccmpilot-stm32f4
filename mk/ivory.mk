@@ -70,6 +70,7 @@ $(1)_CFLAGS           := -I$$($(1)_GEN_DIR)
 
 -include $$($(1)_DEP_FILE)
 
+
 $$($(1)_DEP_FILE): $$($(1)_GEN_EXE) $(MAKEFILE_LIST)
 	$(call cmd,ivory_dep,$1,                              \
 	  $$($(1)_GEN_EXE)                                    \
