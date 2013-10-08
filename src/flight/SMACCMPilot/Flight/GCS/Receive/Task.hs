@@ -38,7 +38,7 @@ gcsReceiveTask :: (SingI n0, SingI n1, SingI n2, SingI n3, SingI n4)
                -> [Param PortPair]
                -> Task p ()
 gcsReceiveTask mavStream s_src dr_src hil_src param_req_src params = do
-  m <- withGetTimeMillis
+  millis <- withGetTimeMillis
   hil_emitter <- withChannelEmitter hil_src "hil_src"
 
   -- Get lists of parameter readers and writers.
@@ -84,7 +84,7 @@ gcsReceiveTask mavStream s_src dr_src hil_src param_req_src params = do
               -- XXX We need to have a story for messages that are parsed
               -- correctly but are not recognized by the system---one could
               -- launch a DoS with those, too.
-              t <- getTimeMillis m
+              t <- getTimeMillis millis
               store (drInfo ~> D.lastSucc) t
               call_ handlerAux state s_periods
               R.mavlinkReceiveReset state
@@ -110,12 +110,12 @@ gcsReceiveTask mavStream s_src dr_src hil_src param_req_src params = do
   taskModuleDef $ do
     depend mavlinkCRCModule
     defStruct (Proxy :: Proxy "mavlink_receive_state")
-    incl handlerAux
-    incl getParamIndex
-    incl setParamValue
     handlerModuleDefs
     mapM_ depend mavlinkMessageModules
     mapM_ depend stdlibModules
-    incl parseMav
+    private $ do
+      incl parseMav
+      incl handlerAux
+      incl getParamIndex
+      incl setParamValue
 
---------------------------------------------------------------------------------
