@@ -7,14 +7,25 @@ DIR=../../../cabal-dev/bin
 
 EXEC_MAVPROXY="python mavlink/mavproxy.py --master=tcp:$HOST:$PORT"
 
-echo starting commsec server: $COMMSEC_SERVER $1
-$DIR/$COMMSEC_SERVER $1 &
+# Parameters from "Keys.mk":
+ARGS="--senderid=@BASE_ID@ \
+      --sendkey=@BASE_KEY@ \
+      --sendsalt=@BASE_SALT@ \
+      --recvkey=@UAV_KEY@ \
+      --recvsalt=@UAV_SALT@"
+
+echo starting commsec server: $COMMSEC_SERVER $ARGS
+$DIR/$COMMSEC_SERVER $ARGS &
 
 if [ -z $TERM_APP ]; then
-	path_to_gnometerminal = $(which gnome-terminal)
+	path_to_gnometerminal=$(which gnome-terminal)
+  path_to_xterm=$(which xterm)
 	if [ -x "$path_to_gnometerminal" ]; then
 		echo starting mavproxy in a new terminal: $EXEC_MAVPROXY;
 		gnome-terminal -x $EXEC_MAVPROXY;
+  elif [ -x "$path_to_xterm" ]; then
+		echo starting mavproxy in a new terminal: $EXEC_MAVPROXY
+    xterm -e "$EXEC_MAVPROXY"
 	else
 		echo Cannot find a terminal program. Try setting TERM_APP environment variable;
 		echo User can start mavproxy with: $EXEC_MAVPROXY;

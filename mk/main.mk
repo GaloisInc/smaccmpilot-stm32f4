@@ -16,12 +16,6 @@ include Config.mk
 # Commsec vars
 include Keys.mk
 
-# Test a representative variable.
-ifndef UAV_ID
-$(error "Make sure a Keys.mk is defined.  See Keys.mk.example at the top level")
-endif
-
-
 include mk/platform/platform_$(CONFIG_PLATFORM).mk
 
 TOP := .
@@ -54,11 +48,13 @@ define project
   include $(1)/build.mk
 endef
 
+OTHER_TARGETS :=
+
 # Search for subprojects and include their "build.mk" makefiles.
 $(foreach p,$(shell find . -name build.mk -exec dirname {} \;), \
           $(eval $(call project,$(p))))
 
-ALL_TARGETS := $(LIBRARIES) $(IMAGES)
+ALL_TARGETS := $(LIBRARIES) $(IMAGES) $(OTHER_TARGETS)
 ALL_DEPS    := $(patsubst %.o,%.d,$(ALL_OBJECTS))
 
 ######################################################################
