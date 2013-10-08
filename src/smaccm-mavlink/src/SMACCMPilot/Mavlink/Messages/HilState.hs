@@ -13,7 +13,7 @@ module SMACCMPilot.Mavlink.Messages.HilState where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
-import qualified SMACCMPilot.Shared as S
+import qualified SMACCMPilot.Communications as Comm
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -56,7 +56,7 @@ struct hil_state_msg
 mkHilStateSender ::
   Def ('[ ConstRef s0 (Struct "hil_state_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 S.MavLinkArray -- tx buffer
+        , Ref s1 Comm.MAVLinkArray -- tx buffer
         ] :-> ())
 mkHilStateSender =
   proc "mavlink_hil_state_msg_send"

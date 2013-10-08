@@ -13,7 +13,7 @@ module SMACCMPilot.Mavlink.Messages.Heartbeat where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
-import qualified SMACCMPilot.Shared as S
+import qualified SMACCMPilot.Communications as Comm
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -46,7 +46,7 @@ struct heartbeat_msg
 mkHeartbeatSender ::
   Def ('[ ConstRef s0 (Struct "heartbeat_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 S.MavLinkArray -- tx buffer
+        , Ref s1 Comm.MAVLinkArray -- tx buffer
         ] :-> ())
 mkHeartbeatSender =
   proc "mavlink_heartbeat_msg_send"

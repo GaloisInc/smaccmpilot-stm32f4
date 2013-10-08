@@ -145,7 +145,7 @@ module SMACCMPilot.Mavlink.Messages.${name_module} where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
-import qualified SMACCMPilot.Shared as S
+import qualified SMACCMPilot.Communications as Comm
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -173,7 +173,7 @@ struct ${name_lower}_msg
 mk${name_module}Sender ::
   Def ('[ ConstRef s0 (Struct "${name_lower}_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 S.MavLinkArray -- tx buffer
+        , Ref s1 Comm.MAVLinkArray -- tx buffer
         ] :-> ())
 mk${name_module}Sender =
   proc "mavlink_${name_lower}_msg_send"
@@ -217,7 +217,7 @@ class mav_include(object):
     def __init__(self, base):
         self.base = base
 
-def process_xml(basename, xml):
+def process_xml_wtf(basename, xml):
     '''generate headers for one XML file'''
 
     directory = basename
@@ -316,6 +316,7 @@ def process_xml(basename, xml):
                 else:
                     f.c_test_value = f.test_value
 
+def process_xml(basename, xml):
     # cope with uint8_t_mavlink_version
     for m in xml.message:
         m.arg_fields = []

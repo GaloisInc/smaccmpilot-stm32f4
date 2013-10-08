@@ -13,15 +13,18 @@ import qualified SMACCMPilot.Flight.Types.UserInput as UI
 import qualified SMACCMPilot.Flight.Types.Sensors as SENS
 import qualified SMACCMPilot.Flight.Types.ControlOutput as CO
 
+import SMACCMPilot.Param
 import SMACCMPilot.Flight.Control.Stabilize
+import SMACCMPilot.Flight.Param
 
 controlTask :: (SingI n, SingI m)
             => DataSink (Struct "flightmode")
             -> DataSink (Struct "userinput_result")
             -> ChannelSink n (Struct "sensors_result")
             -> ChannelSource m (Struct "controloutput")
+            -> FlightParams ParamSink
             -> Task p ()
-controlTask s_fm s_inpt s_sens s_ctl = do
+controlTask s_fm s_inpt s_sens s_ctl params = do
   fmReader   <- withDataReader s_fm   "flightmode"
   uiReader   <- withDataReader s_inpt "userinput"
   ctlEmitter <- withChannelEmitter s_ctl  "control"

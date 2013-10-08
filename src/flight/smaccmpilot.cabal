@@ -15,6 +15,7 @@ library
                        SMACCMPilot.Flight.Platforms,
 
                        SMACCMPilot.Flight.BlinkTask,
+                       SMACCMPilot.Flight.Param,
 
                        SMACCMPilot.Flight.GCS.Stream,
                        SMACCMPilot.Flight.GCS.Transmit.MessageDriver,
@@ -64,6 +65,7 @@ library
 
                        SMACCMPilot.Param,
                        SMACCMPilot.Param.Base,
+                       SMACCMPilot.Param.TowerTypes,
                        SMACCMPilot.Param.Tower,
 
                        SMACCMPilot.Console,
@@ -83,7 +85,7 @@ library
                        ivory-bsp-stm32f4,
                        ivory-px4-hw,
                        ivory-hxstream,
-                       shared-smaccmpilot,
+                       smaccm-shared-comm,
                        smaccm-mavlink,
                        commsec-gcs
 
@@ -107,7 +109,7 @@ executable flight-gen
                        ivory-px4-hw,
                        ivory-hxstream,
                        smaccm-mavlink,
-                       shared-smaccmpilot,
+                       smaccm-shared-comm,
                        smaccmpilot,
                        commsec-gcs
 
@@ -130,7 +132,7 @@ executable flight-hil-gen
                        ivory-px4-hw,
                        ivory-hxstream,
                        smaccm-mavlink,
-                       shared-smaccmpilot,
+                       smaccm-shared-comm,
                        smaccmpilot,
                        commsec-gcs
 

@@ -13,7 +13,7 @@ module SMACCMPilot.Mavlink.Messages.DataStream where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
-import qualified SMACCMPilot.Shared as S
+import qualified SMACCMPilot.Communications as Comm
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -43,7 +43,7 @@ struct data_stream_msg
 mkDataStreamSender ::
   Def ('[ ConstRef s0 (Struct "data_stream_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 S.MavLinkArray -- tx buffer
+        , Ref s1 Comm.MAVLinkArray -- tx buffer
         ] :-> ())
 mkDataStreamSender =
   proc "mavlink_data_stream_msg_send"

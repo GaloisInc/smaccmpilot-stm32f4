@@ -28,7 +28,6 @@ library
                         SMACCMPilot.Mavlink.Messages.ParamValue,
                         SMACCMPilot.Mavlink.Messages.ParamSet,
                         SMACCMPilot.Mavlink.Messages.GpsRawInt,
---                        SMACCMPilot.Mavlink.Messages.GpsStatus,
                         SMACCMPilot.Mavlink.Messages.ScaledImu,
                         SMACCMPilot.Mavlink.Messages.RawImu,
                         SMACCMPilot.Mavlink.Messages.RawPressure,
@@ -87,6 +86,7 @@ library
                         SMACCMPilot.Mavlink.Messages.VisionSpeedEstimate,
                         SMACCMPilot.Mavlink.Messages.ViconPositionEstimate,
                         SMACCMPilot.Mavlink.Messages.HighresImu,
+                        SMACCMPilot.Mavlink.Messages.OmnidirectionalFlow,
                         SMACCMPilot.Mavlink.Messages.BatteryStatus,
                         SMACCMPilot.Mavlink.Messages.Setpoint8dof,
                         SMACCMPilot.Mavlink.Messages.Setpoint6dof,
@@ -99,7 +99,6 @@ library
                         SMACCMPilot.Mavlink.Messages.Data16,
                         SMACCMPilot.Mavlink.Messages.Data32,
                         SMACCMPilot.Mavlink.Messages.Data64,
---                        SMACCMPilot.Mavlink.Messages.Data96,
                         GCS.Mavlink.CRC
 
   build-depends:        base >= 4.6,
@@ -107,7 +106,7 @@ library
                         ivory-stdlib,
                         bytestring,
                         serialport,
-                        shared-smaccmpilot
+                        smaccm-shared-comm
   hs-source-dirs:       src, gcs
   default-language:     Haskell2010
   ghc-options:          -Wall -fno-warn-orphans
@@ -123,7 +122,7 @@ executable smaccm-mavlink-debugger
                         ivory,
                         ivory-stdlib,
                         serialport,
-                        shared-smaccmpilot,
+                        smaccm-shared-comm,
                         smaccm-mavlink
 
 

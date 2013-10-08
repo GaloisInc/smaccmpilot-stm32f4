@@ -13,7 +13,7 @@ module SMACCMPilot.Mavlink.Messages.HilRcInputsRaw where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
-import qualified SMACCMPilot.Shared as S
+import qualified SMACCMPilot.Communications as Comm
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -54,7 +54,7 @@ struct hil_rc_inputs_raw_msg
 mkHilRcInputsRawSender ::
   Def ('[ ConstRef s0 (Struct "hil_rc_inputs_raw_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 S.MavLinkArray -- tx buffer
+        , Ref s1 Comm.MAVLinkArray -- tx buffer
         ] :-> ())
 mkHilRcInputsRawSender =
   proc "mavlink_hil_rc_inputs_raw_msg_send"

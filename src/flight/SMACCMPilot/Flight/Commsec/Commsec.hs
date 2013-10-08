@@ -28,7 +28,7 @@ import Ivory.Language
 import Ivory.Stdlib
 import Data.Word
 
-import qualified SMACCMPilot.Shared  as S
+import qualified SMACCMPilot.Communications as C
 import qualified Commsec.CommsecOpts as O
 
 --------------------------------------------------------------------------------
@@ -69,7 +69,7 @@ securePkg_init = importProc "securePkg_init" commsec
 --                                );
 securePkg_enc_in_place ::
   Def ('[ Ref Global Commsec_ctx_proxy
-        , Ref s S.CommsecArray
+        , Ref s C.CommsecArray
         , Uint32
         , Uint32
         ] :-> Uint32)
@@ -78,7 +78,7 @@ securePkg_enc_in_place = importProc "securePkg_enc_in_place" commsec
 -- uint32_t securePkg_dec(commsec_ctx *ctx, uint8_t *msg, uint32_t msgLen);
 securePkg_dec ::
   Def ('[ Ref Global Commsec_ctx_proxy
-        , Ref s S.CommsecArray
+        , Ref s C.CommsecArray
         , Uint32
         ] :-> Uint32)
 securePkg_dec = importProc "securePkg_dec" commsec
@@ -93,27 +93,27 @@ uavCtx  = importArea "uavCtx"  ivoryCommsec
 
 -- | Encrypt a package (with the header and tag) given a context.
 encrypt :: MemArea Commsec_ctx_proxy
-          -> Ref s S.CommsecArray
+          -> Ref s C.CommsecArray
           -> Ivory eff ()
 encrypt com pkg =
   call_ securePkg_enc_in_place
-    (addrOf com) pkg (fromIntegral headerLen) (fromInteger S.mavlinkSize)
+    (addrOf com) pkg (fromIntegral headerLen) (fromInteger C.mavlinkSize)
 
 -- | Decrypt a package (with the header and tag), given a context.  Returns 0 if
 -- all is OK and nonzero otherwise.  It is up to the caller to check the return
 -- value.
 decrypt :: MemArea Commsec_ctx_proxy
-        -> Ref s S.CommsecArray
+        -> Ref s C.CommsecArray
         -> Ivory eff Uint32
 decrypt com pkg =
-  call securePkg_dec (addrOf com) pkg (fromInteger S.commsecPkgSize)
+  call securePkg_dec (addrOf com) pkg (fromInteger C.commsecPkgSize)
 
 --------------------------------------------------------------------------------
 
 -- Copy a mavlink-sized message into our package buffer.
 copyToPkg :: (GetAlloc eff ~ Scope s2)
-         => ConstRef s0 S.MavLinkArray
-         -> Ref      s1 S.CommsecArray
+         => ConstRef s0 C.MAVLinkArray
+         -> Ref      s1 C.CommsecArray
          -> Ivory eff ()
 copyToPkg from pkg = arrCopy pkg from (fromInteger headerLen)
 
@@ -121,11 +121,11 @@ copyToPkg from pkg = arrCopy pkg from (fromInteger headerLen)
 
 -- Copy the payload out of a package buffer.
 copyFromPkg :: (GetAlloc eff ~ Scope s2)
-           => Ref s0 S.CommsecArray
-           -> Ref s1 S.MavLinkArray
+           => Ref s0 C.CommsecArray
+           -> Ref s1 C.MAVLinkArray
            -> Ivory eff ()
 copyFromPkg pkg from =
-  arrayMap $ \(ix :: S.CommsecIx) ->
+  arrayMap $ \(ix :: C.CommsecIx) ->
     when (ix >=? hdr .&& ix <? arrayLen from)
          $ do v <- deref (pkg ! ix)
               store (from ! mkIx ix) v

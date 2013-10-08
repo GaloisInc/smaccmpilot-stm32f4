@@ -13,7 +13,7 @@ module SMACCMPilot.Mavlink.Messages.MissionCurrent where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
-import qualified SMACCMPilot.Shared as S
+import qualified SMACCMPilot.Communications as Comm
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -41,7 +41,7 @@ struct mission_current_msg
 mkMissionCurrentSender ::
   Def ('[ ConstRef s0 (Struct "mission_current_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 S.MavLinkArray -- tx buffer
+        , Ref s1 Comm.MAVLinkArray -- tx buffer
         ] :-> ())
 mkMissionCurrentSender =
   proc "mavlink_mission_current_msg_send"

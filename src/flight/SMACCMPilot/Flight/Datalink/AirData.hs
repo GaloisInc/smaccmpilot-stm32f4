@@ -14,24 +14,24 @@ import Ivory.Language
 import Ivory.Tower
 import Ivory.Stdlib
 import qualified Ivory.HXStream     as H
-import qualified SMACCMPilot.Shared as S
+import qualified SMACCMPilot.Communications as C
 
 --------------------------------------------------------------------------------
 
 airDataHandler :: (SingI n)
-               => ChannelEmitter n S.CommsecArray
+               => ChannelEmitter n C.CommsecArray
                -> Task p H.FrameHandler
 airDataHandler ostream = do
   decodedCtr     <- taskLocalInit "airdata_frames_decoded" (ival (0::Uint32))
   decoded        <- taskLocal     "airdata_decoded"
   overrun        <- taskLocal     "airdata_overrun"
   return $ H.mkFrameHandler H.ScopedFrameHandler
-    { H.fhTag = S.airDataTag
+    { H.fhTag = C.airDataTag
     , H.fhBegin = do
         store overrun false
         arrayMap $ \ix -> store (decoded ! ix) 0
     , H.fhData = \v offs ->
-        ifte_ (offs <? fromInteger S.commsecPkgSize)
+        ifte_ (offs <? fromInteger C.commsecPkgSize)
               (store (decoded ! (toIx offs)) v)
               (store overrun true)
     , H.fhEnd = do

@@ -13,7 +13,7 @@ module SMACCMPilot.Mavlink.Messages.SetMode where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
-import qualified SMACCMPilot.Shared as S
+import qualified SMACCMPilot.Communications as Comm
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -43,7 +43,7 @@ struct set_mode_msg
 mkSetModeSender ::
   Def ('[ ConstRef s0 (Struct "set_mode_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 S.MavLinkArray -- tx buffer
+        , Ref s1 Comm.MAVLinkArray -- tx buffer
         ] :-> ())
 mkSetModeSender =
   proc "mavlink_set_mode_msg_send"

@@ -6,6 +6,11 @@
 --
 
 module SMACCMPilot.Param
+  ( module SMACCMPilot.Param.Base
+  , module SMACCMPilot.Param.TowerTypes
+  , module SMACCMPilot.Param.Tower
+  ) where
+{-
   ( Param(..) , Constr , ParamT() , paramInit
   , param , group
 
@@ -14,7 +19,11 @@ module SMACCMPilot.Param
   , initTowerParams
   , paramReader, paramWriter
   , paramRead
+
+  , ParamGetter, ParamSetter
   ) where
+-}
 
 import SMACCMPilot.Param.Base
+import SMACCMPilot.Param.TowerTypes
 import SMACCMPilot.Param.Tower

@@ -1,4 +1,10 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE GADTs #-}
 --
 -- Param/Tower.hs --- Parameter storage using Tower.
 --
@@ -8,18 +14,27 @@
 
 module SMACCMPilot.Param.Tower where
 
+import Data.Char (ord)
 import Data.Traversable (Traversable, traverse)
 
 import Ivory.Language
 import Ivory.Tower
+import Ivory.Stdlib (ifte, when)
+import Ivory.Stdlib.String
 
 import SMACCMPilot.Param.Base
+import SMACCMPilot.Param.TowerTypes
+
+import qualified SMACCMPilot.Mavlink.Messages.ParamValue as PV
+
+----------------------------------------------------------------------
+-- Tower Parameters
 
 -- | Shorthand type for a data source of parameter values.
 type ParamSource = DataSource (Stored IFloat)
 
 -- | Shorthand type for a data sink of parameter values.
-type ParamSink = DataSink   (Stored IFloat)
+type ParamSink = DataSink (Stored IFloat)
 
 -- | Wrapper for a source/sink dataport pair.
 data PortPair = PortPair
@@ -43,90 +58,89 @@ type ParamReader = DataReader (Stored IFloat)
 -- | Shorthand type for a writer for parameter values.
 type ParamWriter = DataWriter (Stored IFloat)
 
+-- | Open data readers for a parameter tree containing sinks.
 paramReader :: (DataPortable i, Traversable a)
-            => a ParamSink -> Node i p (a ParamReader)
+            => a ParamSink
+            -> Node i p (a ParamReader)
 paramReader = traverse (\x -> withDataReader x "paramReader")
 
+-- | Open data writers for a parameter tree containing sources.
 paramWriter :: (DataPortable i, Traversable a)
-            => a ParamSource -> Node i p (a ParamWriter)
+            => a ParamSource
+            -> Node i p (a ParamWriter)
 paramWriter = traverse (\x -> withDataWriter x "paramWriter")
 
-paramRead :: (Traversable a) => a ParamReader -> Ivory (ProcEffects s ()) (a IFloat)
+-- | Read the float values of a parameter tree.
+paramRead :: (Traversable a)
+          => a ParamReader
+          -> Ivory (ProcEffects s ()) (a IFloat)
 paramRead =
   traverse $ \d -> do
     x <- local (ival 0.0)
     readData d x
     deref x
 
-{-
 ----------------------------------------------------------------------
--- Example
+-- Parameter Lookup
 
-data PIDParams f = PIDParams
-  { pidP :: Param f
-  , pidI :: Param f
-  , pidD :: Param f
-  } deriving (Functor, Foldable, Traversable)
+-- | Run-time information about a parameter.
+[ivory|
+ struct param_info
+ { param_name      :: Struct "ivory_string"   -- XXX IStr
+ ; param_index     :: Stored Sint32
+ ; param_value     :: Stored IFloat
+ }
+|]
 
-deriving instance Show f => Show (PIDParams f)
+-- | Create a function to look up a parameter index by name.
+makeGetParamIndex :: [Param f]
+                  -> Def ('[ ConstRef s1 IStr
+                           , Ref      s2 (Stored Sint16)
+                           ] :-> IBool)
+makeGetParamIndex params = proc "getParamIndex" $ \name ref -> body $ go params name ref 0
+  where
+    go [] _ _ _ = ret false
+    go (x:xs) name1 out ix = do
+      name2 <- local (istr_lit (paramName x))
+      eq    <- call istr_eq name1 (constRef name2)
+      when eq $ do
+        store out ix
+        ret true
+      go xs name1 out (ix + 1)
 
--- | Initialize PID parameters with default values.
-pidParams :: Monad m => Float -> Float -> Float -> ParamT f m (PIDParams f)
-pidParams p i d =
-  PIDParams <$> param "P" p
-            <*> param "I" i
-            <*> param "D" d
+-- | Create a function to get parameter info by index.
+makeGetParamInfo :: [Param ParamReader]
+                 -> Def ('[ Sint16
+                          , Ref s1 (Struct "param_value_msg")
+                          ] :-> IBool)
+makeGetParamInfo params = proc "getParamInfo" $ \ix ref -> body $ go params ix ref 0
+  where
+    count :: Uint16
+    count = fromIntegral (length params)
+    go [] _ _ _ = ret false
+    go (x:xs) ix ref n = do
+      when (ix ==? n) $ do
+        name <- local (istr_lit (paramName x))
+        readData (paramData x) (ref ~> PV.param_value)
+        store (ref ~> PV.param_count) count
+        store (ref ~> PV.param_index) (signCast ix)
+        store (ref ~> PV.param_type)  0
+        sz_from_istr (ref ~> PV.param_id) (constRef name)
+        ret true
+      go xs ix ref (n + 1)
 
-data FlightParams f = FlightParams
-  { flightStabRoll  :: PIDParams f
-  , flightStabPitch :: PIDParams f
-  , flightStabYaw   :: PIDParams f
-  } deriving (Functor, Foldable, Traversable)
+-- | Create a function to set a parameter value by index.
+makeSetParamValue :: [Param ParamWriter]
+                  -> Def ('[ Sint16
+                           , IFloat
+                           ] :-> IBool)
+makeSetParamValue params = proc "setParamValue" $ \ix value -> body $ go params ix value 0
+  where
+    go [] _ _ _ = ret false
+    go (x:xs) ix v n = do
+      when (ix ==? n) $ do
+        val <- local (ival v)
+        writeData (paramData x) (constRef val)
+        ret true
+      go xs ix v (n + 1)
 
-deriving instance Show f => Show (FlightParams f)
-
--- | Initialize flight parameters.
-flightParams :: Monad m => ParamT f m (FlightParams f)
-flightParams =
-  FlightParams <$> group "STAB_RLL" (pidParams 4.0 0.1 0.0)
-               <*> group "STAB_PIT" (pidParams 4.0 0.1 0.0)
-               <*> group "STAB_YAW" (pidParams 1.0 0.1 0.0)
-
-testTower :: Tower p ()
-testTower = do
-  (ports, paramList) <- initTowerParams flightParams
-  let pSrc  = portPairSource <$> ports
-  let pSink = portPairSink   <$> ports
-  task "testReader" (testReader pSink)
-  task "testWriter" (testWriter pSrc)
-
-testReader :: FlightParams ParamSink -> Task p ()
-testReader pSink = do
-  pReader <- paramReader pSink
-
-  onPeriod 1000 $ \_ -> do
-    pid <- paramRead (flightStabRoll pReader)
-    writes "P = "
-    write  (paramData (pidP pid))
-    writes " I = "
-    write  (paramData (pidI pid))
-    writes " D = "
-    write  (paramData (pidD pid))
-    writes "\r\n"
-
-testWriter :: FlightParams ParamSource -> Task p ()
-testWriter pSrc = do
-  pWriter <- paramWriter pSrc
-  x       <- taskLocal "x"
-
-  onPeriod 1000 $ \now -> do
-    store x (safeCast now)
-    writeData (paramData . pidP . flightStabRoll $ pWriter) (constRef x)
-
-test :: FlightParams ()
-test = fst $ runId $ paramInit (\_ _ -> return ()) flightParams
-
-main :: IO ()
-main = compile defaultBuildConf testTower
-
--}

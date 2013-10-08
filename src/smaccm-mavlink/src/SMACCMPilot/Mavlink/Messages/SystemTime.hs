@@ -13,7 +13,7 @@ module SMACCMPilot.Mavlink.Messages.SystemTime where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
-import qualified SMACCMPilot.Shared as S
+import qualified SMACCMPilot.Communications as Comm
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -42,7 +42,7 @@ struct system_time_msg
 mkSystemTimeSender ::
   Def ('[ ConstRef s0 (Struct "system_time_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 S.MavLinkArray -- tx buffer
+        , Ref s1 Comm.MAVLinkArray -- tx buffer
         ] :-> ())
 mkSystemTimeSender =
   proc "mavlink_system_time_msg_send"

@@ -13,7 +13,7 @@ module SMACCMPilot.Mavlink.Messages.ScaledImu where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
-import qualified SMACCMPilot.Shared as S
+import qualified SMACCMPilot.Communications as Comm
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -50,7 +50,7 @@ struct scaled_imu_msg
 mkScaledImuSender ::
   Def ('[ ConstRef s0 (Struct "scaled_imu_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 S.MavLinkArray -- tx buffer
+        , Ref s1 Comm.MAVLinkArray -- tx buffer
         ] :-> ())
 mkScaledImuSender =
   proc "mavlink_scaled_imu_msg_send"

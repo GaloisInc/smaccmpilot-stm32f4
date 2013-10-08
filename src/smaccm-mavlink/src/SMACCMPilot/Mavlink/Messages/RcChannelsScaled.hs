@@ -13,7 +13,7 @@ module SMACCMPilot.Mavlink.Messages.RcChannelsScaled where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
-import qualified SMACCMPilot.Shared as S
+import qualified SMACCMPilot.Communications as Comm
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -51,7 +51,7 @@ struct rc_channels_scaled_msg
 mkRcChannelsScaledSender ::
   Def ('[ ConstRef s0 (Struct "rc_channels_scaled_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 S.MavLinkArray -- tx buffer
+        , Ref s1 Comm.MAVLinkArray -- tx buffer
         ] :-> ())
 mkRcChannelsScaledSender =
   proc "mavlink_rc_channels_scaled_msg_send"

@@ -153,7 +153,8 @@ class MAVEnum(object):
 
 class MAVXML(object):
     '''parse a mavlink XML file'''
-    def __init__(self, filename, wire_protocol_version=PROTOCOL_0_9):
+    def __init__(self, filename, wire_protocol_version=PROTOCOL_0_9,
+            max_valid_wire_length=(255+8)):
         self.filename = filename
         self.basename = os.path.basename(filename)
         if self.basename.lower().endswith(".xml"):
@@ -165,6 +166,7 @@ class MAVXML(object):
         self.version = 2
         self.include = []
         self.wire_protocol_version = wire_protocol_version
+        self.max_valid_wire_length = max_valid_wire_length
 
         if wire_protocol_version == PROTOCOL_0_9:
             self.protocol_marker = ord('U')
@@ -280,14 +282,20 @@ class MAVXML(object):
                 raise MAVParseError("num_fields=%u : Maximum number of field names allowed is" % (
                     m.num_fields, 64))
             m.crc_extra = message_checksum(m)
-            self.message_lengths[m.id] = m.wire_length
-            self.message_names[m.id] = m.name
-            self.message_crcs[m.id] = m.crc_extra
-            if m.wire_length > self.largest_payload:
-                self.largest_payload = m.wire_length
-
-            if m.wire_length+8 > 64:
-                print("Note: message %s is longer than 64 bytes long (%u bytes), which can cause fragmentation since many radio modems use 64 bytes as maximum air transfer unit." % (m.name, m.wire_length+8))
+            if m.wire_length+8 > self.max_valid_wire_length :
+                print(("Removing message: %s is %u bytes, which is longer than "
+                        + "%u bytes, the maximum valid wire length")
+                        % (m.name, m.wire_length+8, self.max_valid_wire_length))
+                # Will actually remove message below because I don't know how to
+                # python. -pch
+            else:
+                self.message_lengths[m.id] = m.wire_length
+                self.message_names[m.id] = m.name
+                self.message_crcs[m.id] = m.crc_extra
+                if m.wire_length > self.largest_payload:
+                    self.largest_payload = m.wire_length
+        # Filter out messages over the max valid wire length:
+        self.message = [ m for m in self.message if (m.wire_length+8) <= self.max_valid_wire_length ]
 
     def __str__(self):
         return "MAVXML for %s from %s (%u message, %u enums)" % (

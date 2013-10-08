@@ -33,10 +33,10 @@ import qualified SMACCMPilot.Mavlink.Messages.VfrHud            as HUD
 import qualified SMACCMPilot.Mavlink.Messages.ServoOutputRaw    as SVO
 import qualified SMACCMPilot.Mavlink.Messages.GpsRawInt         as GRI
 import qualified SMACCMPilot.Mavlink.Messages.GlobalPositionInt as GPI
---import qualified SMACCMPilot.Mavlink.Messages.ParamValue        as PV
+import qualified SMACCMPilot.Mavlink.Messages.ParamValue        as PV
 import qualified SMACCMPilot.Mavlink.Messages.Data16            as D
 
-import qualified SMACCMPilot.Shared                             as S
+import qualified SMACCMPilot.Communications                     as Comm
 --------------------------------------------------------------------
 
 -- Helper for sending data-rate information to the GCS.
@@ -60,7 +60,7 @@ packUint32 initIx arr val =
 type Sender a = forall s s'.
   Def ('[ Ref s  (Struct a)
         , Ref s' (Stored Uint8)
-        , Ref s' S.MavLinkArray
+        , Ref s' Comm.MAVLinkArray
         ] :-> ())
 
 -- Data rate info: time since the last good message and how many messages were
@@ -141,7 +141,7 @@ mkSendVfrHud :: Def ('[ (Ref s0 (Struct "position_result"))
                       , (Ref s0 (Struct "sensors_result"))
 
                       , Ref s1 (Stored Uint8)
-                      , Ref s1 S.MavLinkArray
+                      , Ref s1 Comm.MAVLinkArray
                       ] :-> ())
 mkSendVfrHud = proc "gcs_transmit_send_vfrhud"
   $ \pos ctl sens seqNum sendArr -> body
@@ -198,7 +198,7 @@ mkSendVfrHud = proc "gcs_transmit_send_vfrhud"
 mkSendServoOutputRaw :: Def ('[ (Ref s0 (Struct "motors"))
                               , (Ref s0 (Struct "controloutput"))
                               , Ref s' (Stored Uint8)
-                              , Ref s' S.MavLinkArray
+                              , Ref s' Comm.MAVLinkArray
                               ] :-> ())
 mkSendServoOutputRaw =
   proc "gcs_transmit_send_servo_output"
@@ -246,7 +246,7 @@ mkSendGpsRawInt = proc "gcs_transmit_send_gps_raw_int" $
 mkSendGlobalPositionInt :: Def ('[ (Ref s (Struct "position_result"))
                                  , (Ref s (Struct "sensors_result"))
                                  , Ref s' (Stored Uint8)
-                                 , Ref s' S.MavLinkArray
+                                 , Ref s' Comm.MAVLinkArray
                                  ] :-> ())
 mkSendGlobalPositionInt = proc "gcs_transmit_send_global_position_int" $
   \pos sens seqNum sendArr -> body $ do
@@ -263,33 +263,13 @@ mkSendGlobalPositionInt = proc "gcs_transmit_send_global_position_int" $
   call_ GPI.mkGlobalPositionIntSender (constRef msg) seqNum sendArr
   retVoid
 
-{-
-mkSendParamValue :: MavlinkMessageSenders
-               -> Def ('[ Ref s1 (Struct "param_info") ] :-> ())
-mkSendParamValue senders = proc "gcs_transmit_send_param_value" $
-  \param -> body $ do
-  msg   <- local (istruct [])
-  value <- call Param.param_get_float_value param
-  store (msg ~> PV.param_value) value
-  count <- Param.param_get_count
-  store (msg ~> PV.param_count) (safeCast count)
-  index <- deref (param ~> Param.param_index)
-  store (msg ~> PV.param_index) (safeCast index)
-  call_ strncpy_uint8 (toCArray (msg ~> PV.param_id))
-            (constRef (toCArray (param ~> Param.param_name))) 16
-  store (msg ~> PV.param_type) 0 -- FIXME
-  call_ (paramValueSender senders) (constRef msg)
-
--- | Send the first parameter marked as requested.
-mkSendParams :: MavlinkMessageSenders -> Def ('[] :-> ())
-mkSendParams senders = proc "gcs_transmit_send_params" $ body $ do
-  pinfo <- call Param.param_get_requested
-  withRef pinfo
-          (\info -> do
-             store (info ~> Param.param_requested) 0
-             call_ (mkSendParamValue senders) info)
-          retVoid
--}
+mkSendParamValue :: Def ('[ Ref s1 (Struct "param_value_msg")
+                          , Ref s2 (Stored Uint8)
+                          , Ref s2 Comm.MAVLinkArray
+                          ] :-> ())
+mkSendParamValue = proc "gcs_transmit_send_param_value" $
+  \msg seqNum sendArr -> body $ do
+  call_ PV.mkParamValueSender (constRef msg) seqNum sendArr
 
 senderModules :: Module
 senderModules = package "senderModules" $ do
@@ -301,6 +281,7 @@ senderModules = package "senderModules" $ do
   incl mkSendServoOutputRaw
   incl mkSendGpsRawInt
   incl mkSendGlobalPositionInt
+  incl mkSendParamValue
 
   depend P.positionTypeModule
   depend M.motorsTypeModule

@@ -13,7 +13,7 @@ module SMACCMPilot.Mavlink.Messages.GlobalVisionPositionEstimate where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
-import qualified SMACCMPilot.Shared as S
+import qualified SMACCMPilot.Communications as Comm
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -47,7 +47,7 @@ struct global_vision_position_estimate_msg
 mkGlobalVisionPositionEstimateSender ::
   Def ('[ ConstRef s0 (Struct "global_vision_position_estimate_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 S.MavLinkArray -- tx buffer
+        , Ref s1 Comm.MAVLinkArray -- tx buffer
         ] :-> ())
 mkGlobalVisionPositionEstimateSender =
   proc "mavlink_global_vision_position_estimate_msg_send"

@@ -1,10 +1,17 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE DeriveFoldable #-}
+{-# LANGUAGE DeriveTraversable #-}
 
 module SMACCMPilot.Flight
   ( flight
   , hil
   ) where
+
+import Control.Applicative ((<$>))
+import Data.Foldable (Foldable)
+import Data.Traversable (Traversable(..))
 
 import Ivory.Language
 import Ivory.Tower
@@ -24,8 +31,10 @@ import SMACCMPilot.Flight.BlinkTask
 import SMACCMPilot.Flight.GCS.Tower
 import SMACCMPilot.Flight.GCS.Transmit.MessageDriver (senderModules)
 import SMACCMPilot.Flight.GPS
+import SMACCMPilot.Flight.Param
 
 import SMACCMPilot.Console (consoleModule)
+import SMACCMPilot.Param
 
 import SMACCMPilot.Mavlink.Messages (mavlinkMessageModules)
 import SMACCMPilot.Mavlink.Send (mavlinkSendModule)
@@ -42,6 +51,16 @@ import qualified Ivory.BSP.STM32F4.GPIO as GPIO
 import qualified Ivory.BSP.STM32F4.UART as UART
 import           Ivory.BSP.STM32F4.RCC (BoardHSE(..))
 
+-- | All parameters in the system.
+data SysParams f = SysParams
+  { sysFlightParams :: FlightParams f
+  } deriving (Functor, Foldable, Traversable)
+
+-- | Initialize the system parameter groups.
+sysParams :: Monad m => ParamT f m (SysParams f)
+sysParams =
+  SysParams <$> group "" flightParams
+
 hil :: (BoardHSE p, MotorOutput p, SensorOrientation p)
     => O.Options
     -> Tower p ()
@@ -49,15 +68,22 @@ hil opts = do
   -- Communication primitives:
   sensors       <- channel
 
+  -- Parameters:
+  (params, paramList) <- initTowerParams sysParams
+  let src_params       = portPairSource <$> params
+  let snk_params       = portPairSink   <$> params
+
   -- Instantiate core:
-  (flightmode, control, motors) <- core (snk sensors)
+  let flightparams = sysFlightParams snk_params
+  (flightmode, control, motors) <- core (snk sensors) flightparams
   motors_state  <- stateProxy motors
   control_state <- stateProxy control
 
   -- HIL-enabled GCS on uart1:
   (istream, ostream) <- uart UART.uart1
+
   gcsTowerHil "uart1" opts istream ostream flightmode
-    control_state motors_state sensors
+    control_state motors_state sensors paramList
 
 flight :: (BoardHSE p, MotorOutput p, SensorOrientation p)
        => O.Options
@@ -68,8 +94,14 @@ flight opts = do
   sensor_state  <- stateProxy (snk sensors)
   position      <- dataport
 
+  -- Parameters:
+  (params, paramList) <- initTowerParams sysParams
+  let src_params       = portPairSource <$> params
+  let snk_params       = portPairSink   <$> params
+
   -- Instantiate core:
-  (flightmode, control, motors) <- core (snk sensors)
+  let flightparams = sysFlightParams snk_params
+  (flightmode, control, motors) <- core (snk sensors) flightparams
   motors_state  <- stateProxy motors
   control_state <- stateProxy control
 
@@ -82,21 +114,24 @@ flight opts = do
 
   -- GCS on UART1:
   (uart1istream, uart1ostream) <- uart UART.uart1
+
   gcsTower "uart1" opts uart1istream uart1ostream flightmode sensor_state
-    (snk position) control_state motors_state
+    (snk position) control_state motors_state paramList
 
 core :: (SingI n)
        => ChannelSink n (Struct "sensors_result")
+       -> FlightParams ParamSink
        -> Tower p ( DataSink (Struct "flightmode")
                   , ChannelSink 16 (Struct "controloutput")
                   , ChannelSink 16 (Struct "motors"))
-core sensors = do
+core sensors flightparams = do
   motors  <- channel
   control <- channel
 
   (userinput, flightmode) <- userInputTower
   task "blink"     $ blinkTask lights flightmode
-  task "control"   $ controlTask flightmode userinput sensors (src control)
+  task "control"   $ controlTask flightmode userinput sensors
+                     (src control) flightparams
   task "motmix"    $ motorMixerTask (snk control) flightmode (src motors)
 
   mapM_ addDepends typeModules

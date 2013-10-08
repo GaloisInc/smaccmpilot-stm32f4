@@ -24,7 +24,7 @@ import qualified Data.ByteString               as B
 import qualified Data.HXStream                 as H
 import qualified Mavlink.Parser                as L
 
-import qualified SMACCMPilot.Shared            as S
+import qualified SMACCMPilot.Communications    as C
 import           Commsec.Commsec
 import           Commsec.CommsecOpts
 
@@ -68,7 +68,7 @@ decrypt errQ ctx = do
 -- Pad out Mavlink packets.
 paddedPacket :: B.ByteString -> B.ByteString
 paddedPacket bs =
-  bs `B.append` (B.pack $ replicate (fromInteger S.mavlinkSize - B.length bs) 0)
+  bs `B.append` (B.pack $ replicate (fromInteger C.mavlinkSize - B.length bs) 0)
 
 -- Filter out packets that aren't the right size and report errors.
 filterCommsecLen :: T.TQueue Error -> Commsec ()
@@ -79,10 +79,10 @@ filterCommsecLen errQ = do
        (writeError errQ "Bad commsec len from UAV")
   set frames
   where
-  f bs = B.length bs == fromInteger S.commsecPkgSize
+  f bs = B.length bs == fromInteger C.commsecPkgSize
 
 mavSize :: Word8
-mavSize = fromInteger S.mavlinkSize
+mavSize = fromInteger C.mavlinkSize
 
 -- Helper to parse mavlink frames.
 parseFrame :: T.TQueue Error -> Commsec ()
@@ -179,7 +179,7 @@ rxLoop errQ ctx s tx =
     when (length (catMaybes mencPackets) /= length paddedPackets)
          (writeError errQ "bad encryption from GCS: ")
     -- hxstream the packets, all of which are for SMACCMPilot
-    let frames = map (H.encode S.airDataTag) (catMaybes mencPackets)
+    let frames = map (H.encode C.airDataTag) (catMaybes mencPackets)
     lift $ mapM_ (P.send s) frames
     set []
     rxLoop' parseSt'
@@ -201,7 +201,7 @@ txLoop errQ ctx rx mavSocket =
     -- decode them
     let (tagframes, hxSt') = H.decode bs hxSt
     -- Get just the frames that are sent to the GCS.
-    let frames = snd $ unzip $ filter ((== S.airDataTag) . fst) tagframes
+    let frames = snd $ unzip $ filter ((== C.airDataTag) . fst) tagframes
     set frames
     -- Filter frames based on commsec length and report errors
     filterCommsecLen errQ
