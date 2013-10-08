@@ -68,7 +68,9 @@ mavlinkSendWithWriter =
              , ival msgId
              ] :: Init (Array 6 (Stored Uint8)))
 
-    seqNum += 1
+    ifte_ (s ==? 255)
+      (store seqNum 0)
+      (store seqNum (s + 1))
     let sz = 6 + payloadLen :: Uint8
 
     arrCopy arr header 0
