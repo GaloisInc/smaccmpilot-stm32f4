@@ -197,7 +197,6 @@ encode tag arr put = do
   put fbo
   put tag
   putencoded
-  put fbo
   where
   putencoded = arrayMap $ \ix -> noBreak $ do
     v  <- deref (arr ! ix)
