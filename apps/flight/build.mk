@@ -35,7 +35,7 @@ FLIGHT_INCLUDES  += -DARM
 # directory in the include file name.  We should clean this up.
 
 FLIGHT_CFLAGS    += $(FLIGHT_INCLUDES)
-FLIGHT_CFLAGS    += -DIVORY_DEPLOY
+FLIGHT_CFLAGS    += -DIVORY_TEST
 
 FLIGHT_CXXFLAGS  += $(FLIGHT_INCLUDES)
 FLIGHT_CXXFLAGS  += -Wno-psabi
