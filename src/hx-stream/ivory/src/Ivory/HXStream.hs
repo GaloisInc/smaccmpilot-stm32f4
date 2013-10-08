@@ -26,6 +26,7 @@ struct hxstream_state
   { offset  :: Stored Sint32
   ; fstate  :: Stored HXState
   ; ftag    :: Stored Uint8 -- Frame tag
+  ; tagSeen :: Stored IBool  -- Has a tag been processed in the current frame?
   }
 
 |]
@@ -34,13 +35,18 @@ struct hxstream_state
 
 emptyStreamState :: Ref s Hx -> Ivory eff ()
 emptyStreamState state = do
-  store (state ~> offset) 0
+  store (state ~> offset)  0
   store (state ~> fstate)  hxstate_progress
+  store (state ~> tagSeen) false
   -- Don't care about the frame tag---shouldn't be read unless there's a new
   -- frame.
 
+-- Should match the initialization in the empty state.
 initStreamState :: Init (Struct "hxstream_state")
-initStreamState = istruct [ fstate .= ival hxstate_progress, offset .= ival 0 ]
+initStreamState = istruct [ fstate  .=  ival hxstate_progress
+                          , offset  .=  ival 0
+                          , tagSeen .= ival false
+                          ]
 
 --------------------------------------------------------------------------------
 -- State-setting helpers
@@ -49,7 +55,9 @@ setState :: Ref s Hx -> HXState -> Ivory eff ()
 setState state = store (state ~> fstate)
 
 setTag :: Ref s Hx -> Tag -> Ivory eff ()
-setTag state = store (state ~> ftag)
+setTag state t = do
+  store (state ~> ftag) t
+  store (state ~> tagSeen) true
 
 -- Increment the offset by one.
 tickOffset :: Ref s Hx -> Ivory eff ()
@@ -92,7 +100,6 @@ decodeSM = proc "decodeSM" $ \state b -> body $ do
   byteRef <- local (ival 0)
   cond_
     [   -- If you see fbo, we're starting a new frame.
-        -- byte.
         b ==? fbo
     ==> emptyStreamState state >> setState state hxstate_tag
         -- Get the tag in the tag state and get ready to process the rest.
@@ -138,6 +145,7 @@ data ScopedFrameHandler s =
     , fhEnd   :: Ivory (AllocEffects s) ()
     }
 
+-- | Decode a byte given a list of frame handlers.
 decodes :: forall s0 s1 . [FrameHandler]
         -> Ref s1 Hx
         -> Uint8
@@ -146,6 +154,7 @@ decodes fhs state b = do
   -- State before decoding byte.
   st0  <- state ~>* fstate
   off  <- state ~>* offset
+  tagB <- state ~>* tagSeen
 
   byte <- call decodeSM state b
 
@@ -154,21 +163,19 @@ decodes fhs state b = do
   tag  <- state ~>* ftag
 
   -- Run each framehandler for which the tag matches.
+  let go k (FrameHandler fh) = when (tag ==? fhTag fh) (k fh)
   let fhLookup :: (ScopedFrameHandler s0 -> Ivory (AllocEffects s0) ())
                -> Ivory (AllocEffects s0) ()
-      fhLookup k =
-        mapM_ (\(FrameHandler fh) -> when (tag ==? fhTag fh)
-                           (k fh))
-              fhs
+      fhLookup k = mapM_ (go k) fhs
 
   cond_
-    [   -- Frame ended.
-        (st0 ==? hxstate_progress) .&& (st1 ==? hxstate_tag)
+    [   -- Frame ended and we processed a full frame, including the tag.
+        (st0 ==? hxstate_progress) .&& (st1 ==? hxstate_tag) .&& tagB
     ==> fhLookup fhEnd
-        -- Getting tag.
+        -- Getting tag: run beginning action for frame.
     ,   (st0 ==? hxstate_tag)
     ==> fhLookup fhBegin
-        -- Got a frame byte: process.
+        -- Got a frame byte: process it.
     ,   (st0 ==? hxstate_progress) .|| (st0 ==? hxstate_esc)
     ==> fhLookup (\fh -> fhData fh byte off)
         -- Idle otherwise.
