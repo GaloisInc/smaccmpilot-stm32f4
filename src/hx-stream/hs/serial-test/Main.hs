@@ -105,11 +105,11 @@ debuggerLoop p state = do
 processByte :: StreamState -> Word8 -> IO StreamState
 processByte s b = do
   let s' = decodeSM b s
-  case completedFrame s' of
-    Just msg -> do
-      putFrame msg
-      return emptyStreamState
-    _ -> return s'
+  when (fstate s' == FrameTag) $ do
+    case ftag s of
+      Nothing -> return ()
+      Just t  -> putFrame (t, extractFrame s)
+  return s'
 
 putFrame :: (Word8,B.ByteString) -> IO ()
 putFrame (tag,fr) = do

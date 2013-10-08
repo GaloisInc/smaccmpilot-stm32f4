@@ -9,6 +9,7 @@ module Data.HXStream
   , fbo
   , ceo
   , emptyStreamState
+  , extractFrame
   , decodeSM
   , decode
   , encode
@@ -40,6 +41,10 @@ data StreamState =
 
 emptyStreamState :: StreamState
 emptyStreamState = StreamState D.empty Nothing FrameProgress
+
+-- | Get a `ByteString` frame from a frame state.
+extractFrame :: StreamState -> B.ByteString
+extractFrame = B.pack . D.toList . frame
 
 -- Append a byte to the frame, escaping if needed.  Assumes we're in the
 -- progress state.
@@ -97,10 +102,9 @@ decode bs state = (D.toList dframes, newSt)
       FrameTag -> case ftag st of
                     -- No tag, throw the frame away.
                     Nothing -> (fs, st')
-                    Just t  -> (fs .++ (t, toBs (frame st)), st')
+                    Just t  -> (fs .++ (t, extractFrame st), st')
       _        -> (fs, st')
     where
-    toBs = B.pack . D.toList
     st' = decodeSM b st
 
 encode :: Tag -> B.ByteString -> B.ByteString
