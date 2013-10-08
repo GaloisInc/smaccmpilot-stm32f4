@@ -16,7 +16,8 @@ library
   exposed-modules:     Commsec.Commsec,
                        Commsec.CommsecServer,
                        Commsec.CommsecOpts,
-                       Mavlink.Parser
+                       Mavlink.Parser,
+                       Mavlink.MessageName
   build-depends:       base,
                        serialport,
                        network,

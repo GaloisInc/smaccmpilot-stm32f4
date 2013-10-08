@@ -11,7 +11,7 @@ data Options = Options
   , sendSalt :: Word32  -- word32
   , recvKey    :: [Word8] -- 16 uint8s
   , recvSalt   :: Word32  -- word32
-  , showErrs   :: Bool    -- Show commsec errors
+  , logLevel :: Integer -- Logging verbosity
   } deriving (Show, Read, Eq)
 
 defaultOpts :: Options
@@ -19,9 +19,9 @@ defaultOpts = Options
   { sendID   = 0
   , sendKey  = []
   , sendSalt = 0
-  , recvKey    = []
-  , recvSalt   = 0
-  , showErrs   = True
+  , recvKey  = []
+  , recvSalt = 0
+  , logLevel = 1
   }
 
 options :: [OptDescr (Options -> Options)]
@@ -41,9 +41,12 @@ options =
   , Option [] ["recvsalt"]
       (ReqArg (\arg opts -> opts { recvSalt = mkSalt arg}) "uint32")
       "receiver salt"
-  , Option [] ["no-errors"]
-      (NoArg (\opts -> opts { showErrs = False }))
-      "Display commsec errors"
+  , Option [] ["quiet"]
+      (NoArg (\opts -> opts { logLevel = 0 }))
+      "No warning or error reporting"
+  , Option [] ["verbose"]
+      (NoArg (\opts -> opts { logLevel = 2 }))
+      "Full debug output"
  ]
 
 mkID :: String -> Word32

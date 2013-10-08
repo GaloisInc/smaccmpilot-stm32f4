@@ -8,24 +8,40 @@ DIR=../../../cabal-dev/bin
 EXEC_MAVPROXY="python mavlink/mavproxy.py --master=tcp:$HOST:$PORT"
 
 # Parameters from "Keys.mk":
-ARGS="--senderid=@BASE_ID@ \
+SERVER_ARGS="--senderid=@BASE_ID@ \
       --sendkey=@BASE_KEY@ \
       --sendsalt=@BASE_SALT@ \
       --recvkey=@UAV_KEY@ \
       --recvsalt=@UAV_SALT@"
 
-echo starting commsec server: $COMMSEC_SERVER $ARGS
-$DIR/$COMMSEC_SERVER $ARGS &
+while getopts "vq" opt; do
+	echo $opt
+	case $opt in
+		v)
+			SERVER_ARGS="$SERVER_ARGS --verbose"
+			;;
+		q)
+			SERVER_ARGS="$SERVER_ARGS --quiet"
+			;;
+		\?)
+			echo "Invalid option: -$OPTARG" >&2
+			exit 1
+			;;
+	esac
+done
+
+echo starting commsec server: $COMMSEC_SERVER $SERVER_ARGS
+$DIR/$COMMSEC_SERVER $SERVER_ARGS &
 
 if [ -z $TERM_APP ]; then
 	path_to_gnometerminal=$(which gnome-terminal)
-  path_to_xterm=$(which xterm)
+	path_to_xterm=$(which xterm)
 	if [ -x "$path_to_gnometerminal" ]; then
 		echo starting mavproxy in a new terminal: $EXEC_MAVPROXY;
 		gnome-terminal -x $EXEC_MAVPROXY;
   elif [ -x "$path_to_xterm" ]; then
 		echo starting mavproxy in a new terminal: $EXEC_MAVPROXY
-    xterm -e "$EXEC_MAVPROXY"
+		xterm -e "$EXEC_MAVPROXY"
 	else
 		echo Cannot find a terminal program. Try setting TERM_APP environment variable;
 		echo User can start mavproxy with: $EXEC_MAVPROXY;
@@ -34,6 +50,7 @@ else
 	echo starting mavproxy in a new terminal: $EXEC_MAVPROXY;
 	$TERM_APP -e "$EXEC_MAVPROXY";
 fi
+
 
 function kill() {
     read -p "$*"
