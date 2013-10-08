@@ -69,9 +69,9 @@ active state b = do
     , (o ==? 3)       ==> (store (state ~> sysid)  b >> continue)
     , (o ==? 4)       ==> (store (state ~> compid) b >> continue)
     , (o ==? 5)       ==> checkMsgID
-    , (o - len <? 6)  ==> gotPayload o
-    , (o - len ==? 6) ==> gotCRCLo -- crc1
-    , (o - len ==? 7) ==> gotCRCHi -- crc1
+    , (o <? len + 6)  ==> gotPayload o
+    , (o ==? len + 6) ==> gotCRCLo -- crc1
+    , (o ==? len + 7) ==> gotCRCHi -- crc1
     , true            ==> fail --- should be impossible!!
     ]
 
