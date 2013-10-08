@@ -9,7 +9,6 @@ module Data.HXStream
   , fbo
   , ceo
   , emptyStreamState
-  , completedFrame
   , decodeSM
   , decode
   , encode
@@ -19,7 +18,6 @@ import           Data.Bits
 import qualified Data.ByteString as B
 import           Data.Word
 import qualified Data.DList as D
-import           Data.Maybe
 
 --------------------------------------------------------------------------------
 
@@ -28,8 +26,7 @@ type Tag = Word8
 instance Show (D.DList Word8) where
   show = show . D.toList
 
-data FrameState = FrameComplete
-                | FrameTag
+data FrameState = FrameTag
                 | FrameProgress
                 | FrameEscape
                 deriving (Eq, Show)
@@ -42,19 +39,12 @@ data StreamState =
     } deriving Show
 
 emptyStreamState :: StreamState
-emptyStreamState = StreamState D.empty Nothing FrameComplete
+emptyStreamState = StreamState D.empty Nothing FrameProgress
 
 -- Append a byte to the frame, escaping if needed.  Assumes we're in the
 -- progress state.
 appendFrame :: Word8 -> StreamState -> StreamState
 appendFrame b s = s { frame = frame s .++ b }
-
--- If we've completed a frame, return it.
-completedFrame :: StreamState -> Maybe (Tag, B.ByteString)
-completedFrame (StreamState fr tag st) =
-  case st == FrameComplete && isJust tag of
-    True  -> Just (fromJust tag, B.pack $ D.toList fr)
-    False -> Nothing
 
 -- | Frame Boundary Octet
 fbo :: Word8
@@ -67,18 +57,14 @@ ceo  = 0x7c
 escape :: Word8 -> Word8
 escape b = b `xor` 0x20
 
--- | When fstate state == FrameComplete && there's a tag, we have a completed
--- frame to pull off.
+-- | When fstate state == FrameTag, the input state contains a completed frame.
+-- The new state is reset.
 decodeSM :: Word8 -> StreamState -> StreamState
 decodeSM b state
-  -- If you see fbo and but we're not in a complete state, it's an end byte.
-  | b == fbo && fstate state /= FrameComplete
-  = state { fstate = FrameComplete }
-  -- Otherwise an fbo is a start byte, so we expect a tag next.  Throw away any
-  -- legacy state.
-  | b == fbo && fstate state == FrameComplete
+  -- If you see fbo, we're starting a new frame.
+  | b == fbo
   = emptyStreamState { fstate = FrameTag }
-  -- Get the tag in the tag state and get ready to process the rest.
+  -- Process the tag byte.
   | fstate state == FrameTag
   = state { ftag = Just b, fstate = FrameProgress }
   -- Progress
@@ -107,11 +93,15 @@ decode bs state = (D.toList dframes, newSt)
   where
   (dframes, newSt) = B.foldl' aux (D.empty, state) bs
   aux (fs,st) b =
-    case completedFrame s' of
-      Just tagfr -> (fs .++ tagfr, emptyStreamState)
-      Nothing    -> (fs, s')
+    case fstate st' of
+      FrameTag -> case ftag st of
+                    -- No tag, throw the frame away.
+                    Nothing -> (fs, st')
+                    Just t  -> (fs .++ (t, toBs (frame st)), st')
+      _        -> (fs, st')
     where
-    s' = decodeSM b st
+    toBs = B.pack . D.toList
+    st' = decodeSM b st
 
 encode :: Tag -> B.ByteString -> B.ByteString
 encode tag ws' = B.pack $ D.toList $ fbo .: tag .: go ws

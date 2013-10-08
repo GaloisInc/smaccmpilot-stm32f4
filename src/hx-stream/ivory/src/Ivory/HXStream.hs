@@ -35,12 +35,12 @@ struct hxstream_state
 emptyStreamState :: Ref s Hx -> Ivory eff ()
 emptyStreamState state = do
   store (state ~> offset) 0
-  store (state ~> fstate)  hxstate_complete
+  store (state ~> fstate)  hxstate_progress
   -- Don't care about the frame tag---shouldn't be read unless there's a new
   -- frame.
 
 initStreamState :: Init (Struct "hxstream_state")
-initStreamState = istruct [ fstate .= ival hxstate_complete, offset .= ival 0 ]
+initStreamState = istruct [ fstate .= ival hxstate_progress, offset .= ival 0 ]
 
 --------------------------------------------------------------------------------
 -- State-setting helpers
@@ -83,21 +83,17 @@ escape = (.^) 0x20 -- XOR with 0x20
 --
 -- If we have
 --
--- hxstate_progress --> hxstate_complete
+-- hxstate_progress --> hxstate_tag
 --
--- It's the end of the frame.
+-- A frame just ended.
 decodeSM :: Def ('[ Ref s Hx, Uint8 ] :-> Uint8)
 decodeSM = proc "decodeSM" $ \state b -> body $ do
   st <- state ~>* fstate
   byteRef <- local (ival 0)
   cond_
-    [   -- If you see fbo and but we're not in a complete state, it's an end
+    [   -- If you see fbo, we're starting a new frame.
         -- byte.
-        (b ==? fbo) .&& (st /=? hxstate_complete)
-    ==> setState state hxstate_complete
-        -- Otherwise an fbo is a start byte, so we expect a tag next.  Throw
-        -- away any legacy state.
-    ,   (b ==? fbo) .&& (st ==? hxstate_complete)
+        b ==? fbo
     ==> emptyStreamState state >> setState state hxstate_tag
         -- Get the tag in the tag state and get ready to process the rest.
     ,   st ==? hxstate_tag
@@ -167,7 +163,7 @@ decodes fhs state b = do
 
   cond_
     [   -- Frame ended.
-        (st0 ==? hxstate_progress) .&& (st1 ==? hxstate_complete)
+        (st0 ==? hxstate_progress) .&& (st1 ==? hxstate_tag)
     ==> fhLookup fhEnd
         -- Getting tag.
     ,   (st0 ==? hxstate_tag)
