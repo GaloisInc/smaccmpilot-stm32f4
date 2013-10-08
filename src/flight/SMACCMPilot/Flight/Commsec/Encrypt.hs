@@ -27,17 +27,12 @@ encryptTask opts rx tx = do
   taskInit (CS.setupCommsec opts)
 
   onChannel rx "gcsTxToEnc" $ \mavStream -> do
-    mav <- local (iarray [])
-    refCopy mav mavStream
-
     pkg <- local (iarray [] :: Init Comm.CommsecArray)
-    CS.copyToPkg (constRef mav) pkg
+    CS.copyToPkg mavStream pkg
     CS.encrypt CS.uavCtx pkg
     emit_ emitter (constRef pkg)
 
   let m = CS.commsecModule opts
   taskModuleDef $ depend m
   withModule m
-
-
 
