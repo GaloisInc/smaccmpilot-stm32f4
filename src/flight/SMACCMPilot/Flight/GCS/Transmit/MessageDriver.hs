@@ -89,8 +89,7 @@ mkSendHeartbeat =
   mode  <- (fm ~>* FM.mode)
   store (hb ~> HB.custom_mode) (mode_to_ac2mode mode)
   store (hb ~> HB.mavtype)      mavtype_quadrotor
-  -- masquerade as an APM so we can use their custom modes, for now
-  store (hb ~> HB.autopilot)    autopilot_ardupilotmega
+  store (hb ~> HB.autopilot)    autopilot_smaccmpilot
   ifte_ armed
     (store (hb ~> HB.base_mode) (mavl_armed + mavl_custom_mode))
     (store (hb ~> HB.base_mode) (mavl_custom_mode))
@@ -101,10 +100,10 @@ mkSendHeartbeat =
   retVoid
 
   where
-  _autopilot_generic, autopilot_ardupilotmega, mavtype_quadrotor :: Uint8
-  _autopilot_generic      = 0 -- MAV_AUTOPILOT_GENERIC
-  autopilot_ardupilotmega = 3 -- MAV_AUTOPILOT_ARDUPILOTMEGA
-  mavtype_quadrotor       = 2 -- MAV_TYPE_QUADROTOR
+  _autopilot_generic, autopilot_smaccmpilot, mavtype_quadrotor :: Uint8
+  _autopilot_generic    = 0 -- MAV_AUTOPILOT_GENERIC
+  autopilot_smaccmpilot = 13 -- MAV_AUTOPILOT_SMACCMPILOT
+  mavtype_quadrotor     = 2 -- MAV_TYPE_QUADROTOR
 
   mavl_armed        = 128
   mavl_custom_mode  = 1
