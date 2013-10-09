@@ -52,8 +52,10 @@ $$($(1)_CBMC_MD): $$($(2)_DEP_FILE)
 	   --cbmc=$(CBMC_EXEC) \
            $$($(1)_INCLS) \
 	   $$($(1)_CBMC_SRCS) \
-           $$($(1)_ENTRY_FUNCS) \
+           tower_entry \
 	   -- -D IVORY_CBMC
+
+           # $$($(1)_ENTRY_FUNCS) \
 
 $$($(1)_CBMC_HTML): $$($(1)_CBMC_MD)
 	# Now make an HTML table.
