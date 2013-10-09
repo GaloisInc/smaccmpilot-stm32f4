@@ -15,51 +15,17 @@ and SMACCMPilot.
 -- Architecture
 --------------------------------------------------------------------------------
 
-  ------------  TCP  ------------------
-  | mavproxy |  -->  | commsec-server |
-  ------------  <--  ------------------
+            ------------  TCP  ------------------
+            | mavproxy |  -->  | commsec-server |
+            ------------  <--  ------------------
 
-  Serial ------------- air -------------
-   -->   | 3DR radio | --> | 3DR radio |
-   <--   ------------- <-- -------------
+  Serial ---------------- air ---------------- UART
+   -->   | smaccm-radio | --> | smaccm-radio | -->
+   <--   ---------------- <-- ---------------- <--
 
-        UART ---------------
-        -->  | SMACCMPilot |
-        <--  ---------------
-
-Inside the commsec-server (this module) is the following:
-
-  ---------------------------------------
-  |               fromSerMVar            |
-  |               ---------->            |
-  | SerialHandler             TCPHandler |
-  |               fromTCPMVar            |
-  |               <----------            |
-  ---------------------------------------
-
-The two handlers talk back and forth via MVars.  The SerialHandler encrypts to
-the autopilot and the TCPHandler decrypts to mavproxy.  Inside each handler are
-two data buffers.
-
-For example, in the TCPHandler, we have
-
-                            --------------
-   to mavproxy (decrypted)  |            | fromSerMVar (encrypted)
-  <-------------------------|-- buffer <-|------------------------
-  from mavproxy (plaintext) |            | fromTCPMVar (plaintext)
-  --------------------------|-> buffer --|----------------------->
-                            |            |
-                            --------------
-
-and in the SerialHandler we have (where SP is 'SMACCMPilot'):
-
-                      --------------
-   to SP (encrypt)    |            | fromTCPMVar (plaintext)
-  <-------------------|-- buffer <-|------------------------
-  from SP (encrypted) |            | fromSerMVar (encrypted)
-  --------------------|-> buffer --|----------------------->
-                      |            |
-                      --------------
+                    ---------------
+                    | SMACCMPilot |
+                    ---------------
 
 --------------------------------------------------------------------------------
 -- Message framing
@@ -68,9 +34,8 @@ and in the SerialHandler we have (where SP is 'SMACCMPilot'):
 Over the air, the radios have their own protocol to frame bytes and perform
 error checks.  We will ensure that each message fits within a single air frame.
 The benfit of doing so is that if an air frame is corrupted, that corruption
-affects a single message.  The air frames are around 250 bytes.  By fiat,
-encrypted packets should be no more than 128 bytes.  (Messages are padded to
-ensure they are exactly 128 bytes.)
+affects a single message.  All MAVLink packets are 80 bytes (shorter messages
+are padded with 0-bytes).  The air frames are around
 
 Encrypted messages (or a "package") is an instance of Galois/Counter Mode
 (AES-GCM) <http://en.wikipedia.org/wiki/Galois/Counter_Mode>.  A package to be
@@ -82,33 +47,28 @@ bytes):
   | id | cntr | msg | tag |
   -------------------------
 
-In our case, messages are Mavlink packets.
+In our case, messages are Mavlink packets.  Thus, commsec payloads are 80+16 bytes.
 
-Independent of our crypto implementation, we use the hxstream protocol for
+Independent of our crypto implementation, we use a simple framing protocol for
 framing between the radio and the ground station and between radio and the
-autopilot respectively.  The hxstream protocol simply marks frame boundaries and
-does no error detection or correction.  Thus, the protocol should only be used
-in transmissions that can be reasonably assumed to have zero loss rates.  So the
-radio receives an air frame, encodes it according to hxstream, and sends it to
-the ground station (autopilot).  Conversely, the ground station (autopilot)
-encodes a message using hxstream to send to the radio.
+autopilot respectively (or if you are testing over serial on the bench, between
+the autopilot and GCS).  The purpose of using the framing protocol is to provide
+a framing protocol at the link-level independent of MAVLink or a particular
+crypto algorithm.
 
-Note that it is OK for byte streams encoded using hxstream to be larger than 128
-bytes since the radio decodes them before transmission.
+The protocol marks frame boundaries and does no error detection or correction.
+Thus, the protocol should only be used in transmissions that can be reasonably
+assumed to have zero loss rates.
 
-In the hxstream protocol, the same special byte (0x7e) is used to mark the
-beginning and end of a frame.  0x73 is then escaped in the message itself,
-guaranteeing that 0x7e is only used as a marker byte.
+In the framing protocol, the special byte (0x7e) marks the beginning of the
+frame, and a frame includes all bytes until a new begin-frame marker is
+encountered.  The first byte of a frame is the frame tag.  Our current tags are
+0 to mark air-data messages (messages between the autopilot and the GCS) and 1
+to mark radio messages (unencrypted messages to be parsed by the radio).
 
-  -----------------------------
-  | 0x7e | escaped msg | 0x7e |
-  -----------------------------
+0x73 is an escape byte, in case 0x7e or 0x73 are encountered in
+the message:
 
-The purpose of using hxstream is to provide a framing protocol at the link
-level independent of Mavlink or a particular crypto algorithm.  In our case, we
-have the follow sequence of bytes sent from the ground station to the radio:
-
-  --------------------------------------------
-  | 0x7e | escaped( id | cntr | tag ) | 0x7e |
-  --------------------------------------------
-
+  ---------------------------------------------
+  | 0x7e | tag | frame0 | 0x7e | tag | frame1 |
+  ---------------------------------------------
