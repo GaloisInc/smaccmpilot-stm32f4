@@ -23,6 +23,7 @@ import qualified SMACCMPilot.Flight.Types.DataRate  as D
 import           SMACCMPilot.Param
 import           SMACCMPilot.Flight.GCS.Stream (defaultPeriods)
 import           SMACCMPilot.Flight.GCS.Receive.Handlers
+import           SMACCMPilot.Flight.GCS.Receive.DataRateMonitor
 import           SMACCMPilot.Mavlink.Messages (mavlinkMessageModules)
 import           SMACCMPilot.Mavlink.CRC (mavlinkCRCModule)
 import qualified SMACCMPilot.Communications         as Comm
@@ -38,7 +39,6 @@ gcsReceiveTask :: (SingI n0, SingI n1, SingI n2, SingI n3, SingI n4)
                -> [Param PortPair]
                -> Task p ()
 gcsReceiveTask mavStream s_src dr_src hil_src param_req_src params = do
-  millis <- withGetTimeMillis
   hil_emitter <- withChannelEmitter hil_src "hil_src"
 
   -- Get lists of parameter readers and writers.
@@ -53,52 +53,40 @@ gcsReceiveTask mavStream s_src dr_src hil_src param_req_src params = do
   withStackSize 1024
   streamPeriodEmitter <- withChannelEmitter s_src "streamperiods"
 
-  -- drEmitter <- withChannelEmitter dr_src "data_rate_chan"
+  drm <- mkDataRateMonitor dr_src
 
   s_periods <- taskLocalInit "periods" defaultPeriods
-  drInfo    <- taskLocal     "dropInfo"
   state     <- taskLocalInit "state"
                  (istruct [ R.status .= ival R.status_IDLE ])
 
   let handlerAux :: Def ('[ Ref s0 (Struct "mavlink_receive_state")
-                          , Ref s1 (Struct "gcsstream_timing")
                           ] :-> ())
-      handlerAux =
-        proc "gcsReceiveHandlerAux" $ \s streams -> body $
+      handlerAux = proc "gcsReceiveHandlerAux" $ \s -> body $
           runHandlers s
             [ handle (paramRequestList read_params param_req_emitter)
             , handle (paramRequestRead getParamIndex param_req_emitter)
             , handle (paramSet getParamIndex setParamValue param_req_emitter)
-            , handle (requestDatastream streams)
+            , handle (requestDatastream s_periods (emit_ streamPeriodEmitter))
             , handle (hilState hil_emitter)
             ]
           where runHandlers s = mapM_ ($ s)
 
   let parseMav :: Def ('[ConstRef s1 Comm.MAVLinkArray] :-> ())
       parseMav = proc "parseMav" $ \mav -> body $ do
-        arrayMap $ \ix -> do b <- deref (mav ! ix)
-                             R.mavlinkReceiveByte state b
-        s <- deref (state ~> R.status)
-        cond_
-          [ (s ==? R.status_GOTMSG) ==> do
-              -- XXX We need to have a story for messages that are parsed
-              -- correctly but are not recognized by the system---one could
-              -- launch a DoS with those, too.
-              t <- getTimeMillis millis
-              store (drInfo ~> D.lastSucc) t
-              call_ handlerAux state s_periods
-              R.mavlinkReceiveReset state
-              -- XXX This should only be called if we got a request_data_stream
-              -- msg.  Here it's called regardless of what incoming Mavlink
-              -- message there is.
-              emit_ streamPeriodEmitter (constRef s_periods)
-          , (s ==? R.status_FAIL)   ==> do
-              (drInfo ~> D.dropped) += 1
-              store (state ~> R.status) R.status_IDLE
-          ]
-
-        -- XXX data rate stuff
-        -- emit_ drEmitter (constRef drInfo)
+        arrayMap $ \ix -> do
+          b <- deref (mav ! ix)
+          R.mavlinkReceiveByte state b
+          s <- deref (state ~> R.status)
+          cond_
+            [ (s ==? R.status_GOTMSG) ==> do
+                drm_on_success drm
+                call_ handlerAux state
+                R.mavlinkReceiveReset state
+            , (s ==? R.status_FAIL)   ==> do
+                drm_on_fail drm
+                store (state ~> R.status) R.status_IDLE
+            ]
+        drm_report drm
 
   taskInit $ emit_ streamPeriodEmitter (constRef s_periods)
 

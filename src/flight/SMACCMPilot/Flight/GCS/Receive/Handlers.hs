@@ -8,7 +8,6 @@
 module SMACCMPilot.Flight.GCS.Receive.Handlers where
 
 import Control.Monad (forM_)
-import Data.String (fromString)
 
 import Ivory.Language
 import Ivory.Tower
@@ -79,12 +78,15 @@ paramSet getIndex setValue emitter msg = do
     emitV_ emitter ix
 
 requestDatastream :: Ref s1 (Struct "gcsstream_timing")
-                  -> Ref s2 (Struct "request_data_stream_msg") -> Ivory eff ()
-requestDatastream streamperiods msg = do
+                  -> (ConstRef s1 (Struct "gcsstream_timing") -> Ivory eff ())
+                  -> Ref s2 (Struct "request_data_stream_msg")
+                  -> Ivory eff ()
+requestDatastream streamperiods send msg = do
   rsid   <- deref (msg ~> RDS.req_stream_id)
   enable <- deref (msg ~> RDS.start_stop)
   rate   <- deref (msg ~> RDS.req_message_rate)
   updateGCSStreamPeriods streamperiods rsid (enable >? 0) rate
+  send (constRef streamperiods)
 
 hilState :: (SingI n, GetAlloc eff ~ Scope cs)
          => ChannelEmitter n (Struct "hil_state_msg")
