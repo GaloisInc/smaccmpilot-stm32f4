@@ -45,7 +45,7 @@ $$($(1)_CBMC_MD): $$($(2)_DEP_FILE)
 	 $(CBMC_REPORTER) \
             --outfile=$$@ \
             --format=markdown \
-	   --timeout=100 \
+	   --timeout=1000 \
 	   --no-asserts \
 	   --threads=8 \
 	   --sort=result \
