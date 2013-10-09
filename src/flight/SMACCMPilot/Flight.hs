@@ -41,6 +41,8 @@ import SMACCMPilot.Mavlink.Send (mavlinkSendModule)
 import SMACCMPilot.Mavlink.CRC (mavlinkCRCModule)
 import SMACCMPilot.Mavlink.Pack (packModule)
 
+import SMACCMPilot.Hardware.GPS.Types (gpsTypesModule)
+
 import qualified Commsec.CommsecOpts as O
 import Ivory.HXStream
 
@@ -84,6 +86,10 @@ hil opts = do
   gcsTowerHil "uart1" opts istream ostream flightmode
     control_state motors_state sensors paramList
 
+  -- Missing module that comes in via gpsTower:
+  addModule  gpsTypesModule
+  addDepends gpsTypesModule
+
 flight :: (BoardHSE p, MotorOutput p, SensorOrientation p)
        => O.Options
        -> Tower p ()
@@ -91,7 +97,6 @@ flight opts = do
   -- Communication primitives:
   sensors       <- channel
   sensor_state  <- stateProxy (snk sensors)
-  position      <- dataport
 
   -- Parameters:
   (params, paramList) <- initTowerParams sysParams
@@ -105,6 +110,7 @@ flight opts = do
 
   -- GPS Input on uart6 (valid for all px4fmu platforms)
   gps_position <- gpsTower UART.uart6
+  position_state <- stateProxy gps_position
   -- Sensors managed by AP_HAL
   sensorsTower gps_position (src sensors)
   -- Motor output dependent on platform
@@ -114,7 +120,7 @@ flight opts = do
   (uart1istream, uart1ostream) <- uart UART.uart1
 
   gcsTower "uart1" opts uart1istream uart1ostream flightmode sensor_state
-    (snk position) control_state motors_state paramList
+    position_state control_state motors_state paramList
 
 core :: (SingI n)
        => ChannelSink n (Struct "sensors_result")

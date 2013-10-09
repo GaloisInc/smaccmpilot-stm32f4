@@ -6,7 +6,7 @@ module SMACCMPilot.Flight.GCS.Tower
   , gcsTowerHil
   ) where
 
-import Control.Monad(void)
+import Control.Monad (void)
 
 import Ivory.Language
 import Ivory.Tower
@@ -33,7 +33,7 @@ gcsTower :: (SingI n0, SingI n1)
          -> ChannelSource n1 (Stored Uint8)
          -> DataSink (Struct "flightmode")
          -> DataSink (Struct "sensors_result")
-         -> DataSink (Struct "position_result")
+         -> DataSink (Struct "position")
          -> DataSink (Struct "controloutput")
          -> DataSink (Struct "motors")
          -> [Param PortPair]
@@ -72,7 +72,7 @@ gcsTowerAux :: (SingI n0, SingI n1)
          -> ChannelSource n1 (Stored Uint8)
          -> DataSink (Struct "flightmode")
          -> DataSink (Struct "sensors_result")
-         -> DataSink (Struct "position_result")
+         -> DataSink (Struct "position")
          -> DataSink (Struct "controloutput")
          -> DataSink (Struct "motors")
          -> [Param PortPair]

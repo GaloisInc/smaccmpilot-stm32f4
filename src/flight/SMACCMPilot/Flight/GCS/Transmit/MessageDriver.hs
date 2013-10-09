@@ -17,7 +17,8 @@ import qualified MonadLib.Monads                                as M
 import Ivory.Language
 import Ivory.Stdlib
 
-import qualified SMACCMPilot.Flight.Types.Position              as P
+import qualified SMACCMPilot.Hardware.GPS.Types                 as P
+
 import qualified SMACCMPilot.Flight.Types.Motors                as M
 import qualified SMACCMPilot.Flight.Types.Sensors               as Sens
 import qualified SMACCMPilot.Flight.Types.ControlOutput         as C
@@ -135,7 +136,7 @@ mkSendAttitude =
   call_ ATT.mkAttitudeSender (constRef att) seqNum sendArr
   retVoid
 
-mkSendVfrHud :: Def ('[ (Ref s0 (Struct "position_result"))
+mkSendVfrHud :: Def ('[ (Ref s0 (Struct "position"))
                       , (Ref s0 (Struct "controloutput"))
                       , (Ref s0 (Struct "sensors_result"))
 
@@ -160,27 +161,23 @@ mkSendVfrHud = proc "gcs_transmit_send_vfrhud"
   call_ HUD.mkVfrHudSender (constRef hud) seqNum sendArr
   retVoid
   where
-  calcSpeed :: Ref s (Struct "position_result") -> Ivory eff IFloat
+  calcSpeed :: Ref s (Struct "position") -> Ivory eff IFloat
   calcSpeed pos = do
-    vx <- (pos ~>* P.vx)
-    vy <- (pos ~>* P.vy)
-    vz <- (pos ~>* P.vz)
-    vxf <- assign (safeCast vx)
-    vyf <- assign (safeCast vy)
-    vzf <- assign (safeCast vz)
-    sumsquares <- assign (vxf * vxf + vyf * vyf + vzf * vzf)
-    return $ sqrt sumsquares
+    -- vground is in cm/sec
+    vground <- (pos ~>* P.vground)
+    return $ (safeCast vground) / 100.0
 
-  calcAltitude :: Ref s (Struct "position_result") -> Ivory eff IFloat
+  calcAltitude :: Ref s (Struct "position") -> Ivory eff IFloat
   calcAltitude pos = do
-    milimeters <- (pos ~>* P.gps_alt)
+    milimeters <- (pos ~>* P.alt)
     mm_float <- assign $ safeCast milimeters
     return (mm_float / 1000)
 
-  calcVertSpeed :: (Ref s (Struct "position_result")) -> Ivory eff IFloat
+  calcVertSpeed :: (Ref s (Struct "position")) -> Ivory eff IFloat
   calcVertSpeed pos = do
-    meterspersec <- (pos ~>* P.vz)
-    return $ (safeCast meterspersec :: IFloat)
+    -- vdown is in cm/sec. Output is opposite sign (positive is up)
+    meterspersec <- (pos ~>* P.vdown)
+    return $ -1.0 * ((safeCast meterspersec :: IFloat) / 100.0)
 
   calcHeading :: Ref s (Struct "sensors_result") -> Ivory eff Sint16
   calcHeading sens = do
@@ -204,12 +201,13 @@ mkSendServoOutputRaw =
   $ \state ctl seqNum sendArr -> body
   $ do
   msg <- local (istruct [])
-  -- XXX MAPPING FROM MOTOR POSITION TO SERVO VALUE IS PROBABLY NOT CORRECT
-  (state ~> M.frontleft)  `motIntoSvo` (msg ~> SVO.servo1_raw)
-  (state ~> M.frontright) `motIntoSvo` (msg ~> SVO.servo2_raw)
-  (state ~> M.backleft)   `motIntoSvo` (msg ~> SVO.servo3_raw)
+  -- ArduCopter Quad X numbering scheme:
+  (state ~> M.frontright) `motIntoSvo` (msg ~> SVO.servo1_raw)
+  (state ~> M.backleft)   `motIntoSvo` (msg ~> SVO.servo2_raw)
+  (state ~> M.frontleft)  `motIntoSvo` (msg ~> SVO.servo3_raw)
   (state ~> M.backright)  `motIntoSvo` (msg ~> SVO.servo4_raw)
-
+  -- Send out control values for debugging:
+  (ctl ~> C.yaw)        `ctlIntoSvo` (msg ~> SVO.servo5_raw)
   (ctl ~> C.pitch)      `ctlIntoSvo` (msg ~> SVO.servo6_raw)
   (ctl ~> C.roll)       `ctlIntoSvo` (msg ~> SVO.servo7_raw)
   (ctl ~> C.throttle)   `ctlIntoSvo` (msg ~> SVO.servo8_raw)
@@ -226,23 +224,29 @@ mkSendServoOutputRaw =
     c <- deref cref
     store sref (castWith 9999 ((c * 100) + 100))
 
-mkSendGpsRawInt :: Sender "position_result"
+mkSendGpsRawInt :: Sender "position"
 mkSendGpsRawInt = proc "gcs_transmit_send_gps_raw_int" $
   \pos seqNum sendArr -> body $ do
   msg <- local (istruct [])
-  (pos ~> P.lat)     `into` (msg ~> GRI.lat)
-  (pos ~> P.lon)     `into` (msg ~> GRI.lon)
-  (pos ~> P.gps_alt) `into` (msg ~> GRI.alt)
-  store (msg ~> GRI.eph) 10
-  store (msg ~> GRI.epv) 10
-  store (msg ~> GRI.vel) 1 -- XXX can calculate this
-  store (msg ~> GRI.cog) 359 -- XXX can calulate this
-  store (msg ~> GRI.fix_type) 3 -- 3d fix
-  store (msg ~> GRI.satellites_visible) 8
+  fix <- deref (pos ~> P.fix)
+  fix_type <- assign $ (fix ==? P.fix_3d) ? (3, (fix ==? P.fix_2d) ? (2,0))
+  store (msg ~> GRI.fix_type) fix_type
+  (pos ~> P.lat) `into` (msg ~> GRI.lat)
+  (pos ~> P.lon) `into` (msg ~> GRI.lon)
+  (pos ~> P.alt) `into` (msg ~> GRI.alt)
+  num_sv  <- deref (pos ~> P.num_sv)
+  dop     <- deref (pos ~> P.dop)
+  vground <- deref (pos ~> P.vground)
+  heading <- deref (pos ~> P.heading)
+  store (msg ~> GRI.eph) (castWith 0 (100.0 * dop)) -- cm
+  store (msg ~> GRI.epv) 65535 -- designates 'unknown value'
+  store (msg ~> GRI.vel) (castWith 0 vground) -- cm/s
+  store (msg ~> GRI.cog) (castWith 0 (100.0 * heading)) -- centidegrees
+  store (msg ~> GRI.satellites_visible) num_sv
   call_ GRI.mkGpsRawIntSender (constRef msg) seqNum sendArr
   retVoid
 
-mkSendGlobalPositionInt :: Def ('[ (Ref s (Struct "position_result"))
+mkSendGlobalPositionInt :: Def ('[ (Ref s (Struct "position"))
                                  , (Ref s (Struct "sensors_result"))
                                  , Ref s' (Stored Uint8)
                                  , Ref s' Comm.MAVLinkArray
@@ -253,12 +257,21 @@ mkSendGlobalPositionInt = proc "gcs_transmit_send_global_position_int" $
   yawfloat <- (sens ~>* Sens.yaw)
   yawscaled <- assign $ (10*180/pi)*yawfloat -- radians to 10*degrees
   store (msg ~> GPI.hdg) (castWith 9999 yawscaled)
-  (pos ~> P.lat)     `into` (msg ~> GPI.lat)
-  (pos ~> P.lon)     `into` (msg ~> GPI.lon)
-  (pos ~> P.gps_alt) `into` (msg ~> GPI.alt)
-  (pos ~> P.vx) `into` (msg ~> GPI.vx)
-  (pos ~> P.vy) `into` (msg ~> GPI.vy)
-  (pos ~> P.vz) `into` (msg ~> GPI.vz)
+  (pos ~> P.lat) `into` (msg ~> GPI.lat)
+  (pos ~> P.lon) `into` (msg ~> GPI.lon)
+  (pos ~> P.alt) `into` (msg ~> GPI.alt)
+  -- velocity north, cm/s:
+  vnorth <- (pos ~>* P.vnorth)
+  store (msg ~> GPI.vx) (castWith 0 vnorth)
+  -- velocity east, cm/s:
+  veast <- (pos ~>* P.veast)
+  store (msg ~> GPI.vy) (castWith 0 veast)
+  -- velocity up, cm/s
+  vdown <- (pos ~>* P.vdown)
+  store (msg ~> GPI.vz) (-1 * (castWith 0 vdown))
+  -- heading in centidegrees
+  hdeg <- (pos ~>* P.heading)
+  store (msg ~> GPI.hdg) (100 * (castWith 0 hdeg))
   call_ GPI.mkGlobalPositionIntSender (constRef msg) seqNum sendArr
   retVoid
 
@@ -282,7 +295,7 @@ senderModules = package "senderModules" $ do
   incl mkSendGlobalPositionInt
   incl mkSendParamValue
 
-  depend P.positionTypeModule
+  depend P.gpsTypesModule
   depend M.motorsTypeModule
   depend Sens.sensorsTypeModule
   depend C.controlOutputTypeModule

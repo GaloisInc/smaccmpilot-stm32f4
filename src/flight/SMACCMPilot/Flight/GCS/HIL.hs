@@ -1,18 +1,20 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module SMACCMPilot.Flight.GCS.HIL where
 
 import Ivory.Language
 import Ivory.Tower
+import Ivory.Stdlib.Trig (iAtan2)
 
 import qualified SMACCMPilot.Mavlink.Messages.HilState as H
 import qualified SMACCMPilot.Flight.Types.Sensors  as S
-import qualified SMACCMPilot.Flight.Types.Position as P
+import qualified SMACCMPilot.Hardware.GPS.Types as P
 
 hilTranslator :: (SingI n, SingI m)
               => ChannelSink   n (Struct "hil_state_msg")
               -> ChannelSource m (Struct "sensors_result")
-              -> DataSource      (Struct "position_result")
+              -> DataSource      (Struct "position")
               -> Task p ()
 hilTranslator hil sens pos = do
   hilevt       <- withChannelEvent   hil  "hil"
@@ -50,14 +52,24 @@ hilTranslator hil sens pos = do
     vx  <- deref (h ~> H.vx)
     vy  <- deref (h ~> H.vy)
     vz  <- deref (h ~> H.vz)
+    (vxf :: IFloat) <- assign $ safeCast vx
+    (vyf :: IFloat) <- assign $ safeCast vy
+    vground <- assign $ sqrt ((vxf * vxf) + (vyf * vyf))
+    heading <- assign $ (iAtan2 (safeCast vx) (safeCast vy))*(180.0/pi)
     p <- local $ istruct
-      [ P.lat     .= ival lat
+      [ P.fix     .= ival P.fix_3d
+      , P.num_sv  .= ival 7
+      , P.dop     .= ival 3.14159
+
+      , P.lat     .= ival lat
       , P.lon     .= ival lon
-      , P.gps_alt .= ival alt_mm
-      , P.vx      .= ival vx
-      , P.vy      .= ival vy
-      , P.vz      .= ival vz
-      , P.time    .= ival time
+      , P.alt     .= ival alt_mm
+
+      , P.vnorth  .= ival (safeCast vx)
+      , P.veast   .= ival (safeCast vy)
+      , P.vdown   .= ival (safeCast vz)
+      , P.vground .= ival (castWith 0 vground)
+      , P.heading .= ival heading
       ]
     writeData pos_writer (constRef p)
 

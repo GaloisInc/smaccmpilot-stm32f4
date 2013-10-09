@@ -51,7 +51,6 @@ library
                        SMACCMPilot.Flight.Types.ControlOutput,
                        SMACCMPilot.Flight.Types.GCSStreamTiming,
                        SMACCMPilot.Flight.Types.OptFlow,
-                       SMACCMPilot.Flight.Types.Position,
                        SMACCMPilot.Flight.Types.Sensors,
                        SMACCMPilot.Flight.Types.Motors,
                        SMACCMPilot.Flight.Types.UserInput,
