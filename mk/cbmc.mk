@@ -32,8 +32,10 @@ $(1)_ENTRY_FUNCS  := $$(patsubst %, --function=%, $$($(2)_SYMS))
 # XXX Hack because we have CFLAGS in our INCLUDES
 $(1)_INCLS        = $$(filter -I%, $$($(1)_INCLUDES))
 
-# All the CBMC HTML (the final output) targets
+# All the CBMC_HTML (the final output) targets.  This is what triggers all the
+# builds for each app.
 CBMC += $$($(1)_CBMC_HTML)
+# CBMC += $$(FLIGHT_CBMC_HTML)
 
 # May not exist, fails silently.  IVORY_PKG_$(1)_HEADERS, IVORY_PKG_$(1)_SOURCES
 # defined here.
@@ -43,14 +45,14 @@ $$($(1)_CBMC_MD): $$($(2)_DEP_FILE)
 	 $(CBMC_REPORTER) \
             --outfile=$$@ \
             --format=markdown \
-	   --timeout=10 \
+	   --timeout=100 \
 	   --no-asserts \
 	   --threads=8 \
 	   --sort=result \
 	   --cbmc=$(CBMC_EXEC) \
            $$($(1)_INCLS) \
 	   $$($(1)_CBMC_SRCS) \
-	   $$($(1)_ENTRY_FUNCS) \
+           $$($(1)_ENTRY_FUNCS) \
 	   -- -D IVORY_CBMC
 
 $$($(1)_CBMC_HTML): $$($(1)_CBMC_MD)
