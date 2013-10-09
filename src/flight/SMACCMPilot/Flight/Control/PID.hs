@@ -14,7 +14,8 @@ import Ivory.Stdlib
 
 controlPIDModule :: Module
 controlPIDModule = package "control_pid" $ do
-  defStruct (Proxy :: Proxy "PID")
+  defStruct (Proxy :: Proxy "PIDState")
+  defStruct (Proxy :: Proxy "PIDConfig")
   incl fconstrain
   incl pid_update
 
@@ -22,16 +23,19 @@ controlPIDModule = package "control_pid" $ do
 -- Generic PID Controller
 
 [ivory|
-  struct PID
+  struct PIDState
+    { pid_iState :: Stored IFloat
+    ; pid_dState :: Stored IFloat
+    ; pid_reset  :: Stored Uint8
+    }
+
+  struct PIDConfig
     { pid_pGain  :: Stored IFloat
     ; pid_iGain  :: Stored IFloat
     ; pid_dGain  :: Stored IFloat
-    ; pid_iState :: Stored IFloat
     ; pid_iMin   :: Stored IFloat
     ; pid_iMax   :: Stored IFloat
-    ; pid_dState :: Stored IFloat
-    ; pid_reset  :: Stored Uint8
-  }
+    }
 |]
 
 notFloatNan :: IFloat -> IBool
@@ -39,16 +43,19 @@ notFloatNan flt = (iNot $ isnan flt) .&& (iNot $ isinf flt)
 
 -- | Update a PID controller given an error value and measured value
 -- and return the output value.
-pid_update :: Def ('[(Ref s1 (Struct "PID")), IFloat, IFloat] :-> IFloat)
-pid_update = proc "pid_update" $ \pid err pos ->
+pid_update :: Def ('[ Ref      s1 (Struct "PIDState")
+                    , ConstRef s2 (Struct "PIDConfig")
+                    , IFloat
+                    , IFloat] :-> IFloat)
+pid_update = proc "pid_update" $ \pid cfg err pos ->
   requires (notFloatNan err) $ requires (notFloatNan pos)
   $ body $ do
-  p_term  <- fmap (* err) (pid~>*pid_pGain)
+  p_term  <- fmap (* err) (cfg~>*pid_pGain)
 
-  i_min   <- pid~>*pid_iMin
-  i_max   <- pid~>*pid_iMax
+  i_min   <- cfg~>*pid_iMin
+  i_max   <- cfg~>*pid_iMax
   pid~>pid_iState %=! (call fconstrain i_min i_max . (+ err))
-  i_term  <- liftA2 (*) (pid~>*pid_iGain) (pid~>*pid_iState)
+  i_term  <- liftA2 (*) (cfg~>*pid_iGain) (pid~>*pid_iState)
 
   reset      <- pid~>*pid_reset
   d_term_var <- local (ival 0)
@@ -56,7 +63,7 @@ pid_update = proc "pid_update" $ \pid err pos ->
   ifte_ (reset /=? 0)
     (store (pid~>pid_reset) 0)
     (do d_state <- pid~>*pid_dState
-        d_gain  <- pid~>*pid_dGain
+        d_gain  <- cfg~>*pid_dGain
         store d_term_var (d_gain * (pos - d_state)))
   store (pid~>pid_dState) pos
 

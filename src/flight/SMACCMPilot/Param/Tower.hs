@@ -14,16 +14,14 @@
 
 module SMACCMPilot.Param.Tower where
 
-import Data.Char (ord)
 import Data.Traversable (Traversable, traverse)
 
 import Ivory.Language
 import Ivory.Tower
-import Ivory.Stdlib (ifte, when)
+import Ivory.Stdlib (when)
 import Ivory.Stdlib.String
 
 import SMACCMPilot.Param.Base
-import SMACCMPilot.Param.TowerTypes
 
 import qualified SMACCMPilot.Mavlink.Messages.ParamValue as PV
 
@@ -71,9 +69,9 @@ paramWriter :: (DataPortable i, Traversable a)
 paramWriter = traverse (\x -> withDataWriter x "paramWriter")
 
 -- | Read the float values of a parameter tree.
-paramRead :: (Traversable a)
+paramRead :: (GetAlloc eff ~ Scope s, Traversable a)
           => a ParamReader
-          -> Ivory (ProcEffects s ()) (a IFloat)
+          -> Ivory eff (a IFloat)
 paramRead =
   traverse $ \d -> do
     x <- local (ival 0.0)

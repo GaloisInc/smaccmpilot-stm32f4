@@ -70,8 +70,7 @@ hil opts = do
 
   -- Parameters:
   (params, paramList) <- initTowerParams sysParams
-  let src_params       = portPairSource <$> params
-  let snk_params       = portPairSink   <$> params
+  let snk_params       = portPairSink <$> params
 
   -- Instantiate core:
   let flightparams = sysFlightParams snk_params
@@ -96,8 +95,7 @@ flight opts = do
 
   -- Parameters:
   (params, paramList) <- initTowerParams sysParams
-  let src_params       = portPairSource <$> params
-  let snk_params       = portPairSink   <$> params
+  let snk_params       = portPairSink <$> params
 
   -- Instantiate core:
   let flightparams = sysFlightParams snk_params

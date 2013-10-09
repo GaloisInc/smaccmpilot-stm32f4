@@ -31,6 +31,15 @@ controlTask s_fm s_inpt s_sens s_ctl params = do
   fm   <- taskLocal "flightmode"
   inpt <- taskLocal "input"
   ctl  <- taskLocal "control"
+
+  -- Generate the stabilization function from the parameter set.
+  --
+  -- TODO: We can generate more than one function here and switch
+  -- between them at the call site to use different PID tunings
+  -- depending on the flight mode.
+  param_reader      <- paramReader params
+  let stabilize_run  = makeStabilizeRun param_reader
+
   onChannel s_sens "sensors" $ \sens -> do
       readData fmReader   fm
       readData uiReader   inpt
@@ -47,4 +56,4 @@ controlTask s_fm s_inpt s_sens s_ctl params = do
     depend SENS.sensorsTypeModule
     depend CO.controlOutputTypeModule
     depend stabilizeControlLoopsModule
-
+    incl stabilize_run
