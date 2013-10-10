@@ -12,6 +12,7 @@ module SMACCMPilot.Mavlink.Messages
 import Data.Word (Word8)
 import Ivory.Language
 
+import qualified SMACCMPilot.Mavlink.Messages.Radio
 import qualified SMACCMPilot.Mavlink.Messages.Data16
 import qualified SMACCMPilot.Mavlink.Messages.Data32
 import qualified SMACCMPilot.Mavlink.Messages.Data64
@@ -99,7 +100,8 @@ import qualified SMACCMPilot.Mavlink.Messages.Debug
 
 mavlinkMessageModules :: [Module]
 mavlinkMessageModules =
-  [ SMACCMPilot.Mavlink.Messages.Data16.data16Module
+  [ SMACCMPilot.Mavlink.Messages.Radio.radioModule
+  , SMACCMPilot.Mavlink.Messages.Data16.data16Module
   , SMACCMPilot.Mavlink.Messages.Data32.data32Module
   , SMACCMPilot.Mavlink.Messages.Data64.data64Module
   , SMACCMPilot.Mavlink.Messages.Heartbeat.heartbeatModule
@@ -189,7 +191,8 @@ mavlinkMessageModules =
 -- [(Message Id, (Message Length, Message CRC))]
 messageLensCRCs :: [(Word8, (Word8, Word8))]
 messageLensCRCs =
-  [ (169, ( 18,  46)) -- 0xA9 DATA16
+  [ (166, (  9,  21)) -- 0xA6 RADIO
+  , (169, ( 18,  46)) -- 0xA9 DATA16
   , (170, ( 34, 240)) -- 0xAA DATA32
   , (171, ( 66, 170)) -- 0xAB DATA64
   , (  0, (  9,  50)) -- 0x00 HEARTBEAT
