@@ -35,15 +35,19 @@ gcsReceiveTask :: (SingI n0, SingI n1, SingI n2, SingI n3, SingI n4)
                -> ChannelSource n2 (Struct "data_rate_state")
                -> ChannelSource n3 (Struct "hil_state_msg")
                -> ChannelSource n4 (Stored Sint16)  -- param_request
+               -> DataSource       (Struct "rc_channels_override_msg")
                -> [Param PortPair]
                -> Task p ()
-gcsReceiveTask mavStream s_src dr_src hil_src param_req_src params = do
+gcsReceiveTask mavStream s_src dr_src hil_src param_req_src rcOvr_snk params = do
+  millis <- withGetTimeMillis
   hil_emitter <- withChannelEmitter hil_src "hil_src"
 
   -- Get lists of parameter readers and writers.
   write_params      <- traverse paramWriter (map (fmap portPairSource) params)
   read_params       <- traverse paramReader (map (fmap portPairSink)   params)
   param_req_emitter <- withChannelEmitter param_req_src "param_req"
+
+  rcOverride_writer <- withDataWriter rcOvr_snk "rc_override_tx"
 
   -- Generate functions from parameter list.
   getParamIndex     <- makeGetParamIndex read_params
@@ -67,6 +71,7 @@ gcsReceiveTask mavStream s_src dr_src hil_src param_req_src params = do
             , handle (paramSet getParamIndex setParamValue param_req_emitter)
             , handle (requestDatastream s_periods (emit_ streamPeriodEmitter))
             , handle (hilState hil_emitter)
+            , handle (rcOverride rcOverride_writer)
             ]
           where runHandlers s = mapM_ ($ s)
 

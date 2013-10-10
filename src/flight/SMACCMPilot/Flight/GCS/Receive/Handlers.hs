@@ -10,18 +10,22 @@ module SMACCMPilot.Flight.GCS.Receive.Handlers where
 import Control.Monad (forM_)
 
 import Ivory.Language
-import Ivory.Tower
 import Ivory.Stdlib
 
 import           SMACCMPilot.Mavlink.Messages (mavlinkMessageModules)
-import qualified SMACCMPilot.Mavlink.Messages.RequestDataStream as RDS
-import qualified SMACCMPilot.Mavlink.Messages.ParamSet as PS
-import qualified SMACCMPilot.Mavlink.Messages.ParamRequestRead as PRR
-import qualified SMACCMPilot.Mavlink.Receive as R
+import qualified SMACCMPilot.Mavlink.Messages.RequestDataStream  as RDS
+import qualified SMACCMPilot.Mavlink.Messages.ParamSet           as PS
+import qualified SMACCMPilot.Mavlink.Messages.ParamRequestRead   as PRR
+import           SMACCMPilot.Mavlink.Messages.RcChannelsOverride()
+
+import qualified SMACCMPilot.Mavlink.Receive                     as R
 import           SMACCMPilot.Mavlink.Unpack
 
 import           SMACCMPilot.Param
 import           SMACCMPilot.Flight.GCS.Stream (updateGCSStreamPeriods)
+
+--------------------------------------------------------------------------------
+-- Params
 
 -- | Send a request to the GCS transmit task to send each parameter.
 paramRequestList :: (SingI n)
@@ -74,6 +78,8 @@ paramSet getIndex setValue emitter msg = do
     call_  setValue ix val
     emitV_ emitter ix
 
+--------------------------------------------------------------------------------
+
 requestDatastream :: Ref s1 (Struct "gcsstream_timing")
                   -> (ConstRef s1 (Struct "gcsstream_timing") -> Ivory eff ())
                   -> Ref s2 (Struct "request_data_stream_msg")
@@ -85,13 +91,26 @@ requestDatastream streamperiods send msg = do
   updateGCSStreamPeriods streamperiods rsid (enable >? 0) rate
   send (constRef streamperiods)
 
+--------------------------------------------------------------------------------
+
 hilState :: (SingI n, GetAlloc eff ~ Scope cs)
          => ChannelEmitter n (Struct "hil_state_msg")
          -> Ref s (Struct "hil_state_msg")
          -> Ivory eff ()
 hilState e r = emit_ e (constRef r)
 
--- | Handles a specific Mavlink message, where 'unpack' is a method of the
+--------------------------------------------------------------------------------
+
+-- | Handle RC override messages.
+rcOverride :: (GetAlloc eff ~ Scope cs)
+           => DataWriter (Struct "rc_channels_override_msg")
+           -> Ref s (Struct "rc_channels_override_msg")
+           -> Ivory eff ()
+rcOverride d = writeData d . constRef
+
+--------------------------------------------------------------------------------
+
+-- | Handles a specific Mavlink message, where 'unpackMsg' is a method of the
 -- 'MavlinkUnpackageMsg'.
 handle :: (GetAlloc eff ~ Scope s, MavlinkUnpackableMsg t, IvoryStruct t)
        => (Ref (Stack s) (Struct t) -> Ivory eff ())
@@ -105,6 +124,10 @@ handle handler rxstate = do
     call_ unpacker msg (toCArray (constRef (rxstate ~> R.payload)))
     handler msg
 
+--------------------------------------------------------------------------------
+
 handlerModuleDefs :: ModuleDef
 handlerModuleDefs = mapM_ depend mavlinkMessageModules
+
+--------------------------------------------------------------------------------
 

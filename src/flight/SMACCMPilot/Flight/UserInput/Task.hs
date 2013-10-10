@@ -15,6 +15,8 @@ import Ivory.Tower
 import SMACCMPilot.Flight.Types.UserInput
 import SMACCMPilot.Flight.UserInput.Decode
 
+--------------------------------------------------------------------------------
+
 userInputTower :: Tower p ( DataSink (Struct "userinput_result")
                           , DataSink (Struct "flightmode"))
 userInputTower = do
@@ -23,6 +25,8 @@ userInputTower = do
   task "userInput" $ userInputTask src_userinput src_flightmode
   addModule userInputDecodeModule
   return (snk_userinput, snk_flightmode)
+
+--------------------------------------------------------------------------------
 
 userInputTask :: DataSource (Struct "userinput_result")
               -> DataSource (Struct "flightmode")
@@ -48,7 +52,11 @@ userInputTask uis fms = do
     inclHeader "apwrapper/userinput_capture.h"
     incl userInputCapture
 
+--------------------------------------------------------------------------------
+
 -- This talks to the AP_HAL via c++, so we have to extern it completely
 userInputCapture :: Def ('[ Ref s1 (Array 8 (Stored Uint16)) ] :-> IBool)
 userInputCapture = externProc "userinput_capture"
+
+--------------------------------------------------------------------------------
 

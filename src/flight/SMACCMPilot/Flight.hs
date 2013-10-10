@@ -28,6 +28,7 @@ import SMACCMPilot.Flight.Motors.Platforms
 import SMACCMPilot.Flight.Sensors.Task
 import SMACCMPilot.Flight.Sensors.Platforms
 import SMACCMPilot.Flight.UserInput.Task
+import SMACCMPilot.Flight.UserInput.RCOverride
 import SMACCMPilot.Flight.BlinkTask
 import SMACCMPilot.Flight.GCS.Tower
 import SMACCMPilot.Flight.GCS.Transmit.MessageDriver (senderModules)
@@ -72,13 +73,16 @@ hil opts = do
   -- Communication primitives:
   sensors       <- channel
 
+  -- RC override dataport:
+  (rcOvrTx, rcOvrRx) <- dataport
+
   -- Parameters:
   (params, paramList) <- initTowerParams sysParams
   let snk_params       = portPairSink <$> params
 
   -- Instantiate core:
   let flightparams = sysFlightParams snk_params
-  (flightmode, control, motors) <- core (snk sensors) flightparams
+  (flightmode, control, motors) <- core (snk sensors) flightparams rcOvrRx
   motors_state  <- stateProxy motors
   control_state <- stateProxy control
 
@@ -86,7 +90,7 @@ hil opts = do
   (istream, ostream) <- uart UART.uart1
 
   gcsTowerHil "uart1" opts istream ostream flightmode
-    control_state motors_state sensors paramList
+    control_state motors_state sensors rcOvrTx paramList
 
   addModule (commsecModule opts)
   -- Missing module that comes in via gpsTower:
@@ -101,13 +105,16 @@ flight opts = do
   sensors       <- channel
   sensor_state  <- stateProxy (snk sensors)
 
+  -- RC override dataport:
+  (rcOvrTx, rcOvrRx) <- dataport
+
   -- Parameters:
   (params, paramList) <- initTowerParams sysParams
   let snk_params       = portPairSink <$> params
 
   -- Instantiate core:
   let flightparams = sysFlightParams snk_params
-  (flightmode, control, motors) <- core (snk sensors) flightparams
+  (flightmode, control, motors) <- core (snk sensors) flightparams rcOvrRx
   motors_state  <- stateProxy motors
   control_state <- stateProxy control
 
@@ -122,7 +129,7 @@ flight opts = do
   -- GCS on UART1:
   (uart1istream, uart1ostream) <- uart UART.uart1
   gcsTower "uart1" opts uart1istream uart1ostream flightmode sensor_state
-    position_state control_state motors_state paramList
+    position_state control_state motors_state rcOvrTx paramList
 
   -- GCS on UART5:
   (uart5istream, uart5ostream) <- uart UART.uart5
@@ -134,18 +141,21 @@ flight opts = do
 core :: (SingI n)
        => ChannelSink n (Struct "sensors_result")
        -> FlightParams ParamSink
+       -> DataSink (Struct "rc_channels_override_msg")
        -> Tower p ( DataSink (Struct "flightmode")
                   , ChannelSink 16 (Struct "controloutput")
                   , ChannelSink 16 (Struct "motors"))
-core sensors flightparams = do
+core sensors flightparams rcOvrRx = do
   motors  <- channel
   control <- channel
 
   (userinput, flightmode) <- userInputTower
-  task "blink"     $ blinkTask lights flightmode
-  task "control"   $ controlTask flightmode userinput sensors
-                     (src control) flightparams
-  task "motmix"    $ motorMixerTask (snk control) flightmode (src motors)
+  task "blink"      $ blinkTask lights flightmode
+  task "control"    $ controlTask flightmode userinput sensors
+                       (src control) flightparams
+  task "motmix"     $ motorMixerTask (snk control) flightmode (src motors)
+  -- Handler for RC override MAVLink messages.
+  task "rcOverride" $ rcOverrideTask rcOvrRx
 
   mapM_ addDepends typeModules
   mapM_ addModule otherms

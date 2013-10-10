@@ -62,6 +62,8 @@ library
 
                        SMACCMPilot.Flight.UserInput.Decode,
                        SMACCMPilot.Flight.UserInput.Task,
+                       SMACCMPilot.Flight.UserInput.RCOverride,
+                       SMACCMPilot.Flight.UserInput.Mux,
 
                        SMACCMPilot.Param,
                        SMACCMPilot.Param.Base,

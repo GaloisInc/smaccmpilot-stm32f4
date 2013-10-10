@@ -36,10 +36,12 @@ gcsTower :: (SingI n0, SingI n1)
          -> DataSink (Struct "position")
          -> DataSink (Struct "controloutput")
          -> DataSink (Struct "motors")
+         -> DataSource (Struct "rc_channels_override_msg")
          -> [Param PortPair]
          -> Tower p ()
-gcsTower name opts istream ostream fm sens pos ctl motor params =
-  void (gcsTowerAux name opts istream ostream fm sens pos ctl motor params)
+gcsTower name opts istream ostream fm sens pos ctl motor rcOvrTx params =
+  void
+    (gcsTowerAux name opts istream ostream fm sens pos ctl motor rcOvrTx params)
 
 --------------------------------------------------------------------------------
 
@@ -53,12 +55,13 @@ gcsTowerHil :: (SingI n0, SingI n1)
          -> DataSink (Struct "motors")
          -> ( ChannelSource 16 (Struct "sensors_result")
             , ChannelSink 16 (Struct "sensors_result"))
+         -> DataSource (Struct "rc_channels_override_msg")
          -> [Param PortPair]
          -> Tower p ()
-gcsTowerHil name opts istream ostream fm ctl motor sensors params = do
+gcsTowerHil name opts istream ostream fm ctl motor sensors rcOvrTx params = do
   sensors_state <- stateProxy (snk sensors)
   position      <- dataport
-  hil <- gcs fm sensors_state (snk position) ctl motor params
+  hil <- gcs fm sensors_state (snk position) ctl motor rcOvrTx params
   task "hilTranslator" $ hilTranslator hil (src sensors) (src position)
   where
   gcs = gcsTowerAux name opts istream ostream
@@ -75,9 +78,10 @@ gcsTowerAux :: (SingI n0, SingI n1)
          -> DataSink (Struct "position")
          -> DataSink (Struct "controloutput")
          -> DataSink (Struct "motors")
+         -> DataSource (Struct "rc_channels_override_msg")
          -> [Param PortPair]
          -> Tower p (ChannelSink 4 (Struct "hil_state_msg"))
-gcsTowerAux name opts istream ostream fm sens pos ctl motor params = do
+gcsTowerAux name opts istream ostream fm sens pos ctl motor rcOvrTx params = do
   -- GCS TX and encrypt tasks
   (gcsTxToEncSrc, gcsTxToEncRcv) <- channel
   -- GCS RX and decrypt tasks
@@ -103,7 +107,7 @@ gcsTowerAux name opts istream ostream fm sens pos ctl motor params = do
   task (named "decryptTask") $ Dec.decryptTask opts hxToDecRcv decToGcsRxSrc
   task (named "gcsReceiveTask") $
     gcsReceiveTask decToGcsRxRcv (src streamrate) (src datarate) (src hil)
-      (src param_req) params
+      (src param_req) rcOvrTx params
 
   -- TX
   task (named "encryptTask") $ Enc.encryptTask opts gcsTxToEncRcv encToHxSrc
