@@ -131,8 +131,8 @@ mkSendAttitude =
   (sensors ~> Sens.pitch)   `into` (att ~> ATT.pitch)
   (sensors ~> Sens.yaw)     `into` (att ~> ATT.yaw)
   (sensors ~> Sens.omega_x) `into` (att ~> ATT.rollspeed)
-  (sensors ~> Sens.omega_y) `into` (att ~> ATT.rollspeed)
-  (sensors ~> Sens.omega_z) `into` (att ~> ATT.rollspeed)
+  (sensors ~> Sens.omega_y) `into` (att ~> ATT.pitchspeed)
+  (sensors ~> Sens.omega_z) `into` (att ~> ATT.yawspeed)
   call_ ATT.mkAttitudeSender (constRef att) seqNum sendArr
   retVoid
 
