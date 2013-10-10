@@ -3,6 +3,8 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE QuasiQuotes #-}
 
+{-# OPTIONS_GHC -fno-warn-orphans #-}
+
 module SMACCMPilot.Flight.UserInput.Decode where
 
 import Prelude hiding (last)
@@ -13,6 +15,8 @@ import Ivory.Stdlib
 import qualified SMACCMPilot.Flight.Types.UserInput as I
 import qualified SMACCMPilot.Flight.Types.FlightMode as FM
 
+--------------------------------------------------------------------------------
+
 userInputDecodeModule :: Module
 userInputDecodeModule = package "userinput_decode" $ do
   depend I.userInputTypeModule
@@ -20,6 +24,7 @@ userInputDecodeModule = package "userinput_decode" $ do
   defStruct (Proxy :: Proxy "userinput_decode_state")
   incl userInputDecode
   incl userInputFailsafe
+  incl setFlightMode
   private $ incl scale_proc
 
 [ivory|
@@ -43,33 +48,43 @@ mode_pwm_map = [(FM.flightModeLoiter,    (900, 1300))  -- AUX 3 up
                ,(FM.flightModeStabilize, (1701, 2100)) -- AUX 3 down
                ]
 
-userInputDecode :: Def ('[ Ref s1 (Array 8 (Stored Uint16))
-                         , Ref s2 (Struct "userinput_decode_state")
-                         , Ref s3 (Struct "userinput_result")
-                         , Ref s3 (Struct "flightmode")
+userInputDecode :: Def ('[ Ref s0 (Array 8 (Stored Uint16))
+                         , Ref s1 (Struct "userinput_result")
                          , Uint32 ] :-> ())
-userInputDecode = proc "userinput_decode" $ \pwms state ui fm now ->
-    requires (checkStored (state ~> arm_state_time) (\ast -> now >=? ast))
-  $ body $ do
+userInputDecode = proc "userinput_decode" $ \pwms ui now ->
+  body $ do
   let chtransform :: (IvoryStore a1)
                   => Ix 8
                   -> (Uint16 -> Ivory eff a1)
                   -> Label "userinput_result" (Stored a1)
                   -> Ivory eff ()
-      chtransform ix f ofield = deref (pwms ! (ix :: Ix 8)) >>=
-                                f >>= \v -> store (ui ~> ofield) v
+      chtransform ix scale ofield = do
+        pwm <- deref (pwms ! (ix :: Ix 8))
+        v <- scale pwm
+        store (ui ~> ofield) v
+
   chtransform 0 scale_rpyt I.roll
   chtransform 1 scale_rpyt I.pitch
   chtransform 2 scale_rpyt I.throttle
   chtransform 3 scale_rpyt I.yaw
+
   store (ui ~> I.time) now
 
+  retVoid
+
+setFlightMode :: Def ('[ Ref s0 (Array 8 (Stored Uint16))
+                       , Ref s1 (Struct "userinput_decode_state")
+                       , Ref s2 (Struct "flightmode")
+                       , Uint32
+                       ] :-> ())
+setFlightMode = proc "set_flight_mode" $ \pwms state fm now ->
+  requires (checkStored (state ~> arm_state_time) (\ast -> now >=? ast))
+  $ body $ do
   armed <- arming_statemachine pwms state now
   mode  <- mode_statemachine pwms state now
   store (fm ~> FM.armed) armed
   store (fm ~> FM.mode)  mode
   store (fm ~> FM.time)  now
-  retVoid
 
 arming_statemachine :: (Ref s1 (Array 8 (Stored Uint16)))
                     -> (Ref s2 (Struct "userinput_decode_state"))
@@ -163,7 +178,6 @@ scale_proc = proc "userinput_scale" $ \center range outmin outmax input ->
       (ifte_ (ranged >? outmax)
         (ret outmax)
         (ret ranged))
-
 
 userInputFailsafe :: Def ('[ Ref s1 (Struct "userinput_result")
                            , Ref s2 (Struct "flightmode")

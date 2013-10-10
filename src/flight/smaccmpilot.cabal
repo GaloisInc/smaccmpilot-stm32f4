@@ -60,8 +60,9 @@ library
                        SMACCMPilot.Flight.Types.RadioStat,
                        SMACCMPilot.Flight.Types.RadioInfo,
 
+                       SMACCMPilot.Flight.UserInput.Tower,
+                       SMACCMPilot.Flight.UserInput.PPMTask,
                        SMACCMPilot.Flight.UserInput.Decode,
-                       SMACCMPilot.Flight.UserInput.Task,
                        SMACCMPilot.Flight.UserInput.RCOverride,
                        SMACCMPilot.Flight.UserInput.Mux,
 

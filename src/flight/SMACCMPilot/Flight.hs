@@ -27,8 +27,7 @@ import SMACCMPilot.Flight.Motors.Task
 import SMACCMPilot.Flight.Motors.Platforms
 import SMACCMPilot.Flight.Sensors.Task
 import SMACCMPilot.Flight.Sensors.Platforms
-import SMACCMPilot.Flight.UserInput.Task
-import SMACCMPilot.Flight.UserInput.RCOverride
+import SMACCMPilot.Flight.UserInput.Tower
 import SMACCMPilot.Flight.BlinkTask
 import SMACCMPilot.Flight.GCS.Tower
 import SMACCMPilot.Flight.GCS.Transmit.MessageDriver (senderModules)
@@ -145,17 +144,15 @@ core :: (SingI n)
        -> Tower p ( DataSink (Struct "flightmode")
                   , ChannelSink 16 (Struct "controloutput")
                   , ChannelSink 16 (Struct "motors"))
-core sensors flightparams rcOvrRx = do
+core sensors flightparams snk_rc_override_msg = do
   motors  <- channel
   control <- channel
 
-  (userinput, flightmode) <- userInputTower
+  (userinput, flightmode) <- userInputTower snk_rc_override_msg
   task "blink"      $ blinkTask lights flightmode
   task "control"    $ controlTask flightmode userinput sensors
                        (src control) flightparams
   task "motmix"     $ motorMixerTask (snk control) flightmode (src motors)
-  -- Handler for RC override MAVLink messages.
-  task "rcOverride" $ rcOverrideTask rcOvrRx
 
   mapM_ addDepends typeModules
   mapM_ addModule otherms
