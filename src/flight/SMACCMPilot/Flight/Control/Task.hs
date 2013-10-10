@@ -46,7 +46,9 @@ controlTask s_fm s_inpt s_sens s_ctl params = do
 
       call_ stabilize_run (constRef fm) (constRef inpt) sens ctl
       -- the trivial throttle controller:
-      deref (inpt ~> UI.throttle) >>= store (ctl ~> CO.throttle)
+      thr <- deref (inpt ~> UI.throttle)
+      -- -1 =< thr =< 1.  Scale to 0 =< thr' =< 1.
+      store (ctl ~> CO.throttle) ((thr + 1) / 2)
 
       emit_ ctlEmitter (constRef ctl)
 

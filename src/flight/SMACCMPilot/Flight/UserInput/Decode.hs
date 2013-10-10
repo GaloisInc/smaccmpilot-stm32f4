@@ -58,10 +58,10 @@ userInputDecode = proc "userinput_decode" $ \pwms state ui fm now ->
                   -> Ivory eff ()
       chtransform ix f ofield = deref (pwms ! (ix :: Ix 8)) >>=
                                 f >>= \v -> store (ui ~> ofield) v
-  chtransform 0 scale_rpy I.roll
-  chtransform 1 scale_rpy I.pitch
-  chtransform 2 scale_thr I.throttle
-  chtransform 3 scale_rpy I.yaw
+  chtransform 0 scale_rpyt I.roll
+  chtransform 1 scale_rpyt I.pitch
+  chtransform 2 scale_rpyt I.throttle
+  chtransform 3 scale_rpyt I.yaw
   store (ui ~> I.time) now
 
   armed <- arming_statemachine pwms state now
@@ -150,11 +150,8 @@ mode_statemachine pwms state now = do
   magnitude a b = castDefault
                 $ abs $ (safeCast a :: Sint32) - (safeCast b)
 
-scale_thr :: Uint16 -> Ivory eff IFloat
-scale_thr input = call scale_proc 1000 1000 0.0 1.0 input
-
-scale_rpy :: Uint16 -> Ivory eff IFloat
-scale_rpy input = call scale_proc 1500 500 (-1.0) 1.0 input
+scale_rpyt :: Uint16 -> Ivory eff IFloat
+scale_rpyt input = call scale_proc 1500 500 (-1.0) 1.0 input
 
 scale_proc :: Def ('[Uint16, Uint16, IFloat, IFloat, Uint16] :-> IFloat)
 scale_proc = proc "userinput_scale" $ \center range outmin outmax input ->
