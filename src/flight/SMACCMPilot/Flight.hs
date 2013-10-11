@@ -72,6 +72,7 @@ hil opts = do
   -- Communication primitives:
   sensors       <- channel
   flightmode    <- dataport
+  armed         <- dataport
 
   -- Parameters:
   (params, paramList) <- initTowerParams sysParams
@@ -79,14 +80,14 @@ hil opts = do
 
   -- Instantiate core:
   let flightparams = sysFlightParams snk_params
-  (control, motors) <- core (snk sensors) (snk flightmode) flightparams
+  (control, motors) <- core (snk sensors) (snk flightmode) armed flightparams
   motors_state  <- stateProxy motors
   control_state <- stateProxy control
 
   -- HIL-enabled GCS on uart1:
   (istream, ostream) <- uart UART.uart1
 
-  gcsTowerHil "uart1" opts istream ostream flightmode
+  gcsTowerHil "uart1" opts istream ostream flightmode armed
     control_state motors_state sensors paramList
 
   addModule (commsecModule opts)
@@ -102,6 +103,7 @@ flight opts = do
   sensors       <- channel
   sensor_state  <- stateProxy (snk sensors)
   flightmode    <- dataport
+  armed         <- dataport
 
   -- Parameters:
   (params, paramList) <- initTowerParams sysParams
@@ -109,7 +111,7 @@ flight opts = do
 
   -- Instantiate core:
   let flightparams = sysFlightParams snk_params
-  (control, motors) <- core (snk sensors) (snk flightmode) flightparams
+  (control, motors) <- core (snk sensors) (snk flightmode) armed flightparams
   motors_state  <- stateProxy motors
   control_state <- stateProxy control
 
@@ -123,12 +125,12 @@ flight opts = do
 
   -- GCS on UART1:
   (uart1istream, uart1ostream) <- uart UART.uart1
-  gcsTower "uart1" opts uart1istream uart1ostream flightmode sensor_state
+  gcsTower "uart1" opts uart1istream uart1ostream flightmode armed sensor_state
     position_state control_state motors_state paramList
 
   -- GCS on UART5:
   (uart5istream, uart5ostream) <- uart UART.uart5
-  gcsTower "uart5" opts uart5istream uart5ostream flightmode sensor_state
+  gcsTower "uart5" opts uart5istream uart5ostream flightmode armed sensor_state
     position_state control_state motors_state paramList
 
   addModule (commsecModule opts)
@@ -136,14 +138,16 @@ flight opts = do
 core :: (SingI n)
        => ChannelSink n (Struct "sensors_result")
        -> DataSink (Struct "flightmode")
+       -> ( DataSource (Stored IBool)
+          , DataSink   (Stored IBool))
        -> FlightParams ParamSink
        -> Tower p ( ChannelSink 16 (Struct "controloutput")
                   , ChannelSink 16 (Struct "motors"))
-core sensors flightmode flightparams = do
+core sensors flightmode armed flightparams = do
   motors  <- channel
   control <- channel
 
-  userinput <- userInputTower
+  userinput <- userInputTower (src armed)
   task "blink"     $ blinkTask lights flightmode
   task "control"   $ controlTask flightmode userinput sensors
                      (src control) flightparams

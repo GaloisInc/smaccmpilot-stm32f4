@@ -27,6 +27,7 @@ import           SMACCMPilot.Flight.GCS.Receive.DataRateMonitor
 import           SMACCMPilot.Flight.Types.FlightMode()
 import           SMACCMPilot.Mavlink.Messages (mavlinkMessageModules)
 import           SMACCMPilot.Mavlink.CRC (mavlinkCRCModule)
+import qualified SMACCMPilot.Mavlink.Enums.MavCmd   as Cmd
 import qualified SMACCMPilot.Communications         as Comm
 
 --------------------------------------------------------------------------------
@@ -37,13 +38,15 @@ gcsReceiveTask :: (SingI n0, SingI n1, SingI n2, SingI n3, SingI n4)
                -> ChannelSource n2 (Struct "data_rate_state")
                -> ChannelSource n3 (Struct "hil_state_msg")
                -> DataSource       (Struct "flightmode")
+               -> DataSource       (Stored IBool)
                -> ChannelSource n4 (Stored Sint16)  -- param_request
                -> [Param PortPair]
                -> Task p ()
-gcsReceiveTask mavStream s_src dr_src hil_src fm param_req_src params = do
-  millis      <- withGetTimeMillis
-  hil_emitter <- withChannelEmitter hil_src "hil_src"
-  fm_writer   <- withDataWriter fm "flightMode"
+gcsReceiveTask mavStream s_src dr_src hil_src fm armed_src param_req_src params = do
+  millis       <- withGetTimeMillis
+  hil_emitter  <- withChannelEmitter hil_src "hil_src"
+  fm_writer    <- withDataWriter fm "flightMode"
+  armed_writer <- withDataWriter armed_src "armed"
 
   -- Get lists of parameter readers and writers.
   write_params      <- traverse paramWriter (map (fmap portPairSource) params)
@@ -74,6 +77,8 @@ gcsReceiveTask mavStream s_src dr_src hil_src fm param_req_src params = do
             , handle (requestDatastream s_periods (emit_ streamPeriodEmitter))
             , handle (hilState hil_emitter)
             , handle (setMode fm_writer now)
+            , handleCommandLong (fromIntegral Cmd.id_COMPONENT_ARM_DISARM)
+                                (armDisarm armed_writer)
             ]
           where runHandlers s = mapM_ ($ s)
 

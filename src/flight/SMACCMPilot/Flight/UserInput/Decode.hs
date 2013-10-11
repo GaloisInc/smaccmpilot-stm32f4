@@ -46,9 +46,10 @@ mode_pwm_map = [(FM.flightModeAuto,      (900, 1300))  -- AUX 3 up
 userInputDecode :: Def ('[ Ref s1 (Array 8 (Stored Uint16))
                          , Ref s2 (Struct "userinput_decode_state")
                          , Ref s3 (Struct "userinput_result")
-                         , Ref s3 (Struct "flightmode")
+                         , Ref s4 (Struct "flightmode")
+                         , Ref s5 (Stored IBool)
                          , Uint32 ] :-> ())
-userInputDecode = proc "userinput_decode" $ \pwms state ui fm now ->
+userInputDecode = proc "userinput_decode" $ \pwms state ui fm ref_armed now ->
     requires (checkStored (state ~> arm_state_time) (\ast -> now >=? ast))
   $ body $ do
   let chtransform :: (IvoryStore a1)
@@ -69,6 +70,7 @@ userInputDecode = proc "userinput_decode" $ \pwms state ui fm now ->
   store (fm ~> FM.armed) armed
   store (fm ~> FM.mode)  mode
   store (fm ~> FM.time)  now
+  store ref_armed armed
   retVoid
 
 arming_statemachine :: (Ref s1 (Array 8 (Stored Uint16)))
@@ -167,8 +169,9 @@ scale_proc = proc "userinput_scale" $ \center range outmin outmax input ->
 
 userInputFailsafe :: Def ('[ Ref s1 (Struct "userinput_result")
                            , Ref s2 (Struct "flightmode")
+                           , Ref s3 (Stored IBool)
                            , Uint32 ] :-> ())
-userInputFailsafe = proc "userinput_failsafe" $ \capt fm now ->
+userInputFailsafe = proc "userinput_failsafe" $ \capt fm armed now ->
   requires (checkStored (capt ~> I.time) (\t -> now >=? t))
   $ body $ do
     last <- deref ( capt ~> I.time )
@@ -179,5 +182,6 @@ userInputFailsafe = proc "userinput_failsafe" $ \capt fm now ->
        store (capt ~> I.yaw)      0
        store (capt ~> I.pitch)    0
        store (capt ~> I.roll)     0
+       store armed false
     retVoid
 

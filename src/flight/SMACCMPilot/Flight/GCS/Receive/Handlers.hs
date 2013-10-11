@@ -20,8 +20,11 @@ import qualified SMACCMPilot.Mavlink.Messages.RequestDataStream as RDS
 import qualified SMACCMPilot.Mavlink.Messages.ParamSet as PS
 import qualified SMACCMPilot.Mavlink.Messages.ParamRequestRead as PRR
 import qualified SMACCMPilot.Mavlink.Messages.SetMode as SM
+import qualified SMACCMPilot.Mavlink.Messages.CommandLong as CL
 import qualified SMACCMPilot.Mavlink.Receive as R
 import           SMACCMPilot.Mavlink.Unpack
+
+import qualified SMACCMPilot.Mavlink.Enums.MavComponent as MC
 
 import           SMACCMPilot.Param
 import           SMACCMPilot.Flight.GCS.Stream (updateGCSStreamPeriods)
@@ -125,6 +128,27 @@ setMode fm_writer now msg = do
       store (fm ~> FM.time)  now
       writeData fm_writer (constRef fm)
 
+-- | Handle a 'COMPONENT_ARM_DISARM' command.
+armDisarm :: DataWriter (Stored IBool)
+          -> Ref s1 (Struct "command_long_msg")
+          -> Ivory (ProcEffects cs r) ()
+armDisarm arm_writer msg = do
+  component <- deref (msg ~> CL.target_component)
+  param1    <- deref (msg ~> CL.param1)
+  val       <- local izero
+
+  when (component ==? (fromIntegral MC.id_SYSTEM_CONTROL)) $ do
+    cond_
+      [ param1 ==? 0.0 ==> do
+          store val false
+          writeData arm_writer (constRef val)
+      , param1 ==? 1.0 ==> do
+          store val true
+          writeData arm_writer (constRef val)
+      ]
+
+  return ()
+
 -- | Handles a specific Mavlink message, where 'unpack' is a method of the
 -- 'MavlinkUnpackageMsg'.
 handle :: (GetAlloc eff ~ Scope s, MavlinkUnpackableMsg t, IvoryStruct t)
@@ -138,6 +162,19 @@ handle handler rxstate = do
   when (rxid ==? msgid) $ do
     call_ unpacker msg (toCArray (constRef (rxstate ~> R.payload)))
     handler msg
+
+-- | Handle a 'COMMAND_LONG' subcommand.
+handleCommandLong :: (GetAlloc eff ~ Scope s)
+                  => Uint16
+                  -> (Ref (Stack s) (Struct "command_long_msg") -> Ivory eff ())
+                  -> Ref s1 (Struct "mavlink_receive_state")
+                  -> Ivory eff ()
+handleCommandLong cmd handler rxstate = handle go rxstate
+  where
+    go msg = do
+      cmd_id <- deref (msg ~> CL.command)
+      when (cmd_id ==? cmd) $
+        handler msg
 
 handlerModuleDefs :: ModuleDef
 handlerModuleDefs = mapM_ depend mavlinkMessageModules

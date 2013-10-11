@@ -33,14 +33,16 @@ gcsTower :: (SingI n0, SingI n1)
          -> ChannelSource n1 (Stored Uint8)
          -> ( DataSource (Struct "flightmode")
             , DataSink   (Struct "flightmode"))
+         -> ( DataSource (Stored IBool)
+            , DataSink   (Stored IBool))
          -> DataSink (Struct "sensors_result")
          -> DataSink (Struct "position")
          -> DataSink (Struct "controloutput")
          -> DataSink (Struct "motors")
          -> [Param PortPair]
          -> Tower p ()
-gcsTower name opts istream ostream fm sens pos ctl motor params =
-  void (gcsTowerAux name opts istream ostream fm sens pos ctl motor params)
+gcsTower name opts istream ostream fm armed sens pos ctl motor params =
+  void (gcsTowerAux name opts istream ostream fm armed sens pos ctl motor params)
 
 --------------------------------------------------------------------------------
 
@@ -51,16 +53,18 @@ gcsTowerHil :: (SingI n0, SingI n1)
          -> ChannelSource n1 (Stored Uint8)
          -> ( DataSource (Struct "flightmode")
             , DataSink   (Struct "flightmode"))
+         -> ( DataSource (Stored IBool)
+            , DataSink   (Stored IBool))
          -> DataSink (Struct "controloutput")
          -> DataSink (Struct "motors")
          -> ( ChannelSource 16 (Struct "sensors_result")
             , ChannelSink 16 (Struct "sensors_result"))
          -> [Param PortPair]
          -> Tower p ()
-gcsTowerHil name opts istream ostream fm ctl motor sensors params = do
+gcsTowerHil name opts istream ostream fm armed ctl motor sensors params = do
   sensors_state <- stateProxy (snk sensors)
   position      <- dataport
-  hil <- gcs fm sensors_state (snk position) ctl motor params
+  hil <- gcs fm armed sensors_state (snk position) ctl motor params
   task "hilTranslator" $ hilTranslator hil (src sensors) (src position)
   where
   gcs = gcsTowerAux name opts istream ostream
@@ -74,13 +78,15 @@ gcsTowerAux :: (SingI n0, SingI n1)
          -> ChannelSource n1 (Stored Uint8)
          -> ( DataSource (Struct "flightmode")
             , DataSink   (Struct "flightmode"))
+         -> ( DataSource (Stored IBool)
+            , DataSink   (Stored IBool))
          -> DataSink (Struct "sensors_result")
          -> DataSink (Struct "position")
          -> DataSink (Struct "controloutput")
          -> DataSink (Struct "motors")
          -> [Param PortPair]
          -> Tower p (ChannelSink 4 (Struct "hil_state_msg"))
-gcsTowerAux name opts istream ostream fm sens pos ctl motor params = do
+gcsTowerAux name opts istream ostream fm armed sens pos ctl motor params = do
   -- GCS TX and encrypt tasks
   (gcsTxToEncSrc, gcsTxToEncRcv) <- channel
   -- GCS RX and decrypt tasks
@@ -106,13 +112,13 @@ gcsTowerAux name opts istream ostream fm sens pos ctl motor params = do
   task (named "decryptTask") $ Dec.decryptTask opts hxToDecRcv decToGcsRxSrc
   task (named "gcsReceiveTask") $
     gcsReceiveTask decToGcsRxRcv (src streamrate) (src datarate) (src hil)
-      (src fm) (src param_req) params
+      (src fm) (src armed) (src param_req) params
 
   -- TX
   task (named "encryptTask") $ Enc.encryptTask opts gcsTxToEncRcv encToHxSrc
   task (named "gcsTransmitTask") $
-    gcsTransmitTask gcsTxToEncSrc (snk streamrate) (snk datarate) (snk fm) sens
-      pos ctl motor radioStat (snk param_req) params
+    gcsTransmitTask gcsTxToEncSrc (snk streamrate) (snk datarate) (snk fm)
+      (snk armed) sens pos ctl motor radioStat (snk param_req) params
   addDepends HIL.hilStateModule
   return (snk hil)
   where named n = n ++ "_" ++ name

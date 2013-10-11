@@ -83,12 +83,16 @@ mkSendDataRate =
   call_ D.mkData16Sender (constRef msg) seqNum sendArr
   retVoid
 
-mkSendHeartbeat :: Sender "flightmode"
+mkSendHeartbeat :: Def ('[ Ref s1 (Struct "flightmode")
+                         , Ref s2 (Stored IBool)
+                         , Ref s3 (Stored Uint8)
+                         , Ref s3 Comm.MAVLinkArray
+                         ] :-> ())
 mkSendHeartbeat =
   proc "gcs_transmit_send_heartbeat"
-  $ \fm seqNum sendArr -> body $ do
+  $ \fm ref_armed seqNum sendArr -> body $ do
   hb <- local (istruct [])
-  armed <- (fm ~>* FM.armed)
+  armed <- deref ref_armed
   mode  <- (fm ~>* FM.mode)
   store (hb ~> HB.custom_mode) (safeCast mode)
   store (hb ~> HB.mavtype)      mavtype_quadrotor
