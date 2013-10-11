@@ -26,6 +26,7 @@ defaultPeriods =
     , vfr_hud              .= ival 0
     , global_position_int  .= ival 0
     , params               .= ival 100
+    , radio                .= ival 1000
     ]
 
 -- hide the scope from the typechecker until application. once we have an
@@ -93,7 +94,7 @@ setNewPeriods new state schedule now = do
       store (state ~> selector) n
       setNextTime (constRef state) schedule selector now
   selectors = [ heartbeat, servo_output_raw, attitude, gps_raw_int
-              , vfr_hud, global_position_int, params]
+              , vfr_hud, global_position_int, params, radio ]
 
 setNextTime :: ConstRef s (Struct "gcsstream_timing") -- periods
             -> Ref s1 (Struct "gcsstream_timing") -- schedule

@@ -34,11 +34,12 @@ gcsTransmitTask :: (SingI n0, SingI n1, SingI n2, SingI n3)
                 -> DataSink         (Struct "position")
                 -> DataSink         (Struct "controloutput")
                 -> DataSink         (Struct "motors")
+                -> DataSink         (Struct "radio_stat")
                 -> ChannelSink n3   (Stored Sint16)
                 -> [Param PortPair]
                 -> Task p ()
-gcsTransmitTask mavStream sp_sink _dr_sink fm_sink se_sink ps_sink ct_sink mo_sink
-                param_req_sink params
+gcsTransmitTask mavStream sp_sink _dr_sink fm_sink se_sink ps_sink ct_sink
+                mo_sink ra_sink param_req_sink params
   = do
   withStackSize 1024
 
@@ -47,6 +48,7 @@ gcsTransmitTask mavStream sp_sink _dr_sink fm_sink se_sink ps_sink ct_sink mo_si
   posReader        <- withDataReader ps_sink "position"
   ctlReader        <- withDataReader ct_sink "control"
   motorReader      <- withDataReader mo_sink "motors"
+  radioReader      <- withDataReader ra_sink "radio"
   mavTx            <- withChannelEmitter mavStream "gcsTxToEncSrc"
 
   mavlinkPacket  <- taskLocal "mavlinkPacket"
@@ -57,7 +59,7 @@ gcsTransmitTask mavStream sp_sink _dr_sink fm_sink se_sink ps_sink ct_sink mo_si
 
   paramReqs       <- withChannelReceiver param_req_sink "paramReqs"
   read_params     <- traverse paramReader (map (fmap portPairSink) params)
-  let getParamInfo = makeGetParamInfo read_params
+  getParamInfo    <- makeGetParamInfo read_params
 
   lastRun    <- taskLocal "lastrun"
   s_periods  <- taskLocal "periods"
@@ -143,6 +145,12 @@ gcsTransmitTask mavStream sp_sink _dr_sink fm_sink se_sink ps_sink ct_sink mo_si
         when found $ do
           call_ mkSendParamValue msg seqNum mavlinkPacket
           processMav
+
+    onStream T.radio $ do
+      l_radio <- local (istruct [])
+      readData radioReader l_radio
+      call_ mkSendRadio l_radio seqNum mavlinkPacket
+      processMav
 
     -- Keep track of last run for internal scheduler
     store lastRun now

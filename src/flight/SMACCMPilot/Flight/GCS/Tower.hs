@@ -92,24 +92,25 @@ gcsTowerAux name opts istream ostream fm sens pos ctl motor params = do
 
   (  hxToDecRcv -- from Hx to decrypter
    , encToHxSrc -- from encrypter to Hx
+   , radioStatStream :: ChannelSink 2 (Struct "radio_stat")
    -- XXX unused
-   , _statiStream :: ChannelSink 1 (Struct "radio_stat")
-   -- XXX unused
-   , _infoiStream :: ChannelSink 1 (Struct "radio_info")
+   , _infoiStream :: ChannelSink 2 (Struct "radio_info")
    ) <- D.datalink istream ostream -- also creates task
 
+  radioStat <- stateProxy radioStatStream
+
   -- Rx
-  task "decryptTask" $ Dec.decryptTask opts hxToDecRcv decToGcsRxSrc
-  task ("gcsReceiveTask" ++ name) $
+  task (named "decryptTask") $ Dec.decryptTask opts hxToDecRcv decToGcsRxSrc
+  task (named "gcsReceiveTask") $
     gcsReceiveTask decToGcsRxRcv (src streamrate) (src datarate) (src hil)
       (src param_req) params
 
   -- TX
-  task "encryptTask" $ Enc.encryptTask opts gcsTxToEncRcv encToHxSrc
-  task ("gcsTransmitTask" ++ name) $
+  task (named "encryptTask") $ Enc.encryptTask opts gcsTxToEncRcv encToHxSrc
+  task (named "gcsTransmitTask") $
     gcsTransmitTask gcsTxToEncSrc (snk streamrate) (snk datarate) fm sens
-      pos ctl motor (snk param_req) params
+      pos ctl motor radioStat (snk param_req) params
   addDepends HIL.hilStateModule
   return (snk hil)
-
+  where named n = n ++ "_" ++ name
 --------------------------------------------------------------------------------

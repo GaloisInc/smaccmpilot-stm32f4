@@ -20,5 +20,6 @@ struct gcsstream_timing
   ; vfr_hud             :: Stored Uint32
   ; global_position_int :: Stored Uint32
   ; params              :: Stored Uint32
+  ; radio               :: Stored Uint32
   }
 |]
