@@ -25,6 +25,7 @@ import qualified SMACCMPilot.Flight.Types.ControlOutput         as C
 import qualified SMACCMPilot.Flight.Types.UserInput             as U
 import qualified SMACCMPilot.Flight.Types.FlightMode            as FM
 import qualified SMACCMPilot.Flight.Types.DataRate              as R
+import qualified SMACCMPilot.Flight.Types.RadioStat             as RStat
 
 import           SMACCMPilot.Mavlink.Messages (mavlinkMessageModules)
 
@@ -36,6 +37,7 @@ import qualified SMACCMPilot.Mavlink.Messages.GpsRawInt         as GRI
 import qualified SMACCMPilot.Mavlink.Messages.GlobalPositionInt as GPI
 import qualified SMACCMPilot.Mavlink.Messages.ParamValue        as PV
 import qualified SMACCMPilot.Mavlink.Messages.Data16            as D
+import qualified SMACCMPilot.Mavlink.Messages.Radio             as RMSG
 
 import qualified SMACCMPilot.Communications                     as Comm
 --------------------------------------------------------------------
@@ -283,6 +285,32 @@ mkSendParamValue = proc "gcs_transmit_send_param_value" $
   \msg seqNum sendArr -> body $ do
   call_ PV.mkParamValueSender (constRef msg) seqNum sendArr
 
+mkSendRadio :: Def ('[ Ref s1 (Struct "radio_stat")
+                     , Ref s2 (Stored Uint8)
+                     , Ref s2 Comm.MAVLinkArray
+                     ] :-> ())
+mkSendRadio = proc "gcs_transmit_send_radio" $
+  \stat seqNum sendArr -> body $ do
+  rxerrors <- deref (stat ~> RStat.tx_err)
+  fixed    <- deref (stat ~> RStat.ecc_errs)
+  rssi     <- deref (stat ~> RStat.loc_rssi)
+  remrssi  <- deref (stat ~> RStat.rem_rssi)
+  txbuf    <- assign 0 -- XXX
+  noise    <- deref (stat ~> RStat.loc_noise)
+  remnoise <- deref (stat ~> RStat.rem_noise)
+  msg      <- local (istruct
+    [ RMSG.rxerrors .= ival rxerrors
+    , RMSG.fixed    .= ival fixed
+    , RMSG.rssi     .= ival rssi
+    , RMSG.remrssi  .= ival remrssi
+    , RMSG.txbuf    .= ival txbuf
+    , RMSG.noise    .= ival noise
+    , RMSG.remnoise .= ival remnoise
+    ])
+  call_ RMSG.mkRadioSender (constRef msg) seqNum sendArr
+
+
+
 senderModules :: Module
 senderModules = package "senderModules" $ do
   mapM_ depend mavlinkMessageModules
@@ -294,6 +322,7 @@ senderModules = package "senderModules" $ do
   incl mkSendGpsRawInt
   incl mkSendGlobalPositionInt
   incl mkSendParamValue
+  incl mkSendRadio
 
   depend P.gpsTypesModule
   depend M.motorsTypeModule
@@ -302,3 +331,4 @@ senderModules = package "senderModules" $ do
   depend U.userInputTypeModule
   depend FM.flightModeTypeModule
   depend R.dataRateTypeModule
+  depend RStat.radioStatTypeModule
