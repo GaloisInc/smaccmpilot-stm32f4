@@ -123,12 +123,3 @@ streamDue periods schedule selector last now = do
   duetime <- deref (schedule ~> selector)
   return (active .&& (duetime >? last).&& (duetime <=? now))
 
-
-nextDueTime :: ConstRef s1 (Struct "gcsstream_timing")    -- periods
-            -> ConstRef s2 (Struct "gcsstream_timing")    -- schedule
-            -> Uint32  -- now
-            -> Ivory eff Uint32
-nextDueTime _periods _schedule now = do
-  -- XXX should implement this later.
-  return (now + 100)
-
