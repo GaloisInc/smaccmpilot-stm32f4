@@ -14,7 +14,7 @@ SERVER_ARGS="--senderid=@BASE_ID@ \
       --recvkey=@UAV_KEY@ \
       --recvsalt=@UAV_SALT@"
 
-while getopts "vq" opt; do
+while getopts "vqs:b:" opt; do
 	echo $opt
 	case $opt in
 		v)
@@ -22,6 +22,12 @@ while getopts "vq" opt; do
 			;;
 		q)
 			SERVER_ARGS="$SERVER_ARGS --quiet"
+			;;
+		s)
+			SERVER_ARGS="$SERVER_ARGS --serial=$OPTARG"
+			;;
+		b)
+			SERVER_ARGS="$SERVER_ARGS --baud=$OPTARG"
 			;;
 		\?)
 			echo "Invalid option: -$OPTARG" >&2

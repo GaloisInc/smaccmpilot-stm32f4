@@ -118,10 +118,10 @@ parseFrame conQ = do
 --------------------------------------------------------------------------------
 
 commsecServer :: Options -> IO ()
-commsecServer (Options ident baseKey b2uSalt uavKey u2bSalt loglevel) = do
-  let baseToUavKey = B.pack baseKey
-  let uavToBaseKey = B.pack uavKey
-  let baseID       = fromIntegral ident
+commsecServer opts = do -- (Options ident baseKey b2uSalt uavKey u2bSalt loglevel) = do
+  let baseToUavKey = B.pack (sendKey opts)
+  let uavToBaseKey = B.pack (recvKey opts)
+  let baseID       = fromIntegral (sendID opts)
 
   -- Messages from the UAV
   rx <- T.newTQueueIO
@@ -134,20 +134,20 @@ commsecServer (Options ident baseKey b2uSalt uavKey u2bSalt loglevel) = do
   _ <- C.forkIO $ forever $ do
     console <- T.atomically $ T.readTQueue conQ
     case console of
-        Error msg -> when (loglevel > 0) $ do
+        Error msg -> when ((logLevel opts) > 0) $ do
           hPutStrLn stderr ("ERR: " ++ msg)
-        Log msg -> when (loglevel > 1) $ do
+        Log msg -> when ((logLevel opts) > 1) $ do
           hPutStrLn stderr ("LOG: " ++ msg)
 
   -- Initialize commsec context
-  ctx <- secPkgInit_HS baseID u2bSalt uavToBaseKey b2uSalt baseToUavKey
+  ctx <- secPkgInit_HS baseID (recvSalt opts) uavToBaseKey (sendSalt opts) baseToUavKey
 
-  P.withSerial "/dev/ttyUSB0"
-    P.defaultSerialSettings { P.commSpeed = P.CS57600 } $ \s -> do
+  P.withSerial (serPort opts)
+    P.defaultSerialSettings { P.commSpeed = commSpeed (serBaud opts) } $ \s -> do
 
     putStrLn "Connected to serial client..."
 
-    N.serve (N.Host "127.0.0.1") "6000" $ \(mavSocket, _) -> do
+    N.serve (N.Host "127.0.0.1") (show (srvPort opts)) $ \(mavSocket, _) -> do
       putStrLn "Connected to mavproxy client..."
 
       -- Gratuitous flush.
@@ -253,3 +253,18 @@ txLoop conQ ctx rx mavSocket =
     txLoop' hxSt'
 
 --------------------------------------------------------------------------------
+
+commSpeed :: Integer -> P.CommSpeed
+commSpeed 110 = P.CS110
+commSpeed 300 = P.CS300
+commSpeed 600 = P.CS600
+commSpeed 1200 = P.CS1200
+commSpeed 2400 = P.CS2400
+commSpeed 4800 = P.CS4800
+commSpeed 9600 = P.CS9600
+commSpeed 19200 = P.CS19200
+commSpeed 38400 = P.CS38400
+commSpeed 57600 = P.CS57600
+commSpeed 115200 = P.CS115200
+commSpeed b = error ("invalid serial port baud rate " ++ (show b))
+

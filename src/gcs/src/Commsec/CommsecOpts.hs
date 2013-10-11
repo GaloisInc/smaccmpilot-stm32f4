@@ -6,12 +6,15 @@ import Data.Word
 import System.Console.GetOpt
 
 data Options = Options
-  { sendID   :: Word32  -- 0 - 15 uint32
-  , sendKey  :: [Word8] -- 16 uint8s
-  , sendSalt :: Word32  -- word32
-  , recvKey    :: [Word8] -- 16 uint8s
-  , recvSalt   :: Word32  -- word32
-  , logLevel :: Integer -- Logging verbosity
+  { sendID     :: Word32   -- 0 - 15 uint32
+  , sendKey    :: [Word8]  -- 16 uint8s
+  , sendSalt   :: Word32   -- word32
+  , recvKey    :: [Word8]  -- 16 uint8s
+  , recvSalt   :: Word32   -- word32
+  , logLevel   :: Integer  -- Logging verbosity
+  , serPort    :: FilePath -- Serial Port Filename
+  , serBaud    :: Integer  -- Serial Baud Rate
+  , srvPort    :: Integer  -- Server TCP Port
   } deriving (Show, Read, Eq)
 
 defaultOpts :: Options
@@ -22,6 +25,9 @@ defaultOpts = Options
   , recvKey  = []
   , recvSalt = 0
   , logLevel = 1
+  , serPort  = "/dev/ttyUSB0"
+  , serBaud  = 57600
+  , srvPort  = 6000
   }
 
 options :: [OptDescr (Options -> Options)]
@@ -47,7 +53,16 @@ options =
   , Option [] ["verbose"]
       (NoArg (\opts -> opts { logLevel = 2 }))
       "Full debug output"
- ]
+  , Option [] ["serial"]
+      (ReqArg (\arg opts -> opts { serPort = arg }) "filename")
+      "Serial port filename (default: /dev/ttyUSB0)"
+  , Option [] ["baud"]
+      (ReqArg (\arg opts -> opts { serBaud = (read arg) }) "baudrate")
+      "Serial port baud rate (default: 57600)"
+  , Option [] ["port"]
+      (ReqArg (\arg opts -> opts { srvPort = (read arg) }) "portnumber")
+      "Server TCP port (default: 6000)"
+  ]
 
 mkID :: String -> Word32
 mkID opt =
