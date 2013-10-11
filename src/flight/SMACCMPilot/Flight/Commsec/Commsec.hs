@@ -148,7 +148,7 @@ setupCommsec opts =
 -- Packaging
 
 commsecModule :: O.Options -> Module
-commsecModule opts = package "IvoryGCM" $ do
+commsecModule opts = package "flight_commsec" $ do
 
   defConstMemArea (uavToBaseKey $ O.sendKey opts)
   defConstMemArea (baseToUavKey $ O.recvKey opts)

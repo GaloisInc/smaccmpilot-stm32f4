@@ -32,7 +32,5 @@ encryptTask opts rx tx = do
     CS.encrypt CS.uavCtx pkg
     emit_ emitter (constRef pkg)
 
-  let m = CS.commsecModule opts
-  taskModuleDef $ depend m
-  withModule m
+  taskModuleDef $ depend (CS.commsecModule opts)
 

@@ -20,6 +20,7 @@ import Ivory.Stdlib.String (stdlibStringModule)
 
 import SMACCMPilot.Flight.Types (typeModules)
 import SMACCMPilot.Flight.Control (controlModules)
+import SMACCMPilot.Flight.Commsec.Commsec (commsecModule)
 
 import SMACCMPilot.Flight.Control.Task
 import SMACCMPilot.Flight.Motors.Task
@@ -38,6 +39,7 @@ import SMACCMPilot.Param
 
 import SMACCMPilot.Mavlink.Messages (mavlinkMessageModules)
 import SMACCMPilot.Mavlink.Send (mavlinkSendModule)
+import SMACCMPilot.Mavlink.Receive (mavlinkReceiveStateModule)
 import SMACCMPilot.Mavlink.CRC (mavlinkCRCModule)
 import SMACCMPilot.Mavlink.Pack (packModule)
 
@@ -86,6 +88,7 @@ hil opts = do
   gcsTowerHil "uart1" opts istream ostream flightmode
     control_state motors_state sensors paramList
 
+  addModule (commsecModule opts)
   -- Missing module that comes in via gpsTower:
   addModule  gpsTypesModule
   addDepends gpsTypesModule
@@ -118,9 +121,15 @@ flight opts = do
 
   -- GCS on UART1:
   (uart1istream, uart1ostream) <- uart UART.uart1
-
   gcsTower "uart1" opts uart1istream uart1ostream flightmode sensor_state
     position_state control_state motors_state paramList
+
+  -- GCS on UART5:
+  (uart5istream, uart5ostream) <- uart UART.uart5
+  gcsTower "uart5" opts uart5istream uart5ostream flightmode sensor_state
+    position_state control_state motors_state paramList
+
+  addModule (commsecModule opts)
 
 core :: (SingI n)
        => ChannelSink n (Struct "sensors_result")
@@ -169,6 +178,7 @@ otherms = concat
 
   , senderModules
   , mavlinkSendModule
+  , mavlinkReceiveStateModule
   ]
 
 -- Helper: a uartTower with 1k buffers and 57600 kbaud
