@@ -28,6 +28,11 @@ struct mavlink_receive_state
   }
 |]
 
+mavlinkReceiveStateModule :: Module
+mavlinkReceiveStateModule = package "mavlink_receive_state" $
+  defStruct (Proxy :: Proxy "mavlink_receive_state")
+
+
 status_IDLE, status_ACTIVE, status_GOTMSG, status_FAIL :: Uint8
 status_IDLE   = 0
 status_ACTIVE = 1
