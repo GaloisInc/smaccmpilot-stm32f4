@@ -38,7 +38,7 @@ as_ARMING   = 1
 as_ARMED    = 2
 
 mode_pwm_map :: [(Uint8, (Uint16, Uint16))]    -- on ER9X this should be:
-mode_pwm_map = [(FM.flightModeLoiter,    (900, 1300))  -- AUX 3 up
+mode_pwm_map = [(FM.flightModeAuto,      (900, 1300))  -- AUX 3 up
                ,(FM.flightModeAltHold,   (1301, 1700)) -- AUX 3 center
                ,(FM.flightModeStabilize, (1701, 2100)) -- AUX 3 down
                ]

@@ -11,10 +11,18 @@ flightModeTypeModule :: Module
 flightModeTypeModule = package "flightmode_type" $ do
   defStruct (Proxy :: Proxy "flightmode")
 
-flightModeStabilize, flightModeAltHold, flightModeLoiter :: Uint8
+flightModeStabilize, flightModeAltHold, flightModeAuto :: Uint8
 flightModeStabilize = 0
 flightModeAltHold   = 1
-flightModeLoiter    = 2
+flightModeAuto      = 2
+
+-- | List of all valid flight modes.
+flightModes :: [Uint8]
+flightModes =
+  [ flightModeStabilize
+  , flightModeAltHold
+  , flightModeAuto
+  ]
 
 [ivory|
 struct flightmode

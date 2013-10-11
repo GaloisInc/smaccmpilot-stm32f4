@@ -15,14 +15,13 @@ import Ivory.Tower
 import SMACCMPilot.Flight.Types.UserInput
 import SMACCMPilot.Flight.UserInput.Decode
 
-userInputTower :: Tower p ( DataSink (Struct "userinput_result")
-                          , DataSink (Struct "flightmode"))
+userInputTower :: Tower p (DataSink (Struct "userinput_result"))
 userInputTower = do
   (src_userinput, snk_userinput)   <- dataport
   (src_flightmode, snk_flightmode) <- dataport
   task "userInput" $ userInputTask src_userinput src_flightmode
   addModule userInputDecodeModule
-  return (snk_userinput, snk_flightmode)
+  return snk_userinput
 
 userInputTask :: DataSource (Struct "userinput_result")
               -> DataSource (Struct "flightmode")
@@ -34,6 +33,7 @@ userInputTask uis fms = do
   decoder    <- taskLocal "decoder"
   ui_result  <- taskLocal "userinput"
   fm_result  <- taskLocal "flightmode"
+
   onPeriod 50 $ \now -> do
     captured <- call userInputCapture chs
     when captured $ do

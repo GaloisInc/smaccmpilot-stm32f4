@@ -71,6 +71,7 @@ hil :: (BoardHSE p, MotorOutput p, SensorOrientation p)
 hil opts = do
   -- Communication primitives:
   sensors       <- channel
+  flightmode    <- dataport
 
   -- Parameters:
   (params, paramList) <- initTowerParams sysParams
@@ -78,7 +79,7 @@ hil opts = do
 
   -- Instantiate core:
   let flightparams = sysFlightParams snk_params
-  (flightmode, control, motors) <- core (snk sensors) flightparams
+  (control, motors) <- core (snk sensors) (snk flightmode) flightparams
   motors_state  <- stateProxy motors
   control_state <- stateProxy control
 
@@ -100,6 +101,7 @@ flight opts = do
   -- Communication primitives:
   sensors       <- channel
   sensor_state  <- stateProxy (snk sensors)
+  flightmode    <- dataport
 
   -- Parameters:
   (params, paramList) <- initTowerParams sysParams
@@ -107,7 +109,7 @@ flight opts = do
 
   -- Instantiate core:
   let flightparams = sysFlightParams snk_params
-  (flightmode, control, motors) <- core (snk sensors) flightparams
+  (control, motors) <- core (snk sensors) (snk flightmode) flightparams
   motors_state  <- stateProxy motors
   control_state <- stateProxy control
 
@@ -133,15 +135,15 @@ flight opts = do
 
 core :: (SingI n)
        => ChannelSink n (Struct "sensors_result")
+       -> DataSink (Struct "flightmode")
        -> FlightParams ParamSink
-       -> Tower p ( DataSink (Struct "flightmode")
-                  , ChannelSink 16 (Struct "controloutput")
+       -> Tower p ( ChannelSink 16 (Struct "controloutput")
                   , ChannelSink 16 (Struct "motors"))
-core sensors flightparams = do
+core sensors flightmode flightparams = do
   motors  <- channel
   control <- channel
 
-  (userinput, flightmode) <- userInputTower
+  userinput <- userInputTower
   task "blink"     $ blinkTask lights flightmode
   task "control"   $ controlTask flightmode userinput sensors
                      (src control) flightparams
@@ -150,7 +152,7 @@ core sensors flightparams = do
   mapM_ addDepends typeModules
   mapM_ addModule otherms
 
-  return (flightmode, snk control, snk motors)
+  return (snk control, snk motors)
   where
   lights = [relaypin, redledpin]
   relaypin = GPIO.pinB13

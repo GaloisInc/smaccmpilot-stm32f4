@@ -13,10 +13,13 @@ import Ivory.Language
 import Ivory.Tower
 import Ivory.Stdlib
 
+import qualified SMACCMPilot.Flight.Types.FlightMode as FM
+
 import           SMACCMPilot.Mavlink.Messages (mavlinkMessageModules)
 import qualified SMACCMPilot.Mavlink.Messages.RequestDataStream as RDS
 import qualified SMACCMPilot.Mavlink.Messages.ParamSet as PS
 import qualified SMACCMPilot.Mavlink.Messages.ParamRequestRead as PRR
+import qualified SMACCMPilot.Mavlink.Messages.SetMode as SM
 import qualified SMACCMPilot.Mavlink.Receive as R
 import           SMACCMPilot.Mavlink.Unpack
 
@@ -90,6 +93,37 @@ hilState :: (SingI n, GetAlloc eff ~ Scope cs)
          -> Ref s (Struct "hil_state_msg")
          -> Ivory eff ()
 hilState e r = emit_ e (constRef r)
+
+customModeEnabled :: Uint8
+customModeEnabled = 1
+
+-- | Return true if a flight mode is valid.
+isValidMode :: Uint8 -> Ivory (ProcEffects cs r) IBool
+isValidMode x = go FM.flightModes
+  where go []     = return false
+        go (y:ys) = ifte (x ==? y)
+                      (return true)
+                      (go ys)
+
+-- | Set the flight mode.
+setMode :: DataWriter (Struct "flightmode")
+        -> Uint32
+        -> Ref s2 (Struct "set_mode_msg")
+        -> Ivory (ProcEffects cs r) ()
+setMode fm_writer now msg = do
+  fm <- local izero
+  base_mode <- deref (msg ~> SM.base_mode)
+
+  when (base_mode .& customModeEnabled /=? 0) $ do
+    mode32 <- deref (msg ~> SM.custom_mode)
+    -- Assume, for now, that we're only using 8 bits of the mode.
+    mode   <- assign (bitCast mode32)
+    valid  <- isValidMode mode
+    when valid $ do
+      store (fm ~> FM.armed) false      -- XXX this will move
+      store (fm ~> FM.mode)  mode
+      store (fm ~> FM.time)  now
+      writeData fm_writer (constRef fm)
 
 -- | Handles a specific Mavlink message, where 'unpack' is a method of the
 -- 'MavlinkUnpackageMsg'.

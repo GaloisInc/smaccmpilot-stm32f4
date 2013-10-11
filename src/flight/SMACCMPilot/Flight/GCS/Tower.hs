@@ -31,7 +31,8 @@ gcsTower :: (SingI n0, SingI n1)
          -> O.Options
          -> ChannelSink   n0 (Stored Uint8)
          -> ChannelSource n1 (Stored Uint8)
-         -> DataSink (Struct "flightmode")
+         -> ( DataSource (Struct "flightmode")
+            , DataSink   (Struct "flightmode"))
          -> DataSink (Struct "sensors_result")
          -> DataSink (Struct "position")
          -> DataSink (Struct "controloutput")
@@ -48,7 +49,8 @@ gcsTowerHil :: (SingI n0, SingI n1)
          -> O.Options
          -> ChannelSink   n0 (Stored Uint8)
          -> ChannelSource n1 (Stored Uint8)
-         -> DataSink (Struct "flightmode")
+         -> ( DataSource (Struct "flightmode")
+            , DataSink   (Struct "flightmode"))
          -> DataSink (Struct "controloutput")
          -> DataSink (Struct "motors")
          -> ( ChannelSource 16 (Struct "sensors_result")
@@ -70,7 +72,8 @@ gcsTowerAux :: (SingI n0, SingI n1)
          -> O.Options
          -> ChannelSink   n0 (Stored Uint8)
          -> ChannelSource n1 (Stored Uint8)
-         -> DataSink (Struct "flightmode")
+         -> ( DataSource (Struct "flightmode")
+            , DataSink   (Struct "flightmode"))
          -> DataSink (Struct "sensors_result")
          -> DataSink (Struct "position")
          -> DataSink (Struct "controloutput")
@@ -103,12 +106,12 @@ gcsTowerAux name opts istream ostream fm sens pos ctl motor params = do
   task (named "decryptTask") $ Dec.decryptTask opts hxToDecRcv decToGcsRxSrc
   task (named "gcsReceiveTask") $
     gcsReceiveTask decToGcsRxRcv (src streamrate) (src datarate) (src hil)
-      (src param_req) params
+      (src fm) (src param_req) params
 
   -- TX
   task (named "encryptTask") $ Enc.encryptTask opts gcsTxToEncRcv encToHxSrc
   task (named "gcsTransmitTask") $
-    gcsTransmitTask gcsTxToEncSrc (snk streamrate) (snk datarate) fm sens
+    gcsTransmitTask gcsTxToEncSrc (snk streamrate) (snk datarate) (snk fm) sens
       pos ctl motor radioStat (snk param_req) params
   addDepends HIL.hilStateModule
   return (snk hil)
