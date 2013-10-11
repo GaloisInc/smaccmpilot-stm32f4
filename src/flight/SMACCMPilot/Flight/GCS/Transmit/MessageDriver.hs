@@ -229,51 +229,60 @@ mkSendServoOutputRaw =
 mkSendGpsRawInt :: Sender "position"
 mkSendGpsRawInt = proc "gcs_transmit_send_gps_raw_int" $
   \pos seqNum sendArr -> body $ do
-  msg <- local (istruct [])
-  fix <- deref (pos ~> P.fix)
-  fix_type <- assign $ (fix ==? P.fix_3d) ? (3, (fix ==? P.fix_2d) ? (2,0))
-  store (msg ~> GRI.fix_type) fix_type
-  (pos ~> P.lat) `into` (msg ~> GRI.lat)
-  (pos ~> P.lon) `into` (msg ~> GRI.lon)
-  (pos ~> P.alt) `into` (msg ~> GRI.alt)
-  num_sv  <- deref (pos ~> P.num_sv)
-  dop     <- deref (pos ~> P.dop)
-  vground <- deref (pos ~> P.vground)
-  heading <- deref (pos ~> P.heading)
-  store (msg ~> GRI.eph) (castWith 0 (100.0 * dop)) -- cm
-  store (msg ~> GRI.epv) 65535 -- designates 'unknown value'
-  store (msg ~> GRI.vel) (castWith 0 vground) -- cm/s
-  store (msg ~> GRI.cog) (castWith 0 (100.0 * heading)) -- centidegrees
-  store (msg ~> GRI.satellites_visible) num_sv
+  lat       <- deref (pos ~> P.lat)
+  lon       <- deref (pos ~> P.lon)
+  alt       <- deref (pos ~> P.alt)
+  dop       <- deref (pos ~> P.dop)
+  vground   <- deref (pos ~> P.vground) -- cm/s
+  heading   <- deref (pos ~> P.heading) -- deg
+  fix       <- deref (pos ~> P.fix)
+  fix_type  <- assign $ (fix ==? P.fix_3d) ? (3, (fix ==? P.fix_2d) ? (2,0))
+  num_sv    <- deref (pos ~> P.num_sv)
+  msg       <- local (istruct
+    [ GRI.time_usec .= ival 0 -- XXX
+    , GRI.lat       .= ival lat
+    , GRI.lon       .= ival lon
+    , GRI.alt       .= ival alt
+    , GRI.eph       .= ival (castWith 0 (100.0*dop))
+    , GRI.epv       .= ival 65535
+    , GRI.vel       .= ival (castWith 0 vground)
+    , GRI.cog       .= ival (castWith 0 (100.0*heading))
+    , GRI.fix_type  .= ival fix_type
+    , GRI.satellites_visible .= ival num_sv
+    ])
   call_ GRI.mkGpsRawIntSender (constRef msg) seqNum sendArr
   retVoid
 
 mkSendGlobalPositionInt :: Def ('[ (Ref s (Struct "position"))
                                  , (Ref s (Struct "sensors_result"))
+                                 , Uint32
                                  , Ref s' (Stored Uint8)
                                  , Ref s' Comm.MAVLinkArray
                                  ] :-> ())
 mkSendGlobalPositionInt = proc "gcs_transmit_send_global_position_int" $
-  \pos sens seqNum sendArr -> body $ do
-  msg <- local (istruct [])
-  yawfloat <- (sens ~>* Sens.yaw)
-  yawscaled <- assign $ (10*180/pi)*yawfloat -- radians to 10*degrees
-  store (msg ~> GPI.hdg) (castWith 9999 yawscaled)
-  (pos ~> P.lat) `into` (msg ~> GPI.lat)
-  (pos ~> P.lon) `into` (msg ~> GPI.lon)
-  (pos ~> P.alt) `into` (msg ~> GPI.alt)
+  \pos sens currenttime seqNum sendArr -> body $ do
+  lat       <- deref (pos ~> P.lat)
+  lon       <- deref (pos ~> P.lon)
+  alt       <- deref (pos ~> P.alt)
+  yaw_rads  <- deref (sens ~> Sens.yaw)
+  yaw_cd    <- assign $ (100*180/pi)*yaw_rads
   -- velocity north, cm/s:
-  vnorth <- (pos ~>* P.vnorth)
-  store (msg ~> GPI.vx) (castWith 0 vnorth)
+  vnorth    <- deref (pos ~> P.vnorth)
   -- velocity east, cm/s:
-  veast <- (pos ~>* P.veast)
-  store (msg ~> GPI.vy) (castWith 0 veast)
+  veast     <- deref (pos ~> P.veast)
   -- velocity up, cm/s
-  vdown <- (pos ~>* P.vdown)
-  store (msg ~> GPI.vz) (-1 * (castWith 0 vdown))
-  -- heading in centidegrees
-  hdeg <- (pos ~>* P.heading)
-  store (msg ~> GPI.hdg) (100 * (castWith 0 hdeg))
+  vdown     <- deref (pos ~> P.vdown)
+  msg <- local (istruct
+    [ GPI.time_boot_ms .= ival currenttime
+    , GPI.lat          .= ival lat
+    , GPI.lon          .= ival lon
+    , GPI.alt          .= ival alt
+    , GPI.relative_alt .= ival alt -- XXX we don't know ground level.
+    , GPI.vx           .= ival (castWith 0 vnorth)
+    , GPI.vy           .= ival (castWith 0 veast)
+    , GPI.vz           .= ival (-1 * (castWith 0 vdown))
+    , GPI.hdg          .= ival (castWith 0 yaw_cd)
+    ])
   call_ GPI.mkGlobalPositionIntSender (constRef msg) seqNum sendArr
   retVoid
 
