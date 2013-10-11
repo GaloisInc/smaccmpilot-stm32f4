@@ -64,11 +64,6 @@ gcsTransmitTask mavStream sp_sink _dr_sink fm_sink se_sink ps_sink ct_sink
   lastRun    <- taskLocal "lastrun"
   s_periods  <- taskLocal "periods"
   s_schedule <- taskLocal "schedule"
-  s_fm       <- taskLocal "flightmode"
-  s_sens     <- taskLocal "sensors"
-  s_pos      <- taskLocal "position"
-  s_ctl      <- taskLocal "control"
-  s_motor    <- taskLocal "motor"
 
   taskInit $ do
     initTime <- getTimeMillis t
@@ -77,7 +72,7 @@ gcsTransmitTask mavStream sp_sink _dr_sink fm_sink se_sink ps_sink ct_sink
   onChannel sp_sink "streamPeriod" $ \newperiods -> do
     setNewPeriods newperiods s_periods s_schedule =<< getTimeMillis t
 
-  -- XXX
+  -- XXX LEE STUFFS
   -- If the Mavlink receiver sends new data rate info, broadcast it.
   -- onChannel dr_sink "dataRate" $ \dr -> do
   --   d <- local (istruct [])
@@ -102,37 +97,47 @@ gcsTransmitTask mavStream sp_sink _dr_sink fm_sink se_sink ps_sink ct_sink
             setNextTime (constRef s_periods) s_schedule selector now
 
     onStream T.heartbeat $ do
-      readData fmReader s_fm
-      call_ mkSendHeartbeat s_fm seqNum mavlinkPacket
+      l_fm <- local (istruct [])
+      readData fmReader l_fm
+      call_ mkSendHeartbeat l_fm seqNum mavlinkPacket
       processMav
 
     onStream T.servo_output_raw $ do
-      readData motorReader s_motor
-      readData ctlReader s_ctl
-      call_ mkSendServoOutputRaw s_motor s_ctl seqNum mavlinkPacket
+      l_motor <- local (istruct [])
+      l_ctl   <- local (istruct [])
+      readData motorReader l_motor
+      readData ctlReader l_ctl
+      call_ mkSendServoOutputRaw l_motor l_ctl seqNum mavlinkPacket
       processMav
 
     onStream T.attitude $ do
-      readData sensorsReader s_sens
-      call_ mkSendAttitude s_sens seqNum mavlinkPacket
+      l_sens <- local (istruct [])
+      readData sensorsReader l_sens
+      call_ mkSendAttitude l_sens seqNum mavlinkPacket
       processMav
 
     onStream T.gps_raw_int $ do
-      readData posReader s_pos
-      call_ mkSendGpsRawInt s_pos seqNum mavlinkPacket
+      l_pos <- local (istruct [])
+      readData posReader l_pos
+      call_ mkSendGpsRawInt l_pos seqNum mavlinkPacket
       processMav
 
     onStream T.vfr_hud $ do
-      readData posReader s_pos
-      readData ctlReader s_ctl
-      readData sensorsReader s_sens
-      call_ mkSendVfrHud s_pos s_ctl s_sens seqNum mavlinkPacket
+      l_pos  <- local (istruct [])
+      l_ctl  <- local (istruct [])
+      l_sens <- local (istruct [])
+      readData posReader l_pos
+      readData ctlReader l_ctl
+      readData sensorsReader l_sens
+      call_ mkSendVfrHud l_pos l_ctl l_sens seqNum mavlinkPacket
       processMav
 
     onStream T.global_position_int $ do
-      readData posReader s_pos
-      readData sensorsReader s_sens
-      call_ mkSendGlobalPositionInt s_pos s_sens seqNum mavlinkPacket
+      l_pos  <- local (istruct [])
+      l_sens <- local (istruct [])
+      readData posReader l_pos
+      readData sensorsReader l_sens
+      call_ mkSendGlobalPositionInt l_pos l_sens now seqNum mavlinkPacket
       processMav
 
     onStream T.params $ do
