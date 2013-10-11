@@ -18,7 +18,6 @@ import           Ivory.Stdlib
 import           Ivory.Tower
 
 import qualified SMACCMPilot.Mavlink.Receive        as R
-import qualified SMACCMPilot.Flight.Types.DataRate  as D
 
 import           SMACCMPilot.Param
 import           SMACCMPilot.Flight.GCS.Stream (defaultPeriods)
@@ -47,8 +46,8 @@ gcsReceiveTask mavStream s_src dr_src hil_src param_req_src params = do
   param_req_emitter <- withChannelEmitter param_req_src "param_req"
 
   -- Generate functions from parameter list.
-  let getParamIndex  = makeGetParamIndex read_params
-  let setParamValue  = makeSetParamValue write_params
+  getParamIndex     <- makeGetParamIndex read_params
+  setParamValue     <- makeSetParamValue write_params
 
   withStackSize 1024
   streamPeriodEmitter <- withChannelEmitter s_src "streamperiods"
@@ -97,13 +96,11 @@ gcsReceiveTask mavStream s_src dr_src hil_src param_req_src params = do
 
   taskModuleDef $ do
     depend mavlinkCRCModule
-    defStruct (Proxy :: Proxy "mavlink_receive_state")
+    depend R.mavlinkReceiveStateModule
     handlerModuleDefs
     mapM_ depend mavlinkMessageModules
     mapM_ depend stdlibModules
     private $ do
       incl parseMav
       incl handlerAux
-      incl getParamIndex
-      incl setParamValue
 

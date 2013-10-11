@@ -12,7 +12,6 @@ import Control.Monad (forM_)
 import Ivory.Language
 import Ivory.Tower
 import Ivory.Stdlib
-import Ivory.Tower
 
 import           SMACCMPilot.Mavlink.Messages (mavlinkMessageModules)
 import qualified SMACCMPilot.Mavlink.Messages.RequestDataStream as RDS
@@ -36,8 +35,7 @@ paramRequestList params emitter _ =
 
 -- | Request read of a parameter by name or index.
 paramRequestRead :: (SingI n)
-                 => (forall s1 s2.
-                     Def ('[ConstRef s1 IStr, Ref s2 (Stored Sint16)] :-> IBool))
+                 => ParamIndexGetter
                  -> ChannelEmitter n (Stored Sint16)
                  -> Ref s (Struct "param_request_read_msg")
                  -> Ivory (ProcEffects cs r) ()
@@ -49,7 +47,7 @@ paramRequestRead getIndex emitter msg = do
   when (n ==? -1) $ do
     name <- local (istr_empty 16)
     istr_from_sz name (constRef $ msg ~> PRR.param_id)
-    call_ getIndex (constRef name) ixRef
+    call_ (paramIndexGetter getIndex) (constRef name) ixRef
     -- ixRef stays -1 if the name lookup fails
 
   ix <- deref ixRef
@@ -58,8 +56,7 @@ paramRequestRead getIndex emitter msg = do
 
 -- | Set a parameter's value and send the modified param info.
 paramSet :: (SingI n)
-         => (forall s1 s2.
-             Def ('[ConstRef s1 IStr, Ref s2 (Stored Sint16)] :-> IBool))
+         => ParamIndexGetter
          -> Def ('[Sint16, IFloat] :-> IBool)
          -> ChannelEmitter n (Stored Sint16)
          -> Ref s3 (Struct "param_set_msg")
@@ -69,7 +66,7 @@ paramSet getIndex setValue emitter msg = do
   istr_from_sz name (constRef $ msg ~> PS.param_id)
 
   ixRef <- local (ival (0 :: Sint16))
-  found <- call getIndex (constRef name) ixRef
+  found <- call (paramIndexGetter getIndex) (constRef name) ixRef
 
   when found $ do
     ix  <- deref ixRef

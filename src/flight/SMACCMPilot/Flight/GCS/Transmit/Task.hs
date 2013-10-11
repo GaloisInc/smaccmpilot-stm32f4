@@ -146,7 +146,7 @@ gcsTransmitTask mavStream sp_sink _dr_sink fm_sink se_sink ps_sink ct_sink
       when success $ do
         ix    <- deref x
         msg   <- local (istruct [])
-        found <- call getParamInfo ix msg
+        found <- call (paramInfoGetter getParamInfo) ix msg
         when found $ do
           call_ mkSendParamValue msg seqNum mavlinkPacket
           processMav
@@ -166,4 +166,3 @@ gcsTransmitTask mavStream sp_sink _dr_sink fm_sink se_sink ps_sink ct_sink
     depend D.dataRateTypeModule
     depend T.gcsStreamTimingTypeModule
     depend senderModules
-    incl getParamInfo

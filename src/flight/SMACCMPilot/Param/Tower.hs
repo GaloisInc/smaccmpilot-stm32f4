@@ -5,6 +5,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE RankNTypes #-}
 --
 -- Param/Tower.hs --- Parameter storage using Tower.
 --
@@ -90,12 +91,25 @@ paramRead =
  }
 |]
 
+-- Rank N type wrapping up the ParamIndexGetter callback
+-- to ensure it is always polymorphic on the ref scopes
+newtype ParamIndexGetter =
+  ParamIndexGetter
+    { paramIndexGetter :: forall s1 s2 .
+        Def ('[ ConstRef s1 IStr
+        , Ref      s2 (Stored Sint16)
+        ] :-> IBool)
+    }
+
 -- | Create a function to look up a parameter index by name.
 makeGetParamIndex :: [Param f]
-                  -> Def ('[ ConstRef s1 IStr
-                           , Ref      s2 (Stored Sint16)
-                           ] :-> IBool)
-makeGetParamIndex params = proc "getParamIndex" $ \name ref -> body $ go params name ref 0
+                  -> Task p ParamIndexGetter
+makeGetParamIndex params = do
+  fr <- freshname
+  let p = ParamIndexGetter $ proc ("getParamIndex" ++ fr) $
+            \name ref -> body $ go params name ref 0
+  taskModuleDef $ incl (paramIndexGetter p)
+  return p
   where
     go [] _ _ _ = ret false
     go (x:xs) name1 out ix = do
@@ -106,12 +120,25 @@ makeGetParamIndex params = proc "getParamIndex" $ \name ref -> body $ go params 
         ret true
       go xs name1 out (ix + 1)
 
+-- Rank N type wrapping up the ParamInfoGetter callback
+-- to ensure it is always polymorphic on the ref scope
+newtype ParamInfoGetter =
+  ParamInfoGetter
+    { paramInfoGetter :: forall s1 .
+        Def ('[ Sint16
+              , Ref s1 (Struct "param_value_msg")
+              ] :-> IBool)
+    }
+
 -- | Create a function to get parameter info by index.
 makeGetParamInfo :: [Param ParamReader]
-                 -> Def ('[ Sint16
-                          , Ref s1 (Struct "param_value_msg")
-                          ] :-> IBool)
-makeGetParamInfo params = proc "getParamInfo" $ \ix ref -> body $ go params ix ref 0
+                 -> Task p ParamInfoGetter
+makeGetParamInfo params = do
+  fr <- freshname
+  let p = ParamInfoGetter $ proc ("getParamInfo" ++ fr) $
+            \ix ref -> body $ go params ix ref 0
+  taskModuleDef $ incl (paramInfoGetter p)
+  return p
   where
     count :: Uint16
     count = fromIntegral (length params)
@@ -129,10 +156,15 @@ makeGetParamInfo params = proc "getParamInfo" $ \ix ref -> body $ go params ix r
 
 -- | Create a function to set a parameter value by index.
 makeSetParamValue :: [Param ParamWriter]
-                  -> Def ('[ Sint16
-                           , IFloat
-                           ] :-> IBool)
-makeSetParamValue params = proc "setParamValue" $ \ix value -> body $ go params ix value 0
+                  -> Task p (Def ('[ Sint16
+                                   , IFloat
+                                   ] :-> IBool))
+makeSetParamValue params = do
+  fr <- freshname
+  let p = proc ("setParamValue" ++ fr) $
+            \ix value -> body $ go params ix value 0
+  taskModuleDef $ incl p
+  return p
   where
     go [] _ _ _ = ret false
     go (x:xs) ix v n = do
