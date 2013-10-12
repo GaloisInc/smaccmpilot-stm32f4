@@ -12,8 +12,9 @@ import Prelude hiding (last)
 import Ivory.Language
 import Ivory.Stdlib
 
-import qualified SMACCMPilot.Flight.Types.UserInput as I
-import qualified SMACCMPilot.Flight.Types.FlightMode as FM
+import qualified SMACCMPilot.Flight.Types.UserInput      as I
+import qualified SMACCMPilot.Flight.Types.FlightMode     as FM
+import qualified SMACCMPilot.Flight.Types.FlightModeData as FM
 
 --------------------------------------------------------------------------------
 
@@ -37,36 +38,56 @@ struct userinput_decode_state
   }
 |]
 
+-- XXX wrap in a newtype
 as_DISARMED, as_ARMING, as_ARMED :: Uint8
 as_DISARMED = 0
 as_ARMING   = 1
 as_ARMED    = 2
 
-mode_pwm_map :: [(Uint8, (Uint16, Uint16))]    -- on ER9X this should be:
+mode_pwm_map :: [(FM.FlightMode, (Uint16, Uint16))]    -- on ER9X this should be:
 mode_pwm_map = [(FM.flightModeLoiter,    (900, 1300))  -- AUX 3 up
                ,(FM.flightModeAltHold,   (1301, 1700)) -- AUX 3 center
                ,(FM.flightModeStabilize, (1701, 2100)) -- AUX 3 down
                ]
+
+scale_rpyt :: Uint16 -> Ivory eff IFloat
+scale_rpyt input = call scale_proc 1500 500 (-1.0) 1.0 input
+
+scale_proc :: Def ('[Uint16, Uint16, IFloat, IFloat, Uint16] :-> IFloat)
+scale_proc = proc "userinput_scale" $ \center range outmin outmax input ->
+  requires (    (range /=? 0)
+            .&& (input >=? 1000)
+            .&& (input <=? 2000)
+            .&& (input >=? center)
+           )
+  $ body $ do
+    let centered = input - center
+    let ranged = safeCast centered / safeCast range
+    ifte_ (ranged <? outmin)
+      (ret outmin)
+      (ifte_ (ranged >? outmax)
+        (ret outmax)
+        (ret ranged))
 
 userInputDecode :: Def ('[ Ref s0 (Array 8 (Stored Uint16))
                          , Ref s1 (Struct "userinput_result")
                          , Uint32 ] :-> ())
 userInputDecode = proc "userinput_decode" $ \pwms ui now ->
   body $ do
-  let chtransform :: (IvoryStore a1)
-                  => Ix 8
-                  -> (Uint16 -> Ivory eff a1)
-                  -> Label "userinput_result" (Stored a1)
+
+  -- Scale 1000-2000 inputs to -1 to 1 inputs.
+  let chtransform :: Ix 8
+                  -> Label "userinput_result" (Stored IFloat)
                   -> Ivory eff ()
-      chtransform ix scale ofield = do
+      chtransform ix ofield = do
         pwm <- deref (pwms ! (ix :: Ix 8))
-        v <- scale pwm
+        v   <- scale_rpyt pwm
         store (ui ~> ofield) v
 
-  chtransform 0 scale_rpyt I.roll
-  chtransform 1 scale_rpyt I.pitch
-  chtransform 2 scale_rpyt I.throttle
-  chtransform 3 scale_rpyt I.yaw
+  chtransform 0 I.roll
+  chtransform 1 I.pitch
+  chtransform 2 I.throttle
+  chtransform 3 I.yaw
 
   store (ui ~> I.time) now
 
@@ -133,7 +154,7 @@ arming_statemachine pwms state now = do
 mode_statemachine :: (Ref s1 (Array 8 (Stored Uint16)))
                   -> (Ref s2 (Struct "userinput_decode_state"))
                   -> Uint32
-                  -> Ivory eff Uint8
+                  -> Ivory eff FM.FlightMode
 mode_statemachine pwms state now = do
   mode_input_current <- deref (pwms ! (4 :: Ix 8))
   mode_input_prev    <- deref (state ~> last_modepwm)
@@ -153,7 +174,7 @@ mode_statemachine pwms state now = do
   newmode m = do
     reset_input m
     store (state ~> valid_modepwm) m
-  mode_from_pwm :: Uint16 -> Uint8
+  mode_from_pwm :: Uint16 -> FM.FlightMode
   mode_from_pwm pwm = foldr matchmodemap FM.flightModeStabilize mode_pwm_map
     -- Build up a series of conditional checks using fold. Default to
     -- mode_STABILIZE if none found.
@@ -164,20 +185,6 @@ mode_statemachine pwms state now = do
   magnitude :: Uint16 -> Uint16 -> Uint16
   magnitude a b = castDefault
                 $ abs $ (safeCast a :: Sint32) - (safeCast b)
-
-scale_rpyt :: Uint16 -> Ivory eff IFloat
-scale_rpyt input = call scale_proc 1500 500 (-1.0) 1.0 input
-
-scale_proc :: Def ('[Uint16, Uint16, IFloat, IFloat, Uint16] :-> IFloat)
-scale_proc = proc "userinput_scale" $ \center range outmin outmax input ->
-  requires (range /=? 0) $ body $ do
-    let centered = input - center
-    let ranged = (safeCast centered) / (safeCast range)
-    ifte_ (ranged <? outmin)
-      (ret outmin)
-      (ifte_ (ranged >? outmax)
-        (ret outmax)
-        (ret ranged))
 
 userInputFailsafe :: Def ('[ Ref s1 (Struct "userinput_result")
                            , Ref s2 (Struct "flightmode")

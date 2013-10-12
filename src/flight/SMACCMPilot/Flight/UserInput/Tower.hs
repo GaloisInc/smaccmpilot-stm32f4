@@ -18,7 +18,7 @@ import SMACCMPilot.Flight.UserInput.Mux
 --------------------------------------------------------------------------------
 
 userInputTower :: -- From GCS Rx Task
-                  DataSink (Struct "rc_channels_override_msg")
+                  DataSink (Struct "timestamped_rc_override")
                -> Tower p ( DataSink (Struct "userinput_result")
                           , DataSink (Struct "flightmode")
                           )
@@ -40,4 +40,3 @@ userInputTower snk_rc_over = do
   return (snk_input_mux_res, snk_flightmode)
 
 --------------------------------------------------------------------------------
-

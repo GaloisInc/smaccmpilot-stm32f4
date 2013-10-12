@@ -140,7 +140,7 @@ flight opts = do
 core :: (SingI n)
        => ChannelSink n (Struct "sensors_result")
        -> FlightParams ParamSink
-       -> DataSink (Struct "rc_channels_override_msg")
+       -> DataSink (Struct "timestamped_rc_override")
        -> Tower p ( DataSink (Struct "flightmode")
                   , ChannelSink 16 (Struct "controloutput")
                   , ChannelSink 16 (Struct "motors"))

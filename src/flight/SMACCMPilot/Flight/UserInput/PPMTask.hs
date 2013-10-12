@@ -1,6 +1,8 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
 
+-- | Process PPM signals from the PPM RC controller.
+
 module SMACCMPilot.Flight.UserInput.PPMTask
   ( userPPMInputTask
   , userPPMInputCapture

@@ -35,7 +35,7 @@ gcsReceiveTask :: (SingI n0, SingI n1, SingI n2, SingI n3, SingI n4)
                -> ChannelSource n2 (Struct "data_rate_state")
                -> ChannelSource n3 (Struct "hil_state_msg")
                -> ChannelSource n4 (Stored Sint16)  -- param_request
-               -> DataSource       (Struct "rc_channels_override_msg")
+               -> DataSource       (Struct "timestamped_rc_override")
                -> [Param PortPair]
                -> Task p ()
 gcsReceiveTask mavStream s_src dr_src hil_src param_req_src rcOvr_snk params = do
@@ -71,7 +71,7 @@ gcsReceiveTask mavStream s_src dr_src hil_src param_req_src rcOvr_snk params = d
             , handle (paramSet getParamIndex setParamValue param_req_emitter)
             , handle (requestDatastream s_periods (emit_ streamPeriodEmitter))
             , handle (hilState hil_emitter)
-            , handle (rcOverride rcOverride_writer)
+            , handle (rcOverride rcOverride_writer millis)
             ]
           where runHandlers s = mapM_ ($ s)
 

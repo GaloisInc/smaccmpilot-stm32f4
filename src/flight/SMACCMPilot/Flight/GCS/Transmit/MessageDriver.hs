@@ -24,6 +24,7 @@ import qualified SMACCMPilot.Flight.Types.Sensors               as Sens
 import qualified SMACCMPilot.Flight.Types.ControlOutput         as C
 import qualified SMACCMPilot.Flight.Types.UserInput             as U
 import qualified SMACCMPilot.Flight.Types.FlightMode            as FM
+import qualified SMACCMPilot.Flight.Types.FlightModeData        as FM
 import qualified SMACCMPilot.Flight.Types.DataRate              as R
 import qualified SMACCMPilot.Flight.Types.RadioStat             as RStat
 
@@ -113,7 +114,7 @@ mkSendHeartbeat =
   ac2mode_stabilize = 0
   ac2mode_alt_hold  = 2
   ac2mode_loiter    = 5
-  mode_to_ac2mode :: Uint8 -> Uint32
+  mode_to_ac2mode :: FM.FlightMode -> Uint32
   mode_to_ac2mode um = foldr translate ac2mode_stabilize t
     where
     translate (umode, ac2mode) c = (um ==? umode) ? (ac2mode, c)

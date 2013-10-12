@@ -36,7 +36,7 @@ gcsTower :: (SingI n0, SingI n1)
          -> DataSink (Struct "position")
          -> DataSink (Struct "controloutput")
          -> DataSink (Struct "motors")
-         -> DataSource (Struct "rc_channels_override_msg")
+         -> DataSource (Struct "timestamped_rc_override")
          -> [Param PortPair]
          -> Tower p ()
 gcsTower name opts istream ostream fm sens pos ctl motor rcOvrTx params =
@@ -55,7 +55,7 @@ gcsTowerHil :: (SingI n0, SingI n1)
          -> DataSink (Struct "motors")
          -> ( ChannelSource 16 (Struct "sensors_result")
             , ChannelSink 16 (Struct "sensors_result"))
-         -> DataSource (Struct "rc_channels_override_msg")
+         -> DataSource (Struct "timestamped_rc_override")
          -> [Param PortPair]
          -> Tower p ()
 gcsTowerHil name opts istream ostream fm ctl motor sensors rcOvrTx params = do
@@ -78,7 +78,7 @@ gcsTowerAux :: (SingI n0, SingI n1)
          -> DataSink (Struct "position")
          -> DataSink (Struct "controloutput")
          -> DataSink (Struct "motors")
-         -> DataSource (Struct "rc_channels_override_msg")
+         -> DataSource (Struct "timestamped_rc_override")
          -> [Param PortPair]
          -> Tower p (ChannelSink 4 (Struct "hil_state_msg"))
 gcsTowerAux name opts istream ostream fm sens pos ctl motor rcOvrTx params = do

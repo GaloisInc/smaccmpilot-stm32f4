@@ -14,7 +14,8 @@ import Ivory.HW.Module (hw_moduledef)
 
 import Ivory.BSP.STM32F4.GPIO
 
-import qualified SMACCMPilot.Flight.Types.FlightMode as FM
+import qualified SMACCMPilot.Flight.Types.FlightMode     as FM
+import qualified SMACCMPilot.Flight.Types.FlightModeData as FM
 
 blinkTask :: [ GPIOPin ]
           -> DataSink (Struct "flightmode")
@@ -68,8 +69,8 @@ flightModeToBlinkMode fmRef = do
   armed <- (fmRef ~>* FM.armed)
   return $ foldr cond 0 (tbl armed mode)
   where
-  cond (c, res) k = c ? (res, k) 
-  tbl :: IBool -> Uint8 -> [(IBool, Uint8)]
+  cond (c, res) k = c ? (res, k)
+  tbl :: IBool -> FM.FlightMode -> [(IBool, Uint8)]
   tbl armed mode =
     [ ( disarmed .&& stabilize, 2 )
     , ( disarmed .&& althold  , 3 )
