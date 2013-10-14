@@ -32,24 +32,24 @@ import qualified SMACCMPilot.Communications         as Comm
 
 --------------------------------------------------------------------------------
 
-gcsReceiveTask :: (SingI n0, SingI n1, SingI n2, SingI n3, SingI n4)
+gcsReceiveTask :: (SingI n0, SingI n1, SingI n2, SingI n3, SingI n4, SingI n5)
                => ChannelSink   n0 Comm.MAVLinkArray -- from decryptor
                -> ChannelSource n1 (Struct "gcsstream_timing")
                -> ChannelSource n2 (Struct "data_rate_state")
                -> ChannelSource n3 (Struct "hil_state_msg")
                -> DataSource       (Struct "flightmode")
-               -> DataSource       (Stored IBool)
-               -> ChannelSource n4 (Stored Sint16)  -- param_request
+               -> ChannelSource n4 (Stored IBool)
+               -> ChannelSource n5 (Stored Sint16)  -- param_request
                -> DataSource       (Struct "timestamped_rc_override")
                -> [Param PortPair]
                -> Task p ()
 gcsReceiveTask mavStream s_src dr_src hil_src fm armed_src
                param_req_src rcOvr_snk params
   = do
-  millis       <- withGetTimeMillis
-  hil_emitter  <- withChannelEmitter hil_src "hil_src"
-  fm_writer    <- withDataWriter fm "flightMode"
-  armed_writer <- withDataWriter armed_src "armed"
+  millis        <- withGetTimeMillis
+  hil_emitter   <- withChannelEmitter hil_src "hil_src"
+  fm_writer     <- withDataWriter fm "flightMode"
+  armed_emitter <- withChannelEmitter armed_src "armed"
 
   -- Get lists of parameter readers and writers.
   write_params      <- traverse paramWriter (map (fmap portPairSource) params)
@@ -84,7 +84,7 @@ gcsReceiveTask mavStream s_src dr_src hil_src fm armed_src
             , handle (rcOverride rcOverride_writer millis)
             , handle (setMode fm_writer now)
             , handleCommandLong (fromIntegral Cmd.id_COMPONENT_ARM_DISARM)
-                                (armDisarm armed_writer)
+                                (armDisarm armed_emitter)
             ]
           where runHandlers s = mapM_ ($ s)
 

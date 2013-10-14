@@ -72,7 +72,10 @@ hil opts = do
   -- Communication primitives:
   sensors       <- channel
   flightmode    <- dataport
-  armed         <- dataport
+  -- Arming input from GCS.  Goes to MAVLink mux.
+  armed_mav     <- channel
+  -- Result of the MAVLink/PPM mux.  Goes to control & GCS TX.
+  armed_res     <- dataport
 
   -- RC override dataport:
   (rcOvrTx, rcOvrRx) <- dataport
@@ -83,16 +86,21 @@ hil opts = do
 
   -- Instantiate core:
   let flightparams = sysFlightParams snk_params
-  (control, motors) <-
-    core (snk sensors) (snk flightmode) armed flightparams rcOvrRx
+  (control, motors) <- core (snk sensors)
+                            (snk flightmode)
+                            (src armed_res)
+                            (snk armed_mav)
+                            flightparams
+                            rcOvrRx
   motors_state      <- stateProxy motors
   control_state     <- stateProxy control
 
   -- HIL-enabled GCS on uart1:
   (istream, ostream) <- uart UART.uart1
 
-  gcsTowerHil "uart1" opts istream ostream flightmode armed
-    control_state motors_state sensors rcOvrTx paramList
+  gcsTowerHil "uart1" opts istream ostream flightmode
+    (snk armed_res) (src armed_mav) control_state motors_state
+    sensors rcOvrTx paramList
 
   addModule (commsecModule opts)
   -- Missing module that comes in via gpsTower:
@@ -108,7 +116,7 @@ flight opts = do
   sensor_state  <- stateProxy (snk sensors)
   flightmode    <- dataport
   -- Arming input from GCS.  Goes to MAVLink mux.
-  armed_mav     <- dataport
+  armed_mav     <- channel
   -- Result of the MAVLink/PPM mux.  Goes to control & GCS TX.
   armed_res     <- dataport
 
@@ -123,7 +131,8 @@ flight opts = do
   let flightparams = sysFlightParams snk_params
   (control, motors) <- core (snk sensors)
                             (snk flightmode)
-                            (src armed_res, snk armed_mav)
+                            (src armed_res)
+                            (snk armed_mav)
                             flightparams
                             rcOvrRx
   motors_state      <- stateProxy motors
@@ -139,7 +148,7 @@ flight opts = do
 
   let gcsTower' uartNm uartiStrm uartoStrm =
         gcsTower uartNm opts uartiStrm uartoStrm flightmode
-          (src armed_mav, snk armed_res) sensor_state position_state
+          (snk armed_res) (src armed_mav) sensor_state position_state
           control_state motors_state rcOvrTx paramList
 
   -- GCS on UART1:
@@ -152,20 +161,23 @@ flight opts = do
 
   addModule (commsecModule opts)
 
-core :: (SingI n)
-       => ChannelSink n (Struct "sensors_result")
+core :: (SingI n0, SingI n1)
+       => ChannelSink n0 (Struct "sensors_result")
        -> DataSink (Struct "flightmode")
-       -> ( DataSource (Stored IBool)
-          , DataSink   (Stored IBool))
+       -> DataSource (Stored IBool)
+       -> ChannelSink n1 (Stored IBool)
        -> FlightParams ParamSink
        -> DataSink (Struct "timestamped_rc_override")
        -> Tower p ( ChannelSink 16 (Struct "controloutput")
                   , ChannelSink 16 (Struct "motors"))
-core sensors flightmode armed flightparams snk_rc_override_msg = do
+core sensors flightmode armed_res_src armed_mav_snk
+     flightparams snk_rc_override_msg
+  = do
   motors  <- channel
   control <- channel
 
-  userinput        <- userInputTower (src armed) (snk armed) snk_rc_override_msg
+  userinput        <-
+    userInputTower armed_res_src armed_mav_snk snk_rc_override_msg
   task "blink"      $ blinkTask lights flightmode
   task "control"    $ controlTask flightmode userinput sensors
                        (src control) flightparams

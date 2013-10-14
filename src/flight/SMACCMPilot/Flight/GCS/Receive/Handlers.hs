@@ -185,24 +185,23 @@ setMode fm_writer now msg = do
 --------------------------------------------------------------------------------
 
 -- | Handle a 'COMPONENT_ARM_DISARM' command.
-armDisarm :: DataWriter (Stored IBool)
+armDisarm :: SingI n
+          => ChannelEmitter n (Stored IBool)
           -> Ref s1 (Struct "command_long_msg")
           -> Ivory (ProcEffects cs r) ()
-armDisarm arm_writer msg = do
+armDisarm arm_emitter msg = do
   component <- deref (msg ~> CL.target_component)
   param1    <- deref (msg ~> CL.param1)
-  val       <- local izero
 
   when (component ==? (fromIntegral MC.id_SYSTEM_CONTROL)) $ do
     cond_
+      -- Float comparison should be ok(?) since they're encoded ints and there's
+      -- no arithmetic on them.
       [ param1 ==? 0.0 ==> do
-          store val false
-          writeData arm_writer (constRef val)
+          emitV_ arm_emitter false
       , param1 ==? 1.0 ==> do
-          store val true
-          writeData arm_writer (constRef val)
+          emitV_ arm_emitter true
       ]
-
   return ()
 
 --------------------------------------------------------------------------------
