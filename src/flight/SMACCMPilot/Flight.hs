@@ -107,7 +107,10 @@ flight opts = do
   sensors       <- channel
   sensor_state  <- stateProxy (snk sensors)
   flightmode    <- dataport
-  armed         <- dataport
+  -- Arming input from GCS.  Goes to MAVLink mux.
+  armed_mav     <- dataport
+  -- Result of the MAVLink/PPM mux.  Goes to control & GCS TX.
+  armed_res     <- dataport
 
   -- RC override dataport:
   (rcOvrTx, rcOvrRx) <- dataport
@@ -118,8 +121,11 @@ flight opts = do
 
   -- Instantiate core:
   let flightparams = sysFlightParams snk_params
-  (control, motors) <-
-    core (snk sensors) (snk flightmode) armed flightparams rcOvrRx
+  (control, motors) <- core (snk sensors)
+                            (snk flightmode)
+                            (src armed_res, snk armed_mav)
+                            flightparams
+                            rcOvrRx
   motors_state      <- stateProxy motors
   control_state     <- stateProxy control
 
@@ -132,9 +138,9 @@ flight opts = do
   motorOutput motors
 
   let gcsTower' uartNm uartiStrm uartoStrm =
-        gcsTower uartNm opts uartiStrm uartoStrm flightmode armed
-          sensor_state position_state control_state motors_state
-          rcOvrTx paramList
+        gcsTower uartNm opts uartiStrm uartoStrm flightmode
+          (src armed_mav, snk armed_res) sensor_state position_state
+          control_state motors_state rcOvrTx paramList
 
   -- GCS on UART1:
   (uart1istream, uart1ostream) <- uart UART.uart1
@@ -142,7 +148,7 @@ flight opts = do
 
   -- GCS on UART5:
   (uart5istream, uart5ostream) <- uart UART.uart5
-  gcsTower "uart5" uart5istream uart5ostream
+  gcsTower' "uart5" uart5istream uart5ostream
 
   addModule (commsecModule opts)
 
@@ -155,11 +161,11 @@ core :: (SingI n)
        -> DataSink (Struct "timestamped_rc_override")
        -> Tower p ( ChannelSink 16 (Struct "controloutput")
                   , ChannelSink 16 (Struct "motors"))
-core sensors flightmode armed snk_rc_override_msg flightparams = do
+core sensors flightmode armed flightparams snk_rc_override_msg = do
   motors  <- channel
   control <- channel
 
-  userinput         <- userInputTower (src armed) snk_rc_override_msg
+  userinput        <- userInputTower (src armed) (snk armed) snk_rc_override_msg
   task "blink"      $ blinkTask lights flightmode
   task "control"    $ controlTask flightmode userinput sensors
                        (src control) flightparams

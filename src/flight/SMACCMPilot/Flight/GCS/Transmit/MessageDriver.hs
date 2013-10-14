@@ -95,7 +95,7 @@ mkSendHeartbeat =
   hb <- local (istruct [])
   armed <- deref ref_armed
   mode  <- (fm ~>* FM.mode)
-  store (hb ~> HB.custom_mode) (safeCast mode)
+  store (hb ~> HB.custom_mode) (safeCast $ FM.fromFlightMode mode)
   store (hb ~> HB.mavtype)      mavtype_quadrotor
   store (hb ~> HB.autopilot)    autopilot_smaccmpilot
   ifte_ armed

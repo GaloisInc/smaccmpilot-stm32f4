@@ -26,7 +26,8 @@ mavTimeout = 500
 --------------------------------------------------------------------------------
 
 armedMuxTask :: DataSink (Array 8 (Stored Uint16)) -- PPM signals
-             -> DataSink (Stored IBool)  -- MAVLink arming input
+             -> DataSource (Stored IBool)          -- Mux'ed arming output
+             -> DataSink (Stored IBool)            -- MAVLink arming input
              -> Task p ()
 armedMuxTask = undefined
 

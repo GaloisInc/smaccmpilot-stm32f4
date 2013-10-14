@@ -11,8 +11,10 @@ import Control.Monad (forM_)
 
 import Ivory.Language
 import Ivory.Stdlib
+import Ivory.Tower
 
 import qualified SMACCMPilot.Flight.Types.FlightMode             as FM
+import qualified SMACCMPilot.Flight.Types.FlightModeData         as FM
 
 import           SMACCMPilot.Mavlink.Messages (mavlinkMessageModules)
 import qualified SMACCMPilot.Mavlink.Messages.RequestDataStream  as RDS
@@ -140,12 +142,23 @@ rcOverride dtx timeGetter msgRef = do
 customModeEnabled :: Uint8
 customModeEnabled = 1
 
--- | Return true if a flight mode is valid.
+-- | Return true if a flight mode is valid and the corresponding mode.
 isValidMode :: Uint8 -> Ivory (ProcEffects cs r) IBool
 isValidMode x = go FM.flightModes
+                    -- fm here should never be used.
   where go []     = return false
-        go (y:ys) = ifte (x ==? y)
+        go (y:ys) = ifte (x ==? FM.fromFlightMode y)
                       (return true)
+                      (go ys)
+
+-- | Returns the corresponding flight mode.  Invariant: input is a valid
+-- flightmode.
+getMode :: Uint8 -> Ivory (ProcEffects cs r) FM.FlightMode
+getMode x = go FM.flightModes
+                    -- fm here should never be used.
+  where go []     = return FM.flightModeStabilize -- Shouldn't happen.
+        go (y:ys) = ifte (x ==? FM.fromFlightMode y)
+                      (return y)
                       (go ys)
 
 -- | Set the flight mode.
@@ -162,9 +175,10 @@ setMode fm_writer now msg = do
     -- Assume, for now, that we're only using 8 bits of the mode.
     mode   <- assign (bitCast mode32)
     valid  <- isValidMode mode
+    mode'  <- getMode mode
     when valid $ do
       store (fm ~> FM.armed) false      -- XXX this will move
-      store (fm ~> FM.mode)  mode
+      store (fm ~> FM.mode)  mode'
       store (fm ~> FM.time)  now
       writeData fm_writer (constRef fm)
 

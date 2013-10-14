@@ -8,8 +8,9 @@
 
 module SMACCMPilot.Flight.Types.FlightMode where
 
-import SMACCMPilot.Flight.Types.FlightModeData
 import Ivory.Language
+
+import SMACCMPilot.Flight.Types.FlightModeData
 
 [ivory|
 struct flightmode
