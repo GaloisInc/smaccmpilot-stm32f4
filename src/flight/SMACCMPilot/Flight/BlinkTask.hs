@@ -74,15 +74,15 @@ flightModeToBlinkMode fmRef = do
   tbl armed mode =
     [ ( disarmed .&& stabilize, 2 )
     , ( disarmed .&& althold  , 3 )
-    , ( disarmed .&& loiter   , 6 )
+    , ( disarmed .&& auto     , 6 )
     , ( armed    .&& stabilize, 4 )
     , ( armed    .&& althold  , 5 )
-    , ( armed    .&& loiter   , 1 ) ]
+    , ( armed    .&& auto     , 1 ) ]
     where
     disarmed  = iNot armed
     stabilize = mode ==? FM.flightModeStabilize
     althold   = mode ==? FM.flightModeAltHold
-    loiter    = mode ==? FM.flightModeLoiter
+    auto      = mode ==? FM.flightModeAuto
 
 
 blinkOutput :: Uint8 -> Uint8 -> Ivory eff IBool

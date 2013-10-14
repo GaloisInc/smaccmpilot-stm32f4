@@ -45,7 +45,7 @@ as_ARMING   = 1
 as_ARMED    = 2
 
 mode_pwm_map :: [(FM.FlightMode, (Uint16, Uint16))]    -- on ER9X this should be:
-mode_pwm_map = [(FM.flightModeLoiter,    (900, 1300))  -- AUX 3 up
+mode_pwm_map = [(FM.flightModeAuto,      (900, 1300))  -- AUX 3 up
                ,(FM.flightModeAltHold,   (1301, 1700)) -- AUX 3 center
                ,(FM.flightModeStabilize, (1701, 2100)) -- AUX 3 down
                ]
@@ -74,7 +74,6 @@ userInputDecode :: Def ('[ Ref s0 (Array 8 (Stored Uint16))
                          , Uint32 ] :-> ())
 userInputDecode = proc "userinput_decode" $ \pwms ui now ->
   body $ do
-
   -- Scale 1000-2000 inputs to -1 to 1 inputs.
   let chtransform :: Ix 8
                   -> Label "userinput_result" (Stored IFloat)
@@ -83,14 +82,11 @@ userInputDecode = proc "userinput_decode" $ \pwms ui now ->
         pwm <- deref (pwms ! (ix :: Ix 8))
         v   <- scale_rpyt pwm
         store (ui ~> ofield) v
-
   chtransform 0 I.roll
   chtransform 1 I.pitch
   chtransform 2 I.throttle
   chtransform 3 I.yaw
-
   store (ui ~> I.time) now
-
   retVoid
 
 setFlightMode :: Def ('[ Ref s0 (Array 8 (Stored Uint16))
@@ -106,6 +102,7 @@ setFlightMode = proc "set_flight_mode" $ \pwms state fm now ->
   store (fm ~> FM.armed) armed
   store (fm ~> FM.mode)  mode
   store (fm ~> FM.time)  now
+  retVoid
 
 arming_statemachine :: (Ref s1 (Array 8 (Stored Uint16)))
                     -> (Ref s2 (Struct "userinput_decode_state"))
@@ -188,8 +185,9 @@ mode_statemachine pwms state now = do
 
 userInputFailsafe :: Def ('[ Ref s1 (Struct "userinput_result")
                            , Ref s2 (Struct "flightmode")
+                           , Ref s3 (Stored IBool)
                            , Uint32 ] :-> ())
-userInputFailsafe = proc "userinput_failsafe" $ \capt fm now ->
+userInputFailsafe = proc "userinput_failsafe" $ \capt fm armed now ->
   requires (checkStored (capt ~> I.time) (\t -> now >=? t))
   $ body $ do
     last <- deref ( capt ~> I.time )
@@ -200,5 +198,6 @@ userInputFailsafe = proc "userinput_failsafe" $ \capt fm now ->
        store (capt ~> I.yaw)      0
        store (capt ~> I.pitch)    0
        store (capt ~> I.roll)     0
+       store armed false
     retVoid
 

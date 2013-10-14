@@ -84,14 +84,18 @@ mkSendDataRate =
   call_ D.mkData16Sender (constRef msg) seqNum sendArr
   retVoid
 
-mkSendHeartbeat :: Sender "flightmode"
+mkSendHeartbeat :: Def ('[ Ref s1 (Struct "flightmode")
+                         , Ref s2 (Stored IBool)
+                         , Ref s3 (Stored Uint8)
+                         , Ref s3 Comm.MAVLinkArray
+                         ] :-> ())
 mkSendHeartbeat =
   proc "gcs_transmit_send_heartbeat"
-  $ \fm seqNum sendArr -> body $ do
+  $ \fm ref_armed seqNum sendArr -> body $ do
   hb <- local (istruct [])
-  armed <- (fm ~>* FM.armed)
+  armed <- deref ref_armed
   mode  <- (fm ~>* FM.mode)
-  store (hb ~> HB.custom_mode) (mode_to_ac2mode mode)
+  store (hb ~> HB.custom_mode) (safeCast mode)
   store (hb ~> HB.mavtype)      mavtype_quadrotor
   store (hb ~> HB.autopilot)    autopilot_smaccmpilot
   ifte_ armed
@@ -111,17 +115,6 @@ mkSendHeartbeat =
 
   mavl_armed        = 128
   mavl_custom_mode  = 1
-  ac2mode_stabilize = 0
-  ac2mode_alt_hold  = 2
-  ac2mode_loiter    = 5
-  mode_to_ac2mode :: FM.FlightMode -> Uint32
-  mode_to_ac2mode um = foldr translate ac2mode_stabilize t
-    where
-    translate (umode, ac2mode) c = (um ==? umode) ? (ac2mode, c)
-    t = [ (FM.flightModeStabilize, ac2mode_stabilize)
-        , (FM.flightModeAltHold,   ac2mode_alt_hold)
-        , (FM.flightModeLoiter,    ac2mode_loiter)
-        ]
 
 mkSendAttitude :: Sender "sensors_result"
 mkSendAttitude =

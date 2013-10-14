@@ -29,4 +29,3 @@ typeModules =
   , radioStatTypeModule
   , radioInfoTypeModule
   ]
-

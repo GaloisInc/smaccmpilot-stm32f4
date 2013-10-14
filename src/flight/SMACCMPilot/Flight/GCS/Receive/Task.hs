@@ -17,14 +17,17 @@ import           Ivory.Language
 import           Ivory.Stdlib
 import           Ivory.Tower
 
-import qualified SMACCMPilot.Mavlink.Receive        as R
+import qualified SMACCMPilot.Mavlink.Receive         as R
+import qualified SMACCMPilot.Flight.Types.DataRate   as D
 
 import           SMACCMPilot.Param
 import           SMACCMPilot.Flight.GCS.Stream (defaultPeriods)
 import           SMACCMPilot.Flight.GCS.Receive.Handlers
 import           SMACCMPilot.Flight.GCS.Receive.DataRateMonitor
+import           SMACCMPilot.Flight.Types.FlightMode()
 import           SMACCMPilot.Mavlink.Messages (mavlinkMessageModules)
 import           SMACCMPilot.Mavlink.CRC (mavlinkCRCModule)
+import qualified SMACCMPilot.Mavlink.Enums.MavCmd   as Cmd
 import qualified SMACCMPilot.Communications         as Comm
 
 --------------------------------------------------------------------------------
@@ -34,13 +37,19 @@ gcsReceiveTask :: (SingI n0, SingI n1, SingI n2, SingI n3, SingI n4)
                -> ChannelSource n1 (Struct "gcsstream_timing")
                -> ChannelSource n2 (Struct "data_rate_state")
                -> ChannelSource n3 (Struct "hil_state_msg")
+               -> DataSource       (Struct "flightmode")
+               -> DataSource       (Stored IBool)
                -> ChannelSource n4 (Stored Sint16)  -- param_request
                -> DataSource       (Struct "timestamped_rc_override")
                -> [Param PortPair]
                -> Task p ()
-gcsReceiveTask mavStream s_src dr_src hil_src param_req_src rcOvr_snk params = do
-  millis <- withGetTimeMillis
-  hil_emitter <- withChannelEmitter hil_src "hil_src"
+gcsReceiveTask mavStream s_src dr_src hil_src fm armed_src
+               param_req_src rcOvr_snk params
+  = do
+  millis       <- withGetTimeMillis
+  hil_emitter  <- withChannelEmitter hil_src "hil_src"
+  fm_writer    <- withDataWriter fm "flightMode"
+  armed_writer <- withDataWriter armed_src "armed"
 
   -- Get lists of parameter readers and writers.
   write_params      <- traverse paramWriter (map (fmap portPairSource) params)
@@ -63,8 +72,9 @@ gcsReceiveTask mavStream s_src dr_src hil_src param_req_src rcOvr_snk params = d
                  (istruct [ R.status .= ival R.status_IDLE ])
 
   let handlerAux :: Def ('[ Ref s0 (Struct "mavlink_receive_state")
+                          , Uint32
                           ] :-> ())
-      handlerAux = proc "gcsReceiveHandlerAux" $ \s -> body $
+      handlerAux = proc "gcsReceiveHandlerAux" $ \s now -> body $
           runHandlers s
             [ handle (paramRequestList read_params param_req_emitter)
             , handle (paramRequestRead getParamIndex param_req_emitter)
@@ -72,6 +82,9 @@ gcsReceiveTask mavStream s_src dr_src hil_src param_req_src rcOvr_snk params = d
             , handle (requestDatastream s_periods (emit_ streamPeriodEmitter))
             , handle (hilState hil_emitter)
             , handle (rcOverride rcOverride_writer millis)
+            , handle (setMode fm_writer now)
+            , handleCommandLong (fromIntegral Cmd.id_COMPONENT_ARM_DISARM)
+                                (armDisarm armed_writer)
             ]
           where runHandlers s = mapM_ ($ s)
 
@@ -84,7 +97,8 @@ gcsReceiveTask mavStream s_src dr_src hil_src param_req_src rcOvr_snk params = d
           cond_
             [ (s ==? R.status_GOTMSG) ==> do
                 drm_on_success drm
-                call_ handlerAux state
+                t <- getTimeMillis millis
+                call_ handlerAux state t
                 R.mavlinkReceiveReset state
             , (s ==? R.status_FAIL)   ==> do
                 drm_on_fail drm

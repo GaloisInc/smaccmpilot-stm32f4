@@ -31,7 +31,10 @@ gcsTower :: (SingI n0, SingI n1)
          -> O.Options
          -> ChannelSink   n0 (Stored Uint8)
          -> ChannelSource n1 (Stored Uint8)
-         -> DataSink (Struct "flightmode")
+         -> ( DataSource (Struct "flightmode")
+            , DataSink   (Struct "flightmode"))
+         -> ( DataSource (Stored IBool)
+            , DataSink   (Stored IBool))
          -> DataSink (Struct "sensors_result")
          -> DataSink (Struct "position")
          -> DataSink (Struct "controloutput")
@@ -39,9 +42,9 @@ gcsTower :: (SingI n0, SingI n1)
          -> DataSource (Struct "timestamped_rc_override")
          -> [Param PortPair]
          -> Tower p ()
-gcsTower name opts istream ostream fm sens pos ctl motor rcOvrTx params =
-  void
-    (gcsTowerAux name opts istream ostream fm sens pos ctl motor rcOvrTx params)
+gcsTower name opts istream ostream fm armed sens pos ctl motor rcOvrTx params =
+  void $ gcsTowerAux name opts istream ostream fm armed
+           sens pos ctl motor rcOvrTx params
 
 --------------------------------------------------------------------------------
 
@@ -50,7 +53,10 @@ gcsTowerHil :: (SingI n0, SingI n1)
          -> O.Options
          -> ChannelSink   n0 (Stored Uint8)
          -> ChannelSource n1 (Stored Uint8)
-         -> DataSink (Struct "flightmode")
+         -> ( DataSource (Struct "flightmode")
+            , DataSink   (Struct "flightmode"))
+         -> ( DataSource (Stored IBool)
+            , DataSink   (Stored IBool))
          -> DataSink (Struct "controloutput")
          -> DataSink (Struct "motors")
          -> ( ChannelSource 16 (Struct "sensors_result")
@@ -58,10 +64,12 @@ gcsTowerHil :: (SingI n0, SingI n1)
          -> DataSource (Struct "timestamped_rc_override")
          -> [Param PortPair]
          -> Tower p ()
-gcsTowerHil name opts istream ostream fm ctl motor sensors rcOvrTx params = do
+gcsTowerHil name opts istream ostream fm armed ctl motor sensors rcOvrTx params
+  = do
   sensors_state <- stateProxy (snk sensors)
   position      <- dataport
-  hil <- gcs fm sensors_state (snk position) ctl motor rcOvrTx params
+  hil           <-
+    gcs fm armed sensors_state (snk position) ctl motor rcOvrTx params
   task "hilTranslator" $ hilTranslator hil (src sensors) (src position)
   where
   gcs = gcsTowerAux name opts istream ostream
@@ -73,7 +81,10 @@ gcsTowerAux :: (SingI n0, SingI n1)
          -> O.Options
          -> ChannelSink   n0 (Stored Uint8)
          -> ChannelSource n1 (Stored Uint8)
-         -> DataSink (Struct "flightmode")
+         -> ( DataSource (Struct "flightmode")
+            , DataSink   (Struct "flightmode"))
+         -> ( DataSource (Stored IBool)
+            , DataSink   (Stored IBool))
          -> DataSink (Struct "sensors_result")
          -> DataSink (Struct "position")
          -> DataSink (Struct "controloutput")
@@ -81,7 +92,8 @@ gcsTowerAux :: (SingI n0, SingI n1)
          -> DataSource (Struct "timestamped_rc_override")
          -> [Param PortPair]
          -> Tower p (ChannelSink 4 (Struct "hil_state_msg"))
-gcsTowerAux name opts istream ostream fm sens pos ctl motor rcOvrTx params = do
+gcsTowerAux name opts istream ostream fm armed sens pos ctl motor rcOvrTx params
+  = do
   -- GCS TX and encrypt tasks
   (gcsTxToEncSrc, gcsTxToEncRcv) <- channel
   -- GCS RX and decrypt tasks
@@ -107,13 +119,13 @@ gcsTowerAux name opts istream ostream fm sens pos ctl motor rcOvrTx params = do
   task (named "decryptTask") $ Dec.decryptTask opts hxToDecRcv decToGcsRxSrc
   task (named "gcsReceiveTask") $
     gcsReceiveTask decToGcsRxRcv (src streamrate) (src datarate) (src hil)
-      (src param_req) rcOvrTx params
+      (src fm) (src armed) (src param_req) rcOvrTx params
 
   -- TX
   task (named "encryptTask") $ Enc.encryptTask opts gcsTxToEncRcv encToHxSrc
   task (named "gcsTransmitTask") $
-    gcsTransmitTask gcsTxToEncSrc (snk streamrate) (snk datarate) fm sens
-      pos ctl motor radioStat (snk param_req) params
+    gcsTransmitTask gcsTxToEncSrc (snk streamrate) (snk datarate) (snk fm)
+      (snk armed) sens pos ctl motor radioStat (snk param_req) params
   addDepends HIL.hilStateModule
   return (snk hil)
   where named n = n ++ "_" ++ name

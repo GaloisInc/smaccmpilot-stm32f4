@@ -12,6 +12,8 @@ import Control.Monad (forM_)
 import Ivory.Language
 import Ivory.Stdlib
 
+import qualified SMACCMPilot.Flight.Types.FlightMode             as FM
+
 import           SMACCMPilot.Mavlink.Messages (mavlinkMessageModules)
 import qualified SMACCMPilot.Mavlink.Messages.RequestDataStream  as RDS
 import qualified SMACCMPilot.Mavlink.Messages.ParamSet           as PS
@@ -21,7 +23,11 @@ import qualified SMACCMPilot.Mavlink.Messages.RcChannelsOverride as O
 import qualified SMACCMPilot.Flight.Types.UserInput              as T
 
 import qualified SMACCMPilot.Mavlink.Receive                     as R
+import qualified SMACCMPilot.Mavlink.Messages.SetMode            as SM
+import qualified SMACCMPilot.Mavlink.Messages.CommandLong        as CL
 import           SMACCMPilot.Mavlink.Unpack
+
+import qualified SMACCMPilot.Mavlink.Enums.MavComponent          as MC
 
 import           SMACCMPilot.Param
 import           SMACCMPilot.Flight.GCS.Stream (updateGCSStreamPeriods)
@@ -131,7 +137,78 @@ rcOverride dtx timeGetter msgRef = do
 
 --------------------------------------------------------------------------------
 
--- | Handles a specific Mavlink message, where 'unpackMsg' is a method of the
+customModeEnabled :: Uint8
+customModeEnabled = 1
+
+-- | Return true if a flight mode is valid.
+isValidMode :: Uint8 -> Ivory (ProcEffects cs r) IBool
+isValidMode x = go FM.flightModes
+  where go []     = return false
+        go (y:ys) = ifte (x ==? y)
+                      (return true)
+                      (go ys)
+
+-- | Set the flight mode.
+setMode :: DataWriter (Struct "flightmode")
+        -> Uint32
+        -> Ref s2 (Struct "set_mode_msg")
+        -> Ivory (ProcEffects cs r) ()
+setMode fm_writer now msg = do
+  fm <- local izero
+  base_mode <- deref (msg ~> SM.base_mode)
+
+  when (base_mode .& customModeEnabled /=? 0) $ do
+    mode32 <- deref (msg ~> SM.custom_mode)
+    -- Assume, for now, that we're only using 8 bits of the mode.
+    mode   <- assign (bitCast mode32)
+    valid  <- isValidMode mode
+    when valid $ do
+      store (fm ~> FM.armed) false      -- XXX this will move
+      store (fm ~> FM.mode)  mode
+      store (fm ~> FM.time)  now
+      writeData fm_writer (constRef fm)
+
+--------------------------------------------------------------------------------
+
+-- | Handle a 'COMPONENT_ARM_DISARM' command.
+armDisarm :: DataWriter (Stored IBool)
+          -> Ref s1 (Struct "command_long_msg")
+          -> Ivory (ProcEffects cs r) ()
+armDisarm arm_writer msg = do
+  component <- deref (msg ~> CL.target_component)
+  param1    <- deref (msg ~> CL.param1)
+  val       <- local izero
+
+  when (component ==? (fromIntegral MC.id_SYSTEM_CONTROL)) $ do
+    cond_
+      [ param1 ==? 0.0 ==> do
+          store val false
+          writeData arm_writer (constRef val)
+      , param1 ==? 1.0 ==> do
+          store val true
+          writeData arm_writer (constRef val)
+      ]
+
+  return ()
+
+--------------------------------------------------------------------------------
+
+-- | Handle a 'COMMAND_LONG' subcommand.
+handleCommandLong :: (GetAlloc eff ~ Scope s)
+                  => Uint16
+                  -> (Ref (Stack s) (Struct "command_long_msg") -> Ivory eff ())
+                  -> Ref s1 (Struct "mavlink_receive_state")
+                  -> Ivory eff ()
+handleCommandLong cmd handler rxstate = handle go rxstate
+  where
+    go msg = do
+      cmd_id <- deref (msg ~> CL.command)
+      when (cmd_id ==? cmd) $
+        handler msg
+
+--------------------------------------------------------------------------------
+
+-- | Handles a specific Mavlink message, where 'unpack' is a method of the
 -- 'MavlinkUnpackageMsg'.
 handle :: (GetAlloc eff ~ Scope s, MavlinkUnpackableMsg t, IvoryStruct t)
        => (Ref (Stack s) (Struct t) -> Ivory eff ())

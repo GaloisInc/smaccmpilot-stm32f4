@@ -7,6 +7,7 @@
 
 module SMACCMPilot.Flight.UserInput.Mux
   ( userInputMuxTask
+  , armedMuxTask
   ) where
 
 import Ivory.Language
@@ -21,6 +22,13 @@ import qualified SMACCMPilot.Flight.Types.FlightMode as FM
 -- Timeout to revert back to the RC PPM controller.
 mavTimeout :: Uint32
 mavTimeout = 500
+
+--------------------------------------------------------------------------------
+
+armedMuxTask :: DataSink (Array 8 (Stored Uint16)) -- PPM signals
+             -> DataSink (Stored IBool)  -- MAVLink arming input
+             -> Task p ()
+armedMuxTask = undefined
 
 --------------------------------------------------------------------------------
 
@@ -52,11 +60,12 @@ userInputMuxTask snk_rc_ppm snk_mav_ppm src_res = do
     -- Time is monotomic.
     assert (now >=? lastMavTime)
 
-    isArmed <- deref (mavLocal ~> FM.armed)
+    -- XXX
+    -- isArmed <- deref (mavLocal ~> FM.armed)
 
     cond_
       [   -- Not armed: don't listen to MAVLink messages.
-          iNot isArmed
+          true -- iNot isArmed XXX
       ==> writeOutput rcLocal
           -- No MAVLink message has arrived in the past mavTime milliseconds.
           -- Ignore MAV input.
