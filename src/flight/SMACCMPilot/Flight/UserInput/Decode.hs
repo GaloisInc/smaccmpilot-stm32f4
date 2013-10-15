@@ -140,7 +140,7 @@ armingStatemachine = proc "armingStatemachine" $ \pwms state now -> body $ do
         when (ast ==? A.as_ARMING)
           (set_arm_state A.as_DISARMED)
 
-  sw1 <- call deadManSwitch pwms
+  sw1 <- call deadManSwitch (constRef pwms)
 
   ifte_ sw1
     (ifte_ ((throttle_stick <? 1050) .&& (rudder_stick >? 1900))
@@ -185,17 +185,15 @@ mode_statemachine pwms state now = do
   magnitude a b = castDefault
                 $ abs $ (safeCast a :: Sint32) - (safeCast b)
 
--- | Is Channel 5 (switch 1) depressed?  True means OK.
-deadManSwitch :: Def ('[Ref s (Array 8 (Stored Uint16))] :-> IBool)
+-- | Is Channel 5 (switch 1) depressed?  True means yes: ARMing ok.
+deadManSwitch :: Def ('[ConstRef s (Array 8 (Stored Uint16))] :-> IBool)
 deadManSwitch = proc "deadManSwitch" $ \pwms -> body $ do
   ch5_switch <- deref (pwms ! (5 :: Ix 8))
   ret (ch5_switch >=? 1500)
 
-userInputFailsafe :: Def ('[ Ref s1 (Struct "userinput_result")
-                           , Ref s2 (Struct "flightmode")
-                           , Ref s3 (Stored IBool)
+userInputFailsafe :: Def ('[ Ref s0 (Struct "userinput_result")
                            , Uint32 ] :-> ())
-userInputFailsafe = proc "userinput_failsafe" $ \capt fm armed now ->
+userInputFailsafe = proc "userinput_failsafe" $ \capt now ->
   requires (checkStored (capt ~> I.time) (\t -> now >=? t))
   $ body $ do
     last <- deref ( capt ~> I.time )
@@ -205,6 +203,5 @@ userInputFailsafe = proc "userinput_failsafe" $ \capt fm armed now ->
        store (capt ~> I.yaw)      0
        store (capt ~> I.pitch)    0
        store (capt ~> I.roll)     0
-       store armed false
     retVoid
 

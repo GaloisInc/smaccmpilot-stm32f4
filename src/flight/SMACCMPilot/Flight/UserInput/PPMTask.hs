@@ -32,14 +32,15 @@ userPPMInputTask uis fms ppm = do
   chs        <- taskLocal "channels"
   ui_result  <- taskLocal "userinput"
   fm_result  <- taskLocal "flightmode"
-  armed_res  <- taskLocal "armed"
 
   onPeriod 50 $ \now -> do
     captured <- call userPPMInputCapture chs
     when captured $ do
-      writeData ppmChansWriter (constRef chs)
-      call_ userInputDecode chs ui_result now
-    call_ userInputFailsafe ui_result fm_result armed_res now
+      let cchs = constRef chs
+      writeData ppmChansWriter cchs
+      b <- call deadManSwitch cchs
+      when b (call_ userInputDecode chs ui_result now)
+    call_ userInputFailsafe ui_result now
     writeData uiWriter (constRef ui_result)
     writeData fmWriter (constRef fm_result)
 

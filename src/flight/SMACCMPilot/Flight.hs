@@ -179,7 +179,7 @@ core sensors flightmode armed_res armed_mav_snk
   control <- channel
 
   userinput        <-
-    userInputTower (src armed_res) armed_mav_snk snk_rc_override_msg
+    userInputTower armed_res armed_mav_snk snk_rc_override_msg
   task "blink"      $ blinkTask lights (snk armed_res) flightmode
   task "control"    $ controlTask (snk armed_res) flightmode userinput sensors
                        (src control) flightparams

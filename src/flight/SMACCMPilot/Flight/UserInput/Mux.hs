@@ -43,7 +43,7 @@ armingMuxSM ppmReader ppmSignals muxWriter =
   -- Get the value of the deadman's switch.
   me  <- deref myArmedRef
   you <- deref youArmedRef
-  sw1 <- call D.deadManSwitch ppmSignals
+  sw1 <- call D.deadManSwitch (constRef ppmSignals)
   cond_ [   -- If the deadman's switch is false, kill the arming.
             iNot sw1
         ==> store armedResLocal A.as_DISARMED

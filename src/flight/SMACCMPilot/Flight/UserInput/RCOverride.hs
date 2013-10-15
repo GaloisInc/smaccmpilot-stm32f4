@@ -8,26 +8,33 @@ module SMACCMPilot.Flight.UserInput.RCOverride
   ) where
 
 import Ivory.Language
+import Ivory.Stdlib
 import Ivory.Tower
 
 import qualified SMACCMPilot.Flight.UserInput.Decode             as D
 import qualified SMACCMPilot.Mavlink.Messages.RcChannelsOverride as O
 import qualified SMACCMPilot.Flight.Types.UserInput              as T
+import qualified SMACCMPilot.Flight.Types.Armed                  as A
 
 --------------------------------------------------------------------------------
 
 -- | This process periodically reports the latest rcOverride message from the
 -- GCS as well as the time since a message was received.
-userMAVInputTask :: -- From GCS Rx Task
-                    DataSink (Struct "timestamped_rc_override")
+userMAVInputTask :: DataSink (Stored A.ArmedMode)
+                    -- From GCS Rx Task
+                 -> DataSink (Struct "timestamped_rc_override")
                     -- To UserInput.Mux task
                  -> DataSource (Struct "userinput_result")
                  -> Task p ()
-userMAVInputTask snk_rc_over_msg src_rc_over_res = do
+userMAVInputTask a snk_rc_over_msg src_rc_over_res = do
+  -- Arming result
+  armedReader      <- withDataReader a "armedReader"
   -- Mavlink result
   rcOverrideReader <- withDataReader snk_rc_over_msg "rc_over_msg_rx"
   -- processed result
   rcOverrideWriter <- withDataWriter src_rc_over_res "rc_over_res_tx"
+
+  armedRef         <- taskLocal "armedRef"
   -- Value of the last MAVLink messsage received.
   currMAV_res      <- taskLocal "rc_overide_mav_curr"
   -- PPM signals
@@ -39,16 +46,19 @@ userMAVInputTask snk_rc_over_msg src_rc_over_res = do
   -- MAVLink doesn't run this fast, so most of the time we'll see no change to
   -- the override messages.
   onPeriod 50 $ \_now -> do
-    readData rcOverrideReader currMAV_res
-    -- Get the timestamp for the message.
-    t <- deref (currMAV_res ~> T.rc_time)
-    -- Translate the MAVLink message.
-    call_ processOverrideMsg chs (currMAV_res ~> T.rc_msg)
-    -- Decode the PPMs using the timestamp of the message, not the current time.
-    -- We want to know when the last sent message was.
-    call_ D.userInputDecode chs uiResult t
-    -- Send it to the Mux task.
-    writeData rcOverrideWriter (constRef uiResult)
+    readData armedReader armedRef
+    armed <- deref armedRef
+    when (armed ==? A.as_ARMED) $ do
+      readData rcOverrideReader currMAV_res
+      -- Get the timestamp for the message.
+      t <- deref (currMAV_res ~> T.rc_time)
+      -- Translate the MAVLink message.
+      call_ processOverrideMsg chs (currMAV_res ~> T.rc_msg)
+      -- Decode the PPMs using the timestamp of the message, not the current time.
+      -- We want to know when the last sent message was.
+      call_ D.userInputDecode chs uiResult t
+      -- Send it to the Mux task.
+      writeData rcOverrideWriter (constRef uiResult)
 
   taskModuleDef $ do
     depend D.userInputDecodeModule
