@@ -26,43 +26,6 @@ mavTimeout = 500
 
 --------------------------------------------------------------------------------
 
-armingMuxSM :: DataReader (Array 8 (Stored Uint16))
-            -> Ref s3 (Array 8 (Stored Uint16))
-            -> DataWriter (Stored A.ArmedMode)
-            -> Def ('[ Ref s0 (Stored IBool)
-                     , Ref s1 (Stored IBool)
-                     , A.ArmedMode
-                     , Ref s2 (Stored A.ArmedMode)
-                     ] :-> ())
-armingMuxSM ppmReader ppmSignals muxWriter =
-  proc "armingMuxSM"
-  $ \myArmedRef youArmedRef armed armedResLocal -> body
-  $ do
-  -- Get the latest PPM signals
-  readData ppmReader ppmSignals
-  -- Get the value of the deadman's switch.
-  me  <- deref myArmedRef
-  you <- deref youArmedRef
-  sw1 <- call D.deadManSwitch (constRef ppmSignals)
-  cond_ [   -- If the deadman's switch is false, kill the arming.
-            iNot sw1
-        ==> store armedResLocal A.as_DISARMED
-            -- My msg set the arming state, but now it says to turn off.
-        ,   me .&& (armed ==? A.as_DISARMED)
-        ==> do store myArmedRef false
-               store armedResLocal A.as_DISARMED
-            -- You haven't armed the system, and I want to.
-        ,   iNot you .&& (armed ==? A.as_ARMED)
-        ==> do store myArmedRef true
-               store armedResLocal A.as_ARMED
-        ,   true
-        ==> return ()
-        ]
-  -- Write the (possibly new) arming result.
-  writeData muxWriter (constRef armedResLocal)
-
---------------------------------------------------------------------------------
-
 armedMuxTask :: SingI n
              => DataSink (Array 8 (Stored Uint16)) -- PPM signals
              -> ChannelSink n (Stored A.ArmedMode) -- MAVLink arming input
@@ -73,35 +36,47 @@ armedMuxTask ppm_input_snk mav_armed_snk armed_res_src = do
 --  mavReader <- withChannelReceiver mav_armed_snk "mav_armed_snk"
   muxWriter <- withDataWriter armed_res_src "armed_res_src"
 
-  ppmSignals    <- taskLocal "ppmSignals"
+  ppmSignals     <- taskLocal "ppmSignals"
 
-  -- Booleans: who set the armed state (if it's set)?
-  ppmSetArmed    <- taskLocalInit "ppmSetArmed" (ival false)
-  mavSetArmed    <- taskLocalInit "ppmSetArmed" (ival false)
   -- decoder arming state (from Decoder)
   armingState    <- taskLocal "arming_state"
   -- Final arming result
   armedResLocal  <- taskLocal "armedResLocal"
 
-  let armingMuxSM' = armingMuxSM ppmReader ppmSignals muxWriter
-
   -- When we get a new event from MAVLink Rx, we check that channel 5 is armed
   -- and then set the value given from the GCS.
 
   -- XXX! We are assuming we get a "late enough" event here.
-  onChannelV mav_armed_snk "mav_arming" $ \armed ->
-    call_ armingMuxSM' mavSetArmed ppmSetArmed armed armedResLocal
+  onChannelV mav_armed_snk "mav_arming" $ \armed -> do
+    readData ppmReader ppmSignals
+    switch <- call D.deadManSwitch (constRef ppmSignals)
+
+    -- If the switch is on, store the new armed status.  If the
+    -- switch is off, we'll catch it in the periodic task and
+    -- disarm the motors.
+    when switch $ do
+      store armedResLocal armed
+      writeData muxWriter (constRef armedResLocal)
 
   -- Also, read the latest PPM signals and see if we're arming/disarming from
   -- the PPM controller.
   onPeriod 50 $ \now -> do
-    _ <- call_ D.armingStatemachine ppmSignals armingState now
-    armed <- armingState ~>* D.arm_state
-    call_ armingMuxSM' ppmSetArmed mavSetArmed armed armedResLocal
+    changed <- call D.armingStatemachine ppmSignals armingState armedResLocal now
+
+    readData ppmReader ppmSignals
+    switch <- call D.deadManSwitch (constRef ppmSignals)
+
+    -- If the switch is on and the armed status has changed, set
+    -- it as the new arming status.  Otherwise, if the switch is
+    -- off, disarm the motors regardless of the arm state.
+    ifte_ switch
+      (when changed $
+         writeData muxWriter (constRef armedResLocal))
+      (do store armedResLocal A.as_DISARMED
+          writeData muxWriter (constRef armedResLocal))
 
   taskModuleDef $ do
     depend D.userInputDecodeModule
-    private $ incl armingMuxSM'
 
 --------------------------------------------------------------------------------
 

@@ -27,6 +27,7 @@ userMAVInputTask :: DataSink (Stored A.ArmedMode)
                  -> DataSource (Struct "userinput_result")
                  -> Task p ()
 userMAVInputTask a snk_rc_over_msg src_rc_over_res = do
+  {-
   -- Arming result
   armedReader      <- withDataReader a "armedReader"
   -- Mavlink result
@@ -59,6 +60,7 @@ userMAVInputTask a snk_rc_over_msg src_rc_over_res = do
       call_ D.userInputDecode chs uiResult t
       -- Send it to the Mux task.
       writeData rcOverrideWriter (constRef uiResult)
+  -}
 
   taskModuleDef $ do
     depend D.userInputDecodeModule

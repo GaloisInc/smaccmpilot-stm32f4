@@ -33,6 +33,13 @@ userInputDecodeModule = package "userinput_decode" $ do
   incl armingStatemachine
   private $ incl scale_proc
 
+-- | State of the arming state machine.  This is a separate type from
+-- 'ArmedMode' because we need an intermediate "arming" state.
+armStateDisarmed, armStateArming, armStateArmed :: Uint8
+armStateDisarmed = 0
+armStateArming   = 1
+armStateArmed    = 2
+
 [ivory|
 struct flightmode_state
   { last_modepwm      :: Stored Uint16
@@ -40,7 +47,7 @@ struct flightmode_state
   ; valid_modepwm     :: Stored Uint16
   }
 struct arming_state
-  { arm_state         :: Stored ArmedMode
+  { arm_state         :: Stored Uint8
   ; arm_state_time    :: Stored Uint32
   }
 
@@ -58,13 +65,12 @@ scale_rpyt input = call scale_proc 1500 500 (-1.0) 1.0 input
 scale_proc :: Def ('[Uint16, Uint16, IFloat, IFloat, Uint16] :-> IFloat)
 scale_proc = proc "userinput_scale" $ \center range outmin outmax input ->
   requires (    (range /=? 0)
-            .&& (input >=? 1000)
-            .&& (input <=? 2000)
-            .&& (input >=? center)
+            .&& (input >=? 900)
+            .&& (input <=? 2100)
            )
   $ body $ do
-    let centered = input - center
-    let ranged = safeCast centered / safeCast range
+    let centered = safeCast input - safeCast center
+    let ranged = centered / safeCast range
     ifte_ (ranged <? outmin)
       (ret outmin)
       (ifte_ (ranged >? outmax)
@@ -105,50 +111,46 @@ setFlightMode = proc "set_flight_mode" $ \pwms fm_state arming_state fm now ->
   store (fm ~> FM.time)  now
   retVoid
 
--- | Run the arming state machine.  Return true if the system is armed.
+-- | Run the arming state machine, returning true if an arming event
+-- has occured, writing the new arming state to the output reference.
 armingStatemachine :: Def ('[ Ref s0 (Array 8 (Stored Uint16))
                             , Ref s1 (Struct "arming_state")
+                            , Ref s2 (Stored A.ArmedMode)
                             , Uint32
                             ] :-> IBool)
-armingStatemachine = proc "armingStatemachine" $ \pwms state now -> body $ do
-  throttle_stick <- deref (pwms ! (2 :: Ix 8))
-  rudder_stick   <- deref (pwms ! (3 :: Ix 8))
+armingStatemachine = proc "armingStatemachine" $ \pwms state out now -> body $ do
+  throttle_stick  <- deref (pwms ! (2 :: Ix 8))
+  rudder_stick    <- deref (pwms ! (3 :: Ix 8))
+  sw1             <- call deadManSwitch (constRef pwms)
+  let hystresis    = 500
+  let stick_in_pos = (throttle_stick <? 1050) .&& (rudder_stick >? 1900)
 
-  let set_arm_state :: A.ArmedMode -> Ivory eff ()
-      set_arm_state newstate = do
-        store (state ~> arm_state) newstate
-        store (state ~> arm_state_time) now
+  -- If the switch is off or the stick is not in position, reset
+  -- the state machine and return "no event".
+  when (iNot sw1 .|| iNot stick_in_pos) $ do
+    store (state ~> arm_state) armStateDisarmed
+    store (state ~> arm_state_time) now
+    ret false
 
-  let do_disarm :: Ivory eff ()
-      do_disarm = set_arm_state A.as_DISARMED
+  -- The switch is on and the stick is in position.
+  ast <- deref (state ~> arm_state)
+  cond_
+    [ ast ==? armStateDisarmed ==> do
+      -- Record the start time and go to state "arming".
+      store (state ~> arm_state_time) now
+      store (state ~> arm_state) armStateArming
+    , ast ==? armStateArming ==> do
+      -- If enough time has elapsed in the "arming" state, go
+      -- to start "armed" and send a positive arming event.
+      -- Otherwise, do nothing.
+      astime <- deref (state ~> arm_state_time)
+      when (now - astime >? hystresis) $ do
+        store (state ~> arm_state) armStateArmed
+        store out A.as_ARMED
+        ret true
+    ] -- do nothing when already in the "armed" state
 
-  let hystresis = 500
-
-  let do_try_arming :: Ivory eff ()
-      do_try_arming = do
-        ast    <- state ~>* arm_state
-        astime <- state ~>* arm_state_time
-        let longEnough = now - astime >? hystresis
-        (ifte_ (ast ==? A.as_DISARMED)
-          (when longEnough (set_arm_state A.as_ARMING))
-          (when (ast ==? A.as_ARMING)
-            (when longEnough (set_arm_state A.as_ARMED))))
-
-  let do_not_arming :: Ivory eff ()
-      do_not_arming = do
-        ast <- state ~>* arm_state
-        when (ast ==? A.as_ARMING)
-          (set_arm_state A.as_DISARMED)
-
-  sw1 <- call deadManSwitch (constRef pwms)
-
-  ifte_ sw1
-    (ifte_ ((throttle_stick <? 1050) .&& (rudder_stick >? 1900))
-      do_try_arming
-      do_not_arming)
-    do_disarm
-  newstate <- (state ~>* arm_state)
-  ret (newstate ==? A.as_ARMED)
+  ret false
 
 mode_statemachine :: (Ref s1 (Array 8 (Stored Uint16)))
                   -> (Ref s2 (Struct "flightmode_state"))
