@@ -14,22 +14,27 @@ import Ivory.HW.Module (hw_moduledef)
 
 import Ivory.BSP.STM32F4.GPIO
 
+import qualified SMACCMPilot.Flight.Types.Armed          as A
 import qualified SMACCMPilot.Flight.Types.FlightMode     as FM
 import qualified SMACCMPilot.Flight.Types.FlightModeData as FM
 
 blinkTask :: [ GPIOPin ]
+          -> DataSink (Stored A.ArmedMode)
           -> DataSink (Struct "flightmode")
           -> Task p ()
-blinkTask pins s = do
-  fmReader <- withDataReader s "flightmode"
+blinkTask pins a s = do
+  armedReader <- withDataReader a "armed"
+  fmReader    <- withDataReader s "flightmode"
   taskInit $ mapM_ pinInit pins
 
+  armed      <- taskLocal "armed"
   flightMode <- taskLocal "flightmode"
   s_phase    <- taskLocal "phase"
 
   onPeriod 125 $ \_now -> do
+    readData armedReader armed
     readData fmReader flightMode
-    bmode  <- flightModeToBlinkMode flightMode
+    bmode  <- flightModeToBlinkMode armed flightMode
     phase  <- nextPhase 8 s_phase
     output <- blinkOutput bmode phase
     ifte_ output
@@ -63,16 +68,17 @@ nextPhase highest r = do
       (store r next)
     return phase
 
-flightModeToBlinkMode :: Ref s1 (Struct "flightmode") -> Ivory eff Uint8
-flightModeToBlinkMode fmRef = do
-  mode  <- (fmRef ~>* FM.mode)
---  armed <- (fmRef ~>* FM.armed)  XXX
-  return $ foldr cond 0 (tbl false mode)
---  return $ foldr cond 0 (tbl armed mode)
+flightModeToBlinkMode :: Ref s0 (Stored A.ArmedMode)
+                      -> Ref s1 (Struct "flightmode")
+                      -> Ivory eff Uint8
+flightModeToBlinkMode armedRef fmRef = do
+  mode  <- fmRef ~>* FM.mode
+  armed <- deref armedRef
+  return $ foldr cond 0 (tbl armed mode)
   where
   cond (c, res) k = c ? (res, k)
-  tbl :: IBool -> FM.FlightMode -> [(IBool, Uint8)]
-  tbl armed mode =
+  tbl :: A.ArmedMode -> FM.FlightMode -> [(IBool, Uint8)]
+  tbl armVal mode =
     [ ( disarmed .&& stabilize, 2 )
     , ( disarmed .&& althold  , 3 )
     , ( disarmed .&& auto     , 6 )
@@ -80,7 +86,8 @@ flightModeToBlinkMode fmRef = do
     , ( armed    .&& althold  , 5 )
     , ( armed    .&& auto     , 1 ) ]
     where
-    disarmed  = iNot armed
+    disarmed  = armVal ==? A.as_DISARMED
+    armed     = armVal ==? A.as_ARMED
     stabilize = mode ==? FM.flightModeStabilize
     althold   = mode ==? FM.flightModeAltHold
     auto      = mode ==? FM.flightModeAuto

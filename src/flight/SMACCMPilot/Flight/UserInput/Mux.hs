@@ -16,7 +16,6 @@ import Ivory.Tower
 
 import qualified SMACCMPilot.Flight.Types.Armed      as A
 import qualified SMACCMPilot.Flight.Types.UserInput  as T
-import qualified SMACCMPilot.Flight.Types.FlightMode as FM
 import qualified SMACCMPilot.Flight.UserInput.Decode as D
 
 --------------------------------------------------------------------------------
@@ -79,6 +78,8 @@ armedMuxTask ppm_input_snk mav_armed_snk armed_res_src = do
   -- Booleans: who set the armed state (if it's set)?
   ppmSetArmed    <- taskLocalInit "ppmSetArmed" (ival false)
   mavSetArmed    <- taskLocalInit "ppmSetArmed" (ival false)
+  -- decoder arming state (from Decoder)
+  armingState    <- taskLocal "arming_state"
   -- Final arming result
   armedResLocal  <- taskLocal "armedResLocal"
 
@@ -88,13 +89,19 @@ armedMuxTask ppm_input_snk mav_armed_snk armed_res_src = do
   -- and then set the value given from the GCS.
 
   -- XXX! We are assuming we get a "late enough" event here.
-  onChannelV mav_armed_snk "mav_arming" $ \armed -> do
+  onChannelV mav_armed_snk "mav_arming" $ \armed ->
     call_ armingMuxSM' mavSetArmed ppmSetArmed armed armedResLocal
 
   -- Also, read the latest PPM signals and see if we're arming/disarming from
   -- the PPM controller.
-  onPeriod 50 $ \now -> -- XXX
-    call_ armingMuxSM' ppmSetArmed mavSetArmed undefined armedResLocal
+  onPeriod 50 $ \now -> do
+    _ <- call_ D.armingStatemachine ppmSignals armingState now
+    armed <- armingState ~>* D.arm_state
+    call_ armingMuxSM' ppmSetArmed mavSetArmed armed armedResLocal
+
+  taskModuleDef $ do
+    depend D.userInputDecodeModule
+    private $ incl armingMuxSM'
 
 --------------------------------------------------------------------------------
 

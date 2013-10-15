@@ -14,9 +14,10 @@ import SMACCMPilot.Param
 import SMACCMPilot.Flight.Control.PID
 import SMACCMPilot.Flight.Param
 
-import qualified SMACCMPilot.Flight.Types.FlightMode as FM
-import qualified SMACCMPilot.Flight.Types.UserInput as IN
-import qualified SMACCMPilot.Flight.Types.Sensors as SEN
+import qualified SMACCMPilot.Flight.Types.Armed         as A
+import qualified SMACCMPilot.Flight.Types.FlightMode    as FM
+import qualified SMACCMPilot.Flight.Types.UserInput     as IN
+import qualified SMACCMPilot.Flight.Types.Sensors       as SEN
 import qualified SMACCMPilot.Flight.Types.ControlOutput as OUT
 
 ----------------------------------------------------------------------
@@ -77,15 +78,15 @@ allocPIDParams p = do
   return cfg
 
 makeStabilizeRun :: FlightParams ParamReader
-                 -> Def ('[ ConstRef s0 (Struct "flightmode")
-                          , ConstRef s1 (Struct "userinput_result")
-                          , ConstRef s2 (Struct "sensors_result")
-                          , Ref s3 (Struct "controloutput")
+                 -> Def ('[ A.ArmedMode
+                          , ConstRef s1 (Struct "flightmode")
+                          , ConstRef s2 (Struct "userinput_result")
+                          , ConstRef s3 (Struct "sensors_result")
+                          , Ref      s4 (Struct "controloutput")
                           ] :-> ())
-makeStabilizeRun params = proc "stabilize_run" $ \fm input sensors output -> body $ do
-  -- armed <- (fm ~>* FM.armed)
---  ifte_ (iNot armed) -- XXX armed
-  ifte_ (true)
+makeStabilizeRun params =
+  proc "stabilize_run" $ \armed fm input sensors output -> body $ do
+  ifte_ (armed /=? A.as_ARMED)
     (mapM_ do_reset
       [roll_stabilize, pitch_stabilize, roll_rate, pitch_rate, yaw_rate] )
     $ do -- if armed:

@@ -11,6 +11,7 @@ module SMACCMPilot.Flight.Motors.Task
 import Ivory.Language
 import Ivory.Tower
 
+import qualified SMACCMPilot.Flight.Types.Armed         as A
 import qualified SMACCMPilot.Flight.Types.ControlOutput as C
 import qualified SMACCMPilot.Flight.Types.Motors        as M
 import qualified SMACCMPilot.Flight.Types.FlightMode    as FM
@@ -19,22 +20,26 @@ import SMACCMPilot.Flight.Motors.Mixing
 
 motorMixerTask :: (SingI n, SingI m)
                => ChannelSink n (Struct "controloutput")
+               -> DataSink (Stored A.ArmedMode)
                -> DataSink (Struct "flightmode")
                -> ChannelSource m (Struct "motors")
                -> Task p ()
-motorMixerTask cs fms ms = do
+motorMixerTask cs a fms ms = do
+  armReader <- withDataReader a "armReader"
   fmReader  <- withDataReader fms "flightMode"
   motEmit   <- withChannelEmitter ms "motors"
   taskInit $ do
     d <- disabled
     emit_ motEmit d
   onChannel cs "control" $ \ctl -> do
-    fm <- local (istruct [])
+    armedRef <- local (izero)
+    fm       <- local (istruct [])
+    readData armReader armedRef
     readData fmReader fm
-    -- armed <- deref (fm ~> FM.armed) XXX need armed here!
+    armed <- deref armedRef
     let output = emit_ motEmit
-    ifte_ false -- armed
-      ((mixer ctl) >>= output)
+    ifte_ (armed ==? A.as_ARMED)
+      (mixer ctl >>= output)
       (disabled >>= output)
   taskModuleDef $ do
     depend C.controlOutputTypeModule

@@ -89,7 +89,7 @@ hil opts = do
   let flightparams = sysFlightParams snk_params
   (control, motors) <- core (snk sensors)
                             (snk flightmode)
-                            (src armed_res)
+                            armed_res
                             (snk armed_mav)
                             flightparams
                             rcOvrRx
@@ -132,7 +132,7 @@ flight opts = do
   let flightparams = sysFlightParams snk_params
   (control, motors) <- core (snk sensors)
                             (snk flightmode)
-                            (src armed_res)
+                            armed_res
                             (snk armed_mav)
                             flightparams
                             rcOvrRx
@@ -165,24 +165,26 @@ flight opts = do
 core :: (SingI n0, SingI n1)
        => ChannelSink n0 (Struct "sensors_result")
        -> DataSink (Struct "flightmode")
-       -> DataSource (Stored A.ArmedMode)
+       -> ( DataSource (Stored A.ArmedMode)
+          , DataSink   (Stored A.ArmedMode))
        -> ChannelSink n1 (Stored A.ArmedMode)
        -> FlightParams ParamSink
        -> DataSink (Struct "timestamped_rc_override")
        -> Tower p ( ChannelSink 16 (Struct "controloutput")
                   , ChannelSink 16 (Struct "motors"))
-core sensors flightmode armed_res_src armed_mav_snk
+core sensors flightmode armed_res armed_mav_snk
      flightparams snk_rc_override_msg
   = do
   motors  <- channel
   control <- channel
 
   userinput        <-
-    userInputTower armed_res_src armed_mav_snk snk_rc_override_msg
-  task "blink"      $ blinkTask lights flightmode
-  task "control"    $ controlTask flightmode userinput sensors
+    userInputTower (src armed_res) armed_mav_snk snk_rc_override_msg
+  task "blink"      $ blinkTask lights (snk armed_res) flightmode
+  task "control"    $ controlTask (snk armed_res) flightmode userinput sensors
                        (src control) flightparams
-  task "motmix"     $ motorMixerTask (snk control) flightmode (src motors)
+  task "motmix"     $ motorMixerTask (snk control) (snk armed_res)
+                        flightmode (src motors)
 
   mapM_ addDepends typeModules
   mapM_ addModule otherms

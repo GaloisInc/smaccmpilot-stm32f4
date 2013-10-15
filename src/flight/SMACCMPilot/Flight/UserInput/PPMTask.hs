@@ -30,7 +30,6 @@ userPPMInputTask uis fms ppm = do
   ppmChansWriter <- withDataWriter ppm "ppmChansWriter"
 
   chs        <- taskLocal "channels"
-  -- decoder    <- taskLocal "decoder"
   ui_result  <- taskLocal "userinput"
   fm_result  <- taskLocal "flightmode"
   armed_res  <- taskLocal "armed"
@@ -39,9 +38,7 @@ userPPMInputTask uis fms ppm = do
     captured <- call userPPMInputCapture chs
     when captured $ do
       writeData ppmChansWriter (constRef chs)
-
       call_ userInputDecode chs ui_result now
-      -- call_ setFlightMode chs decoder fm_result now --XXX
     call_ userInputFailsafe ui_result fm_result armed_res now
     writeData uiWriter (constRef ui_result)
     writeData fmWriter (constRef fm_result)
