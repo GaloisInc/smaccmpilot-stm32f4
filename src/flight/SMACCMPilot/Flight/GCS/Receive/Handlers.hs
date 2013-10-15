@@ -13,6 +13,7 @@ import Ivory.Language
 import Ivory.Stdlib
 import Ivory.Tower
 
+import qualified SMACCMPilot.Flight.Types.Armed                  as A
 import qualified SMACCMPilot.Flight.Types.FlightMode             as FM
 import qualified SMACCMPilot.Flight.Types.FlightModeData         as FM
 
@@ -177,7 +178,6 @@ setMode fm_writer now msg = do
     valid  <- isValidMode mode
     mode'  <- getMode mode
     when valid $ do
-      store (fm ~> FM.armed) false      -- XXX this will move
       store (fm ~> FM.mode)  mode'
       store (fm ~> FM.time)  now
       writeData fm_writer (constRef fm)
@@ -186,7 +186,7 @@ setMode fm_writer now msg = do
 
 -- | Handle a 'COMPONENT_ARM_DISARM' command.
 armDisarm :: SingI n
-          => ChannelEmitter n (Stored IBool)
+          => ChannelEmitter n (Stored A.ArmedMode)
           -> Ref s1 (Struct "command_long_msg")
           -> Ivory (ProcEffects cs r) ()
 armDisarm arm_emitter msg = do
@@ -197,10 +197,8 @@ armDisarm arm_emitter msg = do
     cond_
       -- Float comparison should be ok(?) since they're encoded ints and there's
       -- no arithmetic on them.
-      [ param1 ==? 0.0 ==> do
-          emitV_ arm_emitter false
-      , param1 ==? 1.0 ==> do
-          emitV_ arm_emitter true
+      [ param1 ==? 0.0 ==> emitV_ arm_emitter A.as_DISARMED
+      , param1 ==? 1.0 ==> emitV_ arm_emitter A.as_ARMED
       ]
   return ()
 

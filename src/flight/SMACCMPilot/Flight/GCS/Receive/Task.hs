@@ -19,6 +19,7 @@ import           Ivory.Tower
 
 import qualified SMACCMPilot.Mavlink.Receive         as R
 import qualified SMACCMPilot.Flight.Types.DataRate   as D
+import qualified SMACCMPilot.Flight.Types.Armed      as A
 
 import           SMACCMPilot.Param
 import           SMACCMPilot.Flight.GCS.Stream (defaultPeriods)
@@ -38,7 +39,7 @@ gcsReceiveTask :: (SingI n0, SingI n1, SingI n2, SingI n3, SingI n4, SingI n5)
                -> ChannelSource n2 (Struct "data_rate_state")
                -> ChannelSource n3 (Struct "hil_state_msg")
                -> DataSource       (Struct "flightmode")
-               -> ChannelSource n4 (Stored IBool)
+               -> ChannelSource n4 (Stored A.ArmedMode)
                -> ChannelSource n5 (Stored Sint16)  -- param_request
                -> DataSource       (Struct "timestamped_rc_override")
                -> [Param PortPair]

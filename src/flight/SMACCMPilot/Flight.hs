@@ -18,6 +18,7 @@ import Ivory.Tower
 
 import Ivory.Stdlib.String (stdlibStringModule)
 
+import qualified SMACCMPilot.Flight.Types.Armed as A
 import SMACCMPilot.Flight.Types (typeModules)
 import SMACCMPilot.Flight.Control (controlModules)
 import SMACCMPilot.Flight.Commsec.Commsec (commsecModule)
@@ -164,8 +165,8 @@ flight opts = do
 core :: (SingI n0, SingI n1)
        => ChannelSink n0 (Struct "sensors_result")
        -> DataSink (Struct "flightmode")
-       -> DataSource (Stored IBool)
-       -> ChannelSink n1 (Stored IBool)
+       -> DataSource (Stored A.ArmedMode)
+       -> ChannelSink n1 (Stored A.ArmedMode)
        -> FlightParams ParamSink
        -> DataSink (Struct "timestamped_rc_override")
        -> Tower p ( ChannelSink 16 (Struct "controloutput")

@@ -18,6 +18,8 @@ import SMACCMPilot.Param
 import SMACCMPilot.Flight.GCS.Transmit.Task
 import SMACCMPilot.Flight.GCS.Receive.Task
 
+import qualified SMACCMPilot.Flight.Types.Armed     as A
+
 import qualified SMACCMPilot.Flight.Commsec.Decrypt as Dec
 import qualified SMACCMPilot.Flight.Commsec.Encrypt as Enc
 
@@ -33,8 +35,8 @@ gcsTower :: (SingI n0, SingI n1, SingI n2)
          -> ChannelSource n1 (Stored Uint8)
          -> ( DataSource (Struct "flightmode")
             , DataSink   (Struct "flightmode"))
-         -> DataSink (Stored IBool)
-         -> ChannelSource n2 (Stored IBool)
+         -> DataSink (Stored A.ArmedMode)
+         -> ChannelSource n2 (Stored A.ArmedMode)
          -> DataSink (Struct "sensors_result")
          -> DataSink (Struct "position")
          -> DataSink (Struct "controloutput")
@@ -57,8 +59,8 @@ gcsTowerHil :: (SingI n0, SingI n1, SingI n2)
          -> ChannelSource n1 (Stored Uint8)
          -> ( DataSource (Struct "flightmode")
             , DataSink   (Struct "flightmode"))
-         -> DataSink (Stored IBool)
-         -> ChannelSource n2 (Stored IBool)
+         -> DataSink (Stored A.ArmedMode)
+         -> ChannelSource n2 (Stored A.ArmedMode)
          -> DataSink (Struct "controloutput")
          -> DataSink (Struct "motors")
          -> ( ChannelSource 16 (Struct "sensors_result")
@@ -88,8 +90,8 @@ gcsTowerAux :: (SingI n0, SingI n1, SingI n2)
          -> ChannelSource n1 (Stored Uint8)
          -> ( DataSource (Struct "flightmode")
             , DataSink   (Struct "flightmode"))
-         -> DataSink (Stored IBool)
-         -> ChannelSource n2 (Stored IBool)
+         -> DataSink (Stored A.ArmedMode)
+         -> ChannelSource n2 (Stored A.ArmedMode)
          -> DataSink (Struct "sensors_result")
          -> DataSink (Struct "position")
          -> DataSink (Struct "controloutput")

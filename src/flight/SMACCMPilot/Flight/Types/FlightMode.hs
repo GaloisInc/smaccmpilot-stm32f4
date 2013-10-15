@@ -14,8 +14,7 @@ import SMACCMPilot.Flight.Types.FlightModeData
 
 [ivory|
 struct flightmode
-  { armed    :: Stored IBool
-  ; mode     :: Stored FlightMode
+  { mode     :: Stored FlightMode
   ; time     :: Stored Uint32
   }
 |]

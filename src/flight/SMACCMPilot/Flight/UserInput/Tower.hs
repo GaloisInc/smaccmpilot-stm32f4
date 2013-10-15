@@ -10,18 +10,19 @@ module SMACCMPilot.Flight.UserInput.Tower
 import Ivory.Language
 import Ivory.Tower
 
-import SMACCMPilot.Flight.UserInput.PPMTask
-import SMACCMPilot.Flight.UserInput.Decode (userInputDecodeModule)
-import SMACCMPilot.Flight.UserInput.RCOverride
-import SMACCMPilot.Flight.UserInput.Mux
+import qualified SMACCMPilot.Flight.Types.Armed      as A
+import           SMACCMPilot.Flight.UserInput.PPMTask
+import           SMACCMPilot.Flight.UserInput.Decode (userInputDecodeModule)
+import           SMACCMPilot.Flight.UserInput.RCOverride
+import           SMACCMPilot.Flight.UserInput.Mux
 
 --------------------------------------------------------------------------------
 
 userInputTower :: SingI n
                   -- Mux'ed armed
-               => DataSource (Stored IBool)
+               => DataSource (Stored A.ArmedMode)
                   -- MAVLink armed
-               -> ChannelSink n (Stored IBool)
+               -> ChannelSink n (Stored A.ArmedMode)
                   -- From GCS Rx Task
                -> DataSink (Struct "timestamped_rc_override")
                -> Tower p (DataSink (Struct "userinput_result"))

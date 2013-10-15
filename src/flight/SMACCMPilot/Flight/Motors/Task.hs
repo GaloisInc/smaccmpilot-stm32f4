@@ -31,9 +31,9 @@ motorMixerTask cs fms ms = do
   onChannel cs "control" $ \ctl -> do
     fm <- local (istruct [])
     readData fmReader fm
-    armed <- deref (fm ~> FM.armed)
+    -- armed <- deref (fm ~> FM.armed) XXX need armed here!
     let output = emit_ motEmit
-    ifte_ armed
+    ifte_ false -- armed
       ((mixer ctl) >>= output)
       (disabled >>= output)
   taskModuleDef $ do

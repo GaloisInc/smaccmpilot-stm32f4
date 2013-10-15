@@ -66,8 +66,9 @@ nextPhase highest r = do
 flightModeToBlinkMode :: Ref s1 (Struct "flightmode") -> Ivory eff Uint8
 flightModeToBlinkMode fmRef = do
   mode  <- (fmRef ~>* FM.mode)
-  armed <- (fmRef ~>* FM.armed)
-  return $ foldr cond 0 (tbl armed mode)
+--  armed <- (fmRef ~>* FM.armed)  XXX
+  return $ foldr cond 0 (tbl false mode)
+--  return $ foldr cond 0 (tbl armed mode)
   where
   cond (c, res) k = c ? (res, k)
   tbl :: IBool -> FM.FlightMode -> [(IBool, Uint8)]

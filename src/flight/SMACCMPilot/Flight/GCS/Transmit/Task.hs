@@ -18,6 +18,7 @@ import Ivory.Tower
 import           SMACCMPilot.Flight.GCS.Transmit.MessageDriver
 import           SMACCMPilot.Flight.GCS.Stream
 import           SMACCMPilot.Param
+import qualified SMACCMPilot.Flight.Types.Armed           as A
 import qualified SMACCMPilot.Flight.Types.GCSStreamTiming as T
 import qualified SMACCMPilot.Flight.Types.FlightMode      as FM
 import qualified SMACCMPilot.Flight.Types.DataRate        as D
@@ -30,7 +31,7 @@ gcsTransmitTask :: (SingI n0, SingI n1, SingI n2, SingI n3)
                 -> ChannelSink   n1 (Struct "gcsstream_timing")
                 -> ChannelSink   n2 (Struct "data_rate_state")
                 -> DataSink         (Struct "flightmode")
-                -> DataSink         (Stored IBool)
+                -> DataSink         (Stored A.ArmedMode)
                 -> DataSink         (Struct "sensors_result")
                 -> DataSink         (Struct "position")
                 -> DataSink         (Struct "controloutput")
@@ -103,7 +104,10 @@ gcsTransmitTask mavStream sp_sink _dr_sink fm_sink armed_sink se_sink ps_sink
       l_armed <- local izero
       readData fmReader l_fm
       readData armedReader l_armed
-      call_ mkSendHeartbeat l_fm l_armed seqNum mavlinkPacket
+      l <- deref l_armed
+      b <- local izero
+      store b (l ==? A.as_ARMED)
+      call_ mkSendHeartbeat l_fm b seqNum mavlinkPacket
       processMav
 
     onStream T.servo_output_raw $ do
