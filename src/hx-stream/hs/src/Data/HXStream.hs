@@ -11,6 +11,7 @@ module Data.HXStream
   , emptyStreamState
   , extractFrame
   , decodeSM
+  , decodeByte
   , decode
   , encode
   ) where
@@ -106,6 +107,20 @@ decode bs state = (D.toList dframes, newSt)
       _        -> (fs, st')
     where
     st' = decodeSM b st
+
+-- | Decode an hxstream.  Returns a list of decoded frames and their tags.
+decodeByte :: Word8
+           -> StreamState
+           -> (Maybe (Tag, B.ByteString), StreamState)
+decodeByte b state = (r, st')
+  where
+  st' = decodeSM b state
+  r = case fstate st' of
+      FrameTag ->
+        case ftag state of
+           Just t  -> Just (t, extractFrame state)
+           Nothing -> Nothing
+      _ -> Nothing
 
 encode :: Tag -> B.ByteString -> B.ByteString
 encode tag ws' = B.pack $ D.toList $ fbo .: tag .: go ws
