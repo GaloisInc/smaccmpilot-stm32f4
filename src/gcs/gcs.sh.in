@@ -2,7 +2,7 @@
 
 HOST=127.0.0.1
 PORT=6000
-COMMSEC_SERVER=commsec-gcs
+COMMSEC_SERVER=smaccm-gcs-gateway
 DIR=../../../cabal-dev/bin
 
 EXEC_MAVPROXY="python mavlink/mavproxy.py --master=tcp:$HOST:$PORT"
@@ -14,9 +14,12 @@ SERVER_ARGS="--senderid=@BASE_ID@ \
       --recvkey=@UAV_KEY@ \
       --recvsalt=@UAV_SALT@"
 
-while getopts "vqs:b:" opt; do
+while getopts "dvqs:b:" opt; do
 	echo $opt
 	case $opt in
+		d)
+			SERVER_ARGS="$SERVER_ARGS --debug"
+			;;
 		v)
 			SERVER_ARGS="$SERVER_ARGS --verbose"
 			;;
