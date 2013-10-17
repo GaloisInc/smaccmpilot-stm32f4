@@ -20,12 +20,6 @@ import qualified SMACCMPilot.Flight.UserInput.Decode as D
 
 --------------------------------------------------------------------------------
 
--- Timeout to revert back to the RC PPM controller for override messages.
-mavTimeout :: Uint32
-mavTimeout = 500
-
---------------------------------------------------------------------------------
-
 armedMuxTask :: SingI n
              => DataSink (Array 8 (Stored Uint16)) -- PPM signals
              -> ChannelSink n (Stored A.ArmedMode) -- MAVLink arming input
@@ -33,7 +27,6 @@ armedMuxTask :: SingI n
              -> Task p ()
 armedMuxTask ppm_input_snk mav_armed_snk armed_res_src = do
   ppmReader <- withDataReader ppm_input_snk "ppm_input_snk"
---  mavReader <- withChannelReceiver mav_armed_snk "mav_armed_snk"
   muxWriter <- withDataWriter armed_res_src "armed_res_src"
 
   ppmSignals     <- taskLocal "ppmSignals"
@@ -80,18 +73,22 @@ armedMuxTask ppm_input_snk mav_armed_snk armed_res_src = do
 
 --------------------------------------------------------------------------------
 
-userInputMuxTask :: -- From PPM task
-                    DataSink (Struct "userinput_result")
+userInputMuxTask :: -- From Arming Mux task
+                    DataSink (Stored A.ArmedMode)
+                    -- From PPM task
+                 -> DataSink (Struct "userinput_result")
                     -- From RCOverride task
                  -> DataSink (Struct "userinput_result")
                     -- To motor control task
                  -> DataSource (Struct "userinput_result")
                  -> Task p ()
-userInputMuxTask snk_rc_ppm snk_mav_ppm src_res = do
+userInputMuxTask snk_armed snk_rc_ppm snk_mav_ppm src_res = do
+  armReader <- withDataReader snk_armed   "snk_armed"
   ppmReader <- withDataReader snk_rc_ppm  "snk_rc_ppm"
   mavReader <- withDataReader snk_mav_ppm "snk_mav_ppm"
   resWriter <- withDataWriter src_res     "src_res"
 
+  armLocal  <- taskLocal "armLocal"
   rcLocal   <- taskLocal "rcLocal"
   mavLocal  <- taskLocal "mavLocal"
 
@@ -101,6 +98,8 @@ userInputMuxTask snk_rc_ppm snk_mav_ppm src_res = do
       writeOutput = writeData resWriter . constRef
 
   onPeriod 50 $ \now -> do
+    readData armReader armLocal
+    armed <- deref armLocal
     readData ppmReader rcLocal
     readData mavReader mavLocal
 
@@ -108,12 +107,11 @@ userInputMuxTask snk_rc_ppm snk_mav_ppm src_res = do
     -- Time is monotomic.
     assert (now >=? lastMavTime)
 
-    -- XXX
-    -- isArmed <- deref (mavLocal ~> FM.armed)
-
     cond_
-      [   -- Not armed: don't listen to MAVLink messages.
-          true -- iNot isArmed XXX
+      [   -- Not armed: don't listen to MAVLink messages.  This shouldn't be
+          -- required, as no RC override messages should be generated if the
+          -- sytem isn't armed.
+          (armed /=? A.as_ARMED)
       ==> writeOutput rcLocal
           -- No MAVLink message has arrived in the past mavTime milliseconds.
           -- Ignore MAV input.
@@ -126,6 +124,11 @@ userInputMuxTask snk_rc_ppm snk_mav_ppm src_res = do
 
   taskModuleDef $
     depend T.userInputTypeModule
+
+  where
+  -- Timeout to revert back to the RC PPM controller for override messages.
+  mavTimeout :: Uint32
+  mavTimeout = 500
 
 --------------------------------------------------------------------------------
 

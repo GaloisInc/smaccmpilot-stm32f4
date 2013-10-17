@@ -52,11 +52,10 @@ gcsReceiveTask mavStream s_src dr_src hil_src fm armed_src
   armed_emitter <- withChannelEmitter armed_src "armed"
 
   -- Get lists of parameter readers and writers.
-  write_params      <- traverse paramWriter (map (fmap portPairSource) params)
-  read_params       <- traverse paramReader (map (fmap portPairSink)   params)
-  param_req_emitter <- withChannelEmitter param_req_src "param_req"
-
-  rcOverride_writer <- withChannelEmitter rcOvr_snk "rc_override_tx"
+  write_params       <- traverse paramWriter (map (fmap portPairSource) params)
+  read_params        <- traverse paramReader (map (fmap portPairSink)   params)
+  param_req_emitter  <- withChannelEmitter param_req_src "param_req"
+  rcOverride_emitter <- withChannelEmitter rcOvr_snk "rc_override_tx"
 
   -- Generate functions from parameter list.
   getParamIndex     <- makeGetParamIndex read_params
@@ -81,7 +80,7 @@ gcsReceiveTask mavStream s_src dr_src hil_src fm armed_src
             , handle (paramSet getParamIndex setParamValue param_req_emitter)
             , handle (requestDatastream s_periods (emit_ streamPeriodEmitter))
             , handle (hilState hil_emitter)
-            , handle (rcOverride rcOverride_writer)
+            , handle (rcOverride rcOverride_emitter)
             , handle (setMode fm_writer now)
             , handleCommandLong (fromIntegral Cmd.id_COMPONENT_ARM_DISARM)
                                 (armDisarm armed_emitter)

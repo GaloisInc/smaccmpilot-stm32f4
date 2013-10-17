@@ -48,7 +48,8 @@ userInputTower armed_res snk_mav_armed snk_rc_over = do
                                      snk_mav_armed
                                      (src armed_res)
 
-  task "userInputMux" $ userInputMuxTask snk_userinput
+  task "userInputMux" $ userInputMuxTask (snk armed_res)
+                                         snk_userinput
                                          snk_rc_over_res
                                          src_input_mux_res
 

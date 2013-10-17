@@ -31,7 +31,7 @@ I installed via
 
 from mavproxy:
 
-    > module load joystick
+    > module load mavproxy_joystick
 
 should report
 

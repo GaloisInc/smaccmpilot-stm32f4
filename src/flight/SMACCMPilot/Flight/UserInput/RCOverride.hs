@@ -34,11 +34,10 @@ userMAVInputTask a rc_over_snk src_rc_over_res = do
   armedReader      <- withDataReader a "armedReader"
   -- processed result
   rcOverrideWriter <- withDataWriter src_rc_over_res "rc_over_res_tx"
+
   armedRef         <- taskLocal "armedRef"
-  ovr_msg_local   <- taskLocal "over_msg_local"
-  -- PPM signals
+  ovr_msg_local    <- taskLocal "over_msg_local"
   chs              <- taskLocal "channels"
-  -- input_result we'll write to MUX
   uiResult         <- taskLocal "userinput_res"
 
   timer <- withGetTimeMillis
@@ -47,6 +46,7 @@ userMAVInputTask a rc_over_snk src_rc_over_res = do
   -- really got an override event.  But how do we know we're getting "fresh
   -- enough" messages?
   onChannel rc_over_snk "rc_over_snk" $ \ovr_msg ->  do
+    readData armedReader armedRef
     armed <- deref armedRef
     when (armed ==? A.as_ARMED) $ do
       now <- getTimeMillis timer
