@@ -14,7 +14,6 @@ import SMACCMPilot.Mavlink.Messages.RcChannelsOverride
 userInputTypeModule :: Module
 userInputTypeModule = package "userinput_type" $ do
   defStruct (Proxy :: Proxy "userinput_result")
-  defStruct (Proxy :: Proxy "timestamped_rc_override")
   depend rcChannelsOverrideModule
 
 [ivory|
@@ -24,11 +23,6 @@ struct userinput_result
   ; pitch    :: Stored IFloat
   ; yaw      :: Stored IFloat
   ; time     :: Stored Uint32
-  }
-
-struct timestamped_rc_override
-  { rc_msg  :: Struct "rc_channels_override_msg"
-  ; rc_time :: Stored Uint32
   }
 
 |]

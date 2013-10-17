@@ -28,7 +28,7 @@ import qualified Commsec.CommsecOpts                as O
 
 --------------------------------------------------------------------------------
 
-gcsTower :: (SingI n0, SingI n1, SingI n2)
+gcsTower :: (SingI n0, SingI n1, SingI n2, SingI n3)
          => String
          -> O.Options
          -> ChannelSink   n0 (Stored Uint8)
@@ -41,7 +41,7 @@ gcsTower :: (SingI n0, SingI n1, SingI n2)
          -> DataSink (Struct "position")
          -> DataSink (Struct "controloutput")
          -> DataSink (Struct "motors")
-         -> DataSource (Struct "timestamped_rc_override")
+         -> ChannelSource n3 (Struct "rc_channels_override_msg")
          -> [Param PortPair]
          -> Tower p ()
 gcsTower name opts istream ostream fm armed_res_snk armed_mav_src sens
@@ -52,7 +52,7 @@ gcsTower name opts istream ostream fm armed_res_snk armed_mav_src sens
 
 --------------------------------------------------------------------------------
 
-gcsTowerHil :: (SingI n0, SingI n1, SingI n2)
+gcsTowerHil :: (SingI n0, SingI n1, SingI n2, SingI n3)
          => String
          -> O.Options
          -> ChannelSink   n0 (Stored Uint8)
@@ -65,7 +65,7 @@ gcsTowerHil :: (SingI n0, SingI n1, SingI n2)
          -> DataSink (Struct "motors")
          -> ( ChannelSource 16 (Struct "sensors_result")
             , ChannelSink 16 (Struct "sensors_result"))
-         -> DataSource (Struct "timestamped_rc_override")
+         -> ChannelSource n3 (Struct "rc_channels_override_msg")
          -> [Param PortPair]
          -> Tower p ()
 gcsTowerHil name opts istream ostream fm armed_res_snk
@@ -83,7 +83,7 @@ gcsTowerHil name opts istream ostream fm armed_res_snk
 
 --------------------------------------------------------------------------------
 
-gcsTowerAux :: (SingI n0, SingI n1, SingI n2)
+gcsTowerAux :: (SingI n0, SingI n1, SingI n2, SingI n3)
          => String
          -> O.Options
          -> ChannelSink   n0 (Stored Uint8)
@@ -96,7 +96,7 @@ gcsTowerAux :: (SingI n0, SingI n1, SingI n2)
          -> DataSink (Struct "position")
          -> DataSink (Struct "controloutput")
          -> DataSink (Struct "motors")
-         -> DataSource (Struct "timestamped_rc_override")
+         -> ChannelSource n3 (Struct "rc_channels_override_msg")
          -> [Param PortPair]
          -> Tower p (ChannelSink 4 (Struct "hil_state_msg"))
 gcsTowerAux name opts istream ostream fm armed_res_snk armed_mav_src sens pos

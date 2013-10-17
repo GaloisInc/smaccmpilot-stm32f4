@@ -18,14 +18,14 @@ import           SMACCMPilot.Flight.UserInput.Mux
 
 --------------------------------------------------------------------------------
 
-userInputTower :: SingI n
+userInputTower :: (SingI n0, SingI n1)
                   -- Mux'ed armed
                => ( DataSource (Stored A.ArmedMode)
                   , DataSink (Stored A.ArmedMode))
                   -- MAVLink armed
-               -> ChannelSink n (Stored A.ArmedMode)
+               -> ChannelSink n0 (Stored A.ArmedMode)
                   -- From GCS Rx Task
-               -> DataSink (Struct "timestamped_rc_override")
+               -> ChannelSink n1 (Struct "rc_channels_override_msg")
                -> Tower p (DataSink (Struct "userinput_result"))
 userInputTower armed_res snk_mav_armed snk_rc_over = do
   (src_userinput, snk_userinput)         <- dataport

@@ -78,8 +78,8 @@ hil opts = do
   -- Result of the MAVLink/PPM mux.  Goes to control & GCS TX.
   armed_res     <- dataport
 
-  -- RC override dataport:
-  (rcOvrTx, rcOvrRx) <- dataport
+  -- RC override channel
+  (rcOvrTx, rcOvrRx) <- channel
 
   -- Parameters:
   (params, paramList) <- initTowerParams sysParams
@@ -121,8 +121,8 @@ flight opts = do
   -- Result of the MAVLink/PPM mux.  Goes to control & GCS TX.
   armed_res     <- dataport
 
-  -- RC override dataport:
-  (rcOvrTx, rcOvrRx) <- dataport
+  -- RC override channel:
+  (rcOvrTx, rcOvrRx) <- channel
 
   -- Parameters:
   (params, paramList) <- initTowerParams sysParams
@@ -162,14 +162,14 @@ flight opts = do
 
   addModule (commsecModule opts)
 
-core :: (SingI n0, SingI n1)
+core :: (SingI n0, SingI n1, SingI n2)
        => ChannelSink n0 (Struct "sensors_result")
        -> DataSink (Struct "flightmode")
        -> ( DataSource (Stored A.ArmedMode)
           , DataSink   (Stored A.ArmedMode))
        -> ChannelSink n1 (Stored A.ArmedMode)
        -> FlightParams ParamSink
-       -> DataSink (Struct "timestamped_rc_override")
+       -> ChannelSink n2 (Struct "rc_channels_override_msg")
        -> Tower p ( ChannelSink 16 (Struct "controloutput")
                   , ChannelSink 16 (Struct "motors"))
 core sensors flightmode armed_res armed_mav_snk

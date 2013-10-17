@@ -22,9 +22,6 @@ import qualified SMACCMPilot.Mavlink.Messages.RequestDataStream  as RDS
 import qualified SMACCMPilot.Mavlink.Messages.ParamSet           as PS
 import qualified SMACCMPilot.Mavlink.Messages.ParamRequestRead   as PRR
 
-import qualified SMACCMPilot.Mavlink.Messages.RcChannelsOverride as O
-import qualified SMACCMPilot.Flight.Types.UserInput              as T
-
 import qualified SMACCMPilot.Mavlink.Receive                     as R
 import qualified SMACCMPilot.Mavlink.Messages.SetMode            as SM
 import qualified SMACCMPilot.Mavlink.Messages.CommandLong        as CL
@@ -112,31 +109,12 @@ hilState e r = emit_ e (constRef r)
 
 --------------------------------------------------------------------------------
 
--- | Handle RC override messages.  Copy the PPM fields of the
--- rc_channels_override_msg into our time-stamped struct.  This is ugly since we
--- can't easily copy array fields.
-rcOverride :: (GetAlloc eff ~ Scope cs)
-           => DataWriter (Struct "timestamped_rc_override")
-           -> OSGetTimeMillis
+-- | Handle RC override messages.
+rcOverride :: (GetAlloc eff ~ Scope cs, SingI n)
+           => ChannelEmitter n (Struct "rc_channels_override_msg")
            -> Ref s (Struct "rc_channels_override_msg")
            -> Ivory eff ()
-rcOverride dtx timeGetter msgRef = do
-  t <- getTimeMillis timeGetter
-  res <- local (istruct [T.rc_msg .= istruct [], T.rc_time .= ival t])
-  let msg = res ~> T.rc_msg
-
-  let accs = [ O.chan1_raw, O.chan2_raw, O.chan3_raw, O.chan4_raw
-             , O.chan5_raw, O.chan6_raw, O.chan7_raw, O.chan8_raw
-             -- Ignore target fields.
-             ]
-  let go :: Label "rc_channels_override_msg" (Stored Uint16)
-         -> Ivory eff ()
-      go chan = do
-        field <- deref (msgRef ~> chan)
-        store (msg ~> chan) field
-  mapM_ go accs
-
-  writeData dtx (constRef res)
+rcOverride e msgRef = emit_ e (constRef msgRef)
 
 --------------------------------------------------------------------------------
 

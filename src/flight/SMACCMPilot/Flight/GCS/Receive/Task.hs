@@ -18,7 +18,6 @@ import           Ivory.Stdlib
 import           Ivory.Tower
 
 import qualified SMACCMPilot.Mavlink.Receive         as R
-import qualified SMACCMPilot.Flight.Types.DataRate   as D
 import qualified SMACCMPilot.Flight.Types.Armed      as A
 
 import           SMACCMPilot.Param
@@ -33,7 +32,7 @@ import qualified SMACCMPilot.Communications         as Comm
 
 --------------------------------------------------------------------------------
 
-gcsReceiveTask :: (SingI n0, SingI n1, SingI n2, SingI n3, SingI n4, SingI n5)
+gcsReceiveTask :: (SingI n0, SingI n1, SingI n2, SingI n3, SingI n4, SingI n5, SingI n6)
                => ChannelSink   n0 Comm.MAVLinkArray -- from decryptor
                -> ChannelSource n1 (Struct "gcsstream_timing")
                -> ChannelSource n2 (Struct "data_rate_state")
@@ -41,7 +40,7 @@ gcsReceiveTask :: (SingI n0, SingI n1, SingI n2, SingI n3, SingI n4, SingI n5)
                -> DataSource       (Struct "flightmode")
                -> ChannelSource n4 (Stored A.ArmedMode)
                -> ChannelSource n5 (Stored Sint16)  -- param_request
-               -> DataSource       (Struct "timestamped_rc_override")
+               -> ChannelSource n6 (Struct "rc_channels_override_msg")
                -> [Param PortPair]
                -> Task p ()
 gcsReceiveTask mavStream s_src dr_src hil_src fm armed_src
@@ -57,7 +56,7 @@ gcsReceiveTask mavStream s_src dr_src hil_src fm armed_src
   read_params       <- traverse paramReader (map (fmap portPairSink)   params)
   param_req_emitter <- withChannelEmitter param_req_src "param_req"
 
-  rcOverride_writer <- withDataWriter rcOvr_snk "rc_override_tx"
+  rcOverride_writer <- withChannelEmitter rcOvr_snk "rc_override_tx"
 
   -- Generate functions from parameter list.
   getParamIndex     <- makeGetParamIndex read_params
@@ -82,7 +81,7 @@ gcsReceiveTask mavStream s_src dr_src hil_src fm armed_src
             , handle (paramSet getParamIndex setParamValue param_req_emitter)
             , handle (requestDatastream s_periods (emit_ streamPeriodEmitter))
             , handle (hilState hil_emitter)
-            , handle (rcOverride rcOverride_writer millis)
+            , handle (rcOverride rcOverride_writer)
             , handle (setMode fm_writer now)
             , handleCommandLong (fromIntegral Cmd.id_COMPONENT_ARM_DISARM)
                                 (armDisarm armed_emitter)
