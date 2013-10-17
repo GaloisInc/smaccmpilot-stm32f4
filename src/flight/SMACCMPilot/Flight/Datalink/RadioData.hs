@@ -85,11 +85,8 @@ unpackStat :: (GetAlloc eff ~ Scope s)
             => Ref Global (Array 48 (Stored Uint8))
             -> Ivory eff (Ref (Stack s) (Struct "radio_stat"))
 unpackStat raw = do
-  -- This is not brilliant code but it gets the job done today.
-  -- skip b0, should be 'B'
-  let ixs    = map fromInteger [0..19]
   let d ix   = deref (raw ! ix)
-  derefs    <- mapM d ixs
+  derefs    <- mapM d [1..20]
   let val i  = derefs !! i
   local $ istruct
     [ RS.sik       .= ival   true
@@ -112,7 +109,6 @@ mlen_info = 0 -- XXX
 unpackInfo :: (GetAlloc eff ~ Scope s)
            => Ref Global (Array 48 (Stored Uint8))
            -> Ivory eff (Ref (Stack s) (Struct "radio_info"))
-
 unpackInfo _raw = local (istruct []) -- XXX
 
 charUint8 :: Char -> Uint8
