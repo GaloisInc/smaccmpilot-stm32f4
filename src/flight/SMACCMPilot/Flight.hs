@@ -207,6 +207,7 @@ otherms = concat
   [ packModule
   , mavlinkCRCModule
   , consoleModule
+  , paramModule
   -- hwf4 bsp is used for I2C, EEPROM
   , HWF4.eepromModule
   , HWF4.i2cModule

@@ -117,6 +117,7 @@ gcsReceiveTask mavStream s_src dr_src hil_src fm armed_src
   taskModuleDef $ do
     depend mavlinkCRCModule
     depend R.mavlinkReceiveStateModule
+    depend paramModule
     handlerModuleDefs
     mapM_ depend mavlinkMessageModules
     mapM_ depend stdlibModules

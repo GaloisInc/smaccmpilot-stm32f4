@@ -174,3 +174,4 @@ gcsTransmitTask mavStream sp_sink _dr_sink fm_sink armed_sink se_sink ps_sink
     depend D.dataRateTypeModule
     depend T.gcsStreamTimingTypeModule
     depend senderModules
+    depend paramModule
