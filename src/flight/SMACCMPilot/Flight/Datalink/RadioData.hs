@@ -85,7 +85,7 @@ unpackStat :: (GetAlloc eff ~ Scope s)
             => Ref Global (Array 48 (Stored Uint8))
             -> Ivory eff (Ref (Stack s) (Struct "radio_stat"))
 unpackStat raw = do
-  let d ix   = deref (raw ! ix)
+  let d ix   = deref (raw ! (fromIntegral ix))
   derefs    <- mapM d [1..20]
   let val i  = derefs !! i
   local $ istruct
