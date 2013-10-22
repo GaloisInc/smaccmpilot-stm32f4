@@ -26,19 +26,23 @@ userMAVInputTask :: SingI n
                  => DataSink (Stored A.ArmedMode)
                     -- From GCS Rx Task
                  -> ChannelSink n (Struct "rc_channels_override_msg")
+                    -- Joystick failsafe button
+                 -> DataSource (Stored IBool)
                     -- To UserInput.Mux task
                  -> DataSource (Struct "userinput_result")
                  -> Task p ()
-userMAVInputTask a rc_over_snk src_rc_over_res = do
+userMAVInputTask a rc_over_snk src_js_fs src_rc_over_res = do
   -- Arming result
   armedReader      <- withDataReader a "armedReader"
   -- processed result
   rcOverrideWriter <- withDataWriter src_rc_over_res "rc_over_res_tx"
+  failSafeWriter   <- withDataWriter src_js_fs "src_js_fs"
 
   armedRef         <- taskLocal "armedRef"
   ovr_msg_local    <- taskLocal "over_msg_local"
   chs              <- taskLocal "channels"
   uiResult         <- taskLocal "userinput_res"
+  jsFailSafe       <- taskLocal "jsFailSafe"
 
   timer <- withGetTimeMillis
 
@@ -55,7 +59,12 @@ userMAVInputTask a rc_over_snk src_rc_over_res = do
       call_ processOverrideMsg chs ovr_msg_local
       -- Decode the PPMs.
       call_ D.userInputDecode chs uiResult now
+      -- See if our failsafe button is depressed (channel 5, counting from 1).
+      -- We can be exact here (2000) since it's a MAVLink msg.
+      val <- deref (chs ! 4)
+      store jsFailSafe (2000 ==? val)
       -- Send it to the Mux task.
+      writeData failSafeWriter (constRef jsFailSafe)
       writeData rcOverrideWriter (constRef uiResult)
 
   taskModuleDef $ do

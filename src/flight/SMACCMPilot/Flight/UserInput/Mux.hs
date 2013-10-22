@@ -36,6 +36,9 @@ armedMuxTask ppm_input_snk mav_armed_snk armed_res_src = do
   -- Final arming result
   armedResLocal  <- taskLocal "armedResLocal"
 
+  let writeArmedRes :: (Scope cs ~ GetAlloc eff) => Ivory eff ()
+      writeArmedRes = writeData muxWriter (constRef armedResLocal)
+
   -- When we get a new event from MAVLink Rx, we check that channel 5 is armed
   -- and then set the value given from the GCS.
 
@@ -49,7 +52,7 @@ armedMuxTask ppm_input_snk mav_armed_snk armed_res_src = do
     -- disarm the motors.
     when switch $ do
       store armedResLocal armed
-      writeData muxWriter (constRef armedResLocal)
+      writeArmedRes
 
   -- Also, read the latest PPM signals and see if we're arming/disarming from
   -- the PPM controller.
@@ -63,10 +66,8 @@ armedMuxTask ppm_input_snk mav_armed_snk armed_res_src = do
     -- it as the new arming status.  Otherwise, if the switch is
     -- off, disarm the motors regardless of the arm state.
     ifte_ switch
-      (when changed $
-         writeData muxWriter (constRef armedResLocal))
-      (do store armedResLocal A.as_DISARMED
-          writeData muxWriter (constRef armedResLocal))
+      (when changed writeArmedRes)
+      (store armedResLocal A.as_DISARMED >> writeArmedRes)
 
   taskModuleDef $ do
     depend D.userInputDecodeModule
@@ -79,18 +80,22 @@ userInputMuxTask :: -- From Arming Mux task
                  -> DataSink (Struct "userinput_result")
                     -- From RCOverride task
                  -> DataSink (Struct "userinput_result")
+                    -- From RCOverride task
+                 -> DataSink (Stored IBool)
                     -- To motor control task
                  -> DataSource (Struct "userinput_result")
                  -> Task p ()
-userInputMuxTask snk_armed snk_rc_ppm snk_mav_ppm src_res = do
-  armReader <- withDataReader snk_armed   "snk_armed"
-  ppmReader <- withDataReader snk_rc_ppm  "snk_rc_ppm"
-  mavReader <- withDataReader snk_mav_ppm "snk_mav_ppm"
-  resWriter <- withDataWriter src_res     "src_res"
+userInputMuxTask snk_armed snk_rc_ppm snk_mav_ppm snk_mav_failsafe src_res = do
+  armReader   <- withDataReader snk_armed   "snk_armed"
+  ppmReader   <- withDataReader snk_rc_ppm  "snk_rc_ppm"
+  mavReader   <- withDataReader snk_mav_ppm "snk_mav_ppm"
+  mavFSReader <- withDataReader snk_mav_failsafe "snk_mav_failsafe"
+  resWriter   <- withDataWriter src_res     "src_res"
 
-  armLocal  <- taskLocal "armLocal"
-  rcLocal   <- taskLocal "rcLocal"
-  mavLocal  <- taskLocal "mavLocal"
+  armLocal    <- taskLocal "armLocal"
+  rcLocal     <- taskLocal "rcLocal"
+  mavLocal    <- taskLocal "mavLocal"
+  mavFS       <- taskLocal "mavFSLocal"
 
   let writeOutput :: (GetAlloc eff ~ Scope s0)
                   => Ref s1 (Struct "userinput_result")
@@ -102,28 +107,27 @@ userInputMuxTask snk_armed snk_rc_ppm snk_mav_ppm src_res = do
     armed <- deref armLocal
     readData ppmReader rcLocal
     readData mavReader mavLocal
+    readData mavFSReader mavFS
+    -- Joystick failsafe
+    jsDeadMan <- deref mavFS
 
     lastMavTime <- deref (mavLocal ~> T.time)
     -- Time is monotomic.
     assert (now >=? lastMavTime)
 
-    cond_
-      [   -- Not armed: don't listen to MAVLink messages.  This shouldn't be
-          -- required, as no RC override messages should be generated if the
-          -- sytem isn't armed.
-          (armed /=? A.as_ARMED)
-      ==> writeOutput rcLocal
-          -- No MAVLink message has arrived in the past mavTime milliseconds.
-          -- Ignore MAV input.
-      ,   (now >=? (lastMavTime + mavTimeout))
-      ==> writeOutput rcLocal
-          -- Otherwise, we can use the MAVLink RC override.
-      ,   true
-      ==> writeOutput mavLocal
-      ]
+    let mavOverrideCond =
+              jsDeadMan -- Joystick deadman button
+          -- depressed System armed (This shouldn't be required, as no RC
+          -- override messages should be generated if the sytem isn't armed.)
+          .&& (armed ==? A.as_ARMED)
+          -- -- Got a message recently
+          .&& (now <? (lastMavTime + mavTimeout))
 
-  taskModuleDef $
-    depend T.userInputTypeModule
+    ifte_ mavOverrideCond
+      (writeOutput mavLocal)
+      (writeOutput rcLocal)
+
+  taskModuleDef $ depend T.userInputTypeModule
 
   where
   -- Timeout to revert back to the RC PPM controller for override messages.

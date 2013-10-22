@@ -30,6 +30,8 @@ userInputTower :: (SingI n0, SingI n1)
 userInputTower armed_res snk_mav_armed snk_rc_over = do
   (src_userinput, snk_userinput)         <- dataport
   (src_rc_over_res, snk_rc_over_res)     <- dataport
+  -- Joystick failsafe
+  (src_js_fs, snk_js_fs)                 <- dataport
   (src_flightmode, _)                    <- dataport
   (src_ppm_chans, snk_ppm_chans)         <- dataport
   (src_input_mux_res, snk_input_mux_res) <- dataport
@@ -42,6 +44,7 @@ userInputTower armed_res snk_mav_armed snk_rc_over = do
   -- Handler for RC override MAVLink messages.
   task "userMAVInput" $ userMAVInputTask (snk armed_res)
                                          snk_rc_over
+                                         src_js_fs
                                          src_rc_over_res
 
   task "armedMux"     $ armedMuxTask snk_ppm_chans
@@ -51,6 +54,7 @@ userInputTower armed_res snk_mav_armed snk_rc_over = do
   task "userInputMux" $ userInputMuxTask (snk armed_res)
                                          snk_userinput
                                          snk_rc_over_res
+                                         snk_js_fs
                                          src_input_mux_res
 
   addModule userInputDecodeModule
