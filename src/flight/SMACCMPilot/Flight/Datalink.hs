@@ -71,7 +71,7 @@ encoder :: (SingI n0, SingI n1)
         -> Task p ()
 encoder framed_snk link_src = do
   link_ostream   <- withChannelEmitter  link_src   "link_ostream"
-  framed_istream <- withChannelEvent    framed_snk "framed_ostream"
+  framed_istream <- withChannelEvent    framed_snk "framed_istream"
   -- Send air data as quickly as we get it
   onEvent framed_istream $ \frame -> noReturn $
     H.encode C.airDataTag frame (emitV_ link_ostream)
