@@ -3,12 +3,11 @@
 #define __AP_HAL_SMACCM_UARTDRIVER_H__
 
 #include "AP_HAL_SMACCM.h"
-#include <hwf4/usart.h>
 
 class SMACCM::SMACCMUARTDriver : public AP_HAL::UARTDriver
 {
 public:
-  SMACCMUARTDriver(struct usart *dev);
+  SMACCMUARTDriver();
 
   /* SMACCM implementations of UARTDriver virtual methods */
   void begin(uint32_t b);
@@ -37,9 +36,6 @@ public:
   size_t write(uint8_t c);
 
 private:
-  struct usart *m_dev;
-  bool m_initialized;
-  bool m_blocking;
 };
 
 #endif // __AP_HAL_SMACCM_UARTDRIVER_H__

@@ -7,9 +7,9 @@
 using namespace SMACCM;
 
 /* All UART drivers are stubs. */
-static SMACCMUARTDriver uartADriver(NULL);
-static SMACCMUARTDriver uartBDriver(NULL);
-static SMACCMUARTDriver uartCDriver(NULL);
+static SMACCMUARTDriver uartADriver;
+static SMACCMUARTDriver uartBDriver;
+static SMACCMUARTDriver uartCDriver;
 
 static SMACCMI2CDriver  i2cDriver;
 static SMACCMSPIDeviceManager spiDeviceManager;

@@ -17,14 +17,12 @@ using namespace SMACCM;
 // XXX the AVR driver enables itself in the constructor.  This seems
 // like a very bad idea, since it will run somewhere in the startup
 // code before our clocks are all set up and such.
-SMACCMUARTDriver::SMACCMUARTDriver(struct usart *dev)
-  : m_dev(dev), m_initialized(false), m_blocking(true)
+SMACCMUARTDriver::SMACCMUARTDriver()
 {
 }
 
 void SMACCMUARTDriver::begin(uint32_t baud)
 {
-  m_initialized = true;
 }
 
 // XXX buffer sizes ignored
@@ -47,12 +45,11 @@ void SMACCMUARTDriver::flush()
 
 bool SMACCMUARTDriver::is_initialized()
 {
-  return m_initialized;
+  return false;
 }
 
 void SMACCMUARTDriver::set_blocking_writes(bool blocking)
 {
-  m_blocking = blocking;
 }
 
 bool SMACCMUARTDriver::tx_pending()
