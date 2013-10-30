@@ -14,9 +14,6 @@ public:
     virtual void     delay(uint16_t ms) = 0;
     virtual uint32_t millis() = 0;
     virtual uint32_t micros() = 0;
-    virtual void     delay_microseconds(uint16_t us) = 0;
-    virtual void     register_delay_callback(AP_HAL::Proc,
-                        uint16_t min_time_ms) = 0;
 
     // register a high priority timer task
     virtual void     register_timer_process(AP_HAL::TimedProc) = 0;
@@ -29,7 +26,7 @@ public:
     virtual void     resume_timer_procs() = 0;
 
     virtual bool     in_timerprocess() = 0;
-    
+
     virtual void     register_timer_failsafe(AP_HAL::TimedProc,
                         uint32_t period_us) = 0;
 
