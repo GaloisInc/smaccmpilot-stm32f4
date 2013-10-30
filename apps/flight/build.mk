@@ -21,7 +21,6 @@ $(eval $(call when_platforms, $(FLIGHT_PLATFORMS_FREERTOS) $(FLIGHT_PLATFORMS_AA
 
 FLIGHT_IMG       := flight
 
-FLIGHT_INCLUDES  += $(HWF4_INCLUDES)
 FLIGHT_INCLUDES  += -I$(TOP)/src/standalone_apahrs
 FLIGHT_INCLUDES  += -I$(TOP)/src/apwrapper/include
 FLIGHT_INCLUDES  += $(FREERTOS_CFLAGS)
@@ -44,7 +43,6 @@ FLIGHT_REAL_OBJECTS += $(IVORY_PKG_FLIGHT_OBJECTS)
 FLIGHT_LIBRARIES    += libapwrapper.a
 FLIGHT_LIBRARIES    += libstandalone-apahrs.a
 FLIGHT_LIBRARIES    += libstandalone-aphal.a
-FLIGHT_LIBRARIES    += libhwf4-nouart.a
 FLIGHT_LIBRARIES    += libFreeRTOS.a
 FLIGHT_LIBRARIES    += commsec.a
 FLIGHT_LIBS         += -lm
@@ -60,7 +58,6 @@ $(eval $(call when_platforms,$(FLIGHT_PLATFORMS_FREERTOS) \
 # ------------------------------------------------------------------------------
 
 LIB_FLIGHT_LIB          := libflight.a
-LIB_FLIGHT_INCLUDES     += $(HWF4_INCLUDES)
 LIB_FLIGHT_INCLUDES     += -I$(TOP)/src/standalone_apahrs
 LIB_FLIGHT_INCLUDES     += -I$(TOP)/src/crypto/include
 LIB_FLIGHT_INCLUDES     += -DARM

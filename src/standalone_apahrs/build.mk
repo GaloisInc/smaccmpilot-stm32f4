@@ -50,7 +50,7 @@ $(eval $(call when_os,freertos,library,STANDALONE_APAHRS))
 STANDALONE_HAL_LIB       := libstandalone-aphal.a
 
 STANDALONE_HAL_INCLUDES  += -I$(TOP)/src/standalone_apahrs
-STANDALONE_HAL_INCLUDES  += -I$(TOP)/src/bsp/hwf4/include
+STANDALONE_HAL_INCLUDES  += -I$(TOP)/src/standalone_apahrs/hwf4/include
 STANDALONE_HAL_INCLUDES  += $(FREERTOS_CFLAGS)
 
 STANDALONE_HAL_CFLAGS    += $(STANDALONE_HAL_INCLUDES)
@@ -71,6 +71,17 @@ STANDALONE_HAL_OBJECTS := $(addprefix AP_HAL_SMACCM/,\
         AnalogIn.o                                   \
         Semaphores.o                                 \
         RCOutput.o                                   \
+        )
+
+STANDALONE_HAL_OBJECTS += $(addprefix hwf4/src/,     \
+        eeprom.o                                     \
+        gpio.o                                       \
+        i2c.o                                        \
+        led.o                                        \
+        interrupt.o                                  \
+        rcc.o                                        \
+        spi.o                                        \
+        timer.o                                      \
         )
 
 $(eval $(call when_os,freertos,library,STANDALONE_HAL))
