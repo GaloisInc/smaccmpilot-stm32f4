@@ -7,8 +7,6 @@
 
 module Ivory.HXStream.Test where
 
-import Control.Monad (replicateM)
-import Data.Word
 import Data.String (fromString)
 import System.Directory (doesFileExist)
 import Control.Monad (unless)
@@ -18,7 +16,8 @@ import Ivory.Language
 import Ivory.Stdlib hiding (unless)
 import Ivory.Compile.C.CmdlineFrontend
 
-import qualified Test.QuickCheck as Q
+import qualified Ivory.QuickCheck as Q
+import qualified Test.QuickCheck  as Q
 
 --------------------------------------------------------------------------------
 
@@ -30,34 +29,6 @@ testReport = proc "testReport " $ \b -> body $
   ifte_ b (c "pass") (c "fail")
   where
   c msg = call_ puts (fromString (msg ++ "\n"))
-
-instance Q.Arbitrary Uint8 where
-  arbitrary = fmap fromIntegral (Q.arbitrary :: Q.Gen Word8)
-
--- List that is is 128 bytes or less and an index into the list.
-sampleArrayIx :: Q.Gen [Uint8]
-sampleArrayIx = do
-  let item = Q.frequency [(1, return 0x7e), (1,return 0x7c) ,(8, Q.arbitrary) ]
-  arr <- Q.vectorOf 128 item
-  return arr
-
-runTest :: (GetAlloc eff ~ Scope s)
-        => [Uint8] -> Ivory eff ()
-runTest ls = do
-  input   <- local $ iarray (map ival ls)
-  encoded <- local $ iarray (replicate 259 (ival 0))
-  decoded <- local $ iarray (replicate 128 (ival 0))
-  call_ encodeTest (constRef input)   encoded
-  call_ decodeTest (constRef encoded) decoded
-
-  b <- local (ival true)
-  arrayMap $ \i -> do
-    x <- deref (decoded ! i)
-    y <- deref (input   ! i)
-    when (x /=? y) $ store b false
-
-  b' <- deref b
-  call_ testReport b'
 
 encodeTest :: Def('[ ConstRef s0 (Array 128 (Stored Uint8))
                    , Ref s1 (Array 259 (Stored Uint8))
@@ -99,11 +70,58 @@ decodeTest = proc "hxstream_test_decode" $ \ framed pt -> body $ do
   totalends <- deref ends
   assert (totalends ==? 1)
 
+runTest :: (GetAlloc eff ~ Scope s)
+        => Init (Array 128 (Stored Uint8)) -> Ivory eff ()
+runTest arrInit = do
+  input   <- local arrInit
+  encoded <- local $ iarray (replicate 259 (ival 0))
+  decoded <- local $ iarray (replicate 128 (ival 0))
+  call_ encodeTest (constRef input)   encoded
+  call_ decodeTest (constRef encoded) decoded
 
-test :: [[Uint8]] -> Def ('[] :-> Sint32)
+  b <- local (ival true)
+  arrayMap $ \i -> do
+    x <- deref (decoded ! i)
+    y <- deref (input   ! i)
+    when (x /=? y) $ store b false
+
+  b' <- deref b
+  call_ testReport b'
+
+test :: [Init (Array 128 (Stored Uint8))]
+     -> Def ('[] :-> Sint32)
 test gens = proc "main" $ body $ do
-    mapM_ runTest gens
-    ret 0
+  mapM_ runTest gens
+  ret 0
+
+mkRnd :: Q.IvoryGen (Def ('[] :-> Sint32))
+mkRnd = return . test
+    =<< Q.samples 100 sampleArrayIx
+
+  where
+  sampleArrayIx :: Q.Gen Uint8
+  sampleArrayIx = Q.frequency [ (1, return 0x7e)
+                              , (1,return 0x7c)
+                              ,(8, Q.arbitrary)]
+
+runTests :: IO ()
+runTests = do
+  p <- Q.runIO mkRnd
+  runCompiler [hxstreamModule, cmodule p]
+              initialOpts { includeDir = "test"
+                          , srcDir     = "test"
+                          , constFold = True
+                          }
+  writeMakefile pkgName
+  where
+  pkgName = "hxstream-test"
+  cmodule p = package pkgName $ do
+    depend hxstreamModule
+    incl p
+    incl puts
+    incl testReport
+    incl encodeTest
+    incl decodeTest
 
 writeMakefile :: String -> IO ()
 writeMakefile pkgname = do
@@ -128,23 +146,3 @@ writeMakefile pkgname = do
     , "\t-rm " ++ fname
     , "\t-rm test_output.tmp"
     ]
-
-runTests :: IO ()
-runTests = do
-  vals <- replicateM 100 $ Q.sample' sampleArrayIx
-  let p = test (concat vals)
-  runCompiler [hxstreamModule, cmodule p]
-              initialOpts { includeDir = "test"
-                          , srcDir     = "test"
-                          , constFold = True
-                          }
-  writeMakefile pkgName
-  where
-  pkgName = "hxstream-test"
-  cmodule p = package pkgName $ do
-    depend hxstreamModule
-    incl p
-    incl puts
-    incl testReport
-    incl encodeTest
-    incl decodeTest
