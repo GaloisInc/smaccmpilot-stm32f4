@@ -23,7 +23,6 @@ AP_WRAPPER_CXXFLAGS  += $(AP_WRAPPER_INCLUDES)
 AP_WRAPPER_CXXFLAGS  += -Wno-psabi
 
 AP_WRAPPER_OBJECTS :=              \
-        src/console_prim.o         \
         src/sensors_capture.o      \
         src/userinput_capture.o
 
