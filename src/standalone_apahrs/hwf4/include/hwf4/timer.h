@@ -48,15 +48,6 @@ uint64_t timer_get_ticks(void);
 void timer_msleep(uint32_t delay);
 
 /**
- * Busy wait for "delay" (up to 65535) microseconds.  This should only
- * be used for short delays as we prevent FreeRTOS from context
- * switching during the delay.
- *
- * @param delay wait delay in microseconds
- */
-void timer_usleep(uint16_t delay);
-
-/**
  * Return true if there is valid PPM available.
  */
 bool timer_is_ppm_valid(void);

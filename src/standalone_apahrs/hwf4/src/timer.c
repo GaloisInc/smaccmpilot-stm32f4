@@ -186,21 +186,6 @@ uint64_t timer_get_ticks(void)
   return ticks + (uint64_t)cnt;
 }
 
-void timer_usleep(uint16_t delay)
-{
-  portENTER_CRITICAL();
-
-  g_delay_complete = false;
-  TIMER_DEV->CCR1   = (uint16_t)(TIMER_DEV->CNT + delay);
-  TIMER_DEV->DIER  |= TIM_DIER_CC1IE;
-  TIMER_DEV->CCMR1 |= TIM_CCMR1_OC1M_0;
-
-  while (!g_delay_complete)
-    ;
-
-  portEXIT_CRITICAL();
-}
-
 void timer_msleep(uint32_t delay)
 {
   vTaskDelay(delay / portTICK_RATE_MS);

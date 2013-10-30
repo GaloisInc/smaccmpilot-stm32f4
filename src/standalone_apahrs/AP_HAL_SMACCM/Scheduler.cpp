@@ -33,15 +33,6 @@ extern const AP_HAL::HAL& hal;
 /** Priority of the scheduler timer process task. */
 #define SCHEDULER_PRIORITY (configMAX_PRIORITIES - 1)
 
-/** Rate in milliseconds of the delay callback task. */
-#define DELAY_CB_TICKS (1 / (portTICK_RATE_MS))
-
-/** Stack size of the delay callback task. */
-#define DELAY_CB_STACK_SIZE 512
-
-/** Priority of the delay callback task. */
-#define DELAY_CB_PRIORITY 0
-
 /**
  * Recursive mutex used to block "scheduler_task" during atomic
  * sections.
