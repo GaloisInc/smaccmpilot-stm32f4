@@ -48,9 +48,6 @@ import SMACCMPilot.Hardware.GPS.Types (gpsTypesModule)
 import qualified Commsec.CommsecOpts as O
 import Ivory.HXStream
 
-import qualified Ivory.BSP.HWF4.EEPROM as HWF4
-import qualified Ivory.BSP.HWF4.I2C as HWF4
-
 import qualified Ivory.BSP.STM32F4.GPIO as GPIO
 import qualified Ivory.BSP.STM32F4.UART as UART
 import           Ivory.BSP.STM32F4.RCC (BoardHSE(..))
@@ -206,9 +203,6 @@ otherms = concat
   [ packModule
   , mavlinkCRCModule
   , paramModule
-  -- hwf4 bsp is used for I2C, EEPROM
-  , HWF4.eepromModule
-  , HWF4.i2cModule
   -- the rest:
   , stdlibStringModule
   -- hxstream
