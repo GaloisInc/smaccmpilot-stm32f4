@@ -35,7 +35,6 @@ import SMACCMPilot.Flight.GCS.Transmit.MessageDriver (senderModules)
 import SMACCMPilot.Flight.GPS
 import SMACCMPilot.Flight.Param
 
-import SMACCMPilot.Console (consoleModule)
 import SMACCMPilot.Param
 
 import SMACCMPilot.Mavlink.Messages (mavlinkMessageModules)
@@ -206,7 +205,6 @@ otherms = concat
   ] ++
   [ packModule
   , mavlinkCRCModule
-  , consoleModule
   , paramModule
   -- hwf4 bsp is used for I2C, EEPROM
   , HWF4.eepromModule

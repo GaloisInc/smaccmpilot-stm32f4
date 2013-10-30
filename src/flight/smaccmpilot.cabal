@@ -73,7 +73,6 @@ library
                        SMACCMPilot.Param.TowerTypes,
                        SMACCMPilot.Param.Tower,
 
-                       SMACCMPilot.Console,
                        SMACCMPilot.SafePack
 
   build-depends:       base ==4.6.*,
