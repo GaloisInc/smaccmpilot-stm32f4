@@ -57,7 +57,7 @@ paramRequestRead getIndex emitter msg = do
 
   -- Look up by name if index is -1.
   when (n ==? -1) $ do
-    name <- local (init_ParamString "")
+    name <- local (stringInit "" :: Init ParamString)
     istr_from_sz name (constRef $ msg ~> PRR.param_id)
     call_ (paramIndexGetter getIndex) (constRef name) ixRef
     -- ixRef stays -1 if the name lookup fails
@@ -74,7 +74,7 @@ paramSet :: (SingI n)
          -> Ref s3 (Struct "param_set_msg")
          -> Ivory (ProcEffects cs r) ()
 paramSet getIndex setValue emitter msg = do
-  name  <- local (init_ParamString "")
+  name  <- local (stringInit "" :: Init ParamString)
   istr_from_sz name (constRef $ msg ~> PS.param_id)
 
   ixRef <- local (ival (0 :: Sint16))
