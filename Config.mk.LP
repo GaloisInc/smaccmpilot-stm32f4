@@ -19,6 +19,7 @@ CONFIG_CORTEX_M4_PREFIX := $(HOME)/Galois/SMACCM/smaccm-project/OutsideSrcs/gcc-
 
 # Path to cabal-dev sandbox where code generators are built
 CONFIG_CABAL_SANDBOX := ../cabal-dev
+#CONFIG_CABAL_SANDBOX := ../.cabal-sandbox
 
 # Path to ivory language repository
 CONFIG_IVORY_REPOSITORY := ../ivory
