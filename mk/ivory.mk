@@ -80,7 +80,7 @@ $$($(1)_DEP_FILE): $$($(1)_GEN_EXE) $(MAKEFILE_LIST)
 	  --dep-prefix=$(1)                                   \
 	  $(3))
 
-$$($(1)_HEADERS) $$($(1)_SOURCES) $$($(1)_TOWER_DOT): $$($(1)_DEP_FILE)
+$$($(1)_HEADERS) $$($(1)_SOURCES) $$($(1)_TOWER_DOT): $$($(1)_DEP_FILE) $$($(1)_GEN_EXE)
 	$(call cmd,ivory_gen,$1,                              \
 	  $$($(1)_GEN_EXE)                                    \
 	  --src-dir=$$($(1)_GEN_DIR)                          \
