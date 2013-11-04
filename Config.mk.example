@@ -25,14 +25,6 @@ CONFIG_TOWER_REPOSITORY := ../tower
 # Root directory of the FreeRTOS source tree.
 CONFIG_FREERTOS_PREFIX := ../FreeRTOS
 
-# Root directory of the ArduPilot source tree.
-# Note: this should be a clone of https://github.com/galoisinc/ardupilot
-CONFIG_ARDUPILOT_PREFIX := ../ardupilot
-
-# Extra arguments to pass to ArduPilot as build flags.
-CONFIG_ARDUPILOT_EXTRA_CFLAGS += -DLOGGING_ENABLED=DISABLED
-# CONFIG_ARDUPILOT_EXTRA_CFLAGS += -DHIL_MODE=HIL_MODE_ATTITUDE
-
 # Set this variable when using the bootloader on the PX4FMU,
 # unset if flashing purely via JTAG.
 CONFIG_PX4FMU_BOOTLOADER := 1
@@ -54,7 +46,7 @@ CONFIG_CBMC_PREFIX := ../../OutsideSrcs/cbmc/src/cbmc
 CONFIG_CBMC_REPORT := $(CONFIG_CABAL_SANDBOX)/bin
 
 # ------------------------------------------------------------------------------
-# Comment the following line to disable building apps that use runtime
+# Uncomment the following line to enable building apps that use runtime
 # verification:
 # CONFIG_BUILD_RTV := 1
 
