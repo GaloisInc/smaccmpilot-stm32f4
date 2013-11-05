@@ -103,18 +103,21 @@ with the FreeRTOS sources.
 
 ## Compiling
 
-  1 Simply run `make` from the top-level directory.  You can also specify
-    a specific target such as `libhwf4.a`.
-  2 Build output is placed in the `build` directory. Images and other artifacts
-    are in the `build/{platform}_{os}/img` directory, where `{platform}` is one
-    of:
-    * `px4fmu17_ioar`: PX4FMU 1.7 with the IOAR expansion board,
-            for the  Drone based copter
-    * `px4fmu17_bare`: PX4FMU 1.7 without an IO expansion board,
-              for a radio control ESC based copter like the 3DR ArduCopter Quad
-    and `{os}` is one of:
-    * `freertos`: Produces complete images using the FreeRTOS operating system
-    * `aadl`: Produces applications as libraries, and system description output in
+Simply run `make` from the top-level directory.  You can also specify
+a specific target such as `libhwf4.a`.
+
+Build output is placed in the `build` directory. Images and other artifacts are
+in the `build/{platform}_{os}/img` directory, where `{platform}` is one of:
+
+* `px4fmu17_ioar`: PX4FMU 1.7 with the IOAR expansion board,
+        for the  Drone based copter
+* `px4fmu17_bare`: PX4FMU 1.7 without an IO expansion board,
+          for a radio control ESC based copter like the 3DR ArduCopter Quad
+
+and `{os}` is one of:
+
+* `freertos`: Produces complete images using the FreeRTOS operating system
+* `aadl`: Produces applications as libraries, and system description output in
       the Architecture Analysis and Design Language (AADL), for use with other
       operating systems
 
