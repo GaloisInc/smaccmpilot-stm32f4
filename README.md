@@ -9,8 +9,13 @@ software methods.
 Complete documentation for this repository and related SMACCMPilot work is
 available at [smaccmpilot.org][].
 
+
+Developers are encouraged to [join our mailing list][list] for project
+updates.
+
 [galois]: http://corp.galois.com
 [smaccmpilot.org]: http://smaccmpilot.org
+[list]: http://community.galois.com/mailman/listinfo/smaccmpilot
 
 ## Contents
 
@@ -94,14 +99,25 @@ with the FreeRTOS sources.
 
   1. Copy `Config.mk.example` to `Config.mk`.  Open this file in a text editor.
   2. Set `CONFIG_CORTEX_M4_PREFIX` to the location of the Cortex-M4 toolchain.
-  3. Set `CONFIG_FREERTOS_PREFIX` to the location of the FreeRTOS source.
-  3. Set `CONFIG_ARDUPILOT_PREFIX` to the location of the Ardupilot source.
-  4. Set `CONFIG_BOARD` to `fmu_v17` for the PX4FMU, or `stm32f4-discovery`.
+  3. Copy `Keys.mk.example` to `Keys.mk`
 
 ## Compiling
 
-  1. Simply run `make` from the top-level directory.  You can also specify
-     a specific target such as `libhwf4.a`.
-  2. Build output is placed in the `build` directory.  The test program images
-     are in the `build/$(CONFIG_ARCH)/$(CONFIG_BOARD)/img` directory.
+  1 Simply run `make` from the top-level directory.  You can also specify
+    a specific target such as `libhwf4.a`.
+  2 Build output is placed in the `build` directory. Images and other artifacts
+    are in the `build/{platform}_{os}/img` directory, where `{platform}` is one
+    of:
+
+    * `px4fmu17_ioar`: PX4FMU 1.7 with the IOAR expansion board,
+            for the  Drone based copter
+    * `px4fmu17_bare`: PX4FMU 1.7 without an IO expansion board,
+              for a radio control ESC based copter like the 3DR ArduCopter Quad
+
+    and `{os}` is one of:
+
+    * `freertos`: Produces complete images using the FreeRTOS operating system
+    * `aadl`: Produces applications as libraries, and system description output in
+      the Architecture Analysis and Design Language (AADL), for use with other
+      operating systems
 
