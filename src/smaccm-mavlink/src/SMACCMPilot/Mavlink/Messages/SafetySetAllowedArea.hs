@@ -79,11 +79,6 @@ mkSafetySetAllowedAreaSender =
                     27
                     seqNum
                     sendArr
-            let usedLenIx = fromInteger usedLen
-            -- Zero out the unused portion of the array.
-            for (fromInteger sendArrLen - usedLenIx) $ \ix ->
-              store (sendArr ! (ix + usedLenIx)) 0
-            retVoid
 
 instance MavlinkUnpackableMsg "safety_set_allowed_area_msg" where
     unpackMsg = ( safetySetAllowedAreaUnpack , safetySetAllowedAreaMsgId )

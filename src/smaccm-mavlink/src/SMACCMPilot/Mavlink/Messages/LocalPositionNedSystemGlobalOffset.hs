@@ -75,11 +75,6 @@ mkLocalPositionNedSystemGlobalOffsetSender =
                     28
                     seqNum
                     sendArr
-            let usedLenIx = fromInteger usedLen
-            -- Zero out the unused portion of the array.
-            for (fromInteger sendArrLen - usedLenIx) $ \ix ->
-              store (sendArr ! (ix + usedLenIx)) 0
-            retVoid
 
 instance MavlinkUnpackableMsg "local_position_ned_system_global_offset_msg" where
     unpackMsg = ( localPositionNedSystemGlobalOffsetUnpack , localPositionNedSystemGlobalOffsetMsgId )

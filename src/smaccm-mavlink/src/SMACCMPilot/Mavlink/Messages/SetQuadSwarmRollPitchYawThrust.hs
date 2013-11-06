@@ -73,11 +73,6 @@ mkSetQuadSwarmRollPitchYawThrustSender =
                     34
                     seqNum
                     sendArr
-            let usedLenIx = fromInteger usedLen
-            -- Zero out the unused portion of the array.
-            for (fromInteger sendArrLen - usedLenIx) $ \ix ->
-              store (sendArr ! (ix + usedLenIx)) 0
-            retVoid
 
 instance MavlinkUnpackableMsg "set_quad_swarm_roll_pitch_yaw_thrust_msg" where
     unpackMsg = ( setQuadSwarmRollPitchYawThrustUnpack , setQuadSwarmRollPitchYawThrustMsgId )

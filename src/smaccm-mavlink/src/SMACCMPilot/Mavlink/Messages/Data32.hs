@@ -67,11 +67,6 @@ mkData32Sender =
                     34
                     seqNum
                     sendArr
-            let usedLenIx = fromInteger usedLen
-            -- Zero out the unused portion of the array.
-            for (fromInteger sendArrLen - usedLenIx) $ \ix ->
-              store (sendArr ! (ix + usedLenIx)) 0
-            retVoid
 
 instance MavlinkUnpackableMsg "data32_msg" where
     unpackMsg = ( data32Unpack , data32MsgId )

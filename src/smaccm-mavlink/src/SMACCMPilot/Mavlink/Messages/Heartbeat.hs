@@ -73,18 +73,13 @@ mkHeartbeatSender =
                     9
                     seqNum
                     sendArr
-            let usedLenIx = fromInteger usedLen
-            -- Zero out the unused portion of the array.
-            for (fromInteger sendArrLen - usedLenIx) $ \ix ->
-              store (sendArr ! (ix + usedLenIx)) 0
-            retVoid
 
 instance MavlinkUnpackableMsg "heartbeat_msg" where
     unpackMsg = ( heartbeatUnpack , heartbeatMsgId )
 
 heartbeatUnpack :: Def ('[ Ref s1 (Struct "heartbeat_msg")
-                             , ConstRef s2 (CArray (Stored Uint8))
-                             ] :-> () )
+                         , ConstRef s2 (CArray (Stored Uint8))
+                         ] :-> () )
 heartbeatUnpack = proc "mavlink_heartbeat_unpack" $ \ msg buf -> body $ do
   store (msg ~> custom_mode) =<< call unpack buf 0
   store (msg ~> mavtype) =<< call unpack buf 4

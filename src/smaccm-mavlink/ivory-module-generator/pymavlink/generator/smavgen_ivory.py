@@ -195,11 +195,6 @@ mk${name_module}Sender =
                     ${wire_length}
                     seqNum
                     sendArr
-            let usedLenIx = fromInteger usedLen
-            -- Zero out the unused portion of the array.
-            for (fromInteger sendArrLen - usedLenIx) $ \ix ->
-              store (sendArr ! (ix + usedLenIx)) 0
-            retVoid
 
 instance MavlinkUnpackableMsg "${name_lower}_msg" where
     unpackMsg = ( ${name_camel}Unpack , ${name_camel}MsgId )

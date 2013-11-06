@@ -67,11 +67,6 @@ mkMissionSetCurrentSender =
                     4
                     seqNum
                     sendArr
-            let usedLenIx = fromInteger usedLen
-            -- Zero out the unused portion of the array.
-            for (fromInteger sendArrLen - usedLenIx) $ \ix ->
-              store (sendArr ! (ix + usedLenIx)) 0
-            retVoid
 
 instance MavlinkUnpackableMsg "mission_set_current_msg" where
     unpackMsg = ( missionSetCurrentUnpack , missionSetCurrentMsgId )

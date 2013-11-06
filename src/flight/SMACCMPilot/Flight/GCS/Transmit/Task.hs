@@ -54,7 +54,9 @@ gcsTransmitTask mavStream sp_sink _dr_sink fm_sink armed_sink se_sink ps_sink
   armedReader      <- withDataReader armed_sink "armed"
   mavTx            <- withChannelEmitter mavStream "gcsTxToEncSrc"
 
-  mavlinkPacket  <- taskLocal "mavlinkPacket"
+  -- the mavlink packet we're packing
+  mavlinkPacket  <-
+    taskLocal "mavlinkPacket" :: Task p (Ref Global C.MAVLinkArray)
   -- mavlink sequence numbers
   seqNum         <- taskLocalInit "txseqNum" (ival 0)
 
@@ -95,6 +97,9 @@ gcsTransmitTask mavStream sp_sink _dr_sink fm_sink armed_sink se_sink ps_sink
           last <- deref lastRun
           due  <- streamDue (constRef s_periods) (constRef s_schedule)
                     selector last now
+          -- Zero out mavlink array
+          for (fromInteger $ arrayLen mavlinkPacket) $ \ix ->
+            store (mavlinkPacket ! ix) 0
           when due $ do
             action
             setNextTime (constRef s_periods) s_schedule selector now

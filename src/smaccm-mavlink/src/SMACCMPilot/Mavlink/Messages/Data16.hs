@@ -67,11 +67,6 @@ mkData16Sender =
                     18
                     seqNum
                     sendArr
-            let usedLenIx = fromInteger usedLen
-            -- Zero out the unused portion of the array.
-            for (fromInteger sendArrLen - usedLenIx) $ \ix ->
-              store (sendArr ! (ix + usedLenIx)) 0
-            retVoid
 
 instance MavlinkUnpackableMsg "data16_msg" where
     unpackMsg = ( data16Unpack , data16MsgId )

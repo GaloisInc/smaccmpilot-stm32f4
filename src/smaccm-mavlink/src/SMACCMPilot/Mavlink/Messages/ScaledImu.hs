@@ -81,11 +81,6 @@ mkScaledImuSender =
                     22
                     seqNum
                     sendArr
-            let usedLenIx = fromInteger usedLen
-            -- Zero out the unused portion of the array.
-            for (fromInteger sendArrLen - usedLenIx) $ \ix ->
-              store (sendArr ! (ix + usedLenIx)) 0
-            retVoid
 
 instance MavlinkUnpackableMsg "scaled_imu_msg" where
     unpackMsg = ( scaledImuUnpack , scaledImuMsgId )

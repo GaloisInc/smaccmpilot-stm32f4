@@ -93,11 +93,6 @@ mkHilStateSender =
                     56
                     seqNum
                     sendArr
-            let usedLenIx = fromInteger usedLen
-            -- Zero out the unused portion of the array.
-            for (fromInteger sendArrLen - usedLenIx) $ \ix ->
-              store (sendArr ! (ix + usedLenIx)) 0
-            retVoid
 
 instance MavlinkUnpackableMsg "hil_state_msg" where
     unpackMsg = ( hilStateUnpack , hilStateMsgId )

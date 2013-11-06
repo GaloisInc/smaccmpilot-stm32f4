@@ -71,11 +71,6 @@ mkSetQuadMotorsSetpointSender =
                     9
                     seqNum
                     sendArr
-            let usedLenIx = fromInteger usedLen
-            -- Zero out the unused portion of the array.
-            for (fromInteger sendArrLen - usedLenIx) $ \ix ->
-              store (sendArr ! (ix + usedLenIx)) 0
-            retVoid
 
 instance MavlinkUnpackableMsg "set_quad_motors_setpoint_msg" where
     unpackMsg = ( setQuadMotorsSetpointUnpack , setQuadMotorsSetpointMsgId )

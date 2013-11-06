@@ -58,7 +58,7 @@ mavlinkSendWithWriter =
   $ \msgId crcExtra payloadLen seqNum arr -> body
   $ do
 
-    s <- deref seqNum
+    s      <- deref seqNum
     header <- local (
       iarray [ ival const_MAVLINK_STX
              , ival payloadLen

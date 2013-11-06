@@ -79,11 +79,6 @@ mkSetpoint8dofSender =
                     33
                     seqNum
                     sendArr
-            let usedLenIx = fromInteger usedLen
-            -- Zero out the unused portion of the array.
-            for (fromInteger sendArrLen - usedLenIx) $ \ix ->
-              store (sendArr ! (ix + usedLenIx)) 0
-            retVoid
 
 instance MavlinkUnpackableMsg "setpoint_8dof_msg" where
     unpackMsg = ( setpoint8dofUnpack , setpoint8dofMsgId )
