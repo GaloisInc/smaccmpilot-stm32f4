@@ -85,7 +85,7 @@ makeStabilizeRun :: FlightParams ParamReader
                           , Ref      s4 (Struct "controloutput")
                           ] :-> ())
 makeStabilizeRun params =
-  proc "stabilize_run" $ \armed fm input sensors output -> body $ do
+  proc "stabilize_run" $ \armed _fm input sensors output -> body $ do
   ifte_ (armed /=? A.as_ARMED)
     (mapM_ do_reset
       [roll_stabilize, pitch_stabilize, roll_rate, pitch_rate, yaw_rate] )

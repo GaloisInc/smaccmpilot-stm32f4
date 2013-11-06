@@ -13,7 +13,6 @@ import Ivory.Language
 import Ivory.Stdlib
 
 import qualified SMACCMPilot.Flight.Types.Armed          as A
-import           SMACCMPilot.Flight.Types.Armed(ArmedMode)
 import qualified SMACCMPilot.Flight.Types.UserInput      as I
 import qualified SMACCMPilot.Flight.Types.FlightMode     as FM
 import qualified SMACCMPilot.Flight.Types.FlightModeData as FM

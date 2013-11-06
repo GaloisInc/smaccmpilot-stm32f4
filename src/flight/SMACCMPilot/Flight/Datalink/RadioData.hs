@@ -86,7 +86,7 @@ unpackStat :: (GetAlloc eff ~ Scope s)
             -> Ivory eff (Ref (Stack s) (Struct "radio_stat"))
 unpackStat raw = do
   let d ix   = deref (raw ! (fromIntegral ix))
-  derefs    <- mapM d [1..20]
+  derefs    <- mapM d [1::Integer ..20]
   let val i  = derefs !! i
   local $ istruct
     [ RS.sik       .= ival   true
