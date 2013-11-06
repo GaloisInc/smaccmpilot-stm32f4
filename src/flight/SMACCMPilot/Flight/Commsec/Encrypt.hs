@@ -6,9 +6,9 @@
 
 module SMACCMPilot.Flight.Commsec.Encrypt where
 
-import qualified SMACCMPilot.Flight.Commsec.Commsec   as CS
-import qualified Commsec.CommsecOpts                  as O
-import qualified SMACCMPilot.Communications           as Comm
+import qualified SMACCMPilot.Flight.Commsec.Commsec     as CS
+import qualified SMACCMPilot.Flight.Commsec.CommsecOpts as C
+import qualified SMACCMPilot.Communications             as Comm
 
 import           Ivory.Tower
 import           Ivory.Language
@@ -16,7 +16,7 @@ import           Ivory.Language
 --------------------------------------------------------------------------------
 
 encryptTask :: (SingI n0, SingI n1)
-            => O.Options
+            => C.Options
             -> ChannelSink   n0 Comm.MAVLinkArray -- from GCS Tx
             -> ChannelSource n1 Comm.CommsecArray -- to datalink
             -> Task p ()

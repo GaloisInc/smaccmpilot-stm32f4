@@ -11,26 +11,26 @@ import Control.Monad (void)
 import Ivory.Language
 import Ivory.Tower
 
-import qualified SMACCMPilot.Mavlink.Messages.HilState as HIL
+import qualified SMACCMPilot.Mavlink.Messages.HilState   as HIL
 
 import SMACCMPilot.Flight.GCS.HIL
 import SMACCMPilot.Param
 import SMACCMPilot.Flight.GCS.Transmit.Task
 import SMACCMPilot.Flight.GCS.Receive.Task
 
-import qualified SMACCMPilot.Flight.Types.Armed     as A
+import qualified SMACCMPilot.Flight.Types.Armed          as A
 
-import qualified SMACCMPilot.Flight.Commsec.Decrypt as Dec
-import qualified SMACCMPilot.Flight.Commsec.Encrypt as Enc
+import qualified SMACCMPilot.Flight.Commsec.Decrypt      as Dec
+import qualified SMACCMPilot.Flight.Commsec.Encrypt      as Enc
 
-import qualified SMACCMPilot.Flight.Datalink        as D
-import qualified Commsec.CommsecOpts                as O
+import qualified SMACCMPilot.Flight.Datalink             as D
+import qualified SMACCMPilot.Flight.Commsec.CommsecOpts  as C
 
 --------------------------------------------------------------------------------
 
 gcsTower :: (SingI n0, SingI n1, SingI n2, SingI n3)
          => String
-         -> O.Options
+         -> C.Options
          -> ChannelSink   n0 (Stored Uint8)
          -> ChannelSource n1 (Stored Uint8)
          -> ( DataSource (Struct "flightmode")
@@ -54,7 +54,7 @@ gcsTower name opts istream ostream fm armed_res_snk armed_mav_src sens
 
 gcsTowerHil :: (SingI n0, SingI n1, SingI n2, SingI n3)
          => String
-         -> O.Options
+         -> C.Options
          -> ChannelSink   n0 (Stored Uint8)
          -> ChannelSource n1 (Stored Uint8)
          -> ( DataSource (Struct "flightmode")
@@ -85,7 +85,7 @@ gcsTowerHil name opts istream ostream fm armed_res_snk
 
 gcsTowerAux :: (SingI n0, SingI n1, SingI n2, SingI n3)
          => String
-         -> O.Options
+         -> C.Options
          -> ChannelSink   n0 (Stored Uint8)
          -> ChannelSource n1 (Stored Uint8)
          -> ( DataSource (Struct "flightmode")

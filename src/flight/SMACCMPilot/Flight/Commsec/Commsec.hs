@@ -28,8 +28,8 @@ import Ivory.Language
 import Ivory.Stdlib
 import Data.Word
 
-import qualified SMACCMPilot.Communications as C
-import qualified Commsec.CommsecOpts as O
+import qualified SMACCMPilot.Communications             as C
+import qualified SMACCMPilot.Flight.Commsec.CommsecOpts as O
 
 --------------------------------------------------------------------------------
 -- Types and constants
@@ -168,9 +168,5 @@ mkKey key = iarray $ map (ival . fromIntegral) key
 uavToBaseKey, baseToUavKey :: [Word8] -> ConstMemArea Key
 uavToBaseKey = constArea "uav_to_base_key" . mkKey
 baseToUavKey = constArea "base_to_uav_key" . mkKey
-
--- b2uSalt, u2bSalt :: Uint32
--- b2uSalt = 9219834
--- u2bSalt = 284920
 
 --------------------------------------------------------------------------------

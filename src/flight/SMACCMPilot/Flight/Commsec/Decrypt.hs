@@ -3,9 +3,9 @@
 
 module SMACCMPilot.Flight.Commsec.Decrypt where
 
-import qualified SMACCMPilot.Flight.Commsec.Commsec as CS
-import qualified SMACCMPilot.Communications         as Comm
-import qualified Commsec.CommsecOpts                as O
+import qualified SMACCMPilot.Flight.Commsec.Commsec     as CS
+import qualified SMACCMPilot.Communications             as Comm
+import qualified SMACCMPilot.Flight.Commsec.CommsecOpts as C
 
 import           Ivory.Language
 import           Ivory.Stdlib
@@ -14,7 +14,7 @@ import           Ivory.Tower
 --------------------------------------------------------------------------------
 
 decryptTask :: (SingI n0, SingI n1)
-            => O.Options
+            => C.Options
             -> ChannelSink   n0  Comm.CommsecArray -- from datalink
             -> ChannelSource n1  Comm.MAVLinkArray -- to GCS Rx task
             -> Task p ()

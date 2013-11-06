@@ -45,7 +45,7 @@ import SMACCMPilot.Mavlink.Pack (packModule)
 
 import SMACCMPilot.Hardware.GPS.Types (gpsTypesModule)
 
-import qualified Commsec.CommsecOpts as O
+import qualified SMACCMPilot.Flight.Commsec.CommsecOpts as C
 import Ivory.HXStream
 
 import qualified Ivory.BSP.STM32F4.GPIO as GPIO
@@ -63,7 +63,7 @@ sysParams =
   SysParams <$> group "" flightParams
 
 hil :: (BoardHSE p, MotorOutput p, SensorOrientation p)
-    => O.Options
+    => C.Options
     -> Tower p ()
 hil opts = do
   -- Communication primitives:
@@ -105,7 +105,7 @@ hil opts = do
   addDepends gpsTypesModule
 
 flight :: (BoardHSE p, MotorOutput p, SensorOrientation p)
-       => O.Options
+       => C.Options
        -> Tower p ()
 flight opts = do
   -- Communication primitives:

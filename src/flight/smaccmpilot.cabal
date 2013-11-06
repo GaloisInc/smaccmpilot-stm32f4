@@ -89,8 +89,7 @@ library
                        ivory-px4-hw,
                        ivory-hxstream,
                        smaccm-shared-comm,
-                       smaccm-mavlink,
-                       commsec-gcs
+                       smaccm-mavlink
 
   default-language:    Haskell2010
   ghc-options:         -Wall -fno-warn-orphans
@@ -112,8 +111,7 @@ executable flight-gen
                        ivory-hxstream,
                        smaccm-mavlink,
                        smaccm-shared-comm,
-                       smaccmpilot,
-                       commsec-gcs
+                       smaccmpilot
 
   default-language:    Haskell2010
 
@@ -134,8 +132,7 @@ executable flight-hil-gen
                        ivory-hxstream,
                        smaccm-mavlink,
                        smaccm-shared-comm,
-                       smaccmpilot,
-                       commsec-gcs
+                       smaccmpilot
 
   default-language:    Haskell2010
   ghc-options:         -Wall -fno-warn-orphans
