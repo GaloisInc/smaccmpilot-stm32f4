@@ -32,7 +32,8 @@ import qualified SMACCMPilot.Communications         as Comm
 
 --------------------------------------------------------------------------------
 
-gcsReceiveTask :: (SingI n0, SingI n1, SingI n2, SingI n3, SingI n4, SingI n5, SingI n6)
+gcsReceiveTask :: ( SingI n0, SingI n1, SingI n2, SingI n3
+                  , SingI n4, SingI n5, SingI n6)
                => ChannelSink   n0 Comm.MAVLinkArray -- from decryptor
                -> ChannelSource n1 (Struct "gcsstream_timing")
                -> ChannelSource n2 (Struct "data_rate_state")
