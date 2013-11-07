@@ -16,17 +16,25 @@ MAKEFLAGS += -r
 include Config.mk
 
 PLATFORM_DIR := ./mk/platform/
-PLATFORMS = $(subst platform_,,$(basename $(notdir $(wildcard $(PLATFORM_DIR)platform_*.mk))))
+PLATFORM_FILES := $(wildcard $(PLATFORM_DIR)platform_*.mk)
 
-CONFIG_DEFAULT_TARGET ?= px4fmu17_ioar_freertos
+ifneq ($(CONFIG_PLATFORMS),)
+COMMA := ,
+PLATFORMS := $(subst $(COMMA), ,$(CONFIG_PLATFORMS))
+else
+PLATFORMS := $(subst platform_,,$(basename $(notdir $(PLATFORM_FILES))))
+endif
+
+CONFIG_DEFAULT_PLATFORM ?= px4fmu17_ioar_freertos
 
 # debugging:
 MQUIET = --no-print-directory
 #MQUIET = --print-directory
 
-default: $(CONFIG_DEFAULT_TARGET)
+default: $(CONFIG_DEFAULT_PLATFORM)
 
 allplatforms:
+	@echo selected platforms: $(PLATFORMS)
 	@for platform in $(PLATFORMS); do \
 		if [ -e mk/platform/platform_$$platform.mk ] ; then \
 			echo building for platform $$platform; \
