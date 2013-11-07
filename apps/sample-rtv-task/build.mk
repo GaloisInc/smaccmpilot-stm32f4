@@ -9,6 +9,7 @@
 # "LICENSE" for more information.
 #
 
+ifneq ($(CONFIG_BUILD_RTV),)
 export RTV_DECLS := $(TOP)/apps/sample-rtv-task/instrumented-decls
 
 $(eval $(call tower_pkg,IVORY_PKG_SAMPLE_RTV_TASK,sample-rtv-task-checker-gen))
@@ -41,7 +42,6 @@ APP_RTV_LIBS      += -lm
 
 $(eval $(call cbmc_pkg,APP_RTV,IVORY_PKG_SAMPLE))
 
-ifneq ($(CONFIG_BUILD_RTV),)
 $(eval $(call when_os,freertos,image,APP_RTV))
 endif
 
