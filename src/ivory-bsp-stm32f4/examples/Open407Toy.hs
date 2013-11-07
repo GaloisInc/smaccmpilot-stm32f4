@@ -41,7 +41,7 @@ main = compilePlatforms conf [("open407vc", Twr app)]
   conf = searchPathConf [HW.searchDir, BSP.searchDir]
 
 
-button :: GPIOPin -> Tower p (ChannelSink 1 (Stored IBool))
+button :: GPIOPin -> Tower p (ChannelSink 2 (Stored IBool))
 button pin = do
   c <- channelWithSize
   task "btn" $ do
