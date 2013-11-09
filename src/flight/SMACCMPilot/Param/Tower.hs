@@ -106,8 +106,8 @@ newtype ParamIndexGetter =
 makeGetParamIndex :: [Param f]
                   -> Task p ParamIndexGetter
 makeGetParamIndex params = do
-  fr <- freshname
-  let p = ParamIndexGetter $ proc ("getParamIndex" ++ fr) $
+  fr <- fresh
+  let p = ParamIndexGetter $ proc ("getParamIndex" ++ (show fr)) $
             \name ref -> body $ go params name ref 0
   taskModuleDef $ incl (paramIndexGetter p)
   return p
@@ -135,8 +135,8 @@ newtype ParamInfoGetter =
 makeGetParamInfo :: [Param ParamReader]
                  -> Task p ParamInfoGetter
 makeGetParamInfo params = do
-  fr <- freshname
-  let p = ParamInfoGetter $ proc ("getParamInfo" ++ fr) $
+  fr <- fresh
+  let p = ParamInfoGetter $ proc ("getParamInfo" ++ (show fr)) $
             \ix ref -> body $ go params ix ref 0
   taskModuleDef $ incl (paramInfoGetter p)
   return p
@@ -161,8 +161,8 @@ makeSetParamValue :: [Param ParamWriter]
                                    , IFloat
                                    ] :-> IBool))
 makeSetParamValue params = do
-  fr <- freshname
-  let p = proc ("setParamValue" ++ fr) $
+  fr <- fresh
+  let p = proc ("setParamValue" ++ (show fr)) $
             \ix value -> body $ go params ix value 0
   taskModuleDef $ incl p
   return p
