@@ -21,7 +21,6 @@ import           SMACCMPilot.Param
 import qualified SMACCMPilot.Flight.Types.Armed           as A
 import qualified SMACCMPilot.Flight.Types.GCSStreamTiming as T
 import qualified SMACCMPilot.Flight.Types.FlightMode      as FM
-import qualified SMACCMPilot.Flight.Types.DataRate        as D
 import qualified SMACCMPilot.Communications               as C
 
 --------------------------------------------------------------------------------
@@ -76,14 +75,6 @@ gcsTransmitTask mavStream sp_sink _dr_sink fm_sink armed_sink se_sink ps_sink
 
   onChannel sp_sink "streamPeriod" $ \newperiods -> do
     setNewPeriods newperiods s_periods s_schedule =<< getTimeMillis t
-
-  -- XXX LEE STUFFS
-  -- If the Mavlink receiver sends new data rate info, broadcast it.
-  -- onChannel dr_sink "dataRate" $ \dr -> do
-  --   d <- local (istruct [])
-  --   refCopy d dr
-  --   call_ mkSendDataRate d seqNum mavlinkPacket
-  --   call_ processStream mavlinkPacket
 
   let processMav :: (Scope s ~ GetAlloc eff) => Ivory eff ()
       processMav = emit_ mavTx (constRef mavlinkPacket)
@@ -176,7 +167,6 @@ gcsTransmitTask mavStream sp_sink _dr_sink fm_sink armed_sink se_sink ps_sink
   taskModuleDef $ do
     mapM_ depend stdlibModules
     depend FM.flightModeTypeModule
-    depend D.dataRateTypeModule
     depend T.gcsStreamTimingTypeModule
     depend senderModules
     depend paramModule

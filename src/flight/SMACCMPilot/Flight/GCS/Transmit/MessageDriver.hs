@@ -25,7 +25,6 @@ import qualified SMACCMPilot.Flight.Types.ControlOutput         as C
 import qualified SMACCMPilot.Flight.Types.UserInput             as U
 import qualified SMACCMPilot.Flight.Types.FlightMode            as FM
 import qualified SMACCMPilot.Flight.Types.FlightModeData        as FM
-import qualified SMACCMPilot.Flight.Types.DataRate              as R
 import qualified SMACCMPilot.Flight.Types.RadioStat             as RStat
 
 import           SMACCMPilot.Mavlink.Messages (mavlinkMessageModules)
@@ -69,20 +68,20 @@ type Sender a = forall s s'.
 
 -- Data rate info: time since the last good message and how many messages were
 -- dropped.
-mkSendDataRate :: Sender "data_rate_state"
-mkSendDataRate =
-  proc "gcs_transmit_send_data16"
-  $ \dr seqNum sendArr -> body
-  $ do
-  msg <- local (istruct [])
-  d   <- dr ~>* R.dropped
-  l   <- dr ~>* R.lastSucc
-  store (msg ~> D.len) 8 -- 4 bytes for the time, 4 for the number dropped
-  packUint32 0 (msg ~> D.data16) d
-  packUint32 4 (msg ~> D.data16) l
+-- mkSendDataRate :: Sender "data_rate_state"
+-- mkSendDataRate =
+--   proc "gcs_transmit_send_data16"
+--   $ \dr seqNum sendArr -> body
+--   $ do
+--   msg <- local (istruct [])
+--   d   <- dr ~>* R.dropped
+--   l   <- dr ~>* R.lastSucc
+--   store (msg ~> D.len) 8 -- 4 bytes for the time, 4 for the number dropped
+--   packUint32 0 (msg ~> D.data16) d
+--   packUint32 4 (msg ~> D.data16) l
 
-  call_ D.mkData16Sender (constRef msg) seqNum sendArr
-  retVoid
+--   call_ D.mkData16Sender (constRef msg) seqNum sendArr
+--   retVoid
 
 mkSendHeartbeat :: Def ('[ Ref s1 (Struct "flightmode")
                          , Ref s2 (Stored IBool)
