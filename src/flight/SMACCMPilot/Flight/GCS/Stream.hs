@@ -65,9 +65,9 @@ updateGCSStreamPeriods periods streamid enabled rate = do
     where -- explicit recursion and existential quantification is a little weird
           -- not foldr, because of nested block typing which is going away soon anyway
     aux ::  [(Integer, Label "gcsstream_timing" (Stored Uint32))] -> Ivory eff ()
-    aux ((sid, sel):ts) = ifte_ ((fromIntegral sid) ==? tofind)
-                            ((unwrapSelectorAction act) sel)
-                            (aux ts)
+    aux ((sid, sel):ts) = ifte_ (fromIntegral sid ==? tofind)
+                                (unwrapSelectorAction act $ sel)
+                                (aux ts)
     aux [] = return ()
 
   tbl ::[(Integer, Label "gcsstream_timing" (Stored Uint32))]
