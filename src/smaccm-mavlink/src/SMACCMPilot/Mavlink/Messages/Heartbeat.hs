@@ -13,7 +13,6 @@ module SMACCMPilot.Mavlink.Messages.Heartbeat where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
-import qualified SMACCMPilot.Communications as Comm
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -46,11 +45,11 @@ struct heartbeat_msg
 mkHeartbeatSender ::
   Def ('[ ConstRef s0 (Struct "heartbeat_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 Comm.MAVLinkArray -- tx buffer
+        , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
 mkHeartbeatSender =
   proc "mavlink_heartbeat_msg_send"
-  $ \msg seqNum sendArr -> body
+  $ \msg seqNum sendStruct -> body
   $ do
   arr <- local (iarray [] :: Init (Array 9 (Stored Uint8)))
   let buf = toCArray arr
@@ -61,7 +60,8 @@ mkHeartbeatSender =
   call_ pack buf 7 =<< deref (msg ~> system_status)
   call_ pack buf 8 =<< deref (msg ~> mavlink_version)
   -- 6: header len, 2: CRC len
-  let usedLen = 6 + 9 + 2 :: Integer
+  let usedLen    = 6 + 9 + 2 :: Integer
+  let sendArr    = sendStruct ~> mav_array
   let sendArrLen = arrayLen sendArr
   if sendArrLen < usedLen
     then error "heartbeat payload of length 9 is too large!"
@@ -72,14 +72,14 @@ mkHeartbeatSender =
                     heartbeatCrcExtra
                     9
                     seqNum
-                    sendArr
+                    sendStruct
 
 instance MavlinkUnpackableMsg "heartbeat_msg" where
     unpackMsg = ( heartbeatUnpack , heartbeatMsgId )
 
 heartbeatUnpack :: Def ('[ Ref s1 (Struct "heartbeat_msg")
-                         , ConstRef s2 (CArray (Stored Uint8))
-                         ] :-> () )
+                             , ConstRef s2 (CArray (Stored Uint8))
+                             ] :-> () )
 heartbeatUnpack = proc "mavlink_heartbeat_unpack" $ \ msg buf -> body $ do
   store (msg ~> custom_mode) =<< call unpack buf 0
   store (msg ~> mavtype) =<< call unpack buf 4

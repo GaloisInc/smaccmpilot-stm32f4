@@ -13,7 +13,6 @@ module SMACCMPilot.Mavlink.Messages.OmnidirectionalFlow where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
-import qualified SMACCMPilot.Communications as Comm
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -46,11 +45,11 @@ struct omnidirectional_flow_msg
 mkOmnidirectionalFlowSender ::
   Def ('[ ConstRef s0 (Struct "omnidirectional_flow_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 Comm.MAVLinkArray -- tx buffer
+        , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
 mkOmnidirectionalFlowSender =
   proc "mavlink_omnidirectional_flow_msg_send"
-  $ \msg seqNum sendArr -> body
+  $ \msg seqNum sendStruct -> body
   $ do
   arr <- local (iarray [] :: Init (Array 54 (Stored Uint8)))
   let buf = toCArray arr
@@ -61,7 +60,8 @@ mkOmnidirectionalFlowSender =
   arrayPack buf 12 (msg ~> left)
   arrayPack buf 32 (msg ~> right)
   -- 6: header len, 2: CRC len
-  let usedLen = 6 + 54 + 2 :: Integer
+  let usedLen    = 6 + 54 + 2 :: Integer
+  let sendArr    = sendStruct ~> mav_array
   let sendArrLen = arrayLen sendArr
   if sendArrLen < usedLen
     then error "omnidirectionalFlow payload of length 54 is too large!"
@@ -72,7 +72,7 @@ mkOmnidirectionalFlowSender =
                     omnidirectionalFlowCrcExtra
                     54
                     seqNum
-                    sendArr
+                    sendStruct
 
 instance MavlinkUnpackableMsg "omnidirectional_flow_msg" where
     unpackMsg = ( omnidirectionalFlowUnpack , omnidirectionalFlowMsgId )

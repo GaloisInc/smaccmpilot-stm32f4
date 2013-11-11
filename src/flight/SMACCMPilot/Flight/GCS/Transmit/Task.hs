@@ -15,13 +15,14 @@ import Ivory.Language
 import Ivory.Stdlib
 import Ivory.Tower
 
+import           SMACCMPilot.Mavlink.Send
+import           SMACCMPilot.Param
+import qualified SMACCMPilot.Communications               as C
 import           SMACCMPilot.Flight.GCS.Transmit.MessageDriver
 import           SMACCMPilot.Flight.GCS.Stream
-import           SMACCMPilot.Param
 import qualified SMACCMPilot.Flight.Types.Armed           as A
 import qualified SMACCMPilot.Flight.Types.GCSStreamTiming as T
 import qualified SMACCMPilot.Flight.Types.FlightMode      as FM
-import qualified SMACCMPilot.Communications               as C
 
 --------------------------------------------------------------------------------
 
@@ -54,8 +55,11 @@ gcsTransmitTask mavStream sp_sink _dr_sink fm_sink armed_sink se_sink ps_sink
   mavTx            <- withChannelEmitter mavStream "gcsTxToEncSrc"
 
   -- the mavlink packet we're packing
-  mavlinkPacket  <-
-    taskLocal "mavlinkPacket" :: Task p (Ref Global C.MAVLinkArray)
+  mavlinkStruct  <-
+    taskLocal "mavlinkStruct" :: Task p (Ref Global (Struct "mavlinkPacket"))
+  -- When we've filled up an array, we sent it.
+  mavlinkSend    <-
+    taskLocal "mavlinkSend" :: Task p (Ref Global C.MAVLinkArray)
   -- mavlink sequence numbers
   seqNum         <- taskLocalInit "txseqNum" (ival 0)
 
@@ -77,7 +81,15 @@ gcsTransmitTask mavStream sp_sink _dr_sink fm_sink armed_sink se_sink ps_sink
     setNewPeriods newperiods s_periods s_schedule =<< getTimeMillis t
 
   let processMav :: (Scope s ~ GetAlloc eff) => Ivory eff ()
-      processMav = emit_ mavTx (constRef mavlinkPacket)
+      processMav = do
+        -- Zero sending array
+        arrayMap $ \ix -> store (mavlinkSend ! ix) 0
+        -- Copy to sending array
+        let arr = mavlinkStruct ~> mav_array
+        mavlen <- mavlinkStruct ~>* mav_size
+        arrCopy mavlinkSend arr (safeCast mavlen)
+        -- Now send it on to UART1
+        emit_ mavTx (constRef mavlinkSend)
 
   onPeriod 50 $ \now -> do
 
@@ -88,9 +100,10 @@ gcsTransmitTask mavStream sp_sink _dr_sink fm_sink armed_sink se_sink ps_sink
           last <- deref lastRun
           due  <- streamDue (constRef s_periods) (constRef s_schedule)
                     selector last now
-          -- Zero out mavlink array
-          for (fromInteger $ arrayLen mavlinkPacket) $ \ix ->
-            store (mavlinkPacket ! ix) 0
+          let arr = mavlinkStruct ~> mav_array
+          -- Zero out mavlink array first
+          arrayMap $ \ix -> store (arr ! ix) 0
+
           when due $ do
             action
             setNextTime (constRef s_periods) s_schedule selector now
@@ -103,7 +116,7 @@ gcsTransmitTask mavStream sp_sink _dr_sink fm_sink armed_sink se_sink ps_sink
       l <- deref l_armed
       b <- local izero
       store b (l ==? A.as_ARMED)
-      call_ mkSendHeartbeat l_fm b seqNum mavlinkPacket
+      call_ mkSendHeartbeat l_fm b seqNum mavlinkStruct
       processMav
 
     onStream T.servo_output_raw $ do
@@ -111,19 +124,19 @@ gcsTransmitTask mavStream sp_sink _dr_sink fm_sink armed_sink se_sink ps_sink
       l_ctl   <- local (istruct [])
       readData motorReader l_motor
       readData ctlReader l_ctl
-      call_ mkSendServoOutputRaw l_motor l_ctl seqNum mavlinkPacket
+      call_ mkSendServoOutputRaw l_motor l_ctl seqNum mavlinkStruct
       processMav
 
     onStream T.attitude $ do
       l_sens <- local (istruct [])
       readData sensorsReader l_sens
-      call_ mkSendAttitude l_sens seqNum mavlinkPacket
+      call_ mkSendAttitude l_sens seqNum mavlinkStruct
       processMav
 
     onStream T.gps_raw_int $ do
       l_pos <- local (istruct [])
       readData posReader l_pos
-      call_ mkSendGpsRawInt l_pos seqNum mavlinkPacket
+      call_ mkSendGpsRawInt l_pos seqNum mavlinkStruct
       processMav
 
     onStream T.vfr_hud $ do
@@ -133,7 +146,7 @@ gcsTransmitTask mavStream sp_sink _dr_sink fm_sink armed_sink se_sink ps_sink
       readData posReader l_pos
       readData ctlReader l_ctl
       readData sensorsReader l_sens
-      call_ mkSendVfrHud l_pos l_ctl l_sens seqNum mavlinkPacket
+      call_ mkSendVfrHud l_pos l_ctl l_sens seqNum mavlinkStruct
       processMav
 
     onStream T.global_position_int $ do
@@ -141,7 +154,7 @@ gcsTransmitTask mavStream sp_sink _dr_sink fm_sink armed_sink se_sink ps_sink
       l_sens <- local (istruct [])
       readData posReader l_pos
       readData sensorsReader l_sens
-      call_ mkSendGlobalPositionInt l_pos l_sens now seqNum mavlinkPacket
+      call_ mkSendGlobalPositionInt l_pos l_sens now seqNum mavlinkStruct
       processMav
 
     onStream T.params $ do
@@ -152,13 +165,13 @@ gcsTransmitTask mavStream sp_sink _dr_sink fm_sink armed_sink se_sink ps_sink
         msg   <- local (istruct [])
         found <- call (paramInfoGetter getParamInfo) ix msg
         when found $ do
-          call_ mkSendParamValue msg seqNum mavlinkPacket
+          call_ mkSendParamValue msg seqNum mavlinkStruct
           processMav
 
     onStream T.radio $ do
       l_radio <- local (istruct [])
       readData radioReader l_radio
-      call_ mkSendRadio l_radio seqNum mavlinkPacket
+      call_ mkSendRadio l_radio seqNum mavlinkStruct
       processMav
 
     -- Keep track of last run for internal scheduler
@@ -170,3 +183,4 @@ gcsTransmitTask mavStream sp_sink _dr_sink fm_sink armed_sink se_sink ps_sink
     depend T.gcsStreamTimingTypeModule
     depend senderModules
     depend paramModule
+    depend mavlinkSendModule

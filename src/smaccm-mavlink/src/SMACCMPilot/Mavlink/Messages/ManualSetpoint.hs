@@ -13,7 +13,6 @@ module SMACCMPilot.Mavlink.Messages.ManualSetpoint where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
-import qualified SMACCMPilot.Communications as Comm
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -47,11 +46,11 @@ struct manual_setpoint_msg
 mkManualSetpointSender ::
   Def ('[ ConstRef s0 (Struct "manual_setpoint_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 Comm.MAVLinkArray -- tx buffer
+        , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
 mkManualSetpointSender =
   proc "mavlink_manual_setpoint_msg_send"
-  $ \msg seqNum sendArr -> body
+  $ \msg seqNum sendStruct -> body
   $ do
   arr <- local (iarray [] :: Init (Array 22 (Stored Uint8)))
   let buf = toCArray arr
@@ -63,7 +62,8 @@ mkManualSetpointSender =
   call_ pack buf 20 =<< deref (msg ~> mode_switch)
   call_ pack buf 21 =<< deref (msg ~> manual_override_switch)
   -- 6: header len, 2: CRC len
-  let usedLen = 6 + 22 + 2 :: Integer
+  let usedLen    = 6 + 22 + 2 :: Integer
+  let sendArr    = sendStruct ~> mav_array
   let sendArrLen = arrayLen sendArr
   if sendArrLen < usedLen
     then error "manualSetpoint payload of length 22 is too large!"
@@ -74,7 +74,7 @@ mkManualSetpointSender =
                     manualSetpointCrcExtra
                     22
                     seqNum
-                    sendArr
+                    sendStruct
 
 instance MavlinkUnpackableMsg "manual_setpoint_msg" where
     unpackMsg = ( manualSetpointUnpack , manualSetpointMsgId )

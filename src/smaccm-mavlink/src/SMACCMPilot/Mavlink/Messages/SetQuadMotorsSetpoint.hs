@@ -13,7 +13,6 @@ module SMACCMPilot.Mavlink.Messages.SetQuadMotorsSetpoint where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
-import qualified SMACCMPilot.Communications as Comm
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -45,11 +44,11 @@ struct set_quad_motors_setpoint_msg
 mkSetQuadMotorsSetpointSender ::
   Def ('[ ConstRef s0 (Struct "set_quad_motors_setpoint_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 Comm.MAVLinkArray -- tx buffer
+        , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
 mkSetQuadMotorsSetpointSender =
   proc "mavlink_set_quad_motors_setpoint_msg_send"
-  $ \msg seqNum sendArr -> body
+  $ \msg seqNum sendStruct -> body
   $ do
   arr <- local (iarray [] :: Init (Array 9 (Stored Uint8)))
   let buf = toCArray arr
@@ -59,7 +58,8 @@ mkSetQuadMotorsSetpointSender =
   call_ pack buf 6 =<< deref (msg ~> motor_left_sw)
   call_ pack buf 8 =<< deref (msg ~> target_system)
   -- 6: header len, 2: CRC len
-  let usedLen = 6 + 9 + 2 :: Integer
+  let usedLen    = 6 + 9 + 2 :: Integer
+  let sendArr    = sendStruct ~> mav_array
   let sendArrLen = arrayLen sendArr
   if sendArrLen < usedLen
     then error "setQuadMotorsSetpoint payload of length 9 is too large!"
@@ -70,7 +70,7 @@ mkSetQuadMotorsSetpointSender =
                     setQuadMotorsSetpointCrcExtra
                     9
                     seqNum
-                    sendArr
+                    sendStruct
 
 instance MavlinkUnpackableMsg "set_quad_motors_setpoint_msg" where
     unpackMsg = ( setQuadMotorsSetpointUnpack , setQuadMotorsSetpointMsgId )

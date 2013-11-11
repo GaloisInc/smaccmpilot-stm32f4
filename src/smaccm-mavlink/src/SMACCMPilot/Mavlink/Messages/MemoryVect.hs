@@ -13,7 +13,6 @@ module SMACCMPilot.Mavlink.Messages.MemoryVect where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
-import qualified SMACCMPilot.Communications as Comm
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -44,11 +43,11 @@ struct memory_vect_msg
 mkMemoryVectSender ::
   Def ('[ ConstRef s0 (Struct "memory_vect_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 Comm.MAVLinkArray -- tx buffer
+        , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
 mkMemoryVectSender =
   proc "mavlink_memory_vect_msg_send"
-  $ \msg seqNum sendArr -> body
+  $ \msg seqNum sendStruct -> body
   $ do
   arr <- local (iarray [] :: Init (Array 36 (Stored Uint8)))
   let buf = toCArray arr
@@ -57,7 +56,8 @@ mkMemoryVectSender =
   call_ pack buf 3 =<< deref (msg ~> memory_vect_type)
   arrayPack buf 4 (msg ~> value)
   -- 6: header len, 2: CRC len
-  let usedLen = 6 + 36 + 2 :: Integer
+  let usedLen    = 6 + 36 + 2 :: Integer
+  let sendArr    = sendStruct ~> mav_array
   let sendArrLen = arrayLen sendArr
   if sendArrLen < usedLen
     then error "memoryVect payload of length 36 is too large!"
@@ -68,7 +68,7 @@ mkMemoryVectSender =
                     memoryVectCrcExtra
                     36
                     seqNum
-                    sendArr
+                    sendStruct
 
 instance MavlinkUnpackableMsg "memory_vect_msg" where
     unpackMsg = ( memoryVectUnpack , memoryVectMsgId )

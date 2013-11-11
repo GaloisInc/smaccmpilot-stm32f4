@@ -13,7 +13,6 @@ module SMACCMPilot.Mavlink.Messages.SystemTime where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
-import qualified SMACCMPilot.Communications as Comm
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -42,18 +41,19 @@ struct system_time_msg
 mkSystemTimeSender ::
   Def ('[ ConstRef s0 (Struct "system_time_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 Comm.MAVLinkArray -- tx buffer
+        , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
 mkSystemTimeSender =
   proc "mavlink_system_time_msg_send"
-  $ \msg seqNum sendArr -> body
+  $ \msg seqNum sendStruct -> body
   $ do
   arr <- local (iarray [] :: Init (Array 12 (Stored Uint8)))
   let buf = toCArray arr
   call_ pack buf 0 =<< deref (msg ~> time_unix_usec)
   call_ pack buf 8 =<< deref (msg ~> time_boot_ms)
   -- 6: header len, 2: CRC len
-  let usedLen = 6 + 12 + 2 :: Integer
+  let usedLen    = 6 + 12 + 2 :: Integer
+  let sendArr    = sendStruct ~> mav_array
   let sendArrLen = arrayLen sendArr
   if sendArrLen < usedLen
     then error "systemTime payload of length 12 is too large!"
@@ -64,7 +64,7 @@ mkSystemTimeSender =
                     systemTimeCrcExtra
                     12
                     seqNum
-                    sendArr
+                    sendStruct
 
 instance MavlinkUnpackableMsg "system_time_msg" where
     unpackMsg = ( systemTimeUnpack , systemTimeMsgId )

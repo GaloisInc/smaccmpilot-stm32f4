@@ -13,7 +13,6 @@ module SMACCMPilot.Mavlink.Messages.HilControls where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
-import qualified SMACCMPilot.Communications as Comm
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -51,11 +50,11 @@ struct hil_controls_msg
 mkHilControlsSender ::
   Def ('[ ConstRef s0 (Struct "hil_controls_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 Comm.MAVLinkArray -- tx buffer
+        , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
 mkHilControlsSender =
   proc "mavlink_hil_controls_msg_send"
-  $ \msg seqNum sendArr -> body
+  $ \msg seqNum sendStruct -> body
   $ do
   arr <- local (iarray [] :: Init (Array 42 (Stored Uint8)))
   let buf = toCArray arr
@@ -71,7 +70,8 @@ mkHilControlsSender =
   call_ pack buf 40 =<< deref (msg ~> mode)
   call_ pack buf 41 =<< deref (msg ~> nav_mode)
   -- 6: header len, 2: CRC len
-  let usedLen = 6 + 42 + 2 :: Integer
+  let usedLen    = 6 + 42 + 2 :: Integer
+  let sendArr    = sendStruct ~> mav_array
   let sendArrLen = arrayLen sendArr
   if sendArrLen < usedLen
     then error "hilControls payload of length 42 is too large!"
@@ -82,7 +82,7 @@ mkHilControlsSender =
                     hilControlsCrcExtra
                     42
                     seqNum
-                    sendArr
+                    sendStruct
 
 instance MavlinkUnpackableMsg "hil_controls_msg" where
     unpackMsg = ( hilControlsUnpack , hilControlsMsgId )

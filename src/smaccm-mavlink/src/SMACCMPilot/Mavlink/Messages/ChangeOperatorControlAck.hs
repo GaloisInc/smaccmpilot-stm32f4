@@ -13,7 +13,6 @@ module SMACCMPilot.Mavlink.Messages.ChangeOperatorControlAck where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
-import qualified SMACCMPilot.Communications as Comm
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -43,11 +42,11 @@ struct change_operator_control_ack_msg
 mkChangeOperatorControlAckSender ::
   Def ('[ ConstRef s0 (Struct "change_operator_control_ack_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 Comm.MAVLinkArray -- tx buffer
+        , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
 mkChangeOperatorControlAckSender =
   proc "mavlink_change_operator_control_ack_msg_send"
-  $ \msg seqNum sendArr -> body
+  $ \msg seqNum sendStruct -> body
   $ do
   arr <- local (iarray [] :: Init (Array 3 (Stored Uint8)))
   let buf = toCArray arr
@@ -55,7 +54,8 @@ mkChangeOperatorControlAckSender =
   call_ pack buf 1 =<< deref (msg ~> control_request)
   call_ pack buf 2 =<< deref (msg ~> ack)
   -- 6: header len, 2: CRC len
-  let usedLen = 6 + 3 + 2 :: Integer
+  let usedLen    = 6 + 3 + 2 :: Integer
+  let sendArr    = sendStruct ~> mav_array
   let sendArrLen = arrayLen sendArr
   if sendArrLen < usedLen
     then error "changeOperatorControlAck payload of length 3 is too large!"
@@ -66,7 +66,7 @@ mkChangeOperatorControlAckSender =
                     changeOperatorControlAckCrcExtra
                     3
                     seqNum
-                    sendArr
+                    sendStruct
 
 instance MavlinkUnpackableMsg "change_operator_control_ack_msg" where
     unpackMsg = ( changeOperatorControlAckUnpack , changeOperatorControlAckMsgId )

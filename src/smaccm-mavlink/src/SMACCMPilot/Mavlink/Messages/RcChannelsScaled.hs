@@ -13,7 +13,6 @@ module SMACCMPilot.Mavlink.Messages.RcChannelsScaled where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
-import qualified SMACCMPilot.Communications as Comm
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -51,11 +50,11 @@ struct rc_channels_scaled_msg
 mkRcChannelsScaledSender ::
   Def ('[ ConstRef s0 (Struct "rc_channels_scaled_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 Comm.MAVLinkArray -- tx buffer
+        , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
 mkRcChannelsScaledSender =
   proc "mavlink_rc_channels_scaled_msg_send"
-  $ \msg seqNum sendArr -> body
+  $ \msg seqNum sendStruct -> body
   $ do
   arr <- local (iarray [] :: Init (Array 22 (Stored Uint8)))
   let buf = toCArray arr
@@ -71,7 +70,8 @@ mkRcChannelsScaledSender =
   call_ pack buf 20 =<< deref (msg ~> port)
   call_ pack buf 21 =<< deref (msg ~> rssi)
   -- 6: header len, 2: CRC len
-  let usedLen = 6 + 22 + 2 :: Integer
+  let usedLen    = 6 + 22 + 2 :: Integer
+  let sendArr    = sendStruct ~> mav_array
   let sendArrLen = arrayLen sendArr
   if sendArrLen < usedLen
     then error "rcChannelsScaled payload of length 22 is too large!"
@@ -82,7 +82,7 @@ mkRcChannelsScaledSender =
                     rcChannelsScaledCrcExtra
                     22
                     seqNum
-                    sendArr
+                    sendStruct
 
 instance MavlinkUnpackableMsg "rc_channels_scaled_msg" where
     unpackMsg = ( rcChannelsScaledUnpack , rcChannelsScaledMsgId )

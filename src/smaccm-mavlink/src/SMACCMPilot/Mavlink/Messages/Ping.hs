@@ -13,7 +13,6 @@ module SMACCMPilot.Mavlink.Messages.Ping where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
-import qualified SMACCMPilot.Communications as Comm
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -44,11 +43,11 @@ struct ping_msg
 mkPingSender ::
   Def ('[ ConstRef s0 (Struct "ping_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 Comm.MAVLinkArray -- tx buffer
+        , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
 mkPingSender =
   proc "mavlink_ping_msg_send"
-  $ \msg seqNum sendArr -> body
+  $ \msg seqNum sendStruct -> body
   $ do
   arr <- local (iarray [] :: Init (Array 14 (Stored Uint8)))
   let buf = toCArray arr
@@ -57,7 +56,8 @@ mkPingSender =
   call_ pack buf 12 =<< deref (msg ~> target_system)
   call_ pack buf 13 =<< deref (msg ~> target_component)
   -- 6: header len, 2: CRC len
-  let usedLen = 6 + 14 + 2 :: Integer
+  let usedLen    = 6 + 14 + 2 :: Integer
+  let sendArr    = sendStruct ~> mav_array
   let sendArrLen = arrayLen sendArr
   if sendArrLen < usedLen
     then error "ping payload of length 14 is too large!"
@@ -68,7 +68,7 @@ mkPingSender =
                     pingCrcExtra
                     14
                     seqNum
-                    sendArr
+                    sendStruct
 
 instance MavlinkUnpackableMsg "ping_msg" where
     unpackMsg = ( pingUnpack , pingMsgId )

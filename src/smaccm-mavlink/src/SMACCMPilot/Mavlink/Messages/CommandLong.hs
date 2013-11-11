@@ -13,7 +13,6 @@ module SMACCMPilot.Mavlink.Messages.CommandLong where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
-import qualified SMACCMPilot.Communications as Comm
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -51,11 +50,11 @@ struct command_long_msg
 mkCommandLongSender ::
   Def ('[ ConstRef s0 (Struct "command_long_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 Comm.MAVLinkArray -- tx buffer
+        , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
 mkCommandLongSender =
   proc "mavlink_command_long_msg_send"
-  $ \msg seqNum sendArr -> body
+  $ \msg seqNum sendStruct -> body
   $ do
   arr <- local (iarray [] :: Init (Array 33 (Stored Uint8)))
   let buf = toCArray arr
@@ -71,7 +70,8 @@ mkCommandLongSender =
   call_ pack buf 31 =<< deref (msg ~> target_component)
   call_ pack buf 32 =<< deref (msg ~> confirmation)
   -- 6: header len, 2: CRC len
-  let usedLen = 6 + 33 + 2 :: Integer
+  let usedLen    = 6 + 33 + 2 :: Integer
+  let sendArr    = sendStruct ~> mav_array
   let sendArrLen = arrayLen sendArr
   if sendArrLen < usedLen
     then error "commandLong payload of length 33 is too large!"
@@ -82,7 +82,7 @@ mkCommandLongSender =
                     commandLongCrcExtra
                     33
                     seqNum
-                    sendArr
+                    sendStruct
 
 instance MavlinkUnpackableMsg "command_long_msg" where
     unpackMsg = ( commandLongUnpack , commandLongMsgId )

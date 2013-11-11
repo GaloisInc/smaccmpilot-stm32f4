@@ -118,8 +118,8 @@ setRegF :: (BitData a, BitData b, IvoryIOReg (BitDataRep a),
         -> GPIOPin
         -> b
         -> Ivory eff ()
-setRegF reg field pin val = do
-  modifyReg (reg $ gpioPinPort pin) $ do
+setRegF reg field pin val =
+  modifyReg (reg $ gpioPinPort pin) $
     setField (field pin) val
 
 pinSetMode :: GPIOPin -> GPIO_Mode -> Ivory eff ()
@@ -142,16 +142,16 @@ pinSetAF pin af =
 
 pinSet :: GPIOPin -> Ivory eff ()
 pinSet pin =
-  modifyReg (gpioPortBSRR $ gpioPinPort pin) $ do
+  modifyReg (gpioPortBSRR $ gpioPinPort pin) $
     setBit (gpioPinSetBSRR_F pin)
 
 pinClear :: GPIOPin -> Ivory eff ()
 pinClear pin =
-  modifyReg (gpioPortBSRR $ gpioPinPort pin) $ do
+  modifyReg (gpioPortBSRR $ gpioPinPort pin) $
     setBit (gpioPinClearBSRR_F pin)
 
 pinRead :: GPIOPin -> Ivory eff IBool
 pinRead pin = do
   r <- getReg (gpioPortIDR $ gpioPinPort pin)
-  return (bitToBool (r #. (gpioPinIDR_F pin)))
+  return (bitToBool (r #. gpioPinIDR_F pin))
 

@@ -13,7 +13,6 @@ module SMACCMPilot.Mavlink.Messages.ServoOutputRaw where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
-import qualified SMACCMPilot.Communications as Comm
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -50,11 +49,11 @@ struct servo_output_raw_msg
 mkServoOutputRawSender ::
   Def ('[ ConstRef s0 (Struct "servo_output_raw_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 Comm.MAVLinkArray -- tx buffer
+        , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
 mkServoOutputRawSender =
   proc "mavlink_servo_output_raw_msg_send"
-  $ \msg seqNum sendArr -> body
+  $ \msg seqNum sendStruct -> body
   $ do
   arr <- local (iarray [] :: Init (Array 21 (Stored Uint8)))
   let buf = toCArray arr
@@ -69,7 +68,8 @@ mkServoOutputRawSender =
   call_ pack buf 18 =<< deref (msg ~> servo8_raw)
   call_ pack buf 20 =<< deref (msg ~> port)
   -- 6: header len, 2: CRC len
-  let usedLen = 6 + 21 + 2 :: Integer
+  let usedLen    = 6 + 21 + 2 :: Integer
+  let sendArr    = sendStruct ~> mav_array
   let sendArrLen = arrayLen sendArr
   if sendArrLen < usedLen
     then error "servoOutputRaw payload of length 21 is too large!"
@@ -80,7 +80,7 @@ mkServoOutputRawSender =
                     servoOutputRawCrcExtra
                     21
                     seqNum
-                    sendArr
+                    sendStruct
 
 instance MavlinkUnpackableMsg "servo_output_raw_msg" where
     unpackMsg = ( servoOutputRawUnpack , servoOutputRawMsgId )

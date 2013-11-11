@@ -13,7 +13,6 @@ module SMACCMPilot.Mavlink.Messages.RawPressure where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
-import qualified SMACCMPilot.Communications as Comm
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -45,11 +44,11 @@ struct raw_pressure_msg
 mkRawPressureSender ::
   Def ('[ ConstRef s0 (Struct "raw_pressure_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 Comm.MAVLinkArray -- tx buffer
+        , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
 mkRawPressureSender =
   proc "mavlink_raw_pressure_msg_send"
-  $ \msg seqNum sendArr -> body
+  $ \msg seqNum sendStruct -> body
   $ do
   arr <- local (iarray [] :: Init (Array 16 (Stored Uint8)))
   let buf = toCArray arr
@@ -59,7 +58,8 @@ mkRawPressureSender =
   call_ pack buf 12 =<< deref (msg ~> press_diff2)
   call_ pack buf 14 =<< deref (msg ~> temperature)
   -- 6: header len, 2: CRC len
-  let usedLen = 6 + 16 + 2 :: Integer
+  let usedLen    = 6 + 16 + 2 :: Integer
+  let sendArr    = sendStruct ~> mav_array
   let sendArrLen = arrayLen sendArr
   if sendArrLen < usedLen
     then error "rawPressure payload of length 16 is too large!"
@@ -70,7 +70,7 @@ mkRawPressureSender =
                     rawPressureCrcExtra
                     16
                     seqNum
-                    sendArr
+                    sendStruct
 
 instance MavlinkUnpackableMsg "raw_pressure_msg" where
     unpackMsg = ( rawPressureUnpack , rawPressureMsgId )

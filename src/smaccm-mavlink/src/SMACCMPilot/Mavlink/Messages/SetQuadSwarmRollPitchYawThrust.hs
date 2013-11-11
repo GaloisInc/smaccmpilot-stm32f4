@@ -13,7 +13,6 @@ module SMACCMPilot.Mavlink.Messages.SetQuadSwarmRollPitchYawThrust where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
-import qualified SMACCMPilot.Communications as Comm
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -46,11 +45,11 @@ struct set_quad_swarm_roll_pitch_yaw_thrust_msg
 mkSetQuadSwarmRollPitchYawThrustSender ::
   Def ('[ ConstRef s0 (Struct "set_quad_swarm_roll_pitch_yaw_thrust_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 Comm.MAVLinkArray -- tx buffer
+        , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
 mkSetQuadSwarmRollPitchYawThrustSender =
   proc "mavlink_set_quad_swarm_roll_pitch_yaw_thrust_msg_send"
-  $ \msg seqNum sendArr -> body
+  $ \msg seqNum sendStruct -> body
   $ do
   arr <- local (iarray [] :: Init (Array 34 (Stored Uint8)))
   let buf = toCArray arr
@@ -61,7 +60,8 @@ mkSetQuadSwarmRollPitchYawThrustSender =
   arrayPack buf 16 (msg ~> yaw)
   arrayPack buf 24 (msg ~> thrust)
   -- 6: header len, 2: CRC len
-  let usedLen = 6 + 34 + 2 :: Integer
+  let usedLen    = 6 + 34 + 2 :: Integer
+  let sendArr    = sendStruct ~> mav_array
   let sendArrLen = arrayLen sendArr
   if sendArrLen < usedLen
     then error "setQuadSwarmRollPitchYawThrust payload of length 34 is too large!"
@@ -72,7 +72,7 @@ mkSetQuadSwarmRollPitchYawThrustSender =
                     setQuadSwarmRollPitchYawThrustCrcExtra
                     34
                     seqNum
-                    sendArr
+                    sendStruct
 
 instance MavlinkUnpackableMsg "set_quad_swarm_roll_pitch_yaw_thrust_msg" where
     unpackMsg = ( setQuadSwarmRollPitchYawThrustUnpack , setQuadSwarmRollPitchYawThrustMsgId )

@@ -13,7 +13,6 @@ module SMACCMPilot.Mavlink.Messages.RequestDataStream where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
-import qualified SMACCMPilot.Communications as Comm
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -45,11 +44,11 @@ struct request_data_stream_msg
 mkRequestDataStreamSender ::
   Def ('[ ConstRef s0 (Struct "request_data_stream_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 Comm.MAVLinkArray -- tx buffer
+        , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
 mkRequestDataStreamSender =
   proc "mavlink_request_data_stream_msg_send"
-  $ \msg seqNum sendArr -> body
+  $ \msg seqNum sendStruct -> body
   $ do
   arr <- local (iarray [] :: Init (Array 6 (Stored Uint8)))
   let buf = toCArray arr
@@ -59,7 +58,8 @@ mkRequestDataStreamSender =
   call_ pack buf 4 =<< deref (msg ~> req_stream_id)
   call_ pack buf 5 =<< deref (msg ~> start_stop)
   -- 6: header len, 2: CRC len
-  let usedLen = 6 + 6 + 2 :: Integer
+  let usedLen    = 6 + 6 + 2 :: Integer
+  let sendArr    = sendStruct ~> mav_array
   let sendArrLen = arrayLen sendArr
   if sendArrLen < usedLen
     then error "requestDataStream payload of length 6 is too large!"
@@ -70,7 +70,7 @@ mkRequestDataStreamSender =
                     requestDataStreamCrcExtra
                     6
                     seqNum
-                    sendArr
+                    sendStruct
 
 instance MavlinkUnpackableMsg "request_data_stream_msg" where
     unpackMsg = ( requestDataStreamUnpack , requestDataStreamMsgId )

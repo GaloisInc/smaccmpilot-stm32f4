@@ -13,7 +13,6 @@ module SMACCMPilot.Mavlink.Messages.MissionWritePartialList where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
-import qualified SMACCMPilot.Communications as Comm
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -44,11 +43,11 @@ struct mission_write_partial_list_msg
 mkMissionWritePartialListSender ::
   Def ('[ ConstRef s0 (Struct "mission_write_partial_list_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 Comm.MAVLinkArray -- tx buffer
+        , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
 mkMissionWritePartialListSender =
   proc "mavlink_mission_write_partial_list_msg_send"
-  $ \msg seqNum sendArr -> body
+  $ \msg seqNum sendStruct -> body
   $ do
   arr <- local (iarray [] :: Init (Array 6 (Stored Uint8)))
   let buf = toCArray arr
@@ -57,7 +56,8 @@ mkMissionWritePartialListSender =
   call_ pack buf 4 =<< deref (msg ~> target_system)
   call_ pack buf 5 =<< deref (msg ~> target_component)
   -- 6: header len, 2: CRC len
-  let usedLen = 6 + 6 + 2 :: Integer
+  let usedLen    = 6 + 6 + 2 :: Integer
+  let sendArr    = sendStruct ~> mav_array
   let sendArrLen = arrayLen sendArr
   if sendArrLen < usedLen
     then error "missionWritePartialList payload of length 6 is too large!"
@@ -68,7 +68,7 @@ mkMissionWritePartialListSender =
                     missionWritePartialListCrcExtra
                     6
                     seqNum
-                    sendArr
+                    sendStruct
 
 instance MavlinkUnpackableMsg "mission_write_partial_list_msg" where
     unpackMsg = ( missionWritePartialListUnpack , missionWritePartialListMsgId )

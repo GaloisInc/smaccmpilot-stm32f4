@@ -13,7 +13,6 @@ module SMACCMPilot.Mavlink.Messages.SetGlobalPositionSetpointInt where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
-import qualified SMACCMPilot.Communications as Comm
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -45,11 +44,11 @@ struct set_global_position_setpoint_int_msg
 mkSetGlobalPositionSetpointIntSender ::
   Def ('[ ConstRef s0 (Struct "set_global_position_setpoint_int_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 Comm.MAVLinkArray -- tx buffer
+        , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
 mkSetGlobalPositionSetpointIntSender =
   proc "mavlink_set_global_position_setpoint_int_msg_send"
-  $ \msg seqNum sendArr -> body
+  $ \msg seqNum sendStruct -> body
   $ do
   arr <- local (iarray [] :: Init (Array 15 (Stored Uint8)))
   let buf = toCArray arr
@@ -59,7 +58,8 @@ mkSetGlobalPositionSetpointIntSender =
   call_ pack buf 12 =<< deref (msg ~> yaw)
   call_ pack buf 14 =<< deref (msg ~> coordinate_frame)
   -- 6: header len, 2: CRC len
-  let usedLen = 6 + 15 + 2 :: Integer
+  let usedLen    = 6 + 15 + 2 :: Integer
+  let sendArr    = sendStruct ~> mav_array
   let sendArrLen = arrayLen sendArr
   if sendArrLen < usedLen
     then error "setGlobalPositionSetpointInt payload of length 15 is too large!"
@@ -70,7 +70,7 @@ mkSetGlobalPositionSetpointIntSender =
                     setGlobalPositionSetpointIntCrcExtra
                     15
                     seqNum
-                    sendArr
+                    sendStruct
 
 instance MavlinkUnpackableMsg "set_global_position_setpoint_int_msg" where
     unpackMsg = ( setGlobalPositionSetpointIntUnpack , setGlobalPositionSetpointIntMsgId )

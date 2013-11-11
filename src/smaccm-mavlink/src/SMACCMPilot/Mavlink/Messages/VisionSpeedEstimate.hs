@@ -13,7 +13,6 @@ module SMACCMPilot.Mavlink.Messages.VisionSpeedEstimate where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
-import qualified SMACCMPilot.Communications as Comm
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -44,11 +43,11 @@ struct vision_speed_estimate_msg
 mkVisionSpeedEstimateSender ::
   Def ('[ ConstRef s0 (Struct "vision_speed_estimate_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 Comm.MAVLinkArray -- tx buffer
+        , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
 mkVisionSpeedEstimateSender =
   proc "mavlink_vision_speed_estimate_msg_send"
-  $ \msg seqNum sendArr -> body
+  $ \msg seqNum sendStruct -> body
   $ do
   arr <- local (iarray [] :: Init (Array 20 (Stored Uint8)))
   let buf = toCArray arr
@@ -57,7 +56,8 @@ mkVisionSpeedEstimateSender =
   call_ pack buf 12 =<< deref (msg ~> y)
   call_ pack buf 16 =<< deref (msg ~> z)
   -- 6: header len, 2: CRC len
-  let usedLen = 6 + 20 + 2 :: Integer
+  let usedLen    = 6 + 20 + 2 :: Integer
+  let sendArr    = sendStruct ~> mav_array
   let sendArrLen = arrayLen sendArr
   if sendArrLen < usedLen
     then error "visionSpeedEstimate payload of length 20 is too large!"
@@ -68,7 +68,7 @@ mkVisionSpeedEstimateSender =
                     visionSpeedEstimateCrcExtra
                     20
                     seqNum
-                    sendArr
+                    sendStruct
 
 instance MavlinkUnpackableMsg "vision_speed_estimate_msg" where
     unpackMsg = ( visionSpeedEstimateUnpack , visionSpeedEstimateMsgId )

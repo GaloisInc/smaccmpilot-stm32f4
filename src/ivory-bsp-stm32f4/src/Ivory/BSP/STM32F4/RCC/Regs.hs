@@ -19,7 +19,7 @@ import Ivory.BSP.STM32F4.MemoryMap (rcc_periph_base)
 
 import Ivory.BSP.STM32F4.RCC.RegTypes
 
--- This driver is, for now, incomplete: it only covers the config regiseter and
+-- This driver is, for now, incomplete: it only covers the config register and
 -- peripheral clock enable registers, and leaves out the various other system
 -- clock, peripheral reset, and peripheral clock low power mode registers which
 -- we have no use for at the moment.

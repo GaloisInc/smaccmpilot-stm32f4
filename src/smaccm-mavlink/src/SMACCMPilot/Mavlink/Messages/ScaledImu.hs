@@ -13,7 +13,6 @@ module SMACCMPilot.Mavlink.Messages.ScaledImu where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
-import qualified SMACCMPilot.Communications as Comm
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -50,11 +49,11 @@ struct scaled_imu_msg
 mkScaledImuSender ::
   Def ('[ ConstRef s0 (Struct "scaled_imu_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 Comm.MAVLinkArray -- tx buffer
+        , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
 mkScaledImuSender =
   proc "mavlink_scaled_imu_msg_send"
-  $ \msg seqNum sendArr -> body
+  $ \msg seqNum sendStruct -> body
   $ do
   arr <- local (iarray [] :: Init (Array 22 (Stored Uint8)))
   let buf = toCArray arr
@@ -69,7 +68,8 @@ mkScaledImuSender =
   call_ pack buf 18 =<< deref (msg ~> ymag)
   call_ pack buf 20 =<< deref (msg ~> zmag)
   -- 6: header len, 2: CRC len
-  let usedLen = 6 + 22 + 2 :: Integer
+  let usedLen    = 6 + 22 + 2 :: Integer
+  let sendArr    = sendStruct ~> mav_array
   let sendArrLen = arrayLen sendArr
   if sendArrLen < usedLen
     then error "scaledImu payload of length 22 is too large!"
@@ -80,7 +80,7 @@ mkScaledImuSender =
                     scaledImuCrcExtra
                     22
                     seqNum
-                    sendArr
+                    sendStruct
 
 instance MavlinkUnpackableMsg "scaled_imu_msg" where
     unpackMsg = ( scaledImuUnpack , scaledImuMsgId )

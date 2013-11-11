@@ -13,7 +13,6 @@ module SMACCMPilot.Mavlink.Messages.SetLocalPositionSetpoint where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
-import qualified SMACCMPilot.Communications as Comm
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -47,11 +46,11 @@ struct set_local_position_setpoint_msg
 mkSetLocalPositionSetpointSender ::
   Def ('[ ConstRef s0 (Struct "set_local_position_setpoint_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 Comm.MAVLinkArray -- tx buffer
+        , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
 mkSetLocalPositionSetpointSender =
   proc "mavlink_set_local_position_setpoint_msg_send"
-  $ \msg seqNum sendArr -> body
+  $ \msg seqNum sendStruct -> body
   $ do
   arr <- local (iarray [] :: Init (Array 19 (Stored Uint8)))
   let buf = toCArray arr
@@ -63,7 +62,8 @@ mkSetLocalPositionSetpointSender =
   call_ pack buf 17 =<< deref (msg ~> target_component)
   call_ pack buf 18 =<< deref (msg ~> coordinate_frame)
   -- 6: header len, 2: CRC len
-  let usedLen = 6 + 19 + 2 :: Integer
+  let usedLen    = 6 + 19 + 2 :: Integer
+  let sendArr    = sendStruct ~> mav_array
   let sendArrLen = arrayLen sendArr
   if sendArrLen < usedLen
     then error "setLocalPositionSetpoint payload of length 19 is too large!"
@@ -74,7 +74,7 @@ mkSetLocalPositionSetpointSender =
                     setLocalPositionSetpointCrcExtra
                     19
                     seqNum
-                    sendArr
+                    sendStruct
 
 instance MavlinkUnpackableMsg "set_local_position_setpoint_msg" where
     unpackMsg = ( setLocalPositionSetpointUnpack , setLocalPositionSetpointMsgId )

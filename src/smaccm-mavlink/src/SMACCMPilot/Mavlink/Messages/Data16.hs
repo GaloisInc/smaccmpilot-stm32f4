@@ -13,7 +13,6 @@ module SMACCMPilot.Mavlink.Messages.Data16 where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
-import qualified SMACCMPilot.Communications as Comm
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -43,11 +42,11 @@ struct data16_msg
 mkData16Sender ::
   Def ('[ ConstRef s0 (Struct "data16_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 Comm.MAVLinkArray -- tx buffer
+        , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
 mkData16Sender =
   proc "mavlink_data16_msg_send"
-  $ \msg seqNum sendArr -> body
+  $ \msg seqNum sendStruct -> body
   $ do
   arr <- local (iarray [] :: Init (Array 18 (Stored Uint8)))
   let buf = toCArray arr
@@ -55,7 +54,8 @@ mkData16Sender =
   call_ pack buf 1 =<< deref (msg ~> len)
   arrayPack buf 2 (msg ~> data16)
   -- 6: header len, 2: CRC len
-  let usedLen = 6 + 18 + 2 :: Integer
+  let usedLen    = 6 + 18 + 2 :: Integer
+  let sendArr    = sendStruct ~> mav_array
   let sendArrLen = arrayLen sendArr
   if sendArrLen < usedLen
     then error "data16 payload of length 18 is too large!"
@@ -66,7 +66,7 @@ mkData16Sender =
                     data16CrcExtra
                     18
                     seqNum
-                    sendArr
+                    sendStruct
 
 instance MavlinkUnpackableMsg "data16_msg" where
     unpackMsg = ( data16Unpack , data16MsgId )

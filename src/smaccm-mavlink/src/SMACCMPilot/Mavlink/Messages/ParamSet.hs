@@ -13,7 +13,6 @@ module SMACCMPilot.Mavlink.Messages.ParamSet where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
-import qualified SMACCMPilot.Communications as Comm
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -45,11 +44,11 @@ struct param_set_msg
 mkParamSetSender ::
   Def ('[ ConstRef s0 (Struct "param_set_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 Comm.MAVLinkArray -- tx buffer
+        , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
 mkParamSetSender =
   proc "mavlink_param_set_msg_send"
-  $ \msg seqNum sendArr -> body
+  $ \msg seqNum sendStruct -> body
   $ do
   arr <- local (iarray [] :: Init (Array 23 (Stored Uint8)))
   let buf = toCArray arr
@@ -59,7 +58,8 @@ mkParamSetSender =
   call_ pack buf 22 =<< deref (msg ~> param_type)
   arrayPack buf 6 (msg ~> param_id)
   -- 6: header len, 2: CRC len
-  let usedLen = 6 + 23 + 2 :: Integer
+  let usedLen    = 6 + 23 + 2 :: Integer
+  let sendArr    = sendStruct ~> mav_array
   let sendArrLen = arrayLen sendArr
   if sendArrLen < usedLen
     then error "paramSet payload of length 23 is too large!"
@@ -70,7 +70,7 @@ mkParamSetSender =
                     paramSetCrcExtra
                     23
                     seqNum
-                    sendArr
+                    sendStruct
 
 instance MavlinkUnpackableMsg "param_set_msg" where
     unpackMsg = ( paramSetUnpack , paramSetMsgId )

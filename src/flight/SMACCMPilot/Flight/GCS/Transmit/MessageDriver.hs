@@ -29,6 +29,7 @@ import qualified SMACCMPilot.Flight.Types.RadioStat             as RStat
 
 import           SMACCMPilot.Mavlink.Messages (mavlinkMessageModules)
 
+import           SMACCMPilot.Mavlink.Send
 import qualified SMACCMPilot.Mavlink.Messages.Heartbeat         as HB
 import qualified SMACCMPilot.Mavlink.Messages.Attitude          as ATT
 import qualified SMACCMPilot.Mavlink.Messages.VfrHud            as HUD
@@ -36,10 +37,8 @@ import qualified SMACCMPilot.Mavlink.Messages.ServoOutputRaw    as SVO
 import qualified SMACCMPilot.Mavlink.Messages.GpsRawInt         as GRI
 import qualified SMACCMPilot.Mavlink.Messages.GlobalPositionInt as GPI
 import qualified SMACCMPilot.Mavlink.Messages.ParamValue        as PV
-import qualified SMACCMPilot.Mavlink.Messages.Data16            as D
 import qualified SMACCMPilot.Mavlink.Messages.Radio             as RMSG
 
-import qualified SMACCMPilot.Communications                     as Comm
 --------------------------------------------------------------------
 
 -- Helper for sending data-rate information to the GCS.
@@ -60,10 +59,10 @@ packUint32 initIx arr val =
     where ex = M.sets extractByte
 
 -- Helper type for send functions below.
-type Sender a = forall s s'.
-  Def ('[ Ref s  (Struct a)
-        , Ref s' (Stored Uint8)
-        , Ref s' Comm.MAVLinkArray
+type Sender a = forall s0 s1 .
+  Def ('[ Ref s0  (Struct a)
+        , Ref s1 (Stored Uint8)
+        , Ref s1 (Struct "mavlinkPacket")
         ] :-> ())
 
 -- Data rate info: time since the last good message and how many messages were
@@ -71,7 +70,7 @@ type Sender a = forall s s'.
 -- mkSendDataRate :: Sender "data_rate_state"
 -- mkSendDataRate =
 --   proc "gcs_transmit_send_data16"
---   $ \dr seqNum sendArr -> body
+--   $ \dr seqNum sendStruct -> body
 --   $ do
 --   msg <- local (istruct [])
 --   d   <- dr ~>* R.dropped
@@ -80,17 +79,17 @@ type Sender a = forall s s'.
 --   packUint32 0 (msg ~> D.data16) d
 --   packUint32 4 (msg ~> D.data16) l
 
---   call_ D.mkData16Sender (constRef msg) seqNum sendArr
+--   call_ D.mkData16Sender (constRef msg) seqNum sendStruct
 --   retVoid
 
 mkSendHeartbeat :: Def ('[ Ref s1 (Struct "flightmode")
                          , Ref s2 (Stored IBool)
                          , Ref s3 (Stored Uint8)
-                         , Ref s3 Comm.MAVLinkArray
+                         , Ref s3 (Struct "mavlinkPacket")
                          ] :-> ())
 mkSendHeartbeat =
   proc "gcs_transmit_send_heartbeat"
-  $ \fm ref_armed seqNum sendArr -> body $ do
+  $ \fm ref_armed seqNum sendStruct -> body $ do
   hb <- local (istruct [])
   armed <- deref ref_armed
   mode  <- (fm ~>* FM.mode)
@@ -103,7 +102,7 @@ mkSendHeartbeat =
   -- system status stays 0
   store (hb ~> HB.mavlink_version) 3 -- magic number
 
-  call_ HB.mkHeartbeatSender (constRef hb) seqNum sendArr
+  call_ HB.mkHeartbeatSender (constRef hb) seqNum sendStruct
   retVoid
 
   where
@@ -118,7 +117,7 @@ mkSendHeartbeat =
 mkSendAttitude :: Sender "sensors_result"
 mkSendAttitude =
   proc "gcs_transmit_send_attitude"
-  $ \sensors seqNum sendArr -> body
+  $ \sensors seqNum sendStruct -> body
   $ do
   att <- local (istruct [])
   (sensors ~> Sens.time)    `into` (att ~> ATT.time_boot_ms)
@@ -128,7 +127,7 @@ mkSendAttitude =
   (sensors ~> Sens.omega_x) `into` (att ~> ATT.rollspeed)
   (sensors ~> Sens.omega_y) `into` (att ~> ATT.pitchspeed)
   (sensors ~> Sens.omega_z) `into` (att ~> ATT.yawspeed)
-  call_ ATT.mkAttitudeSender (constRef att) seqNum sendArr
+  call_ ATT.mkAttitudeSender (constRef att) seqNum sendStruct
   retVoid
 
 mkSendVfrHud :: Def ('[ (Ref s0 (Struct "position"))
@@ -136,10 +135,10 @@ mkSendVfrHud :: Def ('[ (Ref s0 (Struct "position"))
                       , (Ref s0 (Struct "sensors_result"))
 
                       , Ref s1 (Stored Uint8)
-                      , Ref s1 Comm.MAVLinkArray
+                      , Ref s1 (Struct "mavlinkPacket")
                       ] :-> ())
 mkSendVfrHud = proc "gcs_transmit_send_vfrhud"
-  $ \pos ctl sens seqNum sendArr -> body
+  $ \pos ctl sens seqNum sendStruct -> body
   $ do
   hud <- local (istruct [])
   -- Calculating speed from vx/vy/vz int16s in m/s*100, into float in m/s
@@ -153,7 +152,7 @@ mkSendVfrHud = proc "gcs_transmit_send_vfrhud"
   (calcHeading sens) `resultInto` (hud ~> HUD.heading)
   -- Throttle from control output
   (calcThrottle ctl) `resultInto` (hud ~> HUD.throttle)
-  call_ HUD.mkVfrHudSender (constRef hud) seqNum sendArr
+  call_ HUD.mkVfrHudSender (constRef hud) seqNum sendStruct
   retVoid
   where
   calcSpeed :: Ref s (Struct "position") -> Ivory eff IFloat
@@ -189,11 +188,11 @@ mkSendVfrHud = proc "gcs_transmit_send_vfrhud"
 mkSendServoOutputRaw :: Def ('[ (Ref s0 (Struct "motors"))
                               , (Ref s0 (Struct "controloutput"))
                               , Ref s' (Stored Uint8)
-                              , Ref s' Comm.MAVLinkArray
+                              , Ref s' (Struct "mavlinkPacket")
                               ] :-> ())
 mkSendServoOutputRaw =
   proc "gcs_transmit_send_servo_output"
-  $ \state ctl seqNum sendArr -> body
+  $ \state ctl seqNum sendStruct -> body
   $ do
   msg <- local (istruct [])
   -- ArduCopter Quad X numbering scheme:
@@ -207,7 +206,7 @@ mkSendServoOutputRaw =
   (ctl ~> C.roll)       `ctlIntoSvo` (msg ~> SVO.servo7_raw)
   (ctl ~> C.throttle)   `ctlIntoSvo` (msg ~> SVO.servo8_raw)
 
-  call_ SVO.mkServoOutputRawSender (constRef msg) seqNum sendArr
+  call_ SVO.mkServoOutputRawSender (constRef msg) seqNum sendStruct
 
   where
   -- Scale [0.0f .. 1.0f] into [1100..1900] pwm value
@@ -221,7 +220,7 @@ mkSendServoOutputRaw =
 
 mkSendGpsRawInt :: Sender "position"
 mkSendGpsRawInt = proc "gcs_transmit_send_gps_raw_int" $
-  \pos seqNum sendArr -> body $ do
+  \pos seqNum sendStruct -> body $ do
   lat       <- deref (pos ~> P.lat)
   lon       <- deref (pos ~> P.lon)
   alt       <- deref (pos ~> P.alt)
@@ -243,17 +242,17 @@ mkSendGpsRawInt = proc "gcs_transmit_send_gps_raw_int" $
     , GRI.fix_type  .= ival fix_type
     , GRI.satellites_visible .= ival num_sv
     ])
-  call_ GRI.mkGpsRawIntSender (constRef msg) seqNum sendArr
+  call_ GRI.mkGpsRawIntSender (constRef msg) seqNum sendStruct
   retVoid
 
 mkSendGlobalPositionInt :: Def ('[ (Ref s (Struct "position"))
                                  , (Ref s (Struct "sensors_result"))
                                  , Uint32
                                  , Ref s' (Stored Uint8)
-                                 , Ref s' Comm.MAVLinkArray
+                                 , Ref s' (Struct "mavlinkPacket")
                                  ] :-> ())
 mkSendGlobalPositionInt = proc "gcs_transmit_send_global_position_int" $
-  \pos sens currenttime seqNum sendArr -> body $ do
+  \pos sens currenttime seqNum sendStruct -> body $ do
   lat       <- deref (pos ~> P.lat)
   lon       <- deref (pos ~> P.lon)
   alt       <- deref (pos ~> P.alt)
@@ -276,23 +275,23 @@ mkSendGlobalPositionInt = proc "gcs_transmit_send_global_position_int" $
     , GPI.vz           .= ival (-1 * (castWith 0 vdown))
     , GPI.hdg          .= ival (castWith 0 yaw_cd)
     ])
-  call_ GPI.mkGlobalPositionIntSender (constRef msg) seqNum sendArr
+  call_ GPI.mkGlobalPositionIntSender (constRef msg) seqNum sendStruct
   retVoid
 
 mkSendParamValue :: Def ('[ Ref s1 (Struct "param_value_msg")
                           , Ref s2 (Stored Uint8)
-                          , Ref s2 Comm.MAVLinkArray
+                          , Ref s2 (Struct "mavlinkPacket")
                           ] :-> ())
 mkSendParamValue = proc "gcs_transmit_send_param_value" $
-  \msg seqNum sendArr -> body $ do
-  call_ PV.mkParamValueSender (constRef msg) seqNum sendArr
+  \msg seqNum sendStruct -> body $ do
+  call_ PV.mkParamValueSender (constRef msg) seqNum sendStruct
 
 mkSendRadio :: Def ('[ Ref s1 (Struct "radio_stat")
                      , Ref s2 (Stored Uint8)
-                     , Ref s2 Comm.MAVLinkArray
+                     , Ref s2 (Struct "mavlinkPacket")
                      ] :-> ())
 mkSendRadio = proc "gcs_transmit_send_radio" $
-  \stat seqNum sendArr -> body $ do
+  \stat seqNum sendStruct -> body $ do
   rxerrors <- deref (stat ~> RStat.tx_err)
   fixed    <- deref (stat ~> RStat.ecc_errs)
   rssi     <- deref (stat ~> RStat.loc_rssi)
@@ -309,7 +308,7 @@ mkSendRadio = proc "gcs_transmit_send_radio" $
     , RMSG.noise    .= ival noise
     , RMSG.remnoise .= ival remnoise
     ])
-  call_ RMSG.mkRadioSender (constRef msg) seqNum sendArr
+  call_ RMSG.mkRadioSender (constRef msg) seqNum sendStruct
 
 
 
@@ -334,3 +333,4 @@ senderModules = package "senderModules" $ do
   depend FM.flightModeTypeModule
   depend R.dataRateTypeModule
   depend RStat.radioStatTypeModule
+  depend mavlinkSendModule

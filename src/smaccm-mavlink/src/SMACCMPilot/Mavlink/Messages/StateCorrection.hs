@@ -13,7 +13,6 @@ module SMACCMPilot.Mavlink.Messages.StateCorrection where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
-import qualified SMACCMPilot.Communications as Comm
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -49,11 +48,11 @@ struct state_correction_msg
 mkStateCorrectionSender ::
   Def ('[ ConstRef s0 (Struct "state_correction_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 Comm.MAVLinkArray -- tx buffer
+        , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
 mkStateCorrectionSender =
   proc "mavlink_state_correction_msg_send"
-  $ \msg seqNum sendArr -> body
+  $ \msg seqNum sendStruct -> body
   $ do
   arr <- local (iarray [] :: Init (Array 36 (Stored Uint8)))
   let buf = toCArray arr
@@ -67,7 +66,8 @@ mkStateCorrectionSender =
   call_ pack buf 28 =<< deref (msg ~> vyErr)
   call_ pack buf 32 =<< deref (msg ~> vzErr)
   -- 6: header len, 2: CRC len
-  let usedLen = 6 + 36 + 2 :: Integer
+  let usedLen    = 6 + 36 + 2 :: Integer
+  let sendArr    = sendStruct ~> mav_array
   let sendArrLen = arrayLen sendArr
   if sendArrLen < usedLen
     then error "stateCorrection payload of length 36 is too large!"
@@ -78,7 +78,7 @@ mkStateCorrectionSender =
                     stateCorrectionCrcExtra
                     36
                     seqNum
-                    sendArr
+                    sendStruct
 
 instance MavlinkUnpackableMsg "state_correction_msg" where
     unpackMsg = ( stateCorrectionUnpack , stateCorrectionMsgId )

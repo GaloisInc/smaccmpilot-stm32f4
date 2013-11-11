@@ -13,7 +13,6 @@ module SMACCMPilot.Mavlink.Messages.SetRollPitchYawSpeedThrust where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
-import qualified SMACCMPilot.Communications as Comm
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -46,11 +45,11 @@ struct set_roll_pitch_yaw_speed_thrust_msg
 mkSetRollPitchYawSpeedThrustSender ::
   Def ('[ ConstRef s0 (Struct "set_roll_pitch_yaw_speed_thrust_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 Comm.MAVLinkArray -- tx buffer
+        , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
 mkSetRollPitchYawSpeedThrustSender =
   proc "mavlink_set_roll_pitch_yaw_speed_thrust_msg_send"
-  $ \msg seqNum sendArr -> body
+  $ \msg seqNum sendStruct -> body
   $ do
   arr <- local (iarray [] :: Init (Array 18 (Stored Uint8)))
   let buf = toCArray arr
@@ -61,7 +60,8 @@ mkSetRollPitchYawSpeedThrustSender =
   call_ pack buf 16 =<< deref (msg ~> target_system)
   call_ pack buf 17 =<< deref (msg ~> target_component)
   -- 6: header len, 2: CRC len
-  let usedLen = 6 + 18 + 2 :: Integer
+  let usedLen    = 6 + 18 + 2 :: Integer
+  let sendArr    = sendStruct ~> mav_array
   let sendArrLen = arrayLen sendArr
   if sendArrLen < usedLen
     then error "setRollPitchYawSpeedThrust payload of length 18 is too large!"
@@ -72,7 +72,7 @@ mkSetRollPitchYawSpeedThrustSender =
                     setRollPitchYawSpeedThrustCrcExtra
                     18
                     seqNum
-                    sendArr
+                    sendStruct
 
 instance MavlinkUnpackableMsg "set_roll_pitch_yaw_speed_thrust_msg" where
     unpackMsg = ( setRollPitchYawSpeedThrustUnpack , setRollPitchYawSpeedThrustMsgId )

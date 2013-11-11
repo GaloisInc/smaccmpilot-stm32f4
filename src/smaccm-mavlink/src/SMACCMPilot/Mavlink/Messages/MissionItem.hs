@@ -13,7 +13,6 @@ module SMACCMPilot.Mavlink.Messages.MissionItem where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
-import qualified SMACCMPilot.Communications as Comm
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -54,11 +53,11 @@ struct mission_item_msg
 mkMissionItemSender ::
   Def ('[ ConstRef s0 (Struct "mission_item_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 Comm.MAVLinkArray -- tx buffer
+        , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
 mkMissionItemSender =
   proc "mavlink_mission_item_msg_send"
-  $ \msg seqNum sendArr -> body
+  $ \msg seqNum sendStruct -> body
   $ do
   arr <- local (iarray [] :: Init (Array 37 (Stored Uint8)))
   let buf = toCArray arr
@@ -77,7 +76,8 @@ mkMissionItemSender =
   call_ pack buf 35 =<< deref (msg ~> current)
   call_ pack buf 36 =<< deref (msg ~> autocontinue)
   -- 6: header len, 2: CRC len
-  let usedLen = 6 + 37 + 2 :: Integer
+  let usedLen    = 6 + 37 + 2 :: Integer
+  let sendArr    = sendStruct ~> mav_array
   let sendArrLen = arrayLen sendArr
   if sendArrLen < usedLen
     then error "missionItem payload of length 37 is too large!"
@@ -88,7 +88,7 @@ mkMissionItemSender =
                     missionItemCrcExtra
                     37
                     seqNum
-                    sendArr
+                    sendStruct
 
 instance MavlinkUnpackableMsg "mission_item_msg" where
     unpackMsg = ( missionItemUnpack , missionItemMsgId )

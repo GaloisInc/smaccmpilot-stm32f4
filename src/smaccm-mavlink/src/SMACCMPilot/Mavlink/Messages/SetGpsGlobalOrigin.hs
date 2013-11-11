@@ -13,7 +13,6 @@ module SMACCMPilot.Mavlink.Messages.SetGpsGlobalOrigin where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
-import qualified SMACCMPilot.Communications as Comm
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -44,11 +43,11 @@ struct set_gps_global_origin_msg
 mkSetGpsGlobalOriginSender ::
   Def ('[ ConstRef s0 (Struct "set_gps_global_origin_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 Comm.MAVLinkArray -- tx buffer
+        , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
 mkSetGpsGlobalOriginSender =
   proc "mavlink_set_gps_global_origin_msg_send"
-  $ \msg seqNum sendArr -> body
+  $ \msg seqNum sendStruct -> body
   $ do
   arr <- local (iarray [] :: Init (Array 13 (Stored Uint8)))
   let buf = toCArray arr
@@ -57,7 +56,8 @@ mkSetGpsGlobalOriginSender =
   call_ pack buf 8 =<< deref (msg ~> altitude)
   call_ pack buf 12 =<< deref (msg ~> target_system)
   -- 6: header len, 2: CRC len
-  let usedLen = 6 + 13 + 2 :: Integer
+  let usedLen    = 6 + 13 + 2 :: Integer
+  let sendArr    = sendStruct ~> mav_array
   let sendArrLen = arrayLen sendArr
   if sendArrLen < usedLen
     then error "setGpsGlobalOrigin payload of length 13 is too large!"
@@ -68,7 +68,7 @@ mkSetGpsGlobalOriginSender =
                     setGpsGlobalOriginCrcExtra
                     13
                     seqNum
-                    sendArr
+                    sendStruct
 
 instance MavlinkUnpackableMsg "set_gps_global_origin_msg" where
     unpackMsg = ( setGpsGlobalOriginUnpack , setGpsGlobalOriginMsgId )

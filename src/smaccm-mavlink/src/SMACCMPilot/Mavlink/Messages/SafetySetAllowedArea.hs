@@ -13,7 +13,6 @@ module SMACCMPilot.Mavlink.Messages.SafetySetAllowedArea where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
-import qualified SMACCMPilot.Communications as Comm
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -49,11 +48,11 @@ struct safety_set_allowed_area_msg
 mkSafetySetAllowedAreaSender ::
   Def ('[ ConstRef s0 (Struct "safety_set_allowed_area_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 Comm.MAVLinkArray -- tx buffer
+        , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
 mkSafetySetAllowedAreaSender =
   proc "mavlink_safety_set_allowed_area_msg_send"
-  $ \msg seqNum sendArr -> body
+  $ \msg seqNum sendStruct -> body
   $ do
   arr <- local (iarray [] :: Init (Array 27 (Stored Uint8)))
   let buf = toCArray arr
@@ -67,7 +66,8 @@ mkSafetySetAllowedAreaSender =
   call_ pack buf 25 =<< deref (msg ~> target_component)
   call_ pack buf 26 =<< deref (msg ~> frame)
   -- 6: header len, 2: CRC len
-  let usedLen = 6 + 27 + 2 :: Integer
+  let usedLen    = 6 + 27 + 2 :: Integer
+  let sendArr    = sendStruct ~> mav_array
   let sendArrLen = arrayLen sendArr
   if sendArrLen < usedLen
     then error "safetySetAllowedArea payload of length 27 is too large!"
@@ -78,7 +78,7 @@ mkSafetySetAllowedAreaSender =
                     safetySetAllowedAreaCrcExtra
                     27
                     seqNum
-                    sendArr
+                    sendStruct
 
 instance MavlinkUnpackableMsg "safety_set_allowed_area_msg" where
     unpackMsg = ( safetySetAllowedAreaUnpack , safetySetAllowedAreaMsgId )

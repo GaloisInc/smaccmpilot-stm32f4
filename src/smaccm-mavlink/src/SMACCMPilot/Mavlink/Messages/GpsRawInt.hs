@@ -13,7 +13,6 @@ module SMACCMPilot.Mavlink.Messages.GpsRawInt where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
-import qualified SMACCMPilot.Communications as Comm
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -50,11 +49,11 @@ struct gps_raw_int_msg
 mkGpsRawIntSender ::
   Def ('[ ConstRef s0 (Struct "gps_raw_int_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 Comm.MAVLinkArray -- tx buffer
+        , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
 mkGpsRawIntSender =
   proc "mavlink_gps_raw_int_msg_send"
-  $ \msg seqNum sendArr -> body
+  $ \msg seqNum sendStruct -> body
   $ do
   arr <- local (iarray [] :: Init (Array 30 (Stored Uint8)))
   let buf = toCArray arr
@@ -69,7 +68,8 @@ mkGpsRawIntSender =
   call_ pack buf 28 =<< deref (msg ~> fix_type)
   call_ pack buf 29 =<< deref (msg ~> satellites_visible)
   -- 6: header len, 2: CRC len
-  let usedLen = 6 + 30 + 2 :: Integer
+  let usedLen    = 6 + 30 + 2 :: Integer
+  let sendArr    = sendStruct ~> mav_array
   let sendArrLen = arrayLen sendArr
   if sendArrLen < usedLen
     then error "gpsRawInt payload of length 30 is too large!"
@@ -80,7 +80,7 @@ mkGpsRawIntSender =
                     gpsRawIntCrcExtra
                     30
                     seqNum
-                    sendArr
+                    sendStruct
 
 instance MavlinkUnpackableMsg "gps_raw_int_msg" where
     unpackMsg = ( gpsRawIntUnpack , gpsRawIntMsgId )

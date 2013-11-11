@@ -3,6 +3,7 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE QuasiQuotes #-}
 
 module SMACCMPilot.Mavlink.Send where
 
@@ -11,6 +12,15 @@ import           Ivory.Stdlib
 
 import           SMACCMPilot.Mavlink.CRC
 import qualified SMACCMPilot.Communications as C
+
+--------------------------------------------------------------------------------
+
+[ivory|
+struct mavlinkPacket
+  { mav_array :: Array 80 (Stored Uint8) -- C. CommsecArray
+  ; mav_size  :: Stored Uint8
+  }
+|]
 
 --------------------------------------------------------------------------------
 
@@ -51,11 +61,11 @@ mavlinkSendWithWriter ::
         , Uint8 -- crcExtra
         , Uint8 -- payload length
         , Ref s (Stored Uint8) -- sequence number (use then increment)
-        , Ref s C.MAVLinkArray -- array we'll put everything into
+        , Ref s (Struct "mavlinkPacket") -- what we'll put everything into
         ] :-> ())
 mavlinkSendWithWriter =
   proc "mavlinkSendWithWriter"
-  $ \msgId crcExtra payloadLen seqNum arr -> body
+  $ \msgId crcExtra payloadLen seqNum struct -> body
   $ do
 
     s      <- deref seqNum
@@ -72,15 +82,17 @@ mavlinkSendWithWriter =
       (store seqNum 0)
       (store seqNum (s + 1))
     let sz = 6 + payloadLen :: Uint8
-
+    let arr = struct ~> mav_array
     arrCopy arr header 0
-
     -- Calculate checksum and store in arr
     mavlinkChecksum sz crcExtra arr
+    -- Store the total size (header + payload + CRCs)
+    store (struct ~> mav_size) (sz + 2)
 
 mavlinkSendModule :: Module
 mavlinkSendModule = package "mavlinkSendModule" $ do
   depend mavlinkCRCModule
   incl mavlinkSendWithWriter
+  defStruct (Proxy :: Proxy "mavlinkPacket")
 
 --------------------------------------------------------------------------------

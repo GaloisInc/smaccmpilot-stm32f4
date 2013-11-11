@@ -13,7 +13,6 @@ module SMACCMPilot.Mavlink.Messages.OpticalFlow where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
-import qualified SMACCMPilot.Communications as Comm
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -48,11 +47,11 @@ struct optical_flow_msg
 mkOpticalFlowSender ::
   Def ('[ ConstRef s0 (Struct "optical_flow_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 Comm.MAVLinkArray -- tx buffer
+        , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
 mkOpticalFlowSender =
   proc "mavlink_optical_flow_msg_send"
-  $ \msg seqNum sendArr -> body
+  $ \msg seqNum sendStruct -> body
   $ do
   arr <- local (iarray [] :: Init (Array 26 (Stored Uint8)))
   let buf = toCArray arr
@@ -65,7 +64,8 @@ mkOpticalFlowSender =
   call_ pack buf 24 =<< deref (msg ~> sensor_id)
   call_ pack buf 25 =<< deref (msg ~> quality)
   -- 6: header len, 2: CRC len
-  let usedLen = 6 + 26 + 2 :: Integer
+  let usedLen    = 6 + 26 + 2 :: Integer
+  let sendArr    = sendStruct ~> mav_array
   let sendArrLen = arrayLen sendArr
   if sendArrLen < usedLen
     then error "opticalFlow payload of length 26 is too large!"
@@ -76,7 +76,7 @@ mkOpticalFlowSender =
                     opticalFlowCrcExtra
                     26
                     seqNum
-                    sendArr
+                    sendStruct
 
 instance MavlinkUnpackableMsg "optical_flow_msg" where
     unpackMsg = ( opticalFlowUnpack , opticalFlowMsgId )

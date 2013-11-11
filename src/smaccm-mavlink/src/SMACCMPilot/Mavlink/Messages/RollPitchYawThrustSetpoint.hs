@@ -13,7 +13,6 @@ module SMACCMPilot.Mavlink.Messages.RollPitchYawThrustSetpoint where
 import SMACCMPilot.Mavlink.Pack
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
-import qualified SMACCMPilot.Communications as Comm
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -45,11 +44,11 @@ struct roll_pitch_yaw_thrust_setpoint_msg
 mkRollPitchYawThrustSetpointSender ::
   Def ('[ ConstRef s0 (Struct "roll_pitch_yaw_thrust_setpoint_msg")
         , Ref s1 (Stored Uint8) -- seqNum
-        , Ref s1 Comm.MAVLinkArray -- tx buffer
+        , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
 mkRollPitchYawThrustSetpointSender =
   proc "mavlink_roll_pitch_yaw_thrust_setpoint_msg_send"
-  $ \msg seqNum sendArr -> body
+  $ \msg seqNum sendStruct -> body
   $ do
   arr <- local (iarray [] :: Init (Array 20 (Stored Uint8)))
   let buf = toCArray arr
@@ -59,7 +58,8 @@ mkRollPitchYawThrustSetpointSender =
   call_ pack buf 12 =<< deref (msg ~> yaw)
   call_ pack buf 16 =<< deref (msg ~> thrust)
   -- 6: header len, 2: CRC len
-  let usedLen = 6 + 20 + 2 :: Integer
+  let usedLen    = 6 + 20 + 2 :: Integer
+  let sendArr    = sendStruct ~> mav_array
   let sendArrLen = arrayLen sendArr
   if sendArrLen < usedLen
     then error "rollPitchYawThrustSetpoint payload of length 20 is too large!"
@@ -70,7 +70,7 @@ mkRollPitchYawThrustSetpointSender =
                     rollPitchYawThrustSetpointCrcExtra
                     20
                     seqNum
-                    sendArr
+                    sendStruct
 
 instance MavlinkUnpackableMsg "roll_pitch_yaw_thrust_setpoint_msg" where
     unpackMsg = ( rollPitchYawThrustSetpointUnpack , rollPitchYawThrustSetpointMsgId )
