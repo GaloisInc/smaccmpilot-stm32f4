@@ -72,7 +72,7 @@ mkSafetySetAllowedAreaSender =
   if sendArrLen < usedLen
     then error "safetySetAllowedArea payload of length 27 is too large!"
     else do -- Copy, leaving room for the payload
-            arrCopy sendArr arr 6
+            arrayCopy sendArr arr 6 (arrayLen arr)
             call_ mavlinkSendWithWriter
                     safetySetAllowedAreaMsgId
                     safetySetAllowedAreaCrcExtra

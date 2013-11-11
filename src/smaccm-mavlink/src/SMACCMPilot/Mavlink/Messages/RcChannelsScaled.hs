@@ -76,7 +76,7 @@ mkRcChannelsScaledSender =
   if sendArrLen < usedLen
     then error "rcChannelsScaled payload of length 22 is too large!"
     else do -- Copy, leaving room for the payload
-            arrCopy sendArr arr 6
+            arrayCopy sendArr arr 6 (arrayLen arr)
             call_ mavlinkSendWithWriter
                     rcChannelsScaledMsgId
                     rcChannelsScaledCrcExtra

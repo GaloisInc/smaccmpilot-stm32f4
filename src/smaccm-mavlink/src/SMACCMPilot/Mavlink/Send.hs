@@ -83,7 +83,7 @@ mavlinkSendWithWriter =
       (store seqNum (s + 1))
     let sz = 6 + payloadLen :: Uint8
     let arr = struct ~> mav_array
-    arrCopy arr header 0
+    arrayCopy arr header 0 (arrayLen header)
     -- Calculate checksum and store in arr
     mavlinkChecksum sz crcExtra arr
     -- Store the total size (header + payload + CRCs)

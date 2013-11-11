@@ -70,7 +70,7 @@ mkNavControllerOutputSender =
   if sendArrLen < usedLen
     then error "navControllerOutput payload of length 26 is too large!"
     else do -- Copy, leaving room for the payload
-            arrCopy sendArr arr 6
+            arrayCopy sendArr arr 6 (arrayLen arr)
             call_ mavlinkSendWithWriter
                     navControllerOutputMsgId
                     navControllerOutputCrcExtra

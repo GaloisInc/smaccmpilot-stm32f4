@@ -70,7 +70,7 @@ mkAttitudeQuaternionSender =
   if sendArrLen < usedLen
     then error "attitudeQuaternion payload of length 32 is too large!"
     else do -- Copy, leaving room for the payload
-            arrCopy sendArr arr 6
+            arrayCopy sendArr arr 6 (arrayLen arr)
             call_ mavlinkSendWithWriter
                     attitudeQuaternionMsgId
                     attitudeQuaternionCrcExtra

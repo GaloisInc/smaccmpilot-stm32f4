@@ -58,7 +58,7 @@ mkCommandAckSender =
   if sendArrLen < usedLen
     then error "commandAck payload of length 3 is too large!"
     else do -- Copy, leaving room for the payload
-            arrCopy sendArr arr 6
+            arrayCopy sendArr arr 6 (arrayLen arr)
             call_ mavlinkSendWithWriter
                     commandAckMsgId
                     commandAckCrcExtra

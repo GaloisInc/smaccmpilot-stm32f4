@@ -62,7 +62,7 @@ mkPingSender =
   if sendArrLen < usedLen
     then error "ping payload of length 14 is too large!"
     else do -- Copy, leaving room for the payload
-            arrCopy sendArr arr 6
+            arrayCopy sendArr arr 6 (arrayLen arr)
             call_ mavlinkSendWithWriter
                     pingMsgId
                     pingCrcExtra

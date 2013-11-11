@@ -87,7 +87,7 @@ gcsTransmitTask mavStream sp_sink _dr_sink fm_sink armed_sink se_sink ps_sink
         -- Copy to sending array
         let arr = mavlinkStruct ~> mav_array
         mavlen <- mavlinkStruct ~>* mav_size
-        arrCopy mavlinkSend arr (safeCast mavlen)
+        arrayCopy mavlinkSend arr 0 (safeCast mavlen)
         -- Now send it on to UART1
         emit_ mavTx (constRef mavlinkSend)
 
@@ -101,10 +101,10 @@ gcsTransmitTask mavStream sp_sink _dr_sink fm_sink armed_sink se_sink ps_sink
           due  <- streamDue (constRef s_periods) (constRef s_schedule)
                     selector last now
           let arr = mavlinkStruct ~> mav_array
-          -- Zero out mavlink array first
-          arrayMap $ \ix -> store (arr ! ix) 0
 
           when due $ do
+            -- Zero out mavlink array first
+            arrayMap $ \ix -> store (arr ! ix) 0
             action
             setNextTime (constRef s_periods) s_schedule selector now
 

@@ -115,7 +115,7 @@ copyToPkg :: (GetAlloc eff ~ Scope s2)
          => ConstRef s0 C.MAVLinkArray
          -> Ref      s1 C.CommsecArray
          -> Ivory eff ()
-copyToPkg from pkg = arrCopy pkg from (fromInteger headerLen)
+copyToPkg from pkg = arrayCopy pkg from (fromInteger headerLen) (arrayLen from)
 
 --------------------------------------------------------------------------------
 

@@ -72,7 +72,7 @@ mkSetQuadSwarmLedRollPitchYawThrustSender =
   if sendArrLen < usedLen
     then error "setQuadSwarmLedRollPitchYawThrust payload of length 46 is too large!"
     else do -- Copy, leaving room for the payload
-            arrCopy sendArr arr 6
+            arrayCopy sendArr arr 6 (arrayLen arr)
             call_ mavlinkSendWithWriter
                     setQuadSwarmLedRollPitchYawThrustMsgId
                     setQuadSwarmLedRollPitchYawThrustCrcExtra
