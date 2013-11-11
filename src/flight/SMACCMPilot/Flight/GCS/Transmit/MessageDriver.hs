@@ -315,7 +315,7 @@ mkSendRadio = proc "gcs_transmit_send_radio" $
 senderModules :: Module
 senderModules = package "senderModules" $ do
   mapM_ depend mavlinkMessageModules
-  incl mkSendDataRate
+--  incl mkSendDataRate
   incl mkSendHeartbeat
   incl mkSendAttitude
   incl mkSendVfrHud
@@ -331,6 +331,6 @@ senderModules = package "senderModules" $ do
   depend C.controlOutputTypeModule
   depend U.userInputTypeModule
   depend FM.flightModeTypeModule
-  depend R.dataRateTypeModule
+--  depend R.dataRateTypeModule
   depend RStat.radioStatTypeModule
   depend mavlinkSendModule
