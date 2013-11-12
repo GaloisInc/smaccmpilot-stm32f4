@@ -79,7 +79,7 @@ gcsReceiveTask mavStream s_src dr_src hil_src fm armed_src
             [ handle (paramRequestList read_params param_req_emitter)
             , handle (paramRequestRead getParamIndex param_req_emitter)
             , handle (paramSet getParamIndex setParamValue param_req_emitter)
-            , handle (requestDatastream s_periods (emit_ streamPeriodEmitter))
+            , handle (requestDatastream s_periods streamPeriodEmitter)
             , handle (hilState hil_emitter)
             , handle (rcOverride rcOverride_emitter)
             , handle (setMode fm_writer now)

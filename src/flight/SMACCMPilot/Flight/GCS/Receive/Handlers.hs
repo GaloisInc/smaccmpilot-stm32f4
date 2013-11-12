@@ -88,16 +88,17 @@ paramSet getIndex setValue emitter msg = do
 
 --------------------------------------------------------------------------------
 
-requestDatastream :: Ref s1 (Struct "gcsstream_timing")
-                  -> (ConstRef s1 (Struct "gcsstream_timing") -> Ivory eff ())
-                  -> Ref s2 (Struct "request_data_stream_msg")
+requestDatastream :: (SingI n, GetAlloc eff ~ Scope cs)
+                  => Ref       s1 (Struct "gcsstream_timing")
+                  -> ChannelEmitter n (Struct "gcsstream_timing")
+                  -> Ref       s2 (Struct "request_data_stream_msg")
                   -> Ivory eff ()
-requestDatastream streamperiods send msg = do
+requestDatastream streamperiods emitter msg = do
   rsid   <- deref (msg ~> RDS.req_stream_id)
   enable <- deref (msg ~> RDS.start_stop)
   rate   <- deref (msg ~> RDS.req_message_rate)
   updateGCSStreamPeriods streamperiods rsid (enable >? 0) rate
-  send (constRef streamperiods)
+  emit_ emitter (constRef streamperiods)
 
 --------------------------------------------------------------------------------
 

@@ -77,7 +77,7 @@ gcsTransmitTask mavStream sp_sink _dr_sink fm_sink armed_sink se_sink ps_sink
     initTime <- getTimeMillis t
     store lastRun initTime
 
-  onChannel sp_sink "streamPeriod" $ \newperiods -> do
+  onChannel sp_sink "streamPeriod" $ \newperiods ->
     setNewPeriods newperiods s_periods s_schedule =<< getTimeMillis t
 
   let processMav :: (Scope s ~ GetAlloc eff) => Ivory eff ()
@@ -94,7 +94,7 @@ gcsTransmitTask mavStream sp_sink _dr_sink fm_sink armed_sink se_sink ps_sink
   onPeriod 50 $ \now -> do
 
     -- Handler for all streams - if due, run action, then update schedule
-    let onStream :: Label "gcsstream_timing" (Stored Uint32)
+    let onStream :: T.GcsTimingLabel
                  -> Ivory eff () -> Ivory eff ()
         onStream selector action = do
           last <- deref lastRun
