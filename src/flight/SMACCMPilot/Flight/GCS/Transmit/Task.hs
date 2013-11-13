@@ -82,21 +82,26 @@ gcsTransmitTask mavStream sp_sink _dr_sink fm_sink armed_sink se_sink ps_sink
   onChannel sp_sink "streamPeriod" $ \newperiods ->
     setNewPeriods newperiods s_periods s_schedule =<< getTimeMillis t
 
-  let processMav :: (Scope s ~ GetAlloc eff) => Ivory eff ()
-      processMav = do
+  let processMav :: (Scope s ~ GetAlloc eff)
+                 => T.GcsTimingLabel -> Ivory eff ()
+      processMav selector = do
         let arr = mavlinkStruct ~> mav_array
         mavlen <- mavlinkStruct ~>* mav_size
         currIx <- deref mavSendIx
         let mavlen' = safeCast mavlen
         -- Do we have enough room to pack another packet?
-        let room   = arrayLen mavlinkSend - currIx >=? mavlen'
+        let room    = arrayLen mavlinkSend - currIx >=? mavlen'
+        -- Is the message time-critical?
+        hardRt     <- T.getDeadline selector s_periods
         let copyMav :: (Scope cs ~ GetAlloc eff) => Sint32 -> Ivory eff ()
             copyMav ix = do
               arrayCopy mavlinkSend arr ix mavlen'
               store mavSendIx (ix + mavlen')
-        ifte_ room
+          -- If there's room to pack another message and it's soft real-time,
+          -- just pack.
+        ifte_ (room .&& iNot (T.isHardRealTime hardRt))
           (copyMav currIx)
-          -- Not enough room: emit and then store.
+          -- Otherwise, emit and then store.
           (do emit_ mavTx (constRef mavlinkSend)
               -- Zero sending array and reset index
               arrayMap $ \ix -> store (mavlinkSend ! ix) 0
@@ -105,7 +110,9 @@ gcsTransmitTask mavStream sp_sink _dr_sink fm_sink armed_sink se_sink ps_sink
   onPeriod 50 $ \now -> do
 
     -- Handler for all streams - if due, run action, then update schedule
-    let onStream :: T.GcsTimingLabel -> Ivory eff () -> Ivory eff ()
+    let onStream :: T.GcsTimingLabel
+                 -> Ivory eff ()
+                 -> Ivory eff ()
         onStream selector action = do
           due  <- streamDue (constRef s_periods) (constRef s_schedule)
                     selector now
@@ -125,7 +132,7 @@ gcsTransmitTask mavStream sp_sink _dr_sink fm_sink armed_sink se_sink ps_sink
       b <- local izero
       store b (l ==? A.as_ARMED)
       call_ mkSendHeartbeat l_fm b seqNum mavlinkStruct
-      processMav
+      processMav T.heartbeat
 
     onStream T.servo_output_raw $ do
       l_motor <- local (istruct [])
@@ -133,19 +140,19 @@ gcsTransmitTask mavStream sp_sink _dr_sink fm_sink armed_sink se_sink ps_sink
       readData motorReader l_motor
       readData ctlReader l_ctl
       call_ mkSendServoOutputRaw l_motor l_ctl seqNum mavlinkStruct
-      processMav
+      processMav T.servo_output_raw
 
     onStream T.attitude $ do
       l_sens <- local (istruct [])
       readData sensorsReader l_sens
       call_ mkSendAttitude l_sens seqNum mavlinkStruct
-      processMav
+      processMav T.attitude
 
     onStream T.gps_raw_int $ do
       l_pos <- local (istruct [])
       readData posReader l_pos
       call_ mkSendGpsRawInt l_pos seqNum mavlinkStruct
-      processMav
+      processMav T.gps_raw_int
 
     onStream T.vfr_hud $ do
       l_pos  <- local (istruct [])
@@ -155,7 +162,7 @@ gcsTransmitTask mavStream sp_sink _dr_sink fm_sink armed_sink se_sink ps_sink
       readData ctlReader l_ctl
       readData sensorsReader l_sens
       call_ mkSendVfrHud l_pos l_ctl l_sens seqNum mavlinkStruct
-      processMav
+      processMav T.vfr_hud
 
     onStream T.global_position_int $ do
       l_pos  <- local (istruct [])
@@ -163,7 +170,7 @@ gcsTransmitTask mavStream sp_sink _dr_sink fm_sink armed_sink se_sink ps_sink
       readData posReader l_pos
       readData sensorsReader l_sens
       call_ mkSendGlobalPositionInt l_pos l_sens now seqNum mavlinkStruct
-      processMav
+      processMav T.global_position_int
 
     onStream T.params $ do
       x       <- local (ival 0)
@@ -174,13 +181,13 @@ gcsTransmitTask mavStream sp_sink _dr_sink fm_sink armed_sink se_sink ps_sink
         found <- call (paramInfoGetter getParamInfo) ix msg
         when found $ do
           call_ mkSendParamValue msg seqNum mavlinkStruct
-          processMav
+          processMav T.params
 
     onStream T.radio $ do
       l_radio <- local (istruct [])
       readData radioReader l_radio
       call_ mkSendRadio l_radio seqNum mavlinkStruct
-      processMav
+      processMav T.radio
 
     -- Keep track of last run for internal scheduler
     store lastRun now
