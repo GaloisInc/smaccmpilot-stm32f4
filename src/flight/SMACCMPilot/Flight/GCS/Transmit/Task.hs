@@ -20,6 +20,9 @@ import           SMACCMPilot.Param
 import qualified SMACCMPilot.Communications               as C
 import           SMACCMPilot.Flight.GCS.Transmit.MessageDriver
 import           SMACCMPilot.Flight.GCS.Stream
+import           SMACCMPilot.Flight.Control.AltHold
+import           SMACCMPilot.Param
+
 import qualified SMACCMPilot.Flight.Types.Armed           as A
 import qualified SMACCMPilot.Flight.Types.GCSStreamTiming as T
 import qualified SMACCMPilot.Flight.Types.FlightMode      as FM
@@ -37,11 +40,12 @@ gcsTransmitTask :: (SingI n0, SingI n1, SingI n2, SingI n3)
                 -> DataSink         (Struct "controloutput")
                 -> DataSink         (Struct "motors")
                 -> DataSink         (Struct "radio_stat")
+                -> DataSink         (Struct "alt_hold_state")
                 -> ChannelSink n3   (Stored Sint16)
                 -> [Param PortPair]
                 -> Task p ()
 gcsTransmitTask mavStream sp_sink _dr_sink fm_sink armed_sink se_sink ps_sink
-                ct_sink mo_sink ra_sink param_req_sink params
+                ct_sink mo_sink ra_sink ah_sink param_req_sink params
   = do
   withStackSize 1024
 
@@ -52,6 +56,7 @@ gcsTransmitTask mavStream sp_sink _dr_sink fm_sink armed_sink se_sink ps_sink
   motorReader      <- withDataReader mo_sink "motors"
   radioReader      <- withDataReader ra_sink "radio"
   armedReader      <- withDataReader armed_sink "armed"
+  altHoldReader    <- withDataReader ah_sink "alt_hold"
   mavTx            <- withChannelEmitter mavStream "gcsTxToEncSrc"
 
   -- the mavlink packet we're packing
@@ -164,6 +169,12 @@ gcsTransmitTask mavStream sp_sink _dr_sink fm_sink armed_sink se_sink ps_sink
       call_ mkSendVfrHud l_pos l_ctl l_sens seqNum mavlinkStruct
       processMav T.vfr_hud
 
+      -- piggyback alt hold state debug here
+      l_alt_hold <- local (istruct [])
+      readData altHoldReader l_alt_hold
+      call_ mkSendAltHoldDebug (constRef l_alt_hold) seqNum mavlinkStruct
+      processMav T.vfr_hud
+
     onStream T.global_position_int $ do
       l_pos  <- local (istruct [])
       l_sens <- local (istruct [])
@@ -199,3 +210,4 @@ gcsTransmitTask mavStream sp_sink _dr_sink fm_sink armed_sink se_sink ps_sink
     depend senderModules
     depend paramModule
     depend mavlinkSendModule
+    depend altHoldModule

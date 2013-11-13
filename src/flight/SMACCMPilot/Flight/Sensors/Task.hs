@@ -16,14 +16,14 @@ import qualified SMACCMPilot.Flight.Types.Sensors as S
 
 import SMACCMPilot.Flight.Sensors.Platforms
 
-sensorsTower :: forall n m p
-             . (SensorOrientation p, SingI n, SingI m)
-            => ChannelSink   n (Struct "position")
-            -> ChannelSource m (Struct "sensors_result")
+sensorsTower :: forall n p
+             . (SensorOrientation p, SingI n)
+            => ChannelSink n (Struct "position")
+            -> DataSource  (Struct "sensors_result")
             -> Tower p ()
 sensorsTower psnk osrc = task "sensorsCaptureTask" $ do
   m <- withGetTimeMillis
-  sensorsEmitter <- withChannelEmitter osrc "sensors"
+  sensorsWriter <- withDataWriter osrc "sensors"
   withStackSize 1024
 
   position <- taskLocal "position"
@@ -49,7 +49,7 @@ sensorsTower psnk osrc = task "sensorsCaptureTask" $ do
   sm <- stateMachine "sensors_capture" $ mdo
     init <- stateNamed "init" $ entry $ liftIvory $ do
       res <- local (istruct [ S.valid .= ival false ])
-      emit_ sensorsEmitter (constRef res)
+      writeData sensorsWriter (constRef res)
       -- time consuming: boots up and calibrates sensors
       call_ sensors_begin (sensorOrientation (Proxy :: Proxy p))
       return $ goto loop
@@ -87,7 +87,7 @@ sensorsTower psnk osrc = task "sensorsCaptureTask" $ do
         , S.zacc      .= ival 0
         , S.time      .= ival time
         ]
-      emit_ sensorsEmitter (constRef res)
+      writeData sensorsWriter (constRef res)
     return init
   taskInit $ begin sm
 

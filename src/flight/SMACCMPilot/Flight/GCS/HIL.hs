@@ -3,6 +3,8 @@
 
 module SMACCMPilot.Flight.GCS.HIL where
 
+import Control.Applicative ((<$>))
+
 import Ivory.Language
 import Ivory.Tower
 import Ivory.Stdlib.Trig (iAtan2)
@@ -11,14 +13,14 @@ import qualified SMACCMPilot.Mavlink.Messages.HilState as H
 import qualified SMACCMPilot.Flight.Types.Sensors  as S
 import qualified SMACCMPilot.Hardware.GPS.Types as P
 
-hilTranslator :: (SingI n, SingI m)
-              => ChannelSink   n (Struct "hil_state_msg")
-              -> ChannelSource m (Struct "sensors_result")
-              -> DataSource      (Struct "position")
+hilTranslator :: (SingI n)
+              => ChannelSink n (Struct "hil_state_msg")
+              -> DataSource    (Struct "sensors_result")
+              -> DataSource    (Struct "position")
               -> Task p ()
 hilTranslator hil sens pos = do
   hilevt       <- withChannelEvent   hil  "hil"
-  sens_emitter <- withChannelEmitter sens "sens"
+  sens_writer  <- withDataWriter     sens "sens"
   pos_writer   <- withDataWriter     pos  "pos"
   m            <- withGetTimeMillis
   onEvent hilevt $ \h -> do
@@ -46,7 +48,7 @@ hilTranslator hil sens pos = do
       , S.zacc     .= ival (safeCast zacc)
       , S.time     .= ival time
       ]
-    emit_ sens_emitter (constRef s)
+    writeData sens_writer (constRef s)
     lat <- deref (h ~> H.lat)
     lon <- deref (h ~> H.lon)
     vx  <- deref (h ~> H.vx)

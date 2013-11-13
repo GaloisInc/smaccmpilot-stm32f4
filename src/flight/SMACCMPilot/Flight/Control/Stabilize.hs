@@ -52,31 +52,6 @@ const_MAX_OUTPUT_ROLL  = 50 -- deg/sec
 const_MAX_OUTPUT_PITCH = 50 -- deg/sec
 const_MAX_OUTPUT_YAW   = 45 -- deg/sec
 
--- | Read a set of PID parameters into a PIDConfig structure.
-getPIDParams :: (GetAlloc eff ~ Scope s2)
-             => PIDParams ParamReader
-             -> Ref s1 (Struct "PIDConfig")
-             -> Ivory eff ()
-getPIDParams p ref = do
-  storeParam     pid_pGain pidP
-  storeParam     pid_iGain pidI
-  storeParam     pid_dGain pidD
-  storeParam     pid_iMax  pidImax
-  storeParamWith pid_iMin  pidImax negate
-  where
-    storeParamWith slot accessor f = do
-      x <- paramRead (accessor p)
-      store (ref ~> slot) (f (paramData x))
-    storeParam s a = storeParamWith s a id
-
-allocPIDParams :: (GetAlloc eff ~ Scope s)
-               => PIDParams ParamReader
-               -> Ivory eff (Ref (Stack s) (Struct "PIDConfig"))
-allocPIDParams p = do
-  cfg <- local izero
-  getPIDParams p cfg
-  return cfg
-
 makeStabilizeRun :: FlightParams ParamReader
                  -> Def ('[ A.ArmedMode
                           , ConstRef s1 (Struct "flightmode")
@@ -87,7 +62,7 @@ makeStabilizeRun :: FlightParams ParamReader
 makeStabilizeRun params =
   proc "stabilize_run" $ \armed _fm input sensors output -> body $ do
   ifte_ (armed /=? A.as_ARMED)
-    (mapM_ do_reset
+    (mapM_ (call_ pid_reset)
       [roll_stabilize, pitch_stabilize, roll_rate, pitch_rate, yaw_rate] )
     $ do -- if armed:
       sen_roll    <- (sensors ~>* SEN.roll)
@@ -112,8 +87,8 @@ makeStabilizeRun params =
                           (constRef roll_stabilize_cfg)
                           roll_rate
                           (constRef roll_rate_cfg)
-                          const_MAX_INPUT_ROLL
                           controlinput_roll
+                          const_MAX_INPUT_ROLL
                           sen_roll
                           sen_omega_x
                           const_MAX_OUTPUT_ROLL
@@ -123,8 +98,8 @@ makeStabilizeRun params =
                           (constRef pitch_stabilize_cfg)
                           pitch_rate
                           (constRef pitch_rate_cfg)
-                          const_MAX_INPUT_ROLL
                           (-1 * controlinput_pitch)
+                          const_MAX_INPUT_ROLL
                           sen_pitch
                           sen_omega_y
                           const_MAX_OUTPUT_ROLL
@@ -141,8 +116,6 @@ makeStabilizeRun params =
       store (output ~> OUT.pitch) pitch_out
       store (output ~> OUT.yaw)   yaw_out
   where
-  do_reset :: Ref s (Struct "PIDState") -> Ivory eff ()
-  do_reset pid = store (pid ~> pid_reset) 1
   roll_stabilize  = addrOf pid_roll_stabilize
   pitch_stabilize = addrOf pid_pitch_stabilize
   roll_rate       = addrOf pid_roll_rate
@@ -154,23 +127,23 @@ makeStabilizeRun params =
 
 pid_roll_stabilize :: MemArea (Struct "PIDState")
 pid_roll_stabilize = area "g_pid_roll_stabilize" $ Just $ istruct
-  [ pid_reset .= ival 1 ]
+  [ pid_dReset .= ival 1 ]
 
 pid_roll_rate :: MemArea (Struct "PIDState")
 pid_roll_rate = area "g_pid_roll_rate" $ Just $ istruct
-  [ pid_reset .= ival 1 ]
+  [ pid_dReset .= ival 1 ]
 
 pid_pitch_stabilize :: MemArea (Struct "PIDState")
 pid_pitch_stabilize = area "g_pid_pitch_stabilize" $ Just $ istruct
-  [ pid_reset .= ival 1 ]
+  [ pid_dReset .= ival 1 ]
 
 pid_pitch_rate :: MemArea (Struct "PIDState")
 pid_pitch_rate = area "g_pid_pitch_rate" $ Just $ istruct
-  [ pid_reset .= ival 1 ]
+  [ pid_dReset .= ival 1 ]
 
 pid_yaw_rate :: MemArea (Struct "PIDState")
 pid_yaw_rate = area "g_pid_yaw_rate" $ Just $ istruct
-  [ pid_reset .= ival 1 ]
+  [ pid_dReset .= ival 1 ]
 
 -- | Initialize the stabilization module.  This registers parameters
 -- for all the PID controllers so they can be accessed via MAVlink.
@@ -195,15 +168,15 @@ stabilize_from_angle :: Def (
   , IFloat                            -- max_stick_angle_deg
   , IFloat                            -- sensor_angle_rad
   , IFloat                            -- sensor_rate_rad_s
-  , IFloat                            -- max_servo_rate_rad_s
+  , IFloat                            -- max_servo_rate_deg_s
   ] :-> IFloat)
 stabilize_from_angle = proc "stabilize_from_angle" $
   \angle_pid angle_cfg
    rate_pid  rate_cfg
    stick_angle_norm max_stick_angle_deg
    sensor_angle_rad sensor_rate_rad_s
-   max_servo_rate_rad_s ->
-  requires (max_servo_rate_rad_s /=? 0) $ body $
+   max_servo_rate_deg_s ->
+  requires (max_servo_rate_deg_s /=? 0) $ body $
   do
   stick_angle_deg   <- assign $ stick_angle_norm * max_stick_angle_deg
   sensor_angle_deg  <- assign $ degrees sensor_angle_rad
@@ -212,9 +185,9 @@ stabilize_from_angle = proc "stabilize_from_angle" $
   sensor_rate_deg_s <- assign $ degrees sensor_rate_rad_s
   rate_error        <- assign $ rate_deg_s - sensor_rate_deg_s
   servo_rate_deg_s  <- call pid_update rate_pid rate_cfg rate_error sensor_rate_deg_s
-  servo_rate_norm   <- call fconstrain (-max_servo_rate_rad_s)
-                            max_servo_rate_rad_s servo_rate_deg_s
-  ret $ servo_rate_norm / max_servo_rate_rad_s
+  servo_rate_norm   <- call fconstrain (-max_servo_rate_deg_s)
+                            max_servo_rate_deg_s servo_rate_deg_s
+  ret $ servo_rate_norm / max_servo_rate_deg_s
 
 -- | Return a normalized servo output given a normalized stick input
 -- representing the desired rate.  Only uses the rate PID controller.
@@ -224,20 +197,20 @@ stabilize_from_rate :: Def (
   , IFloat                              -- stick_rate_norm
   , IFloat                              -- max_stick_rate_deg_s
   , IFloat                              -- sensor_rate_rad_s
-  , IFloat                              -- max_servo_rate_rad_s
+  , IFloat                              -- max_servo_rate_deg_s
   ] :-> IFloat)
 stabilize_from_rate = proc "stabilize_from_rate" $
   \rate_pid rate_cfg stick_rate_norm max_stick_rate_deg_s
-   sensor_rate_rad_s max_servo_rate_rad_s ->
-  requires (max_servo_rate_rad_s /=? 0) $ body $
+   sensor_rate_rad_s max_servo_rate_deg_s ->
+  requires (max_servo_rate_deg_s /=? 0) $ body $
   do
   stick_rate_deg_s  <- assign $ stick_rate_norm * max_stick_rate_deg_s
   sensor_rate_deg_s <- assign $ degrees sensor_rate_rad_s
   rate_error        <- assign $ stick_rate_deg_s - sensor_rate_deg_s
   servo_rate_deg_s  <- call pid_update rate_pid rate_cfg rate_error sensor_rate_deg_s
-  servo_rate_norm   <- call fconstrain (-max_servo_rate_rad_s)
-                            max_servo_rate_rad_s servo_rate_deg_s
-  ret $ servo_rate_norm / max_servo_rate_rad_s
+  servo_rate_norm   <- call fconstrain (-max_servo_rate_deg_s)
+                            max_servo_rate_deg_s servo_rate_deg_s
+  ret $ servo_rate_norm / max_servo_rate_deg_s
 
 
 ----------------------------------------------------------------------

@@ -10,13 +10,16 @@ import Control.Monad (void)
 
 import Ivory.Language
 import Ivory.Tower
+import Ivory.Stdlib (stdlibModules)
 
-import qualified SMACCMPilot.Mavlink.Messages.HilState   as HIL
+import qualified SMACCMPilot.Mavlink.Messages.HilState     as HIL
+import qualified SMACCMPilot.Mavlink.Messages.AltHoldDebug as AHD
 
 import SMACCMPilot.Flight.GCS.HIL
 import SMACCMPilot.Param
 import SMACCMPilot.Flight.GCS.Transmit.Task
 import SMACCMPilot.Flight.GCS.Receive.Task
+import SMACCMPilot.Flight.Control.AltHold
 
 import qualified SMACCMPilot.Flight.Types.Armed          as A
 
@@ -42,13 +45,14 @@ gcsTower :: (SingI n0, SingI n1, SingI n2, SingI n3)
          -> DataSink (Struct "controloutput")
          -> DataSink (Struct "motors")
          -> ChannelSource n3 (Struct "rc_channels_override_msg")
+         -> DataSink (Struct "alt_hold_state")
          -> [Param PortPair]
          -> Tower p ()
 gcsTower name opts istream ostream fm armed_res_snk armed_mav_src sens
-         pos ctl motor rcOvrTx params
+         pos ctl motor rcOvrTx ah_snk params
   =
   void $ gcsTowerAux name opts istream ostream fm armed_res_snk armed_mav_src
-           sens pos ctl motor rcOvrTx params
+           sens pos ctl motor rcOvrTx ah_snk params
 
 --------------------------------------------------------------------------------
 
@@ -63,20 +67,21 @@ gcsTowerHil :: (SingI n0, SingI n1, SingI n2, SingI n3)
          -> ChannelSource n2 (Stored A.ArmedMode)
          -> DataSink (Struct "controloutput")
          -> DataSink (Struct "motors")
-         -> ( ChannelSource 16 (Struct "sensors_result")
-            , ChannelSink 16 (Struct "sensors_result"))
+         -> ( DataSource (Struct "sensors_result")
+            , DataSink   (Struct "sensors_result"))
          -> ChannelSource n3 (Struct "rc_channels_override_msg")
+         -> DataSink (Struct "alt_hold_state")
          -> [Param PortPair]
          -> Tower p ()
 gcsTowerHil name opts istream ostream fm armed_res_snk
             armed_mav_src ctl motor sensors
-            rcOvrTx params
+            rcOvrTx ah_snk params
   = do
-  sensors_state <- stateProxy (snk sensors)
+  let sensors_state = snk sensors
   position      <- dataport
   hil           <-
     gcs fm armed_res_snk armed_mav_src sensors_state (snk position) ctl
-      motor rcOvrTx params
+      motor rcOvrTx ah_snk params
   task "hilTranslator" $ hilTranslator hil (src sensors) (src position)
   where
   gcs = gcsTowerAux name opts istream ostream
@@ -97,10 +102,11 @@ gcsTowerAux :: (SingI n0, SingI n1, SingI n2, SingI n3)
          -> DataSink (Struct "controloutput")
          -> DataSink (Struct "motors")
          -> ChannelSource n3 (Struct "rc_channels_override_msg")
+         -> DataSink (Struct "alt_hold_state")
          -> [Param PortPair]
          -> Tower p (ChannelSink 4 (Struct "hil_state_msg"))
 gcsTowerAux name opts istream ostream fm armed_res_snk armed_mav_src sens pos
-            ctl motor rcOvrTx params
+            ctl motor rcOvrTx ah_snk params
   = do
   -- GCS TX and encrypt tasks
   (gcsTxToEncSrc, gcsTxToEncRcv) <- channel
@@ -133,8 +139,11 @@ gcsTowerAux name opts istream ostream fm armed_res_snk armed_mav_src sens pos
   task (named "encryptTask") $ Enc.encryptTask opts gcsTxToEncRcv encToHxSrc
   task (named "gcsTransmitTask") $
     gcsTransmitTask gcsTxToEncSrc (snk streamrate) (snk datarate) (snk fm)
-      armed_res_snk sens pos ctl motor radioStat (snk param_req) params
+      armed_res_snk sens pos ctl motor radioStat ah_snk (snk param_req) params
   addDepends HIL.hilStateModule
+  addDepends AHD.altHoldDebugModule
+  addDepends altHoldModule
+  mapM_ addDepends stdlibModules
   return (snk hil)
   where named n = n ++ "_" ++ name
 --------------------------------------------------------------------------------

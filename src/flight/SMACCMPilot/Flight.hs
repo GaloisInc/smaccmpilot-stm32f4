@@ -16,7 +16,7 @@ import Data.Traversable (Traversable(..))
 import Ivory.Language
 import Ivory.Tower
 
-import Ivory.Stdlib.String (stdlibStringModule)
+import Ivory.Stdlib (stdlibModules)
 
 import qualified SMACCMPilot.Flight.Types.Armed as A
 import SMACCMPilot.Flight.Types (typeModules)
@@ -67,7 +67,7 @@ hil :: (BoardHSE p, MotorOutput p, SensorOrientation p)
     -> Tower p ()
 hil opts = do
   -- Communication primitives:
-  sensors       <- channel
+  sensors       <- dataport
   flightmode    <- dataport
   -- Arming input from GCS.  Goes to MAVLink mux.
   armed_mav     <- channel
@@ -76,6 +76,9 @@ hil opts = do
 
   -- RC override channel
   (rcOvrTx, rcOvrRx) <- channel
+
+  -- alt hold state debugging
+  ah_state <- dataport
 
   -- Parameters:
   (params, paramList) <- initTowerParams sysParams
@@ -89,6 +92,7 @@ hil opts = do
                             (snk armed_mav)
                             flightparams
                             rcOvrRx
+                            (src ah_state)
   motors_state      <- stateProxy motors
   control_state     <- stateProxy control
 
@@ -97,7 +101,7 @@ hil opts = do
 
   gcsTowerHil "uart1" opts istream ostream flightmode
     (snk armed_res) (src armed_mav) control_state motors_state
-    sensors rcOvrTx paramList
+    sensors rcOvrTx (snk ah_state) paramList
 
   addModule (commsecModule opts)
   -- Missing module that comes in via gpsTower:
@@ -109,8 +113,8 @@ flight :: (BoardHSE p, MotorOutput p, SensorOrientation p)
        -> Tower p ()
 flight opts = do
   -- Communication primitives:
-  sensors       <- channel
-  sensor_state  <- stateProxy (snk sensors)
+  sensors       <- dataport
+  let sensor_state = snk sensors
   flightmode    <- dataport
   -- Arming input from GCS.  Goes to MAVLink mux.
   armed_mav     <- channel
@@ -119,6 +123,9 @@ flight opts = do
 
   -- RC override channel:
   (rcOvrTx, rcOvrRx) <- channel
+
+  -- alt hold state debugging
+  ah_state <- dataport
 
   -- Parameters:
   (params, paramList) <- initTowerParams sysParams
@@ -132,6 +139,7 @@ flight opts = do
                             (snk armed_mav)
                             flightparams
                             rcOvrRx
+                            (src ah_state)
   motors_state      <- stateProxy motors
   control_state     <- stateProxy control
 
@@ -146,7 +154,7 @@ flight opts = do
   let gcsTower' uartNm uartiStrm uartoStrm =
         gcsTower uartNm opts uartiStrm uartoStrm flightmode
           (snk armed_res) (src armed_mav) sensor_state position_state
-          control_state motors_state rcOvrTx paramList
+          control_state motors_state rcOvrTx (snk ah_state) paramList
 
   -- GCS on UART1:
   (uart1istream, uart1ostream) <- uart UART.uart1
@@ -158,18 +166,19 @@ flight opts = do
 
   addModule (commsecModule opts)
 
-core :: (SingI n0, SingI n1, SingI n2)
-       => ChannelSink n0 (Struct "sensors_result")
+core :: (SingI n1, SingI n2)
+       => DataSink (Struct "sensors_result")
        -> DataSink (Struct "flightmode")
        -> ( DataSource (Stored A.ArmedMode)
           , DataSink   (Stored A.ArmedMode))
        -> ChannelSink n1 (Stored A.ArmedMode)
        -> FlightParams ParamSink
        -> ChannelSink n2 (Struct "rc_channels_override_msg")
+       -> DataSource (Struct "alt_hold_state")
        -> Tower p ( ChannelSink 16 (Struct "controloutput")
                   , ChannelSink 16 (Struct "motors"))
 core sensors flightmode armed_res armed_mav_snk
-     flightparams snk_rc_override_msg
+     flightparams snk_rc_override_msg ah_state_src
   = do
   motors  <- channel
   control <- channel
@@ -178,7 +187,7 @@ core sensors flightmode armed_res armed_mav_snk
     userInputTower armed_res armed_mav_snk snk_rc_override_msg
   task "blink"      $ blinkTask lights (snk armed_res) flightmode
   task "control"    $ controlTask (snk armed_res) flightmode userinput sensors
-                       (src control) flightparams
+                       (src control) ah_state_src flightparams
   task "motmix"     $ motorMixerTask (snk control) (snk armed_res)
                         flightmode (src motors)
 
@@ -199,12 +208,13 @@ otherms = concat
   , controlModules
   -- mavlink system
   , mavlinkMessageModules
+  -- standard library
+  , stdlibModules
   ] ++
   [ packModule
   , mavlinkCRCModule
   , paramModule
   -- the rest:
-  , stdlibStringModule
   -- hxstream
   , hxstreamModule
 

@@ -102,6 +102,7 @@ library
                         SMACCMPilot.Mavlink.Messages.Data16,
                         SMACCMPilot.Mavlink.Messages.Data32,
                         SMACCMPilot.Mavlink.Messages.Data64,
+                        SMACCMPilot.Mavlink.Messages.AltHoldDebug,
                         GCS.Mavlink.CRC
 
   build-depends:        base >= 4.6,

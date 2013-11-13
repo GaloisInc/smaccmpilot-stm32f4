@@ -16,6 +16,7 @@ import qualified SMACCMPilot.Mavlink.Messages.Radio
 import qualified SMACCMPilot.Mavlink.Messages.Data16
 import qualified SMACCMPilot.Mavlink.Messages.Data32
 import qualified SMACCMPilot.Mavlink.Messages.Data64
+import qualified SMACCMPilot.Mavlink.Messages.AltHoldDebug
 import qualified SMACCMPilot.Mavlink.Messages.Heartbeat
 import qualified SMACCMPilot.Mavlink.Messages.SysStatus
 import qualified SMACCMPilot.Mavlink.Messages.SystemTime
@@ -104,6 +105,7 @@ mavlinkMessageModules =
   , SMACCMPilot.Mavlink.Messages.Data16.data16Module
   , SMACCMPilot.Mavlink.Messages.Data32.data32Module
   , SMACCMPilot.Mavlink.Messages.Data64.data64Module
+  , SMACCMPilot.Mavlink.Messages.AltHoldDebug.altHoldDebugModule
   , SMACCMPilot.Mavlink.Messages.Heartbeat.heartbeatModule
   , SMACCMPilot.Mavlink.Messages.SysStatus.sysStatusModule
   , SMACCMPilot.Mavlink.Messages.SystemTime.systemTimeModule
@@ -195,6 +197,7 @@ messageLensCRCs =
   , (169, ( 18,  46)) -- 0xA9 DATA16
   , (170, ( 34, 240)) -- 0xAA DATA32
   , (171, ( 66, 170)) -- 0xAB DATA64
+  , (173, ( 52,  45)) -- 0xAD ALT_HOLD_DEBUG
   , (  0, (  9,  50)) -- 0x00 HEARTBEAT
   , (  1, ( 31, 124)) -- 0x01 SYS_STATUS
   , (  2, ( 12, 137)) -- 0x02 SYSTEM_TIME
