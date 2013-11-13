@@ -1,6 +1,6 @@
 include $(TOP)/Keys.mk
 
-GCS_SH    := $(TOP)/src/gcs/gcs.sh
+GCS_SH    := $(TOP)/gcs.sh
 GCS_SH_IN := $(TOP)/src/gcs/gcs.sh.in
 
 $(GCS_SH): $(GCS_SH_IN) $(TOP)/Keys.mk
