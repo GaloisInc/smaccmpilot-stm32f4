@@ -31,15 +31,8 @@ defaultPeriods =
     , radio                .= mkTimingData 1000 softRealTime
     ]
 
--- hide the scope from the typechecker until application. once we have an
--- ivory monad without a codescope parameter, we wont need this or the ugly
--- recursion below
--- newtype SelectorAction =
---   SelectorAction
---     { unwrapSelectorAction :: forall eff
---     . Label "gcsstream_timing" (Struct "gcsstream_data") -> Ivory eff ()
---     }
-
+-- | Update the stream period for one (or more) MAVLink streams.  This is called
+-- by a GCS Rx handler.
 updateGCSStreamPeriods :: Ref s (Struct "gcsstream_timing")
                        -> Uint8  -- request stream id (mavlink enum typed)
                        -> IBool  -- enabled
@@ -48,7 +41,7 @@ updateGCSStreamPeriods :: Ref s (Struct "gcsstream_timing")
 updateGCSStreamPeriods periods streamid enabled rate = do
   ifte_ (streamid ==? fromIntegral MavDS.id_ALL)
         (mapM_ setrate allstreams)
-        (withSelectorFromId streamid)
+        (setRateOne streamid)
   where
   allstreams = [ servo_output_raw
                , attitude
@@ -56,24 +49,17 @@ updateGCSStreamPeriods periods streamid enabled rate = do
                , vfr_hud
                , global_position_int
                ]
+
   setrate :: GcsTimingLabel -> Ivory eff ()
   setrate selector = when enabled (setPeriod selector periods newperiod)
     where
     newperiod = 1000 `iDiv` (safeCast rate)
 
-  withSelectorFromId :: Uint8
---                     -> SelectorAction
-                     -> Ivory eff ()
-  withSelectorFromId tofind = aux tbl
-    where -- explicit recursion and existential quantification is a little weird
-          -- not foldr, because of nested block typing which is going away soon
-          -- anyway
-    aux ::  [(Integer, GcsTimingLabel)]
-        -> Ivory eff ()
-    aux ((sid, sel):ts) = ifte_ (fromIntegral sid ==? tofind)
-                                (setrate sel)
-                                (aux ts)
-    aux [] = return ()
+  setRateOne :: Uint8 -> Ivory eff ()
+  setRateOne toFind = mapM_ aux tbl
+    where
+    aux :: (Integer, GcsTimingLabel) -> Ivory eff ()
+    aux (i,l) = when (fromIntegral i ==? toFind) (setrate l)
 
   tbl ::[(Integer, GcsTimingLabel)]
   tbl = [ (MavDS.id_RAW_CONTROLLER,  servo_output_raw)
@@ -83,13 +69,15 @@ updateGCSStreamPeriods periods streamid enabled rate = do
         , (MavDS.id_EXTRA2,          vfr_hud)
         ]
 
-setNewPeriods :: ConstRef s0 (Struct "gcsstream_timing") -- NEW periods
-            -> Ref s1        (Struct "gcsstream_timing") -- STATE periods
-            -> Ref s2        (Struct "gcsstream_timing") -- schedule
-            -> Uint32                                    -- Now
-            -> Ivory eff ()                              -- update schedule
-setNewPeriods new state schedule now = do
-  mapM_ update selectors
+-- | Take a new set of stream rates and update the current stream rates if they
+-- differ.  Also update the schedule based on the new rates.
+setNewPeriods :: ConstRef s0 (Struct "gcsstream_timing")   -- NEW periods
+              -> Ref s1      (Struct "gcsstream_timing")   -- STATE periods
+              -> Ref s2      (Struct "gcsstream_schedule") -- schedule
+              -> Uint32                                    -- Now
+              -> Ivory eff ()                              -- update schedule
+setNewPeriods new state schedule now =
+  mapM_ update allTimingLabels
   where
   update :: GcsTimingLabel -> Ivory eff ()
   update selector = do
@@ -98,32 +86,42 @@ setNewPeriods new state schedule now = do
     unless (n ==? s) $ do
       setPeriod selector state n
       setNextTime (constRef state) schedule selector now
-  selectors = [ heartbeat, servo_output_raw, attitude, gps_raw_int
-              , vfr_hud, global_position_int, params, radio ]
 
-setNextTime :: ConstRef s (Struct "gcsstream_timing") -- periods
-            -> Ref s1     (Struct "gcsstream_timing") -- schedule
-            -> GcsTimingLabel                         -- selector for packet sent
-            -> Uint32                                 -- Now
-            -> Ivory eff ()                           -- update schedule
+-- Update the schedule for the stream.  Has the property that the schedule is at
+-- least as long as the period set in the gcsstream_timing, but it may exceed
+-- it.
+setNextTime :: ConstRef s (Struct "gcsstream_timing")   -- periods
+            -> Ref s1     (Struct "gcsstream_schedule") -- schedule
+            -> GcsTimingLabel                           -- selector for packet sent
+            -> Uint32                                   -- Now
+            -> Ivory eff ()                             -- update schedule
 setNextTime periods schedule selector now = do
   per  <- getPeriod selector periods
-  prev <- getPeriod selector schedule
+  let schedSelector = toSchedLabel selector
+  prev <- schedule ~>* schedSelector
   -- Schedule always for a time ahead of now, but keep consistent
   -- period by adding to prev, if possible.
   -- XXX rollover creates a problem here but that should take 49 days
   next <- assign $ (prev + per <? now) ? (now + per, prev + per)
-  setPeriod selector schedule next
+  -- the stream is inactive or it's scheduled for the future.
+  --
+  -- XXX the user
+  -- might do something bad like enter a 0 schedule on purpose, so I don't know
+  -- if we want to die based on user input.
+  -- p <- getPeriod selector periods
+  -- assert ((p ==? 0) .|| (now <? next))
+  store (schedule ~> schedSelector) next
 
-streamDue :: ConstRef s1 (Struct "gcsstream_timing") -- periods
-          -> ConstRef s2 (Struct "gcsstream_timing") -- schedule
-          -> GcsTimingLabel                          -- stream selector
-          -> Uint32                                  -- last update
-          -> Uint32                                  -- now
+-- Stream is due if the stream is active and the current time exceeds its due
+-- time.
+streamDue :: ConstRef s1 (Struct "gcsstream_timing")   -- periods
+          -> ConstRef s2 (Struct "gcsstream_schedule") -- schedule
+          -> GcsTimingLabel                            -- stream selector
+          -> Uint32                                    -- now
           -> Ivory eff IBool
-streamDue periods schedule selector last now = do
-  p <- getPeriod selector periods
-  active <- assign (p >? 0)
-  duetime <- getPeriod selector schedule
-  return (active .&& (duetime >? last).&& (duetime <=? now))
+streamDue periods schedule selector now = do
+  p       <- getPeriod selector periods
+  active  <- assign (p >? 0)
+  duetime <- schedule ~>* toSchedLabel selector
+  return (active .&& (duetime <=? now))
 

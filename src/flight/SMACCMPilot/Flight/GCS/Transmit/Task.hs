@@ -69,9 +69,11 @@ gcsTransmitTask mavStream sp_sink _dr_sink fm_sink armed_sink se_sink ps_sink
   read_params     <- traverse paramReader (map (fmap portPairSink) params)
   getParamInfo    <- makeGetParamInfo read_params
 
-  lastRun    <- taskLocal "lastrun"
-  s_periods  <- taskLocal "periods"
-  s_schedule <- taskLocal "schedule"
+  lastRun     <- taskLocal "lastrun"
+  s_periods   <- taskLocal "periods"
+  s_schedule  <- taskLocal "schedule"
+  -- Current index into the sending array
+  mavSendIx   <- taskLocalInit "mav_send_ix" (ival (0 :: Sint32))
 
   taskInit $ do
     initTime <- getTimeMillis t
@@ -82,26 +84,32 @@ gcsTransmitTask mavStream sp_sink _dr_sink fm_sink armed_sink se_sink ps_sink
 
   let processMav :: (Scope s ~ GetAlloc eff) => Ivory eff ()
       processMav = do
-        -- Zero sending array
-        arrayMap $ \ix -> store (mavlinkSend ! ix) 0
-        -- Copy to sending array
         let arr = mavlinkStruct ~> mav_array
         mavlen <- mavlinkStruct ~>* mav_size
-        arrayCopy mavlinkSend arr 0 (safeCast mavlen)
-        -- Now send it on to UART1
-        emit_ mavTx (constRef mavlinkSend)
+        currIx <- deref mavSendIx
+        let mavlen' = safeCast mavlen
+        -- Do we have enough room to pack another packet?
+        let room   = arrayLen mavlinkSend - currIx >=? mavlen'
+        let copyMav :: (Scope cs ~ GetAlloc eff) => Sint32 -> Ivory eff ()
+            copyMav ix = do
+              arrayCopy mavlinkSend arr ix mavlen'
+              store mavSendIx (ix + mavlen')
+        ifte_ room
+          (copyMav currIx)
+          -- Not enough room: emit and then store.
+          (do emit_ mavTx (constRef mavlinkSend)
+              -- Zero sending array and reset index
+              arrayMap $ \ix -> store (mavlinkSend ! ix) 0
+              copyMav 0)
 
   onPeriod 50 $ \now -> do
 
     -- Handler for all streams - if due, run action, then update schedule
-    let onStream :: T.GcsTimingLabel
-                 -> Ivory eff () -> Ivory eff ()
+    let onStream :: T.GcsTimingLabel -> Ivory eff () -> Ivory eff ()
         onStream selector action = do
-          last <- deref lastRun
           due  <- streamDue (constRef s_periods) (constRef s_schedule)
-                    selector last now
+                    selector now
           let arr = mavlinkStruct ~> mav_array
-
           when due $ do
             -- Zero out mavlink array first
             arrayMap $ \ix -> store (arr ! ix) 0
