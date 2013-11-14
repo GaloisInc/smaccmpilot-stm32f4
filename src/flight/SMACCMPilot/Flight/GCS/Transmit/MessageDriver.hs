@@ -148,7 +148,8 @@ mkSendVfrHud = proc "gcs_transmit_send_vfrhud"
   (calcSpeed pos) `resultInto` (hud ~> HUD.groundspeed)
   (calcSpeed pos) `resultInto` (hud ~> HUD.airspeed)
   -- Calculating alt from int32 in milimeters, into float in meters
-  (calcAltitude pos) `resultInto` (hud ~> HUD.alt)
+--  (positionAltitude pos) `resultInto` (hud ~> HUD.alt)
+  (deref (sens ~> Sens.baro_alt)) `resultInto` (hud ~> HUD.alt)
   -- Vertical zpeed from vz
   (calcVertSpeed pos) `resultInto` (hud ~> HUD.climb)
   -- Heading from sensors
@@ -164,8 +165,8 @@ mkSendVfrHud = proc "gcs_transmit_send_vfrhud"
     vground <- (pos ~>* P.vground)
     return $ (safeCast vground) / 100.0
 
-  calcAltitude :: Ref s (Struct "position") -> Ivory eff IFloat
-  calcAltitude pos = do
+  positionAltitude :: Ref s (Struct "position") -> Ivory eff IFloat
+  positionAltitude pos = do
     milimeters <- (pos ~>* P.alt)
     mm_float <- assign $ safeCast milimeters
     return (mm_float / 1000)
