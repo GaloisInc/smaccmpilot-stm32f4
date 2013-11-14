@@ -129,6 +129,9 @@ controlTask a s_fm s_inpt s_sens s_ctl s_ah_state params = do
       when (mode /=? prev_mode) $ do
         when (mode ==? flightModeAltHold) $ do
           setJust (ahState ~> ah_target_alt) alt_current
+          let params = flightAltHold param_reader
+          cruise <- paramRead (altHoldTrimThrottle params)
+          store (ahState ~> ah_throttle_cruise) (paramData cruise)
 
       store prevMode mode
 
