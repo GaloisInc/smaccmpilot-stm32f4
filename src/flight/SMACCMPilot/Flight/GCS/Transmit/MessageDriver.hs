@@ -37,7 +37,7 @@ import qualified SMACCMPilot.Mavlink.Messages.ServoOutputRaw    as SVO
 import qualified SMACCMPilot.Mavlink.Messages.GpsRawInt         as GRI
 import qualified SMACCMPilot.Mavlink.Messages.GlobalPositionInt as GPI
 import qualified SMACCMPilot.Mavlink.Messages.ParamValue        as PV
-import qualified SMACCMPilot.Mavlink.Messages.Radio             as RMSG
+import qualified SMACCMPilot.Mavlink.Messages.VehicleRadio      as VR
 import qualified SMACCMPilot.Mavlink.Messages.AltHoldDebug      as AHD
 
 import           SMACCMPilot.Flight.Control.AltHold
@@ -304,15 +304,15 @@ mkSendRadio = proc "gcs_transmit_send_radio" $
   noise    <- deref (stat ~> RStat.loc_noise)
   remnoise <- deref (stat ~> RStat.rem_noise)
   msg      <- local (istruct
-    [ RMSG.rxerrors .= ival rxerrors
-    , RMSG.fixed    .= ival fixed
-    , RMSG.rssi     .= ival rssi
-    , RMSG.remrssi  .= ival remrssi
-    , RMSG.txbuf    .= ival txbuf
-    , RMSG.noise    .= ival noise
-    , RMSG.remnoise .= ival remnoise
+    [ VR.rxerrors .= ival rxerrors
+    , VR.fixed    .= ival fixed
+    , VR.rssi     .= ival rssi
+    , VR.remrssi  .= ival remrssi
+    , VR.txbuf    .= ival txbuf
+    , VR.noise    .= ival noise
+    , VR.remnoise .= ival remnoise
     ])
-  call_ RMSG.mkRadioSender (constRef msg) seqNum sendStruct
+  call_ VR.mkVehicleRadioSender (constRef msg) seqNum sendStruct
 
 mkSendAltHoldDebug :: Def ('[ ConstRef s1 (Struct "alt_hold_state")
                             , Ref      s2 (Stored Uint8)
