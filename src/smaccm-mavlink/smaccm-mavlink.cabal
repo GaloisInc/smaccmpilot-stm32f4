@@ -98,11 +98,12 @@ library
                         SMACCMPilot.Mavlink.Messages.NamedValueInt,
                         SMACCMPilot.Mavlink.Messages.Statustext,
                         SMACCMPilot.Mavlink.Messages.Debug,
-                        SMACCMPilot.Mavlink.Messages.Radio,
                         SMACCMPilot.Mavlink.Messages.Data16,
                         SMACCMPilot.Mavlink.Messages.Data32,
                         SMACCMPilot.Mavlink.Messages.Data64,
                         SMACCMPilot.Mavlink.Messages.AltHoldDebug,
+                        SMACCMPilot.Mavlink.Messages.VehicleRadio,
+                        SMACCMPilot.Mavlink.Messages.GcsRadio,
                         GCS.Mavlink.CRC
 
   build-depends:        base >= 4.6,

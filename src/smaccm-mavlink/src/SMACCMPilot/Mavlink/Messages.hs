@@ -12,11 +12,12 @@ module SMACCMPilot.Mavlink.Messages
 import Data.Word (Word8)
 import Ivory.Language
 
-import qualified SMACCMPilot.Mavlink.Messages.Radio
 import qualified SMACCMPilot.Mavlink.Messages.Data16
 import qualified SMACCMPilot.Mavlink.Messages.Data32
 import qualified SMACCMPilot.Mavlink.Messages.Data64
 import qualified SMACCMPilot.Mavlink.Messages.AltHoldDebug
+import qualified SMACCMPilot.Mavlink.Messages.VehicleRadio
+import qualified SMACCMPilot.Mavlink.Messages.GcsRadio
 import qualified SMACCMPilot.Mavlink.Messages.Heartbeat
 import qualified SMACCMPilot.Mavlink.Messages.SysStatus
 import qualified SMACCMPilot.Mavlink.Messages.SystemTime
@@ -101,11 +102,12 @@ import qualified SMACCMPilot.Mavlink.Messages.Debug
 
 mavlinkMessageModules :: [Module]
 mavlinkMessageModules =
-  [ SMACCMPilot.Mavlink.Messages.Radio.radioModule
-  , SMACCMPilot.Mavlink.Messages.Data16.data16Module
+  [ SMACCMPilot.Mavlink.Messages.Data16.data16Module
   , SMACCMPilot.Mavlink.Messages.Data32.data32Module
   , SMACCMPilot.Mavlink.Messages.Data64.data64Module
   , SMACCMPilot.Mavlink.Messages.AltHoldDebug.altHoldDebugModule
+  , SMACCMPilot.Mavlink.Messages.VehicleRadio.vehicleRadioModule
+  , SMACCMPilot.Mavlink.Messages.GcsRadio.gcsRadioModule
   , SMACCMPilot.Mavlink.Messages.Heartbeat.heartbeatModule
   , SMACCMPilot.Mavlink.Messages.SysStatus.sysStatusModule
   , SMACCMPilot.Mavlink.Messages.SystemTime.systemTimeModule
@@ -193,11 +195,12 @@ mavlinkMessageModules =
 -- [(Message Id, (Message Length, Message CRC))]
 messageLensCRCs :: [(Word8, (Word8, Word8))]
 messageLensCRCs =
-  [ (166, (  9,  21)) -- 0xA6 RADIO
-  , (169, ( 18,  46)) -- 0xA9 DATA16
+  [ (169, ( 18,  46)) -- 0xA9 DATA16
   , (170, ( 34, 240)) -- 0xAA DATA32
   , (171, ( 66, 170)) -- 0xAB DATA64
   , (173, ( 52,  45)) -- 0xAD ALT_HOLD_DEBUG
+  , (174, (  9, 238)) -- 0xAE VEHICLE_RADIO
+  , (175, (  9, 108)) -- 0xAF GCS_RADIO
   , (  0, (  9,  50)) -- 0x00 HEARTBEAT
   , (  1, ( 31, 124)) -- 0x01 SYS_STATUS
   , (  2, ( 12, 137)) -- 0x02 SYSTEM_TIME
