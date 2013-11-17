@@ -27,7 +27,6 @@ datalink :: (SingI n0, SingI n1, SingI n2, SingI n3)
          -> ChannelSource n1 (Stored Uint8) -- to UART
          -> Tower p ( ChannelSink   8 C.CommsecArray -- to decrypter
                     , ChannelSource 8 C.CommsecArray -- from encrypter to Hx
-                      -- XXX no endpoint currently
                     , ChannelSink   n2 (Struct "radio_stat")
                       -- XXX no endpoint currently
                     , ChannelSink   n3 (Struct "radio_info"))
@@ -78,7 +77,7 @@ encoder framed_snk link_src = do
   onEvent framed_istream $ \frame -> noReturn $
     H.encode C.airDataTag frame (emitV_ link_ostream)
   -- Periodically send binary info request to radio.
-  onPeriod 250 $ \_t -> noReturn $ do
+  onPeriod 1000 $ \_t -> noReturn $ do
     (frame :: Ref (Stack s) (Array 2 (Stored Uint8))) <- local $ iarray
       [ ival (charUint8 'B')
       , ival (charUint8 '\r')
