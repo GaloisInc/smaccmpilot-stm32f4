@@ -86,6 +86,8 @@ setNewPeriods new state schedule now =
     unless (n ==? s) $ do
       setPeriod selector state n
       setNextTime (constRef state) schedule selector now
+    rt <- getDeadline selector new
+    setDeadline selector state rt
 
 -- Update the schedule for the stream.  Has the property that the schedule is at
 -- least as long as the period set in the gcsstream_timing, but it may exceed

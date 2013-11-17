@@ -117,10 +117,10 @@ setPeriod l ref per = store (ref ~> l ~> period) per
 
 -- | Hard real-time or soft real-time?
 getDeadline :: ( IvoryRef ref
-             , IvoryExpr (ref s (Struct "gcsstream_timing"))
-             , IvoryExpr (ref s (Struct "gcsstream_data"))
-             , IvoryExpr (ref s (Stored IBool))
-             )
+               , IvoryExpr (ref s (Struct "gcsstream_timing"))
+               , IvoryExpr (ref s (Struct "gcsstream_data"))
+               , IvoryExpr (ref s (Stored IBool))
+               )
           => GcsTimingLabel
           -> ref s (Struct "gcsstream_timing")
           -> Ivory eff IBool
@@ -128,4 +128,11 @@ getDeadline l ref = do
   let d = ref ~> l
   return =<< (d ~>* hard_deadline)
 
+setDeadline :: GcsTimingLabel
+            -> Ref s (Struct "gcsstream_timing")
+            -> IBool
+            -> Ivory eff ()
+setDeadline l ref v = do
+  let d = ref ~> l
+  store (d ~> hard_deadline) v
 --------------------------------------------------------------------------------
