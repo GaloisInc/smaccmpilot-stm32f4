@@ -51,7 +51,9 @@ updateGCSStreamPeriods periods streamid enabled rate = do
                ]
 
   setrate :: GcsTimingLabel -> Ivory eff ()
-  setrate selector = when enabled (setPeriod selector periods newperiod)
+  setrate selector = ifte_ (enabled .&& rate >? 0)
+                           (setPeriod selector periods newperiod)
+                           (setPeriod selector periods 0)
     where
     newperiod = 1000 `iDiv` (safeCast rate)
 
