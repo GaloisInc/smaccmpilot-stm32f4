@@ -300,7 +300,7 @@ mkSendRadio = proc "gcs_transmit_send_radio" $
   fixed    <- deref (stat ~> RStat.ecc_errs)
   rssi     <- deref (stat ~> RStat.loc_rssi)
   remrssi  <- deref (stat ~> RStat.rem_rssi)
-  txbuf    <- assign 0 -- XXX
+  txbuf    <- lbits `fmap` deref (stat ~> RStat.rx_ovf)
   noise    <- deref (stat ~> RStat.loc_noise)
   remnoise <- deref (stat ~> RStat.rem_noise)
   msg      <- local (istruct
