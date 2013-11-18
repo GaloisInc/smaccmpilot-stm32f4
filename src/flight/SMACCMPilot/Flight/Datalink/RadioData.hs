@@ -44,7 +44,7 @@ radioDataHandler statout infoout = do
                 ]
           , (mt ==? mtype_fail) ==> return ()
           , (mt ==? mtype_stat) ==> do
-             ifte_ (offs <? 22)
+             ifte_ (offs <=? mlen_stat)
                    (store (msgBuf ! (toIx offs)) v >> store msgLen offs)
                    (store msgType mtype_fail)
           , (mt ==? mtype_info) ==> cond_
@@ -80,13 +80,13 @@ mtype_info    = 2
 mtype_fail    = 3
 
 mlen_stat :: Sint32
-mlen_stat = 20
+mlen_stat = 24
 unpackStat :: (GetAlloc eff ~ Scope s)
             => Ref Global (Array 48 (Stored Uint8))
             -> Ivory eff (Ref (Stack s) (Struct "radio_stat"))
 unpackStat raw = do
   let d ix   = deref (raw ! (fromIntegral ix))
-  derefs    <- mapM d [1::Integer ..20]
+  derefs    <- mapM d [1::Integer ..25]
   let val i  = derefs !! i
   local $ istruct
     [ RS.sik       .= ival   true
