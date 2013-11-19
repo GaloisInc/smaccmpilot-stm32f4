@@ -12,7 +12,7 @@
 .SUFFIXES:
 MAKEFLAGS += -r
 
-# Only for overide of CONFIG_DEFAULT_TARGET
+# Only for overide of CONFIG_DEFAULT_PLATFORM
 include Config.mk
 
 PLATFORM_DIR := ./mk/platform/
