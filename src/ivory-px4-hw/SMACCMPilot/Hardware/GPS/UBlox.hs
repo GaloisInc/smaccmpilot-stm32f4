@@ -33,10 +33,12 @@ ubloxGPSTower isnk psrc = do
     (position :: Ref Global (Struct "position")) <- taskLocal "position"
     (dstate   :: Ref Global (Stored Uint8)) <- taskLocal "decode_state"
 
-    taskModuleDef $ incl decode
+    taskModuleDef $ do
+      incl decode
+      incl unpackS4
 
     ck_a <- taskLocal "ck_a"
-    ck_b <- taskLocal "ck_a"
+    ck_b <- taskLocal "ck_b"
     let newframe = do
           store ck_a 0
           store ck_b 0
@@ -44,8 +46,14 @@ ubloxGPSTower isnk psrc = do
         cksum i = do
           a <- deref ck_a
           b <- deref ck_b
-          store ck_a (a+i)
-          store ck_b (a+b+i)
+          -- Sum depends on discarding overflowed bits of uint8,
+          -- so we cast up a size, do the addition there, and then
+          -- just take the lower 8 bits of the result.
+          let a_16 :: Uint16 = safeCast a
+              b_16 :: Uint16 = safeCast b
+              i_16 :: Uint16 = safeCast i
+          store ck_a (lbits (a_16+i_16))
+          store ck_b (lbits (a_16+b_16+i_16))
     taskInit $ do
       store (position ~> fix) fix_none
       emit_ pstream (constRef position)
@@ -139,26 +147,28 @@ unpack_posllh :: Ref s1 (Array 52 (Stored Uint8))
               -> Ref s2 (Struct "position")
               -> Ivory eff ()
 unpack_posllh payload out = do
-  p_lat <- unpackS4 payload 4
-  p_lon <- unpackS4 payload 8
-  p_alt <- unpackS4 payload 12
+  p_lat <- call unpackS4 payload 4
   store (out ~> lat) p_lat
+  p_lon <- call unpackS4 payload 8
   store (out ~> lon) p_lon
+  p_alt <- call unpackS4 payload 12
   store (out ~> alt) p_alt
 
-unpackS4 :: Ref s1 (Array 52 (Stored Uint8))
-         -> Ix 52
-         -> Ivory eff Sint32
-unpackS4 a off = do
+unpackS4 :: Def ('[ Ref s1 (Array 52 (Stored Uint8))
+                  , Ix 52
+                  ] :-> Sint32)
+unpackS4 = proc "unpackS4" $ \a off -> body $ do
   b1 <- deref (a ! (off+0))
   b2 <- deref (a ! (off+1))
   b3 <- deref (a ! (off+2))
   b4 <- deref (a ! (off+3))
-  r <- assign ( (256 * 256 * 256 * (safeCast b4))
-              + (256 * 256 * (safeCast b3))
-              + (256 * (safeCast b2))
-              + (safeCast b1))
-  return r
+  r :: Uint32 <- assign ( (256 * 256 * 256 * (safeCast b4))
+                        + (256 * 256 * (safeCast b3))
+                        + (256 * (safeCast b2))
+                        + (safeCast b1))
+  negr   :: Uint64 <- assign (0x100000000 - (safeCast r))
+  s_negr :: Sint64 <- assign (signCast negr)
+  ret ((r <? 0x7FFFFFFF) ? (signCast r, -1 * (castWith 0 s_negr)))
 
 
 unpack_sol :: Ref s1 (Array 52 (Stored Uint8))
@@ -183,13 +193,13 @@ unpack_velned :: Ref s1 (Array 52 (Stored Uint8))
               -> Ref s2 (Struct "position")
               -> Ivory eff ()
 unpack_velned payload out = do
-  p_vnorth   <- unpackS4 payload 4
-  p_veast    <- unpackS4 payload 8
-  p_vdown    <- unpackS4 payload 12
+  p_vnorth   <- call unpackS4 payload 4
+  p_veast    <- call unpackS4 payload 8
+  p_vdown    <- call unpackS4 payload 12
   -- Technically vground is an Uint32. But we'd have to be
   -- going over 0.07*speed of light for it to matter.
-  p_vground  <- unpackS4 payload 16
-  int_head   <- unpackS4 payload 24
+  p_vground  <- call unpackS4 payload 16
+  int_head   <- call unpackS4 payload 24
   store (out ~> vnorth)  p_vnorth
   store (out ~> veast)   p_veast
   store (out ~> vdown)   p_vdown
