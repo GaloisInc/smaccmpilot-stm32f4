@@ -62,6 +62,8 @@ open407: allplatforms
 cbmc: TARGET = cbmc
 cbmc: default
 
+cppcheck: TARGET = cpp-check
+cppcheck: default
+
 clean:
 	-rm -rf ./build
-

@@ -43,6 +43,7 @@ include mk/image.mk
 include mk/ivory.mk
 include mk/cbmc.mk
 include mk/conditional.mk
+include mk/cppcheck.mk
 
 define project
   include $(1)/build.mk

@@ -30,22 +30,29 @@ CONFIG_FREERTOS_PREFIX := ../FreeRTOS
 CONFIG_PX4FMU_BOOTLOADER := 1
 
 # ------------------------------------------------------------------------------
+# Optional configurations
+# ------------------------------------------------------------------------------
+
 # Optional: use graphviz to generate PDF from tower graph output.
 # Uncomment this option if you have the `dot` tool installed.
 #
 # CONFIG_BUILD_DOT_PDF := 1
 
-# ------------------------------------------------------------------------------
-# Optional: for model-checking with CBMC
+# Using cpp-check
+# (http://sourceforge.net/apps/mediawiki/cppcheck/index.php?title=Main_Page)
+# Typically available with your applications installer on Linux distros (yum,
+# apt-get)
+# CONFIG_CPP_CHECK_PREFIX := /usr/bin
+
+# for model-checking with CBMC
 
 # add a path to your local installation of the CBMC model-checker
 # executable. <http://www.cprover.org/cbmc/> (Please note the license of CBMC.)
-CONFIG_CBMC_PREFIX := ../../OutsideSrcs/cbmc/src/cbmc
+# CONFIG_CBMC_PREFIX := ../../OutsideSrcs/cbmc/src/cbmc
 
 # location of CBMC driver (cbmc-report)
-CONFIG_CBMC_REPORT := $(CONFIG_CABAL_SANDBOX)/bin
+# CONFIG_CBMC_REPORT := $(CONFIG_CABAL_SANDBOX)/bin
 
-# ------------------------------------------------------------------------------
 # Uncomment the following line to enable building apps that use runtime
 # verification:
 # CONFIG_BUILD_RTV := 1
