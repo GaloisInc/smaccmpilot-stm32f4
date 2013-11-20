@@ -20,7 +20,7 @@ cpp-check:
     -j4 \
     --std=c99 \
     --error-exitcode=1 \
-    $(GEN_DIR) 2> $(GEN_DIR)/cppcheck-results.txt
+    $(GEN_DIR)
 
 # vim: set ft=make noet ts=2:
 
