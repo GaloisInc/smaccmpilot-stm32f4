@@ -15,7 +15,7 @@ SERVER_ARGS="--senderid=@BASE_ID@ \
       --recvkey=@UAV_KEY@ \
       --recvsalt=@UAV_SALT@"
 
-while getopts "dvqs:b:hm" opt; do
+while getopts "dvqs:b:hmo:" opt; do
 	echo $opt
 	case $opt in
 		d)
@@ -38,6 +38,9 @@ while getopts "dvqs:b:hm" opt; do
 			;;
 		m)
 			EXEC_MAVPROXY="$EXEC_MAVPROXY --module mavelous"
+			;;
+		o)
+			EXEC_MAVPROXY="$EXEC_MAVPROXY --out=$OPTARG"
 			;;
 		\?)
 			echo "Invalid option: -$OPTARG" >&2
