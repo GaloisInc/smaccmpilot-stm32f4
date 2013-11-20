@@ -42,7 +42,7 @@ CONFIG_PX4FMU_BOOTLOADER := 1
 # (http://sourceforge.net/apps/mediawiki/cppcheck/index.php?title=Main_Page)
 # Typically available with your applications installer on Linux distros (yum,
 # apt-get)
-# CONFIG_CPP_CHECK_PREFIX := /usr/bin
+CONFIG_CPP_CHECK_PREFIX := /usr/bin
 
 # for model-checking with CBMC
 
