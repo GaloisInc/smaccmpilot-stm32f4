@@ -47,10 +47,10 @@ data AltHoldParams f = AltHoldParams
 -- and divided by 100
 altHoldParams :: Monad m => ParamT f m (AltHoldParams f)
 altHoldParams =
-  AltHoldParams <$> param "TRIM_THROTTLE" 0.44   -- P     I     D     IMAX
-                <*> group "THR_RATE"     (pidParams 1.000 0.000 0.000 3.0)
+  AltHoldParams <$> param "TRIM_THROTTLE" 0.66   -- P     I     D     IMAX
+                <*> group "THR_RATE"     (pidParams 3.000 0.000 0.000 3.0)
                 <*> group "THR_ACCEL"    (pidParams 0.010 0.000 0.000 5.0)
-                <*> group "THR_ALT"      (pidParams 6.000 0.000 0.000 3.0)
+                <*> group "THR_ALT"      (pidParams 0.500 0.000 0.000 3.0)
 
 -- | Flight control parameters.
 data FlightParams f = FlightParams
@@ -65,9 +65,9 @@ data FlightParams f = FlightParams
 -- | Initialize flight parameters to their default values.
 flightParams :: Monad m => ParamT f m (FlightParams f)
 flightParams =                              -- P     I     D     IMAX (-IMIN)
-  FlightParams <$> group "STB_RLL"  (pidParams 0.500 0.050 0.000 8.0)
-               <*> group "RATE_RLL" (pidParams 0.025 0.000 0.000 5.0)
-               <*> group "STB_PIT"  (pidParams 0.500 0.050 0.000 8.0)
-               <*> group "RATE_PIT" (pidParams 0.025 0.000 0.000 5.0)
-               <*> group "RATE_YAW" (pidParams 0.025 0.000 0.000 8.0)
+  FlightParams <$> group "STB_RLL"  (pidParams 2.000 0.000 0.000 8.0)
+               <*> group "RATE_RLL" (pidParams 0.100 0.000 0.000 5.0)
+               <*> group "STB_PIT"  (pidParams 2.000 0.000 0.000 8.0)
+               <*> group "RATE_PIT" (pidParams 0.105 0.000 0.000 5.0)
+               <*> group "RATE_YAW" (pidParams 0.305 0.000 0.000 8.0)
                <*> group "" altHoldParams

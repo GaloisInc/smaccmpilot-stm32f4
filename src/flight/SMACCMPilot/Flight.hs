@@ -87,7 +87,7 @@ hil opts = do
   -- Instantiate core:
   let flightparams = sysFlightParams snk_params
   (control, motors) <- core (snk sensors)
-                            (snk flightmode)
+                            flightmode
                             armed_res
                             (snk armed_mav)
                             flightparams
@@ -134,7 +134,7 @@ flight opts = do
   -- Instantiate core:
   let flightparams = sysFlightParams snk_params
   (control, motors) <- core (snk sensors)
-                            (snk flightmode)
+                            flightmode
                             armed_res
                             (snk armed_mav)
                             flightparams
@@ -168,7 +168,8 @@ flight opts = do
 
 core :: (SingI n1, SingI n2)
        => DataSink (Struct "sensors_result")
-       -> DataSink (Struct "flightmode")
+       -> ( DataSource (Struct "flightmode")
+          , DataSink (Struct "flightmode"))
        -> ( DataSource (Stored A.ArmedMode)
           , DataSink   (Stored A.ArmedMode))
        -> ChannelSink n1 (Stored A.ArmedMode)
@@ -182,14 +183,15 @@ core sensors flightmode armed_res armed_mav_snk
   = do
   motors  <- channel
   control <- channel
+  let (src_flightmode, snk_flightmode) = flightmode
 
   userinput        <-
-    userInputTower armed_res armed_mav_snk snk_rc_override_msg
-  task "blink"      $ blinkTask lights (snk armed_res) flightmode
-  task "control"    $ controlTask (snk armed_res) flightmode userinput sensors
+    userInputTower armed_res armed_mav_snk snk_rc_override_msg src_flightmode
+  task "blink"      $ blinkTask lights (snk armed_res) (snk flightmode)
+  task "control"    $ controlTask (snk armed_res) (snk flightmode) userinput sensors
                        (src control) ah_state_src flightparams
   task "motmix"     $ motorMixerTask (snk control) (snk armed_res)
-                        flightmode (src motors)
+                        (snk flightmode) (src motors)
 
   mapM_ addDepends typeModules
   mapM_ addModule otherms

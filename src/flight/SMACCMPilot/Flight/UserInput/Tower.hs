@@ -26,19 +26,18 @@ userInputTower :: (SingI n0, SingI n1)
                -> ChannelSink n0 (Stored A.ArmedMode)
                   -- From GCS Rx Task
                -> ChannelSink n1 (Struct "rc_channels_override_msg")
+               -> DataSource (Struct "flightmode")
                -> Tower p (DataSink (Struct "userinput_result"))
-userInputTower armed_res snk_mav_armed snk_rc_over = do
+userInputTower armed_res snk_mav_armed snk_rc_over src_flightmode = do
   (src_userinput, snk_userinput)         <- dataport
   (src_rc_over_res, snk_rc_over_res)     <- dataport
   -- Joystick failsafe
   (src_js_fs, snk_js_fs)                 <- dataport
-  (src_flightmode, _)                    <- dataport
   (src_ppm_chans, snk_ppm_chans)         <- dataport
   (src_input_mux_res, snk_input_mux_res) <- dataport
 
   -- Handler for PPM Radio messages
   task "userPPMInput" $ userPPMInputTask src_userinput
-                                         src_flightmode
                                          src_ppm_chans
 
   -- Handler for RC override MAVLink messages.
@@ -56,6 +55,10 @@ userInputTower armed_res snk_mav_armed snk_rc_over = do
                                          snk_rc_over_res
                                          snk_js_fs
                                          src_input_mux_res
+
+  task "flightModeMux" $ flightModeMuxTask snk_ppm_chans
+                                           (snk armed_res)
+                                           src_flightmode
 
   addModule userInputDecodeModule
   return snk_input_mux_res

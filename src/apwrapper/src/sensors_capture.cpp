@@ -30,6 +30,10 @@ static GPS_Shim gps_shim;
 static GPS *g_gps = &gps_shim;
 static AP_AHRS_DCM g_ahrs(&g_ins, g_gps);
 
+// Timestamp of the last sensor data updates.
+static portTickType g_ahrs_time;
+static portTickType g_baro_time;
+
 void sensors_begin(bool flipped) {
 
     hal.console->printf("init AP_InertialSensor: ");
@@ -70,21 +74,23 @@ void sensors_update() {
         last_compass = now;
         g_compass.read();
         g_baro.read();
+        g_baro_time = now;
     }
 
     g_ahrs.update();
     g_compass.null_offsets();
-
+    g_ahrs_time = now;
 }
 
 /* Write roll, pitch, yaw into an array of 3 floats
  * [ roll, pitch, yaw ]
  * units: radians
  */
-void sensors_get_rpy(float *capt) {
+void sensors_get_rpy(float *capt, uint32_t *time) {
     capt[0] = g_ahrs.roll;
     capt[1] = g_ahrs.pitch;
     capt[2] = g_ahrs.yaw;
+    *time   = g_ahrs_time;
 }
 
 /* Write omega (angular rate) into an array of 3 floats
@@ -100,11 +106,23 @@ void sensors_get_omega(float *capt) {
     capt[2] = omega.z;
 }
 
+/* Write accel values to an array of 3 floats.
+ * [ accel_x, accel_y, accel_z ]
+ * units: mg
+ */
+void sensors_get_accel(float *capt) {
+    const Vector3f accel = g_ahrs.get_ins()->get_accel();
+    capt[0] = accel.x / 9.81f * 1000.0f;
+    capt[1] = accel.y / 9.81f * 1000.0f;
+    capt[2] = accel.z / 9.81f * 1000.0f;
+}
+
 /* Get barometric altitude estimate
  * unit: meters
  */
-float sensors_get_baro_alt(void) {
+float sensors_get_baro_alt(uint32_t *time) {
     /* altitude is only filtered by AP_Baro, no inertial compensation */
+    *time = g_baro_time;
     return g_baro.get_altitude();
 }
 

@@ -19,19 +19,15 @@ import SMACCMPilot.Flight.UserInput.Decode
 
 userPPMInputTask :: -- To reading Mux
                     DataSource (Struct "userinput_result")
-                    -- To control task
-                 -> DataSource (Struct "flightmode")
                     -- To armed mux
                  -> DataSource (Array 8 (Stored Uint16))
                  -> Task p ()
-userPPMInputTask uis fms ppm = do
-  fmWriter       <- withDataWriter fms "flightMode"
+userPPMInputTask uis ppm = do
   uiWriter       <- withDataWriter uis "userInput"
   ppmChansWriter <- withDataWriter ppm "ppmChansWriter"
 
   chs        <- taskLocal "channels"
   ui_result  <- taskLocal "userinput"
-  fm_result  <- taskLocal "flightmode"
 
   onPeriod 50 $ \now -> do
     captured <- call userPPMInputCapture chs
@@ -42,7 +38,6 @@ userPPMInputTask uis fms ppm = do
       when b (call_ userInputDecode chs ui_result now)
     call_ userInputFailsafe ui_result now
     writeData uiWriter (constRef ui_result)
-    writeData fmWriter (constRef fm_result)
 
   taskModuleDef $ do
     depend userInputTypeModule

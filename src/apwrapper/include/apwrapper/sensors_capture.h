@@ -16,7 +16,7 @@ void sensors_update(void);
  * [ roll, pitch, yaw ]
  * units: radians
  */
-void sensors_get_rpy(float *rpy);
+void sensors_get_rpy(float *rpy, uint32_t *time);
 
 /* Write omega (angular rate) into an array of 3 floats
  * [ omega_x, omega_y, omega_z ]
@@ -24,10 +24,16 @@ void sensors_get_rpy(float *rpy);
  */
 void sensors_get_omega(float *omega);
 
+/* Write accel values to an array of 3 floats.
+ * [ accel_x, accel_y, accel_z ]
+ * units: mg
+ */
+void sensors_get_accel(float *capt);
+
 /* Get barometric altitude estimate
  * unit: meters
  */
-float sensors_get_baro_alt(void);
+float sensors_get_baro_alt(uint32_t *time);
 
 /* Set velocity measurement from GPS
  * units: velocities in cm/s

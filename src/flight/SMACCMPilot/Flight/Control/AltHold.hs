@@ -6,9 +6,13 @@
 
 module SMACCMPilot.Flight.Control.AltHold where
 
+import Control.Applicative ((<$>))
+
 import Ivory.Language
 import Ivory.Stdlib
 
+import SMACCMPilot.Param
+import SMACCMPilot.Flight.Param
 import SMACCMPilot.Flight.Control.PID
 
 import qualified SMACCMPilot.Flight.Types.UserInput as UI
@@ -52,6 +56,10 @@ throttle_min, throttle_max :: IFloat
 throttle_min = 0.01
 throttle_max = 0.99
 
+-- | Roll/pitch limit for cruise throttle updating.  (+/- 5 degrees)
+level_angle :: IFloat
+level_angle = 0.0872664626
+
 ----------------------------------------------------------------------
 -- Altitude Hold Controller
 
@@ -73,6 +81,7 @@ struct alt_hold_state
   ; ah_error_rate         :: Stored IFloat
   ; ah_target_accel       :: Stored IFloat
   ; ah_angle_boost        :: Stored IFloat
+  ; ah_climb_rate         :: Stored IFloat
   }
 |]
 
@@ -103,6 +112,34 @@ lowPassFilter :: Float                        -- freq
 lowPassFilter freq dt x prev = do
   _ <- lowPassDeriv freq dt x prev
   getMaybe (constRef prev) x
+
+-- | Low pass filter with a dynamic timestep.
+lowPassDeriv' :: Float
+               -> IFloat
+               -> IFloat
+               -> Ref s (Struct "maybe_float")
+               -> Ivory eff IFloat
+lowPassDeriv' freq dt x prev = do
+  rc        <- assign (1.0 / (2.0 * pi * ifloat freq))
+  alpha     <- assign (dt / (rc + dt))
+  base      <- getMaybe (constRef prev) x
+  dx        <- assign $ alpha * (x - base)
+  setJust prev (base + dx)
+  return (x - base)
+
+-- | Low pass filter with a dynamic timestep.
+lowPassFilter' :: Float
+               -> IFloat
+               -> IFloat
+               -> Ref s (Struct "maybe_float")
+               -> Ivory eff IFloat
+lowPassFilter' freq dt x prev = do
+  rc        <- assign (1.0 / (2.0 * pi * ifloat freq))
+  alpha     <- assign (dt / (rc + dt))
+  base      <- getMaybe (constRef prev) x
+  dx        <- assign $ alpha * (x - base)
+  setJust prev (base + dx)
+  return (base + dx)
 
 -- | Get the desired climb rate (m/s) given a stick input.
 --
@@ -147,15 +184,17 @@ updateThrottleCruise :: Def ('[ Ref      s1 (Struct "alt_hold_state")
 updateThrottleCruise = proc "update_throttle_cruise" $
   \state sensors throttle climb_rate -> body $ do
   cruise <- deref (state ~> ah_throttle_cruise)
-  setDefault_ (state ~> ah_throttle_avg) cruise
+  roll   <- abs <$> deref (sensors ~> S.roll)
+  pitch  <- abs <$> deref (sensors ~> S.pitch)
 
   -- XXX lots of magic constants here
-  -- XXX check if we are level too
-  when (throttle >? 0.0 .&& abs climb_rate <? 0.6) $ do
-    forMaybeM (state ~> ah_throttle_avg) $ \x -> do
-      x' <- assign $ x * 0.99 + throttle * 0.01
-      store (state ~> ah_throttle_cruise) x'
-      return x'
+  when (throttle >? 0.0 .&& abs climb_rate <? 0.6 .&&
+        roll <? level_angle .&& pitch <? level_angle) $ do
+    avg  <- getMaybe (constRef (state ~> ah_throttle_avg)) cruise
+    -- XXX use filter functions here?
+    avg' <- assign (avg * 0.9975 + throttle * 0.0025)
+    setJust (state ~> ah_throttle_avg)    avg'
+    store   (state ~> ah_throttle_cruise) avg'
 
 -- | Update target altitude given desired climb rate and dt.
 updateTargetAlt :: Def ('[ Ref      s1 (Struct "alt_hold_state")
@@ -194,6 +233,7 @@ altHoldThrottle = proc "alt_hold_throttle" $
   raw_accel  <- deref (sensors ~> S.zacc)
   -- Calculate earth frame Z-acceleration.
   meas_accel <- assign ((raw_accel * 9.81 / 1000.0) + 9.81)
+  store (state ~> ah_angle_boost) meas_accel
   let err     = target_accel - meas_accel
 
   err_filt   <- accelFilter err (state ~> ah_accel_filter)
@@ -223,7 +263,10 @@ altHoldController = proc "alt_hold_controller" $
 
   target_rate   <- call altHoldRate alt_pid error_alt
   current_rate  <- assign climb_rate
-  error_rate    <- rateFilter (target_rate - current_rate) (state ~> ah_rate_filter)
+  -- We used to filter this here, but we are not filtering now because
+  -- the climb rate is filtered already in the control task.  Also we
+  -- are now feeding the desired rate from the stick into this term.
+  error_rate    <- assign (target_rate + stick_rate - current_rate)
 
   store (state ~> ah_desired_rate) stick_rate
   store (state ~> ah_alt_error)    error_alt
@@ -243,9 +286,11 @@ altHoldController = proc "alt_hold_controller" $
   ret target_accel
 
 -- | Initialize controller state when entering this flight mode.
-altHoldInit :: Def ('[ Ref s1 (Struct "alt_hold_state") ] :-> ())
-altHoldInit = proc "alt_hold_init" $ \state -> body $ do
-  store (state ~> ah_throttle_cruise) 0.44    --- XXX use param
+makeAltHoldInit :: AltHoldParams ParamReader
+                -> Def ('[ Ref s1 (Struct "alt_hold_state") ] :-> ())
+makeAltHoldInit params = proc "alt_hold_init" $ \state -> body $ do
+  cruise <- paramData <$> paramRead (altHoldTrimThrottle params)
+  store (state ~> ah_throttle_cruise) cruise
   setNothing (state ~> ah_throttle_avg)
   setNothing (state ~> ah_target_alt)
   setNothing (state ~> ah_rate_filter)
@@ -270,4 +315,3 @@ altHoldModule = package "alt_hold" $ do
   incl altHoldRate
   incl altHoldController
   incl altHoldThrottle
-  incl altHoldInit

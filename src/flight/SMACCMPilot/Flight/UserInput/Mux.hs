@@ -8,6 +8,7 @@
 module SMACCMPilot.Flight.UserInput.Mux
   ( userInputMuxTask
   , armedMuxTask
+  , flightModeMuxTask
   ) where
 
 import Ivory.Language
@@ -57,9 +58,8 @@ armedMuxTask ppm_input_snk mav_armed_snk armed_res_src = do
   -- Also, read the latest PPM signals and see if we're arming/disarming from
   -- the PPM controller.
   onPeriod 50 $ \now -> do
-    changed <- call D.armingStatemachine ppmSignals armingState armedResLocal now
-
     readData ppmReader ppmSignals
+    changed <- call D.armingStatemachine ppmSignals armingState armedResLocal now
     switch <- call D.deadManSwitch (constRef ppmSignals)
 
     -- If the switch is on and the armed status has changed, set
@@ -68,6 +68,33 @@ armedMuxTask ppm_input_snk mav_armed_snk armed_res_src = do
     ifte_ switch
       (when changed writeArmedRes)
       (store armedResLocal A.as_DISARMED >> writeArmedRes)
+
+  taskModuleDef $ do
+    depend D.userInputDecodeModule
+
+--------------------------------------------------------------------------------
+
+flightModeMuxTask :: DataSink (Array 8 (Stored Uint16)) -- PPM signals
+                  -> DataSink (Stored A.ArmedMode)      -- Mux'ed arming input
+                  -> DataSource (Struct "flightmode")   -- flightmode output
+                  -> Task p ()
+flightModeMuxTask ppm_input_snk mav_armed_snk fm_src = do
+  ppmReader   <- withDataReader ppm_input_snk "ppm_input_snk"
+  armedReader <- withDataReader mav_armed_snk "mav_armed_snk"
+  modeWriter  <- withDataWriter fm_src "flightmode_src"
+  ppmSignals  <- taskLocal "ppmSignals"
+  modeState   <- taskLocal "flightmode_state"
+
+  onPeriod 50 $ \now -> do
+    flightmode <- local izero
+    armed_ref  <- local izero
+    readData armedReader armed_ref
+    armed      <- deref armed_ref
+
+    when (armed ==? A.as_ARMED) $ do
+      readData ppmReader ppmSignals
+      changed <- call D.modeStatemachine ppmSignals modeState flightmode now
+      when changed (writeData modeWriter (constRef flightmode))
 
   taskModuleDef $ do
     depend D.userInputDecodeModule

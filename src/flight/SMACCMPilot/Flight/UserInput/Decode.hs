@@ -12,6 +12,9 @@ import Prelude hiding (last)
 import Ivory.Language
 import Ivory.Stdlib
 
+-- needed because the ivory quasiquoter cannot handle qualified names
+import SMACCMPilot.Flight.Types.FlightModeData (FlightMode)
+
 import qualified SMACCMPilot.Flight.Types.Armed          as A
 import qualified SMACCMPilot.Flight.Types.UserInput      as I
 import qualified SMACCMPilot.Flight.Types.FlightMode     as FM
@@ -27,9 +30,9 @@ userInputDecodeModule = package "userinput_decode" $ do
   defStruct (Proxy :: Proxy "arming_state")
   incl userInputDecode
   incl userInputFailsafe
-  incl setFlightMode
   incl deadManSwitch
   incl armingStatemachine
+  incl modeStatemachine
   private $ incl scale_proc
 
 -- | State of the arming state machine.  This is a separate type from
@@ -41,10 +44,10 @@ armStateArmed    = 2
 
 [ivory|
 struct flightmode_state
-  { last_modepwm      :: Stored Uint16
-  ; last_modepwm_time :: Stored Uint32
-  ; valid_modepwm     :: Stored Uint16
+  { fm_last_mode         :: Stored FlightMode
+  ; fm_last_mode_time    :: Stored Uint32
   }
+
 struct arming_state
   { arm_state         :: Stored Uint8
   ; arm_state_time    :: Stored Uint32
@@ -96,20 +99,6 @@ userInputDecode = proc "userinput_decode" $ \pwms ui now ->
   store (ui ~> I.time) now
   retVoid
 
-setFlightMode :: Def ('[ Ref s0 (Array 8 (Stored Uint16))
-                       , Ref s1 (Struct "flightmode_state")
-                       , Ref s2 (Struct "arming_state")
-                       , Ref s3 (Struct "flightmode")
-                       , Uint32
-                       ] :-> ())
-setFlightMode = proc "set_flight_mode" $ \pwms fm_state arming_state fm now ->
-  requires (checkStored (arming_state ~> arm_state_time) (\ast -> now >=? ast))
-  $ body $ do
-  mode  <- mode_statemachine pwms fm_state now
-  store (fm ~> FM.mode)  mode
-  store (fm ~> FM.time)  now
-  retVoid
-
 -- | Run the arming state machine, returning true if an arming event
 -- has occured, writing the new arming state to the output reference.
 armingStatemachine :: Def ('[ Ref s0 (Array 8 (Stored Uint16))
@@ -151,40 +140,31 @@ armingStatemachine = proc "armingStatemachine" $ \pwms state out now -> body $ d
 
   ret false
 
-mode_statemachine :: (Ref s1 (Array 8 (Stored Uint16)))
-                  -> (Ref s2 (Struct "flightmode_state"))
-                  -> Uint32
-                  -> Ivory eff FM.FlightMode
-mode_statemachine pwms state now = do
-  mode_input_current <- deref (pwms ! (4 :: Ix 8))
-  mode_input_prev    <- deref (state ~> last_modepwm)
-  prev_time          <- deref (state ~> last_modepwm_time)
-  let pwmtolerance = 10
-  let latchtime    = 250
-  ifte_ (magnitude mode_input_current mode_input_prev >? pwmtolerance)
-    (when (now - prev_time >? latchtime)
-      (newmode mode_input_current))
-    (reset_input mode_input_current)
-  m <- deref (state ~> valid_modepwm)
-  return $ mode_from_pwm m
-  where
-  reset_input m = do
-    store (state ~> last_modepwm) m
-    store (state ~> last_modepwm_time) now
-  newmode m = do
-    reset_input m
-    store (state ~> valid_modepwm) m
-  mode_from_pwm :: Uint16 -> FM.FlightMode
-  mode_from_pwm pwm = foldr matchmodemap FM.flightModeStabilize mode_pwm_map
-    -- Build up a series of conditional checks using fold. Default to
-    -- mode_STABILIZE if none found.
-    where
-    matchmodemap (mode, (minpwm, maxpwm)) dflt =
-      ((pwm >=? minpwm) .&& (pwm <=? maxpwm)) ? (mode, dflt)
+-- | Debouncing state machine for the flight mode switch.
+modeStatemachine :: Def ('[ Ref s0 (Array 8 (Stored Uint16))
+                          , Ref s1 (Struct "flightmode_state")
+                          , Ref s2 (Struct "flightmode")
+                          , Uint32 -- now
+                          ] :-> IBool)
+modeStatemachine = proc "modeStatemachine" $ \pwms state out now -> body $ do
+  pwm <- deref (pwms ! (4 :: Ix 8))
+  let mode = mode_from_pwm pwm
+  last_mode <- deref (state ~> fm_last_mode)
 
-  magnitude :: Uint16 -> Uint16 -> Uint16
-  magnitude a b = castDefault
-                $ abs $ (safeCast a :: Sint32) - (safeCast b)
+  -- XXX TODO: debounce
+  when (mode /=? last_mode) $ do
+    store (out ~> FM.mode) mode
+    store (out ~> FM.time) now
+    store (state ~> fm_last_mode) mode
+    store (state ~> fm_last_mode_time) now
+    ret true
+
+  ret false
+  where
+    mode_from_pwm :: Uint16 -> FM.FlightMode
+    mode_from_pwm pwm = foldr (match_mode_map pwm) FM.flightModeStabilize mode_pwm_map
+    match_mode_map pwm (mode, (min_pwm, max_pwm)) def =
+      ((pwm >=? min_pwm) .&& (pwm <=? max_pwm)) ? (mode, def)
 
 -- | Is Channel 5 (switch 1) depressed?  True means yes: ARMing ok.
 deadManSwitch :: Def ('[ConstRef s (Array 8 (Stored Uint16))] :-> IBool)

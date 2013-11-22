@@ -60,10 +60,13 @@ sensorsTower psnk osrc = task "sensorsCaptureTask" $ do
       time <- getTimeMillis m
 
       (rpy :: Ref (Stack cs) (Array 3 (Stored IFloat))) <- local (iarray [])
-      call_ sensors_get_rpy (toCArray rpy)
-      roll  <- deref (rpy ! 0)
-      pitch <- deref (rpy ! 1)
-      yaw   <- deref (rpy ! 2)
+      ahrs_time_ref <- local izero
+      call_ sensors_get_rpy (toCArray rpy) ahrs_time_ref
+
+      roll      <- deref (rpy ! 0)
+      pitch     <- deref (rpy ! 1)
+      yaw       <- deref (rpy ! 2)
+      ahrs_time <- deref ahrs_time_ref
 
       (omega :: Ref (Stack cs) (Array 3 (Stored IFloat))) <- local (iarray [])
       call_ sensors_get_omega (toCArray omega)
@@ -71,7 +74,15 @@ sensorsTower psnk osrc = task "sensorsCaptureTask" $ do
       omega_y <- deref (omega ! 1)
       omega_z <- deref (omega ! 2)
 
-      baro_alt <- call sensors_get_baro_alt
+      (accel :: Ref (Stack cs) (Array 3 (Stored IFloat))) <- local (iarray [])
+      call_ sensors_get_accel (toCArray accel)
+      accel_x <- deref (accel ! 0)
+      accel_y <- deref (accel ! 1)
+      accel_z <- deref (accel ! 2)
+
+      baro_time_ref <- local izero
+      baro_alt      <- call sensors_get_baro_alt baro_time_ref
+      baro_time     <- deref baro_time_ref
 
       res <- local $ istruct
         [ S.valid     .= ival true
@@ -82,10 +93,11 @@ sensorsTower psnk osrc = task "sensorsCaptureTask" $ do
         , S.omega_y   .= ival omega_y
         , S.omega_z   .= ival omega_z
         , S.baro_alt  .= ival baro_alt
-        , S.xacc      .= ival 0
-        , S.yacc      .= ival 0
-        , S.zacc      .= ival 0
-        , S.time      .= ival time
+        , S.xacc      .= ival accel_x
+        , S.yacc      .= ival accel_y
+        , S.zacc      .= ival accel_z
+        , S.ahrs_time .= ival ahrs_time
+        , S.baro_time .= ival baro_time
         ]
       writeData sensorsWriter (constRef res)
     return init
@@ -110,13 +122,16 @@ sensors_begin = externProc "sensors_begin"
 sensors_update :: Def ('[] :-> ())
 sensors_update = externProc "sensors_update"
 
-sensors_get_rpy :: Def ('[Ref s (CArray (Stored IFloat))] :-> ())
+sensors_get_rpy :: Def ('[Ref s1 (CArray (Stored IFloat)), Ref s2 (Stored Uint32)] :-> ())
 sensors_get_rpy = externProc "sensors_get_rpy"
 
 sensors_get_omega :: Def ('[Ref s (CArray (Stored IFloat))] :-> ())
 sensors_get_omega = externProc "sensors_get_omega"
 
-sensors_get_baro_alt :: Def ('[] :-> IFloat)
+sensors_get_accel :: Def ('[Ref s (CArray (Stored IFloat))] :-> ())
+sensors_get_accel = externProc "sensors_get_accel"
+
+sensors_get_baro_alt :: Def ('[Ref s2 (Stored Uint32)] :-> IFloat)
 sensors_get_baro_alt = externProc "sensors_get_baro_alt"
 
 -- v_north, v_east, v_down, speed_ground : all in cm/sec

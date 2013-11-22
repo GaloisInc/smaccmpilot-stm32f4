@@ -123,13 +123,13 @@ mkSendAttitude =
   $ \sensors seqNum sendStruct -> body
   $ do
   att <- local (istruct [])
-  (sensors ~> Sens.time)    `into` (att ~> ATT.time_boot_ms)
-  (sensors ~> Sens.roll)    `into` (att ~> ATT.roll)
-  (sensors ~> Sens.pitch)   `into` (att ~> ATT.pitch)
-  (sensors ~> Sens.yaw)     `into` (att ~> ATT.yaw)
-  (sensors ~> Sens.omega_x) `into` (att ~> ATT.rollspeed)
-  (sensors ~> Sens.omega_y) `into` (att ~> ATT.pitchspeed)
-  (sensors ~> Sens.omega_z) `into` (att ~> ATT.yawspeed)
+  (sensors ~> Sens.ahrs_time) `into` (att ~> ATT.time_boot_ms)
+  (sensors ~> Sens.roll)      `into` (att ~> ATT.roll)
+  (sensors ~> Sens.pitch)     `into` (att ~> ATT.pitch)
+  (sensors ~> Sens.yaw)       `into` (att ~> ATT.yaw)
+  (sensors ~> Sens.omega_x)   `into` (att ~> ATT.rollspeed)
+  (sensors ~> Sens.omega_y)   `into` (att ~> ATT.pitchspeed)
+  (sensors ~> Sens.omega_z)   `into` (att ~> ATT.yawspeed)
   call_ ATT.mkAttitudeSender (constRef att) seqNum sendStruct
   retVoid
 
@@ -333,6 +333,7 @@ mkSendAltHoldDebug = proc "gcs_transmit_send_alt_hold_debug" $
   error_rate      <- deref    (state ~> ah_error_rate)
   target_accel    <- deref    (state ~> ah_target_accel)
   angle_boost     <- deref    (state ~> ah_angle_boost)
+  climb_rate      <- deref    (state ~> ah_climb_rate)
   msg             <- local $ istruct
     [ AHD.throttle_cruise .= ival throttle_cruise
     , AHD.throttle_avg    .= ival throttle_avg
@@ -347,6 +348,7 @@ mkSendAltHoldDebug = proc "gcs_transmit_send_alt_hold_debug" $
     , AHD.error_rate      .= ival error_rate
     , AHD.target_accel    .= ival target_accel
     , AHD.angle_boost     .= ival angle_boost
+    , AHD.climb_rate      .= ival climb_rate
     ]
   call_ AHD.mkAltHoldDebugSender (constRef msg) seqNum sendStruct
 

@@ -36,17 +36,18 @@ hilTranslator hil sens pos = do
     yacc    <- deref (h ~> H.yacc)
     zacc    <- deref (h ~> H.zacc)
     s <- local $ istruct
-      [ S.roll     .= ival roll
-      , S.pitch    .= ival pitch
-      , S.yaw      .= ival yaw
-      , S.omega_x  .= ival omega_x
-      , S.omega_y  .= ival omega_y
-      , S.omega_z  .= ival omega_z
-      , S.baro_alt .= ival ((safeCast alt_mm) / 1000.0)
-      , S.xacc     .= ival (safeCast xacc)
-      , S.yacc     .= ival (safeCast yacc)
-      , S.zacc     .= ival (safeCast zacc)
-      , S.time     .= ival time
+      [ S.roll      .= ival roll
+      , S.pitch     .= ival pitch
+      , S.yaw       .= ival yaw
+      , S.omega_x   .= ival omega_x
+      , S.omega_y   .= ival omega_y
+      , S.omega_z   .= ival omega_z
+      , S.baro_alt  .= ival ((safeCast alt_mm) / 1000.0)
+      , S.xacc      .= ival (safeCast xacc)
+      , S.yacc      .= ival (safeCast yacc)
+      , S.zacc      .= ival (safeCast zacc)
+      , S.ahrs_time .= ival time
+      , S.baro_time .= ival time
       ]
     writeData sens_writer (constRef s)
     lat <- deref (h ~> H.lat)

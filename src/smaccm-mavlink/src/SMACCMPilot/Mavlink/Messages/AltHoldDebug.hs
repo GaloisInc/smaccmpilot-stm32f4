@@ -21,7 +21,7 @@ altHoldDebugMsgId :: Uint8
 altHoldDebugMsgId = 173
 
 altHoldDebugCrcExtra :: Uint8
-altHoldDebugCrcExtra = 45
+altHoldDebugCrcExtra = 184
 
 altHoldDebugModule :: Module
 altHoldDebugModule = package "mavlink_alt_hold_debug_msg" $ do
@@ -46,6 +46,7 @@ struct alt_hold_debug_msg
   ; error_rate :: Stored IFloat
   ; target_accel :: Stored IFloat
   ; angle_boost :: Stored IFloat
+  ; climb_rate :: Stored IFloat
   }
 |]
 
@@ -58,7 +59,7 @@ mkAltHoldDebugSender =
   proc "mavlink_alt_hold_debug_msg_send"
   $ \msg seqNum sendStruct -> body
   $ do
-  arr <- local (iarray [] :: Init (Array 52 (Stored Uint8)))
+  arr <- local (iarray [] :: Init (Array 56 (Stored Uint8)))
   let buf = toCArray arr
   call_ pack buf 0 =<< deref (msg ~> throttle_cruise)
   call_ pack buf 4 =<< deref (msg ~> throttle_avg)
@@ -73,18 +74,19 @@ mkAltHoldDebugSender =
   call_ pack buf 40 =<< deref (msg ~> error_rate)
   call_ pack buf 44 =<< deref (msg ~> target_accel)
   call_ pack buf 48 =<< deref (msg ~> angle_boost)
+  call_ pack buf 52 =<< deref (msg ~> climb_rate)
   -- 6: header len, 2: CRC len
-  let usedLen    = 6 + 52 + 2 :: Integer
+  let usedLen    = 6 + 56 + 2 :: Integer
   let sendArr    = sendStruct ~> mav_array
   let sendArrLen = arrayLen sendArr
   if sendArrLen < usedLen
-    then error "altHoldDebug payload of length 52 is too large!"
+    then error "altHoldDebug payload of length 56 is too large!"
     else do -- Copy, leaving room for the payload
             arrayCopy sendArr arr 6 (arrayLen arr)
             call_ mavlinkSendWithWriter
                     altHoldDebugMsgId
                     altHoldDebugCrcExtra
-                    52
+                    56
                     seqNum
                     sendStruct
 
@@ -108,4 +110,5 @@ altHoldDebugUnpack = proc "mavlink_alt_hold_debug_unpack" $ \ msg buf -> body $ 
   store (msg ~> error_rate) =<< call unpack buf 40
   store (msg ~> target_accel) =<< call unpack buf 44
   store (msg ~> angle_boost) =<< call unpack buf 48
+  store (msg ~> climb_rate) =<< call unpack buf 52
 

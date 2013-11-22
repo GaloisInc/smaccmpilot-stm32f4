@@ -30,18 +30,19 @@ sensorsTypeModule = package "sensors_type" $ do
 
 [ivory|
 struct sensors_result
-  { valid    :: Stored IBool
-  ; roll     :: Stored IFloat
-  ; pitch    :: Stored IFloat
-  ; yaw      :: Stored IFloat
-  ; omega_x  :: Stored IFloat
-  ; omega_y  :: Stored IFloat
-  ; omega_z  :: Stored IFloat
-  ; baro_alt :: Stored IFloat
-  ; xacc     :: Stored IFloat
-  ; yacc     :: Stored IFloat
-  ; zacc     :: Stored IFloat
-  ; time     :: Stored Uint32
+  { valid     :: Stored IBool
+  ; roll      :: Stored IFloat
+  ; pitch     :: Stored IFloat
+  ; yaw       :: Stored IFloat
+  ; omega_x   :: Stored IFloat
+  ; omega_y   :: Stored IFloat
+  ; omega_z   :: Stored IFloat
+  ; baro_alt  :: Stored IFloat
+  ; xacc      :: Stored IFloat
+  ; yacc      :: Stored IFloat
+  ; zacc      :: Stored IFloat
+  ; ahrs_time :: Stored Uint32
+  ; baro_time :: Stored Uint32
   }
 |]
 
