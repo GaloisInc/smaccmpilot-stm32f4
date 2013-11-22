@@ -374,5 +374,6 @@ senderModules = package "senderModules" $ do
   depend FM.flightModeTypeModule
 --  depend R.dataRateTypeModule
   depend RStat.radioStatTypeModule
+  depend VR.vehicleRadioModule
   depend mavlinkSendModule
   depend altHoldModule
