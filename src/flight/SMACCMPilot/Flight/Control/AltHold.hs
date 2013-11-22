@@ -239,7 +239,7 @@ altHoldThrottle = proc "alt_hold_throttle" $
   err_filt   <- accelFilter err (state ~> ah_accel_filter)
   -- XXX arducopter does p, i, d separately and jimmies the I value
   -- in certain conditions.
-  output     <- call pid_update (state ~> ah_throttle_pid) pid err meas_accel
+  output     <- call pid_update (state ~> ah_throttle_pid) pid err_filt meas_accel
   cruise     <- deref (state ~> ah_throttle_cruise)
   ret =<< call fconstrain 0.0 1.0 (output + cruise)
 
