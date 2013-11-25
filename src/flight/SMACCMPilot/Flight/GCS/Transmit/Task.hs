@@ -16,7 +16,6 @@ import Ivory.Stdlib
 import Ivory.Tower
 
 import           SMACCMPilot.Mavlink.Send
-import           SMACCMPilot.Param
 import qualified SMACCMPilot.Communications               as C
 import           SMACCMPilot.Flight.GCS.Transmit.MessageDriver
 import           SMACCMPilot.Flight.GCS.Stream

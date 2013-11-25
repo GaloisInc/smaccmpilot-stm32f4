@@ -3,8 +3,6 @@
 
 module SMACCMPilot.Flight.GCS.HIL where
 
-import Control.Applicative ((<$>))
-
 import Ivory.Language
 import Ivory.Tower
 import Ivory.Stdlib.Trig (iAtan2)

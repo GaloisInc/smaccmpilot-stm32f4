@@ -187,11 +187,11 @@ core sensors flightmode armed_res armed_mav_snk
 
   userinput        <-
     userInputTower armed_res armed_mav_snk snk_rc_override_msg src_flightmode
-  task "blink"      $ blinkTask lights (snk armed_res) (snk flightmode)
-  task "control"    $ controlTask (snk armed_res) (snk flightmode) userinput sensors
+  task "blink"      $ blinkTask lights (snk armed_res) (snk_flightmode)
+  task "control"    $ controlTask (snk armed_res) (snk_flightmode) userinput sensors
                        (src control) ah_state_src flightparams
   task "motmix"     $ motorMixerTask (snk control) (snk armed_res)
-                        (snk flightmode) (src motors)
+                        (snk_flightmode) (src motors)
 
   mapM_ addDepends typeModules
   mapM_ addModule otherms
