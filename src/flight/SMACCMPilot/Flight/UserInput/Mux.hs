@@ -159,7 +159,7 @@ userInputMuxTask snk_armed snk_rc_ppm snk_mav_ppm snk_mav_failsafe src_res = do
   where
   -- Timeout to revert back to the RC PPM controller for override messages.
   mavTimeout :: Uint32
-  mavTimeout = 500
+  mavTimeout = 250
 
 --------------------------------------------------------------------------------
 
