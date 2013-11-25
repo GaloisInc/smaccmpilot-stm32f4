@@ -180,7 +180,7 @@ userInputFailsafe = proc "userinput_failsafe" $ \capt now ->
     last <- deref ( capt ~> I.time )
     let dt = now - last
     when (dt >? 150) $ do
-       store (capt ~> I.throttle) 0
+       store (capt ~> I.throttle) (-1)
        store (capt ~> I.yaw)      0
        store (capt ~> I.pitch)    0
        store (capt ~> I.roll)     0
