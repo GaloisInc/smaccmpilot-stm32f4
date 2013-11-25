@@ -7,6 +7,8 @@ module SMACCMPilot.Flight.UserInput.RCOverride
   ( userMAVInputTask
   ) where
 
+import Control.Monad hiding (when)
+
 import Ivory.Language
 import Ivory.Stdlib
 import Ivory.Tower
@@ -57,12 +59,13 @@ userMAVInputTask a rc_over_snk src_js_fs src_rc_over_res = do
       refCopy ovr_msg_local ovr_msg
       -- Translate the MAVLink message.
       call_ processOverrideMsg chs ovr_msg_local
-      -- Decode the PPMs.
-      call_ D.userInputDecode chs uiResult now
-      -- See if our failsafe button is depressed (channel 5, counting from 1).
-      -- We can be exact here (2000) since it's a MAVLink msg.
-      val <- deref (chs ! 4)
-      store jsFailSafe (2000 ==? val)
+
+      validInputs <- call validOverrideMsg (constRef chs)
+      ifte_ validInputs
+        -- Decode the PPMs.  This should ONLY be called on filtered inputs.
+        (call_ D.userInputDecode chs uiResult now)
+        (call_ D.userInputFailsafe uiResult now)
+      store jsFailSafe validInputs
       -- Send it to the Mux task.
       writeData failSafeWriter (constRef jsFailSafe)
       writeData rcOverrideWriter (constRef uiResult)
@@ -71,20 +74,48 @@ userMAVInputTask a rc_over_snk src_js_fs src_rc_over_res = do
     depend D.userInputDecodeModule
     depend T.userInputTypeModule
     incl processOverrideMsg
+    incl validOverrideMsg
 
 -- Copy the PPM values out of the rc_channels_override_msg struct into an array.
 processOverrideMsg :: Def ('[ Ref s (Array 8 (Stored Uint16))
                             , Ref s (Struct "rc_channels_override_msg")
                             ] :-> ())
 processOverrideMsg = proc "processOverrideMsg" $ \arr msg -> body $ do
-  let accs = [ O.chan1_raw, O.chan2_raw, O.chan3_raw, O.chan4_raw
-             , O.chan5_raw, O.chan6_raw, O.chan7_raw, O.chan8_raw
-             -- Ignore target fields.
-             ]
   let go :: (Integer, Label "rc_channels_override_msg" (Stored Uint16))
          -> Ivory eff ()
       go (ix, chan) = do
         field <- deref (msg ~> chan)
         store (arr ! toIx (fromInteger ix :: Sint32)) field
+  mapM_ go channelAccessors
 
-  mapM_ go (zip [0..7] accs)
+  where
+  channelAccs = [ O.chan1_raw, O.chan2_raw, O.chan3_raw, O.chan4_raw
+                , O.chan5_raw, O.chan6_raw, O.chan7_raw, O.chan8_raw
+                -- Ignore target fields.
+                ]
+  channelAccessors = zip [0..7] channelAccs
+
+-- Filter RC override messages, checking that the fields are as expected AND the
+-- kill switch is on.  Returns True if the conditions are met.
+validOverrideMsg :: Def ('[ConstRef s (Array 8 (Stored Uint16))] :-> IBool)
+validOverrideMsg = proc "validOverrideMsg" $ \arr -> body $ do
+  -- See if our failsafe button is depressed (channel 5, counting from 1).
+  -- We can be exact here (2000) since it's a MAVLink msg.
+  kill <- deref (arr ! 4)
+
+  let access b ix = do
+        v <- deref (arr ! toIx (fromInteger ix :: Sint32))
+        return (b .&& validRange v)
+
+  -- Fold across rpyt
+  let validRanges = foldM access true [0..4]
+
+  vs <- validRanges
+  ret $ (kill ==? 2000) .&& vs
+
+  where
+  validRange i = i >=? 1000 .&& i <=? 2000
+
+
+
+
