@@ -109,13 +109,13 @@ armingStatemachine :: Def ('[ Ref s0 (Array 8 (Stored Uint16))
 armingStatemachine = proc "armingStatemachine" $ \pwms state out now -> body $ do
   throttle_stick  <- deref (pwms ! (2 :: Ix 8))
   rudder_stick    <- deref (pwms ! (3 :: Ix 8))
-  sw1             <- call deadManSwitch (constRef pwms)
+  dmswitch        <- call deadManSwitch (constRef pwms)
   let hystresis    = 500
   let stick_in_pos = (throttle_stick <? 1050) .&& (rudder_stick >? 1900)
 
   -- If the switch is off or the stick is not in position, reset
   -- the state machine and return "no event".
-  when (iNot sw1 .|| iNot stick_in_pos) $ do
+  when (iNot dmswitch .|| iNot stick_in_pos) $ do
     store (state ~> arm_state) armStateDisarmed
     store (state ~> arm_state_time) now
     ret false
@@ -166,11 +166,11 @@ modeStatemachine = proc "modeStatemachine" $ \pwms state out now -> body $ do
     match_mode_map pwm (mode, (min_pwm, max_pwm)) def =
       ((pwm >=? min_pwm) .&& (pwm <=? max_pwm)) ? (mode, def)
 
--- | Is Channel 5 (switch 1) depressed?  True means yes: ARMing ok.
+-- | Is Channel 6 (switch 2) depressed?  True means Arming ok.
 deadManSwitch :: Def ('[ConstRef s (Array 8 (Stored Uint16))] :-> IBool)
 deadManSwitch = proc "deadManSwitch" $ \pwms -> body $ do
-  ch5_switch <- deref (pwms ! (5 :: Ix 8))
-  ret (ch5_switch >=? 1500)
+  ch6_switch <- deref (pwms ! (5 :: Ix 8))
+  ret (ch6_switch >=? 1500)
 
 userInputFailsafe :: Def ('[ Ref s0 (Struct "userinput_result")
                            , Uint32 ] :-> ())
