@@ -22,7 +22,7 @@ import qualified SMACCMPilot.Flight.UserInput.Decode as D
 --------------------------------------------------------------------------------
 
 armedMuxTask :: SingI n
-             => DataSink (Array 8 (Stored Uint16)) -- PPM signals
+             => DataSink T.PPMs                    -- PPM signals
              -> ChannelSink n (Stored A.ArmedMode) -- MAVLink arming input
              -> DataSource (Stored A.ArmedMode)    -- Mux'ed arming output
              -> Task p ()
@@ -60,7 +60,7 @@ armedMuxTask ppm_input_snk mav_armed_snk armed_res_src = do
   onPeriod 50 $ \now -> do
     readData ppmReader ppmSignals
     changed <- call D.armingStatemachine ppmSignals armingState armedResLocal now
-    switch <- call D.deadManSwitch (constRef ppmSignals)
+    switch  <- call D.deadManSwitch (constRef ppmSignals)
 
     -- If the switch is on and the armed status has changed, set
     -- it as the new arming status.  Otherwise, if the switch is
@@ -74,7 +74,7 @@ armedMuxTask ppm_input_snk mav_armed_snk armed_res_src = do
 
 --------------------------------------------------------------------------------
 
-flightModeMuxTask :: DataSink (Array 8 (Stored Uint16)) -- PPM signals
+flightModeMuxTask :: DataSink T.PPMs                    -- PPM signals
                   -> DataSink (Stored A.ArmedMode)      -- Mux'ed arming input
                   -> DataSource (Struct "flightmode")   -- flightmode output
                   -> Task p ()

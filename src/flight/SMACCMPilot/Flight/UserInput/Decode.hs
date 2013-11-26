@@ -8,6 +8,7 @@
 module SMACCMPilot.Flight.UserInput.Decode where
 
 import Prelude hiding (last)
+import Control.Monad hiding (when, unless)
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -30,6 +31,7 @@ userInputDecodeModule = package "userinput_decode" $ do
   defStruct (Proxy :: Proxy "arming_state")
   incl userInputDecode
   incl userInputFailsafe
+  incl userInputFilter
   incl deadManSwitch
   incl armingStatemachine
   incl modeStatemachine
@@ -55,20 +57,23 @@ struct arming_state
 
 |]
 
-mode_pwm_map :: [(FM.FlightMode, (Uint16, Uint16))]    -- on ER9X this should be:
-mode_pwm_map = [(FM.flightModeAuto,      (900, 1300))  -- AUX 3 up
-               ,(FM.flightModeAltHold,   (1301, 1700)) -- AUX 3 center
-               ,(FM.flightModeStabilize, (1701, 2100)) -- AUX 3 down
+--------------------------------------------------------------------------------
+
+
+mode_ppm_map :: [(FM.FlightMode, (I.PPM, I.PPM))]    -- on ER9X this should be:
+mode_ppm_map = [(FM.flightModeAuto,      (minBound, 1300))  -- AUX 3 up
+               ,(FM.flightModeAltHold,   (1301, 1700))      -- AUX 3 center
+               ,(FM.flightModeStabilize, (1701, maxBound)) -- AUX 3 down
                ]
 
-scale_rpyt :: Uint16 -> Ivory eff IFloat
-scale_rpyt input = call scale_proc 1500 500 (-1.0) 1.0 input
+scale_rpyt :: I.PPM -> Ivory eff IFloat
+scale_rpyt input = call scale_proc I.ppmCenter 500 (-1.0) 1.0 input
 
-scale_proc :: Def ('[Uint16, Uint16, IFloat, IFloat, Uint16] :-> IFloat)
+scale_proc :: Def ('[I.PPM, Uint16, IFloat, IFloat, I.PPM] :-> IFloat)
 scale_proc = proc "userinput_scale" $ \center range outmin outmax input ->
   requires (    (range /=? 0)
-            .&& (input >=? 900)
-            .&& (input <=? 2100)
+            .&& (input >=? minBound)
+            .&& (input <=? maxBound)
            )
   $ body $ do
     let centered = safeCast input - safeCast center
@@ -79,18 +84,18 @@ scale_proc = proc "userinput_scale" $ \center range outmin outmax input ->
         (ret outmax)
         (ret ranged))
 
-userInputDecode :: Def ('[ Ref s0 (Array 8 (Stored Uint16))
+userInputDecode :: Def ('[ Ref s0 (Array 8 (Stored I.PPM))
                          , Ref s1 (Struct "userinput_result")
                          , Uint32 ] :-> ())
-userInputDecode = proc "userinput_decode" $ \pwms ui now ->
+userInputDecode = proc "userinput_decode" $ \ppms ui now ->
   body $ do
   -- Scale 1000-2000 inputs to -1 to 1 inputs.
   let chtransform :: Ix 8
                   -> Label "userinput_result" (Stored IFloat)
                   -> Ivory eff ()
       chtransform ix ofield = do
-        pwm <- deref (pwms ! (ix :: Ix 8))
-        v   <- scale_rpyt pwm
+        ppm <- deref (ppms ! (ix :: Ix 8))
+        v   <- scale_rpyt ppm
         store (ui ~> ofield) v
   chtransform 0 I.roll
   chtransform 1 I.pitch
@@ -101,15 +106,15 @@ userInputDecode = proc "userinput_decode" $ \pwms ui now ->
 
 -- | Run the arming state machine, returning true if an arming event
 -- has occured, writing the new arming state to the output reference.
-armingStatemachine :: Def ('[ Ref s0 (Array 8 (Stored Uint16))
+armingStatemachine :: Def ('[ Ref s0 (I.PPMs)
                             , Ref s1 (Struct "arming_state")
                             , Ref s2 (Stored A.ArmedMode)
                             , Uint32
                             ] :-> IBool)
-armingStatemachine = proc "armingStatemachine" $ \pwms state out now -> body $ do
-  throttle_stick  <- deref (pwms ! (2 :: Ix 8))
-  rudder_stick    <- deref (pwms ! (3 :: Ix 8))
-  dmswitch        <- call deadManSwitch (constRef pwms)
+armingStatemachine = proc "armingStatemachine" $ \ppms state out now -> body $ do
+  throttle_stick  <- deref (ppms ! (2 :: Ix 8))
+  rudder_stick    <- deref (ppms ! (3 :: Ix 8))
+  dmswitch        <- call deadManSwitch (constRef ppms)
   let hystresis    = 500
   let stick_in_pos = (throttle_stick <? 1050) .&& (rudder_stick >? 1900)
 
@@ -141,14 +146,14 @@ armingStatemachine = proc "armingStatemachine" $ \pwms state out now -> body $ d
   ret false
 
 -- | Debouncing state machine for the flight mode switch.
-modeStatemachine :: Def ('[ Ref s0 (Array 8 (Stored Uint16))
+modeStatemachine :: Def ('[ Ref s0 I.PPMs
                           , Ref s1 (Struct "flightmode_state")
                           , Ref s2 (Struct "flightmode")
                           , Uint32 -- now
                           ] :-> IBool)
-modeStatemachine = proc "modeStatemachine" $ \pwms state out now -> body $ do
-  pwm <- deref (pwms ! (4 :: Ix 8))
-  let mode = mode_from_pwm pwm
+modeStatemachine = proc "modeStatemachine" $ \ppms state out now -> body $ do
+  ppm <- deref (ppms ! (4 :: Ix 8))
+  let mode = mode_from_ppm ppm
   last_mode <- deref (state ~> fm_last_mode)
 
   -- XXX TODO: debounce
@@ -161,18 +166,19 @@ modeStatemachine = proc "modeStatemachine" $ \pwms state out now -> body $ do
 
   ret false
   where
-    mode_from_pwm :: Uint16 -> FM.FlightMode
-    mode_from_pwm pwm = foldr (match_mode_map pwm) FM.flightModeStabilize mode_pwm_map
-    match_mode_map pwm (mode, (min_pwm, max_pwm)) def =
-      ((pwm >=? min_pwm) .&& (pwm <=? max_pwm)) ? (mode, def)
+  mode_from_ppm :: I.PPM -> FM.FlightMode
+  mode_from_ppm ppm = foldr (match_mode_map ppm) FM.flightModeStabilize mode_ppm_map
+  match_mode_map ppm (mode, (min_ppm, max_ppm)) def =
+    ((ppm >=? min_ppm) .&& (ppm <=? max_ppm)) ? (mode, def)
 
--- | Is Channel 6 (switch 2) depressed?  True means Arming ok.
-deadManSwitch :: Def ('[ConstRef s (Array 8 (Stored Uint16))] :-> IBool)
-deadManSwitch = proc "deadManSwitch" $ \pwms -> body $ do
-  ch6_switch <- deref (pwms ! (5 :: Ix 8))
-  ret (ch6_switch >=? 1500)
+-- | Is Channel 6 (switch 2) depressed?  True means yes: ARMing ok.
+deadManSwitch :: Def ('[ConstRef s I.PPMs] :-> IBool)
+deadManSwitch = proc "deadManSwitch" $ \ppms -> body $ do
+  ch5_switch <- deref (ppms ! (5 :: Ix 8))
+  ret (ch5_switch >=? I.ppmHigh)
 
-userInputFailsafe :: Def ('[ Ref s0 (Struct "userinput_result")
+-- Filter for timeouts.
+userInputFailsafe :: Def ('[ Ref s (Struct "userinput_result")
                            , Uint32 ] :-> ())
 userInputFailsafe = proc "userinput_failsafe" $ \capt now ->
   requires (checkStored (capt ~> I.time) (\t -> now >=? t))
@@ -186,3 +192,11 @@ userInputFailsafe = proc "userinput_failsafe" $ \capt now ->
        store (capt ~> I.roll)     0
     retVoid
 
+-- Filter for bad/noisy PPM signals.
+userInputFilter :: Def ('[ConstRef s I.PPMs] :-> IBool)
+userInputFilter = proc "userinput_filter" $ \ppms -> body $ do
+  let go b ix = do
+        ppm <- deref (ppms ! toIx (fromInteger ix :: Sint32))
+        return $ b .&& ppm >=? minBound .&& ppm <=? maxBound
+
+  ret =<< foldM go true [0..7 :: Integer]

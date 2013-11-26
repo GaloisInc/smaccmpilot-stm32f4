@@ -20,7 +20,7 @@ import SMACCMPilot.Flight.UserInput.Decode
 userPPMInputTask :: -- To reading Mux
                     DataSource (Struct "userinput_result")
                     -- To armed mux
-                 -> DataSource (Array 8 (Stored Uint16))
+                 -> DataSource PPMs
                  -> Task p ()
 userPPMInputTask uis ppm = do
   uiWriter       <- withDataWriter uis "userInput"
@@ -33,9 +33,15 @@ userPPMInputTask uis ppm = do
     captured <- call userPPMInputCapture chs
     when captured $ do
       let cchs = constRef chs
-      writeData ppmChansWriter cchs
-      b <- call deadManSwitch cchs
-      when b (call_ userInputDecode chs ui_result now)
+      validPPMs <- call userInputFilter cchs
+      when validPPMs $ do
+        -- Only send valid PPM signals to the arming mux, and only try to decode
+        -- valid signals.
+        writeData ppmChansWriter cchs
+        b <- call deadManSwitch cchs
+        when b (call_ userInputDecode chs ui_result now)
+    -- Even if the signals are invalid, we're going to call the fail-safe which
+    -- zeros the values after 150 ms.
     call_ userInputFailsafe ui_result now
     writeData uiWriter (constRef ui_result)
 
@@ -48,7 +54,7 @@ userPPMInputTask uis ppm = do
 --------------------------------------------------------------------------------
 
 -- This talks to the AP_HAL via c++, so we have to extern it completely
-userPPMInputCapture :: Def ('[ Ref s1 (Array 8 (Stored Uint16)) ] :-> IBool)
+userPPMInputCapture :: Def ('[ Ref s1 PPMs ] :-> IBool)
 userPPMInputCapture = externProc "userinput_capture"
 
 --------------------------------------------------------------------------------

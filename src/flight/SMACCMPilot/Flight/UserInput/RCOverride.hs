@@ -77,15 +77,15 @@ userMAVInputTask a rc_over_snk src_js_fs src_rc_over_res = do
     incl validOverrideMsg
 
 -- Copy the PPM values out of the rc_channels_override_msg struct into an array.
-processOverrideMsg :: Def ('[ Ref s (Array 8 (Stored Uint16))
+processOverrideMsg :: Def ('[ Ref s T.PPMs
                             , Ref s (Struct "rc_channels_override_msg")
                             ] :-> ())
 processOverrideMsg = proc "processOverrideMsg" $ \arr msg -> body $ do
   let go :: (Integer, Label "rc_channels_override_msg" (Stored Uint16))
          -> Ivory eff ()
       go (ix, chan) = do
-        field <- deref (msg ~> chan)
-        store (arr ! toIx (fromInteger ix :: Sint32)) field
+        field <- msg ~>* chan
+        store (arr ! toIx (fromInteger ix :: Sint32)) (safeCast field)
   mapM_ go channelAccessors
 
   where
@@ -97,7 +97,7 @@ processOverrideMsg = proc "processOverrideMsg" $ \arr msg -> body $ do
 
 -- Filter RC override messages, checking that the fields are as expected AND the
 -- kill switch is on.  Returns True if the conditions are met.
-validOverrideMsg :: Def ('[ConstRef s (Array 8 (Stored Uint16))] :-> IBool)
+validOverrideMsg :: Def ('[ConstRef s T.PPMs] :-> IBool)
 validOverrideMsg = proc "validOverrideMsg" $ \arr -> body $ do
   -- See if our failsafe button is depressed (channel 5, counting from 1).
   -- We can be exact here (2000) since it's a MAVLink msg.
