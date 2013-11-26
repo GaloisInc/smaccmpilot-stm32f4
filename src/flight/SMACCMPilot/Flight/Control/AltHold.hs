@@ -4,6 +4,8 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 
+{-# OPTIONS_GHC -fno-warn-orphans #-}
+
 module SMACCMPilot.Flight.Control.AltHold where
 
 import Control.Applicative ((<$>))

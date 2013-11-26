@@ -22,7 +22,6 @@ sensorsTower :: forall n p
             -> DataSource  (Struct "sensors_result")
             -> Tower p ()
 sensorsTower psnk osrc = task "sensorsCaptureTask" $ do
-  m <- withGetTimeMillis
   sensorsWriter <- withDataWriter osrc "sensors"
   withStackSize 1024
 
@@ -57,7 +56,6 @@ sensorsTower psnk osrc = task "sensorsCaptureTask" $ do
     loop <- stateNamed "captureloop" $ period 10 $ liftIvory_ $ do
       call_ sensorsSetPosition
       call_ sensors_update
-      time <- getTimeMillis m
 
       (rpy :: Ref (Stack cs) (Array 3 (Stored IFloat))) <- local (iarray [])
       ahrs_time_ref <- local izero

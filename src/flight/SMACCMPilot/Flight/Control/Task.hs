@@ -120,10 +120,10 @@ controlTask a s_fm s_inpt s_sens s_ctl s_ah_state params = do
   -- | Altitude hold throttle controller.
   let throttleAltHold :: Def ('[IFloat] :-> ())
       throttleAltHold = proc "throttle_alt_hold" $ \climb_rate -> body $ do
-        let params = flightAltHold param_reader
-        getPIDParams (altHoldThrottleAlt   params) altPID
-        getPIDParams (altHoldThrottleRate  params) ratePID
-        getPIDParams (altHoldThrottleAccel params) accelPID
+        let ahParams = flightAltHold param_reader
+        getPIDParams (altHoldThrottleAlt   ahParams) altPID
+        getPIDParams (altHoldThrottleRate  ahParams) ratePID
+        getPIDParams (altHoldThrottleAccel ahParams) accelPID
         stick <- deref (inpt ~> UI.throttle)
         accel <- call altHoldController ahState (constRef inpt)
                       (constRef sens) (constRef altPID) (constRef ratePID)
@@ -158,7 +158,7 @@ controlTask a s_fm s_inpt s_sens s_ctl s_ah_state params = do
 
         store prevMode mode
 
-  onPeriod 5 $ \now -> do
+  onPeriod 5 $ \_now -> do
       readData sensReader  sens
       readData armedReader armRef
       readData fmReader    fm
