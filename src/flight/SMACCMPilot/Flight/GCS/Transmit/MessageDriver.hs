@@ -22,7 +22,8 @@ import qualified SMACCMPilot.Hardware.GPS.Types                 as P
 import qualified SMACCMPilot.Flight.Types.Motors                as M
 import qualified SMACCMPilot.Flight.Types.Sensors               as Sens
 import qualified SMACCMPilot.Flight.Types.ControlOutput         as C
-import qualified SMACCMPilot.Flight.Types.UserInput             as U
+import qualified SMACCMPilot.Flight.Types.UserInput             as UI
+import           SMACCMPilot.Flight.Types.UserInputSource
 import qualified SMACCMPilot.Flight.Types.FlightMode            as FM
 import qualified SMACCMPilot.Flight.Types.FlightModeData        as FM
 import qualified SMACCMPilot.Flight.Types.RadioStat             as RStat
@@ -86,22 +87,27 @@ type Sender a = forall s0 s1 .
 --   retVoid
 
 mkSendHeartbeat :: Def ('[ Ref s1 (Struct "flightmode")
-                         , Ref s2 (Stored IBool)
-                         , Ref s3 (Stored Uint8)
-                         , Ref s3 (Struct "mavlinkPacket")
+                         , Ref s2 (Struct "userinput_result")
+                         , Ref s3 (Stored IBool)
+                         , Ref sm (Stored Uint8)
+                         , Ref sm (Struct "mavlinkPacket")
                          ] :-> ())
 mkSendHeartbeat =
   proc "gcs_transmit_send_heartbeat"
-  $ \fm ref_armed seqNum sendStruct -> body $ do
+  $ \fm ui ref_armed seqNum sendStruct -> body $ do
   hb <- local (istruct [])
   armed <- deref ref_armed
-  mode  <- (fm ~>* FM.mode)
-  store (hb ~> HB.custom_mode) (safeCast $ FM.fromFlightMode mode)
+  mode  <- deref (fm ~> FM.mode)
+  uisrc <- deref (ui ~> UI.source)
   store (hb ~> HB.mavtype)      mavtype_quadrotor
   store (hb ~> HB.autopilot)    autopilot_smaccmpilot
   ifte_ armed
     (store (hb ~> HB.base_mode) (mavl_armed + mavl_custom_mode))
     (store (hb ~> HB.base_mode) (mavl_custom_mode))
+  let custommode = safeCast (FM.fromFlightMode mode) -- Bits 0, 1
+                 + (uisrc ==? uiSourcePPM) ? (0, 4)  -- Bit 2
+  store (hb ~> HB.custom_mode) custommode
+
   -- system status stays 0
   store (hb ~> HB.mavlink_version) 3 -- magic number
 
@@ -370,7 +376,7 @@ senderModules = package "senderModules" $ do
   depend M.motorsTypeModule
   depend Sens.sensorsTypeModule
   depend C.controlOutputTypeModule
-  depend U.userInputTypeModule
+  depend UI.userInputTypeModule
   depend FM.flightModeTypeModule
 --  depend R.dataRateTypeModule
   depend RStat.radioStatTypeModule

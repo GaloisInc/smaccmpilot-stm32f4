@@ -49,6 +49,7 @@ data FlightCoreProvides =
     , armed_state      :: DataSink (Stored A.ArmedMode)
     , flightmode_state :: DataSink (Struct "flightmode")
     , althold_state    :: DataSink (Struct "alt_hold_state")
+    , userinput_state  :: DataSink (Struct "userinput_result")
     }
 
 core :: FlightCoreRequires -> Tower p FlightCoreProvides
@@ -85,6 +86,7 @@ core sys = do
     , armed_state      = armed
     , flightmode_state = flightmode
     , althold_state    = snk ah_state
+    , userinput_state  = userinput
     }
   where
   lights = [relaypin, redledpin]

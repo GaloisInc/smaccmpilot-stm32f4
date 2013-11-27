@@ -40,11 +40,12 @@ gcsTransmitTask :: (SingI n0, SingI n1, SingI n2, SingI n3)
                 -> DataSink         (Struct "motors")
                 -> DataSink         (Struct "radio_stat")
                 -> DataSink         (Struct "alt_hold_state")
+                -> DataSink         (Struct "userinput_result")
                 -> ChannelSink n3   (Stored Sint16)
                 -> [Param PortPair]
                 -> Task p ()
 gcsTransmitTask mavStream sp_sink _dr_sink fm_sink armed_sink se_sink ps_sink
-                ct_sink mo_sink ra_sink ah_sink param_req_sink params
+                ct_sink mo_sink ra_sink ah_sink ui_sink param_req_sink params
   = do
   withStackSize 1024
 
@@ -56,6 +57,7 @@ gcsTransmitTask mavStream sp_sink _dr_sink fm_sink armed_sink se_sink ps_sink
   radioReader      <- withDataReader ra_sink "radio"
   armedReader      <- withDataReader armed_sink "armed"
   altHoldReader    <- withDataReader ah_sink "alt_hold"
+  uiReader         <- withDataReader ui_sink "userinput_result"
   mavTx            <- withChannelEmitter mavStream "gcsTxToEncSrc"
 
   -- the mavlink packet we're packing
@@ -128,14 +130,16 @@ gcsTransmitTask mavStream sp_sink _dr_sink fm_sink armed_sink se_sink ps_sink
             setNextTime (constRef s_periods) s_schedule selector now
 
     onStream T.heartbeat $ do
-      l_fm <- local (istruct [])
+      l_fm    <- local (istruct [])
       l_armed <- local izero
+      l_ui    <- local (istruct [])
       readData fmReader l_fm
       readData armedReader l_armed
+      readData uiReader l_ui
       l <- deref l_armed
       b <- local izero
       store b (l ==? A.as_ARMED)
-      call_ mkSendHeartbeat l_fm b seqNum mavlinkStruct
+      call_ mkSendHeartbeat l_fm l_ui b seqNum mavlinkStruct
       processMav T.heartbeat
 
     onStream T.servo_output_raw $ do
