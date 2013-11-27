@@ -17,7 +17,7 @@ newtype FlightMode = FlightMode Uint8
 flightModeStabilize, flightModeAltHold, flightModeAuto :: FlightMode
 flightModeStabilize = FlightMode 0
 flightModeAltHold   = FlightMode 1
-flightModeAuto      = FlightMode 2
+flightModeAuto      = FlightMode 3
 
 fromFlightMode :: FlightMode -> Uint8
 fromFlightMode (FlightMode fm) = fm
