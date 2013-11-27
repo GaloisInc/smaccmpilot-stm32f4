@@ -38,16 +38,16 @@ userInputTower snk_mav_armed snk_rc_over = do
   task "armingTask" $ armedMuxTask ppm_chans
                                    snk_mav_armed
                                    (src armed_state)
+  flightmode <- flightModeMuxTower
+                  ppm_chans
+                  (snk armed_state)
 
   (canonical_ui) <- userInputMuxTower
                       (snk armed_state)
                        ppm_ui
                        rcoverride_ui
                        rcoverride_active
-
-  flightmode <- flightModeMuxTower
-                  ppm_chans
-                  (snk armed_state)
+                       flightmode
 
   addDepends rcChannelsOverrideModule
   addModule userInputDecodeModule

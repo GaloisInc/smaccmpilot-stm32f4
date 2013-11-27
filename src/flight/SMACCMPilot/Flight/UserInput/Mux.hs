@@ -17,6 +17,8 @@ import Ivory.Tower
 
 import qualified SMACCMPilot.Flight.Types.Armed      as A
 import qualified SMACCMPilot.Flight.Types.UserInput  as T
+import qualified SMACCMPilot.Flight.Types.FlightMode as FM
+import           SMACCMPilot.Flight.Types.FlightModeData
 import qualified SMACCMPilot.Flight.UserInput.Decode as D
 
 --------------------------------------------------------------------------------
@@ -117,13 +119,15 @@ userInputMuxTower :: DataSink (Stored A.ArmedMode)
                   -> DataSink (Struct "userinput_result")
                   -> DataSink (Struct "userinput_result")
                   -> DataSink (Stored IBool)
+                  -> DataSink (Struct "flightmode")
                   -> Tower p (DataSink (Struct "userinput_result"))
-userInputMuxTower armed ppm_ui override_ui override_active = do
+userInputMuxTower armed ppm_ui override_ui override_active flightmode = do
   result <- dataport
   task "userInputMux" $ userInputMuxTask armed
                                          ppm_ui
                                          override_ui
                                          override_active
+                                         flightmode
                                          (src result)
   return (snk result)
 
@@ -135,18 +139,22 @@ userInputMuxTask :: -- From Arming Mux task
                  -> DataSink (Struct "userinput_result")
                     -- From RCOverride task
                  -> DataSink (Stored IBool)
+                    -- From flightmode mux
+                 -> DataSink (Struct "flightmode")
                     -- To motor control task
                  -> DataSource (Struct "userinput_result")
                  -> Task p ()
-userInputMuxTask snk_armed snk_rc_ppm snk_mav_ppm snk_mav_failsafe src_res = do
+userInputMuxTask snk_armed snk_rc_ppm snk_mav_ppm snk_mav_failsafe snk_flightmode src_res = do
   armReader   <- withDataReader snk_armed   "snk_armed"
   ppmReader   <- withDataReader snk_rc_ppm  "snk_rc_ppm"
   mavReader   <- withDataReader snk_mav_ppm "snk_mav_ppm"
+  modeReader  <- withDataReader snk_flightmode "snk_flightmode"
   mavFSReader <- withDataReader snk_mav_failsafe "snk_mav_failsafe"
   resWriter   <- withDataWriter src_res     "src_res"
 
   armLocal    <- taskLocal "armLocal"
   rcLocal     <- taskLocal "rcLocal"
+  modeLocal   <- taskLocal "modeLocal"
   mavLocal    <- taskLocal "mavLocal"
   mavFS       <- taskLocal "mavFSLocal"
 
@@ -160,9 +168,11 @@ userInputMuxTask snk_armed snk_rc_ppm snk_mav_ppm snk_mav_failsafe src_res = do
     armed <- deref armLocal
     readData ppmReader rcLocal
     readData mavReader mavLocal
+    readData modeReader modeLocal
     readData mavFSReader mavFS
     -- Joystick failsafe
     jsDeadMan <- deref mavFS
+    fm <- deref (modeLocal ~> FM.mode)
 
     lastMavTime <- deref (mavLocal ~> T.time)
     -- Time is monotomic.
@@ -173,6 +183,8 @@ userInputMuxTask snk_armed snk_rc_ppm snk_mav_ppm snk_mav_failsafe src_res = do
           -- depressed System armed (This shouldn't be required, as no RC
           -- override messages should be generated if the sytem isn't armed.)
           .&& (armed ==? A.as_ARMED)
+          -- flight mode is auto
+          .&& (fm ==? flightModeAuto)
           -- -- Got a message recently
           .&& (now <? (lastMavTime + mavTimeout))
 
