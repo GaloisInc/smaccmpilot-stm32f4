@@ -36,8 +36,8 @@ gcsTower :: (SingI n0, SingI n1, SingI n2, SingI n3)
          -> C.Options
          -> ChannelSink   n0 (Stored Uint8)
          -> ChannelSource n1 (Stored Uint8)
-         -> ( DataSource (Struct "flightmode")
-            , DataSink   (Struct "flightmode"))
+         -> DataSink   (Struct "flightmode")
+         -> DataSource (Struct "flightmode")
          -> DataSink (Stored A.ArmedMode)
          -> ChannelSource n2 (Stored A.ArmedMode)
          -> DataSink (Struct "sensors_result")
@@ -48,10 +48,10 @@ gcsTower :: (SingI n0, SingI n1, SingI n2, SingI n3)
          -> DataSink (Struct "alt_hold_state")
          -> [Param PortPair]
          -> Tower p ()
-gcsTower name opts istream ostream fm armed_res_snk armed_mav_src sens
+gcsTower name opts istream ostream fm_state fm_mavcmd armed_res_snk armed_mav_src sens
          pos ctl motor rcOvrTx ah_snk params
   =
-  void $ gcsTowerAux name opts istream ostream fm armed_res_snk armed_mav_src
+  void $ gcsTowerAux name opts istream ostream fm_state fm_mavcmd armed_res_snk armed_mav_src
            sens pos ctl motor rcOvrTx ah_snk params
 
 --------------------------------------------------------------------------------
@@ -61,8 +61,8 @@ gcsTowerHil :: (SingI n0, SingI n1, SingI n2, SingI n3)
          -> C.Options
          -> ChannelSink   n0 (Stored Uint8)
          -> ChannelSource n1 (Stored Uint8)
-         -> ( DataSource (Struct "flightmode")
-            , DataSink   (Struct "flightmode"))
+         -> DataSink   (Struct "flightmode")
+         -> DataSource (Struct "flightmode")
          -> DataSink (Stored A.ArmedMode)
          -> ChannelSource n2 (Stored A.ArmedMode)
          -> DataSink (Struct "controloutput")
@@ -73,14 +73,14 @@ gcsTowerHil :: (SingI n0, SingI n1, SingI n2, SingI n3)
          -> DataSink (Struct "alt_hold_state")
          -> [Param PortPair]
          -> Tower p ()
-gcsTowerHil name opts istream ostream fm armed_res_snk
+gcsTowerHil name opts istream ostream fm_state fm_mavcmd armed_res_snk
             armed_mav_src ctl motor sensors
             rcOvrTx ah_snk params
   = do
   let sensors_state = snk sensors
   position      <- dataport
   hil           <-
-    gcs fm armed_res_snk armed_mav_src sensors_state (snk position) ctl
+    gcs fm_state fm_mavcmd armed_res_snk armed_mav_src sensors_state (snk position) ctl
       motor rcOvrTx ah_snk params
   task "hilTranslator" $ hilTranslator hil (src sensors) (src position)
   where
@@ -93,8 +93,8 @@ gcsTowerAux :: (SingI n0, SingI n1, SingI n2, SingI n3)
          -> C.Options
          -> ChannelSink   n0 (Stored Uint8)
          -> ChannelSource n1 (Stored Uint8)
-         -> ( DataSource (Struct "flightmode")
-            , DataSink   (Struct "flightmode"))
+         -> DataSink   (Struct "flightmode")
+         -> DataSource (Struct "flightmode")
          -> DataSink (Stored A.ArmedMode)
          -> ChannelSource n2 (Stored A.ArmedMode)
          -> DataSink (Struct "sensors_result")
@@ -105,7 +105,7 @@ gcsTowerAux :: (SingI n0, SingI n1, SingI n2, SingI n3)
          -> DataSink (Struct "alt_hold_state")
          -> [Param PortPair]
          -> Tower p (ChannelSink 4 (Struct "hil_state_msg"))
-gcsTowerAux name opts istream ostream fm armed_res_snk armed_mav_src sens pos
+gcsTowerAux name opts istream ostream fm_state fm_mavcmd armed_res_snk armed_mav_src sens pos
             ctl motor rcOvrTx ah_snk params
   = do
   -- GCS TX and encrypt tasks
@@ -133,12 +133,12 @@ gcsTowerAux name opts istream ostream fm armed_res_snk armed_mav_src sens pos
   task (named "decryptTask") $ Dec.decryptTask opts hxToDecRcv decToGcsRxSrc
   task (named "gcsReceiveTask") $
     gcsReceiveTask decToGcsRxRcv (src streamrate) (src datarate) (src hil)
-      (src fm) armed_mav_src (src param_req) rcOvrTx params
+      fm_mavcmd armed_mav_src (src param_req) rcOvrTx params
 
   -- TX
   task (named "encryptTask") $ Enc.encryptTask opts gcsTxToEncRcv encToHxSrc
   task (named "gcsTransmitTask") $
-    gcsTransmitTask gcsTxToEncSrc (snk streamrate) (snk datarate) (snk fm)
+    gcsTransmitTask gcsTxToEncSrc (snk streamrate) (snk datarate) fm_state
       armed_res_snk sens pos ctl motor radioStat ah_snk (snk param_req) params
   addDepends HIL.hilStateModule
   addDepends AHD.altHoldDebugModule
