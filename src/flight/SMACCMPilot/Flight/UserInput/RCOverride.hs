@@ -4,7 +4,7 @@
 -- | Handle RC Override MAVLink messages from the GCS.
 
 module SMACCMPilot.Flight.UserInput.RCOverride
-  ( userMAVInputTask
+  ( userRCOverrideTower
   ) where
 
 import Control.Monad hiding (when)
@@ -16,12 +16,30 @@ import Ivory.Tower
 import qualified SMACCMPilot.Flight.UserInput.Decode             as D
 import qualified SMACCMPilot.Mavlink.Messages.RcChannelsOverride as O
 import qualified SMACCMPilot.Flight.Types.UserInput              as T
+import           SMACCMPilot.Flight.Types.UserInputSource
 import qualified SMACCMPilot.Flight.Types.Armed                  as A
 
 --------------------------------------------------------------------------------
 
 -- | This process periodically reports the latest rcOverride message from the
 -- GCS as well as the time since a message was received.
+
+userRCOverrideTower :: SingI n
+                    => ChannelSink n (Struct "rc_channels_override_msg")
+                    -> DataSink (Stored A.ArmedMode)
+                    -> Tower p ( DataSink (Struct "userinput_result")
+                               , DataSink (Stored IBool)
+                               )
+userRCOverrideTower override_msg_sink armed_sink = do
+  active <- dataport
+  ui <- dataport
+  task "userMAVInput" $ userMAVInputTask armed_sink
+                                         override_msg_sink
+                                         (src active)
+                                         (src ui)
+  return (snk ui, snk active)
+
+
 
 userMAVInputTask :: SingI n
                     -- Arming result
@@ -65,6 +83,7 @@ userMAVInputTask a rc_over_snk src_js_fs src_rc_over_res = do
         -- Decode the PPMs.  This should ONLY be called on filtered inputs.
         (call_ D.userInputDecode chs uiResult now)
         (call_ D.userInputFailsafe uiResult now)
+      store (uiResult ~> T.source) uiSourceRCOverride
       store jsFailSafe validInputs
       -- Send it to the Mux task.
       writeData failSafeWriter (constRef jsFailSafe)

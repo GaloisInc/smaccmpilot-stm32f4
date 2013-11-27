@@ -6,9 +6,9 @@
 -- multiplexes them for output to the motor control.
 
 module SMACCMPilot.Flight.UserInput.Mux
-  ( userInputMuxTask
+  ( userInputMuxTower
   , armedMuxTask
-  , flightModeMuxTask
+  , flightModeMuxTower
   ) where
 
 import Ivory.Language
@@ -74,6 +74,18 @@ armedMuxTask ppm_input_snk mav_armed_snk armed_res_src = do
 
 --------------------------------------------------------------------------------
 
+flightModeMuxTower :: DataSink T.PPMs
+                   -> DataSink (Stored A.ArmedMode)
+                   -> Tower p (DataSink (Struct "flightmode"))
+flightModeMuxTower ppm_chans armed_state = do
+  flightmode <- dataport
+  task "flightModeMuxTask" $ flightModeMuxTask ppm_chans
+                                               armed_state
+                                               (src flightmode)
+  return (snk flightmode)
+
+
+
 flightModeMuxTask :: DataSink T.PPMs                    -- PPM signals
                   -> DataSink (Stored A.ArmedMode)      -- Mux'ed arming input
                   -> DataSource (Struct "flightmode")   -- flightmode output
@@ -100,6 +112,20 @@ flightModeMuxTask ppm_input_snk mav_armed_snk fm_src = do
     depend D.userInputDecodeModule
 
 --------------------------------------------------------------------------------
+
+userInputMuxTower :: DataSink (Stored A.ArmedMode)
+                  -> DataSink (Struct "userinput_result")
+                  -> DataSink (Struct "userinput_result")
+                  -> DataSink (Stored IBool)
+                  -> Tower p (DataSink (Struct "userinput_result"))
+userInputMuxTower armed ppm_ui override_ui override_active = do
+  result <- dataport
+  task "userInputMux" $ userInputMuxTask armed
+                                         ppm_ui
+                                         override_ui
+                                         override_active
+                                         (src result)
+  return (snk result)
 
 userInputMuxTask :: -- From Arming Mux task
                     DataSink (Stored A.ArmedMode)

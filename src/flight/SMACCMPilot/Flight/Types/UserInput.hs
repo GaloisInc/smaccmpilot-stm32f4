@@ -10,13 +10,11 @@
 module SMACCMPilot.Flight.Types.UserInput where
 
 import Ivory.Language
-
-import SMACCMPilot.Mavlink.Messages.RcChannelsOverride
+import SMACCMPilot.Flight.Types.UserInputSource
 
 userInputTypeModule :: Module
 userInputTypeModule = package "userinput_type" $ do
   defStruct (Proxy :: Proxy "userinput_result")
-  depend rcChannelsOverrideModule
 
 [ivory|
 struct userinput_result
@@ -25,6 +23,7 @@ struct userinput_result
   ; pitch    :: Stored IFloat
   ; yaw      :: Stored IFloat
   ; time     :: Stored Uint32
+  ; source   :: Stored UISource
   }
 
 |]

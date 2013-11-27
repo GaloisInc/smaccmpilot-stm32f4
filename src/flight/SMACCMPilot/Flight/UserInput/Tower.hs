@@ -16,51 +16,41 @@ import           SMACCMPilot.Flight.UserInput.Decode (userInputDecodeModule)
 import           SMACCMPilot.Flight.UserInput.RCOverride
 import           SMACCMPilot.Flight.UserInput.Mux
 
+import           SMACCMPilot.Mavlink.Messages.RcChannelsOverride
 --------------------------------------------------------------------------------
 
 userInputTower :: (SingI n0, SingI n1)
-                  -- Mux'ed armed
-               => ( DataSource (Stored A.ArmedMode)
-                  , DataSink (Stored A.ArmedMode))
-                  -- MAVLink armed
-               -> ChannelSink n0 (Stored A.ArmedMode)
-                  -- From GCS Rx Task
+               => ChannelSink n0 (Stored A.ArmedMode)
                -> ChannelSink n1 (Struct "rc_channels_override_msg")
-               -> DataSource (Struct "flightmode")
-               -> Tower p (DataSink (Struct "userinput_result"))
-userInputTower armed_res snk_mav_armed snk_rc_over src_flightmode = do
-  (src_userinput, snk_userinput)         <- dataport
-  (src_rc_over_res, snk_rc_over_res)     <- dataport
-  -- Joystick failsafe
-  (src_js_fs, snk_js_fs)                 <- dataport
-  (src_ppm_chans, snk_ppm_chans)         <- dataport
-  (src_input_mux_res, snk_input_mux_res) <- dataport
+               -> Tower p ( DataSink (Struct "userinput_result")
+                          , DataSink (Struct "flightmode")
+                          , DataSink (Stored A.ArmedMode)
+                          )
+userInputTower snk_mav_armed snk_rc_over = do
+  armed_state   <- dataport
 
-  -- Handler for PPM Radio messages
-  task "userPPMInput" $ userPPMInputTask src_userinput
-                                         src_ppm_chans
+  (ppm_ui, ppm_chans) <- userPPMInputTower
 
-  -- Handler for RC override MAVLink messages.
-  task "userMAVInput" $ userMAVInputTask (snk armed_res)
-                                         snk_rc_over
-                                         src_js_fs
-                                         src_rc_over_res
+  (rcoverride_ui, rcoverride_active) <- userRCOverrideTower
+                                          snk_rc_over
+                                          (snk armed_state)
 
-  task "armedMux"     $ armedMuxTask snk_ppm_chans
-                                     snk_mav_armed
-                                     (src armed_res)
+  task "armingTask" $ armedMuxTask ppm_chans
+                                   snk_mav_armed
+                                   (src armed_state)
 
-  task "userInputMux" $ userInputMuxTask (snk armed_res)
-                                         snk_userinput
-                                         snk_rc_over_res
-                                         snk_js_fs
-                                         src_input_mux_res
+  (canonical_ui) <- userInputMuxTower
+                      (snk armed_state)
+                       ppm_ui
+                       rcoverride_ui
+                       rcoverride_active
 
-  task "flightModeMux" $ flightModeMuxTask snk_ppm_chans
-                                           (snk armed_res)
-                                           src_flightmode
+  flightmode <- flightModeMuxTower
+                  ppm_chans
+                  (snk armed_state)
 
+  addDepends rcChannelsOverrideModule
   addModule userInputDecodeModule
-  return snk_input_mux_res
+  return (canonical_ui, flightmode, snk armed_state)
 
 --------------------------------------------------------------------------------

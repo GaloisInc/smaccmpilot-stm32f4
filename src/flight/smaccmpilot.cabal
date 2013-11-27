@@ -10,6 +10,7 @@ cabal-version:       >= 1.10
 
 library
   exposed-modules:     SMACCMPilot.Flight,
+                       SMACCMPilot.Flight.Core,
                        SMACCMPilot.Flight.Compile,
 
                        SMACCMPilot.Flight.Platforms,
@@ -58,6 +59,7 @@ library
                        SMACCMPilot.Flight.Types.Sensors,
                        SMACCMPilot.Flight.Types.Motors,
                        SMACCMPilot.Flight.Types.UserInput,
+                       SMACCMPilot.Flight.Types.UserInputSource,
                        SMACCMPilot.Flight.Types.FlightModeData,
                        SMACCMPilot.Flight.Types.FlightMode,
                        SMACCMPilot.Flight.Types.DataRate,

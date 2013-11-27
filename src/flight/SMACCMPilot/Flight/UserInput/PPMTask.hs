@@ -4,8 +4,7 @@
 -- | Process PPM signals from the PPM RC controller.
 
 module SMACCMPilot.Flight.UserInput.PPMTask
-  ( userPPMInputTask
-  , userPPMInputCapture
+  ( userPPMInputTower
   ) where
 
 import Ivory.Language
@@ -13,9 +12,17 @@ import Ivory.Stdlib
 import Ivory.Tower
 
 import SMACCMPilot.Flight.Types.UserInput
+import SMACCMPilot.Flight.Types.UserInputSource
 import SMACCMPilot.Flight.UserInput.Decode
 
 --------------------------------------------------------------------------------
+
+userPPMInputTower :: Tower p (DataSink (Struct "userinput_result"), DataSink PPMs)
+userPPMInputTower = do
+  userinput <- dataport
+  ppm_chans <- dataport
+  task "userPPMInput" $ userPPMInputTask (src userinput) (src ppm_chans)
+  return (snk userinput, snk ppm_chans)
 
 userPPMInputTask :: -- To reading Mux
                     DataSource (Struct "userinput_result")
@@ -43,6 +50,7 @@ userPPMInputTask uis ppm = do
     -- Even if the signals are invalid, we're going to call the fail-safe which
     -- zeros the values after 150 ms.
     call_ userInputFailsafe ui_result now
+    store (ui_result ~> source) uiSourcePPM
     writeData uiWriter (constRef ui_result)
 
   taskModuleDef $ do
