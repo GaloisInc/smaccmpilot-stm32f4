@@ -139,6 +139,7 @@ controlTask a s_fm s_inpt s_sens s_ctl s_ah_state params = do
         climb_rate <- call getClimbRate
         cond_
           [ mode ==? flightModeAltHold ==> call_ throttleAltHold climb_rate
+          , mode ==? flightModeAuto    ==> call_ throttleAltHold climb_rate
           , true                       ==> call_ throttleManual
           ]
 
