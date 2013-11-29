@@ -35,6 +35,10 @@ library
                        SMACCMPilot.Flight.Control.AltHold,
                        SMACCMPilot.Flight.Control.Task,
 
+                       SMACCMPilot.Flight.Control.Thrust,
+                       SMACCMPilot.Flight.Control.Thrust.Estimator,
+                       SMACCMPilot.Flight.Control.Thrust.Filter,
+
                        SMACCMPilot.Flight.Datalink,
                        SMACCMPilot.Flight.Datalink.AirData,
                        SMACCMPilot.Flight.Datalink.RadioData,

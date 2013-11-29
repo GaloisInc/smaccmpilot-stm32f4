@@ -23,6 +23,8 @@ import SMACCMPilot.Flight.Control.PID
 import SMACCMPilot.Flight.Param
 import SMACCMPilot.Flight.Types.FlightModeData
 
+import SMACCMPilot.Flight.Control.Thrust.Estimator
+
 controlTask :: (SingI n)
             => DataSink   (Stored A.ArmedMode)
             -> DataSink (Struct "flightmode")
@@ -45,6 +47,7 @@ controlTask a s_fm s_inpt s_sens s_ctl s_ah_state params = do
   inpt          <- taskLocal "input"
   sens          <- taskLocal "sens"
   ctl           <- taskLocal "control"
+
   ahState       <- taskLocal "alt_hold"
   prevAlt       <- taskLocal "prev_alt"
   prevAltTime   <- taskLocal "prev_alt_time"
@@ -64,6 +67,8 @@ controlTask a s_fm s_inpt s_sens s_ctl s_ah_state params = do
   let stabilize_run  = makeStabilizeRun param_reader
   let altHoldInit    = makeAltHoldInit (flightAltHold param_reader)
 
+  alt_estimator <- taskAltEstimator
+
   taskInit $ do
     call_ altHoldInit ahState
 
@@ -71,6 +76,8 @@ controlTask a s_fm s_inpt s_sens s_ctl s_ah_state params = do
     setNothing prevAlt
     setNothing prevClimbRate
     store prevMode flightModeStabilize
+
+    ae_init alt_estimator
 
   -- | Manual throttle controller.
   let throttleManual :: Def ('[] :-> ())
@@ -159,6 +166,7 @@ controlTask a s_fm s_inpt s_sens s_ctl s_ah_state params = do
 
         store prevMode mode
 
+
   onPeriod 5 $ \_now -> do
       readData sensReader  sens
       readData armedReader armRef
@@ -171,12 +179,16 @@ controlTask a s_fm s_inpt s_sens s_ctl s_ah_state params = do
       arm <- deref armRef
       call_ stabilize_run arm (constRef fm) (constRef inpt) (constRef sens) ctl
 
+      sensor_alt  <- deref (sens ~> SENS.baro_alt)
+      sensor_time <- deref (sens ~> SENS.baro_time)
+      ae_measurement alt_estimator sensor_alt sensor_time
       -- Run throttle controller if we are armed.
       ifte_ (arm ==? A.as_ARMED)
         (throttle_run mode)
         (store (ctl ~> CO.throttle) 0)
 
-      writeData ahWriter (constRef ahState)
+--      writeData ahWriter (constRef ahState)
+      debugEstimator ahWriter alt_estimator
       emit_ ctlEmitter (constRef ctl)
 
   taskModuleDef $ do
@@ -192,3 +204,17 @@ controlTask a s_fm s_inpt s_sens s_ctl s_ah_state params = do
     incl altHoldInit
     incl getAngleBoost
     incl getClimbRate
+
+debugEstimator :: (GetAlloc eff ~ Scope cs)
+               => DataWriter (Struct "alt_hold_state")
+               -> AltEstimator
+               -> Ivory eff ()
+debugEstimator writer estimator = do
+  (alt, rate) <- ae_state estimator 
+  ahs <- local $ istruct
+    [ ah_angle_boost .= ival alt
+    , ah_climb_rate  .= ival rate
+    ]
+  writeData writer (constRef ahs)
+  return ()
+
