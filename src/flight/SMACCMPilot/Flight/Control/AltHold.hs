@@ -19,20 +19,7 @@ import SMACCMPilot.Flight.Control.PID
 
 import qualified SMACCMPilot.Flight.Types.UserInput as UI
 import qualified SMACCMPilot.Flight.Types.Sensors   as S
-
-----------------------------------------------------------------------
--- Utilities
-
-[ivory|
-struct maybe_float
-  { mf_valid              :: Stored IBool
-  ; mf_value              :: Stored IFloat
-  }
-|]
-
-instance MaybeType "maybe_float" IFloat where
-  maybeValidLabel = mf_valid
-  maybeValueLabel = mf_value
+import           SMACCMPilot.Flight.Types.MaybeFloat
 
 ----------------------------------------------------------------------
 -- Constants
@@ -45,7 +32,7 @@ alt_hold_throttle_dt = 1.0 / 200.0
 
 -- | User input stick throttle dead band.
 throttle_dead_band :: IFloat
-throttle_dead_band = 0.25
+throttle_dead_band = 0.4
 
 alt_hold_accel_max :: IFloat
 alt_hold_accel_max = 2.5
@@ -205,19 +192,22 @@ updateTargetAlt :: Def ('[ Ref      s1 (Struct "alt_hold_state")
                          , IFloat     -- climb_rate
                          ] :-> IFloat)
 updateTargetAlt = proc "update_target_alt" $
-  \state sensors throttle climb_rate -> body $ do
+  \state sensors _throttle climb_rate -> body $ do
   current_alt <- deref (sensors ~> S.baro_alt)
 
   -- XXX only update altitude if throttle hasn't hit its limit.
-  when (climb_rate /=? 0.0) $ do
+  when true $ do -- (climb_rate /=? 0.0) $ do -- XXX testing pch
     target_alt  <- getMaybe (constRef $ state ~> ah_target_alt) current_alt
-    -- XXX magic numbers
-    low         <- assign (current_alt - 7.5)
-    high        <- assign (current_alt + 7.5)
+    low         <- assign (current_alt - max_target_distance)
+    high        <- assign (current_alt + max_target_distance)
     target_alt' <- call fconstrain low high (target_alt + (climb_rate * alt_hold_dt))
     setJust (state ~> ah_target_alt) target_alt'
 
   ret =<< getMaybe (constRef $ state ~> ah_target_alt) current_alt
+
+  where
+  -- XXX magic number
+  max_target_distance = 1.0
 
 -- XXX hardcoded
 accelFilter = lowPassFilter 2.0 alt_hold_throttle_dt
@@ -235,7 +225,7 @@ altHoldThrottle = proc "alt_hold_throttle" $
   raw_accel  <- deref (sensors ~> S.zacc)
   -- Calculate earth frame Z-acceleration.
   meas_accel <- assign ((raw_accel * 9.81 / 1000.0) + 9.81)
-  store (state ~> ah_angle_boost) meas_accel
+  store (state ~> ah_angle_boost) meas_accel -- Repurposed for debugging.
   let err     = target_accel - meas_accel
 
   err_filt   <- accelFilter err (state ~> ah_accel_filter)
@@ -282,7 +272,8 @@ altHoldController = proc "alt_hold_controller" $
   accel         <- assign (delta_speed * alt_hold_dt)
   rate_kP       <- deref (rate_pid ~> pid_pGain)
   p             <- assign (error_rate * rate_kP)
-  target_accel  <- call fconstrain (-320.0) 320.0 (accel + p)
+  rate_kD       <- deref (rate_pid ~> pid_dGain)
+  target_accel  <- call fconstrain (-320.0) 320.0 ((rate_kD * accel) + p)
   store (state ~> ah_target_accel) target_accel
 
   ret target_accel
@@ -308,8 +299,8 @@ altHoldModule = package "alt_hold" $ do
   depend controlPIDModule
   depend S.sensorsTypeModule
   depend UI.userInputTypeModule
+  depend maybeFloatModule
   -- XXX some of these should be private
-  defStruct (Proxy :: Proxy "maybe_float")
   defStruct (Proxy :: Proxy "alt_hold_state")
   incl desiredClimbRate
   incl updateThrottleCruise

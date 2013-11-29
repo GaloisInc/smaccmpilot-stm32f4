@@ -65,6 +65,7 @@ library
                        SMACCMPilot.Flight.Types.DataRate,
                        SMACCMPilot.Flight.Types.RadioStat,
                        SMACCMPilot.Flight.Types.RadioInfo,
+                       SMACCMPilot.Flight.Types.MaybeFloat,
 
                        SMACCMPilot.Flight.UserInput.Tower,
                        SMACCMPilot.Flight.UserInput.PPMTask,
