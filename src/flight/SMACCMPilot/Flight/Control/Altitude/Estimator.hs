@@ -2,13 +2,13 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE RankNTypes #-}
 
-module SMACCMPilot.Flight.Control.Thrust.Estimator where
+module SMACCMPilot.Flight.Control.Altitude.Estimator where
 
 import Ivory.Language
 import Ivory.Tower
 import Ivory.Stdlib
 
-import SMACCMPilot.Flight.Control.Thrust.Filter
+import SMACCMPilot.Flight.Control.Altitude.Filter
 
 data AltEstimator =
   AltEstimator

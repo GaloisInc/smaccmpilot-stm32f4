@@ -2,11 +2,12 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE RankNTypes #-}
 
-module SMACCMPilot.Flight.Control.Thrust.Filter where
+module SMACCMPilot.Flight.Control.Altitude.Filter where
 
 import Ivory.Language
 import Ivory.Stdlib
-import SMACCMPilot.Flight.Types.MaybeFloat
+
+import SMACCMPilot.Flight.Types.MaybeFloat ()
 
 -- | Return the change in a value, filtered by a low pass filter.
 --

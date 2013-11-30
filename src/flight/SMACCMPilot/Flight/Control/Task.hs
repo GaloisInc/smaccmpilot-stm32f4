@@ -23,7 +23,8 @@ import SMACCMPilot.Flight.Control.PID
 import SMACCMPilot.Flight.Param
 import SMACCMPilot.Flight.Types.FlightModeData
 
-import SMACCMPilot.Flight.Control.Thrust.Estimator
+import SMACCMPilot.Flight.Control.Altitude.Estimator
+import SMACCMPilot.Flight.Control.Altitude.AutoThrottle
 
 controlTask :: (SingI n)
             => DataSink   (Stored A.ArmedMode)
@@ -42,153 +43,44 @@ controlTask a s_fm s_inpt s_sens s_ctl s_ah_state params = do
   ahWriter      <- withDataWriter s_ah_state "alt_hold_state"
   ctlEmitter    <- withChannelEmitter s_ctl  "control"
 
-  armRef        <- taskLocal "armed"
-  fm            <- taskLocal "flightmode"
-  inpt          <- taskLocal "input"
-  sens          <- taskLocal "sens"
-  ctl           <- taskLocal "control"
+  param_reader  <- paramReader params
+  let stabilize_run = makeStabilizeRun param_reader
 
-  ahState       <- taskLocal "alt_hold"
-  prevAlt       <- taskLocal "prev_alt"
-  prevAltTime   <- taskLocal "prev_alt_time"
-  prevMode      <- taskLocal "prev_mode"
-  prevClimbRate <- taskLocal "prev_climb_rate"
-
-  altPID        <- taskLocal "alt_pid"
-  ratePID       <- taskLocal "rate_pid"
-  accelPID      <- taskLocal "accel_pid"
-
-  -- Generate the stabilization function from the parameter set.
-  --
-  -- TODO: We can generate more than one function here and switch
-  -- between them at the call site to use different PID tunings
-  -- depending on the flight mode.
-  param_reader      <- paramReader params
-  let stabilize_run  = makeStabilizeRun param_reader
-  let altHoldInit    = makeAltHoldInit (flightAltHold param_reader)
-
-  alt_estimator <- taskAltEstimator
+  auto_throttle <- taskAutoThrottle (flightAltHold param_reader) ahWriter
 
   taskInit $ do
-    call_ altHoldInit ahState
+    at_init auto_throttle
 
-    writeData ahWriter (constRef ahState)
-    setNothing prevAlt
-    setNothing prevClimbRate
-    store prevMode flightModeStabilize
-
-    ae_init alt_estimator
-
-  -- | Manual throttle controller.
-  let throttleManual :: Def ('[] :-> ())
-      throttleManual = proc "throttle_manual" $ body $ do
-        thr <- deref (inpt ~> UI.throttle)
-        -- -1 =< thr =< 1.  Scale to 0 =< thr' =< 1.
-        store (ctl ~> CO.throttle) ((thr + 1) / 2)
-
-  -- | Calculate throttle boost due to roll/pitch angle.
-  let getAngleBoost :: Def ('[IFloat] :-> IFloat)
-      getAngleBoost = proc "get_angle_boost" $ \throttle -> body $ do
-        pitch     <- deref (sens ~> SENS.pitch)
-        roll      <- deref (sens ~> SENS.roll)
-        r22       <- assign (cos pitch * cos roll)
-        att_comp  <- local izero
-
-        cond_
-          [ r22 >? 0.8
-            ==> store att_comp (1.0 / r22)
-          , r22 >? 0.0
-            ==> store att_comp (((1.0 / 0.8 - 1.0) / 0.8) * r22 + 1.0)
-          , true
-            ==> store att_comp 1.0
-          ]
-
-        thr_out <- fmap (throttle *) (deref att_comp)
-        store (ahState ~> ah_angle_boost) (thr_out - throttle)
-        ret thr_out
-
-  -- | Calculate climb rate by filtering the change in barometer
-  -- altitude.
-  let getClimbRate :: Def ('[] :-> IFloat)
-      getClimbRate = proc "get_climb_rate" $ body $ do
-        alt_current <- deref (sens ~> SENS.baro_alt)
-        sensor_time <- deref (sens ~> SENS.baro_time)
-        prev_time   <- deref prevAltTime
-
-        when (sensor_time /=? prev_time) $ do
-          dt   <- assign (safeCast (sensor_time - prev_time) / 1000.0)
-          dalt <- lowPassDeriv'  2.0  dt alt_current prevAlt
-          rate <- lowPassFilter' 0.25 dt (dalt / dt) prevClimbRate
-
-          store prevAltTime sensor_time
-          store (ahState ~> ah_climb_rate) rate
-          ret rate
-
-  -- | Altitude hold throttle controller.
-  let throttleAltHold :: Def ('[IFloat] :-> ())
-      throttleAltHold = proc "throttle_alt_hold" $ \climb_rate -> body $ do
-        let ahParams = flightAltHold param_reader
-        getPIDParams (altHoldThrottleAlt   ahParams) altPID
-        getPIDParams (altHoldThrottleRate  ahParams) ratePID
-        getPIDParams (altHoldThrottleAccel ahParams) accelPID
-        stick <- deref (inpt ~> UI.throttle)
-        accel <- call altHoldController ahState (constRef inpt)
-                      (constRef sens) (constRef altPID) (constRef ratePID)
-                      stick climb_rate
-        thr   <- call altHoldThrottle ahState (constRef sens)
-                      (constRef accelPID) accel
-        thr'  <- call getAngleBoost thr
-        store (ctl ~> CO.throttle) thr'
-
-  -- | Run the throttle controller for the current flight mode.
-  let throttle_run :: FlightMode -> Ivory eff ()
-      throttle_run mode = do
-        climb_rate <- call getClimbRate
-        cond_
-          [ mode ==? flightModeAltHold ==> call_ throttleAltHold climb_rate
-          , mode ==? flightModeAuto    ==> call_ throttleAltHold climb_rate
-          , true                       ==> call_ throttleManual
-          ]
-
-        -- Maintain the cruise throttle in all flight modes.
-        throttle <- deref (ctl ~> CO.throttle)
-        call_ updateThrottleCruise ahState (constRef sens) throttle climb_rate
-
-  -- | Handle a change in flight mode.
-  let handleModeChange :: FlightMode -> Ivory eff ()
-      handleModeChange mode = do
-        prev_mode <- deref prevMode
-        when (mode /=? prev_mode) $ do
-          when (mode ==? flightModeAltHold) $ do
-            -- Set target alt to current alt when entering alt hold.
-            alt_current <- deref (sens ~> SENS.baro_alt)
-            setJust (ahState ~> ah_target_alt) alt_current
-
-        store prevMode mode
-
+  -- These locals could be on the period handler stack except for some
+  -- polymorphism issues with the stabilize_run function...
+  armRef <- taskLocal "armRef"
+  fm     <- taskLocal "flightmode"
+  inpt   <- taskLocal "userinput"
+  sens   <- taskLocal "sensors"
+  ctl    <- taskLocal "controlout"
 
   onPeriod 5 $ \_now -> do
+
       readData sensReader  sens
       readData armedReader armRef
       readData fmReader    fm
       readData uiReader    inpt
 
       mode <- deref (fm ~> FM.mode)
-      handleModeChange mode
-
       arm <- deref armRef
+
+      -- Run stabilizer, which will write to ctl roll, pitch, yaw
       call_ stabilize_run arm (constRef fm) (constRef inpt) (constRef sens) ctl
 
-      sensor_alt  <- deref (sens ~> SENS.baro_alt)
-      sensor_time <- deref (sens ~> SENS.baro_time)
-      ae_measurement alt_estimator sensor_alt sensor_time
-      -- Run throttle controller if we are armed.
-      ifte_ (arm ==? A.as_ARMED)
-        (throttle_run mode)
-        (store (ctl ~> CO.throttle) 0)
+      -- Run auto throttle controller
+      at_update auto_throttle sens inpt mode arm 9.99 -- XXX calc dt
 
---      writeData ahWriter (constRef ahState)
-      debugEstimator ahWriter alt_estimator
+      -- Set the output throttle accordong to our mode
+      store (ctl ~> CO.throttle) =<< cond
+        [ arm  ==? A.as_DISARMED       ==> return 0
+        , mode ==? flightModeStabilize ==> manual_throttle inpt
+        , true                         ==> at_output auto_throttle
+        ]
       emit_ ctlEmitter (constRef ctl)
 
   taskModuleDef $ do
@@ -199,22 +91,10 @@ controlTask a s_fm s_inpt s_sens s_ctl s_ah_state params = do
     depend stabilizeControlLoopsModule
     depend altHoldModule
     incl stabilize_run
-    incl throttleManual
-    incl throttleAltHold
-    incl altHoldInit
-    incl getAngleBoost
-    incl getClimbRate
 
-debugEstimator :: (GetAlloc eff ~ Scope cs)
-               => DataWriter (Struct "alt_hold_state")
-               -> AltEstimator
-               -> Ivory eff ()
-debugEstimator writer estimator = do
-  (alt, rate) <- ae_state estimator 
-  ahs <- local $ istruct
-    [ ah_angle_boost .= ival alt
-    , ah_climb_rate  .= ival rate
-    ]
-  writeData writer (constRef ahs)
-  return ()
+manual_throttle :: Ref s (Struct "userinput_result") -> Ivory eff IFloat
+manual_throttle ui = do
+  thr <- deref (ui ~> UI.throttle)
+  -- -1 =< UI.thr =< 1.  Scale to 0 =< thr' =< 1.
+  return ((thr + 1) / 2)
 
