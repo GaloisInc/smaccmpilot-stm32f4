@@ -38,6 +38,7 @@ library
                        SMACCMPilot.Flight.Control.Altitude.Estimator,
                        SMACCMPilot.Flight.Control.Altitude.Filter,
                        SMACCMPilot.Flight.Control.Altitude.ThrottleTracker,
+                       SMACCMPilot.Flight.Control.Altitude.ThrustPID,
 
                        SMACCMPilot.Flight.Datalink,
                        SMACCMPilot.Flight.Datalink.AirData,
