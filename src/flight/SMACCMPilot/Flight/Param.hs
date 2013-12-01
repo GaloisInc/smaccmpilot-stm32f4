@@ -40,7 +40,7 @@ data AltitudeParams f = AltitudeParams
 
 altitudeParams :: Monad m => ParamT f m (AltitudeParams f)
 altitudeParams =                                 -- P     I     D     IMAX
-  AltitudeParams <$> group "RATE_THRUST" (pidParams 0.010 0.000 0.000 3.0)
+  AltitudeParams <$> group "ALT_RATE" (pidParams 0.010 0.000 0.000 3.0)
 
 
 -- | Flight control parameters.
@@ -61,4 +61,4 @@ flightParams =                              -- P     I     D     IMAX (-IMIN)
                <*> group "STB_PIT"  (pidParams 2.000 0.000 0.000 8.0)
                <*> group "RATE_PIT" (pidParams 0.105 0.000 0.000 5.0)
                <*> group "RATE_YAW" (pidParams 0.305 0.000 0.000 8.0)
-               <*> group "ALT"      altitudeParams
+               <*> group "" altitudeParams
