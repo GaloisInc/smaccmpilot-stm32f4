@@ -12,6 +12,8 @@ import Ivory.Stdlib
 import           SMACCMPilot.Flight.Control.Altitude.Estimator
 import           SMACCMPilot.Flight.Control.Altitude.ThrottleTracker
 import           SMACCMPilot.Flight.Control.Altitude.ThrustPID
+import           SMACCMPilot.Flight.Control.Altitude.PositionPID
+import           SMACCMPilot.Flight.Control.Altitude.ThrottleUI
 import           SMACCMPilot.Flight.Control.PID
 
 import qualified SMACCMPilot.Flight.Types.AltControlDebug as A
@@ -41,7 +43,9 @@ taskAutoThrottle params ahWriter = do
   uniq <- fresh
   alt_estimator    <- taskAltEstimator
   throttle_tracker <- taskThrottleTracker
-  thrust_pid       <- taskThrustPid (altitudeRateThrust params)
+  thrust_pid       <- taskThrustPid   (altitudeRateThrust params)
+  position_pid     <- taskPositionPid (altitudePosition   params)
+  ui_control       <- taskThrottleUI  (altitudeUI         params)
   thr_setpt        <- taskLocal "thr_setpt"
   state_dbg        <- taskLocal "state_debug"
   let proc_at_update :: Def('[ Ref s1 (Struct "sensors_result")
@@ -58,24 +62,31 @@ taskAutoThrottle params ahWriter = do
           sensor_alt  <- deref (sens ~> S.baro_alt)
           sensor_time <- deref (sens ~> S.baro_time)
           ae_measurement alt_estimator sensor_alt sensor_time
-          (alt_est, vz_est) <- ae_state alt_estimator
-          store (state_dbg ~> A.alt_est) alt_est
-          store (state_dbg ~> A.alt_rate_est) vz_est
+          ae_write_debug alt_estimator state_dbg
 
-          vz_setpt <- assign 0 -- XXX, add outer loop after basic testing for vz=0
+          (alt_est, vz_est) <- ae_state alt_estimator
+          ui_update ui_control mode armed ui alt_est vz_est
 
           when (autoThrottleEnabled mode) $ do
+            (ui_alt, ui_vz)   <- ui_setpoint ui_control
+            vz_control        <- pos_pid_calculate position_pid ui_alt ui_vz alt_est dt
+
             -- Manage thrust pid integral reset, if required.
             (reset_integral, new_integral) <- tt_reset_to throttle_tracker
             when reset_integral $ do
               store (state_dbg ~> A.thrust_i_reset) new_integral
               thrust_pid_set_integral thrust_pid new_integral
             -- calculate thrust pid
-            uncomp_thr_setpt <- thrust_pid_calculate thrust_pid vz_setpt vz_est dt
+            uncomp_thr_setpt <- thrust_pid_calculate thrust_pid vz_control vz_est dt
             thrust_pid_write_debug thrust_pid state_dbg
             r22              <- sensorsR22 sens
             setpt <- assign ((throttleR22Comp r22) * uncomp_thr_setpt)
             store thr_setpt ((setpt >? 1.0) ? (1.0, setpt))
+
+          unless (autoThrottleEnabled mode) $ do
+            -- Reset derivative tracking when not using thrust controller
+            thrust_pid_init thrust_pid
+
           writeData ahWriter (constRef state_dbg)
 
   taskModuleDef $ incl proc_at_update

@@ -36,12 +36,28 @@ pidParams p i d imax =
 -- | Altitude controller parameters.
 data AltitudeParams f = AltitudeParams
   { altitudeRateThrust :: PIDParams f
+  , altitudePosition   :: PIDParams f
+  , altitudeUI         :: ThrUIParams f
   } deriving (Functor, Foldable, Traversable)
 
 -- | altitudeParams tuned for AR Drone. Not tested with 3DR Quad yet.
 altitudeParams :: Monad m => ParamT f m (AltitudeParams f)
 altitudeParams =                              -- P     I     D     IMAX
   AltitudeParams <$> group "ALT_RATE" (pidParams 0.140 0.001 0.050 0.8)
+                 <*> group "ALT_POS"  (pidParams 0.100 0.000 0.000 5.0)
+                 <*> group "ALT_UI"   (thrUIParams 1.0 0.25)
+
+-- | PID controller parameters.
+data ThrUIParams  f = ThrUIParams 
+  { thrUIsens :: Param f  -- Meters per second at full scale
+  , thrUIdead :: Param f  -- Deadband as a fraction of full scale (0..1)
+  } deriving (Functor, Foldable, Traversable)
+
+thrUIParams :: Monad m => Float -> Float
+            -> ParamT f m (ThrUIParams f)
+thrUIParams s d =
+  ThrUIParams <$> param "SENS" s
+              <*> param "DEAD" d
 
 -- | Flight control parameters.
 data FlightParams f = FlightParams

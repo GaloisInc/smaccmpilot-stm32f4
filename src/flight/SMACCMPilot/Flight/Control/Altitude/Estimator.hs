@@ -8,6 +8,8 @@ import Ivory.Language
 import Ivory.Tower
 import Ivory.Stdlib
 
+import qualified SMACCMPilot.Flight.Types.AltControlDebug as A
+
 import SMACCMPilot.Flight.Control.Altitude.Filter
 
 data AltEstimator =
@@ -15,6 +17,8 @@ data AltEstimator =
     { ae_init        :: forall eff . Ivory eff ()
     , ae_measurement :: forall eff . IFloat -> Uint32 -> Ivory eff ()
     , ae_state       :: forall eff . Ivory eff (IFloat, IFloat)
+    , ae_write_debug :: forall eff s . Ref s (Struct "alt_control_dbg")
+                                    -> Ivory eff ()
     }
 
 taskAltEstimator :: Task p AltEstimator
@@ -31,7 +35,7 @@ taskAltEstimator = do
           when (meas_time /=? prev_time) $ do
             dt   <- assign ((safeCast (meas_time - prev_time)) / 1000.0)
             dalt <- lowPassDeriv'  2.0  dt alt_meas prevAlt
-            rate <- lowPassFilter' 0.25 dt (dalt / dt) prevClimbRate
+            _rate <- lowPassFilter' 0.25 dt (dalt / dt) prevClimbRate
             store prevAltTime meas_time
 
   taskModuleDef $ incl measDef
@@ -44,5 +48,10 @@ taskAltEstimator = do
         a <- getMaybe (constRef prevAlt)       0
         r <- getMaybe (constRef prevClimbRate) 0
         return (a,r)
+    , ae_write_debug = \dbg -> do
+        a <- getMaybe (constRef prevAlt)       0
+        r <- getMaybe (constRef prevClimbRate) 0
+        store (dbg ~> A.alt_est)      a
+        store (dbg ~> A.alt_rate_est) r
     }
 

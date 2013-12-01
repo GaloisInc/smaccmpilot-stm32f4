@@ -19,6 +19,9 @@ struct alt_control_dbg
   ; thrust_i       :: Stored IFloat
   ; thrust_d       :: Stored IFloat
   ; thrust_i_reset :: Stored IFloat
+  ; pos_p          :: Stored IFloat
+  ; pos_i          :: Stored IFloat
+  ; pos_d          :: Stored IFloat
   }
 |]
 
