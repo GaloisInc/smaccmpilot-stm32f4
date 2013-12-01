@@ -67,7 +67,7 @@ taskThrottleUI params = do
     , ui_write_debug = \dbg -> do
         a <- deref alt_setpoint
         v <- deref vel_setpoint
-        store (dbg ~> A.alt_setp) a
-        store (dbg ~> A.alt_rate_setp) v
+        store (dbg ~> A.ui_setp) a
+        store (dbg ~> A.ui_rate_setp) v
     }
 

@@ -331,6 +331,13 @@ mkSendAltCtlDebug = proc "gcs_transmit_send_alt_ctl_debug" $
   thrust_i       <- deref (acd ~> Alt.thrust_i)
   thrust_d       <- deref (acd ~> Alt.thrust_d)
   thrust_i_reset <- deref (acd ~> Alt.thrust_i_reset)
+  ui_setp        <- deref (acd ~> Alt.ui_setp)
+  ui_rate_setp   <- deref (acd ~> Alt.ui_rate_setp)
+  pos_p          <- deref (acd ~> Alt.pos_p)
+  pos_i          <- deref (acd ~> Alt.pos_i)
+  pos_d          <- deref (acd ~> Alt.pos_d)
+  pos_setp       <- deref (acd ~> Alt.pos_setp)
+  pos_rate_setp  <- deref (acd ~> Alt.pos_rate_setp)
   msg            <- local $ istruct
     [ ACD.alt_est         .= ival alt_est
     , ACD.alt_rate_est    .= ival alt_rate_est
@@ -338,6 +345,13 @@ mkSendAltCtlDebug = proc "gcs_transmit_send_alt_ctl_debug" $
     , ACD.thrust_i        .= ival thrust_i
     , ACD.thrust_d        .= ival thrust_d
     , ACD.thrust_i_reset  .= ival thrust_i_reset
+    , ACD.ui_setp         .= ival ui_setp
+    , ACD.ui_rate_setp    .= ival ui_rate_setp
+    , ACD.pos_p           .= ival pos_p
+    , ACD.pos_i           .= ival pos_i
+    , ACD.pos_d           .= ival pos_d
+    , ACD.pos_setp        .= ival pos_setp
+    , ACD.pos_rate_setp   .= ival pos_rate_setp
     ]
   call_ ACD.mkAltCtlDebugSender (constRef msg) seqNum sendStruct
 
