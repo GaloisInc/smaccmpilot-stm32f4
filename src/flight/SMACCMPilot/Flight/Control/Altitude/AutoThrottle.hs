@@ -43,9 +43,9 @@ taskAutoThrottle params ahWriter = do
   uniq <- fresh
   alt_estimator    <- taskAltEstimator
   throttle_tracker <- taskThrottleTracker
-  thrust_pid       <- taskThrustPid   (altitudeRateThrust params)
-  position_pid     <- taskPositionPid (altitudePosition   params)
-  ui_control       <- taskThrottleUI  (altitudeUI         params)
+  thrust_pid       <- taskThrustPid   (altitudeRateThrust params) alt_estimator
+  position_pid     <- taskPositionPid (altitudePosition   params) alt_estimator
+  ui_control       <- taskThrottleUI  (altitudeUI         params) alt_estimator
   thr_setpt        <- taskLocal "thr_setpt"
   state_dbg        <- taskLocal "state_debug"
   let proc_at_update :: Def('[ Ref s1 (Struct "sensors_result")
@@ -64,13 +64,12 @@ taskAutoThrottle params ahWriter = do
           ae_measurement alt_estimator sensor_alt sensor_time
           ae_write_debug alt_estimator state_dbg
 
-          (alt_est, vz_est) <- ae_state alt_estimator
-          ui_update ui_control mode armed ui alt_est vz_est dt
+          ui_update ui_control mode armed ui dt
           ui_write_debug ui_control state_dbg
 
           when (autoThrottleEnabled mode) $ do
-            (ui_alt, ui_vz)   <- ui_setpoint ui_control
-            vz_control        <- pos_pid_calculate position_pid ui_alt ui_vz alt_est dt
+            (ui_alt, ui_vz) <- ui_setpoint ui_control
+            vz_control      <- pos_pid_calculate position_pid ui_alt ui_vz dt
 
             -- Manage thrust pid integral reset, if required.
             (reset_integral, new_integral) <- tt_reset_to throttle_tracker
@@ -78,7 +77,7 @@ taskAutoThrottle params ahWriter = do
               store (state_dbg ~> A.thrust_i_reset) new_integral
               thrust_pid_set_integral thrust_pid new_integral
             -- calculate thrust pid
-            uncomp_thr_setpt <- thrust_pid_calculate thrust_pid vz_control vz_est dt
+            uncomp_thr_setpt <- thrust_pid_calculate thrust_pid vz_control dt
             thrust_pid_write_debug thrust_pid state_dbg
             r22              <- sensorsR22 sens
             setpt <- assign ((throttleR22Comp r22) * uncomp_thr_setpt)

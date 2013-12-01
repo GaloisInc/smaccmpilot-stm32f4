@@ -10,6 +10,7 @@ import Ivory.Stdlib
 
 import qualified SMACCMPilot.Flight.Types.AltControlDebug as A
 import           SMACCMPilot.Flight.Control.PID
+import           SMACCMPilot.Flight.Control.Altitude.Estimator
 import           SMACCMPilot.Flight.Param
 import           SMACCMPilot.Param
 
@@ -17,23 +18,22 @@ data PositionPid =
   PositionPid
     { pos_pid_init :: forall eff . Ivory eff ()
     , pos_pid_set_integral :: forall eff . IFloat -> Ivory eff ()
-    , pos_pid_calculate :: forall eff . IFloat -- Set position
-                                     -> IFloat -- Set derivative
-                                     -> IFloat -- Estimate
+    , pos_pid_calculate :: forall eff . IFloat -- Setpoint
+                                     -> IFloat -- Setpoint derivative
                                      -> IFloat -- dt, seconds
                                      -> Ivory eff IFloat
     , pos_pid_write_debug :: forall eff s .
           Ref s (Struct "alt_control_dbg") -> Ivory eff ()
     }
 
-taskPositionPid :: PIDParams ParamReader -> Task p PositionPid
-taskPositionPid params = do
+taskPositionPid :: PIDParams ParamReader -> AltEstimator -> Task p PositionPid
+taskPositionPid params alt_estimator = do
   uniq <- fresh
   ppid_state  <- taskLocal "posPidState"
   ppid_params <- taskLocal "posPidParams"
-  let proc_pid_calculate :: Def('[IFloat, IFloat, IFloat, IFloat] :-> IFloat)
+  let proc_pid_calculate :: Def('[IFloat, IFloat, IFloat] :-> IFloat)
       proc_pid_calculate = proc ("pos_pid_calculate" ++ show uniq) $
-        \pos_sp vel_sp pos_est dt -> body $ do
+        \pos_sp vel_sp dt -> body $ do
           getPIDParams params ppid_params
           p_gain <-             (ppid_params~>*pid_pGain)
           i_gain <- fmap (* dt) (ppid_params~>*pid_iGain)
@@ -41,7 +41,8 @@ taskPositionPid params = do
           i_max  <-             (ppid_params~>*pid_iMax)
           d_gain <- fmap (/ dt) (ppid_params~>*pid_dGain)
 
-          err     <- assign (pos_sp - pos_est)
+          (pos_est, vel_est) <- ae_state alt_estimator
+          pos_err            <- assign (pos_sp - pos_est)
           -- XXX totally unimplemented...
           ret vel_sp
 

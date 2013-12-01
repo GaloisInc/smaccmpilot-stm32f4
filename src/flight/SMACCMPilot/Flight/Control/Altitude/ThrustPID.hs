@@ -9,6 +9,7 @@ import Ivory.Tower
 import Ivory.Stdlib
 
 import qualified SMACCMPilot.Flight.Types.AltControlDebug as A
+import           SMACCMPilot.Flight.Control.Altitude.Estimator
 import           SMACCMPilot.Flight.Control.PID
 import           SMACCMPilot.Flight.Param
 import           SMACCMPilot.Param
@@ -18,25 +19,25 @@ data ThrustPid =
     { thrust_pid_init :: forall eff . Ivory eff ()
     , thrust_pid_set_integral :: forall eff . IFloat -> Ivory eff ()
     , thrust_pid_calculate :: forall eff . IFloat -- Setpoint
-                                        -> IFloat -- Estimate
                                         -> IFloat -- dt, seconds
                                         -> Ivory eff IFloat
     , thrust_pid_write_debug :: forall eff s .
           Ref s (Struct "alt_control_dbg") -> Ivory eff ()
     }
 
-taskThrustPid :: PIDParams ParamReader -> Task p ThrustPid
-taskThrustPid params = do
+taskThrustPid :: PIDParams ParamReader -> AltEstimator -> Task p ThrustPid
+taskThrustPid params alt_estimator = do
   uniq <- fresh
   tpid_state  <- taskLocal "thrustPidState"
   tpid_params <- taskLocal "thrustPidParams"
-  let proc_pid_calculate :: Def('[IFloat, IFloat, IFloat] :-> IFloat)
+  let proc_pid_calculate :: Def('[IFloat, IFloat] :-> IFloat)
       proc_pid_calculate = proc ("thrust_pid_calculate" ++ show uniq) $
-        \vel_sp vel_est dt -> body $ do
+        \vel_sp dt -> body $ do
           getPIDParams params tpid_params
           (tpid_params ~> pid_iGain) %= (* dt)
           (tpid_params ~> pid_dGain) %= (/ dt)
           store (tpid_params ~> pid_iMin) 0.2 -- Nonstandard imax/imin range
+          (_, vel_est) <- ae_state alt_estimator
           err     <- assign (vel_sp - vel_est)
           pid_out <- call pid_update tpid_state (constRef tpid_params) err vel_est
           out     <- call fconstrain 0.1 1.0 pid_out

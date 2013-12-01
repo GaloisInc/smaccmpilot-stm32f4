@@ -7,6 +7,7 @@ module SMACCMPilot.Flight.Control.Altitude.ThrottleUI where
 import Ivory.Language
 import Ivory.Tower
 
+import           SMACCMPilot.Flight.Control.Altitude.Estimator
 import qualified SMACCMPilot.Flight.Types.AltControlDebug as A
 import qualified SMACCMPilot.Flight.Types.UserInput       as UI
 import           SMACCMPilot.Flight.Types.Armed
@@ -20,8 +21,6 @@ data ThrottleUI =
                  . FlightMode
                 -> ArmedMode
                 -> Ref s (Struct "userinput_result")
-                -> IFloat -- Altitude estimate
-                -> IFloat -- Altitude rate estimate
                 -> IFloat -- dt
                 -> Ivory eff ()
     , ui_setpoint :: forall eff . Ivory eff (IFloat, IFloat)
@@ -29,20 +28,18 @@ data ThrottleUI =
                      -> Ivory eff ()
     }
 
-taskThrottleUI :: ThrUIParams ParamReader -> Task p ThrottleUI
-taskThrottleUI params = do
+taskThrottleUI :: ThrUIParams ParamReader -> AltEstimator -> Task p ThrottleUI
+taskThrottleUI params _estimator = do
   uniq <- fresh
   alt_setpoint <- taskLocal "alt_setpoint"
   vel_setpoint <- taskLocal "vel_setpoint"
   let proc_update :: Def('[ FlightMode
                           , ArmedMode
                           , Ref s (Struct "userinput_result")
-                          , IFloat -- alt est
-                          , IFloat -- alt rate est
                           , IFloat -- dt
                           ] :-> ())
       proc_update  = proc ("throttle_ui_update" ++ show uniq) $
-        \fm a ui alt vz dt -> body $ do
+        \fm ar ui dt -> body $ do
           sens       <- paramGet (thrUIsens params)
           dead       <- paramGet (thrUIdead params)
           stick_thr  <- deref (ui ~> UI.throttle)
