@@ -15,7 +15,7 @@ import Ivory.Language
 import qualified SMACCMPilot.Mavlink.Messages.Data16
 import qualified SMACCMPilot.Mavlink.Messages.Data32
 import qualified SMACCMPilot.Mavlink.Messages.Data64
-import qualified SMACCMPilot.Mavlink.Messages.AltHoldDebug
+import qualified SMACCMPilot.Mavlink.Messages.AltCtlDebug
 import qualified SMACCMPilot.Mavlink.Messages.VehicleRadio
 import qualified SMACCMPilot.Mavlink.Messages.GcsRadio
 import qualified SMACCMPilot.Mavlink.Messages.Heartbeat
@@ -105,7 +105,7 @@ mavlinkMessageModules =
   [ SMACCMPilot.Mavlink.Messages.Data16.data16Module
   , SMACCMPilot.Mavlink.Messages.Data32.data32Module
   , SMACCMPilot.Mavlink.Messages.Data64.data64Module
-  , SMACCMPilot.Mavlink.Messages.AltHoldDebug.altHoldDebugModule
+  , SMACCMPilot.Mavlink.Messages.AltCtlDebug.altCtlDebugModule
   , SMACCMPilot.Mavlink.Messages.VehicleRadio.vehicleRadioModule
   , SMACCMPilot.Mavlink.Messages.GcsRadio.gcsRadioModule
   , SMACCMPilot.Mavlink.Messages.Heartbeat.heartbeatModule
@@ -198,7 +198,7 @@ messageLensCRCs =
   [ (169, ( 18,  46)) -- 0xA9 DATA16
   , (170, ( 34, 240)) -- 0xAA DATA32
   , (171, ( 66, 170)) -- 0xAB DATA64
-  , (173, ( 56, 184)) -- 0xAD ALT_HOLD_DEBUG
+  , (173, ( 24, 220)) -- 0xAD ALT_CTL_DEBUG
   , (174, (  9, 238)) -- 0xAE VEHICLE_RADIO
   , (175, (  9, 108)) -- 0xAF GCS_RADIO
   , (  0, (  9,  50)) -- 0x00 HEARTBEAT
