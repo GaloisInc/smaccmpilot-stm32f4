@@ -198,7 +198,7 @@ messageLensCRCs =
   [ (169, ( 18,  46)) -- 0xA9 DATA16
   , (170, ( 34, 240)) -- 0xAA DATA32
   , (171, ( 66, 170)) -- 0xAB DATA64
-  , (173, ( 24, 220)) -- 0xAD ALT_CTL_DEBUG
+  , (173, ( 52, 130)) -- 0xAD ALT_CTL_DEBUG
   , (174, (  9, 238)) -- 0xAE VEHICLE_RADIO
   , (175, (  9, 108)) -- 0xAF GCS_RADIO
   , (  0, (  9,  50)) -- 0x00 HEARTBEAT

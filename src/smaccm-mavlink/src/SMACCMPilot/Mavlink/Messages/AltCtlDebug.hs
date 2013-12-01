@@ -21,7 +21,7 @@ altCtlDebugMsgId :: Uint8
 altCtlDebugMsgId = 173
 
 altCtlDebugCrcExtra :: Uint8
-altCtlDebugCrcExtra = 220
+altCtlDebugCrcExtra = 130
 
 altCtlDebugModule :: Module
 altCtlDebugModule = package "mavlink_alt_ctl_debug_msg" $ do
@@ -39,6 +39,13 @@ struct alt_ctl_debug_msg
   ; thrust_i :: Stored IFloat
   ; thrust_d :: Stored IFloat
   ; thrust_i_reset :: Stored IFloat
+  ; ui_setp :: Stored IFloat
+  ; ui_rate_setp :: Stored IFloat
+  ; pos_p :: Stored IFloat
+  ; pos_i :: Stored IFloat
+  ; pos_d :: Stored IFloat
+  ; pos_setp :: Stored IFloat
+  ; pos_rate_setp :: Stored IFloat
   }
 |]
 
@@ -51,7 +58,7 @@ mkAltCtlDebugSender =
   proc "mavlink_alt_ctl_debug_msg_send"
   $ \msg seqNum sendStruct -> body
   $ do
-  arr <- local (iarray [] :: Init (Array 24 (Stored Uint8)))
+  arr <- local (iarray [] :: Init (Array 52 (Stored Uint8)))
   let buf = toCArray arr
   call_ pack buf 0 =<< deref (msg ~> alt_est)
   call_ pack buf 4 =<< deref (msg ~> alt_rate_est)
@@ -59,18 +66,25 @@ mkAltCtlDebugSender =
   call_ pack buf 12 =<< deref (msg ~> thrust_i)
   call_ pack buf 16 =<< deref (msg ~> thrust_d)
   call_ pack buf 20 =<< deref (msg ~> thrust_i_reset)
+  call_ pack buf 24 =<< deref (msg ~> ui_setp)
+  call_ pack buf 28 =<< deref (msg ~> ui_rate_setp)
+  call_ pack buf 32 =<< deref (msg ~> pos_p)
+  call_ pack buf 36 =<< deref (msg ~> pos_i)
+  call_ pack buf 40 =<< deref (msg ~> pos_d)
+  call_ pack buf 44 =<< deref (msg ~> pos_setp)
+  call_ pack buf 48 =<< deref (msg ~> pos_rate_setp)
   -- 6: header len, 2: CRC len
-  let usedLen    = 6 + 24 + 2 :: Integer
+  let usedLen    = 6 + 52 + 2 :: Integer
   let sendArr    = sendStruct ~> mav_array
   let sendArrLen = arrayLen sendArr
   if sendArrLen < usedLen
-    then error "altCtlDebug payload of length 24 is too large!"
+    then error "altCtlDebug payload of length 52 is too large!"
     else do -- Copy, leaving room for the payload
             arrayCopy sendArr arr 6 (arrayLen arr)
             call_ mavlinkSendWithWriter
                     altCtlDebugMsgId
                     altCtlDebugCrcExtra
-                    24
+                    52
                     seqNum
                     sendStruct
 
@@ -87,4 +101,11 @@ altCtlDebugUnpack = proc "mavlink_alt_ctl_debug_unpack" $ \ msg buf -> body $ do
   store (msg ~> thrust_i) =<< call unpack buf 12
   store (msg ~> thrust_d) =<< call unpack buf 16
   store (msg ~> thrust_i_reset) =<< call unpack buf 20
+  store (msg ~> ui_setp) =<< call unpack buf 24
+  store (msg ~> ui_rate_setp) =<< call unpack buf 28
+  store (msg ~> pos_p) =<< call unpack buf 32
+  store (msg ~> pos_i) =<< call unpack buf 36
+  store (msg ~> pos_d) =<< call unpack buf 40
+  store (msg ~> pos_setp) =<< call unpack buf 44
+  store (msg ~> pos_rate_setp) =<< call unpack buf 48
 
