@@ -49,7 +49,8 @@ taskAutoThrottle params ahWriter = do
                              , ArmedMode
                              , IFloat
                              ]:->())
-      proc_at_update = proc ("at_update_" ++ show uniq) $ \sens ui mode armed dt -> body $ do
+      proc_at_update = proc ("at_update_" ++ show uniq) $
+        \sens ui mode armed dt -> body $ do
           -- Update estimators
           tt_update throttle_tracker ui mode armed
 
@@ -67,7 +68,7 @@ taskAutoThrottle params ahWriter = do
             (reset_integral, new_integral) <- tt_reset_to throttle_tracker
             when reset_integral $ do
               store (state_dbg ~> A.thrust_i_reset) new_integral
-              thrust_pid_set_integral thrust_pid (-1 * new_integral)
+              thrust_pid_set_integral thrust_pid new_integral
             -- calculate thrust pid
             uncomp_thr_setpt <- thrust_pid_calculate thrust_pid vz_setpt vz_est dt
             thrust_pid_write_debug thrust_pid state_dbg
@@ -113,8 +114,10 @@ taskThrustPid params = do
           getPIDParams params tpid_params
           (tpid_params ~> pid_iGain) %= (* dt)
           (tpid_params ~> pid_dGain) %= (/ dt)
-          err <- assign (vel_sp - vel_est)
-          out <- call pid_update tpid_state (constRef tpid_params) err vel_est
+          store (tpid_params ~> pid_iMin) 0.2 -- Nonstandard imax/imin range
+          err     <- assign (vel_sp - vel_est)
+          pid_out <- call pid_update tpid_state (constRef tpid_params) err vel_est
+          out     <- call fconstrain 0.1 1.0 pid_out
           ret out
   taskModuleDef $ incl proc_pid_calculate
   return ThrustPid

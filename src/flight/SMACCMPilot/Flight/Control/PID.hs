@@ -58,6 +58,7 @@ pid_update = proc "pid_update" $ \pid cfg err pos ->
   requires (notFloatNan err) $ requires (notFloatNan pos)
   $ body $ do
   p_term  <- fmap (* err) (cfg~>*pid_pGain)
+  store (pid~>pid_pLast) p_term
 
   i_min   <- cfg~>*pid_iMin
   i_max   <- cfg~>*pid_iMax
