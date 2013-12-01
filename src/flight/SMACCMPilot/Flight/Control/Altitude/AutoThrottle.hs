@@ -70,6 +70,7 @@ taskAutoThrottle params ahWriter = do
               thrust_pid_set_integral thrust_pid (-1 * new_integral)
             -- calculate thrust pid
             uncomp_thr_setpt <- thrust_pid_calculate thrust_pid vz_setpt vz_est dt
+            thrust_pid_write_debug thrust_pid state_dbg
             r22              <- sensorsR22 sens
             setpt <- assign ((throttleR22Comp r22) * uncomp_thr_setpt)
             -- XXX: logic for preventing overflow could be improved? or does pid
@@ -97,6 +98,8 @@ data ThrustPid =
                                         -> IFloat -- Estimate
                                         -> IFloat -- dt, seconds
                                         -> Ivory eff IFloat
+    , thrust_pid_write_debug :: forall eff s .
+          Ref s (Struct "alt_control_dbg") -> Ivory eff ()
     }
 
 taskThrustPid :: PIDParams ParamReader -> Task p ThrustPid
@@ -120,6 +123,13 @@ taskThrustPid params = do
     , thrust_pid_set_integral = \i ->
         store (tpid_state ~> pid_iState) i
     , thrust_pid_calculate = call proc_pid_calculate
+    , thrust_pid_write_debug = \r -> do
+        p <- deref (tpid_state ~> pid_pLast)
+        i <- deref (tpid_state ~> pid_iState)
+        d <- deref (tpid_state ~> pid_dLast)
+        store (r ~> A.thrust_p) p
+        store (r ~> A.thrust_i) i
+        store (r ~> A.thrust_d) d
     }
 
 -- | Calculate R22 factor, product of cosines of roll & pitch angles

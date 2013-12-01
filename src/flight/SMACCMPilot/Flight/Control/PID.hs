@@ -25,12 +25,15 @@ controlPIDModule = package "control_pid" $ do
 
 ----------------------------------------------------------------------
 -- Generic PID Controller
+-- pLast and dLast members exist for debugging.
 
 [ivory|
   struct PIDState
     { pid_iState :: Stored IFloat
     ; pid_dState :: Stored IFloat
     ; pid_dReset :: Stored Uint8
+    ; pid_pLast  :: Stored IFloat
+    ; pid_dLast  :: Stored IFloat
     }
 
   struct PIDConfig
@@ -63,16 +66,16 @@ pid_update = proc "pid_update" $ \pid cfg err pos ->
   i_term  <- pid~>*pid_iState
 
   reset      <- pid~>*pid_dReset
-  d_term_var <- local (ival 0)
 
   ifte_ (reset /=? 0)
-    (store (pid~>pid_dReset) 0)
+    (do store (pid~>pid_dReset) 0
+        store (pid~>pid_dLast)  0)
     (do d_state <- pid~>*pid_dState
         d_gain  <- cfg~>*pid_dGain
-        store d_term_var (d_gain * (pos - d_state)))
+        store (pid~>pid_dLast) (d_gain * (pos - d_state)))
   store (pid~>pid_dState) pos
 
-  d_term <- deref d_term_var
+  d_term <- deref (pid~>pid_dLast)
   ret $ p_term + i_term - d_term
 
 -- | Reset the internal state of a PID.
