@@ -65,7 +65,7 @@ taskAutoThrottle params ahWriter = do
           ae_write_debug alt_estimator state_dbg
 
           (alt_est, vz_est) <- ae_state alt_estimator
-          ui_update ui_control mode armed ui alt_est vz_est
+          ui_update ui_control mode armed ui alt_est vz_est dt
 
           when (autoThrottleEnabled mode) $ do
             (ui_alt, ui_vz)   <- ui_setpoint ui_control

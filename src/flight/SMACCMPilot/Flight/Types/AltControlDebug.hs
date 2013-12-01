@@ -22,6 +22,8 @@ struct alt_control_dbg
   ; pos_p          :: Stored IFloat
   ; pos_i          :: Stored IFloat
   ; pos_d          :: Stored IFloat
+  ; alt_setp       :: Stored IFloat
+  ; alt_rate_setp  :: Stored IFloat
   }
 |]
 

@@ -80,6 +80,13 @@ paramRead =
     readData d x
     deref x
 
+-- | Shorthand for reading a single unwrapped Param value
+paramGet :: (GetAlloc eff ~ Scope s)
+         => Param ParamReader -> Ivory eff IFloat
+paramGet r = do
+  p <- paramRead r
+  return (paramData p)
+
 ----------------------------------------------------------------------
 -- Parameter Lookup
 

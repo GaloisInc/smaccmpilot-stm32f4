@@ -22,9 +22,10 @@ data ThrottleUI =
                 -> Ref s (Struct "userinput_result")
                 -> IFloat -- Altitude estimate
                 -> IFloat -- Altitude rate estimate
+                -> IFloat -- dt
                 -> Ivory eff ()
     , ui_setpoint :: forall eff . Ivory eff (IFloat, IFloat)
-    , ui_write_debug :: forall eff s . Ref s (Struct "alt_controller_dbg")
+    , ui_write_debug :: forall eff s . Ref s (Struct "alt_control_dbg")
                      -> Ivory eff ()
     }
 
@@ -36,16 +37,26 @@ taskThrottleUI params = do
   let proc_update :: Def('[ FlightMode
                           , ArmedMode
                           , Ref s (Struct "userinput_result")
-                          , IFloat
-                          , IFloat
+                          , IFloat -- alt est
+                          , IFloat -- alt rate est
+                          , IFloat -- dt
                           ] :-> ())
       proc_update  = proc ("throttle_ui_update" ++ show uniq) $
-        \fm a ui alt vz -> body $ do
-          sens <- paramRead (thrUIsens params)
-          dead <- paramRead (thrUIdead params)
-          thr  <- deref (ui ~> UI.throttle)
-          -- XXX find james's code from deprecated controller for here.
-          return ()
+        \fm a ui alt vz dt -> body $ do
+          sens       <- paramGet (thrUIsens params)
+          dead       <- paramGet (thrUIdead params)
+          stick_thr  <- deref (ui ~> UI.throttle)
+          offset     <- assign (signum stick_thr * dead)
+          scale      <- assign (sens / (1.0 - dead))
+          stick_rate <- assign ((abs stick_thr <? dead)
+                          ? (0.0, (stick_thr - offset) * scale))
+          store vel_setpoint stick_rate
+          -- TODO: integrate velocity setpoint into altitude
+          -- setpoint, with logic for resetting integral when
+          -- disarmed or flightmode changed. Also, limit integral
+          -- to be within a certain distance of current altitude,
+          -- and when resetting integral, offset from current altitude
+          -- by ~0.5..1s * current alt rate, to reduce oscillation
   taskModuleDef $ incl proc_update
   return ThrottleUI
     { ui_update   = call_ proc_update
@@ -53,6 +64,10 @@ taskThrottleUI params = do
         a <- deref alt_setpoint
         v <- deref vel_setpoint
         return (a,v)
-    , ui_write_debug = \_dbg -> return () -- XXX
+    , ui_write_debug = \dbg -> do
+        a <- deref alt_setpoint
+        v <- deref vel_setpoint
+        store (dbg ~> A.alt_setp) a
+        store (dbg ~> A.alt_rate_setp) v
     }
 
