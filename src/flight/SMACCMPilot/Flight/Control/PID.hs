@@ -58,8 +58,9 @@ pid_update = proc "pid_update" $ \pid cfg err pos ->
 
   i_min   <- cfg~>*pid_iMin
   i_max   <- cfg~>*pid_iMax
-  pid~>pid_iState %=! (call fconstrain i_min i_max . (+ err))
-  i_term  <- liftA2 (*) (cfg~>*pid_iGain) (pid~>*pid_iState)
+  i_gain  <- cfg~>*pid_iGain
+  pid~>pid_iState %=! (call fconstrain i_min i_max . (+ (err * i_gain)))
+  i_term  <- pid~>*pid_iState
 
   reset      <- pid~>*pid_dReset
   d_term_var <- local (ival 0)
