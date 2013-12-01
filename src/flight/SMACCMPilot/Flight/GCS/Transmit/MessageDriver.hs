@@ -27,6 +27,7 @@ import           SMACCMPilot.Flight.Types.UserInputSource
 import qualified SMACCMPilot.Flight.Types.FlightMode            as FM
 import qualified SMACCMPilot.Flight.Types.FlightModeData        as FM
 import qualified SMACCMPilot.Flight.Types.RadioStat             as RStat
+import qualified SMACCMPilot.Flight.Types.AltControlDebug       as Alt
 
 import           SMACCMPilot.Mavlink.Messages (mavlinkMessageModules)
 
@@ -39,9 +40,7 @@ import qualified SMACCMPilot.Mavlink.Messages.GpsRawInt         as GRI
 import qualified SMACCMPilot.Mavlink.Messages.GlobalPositionInt as GPI
 import qualified SMACCMPilot.Mavlink.Messages.ParamValue        as PV
 import qualified SMACCMPilot.Mavlink.Messages.VehicleRadio      as VR
-import qualified SMACCMPilot.Mavlink.Messages.AltHoldDebug      as AHD
-
-import           SMACCMPilot.Flight.Control.AltHold
+import qualified SMACCMPilot.Mavlink.Messages.AltCtlDebug       as ACD
 
 --------------------------------------------------------------------
 
@@ -320,43 +319,27 @@ mkSendRadio = proc "gcs_transmit_send_radio" $
     ])
   call_ VR.mkVehicleRadioSender (constRef msg) seqNum sendStruct
 
-mkSendAltHoldDebug :: Def ('[ ConstRef s1 (Struct "alt_hold_state")
-                            , Ref      s2 (Stored Uint8)
-                            , Ref      s2 (Struct "mavlinkPacket")
-                            ] :-> ())
-mkSendAltHoldDebug = proc "gcs_transmit_send_alt_hold_debug" $
-  \state seqNum sendStruct -> body $ do
-  throttle_cruise <- deref    (state ~> ah_throttle_cruise)
-  throttle_avg    <- getMaybe (state ~> ah_throttle_avg)    0.0
-  target_alt      <- getMaybe (state ~> ah_target_alt)      0.0
-  rate_filter     <- getMaybe (state ~> ah_rate_filter)     0.0
-  accel_filter    <- getMaybe (state ~> ah_accel_filter)    0.0
-  speed_filter    <- getMaybe (state ~> ah_speed_filter)    0.0
-  desired_rate    <- deref    (state ~> ah_desired_rate)
-  alt_error       <- deref    (state ~> ah_alt_error)
-  target_rate     <- deref    (state ~> ah_target_rate)
-  current_rate    <- deref    (state ~> ah_current_rate)
-  error_rate      <- deref    (state ~> ah_error_rate)
-  target_accel    <- deref    (state ~> ah_target_accel)
-  angle_boost     <- deref    (state ~> ah_angle_boost)
-  climb_rate      <- deref    (state ~> ah_climb_rate)
-  msg             <- local $ istruct
-    [ AHD.throttle_cruise .= ival throttle_cruise
-    , AHD.throttle_avg    .= ival throttle_avg
-    , AHD.target_alt      .= ival target_alt
-    , AHD.rate_filter     .= ival rate_filter
-    , AHD.accel_filter    .= ival accel_filter
-    , AHD.speed_filter    .= ival speed_filter
-    , AHD.desired_rate    .= ival desired_rate
-    , AHD.alt_error       .= ival alt_error
-    , AHD.target_rate     .= ival target_rate
-    , AHD.current_rate    .= ival current_rate
-    , AHD.error_rate      .= ival error_rate
-    , AHD.target_accel    .= ival target_accel
-    , AHD.angle_boost     .= ival angle_boost
-    , AHD.climb_rate      .= ival climb_rate
+mkSendAltCtlDebug :: Def ('[ ConstRef s1 (Struct "alt_control_dbg")
+                           , Ref      s2 (Stored Uint8)
+                           , Ref      s2 (Struct "mavlinkPacket")
+                           ] :-> ())
+mkSendAltCtlDebug = proc "gcs_transmit_send_alt_ctl_debug" $
+  \acd seqNum sendStruct -> body $ do
+  alt_est        <- deref (acd ~> Alt.alt_est)
+  alt_rate_est   <- deref (acd ~> Alt.alt_rate_est)
+  thrust_p       <- deref (acd ~> Alt.thrust_p)
+  thrust_i       <- deref (acd ~> Alt.thrust_i)
+  thrust_d       <- deref (acd ~> Alt.thrust_d)
+  thrust_i_reset <- deref (acd ~> Alt.thrust_i_reset)
+  msg            <- local $ istruct
+    [ ACD.alt_est         .= ival alt_est
+    , ACD.alt_rate_est    .= ival alt_rate_est
+    , ACD.thrust_p        .= ival thrust_p
+    , ACD.thrust_i        .= ival thrust_i
+    , ACD.thrust_d        .= ival thrust_d
+    , ACD.thrust_i_reset  .= ival thrust_i_reset
     ]
-  call_ AHD.mkAltHoldDebugSender (constRef msg) seqNum sendStruct
+  call_ ACD.mkAltCtlDebugSender (constRef msg) seqNum sendStruct
 
 senderModules :: Module
 senderModules = package "senderModules" $ do
@@ -370,7 +353,7 @@ senderModules = package "senderModules" $ do
   incl mkSendGlobalPositionInt
   incl mkSendParamValue
   incl mkSendRadio
-  incl mkSendAltHoldDebug
+  incl mkSendAltCtlDebug
 
   depend P.gpsTypesModule
   depend M.motorsTypeModule
@@ -381,5 +364,5 @@ senderModules = package "senderModules" $ do
 --  depend R.dataRateTypeModule
   depend RStat.radioStatTypeModule
   depend VR.vehicleRadioModule
+  depend Alt.altControlDebugTypeModule
   depend mavlinkSendModule
-  depend altHoldModule

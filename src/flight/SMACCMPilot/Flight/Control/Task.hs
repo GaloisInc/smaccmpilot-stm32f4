@@ -18,13 +18,11 @@ import qualified SMACCMPilot.Flight.Types.ControlOutput as CO
 
 import SMACCMPilot.Param
 import SMACCMPilot.Flight.Control.Stabilize
-import SMACCMPilot.Flight.Control.AltHold
-import SMACCMPilot.Flight.Control.PID
 import SMACCMPilot.Flight.Param
 import SMACCMPilot.Flight.Types.FlightModeData
 
-import SMACCMPilot.Flight.Control.Altitude.Estimator
 import SMACCMPilot.Flight.Control.Altitude.AutoThrottle
+import SMACCMPilot.Flight.Control.Altitude.ThrottleTracker (manual_throttle)
 
 controlTask :: (SingI n)
             => DataSink   (Stored A.ArmedMode)
@@ -32,21 +30,21 @@ controlTask :: (SingI n)
             -> DataSink (Struct "userinput_result")
             -> DataSink (Struct "sensors_result")
             -> ChannelSource n (Struct "controloutput")
-            -> DataSource (Struct "alt_hold_state")
+            -> DataSource (Struct "alt_control_dbg")
             -> FlightParams ParamSink
             -> Task p ()
-controlTask a s_fm s_inpt s_sens s_ctl s_ah_state params = do
+controlTask a s_fm s_inpt s_sens s_ctl s_ac_state params = do
   armedReader   <- withDataReader a "armedReader"
   fmReader      <- withDataReader s_fm   "flightmode"
   uiReader      <- withDataReader s_inpt "userinput"
   sensReader    <- withDataReader s_sens "sensors"
-  ahWriter      <- withDataWriter s_ah_state "alt_hold_state"
+  acWriter      <- withDataWriter s_ac_state "alt_control_dbg"
   ctlEmitter    <- withChannelEmitter s_ctl  "control"
 
   param_reader  <- paramReader params
   let stabilize_run = makeStabilizeRun param_reader
 
-  auto_throttle <- taskAutoThrottle (flightAltHold param_reader) ahWriter
+  auto_throttle <- taskAutoThrottle (flightAltitude param_reader) acWriter
 
   taskInit $ do
     at_init auto_throttle
@@ -73,7 +71,7 @@ controlTask a s_fm s_inpt s_sens s_ctl s_ah_state params = do
       call_ stabilize_run arm (constRef fm) (constRef inpt) (constRef sens) ctl
 
       -- Run auto throttle controller
-      at_update auto_throttle sens inpt mode arm 9.99 -- XXX calc dt
+      at_update auto_throttle sens inpt mode arm 0.05 -- XXX calc dt?
 
       -- Set the output throttle accordong to our mode
       store (ctl ~> CO.throttle) =<< cond
@@ -89,12 +87,5 @@ controlTask a s_fm s_inpt s_sens s_ctl s_ah_state params = do
     depend SENS.sensorsTypeModule
     depend CO.controlOutputTypeModule
     depend stabilizeControlLoopsModule
-    depend altHoldModule
     incl stabilize_run
-
-manual_throttle :: Ref s (Struct "userinput_result") -> Ivory eff IFloat
-manual_throttle ui = do
-  thr <- deref (ui ~> UI.throttle)
-  -- -1 =< UI.thr =< 1.  Scale to 0 =< thr' =< 1.
-  return ((thr + 1) / 2)
 

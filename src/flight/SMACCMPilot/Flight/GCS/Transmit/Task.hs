@@ -19,7 +19,6 @@ import           SMACCMPilot.Mavlink.Send
 import qualified SMACCMPilot.Communications               as C
 import           SMACCMPilot.Flight.GCS.Transmit.MessageDriver
 import           SMACCMPilot.Flight.GCS.Stream
-import           SMACCMPilot.Flight.Control.AltHold
 import           SMACCMPilot.Param
 
 import qualified SMACCMPilot.Flight.Types.Armed           as A
@@ -39,13 +38,13 @@ gcsTransmitTask :: (SingI n0, SingI n1, SingI n2, SingI n3)
                 -> DataSink         (Struct "controloutput")
                 -> DataSink         (Struct "motors")
                 -> DataSink         (Struct "radio_stat")
-                -> DataSink         (Struct "alt_hold_state")
+                -> DataSink         (Struct "alt_control_dbg")
                 -> DataSink         (Struct "userinput_result")
                 -> ChannelSink n3   (Stored Sint16)
                 -> [Param PortPair]
                 -> Task p ()
 gcsTransmitTask mavStream sp_sink _dr_sink fm_sink armed_sink se_sink ps_sink
-                ct_sink mo_sink ra_sink ah_sink ui_sink param_req_sink params
+                ct_sink mo_sink ra_sink ac_sink ui_sink param_req_sink params
   = do
   withStackSize 1024
 
@@ -56,7 +55,7 @@ gcsTransmitTask mavStream sp_sink _dr_sink fm_sink armed_sink se_sink ps_sink
   motorReader      <- withDataReader mo_sink "motors"
   radioReader      <- withDataReader ra_sink "radio"
   armedReader      <- withDataReader armed_sink "armed"
-  altHoldReader    <- withDataReader ah_sink "alt_hold"
+  altControlReader <- withDataReader ac_sink "alt_control"
   uiReader         <- withDataReader ui_sink "userinput_result"
   mavTx            <- withChannelEmitter mavStream "gcsTxToEncSrc"
 
@@ -172,10 +171,10 @@ gcsTransmitTask mavStream sp_sink _dr_sink fm_sink armed_sink se_sink ps_sink
       call_ mkSendVfrHud l_pos l_ctl l_sens seqNum mavlinkStruct
       processMav T.vfr_hud
 
-      -- piggyback alt hold state debug here
-      l_alt_hold <- local (istruct [])
-      readData altHoldReader l_alt_hold
-      call_ mkSendAltHoldDebug (constRef l_alt_hold) seqNum mavlinkStruct
+      -- piggyback alt controller debug here
+      l_alt_ctl <- local (istruct [])
+      readData altControlReader l_alt_ctl
+      call_ mkSendAltCtlDebug (constRef l_alt_ctl) seqNum mavlinkStruct
       processMav T.vfr_hud
 
     onStream T.global_position_int $ do
@@ -213,4 +212,4 @@ gcsTransmitTask mavStream sp_sink _dr_sink fm_sink armed_sink se_sink ps_sink
     depend senderModules
     depend paramModule
     depend mavlinkSendModule
-    depend altHoldModule
+

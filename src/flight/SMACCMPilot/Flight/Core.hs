@@ -48,7 +48,7 @@ data FlightCoreProvides =
     , motors_out       :: ChannelSink 16 (Struct "motors")
     , armed_state      :: DataSink (Stored A.ArmedMode)
     , flightmode_state :: DataSink (Struct "flightmode")
-    , althold_state    :: DataSink (Struct "alt_hold_state")
+    , altctl_state     :: DataSink (Struct "alt_control_dbg")
     , userinput_state  :: DataSink (Struct "userinput_result")
     }
 
@@ -56,7 +56,7 @@ core :: FlightCoreRequires -> Tower p FlightCoreProvides
 core sys = do
   motors  <- channel
   control <- channel
-  ah_state <- dataport
+  ac_state <- dataport
 
   -- XXX DO SOMETHIGN WITH fm_cmd_in sys
 
@@ -69,7 +69,7 @@ core sys = do
                         userinput
                         (sensors_in sys)
                         (src control)
-                        (src ah_state)
+                        (src ac_state)
                         (params_in sys)
   task "motmix"     $ motorMixerTask
                         (snk control)
@@ -85,7 +85,7 @@ core sys = do
     , motors_out       = snk motors
     , armed_state      = armed
     , flightmode_state = flightmode
-    , althold_state    = snk ah_state
+    , altctl_state     = snk ac_state
     , userinput_state  = userinput
     }
   where

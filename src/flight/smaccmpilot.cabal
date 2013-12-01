@@ -32,12 +32,12 @@ library
                        SMACCMPilot.Flight.Control,
                        SMACCMPilot.Flight.Control.PID,
                        SMACCMPilot.Flight.Control.Stabilize,
-                       SMACCMPilot.Flight.Control.AltHold,
                        SMACCMPilot.Flight.Control.Task,
 
                        SMACCMPilot.Flight.Control.Altitude.AutoThrottle,
                        SMACCMPilot.Flight.Control.Altitude.Estimator,
                        SMACCMPilot.Flight.Control.Altitude.Filter,
+                       SMACCMPilot.Flight.Control.Altitude.ThrottleTracker,
 
                        SMACCMPilot.Flight.Datalink,
                        SMACCMPilot.Flight.Datalink.AirData,
@@ -70,6 +70,7 @@ library
                        SMACCMPilot.Flight.Types.RadioStat,
                        SMACCMPilot.Flight.Types.RadioInfo,
                        SMACCMPilot.Flight.Types.MaybeFloat,
+                       SMACCMPilot.Flight.Types.AltControlDebug,
 
                        SMACCMPilot.Flight.UserInput.Tower,
                        SMACCMPilot.Flight.UserInput.PPMTask,

@@ -33,24 +33,15 @@ pidParams p i d imax =
             <*> param "D" d
             <*> param "IMAX" imax
 
--- | Altitude hold controller parameters.
-data AltHoldParams f = AltHoldParams
-  { altHoldTrimThrottle  :: Param f
-  , altHoldThrottleRate  :: PIDParams f
-  , altHoldThrottleAccel :: PIDParams f
-  , altHoldThrottleAlt   :: PIDParams f
+-- | Altitude controller parameters.
+data AltitudeParams f = AltitudeParams
+  { altitudeRateThrust :: PIDParams f
   } deriving (Functor, Foldable, Traversable)
 
--- | Initialize alt hold parameters to default values.
---
--- XXX check that these IMAX values make sense, copied from ArduCopter
--- and divided by 100
-altHoldParams :: Monad m => ParamT f m (AltHoldParams f)
-altHoldParams =
-  AltHoldParams <$> param "TRIM_THROTTLE" 0.66   -- P     I     D     IMAX
-                <*> group "THR_RATE"     (pidParams 3.000 0.000 0.000 3.0)
-                <*> group "THR_ACCEL"    (pidParams 0.010 0.000 0.000 5.0)
-                <*> group "THR_ALT"      (pidParams 0.500 0.000 0.000 3.0)
+altitudeParams :: Monad m => ParamT f m (AltitudeParams f)
+altitudeParams =                                 -- P     I     D     IMAX
+  AltitudeParams <$> group "RATE_THRUST" (pidParams 0.010 0.000 0.000 3.0)
+
 
 -- | Flight control parameters.
 data FlightParams f = FlightParams
@@ -59,7 +50,7 @@ data FlightParams f = FlightParams
   , flightPitchStab :: PIDParams f
   , flightPitchRate :: PIDParams f
   , flightYawRate   :: PIDParams f
-  , flightAltHold   :: AltHoldParams f
+  , flightAltitude  :: AltitudeParams f
   } deriving (Functor, Foldable, Traversable)
 
 -- | Initialize flight parameters to their default values.
@@ -70,4 +61,4 @@ flightParams =                              -- P     I     D     IMAX (-IMIN)
                <*> group "STB_PIT"  (pidParams 2.000 0.000 0.000 8.0)
                <*> group "RATE_PIT" (pidParams 0.105 0.000 0.000 5.0)
                <*> group "RATE_YAW" (pidParams 0.305 0.000 0.000 8.0)
-               <*> group "" altHoldParams
+               <*> group "ALT"      altitudeParams

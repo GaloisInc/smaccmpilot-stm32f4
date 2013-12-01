@@ -83,7 +83,7 @@ hil opts = do
     motors_state
     sensors
     (src rc_override)
-    (althold_state core_out)
+    (altctl_state core_out)
     (userinput_state core_out)
     paramList
 
@@ -137,7 +137,7 @@ flight opts = do
           control_state
           motors_state
           (src rc_override)
-          (althold_state core_out)
+          (altctl_state core_out)
           (userinput_state core_out)
           paramList
 
