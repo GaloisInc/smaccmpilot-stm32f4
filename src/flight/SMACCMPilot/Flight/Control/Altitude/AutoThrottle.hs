@@ -70,6 +70,7 @@ taskAutoThrottle params ahWriter = do
           when (autoThrottleEnabled mode) $ do
             (ui_alt, ui_vz) <- ui_setpoint ui_control
             vz_control      <- pos_pid_calculate position_pid ui_alt ui_vz dt
+            store (state_dbg ~> A.pos_rate_setp) vz_control
 
             -- Manage thrust pid integral reset, if required.
             (reset_integral, new_integral) <- tt_reset_to throttle_tracker

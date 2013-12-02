@@ -1,13 +1,16 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE TypeFamilies #-}
 
 module SMACCMPilot.Flight.Control.Altitude.ThrottleUI where
 
 import Ivory.Language
 import Ivory.Tower
+import Ivory.Stdlib
 
 import           SMACCMPilot.Flight.Control.Altitude.Estimator
+import           SMACCMPilot.Flight.Control.PID
 import qualified SMACCMPilot.Flight.Types.AltControlDebug as A
 import qualified SMACCMPilot.Flight.Types.UserInput       as UI
 import           SMACCMPilot.Flight.Types.Armed
@@ -29,10 +32,11 @@ data ThrottleUI =
     }
 
 taskThrottleUI :: ThrUIParams ParamReader -> AltEstimator -> Task p ThrottleUI
-taskThrottleUI params _estimator = do
+taskThrottleUI params estimator = do
   uniq <- fresh
   alt_setpoint <- taskLocal "alt_setpoint"
   vel_setpoint <- taskLocal "vel_setpoint"
+  active_state <- taskLocalInit "active_state" (ival false)
   let proc_update :: Def('[ FlightMode
                           , ArmedMode
                           , Ref s (Struct "userinput_result")
@@ -40,20 +44,25 @@ taskThrottleUI params _estimator = do
                           ] :-> ())
       proc_update  = proc ("throttle_ui_update" ++ show uniq) $
         \fm ar ui dt -> body $ do
-          sens       <- paramGet (thrUIsens params)
-          dead       <- paramGet (thrUIdead params)
-          stick_thr  <- deref (ui ~> UI.throttle)
-          offset     <- assign (signum stick_thr * dead)
-          scale      <- assign (sens / (1.0 - dead))
-          stick_rate <- assign ((abs stick_thr <? dead)
-                          ? (0.0, (stick_thr - offset) * scale))
-          store vel_setpoint stick_rate
-          -- TODO: integrate velocity setpoint into altitude
-          -- setpoint, with logic for resetting integral when
-          -- disarmed or flightmode changed. Also, limit integral
-          -- to be within a certain distance of current altitude,
-          -- and when resetting integral, offset from current altitude
-          -- by ~0.5..1s * current alt rate, to reduce oscillation
+          sr <- stickrate params ui
+          store vel_setpoint sr
+
+          active <- deref active_state
+          (alt_est, _) <- ae_state estimator
+          cond_
+            [ ar ==? as_DISARMED .|| fm ==? flightModeStabilize
+                ==> store active_state false
+            , iNot active ==> do
+                store alt_setpoint alt_est
+                store active_state true
+            , active ==> do
+                current <- deref alt_setpoint
+                next <- assign (current + (sr * dt))
+                sens <- paramGet (thrUIsens params)
+                a <- call fconstrain (alt_est - 2*sens) (alt_est + 2*sens) next
+                store alt_setpoint a
+            ]
+
   taskModuleDef $ incl proc_update
   return ThrottleUI
     { ui_update   = call_ proc_update
@@ -67,4 +76,19 @@ taskThrottleUI params _estimator = do
         store (dbg ~> A.ui_setp) a
         store (dbg ~> A.ui_rate_setp) v
     }
+
+
+stickrate :: (GetAlloc eff ~ Scope cs)
+          => ThrUIParams ParamReader
+          -> Ref s (Struct "userinput_result")
+          -> Ivory eff IFloat
+stickrate params ui = do
+  sens       <- paramGet (thrUIsens params)
+  dead       <- paramGet (thrUIdead params)
+  stick_thr  <- deref (ui ~> UI.throttle)
+  offset     <- assign (signum stick_thr * dead)
+  scale      <- assign (sens / (1.0 - dead))
+  stick_rate <- assign ((abs stick_thr <? dead)
+                  ? (0.0, (stick_thr - offset) * scale))
+  return stick_rate
 

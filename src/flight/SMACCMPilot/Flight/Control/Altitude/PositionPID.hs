@@ -36,15 +36,14 @@ taskPositionPid params alt_estimator = do
         \pos_sp vel_sp dt -> body $ do
           getPIDParams params ppid_params
           p_gain <-             (ppid_params~>*pid_pGain)
-          i_gain <- fmap (* dt) (ppid_params~>*pid_iGain)
-          i_min  <-             (ppid_params~>*pid_iMin)
-          i_max  <-             (ppid_params~>*pid_iMax)
           d_gain <- fmap (/ dt) (ppid_params~>*pid_dGain)
 
           (pos_est, vel_est) <- ae_state alt_estimator
           pos_err            <- assign (pos_sp - pos_est)
-          -- XXX totally unimplemented...
-          ret vel_sp
+          vel_err            <- assign (vel_sp - vel_est)
+
+          pid_result <- assign ((p_gain * pos_err) - (d_gain * vel_err))
+          ret (pid_result + vel_sp)
 
   taskModuleDef $ incl proc_pid_calculate
   return PositionPid
