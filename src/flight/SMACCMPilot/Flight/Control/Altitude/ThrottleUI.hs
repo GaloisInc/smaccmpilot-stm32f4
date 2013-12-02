@@ -59,7 +59,9 @@ taskThrottleUI params estimator = do
                 current <- deref alt_setpoint
                 next <- assign (current + (sr * dt))
                 sens <- paramGet (thrUIsens params)
-                a <- call fconstrain (alt_est - 2*sens) (alt_est + 2*sens) next
+                a <- call fconstrain (alt_est - 0.8*sens)
+                                     (alt_est + 0.8*sens)
+                                     next
                 store alt_setpoint a
             ]
 
