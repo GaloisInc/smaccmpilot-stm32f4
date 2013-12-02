@@ -71,7 +71,7 @@ controlTask a s_fm s_inpt s_sens s_ctl s_ac_state params = do
       call_ stabilize_run arm (constRef fm) (constRef inpt) (constRef sens) ctl
 
       -- Run auto throttle controller
-      at_update auto_throttle sens inpt mode arm 0.05 -- XXX calc dt?
+      at_update auto_throttle sens inpt mode arm 0.005 -- XXX calc dt?
 
       -- Set the output throttle accordong to our mode
       store (ctl ~> CO.throttle) =<< cond

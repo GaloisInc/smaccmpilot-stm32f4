@@ -43,7 +43,7 @@ data AltitudeParams f = AltitudeParams
 -- | altitudeParams tuned for AR Drone. Not tested with 3DR Quad yet.
 altitudeParams :: Monad m => ParamT f m (AltitudeParams f)
 altitudeParams =                              -- P     I     D     IMAX
-  AltitudeParams <$> group "ALT_RATE" (pidParams 0.070 0.001 0.050 0.8)
+  AltitudeParams <$> group "ALT_RATE" (pidParams 0.070 0.010 0.005 0.8)
                  <*> group "ALT_POS"  (pidParams 0.100 0.000 0.000 5.0)
                                                -- sens deadband
                  <*> group "ALT_UI"   (thrUIParams 1.0 0.30)
