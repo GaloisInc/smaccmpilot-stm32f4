@@ -99,17 +99,20 @@ throttle_floor thr input = do
 
 sane_range :: Ref s (Struct "motors") -> Ivory eff (Ref s (Struct "motors"))
 sane_range i = do
-  sane $ i ~> M.frontleft
-  sane $ i ~> M.frontright
-  sane $ i ~> M.backleft
-  sane $ i ~> M.backright
+  sane M.frontleft
+  sane M.frontright
+  sane M.backleft
+  sane M.backright
   return i
   where
-  sane accessor = do
-    v <- deref accessor
-    ifte_ (v <? 0.0) (store accessor 0)
-      (ifte_ (v >? 1.0) (store accessor 1.0)
-       (return ()))
+  sane :: Label "motors" (Stored IFloat) -> Ivory eff ()
+  sane lbl = do
+    v <- deref r
+    cond_
+      [ v <? 0.0 ==> store r 0
+      , v >? 1.0 ==> store r 1.0
+      ]
+    where r = i ~> lbl
 
 imin :: IvoryOrd a => a -> a -> a
 imin a b = (a <? b)?(a,b)
