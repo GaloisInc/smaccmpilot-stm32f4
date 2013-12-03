@@ -1,0 +1,104 @@
+
+name:                ivory-bsp-tests
+version:             0.1.0.0
+-- synopsis:
+-- description:
+license:             BSD3
+author:              Galois, Inc.
+maintainer:          pat@galois.com
+-- copyright:
+-- category:
+build-type:          Simple
+cabal-version:       >=1.8
+
+executable bsp-uart-tower-test-gen
+  main-is:             UARTTowerCompiler.hs
+  other-modules:       UARTTower,
+                       LEDTower,
+                       Platforms
+  hs-source-dirs:      examples
+  build-depends:       base >= 4.6,
+                       ivory,
+                       ivory-stdlib,
+                       ivory-backend-c,
+                       ivory-bitdata,
+                       ivory-hw,
+                       ivory-tower >= 0.6.0.0,
+                       ivory-tower-freertos >= 0.6.0.0,
+                       ivory-tower-frontend,
+                       ivory-bsp-stm32f4
+
+executable bsp-led-tower-test-gen
+  main-is:             LEDTowerCompiler.hs
+  other-modules:       LEDTower,
+                       Platforms
+  hs-source-dirs:      examples
+  build-depends:       base >= 4.6,
+                       ivory,
+                       ivory-stdlib,
+                       ivory-backend-c,
+                       ivory-bitdata,
+                       ivory-hw,
+                       ivory-tower >= 0.6.0.0,
+                       ivory-tower-freertos >= 0.6.0.0,
+                       ivory-tower-frontend,
+                       ivory-bsp-stm32f4
+
+executable bsp-spi-tower-test-gen
+  main-is:             SPITowerCompiler.hs
+  other-modules:       SPITower,
+                       SPITypes,
+                       MPU6000,
+                       UARTTower,
+                       LEDTower,
+                       Platforms
+  hs-source-dirs:      examples
+  build-depends:       base >= 4.6,
+                       ivory,
+                       ivory-stdlib,
+                       ivory-backend-c,
+                       ivory-bitdata,
+                       ivory-hw,
+                       ivory-tower >= 0.6.0.0,
+                       ivory-tower-freertos >= 0.6.0.0,
+                       ivory-tower-frontend,
+                       ivory-bsp-stm32f4
+
+executable bsp-open407-toy-gen
+  main-is:             Open407Toy.hs
+  other-modules:       LEDTower
+  hs-source-dirs:      examples
+  build-depends:       base >= 4.6,
+                       ivory,
+                       ivory-stdlib,
+                       ivory-backend-c,
+                       ivory-bitdata,
+                       ivory-hw,
+                       ivory-tower >= 0.6.0.0,
+                       ivory-tower-freertos >= 0.6.0.0,
+                       ivory-tower-frontend,
+                       ivory-bsp-stm32f4
+---------------------------------------------
+-- Pure ivory, without tower:
+
+executable bsp-led-test-gen
+  main-is:             LEDBlink.hs
+  hs-source-dirs:      examples
+  build-depends:       base >= 4.6,
+                       ivory,
+                       ivory-stdlib,
+                       ivory-backend-c,
+                       ivory-bitdata,
+                       ivory-hw,
+                       ivory-bsp-stm32f4
+
+executable bsp-uart-test-gen
+  main-is:             UARTTest.hs
+  hs-source-dirs:      examples
+  build-depends:       base >= 4.6,
+                       ivory,
+                       ivory-stdlib,
+                       ivory-backend-c,
+                       ivory-bitdata,
+                       ivory-hw,
+                       ivory-bsp-stm32f4
