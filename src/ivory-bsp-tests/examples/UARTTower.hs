@@ -63,7 +63,6 @@ echoPrompt greeting ostream istream ledctlstream = task "echoprompt" $ do
   onChannelV istream "istream" $ \input -> do
     putc input -- echo to terminal
     let testChar = (input `isChar`)
-    return ()
     cond_
       [ testChar '1'  ==> emitV_ ledctl true
       , testChar '2'  ==> emitV_ ledctl false
