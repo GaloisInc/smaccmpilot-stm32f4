@@ -7,8 +7,6 @@
 
 module SMACCMPilot.Flight.Control.PID where
 
-import Control.Applicative
-
 import Ivory.Language
 import Ivory.Stdlib
 

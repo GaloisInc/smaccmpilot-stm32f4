@@ -74,9 +74,9 @@ flightModeToBlinkMode :: Ref s0 (Stored A.ArmedMode)
 flightModeToBlinkMode armedRef fmRef = do
   mode  <- fmRef ~>* FM.mode
   armed <- deref armedRef
-  return $ foldr cond 0 (tbl armed mode)
+  return $ foldr go 0 (tbl armed mode)
   where
-  cond (c, res) k = c ? (res, k)
+  go (c, res) k = c ? (res, k)
   tbl :: A.ArmedMode -> FM.FlightMode -> [(IBool, Uint8)]
   tbl armVal mode =
     [ ( disarmed .&& stabilize, 2 )
