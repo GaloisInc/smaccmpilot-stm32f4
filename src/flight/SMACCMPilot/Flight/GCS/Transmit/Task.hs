@@ -138,7 +138,7 @@ gcsTransmitTask mavStream sp_sink _dr_sink fm_sink armed_sink se_sink ps_sink
       l <- deref l_armed
       b <- local izero
       store b (l ==? A.as_ARMED)
-      call_ mkSendHeartbeat l_fm l_ui b seqNum mavlinkStruct
+      call_ mkSendHeartbeat l_fm l_ui b seqNum mavlinkStruct now
       processMav T.heartbeat
 
     onStream T.servo_output_raw $ do

@@ -90,21 +90,27 @@ mkSendHeartbeat :: Def ('[ Ref s1 (Struct "flightmode")
                          , Ref s3 (Stored IBool)
                          , Ref sm (Stored Uint8)
                          , Ref sm (Struct "mavlinkPacket")
+                         , Uint32
                          ] :-> ())
 mkSendHeartbeat =
   proc "gcs_transmit_send_heartbeat"
-  $ \fm ui ref_armed seqNum sendStruct -> body $ do
+  $ \fm ui ref_armed seqNum sendStruct now -> body $ do
   hb <- local (istruct [])
-  armed <- deref ref_armed
-  mode  <- deref (fm ~> FM.mode)
-  uisrc <- deref (ui ~> UI.source)
+  armed   <- deref ref_armed
+  mode    <- deref (fm ~> FM.mode)
+  uisrc   <- deref (ui ~> UI.source)
+  lastPPM <- deref (ui ~> UI.time)
   store (hb ~> HB.mavtype)      mavtype_quadrotor
   store (hb ~> HB.autopilot)    autopilot_smaccmpilot
+
   ifte_ armed
     (store (hb ~> HB.base_mode) (mavl_armed + mavl_custom_mode))
     (store (hb ~> HB.base_mode) (mavl_custom_mode))
-  let custommode = safeCast (FM.fromFlightMode mode) -- Bits 0, 1
-                 + (uisrc ==? uiSourcePPM) ? (0, 4)  -- Bit 2
+  let custommode = safeCast (FM.fromFlightMode mode)   -- Bits 0, 1
+                 + ((uisrc ==? uiSourcePPM) ? (0, 4))  -- Bit 2
+                 -- Has it been more than 250ms since receiving a valid PPM
+                 -- message?
+                 + ((now - lastPPM >=? 250) ? (0, 8)) -- Bit 3
   store (hb ~> HB.custom_mode) custommode
 
   -- system status stays 0
@@ -170,11 +176,11 @@ mkSendVfrHud = proc "gcs_transmit_send_vfrhud"
     vground <- (pos ~>* P.vground)
     return $ (safeCast vground) / 100.0
 
-  positionAltitude :: Ref s (Struct "position") -> Ivory eff IFloat
-  positionAltitude pos = do
-    milimeters <- (pos ~>* P.alt)
-    mm_float <- assign $ safeCast milimeters
-    return (mm_float / 1000)
+  -- positionAltitude :: Ref s (Struct "position") -> Ivory eff IFloat
+  -- positionAltitude pos = do
+  --   milimeters <- (pos ~>* P.alt)
+  --   mm_float <- assign $ safeCast milimeters
+  --   return (mm_float / 1000)
 
   calcVertSpeed :: (Ref s (Struct "position")) -> Ivory eff IFloat
   calcVertSpeed pos = do
