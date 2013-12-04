@@ -1,5 +1,6 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE FlexibleInstances  #-}
+{-# LANGUAGE OverlappingInstances #-}
 
 -- | Haskell implementation of the Hxstream protocol.
 
