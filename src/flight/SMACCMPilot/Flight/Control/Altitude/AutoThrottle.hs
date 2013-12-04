@@ -3,6 +3,10 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE RankNTypes #-}
 
+-- Altitude controller based off work by Anton Babushkin <rk3dov@gmail.com> for
+-- the PX4 Autopilot Project
+-- https://github.com/PX4/Firmware/tree/master/src/modules/multirotor_pos_control
+
 module SMACCMPilot.Flight.Control.Altitude.AutoThrottle where
 
 import Ivory.Language
