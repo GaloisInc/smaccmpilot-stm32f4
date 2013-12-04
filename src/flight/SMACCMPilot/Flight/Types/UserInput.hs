@@ -46,8 +46,8 @@ instance SafeCast PPM Uint16 where
   safeCast (PPM u) = u
 
 instance Bounded PPM where
-  minBound = PPM 900
-  maxBound = PPM 2100
+  minBound = PPM 800
+  maxBound = PPM 2200
 
 ppmHigh, ppmLow, ppmCenter :: PPM
 ppmHigh   = 1900
