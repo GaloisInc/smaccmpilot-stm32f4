@@ -8,15 +8,12 @@
 
 extern const AP_HAL::HAL& hal;
 
-bool userinput_capture(uint16_t *chs) {
+uint8_t userinput_capture(uint16_t *chs) {
     if (hal.rcin->valid_channels()) {
         uint8_t count = hal.rcin->read(chs, NUM_CAPTURED_CHANNELS);
-        if (count != NUM_CAPTURED_CHANNELS) {
-            return false;
-        }
-        return true;
+        return count;
     } else {
-        return false;
+        return 0;
     }
 }
 

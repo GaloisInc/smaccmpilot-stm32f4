@@ -38,7 +38,7 @@ userPPMInputTask uis ppm = do
 
   onPeriod 50 $ \now -> do
     captured <- call userPPMInputCapture chs
-    when captured $ do
+    when (captured >=? 6) $ do
       let cchs = constRef chs
       validPPMs <- call userInputFilter cchs
       when validPPMs $ do
@@ -62,7 +62,7 @@ userPPMInputTask uis ppm = do
 --------------------------------------------------------------------------------
 
 -- This talks to the AP_HAL via c++, so we have to extern it completely
-userPPMInputCapture :: Def ('[ Ref s1 PPMs ] :-> IBool)
+userPPMInputCapture :: Def ('[ Ref s1 PPMs ] :-> Uint8)
 userPPMInputCapture = externProc "userinput_capture"
 
 --------------------------------------------------------------------------------

@@ -9,7 +9,7 @@ extern "C" {
 #include <stdint.h>
 #include <stdbool.h>
 
-bool userinput_capture(uint16_t *); /* should have 8 elems! */
+uint8_t userinput_capture(uint16_t *); /* should have 8 elems! */
 
 #ifdef __cplusplus
 }
