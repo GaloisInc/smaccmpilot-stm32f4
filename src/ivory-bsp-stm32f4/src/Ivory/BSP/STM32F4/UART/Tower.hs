@@ -22,8 +22,10 @@ import Ivory.BSP.STM32F4.RCC
 
 uartTower :: forall n m p
            . (SingI n, SingI m, BoardHSE p)
-          => UART -> Integer
-          -> Tower p (ChannelSink n (Stored Uint8), ChannelSource m (Stored Uint8))
+          => UART
+          -> Integer
+          -> Tower p ( ChannelSink   n (Stored Uint8)
+                     , ChannelSource m (Stored Uint8))
 uartTower uart baud = do
   -- XXX MAGIC NUMBER: freertos syscalls must be lower (numerically greater than) level 11
   let max_syscall_priority = (12::Uint8)

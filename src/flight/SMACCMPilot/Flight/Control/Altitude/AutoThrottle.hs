@@ -18,7 +18,6 @@ import           SMACCMPilot.Flight.Control.Altitude.ThrottleTracker
 import           SMACCMPilot.Flight.Control.Altitude.ThrustPID
 import           SMACCMPilot.Flight.Control.Altitude.PositionPID
 import           SMACCMPilot.Flight.Control.Altitude.ThrottleUI
-import           SMACCMPilot.Flight.Control.PID
 
 import qualified SMACCMPilot.Flight.Types.AltControlDebug as A
 import           SMACCMPilot.Flight.Types.Armed

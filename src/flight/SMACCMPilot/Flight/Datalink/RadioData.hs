@@ -3,6 +3,8 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
 
+{-# OPTIONS_GHC -fno-warn-orphans #-}
+
 module SMACCMPilot.Flight.Datalink.RadioData
   ( radioDataHandler
   ) where
@@ -115,6 +117,6 @@ charUint8 :: Char -> Uint8
 charUint8 = fromIntegral . C.ord
 
 ival16 :: Uint8 -> Uint8 -> Init (Stored Uint16)
-ival16 msb lsb = ival (((safeCast msb) * 256) + (safeCast lsb))
+ival16 msb lsb = ival ((safeCast msb * 256) + safeCast lsb)
 
 

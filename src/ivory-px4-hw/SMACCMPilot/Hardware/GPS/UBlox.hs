@@ -184,8 +184,8 @@ unpack_sol payload out = do
   store (out ~> fix) (gpsFixOk ? (fix_decoded,fix_none))
   pdop_l <- deref (payload ! 44)
   pdop_h <- deref (payload ! 45)
-  (pdop :: Uint16) <- assign $ (safeCast pdop_l) + (256 *(safeCast pdop_h))
-  store (out ~> dop) (0.01*(safeCast pdop))
+  (pdop :: Uint16) <- assign $ safeCast pdop_l + (256 * safeCast pdop_h)
+  store (out ~> dop) (0.01 * safeCast pdop)
   numsv <- deref (payload ! 47)
   store (out ~> num_sv) numsv
 
