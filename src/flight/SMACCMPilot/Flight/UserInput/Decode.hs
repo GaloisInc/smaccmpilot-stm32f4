@@ -199,4 +199,5 @@ userInputFilter = proc "userinput_filter" $ \ppms -> body $ do
         ppm <- deref (ppms ! toIx (fromInteger ix :: Sint32))
         return $ b .&& ppm >=? minBound .&& ppm <=? maxBound
 
-  ret =<< foldM go true [0..7 :: Integer]
+  ret =<< foldM go true [0..5 :: Integer]
+
