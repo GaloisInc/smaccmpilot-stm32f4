@@ -23,7 +23,7 @@ struct mavlink_receive_state
   ; sysid    :: Stored Uint8
   ; compid   :: Stored Uint8
   ; msgid    :: Stored Uint8
-  ; payload  :: Array 256 (Stored Uint8)
+  ; payload  :: Array 255 (Stored Uint8)
   ; crc      :: Stored CRC
   }
 |]
