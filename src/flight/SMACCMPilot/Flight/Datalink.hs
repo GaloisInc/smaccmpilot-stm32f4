@@ -23,19 +23,20 @@ import qualified SMACCMPilot.Communications            as C
 --------------------------------------------------------------------------------
 
 datalink :: (SingI n0, SingI n1, SingI n2, SingI n3)
-         => ChannelSink   n0 (Stored Uint8) -- from UART
+         => String
+         -> ChannelSink   n0 (Stored Uint8) -- from UART
          -> ChannelSource n1 (Stored Uint8) -- to UART
          -> Tower p ( ChannelSink   8 C.CommsecArray -- to decrypter
                     , ChannelSource 8 C.CommsecArray -- from encrypter to Hx
                     , ChannelSink   n2 (Struct "radio_stat")
                       -- XXX no endpoint currently
                     , ChannelSink   n3 (Struct "radio_info"))
-datalink istream ostream = do
+datalink name istream ostream = do
   framed_i <- channelWithSize
   framed_o <- channelWithSize
   stat_o   <- channelWithSize
   info_o   <- channelWithSize
-  task "datalink" $ do
+  task ("datalink_" ++ name) $ do
     decoder istream (src framed_o) (src stat_o) (src info_o)
     encoder (snk framed_i) ostream
     taskModuleDef $ depend H.hxstreamModule

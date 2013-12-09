@@ -68,8 +68,8 @@ hil opts = do
                       , fm_mavcmd_in = snk fm_mavcmd
                       }
 
-  control_state     <- stateProxy (control_out core_out)
-  motors_state      <- stateProxy (motors_out core_out)
+  control_state     <- stateProxy "control_state" (control_out core_out)
+  motors_state      <- stateProxy "motors_state" (motors_out core_out)
 
   -- HIL-enabled GCS on uart1:
   (istream, ostream) <- uart UART.uart1
@@ -115,12 +115,12 @@ flight opts = do
                       , fm_mavcmd_in = snk fm_mavcmd
                       }
 
-  control_state     <- stateProxy (control_out core_out)
-  motors_state      <- stateProxy (motors_out core_out)
+  control_state     <- stateProxy "control_state" (control_out core_out)
+  motors_state      <- stateProxy "motors_state" (motors_out core_out)
 
   -- GPS Input on uart6 (valid for all px4fmu platforms)
   gps_position <- gpsTower UART.uart6
-  position_state <- stateProxy gps_position
+  position_state <- stateProxy "position_state" gps_position
   -- Sensors managed by AP_HAL
   sensorsTower gps_position (src sensors)
   -- Motor output dependent on platform
