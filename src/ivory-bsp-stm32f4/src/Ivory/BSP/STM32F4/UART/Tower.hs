@@ -39,7 +39,7 @@ uartTower uart baud = do
                              src_ostream
   -- Signal:
   -- runs the UART Interrupt Service Routine
-  signal "uartISR" $ do
+  signal (uartName uart ++ "ISR") $ do
     signalInit $ do
       uartInit    uart (Proxy :: Proxy p) (fromIntegral baud)
       uartInitISR uart max_syscall_priority

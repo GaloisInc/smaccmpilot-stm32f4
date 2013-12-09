@@ -43,6 +43,7 @@ data UART = UART
   , uartPinAF      :: GPIO_AF
   , uartInterrupt  :: Interrupt
   , uartPClk       :: PClk
+  , uartName       :: String
   }
 
 instance RCCDevice UART where
@@ -58,8 +59,9 @@ mkUART :: (BitData a, IvoryIOReg (BitDataRep a))
        -> GPIO_AF
        -> Interrupt
        -> PClk
+       -> String
        -> UART
-mkUART base rccreg rccfield tx rx af interrupt pclk = UART
+mkUART base rccreg rccfield tx rx af interrupt pclk n = UART
   { uartRegSR      = mkBitDataReg (base + 0x00)
   , uartRegDR      = mkBitDataReg (base + 0x04)
   , uartRegBRR     = mkBitDataReg (base + 0x08)
@@ -74,21 +76,28 @@ mkUART base rccreg rccfield tx rx af interrupt pclk = UART
   , uartPinAF      = af
   , uartInterrupt  = interrupt
   , uartPClk       = pclk
+  , uartName       = n
   }
 
 uart1, uart2, uart3, uart4, uart5, uart6 :: UART
 uart1 = mkUART uart1_periph_base
-                regRCC_APB2ENR rcc_apb2en_uart1 pinB6  pinB7  gpio_af_uart1 USART1 PClk2
+                regRCC_APB2ENR rcc_apb2en_uart1 pinB6  pinB7
+                gpio_af_uart1 USART1 PClk2 "uart1"
 uart2 = mkUART uart2_periph_base
-                regRCC_APB1ENR rcc_apb1en_uart2 pinA2  pinA3  gpio_af_uart2 USART2 PClk1
+                regRCC_APB1ENR rcc_apb1en_uart2 pinA2  pinA3
+                gpio_af_uart2 USART2 PClk1 "uart2"
 uart3 = mkUART uart3_periph_base
-                regRCC_APB1ENR rcc_apb1en_uart3 pinB10 pinB12 gpio_af_uart3 USART3 PClk1
+                regRCC_APB1ENR rcc_apb1en_uart3 pinB10 pinB12
+                gpio_af_uart3 USART3 PClk1 "uart3"
 uart4 = mkUART uart4_periph_base
-                regRCC_APB1ENR rcc_apb1en_uart4 pinC10 pinC11 gpio_af_uart4 UART4 PClk1
+                regRCC_APB1ENR rcc_apb1en_uart4 pinC10 pinC11
+                gpio_af_uart4 UART4 PClk1 "uart4"
 uart5 = mkUART uart5_periph_base
-                regRCC_APB1ENR rcc_apb1en_uart5 pinC12 pinD2  gpio_af_uart5 UART5 PClk1
+                regRCC_APB1ENR rcc_apb1en_uart5 pinC12 pinD2
+                gpio_af_uart5 UART5 PClk1 "uart5"
 uart6 = mkUART uart6_periph_base
-                regRCC_APB2ENR rcc_apb2en_uart6 pinC6  pinC7  gpio_af_uart6 USART6 PClk2
+                regRCC_APB2ENR rcc_apb2en_uart6 pinC6  pinC7
+                gpio_af_uart6 USART6 PClk2 "uart6"
 
 -- | Initialize GPIO pins for a UART.
 initPin :: GPIOPin -> GPIO_AF -> Ivory eff ()
