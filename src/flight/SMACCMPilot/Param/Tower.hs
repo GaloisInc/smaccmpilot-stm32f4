@@ -30,11 +30,19 @@ import qualified SMACCMPilot.Mavlink.Messages.ParamValue as PV
 ----------------------------------------------------------------------
 -- Tower Parameters
 
--- | Shorthand type for a data source of parameter values.
-type ParamSource = DataSource (Stored IFloat)
+-- | Wrapper type for a data source of parameter values.
+data ParamSource =
+  ParamSource
+    { psrc_data :: DataSource (Stored IFloat)
+    , psrc_name :: String
+    }
 
--- | Shorthand type for a data sink of parameter values.
-type ParamSink = DataSink (Stored IFloat)
+-- | Wrapper type for a data sink of parameter values.
+data ParamSink =
+  ParamSink
+    { psnk_data :: DataSink (Stored IFloat)
+    , psnk_name :: String
+    }
 
 -- | Wrapper for a source/sink dataport pair.
 data PortPair = PortPair
@@ -48,9 +56,9 @@ initTowerParams :: ParamT PortPair (Tower p) (a PortPair)
 initTowerParams x = paramInit go x
   where
     go :: String -> Float -> Tower p PortPair
-    go _ v = do
+    go n v = do
       (psrc, psink) <- dataportInit (ival (ifloat v))
-      return (PortPair psrc psink)
+      return (PortPair (ParamSource psrc n) (ParamSink psink n))
 
 -- | Shorthand type for a reader for parameter values.
 type ParamReader = DataReader (Stored IFloat)
@@ -62,13 +70,19 @@ type ParamWriter = DataWriter (Stored IFloat)
 paramReader :: (DataPortable i, Traversable a)
             => a ParamSink
             -> Node i p (a ParamReader)
-paramReader = traverse (\x -> withDataReader x "paramReader")
+paramReader = traverse mkreader
+  where
+  mkreader psnk = withDataReader (psnk_data psnk)
+                                 ("param_reader_" ++ psnk_name psnk)
 
 -- | Open data writers for a parameter tree containing sources.
 paramWriter :: (DataPortable i, Traversable a)
             => a ParamSource
             -> Node i p (a ParamWriter)
-paramWriter = traverse (\x -> withDataWriter x "paramWriter")
+paramWriter = traverse mkwriter
+  where
+  mkwriter psrc = withDataWriter (psrc_data psrc)
+                                 ("param_writer_" ++ psrc_name psrc)
 
 -- | Read the float values of a parameter tree.
 paramRead :: (GetAlloc eff ~ Scope s, Traversable a)
