@@ -128,7 +128,7 @@ gcsTowerAux name opts istream ostream fm_state fm_mavcmd armed_res_snk armed_mav
    , _infoiStream :: ChannelSink 2 (Struct "radio_info")
    ) <- D.datalink name istream ostream -- also creates task
 
-  radioStat <- stateProxy "radio_status_state" radioStatStream
+  radioStat <- stateProxy ("radio_status_" ++ name) radioStatStream
 
   -- Rx
   task (named "decryptTask") $ Dec.decryptTask opts hxToDecRcv decToGcsRxSrc
