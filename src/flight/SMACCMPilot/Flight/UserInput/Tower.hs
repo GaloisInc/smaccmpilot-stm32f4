@@ -19,7 +19,7 @@ import           SMACCMPilot.Mavlink.Messages.RcChannelsOverride
 --------------------------------------------------------------------------------
 
 userInputTower :: (SingI n0, SingI n1)
-               => ChannelSink n0 (Struct "control_request")
+               => ChannelSink n0 (Struct "control_law_request")
                -> ChannelSink n1 (Struct "rc_channels_override_msg")
                -> Tower p ( DataSink (Struct "userinput_result")
                           , DataSink (Struct "control_law")

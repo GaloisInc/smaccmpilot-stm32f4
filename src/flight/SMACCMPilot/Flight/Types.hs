@@ -17,7 +17,7 @@ import SMACCMPilot.Flight.Types.RadioInfo (radioInfoTypeModule)
 import SMACCMPilot.Flight.Types.MaybeFloat (maybeFloatModule)
 import SMACCMPilot.Flight.Types.AltControlDebug (altControlDebugTypeModule)
 import SMACCMPilot.Flight.Types.ControlLaw (controlLawTypeModule)
-import SMACCMPilot.Flight.Types.ControlRequest (controlRequestTypeModule)
+import SMACCMPilot.Flight.Types.ControlLawRequest (controlLawRequestTypeModule)
 
 typeModules :: [Module]
 typeModules =
@@ -33,5 +33,5 @@ typeModules =
   , maybeFloatModule
   , altControlDebugTypeModule
   , controlLawTypeModule
-  , controlRequestTypeModule
+  , controlLawRequestTypeModule
   ]

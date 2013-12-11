@@ -74,7 +74,7 @@ library
                        SMACCMPilot.Flight.Types.ArmedMode,
                        SMACCMPilot.Flight.Types.ControlSource,
                        SMACCMPilot.Flight.Types.ThrottleMode,
-                       SMACCMPilot.Flight.Types.ControlRequest,
+                       SMACCMPilot.Flight.Types.ControlLawRequest,
 
                        SMACCMPilot.Flight.UserInput.Tower,
                        SMACCMPilot.Flight.UserInput.PPMTask,

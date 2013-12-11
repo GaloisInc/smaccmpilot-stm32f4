@@ -18,14 +18,14 @@ import Ivory.Tower
 import qualified SMACCMPilot.Flight.Types.ArmedMode  as A
 import qualified SMACCMPilot.Flight.Types.UserInput  as T
 import qualified SMACCMPilot.Flight.Types.ControlLaw as CL
-import qualified SMACCMPilot.Flight.Types.ControlRequest as CR
+import qualified SMACCMPilot.Flight.Types.ControlLawRequest as CR
 import qualified SMACCMPilot.Flight.UserInput.Decode as D
 
 --------------------------------------------------------------------------------
 
 armedMuxTask :: SingI n
              => DataSink T.PPMs                    -- PPM signals
-             -> ChannelSink n (Struct "control_request") -- MAVLink arming input
+             -> ChannelSink n (Struct "control_law_request") -- MAVLink arming input
              -> DataSource (Stored A.ArmedMode)    -- Mux'ed arming output
              -> Task p ()
 armedMuxTask ppm_input_snk ctl_req_snk armed_res_src = do

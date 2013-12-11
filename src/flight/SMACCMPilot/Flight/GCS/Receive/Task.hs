@@ -17,9 +17,9 @@ import           Ivory.Language
 import           Ivory.Stdlib
 import           Ivory.Tower
 
-import qualified SMACCMPilot.Mavlink.Receive             as R
-import qualified SMACCMPilot.Flight.Types.ControlLaw     as CL
-import qualified SMACCMPilot.Flight.Types.ControlRequest as CR
+import qualified SMACCMPilot.Mavlink.Receive                as R
+import qualified SMACCMPilot.Flight.Types.ControlLaw        as CL
+import qualified SMACCMPilot.Flight.Types.ControlLawRequest as CR
 
 import           SMACCMPilot.Param
 import           SMACCMPilot.Flight.GCS.Stream (defaultPeriods)
@@ -38,7 +38,7 @@ gcsReceiveTask :: ( SingI n0, SingI n1, SingI n2, SingI n3
                -> ChannelSource n1 (Struct "gcsstream_timing")
                -> ChannelSource n2 (Struct "data_rate_state")
                -> ChannelSource n3 (Struct "hil_state_msg")
-               -> ChannelSource n4 (Struct "control_request")
+               -> ChannelSource n4 (Struct "control_law_request")
                -> ChannelSource n5 (Stored Sint16)  -- param_request
                -> ChannelSource n6 (Struct "rc_channels_override_msg")
                -> [Param PortPair]
@@ -48,7 +48,7 @@ gcsReceiveTask mavStream s_src dr_src hil_src creq_src
   = do
   millis        <- withGetTimeMillis
   hil_emitter   <- withChannelEmitter hil_src "hil_src"
-  creq_writer   <- withChannelEmitter creq_src "control_request"
+  creq_writer   <- withChannelEmitter creq_src "control_law_request"
 
   -- Get lists of parameter readers and writers.
   write_params       <- traverse paramWriter (map (fmap portPairSource) params)

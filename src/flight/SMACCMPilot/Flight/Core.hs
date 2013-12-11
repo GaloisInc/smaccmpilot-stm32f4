@@ -37,7 +37,7 @@ data FlightCoreRequires =
     { sensors_in        :: DataSink (Struct "sensors_result")
     , params_in         :: FlightParams ParamSink
     , rcoverride_in     :: ChannelSink 16 (Struct "rc_channels_override_msg")
-    , ctl_req_in        :: ChannelSink 16 (Struct "control_request")
+    , ctl_req_in        :: ChannelSink 16 (Struct "control_law_request")
     }
 
 data FlightCoreProvides =
