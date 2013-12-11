@@ -9,46 +9,48 @@ import Ivory.Language
 import Ivory.Tower
 import Ivory.Stdlib
 
-import           SMACCMPilot.Flight.Types.Armed
-import qualified SMACCMPilot.Flight.Types.UserInput     as UI
-import           SMACCMPilot.Flight.Types.FlightModeData
+import qualified SMACCMPilot.Flight.Types.ArmedMode    as A
+import qualified SMACCMPilot.Flight.Types.ControlLaw   as CL
+import qualified SMACCMPilot.Flight.Types.ThrottleMode as TM
+import qualified SMACCMPilot.Flight.Types.UserInput    as UI
 
 data ThrottleTracker =
   ThrottleTracker
     { tt_init      :: forall eff   . Ivory eff ()
-    , tt_update    :: forall eff s . Ref s (Struct "userinput_result")
-                                  -> FlightMode -> ArmedMode -> Ivory eff ()
+    , tt_update    :: forall eff s s' .  Ref s  (Struct "userinput_result")
+                                      -> Ref s' (Struct "control_law")
+                                      -> Ivory eff ()
     , tt_reset_to  :: forall eff   . Ivory eff (IBool, IFloat)
     }
 
--- XXX completely unimplemented
 taskThrottleTracker :: Task p ThrottleTracker
 taskThrottleTracker = do
   uniq <- fresh
-  last_fm        <- taskLocal "last_fm"
+  last_thr_mode  <- taskLocal "last_tm"
   last_throttle  <- taskLocal "last_throttle"
   reset_required <- taskLocal "reset_required"
-  let proc_update :: Def('[ Ref s (Struct "userinput_result")
-                          , FlightMode
-                          , ArmedMode
-                          ]:->())
+  let proc_update :: Def('[ Ref s  (Struct "userinput_result")
+                          , Ref s' (Struct "control_law")
+                          ] :->())
       proc_update = proc ("throttle_tracker_update_" ++ show uniq) $
-        \ui fm armed -> body $ do
-          l_fm <- deref last_fm
-          store last_fm fm
-          cond_ 
-            [ l_fm ==? flightModeStabilize
-                .&& fm /=? flightModeStabilize
-                .&& armed ==? as_ARMED
+        \ui cl -> body $ do
+          l_tm  <- deref last_thr_mode
+          tm    <- deref (cl ~> CL.thr_mode)
+          armed <- deref (cl ~> CL.armed_mode)
+          store last_thr_mode tm
+          cond_
+            [   l_tm  ==? TM.direct
+            .&& tm    /=? TM.autothrottle
+            .&& armed ==? A.armed
               ==> store reset_required true
-            , l_fm ==? flightModeStabilize
-                .&& armed ==? as_ARMED
+            ,   tm    ==? TM.direct
+            .&& armed ==? A.armed
               ==> manual_throttle ui >>= store last_throttle
             ]
   taskModuleDef $ incl proc_update
   return ThrottleTracker
     { tt_init = do
-        store last_fm        flightModeStabilize
+        store last_thr_mode  TM.direct
         store last_throttle  (0 :: IFloat)
         store reset_required true
     , tt_update = call_ proc_update

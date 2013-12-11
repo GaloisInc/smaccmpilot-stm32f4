@@ -28,7 +28,6 @@ import           SMACCMPilot.Flight.Control.Task
 import           SMACCMPilot.Flight.Motors.Task
 import           SMACCMPilot.Flight.Param
 import           SMACCMPilot.Flight.Types (typeModules)
-import qualified SMACCMPilot.Flight.Types.Armed as A
 import           SMACCMPilot.Flight.UserInput.Tower
 
 import           SMACCMPilot.Param
@@ -38,16 +37,14 @@ data FlightCoreRequires =
     { sensors_in        :: DataSink (Struct "sensors_result")
     , params_in         :: FlightParams ParamSink
     , rcoverride_in     :: ChannelSink 16 (Struct "rc_channels_override_msg")
-    , armed_mavcmd_in   :: ChannelSink 16 (Stored A.ArmedMode)
-    , fm_mavcmd_in      :: DataSink (Struct "flightmode")
+    , ctl_req_in        :: ChannelSink 16 (Struct "control_request")
     }
 
 data FlightCoreProvides =
   FlightCoreProvides
     { control_out      :: ChannelSink 16 (Struct "controloutput")
     , motors_out       :: ChannelSink 16 (Struct "motors")
-    , armed_state      :: DataSink (Stored A.ArmedMode)
-    , flightmode_state :: DataSink (Struct "flightmode")
+    , controllaw_state :: DataSink (Struct "control_law")
     , altctl_state     :: DataSink (Struct "alt_control_dbg")
     , userinput_state  :: DataSink (Struct "userinput_result")
     }
@@ -58,14 +55,12 @@ core sys = do
   control <- channel
   ac_state <- dataport
 
-  -- XXX DO SOMETHIGN WITH fm_cmd_in sys
+  (userinput, controllaw) <- userInputTower (ctl_req_in sys)
+                                            (rcoverride_in sys)
 
-  (userinput, flightmode, armed) <- userInputTower (armed_mavcmd_in sys)
-                                                   (rcoverride_in sys)
-  task "blink"      $ blinkTask lights armed flightmode
+  task "blink"      $ blinkTask lights controllaw
   task "control"    $ controlTask
-                        armed
-                        flightmode
+                        controllaw
                         userinput
                         (sensors_in sys)
                         (src control)
@@ -73,8 +68,7 @@ core sys = do
                         (params_in sys)
   task "motmix"     $ motorMixerTask
                         (snk control)
-                        armed
-                        flightmode
+                        controllaw
                         (src motors)
 
   mapM_ addDepends typeModules
@@ -83,8 +77,7 @@ core sys = do
   return $ FlightCoreProvides
     { control_out      = snk control
     , motors_out       = snk motors
-    , armed_state      = armed
-    , flightmode_state = flightmode
+    , controllaw_state = controllaw
     , altctl_state     = snk ac_state
     , userinput_state  = userinput
     }

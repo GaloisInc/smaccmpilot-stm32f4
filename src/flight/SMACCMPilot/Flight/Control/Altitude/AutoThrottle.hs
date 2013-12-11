@@ -20,22 +20,22 @@ import           SMACCMPilot.Flight.Control.Altitude.PositionPID
 import           SMACCMPilot.Flight.Control.Altitude.ThrottleUI
 
 import qualified SMACCMPilot.Flight.Types.AltControlDebug as A
-import           SMACCMPilot.Flight.Types.Armed
+import qualified SMACCMPilot.Flight.Types.ControlLaw      as CL
+import qualified SMACCMPilot.Flight.Types.ThrottleMode    as TM
 import qualified SMACCMPilot.Flight.Types.Sensors         as S
 import           SMACCMPilot.Flight.Types.UserInput       ()
-import           SMACCMPilot.Flight.Types.FlightModeData
 import           SMACCMPilot.Flight.Param
 import           SMACCMPilot.Param
 
 data AutoThrottle =
   AutoThrottle
     { at_init   :: forall eff   . Ivory eff ()
-    , at_update :: forall eff s1 s2 . Ref s1 (Struct "sensors_result")
-                               -> Ref s2 (Struct "userinput_result")
-                               -> FlightMode
-                               -> ArmedMode
-                               -> IFloat -- dt, seconds
-                               -> Ivory eff ()
+    , at_update :: forall eff s1 s2 s3
+                 . Ref s1 (Struct "sensors_result")
+                -> Ref s2 (Struct "userinput_result")
+                -> Ref s3 (Struct "control_law")
+                -> IFloat -- dt, seconds
+                -> Ivory eff ()
     , at_output :: forall eff   . Ivory eff IFloat
     }
 
@@ -53,24 +53,25 @@ taskAutoThrottle params ahWriter = do
   state_dbg        <- taskLocal "state_debug"
   let proc_at_update :: Def('[ Ref s1 (Struct "sensors_result")
                              , Ref s2 (Struct "userinput_result")
-                             , FlightMode
-                             , ArmedMode
+                             , Ref s3 (Struct "control_law")
                              , IFloat
                              ]:->())
       proc_at_update = proc ("at_update_" ++ show uniq) $
-        \sens ui mode armed dt -> body $ do
+        \sens ui cl dt -> body $ do
           -- Update estimators
-          tt_update throttle_tracker ui mode armed
+          tt_update throttle_tracker ui cl
 
           sensor_alt  <- deref (sens ~> S.baro_alt)
           sensor_time <- deref (sens ~> S.baro_time)
           ae_measurement alt_estimator sensor_alt sensor_time
           ae_write_debug alt_estimator state_dbg
 
-          ui_update ui_control mode armed ui dt
+          ui_update ui_control cl ui dt
           ui_write_debug ui_control state_dbg
 
-          when (autoThrottleEnabled mode) $ do
+          thr_mode <- deref (cl ~> CL.thr_mode)
+          autoThrottleEnabled <- assign (thr_mode ==? TM.autothrottle)
+          when autoThrottleEnabled $ do
             (ui_alt, ui_vz) <- ui_setpoint ui_control
             vz_control      <- pos_pid_calculate position_pid ui_alt ui_vz dt
             store (state_dbg ~> A.pos_rate_setp) vz_control
@@ -87,7 +88,7 @@ taskAutoThrottle params ahWriter = do
             setpt <- assign ((throttleR22Comp r22) * uncomp_thr_setpt)
             store thr_setpt ((setpt >? 1.0) ? (1.0, setpt))
 
-          unless (autoThrottleEnabled mode) $ do
+          unless autoThrottleEnabled $ do
             -- Reset derivative tracking when not using thrust controller
             thrust_pid_init thrust_pid
 
@@ -102,9 +103,6 @@ taskAutoThrottle params ahWriter = do
     , at_update = call_ proc_at_update
     , at_output = deref thr_setpt
     }
-
-autoThrottleEnabled :: FlightMode -> IBool
-autoThrottleEnabled m = m ==? flightModeAltHold .|| m ==? flightModeAuto
 
 -- | Calculate R22 factor, product of cosines of roll & pitch angles
 sensorsR22 :: Ref s (Struct "sensors_result") -> Ivory eff IFloat

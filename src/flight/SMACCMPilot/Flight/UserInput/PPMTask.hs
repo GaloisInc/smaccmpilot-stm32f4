@@ -11,9 +11,9 @@ import Ivory.Language
 import Ivory.Stdlib
 import Ivory.Tower
 
-import SMACCMPilot.Flight.Types.UserInput
-import SMACCMPilot.Flight.Types.UserInputSource
-import SMACCMPilot.Flight.UserInput.Decode
+import           SMACCMPilot.Flight.Types.UserInput
+import qualified SMACCMPilot.Flight.Types.ControlSource as CS
+import           SMACCMPilot.Flight.UserInput.Decode
 
 --------------------------------------------------------------------------------
 
@@ -50,7 +50,7 @@ userPPMInputTask uis ppm = do
     -- Even if the signals are invalid, we're going to call the fail-safe which
     -- zeros the values after 150 ms.
     call_ userInputFailsafe ui_result now
-    store (ui_result ~> source) uiSourcePPM
+    store (ui_result ~> source) CS.ppm
     writeData uiWriter (constRef ui_result)
 
   taskModuleDef $ do

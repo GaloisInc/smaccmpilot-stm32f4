@@ -11,40 +11,33 @@ module SMACCMPilot.Flight.Motors.Task
 import Ivory.Language
 import Ivory.Tower
 
-import qualified SMACCMPilot.Flight.Types.Armed         as A
-import qualified SMACCMPilot.Flight.Types.ControlOutput as C
+import qualified SMACCMPilot.Flight.Types.ControlLaw    as CL
+import qualified SMACCMPilot.Flight.Types.ArmedMode     as A
 import qualified SMACCMPilot.Flight.Types.Motors        as M
-import qualified SMACCMPilot.Flight.Types.FlightMode    as FM
 
 import SMACCMPilot.Flight.Motors.Mixing
 
 motorMixerTask :: (SingI n, SingI m)
                => ChannelSink n (Struct "controloutput")
-               -> DataSink (Stored A.ArmedMode)
-               -> DataSink (Struct "flightmode")
+               -> DataSink (Struct "control_law")
                -> ChannelSource m (Struct "motors")
                -> Task p ()
-motorMixerTask cs a fms ms = do
-  armReader <- withDataReader a "armReader"
-  fmReader  <- withDataReader fms "flightMode"
+motorMixerTask cs clsnk ms = do
+  clReader  <- withDataReader clsnk "controllaw"
   motEmit   <- withChannelEmitter ms "motors"
   taskInit $ do
     d <- disabled
     emit_ motEmit d
   onChannel cs "control" $ \ctl -> do
-    armedRef <- local (izero)
-    fm       <- local (istruct [])
-    readData armReader armedRef
-    readData fmReader fm
-    armed <- deref armedRef
+    cl <- local (istruct [])
+    readData clReader cl
+    armed <- deref (cl ~> CL.armed_mode)
     let output = emit_ motEmit
-    ifte_ (armed ==? A.as_ARMED)
+    ifte_ (armed ==? A.armed)
       (mixer ctl >>= output)
       (disabled >>= output)
   taskModuleDef $ do
-    depend C.controlOutputTypeModule
     depend M.motorsTypeModule
-    depend FM.flightModeTypeModule
 
 disabled :: (GetAlloc eff ~ Scope cs) => Ivory eff (ConstRef (Stack cs) (Struct "motors"))
 disabled = do

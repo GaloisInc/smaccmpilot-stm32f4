@@ -13,10 +13,6 @@ import Ivory.Language
 import Ivory.Stdlib
 import Ivory.Tower
 
-import qualified SMACCMPilot.Flight.Types.Armed                  as A
-import qualified SMACCMPilot.Flight.Types.FlightMode             as FM
-import qualified SMACCMPilot.Flight.Types.FlightModeData         as FM
-
 import           SMACCMPilot.Mavlink.Messages (mavlinkMessageModules)
 import qualified SMACCMPilot.Mavlink.Messages.RequestDataStream  as RDS
 import qualified SMACCMPilot.Mavlink.Messages.ParamSet           as PS
@@ -31,6 +27,8 @@ import qualified SMACCMPilot.Mavlink.Enums.MavComponent          as MC
 
 import           SMACCMPilot.Param
 import           SMACCMPilot.Flight.GCS.Stream (updateGCSStreamPeriods)
+import qualified SMACCMPilot.Flight.Types.ControlLaw             as CL
+import qualified SMACCMPilot.Flight.Types.ArmedMode              as A
 
 --------------------------------------------------------------------------------
 -- Params
@@ -122,48 +120,32 @@ rcOverride e msgRef = emit_ e (constRef msgRef)
 customModeEnabled :: Uint8
 customModeEnabled = 1
 
--- | Return true if a flight mode is valid and the corresponding mode.
-isValidMode :: Uint8 -> Ivory (ProcEffects cs r) IBool
-isValidMode x = go FM.flightModes
-                    -- fm here should never be used.
-  where go []     = return false
-        go (y:ys) = ifte (x ==? FM.fromFlightMode y)
-                      (return true)
-                      (go ys)
 
--- | Returns the corresponding flight mode.  Invariant: input is a valid
--- flightmode.
-getMode :: Uint8 -> Ivory (ProcEffects cs r) FM.FlightMode
-getMode x = go FM.flightModes
-                    -- fm here should never be used.
-  where go []     = return FM.flightModeStabilize -- Shouldn't happen.
-        go (y:ys) = ifte (x ==? FM.fromFlightMode y)
-                      (return y)
-                      (go ys)
-
--- | Set the flight mode.
-setMode :: DataWriter (Struct "flightmode")
+-- | XXX NEED TO REWORK THIS
+setMode :: DataWriter (Struct "control_law")
         -> Uint32
         -> Ref s2 (Struct "set_mode_msg")
         -> Ivory (ProcEffects cs r) ()
-setMode fm_writer now msg = do
-  fm <- local izero
+setMode cl_writer now msg = do
+  cl <- local izero
   base_mode <- deref (msg ~> SM.base_mode)
 
   when (base_mode .& customModeEnabled /=? 0) $ do
-    mode32 <- deref (msg ~> SM.custom_mode)
-    -- Assume, for now, that we're only using 8 bits of the mode.
-    mode   <- assign (bitCast mode32)
-    valid  <- isValidMode mode
-    mode'  <- getMode mode
-    when valid $ do
-      store (fm ~> FM.mode)  mode'
-      store (fm ~> FM.time)  now
-      writeData fm_writer (constRef fm)
+    --mode32 <- deref (msg ~> SM.custom_mode)
+    ---- Assume, for now, that we're only using 8 bits of the mode.
+    --mode   <- assign (bitCast mode32)
+    --valid  <- isValidMode mode
+    --mode'  <- getMode mode
+    --when valid $ do
+    --  store (cl ~> FM.mode)  mode'
+    when true $ do
+      store (cl ~> CL.time)  now
+      writeData cl_writer (constRef cl)
 
 --------------------------------------------------------------------------------
 
 -- | Handle a 'COMPONENT_ARM_DISARM' command.
+-- XXX COMPLETELY WRONG: NEED TO FIX
 armDisarm :: SingI n
           => ChannelEmitter n (Stored A.ArmedMode)
           -> Ref s1 (Struct "command_long_msg")
@@ -176,8 +158,8 @@ armDisarm arm_emitter msg = do
     cond_
       -- Float comparison should be ok(?) since they're encoded ints and there's
       -- no arithmetic on them.
-      [ param1 ==? 0.0 ==> emitV_ arm_emitter A.as_DISARMED
-      , param1 ==? 1.0 ==> emitV_ arm_emitter A.as_ARMED
+      [ param1 ==? 0.0 ==> emitV_ arm_emitter A.disarmed
+      , param1 ==? 1.0 ==> emitV_ arm_emitter A.armed
       ]
   return ()
 

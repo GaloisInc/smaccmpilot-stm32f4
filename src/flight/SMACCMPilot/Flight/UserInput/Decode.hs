@@ -13,21 +13,19 @@ import Control.Monad hiding (when, unless)
 import Ivory.Language
 import Ivory.Stdlib
 
--- needed because the ivory quasiquoter cannot handle qualified names
-import SMACCMPilot.Flight.Types.FlightModeData (FlightMode)
-
-import qualified SMACCMPilot.Flight.Types.Armed          as A
+import qualified SMACCMPilot.Flight.Types.ControlLaw     as CL
+import qualified SMACCMPilot.Flight.Types.ArmedMode      as A
+import qualified SMACCMPilot.Flight.Types.ThrottleMode   as TM
+import qualified SMACCMPilot.Flight.Types.ControlSource  as CS
 import qualified SMACCMPilot.Flight.Types.UserInput      as I
-import qualified SMACCMPilot.Flight.Types.FlightMode     as FM
-import qualified SMACCMPilot.Flight.Types.FlightModeData as FM
 
 --------------------------------------------------------------------------------
 
 userInputDecodeModule :: Module
 userInputDecodeModule = package "userinput_decode" $ do
   depend I.userInputTypeModule
-  depend FM.flightModeTypeModule
-  defStruct (Proxy :: Proxy "flightmode_state")
+  depend CL.controlLawTypeModule
+  defStruct (Proxy :: Proxy "modedecode_state")
   defStruct (Proxy :: Proxy "arming_state")
   incl userInputDecode
   incl userInputFailsafe
@@ -45,9 +43,9 @@ armStateArming   = 1
 armStateArmed    = 2
 
 [ivory|
-struct flightmode_state
-  { fm_last_mode         :: Stored FlightMode
-  ; fm_last_mode_time    :: Stored Uint32
+struct modedecode_state
+  { md_last_position :: Stored Uint8
+  ; md_last_time     :: Stored Uint32
   }
 
 struct arming_state
@@ -59,12 +57,6 @@ struct arming_state
 
 --------------------------------------------------------------------------------
 
-
-mode_ppm_map :: [(FM.FlightMode, (I.PPM, I.PPM))]    -- on ER9X this should be:
-mode_ppm_map = [(FM.flightModeAuto,      (minBound, 1300))  -- AUX 3 up
-               ,(FM.flightModeAltHold,   (1301, 1700))      -- AUX 3 center
-               ,(FM.flightModeStabilize, (1701, maxBound)) -- AUX 3 down
-               ]
 
 scale_rpyt :: I.PPM -> Ivory eff IFloat
 scale_rpyt input = call scale_proc I.ppmCenter 500 (-1.0) 1.0 input
@@ -139,7 +131,7 @@ armingStatemachine = proc "armingStatemachine" $ \ppms state out now -> body $ d
       astime <- deref (state ~> arm_state_time)
       when (now - astime >? hystresis) $ do
         store (state ~> arm_state) armStateArmed
-        store out A.as_ARMED
+        store out A.armed
         ret true
     ] -- do nothing when already in the "armed" state
 
@@ -147,29 +139,48 @@ armingStatemachine = proc "armingStatemachine" $ \ppms state out now -> body $ d
 
 -- | Debouncing state machine for the flight mode switch.
 modeStatemachine :: Def ('[ Ref s0 I.PPMs
-                          , Ref s1 (Struct "flightmode_state")
-                          , Ref s2 (Struct "flightmode")
+                          , Ref s1 (Struct "modedecode_state")
+                          , Ref s2 (Struct "control_law")
                           , Uint32 -- now
                           ] :-> IBool)
 modeStatemachine = proc "modeStatemachine" $ \ppms state out now -> body $ do
   ppm <- deref (ppms ! (4 :: Ix 8))
-  let mode = mode_from_ppm ppm
-  last_mode <- deref (state ~> fm_last_mode)
+  let pos = modeswitchpos_from_ppm ppm
+  last_pos <- deref (state ~> md_last_position)
 
-  -- XXX TODO: debounce
-  when (mode /=? last_mode) $ do
-    store (out ~> FM.mode) mode
-    store (out ~> FM.time) now
-    store (state ~> fm_last_mode) mode
-    store (state ~> fm_last_mode_time) now
+  when (pos /=? last_pos) $ do
+    cond_
+      [ pos ==? 0 ==> do -- up (auto)
+          store (out ~> CL.stab_ctl)    CS.auto
+          store (out ~> CL.thr_mode)    TM.autothrottle
+          store (out ~> CL.autothr_ctl) CS.auto
+      , pos ==? 1 ==> do -- center (alt hold)
+          store (out ~> CL.stab_ctl)    CS.ppm
+          store (out ~> CL.thr_mode)    TM.autothrottle
+          store (out ~> CL.autothr_ctl) CS.ppm
+      , pos ==? 2 ==> do -- down (stabilize)
+          store (out ~> CL.stab_ctl)    CS.ppm
+          store (out ~> CL.thr_mode)    TM.direct
+          store (out ~> CL.autothr_ctl) CS.ppm
+      ]
+    store (out ~> CL.time) now
+    store (state ~> md_last_position) pos
+    store (state ~> md_last_time) now
     ret true
 
   ret false
   where
-  mode_from_ppm :: I.PPM -> FM.FlightMode
-  mode_from_ppm ppm = foldr (match_mode_map ppm) FM.flightModeStabilize mode_ppm_map
+  modeswitchpos_from_ppm :: I.PPM -> Uint8
+  modeswitchpos_from_ppm ppm = foldr (match_mode_map ppm) 2 mode_ppm_map
   match_mode_map ppm (mode, (min_ppm, max_ppm)) def =
     ((ppm >=? min_ppm) .&& (ppm <=? max_ppm)) ? (mode, def)
+
+  mode_ppm_map :: [(Uint8, (I.PPM, I.PPM))]    -- on ER9X this should be:
+  mode_ppm_map = [(0, (minBound, 1300))        -- AUX 3 up
+                 ,(1, (1301, 1700))            -- AUX 3 center
+                 ,(2, (1701, maxBound))        -- AUX 3 down
+                 ]
+
 
 -- | Is Channel 6 (switch 2) depressed?  True means yes: ARMing ok.
 deadManSwitch :: Def ('[ConstRef s I.PPMs] :-> IBool)

@@ -14,8 +14,8 @@ import SMACCMPilot.Param
 import SMACCMPilot.Flight.Control.PID
 import SMACCMPilot.Flight.Param
 
-import qualified SMACCMPilot.Flight.Types.Armed         as A
-import qualified SMACCMPilot.Flight.Types.FlightMode    as FM
+import qualified SMACCMPilot.Flight.Types.ArmedMode     as A
+import qualified SMACCMPilot.Flight.Types.ControlLaw    as CL
 import qualified SMACCMPilot.Flight.Types.UserInput     as IN
 import qualified SMACCMPilot.Flight.Types.Sensors       as SEN
 import qualified SMACCMPilot.Flight.Types.ControlOutput as OUT
@@ -25,7 +25,7 @@ import qualified SMACCMPilot.Flight.Types.ControlOutput as OUT
 
 stabilizeControlLoopsModule :: Module
 stabilizeControlLoopsModule = package "stabilize_controlloops" $ do
-  depend FM.flightModeTypeModule
+  depend CL.controlLawTypeModule
   depend IN.userInputTypeModule
   depend SEN.sensorsTypeModule
   depend OUT.controlOutputTypeModule
@@ -53,15 +53,15 @@ const_MAX_OUTPUT_PITCH = 50 -- deg/sec
 const_MAX_OUTPUT_YAW   = 45 -- deg/sec
 
 makeStabilizeRun :: FlightParams ParamReader
-                 -> Def ('[ A.ArmedMode
-                          , ConstRef s1 (Struct "flightmode")
+                 -> Def ('[ ConstRef s1 (Struct "control_law")
                           , ConstRef s2 (Struct "userinput_result")
                           , ConstRef s3 (Struct "sensors_result")
                           , Ref      s4 (Struct "controloutput")
                           ] :-> ())
 makeStabilizeRun params =
-  proc "stabilize_run" $ \armed _fm input sensors output -> body $ do
-  ifte_ (armed /=? A.as_ARMED)
+  proc "stabilize_run" $ \cl input sensors output -> body $ do
+  armed <- deref (cl ~> CL.armed_mode)
+  ifte_ (armed /=? A.armed)
     (mapM_ (call_ pid_reset)
       [roll_stabilize, pitch_stabilize, roll_rate, pitch_rate, yaw_rate] )
     $ do -- if armed:

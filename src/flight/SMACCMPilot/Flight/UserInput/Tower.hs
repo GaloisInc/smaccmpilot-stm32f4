@@ -10,7 +10,6 @@ module SMACCMPilot.Flight.UserInput.Tower
 import Ivory.Language
 import Ivory.Tower
 
-import qualified SMACCMPilot.Flight.Types.Armed as A
 import           SMACCMPilot.Flight.UserInput.PPMTask
 import           SMACCMPilot.Flight.UserInput.Decode (userInputDecodeModule)
 import           SMACCMPilot.Flight.UserInput.RCOverride
@@ -20,13 +19,12 @@ import           SMACCMPilot.Mavlink.Messages.RcChannelsOverride
 --------------------------------------------------------------------------------
 
 userInputTower :: (SingI n0, SingI n1)
-               => ChannelSink n0 (Stored A.ArmedMode)
+               => ChannelSink n0 (Struct "control_request")
                -> ChannelSink n1 (Struct "rc_channels_override_msg")
                -> Tower p ( DataSink (Struct "userinput_result")
-                          , DataSink (Struct "flightmode")
-                          , DataSink (Stored A.ArmedMode)
+                          , DataSink (Struct "control_law")
                           )
-userInputTower snk_mav_armed snk_rc_over = do
+userInputTower snk_ctl_req snk_rc_over = do
   armed_state   <- dataport
 
   (ppm_ui, ppm_chans) <- userPPMInputTower
@@ -36,21 +34,20 @@ userInputTower snk_mav_armed snk_rc_over = do
                                           (snk armed_state)
 
   task "armingTask" $ armedMuxTask ppm_chans
-                                   snk_mav_armed
+                                   snk_ctl_req
                                    (src armed_state)
-  flightmode <- flightModeMuxTower
+  controllaw <- controlLawMuxTower
                   ppm_chans
                   (snk armed_state)
 
-  (canonical_ui) <- userInputMuxTower
-                      (snk armed_state)
+  canonical_ui <- userInputMuxTower
                        ppm_ui
                        rcoverride_ui
                        rcoverride_active
-                       flightmode
+                       controllaw
 
   addDepends rcChannelsOverrideModule
   addModule userInputDecodeModule
-  return (canonical_ui, flightmode, snk armed_state)
+  return (canonical_ui, controllaw)
 
 --------------------------------------------------------------------------------

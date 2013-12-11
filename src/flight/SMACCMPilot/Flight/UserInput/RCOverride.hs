@@ -16,8 +16,8 @@ import Ivory.Tower
 import qualified SMACCMPilot.Flight.UserInput.Decode             as D
 import qualified SMACCMPilot.Mavlink.Messages.RcChannelsOverride as O
 import qualified SMACCMPilot.Flight.Types.UserInput              as T
-import           SMACCMPilot.Flight.Types.UserInputSource
-import qualified SMACCMPilot.Flight.Types.Armed                  as A
+import qualified SMACCMPilot.Flight.Types.ControlSource          as CS
+import qualified SMACCMPilot.Flight.Types.ArmedMode              as A
 
 --------------------------------------------------------------------------------
 
@@ -72,7 +72,7 @@ userMAVInputTask a rc_over_snk src_js_fs src_rc_over_res = do
   onChannel rc_over_snk "rc_over_snk" $ \ovr_msg ->  do
     readData armedReader armedRef
     armed <- deref armedRef
-    when (armed ==? A.as_ARMED) $ do
+    when (armed ==? A.armed) $ do
       now <- getTimeMillis timer
       refCopy ovr_msg_local ovr_msg
       -- Translate the MAVLink message.
@@ -83,7 +83,7 @@ userMAVInputTask a rc_over_snk src_js_fs src_rc_over_res = do
         -- Decode the PPMs.  This should ONLY be called on filtered inputs.
         (call_ D.userInputDecode chs uiResult now)
         (call_ D.userInputFailsafe uiResult now)
-      store (uiResult ~> T.source) uiSourceRCOverride
+      store (uiResult ~> T.source) CS.mavlink
       store jsFailSafe validInputs
       -- Send it to the Mux task.
       writeData failSafeWriter (constRef jsFailSafe)

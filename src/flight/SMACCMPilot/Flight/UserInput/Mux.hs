@@ -8,27 +8,27 @@
 module SMACCMPilot.Flight.UserInput.Mux
   ( userInputMuxTower
   , armedMuxTask
-  , flightModeMuxTower
+  , controlLawMuxTower
   ) where
 
 import Ivory.Language
 import Ivory.Stdlib
 import Ivory.Tower
 
-import qualified SMACCMPilot.Flight.Types.Armed      as A
+import qualified SMACCMPilot.Flight.Types.ArmedMode  as A
 import qualified SMACCMPilot.Flight.Types.UserInput  as T
-import qualified SMACCMPilot.Flight.Types.FlightMode as FM
-import           SMACCMPilot.Flight.Types.FlightModeData
+import qualified SMACCMPilot.Flight.Types.ControlLaw as CL
+import qualified SMACCMPilot.Flight.Types.ControlRequest as CR
 import qualified SMACCMPilot.Flight.UserInput.Decode as D
 
 --------------------------------------------------------------------------------
 
 armedMuxTask :: SingI n
              => DataSink T.PPMs                    -- PPM signals
-             -> ChannelSink n (Stored A.ArmedMode) -- MAVLink arming input
+             -> ChannelSink n (Struct "control_request") -- MAVLink arming input
              -> DataSource (Stored A.ArmedMode)    -- Mux'ed arming output
              -> Task p ()
-armedMuxTask ppm_input_snk mav_armed_snk armed_res_src = do
+armedMuxTask ppm_input_snk ctl_req_snk armed_res_src = do
   ppmReader <- withDataReader ppm_input_snk "ppm_input_snk"
   muxWriter <- withDataWriter armed_res_src "armed_res_src"
 
@@ -46,7 +46,9 @@ armedMuxTask ppm_input_snk mav_armed_snk armed_res_src = do
   -- and then set the value given from the GCS.
 
   -- XXX! We are assuming we get a "late enough" event here.
-  onChannelV mav_armed_snk "mav_arming" $ \armed -> do
+  -- XXX bad implementation in general
+  onChannel ctl_req_snk "ctl_req_snk" $ \ctl_req -> do
+    armed <- assign A.disarmed -- deref (mav_cl ~> CL.armed_mode)
     readData ppmReader ppmSignals
     switch <- call D.deadManSwitch (constRef ppmSignals)
 
@@ -69,92 +71,86 @@ armedMuxTask ppm_input_snk mav_armed_snk armed_res_src = do
     -- off, disarm the motors regardless of the arm state.
     ifte_ switch
       (when changed writeArmedRes)
-      (store armedResLocal A.as_DISARMED >> writeArmedRes)
+      (store armedResLocal A.safe >> writeArmedRes)
 
   taskModuleDef $ do
     depend D.userInputDecodeModule
 
 --------------------------------------------------------------------------------
 
-flightModeMuxTower :: DataSink T.PPMs
+controlLawMuxTower :: DataSink T.PPMs
                    -> DataSink (Stored A.ArmedMode)
-                   -> Tower p (DataSink (Struct "flightmode"))
-flightModeMuxTower ppm_chans armed_state = do
-  flightmode <- dataport
-  task "flightModeMuxTask" $ flightModeMuxTask ppm_chans
+                   -> Tower p (DataSink (Struct "control_law"))
+controlLawMuxTower ppm_chans armed_state = do
+  law <- dataport
+  task "controlLawMuxTask" $ controlLawMuxTask ppm_chans
                                                armed_state
-                                               (src flightmode)
-  return (snk flightmode)
+                                               (src law)
+  return (snk law)
 
 
 
-flightModeMuxTask :: DataSink T.PPMs                    -- PPM signals
+controlLawMuxTask :: DataSink T.PPMs                    -- PPM signals
                   -> DataSink (Stored A.ArmedMode)      -- Mux'ed arming input
-                  -> DataSource (Struct "flightmode")   -- flightmode output
+                  -> DataSource (Struct "control_law")  -- flightmode output
                   -> Task p ()
-flightModeMuxTask ppm_input_snk mav_armed_snk fm_src = do
+controlLawMuxTask ppm_input_snk mav_armed_snk law_src = do
   ppmReader   <- withDataReader ppm_input_snk "ppm_input_snk"
   armedReader <- withDataReader mav_armed_snk "mav_armed_snk"
-  modeWriter  <- withDataWriter fm_src "flightmode_src"
+  lawWriter   <- withDataWriter law_src "law_src"
   ppmSignals  <- taskLocal "ppmSignals"
   modeState   <- taskLocal "flightmode_state"
 
   onPeriod 50 $ \now -> do
-    flightmode <- local izero
     armed_ref  <- local izero
     readData armedReader armed_ref
     armed      <- deref armed_ref
+    law        <- local (istruct [ CL.armed_mode .= ival armed ])
 
-    when (armed ==? A.as_ARMED) $ do
+    when (armed ==? A.armed) $ do
       readData ppmReader ppmSignals
-      changed <- call D.modeStatemachine ppmSignals modeState flightmode now
-      when changed (writeData modeWriter (constRef flightmode))
+      changed <- call D.modeStatemachine ppmSignals modeState law now
+      when changed $ writeData lawWriter (constRef law)
 
   taskModuleDef $ do
     depend D.userInputDecodeModule
 
 --------------------------------------------------------------------------------
 
-userInputMuxTower :: DataSink (Stored A.ArmedMode)
-                  -> DataSink (Struct "userinput_result")
+userInputMuxTower :: DataSink (Struct "userinput_result")
                   -> DataSink (Struct "userinput_result")
                   -> DataSink (Stored IBool)
-                  -> DataSink (Struct "flightmode")
+                  -> DataSink (Struct "control_law")
                   -> Tower p (DataSink (Struct "userinput_result"))
-userInputMuxTower armed ppm_ui override_ui override_active flightmode = do
+userInputMuxTower ppm_ui override_ui override_active ctllaw = do
   result <- dataport
-  task "userInputMux" $ userInputMuxTask armed
-                                         ppm_ui
+  task "userInputMux" $ userInputMuxTask ppm_ui
                                          override_ui
                                          override_active
-                                         flightmode
+                                         ctllaw
                                          (src result)
   return (snk result)
 
-userInputMuxTask :: -- From Arming Mux task
-                    DataSink (Stored A.ArmedMode)
-                    -- From PPM task
-                 -> DataSink (Struct "userinput_result")
+userInputMuxTask :: --- From PPM task
+                    DataSink (Struct "userinput_result")
                     -- From RCOverride task
                  -> DataSink (Struct "userinput_result")
                     -- From RCOverride task
                  -> DataSink (Stored IBool)
                     -- From flightmode mux
-                 -> DataSink (Struct "flightmode")
+                 -> DataSink (Struct "control_law")
                     -- To motor control task
                  -> DataSource (Struct "userinput_result")
                  -> Task p ()
-userInputMuxTask snk_armed snk_rc_ppm snk_mav_ppm snk_mav_failsafe snk_flightmode src_res = do
-  armReader   <- withDataReader snk_armed   "snk_armed"
+userInputMuxTask snk_rc_ppm snk_mav_ppm snk_mav_failsafe snk_law src_res = do
   ppmReader   <- withDataReader snk_rc_ppm  "snk_rc_ppm"
   mavReader   <- withDataReader snk_mav_ppm "snk_mav_ppm"
-  modeReader  <- withDataReader snk_flightmode "snk_flightmode"
+  lawReader   <- withDataReader snk_law     "snk_law"
   mavFSReader <- withDataReader snk_mav_failsafe "snk_mav_failsafe"
   resWriter   <- withDataWriter src_res     "src_res"
 
-  armLocal    <- taskLocal "armLocal"
   rcLocal     <- taskLocal "rcLocal"
-  modeLocal   <- taskLocal "modeLocal"
+  lawLocal    <- taskLocal "lawLocal"
   mavLocal    <- taskLocal "mavLocal"
   mavFS       <- taskLocal "mavFSLocal"
 
@@ -164,16 +160,14 @@ userInputMuxTask snk_armed snk_rc_ppm snk_mav_ppm snk_mav_failsafe snk_flightmod
       writeOutput = writeData resWriter . constRef
 
   onPeriod 50 $ \now -> do
-    readData armReader armLocal
-    armed <- deref armLocal
     readData ppmReader rcLocal
     readData mavReader mavLocal
-    readData modeReader modeLocal
+    readData lawReader lawLocal
     readData mavFSReader mavFS
     -- Joystick failsafe
     jsDeadMan <- deref mavFS
-    fm <- deref (modeLocal ~> FM.mode)
 
+    armed <- deref (lawLocal ~> CL.armed_mode)
     lastMavTime <- deref (mavLocal ~> T.time)
     -- Time is monotomic.
     assert (now >=? lastMavTime)
@@ -182,9 +176,10 @@ userInputMuxTask snk_armed snk_rc_ppm snk_mav_ppm snk_mav_failsafe snk_flightmod
               jsDeadMan -- Joystick deadman button
           -- depressed System armed (This shouldn't be required, as no RC
           -- override messages should be generated if the sytem isn't armed.)
-          .&& (armed ==? A.as_ARMED)
+          .&& (armed ==? A.armed)
           -- flight mode is auto
-          .&& (fm ==? flightModeAuto)
+          -- XXX FIXME
+          -- .&& (fm ==? flightModeAuto)
           -- -- Got a message recently
           .&& (now <? (lastMavTime + mavTimeout))
 

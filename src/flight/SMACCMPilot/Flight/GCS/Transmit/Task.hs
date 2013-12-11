@@ -21,9 +21,8 @@ import           SMACCMPilot.Flight.GCS.Transmit.MessageDriver
 import           SMACCMPilot.Flight.GCS.Stream
 import           SMACCMPilot.Param
 
-import qualified SMACCMPilot.Flight.Types.Armed           as A
+import qualified SMACCMPilot.Flight.Types.ControlLaw      as CL
 import qualified SMACCMPilot.Flight.Types.GCSStreamTiming as T
-import qualified SMACCMPilot.Flight.Types.FlightMode      as FM
 
 --------------------------------------------------------------------------------
 
@@ -31,8 +30,7 @@ gcsTransmitTask :: (SingI n0, SingI n1, SingI n2, SingI n3)
                 => ChannelSource n0 C.MAVLinkArray -- Channel to encrypter
                 -> ChannelSink   n1 (Struct "gcsstream_timing")
                 -> ChannelSink   n2 (Struct "data_rate_state")
-                -> DataSink         (Struct "flightmode")
-                -> DataSink         (Stored A.ArmedMode)
+                -> DataSink         (Struct "control_law")
                 -> DataSink         (Struct "sensors_result")
                 -> DataSink         (Struct "position")
                 -> DataSink         (Struct "controloutput")
@@ -43,18 +41,17 @@ gcsTransmitTask :: (SingI n0, SingI n1, SingI n2, SingI n3)
                 -> ChannelSink n3   (Stored Sint16)
                 -> [Param PortPair]
                 -> Task p ()
-gcsTransmitTask mavStream sp_sink _dr_sink fm_sink armed_sink se_sink ps_sink
+gcsTransmitTask mavStream sp_sink _dr_sink cl_sink se_sink ps_sink
                 ct_sink mo_sink ra_sink ac_sink ui_sink param_req_sink params
   = do
   withStackSize 1024
 
-  fmReader         <- withDataReader fm_sink "flightmode"
+  clReader         <- withDataReader cl_sink "controllaw"
   sensorsReader    <- withDataReader se_sink "sensors"
   posReader        <- withDataReader ps_sink "position"
   ctlReader        <- withDataReader ct_sink "control"
   motorReader      <- withDataReader mo_sink "motors"
   radioReader      <- withDataReader ra_sink "radio"
-  armedReader      <- withDataReader armed_sink "armed"
   altControlReader <- withDataReader ac_sink "alt_control"
   uiReader         <- withDataReader ui_sink "userinput_result"
   mavTx            <- withChannelEmitter mavStream "gcsTxToEncSrc"
@@ -129,16 +126,11 @@ gcsTransmitTask mavStream sp_sink _dr_sink fm_sink armed_sink se_sink ps_sink
             setNextTime (constRef s_periods) s_schedule selector now
 
     onStream T.heartbeat $ do
-      l_fm    <- local (istruct [])
-      l_armed <- local izero
+      l_cl    <- local (istruct [])
       l_ui    <- local (istruct [])
-      readData fmReader l_fm
-      readData armedReader l_armed
+      readData clReader l_cl
       readData uiReader l_ui
-      l <- deref l_armed
-      b <- local izero
-      store b (l ==? A.as_ARMED)
-      call_ mkSendHeartbeat l_fm l_ui b seqNum mavlinkStruct now
+      call_ mkSendHeartbeat l_cl l_ui seqNum mavlinkStruct now
       processMav T.heartbeat
 
     onStream T.servo_output_raw $ do
@@ -207,7 +199,7 @@ gcsTransmitTask mavStream sp_sink _dr_sink fm_sink armed_sink se_sink ps_sink
 
   taskModuleDef $ do
     mapM_ depend stdlibModules
-    depend FM.flightModeTypeModule
+    depend CL.controlLawTypeModule
     depend T.gcsStreamTimingTypeModule
     depend senderModules
     depend paramModule

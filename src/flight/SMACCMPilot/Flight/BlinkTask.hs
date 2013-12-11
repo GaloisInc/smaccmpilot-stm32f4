@@ -2,6 +2,7 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE TypeFamilies #-}
 
 module SMACCMPilot.Flight.BlinkTask
   ( blinkTask
@@ -14,32 +15,27 @@ import Ivory.HW.Module (hw_moduledef)
 
 import Ivory.BSP.STM32F4.GPIO
 
-import qualified SMACCMPilot.Flight.Types.Armed          as A
-import qualified SMACCMPilot.Flight.Types.FlightMode     as FM
-import qualified SMACCMPilot.Flight.Types.FlightModeData as FM
+import qualified SMACCMPilot.Flight.Types.ArmedMode      as A
+import qualified SMACCMPilot.Flight.Types.ControlLaw     as CL
 
 blinkTask :: [ GPIOPin ]
-          -> DataSink (Stored A.ArmedMode)
-          -> DataSink (Struct "flightmode")
+          -> DataSink (Struct "control_law")
           -> Task p ()
-blinkTask pins a s = do
-  armedReader <- withDataReader a "armed"
-  fmReader    <- withDataReader s "flightmode"
+blinkTask pins cls = do
+  lawReader <- withDataReader cls "controllaw"
   taskInit $ mapM_ pinInit pins
 
-  armed      <- taskLocal "armed"
-  flightMode <- taskLocal "flightmode"
   s_phase    <- taskLocal "phase"
 
   onPeriod 125 $ \_now -> do
-    readData armedReader armed
-    readData fmReader flightMode
-    bmode  <- flightModeToBlinkMode armed flightMode
+    ctllaw <- local (istruct [])
+    readData lawReader ctllaw
+    bmode  <- lawToBlinkMode ctllaw
     phase  <- nextPhase 8 s_phase
     output <- blinkOutput bmode phase
     ifte_ output
-      (mapM_ pinOn pins)
-      (mapM_ pinOff pins)
+      (mapM_ lightOn  pins)
+      (mapM_ lightOff pins)
   taskModuleDef $ do
     hw_moduledef
 
@@ -53,11 +49,11 @@ pinInit pin = do
     pinSetMode       pin gpio_mode_output
 
 -- relay LEDs are active low.
-pinOn :: GPIOPin -> Ivory eff ()
-pinOn p = pinClear p
+lightOn :: GPIOPin -> Ivory eff ()
+lightOn p = pinClear p
 
-pinOff :: GPIOPin -> Ivory eff ()
-pinOff p = pinSet p
+lightOff :: GPIOPin -> Ivory eff ()
+lightOff p = pinSet p
 
 nextPhase :: Uint8 -> (Ref s1 (Stored Uint8)) -> Ivory eff Uint8
 nextPhase highest r = do
@@ -68,30 +64,32 @@ nextPhase highest r = do
       (store r next)
     return phase
 
-flightModeToBlinkMode :: Ref s0 (Stored A.ArmedMode)
-                      -> Ref s1 (Struct "flightmode")
-                      -> Ivory eff Uint8
-flightModeToBlinkMode armedRef fmRef = do
-  mode  <- fmRef ~>* FM.mode
-  armed <- deref armedRef
-  return $ foldr go 0 (tbl armed mode)
-  where
-  go (c, res) k = c ? (res, k)
-  tbl :: A.ArmedMode -> FM.FlightMode -> [(IBool, Uint8)]
-  tbl armVal mode =
-    [ ( disarmed .&& stabilize, 2 )
-    , ( disarmed .&& althold  , 3 )
-    , ( disarmed .&& auto     , 6 )
-    , ( armed    .&& stabilize, 4 )
-    , ( armed    .&& althold  , 5 )
-    , ( armed    .&& auto     , 1 ) ]
-    where
-    disarmed  = armVal ==? A.as_DISARMED
-    armed     = armVal ==? A.as_ARMED
-    stabilize = mode ==? FM.flightModeStabilize
-    althold   = mode ==? FM.flightModeAltHold
-    auto      = mode ==? FM.flightModeAuto
 
+lawToBlinkMode :: (GetAlloc eff ~ Scope cs)
+               => Ref s (Struct "control_law")
+               -> Ivory eff Uint8
+lawToBlinkMode law = do
+  armed <- deref (law ~> CL.armed_mode)
+  cond
+    [ armed ==? A.safe     ==> return pulse_slow
+    , armed ==? A.disarmed ==> return pulse_fast
+    , armed ==? A.armed    ==> return blink_fast
+    ]
+
+blink_off :: Uint8
+blink_off = 0
+blink_on :: Uint8
+blink_on = 1
+blink_slow :: Uint8
+blink_slow = 2
+blink_fast :: Uint8
+blink_fast = 3
+pulse_slow :: Uint8
+pulse_slow = 4
+pulse_fast :: Uint8
+pulse_fast = 5
+pulse_xfast :: Uint8
+pulse_xfast = 6
 
 blinkOutput :: Uint8 -> Uint8 -> Ivory eff IBool
 blinkOutput state phase = return switchState

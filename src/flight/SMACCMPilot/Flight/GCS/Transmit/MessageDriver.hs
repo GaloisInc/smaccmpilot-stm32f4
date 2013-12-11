@@ -23,11 +23,12 @@ import qualified SMACCMPilot.Flight.Types.Motors                as M
 import qualified SMACCMPilot.Flight.Types.Sensors               as Sens
 import qualified SMACCMPilot.Flight.Types.ControlOutput         as C
 import qualified SMACCMPilot.Flight.Types.UserInput             as UI
-import           SMACCMPilot.Flight.Types.UserInputSource
-import qualified SMACCMPilot.Flight.Types.FlightMode            as FM
-import qualified SMACCMPilot.Flight.Types.FlightModeData        as FM
 import qualified SMACCMPilot.Flight.Types.RadioStat             as RStat
 import qualified SMACCMPilot.Flight.Types.AltControlDebug       as Alt
+import qualified SMACCMPilot.Flight.Types.ControlLaw            as CL
+import qualified SMACCMPilot.Flight.Types.ThrottleMode          as TM
+import qualified SMACCMPilot.Flight.Types.ControlSource         as CS
+import qualified SMACCMPilot.Flight.Types.ArmedMode             as A
 
 import           SMACCMPilot.Mavlink.Messages (mavlinkMessageModules)
 
@@ -85,31 +86,33 @@ type Sender a = forall s0 s1 .
 --   call_ D.mkData16Sender (constRef msg) seqNum sendStruct
 --   retVoid
 
-mkSendHeartbeat :: Def ('[ Ref s1 (Struct "flightmode")
+mkSendHeartbeat :: Def ('[ Ref s1 (Struct "control_law")
                          , Ref s2 (Struct "userinput_result")
-                         , Ref s3 (Stored IBool)
                          , Ref sm (Stored Uint8)
                          , Ref sm (Struct "mavlinkPacket")
                          , Uint32
                          ] :-> ())
 mkSendHeartbeat =
   proc "gcs_transmit_send_heartbeat"
-  $ \fm ui ref_armed seqNum sendStruct now -> body $ do
+  $ \cl ui seqNum sendStruct now -> body $ do
   hb <- local (istruct [])
-  armed   <- deref ref_armed
-  mode    <- deref (fm ~> FM.mode)
-  uisrc   <- deref (ui ~> UI.source)
-  lastPPM <- deref (ui ~> UI.time)
+  armed    <- deref (cl ~> CL.armed_mode)
+  thr_mode <- deref (cl ~> CL.thr_mode)
+  uisrc    <- deref (ui ~> UI.source)
+  lastPPM  <- deref (ui ~> UI.time)
   store (hb ~> HB.mavtype)      mavtype_quadrotor
   store (hb ~> HB.autopilot)    autopilot_smaccmpilot
 
-  ifte_ armed
+  -- XXX send safe vs disarmed status
+  ifte_ (armed ==? A.armed)
     (store (hb ~> HB.base_mode) (mavl_armed + mavl_custom_mode))
     (store (hb ~> HB.base_mode) (mavl_custom_mode))
-  let custommode = safeCast (FM.fromFlightMode mode)   -- Bits 0, 1
-                 + ((uisrc ==? uiSourcePPM) ? (0, 4))  -- Bit 2
+  let custommode = -- XXX XXX
+                   ((thr_mode ==? TM.direct) ? (0, 1))   -- Bits 0, 1
+                 + ((uisrc ==? CS.ppm ) ? (0, 4))  -- Bit 2
                  -- Has it been more than 250ms since receiving a valid PPM
                  -- message?
+                 -- XXX XXX
                  + ((now - lastPPM >=? 250) ? (0, 8)) -- Bit 3
   store (hb ~> HB.custom_mode) custommode
 
@@ -380,7 +383,7 @@ senderModules = package "senderModules" $ do
   depend Sens.sensorsTypeModule
   depend C.controlOutputTypeModule
   depend UI.userInputTypeModule
-  depend FM.flightModeTypeModule
+  depend CL.controlLawTypeModule
 --  depend R.dataRateTypeModule
   depend RStat.radioStatTypeModule
   depend VR.vehicleRadioModule

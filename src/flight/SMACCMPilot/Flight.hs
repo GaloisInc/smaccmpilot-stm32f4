@@ -50,10 +50,9 @@ hil :: (BoardHSE p, MotorOutput p, SensorOrientation p)
     -> Tower p ()
 hil opts = do
   -- Communication primitives:
-  sensors       <- dataport
-  fm_mavcmd     <- dataport
-  armed_mavcmd  <- channel
-  rc_override   <- channel
+  sensors        <- dataport
+  mavlink_ctlreq <- channel
+  rc_override    <- channel
 
   -- Parameters:
   (params, paramList) <- initTowerParams sysParams
@@ -64,8 +63,7 @@ hil opts = do
                       { sensors_in = snk sensors
                       , params_in = sysFlightParams snk_params
                       , rcoverride_in = snk rc_override
-                      , armed_mavcmd_in = snk armed_mavcmd
-                      , fm_mavcmd_in = snk fm_mavcmd
+                      , ctl_req_in = snk mavlink_ctlreq
                       }
 
   control_state     <- stateProxy "control_state" (control_out core_out)
@@ -75,10 +73,8 @@ hil opts = do
   (istream, ostream) <- uart UART.uart1
 
   gcsTowerHil "uart1" opts istream ostream
-    (flightmode_state core_out)
-    (src fm_mavcmd)
-    (armed_state core_out)
-    (src armed_mavcmd)
+    (controllaw_state core_out)
+    (src mavlink_ctlreq)
     control_state
     motors_state
     sensors
@@ -97,10 +93,9 @@ flight :: (BoardHSE p, MotorOutput p, SensorOrientation p)
        -> Tower p ()
 flight opts = do
   -- Communication primitives:
-  sensors       <- dataport
-  armed_mavcmd  <- channel
-  fm_mavcmd     <- dataport
-  rc_override   <- channel
+  sensors        <- dataport
+  mavlink_ctlreq <- channel
+  rc_override    <- channel
 
   -- Parameters:
   (params, paramList) <- initTowerParams sysParams
@@ -111,8 +106,7 @@ flight opts = do
                       { sensors_in = snk sensors
                       , params_in = sysFlightParams snk_params
                       , rcoverride_in = snk rc_override
-                      , armed_mavcmd_in = snk armed_mavcmd
-                      , fm_mavcmd_in = snk fm_mavcmd
+                      , ctl_req_in = snk mavlink_ctlreq
                       }
 
   control_state     <- stateProxy "control_state" (control_out core_out)
@@ -128,10 +122,8 @@ flight opts = do
 
   let gcsTower' uartNm uartiStrm uartoStrm =
         gcsTower uartNm opts uartiStrm uartoStrm
-          (flightmode_state core_out)
-          (src fm_mavcmd)
-          (armed_state core_out)
-          (src armed_mavcmd)
+          (controllaw_state core_out)
+          (src mavlink_ctlreq)
           (snk sensors)
           position_state
           control_state
