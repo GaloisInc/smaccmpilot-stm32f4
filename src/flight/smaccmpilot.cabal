@@ -82,6 +82,9 @@ library
                        SMACCMPilot.Flight.UserInput.RCOverride,
                        SMACCMPilot.Flight.UserInput.Mux,
 
+                       SMACCMPilot.Flight.UserInput.PPM,
+                       SMACCMPilot.Flight.UserInput.PPM.ModeSwitch,
+
                        SMACCMPilot.Param,
                        SMACCMPilot.Param.Base,
                        SMACCMPilot.Param.TowerTypes,
