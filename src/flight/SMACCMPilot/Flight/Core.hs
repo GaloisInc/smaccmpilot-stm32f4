@@ -28,7 +28,7 @@ import           SMACCMPilot.Flight.Control.Task
 import           SMACCMPilot.Flight.Motors.Task
 import           SMACCMPilot.Flight.Param
 import           SMACCMPilot.Flight.Types (typeModules)
-import           SMACCMPilot.Flight.UserInput.Tower
+import           SMACCMPilot.Flight.UserInput
 
 import           SMACCMPilot.Param
 
@@ -55,8 +55,11 @@ core sys = do
   control <- channel
   ac_state <- dataport
 
-  (userinput, controllaw) <- userInputTower (ctl_req_in sys)
-                                            (rcoverride_in sys)
+  (userinput_chan, controllaw_chan) <- userInputTower
+    -- (ctl_req_in sys)
+    -- (rcoverride_in sys)
+  userinput  <- stateProxy "proxy_userinput" userinput_chan
+  controllaw <- stateProxy "proxy_controllaw" controllaw_chan
 
   task "blink"      $ blinkTask lights controllaw
   task "control"    $ controlTask

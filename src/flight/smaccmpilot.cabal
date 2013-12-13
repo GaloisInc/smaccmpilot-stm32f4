@@ -76,15 +76,18 @@ library
                        SMACCMPilot.Flight.Types.ThrottleMode,
                        SMACCMPilot.Flight.Types.ControlLawRequest,
 
+                       -- old brokenness:
                        SMACCMPilot.Flight.UserInput.Tower,
                        SMACCMPilot.Flight.UserInput.PPMTask,
                        SMACCMPilot.Flight.UserInput.Decode,
                        SMACCMPilot.Flight.UserInput.RCOverride,
                        SMACCMPilot.Flight.UserInput.Mux,
-
+                       -- new hotness:
                        SMACCMPilot.Flight.UserInput.PPM,
                        SMACCMPilot.Flight.UserInput.PPM.ArmingMachine,
                        SMACCMPilot.Flight.UserInput.PPM.ModeSwitch,
+                       SMACCMPilot.Flight.UserInput.ControlLaw,
+                       SMACCMPilot.Flight.UserInput,
 
                        SMACCMPilot.Param,
                        SMACCMPilot.Param.Base,

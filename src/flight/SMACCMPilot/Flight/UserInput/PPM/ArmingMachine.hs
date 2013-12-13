@@ -62,7 +62,7 @@ taskArmingMachine = do
         throttle_chan   <- deref (ppms ! (2 :: Ix 8))
         rudder_chan     <- deref (ppms ! (3 :: Ix 8))
         dead_chan       <- deref (ppms ! (5 :: Ix 8))
-        dead_pos <- assign $ ((dead_chan >? 1500) ? (deadSafe,deadArmable))
+        dead_pos <- assign $ ((dead_chan >? 1600) ? (deadArmable,deadSafe))
         store dead_last_pos dead_pos
         ifte_ (dead_pos ==? deadSafe)
               (arming_reset time)
@@ -78,20 +78,19 @@ taskArmingMachine = do
       arming_sm thr rud time = do
         prevt <- deref arming_state_time
         state <- deref arming_state
-        let donewaiting = (time - prevt) >? hystresis
+        sticks_corner <- assign $ thr <? 1050 .&& rud >? 1900
+        donewaiting   <- assign $ (time - prevt) >? hystresis
         cond_
-          [ state ==? armingIdle .&& sticks_corner .&& donewaiting ==> do
+          [ state ==? armingIdle .&& sticks_corner ==> do
               store arming_state armingActive
               store arming_state_time time
-          , state ==? armingActive .&& sticks_corner .&& donewaiting ==> do
-              store arming_state armingComplete
-              store arming_state_time time
+          , state ==? armingActive .&& sticks_corner ==> do
+              when donewaiting $ store arming_state armingComplete
           , true ==> do
               store arming_state armingIdle
           ]
         where
         hystresis = 750
-        sticks_corner = thr <? 1050 .&& rud >? 1900
 
       no_sample_proc :: Def('[Uint32]:->())
       no_sample_proc = proc (named "no_sample") $ \time -> body $ do
