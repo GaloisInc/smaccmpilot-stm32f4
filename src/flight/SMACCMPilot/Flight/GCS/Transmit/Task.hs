@@ -127,10 +127,8 @@ gcsTransmitTask mavStream sp_sink _dr_sink cl_sink se_sink ps_sink
 
     onStream T.heartbeat $ do
       l_cl    <- local (istruct [])
-      l_ui    <- local (istruct [])
       readData clReader l_cl
-      readData uiReader l_ui
-      call_ mkSendHeartbeat l_cl l_ui seqNum mavlinkStruct now
+      call_ mkSendHeartbeat l_cl seqNum mavlinkStruct now
       processMav T.heartbeat
 
     onStream T.servo_output_raw $ do

@@ -87,49 +87,67 @@ type Sender a = forall s0 s1 .
 --   retVoid
 
 mkSendHeartbeat :: Def ('[ Ref s1 (Struct "control_law")
-                         , Ref s2 (Struct "userinput_result")
                          , Ref sm (Stored Uint8)
                          , Ref sm (Struct "mavlinkPacket")
                          , Uint32
                          ] :-> ())
 mkSendHeartbeat =
   proc "gcs_transmit_send_heartbeat"
-  $ \cl ui seqNum sendStruct now -> body $ do
-  hb <- local (istruct [])
-  armed    <- deref (cl ~> CL.armed_mode)
-  thr_mode <- deref (cl ~> CL.thr_mode)
-  uisrc    <- deref (ui ~> UI.source)
-  lastPPM  <- deref (ui ~> UI.time)
-  store (hb ~> HB.mavtype)      mavtype_quadrotor
-  store (hb ~> HB.autopilot)    autopilot_smaccmpilot
+  $ \cl seqNum sendStruct now -> body $ do
 
-  -- XXX send safe vs disarmed status
-  ifte_ (armed ==? A.armed)
-    (store (hb ~> HB.base_mode) (mavl_armed + mavl_custom_mode))
-    (store (hb ~> HB.base_mode) (mavl_custom_mode))
-  let custommode = -- XXX XXX
-                   ((thr_mode ==? TM.direct) ? (0, 1))   -- Bits 0, 1
-                 + ((uisrc ==? CS.ppm ) ? (0, 4))  -- Bit 2
-                 -- Has it been more than 250ms since receiving a valid PPM
-                 -- message?
-                 -- XXX XXX
-                 + ((now - lastPPM >=? 250) ? (0, 8)) -- Bit 3
-  store (hb ~> HB.custom_mode) custommode
+  armed_mode  <- deref (cl ~> CL.armed_mode)
+  stab_ctl    <- deref (cl ~> CL.stab_ctl)
+  thr_mode    <- deref (cl ~> CL.thr_mode)
+  autothr_ctl <- deref (cl ~> CL.autothr_ctl)
 
-  -- system status stays 0
-  store (hb ~> HB.mavlink_version) 3 -- magic number
+  base_mode <- assign $ base_custom_mode
+                      + ((armed_mode ==? A.armed) ? (base_armed, 0))
+  custom_mode <- assign $
+      ((armed_mode ==? A.armed)     ? (custom_armed,    0))
+    + ((armed_mode ==? A.disarmed)  ? (custom_disarmed, 0))
+    + ((armed_mode ==? A.safe)      ? (custom_safe,     0))
+    + ((stab_ctl   ==? CS.ppm)      ? (custom_ppm  * custom_field_stab, 0))
+    + ((stab_ctl   ==? CS.mavlink)  ? (custom_mav  * custom_field_stab, 0))
+    + ((stab_ctl   ==? CS.auto)     ? (custom_auto * custom_field_stab, 0))
+    + ((thr_mode   ==? TM.direct)       ? (custom_thr_direct, 0))
+    + ((thr_mode   ==? TM.autothrottle) ? (custom_thr_autothrottle, 0))
+    + ((autothr_ctl ==? CS.ppm)     ? (custom_ppm  * custom_field_athr, 0))
+    + ((autothr_ctl ==? CS.mavlink) ? (custom_mav  * custom_field_athr, 0))
+    + ((autothr_ctl ==? CS.auto)    ? (custom_auto * custom_field_athr, 0))
 
+  hb <- local $ istruct
+          [ HB.base_mode       .= ival base_mode
+          , HB.custom_mode     .= ival custom_mode
+          , HB.mavtype         .= ival mavtype_quadrotor
+          , HB.autopilot       .= ival autopilot_smaccmpilot
+          , HB.mavlink_version .= ival 3 -- magic number
+          ]
   call_ HB.mkHeartbeatSender (constRef hb) seqNum sendStruct
   retVoid
 
   where
-  _autopilot_generic, autopilot_smaccmpilot, mavtype_quadrotor :: Uint8
-  _autopilot_generic    = 0 -- MAV_AUTOPILOT_GENERIC
+  autopilot_smaccmpilot, mavtype_quadrotor :: Uint8
   autopilot_smaccmpilot = 13 -- MAV_AUTOPILOT_SMACCMPILOT
   mavtype_quadrotor     = 2 -- MAV_TYPE_QUADROTOR
 
-  mavl_armed        = 128
-  mavl_custom_mode  = 1
+  base_armed        = 128
+  base_custom_mode  = 1
+
+  -- control source is a 2 bit field:
+  custom_ppm  = 0
+  custom_mav  = 1
+  custom_auto = 2
+  -- armed mode is bits 0,1
+  custom_safe     = 0
+  custom_disarmed = 1
+  custom_armed    = 2
+  -- stab mode is bits 2,3
+  custom_field_stab = 4
+  -- thr mode is bit 4
+  custom_thr_direct = 0
+  custom_thr_autothrottle = 16
+  -- autothrottle mode is bits 5, 6
+  custom_field_athr = 32
 
 mkSendAttitude :: Sender "sensors_result"
 mkSendAttitude =
