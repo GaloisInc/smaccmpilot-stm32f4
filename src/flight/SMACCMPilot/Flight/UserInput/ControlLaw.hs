@@ -10,7 +10,7 @@ module SMACCMPilot.Flight.UserInput.ControlLaw
 import Ivory.Language
 import Ivory.Tower
 
-import           SMACCMPilot.Flight.Types.ControlLawRequest ()
+import qualified SMACCMPilot.Flight.Types.ControlLawRequest as R
 import qualified SMACCMPilot.Flight.Types.ControlLaw        as L
 
 import           SMACCMPilot.Flight.UserInput.ControlLaw.ArmingRequest
@@ -37,7 +37,9 @@ controlLawTower ppm_req_snk mav_req_snk = do
     taskInit $ do
       armingInit law_state
       mrm_init mrm law_state
-      store (law_state ~> L.time) 0
+      auto_law <- local ival_auto_law
+      mrm_auto mrm law_state (constRef auto_law)
+      publish law_state
 
     onChannel ppm_req_snk "ppm_req_snk" $ \ppm_req -> do
       armingPrimaryRequest law_state ppm_req
@@ -50,4 +52,22 @@ controlLawTower ppm_req_snk mav_req_snk = do
       publish law_state
 
   return (snk law_chan)
-
+  where
+  -- Autonomous mode law permits using autothr with ppm or mavlink input.
+  -- In the future, there will be a variety of autonomous modes to allow an
+  -- internal flight plan to control the stabilizer and autothrottle, but for
+  -- now, this law is effectively a constant.
+  ival_auto_law = istruct
+    [ R.set_safe             .= ival false
+    , R.set_disarmed         .= ival false
+    , R.set_armed            .= ival false
+    , R.set_stab_ppm         .= ival false
+    , R.set_stab_mavlink     .= ival false
+    , R.set_stab_auto        .= ival false
+    , R.set_thr_direct       .= ival false
+    , R.set_thr_auto         .= ival true
+    , R.set_autothr_ppm      .= ival true
+    , R.set_autothr_mavlink  .= ival true
+    , R.set_autothr_auto     .= ival false
+    , R.time                 .= ival 0
+    ]
