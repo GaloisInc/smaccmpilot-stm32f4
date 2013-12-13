@@ -13,17 +13,14 @@ import           SMACCMPilot.Flight.Control.Altitude.Estimator
 import           SMACCMPilot.Flight.Control.PID
 import qualified SMACCMPilot.Flight.Types.AltControlDebug as D
 import qualified SMACCMPilot.Flight.Types.UserInput       as UI
-import qualified SMACCMPilot.Flight.Types.ControlLaw      as CL
-import qualified SMACCMPilot.Flight.Types.ThrottleMode    as TM
-import qualified SMACCMPilot.Flight.Types.ArmedMode       as A
 import           SMACCMPilot.Flight.Param
 import           SMACCMPilot.Param
 
 data ThrottleUI =
-  ThrottleUI 
-    { ui_update :: forall eff s1 s2
-                 . Ref s1 (Struct "control_law")
-                -> Ref s2 (Struct "userinput_result")
+  ThrottleUI
+    { ui_update :: forall eff s
+                 . IBool -- autothrottle enabled
+                -> Ref s (Struct "userinput_result")
                 -> IFloat -- dt
                 -> Ivory eff ()
     , ui_setpoint :: forall eff . Ivory eff (IFloat, IFloat)
@@ -37,21 +34,19 @@ taskThrottleUI params estimator = do
   alt_setpoint <- taskLocal "alt_setpoint"
   vel_setpoint <- taskLocal "vel_setpoint"
   active_state <- taskLocalInit "active_state" (ival false)
-  let proc_update :: Def('[ Ref s1 (Struct "control_law")
+  let proc_update :: Def('[ IBool
                           , Ref s2 (Struct "userinput_result")
                           , IFloat -- dt
                           ] :-> ())
       proc_update  = proc ("throttle_ui_update" ++ show uniq) $
-        \cl ui dt -> body $ do
-          armed    <- deref (cl ~> CL.armed_mode)
-          thr_mode <- deref (cl ~> CL.thr_mode)
+        \enabled ui dt -> body $ do
           sr <- stickrate params ui
           store vel_setpoint sr
 
           active <- deref active_state
           (alt_est, _) <- ae_state estimator
           cond_
-            [ armed /=? A.armed .|| thr_mode /=? TM.autothrottle
+            [ iNot enabled
                 ==> store active_state false
             , iNot active ==> do
                 store alt_setpoint alt_est

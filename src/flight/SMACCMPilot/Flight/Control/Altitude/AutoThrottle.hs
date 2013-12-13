@@ -22,6 +22,7 @@ import           SMACCMPilot.Flight.Control.Altitude.ThrottleUI
 import qualified SMACCMPilot.Flight.Types.AltControlDebug as A
 import qualified SMACCMPilot.Flight.Types.ControlLaw      as CL
 import qualified SMACCMPilot.Flight.Types.ThrottleMode    as TM
+import qualified SMACCMPilot.Flight.Types.ArmedMode       as A
 import qualified SMACCMPilot.Flight.Types.Sensors         as S
 import           SMACCMPilot.Flight.Types.UserInput       ()
 import           SMACCMPilot.Flight.Param
@@ -44,12 +45,20 @@ taskAutoThrottle :: AltitudeParams ParamReader
                  -> Task p AutoThrottle
 taskAutoThrottle params ahWriter = do
   uniq <- fresh
+  -- Alt estimator filters noisy sensor into altitude & its derivative
   alt_estimator    <- taskAltEstimator
+  -- Throttle tracker keeps track of steady-state throttle for transitioning
+  -- into autothrottle mode
   throttle_tracker <- taskThrottleTracker
+  -- Thrust PID controls altitude rate with thrust
   thrust_pid       <- taskThrustPid   (altitudeRateThrust params) alt_estimator
+  -- Position PID controls altitude with altitude rate
   position_pid     <- taskPositionPid (altitudePosition   params) alt_estimator
+  -- UI controls Position setpoint from user stick input
   ui_control       <- taskThrottleUI  (altitudeUI         params) alt_estimator
+  -- setpoint: result of the whole autothrottle calculation
   thr_setpt        <- taskLocal "thr_setpt"
+  -- state is saved in a struct, to be marshalled into a mavlink message
   state_dbg        <- taskLocal "state_debug"
   let proc_at_update :: Def('[ Ref s1 (Struct "sensors_result")
                              , Ref s2 (Struct "userinput_result")
@@ -58,20 +67,25 @@ taskAutoThrottle params ahWriter = do
                              ]:->())
       proc_at_update = proc ("at_update_" ++ show uniq) $
         \sens ui cl dt -> body $ do
+
+          thr_mode <- deref (cl ~> CL.thr_mode)
+          armed_mode <- deref (cl ~> CL.armed_mode)
+          enabled <- assign ((thr_mode ==? TM.autothrottle)
+                         .&& (armed_mode ==? A.armed))
+
           -- Update estimators
-          tt_update throttle_tracker ui cl
+          tt_update throttle_tracker ui enabled
 
           sensor_alt  <- deref (sens ~> S.baro_alt)
           sensor_time <- deref (sens ~> S.baro_time)
           ae_measurement alt_estimator sensor_alt sensor_time
           ae_write_debug alt_estimator state_dbg
 
-          ui_update ui_control cl ui dt
+          ui_update ui_control enabled ui dt
           ui_write_debug ui_control state_dbg
 
-          thr_mode <- deref (cl ~> CL.thr_mode)
-          autoThrottleEnabled <- assign (thr_mode ==? TM.autothrottle)
-          when autoThrottleEnabled $ do
+          when enabled $ do
+            -- update position controller
             (ui_alt, ui_vz) <- ui_setpoint ui_control
             vz_control      <- pos_pid_calculate position_pid ui_alt ui_vz dt
             store (state_dbg ~> A.pos_rate_setp) vz_control
@@ -88,7 +102,7 @@ taskAutoThrottle params ahWriter = do
             setpt <- assign ((throttleR22Comp r22) * uncomp_thr_setpt)
             store thr_setpt ((setpt >? 1.0) ? (1.0, setpt))
 
-          unless autoThrottleEnabled $ do
+          unless enabled $ do
             -- Reset derivative tracking when not using thrust controller
             thrust_pid_init thrust_pid
 
