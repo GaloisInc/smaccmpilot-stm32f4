@@ -61,7 +61,7 @@ taskPPMDecoder = do
 
         s <- deref all_good
         unless s $ invalidate time
-        when s $ do
+        when   s $ do
           arrayMap $ \ix -> when (ix <? useful_channels)
             (deref (ppms ! ix) >>= store (ppm_last ! ix))
           store ppm_last_time time

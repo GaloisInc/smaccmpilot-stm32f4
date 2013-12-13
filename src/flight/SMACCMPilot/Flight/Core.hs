@@ -56,8 +56,8 @@ core sys = do
   ac_state <- dataport
 
   (userinput_chan, controllaw_chan) <- userInputTower
-    -- (ctl_req_in sys)
-    -- (rcoverride_in sys)
+                                          (ctl_req_in sys)
+                                          (rcoverride_in sys)
   userinput  <- stateProxy "proxy_userinput" userinput_chan
   controllaw <- stateProxy "proxy_controllaw" controllaw_chan
 
