@@ -65,6 +65,7 @@ taskPPMDecoder = do
           arrayMap $ \ix -> when (ix <? useful_channels)
             (deref (ppms ! ix) >>= store (ppm_last ! ix))
           store ppm_last_time time
+          store ppm_valid true
           ms_new_sample modeswitch ppms time
           am_new_sample armingmachine ppms time
 
