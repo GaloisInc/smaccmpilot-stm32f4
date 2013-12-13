@@ -16,6 +16,7 @@ import qualified SMACCMPilot.Flight.Types.UserInput         as I
 import qualified SMACCMPilot.Flight.Types.ControlLawRequest as CL
 
 import SMACCMPilot.Flight.UserInput.PPM.ModeSwitch
+import SMACCMPilot.Flight.UserInput.PPM.ArmingMachine
 
 data PPMDecoder =
   PPMDecoder
@@ -37,10 +38,18 @@ taskPPMDecoder = do
   ppm_last_time         <- taskLocal "ppm_last_time"
 
   modeswitch <- taskModeSwitch
+  armingmachine <- taskArmingMachine
 
   let init_proc :: Def('[]:->())
       init_proc = proc (named "init") $ body $ do
         ms_init modeswitch
+
+
+      invalidate :: Uint32 -> Ivory eff ()
+      invalidate time = do
+          store ppm_valid false
+          ms_no_sample modeswitch time
+          am_no_sample armingmachine time
 
       new_sample_proc :: Def('[Ref s I.PPMs, Uint32]:->())
       new_sample_proc = proc (named "new_sample") $ \ppms time -> body $ do
@@ -51,33 +60,31 @@ taskPPMDecoder = do
                  (store all_good false)
 
         s <- deref all_good
-        unless s $ do
-          -- XXX also check timeout.
-          store ppm_valid false
-          ms_no_sample modeswitch time
-
+        unless s $ invalidate time
         when s $ do
           arrayMap $ \ix -> when (ix <? useful_channels)
             (deref (ppms ! ix) >>= store (ppm_last ! ix))
           store ppm_last_time time
           ms_new_sample modeswitch ppms time
+          am_new_sample armingmachine ppms time
 
       no_sample_proc :: Def('[Uint32]:->())
       no_sample_proc = proc (named "no_sample") $ \time -> body $ do
-        lt <- deref ppm_last_time
-        when ((time - lt) >? timeout_limit) $ do
-          store ppm_valid false
-          ms_no_sample modeswitch time
+        prev <- deref ppm_last_time
+        when ((time - prev) >? timeout_limit) (invalidate time)
 
       get_ui_proc :: Def('[Ref s (Struct "userinput_result")]:->())
       get_ui_proc = proc (named "get_ui") $ \ui -> body $ do
-        -- XXX scale ppm_last and fill in here.
-        return ()
+        valid <- deref ppm_valid
+        time <- deref ppm_last_time
+        ifte_ valid
+          (call_  ppm_decode_ui_proc ppm_last ui time)
+          (failsafe ui)
 
       get_cl_req_proc :: Def('[Ref s (Struct "control_law_request")]:->())
       get_cl_req_proc = proc (named "get_cl_req") $ \cl_req -> body $ do
         ms_get_cl_req modeswitch cl_req
-        -- XXX add arming state machine here.
+        am_get_cl_req armingmachine cl_req
 
   taskModuleDef $ do
     incl init_proc
@@ -104,6 +111,13 @@ taskPPMDecoder = do
   where
   useful_channels = 6
   timeout_limit = 150 -- ms
+
+failsafe :: Ref s (Struct "userinput_result") -> Ivory eff ()
+failsafe ui = do
+  store (ui ~> I.roll)      0
+  store (ui ~> I.pitch)     0
+  store (ui ~> I.throttle) (-1)
+  store (ui ~> I.yaw)       0
 
 scale_ppm_channel :: I.PPM -> Ivory eff IFloat
 scale_ppm_channel input = call scale_proc I.ppmCenter 500 (-1.0) 1.0 input
