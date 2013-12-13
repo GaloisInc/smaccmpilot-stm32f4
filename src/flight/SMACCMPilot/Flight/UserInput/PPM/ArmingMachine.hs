@@ -25,7 +25,6 @@ data ArmingMachine =
                                    -> Ivory eff ()
     }
 
-
 newtype DeadSwitch = DeadSwitch Uint8
   deriving (IvoryType, IvoryVar, IvoryExpr, IvoryEq, IvoryStore, IvoryInit)
 
@@ -34,25 +33,65 @@ deadSafe = DeadSwitch 0
 deadArmable :: DeadSwitch
 deadArmable = DeadSwitch 1
 
+newtype ArmingState = ArmingState Uint8
+  deriving (IvoryType, IvoryVar, IvoryExpr, IvoryEq, IvoryStore, IvoryInit)
+
+armingIdle :: ArmingState
+armingIdle = ArmingState 0
+armingActive :: ArmingState
+armingActive = ArmingState 1
+armingComplete :: ArmingState
+armingComplete = ArmingState 2
+
 taskArmingMachine :: Task p ArmingMachine
 taskArmingMachine = do
   fr <- fresh
-  dead_last_pos <- taskLocal "dead_last_pos"
-  last_time <- taskLocal "last_time"
+  arming_state      <- taskLocal "arming_state"
+  arming_state_time <- taskLocal "arming_state_time"
+  dead_last_pos     <- taskLocal "dead_last_pos"
   let named n = "ppmdecoder_arming_" ++ n ++ "_" ++ show fr
 
       init_proc :: Def('[]:->())
       init_proc = proc (named "init") $ body $ do
+        store arming_state armingIdle
+        store arming_state_time 0
         store dead_last_pos deadSafe
-        store last_time 0
 
       new_sample_proc :: Def('[Ref s I.PPMs, Uint32]:->())
       new_sample_proc = proc (named "new_sample") $ \ppms time -> body $ do
-        dead_chan <- deref (ppms ! (5 :: Ix 8))
+        throttle_chan   <- deref (ppms ! (2 :: Ix 8))
+        rudder_chan     <- deref (ppms ! (3 :: Ix 8))
+        dead_chan       <- deref (ppms ! (5 :: Ix 8))
         dead_pos <- assign $ ((dead_chan >? 1500) ? (deadSafe,deadArmable))
         store dead_last_pos dead_pos
-        store last_time time
-        -- XXX arming machine
+        ifte_ (dead_pos ==? deadSafe)
+              (arming_reset time)
+              (arming_sm throttle_chan rudder_chan time)
+
+
+      arming_reset :: Uint32 -> Ivory eff ()
+      arming_reset time = do
+        store arming_state armingIdle
+        store arming_state_time time
+
+      arming_sm :: I.PPM -> I.PPM -> Uint32 -> Ivory eff ()
+      arming_sm thr rud time = do
+        prevt <- deref arming_state_time
+        state <- deref arming_state
+        let donewaiting = (time - prevt) >? hystresis
+        cond_
+          [ state ==? armingIdle .&& sticks_corner .&& donewaiting ==> do
+              store arming_state armingActive
+              store arming_state_time time
+          , state ==? armingActive .&& sticks_corner .&& donewaiting ==> do
+              store arming_state armingComplete
+              store arming_state_time time
+          , true ==> do
+              store arming_state armingIdle
+          ]
+        where
+        hystresis = 750
+        sticks_corner = thr <? 1050 .&& rud >? 1900
 
       no_sample_proc :: Def('[Uint32]:->())
       no_sample_proc = proc (named "no_sample") $ \time -> body $ do
@@ -62,7 +101,10 @@ taskArmingMachine = do
       get_cl_req_proc = proc (named "cl_req_proc") $ \cl_req -> body $ do
         d <- deref dead_last_pos
         store (cl_req ~> CL.set_safe) (d ==? deadSafe)
-        -- XXX arming machine
+        s <- deref arming_state
+        when (s ==? armingComplete) $ do
+          store (cl_req ~> CL.set_armed) true
+
 
   taskModuleDef $ do
     incl init_proc
