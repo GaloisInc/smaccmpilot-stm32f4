@@ -82,6 +82,8 @@ library
                        SMACCMPilot.Flight.UserInput.ControlLaw,
                        SMACCMPilot.Flight.UserInput.ControlLaw.ArmingRequest,
                        SMACCMPilot.Flight.UserInput.ControlLaw.ModeRequest,
+                       SMACCMPilot.Flight.UserInput.MAVLink,
+                       SMACCMPilot.Flight.UserInput.Mux,
                        SMACCMPilot.Flight.UserInput,
 
                        SMACCMPilot.Param,

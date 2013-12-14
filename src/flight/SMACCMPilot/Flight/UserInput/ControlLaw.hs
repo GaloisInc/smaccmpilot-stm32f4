@@ -18,8 +18,9 @@ import           SMACCMPilot.Flight.UserInput.ControlLaw.ModeRequest
 
 controlLawTower :: ChannelSink 16 (Struct "control_law_request")
                 -> ChannelSink 16 (Struct "control_law_request")
+                -> ChannelSink 16 (Struct "control_law_request")
                 -> Tower p (ChannelSink 16 (Struct "control_law"))
-controlLawTower ppm_req_snk mav_req_snk = do
+controlLawTower ppm_req_snk mav_req_snk rcovr_req_snk = do
   law_chan <- channel
   task "controlLawTask" $ do
     law_emitter <- withChannelEmitter (src law_chan) "law_emitter"
@@ -47,6 +48,11 @@ controlLawTower ppm_req_snk mav_req_snk = do
       publish law_state
 
     onChannel mav_req_snk "mav_req_snk" $ \mav_req -> do
+      armingSecondaryRequest law_state mav_req
+      mrm_mav mrm law_state mav_req
+      publish law_state
+
+    onChannel rcovr_req_snk "rcovr_req_snk" $ \mav_req -> do
       armingSecondaryRequest law_state mav_req
       mrm_mav mrm law_state mav_req
       publish law_state

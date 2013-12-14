@@ -1,0 +1,110 @@
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE TypeFamilies #-}
+
+module SMACCMPilot.Flight.UserInput.MAVLink
+  ( mavlinkInputTower
+  ) where
+
+import Ivory.Language
+import Ivory.Tower
+import Ivory.Stdlib
+
+import qualified SMACCMPilot.Mavlink.Messages.RcChannelsOverride as O
+
+import qualified SMACCMPilot.Flight.Types.UserInput         as UI
+import qualified SMACCMPilot.Flight.Types.ControlSource     as S
+import qualified SMACCMPilot.Flight.Types.ControlLawRequest as CR
+
+mavlinkInputTower :: (SingI n)
+                  => ChannelSink n (Struct "rc_channels_override_msg")
+                  -> Tower p ( ChannelSink 16 (Struct "userinput_result")
+                             , ChannelSink 16 (Struct "control_law_request"))
+mavlinkInputTower rcovr_sink = do
+  addDepends O.rcChannelsOverrideModule
+  ui_chan <- channel
+  cr_chan <- channel
+  task "mavlinkInputTask" $ do
+    ui_emitter <- withChannelEmitter (src ui_chan) "ui_emitter"
+    cr_emitter <- withChannelEmitter (src cr_chan) "cr_emitter"
+
+    ever_updated     <- taskLocal "ever_updated"
+    last_update_time <- taskLocal "last_update_time"
+    m <- withGetTimeMillis
+
+    taskInit $ do
+      store ever_updated false
+
+    onChannel rcovr_sink "rcoverride" $ \ovr_msg -> do
+      now <- getTimeMillis m
+      (ui, ui_valid) <- decodeRCOverride ovr_msg now
+
+      lawRequest ui_valid now >>= emit_ cr_emitter
+      when ui_valid $ do
+        emit_ ui_emitter ui
+        store ever_updated true
+        store last_update_time now
+
+    onPeriod 5 $ \now -> do
+      evr <- deref ever_updated
+      lst <- deref last_update_time
+      when (evr .&& ((now - lst) >? timeout)) $
+        lawRequest false now >>= emit_ cr_emitter
+
+  return (snk ui_chan, snk cr_chan)
+  where
+  timeout = 250
+
+lawRequest :: (GetAlloc eff ~ Scope cs)
+           => IBool
+           -> Uint32
+           -> Ivory eff (ConstRef (Stack cs) (Struct "control_law_request"))
+lawRequest ui_valid time = do
+  cr <- local $ istruct
+    [ CR.set_safe            .= ival false
+    , CR.set_disarmed        .= ival false
+    , CR.set_armed           .= ival false
+    , CR.set_stab_ppm        .= ival false
+    , CR.set_stab_mavlink    .= ival false
+    , CR.set_stab_auto       .= ival false
+    , CR.set_thr_direct      .= ival false
+    , CR.set_thr_auto        .= ival ui_valid
+    , CR.set_autothr_ppm     .= ival false
+    , CR.set_autothr_mavlink .= ival ui_valid
+    , CR.set_autothr_auto    .= ival false
+    , CR.time                .= ival time
+    ]
+  return (constRef cr)
+
+decodeRCOverride :: (GetAlloc eff ~ Scope cs)
+          => ConstRef s (Struct "rc_channels_override_msg")
+          -> Uint32
+          -> Ivory eff (ConstRef (Stack cs) (Struct "userinput_result"), IBool)
+decodeRCOverride msg now = do
+  (scaled_roll,  valid_roll)  <- scale =<< deref (msg ~> O.chan1_raw)
+  (scaled_pitch, valid_pitch) <- scale =<< deref (msg ~> O.chan2_raw)
+  (scaled_thr,   valid_thr)   <- scale =<< deref (msg ~> O.chan3_raw)
+  (scaled_yaw,   valid_yaw)   <- scale =<< deref (msg ~> O.chan4_raw)
+  kill                        <- deref (msg ~> O.chan5_raw)
+  ui <- local $ istruct
+    [ UI.throttle .= ival scaled_thr
+    , UI.roll     .= ival scaled_roll
+    , UI.pitch    .= ival scaled_pitch
+    , UI.yaw      .= ival scaled_yaw
+    , UI.time     .= ival now
+    , UI.source   .= ival S.mavlink
+    ]
+  ui_valid <- assign $ (kill /=? 2000)
+                   .&& valid_thr
+                   .&& valid_roll
+                   .&& valid_pitch
+                   .&& valid_yaw
+  return (constRef ui, ui_valid)
+  where
+  scale :: Uint16 -> Ivory eff (IFloat, IBool)
+  scale raw = do
+    a <- assign $ ((safeCast raw) - 1500) / 500
+    b <- assign $ raw >=? 1000 .&& raw <=? 2000
+    return (a,b)
+
