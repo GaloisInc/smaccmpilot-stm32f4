@@ -57,17 +57,8 @@ controlLawTower ppm_req_snk mav_req_snk = do
   -- In the future, there will be a variety of autonomous modes to allow an
   -- internal flight plan to control the stabilizer and autothrottle, but for
   -- now, this law is effectively a constant.
-  ival_auto_law = istruct
-    [ R.set_safe             .= ival false
-    , R.set_disarmed         .= ival false
-    , R.set_armed            .= ival false
-    , R.set_stab_ppm         .= ival false
-    , R.set_stab_mavlink     .= ival false
-    , R.set_stab_auto        .= ival false
-    , R.set_thr_direct       .= ival false
-    , R.set_thr_auto         .= ival true
+  ival_auto_law = R.initControlLawRequest
+    [ R.set_thr_auto         .= ival true
     , R.set_autothr_ppm      .= ival true
     , R.set_autothr_mavlink  .= ival true
-    , R.set_autothr_auto     .= ival false
-    , R.time                 .= ival 0
     ]

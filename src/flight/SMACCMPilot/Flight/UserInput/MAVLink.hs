@@ -73,18 +73,10 @@ lawRequest :: (GetAlloc eff ~ Scope cs)
            -> Uint32
            -> Ivory eff (ConstRef (Stack cs) (Struct "control_law_request"))
 lawRequest ui_valid time = do
-  cr <- local $ istruct
-    [ CR.set_safe            .= ival false
-    , CR.set_disarmed        .= ival false
-    , CR.set_armed           .= ival false
-    , CR.set_stab_ppm        .= ival false
-    , CR.set_stab_mavlink    .= ival ui_valid
-    , CR.set_stab_auto       .= ival false
-    , CR.set_thr_direct      .= ival false
+  cr <- local $ CR.initControlLawRequest
+    [ CR.set_stab_mavlink    .= ival ui_valid
     , CR.set_thr_auto        .= ival ui_valid
-    , CR.set_autothr_ppm     .= ival false
     , CR.set_autothr_mavlink .= ival ui_valid
-    , CR.set_autothr_auto    .= ival false
     , CR.time                .= ival time
     ]
   return (constRef cr)
