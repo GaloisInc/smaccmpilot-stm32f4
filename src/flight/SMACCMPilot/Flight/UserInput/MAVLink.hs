@@ -17,11 +17,12 @@ import qualified SMACCMPilot.Flight.Types.UserInput         as UI
 import qualified SMACCMPilot.Flight.Types.ControlSource     as S
 import qualified SMACCMPilot.Flight.Types.ControlLawRequest as CR
 
-mavlinkInputTower :: (SingI n)
+mavlinkInputTower :: (SingI n, SingI m)
                   => ChannelSink n (Struct "rc_channels_override_msg")
+                  -> ChannelSink m (Struct "control_law_request")
                   -> Tower p ( ChannelSink 16 (Struct "userinput_result")
                              , ChannelSink 16 (Struct "control_law_request"))
-mavlinkInputTower rcovr_sink = do
+mavlinkInputTower rcovr_sink mav_req_snk = do
   addDepends O.rcChannelsOverrideModule
   ui_chan <- channel
   cr_chan <- channel
@@ -45,6 +46,16 @@ mavlinkInputTower rcovr_sink = do
         emit_ ui_emitter ui
         store active true
         store last_update_time now
+
+    -- Proxy MAVLink based control law requests to make sure request is
+    -- consistent with userinput active state
+    onChannel mav_req_snk "mav_controllaw_req" $ \req_in -> do
+      act <- deref active
+      req <- local (istruct [])
+      refCopy req req_in
+      store (req ~> CR.set_stab_mavlink)    act
+      store (req ~> CR.set_autothr_mavlink) act
+      emit_ cr_emitter (constRef req)
 
     onPeriod 5 $ \now -> do
       act <- deref active

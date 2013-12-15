@@ -78,6 +78,7 @@ library
 
                        SMACCMPilot.Flight.UserInput.PPM,
                        SMACCMPilot.Flight.UserInput.PPM.ArmingMachine,
+                       SMACCMPilot.Flight.UserInput.PPM.Decode,
                        SMACCMPilot.Flight.UserInput.PPM.ModeSwitch,
                        SMACCMPilot.Flight.UserInput.ControlLaw,
                        SMACCMPilot.Flight.UserInput.ControlLaw.ArmingRequest,

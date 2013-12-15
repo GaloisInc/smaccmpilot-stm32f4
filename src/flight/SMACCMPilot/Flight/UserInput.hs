@@ -26,10 +26,11 @@ userInputTower :: ChannelSink 16 (Struct "control_law_request")
 userInputTower mav_ctl_req mav_rc_ovr = do
   -- PPM module provides canonical control law request
   (ppm_ui, ppm_cl_req) <- ppmInputTower
-  -- Transform mavlink override messages into userinput and control law request
-  (rcovr_ui, rcovr_ctl_req) <- mavlinkInputTower mav_rc_ovr
+  -- Transform mavlink override messages & law requests
+  -- into userinput, and control law request that takes into account userinput
+  (rcovr_ui, rcovr_ctl_req) <- mavlinkInputTower mav_rc_ovr mav_ctl_req
   -- Combine PPM and Mavlink control law requests into control law
-  cl <- controlLawTower ppm_cl_req mav_ctl_req rcovr_ctl_req
+  cl <- controlLawTower ppm_cl_req rcovr_ctl_req
   -- Combine PPM user input with rc override, using control law
   ui <- uiMuxTower cl ppm_ui rcovr_ui
   -- Return the canonical user input and the control law
