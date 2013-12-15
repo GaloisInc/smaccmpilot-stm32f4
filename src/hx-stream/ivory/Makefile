@@ -1,4 +1,4 @@
-# -*- Mode: makefile-gmake; indent-tabs-mode: t; tab-width: 8 -*-
+# -*- Mode: makefile-gmake; indent-tabs-mode: t; tab-width: 2 -*-
 
 EXEC = test/test
 
