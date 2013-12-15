@@ -24,9 +24,8 @@ throttlePassthrough control = do
                         ])
   return (constRef out)
 
-
 idle :: IFloat
-idle = 0.07
+idle = 0.15
 
 mixer :: (GetAlloc eff ~ Scope cs)
       => ConstRef s1 (Struct "controloutput")
@@ -36,10 +35,10 @@ mixer control = do
   pitch    <- deref (control ~> C.pitch)
   roll     <- deref (control ~> C.roll)
   yaw      <- deref (control ~> C.yaw)
-  o1 <- axis_mix throttle pitch roll yaw
-  o2 <- throttle_floor throttle o1
-  o3 <- sane_range o2
-  return (constRef o3)
+  out <- axis_mix throttle pitch roll yaw
+  throttle_floor throttle out
+  sane_range out
+  return (constRef out)
 
 axis_mix :: (GetAlloc eff ~ Scope cs)
           => IFloat -- Throttle
@@ -86,24 +85,23 @@ yaw_constrain input threshold =
        ,inside))
 
 
-throttle_floor :: IFloat -> Ref s (Struct "motors") -> Ivory eff (Ref s (Struct "motors"))
-throttle_floor thr input = do
-  when (thr <? idle) $ setzero input
-  return input
+throttle_floor :: IFloat -> Ref s (Struct "motors") -> Ivory eff ()
+throttle_floor thr motors = do
+  when (thr <? idle) $ do
+    setidle M.frontleft
+    setidle M.frontright
+    setidle M.backleft
+    setidle M.backright
   where
-  setzero i = do
-    store (i ~> M.frontleft)  0
-    store (i ~> M.frontright) 0
-    store (i ~> M.backleft)   0
-    store (i ~> M.backright)  0
+  setidle :: Label "motors" (Stored IFloat) -> Ivory eff ()
+  setidle lbl = store (motors ~> lbl) idle
 
-sane_range :: Ref s (Struct "motors") -> Ivory eff (Ref s (Struct "motors"))
+sane_range :: Ref s (Struct "motors") -> Ivory eff ()
 sane_range i = do
   sane M.frontleft
   sane M.frontright
   sane M.backleft
   sane M.backright
-  return i
   where
   sane :: Label "motors" (Stored IFloat) -> Ivory eff ()
   sane lbl = do
