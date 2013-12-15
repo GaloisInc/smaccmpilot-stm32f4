@@ -79,17 +79,24 @@ veryclean: clean
 ######################################################################
 ## Compilation Rules
 
+quiet_cmd_cc_i_c = CC       $<
+      cmd_cc_i_c = $(CC) $(CFLAGS) -E -o $<.i $<
+
+.PRECIOUS: $(OBJ_DIR)/%.i
+
 quiet_cmd_cc_o_c = CC       $<
       cmd_cc_o_c = $(CC) $(CFLAGS) -MMD -c -o $@ $<
 
 # Compile a C source file to an object and dependency file.
 $(OBJ_DIR)/%.o: %.c
 	$(Q)mkdir -p $(dir $@)
+	$(call cmd,cc_i_c)
 	$(call cmd,cc_o_c)
 
 # Compile a generated C source file to an object and dependency file.
 $(OBJ_DIR)/%.o: $(GEN_DIR)/%.c
 	$(Q)mkdir -p $(dir $@)
+	$(call cmd,cc_i_c)
 	$(call cmd,cc_o_c)
 
 quiet_cmd_cxx_o_c = CXX      $<

@@ -3,6 +3,7 @@ Keys.mk
 build
 *.o
 *.a
+*.c.i
 mav.log
 mav.log.raw
 status.txt
