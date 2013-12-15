@@ -47,7 +47,7 @@ CONFIG_CPP_CHECK_PREFIX := /usr/bin
 # Using Frama-C
 # (https://www.google.com/search?q=frama-c&oq=frama-c&aqs=chrome.0.57j60l3j59l2.1580j0&sourceid=chrome&ie=UTF-8)
 # Likely available with your (Linux distro) installer.
-# CONFIG_FRAMA_C_PREFIX := /usr/bin
+CONFIG_FRAMA_C_PREFIX := /usr/bin
 
 # for model-checking with CBMC
 
