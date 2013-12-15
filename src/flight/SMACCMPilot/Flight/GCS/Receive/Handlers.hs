@@ -28,6 +28,7 @@ import qualified SMACCMPilot.Mavlink.Enums.MavComponent          as MC
 import           SMACCMPilot.Param
 import           SMACCMPilot.Flight.GCS.Stream (updateGCSStreamPeriods)
 import qualified SMACCMPilot.Flight.Types.ControlLaw             as CL
+import qualified SMACCMPilot.Flight.Types.ControlLawRequest      as CR
 import qualified SMACCMPilot.Flight.Types.ArmedMode              as A
 
 --------------------------------------------------------------------------------
@@ -121,47 +122,38 @@ customModeEnabled :: Uint8
 customModeEnabled = 1
 
 
--- | XXX NEED TO REWORK THIS
-setMode :: DataWriter (Struct "control_law")
+setMode :: (SingI n)
+        => ChannelEmitter n (Struct "control_law_request")
         -> Uint32
         -> Ref s2 (Struct "set_mode_msg")
         -> Ivory (ProcEffects cs r) ()
-setMode cl_writer now msg = do
-  cl <- local izero
+setMode creq_emitter now msg = do
   base_mode <- deref (msg ~> SM.base_mode)
-
   when (base_mode .& customModeEnabled /=? 0) $ do
-    --mode32 <- deref (msg ~> SM.custom_mode)
-    ---- Assume, for now, that we're only using 8 bits of the mode.
-    --mode   <- assign (bitCast mode32)
-    --valid  <- isValidMode mode
-    --mode'  <- getMode mode
-    --when valid $ do
-    --  store (cl ~> FM.mode)  mode'
-    when true $ do
-      store (cl ~> CL.time)  now
-      writeData cl_writer (constRef cl)
+    -- XXX STUB VALUE: FILL IN USEFUL FIELDS
+    creq <- local $ CR.initControlLawRequest
+      [ CR.time .= ival now
+      ]
+    emit_ creq_emitter (constRef creq)
 
 --------------------------------------------------------------------------------
 
 -- | Handle a 'COMPONENT_ARM_DISARM' command.
--- XXX COMPLETELY WRONG: NEED TO FIX
 armDisarm :: SingI n
-          => ChannelEmitter n (Stored A.ArmedMode)
+          => ChannelEmitter n (Struct "control_law_request")
+          -> Uint32
           -> Ref s1 (Struct "command_long_msg")
           -> Ivory (ProcEffects cs r) ()
-armDisarm arm_emitter msg = do
+armDisarm creq_emitter now msg = do
   component <- deref (msg ~> CL.target_component)
   param1    <- deref (msg ~> CL.param1)
-
   when (component ==? (fromIntegral MC.id_SYSTEM_CONTROL)) $ do
-    cond_
-      -- Float comparison should be ok(?) since they're encoded ints and there's
-      -- no arithmetic on them.
-      [ param1 ==? 0.0 ==> emitV_ arm_emitter A.disarmed
-      , param1 ==? 1.0 ==> emitV_ arm_emitter A.armed
+    creq <- local $ istruct
+      [ CR.set_armed    .= ival (param1 ==? 1.0)
+      , CR.set_disarmed .= ival (param1 ==? 0.0)
+      , CR.time         .= ival now
       ]
-  return ()
+    emit_ creq_emitter (constRef creq)
 
 --------------------------------------------------------------------------------
 

@@ -80,11 +80,9 @@ gcsReceiveTask mavStream s_src dr_src hil_src creq_src
             , handle (requestDatastream s_periods streamPeriodEmitter)
             , handle (hilState hil_emitter)
             , handle (rcOverride rcOverride_emitter)
-          -- XXX need to restructure the way we communicate betwee gcs receive
-          -- and control law state machine
-          --  , handle (setMode creq_writer now)
-          --  , handleCommandLong (fromIntegral Cmd.id_COMPONENT_ARM_DISARM)
-          --                      (armDisarm armed_emitter)
+            , handle (setMode creq_writer now)
+            , handleCommandLong (fromIntegral Cmd.id_COMPONENT_ARM_DISARM)
+                                (armDisarm creq_writer now)
             ]
           where runHandlers s = mapM_ ($ s)
 
