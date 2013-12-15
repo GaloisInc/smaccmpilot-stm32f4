@@ -29,12 +29,12 @@ mavlinkInputTower rcovr_sink = do
     ui_emitter <- withChannelEmitter (src ui_chan) "ui_emitter"
     cr_emitter <- withChannelEmitter (src cr_chan) "cr_emitter"
 
-    ever_updated     <- taskLocal "ever_updated"
+    active           <- taskLocal "active"
     last_update_time <- taskLocal "last_update_time"
     m <- withGetTimeMillis
 
     taskInit $ do
-      store ever_updated false
+      store active false
 
     onChannel rcovr_sink "rcoverride" $ \ovr_msg -> do
       now <- getTimeMillis m
@@ -43,14 +43,15 @@ mavlinkInputTower rcovr_sink = do
       lawRequest ui_valid now >>= emit_ cr_emitter
       when ui_valid $ do
         emit_ ui_emitter ui
-        store ever_updated true
+        store active true
         store last_update_time now
 
     onPeriod 5 $ \now -> do
-      evr <- deref ever_updated
+      act <- deref active
       lst <- deref last_update_time
-      when (evr .&& ((now - lst) >? timeout)) $
+      when (act .&& ((now - lst) >? timeout)) $ do
         lawRequest false now >>= emit_ cr_emitter
+        store active false
 
   return (snk ui_chan, snk cr_chan)
   where
@@ -66,7 +67,7 @@ lawRequest ui_valid time = do
     , CR.set_disarmed        .= ival false
     , CR.set_armed           .= ival false
     , CR.set_stab_ppm        .= ival false
-    , CR.set_stab_mavlink    .= ival false
+    , CR.set_stab_mavlink    .= ival ui_valid
     , CR.set_stab_auto       .= ival false
     , CR.set_thr_direct      .= ival false
     , CR.set_thr_auto        .= ival ui_valid
@@ -86,7 +87,7 @@ decodeRCOverride msg now = do
   (scaled_pitch, valid_pitch) <- scale =<< deref (msg ~> O.chan2_raw)
   (scaled_thr,   valid_thr)   <- scale =<< deref (msg ~> O.chan3_raw)
   (scaled_yaw,   valid_yaw)   <- scale =<< deref (msg ~> O.chan4_raw)
-  kill                        <- deref (msg ~> O.chan5_raw)
+  deadman                     <- deref (msg ~> O.chan5_raw)
   ui <- local $ istruct
     [ UI.throttle .= ival scaled_thr
     , UI.roll     .= ival scaled_roll
@@ -95,7 +96,7 @@ decodeRCOverride msg now = do
     , UI.time     .= ival now
     , UI.source   .= ival S.mavlink
     ]
-  ui_valid <- assign $ (kill /=? 2000)
+  ui_valid <- assign $ (deadman ==? 2000)
                    .&& valid_thr
                    .&& valid_roll
                    .&& valid_pitch

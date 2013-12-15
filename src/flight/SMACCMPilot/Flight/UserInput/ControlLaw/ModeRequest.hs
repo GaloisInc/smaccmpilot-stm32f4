@@ -79,16 +79,14 @@ taskModeRequestMachine = do
 
       decide_stab_ctl :: Ivory (ProcEffects s ()) S.ControlSource
       decide_stab_ctl = do
-        stab_ppm_ppm   <- deref (ppm_req ~> R.set_stab_ppm)
         stab_mav_ppm   <- deref (ppm_req ~> R.set_stab_mavlink)
         stab_mav_mav   <- deref (mav_req ~> R.set_stab_mavlink)
         stab_auto_ppm  <- deref (ppm_req ~> R.set_stab_auto)
         stab_auto_auto <- deref (auto_req ~> R.set_stab_auto)
         cond
-          [ stab_ppm_ppm                     ==> return S.ppm
-          , stab_mav_ppm  .&& stab_mav_mav   ==> return S.mavlink
+          [ stab_mav_ppm  .&& stab_mav_mav   ==> return S.mavlink
           , stab_auto_ppm .&& stab_auto_auto ==> return S.auto
-          , true ==> return S.ppm -- In case no alternative exists
+          , true ==> return S.ppm -- Always default to PPM
           ]
 
       decide_thr_mode :: Ivory (ProcEffects s ()) T.ThrottleMode
@@ -104,19 +102,17 @@ taskModeRequestMachine = do
           , true ==> return T.direct
           ]
 
-      -- XXX based directly on stab_ctl with substitution
+      -- could improve this code, based directly on stab_ctl with substitution
       decide_autothr_ctl :: Ivory (ProcEffects s ()) S.ControlSource
       decide_autothr_ctl = do
-        autothr_ppm_ppm   <- deref (ppm_req ~> R.set_autothr_ppm)
         autothr_mav_ppm   <- deref (ppm_req ~> R.set_autothr_mavlink)
         autothr_mav_mav   <- deref (mav_req ~> R.set_autothr_mavlink)
         autothr_auto_ppm  <- deref (ppm_req ~> R.set_autothr_auto)
         autothr_auto_auto <- deref (auto_req ~> R.set_autothr_auto)
         cond
-          [ autothr_ppm_ppm                        ==> return S.ppm
-          , autothr_mav_ppm  .&& autothr_mav_mav   ==> return S.mavlink
+          [ autothr_mav_ppm  .&& autothr_mav_mav   ==> return S.mavlink
           , autothr_auto_ppm .&& autothr_auto_auto ==> return S.auto
-          , true ==> return S.ppm -- In case no alternative exists
+          , true ==> return S.ppm -- always default to ppm
           ]
 
   taskModuleDef $ do
