@@ -105,7 +105,7 @@ setNextTime periods schedule selector now = do
   prev <- schedule ~>* schedSelector
   -- Schedule always for a time ahead of now, but keep consistent
   -- period by adding to prev, if possible.
-  -- XXX rollover creates a problem here but that should take 49 days
+  -- Rollover creates a problem here but that should take 49 days
   next <- assign $ (prev + per <? now) ? (now + per, prev + per)
   -- the stream is inactive or it's scheduled for the future.
   --

@@ -267,7 +267,7 @@ mkSendGpsRawInt = proc "gcs_transmit_send_gps_raw_int" $
   fix_type  <- assign $ (fix ==? P.fix_3d) ? (3, (fix ==? P.fix_2d) ? (2,0))
   num_sv    <- deref (pos ~> P.num_sv)
   msg       <- local (istruct
-    [ GRI.time_usec .= ival 0 -- XXX
+    [ GRI.time_usec .= ival 0 -- punting here, FIXME later
     , GRI.lat       .= ival lat
     , GRI.lon       .= ival lon
     , GRI.alt       .= ival alt
@@ -304,8 +304,8 @@ mkSendGlobalPositionInt = proc "gcs_transmit_send_global_position_int" $
     [ GPI.time_boot_ms .= ival currenttime
     , GPI.lat          .= ival lat
     , GPI.lon          .= ival lon
-    , GPI.alt          .= ival alt
-    , GPI.relative_alt .= ival alt -- XXX we don't know ground level.
+    , GPI.alt          .= ival alt -- Actually, this is invalid: we're always
+    , GPI.relative_alt .= ival alt -- sending relative_alt
     , GPI.vx           .= ival (castWith 0 vnorth)
     , GPI.vy           .= ival (castWith 0 veast)
     , GPI.vz           .= ival (-1 * (castWith 0 vdown))
