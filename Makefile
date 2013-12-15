@@ -59,11 +59,16 @@ discovery: allplatforms
 open407: PLATFORMS = open407vc
 open407: allplatforms
 
+# Target defined in mk/main.mk
 cbmc: TARGET = cbmc
 cbmc: default
 
+# Target defined in mk/cppcheck.mk
 cppcheck: TARGET = cpp-check
 cppcheck: default
+
+framac-check: TARGET = frama-c-check
+framac-check: default
 
 clean:
 	-rm -rf ./build
