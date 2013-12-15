@@ -10,7 +10,7 @@
 #
 
 .SUFFIXES:
-MAKEFLAGS += -r
+MAKEFLAGS += -r -j4
 
 include Config.mk
 # Commsec vars
@@ -42,6 +42,7 @@ include mk/library.mk
 include mk/image.mk
 include mk/ivory.mk
 include mk/cbmc.mk
+include mk/frama-c-check.mk
 include mk/conditional.mk
 include mk/cppcheck.mk
 
@@ -67,6 +68,9 @@ all-targets: $(ALL_TARGETS)
 .PHONY: cbmc
 cbmc: $(CBMC)
 
+.PHONY: frama-c-check
+frama-c-check: $(FRAMA_C)
+
 .PHONY: clean
 clean:
 	$(Q)rm -rf $(TOP)/build
@@ -82,7 +86,7 @@ veryclean: clean
 quiet_cmd_cc_i_c = CC       $<
       cmd_cc_i_c = $(CC) $(CFLAGS) -E -o $<.i $<
 
-.PRECIOUS: $(OBJ_DIR)/%.i
+.SECONDARY: $(OBJ_DIR)/%.i
 
 quiet_cmd_cc_o_c = CC       $<
       cmd_cc_o_c = $(CC) $(CFLAGS) -MMD -c -o $@ $<

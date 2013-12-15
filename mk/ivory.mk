@@ -1,4 +1,4 @@
-# -*- Mode: makefile-gmake; indent-tabs-mode: t; tab-width: 8 -*-
+# -*- Mode: makefile-gmake; indent-tabs-mode: t; tab-width: 2 -*-
 #
 # ivory.mk --- Compiling generated Ivory packages.
 #
@@ -70,7 +70,7 @@ $(1)_CFLAGS           := -I$$($(1)_GEN_DIR)
 
 -include $$($(1)_DEP_FILE)
 
-
+.NOTPARALLEL: $$($(1)_DEP_FILE)
 $$($(1)_DEP_FILE): $$($(1)_GEN_EXE) $(MAKEFILE_LIST)
 	$(call cmd,ivory_dep,$1,                              \
 	  $$($(1)_GEN_EXE)                                    \
@@ -80,6 +80,7 @@ $$($(1)_DEP_FILE): $$($(1)_GEN_EXE) $(MAKEFILE_LIST)
 	  --dep-prefix=$(1)                                   \
 	  $(3))
 
+.NOTPARALLEL: $$($(1)_HEADERS) $$($(1)_SOURCES) $$($(1)_TOWER_DOT)
 $$($(1)_HEADERS) $$($(1)_SOURCES) $$($(1)_TOWER_DOT): $$($(1)_DEP_FILE) $$($(1)_GEN_EXE)
 	$(call cmd,ivory_gen,$1,                              \
 	  $$($(1)_GEN_EXE)                                    \

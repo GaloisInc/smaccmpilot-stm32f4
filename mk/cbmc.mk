@@ -1,6 +1,6 @@
-# -*- Mode: makefile-gmake; indent-tabs-mode: t; tab-width: 8 -*-
+# -*- Mode: makefile-gmake; indent-tabs-mode: t; tab-width: 2 -*-
 #
-# ivory.mk --- Compiling generated Ivory packages.
+# cbmc.mk --- CBMC model-checking.
 #
 # Copyright (C) 2012, Galois, Inc.
 # All Rights Reserved.
