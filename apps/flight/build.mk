@@ -16,8 +16,10 @@ FLIGHT_PLATFORMS_AADL := px4fmu17_ioar_aadl
 
 IVORY_PKG_FLIGHT_GEN_SYMS    := true
 
+FLIGHT_GEN       := flight-gen
+
 $(eval $(call when_platforms, $(FLIGHT_PLATFORMS_FREERTOS) $(FLIGHT_PLATFORMS_AADL) \
-				,tower_pkg,IVORY_PKG_FLIGHT,flight-gen))
+				,tower_pkg,IVORY_PKG_FLIGHT,$(FLIGHT_GEN)))
 
 FLIGHT_IMG       := flight
 
@@ -69,5 +71,7 @@ LIB_FLIGHT_CFLAGS       += $(IVORY_PKG_FLIGHT_CFLAGS)
 LIB_FLIGHT_CFLAGS       += -DIVORY_DEPLOY
 
 $(eval $(call when_platforms,$(FLIGHT_PLATFORMS_AADL),library,LIB_FLIGHT))
+
+$(eval $(call frama_c_pkg,FLIGHT,$(FLIGHT_GEN)))
 
 # vim: set ft=make noet ts=2:
