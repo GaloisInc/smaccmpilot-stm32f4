@@ -2,7 +2,7 @@ Build System
 ============
 
 This is intended as a brief overview of the build system.  Users of the system
-can mostly ignore the following and just follow build instructions found at
+can mostly ignore the following and just follow the build instructions found at
 [smaccmpilot.org](http://smaccmpilot.org).
 
 Verbose building: add `V=1` as an argument to see verbose output.
@@ -20,8 +20,9 @@ case `all` is the default target, so `ALL_TARGETS` defines the collection of
 targets.  This includes building libraries, the binaries, and other targets
 (e.g., the GCS shell script).
 
-In general, new non-build targets should be added to the `OTHER_TARGETS`
-variable in a project's `build.mk` file.
+In general, new targets that aren't part of the standard build should be added
+to the `OTHER_TARGETS` variable in a project's `build.mk` file or as a
+stand-alone target (e.g., like the `framac-check` target).
 
 To see how each project's targets are added to these variables, consider
 `mk/image.mk`, included in `mk/main.mk`.  In there is a macro `image` that is
@@ -34,11 +35,16 @@ an existing project and note a few "tricks" that may help:
 - use `V=1`.
 
 - to see the expanded macro, change the `call` to `info`: instead of
+
     $(eval $(call xxx_pkg(...)))
+
 use
+
     $(info $(call xxx_pkg(...)))
 
 or just
+
     $(info $(VAR))
+
 to print a variable's value.
 

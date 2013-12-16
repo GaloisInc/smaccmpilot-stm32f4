@@ -18,3 +18,4 @@ cabal-dev
 setup-config
 package.conf.inplace
 gcs.sh
+cabal.sandbox.config
