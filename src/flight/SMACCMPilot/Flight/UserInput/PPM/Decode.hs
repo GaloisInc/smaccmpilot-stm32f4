@@ -13,16 +13,15 @@ import Ivory.Tower
 import Ivory.Stdlib
 
 import qualified SMACCMPilot.Flight.Types.UserInput         as I
-import qualified SMACCMPilot.Flight.Types.ControlLawRequest as CL
 
 import SMACCMPilot.Flight.UserInput.PPM.ModeSwitch
 import SMACCMPilot.Flight.UserInput.PPM.ArmingMachine
 
 data PPMDecoder =
   PPMDecoder
-    { ppmd_init       :: forall eff . Ivory eff ()
-    , ppmd_no_sample  :: forall eff . Uint32 -> Ivory eff ()
-    , ppmd_new_sample :: forall eff s . Ref s I.PPMs -> Uint32 -> Ivory eff ()
+    { ppmd_init       :: forall eff    . Ivory eff ()
+    , ppmd_no_sample  :: forall eff    . Uint32 -> Ivory eff ()
+    , ppmd_new_sample :: forall eff s  . Ref s I.PPMs -> Uint32 -> Ivory eff ()
     , ppmd_get_ui     :: forall eff cs . (GetAlloc eff ~ Scope cs)
          => Ivory eff (ConstRef (Stack cs) (Struct "userinput_result"))
     , ppmd_get_cl_req :: forall eff cs . (GetAlloc eff ~ Scope cs)
@@ -45,11 +44,11 @@ taskPPMDecoder = do
         ms_init modeswitch
 
 
-      invalidate :: Uint32 -> Ivory eff ()
-      invalidate time = do
+      invalidate :: Ivory eff ()
+      invalidate = do
           store ppm_valid false
-          ms_no_sample modeswitch time
-          am_no_sample armingmachine time
+          ms_no_sample modeswitch
+          am_no_sample armingmachine
 
       new_sample_proc :: Def('[Ref s I.PPMs, Uint32]:->())
       new_sample_proc = proc (named "new_sample") $ \ppms time -> body $ do
@@ -60,7 +59,7 @@ taskPPMDecoder = do
                  (store all_good false)
 
         s <- deref all_good
-        unless s $ invalidate time
+        unless s $ invalidate
         when   s $ do
           arrayMap $ \ix -> when (ix <? useful_channels)
             (deref (ppms ! ix) >>= store (ppm_last ! ix))
@@ -72,7 +71,7 @@ taskPPMDecoder = do
       no_sample_proc :: Def('[Uint32]:->())
       no_sample_proc = proc (named "no_sample") $ \time -> body $ do
         prev <- deref ppm_last_time
-        when ((time - prev) >? timeout_limit) (invalidate time)
+        when ((time - prev) >? timeout_limit) invalidate
 
       get_ui_proc :: Def('[Ref s (Struct "userinput_result")]:->())
       get_ui_proc = proc (named "get_ui") $ \ui -> body $ do

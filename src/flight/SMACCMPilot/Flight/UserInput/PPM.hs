@@ -9,7 +9,6 @@ module SMACCMPilot.Flight.UserInput.PPM
 
 import Ivory.Language
 import Ivory.Tower
-import Ivory.Stdlib
 
 import qualified SMACCMPilot.Flight.Types.UserInput         as I
 import           SMACCMPilot.Flight.Types.ControlLawRequest ()

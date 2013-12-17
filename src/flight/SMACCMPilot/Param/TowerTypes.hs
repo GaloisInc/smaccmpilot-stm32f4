@@ -13,7 +13,6 @@
 module SMACCMPilot.Param.TowerTypes where
 
 import Ivory.Language
-import Ivory.Stdlib.String
 
 -- | Generated function to read a parameter's value.
 type ParamGetter = ProcPtr ('[]       :-> IFloat)

@@ -18,9 +18,9 @@ import qualified SMACCMPilot.Flight.Types.ControlLawRequest as CL
 
 data ModeSwitch =
   ModeSwitch
-    { ms_init       :: forall eff . Ivory eff ()
+    { ms_init       :: forall eff   . Ivory eff ()
     , ms_new_sample :: forall eff s . Ref s I.PPMs -> Uint32 -> Ivory eff ()
-    , ms_no_sample  :: forall eff . Uint32 -> Ivory eff ()
+    , ms_no_sample  :: forall eff   . Ivory eff ()
     , ms_get_cl_req :: forall eff s . Ref s (Struct "control_law_request")
                                    -> Ivory eff ()
     }
@@ -55,9 +55,9 @@ taskModeSwitch = do
         store md_last_position position
         store md_last_position_time time
 
-      no_sample_proc :: Def('[Uint32]:->())
-      no_sample_proc = proc (named "no_sample") $ \time -> body $ do
-        return () -- XXX failure logic?
+      -- No failure logic--handled in arming state machine.
+      no_sample_proc :: Def('[] :-> ())
+      no_sample_proc = proc (named "no_sample") $ body $ return ()
 
       get_cl_req_proc :: Def('[Ref s (Struct "control_law_request")]:->())
       get_cl_req_proc = proc (named "cl_req_proc") $ \cl_req -> body $ do

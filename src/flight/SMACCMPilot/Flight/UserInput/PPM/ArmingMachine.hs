@@ -18,9 +18,9 @@ import qualified SMACCMPilot.Flight.Types.ControlLawRequest as CL
 
 data ArmingMachine =
   ArmingMachine
-    { am_init       :: forall eff . Ivory eff ()
+    { am_init       :: forall eff   . Ivory eff ()
     , am_new_sample :: forall eff s . Ref s I.PPMs -> Uint32 -> Ivory eff ()
-    , am_no_sample  :: forall eff . Uint32 -> Ivory eff ()
+    , am_no_sample  :: forall eff   . Ivory eff ()
     , am_get_cl_req :: forall eff s . Ref s (Struct "control_law_request")
                                    -> Ivory eff ()
     }
@@ -92,8 +92,8 @@ taskArmingMachine = do
         where
         hystresis = 750
 
-      no_sample_proc :: Def('[Uint32]:->())
-      no_sample_proc = proc (named "no_sample") $ \time -> body $ do
+      no_sample_proc :: Def('[] :-> ())
+      no_sample_proc = proc (named "no_sample") $ body $
         store dead_last_pos deadSafe
 
       get_cl_req_proc :: Def('[Ref s (Struct "control_law_request")]:->())
@@ -117,5 +117,3 @@ taskArmingMachine = do
     , am_no_sample  = call_ no_sample_proc
     , am_get_cl_req = call_ get_cl_req_proc
     }
-  where
-  timeout = 150
