@@ -27,9 +27,7 @@ import qualified SMACCMPilot.Mavlink.Enums.MavComponent          as MC
 
 import           SMACCMPilot.Param
 import           SMACCMPilot.Flight.GCS.Stream (updateGCSStreamPeriods)
-import qualified SMACCMPilot.Flight.Types.ControlLaw             as CL
 import qualified SMACCMPilot.Flight.Types.ControlLawRequest      as CR
-import qualified SMACCMPilot.Flight.Types.ArmedMode              as A
 
 --------------------------------------------------------------------------------
 -- Params

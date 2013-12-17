@@ -13,8 +13,6 @@ import Ivory.Stdlib
 import qualified SMACCMPilot.Flight.Types.ArmedMode     as A
 import qualified SMACCMPilot.Flight.Types.ThrottleMode  as TM
 import qualified SMACCMPilot.Flight.Types.ControlLaw    as CL
-import qualified SMACCMPilot.Flight.Types.UserInput     as UI
-import qualified SMACCMPilot.Flight.Types.Sensors       as SENS
 import qualified SMACCMPilot.Flight.Types.ControlOutput as CO
 
 import SMACCMPilot.Param

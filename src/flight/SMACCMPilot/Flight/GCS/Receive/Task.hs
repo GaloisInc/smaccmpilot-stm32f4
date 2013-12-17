@@ -18,8 +18,6 @@ import           Ivory.Stdlib
 import           Ivory.Tower
 
 import qualified SMACCMPilot.Mavlink.Receive                as R
-import qualified SMACCMPilot.Flight.Types.ControlLaw        as CL
-import qualified SMACCMPilot.Flight.Types.ControlLawRequest as CR
 
 import           SMACCMPilot.Param
 import           SMACCMPilot.Flight.GCS.Stream (defaultPeriods)

@@ -76,20 +76,20 @@ lawToBlinkMode law = do
     , armed ==? A.armed    ==> return blink_fast
     ]
 
-blink_off :: Uint8
-blink_off = 0
-blink_on :: Uint8
-blink_on = 1
-blink_slow :: Uint8
-blink_slow = 2
-blink_fast :: Uint8
-blink_fast = 3
-pulse_slow :: Uint8
-pulse_slow = 4
-pulse_fast :: Uint8
-pulse_fast = 5
-pulse_xfast :: Uint8
-pulse_xfast = 6
+-- blink_off   :: Uint8
+-- blink_off   = 0
+-- blink_on    :: Uint8
+-- blink_on    = 1
+-- blink_slow  :: Uint8
+-- blink_slow  = 2
+blink_fast  :: Uint8
+blink_fast  = 3
+pulse_slow  :: Uint8
+pulse_slow  = 4
+pulse_fast  :: Uint8
+pulse_fast  = 5
+-- pulse_xfast :: Uint8
+-- pulse_xfast = 6
 
 blinkOutput :: Uint8 -> Uint8 -> Ivory eff IBool
 blinkOutput state phase = return switchState
