@@ -104,6 +104,7 @@ library
                         SMACCMPilot.Mavlink.Messages.AltCtlDebug,
                         SMACCMPilot.Mavlink.Messages.VehicleRadio,
                         SMACCMPilot.Mavlink.Messages.GcsRadio,
+                        SMACCMPilot.Mavlink.Messages.VehCommsec,
                         GCS.Mavlink.CRC
 
   build-depends:        base >= 4.6,

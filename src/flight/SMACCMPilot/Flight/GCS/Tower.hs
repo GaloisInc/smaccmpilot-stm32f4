@@ -108,7 +108,6 @@ gcsTowerAux name opts istream ostream cl_state ctl_req sens pos
   (decToGcsRxSrc, decToGcsRxRcv) <- channel
 
   streamrate <- channel
-  datarate   <- channel
   -- XXX hack to make sure we can send all parameters on "fetch"
   param_req  <- channelWithSize :: Tower p ( ChannelSource 512 (Stored Sint16)
                                            , ChannelSink   512 (Stored Sint16))
@@ -126,13 +125,13 @@ gcsTowerAux name opts istream ostream cl_state ctl_req sens pos
   -- Rx
   task (named "decryptTask") $ Dec.decryptTask opts hxToDecRcv decToGcsRxSrc
   task (named "gcsReceiveTask") $
-    gcsReceiveTask decToGcsRxRcv (src streamrate) (src datarate) (src hil)
+    gcsReceiveTask decToGcsRxRcv (src streamrate) (src hil)
       ctl_req (src param_req) rc_ovr params
 
   -- TX
   task (named "encryptTask") $ Enc.encryptTask opts gcsTxToEncRcv encToHxSrc
   task (named "gcsTransmitTask") $
-    gcsTransmitTask gcsTxToEncSrc (snk streamrate) (snk datarate) cl_state
+    gcsTransmitTask gcsTxToEncSrc (snk streamrate) cl_state
       sens pos ctl motor radioStat ac_snk ui_snk (snk param_req) params
   addDepends HIL.hilStateModule
   mapM_ addDepends stdlibModules

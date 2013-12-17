@@ -47,6 +47,7 @@ updateGCSStreamPeriods periods streamid enabled rate = do
                , attitude
                , gps_raw_int
                , vfr_hud
+               , veh_commsec
                , global_position_int
                ]
 

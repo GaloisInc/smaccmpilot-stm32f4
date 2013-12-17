@@ -11,7 +11,6 @@ import SMACCMPilot.Flight.Types.Sensors (sensorsTypeModule)
 import SMACCMPilot.Flight.Types.Motors (motorsTypeModule)
 import SMACCMPilot.Flight.Types.UserInput (userInputTypeModule)
 import SMACCMPilot.Flight.Types.GCSStreamTiming (gcsStreamTimingTypeModule)
-import SMACCMPilot.Flight.Types.DataRate (dataRateTypeModule)
 import SMACCMPilot.Flight.Types.RadioStat (radioStatTypeModule)
 import SMACCMPilot.Flight.Types.RadioInfo (radioInfoTypeModule)
 import SMACCMPilot.Flight.Types.MaybeFloat (maybeFloatModule)
@@ -27,7 +26,6 @@ typeModules =
   , motorsTypeModule
   , userInputTypeModule
   , gcsStreamTimingTypeModule
-  , dataRateTypeModule
   , radioStatTypeModule
   , radioInfoTypeModule
   , maybeFloatModule

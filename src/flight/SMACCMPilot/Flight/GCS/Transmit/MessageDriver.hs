@@ -42,6 +42,7 @@ import qualified SMACCMPilot.Mavlink.Messages.GlobalPositionInt as GPI
 import qualified SMACCMPilot.Mavlink.Messages.ParamValue        as PV
 import qualified SMACCMPilot.Mavlink.Messages.VehicleRadio      as VR
 import qualified SMACCMPilot.Mavlink.Messages.AltCtlDebug       as ACD
+import qualified SMACCMPilot.Mavlink.Messages.VehCommsec        as VC
 
 --------------------------------------------------------------------
 
@@ -346,6 +347,20 @@ mkSendRadio = proc "gcs_transmit_send_radio" $
     ])
   call_ VR.mkVehicleRadioSender (constRef msg) seqNum sendStruct
 
+mkSendVehCommsec :: Def ('[ Ref s2 (Stored Uint8)
+                          , Ref s2 (Struct "mavlinkPacket")
+                          ] :-> ())
+mkSendVehCommsec = proc "gcs_transmit_send_veh_commsec" $
+  \seqNum sendStruct -> body $ do
+  msg <- local $ istruct
+    [ VC.time        .= ival 1
+    , VC.state_cntr  .= ival 2
+    , VC.bad_len     .= ival 3
+    , VC.bad_decrypt .= ival 4
+    , VC.bad_tag     .= ival 5
+    ]
+  call_ VC.mkVehCommsecSender (constRef msg) seqNum sendStruct
+
 mkSendAltCtlDebug :: Def ('[ ConstRef s1 (Struct "alt_control_dbg")
                            , Ref      s2 (Stored Uint8)
                            , Ref      s2 (Struct "mavlinkPacket")
@@ -394,6 +409,7 @@ senderModules = package "senderModules" $ do
   incl mkSendGlobalPositionInt
   incl mkSendParamValue
   incl mkSendRadio
+  incl mkSendVehCommsec
   incl mkSendAltCtlDebug
 
   depend P.gpsTypesModule

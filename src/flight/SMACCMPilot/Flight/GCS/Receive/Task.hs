@@ -24,7 +24,6 @@ import qualified SMACCMPilot.Flight.Types.ControlLawRequest as CR
 import           SMACCMPilot.Param
 import           SMACCMPilot.Flight.GCS.Stream (defaultPeriods)
 import           SMACCMPilot.Flight.GCS.Receive.Handlers
-import           SMACCMPilot.Flight.GCS.Receive.DataRateMonitor
 import           SMACCMPilot.Mavlink.Messages (mavlinkMessageModules)
 import           SMACCMPilot.Mavlink.CRC (mavlinkCRCModule)
 import qualified SMACCMPilot.Mavlink.Enums.MavCmd   as Cmd
@@ -32,18 +31,16 @@ import qualified SMACCMPilot.Communications         as Comm
 
 --------------------------------------------------------------------------------
 
-gcsReceiveTask :: ( SingI n0, SingI n1, SingI n2, SingI n3
-                  , SingI n4, SingI n5, SingI n6)
+gcsReceiveTask :: ( SingI n0, SingI n1, SingI n2, SingI n3, SingI n4, SingI n5)
                => ChannelSink   n0 Comm.MAVLinkArray -- from decryptor
                -> ChannelSource n1 (Struct "gcsstream_timing")
-               -> ChannelSource n2 (Struct "data_rate_state")
-               -> ChannelSource n3 (Struct "hil_state_msg")
-               -> ChannelSource n4 (Struct "control_law_request")
-               -> ChannelSource n5 (Stored Sint16)  -- param_request
-               -> ChannelSource n6 (Struct "rc_channels_override_msg")
+               -> ChannelSource n2 (Struct "hil_state_msg")
+               -> ChannelSource n3 (Struct "control_law_request")
+               -> ChannelSource n4 (Stored Sint16)  -- param_request
+               -> ChannelSource n5 (Struct "rc_channels_override_msg")
                -> [Param PortPair]
                -> Task p ()
-gcsReceiveTask mavStream s_src dr_src hil_src creq_src
+gcsReceiveTask mavStream s_src hil_src creq_src
                param_req_src rcOvr_snk params
   = do
   millis        <- withGetTimeMillis
@@ -62,8 +59,6 @@ gcsReceiveTask mavStream s_src dr_src hil_src creq_src
 
   withStackSize 1024
   streamPeriodEmitter <- withChannelEmitter s_src "streamperiods"
-
-  drm <- mkDataRateMonitor dr_src
 
   s_periods <- taskLocalInit "periods" defaultPeriods
   state     <- taskLocalInit "state"
@@ -94,15 +89,12 @@ gcsReceiveTask mavStream s_src dr_src hil_src creq_src
           s <- deref (state ~> R.status)
           cond_
             [ (s ==? R.status_GOTMSG) ==> do
-                drm_on_success drm
                 t <- getTimeMillis millis
                 call_ handlerAux state t
                 R.mavlinkReceiveReset state
-            , (s ==? R.status_FAIL)   ==> do
-                drm_on_fail drm
+            , (s ==? R.status_FAIL)   ==>
                 store (state ~> R.status) R.status_IDLE
             ]
-        drm_report drm
 
   taskInit $ emit_ streamPeriodEmitter (constRef s_periods)
 

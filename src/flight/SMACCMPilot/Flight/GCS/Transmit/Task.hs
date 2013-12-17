@@ -26,10 +26,9 @@ import qualified SMACCMPilot.Flight.Types.GCSStreamTiming as T
 
 --------------------------------------------------------------------------------
 
-gcsTransmitTask :: (SingI n0, SingI n1, SingI n2, SingI n3)
+gcsTransmitTask :: (SingI n0, SingI n1, SingI n2)
                 => ChannelSource n0 C.MAVLinkArray -- Channel to encrypter
                 -> ChannelSink   n1 (Struct "gcsstream_timing")
-                -> ChannelSink   n2 (Struct "data_rate_state")
                 -> DataSink         (Struct "control_law")
                 -> DataSink         (Struct "sensors_result")
                 -> DataSink         (Struct "position")
@@ -38,10 +37,10 @@ gcsTransmitTask :: (SingI n0, SingI n1, SingI n2, SingI n3)
                 -> DataSink         (Struct "radio_stat")
                 -> DataSink         (Struct "alt_control_dbg")
                 -> DataSink         (Struct "userinput_result")
-                -> ChannelSink n3   (Stored Sint16)
+                -> ChannelSink n2   (Stored Sint16)
                 -> [Param PortPair]
                 -> Task p ()
-gcsTransmitTask mavStream sp_sink _dr_sink cl_sink se_sink ps_sink
+gcsTransmitTask mavStream sp_sink cl_sink se_sink ps_sink
                 ct_sink mo_sink ra_sink ac_sink ui_sink param_req_sink params
   = do
   withStackSize 1024
@@ -185,6 +184,10 @@ gcsTransmitTask mavStream sp_sink _dr_sink cl_sink se_sink ps_sink
         when found $ do
           call_ mkSendParamValue msg seqNum mavlinkStruct
           processMav T.params
+
+    onStream T.veh_commsec $ do
+      call_ mkSendVehCommsec seqNum mavlinkStruct
+      processMav T.veh_commsec
 
     onStream T.radio $ do
       l_radio <- local (istruct [])
