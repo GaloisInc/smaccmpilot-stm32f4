@@ -80,7 +80,6 @@ hil opts = do
     sensors
     (src rc_override)
     (altctl_state core_out)
-    (userinput_state core_out)
     paramList
 
   addModule (commsecModule opts)
@@ -130,7 +129,6 @@ flight opts = do
           motors_state
           (src rc_override)
           (altctl_state core_out)
-          (userinput_state core_out)
           paramList
 
   -- GCS on UART1:

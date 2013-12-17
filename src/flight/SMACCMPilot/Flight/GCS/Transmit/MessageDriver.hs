@@ -90,11 +90,10 @@ type Sender a = forall s0 s1 .
 mkSendHeartbeat :: Def ('[ Ref s1 (Struct "control_law")
                          , Ref sm (Stored Uint8)
                          , Ref sm (Struct "mavlinkPacket")
-                         , Uint32
                          ] :-> ())
 mkSendHeartbeat =
   proc "gcs_transmit_send_heartbeat"
-  $ \cl seqNum sendStruct now -> body $ do
+  $ \cl seqNum sendStruct -> body $ do
 
   armed_mode  <- deref (cl ~> CL.armed_mode)
   stab_ctl    <- deref (cl ~> CL.stab_ctl)

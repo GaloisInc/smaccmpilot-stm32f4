@@ -14,9 +14,9 @@ import qualified SMACCMPilot.Flight.Types.UserInput    as UI
 data ThrottleTracker =
   ThrottleTracker
     { tt_init      :: forall eff   . Ivory eff ()
-    , tt_update    :: forall eff s s' .  Ref s  (Struct "userinput_result")
-                                      -> IBool
-                                      -> Ivory eff ()
+    , tt_update    :: forall eff s . Ref s  (Struct "userinput_result")
+                                  -> IBool
+                                  -> Ivory eff ()
     , tt_reset_to  :: forall eff   . Ivory eff (IBool, IFloat)
     }
 

@@ -36,12 +36,11 @@ gcsTransmitTask :: (SingI n0, SingI n1, SingI n2)
                 -> DataSink         (Struct "motors")
                 -> DataSink         (Struct "radio_stat")
                 -> DataSink         (Struct "alt_control_dbg")
-                -> DataSink         (Struct "userinput_result")
                 -> ChannelSink n2   (Stored Sint16)
                 -> [Param PortPair]
                 -> Task p ()
 gcsTransmitTask mavStream sp_sink cl_sink se_sink ps_sink
-                ct_sink mo_sink ra_sink ac_sink ui_sink param_req_sink params
+                ct_sink mo_sink ra_sink ac_sink param_req_sink params
   = do
   withStackSize 1024
 
@@ -52,7 +51,6 @@ gcsTransmitTask mavStream sp_sink cl_sink se_sink ps_sink
   motorReader      <- withDataReader mo_sink "motors"
   radioReader      <- withDataReader ra_sink "radio"
   altControlReader <- withDataReader ac_sink "alt_control"
-  uiReader         <- withDataReader ui_sink "userinput_result"
   mavTx            <- withChannelEmitter mavStream "gcsTxToEncSrc"
 
   -- the mavlink packet we're packing
@@ -127,7 +125,7 @@ gcsTransmitTask mavStream sp_sink cl_sink se_sink ps_sink
     onStream T.heartbeat $ do
       l_cl    <- local (istruct [])
       readData clReader l_cl
-      call_ mkSendHeartbeat l_cl seqNum mavlinkStruct now
+      call_ mkSendHeartbeat l_cl seqNum mavlinkStruct
       processMav T.heartbeat
 
     onStream T.servo_output_raw $ do
