@@ -15,7 +15,6 @@
 module Ivory.BSP.STM32F4.UART.Peripheral where
 
 import Ivory.Language
-import Ivory.Stdlib
 import Ivory.BitData
 import Ivory.HW
 

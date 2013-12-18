@@ -15,8 +15,6 @@
 
 module Ivory.BSP.STM32F4.GPIO.Peripheral where
 
-import GHC.TypeLits
-
 import Ivory.Language
 import Ivory.BitData
 import Ivory.HW

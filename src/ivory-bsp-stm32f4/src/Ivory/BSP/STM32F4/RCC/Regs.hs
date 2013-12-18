@@ -11,7 +11,6 @@
 
 module Ivory.BSP.STM32F4.RCC.Regs where
 
-import Ivory.Language
 import Ivory.BitData
 import Ivory.HW
 

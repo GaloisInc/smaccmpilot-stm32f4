@@ -7,8 +7,6 @@
 
 module Ivory.BSP.STM32F4.Interrupt.API where
 
-import qualified Data.Bits as B
-
 import Ivory.BSP.STM32F4.Interrupt.Types
 import Ivory.BSP.STM32F4.Interrupt.Regs
 

@@ -8,8 +8,6 @@
 
 module Ivory.BSP.STM32F4.GPIO.Pins where
 
-import Language.Haskell.TH
-
 import Ivory.BSP.STM32F4.GPIO.Regs
 import Ivory.BSP.STM32F4.GPIO.TH
 import Ivory.BSP.STM32F4.GPIO.Peripheral

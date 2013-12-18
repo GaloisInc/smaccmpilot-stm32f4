@@ -12,6 +12,5 @@ module Ivory.BSP.STM32F4.Interrupt
   ) where
 
 import Ivory.BSP.STM32F4.Interrupt.Types
-import Ivory.BSP.STM32F4.Interrupt.Regs
 import Ivory.BSP.STM32F4.Interrupt.API
 

@@ -10,9 +10,7 @@
 
 module Ivory.BSP.STM32F4.GTIM2345.RegTypes where
 
-import Ivory.Language
 import Ivory.BitData
-import Ivory.HW
 
 -- Compare Mode bit field definitions:
 [bitdata|

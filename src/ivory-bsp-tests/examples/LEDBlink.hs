@@ -11,7 +11,6 @@
 import Control.Monad (zipWithM_)
 import Ivory.Language
 import Ivory.Compile.C.CmdlineFrontend
-import Ivory.HW
 import Ivory.HW.Module
 import Ivory.BSP.STM32F4.GPIO
 

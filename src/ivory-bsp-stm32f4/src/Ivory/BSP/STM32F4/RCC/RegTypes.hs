@@ -11,9 +11,7 @@
 
 module Ivory.BSP.STM32F4.RCC.RegTypes where
 
-import Ivory.Language
 import Ivory.BitData
-import Ivory.HW
 
 [bitdata|
  bitdata RCC_PLLP     :: Bits 2

@@ -11,11 +11,7 @@
 
 module Ivory.BSP.STM32F4.I2C.Regs where
 
-import Ivory.Language
 import Ivory.BitData
-import Ivory.HW
-
-import Ivory.BSP.STM32F4.MemoryMap
 
 ----------------------------------------------------------------------
 -- I2C Registers

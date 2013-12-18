@@ -11,9 +11,7 @@
 
 module Ivory.BSP.STM32F4.UART.Regs where
 
-import Ivory.Language
 import Ivory.BitData
-import Ivory.HW
 
 import Ivory.BSP.STM32F4.UART.Types
 

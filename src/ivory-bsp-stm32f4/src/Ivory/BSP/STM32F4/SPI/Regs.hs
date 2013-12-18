@@ -11,11 +11,8 @@
 
 module Ivory.BSP.STM32F4.SPI.Regs where
 
-import Ivory.Language
 import Ivory.BitData
-import Ivory.HW
 
-import Ivory.BSP.STM32F4.MemoryMap
 import Ivory.BSP.STM32F4.SPI.RegTypes
 
 ----------------------------------------------------------------------

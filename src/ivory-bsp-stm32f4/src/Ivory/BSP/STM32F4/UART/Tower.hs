@@ -15,7 +15,6 @@ import Ivory.HW.Module
 import Ivory.BitData
 
 import Ivory.BSP.STM32F4.Interrupt
-import Ivory.BSP.STM32F4.GPIO
 import Ivory.BSP.STM32F4.UART.Regs
 import Ivory.BSP.STM32F4.UART.Peripheral
 import Ivory.BSP.STM32F4.RCC

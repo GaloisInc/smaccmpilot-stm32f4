@@ -8,7 +8,6 @@ import qualified Ivory.BSP.STM32F4.SearchDir as BSP
 
 -- App imports:
 import Ivory.Tower
-import Ivory.BSP.STM32F4.GPIO
 import LEDTower (blinkApp)
 import Platforms
 
@@ -19,6 +18,7 @@ app = blinkApp period leds
   leds = [redLED p, blueLED p]
   p = (Proxy :: Proxy p)
 
+main :: IO ()
 main = compilePlatforms conf (coloredLEDPlatforms app)
   where
   conf = searchPathConf [HW.searchDir, BSP.searchDir]

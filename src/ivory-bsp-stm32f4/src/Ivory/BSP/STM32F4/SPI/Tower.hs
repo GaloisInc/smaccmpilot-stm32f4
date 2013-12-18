@@ -3,6 +3,8 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
+{-# OPTIONS_GHC -fno-warn-orphans #-}
+
 module Ivory.BSP.STM32F4.SPI.Tower where
 
 import Ivory.Language
@@ -12,8 +14,6 @@ import Ivory.HW
 import Ivory.BitData
 
 import Ivory.HW.Module
-import Ivory.BSP.STM32F4.GPIO
-import Ivory.BSP.STM32F4.UART
 import Ivory.BSP.STM32F4.SPI
 
 import Ivory.BSP.STM32F4.SPI.Regs

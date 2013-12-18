@@ -11,13 +11,9 @@
 
 module Ivory.BSP.STM32F4.RCC.Class where
 
-import GHC.TypeLits
-
 import Ivory.Language
 import Ivory.BitData
 import Ivory.HW
-
-import Ivory.BSP.STM32F4.RCC.Regs
 
 class RCCDevice a where
   rccDeviceEnable  :: a -> Ivory eff ()

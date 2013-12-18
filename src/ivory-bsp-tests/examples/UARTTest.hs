@@ -2,6 +2,9 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE OverloadedStrings #-}
+
+{-# OPTIONS_GHC -fno-warn-unused-binds #-}
+
 --
 -- UARTTest.hs --- Test STM32F4 UART Driver
 --
@@ -14,13 +17,11 @@ import Data.Char (ord)
 
 import Ivory.Language
 import Ivory.Compile.C.CmdlineFrontend
-import Ivory.HW
 
 import qualified Ivory.HW.SearchDir as HW
 import Ivory.HW.Module (hw_moduledef)
 import Ivory.BSP.STM32F4.GPIO
 
-import qualified Ivory.BSP.STM32F4.Interrupt as ISR
 import qualified Ivory.BSP.STM32F4.SearchDir as BSP
 
 import Ivory.BSP.STM32F4.UART
