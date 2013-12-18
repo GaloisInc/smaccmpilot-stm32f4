@@ -2,6 +2,9 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE FlexibleInstances #-}
+
+{-# OPTIONS_GHC -fno-warn-orphans #-}
+
 --
 -- USART.hs --- HWF4 USART driver interface.
 --
@@ -18,6 +21,7 @@ import Ivory.Language
 abstract struct usart "hwf4/usart.h"
 |]
 
+usartModule :: Module
 usartModule = package "bsp_hwf4wrapper_usart" $ do
   inclHeader "hwf4/usart.h"
   defStruct (Proxy :: Proxy "usart")

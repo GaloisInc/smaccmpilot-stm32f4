@@ -3,6 +3,9 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE FlexibleInstances #-}
+
+{-# OPTIONS_GHC -fno-warn-orphans #-}
+
 --
 -- I2C.hs --- HWF4 I2C driver interface.
 --

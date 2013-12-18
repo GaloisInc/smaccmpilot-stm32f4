@@ -3,6 +3,8 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE QuasiQuotes #-}
 
+{-# OPTIONS_GHC -fno-warn-orphans #-}
+
 module SMACCMPilot.Hardware.GPS.Types.Position where
 
 import Ivory.Language

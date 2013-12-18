@@ -6,6 +6,9 @@
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE RankNTypes #-}
+
+{-# OPTIONS_GHC -fno-warn-orphans #-}
+
 --
 -- Param/Tower.hs --- Parameter storage using Tower.
 --

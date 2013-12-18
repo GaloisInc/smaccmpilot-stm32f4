@@ -2,6 +2,9 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE FlexibleInstances #-}
+
+{-# OPTIONS_GHC -fno-warn-orphans #-}
+
 --
 -- GPIO.hs --- HWF4 GPIO driver interface.
 --
