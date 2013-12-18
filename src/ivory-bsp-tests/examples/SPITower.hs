@@ -5,14 +5,11 @@
 
 module SPITower where
 
-import Data.Monoid (mconcat)
 import Data.Char (ord)
 
 import Ivory.Language
 import Ivory.Stdlib
 import Ivory.Tower
-import Ivory.HW
-import Ivory.BitData
 
 import Ivory.HW.Module
 import Ivory.BSP.STM32F4.GPIO
@@ -20,10 +17,6 @@ import Ivory.BSP.STM32F4.UART
 import Ivory.BSP.STM32F4.RCC
 import Ivory.BSP.STM32F4.SPI
 import Ivory.BSP.STM32F4.SPI.Tower
-
-import Ivory.BSP.STM32F4.SPI.Regs
-import Ivory.BSP.STM32F4.SPI.Peripheral
-
 
 import Platforms
 import LEDTower (ledController)
@@ -92,7 +85,7 @@ spiCtl spi device toSig froSig chStart chdbg = do
     spiDeviceInit device
     store state 0
 
-  onChannelV chStart "startSignal" $ \v -> do
+  onChannelV chStart "startSignal" $ \_ -> do
         s <- deref state
         when (s ==? 0) $ do
           store state 1

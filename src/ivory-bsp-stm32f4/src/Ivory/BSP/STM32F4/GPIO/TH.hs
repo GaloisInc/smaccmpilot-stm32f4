@@ -16,7 +16,7 @@ mkVar :: String -> Integer -> ExpQ
 mkVar name n = do
   m <- lookupValueName (name ++ show n)
   case m of
-    Just n  -> varE n
+    Just n' -> varE n'
     Nothing -> error "bad pin number or name"
 
 mkGPIOPin :: Name -> Name -> Integer -> [DecQ]

@@ -102,14 +102,14 @@ tim_init platform gtim = do
     setBit gtim_cr1_arpe
 
 
-pwm_arm :: GTIM16 -> Ivory eff ()
-pwm_arm gtim = do
-  -- Generate an update event to reload the counter and all registers:
-  setReg (gtimRegEGR gtim) $ setBit gtim_egr_ug
-  -- Enable counter and set auto reload to use buffering:
-  setReg (gtimRegCR1 gtim) $ do
-    setBit gtim_cr1_cen
-    setBit gtim_cr1_arpe
+-- pwm_arm :: GTIM16 -> Ivory eff ()
+-- pwm_arm gtim = do
+--   -- Generate an update event to reload the counter and all registers:
+--   setReg (gtimRegEGR gtim) $ setBit gtim_egr_ug
+--   -- Enable counter and set auto reload to use buffering:
+--   setReg (gtimRegCR1 gtim) $ do
+--     setBit gtim_cr1_cen
+--     setBit gtim_cr1_arpe
 
 pwm_set :: GTIM16 -> Ref s (Array 4 (Stored Uint16)) -> Ivory eff ()
 pwm_set gtim chs = do

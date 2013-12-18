@@ -56,9 +56,9 @@ pllSysClk p = do
       pllp    = pllpToInt $ pllcfgr #. rcc_pllcfgr_pllp
   return (pllvco `iDiv` pllp)
   where
-  pllpToInt p = foldl aux 1 tbl -- Catchall is 1, should be impossible.
+  pllpToInt p' = foldl aux 1 tbl -- Catchall is 1, should be impossible.
     where
-    aux k (v,d) = (eqBits p v) ? (d,k)
+    aux k (v,d) = (eqBits p' v) ? (d,k)
     tbl = [(rcc_pllp_div2,   2)
           ,(rcc_pllp_div4,   4)
           ,(rcc_pllp_div6,   6)

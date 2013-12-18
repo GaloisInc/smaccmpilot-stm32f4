@@ -3,13 +3,8 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE RecursiveDo #-}
 
-import Data.Char (ord)
-
 import Ivory.Language
-import Ivory.Stdlib
-import Ivory.HW
 import Ivory.HW.Module (hw_moduledef)
-import Ivory.BitData
 
 import Ivory.Tower
 import Ivory.Tower.StateMachine
@@ -36,6 +31,7 @@ app = do
   led4 = LED pinD15 ActiveHigh
   btn1 = pinC7 -- center button of 4-way rocker switch
 
+main :: IO ()
 main = compilePlatforms conf [("open407vc", Twr app)]
   where
   conf = searchPathConf [HW.searchDir, BSP.searchDir]
@@ -49,9 +45,9 @@ button pin = do
     e <- withChannelEmitter (src c) "btnstate"
     ctr <- taskLocalInit "changectr" (ival (0 :: Uint32))
     let inc = do
-          c <- deref ctr
-          store ctr (c+1)
-          return (c+1)
+          c' <- deref ctr
+          store ctr (c'+1)
+          return (c'+1)
         reset = store ctr 0
         pressed = pinRead pin >>= \v -> return (iNot v)
     debouncer <- stateMachine "debouncer" $ mdo
@@ -62,10 +58,10 @@ button pin = do
                    entry $ liftIvory_ reset
                    period 1 $ liftIvory $ do
                      v <- pressed
-                     c <- inc
+                     c' <- inc
                      return $ do
-                       branch (iNot v)          down
-                       branch (c >=? threshold) risen
+                       branch (iNot v)           down
+                       branch (c' >=? threshold) risen
       risen   <- state $ entry $ do
                    liftIvory_ (emitV_ e true)
                    goto up
@@ -76,10 +72,10 @@ button pin = do
                    entry $ liftIvory_ reset
                    period 1 $ liftIvory $ do
                      v <- pressed
-                     c <- inc
+                     c' <- inc
                      return $ do
-                       branch v                 up
-                       branch (c >=? threshold) fallen
+                       branch v                  up
+                       branch (c' >=? threshold) fallen
       fallen  <- state $ entry $ do
                    liftIvory_ (emitV_ e false)
                    goto down

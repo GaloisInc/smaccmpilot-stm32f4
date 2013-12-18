@@ -3,7 +3,6 @@
 module LEDTower where
 
 import Ivory.Language
-import Ivory.Stdlib
 import Ivory.Tower
 
 import Ivory.HW.Module
@@ -13,7 +12,7 @@ data LEDPolarity = ActiveHigh | ActiveLow
 data LED = LED GPIOPin LEDPolarity
 
 ledSetup :: LED -> Ivory eff ()
-ledSetup led@(LED pin polarity) = do
+ledSetup led@(LED pin _polarity) = do
   pinEnable pin
   pinSetOutputType pin gpio_outputtype_pushpull
   pinSetSpeed pin gpio_speed_2mhz

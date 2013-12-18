@@ -86,4 +86,4 @@ nvic_IPR_int :: Interrupt -> Reg Uint8
 nvic_IPR_int i = nvic_IPR irqN
   where
     irqN = fromIntegral (interruptIRQn i) :: Int
-    reg  = nvic_IPR (irqN `div` 4)
+    -- reg  = nvic_IPR (irqN `div` 4)

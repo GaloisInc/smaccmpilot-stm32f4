@@ -7,6 +7,7 @@ import qualified Ivory.BSP.STM32F4.SearchDir as BSP
 import Platforms
 import UARTTower (app)
 
+main :: IO ()
 main = compilePlatforms conf (coloredLEDPlatforms app)
   where
   conf = searchPathConf [HW.searchDir, BSP.searchDir]

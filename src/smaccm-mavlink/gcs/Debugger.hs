@@ -2,7 +2,6 @@
 -- Mavlink (1.0) parser.
 module Debugger where
 
-import Numeric (showHex)
 import Control.Monad
 
 import Data.Word
@@ -97,9 +96,6 @@ parseByte s b =
                  where
                  crc_lo ss = fst (crc_lo_hi (crc ss))
                  crc_hi ss = snd (crc_lo_hi (crc ss))
-                 valid expected got =
-                   if expected == got then "ok"
-                   else "bad, expected 0x" ++ showHex got ""
 
     False -> do
       case b of

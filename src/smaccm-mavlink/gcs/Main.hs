@@ -1,11 +1,9 @@
 
 import System.Environment (getArgs)
-import qualified Data.Char as C
 import Control.Monad
 import Control.Concurrent
 import Data.IORef
 import System.IO
-import System.Exit
 
 import qualified Data.ByteString as B
 import System.Hardware.Serialport
@@ -27,7 +25,7 @@ main = do
 startDebugger :: FilePath -> IO ()
 startDebugger f = do
   mode <- newIORef (Continue Chatty)
-  forkIO (runDebugger mode f)
+  void $ forkIO (runDebugger mode f)
   hSetBuffering stdin NoBuffering
   controlMode mode
   where
