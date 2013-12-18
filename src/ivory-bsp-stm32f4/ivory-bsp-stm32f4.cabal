@@ -15,6 +15,11 @@ cabal-version:       >=1.8
 
 data-files: support/ivory_stm32f4_interrupt.h,
             support/ivory_stm32f4_interrupt.c
+
+flag werror
+  default:              False
+  description:          Pass -Werror to GHC.
+
 library
   exposed-modules:     Ivory.BSP.STM32F4.MemoryMap,
                        Ivory.BSP.STM32F4.Interrupt,
@@ -61,4 +66,8 @@ library
                        ivory-bitdata,
                        ivory-hw,
                        ivory-tower >= 0.6.0.0
+  if flag(werror)
+    ghc-options:        -Wall -Werror
+  else
+    ghc-options:        -Wall
 

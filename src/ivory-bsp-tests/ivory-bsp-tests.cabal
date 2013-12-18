@@ -11,6 +11,10 @@ maintainer:          pat@galois.com
 build-type:          Simple
 cabal-version:       >=1.8
 
+flag werror
+  default:              False
+  description:          Pass -Werror to GHC.
+
 executable bsp-uart-tower-test-gen
   main-is:             UARTTowerCompiler.hs
   other-modules:       UARTTower,
@@ -27,6 +31,11 @@ executable bsp-uart-tower-test-gen
                        ivory-tower-freertos >= 0.6.0.0,
                        ivory-tower-frontend,
                        ivory-bsp-stm32f4
+  if flag(werror)
+    ghc-options:        -Wall -Werror
+  else
+    ghc-options:        -Wall
+
 
 executable bsp-led-tower-test-gen
   main-is:             LEDTowerCompiler.hs
@@ -43,6 +52,10 @@ executable bsp-led-tower-test-gen
                        ivory-tower-freertos >= 0.6.0.0,
                        ivory-tower-frontend,
                        ivory-bsp-stm32f4
+  if flag(werror)
+    ghc-options:        -Wall -Werror
+  else
+    ghc-options:        -Wall
 
 executable bsp-spi-tower-test-gen
   main-is:             SPITowerCompiler.hs
@@ -63,6 +76,10 @@ executable bsp-spi-tower-test-gen
                        ivory-tower-freertos >= 0.6.0.0,
                        ivory-tower-frontend,
                        ivory-bsp-stm32f4
+  if flag(werror)
+    ghc-options:        -Wall -Werror
+  else
+    ghc-options:        -Wall
 
 executable bsp-open407-toy-gen
   main-is:             Open407Toy.hs
@@ -78,6 +95,11 @@ executable bsp-open407-toy-gen
                        ivory-tower-freertos >= 0.6.0.0,
                        ivory-tower-frontend,
                        ivory-bsp-stm32f4
+  if flag(werror)
+    ghc-options:        -Wall -Werror
+  else
+    ghc-options:        -Wall
+
 ---------------------------------------------
 -- Pure ivory, without tower:
 
@@ -91,6 +113,11 @@ executable bsp-led-test-gen
                        ivory-bitdata,
                        ivory-hw,
                        ivory-bsp-stm32f4
+  if flag(werror)
+    ghc-options:        -Wall -Werror
+  else
+    ghc-options:        -Wall
+
 
 executable bsp-uart-test-gen
   main-is:             UARTTest.hs
@@ -102,3 +129,8 @@ executable bsp-uart-test-gen
                        ivory-bitdata,
                        ivory-hw,
                        ivory-bsp-stm32f4
+  if flag(werror)
+    ghc-options:        -Wall -Werror
+  else
+    ghc-options:        -Wall
+

@@ -7,6 +7,10 @@ category:            Language
 build-type:          Simple
 cabal-version:       >= 1.10
 
+flag werror
+  default:              False
+  description:          Pass -Werror to GHC.
+
 library
   hs-source-dirs:       src
   exposed-modules:      Ivory.HXStream,
@@ -20,7 +24,10 @@ library
                         directory,
                         QuickCheck
   default-language:     Haskell2010
-  ghc-options:          -Wall -fno-warn-orphans
+  if flag(werror)
+    ghc-options:        -Wall -Werror
+  else
+    ghc-options:        -Wall
 
 executable ivory-hxstream-test
   main-is:              Main.hs
@@ -35,4 +42,7 @@ executable ivory-hxstream-test
                         ivory-quickcheck,
                         QuickCheck
   default-language:     Haskell2010
-  ghc-options:          -Wall -fno-warn-orphans
+  if flag(werror)
+    ghc-options:        -Wall -Werror
+  else
+    ghc-options:        -Wall

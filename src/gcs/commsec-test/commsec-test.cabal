@@ -11,12 +11,9 @@ category:            Network
 build-type:          Simple
 cabal-version:       >=1.8
 
--- library
---   exposed-modules:   IvoryGCM
---   build-depends:     base,
---                      ivory,
---                      ivory-backend-c,
---                      ivory-stdlib
+flag werror
+  default:              False
+  description:          Pass -Werror to GHC.
 
 -- Generates Ivory C files.
 executable commsec-test
@@ -25,4 +22,7 @@ executable commsec-test
                        ivory,
                        ivory-backend-c,
                        ivory-stdlib
-  ghc-options:         -Wall
+  if flag(werror)
+    ghc-options:        -Wall -Werror
+  else
+    ghc-options:        -Wall
