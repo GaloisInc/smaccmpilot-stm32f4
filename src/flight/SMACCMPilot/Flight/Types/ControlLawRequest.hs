@@ -18,6 +18,8 @@ struct control_law_request
   ; set_stab_ppm         :: Stored IBool
   ; set_stab_mavlink     :: Stored IBool
   ; set_stab_auto        :: Stored IBool
+  ; set_yaw_rate         :: Stored IBool
+  ; set_yaw_heading      :: Stored IBool
   ; set_thr_direct       :: Stored IBool
   ; set_thr_auto         :: Stored IBool
   ; set_autothr_ppm      :: Stored IBool
@@ -42,6 +44,8 @@ initControlLawRequest is = istruct (defaults ++ is)
     , set_stab_ppm         .= ival false
     , set_stab_mavlink     .= ival false
     , set_stab_auto        .= ival false
+    , set_yaw_rate         .= ival false
+    , set_yaw_heading      .= ival false
     , set_thr_direct       .= ival false
     , set_thr_auto         .= ival false
     , set_autothr_ppm      .= ival false

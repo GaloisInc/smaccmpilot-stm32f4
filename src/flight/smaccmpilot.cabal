@@ -80,6 +80,7 @@ library
                        SMACCMPilot.Flight.Types.ControlSource,
                        SMACCMPilot.Flight.Types.ThrottleMode,
                        SMACCMPilot.Flight.Types.ControlLawRequest,
+                       SMACCMPilot.Flight.Types.YawMode,
 
                        SMACCMPilot.Flight.UserInput.PPM,
                        SMACCMPilot.Flight.UserInput.PPM.ArmingMachine,
