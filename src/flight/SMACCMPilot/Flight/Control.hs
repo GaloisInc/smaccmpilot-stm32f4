@@ -20,9 +20,9 @@ import SMACCMPilot.Flight.Param
 
 import           SMACCMPilot.Flight.Control.PID
 import qualified SMACCMPilot.Flight.Types.ArmedMode     as A
-import           SMACCMPilot.Flight.Control.Stabilize.Control (stabCtlModule)
-import           SMACCMPilot.Flight.Control.Stabilize.PitchRoll
-import           SMACCMPilot.Flight.Control.Stabilize.Yaw
+import           SMACCMPilot.Flight.Control.Attitude.Stabilize
+import           SMACCMPilot.Flight.Control.Attitude.PitchRoll
+import           SMACCMPilot.Flight.Control.Attitude.Yaw
 
 import           SMACCMPilot.Flight.Control.Altitude.AutoThrottle
 import           SMACCMPilot.Flight.Control.Altitude.ThrottleTracker (manual_throttle)
@@ -95,4 +95,4 @@ controlTask s_law s_inpt s_sens s_ctl s_ac_state params = do
 
 
 controlModules :: [Module]
-controlModules = [ controlPIDModule, stabCtlModule ]
+controlModules = [ controlPIDModule, attStabilizeModule ]

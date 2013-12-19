@@ -3,7 +3,7 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE RankNTypes #-}
 
-module SMACCMPilot.Flight.Control.Stabilize.Angle
+module SMACCMPilot.Flight.Control.Attitude.Angle
   ( AngleControl(..)
   , taskAngleController
   ) where
@@ -14,7 +14,7 @@ import Ivory.Tower
 import SMACCMPilot.Param
 import SMACCMPilot.Flight.Param
 import SMACCMPilot.Flight.Control.PID
-import SMACCMPilot.Flight.Control.Stabilize.Control
+import SMACCMPilot.Flight.Control.Attitude.Stabilize
 
 data AngleControl =
   AngleControl
@@ -83,7 +83,7 @@ taskAngleController stab_params rate_params input_range output_range name = do
     incl out_proc
     incl reset_proc
     depend controlPIDModule
-    depend stabCtlModule
+    depend attStabilizeModule
   return AngleControl
     { ac_init  = call_ init_proc
     , ac_run   = call_ run_proc

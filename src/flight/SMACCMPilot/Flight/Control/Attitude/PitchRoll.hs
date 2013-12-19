@@ -3,7 +3,7 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE RankNTypes #-}
 
-module SMACCMPilot.Flight.Control.Stabilize.PitchRoll
+module SMACCMPilot.Flight.Control.Attitude.PitchRoll
   ( PitchRollControl(..)
   , taskPitchRollControl
   ) where
@@ -15,7 +15,7 @@ import Ivory.Stdlib
 import SMACCMPilot.Param
 import SMACCMPilot.Flight.Param
 
-import SMACCMPilot.Flight.Control.Stabilize.Angle
+import SMACCMPilot.Flight.Control.Attitude.Angle
 
 import qualified SMACCMPilot.Flight.Types.Sensors       as SEN
 import qualified SMACCMPilot.Flight.Types.ControlOutput as OUT

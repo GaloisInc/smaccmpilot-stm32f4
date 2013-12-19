@@ -3,7 +3,7 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE RankNTypes #-}
 
-module SMACCMPilot.Flight.Control.Stabilize.Yaw
+module SMACCMPilot.Flight.Control.Attitude.Yaw
   ( YawControl(..)
   , taskYawControl
   ) where
@@ -14,7 +14,7 @@ import Ivory.Stdlib
 
 import SMACCMPilot.Param
 import SMACCMPilot.Flight.Control.PID
-import SMACCMPilot.Flight.Control.Stabilize.Control
+import SMACCMPilot.Flight.Control.Attitude.Stabilize
 import SMACCMPilot.Flight.Param
 
 import qualified SMACCMPilot.Flight.Types.Sensors       as SEN
@@ -86,7 +86,7 @@ taskYawControl params = do
     incl state_proc
     incl reset_proc
     depend controlPIDModule
-    depend stabCtlModule
+    depend attStabilizeModule
   return YawControl
     { yc_init  = call_ init_proc
     , yc_run   = call_ run_proc

@@ -3,10 +3,10 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE RankNTypes #-}
 
-module SMACCMPilot.Flight.Control.Stabilize.Control
+module SMACCMPilot.Flight.Control.Attitude.Stabilize
   ( stabilize_from_angle
   , stabilize_from_rate
-  , stabCtlModule
+  , attStabilizeModule
   ) where
 
 import Ivory.Language
@@ -14,7 +14,8 @@ import Ivory.Language
 import SMACCMPilot.Param ()
 import SMACCMPilot.Flight.Control.PID
 
-stabCtlModule = package "stabilize_control" $ do
+attStabilizeModule :: Module
+attStabilizeModule = package "attitude_stabilize" $ do
   depend controlPIDModule
   incl stabilize_from_angle
   incl stabilize_from_rate
