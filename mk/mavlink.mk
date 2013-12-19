@@ -1,6 +1,8 @@
 # Generate new MAVLink message parsers/serializers for the GCS and SMACCMPilot.
 
-MAVLINK_DIR := $(TOP)/src/gcs/mavlink
+MAVLINK_DIR := $(TOP)/../mavlink
+SMAVLINK_DIR := src/smaccm-mavlink
+
 MAVLINK_MSG_DEFS := $(MAVLINK_DIR)/message_definitions/v1.0
 
 MAVLINK_DEPS := $(MAVLINK_MSG_DEFS)/smaccmpilot.xml \
@@ -9,7 +11,7 @@ MAVLINK_DEPS := $(MAVLINK_MSG_DEFS)/smaccmpilot.xml \
 MAVLINK_GEN := $(MAVLINK_DIR)/pymavlink/mavlinkv10.py \
 
 MAVLINK_GCS := $(MAVLINK_DIR)/pymavlink/mavlinkv10.py
-MAVLINK_SMACCM := $(wildcard src/smaccm-mavlink/src/SMACCMPilot/Mavlink/Messages/*.hs)
+MAVLINK_SMACCM := $(wildcard $(SMAVLINK_DIR)/src/SMACCMPilot/Mavlink/Messages/*.hs)
 
 $(MAVLINK_GCS): $(MAVLINK_DEPS)
 	@python ./$(MAVLINK_DIR)/pymavlink/generator/mavgen.py \
@@ -19,7 +21,9 @@ $(MAVLINK_GCS): $(MAVLINK_DEPS)
         ./$(MAVLINK_MSG_DEFS)/smaccmpilot.xml
 
 $(MAVLINK_SMACCM): $(MAVLINK_DEPS)
-	@$(MAKE) -C $(TOP)/src/smaccm-mavlink/ivory-module-generator/pymavlink/generator/
+	@python $(SMAVLINK_DIR)/ivory-module-generator/pymavlink/generator/smavgen.py \
+    -o ./$(SMAVLINK_DIR)/src/SMACCMPilot/Mavlink/ \
+    $(MAVLINK_MSG_DEFS)/smaccmpilot.xml
 	@touch $@
 
 MAVLINK := $(MAVLINK_GCS) $(MAVLINK_SMACCM)

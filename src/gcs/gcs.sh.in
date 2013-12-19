@@ -4,7 +4,7 @@ HOST=127.0.0.1
 PORT=6000
 COMMSEC_SERVER=smaccm-gcs-gateway
 BIN_DIR=../.cabal-sandbox/bin
-MAVPROXY_DIR=src/gcs/mavlink
+MAVPROXY_DIR=../mavlink
 
 EXEC_MAVPROXY="python $MAVPROXY_DIR/mavproxy.py --master=tcp:$HOST:$PORT"
 
