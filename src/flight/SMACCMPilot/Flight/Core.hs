@@ -23,8 +23,7 @@ import           SMACCMPilot.Mavlink.Pack     (packModule)
 
 import           SMACCMPilot.Flight.GCS.Transmit.MessageDriver (senderModules)
 import           SMACCMPilot.Flight.BlinkTask
-import           SMACCMPilot.Flight.Control (controlModules)
-import           SMACCMPilot.Flight.Control.Task
+import           SMACCMPilot.Flight.Control
 import           SMACCMPilot.Flight.Motors.Task
 import           SMACCMPilot.Flight.Param
 import           SMACCMPilot.Flight.Types (typeModules)
