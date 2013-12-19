@@ -20,6 +20,7 @@ import SMACCMPilot.Flight.Param
 
 import           SMACCMPilot.Flight.Control.PID
 import qualified SMACCMPilot.Flight.Types.ArmedMode     as A
+import           SMACCMPilot.Flight.Control.Stabilize.Control (stabCtlModule)
 import           SMACCMPilot.Flight.Control.Stabilize.PitchRoll
 import           SMACCMPilot.Flight.Control.Stabilize.Yaw
 
@@ -56,39 +57,42 @@ controlTask s_law s_inpt s_sens s_ctl s_ac_state params = do
       cl   <- local izero
       ui   <- local izero
       sens <- local izero
-
       readData sensReader  sens
       readData clReader    cl
       readData uiReader    ui
 
-      thr_mode <- deref (cl ~> CL.thr_mode)
       armed    <- deref (cl ~> CL.armed_mode)
 
-      pitch_sp <- deref (ui ~> UI.pitch)
-      roll_sp  <- deref (ui ~> UI.roll)
-      yaw_sp   <- deref (ui ~> UI.yaw)
+      -- Run yaw pitch roll controller
+      when (armed ==? A.armed) $ do
+        pitch_sp <- deref (ui ~> UI.pitch)
+        roll_sp  <- deref (ui ~> UI.roll)
+        yaw_sp   <- deref (ui ~> UI.yaw)
 
-      ifte_ (armed ==? A.armed)
-            (prc_run   pitch_roll_ctl pitch_sp roll_sp (constRef sens) >>
-             yc_run    yaw_ctl        yaw_sp           (constRef sens))
-            (prc_reset pitch_roll_ctl >>
-             yc_reset  yaw_ctl)
+        prc_run   pitch_roll_ctl pitch_sp roll_sp (constRef sens)
+        yc_run    yaw_ctl        yaw_sp           (constRef sens)
 
-      ctl  <- local izero
-      prc_state pitch_roll_ctl ctl
-      yc_state  yaw_ctl        ctl
+      unless (armed ==? A.armed) $ do
+        prc_reset pitch_roll_ctl
+        yc_reset  yaw_ctl
 
       -- Run auto throttle controller
       at_update auto_throttle sens ui cl 0.005 -- XXX calc dt?
 
-      -- Set the output throttle accordong to our mode
-      store (ctl ~> CO.throttle) =<< cond
+      -- Set the output throttle according to throttle law
+      thr_mode <- deref (cl ~> CL.thr_mode)
+      thr <- cond
         [ armed    /=? A.armed         ==> return 0
         , thr_mode ==? TM.autothrottle ==> at_output auto_throttle
         , true                         ==> manual_throttle ui
         ]
+
+      -- Gather outputs and emit:
+      ctl  <- local $ istruct [ CO.throttle .= ival thr ]
+      prc_state pitch_roll_ctl ctl
+      yc_state  yaw_ctl        ctl
       emit_ ctlEmitter (constRef ctl)
 
 
 controlModules :: [Module]
-controlModules = [ controlPIDModule ]
+controlModules = [ controlPIDModule, stabCtlModule ]

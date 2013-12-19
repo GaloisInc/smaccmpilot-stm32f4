@@ -14,6 +14,7 @@ import Ivory.Stdlib
 
 import SMACCMPilot.Param
 import SMACCMPilot.Flight.Control.PID
+import SMACCMPilot.Flight.Control.Stabilize.Control
 import SMACCMPilot.Flight.Param
 
 import qualified SMACCMPilot.Flight.Types.Sensors       as SEN
@@ -84,8 +85,8 @@ taskYawControl params = do
     incl run_proc
     incl state_proc
     incl reset_proc
-    incl stabilize_from_rate
     depend controlPIDModule
+    depend stabCtlModule
   return YawControl
     { yc_init  = call_ init_proc
     , yc_run   = call_ run_proc
@@ -93,34 +94,4 @@ taskYawControl params = do
     , yc_reset = call_ reset_proc
     }
 
--- | Return a normalized servo output given a normalized stick input
--- representing the desired rate.  Only uses the rate PID controller.
-stabilize_from_rate :: Def (
- '[ Ref      s1 (Struct "PIDState")     -- rate_pid
-  , ConstRef s2 (Struct "PIDConfig")    -- rate_cfg
-  , IFloat                              -- stick_rate_norm
-  , IFloat                              -- max_stick_rate_deg_s
-  , IFloat                              -- sensor_rate_rad_s
-  , IFloat                              -- max_servo_rate_deg_s
-  ] :-> IFloat)
-stabilize_from_rate = proc "stabilize_from_rate" $
-  \rate_pid rate_cfg stick_rate_norm max_stick_rate_deg_s
-   sensor_rate_rad_s max_servo_rate_deg_s ->
-  requires (max_servo_rate_deg_s /=? 0) $ body $
-  do
-  stick_rate_deg_s  <- assign $ stick_rate_norm * max_stick_rate_deg_s
-  sensor_rate_deg_s <- assign $ degrees sensor_rate_rad_s
-  rate_error        <- assign $ stick_rate_deg_s - sensor_rate_deg_s
-  servo_rate_deg_s  <- call pid_update rate_pid rate_cfg rate_error sensor_rate_deg_s
-  servo_rate_norm   <- call fconstrain (-max_servo_rate_deg_s)
-                            max_servo_rate_deg_s servo_rate_deg_s
-  ret $ servo_rate_norm / max_servo_rate_deg_s
-
-
-----------------------------------------------------------------------
--- Math Utilities (move into a Math.hs?)
-
--- | Convert an angle in radians to degrees.
-degrees :: (Fractional a) => a -> a
-degrees x = x * 57.295779513082320876798154814105
 
