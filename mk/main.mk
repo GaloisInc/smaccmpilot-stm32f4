@@ -45,6 +45,7 @@ include mk/cbmc.mk
 include mk/frama-c-check.mk
 include mk/conditional.mk
 include mk/cppcheck.mk
+include mk/mavlink.mk
 
 define project
   include $(1)/build.mk
@@ -56,7 +57,7 @@ OTHER_TARGETS :=
 $(foreach p,$(shell find . -name build.mk -exec dirname {} \;), \
           $(eval $(call project,$(p))))
 
-ALL_TARGETS := $(LIBRARIES) $(IMAGES) $(OTHER_TARGETS)
+ALL_TARGETS := $(MAVLINK) $(LIBRARIES) $(IMAGES) $(OTHER_TARGETS)
 ALL_DEPS    := $(patsubst %.o,%.d,$(ALL_OBJECTS))
 
 ######################################################################
