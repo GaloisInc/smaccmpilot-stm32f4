@@ -1,3 +1,0 @@
-[submodule "src/gcs/mavlink"]
-	path = src/gcs/mavlink
-	url = https://github.com/GaloisInc/mavlink.git
