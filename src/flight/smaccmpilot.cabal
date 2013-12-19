@@ -34,7 +34,6 @@ library
 
                        SMACCMPilot.Flight.Control,
                        SMACCMPilot.Flight.Control.PID,
-                       SMACCMPilot.Flight.Control.Task,
 
                        SMACCMPilot.Flight.Control.Altitude.AutoThrottle,
                        SMACCMPilot.Flight.Control.Altitude.Estimator,
