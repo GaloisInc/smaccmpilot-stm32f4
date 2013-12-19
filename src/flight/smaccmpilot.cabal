@@ -43,7 +43,6 @@ library
                        SMACCMPilot.Flight.Control.Altitude.PositionPID,
                        SMACCMPilot.Flight.Control.Altitude.ThrottleUI,
 
-                       SMACCMPilot.Flight.Control.Stabilize,
                        SMACCMPilot.Flight.Control.Stabilize.PitchRoll,
                        SMACCMPilot.Flight.Control.Stabilize.Yaw,
 
