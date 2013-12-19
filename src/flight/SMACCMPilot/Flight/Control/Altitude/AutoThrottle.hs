@@ -79,14 +79,12 @@ taskAutoThrottle params ahWriter = do
           sensor_alt  <- deref (sens ~> S.baro_alt)
           sensor_time <- deref (sens ~> S.baro_time)
           ae_measurement alt_estimator sensor_alt sensor_time
-          ae_write_debug alt_estimator state_dbg
-
-          ui_update ui_control enabled ui dt
-          ui_write_debug ui_control state_dbg
 
           when enabled $ do
+            -- update setpoint ui
+            tui_update      ui_control ui dt
             -- update position controller
-            (ui_alt, ui_vz) <- ui_setpoint ui_control
+            (ui_alt, ui_vz) <- tui_setpoint ui_control
             vz_control      <- pos_pid_calculate position_pid ui_alt ui_vz dt
             store (state_dbg ~> A.pos_rate_setp) vz_control
 
@@ -97,15 +95,18 @@ taskAutoThrottle params ahWriter = do
               thrust_pid_set_integral thrust_pid new_integral
             -- calculate thrust pid
             uncomp_thr_setpt <- thrust_pid_calculate thrust_pid vz_control dt
-            thrust_pid_write_debug thrust_pid state_dbg
             r22              <- sensorsR22 sens
             setpt <- assign ((throttleR22Comp r22) * uncomp_thr_setpt)
             store thr_setpt ((setpt >? 1.0) ? (1.0, setpt))
 
           unless enabled $ do
+            tui_reset       ui_control
             -- Reset derivative tracking when not using thrust controller
             thrust_pid_init thrust_pid
 
+          tui_write_debug ui_control state_dbg
+          ae_write_debug alt_estimator state_dbg
+          thrust_pid_write_debug thrust_pid state_dbg
           writeData ahWriter (constRef state_dbg)
 
   taskModuleDef $ incl proc_at_update

@@ -18,13 +18,13 @@ import           SMACCMPilot.Param
 
 data ThrottleUI =
   ThrottleUI
-    { ui_update :: forall eff s
-                 . IBool -- autothrottle enabled
-                -> Ref s (Struct "userinput_result")
+    { tui_update :: forall eff s
+                 . Ref s (Struct "userinput_result")
                 -> IFloat -- dt
                 -> Ivory eff ()
-    , ui_setpoint :: forall eff . Ivory eff (IFloat, IFloat)
-    , ui_write_debug :: forall eff s . Ref s (Struct "alt_control_dbg")
+    , tui_reset  :: forall eff . Ivory eff ()
+    , tui_setpoint :: forall eff . Ivory eff (IFloat, IFloat)
+    , tui_write_debug :: forall eff s . Ref s (Struct "alt_control_dbg")
                      -> Ivory eff ()
     }
 
@@ -34,21 +34,18 @@ taskThrottleUI params estimator = do
   alt_setpoint <- taskLocal "alt_setpoint"
   vel_setpoint <- taskLocal "vel_setpoint"
   active_state <- taskLocalInit "active_state" (ival false)
-  let proc_update :: Def('[ IBool
-                          , Ref s2 (Struct "userinput_result")
+  let proc_update :: Def('[ Ref s (Struct "userinput_result")
                           , IFloat -- dt
                           ] :-> ())
-      proc_update  = proc ("throttle_ui_update" ++ show uniq) $
-        \enabled ui dt -> body $ do
+      proc_update  = proc ("throttle_ui_update_" ++ show uniq) $
+        \ui dt -> body $ do
           sr <- stickrate params ui
           store vel_setpoint sr
 
           active <- deref active_state
           (alt_est, _) <- ae_state estimator
           cond_
-            [ iNot enabled
-                ==> store active_state false
-            , iNot active ==> do
+            [ iNot active ==> do
                 store alt_setpoint alt_est
                 store active_state true
             , active ==> do
@@ -63,12 +60,13 @@ taskThrottleUI params estimator = do
 
   taskModuleDef $ incl proc_update
   return ThrottleUI
-    { ui_update   = call_ proc_update
-    , ui_setpoint = do
+    { tui_update   = call_ proc_update
+    , tui_reset    = store active_state false
+    , tui_setpoint = do
         a <- deref alt_setpoint
         v <- deref vel_setpoint
         return (a,v)
-    , ui_write_debug = \dbg -> do
+    , tui_write_debug = \dbg -> do
         a <- deref alt_setpoint
         v <- deref vel_setpoint
         store (dbg ~> D.ui_setp) a
