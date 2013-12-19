@@ -16,6 +16,7 @@ import qualified SMACCMPilot.Flight.Types.ControlLawRequest as R
 import qualified SMACCMPilot.Flight.Types.ControlLaw        as L
 import qualified SMACCMPilot.Flight.Types.ControlSource     as S
 import qualified SMACCMPilot.Flight.Types.ThrottleMode      as T
+import qualified SMACCMPilot.Flight.Types.YawMode           as Y
 
 data ModeRequestMachine
   = ModeRequestMachine
@@ -74,6 +75,7 @@ taskModeRequestMachine = do
       update ::  Def('[ Ref s (Struct "control_law") ] :->())
       update = proc (named "update") $ \law -> body $ do
         decide_stab_ctl    >>= store (law ~> L.stab_ctl)
+        decide_yaw_mode    >>= store (law ~> L.yaw_mode)
         decide_thr_mode    >>= store (law ~> L.thr_mode)
         decide_autothr_ctl >>= store (law ~> L.autothr_ctl)
 
@@ -87,6 +89,19 @@ taskModeRequestMachine = do
           [ stab_mav_ppm  .&& stab_mav_mav   ==> return S.mavlink
           , stab_auto_ppm .&& stab_auto_auto ==> return S.auto
           , true ==> return S.ppm -- Always default to PPM
+          ]
+
+      decide_yaw_mode :: Ivory (ProcEffects s ()) Y.YawMode
+      decide_yaw_mode = do
+        stab_src     <- decide_stab_ctl
+        yaw_head_ppm  <- deref (ppm_req  ~> R.set_yaw_heading)
+        yaw_head_mav  <- deref (mav_req  ~> R.set_yaw_heading)
+        yaw_head_auto <- deref (auto_req ~> R.set_yaw_heading)
+        cond
+          [ stab_src ==? S.ppm     .&& yaw_head_ppm  ==> return Y.heading
+          , stab_src ==? S.mavlink .&& yaw_head_mav  ==> return Y.heading
+          , stab_src ==? S.auto    .&& yaw_head_auto ==> return Y.heading
+          , true ==> return Y.rate
           ]
 
       decide_thr_mode :: Ivory (ProcEffects s ()) T.ThrottleMode

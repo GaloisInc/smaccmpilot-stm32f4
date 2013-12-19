@@ -69,6 +69,8 @@ taskModeSwitch = do
               store (cl_req ~> CL.set_stab_ppm)     true
               store (cl_req ~> CL.set_stab_mavlink) true
               store (cl_req ~> CL.set_stab_auto)    true
+              -- for testing, yaw is heading mode when switch up:
+              store (cl_req ~> CL.set_yaw_heading)  true
               -- Altitude must be autothrottle:
               store (cl_req ~> CL.set_thr_direct)   false
               store (cl_req ~> CL.set_thr_auto)     true
@@ -81,6 +83,8 @@ taskModeSwitch = do
               store (cl_req ~> CL.set_stab_ppm)     true
               store (cl_req ~> CL.set_stab_mavlink) false
               store (cl_req ~> CL.set_stab_auto)    false
+              -- Yaw is in rate mode
+              store (cl_req ~> CL.set_yaw_rate)     true
               -- Altitude must be autothrottle:
               store (cl_req ~> CL.set_thr_direct)   false
               store (cl_req ~> CL.set_thr_auto)     true
@@ -93,6 +97,8 @@ taskModeSwitch = do
               store (cl_req ~> CL.set_stab_ppm)     true
               store (cl_req ~> CL.set_stab_mavlink) false
               store (cl_req ~> CL.set_stab_auto)    false
+              -- Yaw is in rate mode
+              store (cl_req ~> CL.set_yaw_rate)     true
               -- Altitude must be direct
               store (cl_req ~> CL.set_thr_direct)   true
               store (cl_req ~> CL.set_thr_auto)     false
