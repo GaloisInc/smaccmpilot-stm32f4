@@ -352,11 +352,10 @@ mkSendVehCommsec :: Def ('[ Ref s2 (Stored Uint8)
 mkSendVehCommsec = proc "gcs_transmit_send_veh_commsec" $
   \seqNum sendStruct -> body $ do
   msg <- local $ istruct
-    [ VC.time        .= ival 1
-    , VC.state_cntr  .= ival 2
-    , VC.bad_len     .= ival 3
-    , VC.bad_decrypt .= ival 4
-    , VC.bad_tag     .= ival 5
+    [ VC.good_msgs   .= ival 1
+    , VC.bad_msgs    .= ival 2
+    , VC.time        .= ival 3
+    , VC.commsec_err .= ival 4
     ]
   call_ VC.mkVehCommsecSender (constRef msg) seqNum sendStruct
 
