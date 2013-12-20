@@ -56,3 +56,37 @@ class Num a => FrameTag a where
 
 instance FrameTag Word8
 instance FrameTag Uint8
+
+--------------------------------------------------------------------------------
+
+-- Commsec error reporting, based on commsec.h
+
+class Num a => CommsecError a where
+  commsecSuccess         :: a
+  commsecSuccess         = 0
+  commsecFailBadID       :: a
+  commsecFailBadID       = 1
+  commsecFailDupCtr      :: a
+  commsecFailDupCtr      = 2
+  commsecFailCtrRollover :: a
+  commsecFailCtrRollover = 3
+  -- Yes, we skip 4.
+  commsecFailMsgLen      :: a
+  commsecFailMsgLen      = 5
+  commsecFailGCM         :: a
+  commsecFailGCM         = 6
+
+instance CommsecError Word32
+instance CommsecError Uint32
+
+showCommsecErrors :: (Show a, Eq a, Num a) => a -> String
+showCommsecErrors a = case a of
+  0 -> "Successful decrypt"
+  1 -> hdr "Out-of-range identifier"
+  2 -> hdr "Stale counter"
+  3 -> hdr "Counter rollover"
+  4 -> hdr "Message is too long"
+  5 -> hdr "Bad GCM (IV mismatch)"
+  _ -> "Unexpeced commsec error mesage: " ++ show a
+  where
+  hdr msg = "Failed decrypt!" ++ msg

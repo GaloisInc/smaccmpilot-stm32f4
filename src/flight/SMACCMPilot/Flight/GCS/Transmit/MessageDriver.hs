@@ -348,18 +348,13 @@ mkSendRadio = proc "gcs_transmit_send_radio" $
     ])
   call_ VR.mkVehicleRadioSender (constRef msg) seqNum sendStruct
 
-mkSendVehCommsec :: Def ('[ Ref s2 (Stored Uint8)
+mkSendVehCommsec :: Def ('[ ConstRef s (Struct "veh_commsec_msg")
+                          , Ref s2 (Stored Uint8)
                           , Ref s2 (Struct "mavlinkPacket")
                           ] :-> ())
 mkSendVehCommsec = proc "gcs_transmit_send_veh_commsec" $
-  \seqNum sendStruct -> body $ do
-  msg <- local $ istruct
-    [ VC.good_msgs   .= ival 1
-    , VC.bad_msgs    .= ival 2
-    , VC.time        .= ival 3
-    , VC.commsec_err .= ival 4
-    ]
-  call_ VC.mkVehCommsecSender (constRef msg) seqNum sendStruct
+  \commInfo seqNum sendStruct -> body $
+    call_ VC.mkVehCommsecSender commInfo seqNum sendStruct
 
 mkSendAltCtlDebug :: Def ('[ ConstRef s1 (Struct "alt_control_dbg")
                            , Ref      s2 (Stored Uint8)
@@ -436,6 +431,7 @@ senderModules = package "senderModules" $ do
 --  depend R.dataRateTypeModule
   depend RStat.radioStatTypeModule
   depend VR.vehicleRadioModule
+  depend VC.vehCommsecModule
   depend Alt.altControlDebugTypeModule
   depend Att.attControlDebugTypeModule
   depend mavlinkSendModule

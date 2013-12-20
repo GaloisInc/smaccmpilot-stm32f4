@@ -38,22 +38,25 @@ gcsTransmitTask :: (SingI n0, SingI n1, SingI n2)
                 -> DataSink         (Struct "alt_control_dbg")
                 -> DataSink         (Struct "att_control_dbg")
                 -> ChannelSink n2   (Stored Sint16)
+                -> DataSink         (Struct "veh_commsec_msg")
                 -> [Param PortPair]
                 -> Task p ()
 gcsTransmitTask mavStream sp_sink cl_sink se_sink ps_sink
-                ct_sink mo_sink ra_sink alt_sink att_sink param_req_sink params
+                ct_sink mo_sink ra_sink alt_sink att_sink
+                param_req_sink commsec_info_sink params
   = do
   withStackSize 1024
 
-  clReader         <- withDataReader cl_sink "controllaw"
-  sensorsReader    <- withDataReader se_sink "sensors"
-  posReader        <- withDataReader ps_sink "position"
-  ctlReader        <- withDataReader ct_sink "control"
-  motorReader      <- withDataReader mo_sink "motors"
-  radioReader      <- withDataReader ra_sink "radio"
-  altControlReader <- withDataReader alt_sink "alt_control"
-  attControlReader <- withDataReader att_sink "att_control"
-  mavTx            <- withChannelEmitter mavStream "gcsTxToEncSrc"
+  clReader          <- withDataReader cl_sink "controllaw"
+  sensorsReader     <- withDataReader se_sink "sensors"
+  posReader         <- withDataReader ps_sink "position"
+  ctlReader         <- withDataReader ct_sink "control"
+  motorReader       <- withDataReader mo_sink "motors"
+  radioReader       <- withDataReader ra_sink "radio"
+  altControlReader  <- withDataReader alt_sink "alt_control"
+  attControlReader  <- withDataReader att_sink "att_control"
+  mavTx             <- withChannelEmitter mavStream "gcsTxToEncSrc"
+  commsecInfoReader <- withDataReader commsec_info_sink "commsecInfo"
 
   -- the mavlink packet we're packing
   mavlinkStruct  <-
@@ -189,7 +192,9 @@ gcsTransmitTask mavStream sp_sink cl_sink se_sink ps_sink
           processMav T.params
 
     onStream T.veh_commsec $ do
-      call_ mkSendVehCommsec seqNum mavlinkStruct
+      commInfo <- local (istruct [])
+      readData commsecInfoReader commInfo
+      call_ mkSendVehCommsec (constRef commInfo) seqNum mavlinkStruct
       processMav T.veh_commsec
 
     onStream T.radio $ do

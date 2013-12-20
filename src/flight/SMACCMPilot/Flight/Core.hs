@@ -20,6 +20,7 @@ import           SMACCMPilot.Mavlink.Send     (mavlinkSendModule)
 import           SMACCMPilot.Mavlink.Receive  (mavlinkReceiveStateModule)
 import           SMACCMPilot.Mavlink.CRC      (mavlinkCRCModule)
 import           SMACCMPilot.Mavlink.Pack     (packModule)
+import           SMACCMPilot.Mavlink.Messages.VehCommsec (vehCommsecModule)
 
 import           SMACCMPilot.Flight.GCS.Transmit.MessageDriver (senderModules)
 import           SMACCMPilot.Flight.BlinkTask
@@ -76,6 +77,7 @@ core sys = do
                         controllaw
                         (src motors)
 
+  addDepends vehCommsecModule
   mapM_ addDepends typeModules
   mapM_ addModule otherms
 
@@ -109,7 +111,7 @@ core sys = do
     -- the rest:
     -- hxstream
     , hxstreamModule
-
+    -- Used in channels
     , senderModules
     , mavlinkSendModule
     , mavlinkReceiveStateModule

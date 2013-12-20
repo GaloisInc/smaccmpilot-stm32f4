@@ -104,6 +104,8 @@ gcsTowerAux name opts istream ostream cl_state ctl_req sens pos
   (gcsTxToEncSrc, gcsTxToEncRcv) <- channel
   -- GCS RX and decrypt tasks
   (decToGcsRxSrc, decToGcsRxRcv) <- channel
+  -- Commsec reporter, to GCS TX from decrypter
+  (commsec_reporter_src, commsec_reporter_snk) <- dataport
 
   streamrate <- channel
   -- XXX hack to make sure we can send all parameters on "fetch"
@@ -121,7 +123,8 @@ gcsTowerAux name opts istream ostream cl_state ctl_req sens pos
   radioStat <- stateProxy ("radio_status_" ++ name) radioStatStream
 
   -- Rx
-  task (named "decryptTask") $ Dec.decryptTask opts hxToDecRcv decToGcsRxSrc
+  task (named "decryptTask") $
+    Dec.decryptTask opts hxToDecRcv decToGcsRxSrc commsec_reporter_src
   task (named "gcsReceiveTask") $
     gcsReceiveTask decToGcsRxRcv (src streamrate) (src hil)
       ctl_req (src param_req) rc_ovr params
@@ -130,7 +133,8 @@ gcsTowerAux name opts istream ostream cl_state ctl_req sens pos
   task (named "encryptTask") $ Enc.encryptTask opts gcsTxToEncRcv encToHxSrc
   task (named "gcsTransmitTask") $
     gcsTransmitTask gcsTxToEncSrc (snk streamrate) cl_state
-      sens pos ctl motor radioStat alt_snk att_snk (snk param_req) params
+      sens pos ctl motor radioStat alt_snk att_snk
+      (snk param_req) commsec_reporter_snk params
   addDepends HIL.hilStateModule
   mapM_ addDepends stdlibModules
   return (snk hil)
