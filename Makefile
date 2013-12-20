@@ -72,3 +72,7 @@ framac-check: default
 
 clean:
 	-rm -rf ./build
+
+include mk/mavlink.mk
+mavlink: $(MAVLINK_TARGETS)
+
