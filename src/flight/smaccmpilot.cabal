@@ -47,6 +47,7 @@ library
                        SMACCMPilot.Flight.Control.Attitude.Stabilize,
                        SMACCMPilot.Flight.Control.Attitude.PitchRoll,
                        SMACCMPilot.Flight.Control.Attitude.Yaw,
+                       SMACCMPilot.Flight.Control.Attitude.YawUI,
 
                        SMACCMPilot.Flight.Datalink,
                        SMACCMPilot.Flight.Datalink.AirData,
@@ -81,6 +82,7 @@ library
                        SMACCMPilot.Flight.Types.ThrottleMode,
                        SMACCMPilot.Flight.Types.ControlLawRequest,
                        SMACCMPilot.Flight.Types.YawMode,
+                       SMACCMPilot.Flight.Types.AttControlDebug,
 
                        SMACCMPilot.Flight.UserInput.PPM,
                        SMACCMPilot.Flight.UserInput.PPM.ArmingMachine,

@@ -17,6 +17,7 @@ import SMACCMPilot.Flight.Types.MaybeFloat (maybeFloatModule)
 import SMACCMPilot.Flight.Types.AltControlDebug (altControlDebugTypeModule)
 import SMACCMPilot.Flight.Types.ControlLaw (controlLawTypeModule)
 import SMACCMPilot.Flight.Types.ControlLawRequest (controlLawRequestTypeModule)
+import SMACCMPilot.Flight.Types.AttControlDebug (attControlDebugTypeModule)
 
 typeModules :: [Module]
 typeModules =
@@ -32,4 +33,5 @@ typeModules =
   , altControlDebugTypeModule
   , controlLawTypeModule
   , controlLawRequestTypeModule
+  , attControlDebugTypeModule
   ]
