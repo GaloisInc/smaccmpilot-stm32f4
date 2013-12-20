@@ -16,16 +16,15 @@ import qualified SMACCMPilot.Flight.Types.ControlLaw    as CL
 import qualified SMACCMPilot.Flight.Types.ControlOutput as CO
 import qualified SMACCMPilot.Flight.Types.AttControlDebug ()
 
+import           SMACCMPilot.Flight.Control.Attitude.Stabilize (attStabilizeModule)
 import SMACCMPilot.Param
 import SMACCMPilot.Flight.Param
 
 import           SMACCMPilot.Flight.Control.PID
 import qualified SMACCMPilot.Flight.Types.ArmedMode     as A
-import           SMACCMPilot.Flight.Control.Attitude.Stabilize
-import           SMACCMPilot.Flight.Control.Attitude.PitchRoll
-import           SMACCMPilot.Flight.Control.Attitude.Yaw
 
-import           SMACCMPilot.Flight.Control.Altitude.AutoThrottle
+import           SMACCMPilot.Flight.Control.Altitude
+import           SMACCMPilot.Flight.Control.Attitude
 import           SMACCMPilot.Flight.Control.Altitude.ThrottleTracker (manual_throttle)
 
 controlTask :: (SingI n)
@@ -41,20 +40,15 @@ controlTask s_law s_inpt s_sens s_ctl s_alt_dbg s_att_dbg params = do
   clReader      <- withDataReader s_law  "control_law"
   uiReader      <- withDataReader s_inpt "userinput"
   sensReader    <- withDataReader s_sens "sensors"
-  altWriter     <- withDataWriter s_alt_dbg "alt_control_dbg"
-  attWriter     <- withDataWriter s_att_dbg "att_control_dbg"
   ctlEmitter    <- withChannelEmitter s_ctl  "control"
 
   param_reader  <- paramReader params
 
-  pitch_roll_ctl <- taskPitchRollControl param_reader
-  yaw_ctl        <- taskYawControl       param_reader
-  auto_throttle  <- taskAutoThrottle (flightAltitude param_reader) altWriter
+  alt_control    <- taskAltitudeControl (flightAltitude param_reader) s_alt_dbg
+  att_control    <- taskAttitudeControl param_reader s_att_dbg
 
   taskInit $ do
-    at_init auto_throttle
-    prc_init pitch_roll_ctl
-
+    alt_init alt_control
 
   onPeriod 5 $ \_now -> do
       cl   <- local izero
@@ -64,36 +58,23 @@ controlTask s_law s_inpt s_sens s_ctl s_alt_dbg s_att_dbg params = do
       readData clReader    cl
       readData uiReader    ui
 
-      armed    <- deref (cl ~> CL.armed_mode)
+      -- Run altitude and attitude controllers
+      alt_update alt_control sens ui cl 0.005 -- XXX calc dt?
+      att_update att_control sens ui cl 0.005
 
-      -- Run yaw pitch roll controller
-      when (armed ==? A.armed) $ do
-        pitch_sp <- deref (ui ~> UI.pitch)
-        roll_sp  <- deref (ui ~> UI.roll)
-        yaw_sp   <- deref (ui ~> UI.yaw)
-
-        prc_run   pitch_roll_ctl pitch_sp roll_sp (constRef sens)
-        yc_run    yaw_ctl        yaw_sp           (constRef sens)
-
-      unless (armed ==? A.armed) $ do
-        prc_reset pitch_roll_ctl
-        yc_reset  yaw_ctl
-
-      -- Run auto throttle controller
-      at_update auto_throttle sens ui cl 0.005 -- XXX calc dt?
-
-      -- Set the output throttle according to throttle law
-      thr_mode <- deref (cl ~> CL.thr_mode)
-      thr <- cond
-        [ armed    /=? A.armed         ==> return 0
-        , thr_mode ==? TM.autothrottle ==> at_output auto_throttle
-        , true                         ==> manual_throttle ui
+      -- Defaults for disarmed:
+      ctl <- local $ istruct
+        [ CO.throttle .= ival 0
+        , CO.roll     .= ival 0
+        , CO.pitch    .= ival 0
+        , CO.yaw      .= ival 0
         ]
 
-      -- Gather outputs and emit:
-      ctl  <- local $ istruct [ CO.throttle .= ival thr ]
-      prc_state pitch_roll_ctl ctl
-      yc_state  yaw_ctl        ctl
+      armed <- deref (cl ~> CL.armed_mode)
+      when (armed ==? A.armed) $ do
+        alt_output alt_control ctl
+        att_output att_control ctl
+
       emit_ ctlEmitter (constRef ctl)
 
 

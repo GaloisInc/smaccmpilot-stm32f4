@@ -7,7 +7,10 @@
 -- the PX4 Autopilot Project
 -- https://github.com/PX4/Firmware/tree/master/src/modules/multirotor_pos_control
 
-module SMACCMPilot.Flight.Control.Altitude.AutoThrottle where
+module SMACCMPilot.Flight.Control.Altitude
+  ( AltitudeControl(..)
+  , taskAltitudeControl
+  ) where
 
 import Ivory.Language
 import Ivory.Tower
@@ -25,25 +28,27 @@ import qualified SMACCMPilot.Flight.Types.ThrottleMode    as TM
 import qualified SMACCMPilot.Flight.Types.ArmedMode       as A
 import qualified SMACCMPilot.Flight.Types.Sensors         as S
 import           SMACCMPilot.Flight.Types.UserInput       ()
+import qualified SMACCMPilot.Flight.Types.ControlOutput as CO
 import           SMACCMPilot.Flight.Param
 import           SMACCMPilot.Param
 
-data AutoThrottle =
-  AutoThrottle
-    { at_init   :: forall eff   . Ivory eff ()
-    , at_update :: forall eff s1 s2 s3
+data AltitudeControl =
+   AltitudeControl
+    { alt_init   :: forall eff   . Ivory eff ()
+    , alt_update :: forall eff s1 s2 s3
                  . Ref s1 (Struct "sensors_result")
                 -> Ref s2 (Struct "userinput_result")
                 -> Ref s3 (Struct "control_law")
                 -> IFloat -- dt, seconds
                 -> Ivory eff ()
-    , at_output :: forall eff   . Ivory eff IFloat
+    , alt_output :: forall eff s . Ref s (Struct "controloutput")
+                              -> Ivory eff ()
     }
 
-taskAutoThrottle :: AltitudeParams ParamReader
-                 -> DataWriter (Struct "alt_control_dbg")
-                 -> Task p AutoThrottle
-taskAutoThrottle params ahWriter = do
+taskAltitudeControl :: AltitudeParams ParamReader
+                    -> DataSource (Struct "alt_control_dbg")
+                    -> Task p AltitudeControl
+taskAltitudeControl params altDbgSrc = do
   uniq <- fresh
   -- Alt estimator filters noisy sensor into altitude & its derivative
   alt_estimator    <- taskAltEstimator
@@ -57,21 +62,31 @@ taskAutoThrottle params ahWriter = do
   -- UI controls Position setpoint from user stick input
   ui_control       <- taskThrottleUI  (altitudeUI         params) alt_estimator
   -- setpoint: result of the whole autothrottle calculation
-  thr_setpt        <- taskLocal "thr_setpt"
+  at_setpt <- taskLocal "at_setpt"
+  -- setpoint for manual passthrough control, and a boolean indicating
+  -- whether autothrottle is valid or not
+  ui_setpt <- taskLocal "ui_setpt"
+  at_enabled <- taskLocal "at_enabled"
+
+  altDbgWriter <- withDataWriter altDbgSrc "alt_control_dbg"
+
   -- state is saved in a struct, to be marshalled into a mavlink message
   state_dbg        <- taskLocal "state_debug"
-  let proc_at_update :: Def('[ Ref s1 (Struct "sensors_result")
-                             , Ref s2 (Struct "userinput_result")
-                             , Ref s3 (Struct "control_law")
-                             , IFloat
-                             ]:->())
-      proc_at_update = proc ("at_update_" ++ show uniq) $
-        \sens ui cl dt -> body $ do
+  let named n = "alt_ctl_" ++ n ++ "_" ++ show uniq
+      proc_alt_update :: Def('[ Ref s1 (Struct "sensors_result")
+                              , Ref s2 (Struct "userinput_result")
+                              , Ref s3 (Struct "control_law")
+                              , IFloat
+                              ]:->())
+      proc_alt_update = proc (named "update") $ \sens ui cl dt -> body $ do
 
           thr_mode <- deref (cl ~> CL.thr_mode)
           armed_mode <- deref (cl ~> CL.armed_mode)
           enabled <- assign ((thr_mode ==? TM.autothrottle)
                          .&& (armed_mode ==? A.armed))
+
+          store ui_setpt =<< manual_throttle ui
+          store at_enabled enabled
 
           -- Update estimators
           tt_update throttle_tracker ui enabled
@@ -97,7 +112,7 @@ taskAutoThrottle params ahWriter = do
             uncomp_thr_setpt <- thrust_pid_calculate thrust_pid vz_control dt
             r22              <- sensorsR22 sens
             setpt <- assign ((throttleR22Comp r22) * uncomp_thr_setpt)
-            store thr_setpt ((setpt >? 1.0) ? (1.0, setpt))
+            store at_setpt ((setpt >? 1.0) ? (1.0, setpt))
 
           unless enabled $ do
             tui_reset       ui_control
@@ -107,16 +122,27 @@ taskAutoThrottle params ahWriter = do
           tui_write_debug ui_control state_dbg
           ae_write_debug alt_estimator state_dbg
           thrust_pid_write_debug thrust_pid state_dbg
-          writeData ahWriter (constRef state_dbg)
+          writeData altDbgWriter (constRef state_dbg)
+      proc_alt_output :: Def('[Ref s (Struct "controloutput")]:->())
+      proc_alt_output = proc (named "output") $ \out -> body $ do
+        at <- deref at_setpt
+        en <- deref at_enabled
+        ui <- deref ui_setpt
+        ifte_ en
+          (store (out ~> CO.throttle) at)
+          (store (out ~> CO.throttle) ui)
 
-  taskModuleDef $ incl proc_at_update
-  return AutoThrottle
-    { at_init = do
+  taskModuleDef $ do
+    incl proc_alt_update
+    incl proc_alt_output
+  return AltitudeControl
+    { alt_init = do
+        store at_enabled false
         ae_init alt_estimator
         tt_init throttle_tracker
         thrust_pid_init thrust_pid
-    , at_update = call_ proc_at_update
-    , at_output = deref thr_setpt
+    , alt_update = call_ proc_alt_update
+    , alt_output = call_ proc_alt_output
     }
 
 -- | Calculate R22 factor, product of cosines of roll & pitch angles
