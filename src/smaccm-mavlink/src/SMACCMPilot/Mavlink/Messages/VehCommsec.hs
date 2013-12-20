@@ -21,7 +21,7 @@ vehCommsecMsgId :: Uint8
 vehCommsecMsgId = 185
 
 vehCommsecCrcExtra :: Uint8
-vehCommsecCrcExtra = 202
+vehCommsecCrcExtra = 31
 
 vehCommsecModule :: Module
 vehCommsecModule = package "mavlink_veh_commsec_msg" $ do
@@ -33,11 +33,10 @@ vehCommsecModule = package "mavlink_veh_commsec_msg" $ do
 
 [ivory|
 struct veh_commsec_msg
-  { time :: Stored Uint32
-  ; state_cntr :: Stored Uint32
-  ; bad_len :: Stored Uint8
-  ; bad_decrypt :: Stored Uint8
-  ; bad_tag :: Stored Uint8
+  { good_msgs :: Stored Uint64
+  ; bad_msgs :: Stored Uint64
+  ; time :: Stored Uint32
+  ; commsec_err :: Stored Uint8
   }
 |]
 
@@ -50,25 +49,24 @@ mkVehCommsecSender =
   proc "mavlink_veh_commsec_msg_send"
   $ \msg seqNum sendStruct -> body
   $ do
-  arr <- local (iarray [] :: Init (Array 11 (Stored Uint8)))
+  arr <- local (iarray [] :: Init (Array 21 (Stored Uint8)))
   let buf = toCArray arr
-  call_ pack buf 0 =<< deref (msg ~> time)
-  call_ pack buf 4 =<< deref (msg ~> state_cntr)
-  call_ pack buf 8 =<< deref (msg ~> bad_len)
-  call_ pack buf 9 =<< deref (msg ~> bad_decrypt)
-  call_ pack buf 10 =<< deref (msg ~> bad_tag)
+  call_ pack buf 0 =<< deref (msg ~> good_msgs)
+  call_ pack buf 8 =<< deref (msg ~> bad_msgs)
+  call_ pack buf 16 =<< deref (msg ~> time)
+  call_ pack buf 20 =<< deref (msg ~> commsec_err)
   -- 6: header len, 2: CRC len
-  let usedLen    = 6 + 11 + 2 :: Integer
+  let usedLen    = 6 + 21 + 2 :: Integer
   let sendArr    = sendStruct ~> mav_array
   let sendArrLen = arrayLen sendArr
   if sendArrLen < usedLen
-    then error "vehCommsec payload of length 11 is too large!"
+    then error "vehCommsec payload of length 21 is too large!"
     else do -- Copy, leaving room for the payload
             arrayCopy sendArr arr 6 (arrayLen arr)
             call_ mavlinkSendWithWriter
                     vehCommsecMsgId
                     vehCommsecCrcExtra
-                    11
+                    21
                     seqNum
                     sendStruct
 
@@ -79,9 +77,8 @@ vehCommsecUnpack :: Def ('[ Ref s1 (Struct "veh_commsec_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
 vehCommsecUnpack = proc "mavlink_veh_commsec_unpack" $ \ msg buf -> body $ do
-  store (msg ~> time) =<< call unpack buf 0
-  store (msg ~> state_cntr) =<< call unpack buf 4
-  store (msg ~> bad_len) =<< call unpack buf 8
-  store (msg ~> bad_decrypt) =<< call unpack buf 9
-  store (msg ~> bad_tag) =<< call unpack buf 10
+  store (msg ~> good_msgs) =<< call unpack buf 0
+  store (msg ~> bad_msgs) =<< call unpack buf 8
+  store (msg ~> time) =<< call unpack buf 16
+  store (msg ~> commsec_err) =<< call unpack buf 20
 
