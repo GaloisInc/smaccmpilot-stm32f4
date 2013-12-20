@@ -46,6 +46,7 @@ decryptTask opts rx tx commsec_info_src = do
       emit_ emitter (constRef payload)
 
     -- Pack the reporter struct.
+    store theTime =<< getTimeMillis t
     reporter reporterStruct res (constRef theTime)
     writeData commWriter (constRef reporterStruct)
 
@@ -68,11 +69,5 @@ reporter commRef res theTimeRef = do
                t <- deref theTimeRef
                (commRef ~> V.time) += t
         ]
-
---do goods <- deref store (ref ~> V.good_msgs)
-
---   curr <- getTimeMillis t
---   return ()
-
 
 
