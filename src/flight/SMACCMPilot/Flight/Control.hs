@@ -14,6 +14,7 @@ import qualified SMACCMPilot.Flight.Types.ThrottleMode  as TM
 import qualified SMACCMPilot.Flight.Types.UserInput     as UI
 import qualified SMACCMPilot.Flight.Types.ControlLaw    as CL
 import qualified SMACCMPilot.Flight.Types.ControlOutput as CO
+import qualified SMACCMPilot.Flight.Types.AttControlDebug ()
 
 import SMACCMPilot.Param
 import SMACCMPilot.Flight.Param
@@ -33,20 +34,22 @@ controlTask :: (SingI n)
             -> DataSink (Struct "sensors_result")
             -> ChannelSource n (Struct "controloutput")
             -> DataSource (Struct "alt_control_dbg")
+            -> DataSource (Struct "att_control_dbg")
             -> FlightParams ParamSink
             -> Task p ()
-controlTask s_law s_inpt s_sens s_ctl s_ac_state params = do
+controlTask s_law s_inpt s_sens s_ctl s_alt_dbg s_att_dbg params = do
   clReader      <- withDataReader s_law  "control_law"
   uiReader      <- withDataReader s_inpt "userinput"
   sensReader    <- withDataReader s_sens "sensors"
-  acWriter      <- withDataWriter s_ac_state "alt_control_dbg"
+  altWriter     <- withDataWriter s_alt_dbg "alt_control_dbg"
+  attWriter     <- withDataWriter s_att_dbg "att_control_dbg"
   ctlEmitter    <- withChannelEmitter s_ctl  "control"
 
   param_reader  <- paramReader params
 
   pitch_roll_ctl <- taskPitchRollControl param_reader
   yaw_ctl        <- taskYawControl       param_reader
-  auto_throttle <- taskAutoThrottle (flightAltitude param_reader) acWriter
+  auto_throttle  <- taskAutoThrottle (flightAltitude param_reader) altWriter
 
   taskInit $ do
     at_init auto_throttle

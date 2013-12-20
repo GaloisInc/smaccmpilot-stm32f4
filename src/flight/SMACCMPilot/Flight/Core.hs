@@ -44,7 +44,8 @@ data FlightCoreProvides =
     { control_out      :: ChannelSink 16 (Struct "controloutput")
     , motors_out       :: ChannelSink 16 (Struct "motors")
     , controllaw_state :: DataSink (Struct "control_law")
-    , altctl_state     :: DataSink (Struct "alt_control_dbg")
+    , alt_ctl_state    :: DataSink (Struct "alt_control_dbg")
+    , att_ctl_state    :: DataSink (Struct "att_control_dbg")
     , userinput_state  :: DataSink (Struct "userinput_result")
     }
 
@@ -52,7 +53,8 @@ core :: FlightCoreRequires -> Tower p FlightCoreProvides
 core sys = do
   motors  <- channel
   control <- channel
-  ac_state <- dataport
+  alt_ctl <- dataport
+  att_ctl <- dataport
 
   (userinput_chan, controllaw_chan) <- userInputTower
                                           (ctl_req_in sys)
@@ -66,7 +68,8 @@ core sys = do
                         userinput
                         (sensors_in sys)
                         (src control)
-                        (src ac_state)
+                        (src alt_ctl)
+                        (src att_ctl)
                         (params_in sys)
   task "motmix"     $ motorMixerTask
                         (snk control)
@@ -80,7 +83,8 @@ core sys = do
     { control_out      = snk control
     , motors_out       = snk motors
     , controllaw_state = controllaw
-    , altctl_state     = snk ac_state
+    , alt_ctl_state    = snk alt_ctl
+    , att_ctl_state    = snk att_ctl
     , userinput_state  = userinput
     }
   where

@@ -36,11 +36,12 @@ gcsTransmitTask :: (SingI n0, SingI n1, SingI n2)
                 -> DataSink         (Struct "motors")
                 -> DataSink         (Struct "radio_stat")
                 -> DataSink         (Struct "alt_control_dbg")
+                -> DataSink         (Struct "att_control_dbg")
                 -> ChannelSink n2   (Stored Sint16)
                 -> [Param PortPair]
                 -> Task p ()
 gcsTransmitTask mavStream sp_sink cl_sink se_sink ps_sink
-                ct_sink mo_sink ra_sink ac_sink param_req_sink params
+                ct_sink mo_sink ra_sink alt_sink att_sink param_req_sink params
   = do
   withStackSize 1024
 
@@ -50,7 +51,8 @@ gcsTransmitTask mavStream sp_sink cl_sink se_sink ps_sink
   ctlReader        <- withDataReader ct_sink "control"
   motorReader      <- withDataReader mo_sink "motors"
   radioReader      <- withDataReader ra_sink "radio"
-  altControlReader <- withDataReader ac_sink "alt_control"
+  altControlReader <- withDataReader alt_sink "alt_control"
+  attControlReader <- withDataReader att_sink "att_control"
   mavTx            <- withChannelEmitter mavStream "gcsTxToEncSrc"
 
   -- the mavlink packet we're packing
@@ -162,6 +164,9 @@ gcsTransmitTask mavStream sp_sink cl_sink se_sink ps_sink
       l_alt_ctl <- local (istruct [])
       readData altControlReader l_alt_ctl
       call_ mkSendAltCtlDebug (constRef l_alt_ctl) seqNum mavlinkStruct
+      l_att_ctl <- local (istruct [])
+      readData attControlReader l_att_ctl
+      call_ mkSendAttCtlDebug (constRef l_att_ctl) seqNum mavlinkStruct
       processMav T.vfr_hud
 
     onStream T.global_position_int $ do

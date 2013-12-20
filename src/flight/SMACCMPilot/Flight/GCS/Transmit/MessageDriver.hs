@@ -25,6 +25,7 @@ import qualified SMACCMPilot.Flight.Types.ControlOutput         as C
 import qualified SMACCMPilot.Flight.Types.UserInput             as UI
 import qualified SMACCMPilot.Flight.Types.RadioStat             as RStat
 import qualified SMACCMPilot.Flight.Types.AltControlDebug       as Alt
+import qualified SMACCMPilot.Flight.Types.AttControlDebug       as Att
 import qualified SMACCMPilot.Flight.Types.ControlLaw            as CL
 import qualified SMACCMPilot.Flight.Types.ThrottleMode          as TM
 import qualified SMACCMPilot.Flight.Types.ControlSource         as CS
@@ -42,6 +43,7 @@ import qualified SMACCMPilot.Mavlink.Messages.GlobalPositionInt as GPI
 import qualified SMACCMPilot.Mavlink.Messages.ParamValue        as PV
 import qualified SMACCMPilot.Mavlink.Messages.VehicleRadio      as VR
 import qualified SMACCMPilot.Mavlink.Messages.AltCtlDebug       as ACD
+import qualified SMACCMPilot.Mavlink.Messages.AttCtlDebug       as ACD
 import qualified SMACCMPilot.Mavlink.Messages.VehCommsec        as VC
 
 --------------------------------------------------------------------
@@ -395,6 +397,20 @@ mkSendAltCtlDebug = proc "gcs_transmit_send_alt_ctl_debug" $
     ]
   call_ ACD.mkAltCtlDebugSender (constRef msg) seqNum sendStruct
 
+mkSendAttCtlDebug :: Def ('[ ConstRef s1 (Struct "att_control_dbg")
+                           , Ref      s2 (Stored Uint8)
+                           , Ref      s2 (Struct "mavlinkPacket")
+                           ] :-> ())
+mkSendAttCtlDebug = proc "gcs_transmit_send_att_ctl_debug" $
+  \acd seqNum sendStruct -> body $ do
+  head_setpt      <- deref (acd ~> Att.head_setpt)
+  head_rate_setpt <- deref (acd ~> Att.head_rate_setpt)
+  msg             <- local $ istruct
+    [ ACD.head_setpt         .= ival head_setpt
+    , ACD.head_rate_setpoint .= ival head_rate_setpt
+    ]
+  call_ ACD.mkAttCtlDebugSender (constRef msg) seqNum sendStruct
+
 senderModules :: Module
 senderModules = package "senderModules" $ do
   mapM_ depend mavlinkMessageModules
@@ -409,6 +425,7 @@ senderModules = package "senderModules" $ do
   incl mkSendRadio
   incl mkSendVehCommsec
   incl mkSendAltCtlDebug
+  incl mkSendAttCtlDebug
 
   depend P.gpsTypesModule
   depend M.motorsTypeModule
@@ -420,4 +437,5 @@ senderModules = package "senderModules" $ do
   depend RStat.radioStatTypeModule
   depend VR.vehicleRadioModule
   depend Alt.altControlDebugTypeModule
+  depend Att.attControlDebugTypeModule
   depend mavlinkSendModule
