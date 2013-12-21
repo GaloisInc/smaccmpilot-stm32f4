@@ -33,8 +33,6 @@ pidParams p i d imax =
             <*> param "D" d
             <*> param "IMAX" imax
 
-
-
 data StabilizerParams f = StabilizerParams
   { stabPosition :: PIDParams f
   , stabRate     :: PIDParams f
@@ -55,14 +53,6 @@ data AltitudeParams f = AltitudeParams
   , altitudePosition   :: PIDParams f
   , altitudeUI         :: ThrUIParams f
   } deriving (Functor, Foldable, Traversable)
-
--- | altitudeParams tuned for AR Drone. Not tested with 3DR Quad yet.
-altitudeParams :: Monad m => ParamT f m (AltitudeParams f)
-altitudeParams =                              -- P     I     D     IMAX
-  AltitudeParams <$> group "RATE" (pidParams 0.070 0.010 0.005 0.8)
-                 <*> group "POS"  (pidParams 0.500 0.000 0.000 5.0)
-                                           -- sens deadband
-                 <*> group "UI"   (thrUIParams 1.0 0.30)
 
 -- | PID controller parameters.
 data ThrUIParams  f = ThrUIParams 
@@ -94,3 +84,11 @@ flightParams =                          -- P     I     D     IMAX (-IMIN)
                <*> group "YAW" (stabParams 0.305 0.000 0.000 8.0
                                            1.0   0.0   0.0   1.0)
                <*> group "ALT" altitudeParams
+  where
+  altitudeParams :: Monad m => ParamT f m (AltitudeParams f)
+  altitudeParams =                              -- P     I     D     IMAX
+    AltitudeParams <$> group "RATE" (pidParams 0.070 0.010 0.005 0.8)
+                   <*> group "POS"  (pidParams 0.500 0.000 0.000 5.0)
+                                             -- sens deadband
+                   <*> group "UI"   (thrUIParams 1.0 0.30)
+
