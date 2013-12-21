@@ -54,7 +54,7 @@ type Constr f m = String -> Float -> m f
 -- 'paramInit' to the function used by 'param' to construct parameter
 -- values.
 data PT_R f m = PT_R
-  { pt_r_prefix :: String
+  { pt_r_prefix :: [String]
   , pt_r_constr :: Constr f m
   }
 
@@ -66,7 +66,7 @@ data ParamT f m a = PT { unPT :: ReaderT (PT_R f m) (WriterT [Param f] m) a }
 -- | Run a parameter's constructor function given a function to
 -- construct parameter data in the base monad.
 paramInit :: Monad m => Constr f m -> ParamT f m (a f) -> m (a f, [Param f])
-paramInit f x = runWriterT (runReaderT (PT_R "" f) (unPT x))
+paramInit f x = runWriterT (runReaderT (PT_R [] f) (unPT x))
 
 pt_iso :: Iso (ReaderT (PT_R f m) (WriterT [Param f] m)) (ParamT f m)
 pt_iso = Iso PT unPT
@@ -95,15 +95,16 @@ instance Monad m => WriterM (ParamT f m) [Param f] where
   put = derive_put pt_iso
 
 -- | Combine parameter names with underscores.
-combineNames :: String -> String -> String
-combineNames "" b = b
-combineNames a  b = a ++ "_" ++ b
+combineNames :: [String] -> String -> String
+combineNames ("":as) b = combineNames as b
+combineNames (a:as)   b = a ++ "_" ++ (combineNames as b)
+combineNames []      b = b
 
 -- | Create a parameter given a name and initial value.
 param :: Monad m => String -> Float -> ParamT f m (Param f)
 param s v = do
-  PT_R prefix constr <- ask
-  let name = combineNames prefix s
+  PT_R prefixes constr <- ask
+  let name = combineNames (reverse prefixes) s
   val <- lift $ constr name v
   let p = Param name v val
   put [p]
@@ -111,5 +112,5 @@ param s v = do
 
 -- | Create a group of parameters prefixed by a name.
 group :: Monad m => String -> ParamT f m (a f) -> ParamT f m (a f)
-group s g = mapReader (\x -> x {pt_r_prefix = s}) g
+group s g = mapReader (\x -> x {pt_r_prefix = s : pt_r_prefix x }) g
 
