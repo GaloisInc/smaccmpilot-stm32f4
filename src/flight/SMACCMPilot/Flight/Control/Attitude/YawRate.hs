@@ -3,9 +3,9 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE RankNTypes #-}
 
-module SMACCMPilot.Flight.Control.Attitude.Yaw
-  ( YawControl(..)
-  , taskYawControl
+module SMACCMPilot.Flight.Control.Attitude.YawRate
+  ( YawRateControl(..)
+  , taskYawRateControl
   ) where
 
 import Ivory.Language
@@ -20,8 +20,8 @@ import SMACCMPilot.Flight.Param
 import qualified SMACCMPilot.Flight.Types.Sensors       as SEN
 import qualified SMACCMPilot.Flight.Types.ControlOutput as OUT
 
-data YawControl =
-  YawControl
+data YawRateControl =
+  YawRateControl
     { yc_init  :: forall eff . Ivory eff ()
     , yc_run   :: forall eff s . IFloat -- Yaw Rate
                               -> ConstRef s (Struct "sensors_result")
@@ -35,8 +35,8 @@ const_MAX_INPUT_YAW   = 180 -- deg/sec
 const_MAX_OUTPUT_YAW :: IFloat
 const_MAX_OUTPUT_YAW   = 45 -- deg/sec
 
-taskYawControl :: FlightParams ParamReader -> Task p YawControl
-taskYawControl params = do
+taskYawRateControl :: FlightParams ParamReader -> Task p YawRateControl
+taskYawRateControl params = do
   f <- fresh
   yaw_rate  <- taskLocal "yaw_rate"
 
@@ -87,7 +87,7 @@ taskYawControl params = do
     incl reset_proc
     depend controlPIDModule
     depend attStabilizeModule
-  return YawControl
+  return YawRateControl
     { yc_init  = call_ init_proc
     , yc_run   = call_ run_proc
     , yc_state = call_ state_proc

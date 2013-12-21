@@ -9,7 +9,7 @@ import Ivory.Language
 import Ivory.Tower
 import Ivory.Stdlib
 
-import           SMACCMPilot.Flight.Control.PID
+import SMACCMPilot.Flight.Control.PID (fconstrain)
 import qualified SMACCMPilot.Flight.Types.Sensors         as S
 import qualified SMACCMPilot.Flight.Types.UserInput       as UI
 import qualified SMACCMPilot.Flight.Types.AttControlDebug as D

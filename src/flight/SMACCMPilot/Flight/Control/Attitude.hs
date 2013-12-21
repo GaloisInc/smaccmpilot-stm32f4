@@ -18,12 +18,15 @@ import SMACCMPilot.Flight.Param
 import qualified SMACCMPilot.Flight.Types.Sensors         ()
 import qualified SMACCMPilot.Flight.Types.ControlLaw      as CL
 import qualified SMACCMPilot.Flight.Types.ArmedMode       as A
+import qualified SMACCMPilot.Flight.Types.YawMode         as Y
 import qualified SMACCMPilot.Flight.Types.UserInput       as UI
 import qualified SMACCMPilot.Flight.Types.ControlOutput   ()
 import qualified SMACCMPilot.Flight.Types.AttControlDebug ()
 
 import           SMACCMPilot.Flight.Control.Attitude.PitchRoll
-import           SMACCMPilot.Flight.Control.Attitude.Yaw
+import           SMACCMPilot.Flight.Control.Attitude.YawRate
+import           SMACCMPilot.Flight.Control.Attitude.YawUI
+import           SMACCMPilot.Flight.Control.Attitude.HeadingControl
 
 data AttitudeControl =
   AttitudeControl
@@ -43,9 +46,12 @@ taskAttitudeControl :: FlightParams ParamReader
 taskAttitudeControl param_reader s_att_dbg = do
   f <- fresh
 
-  attDbgWriter  <- withDataWriter s_att_dbg "att_control_dbg"
+  attDbgWriter   <- withDataWriter s_att_dbg "att_control_dbg"
 
-  yaw_ctl        <- taskYawControl       param_reader
+  yui            <- taskYawUI
+  yaw_ctl        <- taskYawRateControl param_reader
+  hctl           <- taskHeadingControl
+
   pitch_roll_ctl <- taskPitchRollControl param_reader
 
   let named n = "att_ctl_" ++ n ++ "_" ++ show f
@@ -59,28 +65,43 @@ taskAttitudeControl param_reader s_att_dbg = do
                            , Ref s3 (Struct "control_law")
                            , IFloat
                            ]:->())
-      update_proc = proc (named "update") $ \sens ui cl _dt -> body $ do
+      update_proc = proc (named "update") $ \sens ui cl dt -> body $ do
         armed    <- deref (cl ~> CL.armed_mode)
-        -- Run yaw pitch roll controller
+
         when (armed ==? A.armed) $ do
+          yaw_mode <- deref (cl ~> CL.yaw_mode)
+          yaw_rate_sp <- cond
+            [ yaw_mode ==? Y.rate ==> do
+                yui_reset yui
+                hctl_reset hctl
+                deref (ui ~> UI.yaw)
+            , yaw_mode ==? Y.heading ==> do
+                yui_update yui sens ui dt
+                (heading,rate) <- yui_setpoint yui
+                hctl_update   hctl heading rate sens dt
+                hctl_setpoint hctl
+            ]
+
           pitch_sp <- deref (ui ~> UI.pitch)
           roll_sp  <- deref (ui ~> UI.roll)
-          yaw_sp   <- deref (ui ~> UI.yaw)
 
           prc_run   pitch_roll_ctl pitch_sp roll_sp (constRef sens)
-          yc_run    yaw_ctl        yaw_sp           (constRef sens)
+          yc_run    yaw_ctl        yaw_rate_sp      (constRef sens)
 
         unless (armed ==? A.armed) $ do
+          yui_reset yui
+          hctl_reset hctl
           prc_reset pitch_roll_ctl
           yc_reset  yaw_ctl
 
-        dbg <- local izero
-        call_ debug_proc dbg
-        writeData attDbgWriter (constRef dbg)
+        call_ debug_proc
 
-      debug_proc :: Def ('[Ref s (Struct "att_control_dbg")]:->())
-      debug_proc = proc (named "debug") $ \out -> body $ do
-        return ()
+      debug_proc :: Def ('[]:->())
+      debug_proc = proc (named "debug") $ body $ do
+        dbg <- local izero
+        yui_write_debug yui dbg
+        hctl_write_debug hctl dbg
+        writeData attDbgWriter (constRef dbg)
 
       output_proc :: Def ('[Ref s (Struct "controloutput")]:->())
       output_proc = proc (named "output") $ \ctl-> body $ do

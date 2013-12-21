@@ -47,8 +47,10 @@ library
                        SMACCMPilot.Flight.Control.Attitude.Angle,
                        SMACCMPilot.Flight.Control.Attitude.Stabilize,
                        SMACCMPilot.Flight.Control.Attitude.PitchRoll,
-                       SMACCMPilot.Flight.Control.Attitude.Yaw,
+
                        SMACCMPilot.Flight.Control.Attitude.YawUI,
+                       SMACCMPilot.Flight.Control.Attitude.YawRate,
+                       SMACCMPilot.Flight.Control.Attitude.HeadingControl,
 
                        SMACCMPilot.Flight.Datalink,
                        SMACCMPilot.Flight.Datalink.AirData,
