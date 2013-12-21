@@ -44,7 +44,7 @@ taskHeadingControl params = do
                           , IFloat -- dt
                           ] :-> ())
       proc_update  = proc (named "update") $
-        \h_setpt r_setpt sens dt -> body $ do
+        \h_setpt r_setpt sens _dt -> body $ do
           store active_state true
 
       proc_reset :: Def('[]:->())
@@ -67,11 +67,11 @@ taskHeadingControl params = do
 
 -- Take an angle in radians which is outside of linear range (-pi, pi] by less
 -- than pi, and maps it to an equal angle in that range.
-angledomain :: IFloat -> IFloat
-angledomain a =
-  ( a <=? (-pi) ) ? ( a + 2*pi
-  , (a >? pi ) ? ( a - 2*pi
-    , a))
+-- angledomain :: IFloat -> IFloat
+-- angledomain a =
+--   ( a <=? (-pi) ) ? ( a + 2*pi
+--   , (a >? pi ) ? ( a - 2*pi
+--     , a))
 
 
 
