@@ -10,19 +10,6 @@ module SMACCMPilot.Param
   , module SMACCMPilot.Param.TowerTypes
   , module SMACCMPilot.Param.Tower
   ) where
-{-
-  ( Param(..) , Constr , ParamT() , paramInit
-  , param , group
-
-  , ParamSource, ParamSink, ParamReader, ParamWriter
-  , PortPair(..)
-  , initTowerParams
-  , paramReader, paramWriter
-  , paramRead
-
-  , ParamGetter, ParamSetter
-  ) where
--}
 
 import SMACCMPilot.Param.Base
 import SMACCMPilot.Param.TowerTypes
