@@ -12,6 +12,9 @@ import Ivory.Language
 import Ivory.Tower
 import Ivory.Stdlib
 
+import           SMACCMPilot.Param
+import           SMACCMPilot.Flight.Param
+
 import qualified SMACCMPilot.Flight.Types.Sensors         as S
 import qualified SMACCMPilot.Flight.Types.UserInput       as UI
 import qualified SMACCMPilot.Flight.Types.AttControlDebug as D
@@ -30,8 +33,8 @@ data HeadingController =
                      -> Ivory eff ()
     }
 
-taskHeadingControl :: Task p HeadingController
-taskHeadingControl = do
+taskHeadingControl :: PIDParams ParamReader -> Task p HeadingController
+taskHeadingControl params = do
   uniq <- fresh
   let named n = "head_ctl_" ++ n ++ "_" ++ show uniq
   active_state <- taskLocalInit "active_state" (ival false)

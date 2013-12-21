@@ -49,8 +49,8 @@ taskAttitudeControl param_reader s_att_dbg = do
   attDbgWriter   <- withDataWriter s_att_dbg "att_control_dbg"
 
   yui            <- taskYawUI
-  yaw_ctl        <- taskYawRateControl param_reader
-  hctl           <- taskHeadingControl
+  yaw_ctl        <- taskYawRateControl (stabRate     (flightYaw param_reader))
+  hctl           <- taskHeadingControl (stabPosition (flightYaw param_reader))
 
   pitch_roll_ctl <- taskPitchRollControl param_reader
 

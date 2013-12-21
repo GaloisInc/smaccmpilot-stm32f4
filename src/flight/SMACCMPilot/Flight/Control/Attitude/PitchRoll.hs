@@ -40,13 +40,11 @@ data PitchRollControl =
 taskPitchRollControl :: FlightParams ParamReader -> Task p PitchRollControl
 taskPitchRollControl params = do
   f <- fresh
-  pitch_ctl <- taskAngleController (flightPitchStab params)
-                                   (flightPitchRate params)
+  pitch_ctl <- taskAngleController (flightPitch params)
                                    const_MAX_INPUT_ROLL
                                    const_MAX_OUTPUT_ROLL
                                    "pitch"
-  roll_ctl  <- taskAngleController (flightRollStab  params)
-                                   (flightRollRate  params)
+  roll_ctl  <- taskAngleController (flightRoll params)
                                    const_MAX_INPUT_ROLL
                                    const_MAX_OUTPUT_ROLL
                                    "roll"

@@ -33,6 +33,22 @@ pidParams p i d imax =
             <*> param "D" d
             <*> param "IMAX" imax
 
+
+
+data StabilizerParams f = StabilizerParams
+  { stabPosition :: PIDParams f
+  , stabRate     :: PIDParams f
+  } deriving (Functor, Foldable, Traversable)
+
+-- | Initialize PID parameters with default values.
+stabParams :: Monad m
+           => Float -> Float -> Float -> Float
+           -> Float -> Float -> Float -> Float
+           -> ParamT f m (StabilizerParams f)
+stabParams pos_p pos_i pos_d pos_imax rate_p rate_i rate_d rate_imax =
+  StabilizerParams <$> group "RATE" (pidParams pos_p pos_i pos_d pos_imax)
+                   <*> group "STAB" (pidParams rate_p rate_i rate_d rate_imax)
+
 -- | Altitude controller parameters.
 data AltitudeParams f = AltitudeParams
   { altitudeRateThrust :: PIDParams f
@@ -43,10 +59,10 @@ data AltitudeParams f = AltitudeParams
 -- | altitudeParams tuned for AR Drone. Not tested with 3DR Quad yet.
 altitudeParams :: Monad m => ParamT f m (AltitudeParams f)
 altitudeParams =                              -- P     I     D     IMAX
-  AltitudeParams <$> group "ALT_RATE" (pidParams 0.070 0.010 0.005 0.8)
-                 <*> group "ALT_POS"  (pidParams 0.500 0.000 0.000 5.0)
-                                               -- sens deadband
-                 <*> group "ALT_UI"   (thrUIParams 1.0 0.30)
+  AltitudeParams <$> group "RATE" (pidParams 0.070 0.010 0.005 0.8)
+                 <*> group "POS"  (pidParams 0.500 0.000 0.000 5.0)
+                                           -- sens deadband
+                 <*> group "UI"   (thrUIParams 1.0 0.30)
 
 -- | PID controller parameters.
 data ThrUIParams  f = ThrUIParams 
@@ -62,20 +78,19 @@ thrUIParams s d =
 
 -- | Flight control parameters.
 data FlightParams f = FlightParams
-  { flightRollStab  :: PIDParams f
-  , flightRollRate  :: PIDParams f
-  , flightPitchStab :: PIDParams f
-  , flightPitchRate :: PIDParams f
-  , flightYawRate   :: PIDParams f
+  { flightRoll      :: StabilizerParams f
+  , flightPitch     :: StabilizerParams f
+  , flightYaw       :: StabilizerParams f
   , flightAltitude  :: AltitudeParams f
   } deriving (Functor, Foldable, Traversable)
 
 -- | Initialize flight parameters to their default values.
 flightParams :: Monad m => ParamT f m (FlightParams f)
-flightParams =                              -- P     I     D     IMAX (-IMIN)
-  FlightParams <$> group "STB_RLL"  (pidParams 2.000 0.000 0.000 8.0)
-               <*> group "RATE_RLL" (pidParams 0.100 0.000 0.000 5.0)
-               <*> group "STB_PIT"  (pidParams 2.000 0.000 0.000 8.0)
-               <*> group "RATE_PIT" (pidParams 0.105 0.000 0.000 5.0)
-               <*> group "RATE_YAW" (pidParams 0.305 0.000 0.000 8.0)
-               <*> group "" altitudeParams
+flightParams =                          -- P     I     D     IMAX (-IMIN)
+  FlightParams <$> group "RLL" (stabParams 2.000 0.000 0.000 8.0
+                                           0.100 0.000 0.000 5.0)
+               <*> group "PIT" (stabParams 2.000 0.000 0.000 8.0
+                                           0.105 0.000 0.000 5.0)
+               <*> group "YAW" (stabParams 0.305 0.000 0.000 8.0
+                                           1.0   0.0   0.0   1.0)
+               <*> group "ALT" altitudeParams

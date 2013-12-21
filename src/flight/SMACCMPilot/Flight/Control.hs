@@ -10,8 +10,6 @@ import Ivory.Language
 import Ivory.Tower
 import Ivory.Stdlib
 
-import qualified SMACCMPilot.Flight.Types.ThrottleMode  as TM
-import qualified SMACCMPilot.Flight.Types.UserInput     as UI
 import qualified SMACCMPilot.Flight.Types.ControlLaw    as CL
 import qualified SMACCMPilot.Flight.Types.ControlOutput as CO
 import qualified SMACCMPilot.Flight.Types.AttControlDebug ()
@@ -25,7 +23,6 @@ import qualified SMACCMPilot.Flight.Types.ArmedMode     as A
 
 import           SMACCMPilot.Flight.Control.Altitude
 import           SMACCMPilot.Flight.Control.Attitude
-import           SMACCMPilot.Flight.Control.Altitude.ThrottleTracker (manual_throttle)
 
 controlTask :: (SingI n)
             => DataSink (Struct "control_law")

@@ -35,7 +35,7 @@ const_MAX_INPUT_YAW   = 180 -- deg/sec
 const_MAX_OUTPUT_YAW :: IFloat
 const_MAX_OUTPUT_YAW   = 45 -- deg/sec
 
-taskYawRateControl :: FlightParams ParamReader -> Task p YawRateControl
+taskYawRateControl :: PIDParams ParamReader -> Task p YawRateControl
 taskYawRateControl params = do
   f <- fresh
   yaw_rate  <- taskLocal "yaw_rate"
@@ -55,7 +55,7 @@ taskYawRateControl params = do
                         ] :-> ())
       run_proc = proc (named "run") $ \yaw_rate_setpt sens -> body $ do
         sen_omega_z <- (sens ~>* SEN.omega_z)
-        yaw_rate_cfg        <- allocPIDParams (flightYawRate   params)
+        yaw_rate_cfg <- allocPIDParams params
         yaw_ctl <- call stabilize_from_rate
                             yaw_rate
                             (constRef yaw_rate_cfg)

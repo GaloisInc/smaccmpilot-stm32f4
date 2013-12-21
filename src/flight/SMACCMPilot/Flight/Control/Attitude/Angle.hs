@@ -27,19 +27,18 @@ data AngleControl =
     , ac_reset :: forall eff . Ivory eff ()
     }
 
-taskAngleController :: PIDParams ParamReader -- Stabilizer PID params
-                    -> PIDParams ParamReader -- Rate PID params
+taskAngleController :: StabilizerParams ParamReader
                     -> IFloat -- input range (absolute value)
                     -> IFloat -- output range (absolute value)
                     -> String                -- name
                     -> Task p AngleControl
-taskAngleController stab_params rate_params input_range output_range name = do
+taskAngleController stab_params input_range output_range name = do
   f <- fresh
   let named n = name ++ "_anglectl_" ++ n ++ "_" ++ (show f)
 
   valid    <- taskLocal "valid"
   out      <- taskLocal "out"
-  stab_pid <- taskLocal "stab_pid"
+  pos_pid  <- taskLocal "pos_pid"
   rate_pid <- taskLocal "rate_pid"
 
   let init_proc :: Def ('[]:->())
@@ -49,11 +48,11 @@ taskAngleController stab_params rate_params input_range output_range name = do
 
       run_proc :: Def ('[IFloat, IFloat, IFloat] :-> ())
       run_proc = proc (named "run") $ \setpt est deriv_est -> body $ do
-        stab_cfg <- allocPIDParams stab_params
-        rate_cfg <- allocPIDParams rate_params
+        pos_cfg  <- allocPIDParams (stabPosition stab_params)
+        rate_cfg <- allocPIDParams (stabRate     stab_params)
         ctl <- call stabilize_from_angle
-                      stab_pid
-                      (constRef stab_cfg)
+                      pos_pid
+                      (constRef pos_cfg)
                       rate_pid
                       (constRef rate_cfg)
                       setpt
@@ -74,7 +73,7 @@ taskAngleController stab_params rate_params input_range output_range name = do
       reset_proc :: Def ('[]:->())
       reset_proc = proc (named "reset") $ body $ do
         store valid false
-        call_ pid_reset stab_pid
+        call_ pid_reset pos_pid
         call_ pid_reset rate_pid
 
   taskModuleDef $ do
