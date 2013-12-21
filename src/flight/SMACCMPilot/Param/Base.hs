@@ -97,7 +97,7 @@ instance Monad m => WriterM (ParamT f m) [Param f] where
 -- | Combine parameter names with underscores.
 combineNames :: [String] -> String -> String
 combineNames ("":as) b = combineNames as b
-combineNames (a:as)   b = a ++ "_" ++ (combineNames as b)
+combineNames (a:as)  b = a ++ "_" ++ (combineNames as b)
 combineNames []      b = b
 
 -- | Create a parameter given a name and initial value.
