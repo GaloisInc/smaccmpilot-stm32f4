@@ -14,11 +14,16 @@ import Ivory.Tower
 import           SMACCMPilot.Param
 import           SMACCMPilot.Flight.Param
 
-import qualified SMACCMPilot.Flight.Types.Sensors()
+import           SMACCMPilot.Flight.Control.PID
+
+import qualified SMACCMPilot.Flight.Types.Sensors         as S
+import qualified SMACCMPilot.Flight.Types.UserInput       as UI
+import qualified SMACCMPilot.Flight.Types.AttControlDebug as D
 
 data HeadingController =
   HeadingController
-    { hctl_update :: forall eff s
+    { hctl_init   :: forall eff . Ivory eff ()
+    , hctl_update :: forall eff s
                    . IFloat
                   -> IFloat
                   -> Ref s (Struct "sensors_result")
@@ -34,27 +39,41 @@ taskHeadingControl :: PIDParams ParamReader -> Task p HeadingController
 taskHeadingControl _params = do
   uniq <- fresh
   let named n = "head_ctl_" ++ n ++ "_" ++ show uniq
-  active_state <- taskLocalInit "active_state" (ival false)
+  pid_state  <- taskLocal "headingPIDState"
+  output     <- taskLocal "headingOutput"
   let proc_update :: Def('[ IFloat -- Heading setpoint
                           , IFloat -- Rate setpoint
                           , Ref s (Struct "sensors_result")
                           , IFloat -- dt
                           ] :-> ())
       proc_update  = proc (named "update") $
-        \_h_setpt _r_setpt _sens _dt -> body $ do
-          store active_state true
+        \head_setpt rate_setpt sens dt -> body $ do
+          pid_params <- allocPIDParams params
+          p_gain <-             (pid_params~>*pid_pGain)
+          d_gain <- fmap (/ dt) (pid_params~>*pid_dGain)
+
+          head_est <- deref (sens ~> S.yaw)
+          -- XXX omega_z assumes body frame and world frame aligned
+          rate_est <- deref (sens ~> S.omega_z)
+          pos_err  <- assign (angledomain (head_setpt - head_est))
+          vel_err  <- assign (rate_setpt - rate_est)
+
+          pid_result <- assign ((p_gain * pos_err) - (d_gain * vel_err))
+          store output (pid_result + rate_setpt)
 
       proc_reset :: Def('[]:->())
       proc_reset = proc (named "reset") $ body $ do
-        store active_state false
+        call_ pid_reset pid_state
 
   taskModuleDef $ do
     incl proc_update
     incl proc_reset
+    depend controlPIDModule
   return HeadingController
-    { hctl_update   = call_ proc_update
+    { hctl_init     = call_ proc_reset
+    , hctl_update   = call_ proc_update
     , hctl_reset    = call_ proc_reset
-    , hctl_setpoint = return 0 -- XXX
+    , hctl_setpoint = deref output
     , hctl_write_debug = const (return ()) -- XXX
     }
 
@@ -64,11 +83,11 @@ taskHeadingControl _params = do
 
 -- Take an angle in radians which is outside of linear range (-pi, pi] by less
 -- than pi, and maps it to an equal angle in that range.
--- angledomain :: IFloat -> IFloat
--- angledomain a =
---   ( a <=? (-pi) ) ? ( a + 2*pi
---   , (a >? pi ) ? ( a - 2*pi
---     , a))
+angledomain :: IFloat -> IFloat
+angledomain a =
+  ( a <=? (-pi) ) ? ( a + 2*pi
+  , (a >? pi ) ? ( a - 2*pi
+    , a))
 
 
 

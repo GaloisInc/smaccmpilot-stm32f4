@@ -30,11 +30,10 @@ taskPositionPid :: PIDParams ParamReader -> AltEstimator -> Task p PositionPid
 taskPositionPid params alt_estimator = do
   uniq <- fresh
   ppid_state  <- taskLocal "posPidState"
-  ppid_params <- taskLocal "posPidParams"
   let proc_pid_calculate :: Def('[IFloat, IFloat, IFloat] :-> IFloat)
       proc_pid_calculate = proc ("pos_pid_calculate" ++ show uniq) $
         \pos_sp vel_sp dt -> body $ do
-          getPIDParams params ppid_params
+          ppid_params <- allocPIDParams params
           p_gain <-             (ppid_params~>*pid_pGain)
           d_gain <- fmap (/ dt) (ppid_params~>*pid_dGain)
 
@@ -45,7 +44,9 @@ taskPositionPid params alt_estimator = do
           pid_result <- assign ((p_gain * pos_err) - (d_gain * vel_err))
           ret (pid_result + vel_sp)
 
-  taskModuleDef $ incl proc_pid_calculate
+  taskModuleDef $ do
+    incl proc_pid_calculate
+    depend controlPIDModule
   return PositionPid
     { pos_pid_init = do
         call_ pid_reset ppid_state
