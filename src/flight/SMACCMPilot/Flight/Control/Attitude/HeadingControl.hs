@@ -10,14 +10,11 @@ module SMACCMPilot.Flight.Control.Attitude.HeadingControl
 
 import Ivory.Language
 import Ivory.Tower
-import Ivory.Stdlib
 
 import           SMACCMPilot.Param
 import           SMACCMPilot.Flight.Param
 
-import qualified SMACCMPilot.Flight.Types.Sensors         as S
-import qualified SMACCMPilot.Flight.Types.UserInput       as UI
-import qualified SMACCMPilot.Flight.Types.AttControlDebug as D
+import qualified SMACCMPilot.Flight.Types.Sensors()
 
 data HeadingController =
   HeadingController
@@ -34,7 +31,7 @@ data HeadingController =
     }
 
 taskHeadingControl :: PIDParams ParamReader -> Task p HeadingController
-taskHeadingControl params = do
+taskHeadingControl _params = do
   uniq <- fresh
   let named n = "head_ctl_" ++ n ++ "_" ++ show uniq
   active_state <- taskLocalInit "active_state" (ival false)
@@ -44,7 +41,7 @@ taskHeadingControl params = do
                           , IFloat -- dt
                           ] :-> ())
       proc_update  = proc (named "update") $
-        \h_setpt r_setpt sens _dt -> body $ do
+        \_h_setpt _r_setpt _sens _dt -> body $ do
           store active_state true
 
       proc_reset :: Def('[]:->())
