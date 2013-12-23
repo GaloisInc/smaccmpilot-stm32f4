@@ -10,6 +10,7 @@ module SMACCMPilot.Flight.Control.Attitude.HeadingControl
 
 import Ivory.Language
 import Ivory.Tower
+import Ivory.Stdlib
 
 import           SMACCMPilot.Param
 import           SMACCMPilot.Flight.Param
@@ -17,8 +18,6 @@ import           SMACCMPilot.Flight.Param
 import           SMACCMPilot.Flight.Control.PID
 
 import qualified SMACCMPilot.Flight.Types.Sensors         as S
-import qualified SMACCMPilot.Flight.Types.UserInput       as UI
-import qualified SMACCMPilot.Flight.Types.AttControlDebug as D
 
 data HeadingController =
   HeadingController
@@ -36,7 +35,7 @@ data HeadingController =
     }
 
 taskHeadingControl :: PIDParams ParamReader -> Task p HeadingController
-taskHeadingControl _params = do
+taskHeadingControl params = do
   uniq <- fresh
   let named n = "head_ctl_" ++ n ++ "_" ++ show uniq
   pid_state  <- taskLocal "headingPIDState"
