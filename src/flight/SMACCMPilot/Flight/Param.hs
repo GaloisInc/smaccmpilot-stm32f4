@@ -44,8 +44,8 @@ stabParams :: Monad m
            -> Float -> Float -> Float -> Float
            -> ParamT f m (StabilizerParams f)
 stabParams pos_p pos_i pos_d pos_imax rate_p rate_i rate_d rate_imax =
-  StabilizerParams <$> group "RATE" (pidParams pos_p pos_i pos_d pos_imax)
-                   <*> group "STAB" (pidParams rate_p rate_i rate_d rate_imax)
+  StabilizerParams <$> group "STAB" (pidParams pos_p pos_i pos_d pos_imax)
+                   <*> group "RATE" (pidParams rate_p rate_i rate_d rate_imax)
 
 -- | Altitude controller parameters.
 data AltitudeParams f = AltitudeParams
