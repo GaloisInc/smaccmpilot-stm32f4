@@ -205,8 +205,8 @@ messageLensCRCs =
   , (173, ( 52, 130)) -- 0xAD ALT_CTL_DEBUG
   , (174, (  9, 238)) -- 0xAE VEHICLE_RADIO
   , (175, (  9, 108)) -- 0xAF GCS_RADIO
-  , (185, ( 21,  31)) -- 0xB9 VEH_COMMSEC
-  , (186, (  8, 193)) -- 0xBA ATT_CTL_DEBUG
+  , (185, ( 13, 112)) -- 0xB9 VEH_COMMSEC
+  , (186, ( 32, 187)) -- 0xBA ATT_CTL_DEBUG
   , (  0, (  9,  50)) -- 0x00 HEARTBEAT
   , (  1, ( 31, 124)) -- 0x01 SYS_STATUS
   , (  2, ( 12, 137)) -- 0x02 SYSTEM_TIME
