@@ -18,6 +18,7 @@ import           SMACCMPilot.Flight.Param
 import           SMACCMPilot.Flight.Control.PID
 
 import qualified SMACCMPilot.Flight.Types.Sensors         as S
+import qualified SMACCMPilot.Flight.Types.AttControlDebug as ACD
 
 data HeadingController =
   HeadingController
@@ -73,7 +74,11 @@ taskHeadingControl params = do
     , hctl_update   = call_ proc_update
     , hctl_reset    = call_ proc_reset
     , hctl_setpoint = deref output
-    , hctl_write_debug = const (return ()) -- XXX
+    , hctl_write_debug = \acd -> do
+        p <- deref (pid_state ~> pid_pLast)
+        d <- deref (pid_state ~> pid_dLast)
+        store (acd ~> ACD.head_ctl_p) p
+        store (acd ~> ACD.head_ctl_d) d
     }
 
 

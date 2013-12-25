@@ -79,13 +79,14 @@ stickrate :: (GetAlloc eff ~ Scope cs)
           -> IFloat
           -> Ivory eff IFloat
 stickrate ui sens = do
-  dead       <- assign 0.30
-  stick_thr  <- deref (ui ~> UI.throttle)
-  offset     <- assign (signum stick_thr * dead)
+  stick_yaw  <- deref (ui ~> UI.yaw)
+  offset     <- assign (signum stick_yaw * dead)
   scale      <- assign (sens / (1.0 - dead))
-  stick_rate <- assign ((abs stick_thr <? dead)
-                  ? (0.0, (stick_thr - offset) * scale))
+  stick_rate <- assign ((abs stick_yaw <? dead)
+                  ? (0.0, (stick_yaw - offset) * scale))
   return stick_rate
+  where
+  dead = 0.30
 
 -- Take an angle in radians which is outside of linear range (-pi, pi] by less
 -- than pi, and maps it to an equal angle in that range.
