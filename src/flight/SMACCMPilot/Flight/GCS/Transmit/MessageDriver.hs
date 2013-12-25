@@ -398,11 +398,24 @@ mkSendAttCtlDebug :: Def ('[ ConstRef s1 (Struct "att_control_dbg")
                            ] :-> ())
 mkSendAttCtlDebug = proc "gcs_transmit_send_att_ctl_debug" $
   \acd seqNum sendStruct -> body $ do
-  head_setpt      <- deref (acd ~> Att.head_setpt)
-  head_rate_setpt <- deref (acd ~> Att.head_rate_setpt)
+  head_setpt       <- deref (acd ~> Att.head_setpt)
+  head_rate_setpt  <- deref (acd ~> Att.head_rate_setpt)
+  head_ctl_p       <- deref (acd ~> Att.head_ctl_p)
+  head_ctl_d       <- deref (acd ~> Att.head_ctl_d)
+  pitch_setpt      <- deref (acd ~> Att.pitch_setpt)
+  pitch_rate_setpt <- deref (acd ~> Att.pitch_rate_setpt)
+  roll_setpt       <- deref (acd ~> Att.roll_setpt)
+  roll_rate_setpt  <- deref (acd ~> Att.roll_rate_setpt)
+
   msg             <- local $ istruct
-    [ ACD.head_setpt         .= ival head_setpt
-    , ACD.head_rate_setpoint .= ival head_rate_setpt
+    [ ACD.head_setpt       .= ival head_setpt
+    , ACD.head_rate_setpt  .= ival head_rate_setpt
+    , ACD.head_ctl_p       .= ival head_ctl_p
+    , ACD.head_ctl_d       .= ival head_ctl_d
+    , ACD.pitch_setpt      .= ival pitch_setpt
+    , ACD.pitch_rate_setpt .= ival pitch_rate_setpt
+    , ACD.roll_setpt       .= ival roll_setpt
+    , ACD.roll_rate_setpt  .= ival roll_rate_setpt
     ]
   call_ ACD.mkAttCtlDebugSender (constRef msg) seqNum sendStruct
 
