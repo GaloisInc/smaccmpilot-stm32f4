@@ -3,6 +3,7 @@
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE NoMonoLocalBinds #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module SMACCMPilot.Flight.GCS.Transmit.Task
   ( gcsTransmitTask
@@ -23,6 +24,8 @@ import           SMACCMPilot.Param
 
 import qualified SMACCMPilot.Flight.Types.ControlLaw      as CL
 import qualified SMACCMPilot.Flight.Types.GCSStreamTiming as T
+
+import qualified SMACCMPilot.Mavlink.Messages.VehCommsec  as VC
 
 --------------------------------------------------------------------------------
 
@@ -78,6 +81,9 @@ gcsTransmitTask mavStream sp_sink cl_sink se_sink ps_sink
   s_schedule  <- taskLocal "schedule"
   -- Current index into the sending array
   mavSendIx   <- taskLocalInit "mav_send_ix" (ival (0 :: Sint32))
+
+  -- Keep track of commsec info (it's a data port) so we don't resend.
+  prevCommsecInfo <- taskLocalInit "prevCommsecInfo" (istruct [])
 
   taskInit $ do
     initTime <- getTimeMillis t
@@ -194,8 +200,26 @@ gcsTransmitTask mavStream sp_sink cl_sink se_sink ps_sink
     onStream T.veh_commsec $ do
       commInfo <- local (istruct [])
       readData commsecInfoReader commInfo
-      call_ mkSendVehCommsec (constRef commInfo) seqNum mavlinkStruct
-      processMav T.veh_commsec
+
+      -- See if we got new info on commsec errors before sending it out.  The
+      -- commsec reporting is a dataport, so it may not have been updated.  (A
+      -- dataport ensures we have the latest info.)
+      let comp :: forall eff t . (IvoryEq t, IvoryVar t)
+               => Label "veh_commsec_msg" (Stored t) -> Ivory eff IBool
+          comp field = do
+            f0 <- commInfo ~>* field
+            f1 <- prevCommsecInfo ~>* field
+            return (f0 ==? f1)
+      eq <- return . foldl (.&&) true =<< sequence
+              [ comp VC.time
+              , comp VC.good_msgs
+              , comp VC.bad_msgs
+              , comp VC.commsec_err
+              ]
+      unless eq $ do
+        refCopy prevCommsecInfo commInfo
+        call_ mkSendVehCommsec (constRef commInfo) seqNum mavlinkStruct
+        processMav T.veh_commsec
 
     onStream T.radio $ do
       l_radio <- local (istruct [])
