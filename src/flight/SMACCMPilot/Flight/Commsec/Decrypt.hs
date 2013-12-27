@@ -26,8 +26,8 @@ decryptTask opts rx tx commsec_info_src = do
 
   -- For the reporter.
   reporterStruct <- taskLocalInit "commsec_reporter_struct" (istruct [])
-  curr           <- taskLocal "curr"
-  lastGoodTime   <- taskLocal "lastGoodTime"
+  curr           <- taskLocalInit "curr" (ival 0)
+  lastGoodTime   <- taskLocalInit "lastGoodTime" (ival 0)
   timer          <- withGetTimeMillis
 
   onChannel rx "hxToDecRcv" $ \pkgStream -> do
