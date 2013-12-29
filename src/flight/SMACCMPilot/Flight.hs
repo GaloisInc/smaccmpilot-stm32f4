@@ -10,6 +10,7 @@ module SMACCMPilot.Flight
   ) where
 
 import Control.Applicative ((<$>))
+import Control.Monad (void)
 import Data.Foldable (Foldable)
 import Data.Traversable (Traversable(..))
 
@@ -23,6 +24,7 @@ import SMACCMPilot.Flight.Motors.Platforms
 import SMACCMPilot.Flight.Sensors.Task
 import SMACCMPilot.Flight.Sensors.Platforms
 import SMACCMPilot.Flight.GCS.Tower
+import SMACCMPilot.Flight.Recovery
 import SMACCMPilot.Flight.GPS
 import SMACCMPilot.Flight.Param
 
@@ -60,10 +62,10 @@ hil opts = do
 
   -- Instantiate core:
   core_out <- core $ FlightCoreRequires
-                      { sensors_in = snk sensors
-                      , params_in = sysFlightParams snk_params
+                      { sensors_in    = snk sensors
+                      , params_in     = sysFlightParams snk_params
                       , rcoverride_in = snk rc_override
-                      , ctl_req_in = snk mavlink_ctlreq
+                      , ctl_req_in    = snk mavlink_ctlreq
                       }
 
   control_state     <- stateProxy "control_state" (control_out core_out)
@@ -71,6 +73,9 @@ hil opts = do
 
   -- HIL-enabled GCS on uart1:
   (istream, ostream) <- uart UART.uart1
+
+  -- Commsec reporter, to GCS TX from decrypter
+  commsec_info <- dataport
 
   gcsTowerHil "uart1" opts istream ostream
     (controllaw_state core_out)
@@ -81,6 +86,7 @@ hil opts = do
     (src rc_override)
     (alt_ctl_state core_out)
     (att_ctl_state core_out)
+    commsec_info
     paramList
 
   addModule (commsecModule opts)
@@ -103,24 +109,27 @@ flight opts = do
 
   -- Instantiate core:
   core_out <- core $ FlightCoreRequires
-                      { sensors_in = snk sensors
-                      , params_in = sysFlightParams snk_params
+                      { sensors_in    = snk sensors
+                      , params_in     = sysFlightParams snk_params
                       , rcoverride_in = snk rc_override
-                      , ctl_req_in = snk mavlink_ctlreq
+                      , ctl_req_in    = snk mavlink_ctlreq
                       }
 
   control_state     <- stateProxy "control_state" (control_out core_out)
   motors_state      <- stateProxy "motors_state" (motors_out core_out)
 
   -- GPS Input on uart6 (valid for all px4fmu platforms)
-  gps_position <- gpsTower UART.uart6
+  gps_position   <- gpsTower UART.uart6
   position_state <- stateProxy "position_state" gps_position
   -- Sensors managed by AP_HAL
   sensorsTower gps_position (src sensors)
   -- Motor output dependent on platform
   motorOutput (motors_out core_out)
 
-  let gcsTower' uartNm uartiStrm uartoStrm =
+  -- Commsec reporter, to GCS TX from decrypter
+  commsec_info <- dataport
+
+  let gcsTower' uartNm uartiStrm uartoStrm = void $
         gcsTower uartNm opts uartiStrm uartoStrm
           (controllaw_state core_out)
           (src mavlink_ctlreq)
@@ -131,6 +140,7 @@ flight opts = do
           (src rc_override)
           (alt_ctl_state core_out)
           (att_ctl_state core_out)
+          commsec_info
           paramList
 
   -- GCS on UART1:
@@ -142,6 +152,9 @@ flight opts = do
   gcsTower' "uart5" uart5istream uart5ostream
 
   addModule (commsecModule opts)
+
+  -- Recovery Tasks
+  recoveryTower (snk commsec_info)
 
 -- Helper: a uartTower with 1k buffers and 57600 kbaud
 uart :: (BoardHSE p)

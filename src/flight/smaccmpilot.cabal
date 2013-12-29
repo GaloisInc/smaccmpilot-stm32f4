@@ -64,6 +64,8 @@ library
                        SMACCMPilot.Flight.Motors.Mixing,
                        SMACCMPilot.Flight.Motors.Platforms,
 
+                       SMACCMPilot.Flight.Recovery,
+
                        SMACCMPilot.Flight.Sensors.Task,
                        SMACCMPilot.Flight.Sensors.Platforms,
 

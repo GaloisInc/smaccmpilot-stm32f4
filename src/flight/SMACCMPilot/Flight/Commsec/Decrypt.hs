@@ -16,9 +16,9 @@ import           Ivory.Tower hiding (src)
 
 decryptTask :: (SingI n0, SingI n1)
             => C.Options
-            -> ChannelSink   n0  Comm.CommsecArray -- from datalink
-            -> ChannelSource n1  Comm.MAVLinkArray -- to GCS Rx task
-            -> DataSource        (Struct "veh_commsec_msg") -- to GCS Tx task
+            -> ChannelSink   n0 Comm.CommsecArray -- from datalink
+            -> ChannelSource n1 Comm.MAVLinkArray -- to GCS Rx task, recovery task
+            -> DataSource       (Struct "veh_commsec_msg") -- to GCS Tx task
             -> Task p ()
 decryptTask opts rx tx commsec_info_src = do
   emitter    <- withChannelEmitter tx "decToGcsRxSrc"
@@ -35,7 +35,6 @@ decryptTask opts rx tx commsec_info_src = do
     refCopy pkg pkgStream
     res <- CS.decrypt CS.uavCtx pkg
     -- Check that the tags match
-    -- XXX report on bad messages?
     when (res ==? 0) $ do
       -- Copy the decrypted message out of the pkg
       payload <- local (iarray [] :: Init Comm.MAVLinkArray)
@@ -61,14 +60,14 @@ reporter commRef res curr lastGoodTime = do
   assert (res <=? 6) -- Largest error code
   now <- deref curr
   store (commRef ~> V.commsec_err) (castDefault res)
-  cond_ [   res ==? Comm.commsecSuccess
-        ==> do (commRef ~> V.good_msgs)   += 1
-               store lastGoodTime now
-               store (commRef ~> V.time) 0
-        ,   true
-        ==> do (commRef ~> V.bad_msgs) += 1
-               l <- deref lastGoodTime
-               store (commRef ~> V.time) (now - l)
+  cond_ [ res ==? Comm.commsecSuccess
+     ==> do (commRef ~> V.good_msgs)   += 1
+            store lastGoodTime now
+            store (commRef ~> V.time) 0
+        , true
+     ==> do (commRef ~> V.bad_msgs) += 1
+            l <- deref lastGoodTime
+            store (commRef ~> V.time) (now - l)
         ]
 
 
