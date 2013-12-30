@@ -10,8 +10,6 @@ module SMACCMPilot.Flight.Recovery
 import qualified SMACCMPilot.Mavlink.Messages.VehCommsec as V
 --import qualified SMACCMPilot.Communications              as Comm
 
-import           Control.Monad
-
 import           Ivory.Language
 import           Ivory.Stdlib
 import           Ivory.Tower
@@ -28,7 +26,8 @@ recoveryTower commsec_info_snk = do
 
 type Time   = Uint32
 type Idx    = Sint32
-type CirBuf = Array 30 (Stored Time)
+type BufLen = 30
+type CirBuf = Array BufLen (Stored Time)
 
 commsecRecoveryTask :: DataSink (Struct "veh_commsec_msg") -- From Commsec/Decrypt task
                     -> Task p ()
@@ -40,11 +39,13 @@ commsecRecoveryTask commsec_info_snk = do
   idx      <- taskLocalInit "idx"     (ival 0 :: Init (Stored Idx))
   -- Have we filled the buffer once (at which point, "mod" semantics are used).
   bufFull  <- taskLocalInit "bufFull" (ival false)
+  -- Number bad seen on last dataport read.
+  numBad   <- taskLocalInit "numBad" (ival 0 :: Init (Stored Uint32))
 
   onPeriod 20 $ \_now -> do
     commsecReader <- local izero
     readData commsec_info_snk_rx commsecReader
-    void $ commsecMonitor commsecReader
+    commsecMonitor commsecReader cirBuf idx bufFull numBad
 
   taskModuleDef $ do
     depend V.vehCommsecModule
@@ -52,24 +53,35 @@ commsecRecoveryTask commsec_info_snk = do
   where
   -- XXX let's make up an arbitrary monitor here.  If we're received more than
   -- 20 bad messages in less than 30 seconds.
-  commsecMonitor rx = do
-    currBadMsgs <- rx ~>* V.bad_msgs
-    return currBadMsgs
+  commsecMonitor rx cirBuf idx bufFullRef prevBadRef = do
+    totalBadMsgs <- rx ~>* V.bad_msgs
+    lastTime     <- rx ~>* V.time
+    prevBad      <- deref prevBadRef
+    let currBad  = totalBadMsgs - prevBad
+    store prevBadRef totalBadMsgs
+    -- Store new values and check properties
+    newTimeStamps currBad lastTime idx cirBuf bufFullRef
 
-  newTimeStamp :: Time
+  newTimeStamp :: (GetAlloc eff ~ Scope s)
+               => Time
                -> Ref s0 (Stored Idx)
                -> Ref s1 (Array 30 (Stored Time))
-               -> Ivory eff ()
-  newTimeStamp t idxRef arr = do
+               -> Ref s2 (Stored IBool)
+               -> Ivory eff IBool
+  newTimeStamp t idxRef arr bufFullRef = do
     idx <- deref idxRef
     let idx' = incrIdx idx arr
+    bufFull <- deref bufFullRef
+    let bf = (idx' ==? 0) .&& iNot bufFull
+    store bufFullRef bf
     store idxRef idx'
     store (arr ! toIx idx') t
+    checkProp idx' arr bf
 
-  newTimeStamps numBadVals t idxRef arr =
+  newTimeStamps numBadVals t idxRef arr bufFullRef =
     -- For each bad value, we'll store the current timestamp, if we missed
     -- capturing it.
-    times numBadVals $ const $ newTimeStamp t idxRef arr
+    times (toIx numBadVals :: Ix BufLen) $ const $ newTimeStamp t idxRef arr bufFullRef
 
   -- Get the start index in the circular buffer.
   startIdx :: (GetAlloc eff ~ Scope s)
