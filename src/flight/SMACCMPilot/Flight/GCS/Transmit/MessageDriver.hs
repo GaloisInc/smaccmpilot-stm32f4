@@ -26,6 +26,7 @@ import qualified SMACCMPilot.Flight.Types.UserInput             as UI
 import qualified SMACCMPilot.Flight.Types.RadioStat             as RStat
 import qualified SMACCMPilot.Flight.Types.AltControlDebug       as Alt
 import qualified SMACCMPilot.Flight.Types.AttControlDebug       as Att
+import qualified SMACCMPilot.Flight.Types.PosControlDebug       as Pos
 import qualified SMACCMPilot.Flight.Types.ControlLaw            as CL
 import qualified SMACCMPilot.Flight.Types.ThrottleMode          as TM
 import qualified SMACCMPilot.Flight.Types.ControlSource         as CS
@@ -71,23 +72,6 @@ type Sender a = forall s0 s1 .
         , Ref s1 (Stored Uint8)
         , Ref s1 (Struct "mavlinkPacket")
         ] :-> ())
-
--- Data rate info: time since the last good message and how many messages were
--- dropped.
--- mkSendDataRate :: Sender "data_rate_state"
--- mkSendDataRate =
---   proc "gcs_transmit_send_data16"
---   $ \dr seqNum sendStruct -> body
---   $ do
---   msg <- local (istruct [])
---   d   <- dr ~>* R.dropped
---   l   <- dr ~>* R.lastSucc
---   store (msg ~> D.len) 8 -- 4 bytes for the time, 4 for the number dropped
---   packUint32 0 (msg ~> D.data16) d
---   packUint32 4 (msg ~> D.data16) l
-
---   call_ D.mkData16Sender (constRef msg) seqNum sendStruct
---   retVoid
 
 mkSendHeartbeat :: Def ('[ Ref s1 (Struct "control_law")
                          , Ref sm (Stored Uint8)
@@ -422,7 +406,6 @@ mkSendAttCtlDebug = proc "gcs_transmit_send_att_ctl_debug" $
 senderModules :: Module
 senderModules = package "senderModules" $ do
   mapM_ depend mavlinkMessageModules
---  incl mkSendDataRate
   incl mkSendHeartbeat
   incl mkSendAttitude
   incl mkSendVfrHud
@@ -441,7 +424,6 @@ senderModules = package "senderModules" $ do
   depend C.controlOutputTypeModule
   depend UI.userInputTypeModule
   depend CL.controlLawTypeModule
---  depend R.dataRateTypeModule
   depend RStat.radioStatTypeModule
   depend VR.vehicleRadioModule
   depend VC.vehCommsecModule

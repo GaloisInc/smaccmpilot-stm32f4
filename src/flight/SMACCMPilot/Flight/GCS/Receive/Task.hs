@@ -7,6 +7,7 @@
 
 module SMACCMPilot.Flight.GCS.Receive.Task
   ( gcsReceiveTask
+  , GCSRxRequires(..)
   ) where
 
 import           Prelude hiding (last, id)
@@ -29,34 +30,37 @@ import qualified SMACCMPilot.Communications         as Comm
 
 --------------------------------------------------------------------------------
 
-gcsReceiveTask :: ( SingI n0, SingI n1, SingI n2, SingI n3, SingI n4, SingI n5)
+data GCSRxRequires =
+  GCSRxRequires
+    { rx_hil         :: Maybe (ChannelSource 4   (Struct "hil_state_msg"))
+    , rx_ctl_req     :: ChannelSource 16  (Struct "control_law_request")
+    , rx_param_req   :: ChannelSource 512 (Stored Sint16)
+    , rx_rc_override :: ChannelSource 16  (Struct "rc_channels_override_msg")
+    }
+
+gcsReceiveTask :: ( SingI n0, SingI n1)
                => ChannelSink   n0 Comm.MAVLinkArray -- from decryptor
                -> ChannelSource n1 (Struct "gcsstream_timing")
-               -> ChannelSource n2 (Struct "hil_state_msg")
-               -> ChannelSource n3 (Struct "control_law_request")
-               -> ChannelSource n4 (Stored Sint16)  -- param_request
-               -> ChannelSource n5 (Struct "rc_channels_override_msg")
                -> [Param PortPair]
+               -> GCSRxRequires
                -> Task p ()
-gcsReceiveTask mavStream s_src hil_src creq_src
-               param_req_src rcOvr_snk params
-  = do
+gcsReceiveTask mavStream sper_src params req = do
   millis        <- withGetTimeMillis
-  hil_emitter   <- withChannelEmitter hil_src "hil_src"
-  creq_writer   <- withChannelEmitter creq_src "control_law_request"
+  hil_emitter        <- withHILEmitter (rx_hil req)
+  ctl_req_emitter    <- withChannelEmitter (rx_ctl_req     req) "ctl_req"
+  param_req_emitter  <- withChannelEmitter (rx_param_req   req) "param_req"
+  rcOverride_emitter <- withChannelEmitter (rx_rc_override req) "rc_override_tx"
 
   -- Get lists of parameter readers and writers.
   write_params       <- traverse paramWriter (map (fmap portPairSource) params)
   read_params        <- traverse paramReader (map (fmap portPairSink)   params)
-  param_req_emitter  <- withChannelEmitter param_req_src "param_req"
-  rcOverride_emitter <- withChannelEmitter rcOvr_snk "rc_override_tx"
 
   -- Generate functions from parameter list.
   getParamIndex     <- makeGetParamIndex read_params
   setParamValue     <- makeSetParamValue write_params
 
   withStackSize 1024
-  streamPeriodEmitter <- withChannelEmitter s_src "streamperiods"
+  streamPeriodEmitter <- withChannelEmitter sper_src "streamperiods"
 
   s_periods <- taskLocalInit "periods" defaultPeriods
   state     <- taskLocalInit "state"
@@ -65,19 +69,23 @@ gcsReceiveTask mavStream s_src hil_src creq_src
   let handlerAux :: Def ('[ Ref s0 (Struct "mavlink_receive_state")
                           , Uint32
                           ] :-> ())
-      handlerAux = proc "gcsReceiveHandlerAux" $ \s now -> body $
+      handlerAux = proc "gcsReceiveHandlerAux" $ \s now -> body $ do
           runHandlers s
             [ handle (paramRequestList read_params param_req_emitter)
             , handle (paramRequestRead getParamIndex param_req_emitter)
             , handle (paramSet getParamIndex setParamValue param_req_emitter)
             , handle (requestDatastream s_periods streamPeriodEmitter)
-            , handle (hilState hil_emitter)
             , handle (rcOverride rcOverride_emitter)
-            , handle (setMode creq_writer now)
+            , handle (setMode ctl_req_emitter now)
             , handleCommandLong (fromIntegral Cmd.id_COMPONENT_ARM_DISARM)
-                                (armDisarm creq_writer now)
+                                (armDisarm ctl_req_emitter now)
             ]
-          where runHandlers s = mapM_ ($ s)
+          hilhandler s
+          where
+          runHandlers s = mapM_ ($ s)
+          hilhandler s = case hil_emitter of
+            Just e -> handle (hilState e) s
+            Nothing -> return ()
 
   let parseMav :: Def ('[ConstRef s1 Comm.MAVLinkArray] :-> ())
       parseMav = proc "parseMav" $ \mav -> body $ do
@@ -112,3 +120,9 @@ gcsReceiveTask mavStream s_src hil_src creq_src
       incl parseMav
       incl handlerAux
 
+
+withHILEmitter :: SingI n
+               => Maybe (ChannelSource n (Struct "hil_state_msg"))
+               -> Task p (Maybe (ChannelEmitter n (Struct "hil_state_msg")))
+withHILEmitter (Just s) = withChannelEmitter s "hil_src" >>= \e -> return (Just e)
+withHILEmitter Nothing  = return Nothing

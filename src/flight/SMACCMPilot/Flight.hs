@@ -10,7 +10,6 @@ module SMACCMPilot.Flight
   ) where
 
 import Control.Applicative ((<$>))
-import Control.Monad (void)
 import Data.Foldable (Foldable)
 import Data.Traversable (Traversable(..))
 
@@ -53,6 +52,7 @@ hil :: (BoardHSE p, MotorOutput p, SensorOrientation p)
 hil opts = do
   -- Communication primitives:
   sensors        <- dataport
+  position       <- dataport
   mavlink_ctlreq <- channel
   rc_override    <- channel
 
@@ -63,6 +63,7 @@ hil opts = do
   -- Instantiate core:
   core_out <- core $ FlightCoreRequires
                       { sensors_in    = snk sensors
+                      , position_in   = snk position
                       , params_in     = sysFlightParams snk_params
                       , rcoverride_in = snk rc_override
                       , ctl_req_in    = snk mavlink_ctlreq
@@ -78,15 +79,27 @@ hil opts = do
   commsec_info <- dataport
 
   gcsTowerHil "uart1" opts istream ostream
-    (controllaw_state core_out)
-    (src mavlink_ctlreq)
-    control_state
-    motors_state
-    sensors
-    (src rc_override)
-    (alt_ctl_state core_out)
-    (att_ctl_state core_out)
-    commsec_info
+    GCSRequires
+      { gcs_ctl_law_in  = controllaw_state core_out
+      , gcs_sens_in     = snk sensors
+      , gcs_position_in = snk position
+      , gcs_ctl_in      = control_state
+      , gcs_motors_in   = motors_state
+      , gcs_alt_ctl_in  = alt_ctl_state core_out
+      , gcs_att_ctl_in  = att_ctl_state core_out
+      , gcs_pos_ctl_in  = pos_ctl_state core_out
+      , gcs_commsec_in  = snk commsec_info
+      }
+    GCSProvides
+      { gcs_ctl_law_req  = src mavlink_ctlreq
+      , gcs_rc_override  = src rc_override
+      , gcs_commsec_info = src commsec_info
+      , gcs_hil_state    = Nothing
+      }
+    HILRequires
+      { hil_sensors_in = src sensors
+      , hil_position_in = src position
+      }
     paramList
 
   addModule (commsecModule opts)
@@ -107,40 +120,49 @@ flight opts = do
   (params, paramList) <- initTowerParams sysParams
   let snk_params       = portPairSink <$> params
 
-  -- Instantiate core:
-  core_out <- core $ FlightCoreRequires
-                      { sensors_in    = snk sensors
-                      , params_in     = sysFlightParams snk_params
-                      , rcoverride_in = snk rc_override
-                      , ctl_req_in    = snk mavlink_ctlreq
-                      }
-
-  control_state     <- stateProxy "control_state" (control_out core_out)
-  motors_state      <- stateProxy "motors_state" (motors_out core_out)
-
   -- GPS Input on uart6 (valid for all px4fmu platforms)
   gps_position   <- gpsTower UART.uart6
   position_state <- stateProxy "position_state" gps_position
   -- Sensors managed by AP_HAL
   sensorsTower gps_position (src sensors)
+
+  -- Instantiate core:
+  core_out <- core $ FlightCoreRequires
+    { sensors_in    = snk sensors
+    , position_in   = position_state
+    , params_in     = sysFlightParams snk_params
+    , rcoverride_in = snk rc_override
+    , ctl_req_in    = snk mavlink_ctlreq
+    }
+
+  control_state     <- stateProxy "control_state" (control_out core_out)
+  motors_state      <- stateProxy "motors_state" (motors_out core_out)
+
   -- Motor output dependent on platform
   motorOutput (motors_out core_out)
 
   -- Commsec reporter, to GCS TX from decrypter
   commsec_info <- dataport
 
-  let gcsTower' uartNm uartiStrm uartoStrm = void $
-        gcsTower uartNm opts uartiStrm uartoStrm
-          (controllaw_state core_out)
-          (src mavlink_ctlreq)
-          (snk sensors)
-          position_state
-          control_state
-          motors_state
-          (src rc_override)
-          (alt_ctl_state core_out)
-          (att_ctl_state core_out)
-          commsec_info
+  let gcsTower' name istream ostream =
+        gcsTower name opts istream ostream
+          GCSRequires
+            { gcs_ctl_law_in  = controllaw_state core_out
+            , gcs_sens_in     = snk sensors
+            , gcs_position_in = position_state
+            , gcs_ctl_in      = control_state
+            , gcs_motors_in   = motors_state
+            , gcs_alt_ctl_in  = alt_ctl_state core_out
+            , gcs_att_ctl_in  = att_ctl_state core_out
+            , gcs_pos_ctl_in  = pos_ctl_state core_out
+            , gcs_commsec_in  = snk commsec_info
+            }
+          GCSProvides
+            { gcs_ctl_law_req  = src mavlink_ctlreq
+            , gcs_rc_override  = src rc_override
+            , gcs_commsec_info = src commsec_info
+            , gcs_hil_state    = Nothing
+            }
           paramList
 
   -- GCS on UART1:

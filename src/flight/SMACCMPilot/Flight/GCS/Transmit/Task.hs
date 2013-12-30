@@ -7,6 +7,7 @@
 
 module SMACCMPilot.Flight.GCS.Transmit.Task
   ( gcsTransmitTask
+  , GCSTxRequires(..)
   ) where
 
 import Prelude hiding (last)
@@ -29,37 +30,43 @@ import qualified SMACCMPilot.Mavlink.Messages.VehCommsec  as VC
 
 --------------------------------------------------------------------------------
 
+data GCSTxRequires n =
+  GCSTxRequires
+    { tx_ctl_law     :: DataSink (Struct "control_law")
+    , tx_sens        :: DataSink (Struct "sensors_result")
+    , tx_position    :: DataSink (Struct "position")
+    , tx_ctl         :: DataSink (Struct "controloutput")
+    , tx_motors      :: DataSink (Struct "motors")
+    , tx_alt_ctl     :: DataSink (Struct "alt_control_dbg")
+    , tx_att_ctl     :: DataSink (Struct "att_control_dbg")
+    , tx_pos_ctl     :: DataSink (Struct "pos_control_dbg")
+    , tx_radio_stat  :: DataSink (Struct "radio_stat")
+    , tx_veh_commsec :: DataSink (Struct "veh_commsec_msg")
+    , tx_param_req   :: ChannelSink n (Stored Sint16)
+    }
+
+
 gcsTransmitTask :: (SingI n0, SingI n1, SingI n2)
                 => ChannelSource n0 C.MAVLinkArray -- Channel to encrypter
                 -> ChannelSink   n1 (Struct "gcsstream_timing")
-                -> DataSink         (Struct "control_law")
-                -> DataSink         (Struct "sensors_result")
-                -> DataSink         (Struct "position")
-                -> DataSink         (Struct "controloutput")
-                -> DataSink         (Struct "motors")
-                -> DataSink         (Struct "radio_stat")
-                -> DataSink         (Struct "alt_control_dbg")
-                -> DataSink         (Struct "att_control_dbg")
-                -> ChannelSink n2   (Stored Sint16)
-                -> DataSink         (Struct "veh_commsec_msg")
                 -> [Param PortPair]
+                -> GCSTxRequires n2
                 -> Task p ()
-gcsTransmitTask mavStream sp_sink cl_sink se_sink ps_sink
-                ct_sink mo_sink ra_sink alt_sink att_sink
-                param_req_sink commsec_info_sink params
-  = do
+gcsTransmitTask mavStream sp_sink params input = do
   withStackSize 1024
 
-  clReader          <- withDataReader cl_sink "controllaw"
-  sensorsReader     <- withDataReader se_sink "sensors"
-  posReader         <- withDataReader ps_sink "position"
-  ctlReader         <- withDataReader ct_sink "control"
-  motorReader       <- withDataReader mo_sink "motors"
-  radioReader       <- withDataReader ra_sink "radio"
-  altControlReader  <- withDataReader alt_sink "alt_control"
-  attControlReader  <- withDataReader att_sink "att_control"
+  clReader          <- withDataReader (tx_ctl_law     input) "controllaw"
+  sensorsReader     <- withDataReader (tx_sens        input) "sensors"
+  posReader         <- withDataReader (tx_position    input) "position"
+  ctlReader         <- withDataReader (tx_ctl         input) "control"
+  motorReader       <- withDataReader (tx_motors      input) "motors"
+  radioReader       <- withDataReader (tx_radio_stat  input) "radio"
+  altControlReader  <- withDataReader (tx_alt_ctl     input) "alt_control"
+  attControlReader  <- withDataReader (tx_att_ctl     input) "att_control"
+  posControlReader  <- withDataReader (tx_pos_ctl     input) "pos_control"
+  commsecInfoReader <- withDataReader (tx_veh_commsec input) "commsecInfo"
+
   mavTx             <- withChannelEmitter mavStream "gcsTxToEncSrc"
-  commsecInfoReader <- withDataReader commsec_info_sink "commsecInfo"
 
   -- the mavlink packet we're packing
   mavlinkStruct  <-
@@ -72,7 +79,7 @@ gcsTransmitTask mavStream sp_sink cl_sink se_sink ps_sink
 
   t <- withGetTimeMillis
 
-  paramReqs       <- withChannelReceiver param_req_sink "paramReqs"
+  paramReqs       <- withChannelReceiver (tx_param_req input) "paramReqs"
   read_params     <- traverse paramReader (map (fmap portPairSink) params)
   getParamInfo    <- makeGetParamInfo read_params
 
