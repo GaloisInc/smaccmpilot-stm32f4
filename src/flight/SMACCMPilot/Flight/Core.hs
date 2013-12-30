@@ -101,25 +101,21 @@ core sys = do
   redledpin = GPIO.pinB14
 
   otherms :: [Module]
-  otherms = concat
-    -- flight types
-    [ typeModules
+  otherms = typeModules -- flight types
     -- control subsystem
-    , controlModules
+    ++ controlModules
     -- mavlink system
-    , mavlinkMessageModules
+    ++ mavlinkMessageModules
     -- standard library
-    , stdlibModules
-    ] ++
-    [ packModule
-    , mavlinkCRCModule
-    , paramModule
-    -- the rest:
-    -- hxstream
-    , hxstreamModule
-    -- Used in channels
-    , senderModules
-    , mavlinkSendModule
-    , mavlinkReceiveStateModule
-    ]
+    ++ stdlibModules
+    ++ [ packModule
+       , mavlinkCRCModule
+       , paramModule
+       -- hxstream
+       , hxstreamModule
+       -- Used in channels
+       , senderModules
+       , mavlinkSendModule
+       , mavlinkReceiveStateModule
+       ]
 
