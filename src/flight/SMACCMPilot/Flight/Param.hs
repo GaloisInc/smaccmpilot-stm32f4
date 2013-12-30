@@ -54,6 +54,11 @@ data AltitudeParams f = AltitudeParams
   , altitudeUI         :: ThrUIParams f
   } deriving (Functor, Foldable, Traversable)
 
+-- | Position controller parameters.
+data PosCtlParams f = PosCtlParams
+  { posCtlThrust :: PIDParams f
+  } deriving (Functor, Foldable, Traversable)
+
 -- | PID controller parameters.
 data ThrUIParams  f = ThrUIParams 
   { thrUIsens :: Param f  -- Meters per second at full scale
@@ -72,6 +77,7 @@ data FlightParams f = FlightParams
   , flightPitch     :: StabilizerParams f
   , flightYaw       :: StabilizerParams f
   , flightAltitude  :: AltitudeParams f
+  , flightPosition  :: PosCtlParams f
   } deriving (Functor, Foldable, Traversable)
 
 -- | Initialize flight parameters to their default values.
@@ -84,6 +90,7 @@ flightParams =                          -- P     I     D     IMAX (-IMIN)
                <*> group "YAW" (stabParams 1.0   0.000 0.000 8.0
                                            0.300 0.0   0.0   1.0)
                <*> group "ALT" altitudeParams
+               <*> group "POS" posCtlParams
   where
   altitudeParams :: Monad m => ParamT f m (AltitudeParams f)
   altitudeParams =                              -- P     I     D     IMAX
@@ -91,4 +98,8 @@ flightParams =                          -- P     I     D     IMAX (-IMIN)
                    <*> group "POS"  (pidParams 0.500 0.000 0.000 5.0)
                                              -- sens deadband
                    <*> group "UI"   (thrUIParams 1.0 0.30)
+
+  posCtlParams :: Monad m => ParamT f m (PosCtlParams f)
+  posCtlParams =                            -- P     I     D     IMAX
+    PosCtlParams <$> group "THRUST" (pidParams 1.000 0.010 0.010 0.8)
 

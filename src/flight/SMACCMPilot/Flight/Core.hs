@@ -35,6 +35,7 @@ import           SMACCMPilot.Param
 data FlightCoreRequires =
   FlightCoreRequires
     { sensors_in        :: DataSink (Struct "sensors_result")
+    , position_in       :: DataSink (Struct "position")
     , params_in         :: FlightParams ParamSink
     , rcoverride_in     :: ChannelSink 16 (Struct "rc_channels_override_msg")
     , ctl_req_in        :: ChannelSink 16 (Struct "control_law_request")
@@ -45,6 +46,7 @@ data FlightCoreProvides =
     { control_out      :: ChannelSink 16 (Struct "controloutput")
     , motors_out       :: ChannelSink 16 (Struct "motors")
     , controllaw_state :: DataSink (Struct "control_law")
+    , pos_ctl_state    :: DataSink (Struct "pos_control_dbg")
     , alt_ctl_state    :: DataSink (Struct "alt_control_dbg")
     , att_ctl_state    :: DataSink (Struct "att_control_dbg")
     , userinput_state  :: DataSink (Struct "userinput_result")
@@ -54,6 +56,7 @@ core :: FlightCoreRequires -> Tower p FlightCoreProvides
 core sys = do
   motors  <- channel
   control <- channel
+  pos_ctl <- dataport
   alt_ctl <- dataport
   att_ctl <- dataport
 
@@ -68,7 +71,9 @@ core sys = do
                         controllaw
                         userinput
                         (sensors_in sys)
+                        (position_in sys)
                         (src control)
+                        (src pos_ctl)
                         (src alt_ctl)
                         (src att_ctl)
                         (params_in sys)
@@ -85,6 +90,7 @@ core sys = do
     { control_out      = snk control
     , motors_out       = snk motors
     , controllaw_state = controllaw
+    , pos_ctl_state    = snk pos_ctl
     , alt_ctl_state    = snk alt_ctl
     , att_ctl_state    = snk att_ctl
     , userinput_state  = userinput
