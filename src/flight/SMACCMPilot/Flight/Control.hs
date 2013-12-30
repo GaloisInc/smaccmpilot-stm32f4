@@ -12,6 +12,7 @@ import Ivory.Stdlib
 
 import qualified SMACCMPilot.Flight.Types.ControlLaw    as CL
 import qualified SMACCMPilot.Flight.Types.ControlOutput as CO
+import qualified SMACCMPilot.Flight.Types.UserInput     as UI
 import qualified SMACCMPilot.Flight.Types.AttControlDebug ()
 import qualified SMACCMPilot.Flight.Types.AltControlDebug ()
 import qualified SMACCMPilot.Flight.Types.PosControlDebug ()
@@ -66,7 +67,14 @@ controlTask s_law s_inpt s_sens s_pos s_ctl s_pos_dbg s_alt_dbg s_att_dbg params
       readData clReader    cl
       readData posReader   pos
 
-      pos_update pos_control sens pos cl dt
+      ifte_ false -- XXX LAW
+        (do pos_update pos_control sens pos dt
+            (valid, x, y) <- pos_output pos_control
+            when valid $ do
+              store (ui ~> UI.pitch) x
+              store (ui ~> UI.roll)  y
+        )
+        (pos_reset  pos_control)
 
       -- Run altitude and attitude controllers
       readData uiReader ui
