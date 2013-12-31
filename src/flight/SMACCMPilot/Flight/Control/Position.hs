@@ -15,8 +15,8 @@ import Ivory.Stdlib
 import SMACCMPilot.Param
 import SMACCMPilot.Flight.Param
 
-import qualified SMACCMPilot.Hardware.GPS.Types           ()
-import qualified SMACCMPilot.Flight.Types.Sensors         ()
+import qualified SMACCMPilot.Hardware.GPS.Types           as P
+import qualified SMACCMPilot.Flight.Types.Sensors         as S
 import qualified SMACCMPilot.Flight.Types.PosControlDebug ()
 
 import           SMACCMPilot.Flight.Control.StatePID
@@ -40,7 +40,9 @@ taskPositionControl :: PosCtlParams ParamReader
 taskPositionControl param_reader s_pos_dbg = do
   f <- fresh
   posDbgWriter <- withDataWriter s_pos_dbg "pos_control_dbg"
-
+  -- NED aerospace frame:
+  -- x, ahead, points north at 0 heading
+  -- y, right side, points east at 0 heading
   x_vel_pid <- taskStatePID (posCtlThrust param_reader) "x_velocity"
   y_vel_pid <- taskStatePID (posCtlThrust param_reader) "y_velocity"
   active <- taskLocal "active"
@@ -61,8 +63,7 @@ taskPositionControl param_reader s_pos_dbg = do
         unless a $ do
           store active true
 
-        x_vel_est <- assign 0 -- XXX
-        y_vel_est <- assign 0 -- XXX
+        (x_vel_est, y_vel_est) <- vxy sens pos
         spid_update x_vel_pid 0 x_vel_est dt
         spid_update y_vel_pid 0 y_vel_est dt
 
@@ -114,4 +115,22 @@ taskPositionControl param_reader s_pos_dbg = do
         return (vv,xx,yy)
     }
 
+-- NED aerospace frame:
+-- x, ahead, points north at 0 heading
+-- y, right side, points east at 0 heading
 
+vxy :: Ref s1 (Struct "sensors_result")
+    -> Ref s2 (Struct "position")
+    -> Ivory eff (IFloat, IFloat)
+vxy sens pos = do
+  vn_cms  <- deref (pos ~> P.vnorth)
+  ve_cms  <- deref (pos ~> P.veast)
+  v_north <- assign ((safeCast vn_cms) / 100.0)
+  v_east  <- assign ((safeCast ve_cms) / 100.0)
+  head    <- deref (sens ~> S.yaw)
+
+  c_head  <- assign (cos head)
+  s_head  <- assign (sin head)
+  vx <- assign (c_head * v_north - s_head * v_east)
+  vy <- assign (s_head * v_north + c_head * v_east)
+  return (vx, vy)
