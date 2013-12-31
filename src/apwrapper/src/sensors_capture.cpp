@@ -137,6 +137,11 @@ void sensors_set_gps_velocity(int32_t v_north, int32_t v_east, int32_t v_down,
 
 void sensors_set_gps_position(int32_t lat, int32_t lon) {
     gps_shim.set_lat_lon(lat,lon);
+    static bool compass_uninitialized = true;
+    if (compass_uninitialized) {
+        compass_uninitialized = false;
+        g_compass.set_initial_location(lat,lon);
+    }
 }
 
 void sensors_set_gps_fix(bool fix2d, bool fix3d, uint8_t num_sats) {
