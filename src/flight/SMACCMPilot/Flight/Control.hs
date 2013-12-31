@@ -4,7 +4,11 @@
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TypeFamilies #-}
 
-module SMACCMPilot.Flight.Control where
+module SMACCMPilot.Flight.Control
+  ( controlTower
+  , ControlInputs(..)
+  , ControlOutputs(..)
+  ) where
 
 import Ivory.Language
 import Ivory.Tower
@@ -28,74 +32,99 @@ import           SMACCMPilot.Flight.Control.Altitude
 import           SMACCMPilot.Flight.Control.Attitude
 import           SMACCMPilot.Flight.Control.Position
 
-controlTask :: (SingI n)
-            => DataSink (Struct "control_law")
-            -> DataSink (Struct "userinput_result")
-            -> DataSink (Struct "sensors_result")
-            -> DataSink (Struct "position")
-            -> ChannelSource n (Struct "controloutput")
-            -> DataSource (Struct "pos_control_dbg")
-            -> DataSource (Struct "alt_control_dbg")
-            -> DataSource (Struct "att_control_dbg")
-            -> FlightParams ParamSink
-            -> Task p ()
-controlTask s_law s_inpt s_sens s_pos s_ctl s_pos_dbg s_alt_dbg s_att_dbg params = do
-  clReader      <- withDataReader s_law  "control_law"
-  uiReader      <- withDataReader s_inpt "userinput"
-  sensReader    <- withDataReader s_sens "sensors"
-  posReader     <- withDataReader s_pos  "position"
-  ctlEmitter    <- withChannelEmitter s_ctl  "control"
+data ControlInputs =
+  ControlInputs
+    { ci_law  :: DataSink (Struct "control_law")
+    , ci_ui   :: DataSink (Struct "userinput_result")
+    , ci_sens :: DataSink (Struct "sensors_result")
+    , ci_pos  :: DataSink (Struct "position")
+    }
 
-  param_reader  <- paramReader params
+data ControlOutputs =
+  ControlOutputs
+    { co_ctl     :: ChannelSink 16 (Struct "controloutput")
+    , co_pos_dbg :: DataSink (Struct "pos_control_dbg")
+    , co_alt_dbg :: DataSink (Struct "alt_control_dbg")
+    , co_att_dbg :: DataSink (Struct "att_control_dbg")
+    }
 
-  pos_control    <- taskPositionControl (flightPosition param_reader) s_pos_dbg
-  alt_control    <- taskAltitudeControl (flightAltitude param_reader) s_alt_dbg
-  att_control    <- taskAttitudeControl param_reader s_att_dbg
+controlTower :: FlightParams ParamSink
+            -> ControlInputs
+            -> Tower p ControlOutputs
+controlTower params inputs = do
+  ctlout <- channel
+  pos_dbg <- dataport
+  alt_dbg <- dataport
+  att_dbg <- dataport
+  task "control" $ do
+    clReader      <- withDataReader (ci_law  inputs) "control_law"
+    uiReader      <- withDataReader (ci_ui   inputs) "userinput"
+    sensReader    <- withDataReader (ci_sens inputs) "sensors"
+    posReader     <- withDataReader (ci_pos  inputs) "position"
 
-  taskInit $ do
-    pos_init pos_control
-    alt_init alt_control
-    att_init att_control
+    ctlEmitter    <- withChannelEmitter (src ctlout) "control"
 
-  onPeriod 5 $ \_now -> do
-      dt   <- assign 0.005 -- XXX calc from _now ?
-      cl   <- local izero
-      ui   <- local izero
-      pos  <- local izero
-      sens <- local izero
-      readData sensReader  sens
-      readData clReader    cl
-      readData posReader   pos
+    param_reader  <- paramReader params
 
-      ifte_ false -- XXX LAW
-        (do pos_update pos_control sens pos dt
-            (valid, x, y) <- pos_output pos_control
-            when valid $ do
-              store (ui ~> UI.pitch) x
-              store (ui ~> UI.roll)  y
-        )
-        (pos_reset  pos_control)
+    pos_control    <- taskPositionControl (flightPosition param_reader)
+                                          (src pos_dbg)
+    alt_control    <- taskAltitudeControl (flightAltitude param_reader)
+                                          (src alt_dbg)
+    att_control    <- taskAttitudeControl param_reader
+                                          (src att_dbg)
 
-      -- Run altitude and attitude controllers
-      readData uiReader ui
-      alt_update alt_control sens ui cl dt
-      att_update att_control sens ui cl dt
+    taskInit $ do
+      pos_init pos_control
+      alt_init alt_control
+      att_init att_control
 
-      -- Defaults for disarmed:
-      ctl <- local $ istruct
-        [ CO.throttle .= ival 0
-        , CO.roll     .= ival 0
-        , CO.pitch    .= ival 0
-        , CO.yaw      .= ival 0
-        ]
+    onPeriod 5 $ \_now -> do
+        dt   <- assign 0.005 -- XXX calc from _now ?
+        cl   <- local izero
+        ui   <- local izero
+        pos  <- local izero
+        sens <- local izero
+        readData sensReader  sens
+        readData clReader    cl
+        readData posReader   pos
 
-      armed <- deref (cl ~> CL.armed_mode)
-      when (armed ==? A.armed) $ do
-        alt_output alt_control ctl
-        att_output att_control ctl
+        ifte_ false -- XXX LAW
+          (do pos_update pos_control sens pos dt
+              (valid, x, y) <- pos_output pos_control
+              when valid $ do
+                store (ui ~> UI.roll)  x
+                store (ui ~> UI.pitch) y
+          )
+          (pos_reset  pos_control)
 
-      emit_ ctlEmitter (constRef ctl)
+        -- Run altitude and attitude controllers
+        readData uiReader ui
+        alt_update alt_control sens ui cl dt
+        att_update att_control sens ui cl dt
 
+        -- Defaults for disarmed:
+        ctl <- local $ istruct
+          [ CO.throttle .= ival 0
+          , CO.roll     .= ival 0
+          , CO.pitch    .= ival 0
+          , CO.yaw      .= ival 0
+          ]
+
+        armed <- deref (cl ~> CL.armed_mode)
+        when (armed ==? A.armed) $ do
+          alt_output alt_control ctl
+          att_output att_control ctl
+
+        emit_ ctlEmitter (constRef ctl)
+
+  mapM_ addModule controlModules
+
+  return ControlOutputs
+    { co_ctl     = snk ctlout
+    , co_pos_dbg = snk pos_dbg
+    , co_alt_dbg = snk alt_dbg
+    , co_att_dbg = snk att_dbg
+    }
 
 controlModules :: [Module]
 controlModules = [ controlPIDModule, attStabilizeModule ]

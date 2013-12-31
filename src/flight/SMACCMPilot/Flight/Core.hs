@@ -55,30 +55,22 @@ data FlightCoreProvides =
 core :: FlightCoreRequires -> Tower p FlightCoreProvides
 core sys = do
   motors  <- channel
-  control <- channel
-  pos_ctl <- dataport
-  alt_ctl <- dataport
-  att_ctl <- dataport
-
   (userinput_chan, controllaw_chan) <- userInputTower
                                           (ctl_req_in sys)
                                           (rcoverride_in sys)
   userinput  <- stateProxy "proxy_userinput" userinput_chan
   controllaw <- stateProxy "proxy_controllaw" controllaw_chan
 
-  task "blink"      $ blinkTask lights controllaw
-  task "control"    $ controlTask
-                        controllaw
-                        userinput
-                        (sensors_in sys)
-                        (position_in sys)
-                        (src control)
-                        (src pos_ctl)
-                        (src alt_ctl)
-                        (src att_ctl)
-                        (params_in sys)
-  task "motmix"     $ motorMixerTask
-                        (snk control)
+  ctl <- controlTower (params_in sys) ControlInputs
+    { ci_law  = controllaw
+    , ci_ui   = userinput
+    , ci_sens = sensors_in sys
+    , ci_pos  = position_in sys
+    }
+
+  task "blink"  $ blinkTask lights controllaw
+  task "motmix" $ motorMixerTask
+                        (co_ctl ctl)
                         controllaw
                         (src motors)
 
@@ -87,12 +79,12 @@ core sys = do
   mapM_ addModule otherms
 
   return $ FlightCoreProvides
-    { control_out      = snk control
+    { control_out      = co_ctl ctl
     , motors_out       = snk motors
     , controllaw_state = controllaw
-    , pos_ctl_state    = snk pos_ctl
-    , alt_ctl_state    = snk alt_ctl
-    , att_ctl_state    = snk att_ctl
+    , pos_ctl_state    = co_pos_dbg ctl
+    , alt_ctl_state    = co_alt_dbg ctl
+    , att_ctl_state    = co_att_dbg ctl
     , userinput_state  = userinput
     }
   where
@@ -102,8 +94,6 @@ core sys = do
 
   otherms :: [Module]
   otherms = typeModules -- flight types
-    -- control subsystem
-    ++ controlModules
     -- mavlink system
     ++ mavlinkMessageModules
     -- standard library
