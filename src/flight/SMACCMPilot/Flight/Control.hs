@@ -15,6 +15,7 @@ import Ivory.Tower
 import Ivory.Stdlib
 
 import qualified SMACCMPilot.Flight.Types.ControlLaw    as CL
+import qualified SMACCMPilot.Flight.Types.YawMode       as Y
 import qualified SMACCMPilot.Flight.Types.ControlOutput as CO
 import qualified SMACCMPilot.Flight.Types.UserInput     as UI
 import qualified SMACCMPilot.Flight.Types.AttControlDebug ()
@@ -87,8 +88,15 @@ controlTower params inputs = do
         readData sensReader  sens
         readData clReader    cl
         readData posReader   pos
+        readData uiReader ui
 
-        ifte_ false -- XXX LAW
+        -- XXX this whole next section involving pos should
+        -- be refactored, and the law implemented properly.
+        -- HACK for now:
+        yaw_law <- deref (cl ~> CL.yaw_mode)
+        pos_ctl_enabled <- assign (yaw_law ==? Y.heading)
+
+        ifte_ pos_ctl_enabled -- XXX LAW
           (do pos_update pos_control sens pos dt
               (valid, x, y) <- pos_output pos_control
               when valid $ do
@@ -98,7 +106,6 @@ controlTower params inputs = do
           (pos_reset  pos_control)
 
         -- Run altitude and attitude controllers
-        readData uiReader ui
         alt_update alt_control sens ui cl dt
         att_update att_control sens ui cl dt
 
