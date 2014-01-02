@@ -20,6 +20,7 @@ import qualified SMACCMPilot.Mavlink.Messages.VehicleRadio
 import qualified SMACCMPilot.Mavlink.Messages.GcsRadio
 import qualified SMACCMPilot.Mavlink.Messages.VehCommsec
 import qualified SMACCMPilot.Mavlink.Messages.AttCtlDebug
+import qualified SMACCMPilot.Mavlink.Messages.PosCtlDebug
 import qualified SMACCMPilot.Mavlink.Messages.Heartbeat
 import qualified SMACCMPilot.Mavlink.Messages.SysStatus
 import qualified SMACCMPilot.Mavlink.Messages.SystemTime
@@ -112,6 +113,7 @@ mavlinkMessageModules =
   , SMACCMPilot.Mavlink.Messages.GcsRadio.gcsRadioModule
   , SMACCMPilot.Mavlink.Messages.VehCommsec.vehCommsecModule
   , SMACCMPilot.Mavlink.Messages.AttCtlDebug.attCtlDebugModule
+  , SMACCMPilot.Mavlink.Messages.PosCtlDebug.posCtlDebugModule
   , SMACCMPilot.Mavlink.Messages.Heartbeat.heartbeatModule
   , SMACCMPilot.Mavlink.Messages.SysStatus.sysStatusModule
   , SMACCMPilot.Mavlink.Messages.SystemTime.systemTimeModule
@@ -207,6 +209,7 @@ messageLensCRCs =
   , (175, (  9, 108)) -- 0xAF GCS_RADIO
   , (185, ( 13, 112)) -- 0xB9 VEH_COMMSEC
   , (186, ( 32, 187)) -- 0xBA ATT_CTL_DEBUG
+  , (187, ( 52,  16)) -- 0xBB POS_CTL_DEBUG
   , (  0, (  9,  50)) -- 0x00 HEARTBEAT
   , (  1, ( 31, 124)) -- 0x01 SYS_STATUS
   , (  2, ( 12, 137)) -- 0x02 SYSTEM_TIME
