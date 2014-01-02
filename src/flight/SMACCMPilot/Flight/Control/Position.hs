@@ -17,7 +17,7 @@ import SMACCMPilot.Flight.Param
 
 import qualified SMACCMPilot.Hardware.GPS.Types           as P
 import qualified SMACCMPilot.Flight.Types.Sensors         as S
-import qualified SMACCMPilot.Flight.Types.PosControlDebug ()
+import qualified SMACCMPilot.Flight.Types.PosControlDebug as D
 
 import           SMACCMPilot.Flight.Control.StatePID
 
@@ -76,8 +76,24 @@ taskPositionControl param_reader s_pos_dbg = do
 
       debug_proc :: Def ('[]:->())
       debug_proc = proc (named "debug") $ body $ do
-        dbg <- local izero
-        -- XXX
+        (xp, xi, xd) <- spid_debug x_vel_pid
+        (yp, yi, yd) <- spid_debug y_vel_pid
+        dbg <- local $ istruct
+          [ D.x_vel_setpt .= ival 0
+          , D.y_vel_setpt .= ival 0
+          , D.head_setpt  .= ival 9999 -- invalid
+          , D.lat_setpt   .= ival 9999 -- invalid
+          , D.lon_setpt   .= ival 9999 -- invalid
+          , D.x_deviation .= ival 9999 -- invalid
+          , D.y_deviation .= ival 9999 -- invalid
+          -- The following are actually meaningful:
+          , D.x_vel_p     .= ival xp
+          , D.x_vel_i     .= ival xi
+          , D.x_vel_d     .= ival xd
+          , D.y_vel_p     .= ival yp
+          , D.y_vel_i     .= ival yi
+          , D.y_vel_d     .= ival yd
+          ]
         writeData posDbgWriter (constRef dbg)
 
       output_proc :: Def ('[ Ref s1 (Stored IBool)

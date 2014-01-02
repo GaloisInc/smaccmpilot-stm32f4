@@ -45,6 +45,7 @@ import qualified SMACCMPilot.Mavlink.Messages.ParamValue        as PV
 import qualified SMACCMPilot.Mavlink.Messages.VehicleRadio      as VR
 import qualified SMACCMPilot.Mavlink.Messages.AltCtlDebug       as ACD
 import qualified SMACCMPilot.Mavlink.Messages.AttCtlDebug       as ACD
+import qualified SMACCMPilot.Mavlink.Messages.PosCtlDebug       as PCD
 import qualified SMACCMPilot.Mavlink.Messages.VehCommsec        as VC
 
 --------------------------------------------------------------------
@@ -403,6 +404,43 @@ mkSendAttCtlDebug = proc "gcs_transmit_send_att_ctl_debug" $
     ]
   call_ ACD.mkAttCtlDebugSender (constRef msg) seqNum sendStruct
 
+mkSendPosCtlDebug :: Def ('[ ConstRef s1 (Struct "pos_control_dbg")
+                           , Ref      s2 (Stored Uint8)
+                           , Ref      s2 (Struct "mavlinkPacket")
+                           ] :-> ())
+mkSendPosCtlDebug = proc "gcs_transmit_send_pos_ctl_debug" $
+  \pos seqNum sendStruct -> body $ do
+  x_vel_setpt      <- deref (pos ~> Pos.x_vel_setpt)
+  y_vel_setpt      <- deref (pos ~> Pos.y_vel_setpt)
+  head_setpt       <- deref (pos ~> Pos.head_setpt)
+  lat_setpt        <- deref (pos ~> Pos.lat_setpt)
+  lon_setpt        <- deref (pos ~> Pos.lon_setpt)
+  x_deviation      <- deref (pos ~> Pos.x_deviation)
+  y_deviation      <- deref (pos ~> Pos.y_deviation)
+  x_vel_p          <- deref (pos ~> Pos.x_vel_p)
+  x_vel_i          <- deref (pos ~> Pos.x_vel_i)
+  x_vel_d          <- deref (pos ~> Pos.x_vel_d)
+  y_vel_p          <- deref (pos ~> Pos.y_vel_p)
+  y_vel_i          <- deref (pos ~> Pos.y_vel_i)
+  y_vel_d          <- deref (pos ~> Pos.y_vel_d)
+
+  msg             <- local $ istruct
+    [ PCD.x_vel_setpt      .= ival x_vel_setpt
+    , PCD.y_vel_setpt      .= ival y_vel_setpt
+    , PCD.head_setpt       .= ival head_setpt
+    , PCD.lat_setpt        .= ival lat_setpt
+    , PCD.lon_setpt        .= ival lon_setpt
+    , PCD.x_deviation      .= ival x_deviation
+    , PCD.y_deviation      .= ival y_deviation
+    , PCD.x_vel_p          .= ival x_vel_p
+    , PCD.x_vel_i          .= ival x_vel_i
+    , PCD.x_vel_d          .= ival x_vel_d
+    , PCD.y_vel_p          .= ival y_vel_p
+    , PCD.y_vel_i          .= ival y_vel_i
+    , PCD.y_vel_d          .= ival y_vel_d
+    ]
+  call_ PCD.mkPosCtlDebugSender (constRef msg) seqNum sendStruct
+
 senderModules :: Module
 senderModules = package "senderModules" $ do
   mapM_ depend mavlinkMessageModules
@@ -417,6 +455,7 @@ senderModules = package "senderModules" $ do
   incl mkSendVehCommsec
   incl mkSendAltCtlDebug
   incl mkSendAttCtlDebug
+  incl mkSendPosCtlDebug
 
   depend P.gpsTypesModule
   depend M.motorsTypeModule
@@ -429,4 +468,5 @@ senderModules = package "senderModules" $ do
   depend VC.vehCommsecModule
   depend Alt.altControlDebugTypeModule
   depend Att.attControlDebugTypeModule
+  depend Pos.posControlDebugTypeModule
   depend mavlinkSendModule

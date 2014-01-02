@@ -22,6 +22,12 @@ struct pos_control_dbg
   ; lon_setpt   :: Stored Sint32
   ; x_deviation :: Stored IFloat
   ; y_deviation :: Stored IFloat
+  ; x_vel_p     :: Stored IFloat
+  ; x_vel_i     :: Stored IFloat
+  ; x_vel_d     :: Stored IFloat
+  ; y_vel_p     :: Stored IFloat
+  ; y_vel_i     :: Stored IFloat
+  ; y_vel_d     :: Stored IFloat
   }
 |]
 
