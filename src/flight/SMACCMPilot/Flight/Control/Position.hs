@@ -67,15 +67,15 @@ taskPositionControl param_reader s_pos_dbg = do
         spid_update x_vel_pid 0 x_vel_est dt
         spid_update y_vel_pid 0 y_vel_est dt
 
-        call_ debug_proc
+        call_ debug_proc x_vel_est y_vel_est
 
       reset_proc :: Def ('[]:->())
       reset_proc = proc (named "reset") $ body $ do
         spid_reset x_vel_pid
         spid_reset y_vel_pid
 
-      debug_proc :: Def ('[]:->())
-      debug_proc = proc (named "debug") $ body $ do
+      debug_proc :: Def ('[IFloat, IFloat]:->())
+      debug_proc = proc (named "debug") $ \x_vel_est y_vel_est -> body $ do
         (xp, xi, xd) <- spid_debug x_vel_pid
         (yp, yi, yd) <- spid_debug y_vel_pid
         dbg <- local $ istruct
@@ -87,9 +87,11 @@ taskPositionControl param_reader s_pos_dbg = do
           , D.x_deviation .= ival 9999 -- invalid
           , D.y_deviation .= ival 9999 -- invalid
           -- The following are actually meaningful:
+          , D.x_vel_est   .= ival x_vel_est
           , D.x_vel_p     .= ival xp
           , D.x_vel_i     .= ival xi
           , D.x_vel_d     .= ival xd
+          , D.y_vel_est   .= ival y_vel_est
           , D.y_vel_p     .= ival yp
           , D.y_vel_i     .= ival yi
           , D.y_vel_d     .= ival yd
@@ -143,10 +145,10 @@ vxy sens pos = do
   ve_cms  <- deref (pos ~> P.veast)
   v_north <- assign ((safeCast vn_cms) / 100.0)
   v_east  <- assign ((safeCast ve_cms) / 100.0)
-  head    <- deref (sens ~> S.yaw)
+  heading <- deref (sens ~> S.yaw)
 
-  c_head  <- assign (cos head)
-  s_head  <- assign (sin head)
-  vx <- assign (c_head * v_north - s_head * v_east)
-  vy <- assign (s_head * v_north + c_head * v_east)
+  c_head  <- assign (cos heading)
+  s_head  <- assign (sin heading)
+  vx <- assign (     c_head * v_north + s_head * v_east)
+  vy <- assign (-1 * s_head * v_north + c_head * v_east)
   return (vx, vy)
