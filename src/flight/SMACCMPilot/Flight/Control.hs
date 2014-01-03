@@ -73,7 +73,8 @@ controlTower params inputs = do
                                           (src alt_dbg)
     att_control    <- taskAttitudeControl param_reader
                                           (src att_dbg)
-
+    taskModuleDef $ do
+      depend controlPIDModule -- for fconstrain
     taskInit $ do
       pos_init pos_control
       alt_init alt_control
@@ -96,12 +97,12 @@ controlTower params inputs = do
         yaw_law <- deref (cl ~> CL.yaw_mode)
         pos_ctl_enabled <- assign (yaw_law ==? Y.heading)
 
-        ifte_ pos_ctl_enabled -- XXX LAW
+        ifte_ pos_ctl_enabled -- XXX PLACEHOLDER LAW
           (do pos_update pos_control sens pos dt
               (valid, x, y) <- pos_output pos_control
               when valid $ do
-                store (ui ~> UI.roll)  x
-                store (ui ~> UI.pitch) y
+                overridableUI ui UI.roll  x
+                overridableUI ui UI.pitch y
           )
           (pos_reset  pos_control)
 
@@ -135,3 +136,13 @@ controlTower params inputs = do
 
 controlModules :: [Module]
 controlModules = [ controlPIDModule, attStabilizeModule ]
+
+overridableUI :: Ref s (Struct "userinput_result")
+        -> Label "userinput_result" (Stored IFloat)
+        -> IFloat
+        -> Ivory eff ()
+overridableUI ui lbl v = do
+  i <- deref (ui ~> lbl)
+  when (abs i <? 0.1) $
+    store (ui ~> lbl) =<< call fconstrain (-1) 1 i
+
