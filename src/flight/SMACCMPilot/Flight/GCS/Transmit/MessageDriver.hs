@@ -417,9 +417,11 @@ mkSendPosCtlDebug = proc "gcs_transmit_send_pos_ctl_debug" $
   lon_setpt        <- deref (pos ~> Pos.lon_setpt)
   x_deviation      <- deref (pos ~> Pos.x_deviation)
   y_deviation      <- deref (pos ~> Pos.y_deviation)
+  x_vel_est        <- deref (pos ~> Pos.x_vel_est)
   x_vel_p          <- deref (pos ~> Pos.x_vel_p)
   x_vel_i          <- deref (pos ~> Pos.x_vel_i)
   x_vel_d          <- deref (pos ~> Pos.x_vel_d)
+  y_vel_est        <- deref (pos ~> Pos.y_vel_est)
   y_vel_p          <- deref (pos ~> Pos.y_vel_p)
   y_vel_i          <- deref (pos ~> Pos.y_vel_i)
   y_vel_d          <- deref (pos ~> Pos.y_vel_d)
@@ -432,9 +434,11 @@ mkSendPosCtlDebug = proc "gcs_transmit_send_pos_ctl_debug" $
     , PCD.lon_setpt        .= ival lon_setpt
     , PCD.x_deviation      .= ival x_deviation
     , PCD.y_deviation      .= ival y_deviation
+    , PCD.x_vel_est        .= ival x_vel_est
     , PCD.x_vel_p          .= ival x_vel_p
     , PCD.x_vel_i          .= ival x_vel_i
     , PCD.x_vel_d          .= ival x_vel_d
+    , PCD.y_vel_est        .= ival y_vel_est
     , PCD.y_vel_p          .= ival y_vel_p
     , PCD.y_vel_i          .= ival y_vel_i
     , PCD.y_vel_d          .= ival y_vel_d
