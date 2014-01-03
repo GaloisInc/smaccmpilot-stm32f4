@@ -59,7 +59,7 @@ sensorsTower psnk osrc = task "sensorsCaptureTask" $ do
 
   taskModuleDef $ do
     incl sensors_update_position
-
+    incl compass_decl_update
 
   sm <- stateMachine "sensors_capture" $ mdo
     init <- stateNamed "init" $ entry $ liftIvory $ do
