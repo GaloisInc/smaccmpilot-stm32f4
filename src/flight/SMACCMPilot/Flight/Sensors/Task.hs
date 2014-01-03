@@ -54,7 +54,7 @@ sensorsTower psnk osrc = task "sensorsCaptureTask" $ do
       return $ goto loop
 
     loop <- stateNamed "captureloop" $ period 10 $ liftIvory_ $ do
-      call_ sensorsSetPosition
+      -- call_ sensorsSetPosition
       call_ sensors_update
 
       (rpy :: Ref (Stack cs) (Array 3 (Stored IFloat))) <- local (iarray [])
