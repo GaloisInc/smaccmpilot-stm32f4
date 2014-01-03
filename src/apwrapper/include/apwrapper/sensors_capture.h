@@ -42,10 +42,15 @@ float sensors_get_baro_alt(uint32_t *time);
 void sensors_set_gps_velocity(int32_t v_north, int32_t v_east, int32_t v_down,
         uint32_t speed_ground, float heading);
 
-/* Set position measurement from GPS
+/* Set position measurement from GPS, only effects AHRS compensation
  * units: degrees * 10,000,000
  */
 void sensors_set_gps_position(int32_t lat, int32_t lon);
+
+/* Set position measurement from GPS, only effects compass declination
+ * units: degrees * 10,000,000
+ */
+void sensors_set_gps_position_for_compass(int32_t lat, int32_t lon);
 
 /* Set satellite fix information from GPS
  */
