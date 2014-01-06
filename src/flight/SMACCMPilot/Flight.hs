@@ -52,7 +52,7 @@ hil :: (BoardHSE p, MotorOutput p, SensorOrientation p)
 hil opts = do
   -- Communication primitives:
   sensors        <- dataport
-  position       <- dataport
+  position       <- channel
   mavlink_ctlreq <- channel
   rc_override    <- channel
 
@@ -71,6 +71,7 @@ hil opts = do
 
   control_state     <- stateProxy "control_state" (control_out core_out)
   motors_state      <- stateProxy "motors_state" (motors_out core_out)
+  position_state    <- stateProxy "position_state" (snk position)
 
   -- HIL-enabled GCS on uart1:
   (istream, ostream) <- uart UART.uart1
@@ -82,7 +83,7 @@ hil opts = do
     GCSRequires
       { gcs_ctl_law_in  = controllaw_state core_out
       , gcs_sens_in     = snk sensors
-      , gcs_position_in = snk position
+      , gcs_position_in = position_state
       , gcs_ctl_in      = control_state
       , gcs_motors_in   = motors_state
       , gcs_alt_ctl_in  = alt_ctl_state core_out
@@ -122,14 +123,13 @@ flight opts = do
 
   -- GPS Input on uart6 (valid for all px4fmu platforms)
   gps_position   <- gpsTower UART.uart6
-  position_state <- stateProxy "position_state" gps_position
   -- Sensors managed by AP_HAL
   sensorsTower gps_position (src sensors)
 
   -- Instantiate core:
   core_out <- core $ FlightCoreRequires
     { sensors_in    = snk sensors
-    , position_in   = position_state
+    , position_in   = gps_position
     , params_in     = sysFlightParams snk_params
     , rcoverride_in = snk rc_override
     , ctl_req_in    = snk mavlink_ctlreq
@@ -144,6 +144,7 @@ flight opts = do
   -- Commsec reporter, to GCS TX from decrypter
   commsec_info <- dataport
 
+  position_state <- stateProxy "position_state" gps_position
   let gcsTower' name istream ostream =
         gcsTower name opts istream ostream
           GCSRequires

@@ -52,7 +52,7 @@ data GCSProvides =
 data HILRequires =
   HILRequires
     { hil_sensors_in  :: DataSource (Struct "sensors_result")
-    , hil_position_in :: DataSource (Struct "position")
+    , hil_position_in :: ChannelSource 16 (Struct "position")
     }
 
 gcsTower :: (SingI n0, SingI n1)

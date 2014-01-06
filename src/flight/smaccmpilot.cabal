@@ -53,7 +53,6 @@ library
                        SMACCMPilot.Flight.Control.Attitude.YawRate,
                        SMACCMPilot.Flight.Control.Attitude.HeadingControl,
 
-                       SMACCMPilot.Flight.Control.Position,
 
                        SMACCMPilot.Flight.Datalink,
                        SMACCMPilot.Flight.Datalink.AirData,
@@ -66,6 +65,10 @@ library
                        SMACCMPilot.Flight.Motors.Task,
                        SMACCMPilot.Flight.Motors.Mixing,
                        SMACCMPilot.Flight.Motors.Platforms,
+
+                       SMACCMPilot.Flight.Navigation,
+                       SMACCMPilot.Flight.Navigation.Position,
+                       SMACCMPilot.Flight.Navigation.Velocity,
 
                        SMACCMPilot.Flight.Recovery,
 
@@ -92,6 +95,7 @@ library
                        SMACCMPilot.Flight.Types.YawMode,
                        SMACCMPilot.Flight.Types.AttControlDebug,
                        SMACCMPilot.Flight.Types.PosControlDebug,
+                       SMACCMPilot.Flight.Types.ControlSetpoint,
 
                        SMACCMPilot.Flight.UserInput.PPM,
                        SMACCMPilot.Flight.UserInput.PPM.ArmingMachine,

@@ -295,7 +295,7 @@ mkSendGlobalPositionInt = proc "gcs_transmit_send_global_position_int" $
     , GPI.relative_alt .= ival alt -- sending relative_alt
     , GPI.vx           .= ival (castWith 0 vnorth)
     , GPI.vy           .= ival (castWith 0 veast)
-    , GPI.vz           .= ival (-1 * (castWith 0 vdown))
+    , GPI.vz           .= ival 0 -- (-1 * (castWith 0 vdown))
     , GPI.hdg          .= ival (castWith 0 yaw_cd)
     ])
   call_ GPI.mkGlobalPositionIntSender (constRef msg) seqNum sendStruct

@@ -11,15 +11,15 @@ import qualified SMACCMPilot.Mavlink.Messages.HilState as H
 import qualified SMACCMPilot.Flight.Types.Sensors  as S
 import qualified SMACCMPilot.Hardware.GPS.Types as P
 
-hilTranslator :: (SingI n)
+hilTranslator :: (SingI n, SingI m)
               => ChannelSink n (Struct "hil_state_msg")
               -> DataSource    (Struct "sensors_result")
-              -> DataSource    (Struct "position")
+              -> ChannelSource m (Struct "position")
               -> Task p ()
 hilTranslator hil sens pos = do
   hilevt       <- withChannelEvent   hil  "hil"
   sens_writer  <- withDataWriter     sens "sens"
-  pos_writer   <- withDataWriter     pos  "pos"
+  pos_emitter  <- withChannelEmitter pos  "pos"
   m            <- withGetTimeMillis
   onEvent hilevt $ \h -> do
     time    <- getTimeMillis m
@@ -72,6 +72,6 @@ hilTranslator hil sens pos = do
       , P.vground .= ival (castWith 0 vground)
       , P.heading .= ival heading
       ]
-    writeData pos_writer (constRef p)
+    emit_ pos_emitter (constRef p)
 
 
