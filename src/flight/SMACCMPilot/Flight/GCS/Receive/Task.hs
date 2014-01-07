@@ -34,7 +34,7 @@ data GCSRxRequires =
   GCSRxRequires
     { rx_hil         :: Maybe (ChannelSource 4   (Struct "hil_state_msg"))
     , rx_ctl_req     :: ChannelSource 16  (Struct "control_law_request")
-    , rx_param_req   :: ChannelSource 512 (Stored Sint16)
+    , rx_param_req   :: ChannelSource 64  (Stored Sint16)
     , rx_rc_override :: ChannelSource 16  (Struct "rc_channels_override_msg")
     }
 
