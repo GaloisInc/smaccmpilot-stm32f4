@@ -8,6 +8,7 @@ module SMACCMPilot.Flight.Control.Position
   , taskPositionControl
   ) where
 
+import Prelude hiding (head)
 import Ivory.Language
 import Ivory.Tower
 import Ivory.Stdlib
