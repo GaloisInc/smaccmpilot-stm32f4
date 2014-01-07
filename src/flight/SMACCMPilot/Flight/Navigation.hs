@@ -17,10 +17,13 @@ import           SMACCMPilot.Param
 import           SMACCMPilot.Flight.Param
 
 
+import qualified SMACCMPilot.Hardware.GPS.Types             as GPS
+
 import           SMACCMPilot.Flight.Types.UserInput ()
 import qualified SMACCMPilot.Flight.Types.ControlLaw        as CL
-import qualified SMACCMPilot.Flight.Types.YawMode           as Y
-import           SMACCMPilot.Flight.Types.ControlLawRequest ()
+import qualified SMACCMPilot.Flight.Types.ControlSource     as CS
+import qualified SMACCMPilot.Flight.Types.ArmedMode         as A
+import qualified SMACCMPilot.Flight.Types.ControlLawRequest as CR
 import qualified SMACCMPilot.Flight.Types.ControlSetpoint   as SP
 
 import           SMACCMPilot.Flight.Navigation.Position
@@ -43,6 +46,8 @@ data NavOutputs =
 
 navTower :: FlightParams ParamSink -> NavInputs -> Tower p NavOutputs
 navTower params nav_inputs = do
+  f <- fresh
+  let named n = "nav_" ++ n ++ "_" ++ show f
   nav_setpt_chan <- channel
   pos_dbg <- dataport
 
@@ -50,12 +55,11 @@ navTower params nav_inputs = do
     setpt_emitter   <- withChannelEmitter (src nav_setpt_chan) "control_setpt"
     law_req_emitter <- withChannelEmitter (nav_law_req nav_inputs) "ctl_law_req"
     sens_reader     <- withDataReader     (nav_sens nav_inputs) "sensors"
-    millis          <- withGetTimeMillis
+    pos_dbg_writer  <- withDataWriter     (src pos_dbg) "pos_dbg"
 
     param_reader    <- paramReader params
 
     pos_control     <- taskPositionControl (flightPosition param_reader)
-                                           (src pos_dbg)
     vel_control     <- taskVelocityControl (flightPosition param_reader)
 
     ui              <- taskUpdatable (nav_ui nav_inputs)       "ui"
@@ -64,34 +68,73 @@ navTower params nav_inputs = do
 
     taskInit $ do
       pos_init pos_control
+      vel_init vel_control
 
-    let enabled_proc = proc "nav_enabled" $ body $ do
-          ret true
+    let check_ready_proc :: Def('[]:->IBool)
+        check_ready_proc = proc (named "check_ready") $ body $ do
+          got_ui  <- updated_ever ui
+          got_law <- updated_ever law
+          got_pos <- updated_within_time pos 500
+          when (got_ui .&& got_law .&& got_pos) $ do
+            fix <- deref ((updated_value pos) ~> GPS.fix)
+            dop <- deref ((updated_value pos) ~> GPS.dop)
+            ret (fix ==? GPS.fix_3d .&& dop <? 4.0)
+          ret false
+
+        run_proc :: Def('[]:->())
+        run_proc = proc (named "run") $ body $ do
+
+          dt    <- assign 0.005 -- XXX calc from _t ?
+          sens  <- local izero
+          readData sens_reader sens
+
+          pos_update pos_control (constRef sens) (updated_value pos)
+                                 (updated_value ui) dt
+
+          (x_vel_sp, y_vel_sp) <- pos_output pos_control
+
+          vel_update vel_control (constRef sens) (updated_value pos)
+                           x_vel_sp y_vel_sp dt
+
+          (roll_sp, pitch_sp) <- vel_output vel_control
+
+          setpt <- local $ istruct
+             [ SP.roll  .= ival roll_sp
+             , SP.pitch .= ival pitch_sp
+             ]
+          emit_ setpt_emitter (constRef setpt)
+
+        reset_proc :: Def('[]:->())
+        reset_proc = proc (named "reset") $ body $ do
+          vel_reset vel_control
+          pos_reset  pos_control
 
     onPeriod 5 $ \_t -> do
-      dt    <- assign 0.005 -- XXX calc from _t ?
-      sens  <- local izero
-      readData sens_reader sens
+      ready <- call check_ready_proc
+      ifte_ ready
+        (do armed_mode <- deref ((updated_value law) ~> CL.armed_mode)
+            stab_ctl   <- deref ((updated_value law) ~> CL.stab_ctl)
+            ifte_ (stab_ctl ==? CS.auto .&& armed_mode ==? A.armed)
+              (call_ run_proc)
+              (do request <- local $ CR.initControlLawRequest
+                    [ CR.set_stab_auto .= ival true ]
+                  emit_ law_req_emitter (constRef request)
+                  call_ reset_proc))
+        (do request <- local $ CR.initControlLawRequest
+              [ CR.set_stab_auto .= ival false ]
+            emit_ law_req_emitter (constRef request)
+            call_ reset_proc)
 
-      enabled <- call enabled_proc
-      ifte_ enabled
-        (do pos_update pos_control (constRef sens) (updated_value pos) dt
-            (x_vel_sp, y_vel_sp) <- pos_output pos_control
-            vel_update vel_control (constRef sens) (updated_value pos)
-                             x_vel_sp y_vel_sp dt
-            (roll_sp, pitch_sp) <- vel_output vel_control
-            setpt <- local $ istruct
-               [ SP.roll  .= ival roll_sp
-               , SP.pitch .= ival pitch_sp
-               ]
-            emit_ setpt_emitter (constRef setpt)
-        )
-        (do vel_reset vel_control
-            pos_reset  pos_control
-        )
+      dbg <- local izero
+      pos_debug pos_control dbg
+      vel_debug vel_control dbg
+      writeData pos_dbg_writer (constRef dbg)
+
 
     taskModuleDef $ do
-      incl enabled_proc
+      incl check_ready_proc
+      incl run_proc
+      incl reset_proc
 
   return NavOutputs
     { nav_setpt = snk nav_setpt_chan

@@ -18,27 +18,33 @@ import SMACCMPilot.Flight.Param
 import qualified SMACCMPilot.Hardware.GPS.Types           as P
 import qualified SMACCMPilot.Flight.Types.Sensors         as S
 import qualified SMACCMPilot.Flight.Types.PosControlDebug as D
+import qualified SMACCMPilot.Flight.Types.UserInput       as UI
 
 
 data PositionControl =
   PositionControl
     { pos_init   :: forall eff . Ivory eff ()
-    , pos_update :: forall eff s1 s2
+    , pos_update :: forall eff s1 s2 s3
                   . ConstRef s1 (Struct "sensors_result")
                  -> ConstRef s2 (Struct "position")
+                 -> ConstRef s3 (Struct "userinput_result")
                  -> IFloat
                  -> Ivory eff ()
     , pos_reset  :: forall eff . Ivory eff ()
     , pos_output :: forall eff cs . (GetAlloc eff ~ Scope cs)
                  => Ivory eff (IFloat, IFloat)
+    , pos_debug  :: forall eff s . Ref s (Struct "pos_control_dbg")
+                 -> Ivory eff ()
     }
 
 taskPositionControl :: PosCtlParams ParamReader
-                    -> DataSource  (Struct "pos_control_dbg")
                     -> Task p PositionControl
-taskPositionControl param_reader s_pos_dbg = do
+taskPositionControl param_reader = do
   f <- fresh
-  posDbgWriter <- withDataWriter s_pos_dbg "pos_control_dbg"
+
+  pit_in <- taskLocal "pitch_input"
+  rll_in <- taskLocal "roll_input"
+
   let named n = "pos_ctl_" ++ n ++ "_" ++ show f
 
       init_proc :: Def ('[]:->())
@@ -47,36 +53,36 @@ taskPositionControl param_reader s_pos_dbg = do
 
       update_proc :: Def ('[ ConstRef s1 (Struct "sensors_result")
                            , ConstRef s2 (Struct "position")
+                           , ConstRef s3 (Struct "userinput_result")
                            , IFloat
                            ]:->())
-      update_proc = proc (named "update") $ \sens pos dt -> body $ do
-        -- XXX UNIMPLEMENTED
-        return ()
+      update_proc = proc (named "update") $ \sens pos ui dt -> body $ do
+        -- XXX STUB FOR TESTING VELOCITY CTL
+        store pit_in =<< deref (ui ~> UI.pitch)
+        store rll_in =<< deref (ui ~> UI.roll)
 
       reset_proc :: Def ('[]:->())
       reset_proc = proc (named "reset") $ body $ do
         -- XXX UNIMPLEMENTED
         return ()
 
-      debug_proc :: Def ('[]:->())
-      debug_proc = proc (named "debug") $ body $ do
-        dbg <- local $ istruct
-          [ D.x_vel_setpt .= ival 0
-          , D.y_vel_setpt .= ival 0
-          , D.head_setpt  .= ival 9999 -- invalid
-          , D.lat_setpt   .= ival 9999 -- invalid
-          , D.lon_setpt   .= ival 9999 -- invalid
-          , D.x_deviation .= ival 9999 -- invalid
-          , D.y_deviation .= ival 9999 -- invalid
-          ]
-        writeData posDbgWriter (constRef dbg)
+      debug_proc :: Def ('[Ref s (Struct "pos_control_dbg")]:->())
+      debug_proc = proc (named "debug") $ \dbg -> body $ do
+        store (dbg ~> D.x_vel_setpt) =<< deref pit_in
+        store (dbg ~> D.y_vel_setpt) =<< deref rll_in
+        store (dbg ~> D.head_setpt) 9999 -- invalid
+        store (dbg ~> D.lat_setpt) 9999 -- invalid
+        store (dbg ~> D.lon_setpt) 9999 -- invalid
+        store (dbg ~> D.x_deviation) 9999 -- invalid
+        store (dbg ~> D.y_deviation) 9999 -- invalid
 
       output_proc :: Def ('[ Ref s1 (Stored IFloat)
                            , Ref s2 (Stored IFloat)
                            ]:->())
       output_proc = proc (named "output") $ \rx ry -> body $ do
-        -- XXX UNIMPLEMENTED
-        return ()
+        -- XXX STUB FOR TESTING VELOCITY CTL
+        store rx =<< deref pit_in
+        store ry =<< deref rll_in
 
   taskModuleDef $ do
     incl init_proc
@@ -95,4 +101,5 @@ taskPositionControl param_reader s_pos_dbg = do
         xx <- deref x
         yy <- deref y
         return (xx,yy)
+    , pos_debug = call_ debug_proc
     }
