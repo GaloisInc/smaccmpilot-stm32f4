@@ -28,9 +28,6 @@ IMG_DIR   := $(BUILD_DIR)/img
 # Build output directory containing generated sources.
 GEN_DIR   := $(BUILD_DIR)/gen
 
-# Build output directory containing model-checking output.
-CBMC_DIR  := $(TOP)/cbmc-out
-
 # Add the built library directory to the default linker flags.
 LDFLAGS += -L$(LIB_DIR)
 
@@ -41,7 +38,6 @@ include mk/cmd.lib
 include mk/library.mk
 include mk/image.mk
 include mk/ivory.mk
-include mk/cbmc.mk
 include mk/frama-c-check.mk
 include mk/conditional.mk
 include mk/cppcheck.mk
@@ -65,9 +61,6 @@ ALL_DEPS    := $(patsubst %.o,%.d,$(ALL_OBJECTS))
 .PHONY: all-targets
 all-targets: $(ALL_TARGETS)
 
-.PHONY: cbmc
-cbmc: $(CBMC)
-
 .PHONY: frama-c-check
 frama-c-check: $(FRAMA_C)
 
@@ -77,8 +70,6 @@ clean:
 
 .PHONY: veryclean
 veryclean: clean
-  # Delete the CBMC stuff.
-	$(Q)rm -rf $(CBMC_DIR)
 
 ######################################################################
 ## Compilation Rules
