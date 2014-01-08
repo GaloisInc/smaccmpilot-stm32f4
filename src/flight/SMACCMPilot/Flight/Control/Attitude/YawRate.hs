@@ -26,7 +26,7 @@ data YawRateControl =
     , yc_run   :: forall eff s . IFloat -- Yaw Rate
                               -> ConstRef s (Struct "sensors_result")
                               -> Ivory eff ()
-    , yc_state :: forall eff s . Ref s (Struct "controloutput") -> Ivory eff ()
+    , yc_state :: forall eff . Ivory eff IFloat
     , yc_reset :: forall eff . Ivory eff ()
     }
 
@@ -67,13 +67,12 @@ taskYawRateControl params = do
         store valid true
         store yaw_out yaw_ctl
 
-      state_proc :: Def ('[ Ref s1 (Struct "controloutput")
-                          ] :-> ())
-      state_proc = proc (named "state") $ \out -> body $ do
+      state_proc :: Def ('[] :-> IFloat)
+      state_proc = proc (named "state") $ body $ do
         v <- deref valid
         ifte_ v
-          (deref yaw_out  >>= store (out ~> OUT.yaw))
-          (store (out ~> OUT.yaw) 0)
+          (deref yaw_out >>= ret)
+          (ret 0)
 
       reset_proc :: Def ('[]:->())
       reset_proc = proc (named "reset") $ body $ do
@@ -90,7 +89,7 @@ taskYawRateControl params = do
   return YawRateControl
     { yc_init  = call_ init_proc
     , yc_run   = call_ run_proc
-    , yc_state = call_ state_proc
+    , yc_state = call  state_proc
     , yc_reset = call_ reset_proc
     }
 

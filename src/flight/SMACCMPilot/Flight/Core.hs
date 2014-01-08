@@ -25,6 +25,7 @@ import           SMACCMPilot.Mavlink.Messages.VehCommsec (vehCommsecModule)
 import           SMACCMPilot.Flight.GCS.Transmit.MessageDriver (senderModules)
 import           SMACCMPilot.Flight.BlinkTask
 import           SMACCMPilot.Flight.Control
+import           SMACCMPilot.Flight.Navigation
 import           SMACCMPilot.Flight.Motors.Task
 import           SMACCMPilot.Flight.Param
 import           SMACCMPilot.Flight.Types (typeModules)
@@ -35,7 +36,7 @@ import           SMACCMPilot.Param
 data FlightCoreRequires =
   FlightCoreRequires
     { sensors_in        :: DataSink (Struct "sensors_result")
-    , position_in       :: DataSink (Struct "position")
+    , position_in       :: ChannelSink 16 (Struct "position")
     , params_in         :: FlightParams ParamSink
     , rcoverride_in     :: ChannelSink 16 (Struct "rc_channels_override_msg")
     , ctl_req_in        :: ChannelSink 16 (Struct "control_law_request")
@@ -55,17 +56,32 @@ data FlightCoreProvides =
 core :: FlightCoreRequires -> Tower p FlightCoreProvides
 core sys = do
   motors  <- channel
-  (userinput_chan, controllaw_chan) <- userInputTower
-                                          (ctl_req_in sys)
-                                          (rcoverride_in sys)
+  nav_law_req_chan <- channel
+
+  (userinput_chan, controllaw_chan) <- userInputTower UITowerInputs
+    { uit_mavlink_req   = ctl_req_in sys
+    , uit_mavlink_rcovr = rcoverride_in sys
+    , uit_nav_req       = snk nav_law_req_chan
+    }
+
+  nav <- navTower (params_in sys) NavInputs
+    { nav_law_req  = src nav_law_req_chan
+    , nav_ui       = userinput_chan
+    , nav_law      = controllaw_chan
+    , nav_position = position_in sys
+    , nav_sens     = sensors_in sys
+    }
+
   userinput  <- stateProxy "proxy_userinput" userinput_chan
   controllaw <- stateProxy "proxy_controllaw" controllaw_chan
+  nav_setpt_state <- stateProxy "proxy_navsetpt" (nav_setpt nav)
+
 
   ctl <- controlTower (params_in sys) ControlInputs
-    { ci_law  = controllaw
-    , ci_ui   = userinput
-    , ci_sens = sensors_in sys
-    , ci_pos  = position_in sys
+    { ci_law   = controllaw
+    , ci_ui    = userinput
+    , ci_setpt = nav_setpt_state
+    , ci_sens  = sensors_in sys
     }
 
   task "blink"  $ blinkTask lights controllaw
@@ -82,7 +98,7 @@ core sys = do
     { control_out      = co_ctl ctl
     , motors_out       = snk motors
     , controllaw_state = controllaw
-    , pos_ctl_state    = co_pos_dbg ctl
+    , pos_ctl_state    = nav_pos_dbg nav
     , alt_ctl_state    = co_alt_dbg ctl
     , att_ctl_state    = co_att_dbg ctl
     , userinput_state  = userinput

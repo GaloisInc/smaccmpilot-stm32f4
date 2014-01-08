@@ -21,7 +21,7 @@ posCtlDebugMsgId :: Uint8
 posCtlDebugMsgId = 187
 
 posCtlDebugCrcExtra :: Uint8
-posCtlDebugCrcExtra = 16
+posCtlDebugCrcExtra = 23
 
 posCtlDebugModule :: Module
 posCtlDebugModule = package "mavlink_pos_ctl_debug_msg" $ do
@@ -40,9 +40,11 @@ struct pos_ctl_debug_msg
   ; lon_setpt :: Stored Sint32
   ; x_deviation :: Stored IFloat
   ; y_deviation :: Stored IFloat
+  ; x_vel_est :: Stored IFloat
   ; x_vel_p :: Stored IFloat
   ; x_vel_i :: Stored IFloat
   ; x_vel_d :: Stored IFloat
+  ; y_vel_est :: Stored IFloat
   ; y_vel_p :: Stored IFloat
   ; y_vel_i :: Stored IFloat
   ; y_vel_d :: Stored IFloat
@@ -58,7 +60,7 @@ mkPosCtlDebugSender =
   proc "mavlink_pos_ctl_debug_msg_send"
   $ \msg seqNum sendStruct -> body
   $ do
-  arr <- local (iarray [] :: Init (Array 52 (Stored Uint8)))
+  arr <- local (iarray [] :: Init (Array 60 (Stored Uint8)))
   let buf = toCArray arr
   call_ pack buf 0 =<< deref (msg ~> x_vel_setpt)
   call_ pack buf 4 =<< deref (msg ~> y_vel_setpt)
@@ -67,24 +69,26 @@ mkPosCtlDebugSender =
   call_ pack buf 16 =<< deref (msg ~> lon_setpt)
   call_ pack buf 20 =<< deref (msg ~> x_deviation)
   call_ pack buf 24 =<< deref (msg ~> y_deviation)
-  call_ pack buf 28 =<< deref (msg ~> x_vel_p)
-  call_ pack buf 32 =<< deref (msg ~> x_vel_i)
-  call_ pack buf 36 =<< deref (msg ~> x_vel_d)
-  call_ pack buf 40 =<< deref (msg ~> y_vel_p)
-  call_ pack buf 44 =<< deref (msg ~> y_vel_i)
-  call_ pack buf 48 =<< deref (msg ~> y_vel_d)
+  call_ pack buf 28 =<< deref (msg ~> x_vel_est)
+  call_ pack buf 32 =<< deref (msg ~> x_vel_p)
+  call_ pack buf 36 =<< deref (msg ~> x_vel_i)
+  call_ pack buf 40 =<< deref (msg ~> x_vel_d)
+  call_ pack buf 44 =<< deref (msg ~> y_vel_est)
+  call_ pack buf 48 =<< deref (msg ~> y_vel_p)
+  call_ pack buf 52 =<< deref (msg ~> y_vel_i)
+  call_ pack buf 56 =<< deref (msg ~> y_vel_d)
   -- 6: header len, 2: CRC len
-  let usedLen    = 6 + 52 + 2 :: Integer
+  let usedLen    = 6 + 60 + 2 :: Integer
   let sendArr    = sendStruct ~> mav_array
   let sendArrLen = arrayLen sendArr
   if sendArrLen < usedLen
-    then error "posCtlDebug payload of length 52 is too large!"
+    then error "posCtlDebug payload of length 60 is too large!"
     else do -- Copy, leaving room for the payload
             arrayCopy sendArr arr 6 (arrayLen arr)
             call_ mavlinkSendWithWriter
                     posCtlDebugMsgId
                     posCtlDebugCrcExtra
-                    52
+                    60
                     seqNum
                     sendStruct
 
@@ -102,10 +106,12 @@ posCtlDebugUnpack = proc "mavlink_pos_ctl_debug_unpack" $ \ msg buf -> body $ do
   store (msg ~> lon_setpt) =<< call unpack buf 16
   store (msg ~> x_deviation) =<< call unpack buf 20
   store (msg ~> y_deviation) =<< call unpack buf 24
-  store (msg ~> x_vel_p) =<< call unpack buf 28
-  store (msg ~> x_vel_i) =<< call unpack buf 32
-  store (msg ~> x_vel_d) =<< call unpack buf 36
-  store (msg ~> y_vel_p) =<< call unpack buf 40
-  store (msg ~> y_vel_i) =<< call unpack buf 44
-  store (msg ~> y_vel_d) =<< call unpack buf 48
+  store (msg ~> x_vel_est) =<< call unpack buf 28
+  store (msg ~> x_vel_p) =<< call unpack buf 32
+  store (msg ~> x_vel_i) =<< call unpack buf 36
+  store (msg ~> x_vel_d) =<< call unpack buf 40
+  store (msg ~> y_vel_est) =<< call unpack buf 44
+  store (msg ~> y_vel_p) =<< call unpack buf 48
+  store (msg ~> y_vel_i) =<< call unpack buf 52
+  store (msg ~> y_vel_d) =<< call unpack buf 56
 

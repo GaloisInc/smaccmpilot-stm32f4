@@ -18,8 +18,9 @@ import           SMACCMPilot.Flight.UserInput.ControlLaw.ModeRequest
 
 controlLawTower :: ChannelSink 16 (Struct "control_law_request")
                 -> ChannelSink 16 (Struct "control_law_request")
+                -> ChannelSink 16 (Struct "control_law_request")
                 -> Tower p (ChannelSink 16 (Struct "control_law"))
-controlLawTower ppm_req_snk mav_req_snk = do
+controlLawTower ppm_req_snk mavlink_req_snk nav_req_snk  = do
   law_chan <- channel
   task "controlLawTask" $ do
     law_emitter <- withChannelEmitter (src law_chan) "law_emitter"
@@ -37,8 +38,6 @@ controlLawTower ppm_req_snk mav_req_snk = do
     taskInit $ do
       armingInit law_state
       mrm_init mrm law_state
-      auto_law <- local ival_auto_law
-      mrm_auto mrm law_state (constRef auto_law)
       publish law_state
 
     onChannel ppm_req_snk "ppm_req_snk" $ \ppm_req -> do
@@ -46,19 +45,13 @@ controlLawTower ppm_req_snk mav_req_snk = do
       mrm_ppm mrm law_state ppm_req
       publish law_state
 
-    onChannel mav_req_snk "mav_req_snk" $ \mav_req -> do
-      armingSecondaryRequest law_state mav_req
-      mrm_mav mrm law_state mav_req
+    onChannel mavlink_req_snk "mavlink_req_snk" $ \mavlink_req -> do
+      armingSecondaryRequest law_state mavlink_req
+      mrm_mavlink mrm law_state mavlink_req
+
+    onChannel nav_req_snk "nav_req_snk" $ \nav_req -> do
+      -- Navigation controller cannot effect arming.
+      mrm_nav mrm law_state nav_req
       publish law_state
 
   return (snk law_chan)
-  where
-  -- Autonomous mode law permits using autothr with ppm or mavlink input.
-  -- In the future, there will be a variety of autonomous modes to allow an
-  -- internal flight plan to control the stabilizer and autothrottle, but for
-  -- now, this law is effectively a constant.
-  ival_auto_law = R.initControlLawRequest
-    [ R.set_thr_auto         .= ival true
-    , R.set_autothr_ppm      .= ival true
-    , R.set_autothr_mavlink  .= ival true
-    ]

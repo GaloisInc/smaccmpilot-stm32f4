@@ -52,7 +52,7 @@ data GCSProvides =
 data HILRequires =
   HILRequires
     { hil_sensors_in  :: DataSource (Struct "sensors_result")
-    , hil_position_in :: DataSource (Struct "position")
+    , hil_position_in :: ChannelSource 16 (Struct "position")
     }
 
 gcsTower :: (SingI n0, SingI n1)
@@ -69,7 +69,7 @@ gcsTower name opts istream ostream req prov params
   streamrate <- channel
   -- XXX hack to make sure we can send all parameters on "fetch"
   param_req  <- channelWithSize :: Tower p
-    ( ChannelSource 512 (Stored Sint16) , ChannelSink   512 (Stored Sint16))
+    ( ChannelSource 64 (Stored Sint16) , ChannelSink 64 (Stored Sint16))
   (  rx_encrypted -- from Hx to decrypter
    , tx_encrypted -- from encrypter to Hx
    , radio_stat_snk :: ChannelSink 2 (Struct "radio_stat")

@@ -14,7 +14,7 @@ import Ivory.Stdlib
 import qualified SMACCMPilot.Mavlink.Messages.RcChannelsOverride as O
 
 import qualified SMACCMPilot.Flight.Types.UserInput         as UI
-import qualified SMACCMPilot.Flight.Types.ControlSource     as S
+import qualified SMACCMPilot.Flight.Types.UISource          as S
 import qualified SMACCMPilot.Flight.Types.ControlLawRequest as CR
 
 mavlinkInputTower :: (SingI n, SingI m)
@@ -53,8 +53,7 @@ mavlinkInputTower rcovr_sink mav_req_snk = do
       act <- deref active
       req <- local (istruct [])
       refCopy req req_in
-      store (req ~> CR.set_stab_mavlink)    act
-      store (req ~> CR.set_autothr_mavlink) act
+      store (req ~> CR.set_ui_mavlink)    act
       emit_ cr_emitter (constRef req)
 
     onPeriod 5 $ \now -> do
@@ -74,9 +73,8 @@ lawRequest :: (GetAlloc eff ~ Scope cs)
            -> Ivory eff (ConstRef (Stack cs) (Struct "control_law_request"))
 lawRequest ui_valid time = do
   cr <- local $ CR.initControlLawRequest
-    [ CR.set_stab_mavlink    .= ival ui_valid
+    [ CR.set_ui_mavlink      .= ival ui_valid
     , CR.set_thr_auto        .= ival ui_valid
-    , CR.set_autothr_mavlink .= ival ui_valid
     , CR.time                .= ival time
     ]
   return (constRef cr)

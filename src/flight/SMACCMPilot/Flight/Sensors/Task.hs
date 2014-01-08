@@ -10,6 +10,7 @@ module SMACCMPilot.Flight.Sensors.Task
 import Ivory.Language
 import Ivory.Tower
 import Ivory.Tower.StateMachine
+import Ivory.Stdlib
 
 import qualified SMACCMPilot.Hardware.GPS.Types as GPS
 import qualified SMACCMPilot.Flight.Types.Sensors as S
@@ -25,11 +26,13 @@ sensorsTower psnk osrc = task "sensorsCaptureTask" $ do
   sensorsWriter <- withDataWriter osrc "sensors"
   withStackSize 1024
 
+  compassDeclInitialized <- taskLocalInit "compassDeclInitd" (ival false)
   position <- taskLocal "position"
   onChannel psnk "position" $ \p -> do
     refCopy position p
-  let sensorsSetPosition :: Def ('[]:->())
-      sensorsSetPosition = proc "sensorsSetPosition" $ body $ do
+
+  let sensors_update_position :: Def ('[]:->())
+      sensors_update_position = proc "sensors_update_position" $ body $ do
         fix      <- deref (position ~> GPS.fix)
         num_sv   <- deref (position ~> GPS.num_sv)
         call_ sensors_set_gps_fix (fix ==? GPS.fix_2d) (fix ==? GPS.fix_3d) num_sv
@@ -43,7 +46,20 @@ sensorsTower psnk osrc = task "sensorsCaptureTask" $ do
         heading  <- deref (position ~> GPS.heading)
         call_ sensors_set_gps_velocity vnorth veast vdown vground heading
 
-  taskModuleDef $ incl sensorsSetPosition
+      compass_decl_update :: Def ('[]:->())
+      compass_decl_update = proc "compass_decl_update" $ body $ do
+        initialized <- deref compassDeclInitialized
+        unless initialized $ do
+          fix <- deref (position ~> GPS.fix)
+          when (fix ==? GPS.fix_3d) $ do
+            lat      <- deref (position ~> GPS.lat)
+            lon      <- deref (position ~> GPS.lon)
+            call_ sensors_set_gps_position_for_compass lat lon
+            store compassDeclInitialized true
+
+  taskModuleDef $ do
+    incl sensors_update_position
+    incl compass_decl_update
 
   sm <- stateMachine "sensors_capture" $ mdo
     init <- stateNamed "init" $ entry $ liftIvory $ do
@@ -54,7 +70,11 @@ sensorsTower psnk osrc = task "sensorsCaptureTask" $ do
       return $ goto loop
 
     loop <- stateNamed "captureloop" $ period 10 $ liftIvory_ $ do
-      call_ sensorsSetPosition
+      -- following code disabled: I've seen this code malfunction and don't
+      -- trust it
+      -- call_ sensors_update_position
+
+      call_ compass_decl_update
       call_ sensors_update
 
       (rpy :: Ref (Stack cs) (Array 3 (Stored IFloat))) <- local (iarray [])
@@ -112,6 +132,7 @@ sensorsTower psnk osrc = task "sensorsCaptureTask" $ do
       incl sensors_get_baro_alt
       incl sensors_set_gps_velocity
       incl sensors_set_gps_position
+      incl sensors_set_gps_position_for_compass
       incl sensors_set_gps_fix
 
 sensors_begin :: Def ('[IBool] :-> ())
@@ -140,6 +161,9 @@ sensors_set_gps_velocity  = externProc "sensors_set_gps_velocity"
 -- lat, lon: degrees * 10,000,000
 sensors_set_gps_position :: Def('[Sint32, Sint32]:->())
 sensors_set_gps_position  = externProc "sensors_set_gps_position"
+
+sensors_set_gps_position_for_compass :: Def('[Sint32, Sint32]:->())
+sensors_set_gps_position_for_compass  = externProc "sensors_set_gps_position_for_compass"
 
 -- fix2d, fix3d, num_sats
 sensors_set_gps_fix      :: Def('[IBool, IBool, Uint8]:->())

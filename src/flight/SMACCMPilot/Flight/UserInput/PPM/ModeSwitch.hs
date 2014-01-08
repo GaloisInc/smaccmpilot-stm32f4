@@ -65,47 +65,62 @@ taskModeSwitch = do
         p <- deref md_last_position
         cond_
           [ p ==? posUp ==> do
-              -- Any of the following stability modes are permitted:
-              store (cl_req ~> CL.set_stab_ppm)     true
-              store (cl_req ~> CL.set_stab_mavlink) true
-              store (cl_req ~> CL.set_stab_auto)    true
-              -- for testing, yaw is heading mode when switch up:
+              -- UI source may be mavlink
+              store (cl_req ~> CL.set_ui_ppm)       true
+              store (cl_req ~> CL.set_ui_mavlink)   true
+              -- Yaw law must be heading
+              store (cl_req ~> CL.set_yaw_rate)     false
               store (cl_req ~> CL.set_yaw_heading)  true
-              -- Altitude must be autothrottle:
+              -- Throttle law must be autothrottle:
               store (cl_req ~> CL.set_thr_direct)   false
               store (cl_req ~> CL.set_thr_auto)     true
-              -- Any of the following autothrottle modes are permitted:
-              store (cl_req ~> CL.set_autothr_ppm)     true
-              store (cl_req ~> CL.set_autothr_mavlink) true
-              store (cl_req ~> CL.set_autothr_auto)    true
+              -- Autothrottle input may be ui or nav:
+              store (cl_req ~> CL.set_autothr_src_ui)  true
+              store (cl_req ~> CL.set_autothr_src_nav) true
+              -- Stab input may be ui or nav:
+              store (cl_req ~> CL.set_stab_src_ui)  true
+              store (cl_req ~> CL.set_stab_src_nav) true
+              -- Heading input may be ui or nav:
+              store (cl_req ~> CL.set_head_src_ui)  true
+              store (cl_req ~> CL.set_head_src_nav) true
           , p ==? posCenter ==> do
-              -- Stability mode must be ppm
-              store (cl_req ~> CL.set_stab_ppm)     true
-              store (cl_req ~> CL.set_stab_mavlink) false
-              store (cl_req ~> CL.set_stab_auto)    false
-              -- Yaw is in rate mode
+              -- UI source must be ppm
+              store (cl_req ~> CL.set_ui_ppm)       true
+              store (cl_req ~> CL.set_ui_mavlink)   false
+              -- Yaw law must be rate
               store (cl_req ~> CL.set_yaw_rate)     true
-              -- Altitude must be autothrottle:
+              store (cl_req ~> CL.set_yaw_heading)  false
+              -- Throttle law must be autothrottle:
               store (cl_req ~> CL.set_thr_direct)   false
               store (cl_req ~> CL.set_thr_auto)     true
-              -- Autothrottle mode must be ppm
-              store (cl_req ~> CL.set_autothr_ppm)     true
-              store (cl_req ~> CL.set_autothr_mavlink) false
-              store (cl_req ~> CL.set_autothr_auto)    false
+              -- Autothrottle input must be ui
+              store (cl_req ~> CL.set_autothr_src_ui)  true
+              store (cl_req ~> CL.set_autothr_src_nav) false
+              -- Stab input must be ui:
+              store (cl_req ~> CL.set_stab_src_ui)  true
+              store (cl_req ~> CL.set_stab_src_nav) false
+              -- Heading input irrevelent
+              store (cl_req ~> CL.set_head_src_ui)  false
+              store (cl_req ~> CL.set_head_src_nav) false
           , p ==? posDown ==> do
-              -- Stability mode must be ppm
-              store (cl_req ~> CL.set_stab_ppm)     true
-              store (cl_req ~> CL.set_stab_mavlink) false
-              store (cl_req ~> CL.set_stab_auto)    false
-              -- Yaw is in rate mode
+              -- UI source must be ppm
+              store (cl_req ~> CL.set_ui_ppm)       true
+              store (cl_req ~> CL.set_ui_mavlink)   false
+              -- Yaw law must be rate
               store (cl_req ~> CL.set_yaw_rate)     true
-              -- Altitude must be direct
+              store (cl_req ~> CL.set_yaw_heading)  false
+              -- Throttle law must be direct:
               store (cl_req ~> CL.set_thr_direct)   true
               store (cl_req ~> CL.set_thr_auto)     false
-              -- Autothrottle disabled
-              store (cl_req ~> CL.set_autothr_ppm)     false
-              store (cl_req ~> CL.set_autothr_mavlink) false
-              store (cl_req ~> CL.set_autothr_auto)    false
+              -- Autothrottle input must be ui
+              store (cl_req ~> CL.set_autothr_src_ui)  true
+              store (cl_req ~> CL.set_autothr_src_nav) false
+              -- Stab input must be ui:
+              store (cl_req ~> CL.set_stab_src_ui)  true
+              store (cl_req ~> CL.set_stab_src_nav) false
+              -- Heading input irrevelent
+              store (cl_req ~> CL.set_head_src_ui)  false
+              store (cl_req ~> CL.set_head_src_nav) false
           ]
 
   taskModuleDef $ do

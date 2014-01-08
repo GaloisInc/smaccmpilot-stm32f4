@@ -10,7 +10,7 @@
 module SMACCMPilot.Flight.Types.UserInput where
 
 import Ivory.Language
-import SMACCMPilot.Flight.Types.ControlSource
+import SMACCMPilot.Flight.Types.UISource
 
 userInputTypeModule :: Module
 userInputTypeModule = package "userinput_type" $ do
@@ -23,7 +23,7 @@ struct userinput_result
   ; pitch    :: Stored IFloat
   ; yaw      :: Stored IFloat
   ; time     :: Stored Uint32
-  ; source   :: Stored ControlSource
+  ; source   :: Stored UISource
   }
 
 |]

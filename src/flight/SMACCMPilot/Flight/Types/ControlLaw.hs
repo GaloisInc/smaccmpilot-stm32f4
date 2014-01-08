@@ -11,18 +11,21 @@ module SMACCMPilot.Flight.Types.ControlLaw where
 import Ivory.Language
 
 import SMACCMPilot.Flight.Types.ArmedMode
-import SMACCMPilot.Flight.Types.ThrottleMode
 import SMACCMPilot.Flight.Types.ControlSource
+import SMACCMPilot.Flight.Types.ThrottleMode
+import SMACCMPilot.Flight.Types.UISource
 import SMACCMPilot.Flight.Types.YawMode
 
 [ivory|
 struct control_law
-  { armed_mode    :: Stored ArmedMode
-  ; stab_ctl      :: Stored ControlSource
-  ; yaw_mode      :: Stored YawMode
-  ; thr_mode      :: Stored ThrottleMode
-  ; autothr_ctl   :: Stored ControlSource
-  ; time          :: Stored Uint32
+  { armed_mode     :: Stored ArmedMode
+  ; ui_source      :: Stored UISource
+  ; yaw_mode       :: Stored YawMode
+  ; thr_mode       :: Stored ThrottleMode
+  ; autothr_source :: Stored ControlSource
+  ; stab_source    :: Stored ControlSource
+  ; head_source    :: Stored ControlSource
+  ; time           :: Stored Uint32
   }
 |]
 
