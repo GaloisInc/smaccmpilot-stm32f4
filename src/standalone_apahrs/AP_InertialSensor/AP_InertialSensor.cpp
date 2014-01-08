@@ -311,7 +311,7 @@ AP_InertialSensor::_init_accel(void (*flash_leds_cb)(bool on))
 // http://chionophilous.wordpress.com/2011/10/24/accelerometer-calibration-iv-1-implementing-gauss-newton-on-an-atmega/
 // original sketch available at
 // http://rolfeschmidt.com/mathtools/skimetrics/adxl_gn_calibration.pde
-bool AP_InertialSensor::calibrate_accel(void (*flash_leds_cb)(bool on),
+bool AP_InertialSensor::calibrate_accel(void (*flash_leds_cb)(bool on) __attribute__ ((unused)),
                             AP_InertialSensor_UserInteract* interact,
                             float &trim_roll,
                             float &trim_pitch)

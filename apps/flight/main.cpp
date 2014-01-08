@@ -26,7 +26,7 @@ const AP_HAL::HAL& hal = AP_HAL_SMACCM;
 static xTaskHandle g_main_task;
 
 // Main task. Start the AP_HAL, then start tower, then delete self.
-void main_task(void *arg)
+void main_task(void)
 {
     hal.init(0, NULL);
     tower_entry();

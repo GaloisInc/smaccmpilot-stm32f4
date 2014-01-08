@@ -385,7 +385,7 @@ bool AP_InertialSensor_MPU6000::_data_ready()
 /**
  * Timer process to poll for new data from the MPU6000.
  */
-void AP_InertialSensor_MPU6000::_poll_data(uint32_t now)
+void AP_InertialSensor_MPU6000::_poll_data(uint32_t now __attribute__ ((unused)))
 {
     if (_data_ready()) {
         if (hal.scheduler->in_timerprocess()) {
@@ -619,7 +619,7 @@ bool AP_InertialSensor_MPU6000::hardware_init(Sample_rate sample_rate)
     return true;
 }
 
-float AP_InertialSensor_MPU6000::_temp_to_celsius ( uint16_t regval )
+float AP_InertialSensor_MPU6000::_temp_to_celsius ( uint16_t regval __attribute ((unused)) )
 {
     /* TODO */
     return 20.0;
