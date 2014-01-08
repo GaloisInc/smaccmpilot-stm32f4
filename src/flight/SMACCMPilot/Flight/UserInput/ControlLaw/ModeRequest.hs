@@ -15,6 +15,7 @@ import Ivory.Stdlib
 import qualified SMACCMPilot.Flight.Types.ControlLawRequest as R
 import qualified SMACCMPilot.Flight.Types.ControlLaw        as L
 import qualified SMACCMPilot.Flight.Types.ControlSource     as S
+import qualified SMACCMPilot.Flight.Types.UISource          as U
 import qualified SMACCMPilot.Flight.Types.ThrottleMode      as T
 import qualified SMACCMPilot.Flight.Types.YawMode           as Y
 
@@ -24,10 +25,10 @@ data ModeRequestMachine
     , mrm_ppm  :: forall eff s1 s2 . Ref      s1 (Struct "control_law")
                                   -> ConstRef s2 (Struct "control_law_request")
                                   -> Ivory eff ()
-    , mrm_mav  :: forall eff s1 s2 . Ref      s1 (Struct "control_law")
+    , mrm_mavlink :: forall eff s1 s2 . Ref      s1 (Struct "control_law")
                                   -> ConstRef s2 (Struct "control_law_request")
                                   -> Ivory eff ()
-    , mrm_auto :: forall eff s1 s2 . Ref      s1 (Struct "control_law")
+    , mrm_nav :: forall eff s1 s2 . Ref      s1 (Struct "control_law")
                                   -> ConstRef s2 (Struct "control_law_request")
                                   -> Ivory eff ()
     }
@@ -35,21 +36,26 @@ data ModeRequestMachine
 taskModeRequestMachine :: Task p ModeRequestMachine
 taskModeRequestMachine = do
   ppm_req  <- taskLocal "ppm_req"
-  mav_req  <- taskLocal "mav_req"
-  auto_req <- taskLocal "auto_req"
+  mavlink_req  <- taskLocal "mavlink_req"
+  nav_req <- taskLocal "nav_req"
 
   f <- fresh
   let named n = "mode_request_machine_" ++ n ++ "_" ++ (show f)
 
       init_proc :: Def('[Ref s (Struct "control_law")]:->())
       init_proc = proc (named "init") $ \law -> body $ do
-        store (law ~> L.stab_ctl)    S.ppm
-        store (law ~> L.thr_mode)    T.direct
-        store (law ~> L.autothr_ctl) S.ppm
-        -- Force all laws to PPM until we hear otherwise
-        store (ppm_req ~> R.set_stab_ppm)    true
-        store (ppm_req ~> R.set_thr_direct)  true
-        store (ppm_req ~> R.set_autothr_ppm) true
+        store (law ~> L.ui_source)      U.ppm
+        store (law ~> L.yaw_mode)       Y.rate
+        store (law ~> L.thr_mode)       T.direct
+        store (law ~> L.autothr_source) S.ui
+        store (law ~> L.stab_source)    S.ui
+        store (law ~> L.head_source)    S.ui
+        -- Force all laws to PPM UI until we hear otherwise
+        store (ppm_req ~> R.set_ui_ppm)         true
+        store (ppm_req ~> R.set_thr_direct)     true
+        store (ppm_req ~> R.set_autothr_src_ui) true
+        store (ppm_req ~> R.set_stab_src_ui)    true
+        store (ppm_req ~> R.set_head_src_ui)    true
 
       ppm_proc :: Def('[ Ref      s1 (Struct "control_law")
                        , ConstRef s2 (Struct "control_law_request")
@@ -58,87 +64,74 @@ taskModeRequestMachine = do
         refCopy ppm_req req
         call_ update law
 
-      mav_proc :: Def('[ Ref      s1 (Struct "control_law")
-                       , ConstRef s2 (Struct "control_law_request")
-                       ] :-> ())
-      mav_proc = proc (named "mav") $ \law req -> body $ do
-        refCopy mav_req req
+      mavlink_proc :: Def('[ Ref      s1 (Struct "control_law")
+                           , ConstRef s2 (Struct "control_law_request")
+                           ] :-> ())
+      mavlink_proc = proc (named "mavlink") $ \law req -> body $ do
+        refCopy mavlink_req req
         call_ update law
 
-      auto_proc :: Def('[ Ref      s1 (Struct "control_law")
-                        , ConstRef s2 (Struct "control_law_request")
-                        ] :-> ())
-      auto_proc = proc (named "auto") $ \law req -> body $ do
-        refCopy auto_req req
+      nav_proc :: Def('[ Ref      s1 (Struct "control_law")
+                       , ConstRef s2 (Struct "control_law_request")
+                       ] :-> ())
+      nav_proc = proc (named "nav") $ \law req -> body $ do
+        refCopy nav_req req
         call_ update law
 
       update ::  Def('[ Ref s (Struct "control_law") ] :->())
       update = proc (named "update") $ \law -> body $ do
-        decide_stab_ctl    >>= store (law ~> L.stab_ctl)
-        decide_yaw_mode    >>= store (law ~> L.yaw_mode)
-        decide_thr_mode    >>= store (law ~> L.thr_mode)
-        decide_autothr_ctl >>= store (law ~> L.autothr_ctl)
+        ui_src <- decide_ui_source
+        store (law ~> L.ui_source) ui_src
+        decide_yaw_mode ui_src >>= store (law ~> L.yaw_mode)
+        decide_thr_mode ui_src >>= store (law ~> L.thr_mode)
 
-      decide_stab_ctl :: Ivory (ProcEffects s ()) S.ControlSource
-      decide_stab_ctl = do
-        stab_mav_ppm   <- deref (ppm_req ~> R.set_stab_mavlink)
-        stab_mav_mav   <- deref (mav_req ~> R.set_stab_mavlink)
-        stab_auto_ppm  <- deref (ppm_req ~> R.set_stab_auto)
-        stab_auto_auto <- deref (auto_req ~> R.set_stab_auto)
+        -- XXX CALCULATE AUTOTHR_SOURCE, STAB_SOURCE, HEAD_SOURCE
+        store (law ~> L.autothr_source) S.ui
+        store (law ~> L.stab_source)    S.ui
+        store (law ~> L.head_source)    S.ui
+
+      decide_ui_source :: Ivory (ProcEffects s ()) U.UISource
+      decide_ui_source = do
+        -- Default to PPM input unless both PPM and MAVLink assert MAVLink ui
+        ui_mav_ppm <- deref (ppm_req ~> R.set_ui_mavlink)
+        ui_mav_mav <- deref (mavlink_req ~> R.set_ui_mavlink)
         cond
-          [ stab_mav_ppm  .&& stab_mav_mav   ==> return S.mavlink
-          , stab_auto_ppm .&& stab_auto_auto ==> return S.auto
-          , true ==> return S.ppm -- Always default to PPM
+          [ ui_mav_ppm .&& ui_mav_mav ==> return U.mavlink
+          , true ==> return U.ppm
           ]
 
-      decide_yaw_mode :: Ivory (ProcEffects s ()) Y.YawMode
-      decide_yaw_mode = do
-        stab_src     <- decide_stab_ctl
-        yaw_head_ppm  <- deref (ppm_req  ~> R.set_yaw_heading)
-        yaw_head_mav  <- deref (mav_req  ~> R.set_yaw_heading)
-        yaw_head_auto <- deref (auto_req ~> R.set_yaw_heading)
+      decide_yaw_mode :: U.UISource -> Ivory (ProcEffects s ()) Y.YawMode
+      decide_yaw_mode ui_src = do
+        -- Use the yaw mode requested by the UI Source
+        yaw_head_ppm  <- deref (ppm_req ~> R.set_yaw_heading)
+        yaw_head_mav  <- deref (mavlink_req ~> R.set_yaw_heading)
         cond
-          [ stab_src ==? S.ppm     .&& yaw_head_ppm  ==> return Y.heading
-          , stab_src ==? S.mavlink .&& yaw_head_mav  ==> return Y.heading
-          , stab_src ==? S.auto    .&& yaw_head_auto ==> return Y.heading
+          [ ui_src ==? U.ppm     .&& yaw_head_ppm  ==> return Y.heading
+          , ui_src ==? U.mavlink .&& yaw_head_mav  ==> return Y.heading
           , true ==> return Y.rate
           ]
 
-      decide_thr_mode :: Ivory (ProcEffects s ()) T.ThrottleMode
-      decide_thr_mode = do
+      decide_thr_mode :: U.UISource -> Ivory (ProcEffects s ()) T.ThrottleMode
+      decide_thr_mode ui_src = do
+        -- Use the throttle mode requested by the UI Source
         thr_direct_ppm <- deref (ppm_req ~> R.set_thr_direct)
         thr_auto_ppm   <- deref (ppm_req ~> R.set_thr_auto)
-        thr_auto_mav   <- deref (mav_req ~> R.set_thr_auto)
-        thr_auto_auto  <- deref (auto_req ~> R.set_thr_auto)
+        thr_auto_mav   <- deref (mavlink_req ~> R.set_thr_auto)
         cond
-          [ thr_direct_ppm ==> return T.direct
-          , thr_auto_ppm .&&
-              (thr_auto_mav .|| thr_auto_auto) ==> return T.autothrottle
+          [ ui_src ==? U.ppm     .&& thr_auto_ppm ==> return T.autothrottle
+          , ui_src ==? U.mavlink .&& thr_auto_mav ==> return T.autothrottle
           , true ==> return T.direct
-          ]
-
-      -- could improve this code, based directly on stab_ctl with substitution
-      decide_autothr_ctl :: Ivory (ProcEffects s ()) S.ControlSource
-      decide_autothr_ctl = do
-        autothr_mav_ppm   <- deref (ppm_req ~> R.set_autothr_mavlink)
-        autothr_mav_mav   <- deref (mav_req ~> R.set_autothr_mavlink)
-        autothr_auto_ppm  <- deref (ppm_req ~> R.set_autothr_auto)
-        autothr_auto_auto <- deref (auto_req ~> R.set_autothr_auto)
-        cond
-          [ autothr_mav_ppm  .&& autothr_mav_mav   ==> return S.mavlink
-          , autothr_auto_ppm .&& autothr_auto_auto ==> return S.auto
-          , true ==> return S.ppm -- always default to ppm
           ]
 
   taskModuleDef $ do
     incl init_proc
     incl ppm_proc
-    incl mav_proc
-    incl auto_proc
+    incl mavlink_proc
+    incl nav_proc
     incl update
   return ModeRequestMachine
     { mrm_init = call_ init_proc
     , mrm_ppm  = call_ ppm_proc
-    , mrm_mav  = call_ mav_proc
-    , mrm_auto = call_ auto_proc
+    , mrm_mavlink  = call_ mavlink_proc
+    , mrm_nav = call_ nav_proc
     }

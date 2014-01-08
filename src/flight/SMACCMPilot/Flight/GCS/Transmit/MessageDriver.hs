@@ -30,6 +30,7 @@ import qualified SMACCMPilot.Flight.Types.PosControlDebug       as Pos
 import qualified SMACCMPilot.Flight.Types.ControlLaw            as CL
 import qualified SMACCMPilot.Flight.Types.ThrottleMode          as TM
 import qualified SMACCMPilot.Flight.Types.ControlSource         as CS
+import qualified SMACCMPilot.Flight.Types.UISource              as US
 import qualified SMACCMPilot.Flight.Types.ArmedMode             as A
 
 import           SMACCMPilot.Mavlink.Messages (mavlinkMessageModules)
@@ -83,9 +84,11 @@ mkSendHeartbeat =
   $ \cl seqNum sendStruct -> body $ do
 
   armed_mode  <- deref (cl ~> CL.armed_mode)
-  stab_ctl    <- deref (cl ~> CL.stab_ctl)
+  ui_source   <- deref (cl ~> CL.ui_source)
   thr_mode    <- deref (cl ~> CL.thr_mode)
-  autothr_ctl <- deref (cl ~> CL.autothr_ctl)
+  autothr_src <- deref (cl ~> CL.autothr_source)
+  stab_src    <- deref (cl ~> CL.stab_source)
+  head_src    <- deref (cl ~> CL.head_source)
 
   base_mode <- assign $ base_custom_mode
                       + ((armed_mode ==? A.armed) ? (base_armed, 0))
@@ -93,14 +96,16 @@ mkSendHeartbeat =
       ((armed_mode ==? A.armed)     ? (custom_armed,    0))
     + ((armed_mode ==? A.disarmed)  ? (custom_disarmed, 0))
     + ((armed_mode ==? A.safe)      ? (custom_safe,     0))
-    + ((stab_ctl   ==? CS.ppm)      ? (custom_ppm  * custom_field_stab, 0))
-    + ((stab_ctl   ==? CS.mavlink)  ? (custom_mav  * custom_field_stab, 0))
-    + ((stab_ctl   ==? CS.auto)     ? (custom_auto * custom_field_stab, 0))
+    + ((ui_source  ==? US.ppm)      ? (custom_ui_ppm  * custom_field_ui, 0))
+    + ((ui_source  ==? US.mavlink)  ? (custom_ui_mav  * custom_field_ui, 0))
     + ((thr_mode   ==? TM.direct)       ? (custom_thr_direct, 0))
     + ((thr_mode   ==? TM.autothrottle) ? (custom_thr_autothrottle, 0))
-    + ((autothr_ctl ==? CS.ppm)     ? (custom_ppm  * custom_field_athr, 0))
-    + ((autothr_ctl ==? CS.mavlink) ? (custom_mav  * custom_field_athr, 0))
-    + ((autothr_ctl ==? CS.auto)    ? (custom_auto * custom_field_athr, 0))
+    + ((autothr_src ==? CS.ui)     ? (custom_src_ui  * custom_field_athr, 0))
+    + ((autothr_src ==? CS.nav)    ? (custom_src_nav * custom_field_athr, 0))
+    + ((stab_src    ==? CS.ui)     ? (custom_src_ui  * custom_field_stab, 0))
+    + ((stab_src    ==? CS.nav)    ? (custom_src_nav * custom_field_stab, 0))
+    + ((head_src    ==? CS.ui)     ? (custom_src_ui  * custom_field_head, 0))
+    + ((head_src    ==? CS.nav)    ? (custom_src_nav * custom_field_head, 0))
 
   hb <- local $ istruct
           [ HB.base_mode       .= ival base_mode
@@ -120,21 +125,27 @@ mkSendHeartbeat =
   base_armed        = 128
   base_custom_mode  = 1
 
-  -- control source is a 2 bit field:
-  custom_ppm  = 0
-  custom_mav  = 1
-  custom_auto = 2
+  -- ui source is a 1 bit field:
+  custom_ui_ppm  = 0
+  custom_ui_mav  = 1
+  -- control source is a 1 bit field:
+  custom_src_ui  = 0
+  custom_src_nav  = 1
   -- armed mode is bits 0,1
   custom_safe     = 0
   custom_disarmed = 1
   custom_armed    = 2
-  -- stab mode is bits 2,3
-  custom_field_stab = 4
-  -- thr mode is bit 4
+  -- ui mode is bit 2
+  custom_field_ui = 4
+  -- thr mode is bit 3
   custom_thr_direct = 0
-  custom_thr_autothrottle = 16
-  -- autothrottle mode is bits 5, 6
-  custom_field_athr = 32
+  custom_thr_autothrottle = 8
+  -- autothrottle src is bit 4
+  custom_field_athr = 16
+  -- stab src is bit 5
+  custom_field_stab = 32
+  -- head src is bit 6
+  custom_field_head = 64
 
 mkSendAttitude :: Sender "sensors_result"
 mkSendAttitude =
@@ -295,7 +306,7 @@ mkSendGlobalPositionInt = proc "gcs_transmit_send_global_position_int" $
     , GPI.relative_alt .= ival alt -- sending relative_alt
     , GPI.vx           .= ival (castWith 0 vnorth)
     , GPI.vy           .= ival (castWith 0 veast)
-    , GPI.vz           .= ival 0 -- (-1 * (castWith 0 vdown))
+    , GPI.vz           .= ival 0 -- (-1 * (castWith 0 vdown)) -- XXX FIXME FIXME
     , GPI.hdg          .= ival (castWith 0 yaw_cd)
     ])
   call_ GPI.mkGlobalPositionIntSender (constRef msg) seqNum sendStruct

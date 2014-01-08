@@ -113,15 +113,15 @@ navTower params nav_inputs = do
       ready <- call check_ready_proc
       ifte_ ready
         (do armed_mode <- deref ((updated_value law) ~> CL.armed_mode)
-            stab_ctl   <- deref ((updated_value law) ~> CL.stab_ctl)
-            ifte_ (stab_ctl ==? CS.auto .&& armed_mode ==? A.armed)
+            stab_src   <- deref ((updated_value law) ~> CL.stab_source)
+            ifte_ (stab_src ==? CS.nav .&& armed_mode ==? A.armed)
               (call_ run_proc)
               (do request <- local $ CR.initControlLawRequest
-                    [ CR.set_stab_auto .= ival true ]
+                    [ CR.set_stab_src_nav .= ival true ]
                   emit_ law_req_emitter (constRef request)
                   call_ reset_proc))
         (do request <- local $ CR.initControlLawRequest
-              [ CR.set_stab_auto .= ival false ]
+              [ CR.set_stab_src_nav .= ival false ]
             emit_ law_req_emitter (constRef request)
             call_ reset_proc)
 

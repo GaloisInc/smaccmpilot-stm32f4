@@ -96,6 +96,7 @@ library
                        SMACCMPilot.Flight.Types.AttControlDebug,
                        SMACCMPilot.Flight.Types.PosControlDebug,
                        SMACCMPilot.Flight.Types.ControlSetpoint,
+                       SMACCMPilot.Flight.Types.UISource,
 
                        SMACCMPilot.Flight.UserInput.PPM,
                        SMACCMPilot.Flight.UserInput.PPM.ArmingMachine,

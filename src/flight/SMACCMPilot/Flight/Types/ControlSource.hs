@@ -2,9 +2,8 @@
 
 module SMACCMPilot.Flight.Types.ControlSource
   ( ControlSource()
-  , ppm
-  , mavlink
-  , auto
+  , ui
+  , nav
   ) where
 
 import Ivory.Language
@@ -12,12 +11,9 @@ import Ivory.Language
 newtype ControlSource = ControlSource Uint32
   deriving (Num, IvoryType, IvoryVar, IvoryExpr, IvoryEq, IvoryStore, IvoryInit)
 
-ppm :: ControlSource
-ppm = ControlSource 0
+ui :: ControlSource
+ui = ControlSource 0
 
-mavlink :: ControlSource
-mavlink = ControlSource 1
-
-auto :: ControlSource
-auto = ControlSource 2
+nav :: ControlSource
+nav = ControlSource 1
 
