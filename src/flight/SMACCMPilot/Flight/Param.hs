@@ -101,5 +101,5 @@ flightParams =                          -- P     I     D     IMAX (-IMIN)
 
   posCtlParams :: Monad m => ParamT f m (PosCtlParams f)
   posCtlParams =                            -- P     I     D     IMAX
-    PosCtlParams <$> group "THRUST" (pidParams 1.000 0.010 0.010 0.8)
+    PosCtlParams <$> group "THRUST" (pidParams 0.200 0.010 0.010 0.4)
 

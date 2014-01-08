@@ -96,11 +96,11 @@ navTower params nav_inputs = do
           vel_update vel_control (constRef sens) (updated_value pos)
                            x_vel_sp y_vel_sp dt
 
-          (roll_sp, pitch_sp) <- vel_output vel_control
+          (pitch_sp, roll_sp) <- vel_output vel_control
 
           setpt <- local $ istruct
-             [ SP.roll  .= ival roll_sp
-             , SP.pitch .= ival pitch_sp
+             [ SP.pitch .= ival pitch_sp
+             , SP.roll  .= ival roll_sp
              ]
           emit_ setpt_emitter (constRef setpt)
 
