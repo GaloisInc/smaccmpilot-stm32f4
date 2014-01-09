@@ -30,8 +30,6 @@ data YawRateControl =
     , yc_reset :: forall eff . Ivory eff ()
     }
 
-const_MAX_INPUT_YAW :: IFloat
-const_MAX_INPUT_YAW   = 180 -- deg/sec
 const_MAX_OUTPUT_YAW :: IFloat
 const_MAX_OUTPUT_YAW   = 45 -- deg/sec
 
@@ -60,7 +58,6 @@ taskYawRateControl params = do
                             yaw_rate
                             (constRef yaw_rate_cfg)
                             yaw_rate_setpt
-                            const_MAX_INPUT_YAW
                             sen_omega_z
                             const_MAX_OUTPUT_YAW
 

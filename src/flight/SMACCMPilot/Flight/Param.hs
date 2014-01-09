@@ -75,7 +75,9 @@ thrUIParams s d =
 data FlightParams f = FlightParams
   { flightRoll      :: StabilizerParams f
   , flightPitch     :: StabilizerParams f
+  , flightPRUISens  :: Param f
   , flightYaw       :: StabilizerParams f
+  , flightYawUISens :: Param f
   , flightAltitude  :: AltitudeParams f
   , flightPosition  :: PosCtlParams f
   } deriving (Functor, Foldable, Traversable)
@@ -87,8 +89,10 @@ flightParams =                          -- P     I     D     IMAX (-IMIN)
                                            0.100 0.000 0.095 0.5)
                <*> group "PIT" (stabParams 2.500 0.000 0.000 8.0
                                            0.100 0.000 0.095 0.5)
+               <*> param "PITRLL_UI_SENS"  45.0
                <*> group "YAW" (stabParams 1.0   0.000 0.000 8.0
                                            0.300 0.0   0.0   1.0)
+               <*> param "YAW_UI_SENS"     180.0
                <*> group "ALT" altitudeParams
                <*> group "POS" posCtlParams
   where
