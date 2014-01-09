@@ -57,6 +57,7 @@ data AltitudeParams f = AltitudeParams
 -- | Position controller parameters.
 data PosCtlParams f = PosCtlParams
   { posCtlThrust :: PIDParams f
+  , posUISens    :: Param f
   } deriving (Functor, Foldable, Traversable)
 
 -- | PID controller parameters.
@@ -106,4 +107,5 @@ flightParams =                          -- P     I     D     IMAX (-IMIN)
   posCtlParams :: Monad m => ParamT f m (PosCtlParams f)
   posCtlParams =                            -- P     I     D     IMAX
     PosCtlParams <$> group "THRUST" (pidParams 0.200 0.010 0.010 0.4)
+                 <*> param "UI_SENS" 2.0
 
