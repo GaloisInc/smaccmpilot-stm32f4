@@ -176,18 +176,21 @@ gcsTransmitTask mavStream sp_sink params input = do
       call_ mkSendVfrHud l_pos l_ctl l_sens seqNum mavlinkStruct
       processMav T.vfr_hud
 
-      -- piggyback controller debug here
+    onStream T.debug $ do
       l_alt_ctl <- local (istruct [])
       readData altControlReader l_alt_ctl
       call_ mkSendAltCtlDebug (constRef l_alt_ctl) seqNum mavlinkStruct
+      processMav T.debug
+
       l_att_ctl <- local (istruct [])
       readData attControlReader l_att_ctl
       call_ mkSendAttCtlDebug (constRef l_att_ctl) seqNum mavlinkStruct
+      processMav T.debug
+
       l_pos_ctl <- local (istruct [])
       readData posControlReader l_pos_ctl
       call_ mkSendPosCtlDebug (constRef l_pos_ctl) seqNum mavlinkStruct
-
-      processMav T.vfr_hud
+      processMav T.debug
 
     onStream T.global_position_int $ do
       l_pos  <- local (istruct [])
