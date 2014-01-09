@@ -35,6 +35,7 @@ library
                        SMACCMPilot.Flight.Control,
                        SMACCMPilot.Flight.Control.PID,
                        SMACCMPilot.Flight.Control.StatePID,
+                       SMACCMPilot.Flight.Control.StateDerivativePID,
 
                        SMACCMPilot.Flight.Control.Altitude,
                        SMACCMPilot.Flight.Control.Altitude.Estimator,
