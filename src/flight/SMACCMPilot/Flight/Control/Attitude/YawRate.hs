@@ -18,7 +18,7 @@ import SMACCMPilot.Flight.Control.Attitude.Stabilize
 import SMACCMPilot.Flight.Param
 
 import qualified SMACCMPilot.Flight.Types.Sensors       as SEN
-import qualified SMACCMPilot.Flight.Types.ControlOutput as OUT
+-- import qualified SMACCMPilot.Flight.Types.ControlOutput as OUT
 
 data YawRateControl =
   YawRateControl

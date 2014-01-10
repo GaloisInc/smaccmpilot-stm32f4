@@ -297,7 +297,7 @@ mkSendGlobalPositionInt = proc "gcs_transmit_send_global_position_int" $
   -- velocity east, cm/s:
   veast     <- deref (pos ~> P.veast)
   -- velocity up, cm/s
-  vdown     <- deref (pos ~> P.vdown)
+  -- vdown     <- deref (pos ~> P.vdown)
   msg <- local (istruct
     [ GPI.time_boot_ms .= ival currenttime
     , GPI.lat          .= ival lat

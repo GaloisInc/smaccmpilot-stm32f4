@@ -10,7 +10,7 @@ module SMACCMPilot.Flight.UserInput.ControlLaw
 import Ivory.Language
 import Ivory.Tower
 
-import qualified SMACCMPilot.Flight.Types.ControlLawRequest as R
+-- import qualified SMACCMPilot.Flight.Types.ControlLawRequest as R
 import qualified SMACCMPilot.Flight.Types.ControlLaw        as L
 
 import           SMACCMPilot.Flight.UserInput.ControlLaw.ArmingRequest

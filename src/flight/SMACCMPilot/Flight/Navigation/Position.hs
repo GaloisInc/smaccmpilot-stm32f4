@@ -10,13 +10,13 @@ module SMACCMPilot.Flight.Navigation.Position
 
 import Ivory.Language
 import Ivory.Tower
-import Ivory.Stdlib
+-- import Ivory.Stdlib
 
 import SMACCMPilot.Param
 import SMACCMPilot.Flight.Param
 
-import qualified SMACCMPilot.Hardware.GPS.Types           as P
-import qualified SMACCMPilot.Flight.Types.Sensors         as S
+-- import qualified SMACCMPilot.Hardware.GPS.Types           as P
+import qualified SMACCMPilot.Flight.Types.Sensors()
 import qualified SMACCMPilot.Flight.Types.PosControlDebug as D
 import qualified SMACCMPilot.Flight.Types.UserInput       as UI
 
@@ -39,7 +39,7 @@ data PositionControl =
 
 taskPositionControl :: PosCtlParams ParamReader
                     -> Task p PositionControl
-taskPositionControl param_reader = do
+taskPositionControl _param_reader = do
   f <- fresh
 
   pit_in <- taskLocal "pitch_input"
@@ -56,7 +56,7 @@ taskPositionControl param_reader = do
                            , ConstRef s3 (Struct "userinput_result")
                            , IFloat
                            ]:->())
-      update_proc = proc (named "update") $ \sens pos ui dt -> body $ do
+      update_proc = proc (named "update") $ \_sens _pos ui _dt -> body $ do
         -- XXX STUB FOR TESTING VELOCITY CTL
         store pit_in =<< deref (ui ~> UI.pitch)
         store rll_in =<< deref (ui ~> UI.roll)
