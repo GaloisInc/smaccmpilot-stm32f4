@@ -114,7 +114,7 @@ taskModeRequestMachine = do
       decide_thr_mode :: U.UISource -> Ivory (ProcEffects s ()) T.ThrottleMode
       decide_thr_mode ui_src = do
         -- Use the throttle mode requested by the UI Source
-        thr_direct_ppm <- deref (ppm_req ~> R.set_thr_direct)
+        -- thr_direct_ppm <- deref (ppm_req ~> R.set_thr_direct)
         thr_auto_ppm   <- deref (ppm_req ~> R.set_thr_auto)
         thr_auto_mav   <- deref (mavlink_req ~> R.set_thr_auto)
         cond
