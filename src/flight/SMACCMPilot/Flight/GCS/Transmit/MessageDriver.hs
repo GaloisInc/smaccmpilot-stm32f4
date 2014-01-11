@@ -78,10 +78,11 @@ type Sender a = forall s0 s1 .
 mkSendHeartbeat :: Def ('[ Ref s1 (Struct "control_law")
                          , Ref sm (Stored Uint8)
                          , Ref sm (Struct "mavlinkPacket")
+                         , IBool
                          ] :-> ())
 mkSendHeartbeat =
   proc "gcs_transmit_send_heartbeat"
-  $ \cl seqNum sendStruct -> body $ do
+  $ \cl seqNum sendStruct comm_monitor -> body $ do
 
   armed_mode  <- deref (cl ~> CL.armed_mode)
   ui_source   <- deref (cl ~> CL.ui_source)
@@ -106,6 +107,7 @@ mkSendHeartbeat =
     + ((stab_src    ==? CS.nav)    ? (custom_src_nav * custom_field_stab, 0))
     + ((head_src    ==? CS.ui)     ? (custom_src_ui  * custom_field_head, 0))
     + ((head_src    ==? CS.nav)    ? (custom_src_nav * custom_field_head, 0))
+    + comm_monitor                 ? (1 * custom_field_monitor, 0)
 
   hb <- local $ istruct
           [ HB.base_mode       .= ival base_mode
@@ -146,6 +148,8 @@ mkSendHeartbeat =
   custom_field_stab = 32
   -- head src is bit 6
   custom_field_head = 64
+  -- monitor is bit 7 (1 for alarm)
+  custom_field_monitor = 128
 
 mkSendAttitude :: Sender "sensors_result"
 mkSendAttitude =

@@ -42,6 +42,7 @@ data GCSTxRequires n =
     , tx_pos_ctl     :: DataSink (Struct "pos_control_dbg")
     , tx_radio_stat  :: DataSink (Struct "radio_stat")
     , tx_veh_commsec :: DataSink (Struct "veh_commsec_msg")
+    , tx_mon_commsec :: DataSink (Stored IBool)
     , tx_param_req   :: ChannelSink n (Stored Sint16)
     }
 
@@ -65,6 +66,7 @@ gcsTransmitTask mavStream sp_sink params input = do
   attControlReader  <- withDataReader (tx_att_ctl     input) "att_control"
   posControlReader  <- withDataReader (tx_pos_ctl     input) "pos_control"
   commsecInfoReader <- withDataReader (tx_veh_commsec input) "commsecInfo"
+  commMonitorReader <- withDataReader (tx_mon_commsec input) "commsecMonitor"
 
   mavTx             <- withChannelEmitter mavStream "gcsTxToEncSrc"
 
@@ -142,8 +144,10 @@ gcsTransmitTask mavStream sp_sink params input = do
 
     onStream T.heartbeat $ do
       l_cl    <- local (istruct [])
+      cm      <- local (ival true)
       readData clReader l_cl
-      call_ mkSendHeartbeat l_cl seqNum mavlinkStruct
+      readData commMonitorReader cm
+      call_ mkSendHeartbeat l_cl seqNum mavlinkStruct =<< deref cm
       processMav T.heartbeat
 
     onStream T.servo_output_raw $ do

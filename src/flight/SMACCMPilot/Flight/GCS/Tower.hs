@@ -39,6 +39,7 @@ data GCSRequires =
     , gcs_att_ctl_in  :: DataSink (Struct "att_control_dbg")
     , gcs_pos_ctl_in  :: DataSink (Struct "pos_control_dbg")
     , gcs_commsec_in  :: DataSink (Struct "veh_commsec_msg")
+    , gcs_comm_mon_in :: DataSink (Stored IBool)
     }
 
 data GCSProvides =
@@ -107,6 +108,7 @@ gcsTower name opts istream ostream req prov params
          , tx_veh_commsec = gcs_commsec_in  req
          , tx_param_req   = snk param_req
          , tx_radio_stat  = radio_stat
+         , tx_mon_commsec = gcs_comm_mon_in req
          }
 
   addDepends HIL.hilStateModule

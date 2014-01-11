@@ -16,23 +16,32 @@ import           Ivory.Tower
 
 --------------------------------------------------------------------------------
 
-recoveryTower :: DataSink (Struct "veh_commsec_msg") -- From Commsec/Decrypt task
+recoveryTower :: DataSink   (Struct "veh_commsec_msg") -- Commsec/Decrypt task
+              -> DataSource (Stored IBool)             -- To GCS Transmit
               -> Tower p ()
-recoveryTower commsec_info_snk = do
+recoveryTower commsec_info_snk monitor_result_src =
 
   -- XXX We might have multiple recovery tasks here doing multiple things.  For
   -- now, we just have one task, looking at commsec messages.
-  task "commsecRecoveryTask" $ commsecRecoveryTask commsec_info_snk
+  task "commsecRecoveryTask"
+    $ commsecRecoveryTask commsec_info_snk monitor_result_src
+
+--------------------------------------------------------------------------------
 
 type Time   = Uint32
 type Idx    = Sint32
 type BufLen = 20
 type CirBuf = Array BufLen (Stored Time)
 
-commsecRecoveryTask :: DataSink (Struct "veh_commsec_msg") -- From Commsec/Decrypt task
+--------------------------------------------------------------------------------
+
+commsecRecoveryTask :: DataSink   (Struct "veh_commsec_msg")
+                    -> DataSource (Stored IBool)
                     -> Task p ()
-commsecRecoveryTask commsec_info_snk = do
+commsecRecoveryTask commsec_info_snk monitor_result_src = do
   commsec_info_snk_rx <- withDataReader commsec_info_snk "commsec_info_snk"
+  monitor_res_tx      <- withDataWriter monitor_result_src "comm_mon_res"
+
   -- For our property, we'll store timestamps in an array.
   cirBuf   <- taskLocalInit "cirBuf"  (iarray [] :: Init CirBuf)
   -- Points to the last written-to cell.
@@ -40,16 +49,16 @@ commsecRecoveryTask commsec_info_snk = do
   -- Have we filled the buffer once (at which point, "mod" semantics are used).
   bufFull  <- taskLocalInit "bufFull" (ival false)
   -- Number bad seen on last dataport read.
-  numBad   <- taskLocalInit "numBad" (ival 0 :: Init (Stored Uint32))
+  numBad   <- taskLocalInit "numBad"  (ival 0 :: Init (Stored Uint32))
   timer    <- withGetTimeMillis
   -- Property result
   result   <- taskLocalInit "result" (ival true)
-
 
   onPeriod 20 $ \_now -> do
     commsecReader <- local izero
     readData commsec_info_snk_rx commsecReader
     commsecMonitor commsecReader cirBuf idx bufFull numBad timer result
+    writeData monitor_res_tx (constRef result)
 
   taskModuleDef $ do
     depend V.vehCommsecModule

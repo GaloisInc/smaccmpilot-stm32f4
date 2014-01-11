@@ -77,7 +77,8 @@ hil opts = do
   (istream, ostream) <- uart UART.uart1
 
   -- Commsec reporter, to GCS TX from decrypter
-  commsec_info <- dataport
+  commsec_info       <- dataport
+  commsec_mon_result <- dataport
 
   gcsTowerHil "uart1" opts istream ostream
     GCSRequires
@@ -90,6 +91,7 @@ hil opts = do
       , gcs_att_ctl_in  = att_ctl_state core_out
       , gcs_pos_ctl_in  = pos_ctl_state core_out
       , gcs_commsec_in  = snk commsec_info
+      , gcs_comm_mon_in = snk commsec_mon_result
       }
     GCSProvides
       { gcs_ctl_law_req  = src mavlink_ctlreq
@@ -142,7 +144,8 @@ flight opts = do
   motorOutput (motors_out core_out)
 
   -- Commsec reporter, to GCS TX from decrypter
-  commsec_info <- dataport
+  commsec_info       <- dataport
+  commsec_mon_result <- dataport
 
   position_state <- stateProxy "position_state" gps_position
   let gcsTower' name istream ostream =
@@ -157,6 +160,7 @@ flight opts = do
             , gcs_att_ctl_in  = att_ctl_state core_out
             , gcs_pos_ctl_in  = pos_ctl_state core_out
             , gcs_commsec_in  = snk commsec_info
+            , gcs_comm_mon_in = snk commsec_mon_result
             }
           GCSProvides
             { gcs_ctl_law_req  = src mavlink_ctlreq
@@ -174,10 +178,10 @@ flight opts = do
   (uart5istream, uart5ostream) <- uart UART.uart5
   gcsTower' "uart5" uart5istream uart5ostream
 
-  addModule (commsecModule opts)
-
   -- Recovery Tasks
-  recoveryTower (snk commsec_info)
+  recoveryTower (snk commsec_info) (src commsec_mon_result)
+
+  addModule (commsecModule opts)
 
 -- Helper: a uartTower with 1k buffers and 57600 kbaud
 uart :: (BoardHSE p)
