@@ -17,6 +17,7 @@ import           SMACCMPilot.Mavlink.Messages (mavlinkMessageModules)
 import qualified SMACCMPilot.Mavlink.Messages.RequestDataStream  as RDS
 import qualified SMACCMPilot.Mavlink.Messages.ParamSet           as PS
 import qualified SMACCMPilot.Mavlink.Messages.ParamRequestRead   as PRR
+import qualified SMACCMPilot.Mavlink.Messages.SmaccmpilotNavCmd  as SN
 
 import qualified SMACCMPilot.Mavlink.Receive                     as R
 import qualified SMACCMPilot.Mavlink.Messages.SetMode            as SM
@@ -28,6 +29,7 @@ import qualified SMACCMPilot.Mavlink.Enums.MavComponent          as MC
 import           SMACCMPilot.Param
 import           SMACCMPilot.Flight.GCS.Stream (updateGCSStreamPeriods)
 import qualified SMACCMPilot.Flight.Types.ControlLawRequest      as CR
+import qualified SMACCMPilot.Flight.Types.NavCommand             as NC
 
 --------------------------------------------------------------------------------
 -- Params
@@ -120,19 +122,42 @@ customModeEnabled :: Uint8
 customModeEnabled = 1
 
 
-setMode :: (SingI n)
-        => ChannelEmitter n (Struct "control_law_request")
+smaccmNavCommand :: (SingI n)
+        => ChannelEmitter n (Struct "nav_command")
         -> Uint32
-        -> Ref s2 (Struct "set_mode_msg")
+        -> Ref s2 (Struct "smaccmpilot_nav_cmd_msg")
         -> Ivory (ProcEffects cs r) ()
-setMode creq_emitter now msg = do
-  base_mode <- deref (msg ~> SM.base_mode)
-  when (base_mode .& customModeEnabled /=? 0) $ do
-    -- XXX STUB VALUE: FILL IN USEFUL FIELDS
-    creq <- local $ CR.initControlLawRequest
-      [ CR.time .= ival now
-      ]
-    emit_ creq_emitter (constRef creq)
+smaccmNavCommand emitter now msg = do
+  autoland_active   <- deref (msg ~> SN.autoland_active)
+  autoland_complete <- deref (msg ~> SN.autoland_complete)
+  alt_set           <- deref (msg ~> SN.alt_set)
+  alt_rate_set      <- deref (msg ~> SN.alt_rate_set)
+  alt_set_valid     <- deref (msg ~> SN.alt_set_valid)
+  heading_set       <- deref (msg ~> SN.heading_set)
+  heading_set_valid <- deref (msg ~> SN.heading_set_valid)
+  lat_set           <- deref (msg ~> SN.lat_set)
+  lon_set           <- deref (msg ~> SN.lon_set)
+  lat_lon_set_valid <- deref (msg ~> SN.lat_lon_set_valid)
+  vel_x_set         <- deref (msg ~> SN.vel_x_set)
+  vel_y_set         <- deref (msg ~> SN.vel_y_set)
+  vel_set_valid     <- deref (msg ~> SN.vel_set_valid)
+  v <- local (istruct
+    [ NC.velocity_control   .= ival (vel_set_valid >? 0)
+    , NC.vel_x_setpt        .= ival ((safeCast vel_x_set) / 1000.0)
+    , NC.vel_y_setpt        .= ival ((safeCast vel_y_set) / 1000.0)
+    , NC.position_control   .= ival (lat_lon_set_valid >? 0)
+    , NC.lat_setpt          .= ival lat_set
+    , NC.lon_setpt          .= ival lon_set
+    , NC.altitude_control   .= ival (alt_set_valid >? 0)
+    , NC.alt_setpt          .= ival ((safeCast alt_set) / 1000.0)
+    , NC.alt_rate_setpt     .= ival ((safeCast alt_rate_set) / 1000.0)
+    , NC.heading_control    .= ival (heading_set_valid >? 0)
+    , NC.heading_setpt      .= ival ((safeCast heading_set) / 100.0)
+    , NC.autoland_active    .= ival (autoland_active >? 0)
+    , NC.autoland_complete  .= ival (autoland_complete >? 0)
+    , NC.time .= ival now
+    ])
+  emit_ emitter (constRef v)
 
 --------------------------------------------------------------------------------
 

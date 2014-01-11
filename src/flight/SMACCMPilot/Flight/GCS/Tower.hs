@@ -39,12 +39,14 @@ data GCSRequires =
     , gcs_att_ctl_in  :: DataSink (Struct "att_control_dbg")
     , gcs_pos_ctl_in  :: DataSink (Struct "pos_control_dbg")
     , gcs_commsec_in  :: DataSink (Struct "veh_commsec_msg")
+    , gcs_nav_law_in  :: DataSink (Struct "nav_law")
     }
 
 data GCSProvides =
   GCSProvides
     { gcs_ctl_law_req  :: ChannelSource 16 (Struct "control_law_request")
     , gcs_rc_override  :: ChannelSource 16 (Struct "rc_channels_override_msg")
+    , gcs_nav_command  :: ChannelSource 16 (Struct "nav_command")
     , gcs_commsec_info :: DataSource (Struct "veh_commsec_msg")
     , gcs_hil_state    :: Maybe (ChannelSource 4  (Struct "hil_state_msg"))
     }
@@ -89,6 +91,7 @@ gcsTower name opts istream ostream req prov params
         , rx_ctl_req     = gcs_ctl_law_req prov
         , rx_param_req   = src param_req
         , rx_rc_override = gcs_rc_override prov
+        , rx_nav_command = gcs_nav_command prov
         }
 
   tx_plaintext <- channel
@@ -105,6 +108,7 @@ gcsTower name opts istream ostream req prov params
          , tx_att_ctl     = gcs_att_ctl_in  req
          , tx_pos_ctl     = gcs_pos_ctl_in  req
          , tx_veh_commsec = gcs_commsec_in  req
+         , tx_nav_law     = gcs_nav_law_in  req
          , tx_param_req   = snk param_req
          , tx_radio_stat  = radio_stat
          }

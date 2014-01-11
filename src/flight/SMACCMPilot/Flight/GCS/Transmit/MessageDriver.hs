@@ -32,6 +32,7 @@ import qualified SMACCMPilot.Flight.Types.ThrottleMode          as TM
 import qualified SMACCMPilot.Flight.Types.ControlSource         as CS
 import qualified SMACCMPilot.Flight.Types.UISource              as US
 import qualified SMACCMPilot.Flight.Types.ArmedMode             as A
+import qualified SMACCMPilot.Flight.Types.NavLaw                as NL
 
 import           SMACCMPilot.Mavlink.Messages (mavlinkMessageModules)
 
@@ -48,6 +49,7 @@ import qualified SMACCMPilot.Mavlink.Messages.AltCtlDebug       as ACD
 import qualified SMACCMPilot.Mavlink.Messages.AttCtlDebug       as ACD
 import qualified SMACCMPilot.Mavlink.Messages.PosCtlDebug       as PCD
 import qualified SMACCMPilot.Mavlink.Messages.VehCommsec        as VC
+import qualified SMACCMPilot.Mavlink.Messages.SmaccmpilotNavCmd as SN
 
 --------------------------------------------------------------------
 
@@ -456,6 +458,42 @@ mkSendPosCtlDebug = proc "gcs_transmit_send_pos_ctl_debug" $
     ]
   call_ PCD.mkPosCtlDebugSender (constRef msg) seqNum sendStruct
 
+mkSendNavLaw :: Def ('[ ConstRef s1 (Struct "nav_law")
+                      , Ref      s2 (Stored Uint8)
+                      , Ref      s2 (Struct "mavlinkPacket")
+                      ] :-> ())
+mkSendNavLaw = proc "gcs_transmit_send_nav_law" $
+  \law seqNum sendStruct -> body $ do
+  velocity_control   <- deref (law ~> NL.velocity_control)
+  vel_x_setpt        <- deref (law ~> NL.vel_x_setpt)
+  vel_y_setpt        <- deref (law ~> NL.vel_y_setpt)
+  position_control   <- deref (law ~> NL.position_control)
+  lat_setpt          <- deref (law ~> NL.lat_setpt)
+  lon_setpt          <- deref (law ~> NL.lon_setpt)
+  altitude_control   <- deref (law ~> NL.altitude_control)
+  alt_setpt          <- deref (law ~> NL.alt_setpt)
+  alt_rate_setpt     <- deref (law ~> NL.alt_rate_setpt)
+  heading_control    <- deref (law ~> NL.heading_control)
+  heading_setpt      <- deref (law ~> NL.heading_setpt)
+  autoland_active    <- deref (law ~> NL.autoland_active)
+  autoland_complete  <- deref (law ~> NL.autoland_complete)
+  msg <- local (istruct
+    [ SN.autoland_active   .= ival (autoland_active ?(1,0))
+    , SN.autoland_complete .= ival (autoland_complete ?(1,0))
+    , SN.alt_set           .= ival (castWith 0 (alt_setpt * 1000.0))
+    , SN.alt_rate_set      .= ival (castWith 0 (alt_rate_setpt * 1000.0))
+    , SN.alt_set_valid     .= ival (altitude_control ?(1,0))
+    , SN.heading_set       .= ival (castWith 0 (heading_setpt * 100.0))
+    , SN.heading_set_valid .= ival (heading_control ?(1,0))
+    , SN.lat_set           .= ival lat_setpt
+    , SN.lon_set           .= ival lon_setpt
+    , SN.lat_lon_set_valid .= ival (position_control ?(1,0))
+    , SN.vel_x_set         .= ival (castWith 0 (vel_x_setpt * 1000.0))
+    , SN.vel_y_set         .= ival (castWith 0 (vel_y_setpt * 1000.0))
+    , SN.vel_set_valid     .= ival (velocity_control ?(1,0))
+    ])
+  call_ SN.mkSmaccmpilotNavCmdSender (constRef msg) seqNum sendStruct
+
 senderModules :: Module
 senderModules = package "senderModules" $ do
   mapM_ depend mavlinkMessageModules
@@ -471,6 +509,7 @@ senderModules = package "senderModules" $ do
   incl mkSendAltCtlDebug
   incl mkSendAttCtlDebug
   incl mkSendPosCtlDebug
+  incl mkSendNavLaw
 
   depend P.gpsTypesModule
   depend M.motorsTypeModule
@@ -484,4 +523,5 @@ senderModules = package "senderModules" $ do
   depend Alt.altControlDebugTypeModule
   depend Att.attControlDebugTypeModule
   depend Pos.posControlDebugTypeModule
+  depend NL.navLawTypeModule
   depend mavlinkSendModule

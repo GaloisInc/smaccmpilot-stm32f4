@@ -25,6 +25,8 @@ import qualified SMACCMPilot.Flight.Types.ControlSource     as CS
 import qualified SMACCMPilot.Flight.Types.ArmedMode         as A
 import qualified SMACCMPilot.Flight.Types.ControlLawRequest as CR
 import qualified SMACCMPilot.Flight.Types.ControlSetpoint   as SP
+import qualified SMACCMPilot.Flight.Types.NavCommand        as NC
+import qualified SMACCMPilot.Flight.Types.NavLaw            as NL
 
 import           SMACCMPilot.Flight.Navigation.Position
 import           SMACCMPilot.Flight.Navigation.Velocity
@@ -33,15 +35,17 @@ data NavInputs =
   NavInputs
     { nav_law_req  :: ChannelSource 16 (Struct "control_law_request")
     , nav_ui       :: ChannelSink   16 (Struct "userinput_result")
-    , nav_law      :: ChannelSink   16 (Struct "control_law")
+    , nav_ctl_law  :: ChannelSink   16 (Struct "control_law")
     , nav_position :: ChannelSink   16 (Struct "position")
     , nav_sens     :: DataSink         (Struct "sensors_result")
+    , nav_cmd      :: ChannelSink   16 (Struct "nav_command")
     }
 
 data NavOutputs =
   NavOutputs
     { nav_setpt   :: ChannelSink 16 (Struct "control_setpoint")
     , nav_pos_dbg :: DataSink       (Struct "pos_control_dbg")
+    , nav_law     :: ChannelSink 16 (Struct "nav_law")
     }
 
 navTower :: FlightParams ParamSink -> NavInputs -> Tower p NavOutputs
@@ -49,6 +53,7 @@ navTower params nav_inputs = do
   f <- fresh
   let named n = "nav_" ++ n ++ "_" ++ show f
   nav_setpt_chan <- channel
+  nav_law_chan   <- channel
   pos_dbg <- dataport
 
   task "navigation" $ do
@@ -56,6 +61,7 @@ navTower params nav_inputs = do
     law_req_emitter <- withChannelEmitter (nav_law_req nav_inputs) "ctl_law_req"
     sens_reader     <- withDataReader     (nav_sens nav_inputs) "sensors"
     pos_dbg_writer  <- withDataWriter     (src pos_dbg) "pos_dbg"
+    nav_law_emitter <- withChannelEmitter (src nav_law_chan) "nav_law"
 
     param_reader    <- paramReader params
 
@@ -63,7 +69,7 @@ navTower params nav_inputs = do
     vel_control     <- taskVelocityControl (flightPosition param_reader)
 
     ui              <- taskUpdatable (nav_ui nav_inputs)       "ui"
-    law             <- taskUpdatable (nav_law nav_inputs)      "law"
+    ctl_law         <- taskUpdatable (nav_ctl_law nav_inputs)  "law"
     pos             <- taskUpdatable (nav_position nav_inputs) "pos"
 
     taskInit $ do
@@ -73,7 +79,7 @@ navTower params nav_inputs = do
     let check_ready_proc :: Def('[]:->IBool)
         check_ready_proc = proc (named "check_ready") $ body $ do
           got_ui  <- updated_ever ui
-          got_law <- updated_ever law
+          got_law <- updated_ever ctl_law
           got_pos <- updated_within_time pos 500
           when (got_ui .&& got_law .&& got_pos) $ do
             fix <- deref ((updated_value pos) ~> GPS.fix)
@@ -112,8 +118,8 @@ navTower params nav_inputs = do
     onPeriod 5 $ \_t -> do
       ready <- call check_ready_proc
       ifte_ ready
-        (do armed_mode <- deref ((updated_value law) ~> CL.armed_mode)
-            stab_src   <- deref ((updated_value law) ~> CL.stab_source)
+        (do armed_mode <- deref ((updated_value ctl_law) ~> CL.armed_mode)
+            stab_src   <- deref ((updated_value ctl_law) ~> CL.stab_source)
             ifte_ (stab_src ==? CS.nav .&& armed_mode ==? A.armed)
               (call_ run_proc)
               (do request <- local $ CR.initControlLawRequest
@@ -131,6 +137,12 @@ navTower params nav_inputs = do
       writeData pos_dbg_writer (constRef dbg)
 
 
+    onChannel (nav_cmd nav_inputs) "nav_cmd" $ \cmd -> do
+      -- XXX USELESS STUB
+      law <- local (istruct [])
+      emit_ nav_law_emitter (constRef law)
+
+
     taskModuleDef $ do
       incl check_ready_proc
       incl run_proc
@@ -139,6 +151,7 @@ navTower params nav_inputs = do
   return NavOutputs
     { nav_setpt = snk nav_setpt_chan
     , nav_pos_dbg = snk pos_dbg
+    , nav_law = snk nav_law_chan
     }
 
 
