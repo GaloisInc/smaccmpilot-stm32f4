@@ -25,8 +25,11 @@ AR      := $(TOOLCHAIN_PREFIX)ar
 RANLIB  := $(TOOLCHAIN_PREFIX)ranlib
 OBJCOPY := $(TOOLCHAIN_PREFIX)objcopy
 
+
+# XXXX Do not add optimizations until the APM "blob" is removed or fixed.  -O1
+# and -O2 result in MPU6000 hangs.
 # Base compiler flags for C and C++.
-BASE_CFLAGS := -g -Wall -Werror -O2 -mlittle-endian -mthumb -mcpu=cortex-m4 \
+BASE_CFLAGS := -g -Wall -Werror -mlittle-endian -mthumb -mcpu=cortex-m4 \
                -mfloat-abi=hard -mfpu=fpv4-sp-d16 \
                -Wno-parentheses -Wno-unused-variable
 
