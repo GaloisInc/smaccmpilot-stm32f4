@@ -30,11 +30,12 @@ recoveryTower commsec_info_snk monitor_result_src =
 
 type Time   = Uint32
 type Idx    = Sint32
-type BufLen = 20
+type BufLen = 10
 type CirBuf = Array BufLen (Stored Time)
 
 --------------------------------------------------------------------------------
 
+-- | True is OK, False is an alarm.
 commsecRecoveryTask :: DataSink   (Struct "veh_commsec_msg")
                     -> DataSource (Stored IBool)
                     -> Task p ()
@@ -65,7 +66,7 @@ commsecRecoveryTask commsec_info_snk monitor_result_src = do
 
   where
   -- XXX let's make up an arbitrary monitor here.  If we're received more than
-  -- 20 bad messages in less than 30 seconds.
+  -- 10 bad messages in less than 20 seconds.
   commsecMonitor rx cirBuf idx bufFullRef prevBadRef timer resRef = do
     totalBadMsgs <- rx ~>* V.bad_msgs
     lastTime     <- getTimeMillis timer
@@ -114,7 +115,7 @@ commsecRecoveryTask commsec_info_snk monitor_result_src = do
       (return true)
       (do tnow  <- deref (arr ! toIx idx)
           t0    <- deref (arr ! toIx (startIdx idx arr))
-          return (tnow - t0 >? 10000))
+          return (tnow - t0 >? 15000))
     where
     -- Get the start index in the circular buffer.  Assumes buffer is full.
     startIdx = incrIdx

@@ -107,7 +107,8 @@ mkSendHeartbeat =
     + ((stab_src    ==? CS.nav)    ? (custom_src_nav * custom_field_stab, 0))
     + ((head_src    ==? CS.ui)     ? (custom_src_ui  * custom_field_head, 0))
     + ((head_src    ==? CS.nav)    ? (custom_src_nav * custom_field_head, 0))
-    + comm_monitor                 ? (1 * custom_field_monitor, 0)
+      -- False for alarm
+    + comm_monitor                 ? (custom_field_monitor, 0)
 
   hb <- local $ istruct
           [ HB.base_mode       .= ival base_mode
@@ -124,32 +125,32 @@ mkSendHeartbeat =
   autopilot_smaccmpilot = 13 -- MAV_AUTOPILOT_SMACCMPILOT
   mavtype_quadrotor     = 2 -- MAV_TYPE_QUADROTOR
 
-  base_armed        = 128
-  base_custom_mode  = 1
+  base_armed              = 128
+  base_custom_mode        = 1
 
   -- ui source is a 1 bit field:
-  custom_ui_ppm  = 0
-  custom_ui_mav  = 1
+  custom_ui_ppm           = 0
+  custom_ui_mav           = 1
   -- control source is a 1 bit field:
-  custom_src_ui  = 0
-  custom_src_nav  = 1
+  custom_src_ui           = 0
+  custom_src_nav          = 1
   -- armed mode is bits 0,1
-  custom_safe     = 0
-  custom_disarmed = 1
-  custom_armed    = 2
+  custom_safe             = 0
+  custom_disarmed         = 1
+  custom_armed            = 2
   -- ui mode is bit 2
-  custom_field_ui = 4
+  custom_field_ui         = 4
   -- thr mode is bit 3
-  custom_thr_direct = 0
+  custom_thr_direct       = 0
   custom_thr_autothrottle = 8
   -- autothrottle src is bit 4
-  custom_field_athr = 16
+  custom_field_athr       = 16
   -- stab src is bit 5
-  custom_field_stab = 32
+  custom_field_stab       = 32
   -- head src is bit 6
-  custom_field_head = 64
-  -- monitor is bit 7 (1 for alarm)
-  custom_field_monitor = 128
+  custom_field_head       = 64
+  -- monitor is bit 7 (0 for alarm)
+  custom_field_monitor    = 128
 
 mkSendAttitude :: Sender "sensors_result"
 mkSendAttitude =
