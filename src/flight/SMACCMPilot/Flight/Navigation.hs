@@ -72,37 +72,53 @@ navTower params nav_inputs = do
     ctl_law         <- taskUpdatable (nav_ctl_law nav_inputs)  "law"
     pos             <- taskUpdatable (nav_position nav_inputs) "pos"
 
+    n_law           <- taskLocal "nav_law"
+
     taskInit $ do
       pos_init pos_control
       vel_init vel_control
+      nlaw_init n_law
 
-    let check_ready_proc :: Def('[]:->IBool)
-        check_ready_proc = proc (named "check_ready") $ body $ do
+    let check_velocity_control_proc :: Def('[]:->IBool)
+        check_velocity_control_proc = proc (named "check_velocity_control") $ body $ do
           got_ui  <- updated_ever ui
           got_law <- updated_ever ctl_law
           got_pos <- updated_within_time pos 500
-          when (got_ui .&& got_law .&& got_pos) $ do
+          got_setpoint <- deref (n_law ~> NL.velocity_control)
+          when (got_ui .&& got_law .&& got_pos .&& got_setpoint) $ do
             fix <- deref ((updated_value pos) ~> GPS.fix)
             dop <- deref ((updated_value pos) ~> GPS.dop)
             ret (fix ==? GPS.fix_3d .&& dop <? 4.0)
           ret false
 
-        run_proc :: Def('[]:->())
-        run_proc = proc (named "run") $ body $ do
+        velocity_control_proc :: Def('[]:->())
+        velocity_control_proc = proc (named "velocity_control") $ body $ do
 
           dt    <- assign 0.005 -- XXX calc from _t ?
           sens  <- local izero
           readData sens_reader sens
 
+          -- Really, all pos update is doing is scaling the UI into velocity sp
           pos_update pos_control (constRef sens) (updated_value pos)
                                  (updated_value ui) dt
 
           (x_vel_sp, y_vel_sp) <- pos_output pos_control
+          x_vel_sp' <- deref (n_law ~> NL.vel_x_setpt)
+          y_vel_sp' <- deref (n_law ~> NL.vel_y_setpt)
 
-          vel_update vel_control (constRef sens) (updated_value pos)
-                           x_vel_sp y_vel_sp dt
+          vel_update vel_control
+                     (constRef sens)
+                     (updated_value pos)
+                     (x_vel_sp + x_vel_sp')
+                     (y_vel_sp + y_vel_sp')
+                     dt
 
           (pitch_sp, roll_sp) <- vel_output vel_control
+
+          -- Altitude control
+
+
+          -- Heading control
 
           setpt <- local $ istruct
              [ SP.pitch .= ival pitch_sp
@@ -110,26 +126,26 @@ navTower params nav_inputs = do
              ]
           emit_ setpt_emitter (constRef setpt)
 
-        reset_proc :: Def('[]:->())
-        reset_proc = proc (named "reset") $ body $ do
+        velocity_reset_proc :: Def('[]:->())
+        velocity_reset_proc = proc (named "reset") $ body $ do
           vel_reset vel_control
           pos_reset  pos_control
 
     onPeriod 5 $ \_t -> do
-      ready <- call check_ready_proc
+      ready <- call check_velocity_control_proc
       ifte_ ready
         (do armed_mode <- deref ((updated_value ctl_law) ~> CL.armed_mode)
             stab_src   <- deref ((updated_value ctl_law) ~> CL.stab_source)
             ifte_ (stab_src ==? CS.nav .&& armed_mode ==? A.armed)
-              (call_ run_proc)
+              (call_ velocity_control_proc)
               (do request <- local $ CR.initControlLawRequest
                     [ CR.set_stab_src_nav .= ival true ]
                   emit_ law_req_emitter (constRef request)
-                  call_ reset_proc))
+                  call_ velocity_reset_proc))
         (do request <- local $ CR.initControlLawRequest
               [ CR.set_stab_src_nav .= ival false ]
             emit_ law_req_emitter (constRef request)
-            call_ reset_proc)
+            call_ velocity_reset_proc)
 
       dbg <- local izero
       pos_debug pos_control dbg
@@ -144,9 +160,9 @@ navTower params nav_inputs = do
 
 
     taskModuleDef $ do
-      incl check_ready_proc
-      incl run_proc
-      incl reset_proc
+      incl check_velocity_control_proc
+      incl velocity_control_proc
+      incl velocity_reset_proc
 
   return NavOutputs
     { nav_setpt = snk nav_setpt_chan
@@ -192,4 +208,20 @@ taskUpdatable chan name = do
     , updated_value       = constRef v
     }
 
+nlaw_init :: Ref s (Struct "nav_law") -> Ivory eff ()
+nlaw_init law = do
+  store (law ~> NL.velocity_control  ) false -- IBool
+  store (law ~> NL.vel_x_setpt       ) 0     -- IFloat
+  store (law ~> NL.vel_y_setpt       ) 0     -- IFloat
+  store (law ~> NL.position_control  ) false -- IBool
+  store (law ~> NL.lat_setpt         ) 0     -- Sint32
+  store (law ~> NL.lon_setpt         ) 0     -- Sint32
+  store (law ~> NL.altitude_control  ) false -- IBool
+  store (law ~> NL.alt_setpt         ) 0     -- IFloat
+  store (law ~> NL.alt_rate_setpt    ) 0     -- IFloat
+  store (law ~> NL.heading_control   ) false -- IBool
+  store (law ~> NL.heading_setpt     ) 0     -- IFloat
+  store (law ~> NL.autoland_active   ) false -- IBool
+  store (law ~> NL.autoland_complete ) false -- IBool
+  store (law ~> NL.time              ) 0     -- Uint32
 
