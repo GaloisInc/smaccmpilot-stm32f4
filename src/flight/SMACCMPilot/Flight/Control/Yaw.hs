@@ -76,6 +76,7 @@ taskYawControl param_reader = do
         hctl_reset hctl
         yc_reset  yaw_ctl
 
+-- XXX FIX DEBUGGING
 --      debug_proc :: Def ('[]:->())
 --      debug_proc = proc (named "debug") $ body $ do
 --        dbg <- local izero
