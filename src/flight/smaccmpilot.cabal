@@ -101,6 +101,7 @@ library
                        SMACCMPilot.Flight.Types.UISource,
                        SMACCMPilot.Flight.Types.NavCommand,
                        SMACCMPilot.Flight.Types.NavLaw,
+                       SMACCMPilot.Flight.Types.EnableDisable,
 
                        SMACCMPilot.Flight.UserInput.PPM,
                        SMACCMPilot.Flight.UserInput.PPM.ArmingMachine,

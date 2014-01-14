@@ -30,6 +30,7 @@ import           SMACCMPilot.Param
 import           SMACCMPilot.Flight.GCS.Stream (updateGCSStreamPeriods)
 import qualified SMACCMPilot.Flight.Types.ControlLawRequest      as CR
 import qualified SMACCMPilot.Flight.Types.NavCommand             as NC
+import qualified SMACCMPilot.Flight.Types.EnableDisable          as E
 
 --------------------------------------------------------------------------------
 -- Params
@@ -142,22 +143,28 @@ smaccmNavCommand emitter now msg = do
   vel_y_set         <- deref (msg ~> SN.vel_y_set)
   vel_set_valid     <- deref (msg ~> SN.vel_set_valid)
   v <- local (istruct
-    [ NC.velocity_control   .= ival (vel_set_valid >? 0)
+    [ NC.velocity_control   .= ival (fromInt8 vel_set_valid)
     , NC.vel_x_setpt        .= ival ((safeCast vel_x_set) / 1000.0)
     , NC.vel_y_setpt        .= ival ((safeCast vel_y_set) / 1000.0)
-    , NC.position_control   .= ival (lat_lon_set_valid >? 0)
+    , NC.position_control   .= ival (fromInt8 lat_lon_set_valid)
     , NC.lat_setpt          .= ival lat_set
     , NC.lon_setpt          .= ival lon_set
-    , NC.altitude_control   .= ival (alt_set_valid >? 0)
+    , NC.altitude_control   .= ival (fromInt8 alt_set_valid)
     , NC.alt_setpt          .= ival ((safeCast alt_set) / 1000.0)
     , NC.alt_rate_setpt     .= ival ((safeCast alt_rate_set) / 1000.0)
-    , NC.heading_control    .= ival (heading_set_valid >? 0)
+    , NC.heading_control    .= ival (fromInt8 heading_set_valid)
     , NC.heading_setpt      .= ival ((safeCast heading_set) / 100.0)
-    , NC.autoland_active    .= ival (autoland_active >? 0)
-    , NC.autoland_complete  .= ival (autoland_complete >? 0)
+    , NC.autoland_active    .= ival 0 -- (fromInt8 autoland_active)
+    , NC.autoland_complete  .= ival 0 -- (fromInt8 autoland_complete)
     , NC.time .= ival now
     ])
   emit_ emitter (constRef v)
+
+  where
+  fromInt8 :: Sint8 -> E.EnableDisable
+  fromInt8 i = (i ==? 0)?(E.none
+               ,(i >? 0)?(E.enable
+                ,E.disable))
 
 --------------------------------------------------------------------------------
 
