@@ -21,7 +21,7 @@ smaccmpilotNavCmdMsgId :: Uint8
 smaccmpilotNavCmdMsgId = 188
 
 smaccmpilotNavCmdCrcExtra :: Uint8
-smaccmpilotNavCmdCrcExtra = 180
+smaccmpilotNavCmdCrcExtra = 96
 
 smaccmpilotNavCmdModule :: Module
 smaccmpilotNavCmdModule = package "mavlink_smaccmpilot_nav_cmd_msg" $ do
@@ -40,12 +40,12 @@ struct smaccmpilot_nav_cmd_msg
   ; vel_x_set :: Stored Sint32
   ; vel_y_set :: Stored Sint32
   ; heading_set :: Stored Uint16
-  ; autoland_active :: Stored Uint8
-  ; autoland_complete :: Stored Uint8
-  ; alt_set_valid :: Stored Uint8
-  ; heading_set_valid :: Stored Uint8
-  ; lat_lon_set_valid :: Stored Uint8
-  ; vel_set_valid :: Stored Uint8
+  ; autoland_active :: Stored Sint8
+  ; autoland_complete :: Stored Sint8
+  ; alt_set_valid :: Stored Sint8
+  ; heading_set_valid :: Stored Sint8
+  ; lat_lon_set_valid :: Stored Sint8
+  ; vel_set_valid :: Stored Sint8
   }
 |]
 
