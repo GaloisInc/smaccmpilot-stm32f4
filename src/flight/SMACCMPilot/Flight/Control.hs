@@ -74,8 +74,6 @@ controlTower params inputs = do
     yaw_control    <- taskYawControl       param_reader
     yui            <- taskYawUI (flightYawUISens param_reader)
 
-    taskModuleDef $ do
-      depend controlPIDModule -- for fconstrain
     taskInit $ do
       alt_init alt_control
       prc_init prc_control

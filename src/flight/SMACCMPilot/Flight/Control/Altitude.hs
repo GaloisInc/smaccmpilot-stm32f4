@@ -16,7 +16,7 @@ import Ivory.Language
 import Ivory.Tower
 import Ivory.Stdlib
 
-import           SMACCMPilot.Flight.Control.PID (fconstrain)
+import           SMACCMPilot.Flight.Control.PID (fconstrain, controlPIDModule)
 import           SMACCMPilot.Flight.Control.Altitude.Estimator
 import           SMACCMPilot.Flight.Control.Altitude.ThrottleTracker
 import           SMACCMPilot.Flight.Control.Altitude.ThrustPID
@@ -74,6 +74,8 @@ taskAltitudeControl params altDbgSrc = do
 
   altDbgWriter <- withDataWriter altDbgSrc "alt_control_dbg"
 
+  taskModuleDef $ do
+    depend controlPIDModule -- for fconstrain
   -- state is saved in a struct, to be marshalled into a mavlink message
   state_dbg        <- taskLocal "state_debug"
   let named n = "alt_ctl_" ++ n ++ "_" ++ show uniq
