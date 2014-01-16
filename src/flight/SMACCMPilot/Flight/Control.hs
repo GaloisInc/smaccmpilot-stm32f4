@@ -133,7 +133,9 @@ controlTower params inputs = do
           , yaw_mode ==? Y.heading .&& head_source ==? CS.nav ==> do
               yui_reset yui
               head_sp <- deref (nav_sp ~> SP.heading)
-              yaw_heading yaw_control sens head_sp 0 dt
+              head_sp_rads <- call fconstrain 0 (2*pi) (head_sp * pi / 180)
+              assert (head_sp_rads >=? 0 .&& head_sp_rads <=? (2*pi))
+              yaw_heading yaw_control sens (head_sp * pi / 180) 0 dt
           ]
 
 
