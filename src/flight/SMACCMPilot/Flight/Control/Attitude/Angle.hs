@@ -28,11 +28,10 @@ data AngleControl =
     }
 
 taskAngleController :: StabilizerParams ParamReader
-                    -> IFloat -- input range (absolute value)
                     -> IFloat -- output range (absolute value)
                     -> String                -- name
                     -> Task p AngleControl
-taskAngleController stab_params input_range output_range name = do
+taskAngleController stab_params output_range name = do
   f <- fresh
   let named n = name ++ "_anglectl_" ++ n ++ "_" ++ (show f)
 
@@ -56,7 +55,6 @@ taskAngleController stab_params input_range output_range name = do
                       rate_pid
                       (constRef rate_cfg)
                       setpt
-                      input_range
                       est
                       deriv_est
                       output_range

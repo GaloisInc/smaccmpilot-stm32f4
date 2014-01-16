@@ -39,6 +39,7 @@ data FlightCoreRequires =
     , position_in       :: ChannelSink 16 (Struct "position")
     , params_in         :: FlightParams ParamSink
     , rcoverride_in     :: ChannelSink 16 (Struct "rc_channels_override_msg")
+    , navcommand_in     :: ChannelSink 16 (Struct "nav_command")
     , ctl_req_in        :: ChannelSink 16 (Struct "control_law_request")
     }
 
@@ -51,6 +52,7 @@ data FlightCoreProvides =
     , alt_ctl_state    :: DataSink (Struct "alt_control_dbg")
     , att_ctl_state    :: DataSink (Struct "att_control_dbg")
     , userinput_state  :: DataSink (Struct "userinput_result")
+    , navlaw_state     :: DataSink (Struct "nav_law")
     }
 
 core :: FlightCoreRequires -> Tower p FlightCoreProvides
@@ -67,15 +69,16 @@ core sys = do
   nav <- navTower (params_in sys) NavInputs
     { nav_law_req  = src nav_law_req_chan
     , nav_ui       = userinput_chan
-    , nav_law      = controllaw_chan
+    , nav_ctl_law  = controllaw_chan
     , nav_position = position_in sys
     , nav_sens     = sensors_in sys
+    , nav_cmd      = navcommand_in sys
     }
 
   userinput  <- stateProxy "proxy_userinput" userinput_chan
   controllaw <- stateProxy "proxy_controllaw" controllaw_chan
   nav_setpt_state <- stateProxy "proxy_navsetpt" (nav_setpt nav)
-
+  nav_law_state <- stateProxy "proxy_nav_law" (nav_law nav)
 
   ctl <- controlTower (params_in sys) ControlInputs
     { ci_law   = controllaw
@@ -102,6 +105,7 @@ core sys = do
     , alt_ctl_state    = co_alt_dbg ctl
     , att_ctl_state    = co_att_dbg ctl
     , userinput_state  = userinput
+    , navlaw_state     = nav_law_state
     }
   where
   lights = [relaypin, redledpin]

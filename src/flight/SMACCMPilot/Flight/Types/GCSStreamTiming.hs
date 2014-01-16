@@ -35,6 +35,7 @@ struct gcsstream_schedule
   ; params_sched              :: Stored Uint32
   ; veh_commsec_sched         :: Stored Uint32
   ; radio_sched               :: Stored Uint32
+  ; debug_sched               :: Stored Uint32
   }
 
 -- Params: fixed until updated by the GCS user.
@@ -48,6 +49,7 @@ struct gcsstream_timing
   ; params              :: Struct "gcsstream_data"
   ; veh_commsec         :: Struct "gcsstream_data"
   ; radio               :: Struct "gcsstream_data"
+  ; debug               :: Struct "gcsstream_data"
   }
 
 |]
@@ -61,13 +63,13 @@ type GcsTimingLabel = Label "gcsstream_timing" (Struct "gcsstream_data")
 allTimingLabels :: [GcsTimingLabel]
 allTimingLabels =
   [ heartbeat, servo_output_raw, attitude, gps_raw_int
-  , vfr_hud, global_position_int, params, veh_commsec, radio ]
+  , vfr_hud, global_position_int, params, veh_commsec, radio, debug ]
 
 allSchedLabels :: [Label "gcsstream_schedule" (Stored Uint32)]
 allSchedLabels =
   [ heartbeat_sched, servo_output_raw_sched, attitude_sched, gps_raw_int_sched
   , vfr_hud_sched, global_position_int_sched, params_sched
-  , veh_commsec_sched, radio_sched ]
+  , veh_commsec_sched, radio_sched, debug_sched ]
 
 toSchedLabel :: GcsTimingLabel -> Label "gcsstream_schedule" (Stored Uint32)
 toSchedLabel l

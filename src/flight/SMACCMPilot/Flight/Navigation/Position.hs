@@ -58,8 +58,9 @@ taskPositionControl _param_reader = do
                            ]:->())
       update_proc = proc (named "update") $ \_sens _pos ui _dt -> body $ do
         -- XXX STUB FOR TESTING VELOCITY CTL
-        store pit_in =<< deref (ui ~> UI.pitch)
-        store rll_in =<< deref (ui ~> UI.roll)
+        ui_sens <- paramGet (posUISens param_reader)
+        store pit_in =<< (*ui_sens) `fmap` deref (ui ~> UI.pitch)
+        store rll_in =<< (*ui_sens) `fmap` deref (ui ~> UI.roll)
 
       reset_proc :: Def ('[]:->())
       reset_proc = proc (named "reset") $ body $ do

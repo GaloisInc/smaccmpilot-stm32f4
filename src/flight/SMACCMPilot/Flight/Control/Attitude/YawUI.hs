@@ -9,7 +9,8 @@ import Ivory.Language
 import Ivory.Tower
 import Ivory.Stdlib
 
-import SMACCMPilot.Flight.Control.PID (fconstrain)
+import           SMACCMPilot.Param
+import           SMACCMPilot.Flight.Control.PID (fconstrain)
 import qualified SMACCMPilot.Flight.Types.Sensors         as S
 import qualified SMACCMPilot.Flight.Types.UserInput       as UI
 import qualified SMACCMPilot.Flight.Types.AttControlDebug as D
@@ -27,8 +28,8 @@ data YawUI =
                      -> Ivory eff ()
     }
 
-taskYawUI :: Task p YawUI
-taskYawUI = do
+taskYawUI :: Param ParamReader -> Task p YawUI
+taskYawUI sens_param_reader = do
   uniq <- fresh
   let named n = "yaw_ui_" ++ n ++ "_" ++ show uniq
   head_setpoint <- taskLocal "head_setpoint"
@@ -40,6 +41,8 @@ taskYawUI = do
                           ] :-> ())
       proc_update  = proc (named "update") $
         \sens ui dt -> body $ do
+          -- Parameter in degrees/second, convert to rad/sec
+          sensitivity <- (*(pi/180)) `fmap` paramGet sens_param_reader
           sr <- stickrate ui sensitivity
           store rate_setpoint sr
 
@@ -71,8 +74,6 @@ taskYawUI = do
         store (d ~> D.head_setpt) h
         store (d ~> D.head_rate_setpt) r
     }
-  where
-  sensitivity = pi / 4
 
 stickrate :: (GetAlloc eff ~ Scope cs)
           => Ref s (Struct "userinput_result")

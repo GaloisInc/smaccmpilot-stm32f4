@@ -20,17 +20,14 @@ import SMACCMPilot.Flight.Control.Attitude.Angle
 import qualified SMACCMPilot.Flight.Types.Sensors       as SEN
 import qualified SMACCMPilot.Flight.Types.ControlOutput as OUT
 
-const_MAX_INPUT_ROLL :: IFloat
-const_MAX_INPUT_ROLL  = 45  -- deg
-
 const_MAX_OUTPUT_ROLL :: IFloat
 const_MAX_OUTPUT_ROLL  = 50 -- deg
 
 data PitchRollControl =
   PitchRollControl
     { prc_init  :: forall eff . Ivory eff ()
-    , prc_run   :: forall eff s . IFloat -- Pitch
-                               -> IFloat -- Roll
+    , prc_run   :: forall eff s . IFloat -- Pitch, Radians
+                               -> IFloat -- Roll, Radians
                                -> ConstRef s (Struct "sensors_result")
                                -> Ivory eff ()
     , prc_state :: forall eff s . Ref s (Struct "controloutput") -> Ivory eff ()
@@ -41,11 +38,9 @@ taskPitchRollControl :: FlightParams ParamReader -> Task p PitchRollControl
 taskPitchRollControl params = do
   f <- fresh
   pitch_ctl <- taskAngleController (flightPitch params)
-                                   const_MAX_INPUT_ROLL
                                    const_MAX_OUTPUT_ROLL
                                    "pitch"
   roll_ctl  <- taskAngleController (flightRoll params)
-                                   const_MAX_INPUT_ROLL
                                    const_MAX_OUTPUT_ROLL
                                    "roll"
   let named n = "pitchrollctl_" ++ n ++ "_" ++ (show f)

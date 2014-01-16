@@ -84,11 +84,31 @@ taskModeRequestMachine = do
         store (law ~> L.ui_source) ui_src
         decide_yaw_mode ui_src >>= store (law ~> L.yaw_mode)
         decide_thr_mode ui_src >>= store (law ~> L.thr_mode)
+        decide_autothr_source  >>= store (law ~> L.autothr_source)
+        decide_stab_source     >>= store (law ~> L.stab_source)
+        decide_head_source     >>= store (law ~> L.head_source)
 
-        -- XXX CALCULATE AUTOTHR_SOURCE, STAB_SOURCE, HEAD_SOURCE
-        store (law ~> L.autothr_source) S.ui
-        store (law ~> L.stab_source)    S.ui
-        store (law ~> L.head_source)    S.ui
+      decide_control_source :: Label "control_law_request" (Stored IBool)
+                            -> Label "control_law_request" (Stored IBool)
+                            -> Ivory (ProcEffects s ()) S.ControlSource
+      decide_control_source ui_lbl nav_lbl = do
+        ppm_allows    <- deref (ppm_req ~> nav_lbl)
+        nav_allows    <- deref (nav_req ~> nav_lbl)
+        nav_prohibits <- deref (nav_req ~> ui_lbl)
+        cond
+          [ ppm_allows .&& nav_allows .&& iNot nav_prohibits ==> return S.nav
+          , true ==> return S.ui
+          ]
+
+      decide_autothr_source = decide_control_source
+                                R.set_autothr_src_ui
+                                R.set_autothr_src_nav
+      decide_stab_source = decide_control_source
+                                R.set_stab_src_ui
+                                R.set_stab_src_nav
+      decide_head_source = decide_control_source
+                                R.set_head_src_ui
+                                R.set_head_src_nav
 
       decide_ui_source :: Ivory (ProcEffects s ()) U.UISource
       decide_ui_source = do

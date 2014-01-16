@@ -71,6 +71,7 @@ hilTranslator hil sens pos = do
       , P.vdown   .= ival (safeCast vz)
       , P.vground .= ival (castWith 0 vground)
       , P.heading .= ival heading
+      , P.time    .= ival time
       ]
     emit_ pos_emitter (constRef p)
 

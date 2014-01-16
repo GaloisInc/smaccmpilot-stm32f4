@@ -34,6 +34,8 @@ struct position
   ; vdown   :: Stored Sint32
   ; vground :: Stored Uint32
   ; heading :: Stored IFloat
+
+  ; time    :: Stored Uint32
   }
 |]
 

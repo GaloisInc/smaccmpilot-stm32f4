@@ -18,6 +18,7 @@ controlSetpointTypeModule = package "control_setpoint_type" $ do
 [ivory|
 struct control_setpoint
   { altitude :: Stored IFloat
+  ; alt_rate :: Stored IFloat
   ; roll     :: Stored IFloat
   ; pitch    :: Stored IFloat
   ; heading  :: Stored IFloat

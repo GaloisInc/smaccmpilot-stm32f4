@@ -33,6 +33,8 @@ ubloxGPSTower isnk psrc = do
     (position :: Ref Global (Struct "position")) <- taskLocal "position"
     (dstate   :: Ref Global (Stored Uint8)) <- taskLocal "decode_state"
 
+    millis <- withGetTimeMillis
+
     taskModuleDef $ do
       incl decode
       incl unpackS4
@@ -55,6 +57,8 @@ ubloxGPSTower isnk psrc = do
           store ck_a (lbits (a_16+i_16))
           store ck_b (lbits (a_16+b_16+i_16))
     taskInit $ do
+      t <- getTimeMillis millis
+      store (position ~> time) t
       store (position ~> fix) fix_none
       emit_ pstream (constRef position)
     onEventV istream $ \c -> do
@@ -102,6 +106,8 @@ ubloxGPSTower isnk psrc = do
               call_ decode dstate cl i payload len position
               d <- deref dstate
               when (d ==? decode_complete) $ do
+                t <- getTimeMillis millis
+                store (position ~> time) t
                 emit_ pstream (constRef position)
                 store dstate decode_none
             store state ubx_idle
