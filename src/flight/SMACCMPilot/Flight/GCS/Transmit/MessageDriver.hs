@@ -33,6 +33,7 @@ import qualified SMACCMPilot.Flight.Types.ControlSource         as CS
 import qualified SMACCMPilot.Flight.Types.UISource              as US
 import qualified SMACCMPilot.Flight.Types.ArmedMode             as A
 import qualified SMACCMPilot.Flight.Types.NavLaw                as NL
+import qualified SMACCMPilot.Flight.Types.YawMode               as Y
 
 import           SMACCMPilot.Mavlink.Messages (mavlinkMessageModules)
 
@@ -87,6 +88,7 @@ mkSendHeartbeat =
 
   armed_mode  <- deref (cl ~> CL.armed_mode)
   ui_source   <- deref (cl ~> CL.ui_source)
+  yaw_mode    <- deref (cl ~> CL.yaw_mode)
   thr_mode    <- deref (cl ~> CL.thr_mode)
   autothr_src <- deref (cl ~> CL.autothr_source)
   stab_src    <- deref (cl ~> CL.stab_source)
@@ -108,6 +110,8 @@ mkSendHeartbeat =
     + ((stab_src    ==? CS.nav)    ? (custom_src_nav * custom_field_stab, 0))
     + ((head_src    ==? CS.ui)     ? (custom_src_ui  * custom_field_head, 0))
     + ((head_src    ==? CS.nav)    ? (custom_src_nav * custom_field_head, 0))
+    + ((yaw_mode    ==? Y.rate)    ? (custom_yaw_rate * custom_field_yawmode, 0))
+    + ((yaw_mode    ==? Y.heading) ? (custom_yaw_heading * custom_field_yawmode, 0))
 
   hb <- local $ istruct
           [ HB.base_mode       .= ival base_mode
@@ -148,6 +152,12 @@ mkSendHeartbeat =
   custom_field_stab = 32
   -- head src is bit 6
   custom_field_head = 64
+  -- yaw mode is bit 7
+  custom_field_yawmode = 128
+
+  -- yaw is a 1 bit field
+  custom_yaw_rate = 0
+  custom_yaw_heading = 1
 
 mkSendAttitude :: Sender "sensors_result"
 mkSendAttitude =
