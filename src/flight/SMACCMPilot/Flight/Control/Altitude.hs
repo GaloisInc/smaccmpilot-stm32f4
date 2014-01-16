@@ -118,9 +118,13 @@ taskAltitudeControl params altDbgSrc = do
                   sp_alt <- deref (ctl_sp ~> SP.altitude)
                   sp_rate <- deref (ctl_sp ~> SP.alt_rate)
                   vz_ctl <- pos_pid_calculate position_pid sp_alt 0 dt
-                  vz_ctl' <- call fconstrain sp_rate (-1*sp_rate) vz_ctl
-                  store (state_dbg ~> A.pos_rate_setp) vz_ctl'
-                  return vz_ctl'
+                  -- Only limit rate if a nonzero positive number
+                  ifte (sp_rate >? 0)
+                    (do vz_ctl' <- call fconstrain (-1*sp_rate) sp_rate vz_ctl
+                        store (state_dbg ~> A.pos_rate_setp) vz_ctl'
+                        return vz_ctl')
+                    (do store (state_dbg ~> A.pos_rate_setp) vz_ctl
+                        return vz_ctl)
               ]
             -- Manage thrust pid integral reset, if required.
             (reset_integral, new_integral) <- tt_reset_to throttle_tracker
