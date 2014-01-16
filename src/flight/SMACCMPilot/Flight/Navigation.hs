@@ -139,7 +139,15 @@ navTower params nav_inputs = do
         (do store (cl_req ~> CR.set_stab_src_nav) false
             call_ velocity_reset_proc)
 
-      -- Untested: need to fix the altitude controller in Control
+      -- HACK:
+      -- Clear altitude and heading control if yaw mode is rate (mode switch not
+      -- in full auto)
+      yaw_mode <- deref ((updated_value ctl_law) ~> CL.yaw_mode)
+      when (yaw_mode ==? Y.rate) $ do
+        store (n_law ~> NL.heading_control) false
+        store (n_law ~> NL.altitude_control) false
+        emit_ nav_law_emitter (constRef n_law)
+
       alt_ready <- deref (n_law ~> NL.altitude_control)
       ifte_ alt_ready
         (do armed_mode <- deref ((updated_value ctl_law) ~> CL.armed_mode)
@@ -151,11 +159,6 @@ navTower params nav_inputs = do
             store (cl_req ~> CR.set_autothr_src_nav) true)
         (store (cl_req ~> CR.set_autothr_src_nav) false)
 
-      -- Clear heading control if yaw mode is rate
-      yaw_mode <- deref ((updated_value ctl_law) ~> CL.yaw_mode)
-      when (yaw_mode ==? Y.rate) $ do
-        store (n_law ~> NL.heading_control) false
-        emit_ nav_law_emitter (constRef n_law)
 
       head_ready <- deref (n_law ~> NL.heading_control)
       ifte_ head_ready
