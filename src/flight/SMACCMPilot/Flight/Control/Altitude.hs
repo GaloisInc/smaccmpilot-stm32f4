@@ -16,6 +16,7 @@ import Ivory.Language
 import Ivory.Tower
 import Ivory.Stdlib
 
+import           SMACCMPilot.Flight.Control.PID (fconstrain)
 import           SMACCMPilot.Flight.Control.Altitude.Estimator
 import           SMACCMPilot.Flight.Control.Altitude.ThrottleTracker
 import           SMACCMPilot.Flight.Control.Altitude.ThrustPID
@@ -27,18 +28,21 @@ import qualified SMACCMPilot.Flight.Types.ControlLaw      as CL
 import qualified SMACCMPilot.Flight.Types.ThrottleMode    as TM
 import qualified SMACCMPilot.Flight.Types.ArmedMode       as A
 import qualified SMACCMPilot.Flight.Types.Sensors         as S
+import qualified SMACCMPilot.Flight.Types.ControlSetpoint as SP
 import           SMACCMPilot.Flight.Types.UserInput       ()
 import qualified SMACCMPilot.Flight.Types.ControlOutput as CO
+import qualified SMACCMPilot.Flight.Types.ControlSource as CS
 import           SMACCMPilot.Flight.Param
 import           SMACCMPilot.Param
 
 data AltitudeControl =
    AltitudeControl
     { alt_init   :: forall eff   . Ivory eff ()
-    , alt_update :: forall eff s1 s2 s3
+    , alt_update :: forall eff s1 s2 s3 s4
                  . Ref s1 (Struct "sensors_result")
                 -> Ref s2 (Struct "userinput_result")
-                -> Ref s3 (Struct "control_law")
+                -> Ref s3 (Struct "control_setpoint")
+                -> Ref s4 (Struct "control_law")
                 -> IFloat -- dt, seconds
                 -> Ivory eff ()
     , alt_output :: forall eff s . Ref s (Struct "controloutput")
@@ -75,10 +79,11 @@ taskAltitudeControl params altDbgSrc = do
   let named n = "alt_ctl_" ++ n ++ "_" ++ show uniq
       proc_alt_update :: Def('[ Ref s1 (Struct "sensors_result")
                               , Ref s2 (Struct "userinput_result")
-                              , Ref s3 (Struct "control_law")
+                              , Ref s3 (Struct "control_setpoint")
+                              , Ref s4 (Struct "control_law")
                               , IFloat
                               ]:->())
-      proc_alt_update = proc (named "update") $ \sens ui cl dt -> body $ do
+      proc_alt_update = proc (named "update") $ \sens ui ctl_sp cl dt -> body $ do
 
           thr_mode <- deref (cl ~> CL.thr_mode)
           armed_mode <- deref (cl ~> CL.armed_mode)
@@ -96,13 +101,27 @@ taskAltitudeControl params altDbgSrc = do
           ae_measurement alt_estimator sensor_alt sensor_time
 
           when enabled $ do
-            -- update setpoint ui
-            tui_update      ui_control ui dt
-            -- update position controller
-            (ui_alt, ui_vz) <- tui_setpoint ui_control
-            vz_control      <- pos_pid_calculate position_pid ui_alt ui_vz dt
-            store (state_dbg ~> A.pos_rate_setp) vz_control
-
+            autothr_source <- deref (cl ~> CL.autothr_source)
+            vz_control <- cond
+              [ autothr_source ==? CS.ui ==> do
+                  -- update setpoint ui
+                  tui_update      ui_control ui dt
+                  -- update position controller
+                  (ui_alt, ui_vz) <- tui_setpoint ui_control
+                  vz_ctl <- pos_pid_calculate position_pid ui_alt ui_vz dt
+                  store (state_dbg ~> A.pos_rate_setp) vz_ctl
+                  return vz_ctl
+              , autothr_source ==? CS.nav ==> do
+                  -- update setpoint ui
+                  tui_reset ui_control
+                  -- update position controller
+                  sp_alt <- deref (ctl_sp ~> SP.altitude)
+                  sp_rate <- deref (ctl_sp ~> SP.alt_rate)
+                  vz_ctl <- pos_pid_calculate position_pid sp_alt 0 dt
+                  vz_ctl' <- call fconstrain sp_rate (-1*sp_rate) vz_ctl
+                  store (state_dbg ~> A.pos_rate_setp) vz_ctl'
+                  return vz_ctl'
+              ]
             -- Manage thrust pid integral reset, if required.
             (reset_integral, new_integral) <- tt_reset_to throttle_tracker
             when reset_integral $ do

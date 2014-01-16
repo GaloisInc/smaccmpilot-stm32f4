@@ -93,7 +93,7 @@ controlTower params inputs = do
         readData navSpReader nav_sp
 
         -- Run altitude and attitude controllers
-        alt_update alt_control sens ui cl dt
+        alt_update alt_control sens ui nav_sp cl dt
 
         armed <- deref (cl ~> CL.armed_mode)
         stab_source <- deref (cl ~> CL.stab_source)
