@@ -23,10 +23,12 @@ import           SMACCMPilot.Flight.Types.UserInput ()
 import qualified SMACCMPilot.Flight.Types.ControlLaw        as CL
 import qualified SMACCMPilot.Flight.Types.ControlSource     as CS
 import qualified SMACCMPilot.Flight.Types.ArmedMode         as A
+import qualified SMACCMPilot.Flight.Types.YawMode           as Y
 import qualified SMACCMPilot.Flight.Types.ControlLawRequest as CR
 import qualified SMACCMPilot.Flight.Types.ControlSetpoint   as SP
 import qualified SMACCMPilot.Flight.Types.NavCommand        as NC
 import qualified SMACCMPilot.Flight.Types.NavLaw            as NL
+import qualified SMACCMPilot.Flight.Types.EnableDisable     as E
 
 import           SMACCMPilot.Flight.Navigation.Position
 import           SMACCMPilot.Flight.Navigation.Velocity
@@ -91,8 +93,8 @@ navTower params nav_inputs = do
             ret (fix ==? GPS.fix_3d .&& dop <? 4.0)
           ret false
 
-        velocity_control_proc :: Def('[]:->())
-        velocity_control_proc = proc (named "velocity_control") $ body $ do
+        velocity_control_proc :: Def('[Ref s (Struct "control_setpoint") ]:->())
+        velocity_control_proc = proc (named "velocity_control") $ \ctl_sp -> body $ do
 
           dt    <- assign 0.005 -- XXX calc from _t ?
           sens  <- local izero
@@ -115,37 +117,57 @@ navTower params nav_inputs = do
 
           (pitch_sp, roll_sp) <- vel_output vel_control
 
-          -- Altitude control
-
-
-          -- Heading control
-
-          setpt <- local $ istruct
-             [ SP.pitch .= ival pitch_sp
-             , SP.roll  .= ival roll_sp
-             ]
-          emit_ setpt_emitter (constRef setpt)
+          store (ctl_sp ~> SP.pitch) pitch_sp
+          store (ctl_sp ~> SP.roll) roll_sp
 
         velocity_reset_proc :: Def('[]:->())
         velocity_reset_proc = proc (named "reset") $ body $ do
           vel_reset vel_control
           pos_reset  pos_control
 
-    onPeriod 5 $ \_t -> do
-      ready <- call check_velocity_control_proc
-      ifte_ ready
+    onPeriod 5 $ \t -> do
+      cl_req <- local (CR.initControlLawRequest [ CR.time .= ival t ])
+      ctl_sp <- local (istruct [ SP.time .= ival t ])
+      vel_ready <- call check_velocity_control_proc
+      ifte_ vel_ready
         (do armed_mode <- deref ((updated_value ctl_law) ~> CL.armed_mode)
             stab_src   <- deref ((updated_value ctl_law) ~> CL.stab_source)
-            ifte_ (stab_src ==? CS.nav .&& armed_mode ==? A.armed)
-              (call_ velocity_control_proc)
-              (do request <- local $ CR.initControlLawRequest
-                    [ CR.set_stab_src_nav .= ival true ]
-                  emit_ law_req_emitter (constRef request)
-                  call_ velocity_reset_proc))
-        (do request <- local $ CR.initControlLawRequest
-              [ CR.set_stab_src_nav .= ival false ]
-            emit_ law_req_emitter (constRef request)
+            store (cl_req ~> CR.set_stab_src_nav) true
+            call_ velocity_control_proc ctl_sp
+            unless (stab_src ==? CS.nav .&& armed_mode ==? A.armed)
+              (call_ velocity_reset_proc))
+        (do store (cl_req ~> CR.set_stab_src_nav) false
             call_ velocity_reset_proc)
+
+      -- Untested: need to fix the altitude controller in Control
+      alt_ready <- deref (n_law ~> NL.altitude_control)
+      ifte_ alt_ready
+        (do armed_mode <- deref ((updated_value ctl_law) ~> CL.armed_mode)
+            alt_src    <- deref ((updated_value ctl_law) ~> CL.autothr_source)
+            deref (n_law ~> NL.alt_setpt) >>=
+              store (ctl_sp ~> SP.altitude)
+            deref (n_law ~> NL.alt_rate_setpt) >>=
+              store (ctl_sp ~> SP.alt_rate)
+            store (cl_req ~> CR.set_autothr_src_nav) true)
+        (store (cl_req ~> CR.set_autothr_src_nav) false)
+
+      -- Clear heading control if yaw mode is rate
+      yaw_mode <- deref ((updated_value ctl_law) ~> CL.yaw_mode)
+      when (yaw_mode ==? Y.rate) $ do
+        store (n_law ~> NL.heading_control) false
+        emit_ nav_law_emitter (constRef n_law)
+
+      head_ready <- deref (n_law ~> NL.heading_control)
+      ifte_ head_ready
+        (do armed_mode <- deref ((updated_value ctl_law) ~> CL.armed_mode)
+            head_src   <- deref ((updated_value ctl_law) ~> CL.head_source)
+            head_sp <- deref (n_law ~> NL.heading_setpt)
+            store (ctl_sp ~> SP.heading) head_sp
+            store (cl_req ~> CR.set_head_src_nav) true)
+        (store (cl_req ~> CR.set_head_src_nav) false)
+
+      emit_ law_req_emitter (constRef cl_req)
+      emit_ setpt_emitter (constRef ctl_sp)
 
       dbg <- local izero
       pos_debug pos_control dbg
@@ -154,9 +176,34 @@ navTower params nav_inputs = do
 
 
     onChannel (nav_cmd nav_inputs) "nav_cmd" $ \cmd -> do
-      -- XXX USELESS STUB
-      law <- local (istruct [])
-      emit_ nav_law_emitter (constRef law)
+      velocity_control <- deref (cmd ~> NC.velocity_control)
+      cond_
+        [ velocity_control ==? E.enable ==> do
+            store (n_law ~> NL.velocity_control) true
+            deref (cmd ~> NC.vel_x_setpt) >>= store (n_law ~> NL.vel_x_setpt)
+            deref (cmd ~> NC.vel_y_setpt) >>= store (n_law ~> NL.vel_y_setpt)
+        , velocity_control ==? E.disable ==> do
+            store (n_law ~> NL.velocity_control) false
+        ]
+      altitude_control <- deref (cmd ~> NC.altitude_control)
+      cond_
+        [ altitude_control ==? E.enable ==> do
+            store (n_law ~> NL.altitude_control) true
+            deref (cmd ~> NC.alt_setpt) >>= store (n_law ~> NL.alt_setpt)
+            deref (cmd ~> NC.alt_rate_setpt) >>= store (n_law ~> NL.alt_rate_setpt)
+        , altitude_control ==? E.disable ==> do
+            store (n_law ~> NL.altitude_control) false
+        ]
+      heading_control <- deref (cmd ~> NC.heading_control)
+      cond_
+        [ heading_control ==? E.enable ==> do
+            store (n_law ~> NL.heading_control) true
+            deref (cmd ~> NC.heading_setpt) >>= store (n_law ~> NL.heading_setpt)
+        , heading_control ==? E.disable ==> do
+            store (n_law ~> NL.heading_control) false
+        ]
+
+      emit_ nav_law_emitter (constRef n_law)
 
 
     taskModuleDef $ do
