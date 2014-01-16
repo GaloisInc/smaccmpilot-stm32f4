@@ -142,23 +142,26 @@ smaccmNavCommand emitter now msg = do
   vel_x_set         <- deref (msg ~> SN.vel_x_set)
   vel_y_set         <- deref (msg ~> SN.vel_y_set)
   vel_set_valid     <- deref (msg ~> SN.vel_set_valid)
-  v <- local (istruct
-    [ NC.velocity_control   .= ival (fromInt8 vel_set_valid)
-    , NC.vel_x_setpt        .= ival ((safeCast vel_x_set) / 1000.0)
-    , NC.vel_y_setpt        .= ival ((safeCast vel_y_set) / 1000.0)
-    , NC.position_control   .= ival (fromInt8 lat_lon_set_valid)
-    , NC.lat_setpt          .= ival lat_set
-    , NC.lon_setpt          .= ival lon_set
-    , NC.altitude_control   .= ival (fromInt8 alt_set_valid)
-    , NC.alt_setpt          .= ival ((safeCast alt_set) / 1000.0)
-    , NC.alt_rate_setpt     .= ival ((safeCast alt_rate_set) / 1000.0)
-    , NC.heading_control    .= ival (fromInt8 heading_set_valid)
-    , NC.heading_setpt      .= ival ((safeCast heading_set) / 100.0)
-    , NC.autoland_active    .= ival 0 -- (fromInt8 autoland_active)
-    , NC.autoland_complete  .= ival 0 -- (fromInt8 autoland_complete)
-    , NC.time .= ival now
-    ])
-  emit_ emitter (constRef v)
+
+  heading_rads      <- assign (((safeCast heading_set) / 100.0) * pi / 180)
+  when (heading_rads >=? 0.0 .&& heading_rads <=? 2 * pi) $ do
+    v <- local (istruct
+      [ NC.velocity_control   .= ival (fromInt8 vel_set_valid)
+      , NC.vel_x_setpt        .= ival ((safeCast vel_x_set) / 1000.0)
+      , NC.vel_y_setpt        .= ival ((safeCast vel_y_set) / 1000.0)
+      , NC.position_control   .= ival (fromInt8 lat_lon_set_valid)
+      , NC.lat_setpt          .= ival lat_set
+      , NC.lon_setpt          .= ival lon_set
+      , NC.altitude_control   .= ival (fromInt8 alt_set_valid)
+      , NC.alt_setpt          .= ival ((safeCast alt_set) / 1000.0)
+      , NC.alt_rate_setpt     .= ival ((safeCast alt_rate_set) / 1000.0)
+      , NC.heading_control    .= ival (fromInt8 heading_set_valid)
+      , NC.heading_setpt      .= ival heading_rads
+      , NC.autoland_active    .= ival 0 -- (fromInt8 autoland_active)
+      , NC.autoland_complete  .= ival 0 -- (fromInt8 autoland_complete)
+      , NC.time .= ival now
+      ])
+    emit_ emitter (constRef v)
 
   where
   fromInt8 :: Sint8 -> E.EnableDisable
