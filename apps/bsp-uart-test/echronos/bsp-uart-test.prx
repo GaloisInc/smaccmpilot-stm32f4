@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<system>
+  <modules>
+    <module name="armv7m.build" />
+    <module name="armv7m.ctxt-switch" />
+
+    <module name="armv7m.exception-preempt">
+      <handler>rtos_preempt_handler</handler>
+      <trampolines>
+        <trampoline>
+          <name>systick</name>
+          <handler>rtos_tick_irq</handler>
+        </trampoline>
+
+        <trampoline>
+          <name>uart</name>
+          <handler>eChronos_UART_IRQHandler</handler>
+        </trampoline>
+
+      </trampolines>
+    </module>
+
+    <module name="armv7m.vectable">
+      <flash_load_addr>0x8000000</flash_load_addr>
+
+      <!-- add wrapped systick irq handler to vectable: -->
+      <systick>exception_preempt_trampoline_systick</systick>
+      <svcall>SVCHandler</svcall>
+      <pendsv>PendSVHandler</pendsv>
+      <hardfault>eHardFault_Handler</hardfault>
+      <memmanage>debug_3</memmanage>
+      <busfault>debug_3</busfault>
+      <usagefault>debug_3</usagefault>
+      <debug_monitor>debug_3</debug_monitor>
+
+      <!-- This application uses only one of these IRQs -->
+      <external_irqs>
+        <external_irq>
+          <number>37</number>
+          <handler>exception_preempt_trampoline_uart</handler>
+        </external_irq>
+        <external_irq>
+          <number>38</number>
+          <handler>exception_preempt_trampoline_uart</handler>
+        </external_irq>
+        <external_irq>
+          <number>53</number>
+          <handler>exception_preempt_trampoline_uart</handler>
+        </external_irq>
+        <external_irq>
+          <number>71</number>
+          <handler>exception_preempt_trampoline_uart</handler>
+        </external_irq>
+      </external_irqs>
+    </module>
+
+<!-- -->
+    <module name="armv7m.semihost-debug" />
+    <module name="generic.debug">
+      <ll_debug>armv7m_semihost_</ll_debug>
+      <prefix></prefix>
+    </module>
+    <!-- switch off debug messages: 
+    <module name="machine-px4.debug" />
+-->
+
+    <module name="armv7m.rtos-kochab">
+      <prefix>rtos_</prefix>
+      <taskid_size>8</taskid_size>
+      <signalset_size>8</signalset_size>
+      <irqeventid_size>8</irqeventid_size>
+
+      <tasks>
+        <task>
+          <name>init_thread</name>
+          <entry>main_task</entry>
+          <priority>100</priority>
+          <stack_size>256</stack_size>
+        </task>
+        <task>
+          <name>uart_irqhandler</name>
+          <entry>UART_IRQHandler_task</entry>
+          <priority>99</priority>
+          <stack_size>2048</stack_size>
+        </task>
+<!-- ivory tasks -->
+        <task>
+          <name>tower_task_loop_settableled_32_proc</name>
+          <entry>tower_task_loop_settableLED_32_proc</entry>
+          <priority>1</priority>
+          <stack_size>256</stack_size>
+        </task>
+        <task>
+          <name>tower_task_loop_echoprompt_22_proc</name>
+          <entry>tower_task_loop_echoprompt_22_proc</entry>
+          <priority>1</priority>
+          <stack_size>256</stack_size>
+        </task>
+        <task>
+          <name>tower_task_loop_ledhw_8_proc</name>
+          <entry>tower_task_loop_ledhw_8_proc</entry>
+          <priority>1</priority>
+          <stack_size>256</stack_size>
+        </task>
+        <task>
+          <name>tower_task_loop_blink_1_proc</name>
+          <entry>tower_task_loop_blink_1_proc</entry>
+          <priority>1</priority>
+          <stack_size>256</stack_size>
+        </task>
+      </tasks>
+
+      <irq_events>
+        <irq_event>
+          <name>uart</name>
+          <task_name>uart_irqhandler</task_name>
+          <sig_set>1</sig_set>
+        </irq_event>
+      </irq_events>
+
+      <mutexes>
+        <mutex><name>m00</name></mutex>
+        <mutex><name>m01</name></mutex>
+        <mutex><name>m02</name></mutex>
+        <mutex><name>m03</name></mutex>
+        <mutex><name>m04</name></mutex>
+        <mutex><name>m05</name></mutex>
+        <mutex><name>m06</name></mutex>
+        <mutex><name>m07</name></mutex>
+        <mutex><name>m08</name></mutex>
+        <mutex><name>m09</name></mutex>
+        <mutex><name>m10</name></mutex>
+        <mutex><name>m11</name></mutex>
+        <mutex><name>m12</name></mutex>
+        <mutex><name>m13</name></mutex>
+        <mutex><name>m14</name></mutex>
+        <mutex><name>m15</name></mutex>
+        <mutex><name>m16</name></mutex>
+        <mutex><name>m17</name></mutex>
+        <mutex><name>m18</name></mutex>
+        <mutex><name>m19</name></mutex>
+        <mutex><name>m20</name></mutex>
+      </mutexes>
+      <semaphores>
+        <semaphore><name>sem00</name></semaphore>
+        <semaphore><name>sem01</name></semaphore>
+        <semaphore><name>sem02</name></semaphore>
+        <semaphore><name>sem03</name></semaphore>
+        <semaphore><name>sem04</name></semaphore>
+        <semaphore><name>sem05</name></semaphore>
+        <semaphore><name>sem06</name></semaphore>
+        <semaphore><name>sem07</name></semaphore>
+        <semaphore><name>sem08</name></semaphore>
+        <semaphore><name>sem09</name></semaphore>
+        <semaphore><name>sem10</name></semaphore>
+        <semaphore><name>sem11</name></semaphore>
+        <semaphore><name>sem12</name></semaphore>
+        <semaphore><name>sem13</name></semaphore>
+        <semaphore><name>sem14</name></semaphore>
+        <semaphore><name>sem15</name></semaphore>
+        <semaphore><name>sem16</name></semaphore>
+        <semaphore><name>sem17</name></semaphore>
+        <semaphore><name>sem18</name></semaphore>
+        <semaphore><name>sem19</name></semaphore>
+        <semaphore><name>sem20</name></semaphore>
+        <semaphore><name>init_sem</name></semaphore>
+      </semaphores>
+    </module>
+
+  </modules>
+</system>

@@ -14,12 +14,21 @@
 $(eval $(call tower_pkg,IVORY_PKG_UART_TEST,bsp-uart-tower-test-gen))
 
 APP_BSPUARTTEST_IMG          := bsp-uart-test
-APP_BSPUARTTEST_OBJECTS      := main.o
-APP_BSPUARTTEST_REAL_OBJECTS += $(IVORY_PKG_UART_TEST_OBJECTS)
+
+ifneq ($($(CONFIG_PLATFORM)_TOWER_OS),echronos)
+APP_BSPUARTTEST_OBJECTS      := freertos/main.o
 APP_BSPUARTTEST_LIBRARIES    += libFreeRTOS.a
+APP_BSPUARTTEST_INCLUDES     += $(FREERTOS_CFLAGS)
+else
+APP_BSPUARTTEST_ECHRONOS_PRX := echronos/bsp-uart-test.prx
+APP_BSPUARTTEST_OBJECTS      += echronos/main.o
+APP_BSPUARTTEST_OBJECTS      += echronos/irq_wrappers.o
+endif
+
+APP_BSPUARTTEST_REAL_OBJECTS += $(IVORY_PKG_UART_TEST_OBJECTS)
 APP_BSPUARTTEST_LIBS         += -lm
 
-APP_BSPUARTTEST_INCLUDES     += $(FREERTOS_CFLAGS)
+#APP_BSPUARTTEST_INCLUDES     += -I$(TOP)/apps/bsp-uart-test
 APP_BSPUARTTEST_INCLUDES     += -I$(TOP)/src/bsp/include
 APP_BSPUARTTEST_INCLUDES     += $(IVORY_PKG_UART_TEST_CFLAGS)
 
@@ -29,5 +38,7 @@ APP_BSPUARTTEST_CFLAGS       += -DIVORY_DEPLOY
 $(eval $(call cbmc_pkg,APP_BSPUARTTEST,IVORY_PKG_UART_TEST))
 
 $(eval $(call when_os,freertos,image,APP_BSPUARTTEST))
+$(eval $(call when_os,echronos,echronos_gen,APP_BSPUARTTEST))
+$(eval $(call when_os,echronos,image,APP_BSPUARTTEST))
 
 # vim: set ft=make noet ts=2:

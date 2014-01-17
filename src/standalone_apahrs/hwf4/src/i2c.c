@@ -14,10 +14,14 @@
 
 #include <stm32f4xx.h>
 
+#ifdef ECHRONOS
+#include <eChronos.h>
+#else
 #include <FreeRTOS.h>
 #include <queue.h>
 #include <semphr.h>
 #include <task.h>
+#endif
 
 #include "hwf4/i2c.h"
 #include "hwf4/gpio.h"

@@ -16,7 +16,9 @@ extern C {
 #endif
 
 #include <stdint.h>
+#ifndef ECHRONOS
 #include <FreeRTOSConfig.h>
+#endif
 #include <hwf4/sys/irq.h>
 
 /**

@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<system>
+  <modules>
+    <module name="armv7m.build" />
+    <module name="armv7m.ctxt-switch" />
+
+    <module name="armv7m.exception-preempt">
+      <handler>rtos_preempt_handler</handler>
+      <trampolines>
+        <!-- the interrupt handlers that can cause preemption:-->
+        <trampoline>
+          <name>systick</name>
+          <handler>rtos_tick_irq</handler>
+        </trampoline>
+      </trampolines>
+    </module>
+
+    <module name="armv7m.vectable">
+      <flash_load_addr>0x8000000</flash_load_addr>
+      <!-- add wrapped systick irq handler to vectable: -->
+      <systick>exception_preempt_trampoline_systick</systick>
+      <svcall>SVCHandler</svcall>
+      <pendsv>PendSVHandler</pendsv>
+    </module>
+
+<!-- -->
+    <module name="armv7m.semihost-debug" />
+    <module name="generic.debug">
+      <ll_debug>armv7m_semihost_</ll_debug>
+      <prefix></prefix>
+    </module>
+
+    <!-- switch off debug messages: 
+    <module name="machine-px4.debug" />
+-->
+
+    <module name="armv7m.rtos-kochab">
+      <prefix>rtos_</prefix>
+      <taskid_size>8</taskid_size>
+      <signalset_size>8</signalset_size>
+      <irqeventid_size>8</irqeventid_size>
+      <tasks>
+
+        <!-- enumerate tasks in the system: -->
+        <task>
+          <name>loop_ledhw_8</name>
+          <entry>tower_task_loop_ledhw_8_proc</entry>
+          <priority>30</priority>
+          <stack_size>256</stack_size>
+        </task>
+        <task>
+          <name>loop_blink_1</name>
+          <entry>tower_task_loop_blink_1_proc</entry>
+          <priority>20</priority>
+          <stack_size>256</stack_size>
+        </task>
+      </tasks>
+      <!-- mutex and semaphore numbers come from counting calls to:
+           *_semaphore_create_* in ivory generated code (apps/bsp-led-test/gen)
+               2 semaphores
+           xSemaphoreCreate* in AP code (src/standalone_apahrs)
+               4 mutexes
+      -->
+      <mutexes>
+        <mutex><name>m00</name></mutex>
+        <mutex><name>m01</name></mutex>
+        <mutex><name>m02</name></mutex>
+        <mutex><name>m03</name></mutex>
+      </mutexes>
+      <semaphores>
+        <semaphore><name>sem00</name></semaphore>
+        <semaphore><name>sem01</name></semaphore>
+      </semaphores>
+
+    </module>
+
+  </modules>
+</system>
+
+

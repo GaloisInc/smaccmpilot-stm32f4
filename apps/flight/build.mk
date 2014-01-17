@@ -12,21 +12,39 @@
 #
 
 FLIGHT_PLATFORMS_FREERTOS := px4fmu17_ioar_freertos px4fmu17_bare_freertos
+FLIGHT_PLATFORMS_ECHRONOS := px4fmu17_ioar_echronos px4fmu17_bare_echronos
 FLIGHT_PLATFORMS_AADL := px4fmu17_ioar_aadl
+FLIGHT_PLATFORMS := $(FLIGHT_PLATFORMS_FREERTOS) $(FLIGHT_PLATFORMS_AADL) $(FLIGHT_PLATFORMS_ECHRONOS)
 
 IVORY_PKG_FLIGHT_GEN_SYMS    := true
 
 FLIGHT_GEN       := flight-gen
 
-$(eval $(call when_platforms, $(FLIGHT_PLATFORMS_FREERTOS) $(FLIGHT_PLATFORMS_AADL) \
-				,tower_pkg,IVORY_PKG_FLIGHT,$(FLIGHT_GEN)))
+$(eval $(call when_platforms,                            \
+		$(FLIGHT_PLATFORMS_FREERTOS)             \
+		$(FLIGHT_PLATFORMS_AADL)                 \
+		$(FLIGHT_PLATFORMS_ECHRONOS),            \
+		tower_pkg,IVORY_PKG_FLIGHT,$(FLIGHT_GEN)))
+
 
 FLIGHT_IMG       := flight
 
+
 FLIGHT_INCLUDES  += -I$(TOP)/src/standalone_apahrs
 FLIGHT_INCLUDES  += -I$(TOP)/src/apwrapper/include
-FLIGHT_INCLUDES  += $(FREERTOS_CFLAGS)
 FLIGHT_INCLUDES  += $(IVORY_PKG_FLIGHT_CFLAGS)
+
+ifneq ($($(CONFIG_PLATFORM)_TOWER_OS),echronos)
+FLIGHT_INCLUDES  += $(FREERTOS_CFLAGS)
+FLIGHT_LIBRARIES += libFreeRTOS.a
+FLIGHT_OBJECTS   := freertos/main.o
+else
+FLIGHT_PLAT_DIR     := echronos/$(CONFIG_PLATFORM)
+FLIGHT_INCLUDES     += -I$(TOP)/src/bsp/include/
+FLIGHT_OBJECTS      += echronos/main.o
+FLIGHT_OBJECTS      += $(FLIGHT_PLAT_DIR)/irq_wrappers.o
+FLIGHT_ECHRONOS_PRX := $(FLIGHT_PLAT_DIR)/flight.prx
+endif
 
 # For the cryto lib
 FLIGHT_INCLUDES  += -I$(TOP)/src/crypto/include
@@ -40,21 +58,20 @@ FLIGHT_CXXFLAGS  += $(FLIGHT_INCLUDES)
 FLIGHT_CXXFLAGS  += $(FLIGHT_IVORY_FLAG)
 FLIGHT_CXXFLAGS  += -Wno-psabi
 
-FLIGHT_OBJECTS := main.o
 
 FLIGHT_REAL_OBJECTS += $(IVORY_PKG_FLIGHT_OBJECTS)
 
 FLIGHT_LIBRARIES    += libapwrapper.a
 FLIGHT_LIBRARIES    += libstandalone-apahrs.a
 FLIGHT_LIBRARIES    += libstandalone-aphal.a
-FLIGHT_LIBRARIES    += libFreeRTOS.a
 FLIGHT_LIBRARIES    += commsec.a
 FLIGHT_LIBS         += -lm
 
-$(eval $(call when_platforms,$(FLIGHT_PLATFORMS_FREERTOS) \
+$(eval $(call when_platforms,$(FLIGHT_PLATFORMS_FREERTOS) $(FLIGHT_PLATFORMS_ECHRONOS) \
 				,cbmc_pkg,FLIGHT,IVORY_PKG_FLIGHT))
 
-$(eval $(call when_platforms,$(FLIGHT_PLATFORMS_FREERTOS) \
+$(eval $(call when_os,echronos,echronos_gen,FLIGHT))
+$(eval $(call when_platforms,$(FLIGHT_PLATFORMS_FREERTOS) $(FLIGHT_PLATFORMS_ECHRONOS) \
 				,image,FLIGHT))
 
 # ------------------------------------------------------------------------------

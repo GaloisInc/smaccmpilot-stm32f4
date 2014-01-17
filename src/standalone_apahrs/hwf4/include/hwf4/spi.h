@@ -15,7 +15,11 @@
 extern "C" {
 #endif
 
+#ifdef ECHRONOS
+#include <eChronos.h>
+#else
 #include <FreeRTOS.h>
+#endif
 
 #include <stdbool.h>
 #include <stdint.h>

@@ -38,6 +38,7 @@ include mk/cmd.lib
 include mk/library.mk
 include mk/image.mk
 include mk/ivory.mk
+include mk/echronos.mk
 include mk/frama-c-check.mk
 include mk/conditional.mk
 include mk/cppcheck.mk
@@ -124,6 +125,11 @@ quiet_cmd_as_o_s = AS       $<
 
 # Compile an assembly source (.s) file to an object file.
 $(OBJ_DIR)/%.o: %.s
+	$(Q)mkdir -p $(dir $@)
+	$(call cmd,as_o_s)
+
+# Compile a generated assembly source (.s) file to an object file.
+$(OBJ_DIR)/%.o: $(GEN_DIR)/%.s
 	$(Q)mkdir -p $(dir $@)
 	$(call cmd,as_o_s)
 

@@ -12,8 +12,12 @@
 #include <stdint.h>
 #include <stm32f4xx.h>
 
+#ifdef ECHRONOS
+#include <eChronos.h>
+#else
 #include <FreeRTOS.h>
 #include <task.h>
+#endif
 
 #include "hwf4/gpio.h"
 #include "hwf4/interrupt.h"

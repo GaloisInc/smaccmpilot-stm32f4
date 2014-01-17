@@ -3,8 +3,12 @@
 #define __AP_HAL_SMACCM_SEMAPHORE_H__
 
 #include "AP_HAL_SMACCM.h"
+#ifdef ECHRONOS
+#include <eChronos.h>
+#else
 #include <FreeRTOS.h>
 #include <semphr.h>
+#endif
 
 class SMACCM::SMACCMSemaphore : public AP_HAL::Semaphore {
 public:

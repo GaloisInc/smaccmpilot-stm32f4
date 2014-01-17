@@ -19,8 +19,12 @@
 #include <hwf4/i2c.h>
 #include <hwf4/eeprom.h>
 
+#ifdef ECHRONOS
+#include <eChronos.h>
+#else
 #include <FreeRTOS.h>
 #include <task.h>
+#endif
 
 /**
  * State of the EEPROM driver.

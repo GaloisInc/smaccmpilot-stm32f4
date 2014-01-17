@@ -23,6 +23,12 @@ COMMA := ,
 PLATFORMS := $(subst $(COMMA), ,$(CONFIG_PLATFORMS))
 else
 PLATFORMS := $(subst platform_,,$(basename $(notdir $(PLATFORM_FILES))))
+
+# Filter out eChronos targets if sources could not be found
+ifeq (,$(findstring $(CONFIG_ECHRONOS_PREFIX),$(wildcard $(CONFIG_ECHRONOS_PREFIX))))
+PLATFORMS := $(filter-out %echronos,$(PLATFORMS))
+endif
+
 endif
 
 CONFIG_DEFAULT_PLATFORM ?= px4fmu17_ioar_freertos
@@ -35,7 +41,7 @@ default: $(CONFIG_DEFAULT_PLATFORM)
 
 allplatforms:
 	@echo selected platforms: $(PLATFORMS)
-	@for platform in $(PLATFORMS); do \
+	@set -e; for platform in $(PLATFORMS); do \
 		if [ -e mk/platform/platform_$$platform.mk ] ; then \
 			echo building for platform $$platform; \
 			make -f mk/main.mk $(MQUIET) $(TARGET) CONFIG_PLATFORM=$$platform; \
@@ -49,6 +55,13 @@ px4fmu17_ioar_freertos: allplatforms
 
 px4fmu17_bare_freertos: PLATFORMS = px4fmu17_bare_freertos
 px4fmu17_bare_freertos: allplatforms
+
+px4fmu17_ioar_echronos: PLATFORMS = px4fmu17_ioar_echronos
+px4fmu17_ioar_echronos: allplatforms
+
+px4fmu17_bare_echronos: PLATFORMS = px4fmu17_bare_echronos
+px4fmu17_bare_echronos: allplatforms
+
 
 aadl: PLATFORMS = px4fmu17_ioar_aadl
 aadl: allplatforms

@@ -1,9 +1,13 @@
 
 #include "apwrapper/sensors_capture.h"
 
+#ifdef ECHRONOS
+#include <eChronos.h>
+#else
 #include <FreeRTOS.h>
 #include <task.h>
 #include <semphr.h>
+#endif
 
 #include <hwf4/led.h>
 

@@ -14,9 +14,13 @@
 #include <hwf4/gpio.h>
 #include <hwf4/timer.h>
 
+#ifdef ECHRONOS
+#include <eChronos.h>
+#else
 #include <FreeRTOS.h>
 #include <task.h>
 #include <semphr.h>
+#endif
 
 #include "Scheduler.h"
 
@@ -40,7 +44,7 @@ extern const AP_HAL::HAL& hal;
 static xSemaphoreHandle g_atomic;
 
 /** High-priority thread managing timer procedures. */
-static void scheduler_task(void *arg)
+static void _scheduler_task(void *arg)
 {
   SMACCMScheduler *sched = (SMACCMScheduler *)arg;
   portTickType last_wake_time;
@@ -68,6 +72,14 @@ static void scheduler_task(void *arg)
   }
 }
 
+/* Indirection required as Echronos does not support entry point args */
+static void* _sched_arg;
+extern "C"
+void scheduler_task(void* arg){
+    (void)arg;
+    _scheduler_task(_sched_arg);
+}
+
 SMACCMScheduler::SMACCMScheduler()
   : m_task(NULL),
     m_failsafe_cb(NULL),
@@ -82,6 +94,7 @@ void SMACCMScheduler::init(void *arg)
 
   g_atomic = xSemaphoreCreateRecursiveMutex();
 
+  _sched_arg = (void*)this;
   xTaskCreate(scheduler_task, (signed char *)"scheduler",
               SCHEDULER_STACK_SIZE, this, SCHEDULER_PRIORITY,
               &m_task);

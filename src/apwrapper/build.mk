@@ -15,7 +15,11 @@ AP_WRAPPER_LIB       := libapwrapper.a
 
 AP_WRAPPER_INCLUDES  += -I$(TOP)/src/apwrapper/include
 AP_WRAPPER_INCLUDES  += -I$(TOP)/src/standalone_apahrs
+ifneq ($($(CONFIG_PLATFORM)_TOWER_OS),echronos)
 AP_WRAPPER_INCLUDES  += $(FREERTOS_INCLUDES)
+else
+AP_WRAPPER_INCLUDES  += $(LIBECHRONOS_INCLUDES)
+endif
 AP_WRAPPER_INCLUDES  += -I$(TOP)/src/bsp/hwf4/include
 
 AP_WRAPPER_CFLAGS    += $(AP_WRAPPER_INCLUDES)
@@ -27,4 +31,5 @@ AP_WRAPPER_OBJECTS :=              \
         src/userinput_capture.o
 
 $(eval $(call when_os,freertos,library,AP_WRAPPER))
+$(eval $(call when_os,echronos,library,AP_WRAPPER))
 

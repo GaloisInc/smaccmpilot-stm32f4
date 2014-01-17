@@ -46,12 +46,17 @@ STANDALONE_APAHRS_OBJECTS :=                                           \
         Filter/DerivativeFilter.o
 
 $(eval $(call when_os,freertos,library,STANDALONE_APAHRS))
+$(eval $(call when_os,echronos,library,STANDALONE_APAHRS))
 
 STANDALONE_HAL_LIB       := libstandalone-aphal.a
 
 STANDALONE_HAL_INCLUDES  += -I$(TOP)/src/standalone_apahrs
 STANDALONE_HAL_INCLUDES  += -I$(TOP)/src/standalone_apahrs/hwf4/include
+ifneq ($($(CONFIG_PLATFORM)_TOWER_OS),echronos)
 STANDALONE_HAL_INCLUDES  += $(FREERTOS_CFLAGS)
+else
+STANDALONE_HAL_INCLUDES  += $(LIBECHRONOS_INCLUDES)
+endif
 
 STANDALONE_HAL_CFLAGS    += $(STANDALONE_HAL_INCLUDES) -O0
 STANDALONE_HAL_CXXFLAGS  += $(STANDALONE_HAL_INCLUDES) -O0
@@ -85,5 +90,6 @@ STANDALONE_HAL_OBJECTS += $(addprefix hwf4/src/,     \
         )
 
 $(eval $(call when_os,freertos,library,STANDALONE_HAL))
+$(eval $(call when_os,echronos,library,STANDALONE_HAL))
 
 # vim: set ft=make noet ts=2:

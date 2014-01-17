@@ -33,6 +33,12 @@ CONFIG_PX4FMU_BOOTLOADER := 1
 # Optional configurations
 # ------------------------------------------------------------------------------
 
+# NICTA eChronos RTOS build
+# Root directory of the eChronos tree
+CONFIG_ECHRONOS_PREFIX := ../../brtos-smaccm-0.0.2-1
+# Location of the prj executable.
+CONFIG_ECHRONOS_PRJ    := $(CONFIG_ECHRONOS_PREFIX)/x86_64-unknown-linux-gnu/bin
+
 # Optional: use graphviz to generate PDF from tower graph output.
 # Uncomment this option if you have the `dot` tool installed.
 #
