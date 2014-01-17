@@ -150,8 +150,8 @@ navTower params nav_inputs = do
 
       alt_ready <- deref (n_law ~> NL.altitude_control)
       ifte_ alt_ready
-        (do armed_mode <- deref ((updated_value ctl_law) ~> CL.armed_mode)
-            alt_src    <- deref ((updated_value ctl_law) ~> CL.autothr_source)
+        (do -- armed_mode <- deref ((updated_value ctl_law) ~> CL.armed_mode)
+            -- alt_src    <- deref ((updated_value ctl_law) ~> CL.autothr_source)
             deref (n_law ~> NL.alt_setpt) >>=
               store (ctl_sp ~> SP.altitude)
             deref (n_law ~> NL.alt_rate_setpt) >>=
@@ -162,8 +162,8 @@ navTower params nav_inputs = do
 
       head_ready <- deref (n_law ~> NL.heading_control)
       ifte_ head_ready
-        (do armed_mode <- deref ((updated_value ctl_law) ~> CL.armed_mode)
-            head_src   <- deref ((updated_value ctl_law) ~> CL.head_source)
+        (do -- armed_mode <- deref ((updated_value ctl_law) ~> CL.armed_mode)
+            -- head_src   <- deref ((updated_value ctl_law) ~> CL.head_source)
             head_sp <- deref (n_law ~> NL.heading_setpt)
             store (ctl_sp ~> SP.heading) head_sp
             store (cl_req ~> CR.set_head_src_nav) true)

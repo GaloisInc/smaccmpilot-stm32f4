@@ -45,7 +45,7 @@ taskStateDerivativePID params username = do
                            ] :-> ())
       update_proc = proc (named "update") $ \setpt state_est deriv_est dt -> body $ do
         assert (dt >? 0)
-        v <- deref valid
+        -- v <- deref valid
         store valid true
         cfg <- allocPIDParams params
         p_gain <-             (deref (cfg ~> pid_pGain))
