@@ -55,6 +55,7 @@ hil opts = do
   position       <- channel
   mavlink_ctlreq <- channel
   rc_override    <- channel
+  nav_command    <- channel
 
   -- Parameters:
   (params, paramList) <- initTowerParams sysParams
@@ -66,6 +67,7 @@ hil opts = do
                       , position_in   = snk position
                       , params_in     = sysFlightParams snk_params
                       , rcoverride_in = snk rc_override
+                      , navcommand_in = snk nav_command
                       , ctl_req_in    = snk mavlink_ctlreq
                       }
 
@@ -92,10 +94,12 @@ hil opts = do
       , gcs_pos_ctl_in  = pos_ctl_state core_out
       , gcs_commsec_in  = snk commsec_info
       , gcs_comm_mon_in = snk commsec_mon_result
+      , gcs_nav_law_in  = navlaw_state  core_out
       }
     GCSProvides
       { gcs_ctl_law_req  = src mavlink_ctlreq
       , gcs_rc_override  = src rc_override
+      , gcs_nav_command  = src nav_command
       , gcs_commsec_info = src commsec_info
       , gcs_hil_state    = Nothing
       }
@@ -118,6 +122,7 @@ flight opts = do
   sensors        <- dataport
   mavlink_ctlreq <- channel
   rc_override    <- channel
+  nav_command    <- channel
 
   -- Parameters:
   (params, paramList) <- initTowerParams sysParams
@@ -134,6 +139,7 @@ flight opts = do
     , position_in   = gps_position
     , params_in     = sysFlightParams snk_params
     , rcoverride_in = snk rc_override
+    , navcommand_in = snk nav_command
     , ctl_req_in    = snk mavlink_ctlreq
     }
 
@@ -161,10 +167,12 @@ flight opts = do
             , gcs_pos_ctl_in  = pos_ctl_state core_out
             , gcs_commsec_in  = snk commsec_info
             , gcs_comm_mon_in = snk commsec_mon_result
+            , gcs_nav_law_in  = navlaw_state  core_out
             }
           GCSProvides
             { gcs_ctl_law_req  = src mavlink_ctlreq
             , gcs_rc_override  = src rc_override
+            , gcs_nav_command  = src nav_command
             , gcs_commsec_info = src commsec_info
             , gcs_hil_state    = Nothing
             }

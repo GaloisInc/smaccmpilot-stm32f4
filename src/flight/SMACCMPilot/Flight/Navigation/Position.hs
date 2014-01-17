@@ -39,7 +39,7 @@ data PositionControl =
 
 taskPositionControl :: PosCtlParams ParamReader
                     -> Task p PositionControl
-taskPositionControl _param_reader = do
+taskPositionControl param_reader = do
   f <- fresh
 
   pit_in <- taskLocal "pitch_input"
@@ -57,9 +57,10 @@ taskPositionControl _param_reader = do
                            , IFloat
                            ]:->())
       update_proc = proc (named "update") $ \_sens _pos ui _dt -> body $ do
-        -- XXX STUB FOR TESTING VELOCITY CTL
-        store pit_in =<< deref (ui ~> UI.pitch)
-        store rll_in =<< deref (ui ~> UI.roll)
+        -- XXX JUST PASSES THROUGH UI, NO POSITION CONTROL IMPLEMENTED
+        ui_sens <- paramGet (posUISens param_reader)
+        store pit_in =<< (*ui_sens) `fmap` deref (ui ~> UI.pitch)
+        store rll_in =<< (*ui_sens) `fmap` deref (ui ~> UI.roll)
 
       reset_proc :: Def ('[]:->())
       reset_proc = proc (named "reset") $ body $ do

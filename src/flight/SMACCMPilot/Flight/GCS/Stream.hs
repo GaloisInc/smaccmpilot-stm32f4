@@ -29,6 +29,7 @@ defaultPeriods =
     , global_position_int  .= mkTimingData 0    softRealTime
     , params               .= mkTimingData 100  softRealTime
     , radio                .= mkTimingData 1000 softRealTime
+    , debug                .= mkTimingData 0    softRealTime
     ]
 
 -- | Update the stream period for one (or more) MAVLink streams.  This is called
@@ -49,6 +50,7 @@ updateGCSStreamPeriods periods streamid enabled rate = do
                , vfr_hud
                , veh_commsec
                , global_position_int
+               , debug
                ]
 
   setrate :: GcsTimingLabel -> Ivory eff ()

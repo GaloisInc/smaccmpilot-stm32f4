@@ -35,6 +35,7 @@ library
                        SMACCMPilot.Flight.Control,
                        SMACCMPilot.Flight.Control.PID,
                        SMACCMPilot.Flight.Control.StatePID,
+                       SMACCMPilot.Flight.Control.StateDerivativePID,
 
                        SMACCMPilot.Flight.Control.Altitude,
                        SMACCMPilot.Flight.Control.Altitude.Estimator,
@@ -98,6 +99,9 @@ library
                        SMACCMPilot.Flight.Types.PosControlDebug,
                        SMACCMPilot.Flight.Types.ControlSetpoint,
                        SMACCMPilot.Flight.Types.UISource,
+                       SMACCMPilot.Flight.Types.NavCommand,
+                       SMACCMPilot.Flight.Types.NavLaw,
+                       SMACCMPilot.Flight.Types.EnableDisable,
 
                        SMACCMPilot.Flight.UserInput.PPM,
                        SMACCMPilot.Flight.UserInput.PPM.ArmingMachine,

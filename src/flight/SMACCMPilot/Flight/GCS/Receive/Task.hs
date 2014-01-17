@@ -36,6 +36,7 @@ data GCSRxRequires =
     , rx_ctl_req     :: ChannelSource 16  (Struct "control_law_request")
     , rx_param_req   :: ChannelSource 64  (Stored Sint16)
     , rx_rc_override :: ChannelSource 16  (Struct "rc_channels_override_msg")
+    , rx_nav_command :: ChannelSource 16  (Struct "nav_command")
     }
 
 gcsReceiveTask :: ( SingI n0, SingI n1)
@@ -50,6 +51,7 @@ gcsReceiveTask mavStream sper_src params req = do
   ctl_req_emitter    <- withChannelEmitter (rx_ctl_req     req) "ctl_req"
   param_req_emitter  <- withChannelEmitter (rx_param_req   req) "param_req"
   rcOverride_emitter <- withChannelEmitter (rx_rc_override req) "rc_override_tx"
+  nav_cmd_emitter    <- withChannelEmitter (rx_nav_command req) "nav_cmd"
 
   -- Get lists of parameter readers and writers.
   write_params       <- traverse paramWriter (map (fmap portPairSource) params)
@@ -76,9 +78,9 @@ gcsReceiveTask mavStream sper_src params req = do
             , handle (paramSet getParamIndex setParamValue param_req_emitter)
             , handle (requestDatastream s_periods streamPeriodEmitter)
             , handle (rcOverride rcOverride_emitter)
-            , handle (setMode ctl_req_emitter now)
             , handleCommandLong (fromIntegral Cmd.id_COMPONENT_ARM_DISARM)
                                 (armDisarm ctl_req_emitter now)
+            , handle (smaccmNavCommand nav_cmd_emitter now)
             ]
           hilhandler s
           where

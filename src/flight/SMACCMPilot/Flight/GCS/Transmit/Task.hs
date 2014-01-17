@@ -43,6 +43,7 @@ data GCSTxRequires n =
     , tx_radio_stat  :: DataSink (Struct "radio_stat")
     , tx_veh_commsec :: DataSink (Struct "veh_commsec_msg")
     , tx_mon_commsec :: DataSink (Stored IBool)
+    , tx_nav_law     :: DataSink (Struct "nav_law")
     , tx_param_req   :: ChannelSink n (Stored Sint16)
     }
 
@@ -67,6 +68,7 @@ gcsTransmitTask mavStream sp_sink params input = do
   posControlReader  <- withDataReader (tx_pos_ctl     input) "pos_control"
   commsecInfoReader <- withDataReader (tx_veh_commsec input) "commsecInfo"
   commMonitorReader <- withDataReader (tx_mon_commsec input) "commsecMonitor"
+  navLawReader      <- withDataReader (tx_nav_law     input) "navlaw"
 
   mavTx             <- withChannelEmitter mavStream "gcsTxToEncSrc"
 
@@ -180,18 +182,26 @@ gcsTransmitTask mavStream sp_sink params input = do
       call_ mkSendVfrHud l_pos l_ctl l_sens seqNum mavlinkStruct
       processMav T.vfr_hud
 
-      -- piggyback controller debug here
+    onStream T.debug $ do
       l_alt_ctl <- local (istruct [])
       readData altControlReader l_alt_ctl
       call_ mkSendAltCtlDebug (constRef l_alt_ctl) seqNum mavlinkStruct
+      processMav T.debug
+
       l_att_ctl <- local (istruct [])
       readData attControlReader l_att_ctl
       call_ mkSendAttCtlDebug (constRef l_att_ctl) seqNum mavlinkStruct
+      processMav T.debug
+
       l_pos_ctl <- local (istruct [])
       readData posControlReader l_pos_ctl
       call_ mkSendPosCtlDebug (constRef l_pos_ctl) seqNum mavlinkStruct
+      processMav T.debug
 
-      processMav T.vfr_hud
+      l_nav_law <- local (istruct [])
+      readData navLawReader l_nav_law
+      call_ mkSendNavLaw (constRef l_nav_law) seqNum mavlinkStruct
+      processMav T.debug
 
     onStream T.global_position_int $ do
       l_pos  <- local (istruct [])

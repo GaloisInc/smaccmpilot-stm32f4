@@ -37,8 +37,8 @@ userInputTower uit = do
   -- into userinput, and control law request that takes into account userinput
   (rcovr_ui, rcovr_ctl_req) <- mavlinkInputTower  (uit_mavlink_rcovr uit)
                                                   (uit_mavlink_req uit)
-  -- Combine PPM and Mavlink control law requests into control law
-  cl <- controlLawTower ppm_cl_req rcovr_ctl_req (uit_mavlink_req uit)
+  -- Combine PPM, Mavlink, and Nav control law requests into control law
+  cl <- controlLawTower ppm_cl_req rcovr_ctl_req (uit_nav_req uit)
   -- Combine PPM user input with rc override, using control law
   ui <- uiMuxTower cl ppm_ui rcovr_ui
   -- Return the canonical user input and the control law

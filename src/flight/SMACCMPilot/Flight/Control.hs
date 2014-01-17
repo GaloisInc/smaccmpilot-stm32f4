@@ -72,10 +72,8 @@ controlTower params inputs = do
                                           (src alt_dbg)
     prc_control    <- taskPitchRollControl param_reader
     yaw_control    <- taskYawControl       param_reader
-    yui            <- taskYawUI
+    yui            <- taskYawUI (flightYawUISens param_reader)
 
-    taskModuleDef $ do
-      depend controlPIDModule -- for fconstrain
     taskInit $ do
       alt_init alt_control
       prc_init prc_control
@@ -93,7 +91,7 @@ controlTower params inputs = do
         readData navSpReader nav_sp
 
         -- Run altitude and attitude controllers
-        alt_update alt_control sens ui cl dt
+        alt_update alt_control sens ui nav_sp cl dt
 
         armed <- deref (cl ~> CL.armed_mode)
         stab_source <- deref (cl ~> CL.stab_source)
@@ -101,9 +99,13 @@ controlTower params inputs = do
           [ armed /=? A.armed ==>
               prc_reset prc_control
           , stab_source ==? CS.ui ==> do
-              pit_sp <- deref (ui ~> UI.pitch)
-              rll_sp <- deref (ui ~> UI.roll)
-              prc_run prc_control pit_sp rll_sp (constRef sens)
+              pit_ui <- deref (ui ~> UI.pitch)
+              rll_ui <- deref (ui ~> UI.roll)
+              ui_sens_dps <- paramGet (flightPRUISens param_reader)
+              ui_sens_rads <- assign (ui_sens_dps * pi / 180)
+              prc_run prc_control (pit_ui * ui_sens_rads)
+                                  (rll_ui * ui_sens_rads)
+                                  (constRef sens)
           , stab_source ==? CS.nav ==> do
               pit_sp <- deref (nav_sp ~> SP.pitch)
               rll_sp <- deref (nav_sp ~> SP.roll)
@@ -119,7 +121,9 @@ controlTower params inputs = do
           , yaw_mode ==? Y.rate ==> do
               yui_reset yui
               rate_sp <- deref (ui ~> UI.yaw)
-              yaw_rate yaw_control sens rate_sp dt
+              ui_sens_dps <- paramGet (flightYawUISens param_reader)
+              ui_sens_rads <- assign (ui_sens_dps * pi / 180)
+              yaw_rate yaw_control sens (ui_sens_rads * rate_sp) dt
           , yaw_mode ==? Y.heading .&& head_source ==? CS.ui ==> do
               yui_update yui sens ui dt
               (head_sp, head_rate_sp) <- yui_setpoint yui
