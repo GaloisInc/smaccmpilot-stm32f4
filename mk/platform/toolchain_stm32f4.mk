@@ -26,6 +26,10 @@ RANLIB  := $(TOOLCHAIN_PREFIX)ranlib
 OBJCOPY := $(TOOLCHAIN_PREFIX)objcopy
 
 
+ifndef CONFIG_IVORY_ASSERT
+$(error "Please define CONFIG_IVORY_ASSERT in your Config.mk")
+endif
+
 # Base compiler flags for C and C++.
 BASE_CFLAGS := -g3 -Wall -Werror -O2 -mlittle-endian -mthumb -mcpu=cortex-m4 \
                -mfloat-abi=hard -mfpu=fpv4-sp-d16 \
