@@ -137,7 +137,7 @@ taskAltitudeControl params altDbgSrc = do
             uncomp_thr_setpt <- thrust_pid_calculate thrust_pid vz_control dt
             r22              <- sensorsR22 sens
             setpt <- assign ((throttleR22Comp r22) * uncomp_thr_setpt)
-            store at_setpt ((setpt >? 1.0) ? (1.0, setpt))
+            store at_setpt =<< call fconstrain 0.0 1.0 setpt
 
           unless enabled $ do
             tui_reset       ui_control
