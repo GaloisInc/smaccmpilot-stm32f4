@@ -150,9 +150,7 @@ navTower params nav_inputs = do
 
       alt_ready <- deref (n_law ~> NL.altitude_control)
       ifte_ alt_ready
-        (do -- armed_mode <- deref ((updated_value ctl_law) ~> CL.armed_mode)
-            -- alt_src    <- deref ((updated_value ctl_law) ~> CL.autothr_source)
-            deref (n_law ~> NL.alt_setpt) >>=
+        (do deref (n_law ~> NL.alt_setpt) >>=
               store (ctl_sp ~> SP.altitude)
             deref (n_law ~> NL.alt_rate_setpt) >>=
               store (ctl_sp ~> SP.alt_rate)
@@ -162,9 +160,7 @@ navTower params nav_inputs = do
 
       head_ready <- deref (n_law ~> NL.heading_control)
       ifte_ head_ready
-        (do -- armed_mode <- deref ((updated_value ctl_law) ~> CL.armed_mode)
-            -- head_src   <- deref ((updated_value ctl_law) ~> CL.head_source)
-            head_sp <- deref (n_law ~> NL.heading_setpt)
+        (do head_sp <- deref (n_law ~> NL.heading_setpt)
             store (ctl_sp ~> SP.heading) head_sp
             store (cl_req ~> CR.set_head_src_nav) true)
         (store (cl_req ~> CR.set_head_src_nav) false)
@@ -228,7 +224,7 @@ data Updated a =
     , updated_value :: ConstRef Global a
     }
 
--- Prototypin some Tower 2 up in this bitch
+-- Prototypin some Tower 2 up in here
 taskUpdatable :: (SingI n, IvoryArea a, IvoryZero a)
             => ChannelSink n a -> String -> Task p (Updated a)
 taskUpdatable chan name = do

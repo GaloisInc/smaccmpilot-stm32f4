@@ -20,7 +20,6 @@ import qualified SMACCMPilot.Mavlink.Messages.ParamRequestRead   as PRR
 import qualified SMACCMPilot.Mavlink.Messages.SmaccmpilotNavCmd  as SN
 
 import qualified SMACCMPilot.Mavlink.Receive                     as R
--- import qualified SMACCMPilot.Mavlink.Messages.SetMode            as SM
 import qualified SMACCMPilot.Mavlink.Messages.CommandLong        as CL
 import           SMACCMPilot.Mavlink.Unpack
 
@@ -129,8 +128,6 @@ smaccmNavCommand :: (SingI n)
         -> Ref s2 (Struct "smaccmpilot_nav_cmd_msg")
         -> Ivory (ProcEffects cs r) ()
 smaccmNavCommand emitter now msg = do
-  -- autoland_active   <- deref (msg ~> SN.autoland_active)
-  -- autoland_complete <- deref (msg ~> SN.autoland_complete)
   alt_set           <- deref (msg ~> SN.alt_set)
   alt_rate_set      <- deref (msg ~> SN.alt_rate_set)
   alt_set_valid     <- deref (msg ~> SN.alt_set_valid)
