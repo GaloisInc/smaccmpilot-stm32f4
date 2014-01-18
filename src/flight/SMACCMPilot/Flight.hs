@@ -61,14 +61,17 @@ hil opts = do
   (params, paramList) <- initTowerParams sysParams
   let snk_params       = portPairSink <$> params
 
+  commsec_mon_result <- dataport
+
   -- Instantiate core:
   core_out <- core $ FlightCoreRequires
-                      { sensors_in    = snk sensors
-                      , position_in   = snk position
-                      , params_in     = sysFlightParams snk_params
-                      , rcoverride_in = snk rc_override
-                      , navcommand_in = snk nav_command
-                      , ctl_req_in    = snk mavlink_ctlreq
+                      { sensors_in     = snk sensors
+                      , position_in    = snk position
+                      , params_in      = sysFlightParams snk_params
+                      , rcoverride_in  = snk rc_override
+                      , navcommand_in  = snk nav_command
+                      , ctl_req_in     = snk mavlink_ctlreq
+                      , commsec_mon_in = snk commsec_mon_result
                       }
 
   control_state     <- stateProxy "control_state" (control_out core_out)
@@ -80,7 +83,6 @@ hil opts = do
 
   -- Commsec reporter, to GCS TX from decrypter
   commsec_info       <- dataport
-  commsec_mon_result <- dataport
 
   gcsTowerHil "uart1" opts istream ostream
     GCSRequires
@@ -133,14 +135,18 @@ flight opts = do
   -- Sensors managed by AP_HAL
   sensorsTower gps_position (src sensors)
 
+  -- monitor valid commsec, tell core result
+  commsec_mon_result <- dataport
+
   -- Instantiate core:
   core_out <- core $ FlightCoreRequires
-    { sensors_in    = snk sensors
-    , position_in   = gps_position
-    , params_in     = sysFlightParams snk_params
-    , rcoverride_in = snk rc_override
-    , navcommand_in = snk nav_command
-    , ctl_req_in    = snk mavlink_ctlreq
+    { sensors_in      = snk sensors
+    , position_in     = gps_position
+    , params_in       = sysFlightParams snk_params
+    , rcoverride_in   = snk rc_override
+    , navcommand_in   = snk nav_command
+    , ctl_req_in      = snk mavlink_ctlreq
+    , commsec_mon_in  = snk commsec_mon_result
     }
 
   control_state     <- stateProxy "control_state" (control_out core_out)
@@ -149,9 +155,8 @@ flight opts = do
   -- Motor output dependent on platform
   motorOutput (motors_out core_out)
 
-  -- Commsec reporter, to GCS TX from decrypter
+  -- Commsec reporter, from decrypter to GCS TX and monitor
   commsec_info       <- dataport
-  commsec_mon_result <- dataport
 
   position_state <- stateProxy "position_state" gps_position
   let gcsTower' name istream ostream =

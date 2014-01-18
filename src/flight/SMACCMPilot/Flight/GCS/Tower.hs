@@ -25,6 +25,7 @@ import qualified SMACCMPilot.Flight.Commsec.Encrypt      as Enc
 
 import qualified SMACCMPilot.Flight.Datalink             as D
 import qualified SMACCMPilot.Flight.Commsec.CommsecOpts  as C
+import qualified SMACCMPilot.Flight.Types.CommsecStatus  as CS
 
 --------------------------------------------------------------------------------
 
@@ -39,7 +40,7 @@ data GCSRequires =
     , gcs_att_ctl_in  :: DataSink (Struct "att_control_dbg")
     , gcs_pos_ctl_in  :: DataSink (Struct "pos_control_dbg")
     , gcs_commsec_in  :: DataSink (Struct "veh_commsec_msg")
-    , gcs_comm_mon_in :: DataSink (Stored IBool)
+    , gcs_comm_mon_in :: DataSink (Stored CS.CommsecStatus)
     , gcs_nav_law_in  :: DataSink (Struct "nav_law")
     }
 

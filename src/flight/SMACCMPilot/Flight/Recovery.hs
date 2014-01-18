@@ -13,11 +13,12 @@ import qualified SMACCMPilot.Mavlink.Messages.VehCommsec as V
 import           Ivory.Language
 import           Ivory.Stdlib
 import           Ivory.Tower
+import qualified SMACCMPilot.Flight.Types.CommsecStatus as C
 
 --------------------------------------------------------------------------------
 
 recoveryTower :: DataSink   (Struct "veh_commsec_msg") -- Commsec/Decrypt task
-              -> DataSource (Stored IBool)             -- To GCS Transmit
+              -> DataSource (Stored C.CommsecStatus)  -- To GCS Transmit
               -> Tower p ()
 recoveryTower commsec_info_snk monitor_result_src =
 
@@ -37,7 +38,7 @@ type CirBuf = Array BufLen (Stored Time)
 
 -- | True is OK, False is an alarm.
 commsecRecoveryTask :: DataSink   (Struct "veh_commsec_msg")
-                    -> DataSource (Stored IBool)
+                    -> DataSource (Stored C.CommsecStatus)
                     -> Task p ()
 commsecRecoveryTask commsec_info_snk monitor_result_src = do
   commsec_info_snk_rx <- withDataReader commsec_info_snk "commsec_info_snk"
@@ -53,7 +54,7 @@ commsecRecoveryTask commsec_info_snk monitor_result_src = do
   numBad   <- taskLocalInit "numBad"  (ival 0 :: Init (Stored Uint32))
   timer    <- withGetTimeMillis
   -- Property result
-  result   <- taskLocalInit "result" (ival true)
+  result   <- taskLocalInit "result" (ival C.alarm)
 
   onPeriod 20 $ \_now -> do
     commsecReader <- local izero
@@ -83,14 +84,14 @@ commsecRecoveryTask commsec_info_snk monitor_result_src = do
       $ const
       $ do res <- deref resRef
            -- If res has already failed, do nothing.
-           when res (newTimeStamp t idxRef arr bufFullRef >>= store resRef)
+           when (res ==? C.secure) (newTimeStamp t idxRef arr bufFullRef >>= store resRef)
 
   newTimeStamp :: (GetAlloc eff ~ Scope s)
                => Time
                -> Ref s0 (Stored Idx)
                -> Ref s1 (Array BufLen (Stored Time))
                -> Ref s2 (Stored IBool)
-               -> Ivory eff IBool
+               -> Ivory eff C.CommsecStatus
   newTimeStamp t idxRef arr bufFullRef = do
     idx <- deref idxRef
     store (arr ! toIx idx) t
@@ -101,7 +102,7 @@ commsecRecoveryTask commsec_info_snk monitor_result_src = do
     -- Update buffer full Boolean
     bufFull <- deref bufFullRef
     store bufFullRef (bufFull .|| (idx' ==? 0))
-    return res
+    return (res ? (C.alarm, C.secure))
 
   incrIdx :: Idx -> Ref s CirBuf -> Idx
   incrIdx idx arr = (idx + 1) .% arrayLen arr

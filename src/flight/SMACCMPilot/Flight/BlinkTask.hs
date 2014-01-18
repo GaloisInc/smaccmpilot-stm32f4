@@ -17,12 +17,15 @@ import Ivory.BSP.STM32F4.GPIO
 
 import qualified SMACCMPilot.Flight.Types.ArmedMode      as A
 import qualified SMACCMPilot.Flight.Types.ControlLaw     as CL
+import qualified SMACCMPilot.Flight.Types.CommsecStatus  as CS
 
 blinkTask :: [ GPIOPin ]
           -> DataSink (Struct "control_law")
+          -> DataSink (Stored CS.CommsecStatus)
           -> Task p ()
-blinkTask pins cls = do
+blinkTask pins cls css = do
   lawReader <- withDataReader cls "controllaw"
+  comStatRr <- withDataReader css "commstatus"
   taskInit $ mapM_ pinInit pins
 
   s_phase    <- taskLocal "phase"
@@ -30,7 +33,11 @@ blinkTask pins cls = do
   onPeriod 125 $ \_now -> do
     ctllaw <- local (istruct [])
     readData lawReader ctllaw
-    bmode  <- lawToBlinkMode ctllaw
+    commStatRef <- local izero
+    readData comStatRr commStatRef
+    commStat <- deref commStatRef
+
+    bmode  <- lawToBlinkMode ctllaw commStat
     phase  <- nextPhase 8 s_phase
     output <- blinkOutput bmode phase
     ifte_ output
@@ -67,12 +74,14 @@ nextPhase highest r = do
 
 lawToBlinkMode :: (GetAlloc eff ~ Scope cs)
                => Ref s (Struct "control_law")
+               -> CS.CommsecStatus
                -> Ivory eff Uint8
-lawToBlinkMode law = do
+lawToBlinkMode law cstat = do
   armed <- deref (law ~> CL.armed_mode)
   cond
     [ armed ==? A.safe     ==> return pulse_slow
     , armed ==? A.disarmed ==> return pulse_fast
+    , cstat ==? CS.alarm   ==> return pulse_xfast
     , armed ==? A.armed    ==> return blink_fast
     ]
 
@@ -88,8 +97,8 @@ pulse_slow  :: Uint8
 pulse_slow  = 4
 pulse_fast  :: Uint8
 pulse_fast  = 5
--- pulse_xfast :: Uint8
--- pulse_xfast = 6
+pulse_xfast :: Uint8
+pulse_xfast = 6
 
 blinkOutput :: Uint8 -> Uint8 -> Ivory eff IBool
 blinkOutput state phase = return switchState

@@ -25,6 +25,7 @@ import           SMACCMPilot.Param
 
 import qualified SMACCMPilot.Flight.Types.ControlLaw      as CL
 import qualified SMACCMPilot.Flight.Types.GCSStreamTiming as T
+import qualified SMACCMPilot.Flight.Types.CommsecStatus   as CS
 
 import qualified SMACCMPilot.Mavlink.Messages.VehCommsec  as VC
 
@@ -42,7 +43,7 @@ data GCSTxRequires n =
     , tx_pos_ctl     :: DataSink (Struct "pos_control_dbg")
     , tx_radio_stat  :: DataSink (Struct "radio_stat")
     , tx_veh_commsec :: DataSink (Struct "veh_commsec_msg")
-    , tx_mon_commsec :: DataSink (Stored IBool)
+    , tx_mon_commsec :: DataSink (Stored CS.CommsecStatus)
     , tx_nav_law     :: DataSink (Struct "nav_law")
     , tx_param_req   :: ChannelSink n (Stored Sint16)
     }
@@ -146,7 +147,7 @@ gcsTransmitTask mavStream sp_sink params input = do
 
     onStream T.heartbeat $ do
       l_cl    <- local (istruct [])
-      cm      <- local (ival true)
+      cm      <- local (ival CS.alarm)
       readData clReader l_cl
       readData commMonitorReader cm
       call_ mkSendHeartbeat l_cl seqNum mavlinkStruct =<< deref cm

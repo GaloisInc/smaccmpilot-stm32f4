@@ -29,9 +29,11 @@ import qualified SMACCMPilot.Flight.Types.ControlSetpoint   as SP
 import qualified SMACCMPilot.Flight.Types.NavCommand        as NC
 import qualified SMACCMPilot.Flight.Types.NavLaw            as NL
 import qualified SMACCMPilot.Flight.Types.EnableDisable     as E
+import qualified SMACCMPilot.Flight.Types.CommsecStatus     as C
 
 import           SMACCMPilot.Flight.Navigation.Position
 import           SMACCMPilot.Flight.Navigation.Velocity
+import           SMACCMPilot.Flight.Navigation.Failsafe
 
 data NavInputs =
   NavInputs
@@ -41,6 +43,7 @@ data NavInputs =
     , nav_position :: ChannelSink   16 (Struct "position")
     , nav_sens     :: DataSink         (Struct "sensors_result")
     , nav_cmd      :: ChannelSink   16 (Struct "nav_command")
+    , nav_commsec_mon :: DataSink      (Stored C.CommsecStatus)
     }
 
 data NavOutputs =
@@ -76,10 +79,12 @@ navTower params nav_inputs = do
 
     n_law           <- taskLocal "nav_law"
 
+    failsafe        <- taskFailsafe (nav_commsec_mon nav_inputs)
     taskInit $ do
       pos_init pos_control
       vel_init vel_control
       nlaw_init n_law
+      fs_init failsafe
 
     let check_velocity_control_proc :: Def('[]:->IBool)
         check_velocity_control_proc = proc (named "check_velocity_control") $ body $ do
@@ -126,6 +131,7 @@ navTower params nav_inputs = do
           pos_reset  pos_control
 
     onPeriod 5 $ \t -> do
+      fs_update failsafe n_law
       cl_req <- local (CR.initControlLawRequest [ CR.time .= ival t ])
       ctl_sp <- local (istruct [ SP.time .= ival t ])
       vel_ready <- call check_velocity_control_proc

@@ -29,6 +29,7 @@ import           SMACCMPilot.Flight.Navigation
 import           SMACCMPilot.Flight.Motors.Task
 import           SMACCMPilot.Flight.Param
 import           SMACCMPilot.Flight.Types (typeModules)
+import           SMACCMPilot.Flight.Types.CommsecStatus (CommsecStatus)
 import           SMACCMPilot.Flight.UserInput
 
 import           SMACCMPilot.Param
@@ -41,6 +42,7 @@ data FlightCoreRequires =
     , rcoverride_in     :: ChannelSink 16 (Struct "rc_channels_override_msg")
     , navcommand_in     :: ChannelSink 16 (Struct "nav_command")
     , ctl_req_in        :: ChannelSink 16 (Struct "control_law_request")
+    , commsec_mon_in    :: DataSink (Stored CommsecStatus)
     }
 
 data FlightCoreProvides =
@@ -73,6 +75,7 @@ core sys = do
     , nav_position = position_in sys
     , nav_sens     = sensors_in sys
     , nav_cmd      = navcommand_in sys
+    , nav_commsec_mon = commsec_mon_in sys
     }
 
   userinput  <- stateProxy "proxy_userinput" userinput_chan
@@ -87,7 +90,7 @@ core sys = do
     , ci_sens  = sensors_in sys
     }
 
-  task "blink"  $ blinkTask lights controllaw
+  task "blink"  $ blinkTask lights controllaw (commsec_mon_in sys)
   task "motmix" $ motorMixerTask
                         (co_ctl ctl)
                         controllaw

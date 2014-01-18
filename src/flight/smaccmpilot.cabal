@@ -71,6 +71,7 @@ library
                        SMACCMPilot.Flight.Navigation,
                        SMACCMPilot.Flight.Navigation.Position,
                        SMACCMPilot.Flight.Navigation.Velocity,
+                       SMACCMPilot.Flight.Navigation.Failsafe,
 
                        SMACCMPilot.Flight.Recovery,
 
@@ -102,6 +103,7 @@ library
                        SMACCMPilot.Flight.Types.NavCommand,
                        SMACCMPilot.Flight.Types.NavLaw,
                        SMACCMPilot.Flight.Types.EnableDisable,
+                       SMACCMPilot.Flight.Types.CommsecStatus,
 
                        SMACCMPilot.Flight.UserInput.PPM,
                        SMACCMPilot.Flight.UserInput.PPM.ArmingMachine,
