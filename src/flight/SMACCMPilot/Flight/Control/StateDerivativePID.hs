@@ -31,7 +31,6 @@ data StateDerivativePID =
 taskStateDerivativePID :: PIDParams ParamReader -> String -> Task p StateDerivativePID
 taskStateDerivativePID params username = do
   f <- fresh
-  valid      <- taskLocal (username ++ "_valid")
   integral   <- taskLocal (username ++ "_integral")
   p_out      <- taskLocal (username ++ "_p_out")
   d_out      <- taskLocal (username ++ "_d_out")
@@ -45,8 +44,6 @@ taskStateDerivativePID params username = do
                            ] :-> ())
       update_proc = proc (named "update") $ \setpt state_est deriv_est dt -> body $ do
         assert (dt >? 0)
-        -- v <- deref valid
-        store valid true
         cfg <- allocPIDParams params
         p_gain <-             (deref (cfg ~> pid_pGain))
         i_gain <- fmap (* dt) (deref (cfg ~> pid_iGain))
@@ -71,7 +68,6 @@ taskStateDerivativePID params username = do
 
       reset_proc :: Def ('[]:->())
       reset_proc = proc (named "reset") $ body $ do
-        store valid false
         store integral 0
 
   taskModuleDef $ do
