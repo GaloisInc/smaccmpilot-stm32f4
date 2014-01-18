@@ -34,7 +34,6 @@ APP_COPTER_MOTOR_HW_TEST_INCLUDES     += -I$(TOP)/src/bsp/include
 APP_COPTER_MOTOR_HW_TEST_INCLUDES     += $(IVORY_PKG_COPTER_MOTOR_HW_TEST_CFLAGS)
 
 APP_COPTER_MOTOR_HW_TEST_CFLAGS       += -O2 $(APP_COPTER_MOTOR_HW_TEST_INCLUDES)
-APP_COPTER_MOTOR_HW_TEST_CFLAGS       += -DIVORY_DEPLOY
 
 $(eval $(call when_platforms,px4fmu17_bare_freertos \
 			     px4fmu17_ioar_freertos \

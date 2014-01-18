@@ -32,7 +32,6 @@ APP_RTV_INCLUDES  += $(IVORY_PKG_SAMPLE_RTV_TASK_CFLAGS)
 
 APP_RTV_CFLAGS    += $(APP_RTV_INCLUDES)
 APP_RTV_CFLAGS    += -fplugin=gcc-plugin/instrument_plugin.so
-APP_RTV_CFLAGS    += -DIVORY_DEPLOY
 
 APP_RTV_LIBRARIES += libhwf4.a
 APP_RTV_LIBRARIES += libstm32_usb.a

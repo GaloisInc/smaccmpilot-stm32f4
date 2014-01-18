@@ -29,6 +29,12 @@ CONFIG_FREERTOS_PREFIX := ../FreeRTOS
 # unset if flashing purely via JTAG.
 CONFIG_PX4FMU_BOOTLOADER := 1
 
+# Semantics for assertions in Ivory-generated code caused by using --div-zero,
+# --overflow, etc. flags.  Current options:
+# IVORY_DEPLOY: No asserts()
+# IVORY_TEST:   Insert assert()
+CONFIG_IVORY_ASSERT := IVORY_TEST
+
 # ------------------------------------------------------------------------------
 # Optional configurations
 # ------------------------------------------------------------------------------
