@@ -66,7 +66,7 @@ taskFailsafe params commsec_snk = do
           store (nlaw ~> NL.heading_control) false
           store (nlaw ~> NL.altitude_control) true
           store (nlaw ~> NL.alt_setpt) =<< deref target
-          store (nlaw ~> NL.alt_rate_setpt) 1.5
+          store (nlaw ~> NL.alt_rate_setpt) 9.99
 
   taskModuleDef $ do
     incl init_proc

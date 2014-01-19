@@ -32,6 +32,7 @@ import SMACCMPilot.Param
 import SMACCMPilot.Hardware.GPS.Types (gpsTypesModule)
 
 import qualified SMACCMPilot.Flight.Commsec.CommsecOpts as C
+import qualified SMACCMPilot.Flight.Types.CommsecStatus as S
 
 import qualified Ivory.BSP.STM32F4.UART as UART
 import           Ivory.BSP.STM32F4.RCC (BoardHSE(..))
@@ -61,7 +62,7 @@ hil opts = do
   (params, paramList) <- initTowerParams sysParams
   let snk_params       = portPairSink <$> params
 
-  commsec_mon_result <- dataport
+  commsec_mon_result <- dataportInit (ival S.secure)
 
   -- Instantiate core:
   core_out <- core $ FlightCoreRequires
@@ -136,7 +137,7 @@ flight opts = do
   sensorsTower gps_position (src sensors)
 
   -- monitor valid commsec, tell core result
-  commsec_mon_result <- dataport
+  commsec_mon_result <- dataportInit (ival S.secure)
 
   -- Instantiate core:
   core_out <- core $ FlightCoreRequires
