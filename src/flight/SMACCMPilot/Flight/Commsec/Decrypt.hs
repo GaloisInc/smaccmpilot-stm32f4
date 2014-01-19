@@ -60,14 +60,15 @@ reporter commRef res curr lastGoodTime = do
   assert (res <=? 6) -- Largest error code
   now <- deref curr
   store (commRef ~> V.commsec_err) (castDefault res)
-  cond_ [ res ==? Comm.commsecSuccess
-     ==> do (commRef ~> V.good_msgs)   += 1
-            store lastGoodTime now
-            store (commRef ~> V.time) 0
-        , true
-     ==> do (commRef ~> V.bad_msgs) += 1
-            l <- deref lastGoodTime
-            store (commRef ~> V.time) (now - l)
-        ]
+  cond_
+    [ res ==? Comm.commsecSuccess ==> do
+       (commRef ~> V.good_msgs)   += 1
+       store lastGoodTime now
+       store (commRef ~> V.time) 0
+    , true ==> do
+       (commRef ~> V.bad_msgs) += 1
+       l <- deref lastGoodTime
+       store (commRef ~> V.time) (now - l)
+    ]
 
 
