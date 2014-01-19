@@ -6,25 +6,7 @@
 #include <rtos-kochab.h>
 
 #define IRQ_WRAPPER(x) \
-        extern void x##_IRQHandler(void);                 \
-        bool eChronos_##x##_IRQHandler(void)               \
-        {                                                 \
-            x##_IRQHandler();                         		\
-            return true;                                  \
-        }                                                 \
-        void x##_IRQHandler_wrapper(void)                 \
-        {                                                 \
-            while (1) {                                   \
-                rtos_signal_wait_set(SIGNAL_SET_IRQ_##x); \
-            }                                             \
-        }
-
-
-
-
-/*
-#define IRQ_WRAPPER(x) \
-        bool eChronos_##x##_IRQHandler(void)               \
+        bool eChronos_##x##_IRQHandler(void)              \
         {                                                 \
             rtos_irq_event_raise(IRQ_EVENT_ID_##x);       \
             NVIC_DisableIRQ(x##_IRQn);                    \
@@ -39,7 +21,7 @@
                 x##_IRQHandler();                         \
             }                                             \
         }
-*/
+
 
 IRQ_WRAPPER(I2C2_EV)
 IRQ_WRAPPER(I2C2_ER)
