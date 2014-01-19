@@ -31,9 +31,11 @@ recoveryTower commsec_info_snk monitor_result_src =
 
 type Time   = Uint32
 type Idx    = Sint32
-type BufLen = 10
+type BufLen = 30
 type CirBuf = Array BufLen (Stored Time)
 
+alarm_threshold :: Time
+alarm_threshold = 40000
 --------------------------------------------------------------------------------
 
 -- | True is OK, False is an alarm.
@@ -54,7 +56,7 @@ commsecRecoveryTask commsec_info_snk monitor_result_src = do
   numBad   <- taskLocalInit "numBad"  (ival 0 :: Init (Stored Uint32))
   timer    <- withGetTimeMillis
   -- Property result
-  result   <- taskLocalInit "result" (ival C.alarm)
+  result   <- taskLocalInit "result" (ival C.secure)
 
   onPeriod 20 $ \_now -> do
     commsecReader <- local izero
@@ -84,7 +86,8 @@ commsecRecoveryTask commsec_info_snk monitor_result_src = do
       $ const
       $ do res <- deref resRef
            -- If res has already failed, do nothing.
-           when (res ==? C.secure) (newTimeStamp t idxRef arr bufFullRef >>= store resRef)
+           when (res ==? C.secure)
+              (newTimeStamp t idxRef arr bufFullRef >>= store resRef)
 
   newTimeStamp :: (GetAlloc eff ~ Scope s)
                => Time
@@ -102,7 +105,7 @@ commsecRecoveryTask commsec_info_snk monitor_result_src = do
     -- Update buffer full Boolean
     bufFull <- deref bufFullRef
     store bufFullRef (bufFull .|| (idx' ==? 0))
-    return (res ? (C.alarm, C.secure))
+    return (res ? (C.secure, C.alarm))
 
   incrIdx :: Idx -> Ref s CirBuf -> Idx
   incrIdx idx arr = (idx + 1) .% arrayLen arr
@@ -116,7 +119,7 @@ commsecRecoveryTask commsec_info_snk monitor_result_src = do
       (return true)
       (do tnow  <- deref (arr ! toIx idx)
           t0    <- deref (arr ! toIx (startIdx idx arr))
-          return (tnow - t0 >? 15000))
+          return (tnow - t0 >? alarm_threshold))
     where
     -- Get the start index in the circular buffer.  Assumes buffer is full.
     startIdx = incrIdx
