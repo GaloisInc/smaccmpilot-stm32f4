@@ -79,7 +79,7 @@ navTower params nav_inputs = do
 
     n_law           <- taskLocal "nav_law"
 
-    failsafe        <- taskFailsafe (nav_commsec_mon nav_inputs)
+    failsafe        <- taskFailsafe params (nav_commsec_mon nav_inputs)
     taskInit $ do
       pos_init pos_control
       vel_init vel_control
@@ -131,7 +131,10 @@ navTower params nav_inputs = do
           pos_reset  pos_control
 
     onPeriod 5 $ \t -> do
-      fs_update failsafe n_law
+      sens  <- local izero
+      readData sens_reader sens
+      fs_update failsafe n_law sens
+
       cl_req <- local (CR.initControlLawRequest [ CR.time .= ival t ])
       ctl_sp <- local (istruct [ SP.time .= ival t ])
       vel_ready <- call check_velocity_control_proc
@@ -181,34 +184,36 @@ navTower params nav_inputs = do
 
 
     onChannel (nav_cmd nav_inputs) "nav_cmd" $ \cmd -> do
-      velocity_control <- deref (cmd ~> NC.velocity_control)
-      cond_
-        [ velocity_control ==? E.enable ==> do
-            store (n_law ~> NL.velocity_control) true
-            deref (cmd ~> NC.vel_x_setpt) >>= store (n_law ~> NL.vel_x_setpt)
-            deref (cmd ~> NC.vel_y_setpt) >>= store (n_law ~> NL.vel_y_setpt)
-        , velocity_control ==? E.disable ==> do
-            store (n_law ~> NL.velocity_control) false
-        ]
-      altitude_control <- deref (cmd ~> NC.altitude_control)
-      cond_
-        [ altitude_control ==? E.enable ==> do
-            store (n_law ~> NL.altitude_control) true
-            deref (cmd ~> NC.alt_setpt) >>= store (n_law ~> NL.alt_setpt)
-            deref (cmd ~> NC.alt_rate_setpt) >>= store (n_law ~> NL.alt_rate_setpt)
-        , altitude_control ==? E.disable ==> do
-            store (n_law ~> NL.altitude_control) false
-        ]
-      heading_control <- deref (cmd ~> NC.heading_control)
-      cond_
-        [ heading_control ==? E.enable ==> do
-            store (n_law ~> NL.heading_control) true
-            deref (cmd ~> NC.heading_setpt) >>= store (n_law ~> NL.heading_setpt)
-        , heading_control ==? E.disable ==> do
-            store (n_law ~> NL.heading_control) false
-        ]
+      fs <- fs_active failsafe
+      unless fs $ do
+        velocity_control <- deref (cmd ~> NC.velocity_control)
+        cond_
+          [ velocity_control ==? E.enable ==> do
+              store (n_law ~> NL.velocity_control) true
+              deref (cmd ~> NC.vel_x_setpt) >>= store (n_law ~> NL.vel_x_setpt)
+              deref (cmd ~> NC.vel_y_setpt) >>= store (n_law ~> NL.vel_y_setpt)
+          , velocity_control ==? E.disable ==> do
+              store (n_law ~> NL.velocity_control) false
+          ]
+        altitude_control <- deref (cmd ~> NC.altitude_control)
+        cond_
+          [ altitude_control ==? E.enable ==> do
+              store (n_law ~> NL.altitude_control) true
+              deref (cmd ~> NC.alt_setpt) >>= store (n_law ~> NL.alt_setpt)
+              deref (cmd ~> NC.alt_rate_setpt) >>= store (n_law ~> NL.alt_rate_setpt)
+          , altitude_control ==? E.disable ==> do
+              store (n_law ~> NL.altitude_control) false
+          ]
+        heading_control <- deref (cmd ~> NC.heading_control)
+        cond_
+          [ heading_control ==? E.enable ==> do
+              store (n_law ~> NL.heading_control) true
+              deref (cmd ~> NC.heading_setpt) >>= store (n_law ~> NL.heading_setpt)
+          , heading_control ==? E.disable ==> do
+              store (n_law ~> NL.heading_control) false
+          ]
 
-      emit_ nav_law_emitter (constRef n_law)
+        emit_ nav_law_emitter (constRef n_law)
 
 
     taskModuleDef $ do
