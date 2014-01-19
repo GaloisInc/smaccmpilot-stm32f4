@@ -81,6 +81,7 @@ data FlightParams f = FlightParams
   , flightYawUISens :: Param f
   , flightAltitude  :: AltitudeParams f
   , flightPosition  :: PosCtlParams f
+  , flightFSAlt     :: Param f
   } deriving (Functor, Foldable, Traversable)
 
 -- | Initialize flight parameters to their default values.
@@ -96,6 +97,7 @@ flightParams =                          -- P     I     D     IMAX (-IMIN)
                <*> param "YAW_UI_SENS"     180.0
                <*> group "ALT" altitudeParams
                <*> group "POS" posCtlParams
+               <*> param "FS_ALT_OFFS"     1.0
   where
   altitudeParams :: Monad m => ParamT f m (AltitudeParams f)
   altitudeParams =                              -- P     I     D     IMAX
