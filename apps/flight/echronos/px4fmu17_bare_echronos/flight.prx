@@ -58,7 +58,9 @@
     </module>
 
     <module name="armv7m.vectable">
-      <flash_load_addr>0x8000000</flash_load_addr>
+        <flash_load_addr>0x08000000</flash_load_addr>
+        <code_addr>0x08000000</code_addr>
+        <data_addr>0x20000000</data_addr>
 
       <!-- add wrapped systick irq handler to vectable: -->
       <systick>exception_preempt_trampoline_systick</systick>
@@ -202,174 +204,174 @@
 
         <!-- Priority tasks -->
         <task>
-          <name>tower_task_loop_sensorscapturetask_67_proc</name>
-          <entry>tower_task_loop_sensorsCaptureTask_67_proc</entry>
+          <name>tower_task_loop_sensorscapturetask_72_proc</name>
+          <entry>tower_task_loop_sensorsCaptureTask_72_proc</entry>
           <priority>49</priority>
           <stack_size>1024</stack_size>
         </task>
 
         <!-- tower tasks -->
         <task>
-          <name>tower_task_loop_proxy_controllaw_336_proc</name>
-          <entry>tower_task_loop_proxy_controllaw_336_proc</entry>
+          <name>tower_task_loop_proxy_controllaw_367_proc</name>
+          <entry>tower_task_loop_proxy_controllaw_367_proc</entry>
           <priority>45</priority>
           <stack_size>256</stack_size>
         </task>
         <task>
-          <name>tower_task_loop_proxy_userinput_327_proc</name>
-          <entry>tower_task_loop_proxy_userinput_327_proc</entry>
+          <name>tower_task_loop_proxy_userinput_358_proc</name>
+          <entry>tower_task_loop_proxy_userinput_358_proc</entry>
           <priority>45</priority>
           <stack_size>256</stack_size>
         </task>
         <task>
-          <name>tower_task_loop_uimuxtask_164_proc</name>
-          <entry>tower_task_loop_uiMuxTask_164_proc</entry>
+          <name>tower_task_loop_uimuxtask_170_proc</name>
+          <entry>tower_task_loop_uiMuxTask_170_proc</entry>
           <priority>45</priority>
           <stack_size>256</stack_size>
         </task>
         <task>
-          <name>tower_task_loop_controllawtask_140_proc</name>
-          <entry>tower_task_loop_controlLawTask_140_proc</entry>
+          <name>tower_task_loop_controllawtask_146_proc</name>
+          <entry>tower_task_loop_controlLawTask_146_proc</entry>
           <priority>45</priority>
           <stack_size>256</stack_size>
         </task>
         <task>
-          <name>tower_task_loop_ppminputtower_96_proc</name>
-          <entry>tower_task_loop_ppmInputTower_96_proc</entry>
+          <name>tower_task_loop_ppminputtower_102_proc</name>
+          <entry>tower_task_loop_ppmInputTower_102_proc</entry>
           <priority>45</priority>
-          <stack_size>256</stack_size>
+          <stack_size>512</stack_size>
         </task>
         
         <task>
-          <name>tower_task_loop_motors_state_522_proc</name>
-          <entry>tower_task_loop_motors_state_522_proc</entry>
+          <name>tower_task_loop_motors_state_572_proc</name>
+          <entry>tower_task_loop_motors_state_572_proc</entry>
           <priority>40</priority>
           <stack_size>256</stack_size>
         </task>
         <task>
-          <name>tower_task_loop_control_state_513_proc</name>
-          <entry>tower_task_loop_control_state_513_proc</entry>
+          <name>tower_task_loop_control_state_563_proc</name>
+          <entry>tower_task_loop_control_state_563_proc</entry>
           <priority>40</priority>
           <stack_size>256</stack_size>
         </task>
         <task>
-          <name>tower_task_loop_motmix_502_proc</name>
-          <entry>tower_task_loop_motmix_502_proc</entry>
+          <name>tower_task_loop_motmix_552_proc</name>
+          <entry>tower_task_loop_motmix_552_proc</entry>
           <priority>40</priority>
-          <stack_size>256</stack_size>
+          <stack_size>512</stack_size>
         </task>
         <task>
-          <name>tower_task_loop_control_356_proc</name>
-          <entry>tower_task_loop_control_356_proc</entry>
+          <name>tower_task_loop_control_396_proc</name>
+          <entry>tower_task_loop_control_396_proc</entry>
           <priority>40</priority>
-          <stack_size>256</stack_size>
+          <stack_size>512</stack_size>
         </task>
         <task>
-          <name>tower_task_loop_px4fmu17_pwm_530_proc</name>
-          <entry>tower_task_loop_px4fmu17_pwm_530_proc</entry>
+          <name>tower_task_loop_px4fmu17_pwm_580_proc</name>
+          <entry>tower_task_loop_px4fmu17_pwm_580_proc</entry>
           <priority>40</priority>
-          <stack_size>256</stack_size>
+          <stack_size>512</stack_size>
         </task>
         <task>
-          <name>tower_task_loop_position_state_538_proc</name>
-          <entry>tower_task_loop_position_state_538_proc</entry>
+          <name>tower_task_loop_position_state_588_proc</name>
+          <entry>tower_task_loop_position_state_588_proc</entry>
           <priority>40</priority>
-          <stack_size>256</stack_size>
+          <stack_size>512</stack_size>
         </task>
 
 
         <task>
-          <name>tower_task_loop_mavlinkinputtask_118_proc</name>
-          <entry>tower_task_loop_mavlinkInputTask_118_proc</entry>
+          <name>tower_task_loop_mavlinkinputtask_124_proc</name>
+          <entry>tower_task_loop_mavlinkInputTask_124_proc</entry>
           <priority>35</priority>
-          <stack_size>256</stack_size>
+          <stack_size>512</stack_size>
         </task>
 
         <task>
-          <name>tower_task_loop_gcstransmittask_uart5_1159_proc</name>
-          <entry>tower_task_loop_gcsTransmitTask_uart5_1159_proc</entry>
+          <name>tower_task_loop_gcstransmittask_uart5_1257_proc</name>
+          <entry>tower_task_loop_gcsTransmitTask_uart5_1257_proc</entry>
           <priority>35</priority>
           <stack_size>1024</stack_size>
         </task>
         <task>
-          <name>tower_task_loop_encrypttask_uart5_1151_proc</name>
-          <entry>tower_task_loop_encryptTask_uart5_1151_proc</entry>
+          <name>tower_task_loop_encrypttask_uart5_1249_proc</name>
+          <entry>tower_task_loop_encryptTask_uart5_1249_proc</entry>
           <priority>35</priority>
-          <stack_size>256</stack_size>
+          <stack_size>512</stack_size>
         </task>
         <task>
-          <name>tower_task_loop_gcsreceivetask_uart5_980_proc</name>
-          <entry>tower_task_loop_gcsReceiveTask_uart5_980_proc</entry>
+          <name>tower_task_loop_gcsreceivetask_uart5_1060_proc</name>
+          <entry>tower_task_loop_gcsReceiveTask_uart5_1060_proc</entry>
           <priority>35</priority>
           <stack_size>1024</stack_size>
         </task>
         <task>
-          <name>tower_task_loop_decrypttask_uart5_967_proc</name>
-          <entry>tower_task_loop_decryptTask_uart5_967_proc</entry>
+          <name>tower_task_loop_decrypttask_uart5_1047_proc</name>
+          <entry>tower_task_loop_decryptTask_uart5_1047_proc</entry>
+          <priority>35</priority>
+          <stack_size>512</stack_size>
+        </task>
+        <task>
+          <name>tower_task_loop_radio_status_uart5_1038_proc</name>
+          <entry>tower_task_loop_radio_status_uart5_1038_proc</entry>
           <priority>35</priority>
           <stack_size>256</stack_size>
         </task>
         <task>
-          <name>tower_task_loop_radio_status_uart5_958_proc</name>
-          <entry>tower_task_loop_radio_status_uart5_958_proc</entry>
-          <priority>35</priority>
-          <stack_size>256</stack_size>
-        </task>
-        <task>
-          <name>tower_task_loop_datalink_uart5_925_proc</name>
-          <entry>tower_task_loop_datalink_uart5_925_proc</entry>
+          <name>tower_task_loop_datalink_uart5_1005_proc</name>
+          <entry>tower_task_loop_datalink_uart5_1005_proc</entry>
           <priority>35</priority>
           <stack_size>256</stack_size>
         </task>
 
 
         <task>
-          <name>tower_task_loop_gcstransmittask_uart1_793_proc</name>
-          <entry>tower_task_loop_gcsTransmitTask_uart1_793_proc</entry>
+          <name>tower_task_loop_gcstransmittask_uart1_861_proc</name>
+          <entry>tower_task_loop_gcsTransmitTask_uart1_861_proc</entry>
           <priority>30</priority>
           <stack_size>1024</stack_size>
         </task>
         <task>
-          <name>tower_task_loop_encrypttask_uart1_785_proc</name>
-          <entry>tower_task_loop_encryptTask_uart1_785_proc</entry>
+          <name>tower_task_loop_encrypttask_uart1_853_proc</name>
+          <entry>tower_task_loop_encryptTask_uart1_853_proc</entry>
           <priority>30</priority>
-          <stack_size>256</stack_size>
+          <stack_size>512</stack_size>
         </task>
         <task>
-          <name>tower_task_loop_gcsreceivetask_uart1_614_proc</name>
-          <entry>tower_task_loop_gcsReceiveTask_uart1_614_proc</entry>
+          <name>tower_task_loop_gcsreceivetask_uart1_664_proc</name>
+          <entry>tower_task_loop_gcsReceiveTask_uart1_664_proc</entry>
           <priority>30</priority>
           <stack_size>1024</stack_size>
         </task>
         <task>
-          <name>tower_task_loop_decrypttask_uart1_601_proc</name>
-          <entry>tower_task_loop_decryptTask_uart1_601_proc</entry>
+          <name>tower_task_loop_decrypttask_uart1_651_proc</name>
+          <entry>tower_task_loop_decryptTask_uart1_651_proc</entry>
+          <priority>30</priority>
+          <stack_size>512</stack_size>
+        </task>
+        <task>
+          <name>tower_task_loop_radio_status_uart1_642_proc</name>
+          <entry>tower_task_loop_radio_status_uart1_642_proc</entry>
           <priority>30</priority>
           <stack_size>256</stack_size>
         </task>
         <task>
-          <name>tower_task_loop_radio_status_uart1_592_proc</name>
-          <entry>tower_task_loop_radio_status_uart1_592_proc</entry>
-          <priority>30</priority>
-          <stack_size>256</stack_size>
-        </task>
-        <task>
-          <name>tower_task_loop_datalink_uart1_559_proc</name>
-          <entry>tower_task_loop_datalink_uart1_559_proc</entry>
+          <name>tower_task_loop_datalink_uart1_609_proc</name>
+          <entry>tower_task_loop_datalink_uart1_609_proc</entry>
           <priority>30</priority>
           <stack_size>256</stack_size>
         </task>
 
         <task>
-          <name>tower_task_loop_ubloxgps_49_proc</name>
-          <entry>tower_task_loop_ubloxGPS_49_proc</entry>
+          <name>tower_task_loop_ubloxgps_54_proc</name>
+          <entry>tower_task_loop_ubloxGPS_54_proc</entry>
           <priority>25</priority>
-          <stack_size>256</stack_size>
+          <stack_size>512</stack_size>
         </task>
 
         <task>
-          <name>tower_task_loop_blink_494_proc</name>
-          <entry>tower_task_loop_blink_494_proc</entry>
+          <name>tower_task_loop_blink_542_proc</name>
+          <entry>tower_task_loop_blink_542_proc</entry>
           <priority>25</priority>
           <stack_size>256</stack_size>
         </task>

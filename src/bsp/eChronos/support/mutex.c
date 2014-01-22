@@ -4,12 +4,14 @@
  *  Created on: Nov 14, 2013
  *      Author: jxie @ NICTA
  */
+#include <stdlib.h>
 #include <stdio.h>
+
 #include "rtos-kochab.h"
 #include "mutex.h"
 #include "task.h"
 #include "port.h"
-#include <stdlib.h>
+
 #define pdTRUE		1
 #define pdFALSE		0
 
@@ -307,12 +309,15 @@ static int _SemMux_Take(int type, void * priv, unsigned long max_delay_ms){
 
 	uint8_t TaskHolderId = rtos_get_current_task();
 
+
 	switch(type){
 
 	case BINARY_MUTEX:
 		mux = (struct MUX_t *) priv;
 
 		rtos_disable_preempt();
+	    /* JWX: safe to disable irqs */
+	    ulPortSetInterruptMask();
 
 		if(max_delay_ms){
 			r = rtos_mutex_lock_delay(mux->muxid, _ms_to_ticks(max_delay_ms));
@@ -320,6 +325,8 @@ static int _SemMux_Take(int type, void * priv, unsigned long max_delay_ms){
 			r = rtos_mutex_try_lock(mux->muxid);
 		}
 
+	    /* JWX: safe to enable irqs */
+	    vPortClearInterruptMask(0);
 		rtos_enable_preempt();
 
 		break;
@@ -328,6 +335,9 @@ static int _SemMux_Take(int type, void * priv, unsigned long max_delay_ms){
 		mux = (struct MUX_t *) priv;
 
 		rtos_disable_preempt();
+	    /* JWX: safe to disable irqs */
+	    ulPortSetInterruptMask();
+
 
 		if( (mux->TskHoldCnt == 0 && rtos_get_mutex_holder(mux->muxid) == TASK_ID_INVALID) || (rtos_get_mutex_holder(mux->muxid) != TaskHolderId) ){
 			//take the mutex and update holder Id
@@ -352,6 +362,9 @@ static int _SemMux_Take(int type, void * priv, unsigned long max_delay_ms){
 #endif
 		}
 
+
+	    /* JWX: safe to enable irqs */
+	    vPortClearInterruptMask(0);
 		rtos_enable_preempt();
 
 		break;
@@ -359,15 +372,27 @@ static int _SemMux_Take(int type, void * priv, unsigned long max_delay_ms){
 	case SEMAPHORE:
 	case COUNTING_SEMAPHORE:
 		sem = (struct SEM_t *)priv;
+
+		rtos_disable_preempt();
+	    /* JWX: safe to disable irqs */
+	    ulPortSetInterruptMask();
+
 		if(max_delay_ms){
 			r = rtos_sem_wait_delay(sem->semid, _ms_to_ticks(max_delay_ms));
 		}else{
 			r = rtos_sem_try_wait(sem->semid);
 		}
+
+	    /* JWX: safe to enable irqs */
+	    vPortClearInterruptMask(0);
+		rtos_enable_preempt();
+
 		break;
 	default:
 		break;
 	}
+
+
 
 	return r;
 }
@@ -493,6 +518,5 @@ void * eChronosGetMutexHolder(void * handler)
 		return NULL;
 	}
 }
-
 
 

@@ -5,14 +5,14 @@
  *      Author: jxie @ NICTA
  */
 
-
+#include <stdlib.h>
 #include "rtos-kochab.h"
 #include "stm32f4xx.h"
 #include "debug.h"
 #include "mutex.h"
 #include "task.h"
 #include "port.h"
-#include <stdlib.h>
+#include "config.h"
 
 
 extern void *entry_fn[];

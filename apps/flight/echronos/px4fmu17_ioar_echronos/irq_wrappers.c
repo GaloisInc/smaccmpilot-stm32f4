@@ -5,6 +5,39 @@
 #include <eChronos.h>
 #include <rtos-kochab.h>
 
+#define IRQ_WRAPPER_NAKED(x) \
+        extern void x##_IRQHandler(void);                 \
+        bool eChronos_##x##_IRQHandler(void)               \
+        {                                                 \
+            x##_IRQHandler();                         		\
+            return true;                                  \
+        }                                                 \
+        void x##_IRQHandler_wrapper(void)                 \
+        {                                                 \
+            while (1) {                                   \
+                rtos_signal_wait_set(SIGNAL_SET_IRQ_##x); \
+            }                                             \
+        }
+
+
+
+
+
+#define IRQ_WRAPPER_NAKED(x) \
+        extern void x##_IRQHandler(void);                 \
+        bool eChronos_##x##_IRQHandler(void)              \
+        {                                                 \
+            x##_IRQHandler();                         	  \
+            return true;                                  \
+        }                                                 \
+        void x##_IRQHandler_wrapper(void)                 \
+        {                                                 \
+            while (1) {                                   \
+                rtos_signal_wait_set(SIGNAL_SET_IRQ_##x); \
+            }                                             \
+        }
+
+
 #define IRQ_WRAPPER(x) \
         bool eChronos_##x##_IRQHandler(void)              \
         {                                                 \

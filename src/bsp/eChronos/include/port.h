@@ -8,6 +8,7 @@
 #ifndef PORT_H_
 #define PORT_H_
 
+
 #define configCPU_CLOCK_HZ			( ( unsigned long ) 168000000 )
 #define configTICK_RATE_HZ			( ( unsigned long ) 1000 )
 
@@ -60,8 +61,8 @@ configKERNEL_INTERRUPT_PRIORITY setting.  Here 15 corresponds to the lowest
 NVIC value of 255. */
 #define configLIBRARY_KERNEL_INTERRUPT_PRIORITY	15
 
-
-//__attribute__(( naked ))void cotexM4_enable_irqs (void);
+__attribute__(( naked )) unsigned long ulPortSetInterruptMask( void );
+__attribute__(( naked )) void vPortClearInterruptMask( unsigned long ulNewMaskValue );
 //__attribute__(( naked ))void cotexM4_disable_irqs (void);
 
 void vPortEnterCritical(void);
