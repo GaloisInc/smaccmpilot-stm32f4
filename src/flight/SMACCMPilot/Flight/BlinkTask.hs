@@ -79,40 +79,28 @@ lawToBlinkMode :: (GetAlloc eff ~ Scope cs)
 lawToBlinkMode law cstat = do
   armed <- deref (law ~> CL.armed_mode)
   cond
-    [ armed ==? A.safe     ==> return pulse_slow
-    , armed ==? A.disarmed ==> return pulse_fast
-    , cstat ==? CS.alarm   ==> return pulse_xfast
-    , armed ==? A.armed    ==> return blink_fast
+    [ armed ==? A.safe     ==> return shortduration_longperiod
+    , cstat ==? CS.alarm   ==> return longduration_shortperiod
+    , armed ==? A.disarmed .|| armed ==? A.armed ==>
+        return shortduration_shortperiod
     ]
 
--- blink_off   :: Uint8
--- blink_off   = 0
--- blink_on    :: Uint8
--- blink_on    = 1
--- blink_slow  :: Uint8
--- blink_slow  = 2
-blink_fast  :: Uint8
-blink_fast  = 3
-pulse_slow  :: Uint8
-pulse_slow  = 4
-pulse_fast  :: Uint8
-pulse_fast  = 5
-pulse_xfast :: Uint8
-pulse_xfast = 6
+longduration_shortperiod :: Uint8
+longduration_shortperiod = 0
+shortduration_longperiod :: Uint8
+shortduration_longperiod = 1
+shortduration_shortperiod :: Uint8
+shortduration_shortperiod = 2
 
 blinkOutput :: Uint8 -> Uint8 -> Ivory eff IBool
-blinkOutput state phase = return switchState
+blinkOutput state phase = return (iNot switchState) -- XXX HACK FOR INVERTED EXTERNAL LEDS
   where
-  switchState = foldl aux false [0..6]
+  switchState = foldl aux false [0..2]
     where aux res s = (state ==? (fromIntegral s)) ? (switchPhase s, res)
   switchPhase s = foldl aux false [0..7]
     where aux res n = (phase ==? (fromIntegral n)) ? (((t !! s) !! n), res)
-  t = [ [ false, false, false, false, false, false, false, false ]  -- 0 off
-      , [  true,  true,  true,  true,  true,  true,  true,  true ]  -- 1 on
-      , [ false, false,  true,  true,  true,  true,  true,  true ]  -- 2 blinkslow
-      , [ false,  true,  true,  true, false,  true,  true,  true ]  -- 3 blinkfast
-      , [ false, false, false, false, false, false, false,  true ]  -- 4 pulseslow
-      , [ false, false, false,  true, false, false, false,  true ]  -- 5 pulsefast
-      , [ false,  true, false,  true, false,  true, false,  true ] ]-- 6 pulsexfst
+  t = [ [  true,  true,  true, false,  true,  true,  true, false ]  -- 0 longduration_shortperiod
+      , [  true, false, false, false, false, false, false, false ]  -- 1 shortduration_longperiod
+      , [  true, false, false, false,  true, false, false, false ]] -- 2 shortduration_shortperiod
 
 
