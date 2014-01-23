@@ -25,6 +25,9 @@ CONFIG_TOWER_REPOSITORY := ../tower
 # Root directory of the FreeRTOS source tree.
 CONFIG_FREERTOS_PREFIX := ../FreeRTOS
 
+# Root directory of the eChronos tree
+CONFIG_ECHRONOS_PREFIX := ../../brtos-smaccm-0.0.2-1
+
 # Set this variable when using the bootloader on the PX4FMU,
 # unset if flashing purely via JTAG.
 CONFIG_PX4FMU_BOOTLOADER := 1
