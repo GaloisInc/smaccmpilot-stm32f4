@@ -251,7 +251,7 @@
         <task>
           <name>tower_task_loop_motmix_502_proc</name>
           <entry>tower_task_loop_motmix_502_proc</entry>
-          <priority>40</priority>
+          <priority>45</priority>
           <stack_size>512</stack_size>
         </task>
         <task>
@@ -278,14 +278,14 @@
         <task>
           <name>tower_task_loop_mavlinkinputtask_118_proc</name>
           <entry>tower_task_loop_mavlinkInputTask_118_proc</entry>
-          <priority>35</priority>
+          <priority>42</priority>
           <stack_size>512</stack_size>
         </task>
 
         <task>
           <name>tower_task_loop_gcstransmittask_uart5_1204_proc</name>
           <entry>tower_task_loop_gcsTransmitTask_uart5_1204_proc</entry>
-          <priority>35</priority>
+          <priority>42</priority>
           <stack_size>1024</stack_size>
         </task>
         <task>
@@ -297,7 +297,7 @@
         <task>
           <name>tower_task_loop_gcsreceivetask_uart5_1025_proc</name>
           <entry>tower_task_loop_gcsReceiveTask_uart5_1025_proc</entry>
-          <priority>35</priority>
+          <priority>42</priority>
           <stack_size>1024</stack_size>
         </task>
         <task>
