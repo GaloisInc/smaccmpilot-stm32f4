@@ -80,13 +80,13 @@ lawToBlinkMode law cstat = do
   armed <- deref (law ~> CL.armed_mode)
   cond
     [ armed ==? A.safe     ==> return shortduration_longperiod
-    , cstat ==? CS.alarm   ==> return longduration_shortperiod
+    , cstat ==? CS.alarm   ==> return longduration_longperiod
     , armed ==? A.disarmed .|| armed ==? A.armed ==>
         return shortduration_shortperiod
     ]
 
-longduration_shortperiod :: Uint8
-longduration_shortperiod = 0
+longduration_longperiod :: Uint8
+longduration_longperiod = 0
 shortduration_longperiod :: Uint8
 shortduration_longperiod = 1
 shortduration_shortperiod :: Uint8
@@ -99,7 +99,7 @@ blinkOutput state phase = return (iNot switchState) -- XXX HACK FOR INVERTED EXT
     where aux res s = (state ==? (fromIntegral s)) ? (switchPhase s, res)
   switchPhase s = foldl aux false [0..7]
     where aux res n = (phase ==? (fromIntegral n)) ? (((t !! s) !! n), res)
-  t = [ [  true,  true,  true, false,  true,  true,  true, false ]  -- 0 longduration_shortperiod
+  t = [ [  true,  true,  true,  true,  true,  true,  true,  true ]  -- 0 longduration_longperiod
       , [  true, false, false, false, false, false, false, false ]  -- 1 shortduration_longperiod
       , [  true, false, false, false,  true, false, false, false ]] -- 2 shortduration_shortperiod
 

@@ -134,6 +134,9 @@ navTower params nav_inputs = do
       sens  <- local izero
       readData sens_reader sens
       fs_update failsafe n_law sens
+      fs <- fs_active failsafe
+      when fs $ do
+        emit_ nav_law_emitter (constRef n_law)
 
       cl_req <- local (CR.initControlLawRequest [ CR.time .= ival t ])
       ctl_sp <- local (istruct [ SP.time .= ival t ])
