@@ -46,9 +46,9 @@ $(eval $(call when_os,echronos,image,APP_BSPUARTTEST))
 
 LIB_BSPUARTTEST_LIB          := libbspuarttest.a
 LIB_BSPUARTTEST_REAL_OBJECTS += $(call filteroutstring,tower_task_loop_, \
-                                      $(IVORY_PKG_BSPUARTTEST_OBJECTS))
+                                      $(IVORY_PKG_UART_TEST_OBJECTS))
 LIB_BSPUARTTEST_CFLAGS       += $(LIB_BSPUARTTEST_INCLUDES)
-LIB_BSPUARTTEST_CFLAGS       += $(IVORY_PKG_BSPUARTTEST_CFLAGS)
+LIB_BSPUARTTEST_CFLAGS       += $(IVORY_PKG_UART_TEST_CFLAGS)
 
 $(eval $(call when_os,aadl,library,LIB_BSPUARTTEST))
 
