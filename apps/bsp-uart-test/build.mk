@@ -40,4 +40,16 @@ $(eval $(call when_os,freertos,image,APP_BSPUARTTEST))
 $(eval $(call when_os,echronos,echronos_gen,APP_BSPUARTTEST))
 $(eval $(call when_os,echronos,image,APP_BSPUARTTEST))
 
+# ------------------------------------------------------------------------------
+# AADL Build
+# ------------------------------------------------------------------------------
+
+LIB_BSPUARTTEST_LIB          := libbspuarttest.a
+LIB_BSPUARTTEST_REAL_OBJECTS += $(call filteroutstring,tower_task_loop_, \
+                                      $(IVORY_PKG_BSPUARTTEST_OBJECTS))
+LIB_BSPUARTTEST_CFLAGS       += $(LIB_BSPUARTTEST_INCLUDES)
+LIB_BSPUARTTEST_CFLAGS       += $(IVORY_PKG_BSPUARTTEST_CFLAGS)
+
+$(eval $(call when_os,aadl,library,LIB_BSPUARTTEST))
+
 # vim: set ft=make noet ts=2:
