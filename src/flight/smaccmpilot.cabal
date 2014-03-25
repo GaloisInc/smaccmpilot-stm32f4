@@ -8,10 +8,6 @@ category:            System
 build-type:          Simple
 cabal-version:       >= 1.10
 
-flag werror
-  default:              False
-  description:          Pass -Werror to GHC.
-
 library
   exposed-modules:     SMACCMPilot.Flight,
                        SMACCMPilot.Flight.Core,
@@ -140,10 +136,7 @@ library
                        smaccm-mavlink
 
   default-language:    Haskell2010
-  if flag(werror)
-    ghc-options:        -Wall -Werror
-  else
-    ghc-options:        -Wall
+  ghc-options:         -Wall
 
 executable flight-gen
   main-is:             FlightGen.hs
@@ -165,10 +158,7 @@ executable flight-gen
                        smaccmpilot
 
   default-language:    Haskell2010
-  if flag(werror)
-    ghc-options:        -Wall -Werror
-  else
-    ghc-options:        -Wall
+  ghc-options:         -Wall
 
 executable flight-hil-gen
   main-is:             HILGen.hs
@@ -190,10 +180,7 @@ executable flight-hil-gen
                        smaccmpilot
 
   default-language:    Haskell2010
-  if flag(werror)
-    ghc-options:        -Wall -Werror
-  else
-    ghc-options:        -Wall
+  ghc-options:         -Wall
 
 
 

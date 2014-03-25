@@ -14,10 +14,6 @@ license:             BSD3
 build-type:          Simple
 cabal-version:       >=1.8
 
-flag werror
-  default:              False
-  description:          Pass -Werror to GHC.
-
 library
   exposed-modules:     Ivory.BSP.HWF4,
                        Ivory.BSP.HWF4.EEPROM,
@@ -29,7 +25,4 @@ library
   build-depends:       base >= 4.6,
                        template-haskell,
                        ivory
-  if flag(werror)
-    ghc-options:        -Wall -Werror
-  else
-    ghc-options:        -Wall
+  ghc-options:         -Wall
