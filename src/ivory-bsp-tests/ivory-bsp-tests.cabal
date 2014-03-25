@@ -27,9 +27,8 @@ executable bsp-uart-tower-test-gen
                        ivory-backend-c,
                        ivory-bitdata,
                        ivory-hw,
-                       ivory-tower >= 0.6.0.0,
-                       ivory-tower-freertos >= 0.6.0.0,
-                       ivory-tower-frontend,
+                       tower          >= 0.8,
+                       tower-frontend >= 0.8,
                        ivory-bsp-stm32f4
   if flag(werror)
     ghc-options:        -Wall -Werror
@@ -48,9 +47,8 @@ executable bsp-led-tower-test-gen
                        ivory-backend-c,
                        ivory-bitdata,
                        ivory-hw,
-                       ivory-tower >= 0.6.0.0,
-                       ivory-tower-freertos >= 0.6.0.0,
-                       ivory-tower-frontend,
+                       tower          >= 0.8,
+                       tower-frontend >= 0.8,
                        ivory-bsp-stm32f4
   if flag(werror)
     ghc-options:        -Wall -Werror
@@ -72,9 +70,8 @@ executable bsp-spi-tower-test-gen
                        ivory-backend-c,
                        ivory-bitdata,
                        ivory-hw,
-                       ivory-tower >= 0.6.0.0,
-                       ivory-tower-freertos >= 0.6.0.0,
-                       ivory-tower-frontend,
+                       tower          >= 0.8,
+                       tower-frontend >= 0.8,
                        ivory-bsp-stm32f4
   if flag(werror)
     ghc-options:        -Wall -Werror
@@ -91,9 +88,8 @@ executable bsp-open407-toy-gen
                        ivory-backend-c,
                        ivory-bitdata,
                        ivory-hw,
-                       ivory-tower >= 0.6.0.0,
-                       ivory-tower-freertos >= 0.6.0.0,
-                       ivory-tower-frontend,
+                       tower          >= 0.8,
+                       tower-frontend >= 0.8,
                        ivory-bsp-stm32f4
   if flag(werror)
     ghc-options:        -Wall -Werror

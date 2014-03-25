@@ -65,7 +65,7 @@ library
                        ivory-stdlib,
                        ivory-bitdata,
                        ivory-hw,
-                       ivory-tower >= 0.6.0.0
+                       tower >= 0.8
   if flag(werror)
     ghc-options:        -Wall -Werror
   else
