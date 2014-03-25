@@ -30,7 +30,7 @@ library
                        Ivory.BSP.STM32F4.SPI.Regs,
                        Ivory.BSP.STM32F4.SPI.RegTypes,
                        Ivory.BSP.STM32F4.SPI.Peripheral,
-                       Ivory.BSP.STM32F4.SPI.Tower,
+                       -- Ivory.BSP.STM32F4.SPI.Tower,
                        Ivory.BSP.STM32F4.I2C.Regs,
                        Ivory.BSP.STM32F4.I2C.Peripheral,
                        Ivory.BSP.STM32F4.RCC,
@@ -52,7 +52,7 @@ library
                        Ivory.BSP.STM32F4.UART.Types,
                        Ivory.BSP.STM32F4.UART.Regs,
                        Ivory.BSP.STM32F4.UART.Peripheral,
-                       Ivory.BSP.STM32F4.UART.Tower,
+                       -- Ivory.BSP.STM32F4.UART.Tower,
                        Ivory.BSP.STM32F4.SearchDir
 
   other-modules:       Ivory.BSP.STM32F4.GPIO.TH,

@@ -1,4 +1,5 @@
 {-# LANGUAGE Rank2Types #-}
+{-# LANGUAGE TypeFamilies #-}
 
 module Platforms where
 
@@ -27,9 +28,24 @@ f24MHz = 24000000
 f8MHz :: Uint32
 f8MHz = 8000000
 
+-- XXX FIX SIGNALABLE CLASS DEFINITION
+instance Signalable PX4FMUv17 where
+  data SignalType PX4FMUv17 = PlaceholderSignalPX4FMUv17
+    deriving (Eq, Read, Show)
+  signals = [PlaceholderSignalPX4FMUv17]
+  signalName = show
+  signalFromName = read
 
 instance BoardHSE PX4FMUv17 where
   hseFreq _ = f24MHz
+
+-- XXX FIX SIGNALABLE CLASS DEFINITION
+instance Signalable F4Discovery where
+  data SignalType F4Discovery = PlaceholderSignalF4Discovery
+    deriving (Eq, Read, Show)
+  signals = [PlaceholderSignalF4Discovery]
+  signalName = show
+  signalFromName = read
 
 instance ColoredLEDs F4Discovery where
   redLED _  = LED pinD14 ActiveHigh
@@ -37,6 +53,14 @@ instance ColoredLEDs F4Discovery where
 
 instance BoardHSE F4Discovery where
   hseFreq _ = f8MHz
+
+-- XXX FIX SIGNALABLE CLASS DEFINITION
+instance Signalable Open407VC where
+  data SignalType Open407VC = PlaceholderSignalOpen407VC
+    deriving (Eq, Read, Show)
+  signals = [PlaceholderSignalOpen407VC]
+  signalName = show
+  signalFromName = read
 
 instance ColoredLEDs Open407VC where
   redLED _  = LED pinD12 ActiveHigh

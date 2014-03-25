@@ -43,7 +43,7 @@ pinHiZ pin = pinSetMode pin gpio_mode_analog
 -- | LED Controller: Given a set of leds and a control channel of booleans,
 --   setup the pin hardware, and turn the leds on when the control channel is
 --   true.
-ledController :: (SingI n) => [LED] -> ChannelSink n (Stored IBool) -> Task p ()
+ledController :: [LED] -> ChannelSink (Stored IBool) -> Task p ()
 ledController leds rxer = do
   -- Bookkeeping: this task uses Ivory.HW.Module.hw_moduledef
   taskModuleDef $ hw_moduledef
@@ -51,7 +51,9 @@ ledController leds rxer = do
   taskInit $
     mapM_ ledSetup leds
   -- Run a callback on each message posted to the channel
-  onChannelV rxer "output" $ \out -> do
+  rxevt <- withChannelEvent rxer "output"
+  handle rxevt "output" $ \outref -> do
+    out <- deref outref
     -- Turn pins on or off according to event value
     ifte_ out
       (mapM_ ledOn  leds)
@@ -59,15 +61,17 @@ ledController leds rxer = do
 
 -- | Blink task: Given a period and a channel source, output an alternating
 --   stream of true / false on each period.
-blink :: (SingI n) => Integer -> ChannelSource n (Stored IBool) -> Task p ()
+blink :: Integer -> ChannelSource (Stored IBool) -> Task p ()
 blink per outSource = do
   -- Bring the emitter into scope for this Task
   outEmitter <- withChannelEmitter outSource "output"
   -- Declare a period for this Task
-  onPeriod per $ \time ->
+  perevt <- timerEvent (Milliseconds per)
+  handle perevt "per" $ \timeref -> do
+    time <- deref timeref
     -- Emit boolean value which will alternate each period.
-    emitV_ outEmitter (time .% (2*p) <? p)
-  where p = fromIntegral per :: Uint32
+    emitV_ outEmitter ((toIMilliseconds time) .% (2*p) <? p)
+  where p = fromIntegral per
 
 blinkApp :: Integer -> [LED] -> Tower p ()
 blinkApp period pins = do
