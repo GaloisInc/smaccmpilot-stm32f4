@@ -14,12 +14,6 @@ import Ivory.Language
 import Ivory.BitData
 import Ivory.HW
 
-
--- Based on convention used in init/startup_stm43f4xx.s
-handlerName :: Interrupt -> String
-handlerName i = (show i) ++ "_IRQHandler"
-
-
 ----------------------------------------------------------------------
 -- High Level Interface
 

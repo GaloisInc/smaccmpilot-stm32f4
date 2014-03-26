@@ -108,7 +108,7 @@ spiInitISR spi priority = do
   inter = spiInterrupt spi
 
 spiISRHandlerName :: SPIPeriph -> String
-spiISRHandlerName spi = ISR.handlerName (spiInterrupt spi)
+spiISRHandlerName spi = ISR.interruptHandlerName (spiInterrupt spi)
 
 -- Clock Polarity and Phase: see description
 -- of CPOL and CPHA in ST reference manual RM0090

@@ -15,6 +15,10 @@ irqn :: IRQ -> Int
 irqn (Exception e) = exceptionIRQn e
 irqn (Interrupt i) = interruptIRQn i
 
+irqs :: [IRQ]
+irqs = map Exception (enumFrom NonMaskable)
+    ++ map Interrupt (enumFrom WWDG)
+
 data Exception
   = NonMaskable
   | MemoryManagment

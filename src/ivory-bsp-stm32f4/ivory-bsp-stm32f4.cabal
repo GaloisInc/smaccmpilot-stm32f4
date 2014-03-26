@@ -53,6 +53,8 @@ library
                        Ivory.BSP.STM32F4.UART.Regs,
                        Ivory.BSP.STM32F4.UART.Peripheral,
                        -- Ivory.BSP.STM32F4.UART.Tower,
+                       Ivory.BSP.STM32F4.Signalable,
+                       Ivory.BSP.STM32F4.Signalable.Class,
                        Ivory.BSP.STM32F4.SearchDir
 
   other-modules:       Ivory.BSP.STM32F4.GPIO.TH,
