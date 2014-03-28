@@ -34,8 +34,8 @@ uartTower uart baud sizeproxy = do
   -- than) level 11
   let max_syscall_priority = (12::Uint8)
 
-  (src_ostream, snk_ostream) <- channelWithSize sizeproxy
-  (src_istream, snk_istream) <- channelWithSize sizeproxy
+  (src_ostream, snk_ostream) <- channel' sizeproxy Nothing
+  (src_istream, snk_istream) <- channel' sizeproxy Nothing
 
   task (uartName uart ++ "_driver") $ do
 
