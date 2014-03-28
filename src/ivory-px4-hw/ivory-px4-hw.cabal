@@ -31,6 +31,7 @@ library
                        ivory-hw,
                        ivory-bitdata,
                        tower >= 0.8,
+                       tower-statemachine >= 0.8,
                        ivory-bsp-stm32f4
 
   default-language:    Haskell2010
