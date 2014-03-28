@@ -15,11 +15,13 @@ import Platforms
 import LEDTower
 
 import Ivory.BSP.STM32F4.UART
+import Ivory.BSP.STM32F4.UART.Tower
 import Ivory.BSP.STM32F4.RCC
+import Ivory.BSP.STM32F4.Signalable
 
 --------------------------------------------------------------------------------
 
-app :: forall p . (ColoredLEDs p, BoardHSE p) => Tower p ()
+app :: forall p . (ColoredLEDs p, BoardHSE p, STM32F4Signal p) => Tower p ()
 app = do
   -- Starts two tasks: a blink task and a controller task.  Periodically blink
   -- the blue LED.
@@ -27,7 +29,7 @@ app = do
   -- A new queue
   redledctl <- channel
   -- Starts a UART (serial) task
-  (istream, ostream) <- uartTower uart5 115200
+  (istream, ostream) <- uartTower uart1 115200 (Proxy :: Proxy 256)
   -- Start the task defined below
   echoPrompt "hello world" ostream istream (src redledctl)
   -- A task that takes control input (Boolean) from the echo prompt and controls
@@ -41,11 +43,10 @@ app = do
 
 --------------------------------------------------------------------------------
 
-echoPrompt :: (SingI n)
-           => String
-           -> ChannelSource 128 (Stored Uint8)
-           -> ChannelSink   128 (Stored Uint8)
-           -> ChannelSource n   (Stored IBool)
+echoPrompt :: String
+           -> ChannelSource (Stored Uint8)
+           -> ChannelSink   (Stored Uint8)
+           -> ChannelSource (Stored IBool)
            -> Tower p ()
 echoPrompt greeting ostream istream ledctlstream = task "echoprompt" $ do
   o      <- withChannelEmitter ostream      "ostream"
@@ -60,7 +61,9 @@ echoPrompt greeting ostream istream ledctlstream = task "echoprompt" $ do
   taskInit $ do
     puts (greeting ++ "\n")
     puts prompt
-  onChannelV istream "istream" $ \input -> do
+  ievt <- withChannelEvent istream "istream"
+  handle ievt "istream" $ \inputref -> do
+    input <- deref inputref
     putc input -- echo to terminal
     let testChar = (input `isChar`)
     cond_

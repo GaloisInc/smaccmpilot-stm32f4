@@ -15,27 +15,26 @@ flag werror
   default:              False
   description:          Pass -Werror to GHC.
 
--- disabled: uses UART.Tower, which is broken currently
---executable bsp-uart-tower-test-gen
---  main-is:             UARTTowerCompiler.hs
---  other-modules:       UARTTower,
---                       LEDTower,
---                       Platforms
---  hs-source-dirs:      examples
---  build-depends:       base >= 4.6,
---                       ivory,
---                       ivory-stdlib,
---                       ivory-backend-c,
---                       ivory-bitdata,
---                       ivory-hw,
---                       tower          >= 0.8,
---                       tower-frontend >= 0.8,
---                       ivory-bsp-stm32f4
---  if flag(werror)
---    ghc-options:        -Wall -Werror
---  else
---    ghc-options:        -Wall
---
+executable bsp-uart-tower-test-gen
+  main-is:             UARTTowerCompiler.hs
+  other-modules:       UARTTower,
+                       LEDTower,
+                       Platforms
+  hs-source-dirs:      examples
+  build-depends:       base >= 4.6,
+                       ivory,
+                       ivory-stdlib,
+                       ivory-backend-c,
+                       ivory-bitdata,
+                       ivory-hw,
+                       tower          >= 0.8,
+                       tower-frontend >= 0.8,
+                       ivory-bsp-stm32f4
+  if flag(werror)
+    ghc-options:        -Wall -Werror
+  else
+    ghc-options:        -Wall
+
 
 executable bsp-led-tower-test-gen
   main-is:             LEDTowerCompiler.hs

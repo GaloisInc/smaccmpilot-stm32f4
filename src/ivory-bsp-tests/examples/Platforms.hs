@@ -61,7 +61,7 @@ instance BoardHSE Open407VC where
 
 --------- Platform lookup by name ---------------------------------------------
 
-coloredLEDPlatforms :: (forall p . (ColoredLEDs p, BoardHSE p)
+coloredLEDPlatforms :: (forall p . (ColoredLEDs p, BoardHSE p, STM32F4Signal p)
                     => Tower p ()) -> [(String, Twr)]
 coloredLEDPlatforms app =
     [("px4fmu17_bare",     Twr (app :: Tower PX4FMUv17 ()))
