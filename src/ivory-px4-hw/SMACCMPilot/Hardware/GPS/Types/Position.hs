@@ -8,6 +8,7 @@
 module SMACCMPilot.Hardware.GPS.Types.Position where
 
 import Ivory.Language
+import Ivory.Tower.Types.Time
 
 import SMACCMPilot.Hardware.GPS.Types.GPSFix
 
@@ -35,7 +36,7 @@ struct position
   ; vground :: Stored Uint32
   ; heading :: Stored IFloat
 
-  ; time    :: Stored Uint32
+  ; time    :: Stored ITime
   }
 |]
 

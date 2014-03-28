@@ -52,8 +52,9 @@ executable             copter-motor-test-gen
                        ivory-opts,
                        ivory-hw,
                        ivory-bitdata,
-                       tower          >= 0.8,
-                       tower-frontend >= 0.8,
+                       tower              >= 0.8,
+                       tower-statemachine >= 0.8,
+                       tower-frontend     >= 0.8,
                        ivory-bsp-stm32f4,
                        ivory-px4-hw
 
@@ -75,8 +76,9 @@ executable             ublox-gps-test-gen
                        ivory-opts,
                        ivory-hw,
                        ivory-bitdata,
-                       tower          >= 0.8,
-                       tower-frontend >= 0.8,
+                       tower              >= 0.8,
+                       tower-statemachine >= 0.8,
+                       tower-frontend     >= 0.8,
                        ivory-bsp-stm32f4,
                        ivory-px4-hw
 

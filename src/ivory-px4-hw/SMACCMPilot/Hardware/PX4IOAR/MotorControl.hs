@@ -16,8 +16,10 @@ import Ivory.Tower
 import Ivory.Tower.StateMachine
 
 import Ivory.BSP.STM32F4.UART
+import Ivory.BSP.STM32F4.UART.Tower
 import Ivory.BSP.STM32F4.GPIO
 import Ivory.BSP.STM32F4.RCC
+import Ivory.BSP.STM32F4.Signalable
 
 select_pins :: [GPIOPin]
 select_pins = [ pinC4, pinC5, pinA0, pinA1 ]
@@ -49,15 +51,14 @@ select_set_all v = mapM_ act select_pins
   where -- Active Low:
   act pin = ifte_ v (pinClear pin) (pinSet pin)
 
-motorControlTower :: (SingI n, IvoryArea a, IvoryZero a, BoardHSE p)
+motorControlTower :: (IvoryArea a, IvoryZero a, BoardHSE p, STM32F4Signal p)
              => (forall s cs . ConstRef s a
                   -> Ivory (AllocEffects cs)
                        (ConstRef (Stack cs) (Array 4 (Stored IFloat))))
-             -> ChannelSink n a
+             -> ChannelSink a
              -> Tower p ()
 motorControlTower decode motorChan = do
-  ((_unusedRxChan :: ChannelSink 1 (Stored Uint8))
-   ,(txchan :: ChannelSource 12 (Stored Uint8))) <- uartTower uart2 115200
+  (_unusedRxChan, txchan) <- uartTower uart2 115200 (Proxy :: Proxy 12)
   task "px4ioar" $ do
     ostream <- withChannelEmitter txchan "uart_ostream"
     istream <- withChannelEvent   motorChan  "motor_istream"

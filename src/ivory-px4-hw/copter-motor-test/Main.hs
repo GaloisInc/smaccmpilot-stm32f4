@@ -18,6 +18,8 @@ import qualified Ivory.HW.SearchDir          as HW
 import qualified Ivory.BSP.STM32F4.SearchDir as BSP
 
 import Ivory.BSP.STM32F4.UART
+import Ivory.BSP.STM32F4.UART.Tower
+import Ivory.BSP.STM32F4.Signalable
 
 import Platform
 
@@ -26,24 +28,23 @@ main = compilePlatforms conf (motorPlatforms app)
   where
   conf = searchPathConf [ HW.searchDir, BSP.searchDir ]
 
-app :: (RawMotorControl p, BoardHSE p) => Tower p ()
+app :: (RawMotorControl p, BoardHSE p, STM32F4Signal p) => Tower p ()
 app = do
   c <- channel
   rawMotorControl (snk c)
-  (i,o) <- uartTower uart1 115200
+  (i,o) <- uartTower uart1 115200 (Proxy :: Proxy 128)
   shell "motor control shell. hard to use? blame pat" o i (src c)
 
-shell :: (SingI n)
-      => String
-      -> ChannelSource 1024 (Stored Uint8)
-      -> ChannelSink   128  (Stored Uint8)
-      -> ChannelSource n (Array 4 (Stored IFloat))
+shell :: String
+      -> ChannelSource (Stored Uint8)
+      -> ChannelSink   (Stored Uint8)
+      -> ChannelSource (Array 4 (Stored IFloat))
       -> Tower p ()
 shell greet ostream istream motorstream = task "shell" $ do
   out <- withChannelEmitter  ostream "ostream"
   inp <- withChannelEvent    istream "istream"
   motorctl <- withChannelEmitter motorstream "motorctl"
-  withStackSize 1024
+  -- withStackSize 1024 -- XXX
   motorNum <- taskLocal "motorNum"
   (throttle :: Ref Global (Array 4 (Stored Uint8))) <- taskLocal "throttle"
   let puts str = mapM_ (\c -> putc (fromIntegral (ord c))) str
