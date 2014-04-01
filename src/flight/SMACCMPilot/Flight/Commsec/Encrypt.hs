@@ -15,18 +15,17 @@ import           Ivory.Language
 
 --------------------------------------------------------------------------------
 
-encryptTask :: (SingI n0, SingI n1)
-            => C.Options
-            -> ChannelSink   n0 Comm.MAVLinkArray -- from GCS Tx
-            -> ChannelSource n1 Comm.CommsecArray -- to datalink
+encryptTask :: C.Options
+            -> ChannelSink   Comm.MAVLinkArray -- from GCS Tx
+            -> ChannelSource Comm.CommsecArray -- to datalink
             -> Task p ()
 encryptTask opts rx tx = do
   emitter <- withChannelEmitter tx "encToHxSrc"
 
   -- Sets up commsec for both encryption and decryption.
   taskInit (CS.setupCommsec opts)
-
-  onChannel rx "gcsTxToEnc" $ \mavStream -> do
+  pt_evt <- withChannelEvent rx "plaintext_evt"
+  handle pt_evt "pt_handler" $ \mavStream -> do
     pkg <- local (iarray [] :: Init Comm.CommsecArray)
     CS.copyToPkg mavStream pkg
     CS.encrypt CS.uavCtx pkg

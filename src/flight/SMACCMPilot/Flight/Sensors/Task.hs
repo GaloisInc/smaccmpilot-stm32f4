@@ -17,18 +17,19 @@ import qualified SMACCMPilot.Flight.Types.Sensors as S
 
 import SMACCMPilot.Flight.Sensors.Platforms
 
-sensorsTower :: forall n p
-             . (SensorOrientation p, SingI n)
-            => ChannelSink n (Struct "position")
-            -> DataSource  (Struct "sensors_result")
+sensorsTower :: forall p
+             . (SensorOrientation p)
+            => ChannelSink (Struct "position")
+            -> ChannelSource (Struct "sensors_result")
             -> Tower p ()
 sensorsTower psnk osrc = task "sensorsCaptureTask" $ do
-  sensorsWriter <- withDataWriter osrc "sensors"
-  withStackSize 1024
+  sensorsEmitter <- withChannelEmitter osrc "sensors"
+  taskStackSize 4096
 
   compassDeclInitialized <- taskLocalInit "compassDeclInitd" (ival false)
   position <- taskLocal "position"
-  onChannel psnk "position" $ \p -> do
+  newpos_evt <- withChannelEvent psnk "position"
+  handle newpos_evt "newpos_evt" $ \p -> do
     refCopy position p
 
   let sensors_update_position :: Def ('[]:->())
@@ -64,7 +65,7 @@ sensorsTower psnk osrc = task "sensorsCaptureTask" $ do
   sm <- stateMachine "sensors_capture" $ mdo
     init <- stateNamed "init" $ entry $ liftIvory $ do
       res <- local (istruct [ S.valid .= ival false ])
-      writeData sensorsWriter (constRef res)
+      emit_ sensorsEmitter (constRef res)
       -- time consuming: boots up and calibrates sensors
       call_ sensors_begin (sensorOrientation (Proxy :: Proxy p))
       return $ goto loop
@@ -84,7 +85,7 @@ sensorsTower psnk osrc = task "sensorsCaptureTask" $ do
       roll      <- deref (rpy ! 0)
       pitch     <- deref (rpy ! 1)
       yaw       <- deref (rpy ! 2)
-      ahrs_time <- deref ahrs_time_ref
+      ahrs_time <- fromIMilliseconds `fmap` deref ahrs_time_ref
 
       (omega :: Ref (Stack cs) (Array 3 (Stored IFloat))) <- local (iarray [])
       call_ sensors_get_omega (toCArray omega)
@@ -100,7 +101,7 @@ sensorsTower psnk osrc = task "sensorsCaptureTask" $ do
 
       baro_time_ref <- local izero
       baro_alt      <- call sensors_get_baro_alt baro_time_ref
-      baro_time     <- deref baro_time_ref
+      baro_time     <- fromIMilliseconds `fmap` deref baro_time_ref
 
       res <- local $ istruct
         [ S.valid     .= ival true
@@ -117,7 +118,7 @@ sensorsTower psnk osrc = task "sensorsCaptureTask" $ do
         , S.ahrs_time .= ival ahrs_time
         , S.baro_time .= ival baro_time
         ]
-      writeData sensorsWriter (constRef res)
+      emit_ sensorsEmitter (constRef res)
     return init
   taskInit $ begin sm
 

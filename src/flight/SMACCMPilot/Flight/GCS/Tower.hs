@@ -31,39 +31,38 @@ import qualified SMACCMPilot.Flight.Types.CommsecStatus  as CS
 
 data GCSRequires =
   GCSRequires
-    { gcs_ctl_law_in  :: DataSink (Struct "control_law")
-    , gcs_sens_in     :: DataSink (Struct "sensors_result")
-    , gcs_position_in :: DataSink (Struct "position")
-    , gcs_ctl_in      :: DataSink (Struct "controloutput")
-    , gcs_motors_in   :: DataSink (Struct "motors")
-    , gcs_alt_ctl_in  :: DataSink (Struct "alt_control_dbg")
-    , gcs_att_ctl_in  :: DataSink (Struct "att_control_dbg")
-    , gcs_pos_ctl_in  :: DataSink (Struct "pos_control_dbg")
-    , gcs_commsec_in  :: DataSink (Struct "veh_commsec_msg")
-    , gcs_comm_mon_in :: DataSink (Stored CS.CommsecStatus)
-    , gcs_nav_law_in  :: DataSink (Struct "nav_law")
+    { gcs_ctl_law_in  :: ChannelSink (Struct "control_law")
+    , gcs_sens_in     :: ChannelSink (Struct "sensors_result")
+    , gcs_position_in :: ChannelSink (Struct "position")
+    , gcs_ctl_in      :: ChannelSink (Struct "controloutput")
+    , gcs_motors_in   :: ChannelSink (Struct "motors")
+    , gcs_alt_ctl_in  :: ChannelSink (Struct "alt_control_dbg")
+    , gcs_att_ctl_in  :: ChannelSink (Struct "att_control_dbg")
+    , gcs_pos_ctl_in  :: ChannelSink (Struct "pos_control_dbg")
+    , gcs_commsec_in  :: ChannelSink (Struct "veh_commsec_msg")
+    , gcs_comm_mon_in :: ChannelSink (Stored CS.CommsecStatus)
+    , gcs_nav_law_in  :: ChannelSink (Struct "nav_law")
     }
 
 data GCSProvides =
   GCSProvides
-    { gcs_ctl_law_req  :: ChannelSource 16 (Struct "control_law_request")
-    , gcs_rc_override  :: ChannelSource 16 (Struct "rc_channels_override_msg")
-    , gcs_nav_command  :: ChannelSource 16 (Struct "nav_command")
-    , gcs_commsec_info :: DataSource (Struct "veh_commsec_msg")
-    , gcs_hil_state    :: Maybe (ChannelSource 4  (Struct "hil_state_msg"))
+    { gcs_ctl_law_req  :: ChannelSource (Struct "control_law_request")
+    , gcs_rc_override  :: ChannelSource (Struct "rc_channels_override_msg")
+    , gcs_nav_command  :: ChannelSource (Struct "nav_command")
+    , gcs_commsec_info :: ChannelSource (Struct "veh_commsec_msg")
+    , gcs_hil_state    :: Maybe (ChannelSource (Struct "hil_state_msg"))
     }
 
 data HILRequires =
   HILRequires
-    { hil_sensors_in  :: DataSource (Struct "sensors_result")
-    , hil_position_in :: ChannelSource 16 (Struct "position")
+    { hil_sensors_in  :: ChannelSource (Struct "sensors_result")
+    , hil_position_in :: ChannelSource (Struct "position")
     }
 
-gcsTower :: (SingI n0, SingI n1)
-         => String
+gcsTower :: String
          -> C.Options
-         -> ChannelSink   n0 (Stored Uint8)
-         -> ChannelSource n1 (Stored Uint8)
+         -> ChannelSink   (Stored Uint8)
+         -> ChannelSource (Stored Uint8)
          -> GCSRequires
          -> GCSProvides
          -> [Param PortPair]
@@ -72,15 +71,12 @@ gcsTower name opts istream ostream req prov params
   = do
   streamrate <- channel
   -- XXX hack to make sure we can send all parameters on "fetch"
-  param_req  <- channelWithSize :: Tower p
-    ( ChannelSource 64 (Stored Sint16) , ChannelSink 64 (Stored Sint16))
+  param_req  <- channel' (Proxy :: Proxy 64) Nothing
   (  rx_encrypted -- from Hx to decrypter
    , tx_encrypted -- from encrypter to Hx
-   , radio_stat_snk :: ChannelSink 2 (Struct "radio_stat")
-   , _radio_info_snk :: ChannelSink 2 (Struct "radio_info") -- XXX fixme
+   , radio_stat_snk :: ChannelSink (Struct "radio_stat")
+   , _radio_info_snk :: ChannelSink (Struct "radio_info") -- XXX fixme
    ) <- D.datalink name istream ostream -- also creates task
-
-  radio_stat <- stateProxy ("radio_status_" ++ name) radio_stat_snk
 
   rx_plaintext <- channel
   task (named "decryptTask") $
@@ -112,28 +108,27 @@ gcsTower name opts istream ostream req prov params
          , tx_veh_commsec = gcs_commsec_in  req
          , tx_nav_law     = gcs_nav_law_in  req
          , tx_param_req   = snk param_req
-         , tx_radio_stat  = radio_stat
+         , tx_radio_stat  = radio_stat_snk
          , tx_mon_commsec = gcs_comm_mon_in req
          }
 
-  addDepends HIL.hilStateModule
-  mapM_ addDepends stdlibModules
+  towerDepends HIL.hilStateModule
+  mapM_ towerDepends stdlibModules
   where named n = n ++ "_" ++ name
 
 --------------------------------------------------------------------------------
 
-gcsTowerHil :: (SingI n0, SingI n1)
-         => String
+gcsTowerHil :: String
          -> C.Options
-         -> ChannelSink   n0 (Stored Uint8)
-         -> ChannelSource n1 (Stored Uint8)
+         -> ChannelSink   (Stored Uint8)
+         -> ChannelSource (Stored Uint8)
          -> GCSRequires
          -> GCSProvides
          -> HILRequires
          -> [Param PortPair]
          -> Tower p ()
 gcsTowerHil name opts istream ostream gcs_req gcs_prov hil_req params = do
-  hil_ch <- channelWithSize
+  hil_ch <- channel
   let hil_prov = gcs_prov { gcs_hil_state = Just (src hil_ch) }
   gcsTower name opts istream ostream gcs_req hil_prov params
   task "hilTranslator" $ hilTranslator (snk hil_ch)

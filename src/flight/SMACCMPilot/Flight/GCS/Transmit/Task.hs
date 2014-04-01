@@ -31,45 +31,45 @@ import qualified SMACCMPilot.Mavlink.Messages.VehCommsec  as VC
 
 --------------------------------------------------------------------------------
 
-data GCSTxRequires n =
+data GCSTxRequires =
   GCSTxRequires
-    { tx_ctl_law     :: DataSink (Struct "control_law")
-    , tx_sens        :: DataSink (Struct "sensors_result")
-    , tx_position    :: DataSink (Struct "position")
-    , tx_ctl         :: DataSink (Struct "controloutput")
-    , tx_motors      :: DataSink (Struct "motors")
-    , tx_alt_ctl     :: DataSink (Struct "alt_control_dbg")
-    , tx_att_ctl     :: DataSink (Struct "att_control_dbg")
-    , tx_pos_ctl     :: DataSink (Struct "pos_control_dbg")
-    , tx_radio_stat  :: DataSink (Struct "radio_stat")
-    , tx_veh_commsec :: DataSink (Struct "veh_commsec_msg")
-    , tx_mon_commsec :: DataSink (Stored CS.CommsecStatus)
-    , tx_nav_law     :: DataSink (Struct "nav_law")
-    , tx_param_req   :: ChannelSink n (Stored Sint16)
+    { tx_ctl_law     :: ChannelSink (Struct "control_law")
+    , tx_sens        :: ChannelSink (Struct "sensors_result")
+    , tx_position    :: ChannelSink (Struct "position")
+    , tx_ctl         :: ChannelSink (Struct "controloutput")
+    , tx_motors      :: ChannelSink (Struct "motors")
+    , tx_alt_ctl     :: ChannelSink (Struct "alt_control_dbg")
+    , tx_att_ctl     :: ChannelSink (Struct "att_control_dbg")
+    , tx_pos_ctl     :: ChannelSink (Struct "pos_control_dbg")
+    , tx_radio_stat  :: ChannelSink (Struct "radio_stat")
+    , tx_veh_commsec :: ChannelSink (Struct "veh_commsec_msg")
+    , tx_mon_commsec :: ChannelSink (Stored CS.CommsecStatus)
+    , tx_nav_law     :: ChannelSink (Struct "nav_law")
+    , tx_param_req   :: ChannelSink (Stored Sint16)
     }
 
+-- XXX chanRead calls all throw away validity.
 
-gcsTransmitTask :: (SingI n0, SingI n1, SingI n2)
-                => ChannelSource n0 C.MAVLinkArray -- Channel to encrypter
-                -> ChannelSink   n1 (Struct "gcsstream_timing")
+gcsTransmitTask :: ChannelSource C.MAVLinkArray -- Channel to encrypter
+                -> ChannelSink   (Struct "gcsstream_timing")
                 -> [Param PortPair]
-                -> GCSTxRequires n2
+                -> GCSTxRequires
                 -> Task p ()
 gcsTransmitTask mavStream sp_sink params input = do
-  withStackSize 1024
+  taskStackSize 4096
 
-  clReader          <- withDataReader (tx_ctl_law     input) "controllaw"
-  sensorsReader     <- withDataReader (tx_sens        input) "sensors"
-  posReader         <- withDataReader (tx_position    input) "position"
-  ctlReader         <- withDataReader (tx_ctl         input) "control"
-  motorReader       <- withDataReader (tx_motors      input) "motors"
-  radioReader       <- withDataReader (tx_radio_stat  input) "radio"
-  altControlReader  <- withDataReader (tx_alt_ctl     input) "alt_control"
-  attControlReader  <- withDataReader (tx_att_ctl     input) "att_control"
-  posControlReader  <- withDataReader (tx_pos_ctl     input) "pos_control"
-  commsecInfoReader <- withDataReader (tx_veh_commsec input) "commsecInfo"
-  commMonitorReader <- withDataReader (tx_mon_commsec input) "commsecMonitor"
-  navLawReader      <- withDataReader (tx_nav_law     input) "navlaw"
+  clReader          <- withChannelReader (tx_ctl_law     input) "controllaw"
+  sensorsReader     <- withChannelReader (tx_sens        input) "sensors"
+  posReader         <- withChannelReader (tx_position    input) "position"
+  ctlReader         <- withChannelReader (tx_ctl         input) "control"
+  motorReader       <- withChannelReader (tx_motors      input) "motors"
+  radioReader       <- withChannelReader (tx_radio_stat  input) "radio"
+  altControlReader  <- withChannelReader (tx_alt_ctl     input) "alt_control"
+  attControlReader  <- withChannelReader (tx_att_ctl     input) "att_control"
+  posControlReader  <- withChannelReader (tx_pos_ctl     input) "pos_control"
+  commsecInfoReader <- withChannelReader (tx_veh_commsec input) "commsecInfo"
+  commMonitorReader <- withChannelReader (tx_mon_commsec input) "commsecMonitor"
+  navLawReader      <- withChannelReader (tx_nav_law     input) "navlaw"
 
   mavTx             <- withChannelEmitter mavStream "gcsTxToEncSrc"
 
@@ -81,8 +81,6 @@ gcsTransmitTask mavStream sp_sink params input = do
     taskLocal "mavlinkSend" :: Task p (Ref Global C.MAVLinkArray)
   -- mavlink sequence numbers
   seqNum         <- taskLocalInit "txseqNum" (ival 0)
-
-  t <- withGetTimeMillis
 
   paramReqs       <- withChannelReceiver (tx_param_req input) "paramReqs"
   read_params     <- traverse paramReader (map (fmap portPairSink) params)
@@ -98,11 +96,12 @@ gcsTransmitTask mavStream sp_sink params input = do
   prevCommsecInfo <- taskLocalInit "prevCommsecInfo" (istruct [])
 
   taskInit $ do
-    initTime <- getTimeMillis t
+    initTime <- getTime
     store lastRun initTime
 
-  onChannel sp_sink "streamPeriod" $ \newperiods ->
-    setNewPeriods newperiods s_periods s_schedule =<< getTimeMillis t
+  sp_evt <- withChannelEvent sp_sink "streamperiod_sink"
+  handle sp_evt "streamperiod_update" $ \newperiods ->
+    setNewPeriods newperiods s_periods s_schedule =<< getTime
 
   let processMav :: (Scope s ~ GetAlloc eff)
                  => T.GcsTimingLabel -> Ivory eff ()
@@ -129,7 +128,7 @@ gcsTransmitTask mavStream sp_sink params input = do
               arrayMap $ \ix -> store (mavlinkSend ! ix) 0
               copyMav 0)
 
-  onPeriod 50 $ \now -> do
+  onPeriod (Milliseconds 50) $ \now -> do
 
     -- Handler for all streams - if due, run action, then update schedule
     let onStream :: T.GcsTimingLabel
@@ -148,28 +147,28 @@ gcsTransmitTask mavStream sp_sink params input = do
     onStream T.heartbeat $ do
       l_cl    <- local (istruct [])
       cm      <- local (ival CS.alarm)
-      readData clReader l_cl
-      readData commMonitorReader cm
+      _ <- chanRead clReader l_cl
+      _ <- chanRead commMonitorReader cm
       call_ mkSendHeartbeat l_cl seqNum mavlinkStruct =<< deref cm
       processMav T.heartbeat
 
     onStream T.servo_output_raw $ do
       l_motor <- local (istruct [])
       l_ctl   <- local (istruct [])
-      readData motorReader l_motor
-      readData ctlReader l_ctl
+      _ <- chanRead motorReader l_motor
+      _ <- chanRead ctlReader l_ctl
       call_ mkSendServoOutputRaw l_motor l_ctl seqNum mavlinkStruct
       processMav T.servo_output_raw
 
     onStream T.attitude $ do
       l_sens <- local (istruct [])
-      readData sensorsReader l_sens
+      _ <- chanRead sensorsReader l_sens
       call_ mkSendAttitude l_sens seqNum mavlinkStruct
       processMav T.attitude
 
     onStream T.gps_raw_int $ do
       l_pos <- local (istruct [])
-      readData posReader l_pos
+      _ <- chanRead posReader l_pos
       call_ mkSendGpsRawInt l_pos seqNum mavlinkStruct
       processMav T.gps_raw_int
 
@@ -177,38 +176,38 @@ gcsTransmitTask mavStream sp_sink params input = do
       l_pos  <- local (istruct [])
       l_ctl  <- local (istruct [])
       l_sens <- local (istruct [])
-      readData posReader l_pos
-      readData ctlReader l_ctl
-      readData sensorsReader l_sens
+      _ <- chanRead posReader l_pos
+      _ <- chanRead ctlReader l_ctl
+      _ <- chanRead sensorsReader l_sens
       call_ mkSendVfrHud l_pos l_ctl l_sens seqNum mavlinkStruct
       processMav T.vfr_hud
 
     onStream T.debug $ do
       l_alt_ctl <- local (istruct [])
-      readData altControlReader l_alt_ctl
+      _ <- chanRead altControlReader l_alt_ctl
       call_ mkSendAltCtlDebug (constRef l_alt_ctl) seqNum mavlinkStruct
       processMav T.debug
 
       l_att_ctl <- local (istruct [])
-      readData attControlReader l_att_ctl
+      _ <- chanRead attControlReader l_att_ctl
       call_ mkSendAttCtlDebug (constRef l_att_ctl) seqNum mavlinkStruct
       processMav T.debug
 
       l_pos_ctl <- local (istruct [])
-      readData posControlReader l_pos_ctl
+      _ <- chanRead posControlReader l_pos_ctl
       call_ mkSendPosCtlDebug (constRef l_pos_ctl) seqNum mavlinkStruct
       processMav T.debug
 
       l_nav_law <- local (istruct [])
-      readData navLawReader l_nav_law
+      _ <- chanRead navLawReader l_nav_law
       call_ mkSendNavLaw (constRef l_nav_law) seqNum mavlinkStruct
       processMav T.debug
 
     onStream T.global_position_int $ do
       l_pos  <- local (istruct [])
       l_sens <- local (istruct [])
-      readData posReader l_pos
-      readData sensorsReader l_sens
+      _ <- chanRead posReader l_pos
+      _ <- chanRead sensorsReader l_sens
       call_ mkSendGlobalPositionInt l_pos l_sens now seqNum mavlinkStruct
       processMav T.global_position_int
 
@@ -225,7 +224,7 @@ gcsTransmitTask mavStream sp_sink params input = do
 
     onStream T.veh_commsec $ do
       commInfo <- local (istruct [])
-      readData commsecInfoReader commInfo
+      _ <- chanRead commsecInfoReader commInfo
 
       -- See if we got new info on commsec errors before sending it out.  The
       -- commsec reporting is a dataport, so it may not have been updated.  (A
@@ -249,7 +248,7 @@ gcsTransmitTask mavStream sp_sink params input = do
 
     onStream T.radio $ do
       l_radio <- local (istruct [])
-      readData radioReader l_radio
+      _ <- chanRead radioReader l_radio
       call_ mkSendRadio l_radio seqNum mavlinkStruct
       processMav T.radio
 

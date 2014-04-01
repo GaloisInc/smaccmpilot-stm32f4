@@ -7,12 +7,14 @@ import Ivory.Language
 import Ivory.Tower
 import Ivory.BSP.STM32F4.RCC
 import Ivory.BSP.STM32F4.UART
+import Ivory.BSP.STM32F4.UART.Tower
+import Ivory.BSP.STM32F4.Signalable
 import SMACCMPilot.Hardware.GPS.UBlox
 
-gpsTower :: (BoardHSE p) => UART -> Tower p (ChannelSink 16 (Struct "position"))
+gpsTower :: (BoardHSE p, STM32F4Signal p)
+         => UART -> Tower p (ChannelSink (Struct "position"))
 gpsTower uart = do
-  (gpsi :: ChannelSink 256 (Stored Uint8)
-   ,_gpso :: ChannelSource 2 (Stored Uint8)) <- uartTower uart 38400
+  (gpsi,_gpso) <- uartTower uart 38400 (Proxy :: Proxy 256)
   position <- channel
   ubloxGPSTower gpsi (src position)
   return (snk position)

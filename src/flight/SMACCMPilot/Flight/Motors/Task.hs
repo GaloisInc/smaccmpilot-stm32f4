@@ -17,20 +17,20 @@ import qualified SMACCMPilot.Flight.Types.Motors        as M
 
 import SMACCMPilot.Flight.Motors.Mixing
 
-motorMixerTask :: (SingI n, SingI m)
-               => ChannelSink n (Struct "controloutput")
-               -> DataSink (Struct "control_law")
-               -> ChannelSource m (Struct "motors")
+motorMixerTask :: ChannelSink (Struct "controloutput")
+               -> ChannelSink (Struct "control_law")
+               -> ChannelSource (Struct "motors")
                -> Task p ()
 motorMixerTask cs clsnk ms = do
-  clReader  <- withDataReader clsnk "controllaw"
+  clReader  <- withChannelReader clsnk "controllaw"
   motEmit   <- withChannelEmitter ms "motors"
   taskInit $ do
     d <- disabled
     emit_ motEmit d
-  onChannel cs "control" $ \ctl -> do
+  cs_evt <- withChannelEvent cs "controloutput"
+  handle cs_evt "outputmixing" $ \ctl -> do
     cl <- local (istruct [])
-    readData clReader cl
+    _ <- chanRead clReader cl
     armed <- deref (cl ~> CL.armed_mode)
     let output = emit_ motEmit
     ifte_ (armed ==? A.armed)

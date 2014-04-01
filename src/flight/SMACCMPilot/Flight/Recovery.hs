@@ -17,8 +17,8 @@ import qualified SMACCMPilot.Flight.Types.CommsecStatus as C
 
 --------------------------------------------------------------------------------
 
-recoveryTower :: DataSink   (Struct "veh_commsec_msg") -- Commsec/Decrypt task
-              -> DataSource (Stored C.CommsecStatus)  -- To GCS Transmit
+recoveryTower :: ChannelSink   (Struct "veh_commsec_msg") -- Commsec/Decrypt task
+              -> ChannelSource (Stored C.CommsecStatus)  -- To GCS Transmit
               -> Tower p ()
 recoveryTower commsec_info_snk monitor_result_src =
 
@@ -29,22 +29,21 @@ recoveryTower commsec_info_snk monitor_result_src =
 
 --------------------------------------------------------------------------------
 
-type Time   = Uint32
 type Idx    = Sint32
 type BufLen = 30
-type CirBuf = Array BufLen (Stored Time)
+type CirBuf = Array BufLen (Stored ITime)
 
-alarm_threshold :: Time
-alarm_threshold = 40000
+alarm_threshold :: ITime
+alarm_threshold = fromIMilliseconds (40000 :: Sint64)
 --------------------------------------------------------------------------------
 
 -- | True is OK, False is an alarm.
-commsecRecoveryTask :: DataSink   (Struct "veh_commsec_msg")
-                    -> DataSource (Stored C.CommsecStatus)
+commsecRecoveryTask :: ChannelSink   (Struct "veh_commsec_msg")
+                    -> ChannelSource (Stored C.CommsecStatus)
                     -> Task p ()
 commsecRecoveryTask commsec_info_snk monitor_result_src = do
-  commsec_info_snk_rx <- withDataReader commsec_info_snk "commsec_info_snk"
-  monitor_res_tx      <- withDataWriter monitor_result_src "comm_mon_res"
+  commsec_info_snk_rx <- withChannelReader commsec_info_snk "commsec_info_snk"
+  monitor_res_tx      <- withChannelEmitter monitor_result_src "comm_mon_res"
 
   -- For our property, we'll store timestamps in an array.
   cirBuf   <- taskLocalInit "cirBuf"  (iarray [] :: Init CirBuf)
@@ -54,15 +53,14 @@ commsecRecoveryTask commsec_info_snk monitor_result_src = do
   bufFull  <- taskLocalInit "bufFull" (ival false)
   -- Number bad seen on last dataport read.
   numBad   <- taskLocalInit "numBad"  (ival 0 :: Init (Stored Uint32))
-  timer    <- withGetTimeMillis
   -- Property result
   result   <- taskLocalInit "result" (ival C.secure)
 
-  onPeriod 20 $ \_now -> do
+  onPeriod (Milliseconds 20) $ \_now -> do
     commsecReader <- local izero
-    readData commsec_info_snk_rx commsecReader
-    commsecMonitor commsecReader cirBuf idx bufFull numBad timer result
-    writeData monitor_res_tx (constRef result)
+    _ <- chanRead commsec_info_snk_rx commsecReader
+    commsecMonitor commsecReader cirBuf idx bufFull numBad result
+    emit_ monitor_res_tx (constRef result)
 
   taskModuleDef $ do
     depend V.vehCommsecModule
@@ -70,9 +68,9 @@ commsecRecoveryTask commsec_info_snk monitor_result_src = do
   where
   -- XXX let's make up an arbitrary monitor here.  If we're received more than
   -- 10 bad messages in less than 20 seconds.
-  commsecMonitor rx cirBuf idx bufFullRef prevBadRef timer resRef = do
+  commsecMonitor rx cirBuf idx bufFullRef prevBadRef resRef = do
     totalBadMsgs <- rx ~>* V.bad_msgs
-    lastTime     <- getTimeMillis timer
+    lastTime     <- getTime
     prevBad      <- deref prevBadRef
     let currBad  = totalBadMsgs - prevBad
     store prevBadRef totalBadMsgs
@@ -90,9 +88,9 @@ commsecRecoveryTask commsec_info_snk monitor_result_src = do
               (newTimeStamp t idxRef arr bufFullRef >>= store resRef)
 
   newTimeStamp :: (GetAlloc eff ~ Scope s)
-               => Time
+               => ITime
                -> Ref s0 (Stored Idx)
-               -> Ref s1 (Array BufLen (Stored Time))
+               -> Ref s1 (Array BufLen (Stored ITime))
                -> Ref s2 (Stored IBool)
                -> Ivory eff C.CommsecStatus
   newTimeStamp t idxRef arr bufFullRef = do

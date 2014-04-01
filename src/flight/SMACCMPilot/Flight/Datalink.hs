@@ -8,7 +8,6 @@
 module SMACCMPilot.Flight.Datalink
   ( datalink ) where
 
-import GHC.TypeLits
 import Data.Char (ord)
 
 import Ivory.Language
@@ -22,20 +21,19 @@ import qualified SMACCMPilot.Communications            as C
 
 --------------------------------------------------------------------------------
 
-datalink :: (SingI n0, SingI n1, SingI n2, SingI n3)
-         => String
-         -> ChannelSink   n0 (Stored Uint8) -- from UART
-         -> ChannelSource n1 (Stored Uint8) -- to UART
-         -> Tower p ( ChannelSink   8 C.CommsecArray -- to decrypter
-                    , ChannelSource 8 C.CommsecArray -- from encrypter to Hx
-                    , ChannelSink   n2 (Struct "radio_stat")
+datalink :: String
+         -> ChannelSink   (Stored Uint8) -- from UART
+         -> ChannelSource (Stored Uint8) -- to UART
+         -> Tower p ( ChannelSink   C.CommsecArray -- to decrypter
+                    , ChannelSource C.CommsecArray -- from encrypter to Hx
+                    , ChannelSink   (Struct "radio_stat")
                       -- XXX no endpoint currently
-                    , ChannelSink   n3 (Struct "radio_info"))
+                    , ChannelSink   (Struct "radio_info"))
 datalink name istream ostream = do
-  framed_i <- channelWithSize
-  framed_o <- channelWithSize
-  stat_o   <- channelWithSize
-  info_o   <- channelWithSize
+  framed_i <- channel
+  framed_o <- channel
+  stat_o   <- channel
+  info_o   <- channel
   task ("datalink_" ++ name) $ do
     decoder istream (src framed_o) (src stat_o) (src info_o)
     encoder (snk framed_i) ostream
@@ -47,11 +45,10 @@ datalink name istream ostream = do
 -- | Handle either airdata or radiodata messages from the UART on link_sink.
 -- De-hxstream and send on the appropriate channel (to SMACCMPilot or radio data
 -- channels).
-decoder :: (SingI n0, SingI n1, SingI n2, SingI n3)
-        => ChannelSink   n0 (Stored Uint8) -- from UART
-        -> ChannelSource n1 C.CommsecArray -- to Commsec
-        -> ChannelSource n2 (Struct "radio_stat") -- XXX no endpoint
-        -> ChannelSource n3 (Struct "radio_info") -- XXX no endpoint
+decoder :: ChannelSink   (Stored Uint8) -- from UART
+        -> ChannelSource C.CommsecArray -- to Commsec
+        -> ChannelSource (Struct "radio_stat") -- XXX no endpoint
+        -> ChannelSource (Struct "radio_info") -- XXX no endpoint
         -> Task p ()
 decoder link_sink framed_src stat_src info_src = do
   link_istream   <- withChannelEvent   link_sink  "link_istream"
@@ -61,24 +58,23 @@ decoder link_sink framed_src stat_src info_src = do
   hx             <- taskLocalInit "hx_decoder_state" H.initStreamState
   airhandler     <- A.airDataHandler framed_ostream
   radiohandler   <- R.radioDataHandler stat_ostream info_ostream
-  onEventV link_istream $ \v ->
+  handleV link_istream "link_istream" $ \v ->
     noReturn $ H.decodes [airhandler, radiohandler] hx v
 
 --------------------------------------------------------------------------------
 
 -- | Encode airdata or generated radio data to give to either the UART task.
-encoder :: (SingI n0, SingI n1)
-        => ChannelSink   n0 C.CommsecArray -- from commsec
-        -> ChannelSource n1 (Stored Uint8) -- to UART
+encoder :: ChannelSink   C.CommsecArray -- from commsec
+        -> ChannelSource (Stored Uint8) -- to UART
         -> Task p ()
 encoder framed_snk link_src = do
   link_ostream   <- withChannelEmitter  link_src   "link_ostream"
   framed_istream <- withChannelEvent    framed_snk "framed_istream"
   -- Send air data as quickly as we get it
-  onEvent framed_istream $ \frame -> noReturn $
+  handle framed_istream "framed_istream" $ \frame -> noReturn $
     H.encode C.airDataTag frame (emitV_ link_ostream)
   -- Periodically send binary info request to radio.
-  onPeriod 1000 $ \_t -> noReturn $ do
+  onPeriod (Milliseconds 1000) $ \_t -> noReturn $ do
     (frame :: Ref (Stack s) (Array 2 (Stored Uint8))) <- local $ iarray
       [ ival (charUint8 'B')
       , ival (charUint8 '\r')

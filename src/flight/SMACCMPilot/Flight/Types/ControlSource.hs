@@ -9,7 +9,8 @@ module SMACCMPilot.Flight.Types.ControlSource
 import Ivory.Language
 
 newtype ControlSource = ControlSource Uint32
-  deriving (Num, IvoryType, IvoryVar, IvoryExpr, IvoryEq, IvoryStore, IvoryInit)
+  deriving ( IvoryType, IvoryVar, IvoryExpr, IvoryEq
+           , IvoryStore, IvoryInit, IvoryZeroVal)
 
 ui :: ControlSource
 ui = ControlSource 0

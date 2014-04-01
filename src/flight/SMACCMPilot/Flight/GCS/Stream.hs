@@ -10,6 +10,7 @@ module SMACCMPilot.Flight.GCS.Stream where
 import Prelude hiding (last)
 
 import Ivory.Language
+import Ivory.Tower.Types.Time
 import Ivory.Stdlib
 
 import qualified SMACCMPilot.Mavlink.Enums.MavDataStreams as MavDS
@@ -58,7 +59,7 @@ updateGCSStreamPeriods periods streamid enabled rate = do
                            (setPeriod selector periods newperiod)
                            (setPeriod selector periods 0)
     where
-    newperiod = 1000 `iDiv` (safeCast rate)
+    newperiod = fromIMilliseconds ((1000 :: Sint64) `iDiv` (safeCast rate))
 
   setRateOne :: Uint8 -> Ivory eff ()
   setRateOne toFind = mapM_ aux tbl
@@ -79,7 +80,7 @@ updateGCSStreamPeriods periods streamid enabled rate = do
 setNewPeriods :: ConstRef s0 (Struct "gcsstream_timing")   -- NEW periods
               -> Ref s1      (Struct "gcsstream_timing")   -- STATE periods
               -> Ref s2      (Struct "gcsstream_schedule") -- schedule
-              -> Uint32                                    -- Now
+              -> ITime                                     -- Now
               -> Ivory eff ()                              -- update schedule
 setNewPeriods new state schedule now =
   mapM_ update allTimingLabels
@@ -100,7 +101,7 @@ setNewPeriods new state schedule now =
 setNextTime :: ConstRef s (Struct "gcsstream_timing")   -- periods
             -> Ref s1     (Struct "gcsstream_schedule") -- schedule
             -> GcsTimingLabel                           -- selector for packet sent
-            -> Uint32                                   -- Now
+            -> ITime                                    -- Now
             -> Ivory eff ()                             -- update schedule
 setNextTime periods schedule selector now = do
   per  <- getPeriod selector periods
@@ -124,7 +125,7 @@ setNextTime periods schedule selector now = do
 streamDue :: ConstRef s1 (Struct "gcsstream_timing")   -- periods
           -> ConstRef s2 (Struct "gcsstream_schedule") -- schedule
           -> GcsTimingLabel                            -- stream selector
-          -> Uint32                                    -- now
+          -> ITime                                     -- now
           -> Ivory eff IBool
 streamDue periods schedule selector now = do
   p       <- getPeriod selector periods

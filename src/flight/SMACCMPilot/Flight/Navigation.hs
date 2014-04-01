@@ -37,20 +37,20 @@ import           SMACCMPilot.Flight.Navigation.Failsafe
 
 data NavInputs =
   NavInputs
-    { nav_law_req  :: ChannelSource 16 (Struct "control_law_request")
-    , nav_ui       :: ChannelSink   16 (Struct "userinput_result")
-    , nav_ctl_law  :: ChannelSink   16 (Struct "control_law")
-    , nav_position :: ChannelSink   16 (Struct "position")
-    , nav_sens     :: DataSink         (Struct "sensors_result")
-    , nav_cmd      :: ChannelSink   16 (Struct "nav_command")
-    , nav_commsec_mon :: DataSink      (Stored C.CommsecStatus)
+    { nav_law_req  :: ChannelSource (Struct "control_law_request")
+    , nav_ui       :: ChannelSink   (Struct "userinput_result")
+    , nav_ctl_law  :: ChannelSink   (Struct "control_law")
+    , nav_position :: ChannelSink   (Struct "position")
+    , nav_sens     :: ChannelSink   (Struct "sensors_result")
+    , nav_cmd      :: ChannelSink   (Struct "nav_command")
+    , nav_commsec_mon :: ChannelSink (Stored C.CommsecStatus)
     }
 
 data NavOutputs =
   NavOutputs
-    { nav_setpt   :: ChannelSink 16 (Struct "control_setpoint")
-    , nav_pos_dbg :: DataSink       (Struct "pos_control_dbg")
-    , nav_law     :: ChannelSink 16 (Struct "nav_law")
+    { nav_setpt   :: ChannelSink (Struct "control_setpoint")
+    , nav_pos_dbg :: ChannelSink (Struct "pos_control_dbg")
+    , nav_law     :: ChannelSink (Struct "nav_law")
     }
 
 navTower :: FlightParams ParamSink -> NavInputs -> Tower p NavOutputs
@@ -59,14 +59,15 @@ navTower params nav_inputs = do
   let named n = "nav_" ++ n ++ "_" ++ show f
   nav_setpt_chan <- channel
   nav_law_chan   <- channel
-  pos_dbg <- dataport
+  pos_dbg        <- channel
 
   task "navigation" $ do
     setpt_emitter   <- withChannelEmitter (src nav_setpt_chan) "control_setpt"
     law_req_emitter <- withChannelEmitter (nav_law_req nav_inputs) "ctl_law_req"
-    sens_reader     <- withDataReader     (nav_sens nav_inputs) "sensors"
-    pos_dbg_writer  <- withDataWriter     (src pos_dbg) "pos_dbg"
+    pos_dbg_emitter <- withChannelEmitter (src pos_dbg) "pos_dbg"
     nav_law_emitter <- withChannelEmitter (src nav_law_chan) "nav_law"
+
+    sens_reader     <- withChannelReader  (nav_sens nav_inputs) "sensors"
 
     param_reader    <- paramReader params
 
@@ -103,7 +104,7 @@ navTower params nav_inputs = do
 
           dt    <- assign 0.005 -- XXX calc from _t ?
           sens  <- local izero
-          readData sens_reader sens
+          _ <- chanRead sens_reader sens
 
           -- Really, all pos update is doing is scaling the UI into velocity sp
           pos_update pos_control (constRef sens) (updated_value pos)
@@ -130,9 +131,9 @@ navTower params nav_inputs = do
           vel_reset vel_control
           pos_reset  pos_control
 
-    onPeriod 5 $ \t -> do
+    onPeriod (Milliseconds 5) $ \t -> do
       sens  <- local izero
-      readData sens_reader sens
+      _ <- chanRead sens_reader sens
       fs_update failsafe n_law sens
       fs <- fs_active failsafe
       when fs $ do
@@ -183,10 +184,10 @@ navTower params nav_inputs = do
       dbg <- local izero
       pos_debug pos_control dbg
       vel_debug vel_control dbg
-      writeData pos_dbg_writer (constRef dbg)
+      emit_ pos_dbg_emitter (constRef dbg)
 
-
-    onChannel (nav_cmd nav_inputs) "nav_cmd" $ \cmd -> do
+    nav_cmd_evt <- withChannelEvent (nav_cmd nav_inputs) "nav_cmd"
+    handle nav_cmd_evt "nav_cmd" $ \cmd -> do
       fs <- fs_active failsafe
       unless fs $ do
         velocity_control <- deref (cmd ~> NC.velocity_control)
@@ -233,31 +234,31 @@ navTower params nav_inputs = do
 
 data Updated a =
   Updated
-    { updated_within_time :: forall eff . Uint32 -> Ivory eff IBool
+    { updated_within_time :: forall eff . ITime -> Ivory eff IBool
     , updated_ever  :: forall eff . Ivory eff IBool
     , updated_value :: ConstRef Global a
     }
 
 -- Prototypin some Tower 2 up in here
-taskUpdatable :: (SingI n, IvoryArea a, IvoryZero a)
-            => ChannelSink n a -> String -> Task p (Updated a)
+taskUpdatable :: (IvoryArea a, IvoryZero a)
+            => ChannelSink a -> String -> Task p (Updated a)
 taskUpdatable chan name = do
   f <- fresh
   let named n = name ++ "_" ++ n ++ "_" ++ show f
   v        <- taskLocal (named "val")
   got      <- taskLocalInit (named "got") (ival false)
   lasttime <- taskLocal (named "lasttime")
-  millis   <- withGetTimeMillis
 
-  onChannel chan (named "chan") $ \i -> do
-    t <- getTimeMillis millis
+  evt <- withChannelEvent chan (named "chan")
+  handle evt (named "evt") $ \i -> do
+    t <- getTime
     store got true
     store lasttime t
     refCopy v i
 
-  let within_time_proc :: Def('[Uint32]:->IBool)
+  let within_time_proc :: Def('[ITime]:->IBool)
       within_time_proc = proc (named "within_time") $ \dt -> body $ do
-        now <- getTimeMillis millis
+        now <- getTime
         lst <- deref lasttime
         ret (now - lst <=? dt)
 

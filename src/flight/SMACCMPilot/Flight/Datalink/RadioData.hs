@@ -20,9 +20,8 @@ import qualified SMACCMPilot.Flight.Types.RadioStat as RS
 import           SMACCMPilot.Flight.Types.RadioInfo()
 import qualified SMACCMPilot.Communications         as C
 
-radioDataHandler :: (SingI n0, SingI n1)
-                 => ChannelEmitter n0 (Struct "radio_stat")
-                 -> ChannelEmitter n1 (Struct "radio_info")
+radioDataHandler :: ChannelEmitter (Struct "radio_stat")
+                 -> ChannelEmitter (Struct "radio_info")
                  -> Task p H.FrameHandler
 radioDataHandler statout infoout = do
   successCtr     <- taskLocalInit "rs_success" (ival (0::Uint32))

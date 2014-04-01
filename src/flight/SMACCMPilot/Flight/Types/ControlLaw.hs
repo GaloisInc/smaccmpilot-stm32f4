@@ -9,6 +9,7 @@
 module SMACCMPilot.Flight.Types.ControlLaw where
 
 import Ivory.Language
+import Ivory.Tower.Types.Time
 
 import SMACCMPilot.Flight.Types.ArmedMode
 import SMACCMPilot.Flight.Types.ControlSource
@@ -25,7 +26,7 @@ struct control_law
   ; autothr_source :: Stored ControlSource
   ; stab_source    :: Stored ControlSource
   ; head_source    :: Stored ControlSource
-  ; time           :: Stored Uint32
+  ; time           :: Stored ITime
   }
 |]
 

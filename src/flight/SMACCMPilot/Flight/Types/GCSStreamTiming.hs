@@ -10,6 +10,7 @@ module SMACCMPilot.Flight.Types.GCSStreamTiming where
 import Data.Maybe
 
 import Ivory.Language
+import Ivory.Tower.Types.Time
 import Ivory.Stdlib
 
 import SMACCMPilot.Flight.Types.GCSStreamStruct
@@ -26,16 +27,16 @@ gcsStreamTimingTypeModule = package "gcsstream_timing" $ do
 
 -- Schedule: represents next time for computation.
 struct gcsstream_schedule
-  { heartbeat_sched           :: Stored Uint32
-  ; servo_output_raw_sched    :: Stored Uint32
-  ; attitude_sched            :: Stored Uint32
-  ; gps_raw_int_sched         :: Stored Uint32
-  ; vfr_hud_sched             :: Stored Uint32
-  ; global_position_int_sched :: Stored Uint32
-  ; params_sched              :: Stored Uint32
-  ; veh_commsec_sched         :: Stored Uint32
-  ; radio_sched               :: Stored Uint32
-  ; debug_sched               :: Stored Uint32
+  { heartbeat_sched           :: Stored ITime
+  ; servo_output_raw_sched    :: Stored ITime
+  ; attitude_sched            :: Stored ITime
+  ; gps_raw_int_sched         :: Stored ITime
+  ; vfr_hud_sched             :: Stored ITime
+  ; global_position_int_sched :: Stored ITime
+  ; params_sched              :: Stored ITime
+  ; veh_commsec_sched         :: Stored ITime
+  ; radio_sched               :: Stored ITime
+  ; debug_sched               :: Stored ITime
   }
 
 -- Params: fixed until updated by the GCS user.
@@ -65,13 +66,13 @@ allTimingLabels =
   [ heartbeat, servo_output_raw, attitude, gps_raw_int
   , vfr_hud, global_position_int, params, veh_commsec, radio, debug ]
 
-allSchedLabels :: [Label "gcsstream_schedule" (Stored Uint32)]
+allSchedLabels :: [Label "gcsstream_schedule" (Stored ITime)]
 allSchedLabels =
   [ heartbeat_sched, servo_output_raw_sched, attitude_sched, gps_raw_int_sched
   , vfr_hud_sched, global_position_int_sched, params_sched
   , veh_commsec_sched, radio_sched, debug_sched ]
 
-toSchedLabel :: GcsTimingLabel -> Label "gcsstream_schedule" (Stored Uint32)
+toSchedLabel :: GcsTimingLabel -> Label "gcsstream_schedule" (Stored ITime)
 toSchedLabel l
   | length allTimingLabels /= length allSchedLabels
   = error "Timing and schedule structs are out of synch in GCSStreamTiming.hs"
@@ -94,7 +95,7 @@ softRealTime = false
 --------------------------------------------------------------------------------
 
 -- | Initializer.
-mkTimingData :: Uint32 -> IBool -> Init (Struct "gcsstream_data")
+mkTimingData :: ITime -> IBool -> Init (Struct "gcsstream_data")
 mkTimingData per hardrt = istruct [ period .= ival per
                                   , hard_deadline .= ival rt
                                   ]
@@ -104,11 +105,11 @@ mkTimingData per hardrt = istruct [ period .= ival per
 getPeriod :: ( IvoryRef ref
              , IvoryExpr (ref s (Struct "gcsstream_timing"))
              , IvoryExpr (ref s (Struct "gcsstream_data"))
-             , IvoryExpr (ref s (Stored Uint32))
+             , IvoryExpr (ref s (Stored ITime))
              )
           => GcsTimingLabel
           -> ref s (Struct "gcsstream_timing")
-          -> Ivory eff Uint32
+          -> Ivory eff ITime
 getPeriod l ref = do
   let d = ref ~> l
   return =<< (d ~>* period)
@@ -116,7 +117,7 @@ getPeriod l ref = do
 -- | Update message period.
 setPeriod :: GcsTimingLabel
           -> Ref s (Struct "gcsstream_timing")
-          -> Uint32
+          -> ITime
           -> Ivory eff ()
 setPeriod l ref per = store (ref ~> l ~> period) per
 

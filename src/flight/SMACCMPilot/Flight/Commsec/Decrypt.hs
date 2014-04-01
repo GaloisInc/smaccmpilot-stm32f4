@@ -14,23 +14,21 @@ import           Ivory.Tower hiding (src)
 
 --------------------------------------------------------------------------------
 
-decryptTask :: (SingI n0, SingI n1)
-            => C.Options
-            -> ChannelSink   n0 Comm.CommsecArray -- from datalink
-            -> ChannelSource n1 Comm.MAVLinkArray -- to GCS Rx task, recovery task
-            -> DataSource       (Struct "veh_commsec_msg") -- to GCS Tx task
+decryptTask :: C.Options
+            -> ChannelSink   Comm.CommsecArray -- from datalink
+            -> ChannelSource Comm.MAVLinkArray -- to GCS Rx task, recovery task
+            -> ChannelSource (Struct "veh_commsec_msg") -- to GCS Tx task
             -> Task p ()
 decryptTask opts rx tx commsec_info_src = do
-  emitter    <- withChannelEmitter tx "decToGcsRxSrc"
-  commWriter <- withDataWriter commsec_info_src "commsec_info_src"
+  pt_emitter <- withChannelEmitter tx "plaintext"
+  info_emitter <- withChannelEmitter commsec_info_src "commsec_info"
 
   -- For the reporter.
   reporterStruct <- taskLocalInit "commsec_reporter_struct" (istruct [])
-  curr           <- taskLocalInit "curr" (ival 0)
   lastGoodTime   <- taskLocalInit "lastGoodTime" (ival 0)
-  timer          <- withGetTimeMillis
 
-  onChannel rx "hxToDecRcv" $ \pkgStream -> do
+  ct_evt <- withChannelEvent rx "ct_chan"
+  handle ct_evt "ct_evt" $ \pkgStream -> do
     pkg <- local (iarray [])
     refCopy pkg pkgStream
     res <- CS.decrypt CS.uavCtx pkg
@@ -39,12 +37,12 @@ decryptTask opts rx tx commsec_info_src = do
       -- Copy the decrypted message out of the pkg
       payload <- local (iarray [] :: Init Comm.MAVLinkArray)
       CS.copyFromPkg pkg payload
-      emit_ emitter (constRef payload)
+      emit_ pt_emitter (constRef payload)
 
     -- Pack the reporter struct.
-    store curr =<< getTimeMillis timer
-    reporter reporterStruct res (constRef curr) lastGoodTime
-    writeData commWriter (constRef reporterStruct)
+    now <- getTime
+    reporter reporterStruct res now lastGoodTime
+    emit_ info_emitter (constRef reporterStruct)
 
   taskModuleDef $ do
     depend (CS.commsecModule opts)
@@ -53,12 +51,11 @@ decryptTask opts rx tx commsec_info_src = do
 -- Gathers statistics on decryption.
 reporter :: Ref      s (Struct "veh_commsec_msg")
          -> Uint32
-         -> ConstRef s (Stored Uint32)
-         -> Ref      s (Stored Uint32)
+         -> ITime 
+         -> Ref      s (Stored ITime)
          -> Ivory eff ()
-reporter commRef res curr lastGoodTime = do
+reporter commRef res now lastGoodTime = do
   assert (res <=? 6) -- Largest error code
-  now <- deref curr
   store (commRef ~> V.commsec_err) (castDefault res)
   cond_
     [ res ==? Comm.commsecSuccess ==> do
@@ -68,7 +65,8 @@ reporter commRef res curr lastGoodTime = do
     , true ==> do
        (commRef ~> V.bad_msgs) += 1
        l <- deref lastGoodTime
-       store (commRef ~> V.time) (now - l)
+       dt_ms <- assign (castWith 0 (toIMilliseconds (now - l)))
+       store (commRef ~> V.time) dt_ms
     ]
 
 

@@ -19,14 +19,15 @@ import qualified SMACCMPilot.Flight.Types.ControlLawRequest as CL
 data ModeSwitch =
   ModeSwitch
     { ms_init       :: forall eff   . Ivory eff ()
-    , ms_new_sample :: forall eff s . Ref s I.PPMs -> Uint32 -> Ivory eff ()
+    , ms_new_sample :: forall eff s . Ref s I.PPMs -> ITime -> Ivory eff ()
     , ms_no_sample  :: forall eff   . Ivory eff ()
     , ms_get_cl_req :: forall eff s . Ref s (Struct "control_law_request")
                                    -> Ivory eff ()
     }
 
 newtype ThreePositionSwitch = ThreePositionSwitch Uint8
-  deriving (IvoryType, IvoryVar, IvoryExpr, IvoryEq, IvoryStore, IvoryInit)
+  deriving ( IvoryType, IvoryVar, IvoryExpr, IvoryEq
+           , IvoryStore, IvoryInit, IvoryZeroVal)
 
 posUp :: ThreePositionSwitch
 posUp = ThreePositionSwitch 0
@@ -47,7 +48,7 @@ taskModeSwitch = do
         store md_last_position posDown
         store md_last_position_time 0
 
-      new_sample_proc :: Def('[Ref s I.PPMs, Uint32]:->())
+      new_sample_proc :: Def('[Ref s I.PPMs, ITime]:->())
       new_sample_proc = proc (named "new_sample") $ \ppms time -> body $ do
         switch <- deref (ppms ! (4 :: Ix 8))
         position <- assign $ modeswitchpos_from_ppm switch

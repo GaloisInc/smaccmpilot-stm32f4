@@ -20,21 +20,21 @@ import qualified SMACCMPilot.Flight.Types.ControlLaw     as CL
 import qualified SMACCMPilot.Flight.Types.CommsecStatus  as CS
 
 blinkTask :: [ GPIOPin ]
-          -> DataSink (Struct "control_law")
-          -> DataSink (Stored CS.CommsecStatus)
+          -> ChannelSink (Struct "control_law")
+          -> ChannelSink (Stored CS.CommsecStatus)
           -> Task p ()
 blinkTask pins cls css = do
-  lawReader <- withDataReader cls "controllaw"
-  comStatRr <- withDataReader css "commstatus"
+  lawReader <- withChannelReader cls "controllaw"
+  comStatRr <- withChannelReader css "commstatus"
   taskInit $ mapM_ pinInit pins
 
   s_phase    <- taskLocal "phase"
 
-  onPeriod 125 $ \_now -> do
+  onPeriod (Milliseconds 125) $ \_now -> do
     ctllaw <- local (istruct [])
-    readData lawReader ctllaw
+    _ <- chanRead lawReader ctllaw
     commStatRef <- local izero
-    readData comStatRr commStatRef
+    _ <- chanRead comStatRr commStatRef
     commStat <- deref commStatRef
 
     bmode  <- lawToBlinkMode ctllaw commStat

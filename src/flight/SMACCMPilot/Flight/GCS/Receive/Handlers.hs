@@ -35,9 +35,8 @@ import qualified SMACCMPilot.Flight.Types.EnableDisable          as E
 -- Params
 
 -- | Send a request to the GCS transmit task to send each parameter.
-paramRequestList :: (SingI n)
-                 => [Param ParamReader]
-                 -> ChannelEmitter n (Stored Sint16)
+paramRequestList :: [Param ParamReader]
+                 -> ChannelEmitter (Stored Sint16)
                  -> Ref s (Struct "param_request_list_msg")
                  -> Ivory (ProcEffects cs r) ()
 paramRequestList params emitter _ =
@@ -45,9 +44,8 @@ paramRequestList params emitter _ =
     emitV_ emitter (fromIntegral n)
 
 -- | Request read of a parameter by name or index.
-paramRequestRead :: (SingI n)
-                 => ParamIndexGetter
-                 -> ChannelEmitter n (Stored Sint16)
+paramRequestRead :: ParamIndexGetter
+                 -> ChannelEmitter (Stored Sint16)
                  -> Ref s (Struct "param_request_read_msg")
                  -> Ivory (ProcEffects cs r) ()
 paramRequestRead getIndex emitter msg = do
@@ -66,10 +64,9 @@ paramRequestRead getIndex emitter msg = do
     emitV_ emitter ix
 
 -- | Set a parameter's value and send the modified param info.
-paramSet :: (SingI n)
-         => ParamIndexGetter
+paramSet :: ParamIndexGetter
          -> Def ('[Sint16, IFloat] :-> IBool)
-         -> ChannelEmitter n (Stored Sint16)
+         -> ChannelEmitter (Stored Sint16)
          -> Ref s3 (Struct "param_set_msg")
          -> Ivory (ProcEffects cs r) ()
 paramSet getIndex setValue emitter msg = do
@@ -87,9 +84,9 @@ paramSet getIndex setValue emitter msg = do
 
 --------------------------------------------------------------------------------
 
-requestDatastream :: (SingI n, GetAlloc eff ~ Scope cs)
+requestDatastream :: (GetAlloc eff ~ Scope cs)
                   => Ref       s1 (Struct "gcsstream_timing")
-                  -> ChannelEmitter n (Struct "gcsstream_timing")
+                  -> ChannelEmitter (Struct "gcsstream_timing")
                   -> Ref       s2 (Struct "request_data_stream_msg")
                   -> Ivory eff ()
 requestDatastream streamperiods emitter msg = do
@@ -101,8 +98,8 @@ requestDatastream streamperiods emitter msg = do
 
 --------------------------------------------------------------------------------
 
-hilState :: (SingI n, GetAlloc eff ~ Scope cs)
-         => ChannelEmitter n (Struct "hil_state_msg")
+hilState :: (GetAlloc eff ~ Scope cs)
+         => ChannelEmitter (Struct "hil_state_msg")
          -> Ref s (Struct "hil_state_msg")
          -> Ivory eff ()
 hilState e r = emit_ e (constRef r)
@@ -110,8 +107,8 @@ hilState e r = emit_ e (constRef r)
 --------------------------------------------------------------------------------
 
 -- | Handle RC override messages.
-rcOverride :: (GetAlloc eff ~ Scope cs, SingI n)
-           => ChannelEmitter n (Struct "rc_channels_override_msg")
+rcOverride :: (GetAlloc eff ~ Scope cs)
+           => ChannelEmitter (Struct "rc_channels_override_msg")
            -> Ref s (Struct "rc_channels_override_msg")
            -> Ivory eff ()
 rcOverride e msgRef = emit_ e (constRef msgRef)
@@ -122,11 +119,10 @@ customModeEnabled :: Uint8
 customModeEnabled = 1
 
 
-smaccmNavCommand :: (SingI n)
-        => ChannelEmitter n (Struct "nav_command")
-        -> Uint32
-        -> Ref s2 (Struct "smaccmpilot_nav_cmd_msg")
-        -> Ivory (ProcEffects cs r) ()
+smaccmNavCommand :: ChannelEmitter (Struct "nav_command")
+                 -> ITime
+                 -> Ref s2 (Struct "smaccmpilot_nav_cmd_msg")
+                 -> Ivory (ProcEffects cs r) ()
 smaccmNavCommand emitter now msg = do
   alt_set           <- deref (msg ~> SN.alt_set)
   alt_rate_set      <- deref (msg ~> SN.alt_rate_set)
@@ -154,9 +150,9 @@ smaccmNavCommand emitter now msg = do
       , NC.alt_rate_setpt     .= ival ((safeCast alt_rate_set) / 1000.0)
       , NC.heading_control    .= ival (fromInt8 heading_set_valid)
       , NC.heading_setpt      .= ival heading_rads
-      , NC.autoland_active    .= ival 0 -- (fromInt8 autoland_active)
-      , NC.autoland_complete  .= ival 0 -- (fromInt8 autoland_complete)
-      , NC.time .= ival now
+      , NC.autoland_active    .= ival E.none
+      , NC.autoland_complete  .= ival E.none -- (fromInt8 autoland_complete)
+      , NC.time               .= ival (castWith 0 (toIMilliseconds now))
       ])
     emit_ emitter (constRef v)
 
@@ -169,9 +165,8 @@ smaccmNavCommand emitter now msg = do
 --------------------------------------------------------------------------------
 
 -- | Handle a 'COMPONENT_ARM_DISARM' command.
-armDisarm :: SingI n
-          => ChannelEmitter n (Struct "control_law_request")
-          -> Uint32
+armDisarm :: ChannelEmitter (Struct "control_law_request")
+          -> ITime
           -> Ref s1 (Struct "command_long_msg")
           -> Ivory (ProcEffects cs r) ()
 armDisarm creq_emitter now msg = do
@@ -193,7 +188,7 @@ handleCommandLong :: (GetAlloc eff ~ Scope s)
                   -> (Ref (Stack s) (Struct "command_long_msg") -> Ivory eff ())
                   -> Ref s1 (Struct "mavlink_receive_state")
                   -> Ivory eff ()
-handleCommandLong cmd handler rxstate = handle go rxstate
+handleCommandLong cmd handler rxstate = mavMsgHandle go rxstate
   where
     go msg = do
       cmd_id <- deref (msg ~> CL.command)
@@ -204,11 +199,11 @@ handleCommandLong cmd handler rxstate = handle go rxstate
 
 -- | Handles a specific Mavlink message, where 'unpack' is a method of the
 -- 'MavlinkUnpackageMsg'.
-handle :: (GetAlloc eff ~ Scope s, MavlinkUnpackableMsg t, IvoryStruct t)
+mavMsgHandle :: (GetAlloc eff ~ Scope s, MavlinkUnpackableMsg t, IvoryStruct t)
        => (Ref (Stack s) (Struct t) -> Ivory eff ())
        -> Ref s1 (Struct "mavlink_receive_state")
        -> Ivory eff ()
-handle handler rxstate = do
+mavMsgHandle handler rxstate = do
   let (unpacker, msgid) = unpackMsg
   rxid <- deref (rxstate ~> R.msgid)
   msg  <- local (istruct [])

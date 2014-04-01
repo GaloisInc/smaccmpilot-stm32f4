@@ -10,6 +10,7 @@
 module SMACCMPilot.Flight.Types.ControlSetpoint where
 
 import Ivory.Language
+import Ivory.Tower.Types.Time
 
 controlSetpointTypeModule :: Module
 controlSetpointTypeModule = package "control_setpoint_type" $ do
@@ -22,7 +23,7 @@ struct control_setpoint
   ; roll     :: Stored IFloat
   ; pitch    :: Stored IFloat
   ; heading  :: Stored IFloat
-  ; time     :: Stored Uint32
+  ; time     :: Stored ITime
   }
 
 |]
