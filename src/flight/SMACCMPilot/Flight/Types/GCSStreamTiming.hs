@@ -94,12 +94,17 @@ softRealTime = false
 
 --------------------------------------------------------------------------------
 
--- | Initializer.
-mkTimingData :: ITime -> IBool -> Init (Struct "gcsstream_data")
-mkTimingData per hardrt = istruct [ period .= ival per
-                                  , hard_deadline .= ival rt
-                                  ]
-  where rt = isHardRealTime hardrt
+-- | Initializers
+ivalActiveStreamHz :: Integer -> IBool -> Init (Struct "gcsstream_data")
+ivalActiveStreamHz rate hardrt = istruct
+  [ period .= ival (fromIMicroseconds ((1000000 :: Sint64) `iDiv` (fromIntegral rate)))
+  , hard_deadline .= ival (isHardRealTime hardrt)
+  ]
+ivalInactiveStream :: IBool -> Init (Struct "gcsstream_data")
+ivalInactiveStream hardrt = istruct
+  [ period        .= ival 0
+  , hard_deadline .= ival (isHardRealTime hardrt)
+  ]
 
 -- | Message period.
 getPeriod :: ( IvoryRef ref

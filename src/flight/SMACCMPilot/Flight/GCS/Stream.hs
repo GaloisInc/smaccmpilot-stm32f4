@@ -22,15 +22,15 @@ import SMACCMPilot.Flight.Types.GCSStreamTiming
 defaultPeriods :: Init (Struct "gcsstream_timing")
 defaultPeriods =
   istruct
-    [ heartbeat            .= mkTimingData 1000 hardRealTime
-    , servo_output_raw     .= mkTimingData 0    softRealTime
-    , attitude             .= mkTimingData 0    softRealTime
-    , gps_raw_int          .= mkTimingData 0    softRealTime
-    , vfr_hud              .= mkTimingData 0    softRealTime
-    , global_position_int  .= mkTimingData 0    softRealTime
-    , params               .= mkTimingData 100  softRealTime
-    , radio                .= mkTimingData 1000 softRealTime
-    , debug                .= mkTimingData 0    softRealTime
+    [ heartbeat            .= ivalActiveStreamHz 1  hardRealTime
+    , servo_output_raw     .= ivalInactiveStream    softRealTime
+    , attitude             .= ivalInactiveStream    softRealTime
+    , gps_raw_int          .= ivalInactiveStream    softRealTime
+    , vfr_hud              .= ivalInactiveStream    softRealTime
+    , global_position_int  .= ivalInactiveStream    softRealTime
+    , params               .= ivalActiveStreamHz 10 softRealTime
+    , radio                .= ivalActiveStreamHz 1  softRealTime
+    , debug                .= ivalInactiveStream    softRealTime
     ]
 
 -- | Update the stream period for one (or more) MAVLink streams.  This is called
