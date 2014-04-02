@@ -121,12 +121,12 @@ motorControlTower decode motorChan = do
         timeout 2 $ liftIvory $ do
           t <- deref bootAttempts
           store bootAttempts (t+1)
-          -- Need to try booting thrice for it to stick.  First boot tends to
-          -- make motor controller leds blink, and nothing else. Second boot
-          -- tends to boot motors 2,3,4. Third boot will generally boot motor 1.
-          -- This comment brought to you by makers of High Assurance Software (tm)
+          -- Need to try booting a bunch of times for it to work reliably.
+          -- Honestly, I'm not sure why, with the old tower/stm32f4 uart driver,
+          -- which had deterministic first-byte-delivery latency, it took three
+          -- retries to work. Now it takes five retries to work.
           return $ do
-            branch (t <? 2) bootBegin
+            branch (t <? 4) bootBegin
             goto loop
       loop <- stateNamed "loop" $ do
         entry $ liftIvory_ $ do
