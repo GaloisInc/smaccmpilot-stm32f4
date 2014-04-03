@@ -45,6 +45,8 @@ uartTower uart baud sizeproxy = do
     taskPriority 4 -- XXX Kinda arbitrary...
     taskModuleDef $ hw_moduledef
 
+    rxoverruns    <- taskLocalInit "rxoverruns" (ival (0 :: Uint32))
+    rxsuccess     <- taskLocalInit "rxsuccess" (ival (0 :: Uint32))
     txpending     <- taskLocal "txpending"
     txpendingbyte <- taskLocal "txpendingbyte"
 
@@ -61,22 +63,29 @@ uartTower uart baud sizeproxy = do
 
     handle interrupt "interrupt" $ \_msg -> do
       sr <- getReg (uartRegSR uart)
-      cond_
-       [ bitToBool (sr #. uart_sr_rxne) ==> do
-           byte <- readDR uart
-           bref <- local (ival byte)
-           emit_ i (constRef bref)
-       , bitToBool (sr #. uart_sr_txe) ==> do
-           pending <- deref txpending
-           ifte_ pending
-             (do store txpending false
-                 setDR uart =<< deref txpendingbyte)
-             (do byte <- local (ival 0)
-                 rv   <- receive o byte
-                 ifte_ rv
-                   (setDR uart =<< deref byte)
-                   (setTXEIE uart false))
-       ]
+      when (bitToBool (sr #. uart_sr_orne)) $ do
+        byte <- readDR uart
+        bref <- local (ival byte)
+        emit_ i (constRef bref)
+        rxoverruns %= (+1) -- This is basically an error we can't handle...
+      when (bitToBool (sr #. uart_sr_rxne)) $ do
+        byte <- readDR uart
+        bref <- local (ival byte)
+        emit_ i (constRef bref)
+        rxsuccess %= (+1) -- For debugging
+      when (bitToBool (sr #. uart_sr_txe)) $ do
+        pending <- deref txpending
+        ifte_ pending
+          (do store txpending false
+              tosend <- deref txpendingbyte
+              setTXEIE uart true
+              setDR uart tosend)
+          (do byte <- local (ival 0)
+              rv   <- receive o byte
+              ifte_ rv
+                (do tosend <- deref byte
+                    setDR uart tosend)
+                (setTXEIE uart false))
       interrupt_enable (uartInterrupt uart)
 
     handle txcheck "txcheck" $ \_ -> do
