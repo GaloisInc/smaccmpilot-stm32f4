@@ -10,7 +10,7 @@ module SMACCMPilot.Flight.Types.ArmedMode
 import Ivory.Language
 
 newtype ArmedMode = ArmedMode Uint32
-  deriving (Num, IvoryType, IvoryVar, IvoryExpr, IvoryEq, IvoryStore, IvoryInit)
+  deriving (Num, IvoryType, IvoryVar, IvoryExpr, IvoryEq, IvoryStore, IvoryInit, IvoryZeroVal)
 
 safe :: ArmedMode
 safe = ArmedMode 0

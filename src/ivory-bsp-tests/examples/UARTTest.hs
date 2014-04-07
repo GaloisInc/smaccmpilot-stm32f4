@@ -55,7 +55,7 @@ instance BoardHSE DummyHSE where
 
 main_task :: Def ('[Ptr s (Stored Uint8)] :-> ())
 main_task = proc "main_task" $ \_ -> body $ do
-  uartInit uart1 (Proxy :: Proxy DummyHSE) 115200
+  uartInit uart5 (Proxy :: Proxy DummyHSE) 115200
   mapM_ ledSetupPin ledPins
   forever $ do
     call_ taskDelay 250

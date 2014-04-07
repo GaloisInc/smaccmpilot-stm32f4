@@ -33,7 +33,7 @@ struct userinput_result
 
 newtype PPM = PPM Uint16
   deriving ( IvoryType, IvoryOrd, IvoryVar, IvoryExpr
-           , IvoryEq, IvoryStore, IvoryInit, Num)
+           , IvoryEq, IvoryStore, IvoryInit, Num, IvoryZeroVal)
 
 type PPMs = Array 8 (Stored PPM)
 

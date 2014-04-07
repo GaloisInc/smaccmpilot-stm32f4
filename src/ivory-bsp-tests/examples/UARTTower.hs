@@ -27,7 +27,7 @@ app = do
   -- A new queue
   redledctl <- channel
   -- Starts a UART (serial) task
-  (istream, ostream) <- uartTower uart5 115200
+  (istream, ostream) <- uartTower uart1 115200
   -- Start the task defined below
   echoPrompt "hello world" ostream istream (src redledctl)
   -- A task that takes control input (Boolean) from the echo prompt and controls

@@ -9,7 +9,7 @@ module SMACCMPilot.Flight.Types.CommsecStatus
 import Ivory.Language
 
 newtype CommsecStatus = CommsecStatus Uint32
-  deriving (Num, IvoryType, IvoryVar, IvoryExpr, IvoryEq, IvoryStore, IvoryInit)
+  deriving (Num, IvoryType, IvoryVar, IvoryExpr, IvoryEq, IvoryStore, IvoryInit, IvoryZeroVal)
 
 alarm :: CommsecStatus
 alarm  = CommsecStatus 0
