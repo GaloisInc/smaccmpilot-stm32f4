@@ -40,7 +40,7 @@ import Ivory.BSP.STM32F4.RCC.RegTypes
 |]
 
 regRCC_PLLCFGR :: BitDataReg RCC_PLLCFGR
-regRCC_PLLCFGR = mkBitDataReg $ rcc_periph_base + 0x04
+regRCC_PLLCFGR = mkBitDataRegNamed (rcc_periph_base + 0x04) "rcc_pllcfgr"
 
 -- Clock Configuration Register ------------------------------------------------
 
@@ -62,7 +62,7 @@ regRCC_PLLCFGR = mkBitDataReg $ rcc_periph_base + 0x04
 |]
 
 regRCC_CFGR :: BitDataReg RCC_CFGR
-regRCC_CFGR = mkBitDataReg $ rcc_periph_base + 0x08
+regRCC_CFGR = mkBitDataRegNamed (rcc_periph_base + 0x08) "rcc_cfgr"
 
 
 -- AHB Peripheral Clock Enable Registers ---------------------------------------
@@ -97,7 +97,7 @@ regRCC_CFGR = mkBitDataReg $ rcc_periph_base + 0x08
 |]
 
 regRCC_AHB1ENR :: BitDataReg RCC_AHB1ENR
-regRCC_AHB1ENR = mkBitDataReg $ rcc_periph_base + 0x30
+regRCC_AHB1ENR = mkBitDataRegNamed (rcc_periph_base + 0x30) "rcc_ahb1enr"
 
 [bitdata|
  bitdata RCC_AHB2ENR :: Bits 32 = rcc_ahb2enr
@@ -112,7 +112,7 @@ regRCC_AHB1ENR = mkBitDataReg $ rcc_periph_base + 0x30
 |]
 
 regRCC_AHB2ENR :: BitDataReg RCC_AHB2ENR
-regRCC_AHB2ENR = mkBitDataReg $ rcc_periph_base + 0x34
+regRCC_AHB2ENR = mkBitDataRegNamed (rcc_periph_base + 0x34) "rcc_ahb2enr"
 
 [bitdata|
  bitdata RCC_AHB3ENR :: Bits 32 = rcc_ahb3enr
@@ -122,7 +122,7 @@ regRCC_AHB2ENR = mkBitDataReg $ rcc_periph_base + 0x34
 |]
 
 regRCC_AHB3ENR :: BitDataReg RCC_AHB3ENR
-regRCC_AHB3ENR = mkBitDataReg $ rcc_periph_base + 0x38
+regRCC_AHB3ENR = mkBitDataRegNamed (rcc_periph_base + 0x38) "rcc_ahb3enr"
 
 -- APB Peripheral Clock Enable Registers ---------------------------------------
 -- Note: the reference manual lists separate register maps for two subsets of
@@ -167,7 +167,7 @@ regRCC_AHB3ENR = mkBitDataReg $ rcc_periph_base + 0x38
 |]
 
 regRCC_APB1ENR :: BitDataReg RCC_APB1ENR
-regRCC_APB1ENR = mkBitDataReg $ rcc_periph_base + 0x40
+regRCC_APB1ENR = mkBitDataRegNamed (rcc_periph_base + 0x40) "rcc_apb1enr"
 
 [bitdata|
  bitdata RCC_APB2ENR :: Bits 32 = rcc_apb2enr
@@ -193,5 +193,5 @@ regRCC_APB1ENR = mkBitDataReg $ rcc_periph_base + 0x40
 |]
 
 regRCC_APB2ENR :: BitDataReg RCC_APB2ENR
-regRCC_APB2ENR = mkBitDataReg $ rcc_periph_base + 0x44
+regRCC_APB2ENR = mkBitDataRegNamed (rcc_periph_base + 0x44) "rcc_apb2enr"
 

@@ -46,36 +46,39 @@ data ATIM = ATIM
   }
 
 -- | Create an ATIM given the base register address.
-mkATIM :: Integer -> BitDataField RCC_APB2ENR Bit -> ATIM
-mkATIM base rccfield =
+mkATIM :: Integer -> BitDataField RCC_APB2ENR Bit -> String -> ATIM
+mkATIM base rccfield n =
   ATIM
-    { atimRegCR1         = mkBitDataReg $ base + 0x00
-    , atimRegCR2         = mkBitDataReg $ base + 0x04
-    , atimRegSMCR        = mkBitDataReg $ base + 0x08
-    , atimRegDIER        = mkBitDataReg $ base + 0x0C
-    , atimRegSR          = mkBitDataReg $ base + 0x10
-    , atimRegEGR         = mkBitDataReg $ base + 0x14
-    , atimRegCCMR1_OCM   = mkBitDataReg $ base + 0x18 -- aliased with icm
-    , atimRegCCMR1_ICM   = mkBitDataReg $ base + 0x18
-    , atimRegCCMR2_OCM   = mkBitDataReg $ base + 0x1C -- aliased with icm
-    , atimRegCCMR2_ICM   = mkBitDataReg $ base + 0x1C
-    , atimRegCCER        = mkBitDataReg $ base + 0x20
-    , atimRegCNT         = mkBitDataReg $ base + 0x24
-    , atimRegPSC         = mkBitDataReg $ base + 0x28
-    , atimRegARR         = mkBitDataReg $ base + 0x2C
-    , atimRegCCR1        = mkBitDataReg $ base + 0x34
-    , atimRegCCR2        = mkBitDataReg $ base + 0x38
-    , atimRegCCR3        = mkBitDataReg $ base + 0x3C
-    , atimRegCCR4        = mkBitDataReg $ base + 0x40
-    , atimRegBDTR        = mkBitDataReg $ base + 0x44
+    { atimRegCR1         = reg 0x00 "cr1"
+    , atimRegCR2         = reg 0x04 "cr2"
+    , atimRegSMCR        = reg 0x08 "smcr"
+    , atimRegDIER        = reg 0x0C "dier"
+    , atimRegSR          = reg 0x10 "sr"
+    , atimRegEGR         = reg 0x14 "egr"
+    , atimRegCCMR1_OCM   = reg 0x18 "ccmr1_ocm" -- aliased with icm
+    , atimRegCCMR1_ICM   = reg 0x18 "ccmr1_icm"
+    , atimRegCCMR2_OCM   = reg 0x1C "ccmr2_ocm" -- aliased with icm
+    , atimRegCCMR2_ICM   = reg 0x1C "ccmr2_icm"
+    , atimRegCCER        = reg 0x20 "ccer"
+    , atimRegCNT         = reg 0x24 "cnt"
+    , atimRegPSC         = reg 0x28 "psc"
+    , atimRegARR         = reg 0x2C "arr"
+    , atimRegCCR1        = reg 0x34 "ccr1"
+    , atimRegCCR2        = reg 0x38 "ccr2"
+    , atimRegCCR3        = reg 0x3C "ccr3"
+    , atimRegCCR4        = reg 0x40 "ccr4"
+    , atimRegBDTR        = reg 0x44 "bdtr"
     , atimRCCEnable      = rccEnable  rccreg rccfield
     , atimRCCDisable     = rccDisable rccreg rccfield
     }
-  where rccreg = regRCC_APB2ENR -- TIM1 and TIM8 are in APB2
+  where
+  reg :: (IvoryIOReg (BitDataRep d)) => Integer -> String -> BitDataReg d
+  reg offs name = mkBitDataRegNamed (base + offs) (n ++ "->" ++ name)
+  rccreg = regRCC_APB2ENR -- TIM1 and TIM8 are in APB2
 
 tim1 :: ATIM
-tim1 = mkATIM tim1_periph_base rcc_apb2en_tim1
+tim1 = mkATIM tim1_periph_base rcc_apb2en_tim1 "tim1"
 
 tim8 :: ATIM
-tim8 = mkATIM tim8_periph_base rcc_apb2en_tim8
+tim8 = mkATIM tim8_periph_base rcc_apb2en_tim8 "tim8"
 

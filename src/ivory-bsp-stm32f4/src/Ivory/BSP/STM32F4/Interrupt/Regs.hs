@@ -44,7 +44,7 @@ nvic_ISER_base = nvic_base + 0x000
 
 -- | Return the "n"th "ISER" register.
 nvic_ISER :: Int -> BitDataReg NVIC_ISER
-nvic_ISER n = mkBitDataReg addr
+nvic_ISER n = mkBitDataRegNamed addr ("nvic_iser" ++ show n)
   where addr = nvic_ISER_base + (fromIntegral n) * 4
 
 -- | Base address for the "ICER" (interrupt clear enable) registers.
@@ -53,7 +53,7 @@ nvic_ICER_base = nvic_base + 0x080
 
 -- | Return the "n"th "ICER" register.
 nvic_ICER :: Int -> BitDataReg NVIC_ICER
-nvic_ICER n = mkBitDataReg addr
+nvic_ICER n = mkBitDataRegNamed addr ("nvic_icer" ++ show n)
   where addr = nvic_ICER_base + (fromIntegral n) * 4
 
 -- | Base address for the "IPR" (interrupt priority) registers.

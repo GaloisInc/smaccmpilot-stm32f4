@@ -49,50 +49,53 @@ data GTIM a = GTIM
 
 -- | Create a GPIO port given the base register address.
 mkGTIM :: (IvoryIOReg (BitDataRep a))
-       => Integer -> BitDataField RCC_APB1ENR Bit -> GTIM a
-mkGTIM base rccfield =
+       => Integer -> BitDataField RCC_APB1ENR Bit -> String -> GTIM a
+mkGTIM base rccfield n =
   GTIM
-    { gtimRegCR1         = mkBitDataReg $ base + 0x00
-    , gtimRegCR2         = mkBitDataReg $ base + 0x04
-    , gtimRegSMCR        = mkBitDataReg $ base + 0x08
-    , gtimRegDIER        = mkBitDataReg $ base + 0x0C
-    , gtimRegSR          = mkBitDataReg $ base + 0x10
-    , gtimRegEGR         = mkBitDataReg $ base + 0x14
-    , gtimRegCCMR1_OCM   = mkBitDataReg $ base + 0x18 -- aliased with icm
-    , gtimRegCCMR1_ICM   = mkBitDataReg $ base + 0x18
-    , gtimRegCCMR2_OCM   = mkBitDataReg $ base + 0x1C -- aliased with icm
-    , gtimRegCCMR2_ICM   = mkBitDataReg $ base + 0x1C
-    , gtimRegCCER        = mkBitDataReg $ base + 0x20
-    , gtimRegCNT         = mkBitDataReg $ base + 0x24
-    , gtimRegPSC         = mkBitDataReg $ base + 0x28
-    , gtimRegARR         = mkBitDataReg $ base + 0x2C
-    , gtimRegCCR1        = mkBitDataReg $ base + 0x34
-    , gtimRegCCR2        = mkBitDataReg $ base + 0x38
-    , gtimRegCCR3        = mkBitDataReg $ base + 0x3C
-    , gtimRegCCR4        = mkBitDataReg $ base + 0x40
+    { gtimRegCR1         = reg 0x00 "cr1"
+    , gtimRegCR2         = reg 0x04 "cr2"
+    , gtimRegSMCR        = reg 0x08 "smcr"
+    , gtimRegDIER        = reg 0x0C "dier"
+    , gtimRegSR          = reg 0x10 "sr"
+    , gtimRegEGR         = reg 0x14 "egr"
+    , gtimRegCCMR1_OCM   = reg 0x18 "ccmr1_ocm" -- aliased with icm
+    , gtimRegCCMR1_ICM   = reg 0x18 "ccmr1_icm"
+    , gtimRegCCMR2_OCM   = reg 0x1C "ccmr2_ocm" -- aliased with icm
+    , gtimRegCCMR2_ICM   = reg 0x1C "ccmr2_icm"
+    , gtimRegCCER        = reg 0x20 "ccer"
+    , gtimRegCNT         = reg 0x24 "cnt"
+    , gtimRegPSC         = reg 0x28 "psc"
+    , gtimRegARR         = reg 0x2C "arr"
+    , gtimRegCCR1        = reg 0x34 "ccr1"
+    , gtimRegCCR2        = reg 0x38 "ccr2"
+    , gtimRegCCR3        = reg 0x3C "ccr3"
+    , gtimRegCCR4        = reg 0x40 "ccr4"
     , gtimRCCEnable      = rccEnable  rccreg rccfield
     , gtimRCCDisable     = rccDisable rccreg rccfield
     }
-  where rccreg = regRCC_APB1ENR -- All TIM2345 are in APB1
+  where
+  reg :: (IvoryIOReg (BitDataRep d)) => Integer -> String -> BitDataReg d
+  reg offs name = mkBitDataRegNamed (base + offs) (n ++ "->" ++ name)
+  rccreg = regRCC_APB1ENR -- All TIM2345 are in APB1
 
 tim2 :: GTIM16
-tim2 = mkGTIM tim2_periph_base rcc_apb1en_tim2
+tim2 = mkGTIM tim2_periph_base rcc_apb1en_tim2 "tim2"
 
 tim3 :: GTIM16
-tim3 = mkGTIM tim3_periph_base rcc_apb1en_tim3
+tim3 = mkGTIM tim3_periph_base rcc_apb1en_tim3 "tim3"
 
 tim4 :: GTIM16
-tim4 = mkGTIM tim4_periph_base rcc_apb1en_tim4
+tim4 = mkGTIM tim4_periph_base rcc_apb1en_tim4 "tim4"
 
 tim5 :: GTIM16
-tim5 = mkGTIM tim5_periph_base rcc_apb1en_tim5
+tim5 = mkGTIM tim5_periph_base rcc_apb1en_tim5 "tim5"
 
 -- Both TIM2 and TIM5 are really 32 bit timers, but you can safely make
 -- believe they are 16 bit.
 
 tim2_32 :: GTIM32
-tim2_32 = mkGTIM tim2_periph_base rcc_apb1en_tim2
+tim2_32 = mkGTIM tim2_periph_base rcc_apb1en_tim2 "tim2"
 
 tim5_32 :: GTIM32
-tim5_32 = mkGTIM tim5_periph_base rcc_apb1en_tim5
+tim5_32 = mkGTIM tim5_periph_base rcc_apb1en_tim5 "tim5"
 
