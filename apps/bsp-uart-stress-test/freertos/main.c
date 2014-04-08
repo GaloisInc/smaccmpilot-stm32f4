@@ -21,6 +21,8 @@ void main_task(void *arg)
     for (;;) {}
 }
 
+extern void main_task(void *arg);
+
 int main()
 {
     xTaskCreate(main_task, (signed char *)"main", 256, NULL, 0, NULL);
