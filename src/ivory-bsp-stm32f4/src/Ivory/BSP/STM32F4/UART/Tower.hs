@@ -2,7 +2,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE RankNTypes #-}
 
 module Ivory.BSP.STM32F4.UART.Tower where
 
@@ -22,6 +22,17 @@ import Ivory.BSP.STM32F4.UART.Peripheral
 import Ivory.BSP.STM32F4.RCC
 import Ivory.BSP.STM32F4.Interrupt
 
+data UARTTowerDebugger =
+  UARTTowerDebugger
+    { debug_init             :: forall eff . Ivory eff ()
+    , debug_isr              :: forall eff . Ivory eff ()
+    , debug_evthandler_start :: forall eff . Ivory eff ()
+    , debug_evthandler_end   :: forall eff . Ivory eff ()
+    , debug_txcheck          :: forall eff . Ivory eff ()
+    , debug_txcheck_pend     :: forall eff . Ivory eff ()
+    , debug_txeie            :: forall eff . IBool -> Ivory eff ()
+    }
+
 uartTower :: forall n p
            . (SingI n, BoardHSE p, STM32F4Signal p)
           => UART
@@ -29,7 +40,26 @@ uartTower :: forall n p
           -> Proxy (n :: Nat)
           -> Tower p ( ChannelSink   (Stored Uint8)
                      , ChannelSource (Stored Uint8))
-uartTower uart baud sizeproxy = do
+uartTower u b s = uartTowerDebuggable u b s dbg
+  where dbg = UARTTowerDebugger
+          { debug_init = return ()
+          , debug_isr  = return ()
+          , debug_evthandler_start = return ()
+          , debug_evthandler_end = return ()
+          , debug_txcheck = return ()
+          , debug_txcheck_pend = return ()
+          , debug_txeie = const (return ())
+          }
+
+uartTowerDebuggable :: forall n p
+           . (SingI n, BoardHSE p, STM32F4Signal p)
+          => UART
+          -> Integer
+          -> Proxy (n :: Nat)
+          -> UARTTowerDebugger
+          -> Tower p ( ChannelSink   (Stored Uint8)
+                     , ChannelSource (Stored Uint8))
+uartTowerDebuggable uart baud sizeproxy dbg = do
   -- MAGIC NUMBER: freertos syscalls must be lower (numerically greater
   -- than) level 11
   let max_syscall_priority = (12::Uint8)
@@ -54,14 +84,16 @@ uartTower uart baud sizeproxy = do
     interrupt <- withUnsafeSignalEvent
       (stm32f4Interrupt (uartInterrupt uart))
       (uartName uart ++ "_isr")
-      (interrupt_disable (uartInterrupt uart))
+      (debug_isr dbg >> interrupt_disable (uartInterrupt uart))
 
     taskInit $ do
+      debug_init dbg
       store txpending false
       uartInit    uart (Proxy :: Proxy p) (fromIntegral baud)
       uartInitISR uart max_syscall_priority
 
     handle interrupt "interrupt" $ \_msg -> do
+      debug_evthandler_start dbg
       sr <- getReg (uartRegSR uart)
       when (bitToBool (sr #. uart_sr_orne)) $ do
         byte <- readDR uart
@@ -78,6 +110,7 @@ uartTower uart baud sizeproxy = do
         ifte_ pending
           (do store txpending false
               tosend <- deref txpendingbyte
+              debug_txeie dbg true
               setTXEIE uart true
               setDR uart tosend)
           (do byte <- local (ival 0)
@@ -85,18 +118,23 @@ uartTower uart baud sizeproxy = do
               ifte_ rv
                 (do tosend <- deref byte
                     setDR uart tosend)
-                (setTXEIE uart false))
+                (do debug_txeie dbg false
+                    setTXEIE uart false))
+      debug_evthandler_end dbg
       interrupt_enable (uartInterrupt uart)
 
     handle txcheck "txcheck" $ \_ -> do
       txeie <- getTXEIE uart
       pending <- deref txpending
       unless (txeie .&& iNot pending) $ do
+        debug_txcheck dbg
         byte <- local (ival 0)
         txready <- receive o byte
         when txready $ do
+          debug_txcheck_pend dbg
           store txpending true
           store txpendingbyte =<< deref byte
+          debug_txeie dbg true
           setTXEIE uart true
 
 
