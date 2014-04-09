@@ -64,7 +64,6 @@ uartTowerDebuggable uart baud sizeproxy dbg = do
   -- than) level 11
   let max_syscall_priority = (12::Uint8)
 
-
   (src_ostream, snk_ostream) <- channel' sizeproxy Nothing
   (src_istream, snk_istream) <- channel' sizeproxy Nothing
 
@@ -84,7 +83,11 @@ uartTowerDebuggable uart baud sizeproxy dbg = do
     interrupt <- withUnsafeSignalEvent
       (stm32f4Interrupt (uartInterrupt uart))
       (uartName uart ++ "_isr")
-      (debug_isr dbg >> interrupt_disable (uartInterrupt uart))
+      (do debug_isr dbg
+          setTXEIE uart false
+          setRXNEIE uart false
+          interrupt_disable (uartInterrupt uart))
+      --    interrupt_clear_pending (uartInterrupt uart))
 
     taskInit $ do
       debug_init dbg
@@ -94,6 +97,7 @@ uartTowerDebuggable uart baud sizeproxy dbg = do
 
     handle interrupt "interrupt" $ \_msg -> do
       debug_evthandler_start dbg
+      continueTXEIE <- local (ival false)
       sr <- getReg (uartRegSR uart)
       when (bitToBool (sr #. uart_sr_orne)) $ do
         byte <- readDR uart
@@ -110,17 +114,17 @@ uartTowerDebuggable uart baud sizeproxy dbg = do
         ifte_ pending
           (do store txpending false
               tosend <- deref txpendingbyte
-              debug_txeie dbg true
-              setTXEIE uart true
+              store continueTXEIE true
               setDR uart tosend)
           (do byte <- local (ival 0)
               rv   <- receive o byte
-              ifte_ rv
-                (do tosend <- deref byte
-                    setDR uart tosend)
-                (do debug_txeie dbg false
-                    setTXEIE uart false))
+              when rv $ do
+                tosend <- deref byte
+                store continueTXEIE true
+                setDR uart tosend)
       debug_evthandler_end dbg
+      setTXEIE uart =<< deref continueTXEIE
+      setRXNEIE uart true
       interrupt_enable (uartInterrupt uart)
 
     handle txcheck "txcheck" $ \_ -> do
@@ -134,7 +138,6 @@ uartTowerDebuggable uart baud sizeproxy dbg = do
           debug_txcheck_pend dbg
           store txpending true
           store txpendingbyte =<< deref byte
-          debug_txeie dbg true
           setTXEIE uart true
 
 
