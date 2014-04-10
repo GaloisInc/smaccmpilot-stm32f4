@@ -88,7 +88,7 @@ uartTowerDebuggable uart baud sizeproxy dbg = do
   (src_istream, snk_istream) <- channel' sizeproxy Nothing
 
   task (uartName uart ++ "_driver") $ do
-    txcheck_evt <- timerEvent txcheck_period
+    txcheck_evt <- withPeriodicEvent txcheck_period
     uartTowerTask uart baud snk_ostream src_istream txcheck_evt dbg
 
   return (snk_istream, src_ostream)

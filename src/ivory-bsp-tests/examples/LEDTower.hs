@@ -66,7 +66,7 @@ blink per outSource = do
   -- Bring the emitter into scope for this Task
   outEmitter <- withChannelEmitter outSource "output"
   -- Declare a period for this Task
-  perevt <- timerEvent (Milliseconds per)
+  perevt <- withPeriodicEvent (Milliseconds per)
   handle perevt "per" $ \timeref -> do
     time <- deref timeref
     -- Emit boolean value which will alternate each period.

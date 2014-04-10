@@ -46,7 +46,7 @@ pollingLoopback :: ChannelSource (Stored Uint8)
                 -> Uint8
                 -> Tower p ()
 pollingLoopback src snk handlepin n correctval = task (named "pollingLoopback") $ do
-  timer <- timerEvent (Milliseconds 1)
+  timer <- withPeriodicEvent (Milliseconds 1)
   out <- withChannelEmitter  src "out"
   inp <- withChannelReceiver snk "in"
 
