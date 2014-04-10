@@ -8,8 +8,6 @@
 module SMACCMPilot.Flight.Datalink.AirData
   ( airDataHandler ) where
 
-import GHC.TypeLits
-
 import Ivory.Language
 import Ivory.Tower
 import Ivory.Stdlib
