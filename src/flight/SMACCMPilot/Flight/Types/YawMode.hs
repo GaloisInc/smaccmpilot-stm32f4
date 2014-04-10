@@ -9,7 +9,8 @@ module SMACCMPilot.Flight.Types.YawMode
 import Ivory.Language
 
 newtype YawMode = YawMode Uint32
-  deriving (Num, IvoryType, IvoryVar, IvoryExpr, IvoryEq, IvoryStore, IvoryInit, IvoryZeroVal)
+  deriving ( IvoryType, IvoryVar, IvoryExpr, IvoryEq
+           , IvoryStore, IvoryInit, IvoryZeroVal)
 
 rate :: YawMode
 rate = YawMode 0

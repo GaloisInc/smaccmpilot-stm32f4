@@ -31,13 +31,13 @@ data Failsafe =
     }
 
 taskFailsafe :: FlightParams ParamSink
-             -> DataSink (Stored C.CommsecStatus)
+             -> ChannelSink (Stored C.CommsecStatus)
              -> Task p Failsafe
 taskFailsafe params commsec_snk = do
   f <- fresh
   active <- taskLocal "nav_fs_active"
   target <- taskLocal "nav_fs_target"
-  commsec_stat_reader <- withDataReader commsec_snk "commsec_status"
+  commsec_stat_reader <- withChannelReader commsec_snk "commsec_status"
   fs_alt_param <- paramReader (flightFSAlt params)
   let named n = "nav_fs_" ++ n ++ "_" ++ show f
 
@@ -50,7 +50,7 @@ taskFailsafe params commsec_snk = do
                            ]:->())
       update_proc = proc (named "update") $ \ nlaw sens -> body $ do
         commsec_stat_ref <- local izero
-        readData commsec_stat_reader commsec_stat_ref
+        _ <- chanRead commsec_stat_reader commsec_stat_ref
         commsec_stat <- deref commsec_stat_ref
 
         when (commsec_stat ==? C.alarm) $ do

@@ -8,6 +8,7 @@
 module SMACCMPilot.Flight.Types.ControlOutput where
 
 import Ivory.Language
+import Ivory.Tower.Types.Time
 
 controlOutputTypeModule :: Module
 controlOutputTypeModule = package "controloutput_type" $ do
@@ -20,7 +21,7 @@ struct controloutput
   ; roll     :: Stored IFloat
   ; pitch    :: Stored IFloat
   ; yaw      :: Stored IFloat
-  ; time     :: Stored Uint32
+  ; time     :: Stored ITime
   }
 |]
 

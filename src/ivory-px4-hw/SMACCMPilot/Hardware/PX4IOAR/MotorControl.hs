@@ -16,8 +16,10 @@ import Ivory.Tower
 import Ivory.Tower.StateMachine
 
 import Ivory.BSP.STM32F4.UART
+import Ivory.BSP.STM32F4.UART.Tower
 import Ivory.BSP.STM32F4.GPIO
 import Ivory.BSP.STM32F4.RCC
+import Ivory.BSP.STM32F4.Signalable
 
 select_pins :: [GPIOPin]
 select_pins = [ pinC4, pinC5, pinA0, pinA1 ]
@@ -49,32 +51,39 @@ select_set_all v = mapM_ act select_pins
   where -- Active Low:
   act pin = ifte_ v (pinClear pin) (pinSet pin)
 
-motorControlTower :: (SingI n, IvoryArea a, IvoryZero a, BoardHSE p)
+motorControlTower :: (IvoryArea a, IvoryZero a, BoardHSE p, STM32F4Signal p)
              => (forall s cs . ConstRef s a
                   -> Ivory (AllocEffects cs)
                        (ConstRef (Stack cs) (Array 4 (Stored IFloat))))
-             -> ChannelSink n a
+             -> ChannelSink a
              -> Tower p ()
 motorControlTower decode motorChan = do
-  ((_unusedRxChan :: ChannelSink 1 (Stored Uint8))
-   ,(txchan :: ChannelSource 12 (Stored Uint8))) <- uartTower uart2 115200
+  (_unusedRxChan, txchan, flushchan) <- uartTowerFlushable uart2 115200
+                                          (Proxy :: Proxy 12)
   task "px4ioar" $ do
     ostream <- withChannelEmitter txchan "uart_ostream"
     istream <- withChannelEvent   motorChan  "motor_istream"
+    flushemitter <- withChannelEmitter flushchan "uart_flush"
     motorInit    <- taskLocal "motorInit"
     bootAttempts <- taskLocal "bootAttempts"
     throttle     <- taskLocal "throttle"
-    let put :: (Scope cs ~ GetAlloc eff) => Uint8 -> Ivory eff ()
-        put = emitV_ ostream
-        putbyte = liftIvory_ . put
+    let flush :: (Scope cs ~ GetAlloc eff) => Ivory eff ()
+        flush = emitV_ flushemitter 0
+        put :: (Scope cs ~ GetAlloc eff) => Uint8 -> Ivory eff ()
+        put b = emitV_ ostream b
+        putbyte b = liftIvory_ (put b >> flush)
         putPacket :: (SingI n)
                   => ConstRef s (Array n (Stored Uint8))
                   -> Ivory (AllocEffects cs) ()
-        putPacket p = arrayMap $ \i ->
-          noBreak $ deref (p ! i) >>= (emitV_ ostream)
+        putPacket p = do
+          arrayMap $ \i ->
+            noBreak $ deref (p ! i) >>= (emitV_ ostream)
+          flush
         initBytes = [0xE0, 0x91, 0xA1, 0x40]
         sendMultiPacket :: (Scope cs ~ GetAlloc eff) => Ivory eff ()
-        sendMultiPacket = replicateM_ 6 (put 0xA0)
+        sendMultiPacket = do
+          replicateM_ 6 (put 0xA0)
+          flush
 
     sm <- stateMachine "ioar" $ mdo
       bootBegin <- stateNamed "bootBegin" $ do
@@ -82,7 +91,7 @@ motorControlTower decode motorChan = do
           select_set_all false
           store motorInit 0
           return $ goto init1
-      init1 <- stateNamed "init1" $ timeout 3 $ do
+      init1 <- stateNamed "init1" $ timeout 10 $ do
         liftIvory_ $ do
           m <- deref motorInit
           when (m <? 4) $ do
@@ -94,7 +103,7 @@ motorControlTower decode motorChan = do
         putbyte (initBytes !! 2)
         liftIvory_ $ do
           m <- deref motorInit
-          emitV_ ostream (m + 1)
+          put (m + 1)
         putbyte (initBytes !! 3)
         goto init3
       init3 <- stateNamed "init3" $ timeout 1 $ do
@@ -120,12 +129,12 @@ motorControlTower decode motorChan = do
         timeout 2 $ liftIvory $ do
           t <- deref bootAttempts
           store bootAttempts (t+1)
-          -- Need to try booting thrice for it to stick.  First boot tends to
-          -- make motor controller leds blink, and nothing else. Second boot
-          -- tends to boot motors 2,3,4. Third boot will generally boot motor 1.
-          -- This comment brought to you by makers of High Assurance Software (tm)
+          -- Need to try booting a bunch of times for it to work reliably.
+          -- Honestly, I'm not sure why, with the old tower/stm32f4 uart driver,
+          -- which had deterministic first-byte-delivery latency, it took three
+          -- retries to work. Now it takes five retries to work.
           return $ do
-            branch (t <? 2) bootBegin
+            branch (t <? 8) bootBegin
             goto loop
       loop <- stateNamed "loop" $ do
         entry $ liftIvory_ $ do

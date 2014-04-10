@@ -9,6 +9,7 @@
 module SMACCMPilot.Flight.Types.ControlLawRequest where
 
 import Ivory.Language
+import Ivory.Tower.Types.Time
 
 [ivory|
 struct control_law_request
@@ -27,7 +28,7 @@ struct control_law_request
   ; set_stab_src_nav     :: Stored IBool
   ; set_head_src_ui      :: Stored IBool
   ; set_head_src_nav     :: Stored IBool
-  ; time                 :: Stored Uint32
+  ; time                 :: Stored ITime
   }
 |]
 

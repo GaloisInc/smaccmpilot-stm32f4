@@ -26,7 +26,7 @@ library
                        Ivory.BSP.STM32F4.SPI.Regs,
                        Ivory.BSP.STM32F4.SPI.RegTypes,
                        Ivory.BSP.STM32F4.SPI.Peripheral,
-                       Ivory.BSP.STM32F4.SPI.Tower,
+                       -- Ivory.BSP.STM32F4.SPI.Tower,
                        Ivory.BSP.STM32F4.I2C.Regs,
                        Ivory.BSP.STM32F4.I2C.Peripheral,
                        Ivory.BSP.STM32F4.RCC,
@@ -44,11 +44,17 @@ library
                        Ivory.BSP.STM32F4.GTIM2345.Regs,
                        Ivory.BSP.STM32F4.GTIM2345.RegTypes,
                        Ivory.BSP.STM32F4.GTIM2345.Peripheral,
+                       Ivory.BSP.STM32F4.ATIM18,
+                       Ivory.BSP.STM32F4.ATIM18.Regs,
+                       Ivory.BSP.STM32F4.ATIM18.RegTypes,
+                       Ivory.BSP.STM32F4.ATIM18.Peripheral,
                        Ivory.BSP.STM32F4.UART,
                        Ivory.BSP.STM32F4.UART.Types,
                        Ivory.BSP.STM32F4.UART.Regs,
                        Ivory.BSP.STM32F4.UART.Peripheral,
                        Ivory.BSP.STM32F4.UART.Tower,
+                       Ivory.BSP.STM32F4.Signalable,
+                       Ivory.BSP.STM32F4.Signalable.Class,
                        Ivory.BSP.STM32F4.SearchDir
 
   other-modules:       Ivory.BSP.STM32F4.GPIO.TH,
@@ -61,6 +67,7 @@ library
                        ivory-stdlib,
                        ivory-bitdata,
                        ivory-hw,
-                       ivory-tower >= 0.6.0.0
+                       tower >= 0.8
+
   ghc-options:         -Wall
 

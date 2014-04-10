@@ -21,15 +21,15 @@ import SMACCMPilot.Flight.UserInput.Mux
 
 data UITowerInputs =
   UITowerInputs
-    { uit_mavlink_req   :: ChannelSink 16 (Struct "control_law_request")
-    , uit_mavlink_rcovr :: ChannelSink 16 (Struct "rc_channels_override_msg")
-    , uit_nav_req       :: ChannelSink 16 (Struct "control_law_request")
+    { uit_mavlink_req   :: ChannelSink (Struct "control_law_request")
+    , uit_mavlink_rcovr :: ChannelSink (Struct "rc_channels_override_msg")
+    , uit_nav_req       :: ChannelSink (Struct "control_law_request")
     }
 
 -- XXX IMPLEMENT USE OF UIT_NAV_REQ
 userInputTower :: UITowerInputs
-               -> Tower p ( ChannelSink 16 (Struct "userinput_result")
-                          , ChannelSink 16 (Struct "control_law"))
+               -> Tower p ( ChannelSink (Struct "userinput_result")
+                          , ChannelSink (Struct "control_law"))
 userInputTower uit = do
   -- PPM module provides canonical control law request
   (ppm_ui, ppm_cl_req) <- ppmInputTower

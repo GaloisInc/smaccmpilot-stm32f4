@@ -36,25 +36,25 @@ import           SMACCMPilot.Param
 
 data FlightCoreRequires =
   FlightCoreRequires
-    { sensors_in        :: DataSink (Struct "sensors_result")
-    , position_in       :: ChannelSink 16 (Struct "position")
+    { sensors_in        :: ChannelSink (Struct "sensors_result")
+    , position_in       :: ChannelSink (Struct "position")
     , params_in         :: FlightParams ParamSink
-    , rcoverride_in     :: ChannelSink 16 (Struct "rc_channels_override_msg")
-    , navcommand_in     :: ChannelSink 16 (Struct "nav_command")
-    , ctl_req_in        :: ChannelSink 16 (Struct "control_law_request")
-    , commsec_mon_in    :: DataSink (Stored CommsecStatus)
+    , rcoverride_in     :: ChannelSink (Struct "rc_channels_override_msg")
+    , navcommand_in     :: ChannelSink (Struct "nav_command")
+    , ctl_req_in        :: ChannelSink (Struct "control_law_request")
+    , commsec_mon_in    :: ChannelSink (Stored CommsecStatus)
     }
 
 data FlightCoreProvides =
   FlightCoreProvides
-    { control_out      :: ChannelSink 16 (Struct "controloutput")
-    , motors_out       :: ChannelSink 16 (Struct "motors")
-    , controllaw_state :: DataSink (Struct "control_law")
-    , pos_ctl_state    :: DataSink (Struct "pos_control_dbg")
-    , alt_ctl_state    :: DataSink (Struct "alt_control_dbg")
-    , att_ctl_state    :: DataSink (Struct "att_control_dbg")
-    , userinput_state  :: DataSink (Struct "userinput_result")
-    , navlaw_state     :: DataSink (Struct "nav_law")
+    { control_out      :: ChannelSink (Struct "controloutput")
+    , motors_out       :: ChannelSink (Struct "motors")
+    , controllaw_state :: ChannelSink (Struct "control_law")
+    , pos_ctl_state    :: ChannelSink (Struct "pos_control_dbg")
+    , alt_ctl_state    :: ChannelSink (Struct "alt_control_dbg")
+    , att_ctl_state    :: ChannelSink (Struct "att_control_dbg")
+    , userinput_state  :: ChannelSink (Struct "userinput_result")
+    , navlaw_state     :: ChannelSink (Struct "nav_law")
     }
 
 core :: FlightCoreRequires -> Tower p FlightCoreProvides
@@ -78,37 +78,32 @@ core sys = do
     , nav_commsec_mon = commsec_mon_in sys
     }
 
-  userinput  <- stateProxy "proxy_userinput" userinput_chan
-  controllaw <- stateProxy "proxy_controllaw" controllaw_chan
-  nav_setpt_state <- stateProxy "proxy_navsetpt" (nav_setpt nav)
-  nav_law_state <- stateProxy "proxy_nav_law" (nav_law nav)
-
   ctl <- controlTower (params_in sys) ControlInputs
-    { ci_law   = controllaw
-    , ci_ui    = userinput
-    , ci_setpt = nav_setpt_state
+    { ci_law   = controllaw_chan
+    , ci_ui    = userinput_chan
+    , ci_setpt = nav_setpt nav
     , ci_sens  = sensors_in sys
     }
 
-  task "blink"  $ blinkTask lights controllaw (commsec_mon_in sys)
+  task "blink"  $ blinkTask lights controllaw_chan (commsec_mon_in sys)
   task "motmix" $ motorMixerTask
                         (co_ctl ctl)
-                        controllaw
+                        controllaw_chan
                         (src motors)
 
-  addDepends vehCommsecModule
-  mapM_ addDepends typeModules
-  mapM_ addModule otherms
+  towerDepends vehCommsecModule
+  mapM_ towerDepends typeModules
+  mapM_ towerModule otherms
 
   return $ FlightCoreProvides
     { control_out      = co_ctl ctl
     , motors_out       = snk motors
-    , controllaw_state = controllaw
+    , controllaw_state = controllaw_chan
     , pos_ctl_state    = nav_pos_dbg nav
     , alt_ctl_state    = co_alt_dbg ctl
     , att_ctl_state    = co_att_dbg ctl
-    , userinput_state  = userinput
-    , navlaw_state     = nav_law_state
+    , userinput_state  = userinput_chan
+    , navlaw_state     = nav_law nav
     }
   where
   lights = [relaypin, redledpin]

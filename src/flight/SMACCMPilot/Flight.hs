@@ -35,6 +35,8 @@ import qualified SMACCMPilot.Flight.Commsec.CommsecOpts as C
 import qualified SMACCMPilot.Flight.Types.CommsecStatus as S
 
 import qualified Ivory.BSP.STM32F4.UART as UART
+import           Ivory.BSP.STM32F4.UART.Tower
+import           Ivory.BSP.STM32F4.Signalable
 import           Ivory.BSP.STM32F4.RCC (BoardHSE(..))
 
 -- | All parameters in the system.
@@ -47,12 +49,12 @@ sysParams :: Monad m => ParamT f m (SysParams f)
 sysParams =
   SysParams <$> group "" flightParams
 
-hil :: (BoardHSE p, MotorOutput p, SensorOrientation p)
+hil :: (STM32F4Signal p, BoardHSE p, MotorOutput p, SensorOrientation p)
     => C.Options
     -> Tower p ()
 hil opts = do
   -- Communication primitives:
-  sensors        <- dataport
+  sensors        <- channel
   position       <- channel
   mavlink_ctlreq <- channel
   rc_override    <- channel
@@ -62,7 +64,7 @@ hil opts = do
   (params, paramList) <- initTowerParams sysParams
   let snk_params       = portPairSink <$> params
 
-  commsec_mon_result <- dataportInit (ival S.secure)
+  commsec_mon_result <- channel' (Proxy :: Proxy 2) (Just (ival S.secure))
 
   -- Instantiate core:
   core_out <- core $ FlightCoreRequires
@@ -75,23 +77,19 @@ hil opts = do
                       , commsec_mon_in = snk commsec_mon_result
                       }
 
-  control_state     <- stateProxy "control_state" (control_out core_out)
-  motors_state      <- stateProxy "motors_state" (motors_out core_out)
-  position_state    <- stateProxy "position_state" (snk position)
-
   -- HIL-enabled GCS on uart1:
-  (istream, ostream) <- uart UART.uart1
+  (istream, ostream) <- uartTower UART.uart1 57600 (Proxy :: Proxy 1024)
 
   -- Commsec reporter, to GCS TX from decrypter
-  commsec_info       <- dataport
+  commsec_info       <- channel
 
   gcsTowerHil "uart1" opts istream ostream
     GCSRequires
       { gcs_ctl_law_in  = controllaw_state core_out
       , gcs_sens_in     = snk sensors
-      , gcs_position_in = position_state
-      , gcs_ctl_in      = control_state
-      , gcs_motors_in   = motors_state
+      , gcs_position_in = snk position
+      , gcs_ctl_in      = control_out core_out
+      , gcs_motors_in   = motors_out core_out
       , gcs_alt_ctl_in  = alt_ctl_state core_out
       , gcs_att_ctl_in  = att_ctl_state core_out
       , gcs_pos_ctl_in  = pos_ctl_state core_out
@@ -112,17 +110,17 @@ hil opts = do
       }
     paramList
 
-  addModule (commsecModule opts)
+  towerModule (commsecModule opts)
   -- Missing module that comes in via gpsTower:
-  addModule  gpsTypesModule
-  addDepends gpsTypesModule
+  towerModule  gpsTypesModule
+  towerDepends gpsTypesModule
 
-flight :: (BoardHSE p, MotorOutput p, SensorOrientation p)
+flight :: (STM32F4Signal p, BoardHSE p, MotorOutput p, SensorOrientation p)
        => C.Options
        -> Tower p ()
 flight opts = do
   -- Communication primitives:
-  sensors        <- dataport
+  sensors        <- channel
   mavlink_ctlreq <- channel
   rc_override    <- channel
   nav_command    <- channel
@@ -137,7 +135,7 @@ flight opts = do
   sensorsTower gps_position (src sensors)
 
   -- monitor valid commsec, tell core result
-  commsec_mon_result <- dataportInit (ival S.secure)
+  commsec_mon_result <- channel' (Proxy :: Proxy 2) (Just (ival S.secure))
 
   -- Instantiate core:
   core_out <- core $ FlightCoreRequires
@@ -150,24 +148,21 @@ flight opts = do
     , commsec_mon_in  = snk commsec_mon_result
     }
 
-  control_state     <- stateProxy "control_state" (control_out core_out)
-  motors_state      <- stateProxy "motors_state" (motors_out core_out)
-
   -- Motor output dependent on platform
   motorOutput (motors_out core_out)
 
   -- Commsec reporter, from decrypter to GCS TX and monitor
-  commsec_info       <- dataport
+  commsec_info       <- channel
 
-  position_state <- stateProxy "position_state" gps_position
-  let gcsTower' name istream ostream =
+  let gcsTower' name u = do
+        (istream, ostream) <- uartTower u 57600 (Proxy :: Proxy 1024)
         gcsTower name opts istream ostream
           GCSRequires
             { gcs_ctl_law_in  = controllaw_state core_out
             , gcs_sens_in     = snk sensors
-            , gcs_position_in = position_state
-            , gcs_ctl_in      = control_state
-            , gcs_motors_in   = motors_state
+            , gcs_position_in = gps_position
+            , gcs_ctl_in      = control_out core_out
+            , gcs_motors_in   = motors_out core_out
             , gcs_alt_ctl_in  = alt_ctl_state core_out
             , gcs_att_ctl_in  = att_ctl_state core_out
             , gcs_pos_ctl_in  = pos_ctl_state core_out
@@ -184,22 +179,10 @@ flight opts = do
             }
           paramList
 
-  -- GCS on UART1:
-  (uart1istream, uart1ostream) <- uart UART.uart1
-  gcsTower' "uart1" uart1istream uart1ostream
-
-  -- GCS on UART5:
-  (uart5istream, uart5ostream) <- uart UART.uart5
-  gcsTower' "uart5" uart5istream uart5ostream
+  gcsTower' "uart1" UART.uart1
+  gcsTower' "uart5" UART.uart5
 
   -- Recovery Tasks
   recoveryTower (snk commsec_info) (src commsec_mon_result)
 
-  addModule (commsecModule opts)
-
--- Helper: a uartTower with 1k buffers and 57600 kbaud
-uart :: (BoardHSE p)
-     => UART.UART
-     -> Tower p ( ChannelSink   1024 (Stored Uint8)
-                , ChannelSource 1024 (Stored Uint8))
-uart u = UART.uartTower u 57600
+  towerModule (commsecModule opts)

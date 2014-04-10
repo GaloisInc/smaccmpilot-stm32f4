@@ -13,6 +13,7 @@ import qualified Ivory.Stdlib.SearchDir as Stdlib
 
 import qualified Ivory.HW.SearchDir as HW
 
+import           Ivory.BSP.STM32F4.Signalable
 import qualified Ivory.BSP.STM32F4.SearchDir as BSP
 import qualified Ivory.BSP.STM32F4.RCC       as BSP
 
@@ -20,7 +21,8 @@ import SMACCMPilot.Flight.Platforms
 import SMACCMPilot.Flight.Motors.Platforms
 import SMACCMPilot.Flight.Sensors.Platforms
 
-compile :: (forall p . (BSP.BoardHSE p, MotorOutput p, SensorOrientation p)
+compile :: (forall p . ( STM32F4Signal p, BSP.BoardHSE p
+                       , MotorOutput p, SensorOrientation p)
         => Tower p ())
         -> [String]
         -> IO ()

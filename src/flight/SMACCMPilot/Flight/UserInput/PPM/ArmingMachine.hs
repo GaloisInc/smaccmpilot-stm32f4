@@ -19,14 +19,15 @@ import qualified SMACCMPilot.Flight.Types.ControlLawRequest as CL
 data ArmingMachine =
   ArmingMachine
     { am_init       :: forall eff   . Ivory eff ()
-    , am_new_sample :: forall eff s . Ref s I.PPMs -> Uint32 -> Ivory eff ()
+    , am_new_sample :: forall eff s . Ref s I.PPMs -> ITime -> Ivory eff ()
     , am_no_sample  :: forall eff   . Ivory eff ()
     , am_get_cl_req :: forall eff s . Ref s (Struct "control_law_request")
                                    -> Ivory eff ()
     }
 
 newtype DeadSwitch = DeadSwitch Uint8
-  deriving (IvoryType, IvoryVar, IvoryExpr, IvoryEq, IvoryStore, IvoryInit)
+  deriving ( IvoryType, IvoryVar, IvoryExpr, IvoryEq
+           , IvoryStore, IvoryInit, IvoryZeroVal)
 
 deadSafe :: DeadSwitch
 deadSafe = DeadSwitch 0
@@ -34,7 +35,8 @@ deadArmable :: DeadSwitch
 deadArmable = DeadSwitch 1
 
 newtype ArmingState = ArmingState Uint8
-  deriving (IvoryType, IvoryVar, IvoryExpr, IvoryEq, IvoryStore, IvoryInit)
+  deriving ( IvoryType, IvoryVar, IvoryExpr, IvoryEq
+           , IvoryStore, IvoryInit, IvoryZeroVal )
 
 armingIdle :: ArmingState
 armingIdle = ArmingState 0
@@ -57,7 +59,7 @@ taskArmingMachine = do
         store arming_state_time 0
         store dead_last_pos deadSafe
 
-      new_sample_proc :: Def('[Ref s I.PPMs, Uint32]:->())
+      new_sample_proc :: Def('[Ref s I.PPMs, ITime]:->())
       new_sample_proc = proc (named "new_sample") $ \ppms time -> body $ do
         throttle_chan   <- deref (ppms ! (2 :: Ix 8))
         rudder_chan     <- deref (ppms ! (3 :: Ix 8))
@@ -69,12 +71,12 @@ taskArmingMachine = do
               (arming_sm throttle_chan rudder_chan time)
 
 
-      arming_reset :: Uint32 -> Ivory eff ()
+      arming_reset :: ITime -> Ivory eff ()
       arming_reset time = do
         store arming_state armingIdle
         store arming_state_time time
 
-      arming_sm :: I.PPM -> I.PPM -> Uint32 -> Ivory eff ()
+      arming_sm :: I.PPM -> I.PPM -> ITime -> Ivory eff ()
       arming_sm thr rud time = do
         prevt <- deref arming_state_time
         state <- deref arming_state

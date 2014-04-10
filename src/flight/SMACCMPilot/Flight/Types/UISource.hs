@@ -9,7 +9,8 @@ module SMACCMPilot.Flight.Types.UISource
 import Ivory.Language
 
 newtype UISource = UISource Uint32
-  deriving (Num, IvoryType, IvoryVar, IvoryExpr, IvoryEq, IvoryStore, IvoryInit, IvoryZeroVal)
+  deriving ( IvoryType, IvoryVar, IvoryExpr, IvoryEq
+           , IvoryStore, IvoryInit, IvoryZeroVal )
 
 ppm :: UISource
 ppm = UISource 0

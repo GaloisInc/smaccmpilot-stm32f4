@@ -9,7 +9,8 @@ module SMACCMPilot.Flight.Types.ThrottleMode
 import Ivory.Language
 
 newtype ThrottleMode = ThrottleMode Uint32
-  deriving (Num, IvoryType, IvoryVar, IvoryExpr, IvoryEq, IvoryStore, IvoryInit, IvoryZeroVal)
+  deriving ( IvoryType, IvoryVar, IvoryExpr, IvoryEq
+           , IvoryStore, IvoryInit, IvoryZeroVal)
 
 direct :: ThrottleMode
 direct = ThrottleMode 0

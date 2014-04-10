@@ -12,9 +12,9 @@ module Ivory.BSP.STM32F4.UART
   , uartInit
   , uartInitISR
   , setBaudRate
-  , uartTower
+--  , uartTower
   ) where
 
 import Ivory.BSP.STM32F4.UART.Peripheral
-import Ivory.BSP.STM32F4.UART.Tower
+-- import Ivory.BSP.STM32F4.UART.Tower
 

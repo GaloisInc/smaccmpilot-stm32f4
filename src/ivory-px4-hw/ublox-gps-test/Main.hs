@@ -18,7 +18,8 @@ import Ivory.BSP.STM32F4.RCC (BoardHSE)
 import qualified Ivory.HW.SearchDir          as HW
 import qualified Ivory.BSP.STM32F4.SearchDir as BSP
 
-import Ivory.BSP.STM32F4.UART
+import Ivory.BSP.STM32F4.UART.Tower
+import Ivory.BSP.STM32F4.Signalable
 
 import SMACCMPilot.Hardware.GPS.Types.Position as P
 import SMACCMPilot.Hardware.GPS.Types.GPSFix
@@ -30,41 +31,36 @@ main = compilePlatforms conf (gpsPlatforms app)
   where
   conf = searchPathConf [ HW.searchDir, BSP.searchDir ]
 
-app :: forall p . (GPSUart p, BoardHSE p) => Tower p ()
+app :: forall p . (GPSUart p, BoardHSE p, STM32F4Signal p) => Tower p ()
 app = do
-  (shelli :: ChannelSink 128 (Stored Uint8)
-   ,shello :: ChannelSource 128 (Stored Uint8)) <- uartTower
-                                                    (consoleUart (Proxy :: Proxy p))
-                                                    115200
-  (gpsi :: ChannelSink 128 (Stored Uint8)
-   ,_gpso :: ChannelSource 128 (Stored Uint8)) <- uartTower
-                                                  (gpsUart (Proxy :: Proxy p))
-                                                  38400
+  (shelli,shello ) <- uartTower (consoleUart (Proxy :: Proxy p))
+                                115200 (Proxy :: Proxy 128)
+  (gpsi, _gpso) <- uartTower (gpsUart (Proxy :: Proxy p))
+                                38400 (Proxy :: Proxy 128)
   position <- channel
   shell "gps test shell, console." shello shelli (snk position)
   ubloxGPSTower gpsi (src position)
 
-forward :: (SingI n, SingI m, IvoryArea a, IvoryZero a)
-        => ChannelSource n a
-        -> ChannelSink   m a
+forward :: (IvoryArea a, IvoryZero a)
+        => ChannelSource a
+        -> ChannelSink   a
         -> Tower p ()
 forward osrc isnk = task "forward" $ do
   o <- withChannelEmitter  osrc "ostream"
   i <- withChannelEvent    isnk "istream"
-  onEvent i (emit_ o)
+  handle i "forwarding" (emit_ o)
 
 
-shell :: (SingI n, SingI m, SingI o)
-      => String
-      -> ChannelSource n (Stored Uint8)
-      -> ChannelSink   m (Stored Uint8)
-      -> ChannelSink   o (Struct "position")
+shell :: String
+      -> ChannelSource (Stored Uint8)
+      -> ChannelSink   (Stored Uint8)
+      -> ChannelSink   (Struct "position")
       -> Tower p ()
 shell greet ostream istream ipos = task "shell" $ do
   out <- withChannelEmitter  ostream "ostream"
   inp <- withChannelEvent    istream "istream"
   posin <- withChannelEvent  ipos    "positionin"
-  withStackSize 1024
+  -- withStackSize 1024 -- XXX
   let puts str = mapM_ (\c -> putc (fromIntegral (ord c))) str
       putc c = emitV_ out c
 

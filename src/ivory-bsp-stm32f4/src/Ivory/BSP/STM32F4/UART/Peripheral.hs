@@ -61,13 +61,13 @@ mkUART :: (BitData a, IvoryIOReg (BitDataRep a))
        -> String
        -> UART
 mkUART base rccreg rccfield tx rx af interrupt pclk n = UART
-  { uartRegSR      = mkBitDataReg (base + 0x00)
-  , uartRegDR      = mkBitDataReg (base + 0x04)
-  , uartRegBRR     = mkBitDataReg (base + 0x08)
-  , uartRegCR1     = mkBitDataReg (base + 0x0C)
-  , uartRegCR2     = mkBitDataReg (base + 0x10)
-  , uartRegCR3     = mkBitDataReg (base + 0x14)
-  , uartRegGTPR    = mkBitDataReg (base + 0x18)
+  { uartRegSR      = reg 0x00 "sr"
+  , uartRegDR      = reg 0x04 "dr"
+  , uartRegBRR     = reg 0x08 "brr"
+  , uartRegCR1     = reg 0x0C "cr1"
+  , uartRegCR2     = reg 0x10 "cr2"
+  , uartRegCR3     = reg 0x14 "cr3"
+  , uartRegGTPR    = reg 0x18 "gtpr"
   , uartRCCEnable  = rccEnable  rccreg rccfield
   , uartRCCDisable = rccDisable rccreg rccfield
   , uartPinTx      = tx
@@ -77,6 +77,9 @@ mkUART base rccreg rccfield tx rx af interrupt pclk n = UART
   , uartPClk       = pclk
   , uartName       = n
   }
+  where
+  reg :: (IvoryIOReg (BitDataRep d)) => Integer -> String -> BitDataReg d
+  reg offs name = mkBitDataRegNamed (base + offs) (n ++ "->" ++ name)
 
 uart1, uart2, uart3, uart4, uart5, uart6 :: UART
 uart1 = mkUART uart1_periph_base

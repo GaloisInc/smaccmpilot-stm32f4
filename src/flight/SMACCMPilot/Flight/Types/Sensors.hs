@@ -8,6 +8,7 @@
 module SMACCMPilot.Flight.Types.Sensors where
 
 import Ivory.Language
+import Ivory.Tower.Types.Time
 
 sensorsTypeModule :: Module
 sensorsTypeModule = package "sensors_type" $ do
@@ -43,8 +44,8 @@ struct sensors_result
   ; xacc      :: Stored IFloat
   ; yacc      :: Stored IFloat
   ; zacc      :: Stored IFloat
-  ; ahrs_time :: Stored Uint32
-  ; baro_time :: Stored Uint32
+  ; ahrs_time :: Stored ITime
+  ; baro_time :: Stored ITime
   }
 |]
 

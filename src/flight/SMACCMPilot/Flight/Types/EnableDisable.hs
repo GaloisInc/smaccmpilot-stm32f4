@@ -10,7 +10,8 @@ module SMACCMPilot.Flight.Types.EnableDisable
 import Ivory.Language
 
 newtype EnableDisable = EnableDisable Uint8
-  deriving (Num, IvoryType, IvoryVar, IvoryExpr, IvoryEq, IvoryStore, IvoryInit, IvoryZeroVal)
+  deriving ( IvoryType, IvoryVar, IvoryExpr, IvoryEq
+           , IvoryStore, IvoryInit, IvoryZeroVal )
 
 none :: EnableDisable
 none = EnableDisable 0

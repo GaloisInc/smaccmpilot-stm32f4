@@ -13,13 +13,12 @@ import Ivory.Tower
 import SMACCMPilot.Hardware.GPS.Types
 import SMACCMPilot.Hardware.GPS.UBlox.Types
 
-ubloxGPSTower :: (SingI n, SingI m)
-               => ChannelSink   n (Stored Uint8)
-               -> ChannelSource m (Struct "position")
-               -> Tower p ()
+ubloxGPSTower :: ChannelSink   (Stored Uint8)
+              -> ChannelSource (Struct "position")
+              -> Tower p ()
 ubloxGPSTower isnk psrc = do
-  addModule  gpsTypesModule
-  addDepends gpsTypesModule
+  towerModule  gpsTypesModule
+  towerDepends gpsTypesModule
   task "ubloxGPS" $ do
     istream <- withChannelEvent   isnk "istream"
     pstream <- withChannelEmitter psrc "position"
@@ -32,8 +31,6 @@ ubloxGPSTower isnk psrc = do
     (payload  :: Ref Global (Array 52 (Stored Uint8))) <- taskLocal "payload"
     (position :: Ref Global (Struct "position")) <- taskLocal "position"
     (dstate   :: Ref Global (Stored Uint8)) <- taskLocal "decode_state"
-
-    millis <- withGetTimeMillis
 
     taskModuleDef $ do
       incl decode
@@ -57,11 +54,12 @@ ubloxGPSTower isnk psrc = do
           store ck_a (lbits (a_16+i_16))
           store ck_b (lbits (a_16+b_16+i_16))
     taskInit $ do
-      t <- getTimeMillis millis
+      t <- getTime
       store (position ~> time) t
       store (position ~> fix) fix_none
       emit_ pstream (constRef position)
-    onEventV istream $ \c -> do
+    handle istream "istream" $ \cref -> do
+      c <- deref cref
       s <- deref state
       cond_
         [ (s ==? ubx_idle .&& c ==? 0xB5) ==> store state ubx_sync
@@ -106,7 +104,7 @@ ubloxGPSTower isnk psrc = do
               call_ decode dstate cl i payload len position
               d <- deref dstate
               when (d ==? decode_complete) $ do
-                t <- getTimeMillis millis
+                t <- getTime
                 store (position ~> time) t
                 emit_ pstream (constRef position)
                 store dstate decode_none

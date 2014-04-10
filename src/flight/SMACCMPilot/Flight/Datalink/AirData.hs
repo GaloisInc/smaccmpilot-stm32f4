@@ -8,8 +8,6 @@
 module SMACCMPilot.Flight.Datalink.AirData
   ( airDataHandler ) where
 
-import GHC.TypeLits
-
 import Ivory.Language
 import Ivory.Tower
 import Ivory.Stdlib
@@ -18,8 +16,7 @@ import qualified SMACCMPilot.Communications as C
 
 --------------------------------------------------------------------------------
 
-airDataHandler :: (SingI n)
-               => ChannelEmitter n C.CommsecArray
+airDataHandler :: ChannelEmitter C.CommsecArray
                -> Task p H.FrameHandler
 airDataHandler ostream = do
   decodedCtr     <- taskLocalInit "airdata_frames_decoded" (ival (0::Uint32))

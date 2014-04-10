@@ -31,7 +31,6 @@ FREERTOS_OBJECTS :=                              \
   src/portable/GCC/ARM_CM4F/port.o               \
   src/portable/MemMang/heap_1.o                  \
   support/default_hooks.o                        \
-  support/default_handlers.o                     \
   support/syscalls.o
 
 # Copy files from the FreeRTOS source tree into our local tree.  Our

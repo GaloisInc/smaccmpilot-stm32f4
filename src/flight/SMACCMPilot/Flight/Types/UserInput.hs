@@ -10,6 +10,7 @@
 module SMACCMPilot.Flight.Types.UserInput where
 
 import Ivory.Language
+import Ivory.Tower.Types.Time
 import SMACCMPilot.Flight.Types.UISource
 
 userInputTypeModule :: Module
@@ -22,7 +23,7 @@ struct userinput_result
   ; roll     :: Stored IFloat
   ; pitch    :: Stored IFloat
   ; yaw      :: Stored IFloat
-  ; time     :: Stored Uint32
+  ; time     :: Stored ITime
   ; source   :: Stored UISource
   }
 
@@ -33,7 +34,7 @@ struct userinput_result
 
 newtype PPM = PPM Uint16
   deriving ( IvoryType, IvoryOrd, IvoryVar, IvoryExpr
-           , IvoryEq, IvoryStore, IvoryInit, Num, IvoryZeroVal)
+           , IvoryEq, IvoryStore, IvoryInit, Num)
 
 type PPMs = Array 8 (Stored PPM)
 
@@ -48,6 +49,9 @@ instance SafeCast PPM Uint16 where
 instance Bounded PPM where
   minBound = PPM 800
   maxBound = PPM 2200
+
+instance IvoryZeroVal PPM where
+  izeroval = ival (PPM 1500)
 
 ppmHigh, ppmLow, ppmCenter :: PPM
 ppmHigh   = 1900

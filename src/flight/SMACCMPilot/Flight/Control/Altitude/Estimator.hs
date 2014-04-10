@@ -1,4 +1,5 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE RankNTypes #-}
 
@@ -15,7 +16,7 @@ import SMACCMPilot.Flight.Control.Altitude.Filter
 data AltEstimator =
   AltEstimator
     { ae_init        :: forall eff . Ivory eff ()
-    , ae_measurement :: forall eff . IFloat -> Uint32 -> Ivory eff ()
+    , ae_measurement :: forall eff . IFloat -> ITime -> Ivory eff ()
     , ae_state       :: forall eff . Ivory eff (IFloat, IFloat)
     , ae_write_debug :: forall eff s . Ref s (Struct "alt_control_dbg")
                                     -> Ivory eff ()
@@ -28,12 +29,15 @@ taskAltEstimator = do
   prevAltTime   <- taskLocal "prev_alt_time"
   prevClimbRate <- taskLocal "prev_climb_rate"
 
-  let measDef :: Def ('[IFloat, Uint32] :-> ())
+  let measDef :: Def ('[IFloat, ITime] :-> ())
       measDef = proc ("thrustEstimatorMeasure" ++ show uniq) $
         \alt_meas meas_time -> body $ do
           prev_time   <- deref prevAltTime
           when (meas_time /=? prev_time) $ do
-            dt   <- assign ((safeCast (meas_time - prev_time)) / 1000.0)
+            -- If the dtime exceeds capability of a sint32 or float, we're hosed
+            let dtime = meas_time - prev_time
+            (int_ms :: Sint32) <- assign $ castWith 0 $ toIMilliseconds dtime
+            dt   <- assign ((safeCast int_ms) / 1000.0)
             dalt <- lowPassDeriv'  2.0  dt alt_meas prevAlt
             _rate <- lowPassFilter' 0.25 dt (dalt / dt) prevClimbRate
             store prevAltTime meas_time

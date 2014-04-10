@@ -14,12 +14,6 @@ import Ivory.Language
 import Ivory.BitData
 import Ivory.HW
 
-
--- Based on convention used in init/startup_stm43f4xx.s
-handlerName :: Interrupt -> String
-handlerName i = (show i) ++ "_IRQHandler"
-
-
 ----------------------------------------------------------------------
 -- High Level Interface
 
@@ -34,6 +28,18 @@ interrupt_disable i = do
   let (reg, bitN) = nvic_ICER_int i
   setReg reg $ do
     setBit (nvic_icer_clrena #> bitIx bitN)
+
+interrupt_set_pending :: Interrupt -> Ivory eff ()
+interrupt_set_pending i = do
+  let (reg, bitN) = nvic_ISPR_int i
+  setReg reg $ do
+    setBit (nvic_ispr_setpend #> bitIx bitN)
+
+interrupt_clear_pending :: Interrupt -> Ivory eff ()
+interrupt_clear_pending i = do
+  let (reg, bitN) = nvic_ICPR_int i
+  setReg reg $ do
+    setBit (nvic_icpr_clrpend #> bitIx bitN)
 
 -- | interrupt_set_priority: always give the priority as level 0 (highest) to 16
 --   (lowest).

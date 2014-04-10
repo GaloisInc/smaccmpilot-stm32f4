@@ -69,8 +69,8 @@ aadl: allplatforms
 discovery: PLATFORMS = stm32f4discovery
 discovery: allplatforms
 
-open407: PLATFORMS = open407vc
-open407: allplatforms
+open407vc: PLATFORMS = open407vc
+open407vc: allplatforms
 
 # Target defined in mk/main.mk
 cbmc: TARGET = cbmc

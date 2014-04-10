@@ -15,8 +15,8 @@ import           SMACCMPilot.Flight.Types.ControlLawRequest ()
 
 import SMACCMPilot.Flight.UserInput.PPM.Decode
 
-ppmInputTower :: Tower p ( ChannelSink 16 (Struct "userinput_result")
-                         , ChannelSink 16 (Struct "control_law_request"))
+ppmInputTower :: Tower p ( ChannelSink (Struct "userinput_result")
+                         , ChannelSink (Struct "control_law_request"))
 ppmInputTower = do
   ui <- channel
   cr <- channel
@@ -28,7 +28,7 @@ ppmInputTower = do
     taskInit $ do
       ppmd_init decoder
 
-    onPeriod 50 $ \now -> do
+    onPeriod (Milliseconds 50) $ \now -> do
       chs <- local izero
       captured <- call userPPMInputCapture chs
       ifte_ (captured >=? num_chans)

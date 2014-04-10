@@ -50,7 +50,7 @@ data AltitudeControl =
     }
 
 taskAltitudeControl :: AltitudeParams ParamReader
-                    -> DataSource (Struct "alt_control_dbg")
+                    -> ChannelSource (Struct "alt_control_dbg")
                     -> Task p AltitudeControl
 taskAltitudeControl params altDbgSrc = do
   uniq <- fresh
@@ -72,7 +72,7 @@ taskAltitudeControl params altDbgSrc = do
   ui_setpt <- taskLocal "ui_setpt"
   at_enabled <- taskLocal "at_enabled"
 
-  altDbgWriter <- withDataWriter altDbgSrc "alt_control_dbg"
+  dbg_emitter <- withChannelEmitter altDbgSrc "alt_control_dbg"
 
   taskModuleDef $ do
     depend controlPIDModule -- for fconstrain
@@ -147,7 +147,7 @@ taskAltitudeControl params altDbgSrc = do
           tui_write_debug ui_control state_dbg
           ae_write_debug alt_estimator state_dbg
           thrust_pid_write_debug thrust_pid state_dbg
-          writeData altDbgWriter (constRef state_dbg)
+          emit_ dbg_emitter (constRef state_dbg)
       proc_alt_output :: Def('[Ref s (Struct "controloutput")]:->())
       proc_alt_output = proc (named "output") $ \out -> body $ do
         at <- deref at_setpt

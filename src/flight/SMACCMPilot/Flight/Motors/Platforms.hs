@@ -16,8 +16,7 @@ import qualified SMACCMPilot.Hardware.PX4IOAR as PX4IOAR
 import qualified SMACCMPilot.Hardware.PX4FMU17 as PX4FMU17
 
 class MotorOutput p where
-  motorOutput :: forall n . (SingI n)
-              => ChannelSink n (Struct "motors") -> Tower p ()
+  motorOutput :: ChannelSink (Struct "motors") -> Tower p ()
 
 instance MotorOutput PX4FMU17_IOAR where
   motorOutput = PX4IOAR.motorControlTower ioarMotorDecoder

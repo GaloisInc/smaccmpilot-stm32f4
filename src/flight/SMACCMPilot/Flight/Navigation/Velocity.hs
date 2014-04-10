@@ -56,7 +56,7 @@ taskVelocityControl param_reader = do
   (last_pos_vy   :: Ref Global (Stored IFloat)) <- taskLocal "last_pos_vy"
   (last_pos_ax   :: Ref Global (Stored IFloat)) <- taskLocal "last_pos_ax"
   (last_pos_ay   :: Ref Global (Stored IFloat)) <- taskLocal "last_pos_ay"
-  (last_pos_time :: Ref Global (Stored Uint32)) <- taskLocal "last_pos_time"
+  (last_pos_time :: Ref Global (Stored ITime)) <- taskLocal "last_pos_time"
 
   let named n = "vel_ctl_" ++ n ++ "_" ++ show f
 
@@ -116,7 +116,9 @@ taskVelocityControl param_reader = do
       axy sens pos = do
         t_prev <- deref last_pos_time
         t_this <- deref (pos ~> P.time)
-        dt     <- assign ((safeCast (t_this - t_prev)) / 1000.0)
+        (int_dt :: Sint32) <- assign (castWith 0 (toIMilliseconds
+                                      (t_this - t_prev)))
+        dt     <- assign ((safeCast int_dt) / 1000.0)
         when (t_this >? t_prev) $ do
           (this_vx, this_vy) <- world_vxy pos
           prev_vx <- deref last_pos_vx

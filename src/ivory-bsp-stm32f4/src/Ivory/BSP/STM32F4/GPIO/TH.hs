@@ -25,6 +25,7 @@ mkGPIOPin portName pinName n =
   , valD (varP pinName) (normalB (appsE ((conE 'GPIOPin) : fs))) []
   ]
   where fs = [ varE portName
+             , litE (integerL n)
              , mkVar "gpio_mode_" n
              , mkVar "gpio_otype_" n
              , mkVar "gpio_ospeed_" n

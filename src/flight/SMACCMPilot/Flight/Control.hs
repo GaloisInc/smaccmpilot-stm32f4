@@ -38,31 +38,31 @@ import           SMACCMPilot.Flight.Control.Attitude.YawUI
 
 data ControlInputs =
   ControlInputs
-    { ci_law   :: DataSink (Struct "control_law")
-    , ci_ui    :: DataSink (Struct "userinput_result")
-    , ci_setpt :: DataSink (Struct "control_setpoint")
-    , ci_sens  :: DataSink (Struct "sensors_result")
+    { ci_law   :: ChannelSink (Struct "control_law")
+    , ci_ui    :: ChannelSink (Struct "userinput_result")
+    , ci_setpt :: ChannelSink (Struct "control_setpoint")
+    , ci_sens  :: ChannelSink (Struct "sensors_result")
     }
 
 data ControlOutputs =
   ControlOutputs
-    { co_ctl     :: ChannelSink 16 (Struct "controloutput")
-    , co_alt_dbg :: DataSink (Struct "alt_control_dbg")
-    , co_att_dbg :: DataSink (Struct "att_control_dbg")
+    { co_ctl     :: ChannelSink (Struct "controloutput")
+    , co_alt_dbg :: ChannelSink (Struct "alt_control_dbg")
+    , co_att_dbg :: ChannelSink (Struct "att_control_dbg")
     }
 
 controlTower :: FlightParams ParamSink
             -> ControlInputs
             -> Tower p ControlOutputs
 controlTower params inputs = do
-  ctlout <- channel
-  alt_dbg <- dataport
-  att_dbg <- dataport
+  ctlout  <- channel
+  alt_dbg <- channel
+  att_dbg <- channel
   task "control" $ do
-    clReader      <- withDataReader (ci_law   inputs) "control_law"
-    uiReader      <- withDataReader (ci_ui    inputs) "userinput"
-    sensReader    <- withDataReader (ci_sens  inputs) "sensors"
-    navSpReader   <- withDataReader (ci_setpt inputs) "nav_setpt"
+    clReader      <- withChannelReader (ci_law   inputs) "control_law"
+    uiReader      <- withChannelReader (ci_ui    inputs) "userinput"
+    sensReader    <- withChannelReader (ci_sens  inputs) "sensors"
+    navSpReader   <- withChannelReader (ci_setpt inputs) "nav_setpt"
 
     ctlEmitter    <- withChannelEmitter (src ctlout) "control"
 
@@ -79,16 +79,16 @@ controlTower params inputs = do
       prc_init prc_control
       yaw_init yaw_control
 
-    onPeriod 5 $ \_now -> do
+    onPeriod (Milliseconds 5) $ \_now -> do
         dt   <- assign 0.005 -- XXX calc from _now ?
         cl   <- local izero
         ui   <- local izero
         sens <- local izero
         nav_sp <- local izero
-        readData sensReader  sens
-        readData clReader    cl
-        readData uiReader    ui
-        readData navSpReader nav_sp
+        _ <- chanRead sensReader  sens
+        _ <- chanRead clReader    cl
+        _ <- chanRead uiReader    ui
+        _ <- chanRead navSpReader nav_sp
 
         -- Run altitude and attitude controllers
         alt_update alt_control sens ui nav_sp cl dt
@@ -150,7 +150,7 @@ controlTower params inputs = do
 
         emit_ ctlEmitter (constRef ctl)
 
-  mapM_ addModule controlModules
+  mapM_ towerModule controlModules
 
   return ControlOutputs
     { co_ctl     = snk ctlout

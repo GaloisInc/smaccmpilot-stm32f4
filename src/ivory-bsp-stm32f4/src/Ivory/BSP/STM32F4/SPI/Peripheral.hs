@@ -52,13 +52,14 @@ mkSPIPeriph :: (BitData a, IvoryIOReg (BitDataRep a))
             -> GPIO_AF
             -> Interrupt
             -> PClk
+            -> String
             -> SPIPeriph
-mkSPIPeriph base rccreg rccfield miso mosi sck af inter pclk =
+mkSPIPeriph base rccreg rccfield miso mosi sck af inter pclk n =
   SPIPeriph
-    { spiRegCR1      = mkBitDataReg (base + 0x00)
-    , spiRegCR2      = mkBitDataReg (base + 0x04)
-    , spiRegSR       = mkBitDataReg (base + 0x08)
-    , spiRegDR       = mkBitDataReg (base + 0x0C)
+    { spiRegCR1      = reg 0x00 "cr1"
+    , spiRegCR2      = reg 0x04 "cr2"
+    , spiRegSR       = reg 0x08 "sr"
+    , spiRegDR       = reg 0x0C "dr"
     , spiRCCEnable   = rccEnable  rccreg rccfield
     , spiRCCDisable  = rccDisable rccreg rccfield
     , spiPinMiso     = miso
@@ -68,14 +69,17 @@ mkSPIPeriph base rccreg rccfield miso mosi sck af inter pclk =
     , spiInterrupt   = inter
     , spiPClk        = pclk
     }
+  where
+  reg :: (IvoryIOReg (BitDataRep d)) => Integer -> String -> BitDataReg d
+  reg offs name = mkBitDataRegNamed (base + offs) (n ++ "->" ++ name)
 
 spi1, spi2, spi3 :: SPIPeriph
 spi1 = mkSPIPeriph spi1_periph_base regRCC_APB2ENR rcc_apb2en_spi1
-          pinA7  pinA6  pinA5  gpio_af_spi1 ISR.SPI1 PClk2
+          pinA7  pinA6  pinA5  gpio_af_spi1 ISR.SPI1 PClk2 "spi1"
 spi2 = mkSPIPeriph spi2_periph_base regRCC_APB1ENR rcc_apb1en_spi2
-          pinC3  pinC2  pinB10 gpio_af_spi2 ISR.SPI2 PClk1
+          pinC3  pinC2  pinB10 gpio_af_spi2 ISR.SPI2 PClk1 "spi2"
 spi3 = mkSPIPeriph spi3_periph_base regRCC_APB1ENR rcc_apb1en_spi3
-          pinC12 pinC11 pinC10 gpio_af_spi3 ISR.SPI3 PClk1
+          pinC12 pinC11 pinC10 gpio_af_spi3 ISR.SPI3 PClk1 "spi3"
 
 initInPin :: GPIOPin -> GPIO_AF -> Ivory eff ()
 initInPin pin af = do
@@ -108,7 +112,7 @@ spiInitISR spi priority = do
   inter = spiInterrupt spi
 
 spiISRHandlerName :: SPIPeriph -> String
-spiISRHandlerName spi = ISR.handlerName (spiInterrupt spi)
+spiISRHandlerName spi = ISR.interruptHandlerName (spiInterrupt spi)
 
 -- Clock Polarity and Phase: see description
 -- of CPOL and CPHA in ST reference manual RM0090

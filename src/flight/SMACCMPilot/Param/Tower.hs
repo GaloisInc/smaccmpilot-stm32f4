@@ -36,14 +36,14 @@ import qualified SMACCMPilot.Mavlink.Messages.ParamValue as PV
 -- | Wrapper type for a data source of parameter values.
 data ParamSource =
   ParamSource
-    { psrc_data :: DataSource (Stored IFloat)
+    { psrc_chan :: ChannelSource (Stored IFloat)
     , psrc_name :: String
     }
 
 -- | Wrapper type for a data sink of parameter values.
 data ParamSink =
   ParamSink
-    { psnk_data :: DataSink (Stored IFloat)
+    { psnk_chan :: ChannelSink (Stored IFloat)
     , psnk_name :: String
     }
 
@@ -60,31 +60,31 @@ initTowerParams x = paramInit go x
   where
     go :: String -> Float -> Tower p PortPair
     go n v = do
-      (psrc, psink) <- dataportInit (ival (ifloat v))
+      (psrc, psink) <- channel' (Proxy :: Proxy 2) (Just (ival (ifloat v)))
       return (PortPair (ParamSource psrc n) (ParamSink psink n))
 
 -- | Shorthand type for a reader for parameter values.
-type ParamReader = DataReader (Stored IFloat)
+type ParamReader = ChannelReader (Stored IFloat)
 
 -- | Shorthand type for a writer for parameter values.
-type ParamWriter = DataWriter (Stored IFloat)
+type ParamWriter = ChannelEmitter (Stored IFloat)
 
 -- | Open data readers for a parameter tree containing sinks.
-paramReader :: (DataPortable i, Traversable a)
+paramReader :: (Traversable a)
             => a ParamSink
-            -> Node i p (a ParamReader)
+            -> Task p (a ParamReader)
 paramReader = traverse mkreader
   where
-  mkreader psnk = withDataReader (psnk_data psnk)
+  mkreader psnk = withChannelReader (psnk_chan psnk)
                                  ("param_reader_" ++ psnk_name psnk)
 
 -- | Open data writers for a parameter tree containing sources.
-paramWriter :: (DataPortable i, Traversable a)
+paramWriter :: (Traversable a)
             => a ParamSource
-            -> Node i p (a ParamWriter)
+            -> Task p (a ParamWriter)
 paramWriter = traverse mkwriter
   where
-  mkwriter psrc = withDataWriter (psrc_data psrc)
+  mkwriter psrc = withChannelEmitter (psrc_chan psrc)
                                  ("param_writer_" ++ psrc_name psrc)
 
 -- | Read the float values of a parameter tree.
@@ -94,7 +94,8 @@ paramRead :: (GetAlloc eff ~ Scope s, Traversable a)
 paramRead =
   traverse $ \d -> do
     x <- local (ival 0.0)
-    readData d x
+    -- Safe to ignore validity, because we always initialize channel
+    _ <- chanRead d x
     deref x
 
 -- | Shorthand for reading a single unwrapped Param value
@@ -171,7 +172,7 @@ makeGetParamInfo params = do
     go (x:xs) ix ref n = do
       when (ix ==? n) $ do
         name <- local (stringInit (paramName x) :: Init ParamString)
-        readData (paramData x) (ref ~> PV.param_value)
+        _ <- chanRead (paramData x) (ref ~> PV.param_value)
         store (ref ~> PV.param_count) count
         store (ref ~> PV.param_index) (signCast ix)
         store (ref ~> PV.param_type)  0
@@ -195,7 +196,7 @@ makeSetParamValue params = do
     go (x:xs) ix v n = do
       when (ix ==? n) $ do
         val <- local (ival v)
-        writeData (paramData x) (constRef val)
+        emit_ (paramData x) (constRef val)
         ret true
       go xs ix v (n + 1)
 

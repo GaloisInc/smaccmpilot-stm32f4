@@ -20,8 +20,8 @@ import SMACCMPilot.Flight.UserInput.PPM.ArmingMachine
 data PPMDecoder =
   PPMDecoder
     { ppmd_init       :: forall eff    . Ivory eff ()
-    , ppmd_no_sample  :: forall eff    . Uint32 -> Ivory eff ()
-    , ppmd_new_sample :: forall eff s  . Ref s I.PPMs -> Uint32 -> Ivory eff ()
+    , ppmd_no_sample  :: forall eff    . ITime -> Ivory eff ()
+    , ppmd_new_sample :: forall eff s  . Ref s I.PPMs -> ITime -> Ivory eff ()
     , ppmd_get_ui     :: forall eff cs . (GetAlloc eff ~ Scope cs)
          => Ivory eff (ConstRef (Stack cs) (Struct "userinput_result"))
     , ppmd_get_cl_req :: forall eff cs . (GetAlloc eff ~ Scope cs)
@@ -50,7 +50,7 @@ taskPPMDecoder = do
           ms_no_sample modeswitch
           am_no_sample armingmachine
 
-      new_sample_proc :: Def('[Ref s I.PPMs, Uint32]:->())
+      new_sample_proc :: Def('[Ref s I.PPMs, ITime ]:->())
       new_sample_proc = proc (named "new_sample") $ \ppms time -> body $ do
         all_good <- local (ival true)
         arrayMap $ \ix -> when (ix <? useful_channels) $ do
@@ -68,7 +68,7 @@ taskPPMDecoder = do
           ms_new_sample modeswitch ppms time
           am_new_sample armingmachine ppms time
 
-      no_sample_proc :: Def('[Uint32]:->())
+      no_sample_proc :: Def('[ITime]:->())
       no_sample_proc = proc (named "no_sample") $ \time -> body $ do
         prev <- deref ppm_last_time
         when ((time - prev) >? timeout_limit) invalidate
@@ -110,7 +110,7 @@ taskPPMDecoder = do
     }
   where
   useful_channels = 6
-  timeout_limit = 150 -- ms
+  timeout_limit = fromIMilliseconds (150 :: Uint8)-- ms
 
 failsafe :: Ref s (Struct "userinput_result") -> Ivory eff ()
 failsafe ui = do
@@ -139,7 +139,7 @@ scale_proc = proc "ppm_scale_proc" $ \center range outmin outmax input ->
 
 ppm_decode_ui_proc :: Def ('[ Ref s0 (Array 8 (Stored I.PPM))
                             , Ref s1 (Struct "userinput_result")
-                            , Uint32
+                            , ITime
                             ] :-> ())
 ppm_decode_ui_proc = proc "ppm_decode_userinput" $ \ppms ui now ->
   body $ do

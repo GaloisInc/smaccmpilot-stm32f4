@@ -37,51 +37,57 @@ data GPIOPort = GPIOPort
   , gpioPortAFRH        :: BitDataReg GPIO_AFRH
   , gpioPortRCCEnable   :: forall eff . Ivory eff ()
   , gpioPortRCCDisable  :: forall eff . Ivory eff ()
+  , gpioPortName        :: String
   }
 
 -- | Create a GPIO port given the base register address.
-mkGPIOPort :: Integer -> BitDataField RCC_AHB1ENR Bit -> GPIOPort
-mkGPIOPort base rccfield =
+mkGPIOPort :: Integer -> BitDataField RCC_AHB1ENR Bit -> String -> GPIOPort
+mkGPIOPort base rccfield n =
   GPIOPort
-    { gpioPortMODER          = mkBitDataReg $ base + 0x00
-    , gpioPortOTYPER         = mkBitDataReg $ base + 0x04
-    , gpioPortOSPEEDR        = mkBitDataReg $ base + 0x08
-    , gpioPortPUPDR          = mkBitDataReg $ base + 0x0C
-    , gpioPortIDR            = mkBitDataReg $ base + 0x10
-    , gpioPortBSRR           = mkBitDataReg $ base + 0x18
-    , gpioPortAFRL           = mkBitDataReg $ base + 0x20
-    , gpioPortAFRH           = mkBitDataReg $ base + 0x24
+    { gpioPortMODER          = reg 0x00 "mode"
+    , gpioPortOTYPER         = reg 0x04 "otype"
+    , gpioPortOSPEEDR        = reg 0x08 "ospeed"
+    , gpioPortPUPDR          = reg 0x0C "pupd"
+    , gpioPortIDR            = reg 0x10 "idr"
+    , gpioPortBSRR           = reg 0x18 "bsrr"
+    , gpioPortAFRL           = reg 0x20 "afrl"
+    , gpioPortAFRH           = reg 0x24 "afrh"
     , gpioPortRCCEnable      = rccEnable  rccreg rccfield
     , gpioPortRCCDisable     = rccDisable rccreg rccfield
+    , gpioPortName           = n
     }
-  where rccreg = regRCC_AHB1ENR -- All GPIO are in AHB1.
+  where
+  reg :: (IvoryIOReg (BitDataRep d)) => Integer -> String -> BitDataReg d
+  reg offs name = mkBitDataRegNamed (base + offs) (n ++ "->" ++ name)
+
+  rccreg = regRCC_AHB1ENR -- All GPIO are in AHB1.
 
 gpioA :: GPIOPort
-gpioA = mkGPIOPort gpioa_periph_base rcc_ahb1en_gpioa
+gpioA = mkGPIOPort gpioa_periph_base rcc_ahb1en_gpioa "gpioA"
 
 gpioB :: GPIOPort
-gpioB = mkGPIOPort gpiob_periph_base rcc_ahb1en_gpiob
+gpioB = mkGPIOPort gpiob_periph_base rcc_ahb1en_gpiob "gpioB"
 
 gpioC :: GPIOPort
-gpioC = mkGPIOPort gpioc_periph_base rcc_ahb1en_gpioc
+gpioC = mkGPIOPort gpioc_periph_base rcc_ahb1en_gpioc "gpioC"
 
 gpioD :: GPIOPort
-gpioD = mkGPIOPort gpiod_periph_base rcc_ahb1en_gpiod
+gpioD = mkGPIOPort gpiod_periph_base rcc_ahb1en_gpiod "gpioD"
 
 gpioE :: GPIOPort
-gpioE = mkGPIOPort gpioe_periph_base rcc_ahb1en_gpioe
+gpioE = mkGPIOPort gpioe_periph_base rcc_ahb1en_gpioe "gpioE"
 
 gpioF :: GPIOPort
-gpioF = mkGPIOPort gpiof_periph_base rcc_ahb1en_gpiof
+gpioF = mkGPIOPort gpiof_periph_base rcc_ahb1en_gpiof "gpioF"
 
 gpioG :: GPIOPort
-gpioG = mkGPIOPort gpiog_periph_base rcc_ahb1en_gpiog
+gpioG = mkGPIOPort gpiog_periph_base rcc_ahb1en_gpiog "gpioG"
 
 gpioH :: GPIOPort
-gpioH = mkGPIOPort gpioh_periph_base rcc_ahb1en_gpioh
+gpioH = mkGPIOPort gpioh_periph_base rcc_ahb1en_gpioh "gpioH"
 
 gpioI :: GPIOPort
-gpioI = mkGPIOPort gpioi_periph_base rcc_ahb1en_gpioi
+gpioI = mkGPIOPort gpioi_periph_base rcc_ahb1en_gpioi "gpioI"
 
 instance RCCDevice GPIOPort where
   rccDeviceEnable  d = gpioPortRCCEnable  d
@@ -95,6 +101,7 @@ data GPIOPinAFR = AFRL (BitDataField GPIO_AFRL GPIO_AF)
 -- bits in the registers for the port the pin belongs to.
 data GPIOPin = GPIOPin
   { gpioPinPort         :: GPIOPort
+  , gpioPinNumber       :: Int
   , gpioPinMode_F       :: BitDataField GPIO_MODER GPIO_Mode
   , gpioPinOutputType_F :: BitDataField GPIO_OTYPER GPIO_OutputType
   , gpioPinSpeed_F      :: BitDataField GPIO_OSPEEDR GPIO_Speed

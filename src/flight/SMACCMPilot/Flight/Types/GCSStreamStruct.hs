@@ -8,11 +8,12 @@
 module SMACCMPilot.Flight.Types.GCSStreamStruct where
 
 import Ivory.Language
+import Ivory.Tower.Types.Time
 
 [ivory|
 
 struct gcsstream_data
-  { period        :: Stored Uint32
+  { period        :: Stored ITime
   ; hard_deadline :: Stored IBool -- hard real-time or soft real-time
   }
 

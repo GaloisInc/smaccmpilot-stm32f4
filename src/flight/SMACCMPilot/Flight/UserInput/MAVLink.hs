@@ -17,13 +17,12 @@ import qualified SMACCMPilot.Flight.Types.UserInput         as UI
 import qualified SMACCMPilot.Flight.Types.UISource          as S
 import qualified SMACCMPilot.Flight.Types.ControlLawRequest as CR
 
-mavlinkInputTower :: (SingI n, SingI m)
-                  => ChannelSink n (Struct "rc_channels_override_msg")
-                  -> ChannelSink m (Struct "control_law_request")
-                  -> Tower p ( ChannelSink 16 (Struct "userinput_result")
-                             , ChannelSink 16 (Struct "control_law_request"))
+mavlinkInputTower :: ChannelSink (Struct "rc_channels_override_msg")
+                  -> ChannelSink (Struct "control_law_request")
+                  -> Tower p ( ChannelSink (Struct "userinput_result")
+                             , ChannelSink (Struct "control_law_request"))
 mavlinkInputTower rcovr_sink mav_req_snk = do
-  addDepends O.rcChannelsOverrideModule
+  towerDepends O.rcChannelsOverrideModule
   ui_chan <- channel
   cr_chan <- channel
   task "mavlinkInputTask" $ do
@@ -32,13 +31,12 @@ mavlinkInputTower rcovr_sink mav_req_snk = do
 
     active           <- taskLocal "active"
     last_update_time <- taskLocal "last_update_time"
-    m <- withGetTimeMillis
-
     taskInit $ do
       store active false
 
-    onChannel rcovr_sink "rcoverride" $ \ovr_msg -> do
-      now <- getTimeMillis m
+    rcovr_event <- withChannelEvent rcovr_sink "rcoverride"
+    handle rcovr_event "rcoverride" $ \ovr_msg -> do
+      now <- getTime
       (ui, ui_valid) <- decodeRCOverride ovr_msg now
 
       lawRequest ui_valid now >>= emit_ cr_emitter
@@ -49,14 +47,15 @@ mavlinkInputTower rcovr_sink mav_req_snk = do
 
     -- Proxy MAVLink based control law requests to make sure request is
     -- consistent with userinput active state
-    onChannel mav_req_snk "mav_controllaw_req" $ \req_in -> do
+    mavreq_event <- withChannelEvent mav_req_snk "mav_controllaw_req"
+    handle mavreq_event "mav_controllaw_req" $ \req_in -> do
       act <- deref active
       req <- local (istruct [])
       refCopy req req_in
-      store (req ~> CR.set_ui_mavlink)    act
+      store (req ~> CR.set_ui_mavlink) act
       emit_ cr_emitter (constRef req)
 
-    onPeriod 5 $ \now -> do
+    onPeriod (Milliseconds 5) $ \now -> do
       act <- deref active
       lst <- deref last_update_time
       when (act .&& ((now - lst) >? timeout)) $ do
@@ -69,7 +68,7 @@ mavlinkInputTower rcovr_sink mav_req_snk = do
 
 lawRequest :: (GetAlloc eff ~ Scope cs)
            => IBool
-           -> Uint32
+           -> ITime
            -> Ivory eff (ConstRef (Stack cs) (Struct "control_law_request"))
 lawRequest ui_valid time = do
   cr <- local $ CR.initControlLawRequest
@@ -81,7 +80,7 @@ lawRequest ui_valid time = do
 
 decodeRCOverride :: (GetAlloc eff ~ Scope cs)
           => ConstRef s (Struct "rc_channels_override_msg")
-          -> Uint32
+          -> ITime
           -> Ivory eff (ConstRef (Stack cs) (Struct "userinput_result"), IBool)
 decodeRCOverride msg now = do
   (scaled_roll,  valid_roll)  <- scale =<< deref (msg ~> O.chan1_raw)

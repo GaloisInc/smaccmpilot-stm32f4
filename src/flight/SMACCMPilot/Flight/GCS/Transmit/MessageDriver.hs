@@ -15,6 +15,7 @@ import qualified MonadLib                                       as M
 import qualified MonadLib.Monads                                as M
 
 import Ivory.Language
+import Ivory.Tower.Types.Time
 import Ivory.Stdlib
 
 import qualified SMACCMPilot.Hardware.GPS.Types                 as P
@@ -170,7 +171,8 @@ mkSendAttitude =
   $ \sensors seqNum sendStruct -> body
   $ do
   att <- local (istruct [])
-  (sensors ~> Sens.ahrs_time) `into` (att ~> ATT.time_boot_ms)
+  t <- deref (sensors ~> Sens.ahrs_time)
+  store (att ~> ATT.time_boot_ms) (castWith 0 (toIMilliseconds t))
   (sensors ~> Sens.roll)      `into` (att ~> ATT.roll)
   (sensors ~> Sens.pitch)     `into` (att ~> ATT.pitch)
   (sensors ~> Sens.yaw)       `into` (att ~> ATT.yaw)
@@ -298,7 +300,7 @@ mkSendGpsRawInt = proc "gcs_transmit_send_gps_raw_int" $
 
 mkSendGlobalPositionInt :: Def ('[ (Ref s (Struct "position"))
                                  , (Ref s (Struct "sensors_result"))
-                                 , Uint32
+                                 , ITime
                                  , Ref s' (Stored Uint8)
                                  , Ref s' (Struct "mavlinkPacket")
                                  ] :-> ())
@@ -316,7 +318,7 @@ mkSendGlobalPositionInt = proc "gcs_transmit_send_global_position_int" $
   -- velocity up, cm/s
   -- vdown     <- deref (pos ~> P.vdown)
   msg <- local (istruct
-    [ GPI.time_boot_ms .= ival currenttime
+    [ GPI.time_boot_ms .= ival (castWith 0 (toIMilliseconds currenttime))
     , GPI.lat          .= ival lat
     , GPI.lon          .= ival lon
     , GPI.alt          .= ival alt -- Actually, this is invalid: we're always

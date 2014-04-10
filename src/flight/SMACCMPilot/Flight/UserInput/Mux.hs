@@ -16,10 +16,10 @@ import qualified SMACCMPilot.Flight.Types.UISource      as S
 import qualified SMACCMPilot.Flight.Types.ControlLaw    as L
 
 
-uiMuxTower :: ChannelSink 16 (Struct "control_law")
-           -> ChannelSink 16 (Struct "userinput_result")
-           -> ChannelSink 16 (Struct "userinput_result")
-           -> Tower p (ChannelSink 16 (Struct "userinput_result"))
+uiMuxTower :: ChannelSink (Struct "control_law")
+           -> ChannelSink (Struct "userinput_result")
+           -> ChannelSink (Struct "userinput_result")
+           -> Tower p (ChannelSink (Struct "userinput_result"))
 uiMuxTower law_snk ppm_ui_snk mavlink_ui_snk = do
   ui_chan <- channel
   task "uiMuxTask" $ do
@@ -70,17 +70,20 @@ uiMuxTower law_snk ppm_ui_snk mavlink_ui_snk = do
 
     taskModuleDef $ incl update_proc
 
-    onChannel law_snk "law" $ \law -> do
+    law_evt <- withChannelEvent law_snk "law_sink"
+    handle law_evt "new_law" $ \law -> do
       store got_law true
       refCopy last_law law
       update
 
-    onChannel ppm_ui_snk "ppm_ui" $ \ppm_ui -> do
+    ppm_ui_evt <- withChannelEvent ppm_ui_snk "ppm_ui"
+    handle ppm_ui_evt "ppm_ui" $ \ppm_ui -> do
       store got_ppm true
       refCopy last_ppm ppm_ui
       update
 
-    onChannel mavlink_ui_snk "mavlink_ui" $ \mavlink_ui -> do
+    mavlink_ui_evt <- withChannelEvent mavlink_ui_snk "mavlink_ui"
+    handle mavlink_ui_evt "mavlink_ui" $ \mavlink_ui -> do
       store got_mavlink true
       refCopy last_mavlink mavlink_ui
       update

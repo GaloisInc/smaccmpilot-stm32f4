@@ -24,19 +24,19 @@ minPWM, maxPWM :: Uint16
 minPWM = 1100
 maxPWM = 1900
 
-motorControlTower :: forall n a p
-                   . (SingI n, IvoryArea a, IvoryZero a, BoardHSE p)
+motorControlTower :: forall a p
+                   . (IvoryArea a, IvoryZero a, BoardHSE p)
                   => (forall s cs . ConstRef s a
                        -> Ivory (AllocEffects cs)
                             (ConstRef (Stack cs) (Array 4 (Stored IFloat))))
-                  -> ChannelSink n a
+                  -> ChannelSink a
                   -> Tower p ()
 motorControlTower decode motorChan = do
   task "px4fmu17_pwm" $ do
     istream <- withChannelEvent   motorChan  "motor_istream"
     taskModuleDef $ hw_moduledef
     taskInit $ hw_init (Proxy :: Proxy p)
-    onEvent istream $ \encThrottle -> noReturn $ do
+    handle istream "encThrottle" $ \encThrottle -> noReturn $ do
       throttle <- decode encThrottle
       pwm_output throttle
 

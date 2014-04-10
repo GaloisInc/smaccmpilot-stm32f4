@@ -29,8 +29,8 @@ executable ivory-hxstream-test
                         ivory,
                         ivory-backend-c,
                         ivory-opts,
-                        ivory-tower,
-                        ivory-tower-freertos,
+                        tower          >= 0.8,
+                        tower-frontend >= 0.8,
                         directory,
                         ivory-quickcheck,
                         QuickCheck
