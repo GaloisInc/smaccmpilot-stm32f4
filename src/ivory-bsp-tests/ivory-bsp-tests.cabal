@@ -61,9 +61,9 @@ executable bsp-led-tower-test-gen
                        ivory-bsp-stm32f4
   ghc-options:         -Wall
 
-executable bsp-spi-tower-test-gen
-  main-is:             SPITowerCompiler.hs
-  other-modules:       SPITower,
+executable bsp-mpu6000-tower-test-gen
+  main-is:             MPU6000TowerCompiler.hs
+  other-modules:       MPU6000Tower,
                        SPITypes,
                        MPU6000,
                        UARTTower,
