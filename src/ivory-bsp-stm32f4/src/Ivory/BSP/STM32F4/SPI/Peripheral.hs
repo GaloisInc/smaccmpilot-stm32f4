@@ -40,6 +40,7 @@ data SPIPeriph = SPIPeriph
   , spiPinAF       :: GPIO_AF
   , spiInterrupt   :: Interrupt
   , spiPClk        :: PClk
+  , spiName        :: String
   }
 
 mkSPIPeriph :: (BitData a, IvoryIOReg (BitDataRep a))
@@ -68,6 +69,7 @@ mkSPIPeriph base rccreg rccfield miso mosi sck af inter pclk n =
     , spiPinAF       = af
     , spiInterrupt   = inter
     , spiPClk        = pclk
+    , spiName        = n
     }
   where
   reg :: (IvoryIOReg (BitDataRep d)) => Integer -> String -> BitDataReg d

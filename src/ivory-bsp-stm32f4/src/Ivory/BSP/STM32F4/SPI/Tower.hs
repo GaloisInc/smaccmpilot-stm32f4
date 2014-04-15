@@ -2,7 +2,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module Ivory.BSP.STM32F4.SPI.Tower where
@@ -10,14 +9,15 @@ module Ivory.BSP.STM32F4.SPI.Tower where
 import Ivory.Language
 import Ivory.Stdlib
 import Ivory.Tower
+import Ivory.Tower.Signal (withUnsafeSignalEvent)
 import Ivory.HW
+import Ivory.HW.Module
 import Ivory.BitData
 
-import Ivory.HW.Module
-import Ivory.BSP.STM32F4.SPI
-
+import Ivory.BSP.STM32F4.Signalable
 import Ivory.BSP.STM32F4.SPI.Regs
 import Ivory.BSP.STM32F4.SPI.Peripheral
+import Ivory.BSP.STM32F4.Interrupt
 
 [ivory|
 struct spi_transmission
@@ -34,15 +34,16 @@ struct spi_transaction_result
   }
 |]
 
-spiTower :: SPIPeriph
-         -> Tower p ( ChannelSource 16 (Struct "spi_transmission")
-                    , ChannelSink   16 (Struct "spi_transaction_result"))
+spiTower :: (STM32F4Signal p)
+         => SPIPeriph
+         -> Tower p ( ChannelSource (Struct "spi_transmission")
+                    , ChannelSink   (Struct "spi_transaction_result"))
 spiTower spi = do
-  addDepends spiTowerTypes
-  addModule  spiTowerTypes
+  towerDepends spiTowerTypes
+  towerModule  spiTowerTypes
   toSig  <- channel
   froSig <- channel
-  signal "spiSignal" $ spiSignal spi (snk toSig) (src froSig)
+  task "spiDriver" $ spiTask spi (snk toSig) (src froSig)
   return (src toSig, snk froSig)
 
 spiTowerTypes :: Module
@@ -50,24 +51,30 @@ spiTowerTypes = package "spiTowerTypes" $ do
   defStruct (Proxy :: Proxy "spi_transmission")
   defStruct (Proxy :: Proxy "spi_transaction_result")
 
-spiSignal :: (SingI n, SingI m)
+spiTask :: (STM32F4Signal p)
        => SPIPeriph
-       -> ChannelSink   n (Struct "spi_transmission")
-       -> ChannelSource m (Struct "spi_transaction_result")
-       -> Signal p ()
-spiSignal spi froCtl toCtl = do
+       -> ChannelSink   (Struct "spi_transmission")
+       -> ChannelSource (Struct "spi_transaction_result")
+       -> Task p ()
+spiTask spi froCtl toCtl = do
   eCtl <- withChannelEmitter  toCtl "toCtl"
   rCtl <- withChannelReceiver froCtl "froCtl"
-  signalName $ spiISRHandlerName spi
-  (activestate :: Ref Global (Stored IBool)) <- signalLocal "activestate"
-  (txstate     :: Ref Global (Struct "spi_transmission")) <- signalLocal "txstate"
-  (txidx       :: Ref Global (Stored (Ix 128))) <- signalLocal "txidx"
-  (rxstate     :: Ref Global (Struct "spi_transaction_result")) <- signalLocal "rxstate"
-  (rxleft      :: Ref Global (Stored Uint8)) <- signalLocal "rxleft"
-  signalModuleDef $ do
+  --signalName $ spiISRHandlerName spi
+  (activestate :: Ref Global (Stored IBool))                    <- taskLocal "activestate"
+  (txstate     :: Ref Global (Struct "spi_transmission"))       <- taskLocal "txstate"
+  (txidx       :: Ref Global (Stored (Ix 128)))                 <- taskLocal "txidx"
+  (rxstate     :: Ref Global (Struct "spi_transaction_result")) <- taskLocal "rxstate"
+  (rxleft      :: Ref Global (Stored Uint8))                    <- taskLocal "rxleft"
+  taskModuleDef $ do
     hw_moduledef
     private $ depend spiTowerTypes
-  signalBody $ do
+
+  interrupt <- withUnsafeSignalEvent
+    (stm32f4Interrupt (spiInterrupt spi))
+    (spiName spi ++ "_isr")
+    (do --dbg_isr dbg
+        interrupt_disable (spiInterrupt spi))
+  handle interrupt "interrupt" $ \_ -> do
     active <- deref activestate
     unless active $ do
       got <- receive rCtl txstate
@@ -93,14 +100,14 @@ spiSignal spi froCtl toCtl = do
           -- Check if we have received all of the bytes expected
           ifte_ (remaining >? 0)
             -- If there are bytes remaining, enable the tx interrupt
-            (spiSetTXEIE spi) $ do
-                -- Otherwise, we're done receiving, so disable the
+            (spiSetTXEIE spi)
+            (do -- Otherwise, we're done receiving, so disable the
                 -- receive interrupt
                 spiClearRXNEIE spi
                 -- set the isr state to take a new message again next time
                 store activestate false
                 -- Send eCtl signal indicating transaction complete.
-                transactionComplete rxstate eCtl
+                transactionComplete rxstate eCtl)
       , bitToBool (sr #. spi_sr_txe) ==> do
           -- Got tx interrupt: disable it
           spiClearTXEIE spi
@@ -113,6 +120,7 @@ spiSignal spi froCtl toCtl = do
             outgoing <- txPop txstate txidx
             spiSetDR spi outgoing
       ]
+    interrupt_enable (spiInterrupt spi)
 
   where
   postError ecode ch = do

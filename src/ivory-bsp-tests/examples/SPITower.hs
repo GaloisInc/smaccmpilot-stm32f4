@@ -14,9 +14,11 @@ import Ivory.Tower
 import Ivory.HW.Module
 import Ivory.BSP.STM32F4.GPIO
 import Ivory.BSP.STM32F4.UART
+import Ivory.BSP.STM32F4.UART.Tower
 import Ivory.BSP.STM32F4.RCC
 import Ivory.BSP.STM32F4.SPI
 import Ivory.BSP.STM32F4.SPI.Tower
+import Ivory.BSP.STM32F4.Signalable
 
 import Platforms
 import LEDTower (ledController)
@@ -38,7 +40,7 @@ mpu6k = SPIDevice
 greeting :: String
 greeting = "spi console. 1 to start:"
 
-app ::  forall p . (ColoredLEDs p, BoardHSE p) => Tower p ()
+app ::  forall p . (ColoredLEDs p, BoardHSE p, STM32F4Signal p) => Tower p ()
 app = do
   -- Red led : pinB14
   -- Blue led : pinB15
@@ -46,26 +48,25 @@ app = do
   start  <- channel
   task "blueLed"   $ ledController [blue] (snk start)
 
-  ((uarti :: ChannelSink 128 (Stored Uint8))
-   ,(uarto :: ChannelSource 128 (Stored Uint8))) <- uartTower uart1 115200
+  (uarti, uarto) <- uartTower uart1 115200 (Proxy :: Proxy 128)
 
   echoPrompt greeting uarto uarti (src start)
 
   (toSig, froSig) <- spiTower spi1
-  task   "spiCtl" $ spiCtl    spi1 mpu6k toSig froSig (snk start) uarto
+  task "spiCtl" $ spiCtl spi1 mpu6k toSig froSig (snk start) uarto
   where
   blue = blueLED (Proxy :: Proxy p)
 
-spiCtl :: forall n m o p q
-        . (BoardHSE p, SingI n, SingI m, SingI o, SingI q)
+spiCtl :: forall p
+        . (BoardHSE p, STM32F4Signal p)
        => SPIPeriph
        -> SPIDevice
-       -> ChannelSource n (Struct "spi_transmission")
-       -> ChannelSink   m (Struct "spi_transaction_result")
-       -> ChannelSink   o (Stored IBool)
-       -> ChannelSource q (Stored Uint8)
+       -> ChannelSource (Struct "spi_transmission")
+       -> ChannelSink   (Struct "spi_transaction_result")
+       -> ChannelSink   (Stored IBool)
+       -> ChannelSource (Stored Uint8)
        -> Task p ()
-spiCtl spi device toSig froSig chStart chdbg = do
+spiCtl spi device toSig froSPIDriver chStart chdbg = do
   eSig   <- withChannelEmitter  toSig   "toSig"
   eDbg   <- withChannelEmitter  chdbg   "chdbg"
   taskModuleDef $ hw_moduledef
@@ -81,11 +82,13 @@ spiCtl spi device toSig froSig chStart chdbg = do
   (state :: Ref Global (Stored Uint8)) <- taskLocal "state"
   taskInit $ do
     spiInit spi
-    spiInitISR spi 191
+    let max_syscall_priority = (12::Uint8)
+    spiInitISR spi (max_syscall_priority + 1)
     spiDeviceInit device
     store state 0
 
-  onChannelV chStart "startSignal" $ \_ -> do
+  startEvent <- withChannelEvent chStart "start"
+  handle startEvent "startEvent" $ \_ -> do
         s <- deref state
         when (s ==? 0) $ do
           store state 1
@@ -113,7 +116,8 @@ spiCtl spi device toSig froSig chStart chdbg = do
           spiDeviceBegin platform mpu6k
           puts "\ngetsensors\n"
 
-  onChannel froSig "eventFromSignal" $ \result -> do
+  spiEvent <- withChannelEvent froSPIDriver "fromSpiDriver"
+  handle spiEvent "spiEvent" $ \result -> do
         spiDeviceEnd mpu6k
         s <- deref state
         cond_
