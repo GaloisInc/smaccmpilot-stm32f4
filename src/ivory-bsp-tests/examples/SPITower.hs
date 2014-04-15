@@ -22,7 +22,6 @@ import Ivory.BSP.STM32F4.Signalable
 
 import Platforms
 import LEDTower (ledController)
-import UARTTower (echoPrompt)
 
 import qualified MPU6000
 
@@ -37,25 +36,11 @@ mpu6k = SPIDevice
   , spiDevBitOrder      = MSBFirst
   }
 
-greeting :: String
-greeting = "spi console. 1 to start:"
-
 app ::  forall p . (ColoredLEDs p, BoardHSE p, STM32F4Signal p) => Tower p ()
 app = do
-  -- Red led : pinB14
-  -- Blue led : pinB15
-
-  start  <- channel
-  task "blueLed"   $ ledController [blue] (snk start)
-
   (uarti, uarto) <- uartTower uart1 115200 (Proxy :: Proxy 128)
-
-  echoPrompt greeting uarto uarti (src start)
-
   (toSig, froSig) <- spiTower spi1
-  task "spiCtl" $ spiCtl spi1 mpu6k toSig froSig (snk start) uarto
-  where
-  blue = blueLED (Proxy :: Proxy p)
+  task "spiCtl" $ spiCtl spi1 mpu6k toSig froSig uarto
 
 spiCtl :: forall p
         . (BoardHSE p, STM32F4Signal p)
@@ -63,10 +48,9 @@ spiCtl :: forall p
        -> SPIDevice
        -> ChannelSource (Struct "spi_transmission")
        -> ChannelSink   (Struct "spi_transaction_result")
-       -> ChannelSink   (Stored IBool)
        -> ChannelSource (Stored Uint8)
        -> Task p ()
-spiCtl spi device toSig froSPIDriver chStart chdbg = do
+spiCtl spi device toSig froSPIDriver chdbg = do
   eSig   <- withChannelEmitter  toSig   "toSig"
   eDbg   <- withChannelEmitter  chdbg   "chdbg"
   taskModuleDef $ hw_moduledef
@@ -87,34 +71,34 @@ spiCtl spi device toSig froSPIDriver chStart chdbg = do
     spiDeviceInit device
     store state 0
 
-  startEvent <- withChannelEvent chStart "start"
+  startEvent <- withPeriodicEvent (Milliseconds 1000)
   handle startEvent "startEvent" $ \_ -> do
         s <- deref state
         when (s ==? 0) $ do
           store state 1
           MPU6000.getWhoAmI eSig
           spiDeviceBegin platform mpu6k
-          puts "\ninitializing mpu6k\n"
+          puts "initializing mpu6k\n"
         when (s ==? 2) $ do
           store state 3
           MPU6000.disableI2C eSig
           spiDeviceBegin platform mpu6k
-          puts "\ndisabling i2c\n"
+          puts "disabling i2c\n"
         when (s ==? 4) $ do
           store state 5
           MPU6000.wake eSig
           spiDeviceBegin platform mpu6k
-          puts "\nwaking device\n"
+          puts "waking device\n"
         when (s ==? 6) $ do
           store state 7
           MPU6000.setScale eSig
           spiDeviceBegin platform mpu6k
-          puts "\nsetting gyro scale\n"
+          puts "setting gyro scale\n"
         when (s ==? 8) $ do -- begin getsensors
           store state 9 -- Fetching sensors
           MPU6000.getSensors eSig
           spiDeviceBegin platform mpu6k
-          puts "\ngetsensors\n"
+          puts "getsensors\n"
 
   spiEvent <- withChannelEvent froSPIDriver "fromSpiDriver"
   handle spiEvent "spiEvent" $ \result -> do
@@ -123,8 +107,8 @@ spiCtl spi device toSig froSPIDriver chStart chdbg = do
         cond_
           [ s <? 9 ==>
               store state (s+1)
-          , s ==? 9 ==>
-              -- XXX do something with fetched sensors here.
+          , s ==? 9 ==> do
+              comment "XXX do something here with sensor data"
               store state 8 -- Ready to grab sensors again.
           , true ==> -- Error
               store state 0
