@@ -31,6 +31,8 @@
 #else
 # define LED_COUNT 0
 # define LED_PINS  {}
+# define LED_ON_HIGH
+# define LED_OFF_LOW
 #endif
 
 /** Array of GPIO pins by LED number. */
@@ -62,11 +64,10 @@ int led_count(void)
 
 bool led_set(int led, bool state)
 {
-  struct pin *p;
-
   if (led < 0 || led >= LED_COUNT)
     return false;
 
+  struct pin *p;
   p = g_leds[led];
 
   if (state) {
