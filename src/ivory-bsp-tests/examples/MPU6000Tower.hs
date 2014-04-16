@@ -3,7 +3,7 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE TypeFamilies #-}
 
-module SPITower where
+module MPU6000Tower where
 
 import Data.Char (ord)
 
