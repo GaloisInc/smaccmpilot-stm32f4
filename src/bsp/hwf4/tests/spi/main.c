@@ -20,6 +20,8 @@
 
 xTaskHandle main_task_handle;
 
+#define SPI_PERIPH spi1
+
 /* LIS302DL register definitions. */
 #define LIS302DL_REG_WHO_AM_I      0x0F
 #define LIS302DL_REG_CTRL_REG_1    0x20
@@ -54,7 +56,7 @@ void lis302dl_write_reg(uint8_t addr, uint8_t value)
   buf[0] = addr;
   buf[1] = value;
 
-  spi_transfer(spi1, &lis302dl, portMAX_DELAY, buf, buf, sizeof(buf));
+  spi_transfer(SPI_PERIPH, &lis302dl, portMAX_DELAY, buf, buf, sizeof(buf));
 }
 
 /** Read a register from the LIS302DL. */
@@ -65,7 +67,7 @@ uint8_t lis302dl_read_reg(uint8_t addr)
   buf[0] = addr | 0x80;
   buf[1] = 0x00;
 
-  spi_transfer(spi1, &lis302dl, portMAX_DELAY, buf, buf, sizeof(buf));
+  spi_transfer(SPI_PERIPH, &lis302dl, portMAX_DELAY, buf, buf, sizeof(buf));
   return buf[1];
 }
 
@@ -75,7 +77,7 @@ void main_task(void *args)
 
   usart_init(usart1, 115200);
   usart_enable(usart1);
-  spi_init(spi1);
+  spi_init(SPI_PERIPH);
   spi_device_init(&lis302dl);
 
   /* Read the WHO_AM_I register to get the device ID. */
