@@ -145,29 +145,39 @@ spiDeviceInit dev = do
 spiDeviceBegin :: (GetAlloc eff ~ Scope s, BoardHSE p)
                => Proxy p -> SPIDevice -> Ivory eff ()
 spiDeviceBegin platform dev = do
-  spiBusEnable
+  spiBusBegin platform dev
   spiDeviceSelect dev
   -- Enable transfer interrupts:
   spiSetTXEIE periph
   spiSetRXNEIE periph
   where
   periph = spiDevPeripheral dev
-  spiBusEnable = do
-    spiModifyCr1        periph [ spi_cr1_spe ] true
-    spiClearCr1         periph
-    spiClearCr2         periph
-    spiModifyCr1        periph [ spi_cr1_mstr, spi_cr1_ssm, spi_cr1_ssi ] true
-    baud <- spiDevBaud  platform periph (spiDevClockHz dev)
-    spiSetBaud          periph baud
-    spiSetClockPolarity periph (spiDevClockPolarity dev)
-    spiSetClockPhase    periph (spiDevClockPhase    dev)
-    spiSetBitOrder      periph (spiDevBitOrder      dev)
-    spiModifyCr1        periph [ spi_cr1_spe ] true
+
+spiBusBegin :: (GetAlloc eff ~ Scope s, BoardHSE p)
+            => Proxy p -> SPIDevice -> Ivory eff ()
+spiBusBegin platform dev = do
+  spiModifyCr1        periph [ spi_cr1_spe ] true
+  spiClearCr1         periph
+  spiClearCr2         periph
+  spiModifyCr1        periph [ spi_cr1_mstr, spi_cr1_ssm, spi_cr1_ssi ] true
+  baud <- spiDevBaud  platform periph (spiDevClockHz dev)
+  spiSetBaud          periph baud
+  spiSetClockPolarity periph (spiDevClockPolarity dev)
+  spiSetClockPhase    periph (spiDevClockPhase    dev)
+  spiSetBitOrder      periph (spiDevBitOrder      dev)
+  spiModifyCr1        periph [ spi_cr1_spe ] true
+  where
+  periph = spiDevPeripheral dev
+
+
+spiBusEnd :: SPIPeriph -> Ivory eff ()
+spiBusEnd  periph =
+  spiModifyCr1 periph [ spi_cr1_spe ] false
 
 spiDeviceEnd   :: SPIDevice -> Ivory eff ()
 spiDeviceEnd dev = do
   spiDeviceDeselect dev
-  spiModifyCr1      periph [ spi_cr1_spe ] false
+  spiBusEnd         periph
   where periph = spiDevPeripheral dev
 
 
@@ -217,7 +227,7 @@ spiDevBaud platform periph hz = do
 spiDeviceSelect   :: SPIDevice -> Ivory eff ()
 spiDeviceSelect dev = case spiDevCSActive dev of
   ActiveHigh -> pinSet   (spiDevCSPin dev)
-  ActiveLow -> pinClear (spiDevCSPin dev)
+  ActiveLow  -> pinClear (spiDevCSPin dev)
 
 spiDeviceDeselect :: SPIDevice -> Ivory eff ()
 spiDeviceDeselect dev = case spiDevCSActive dev of

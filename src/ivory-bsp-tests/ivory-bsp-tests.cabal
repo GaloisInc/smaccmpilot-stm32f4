@@ -61,6 +61,23 @@ executable bsp-led-tower-test-gen
                        ivory-bsp-stm32f4
   ghc-options:         -Wall
 
+executable bsp-spi-test-gen
+  main-is:             SPITestCompiler.hs
+  other-modules:       SPITest,
+                       SPITypes,
+                       Platforms
+  hs-source-dirs:      examples
+  build-depends:       base >= 4.6,
+                       ivory,
+                       ivory-stdlib,
+                       ivory-backend-c,
+                       ivory-bitdata,
+                       ivory-hw,
+                       tower          >= 0.8,
+                       tower-frontend >= 0.8,
+                       ivory-bsp-stm32f4
+  ghc-options:          -Wall
+
 executable bsp-mpu6000-tower-test-gen
   main-is:             MPU6000TowerCompiler.hs
   other-modules:       MPU6000Tower,

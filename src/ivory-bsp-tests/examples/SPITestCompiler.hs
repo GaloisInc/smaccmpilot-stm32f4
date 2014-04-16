@@ -5,7 +5,7 @@ import qualified Ivory.HW.SearchDir as HW
 import qualified Ivory.BSP.STM32F4.SearchDir as BSP
 
 import Platforms
-import SPITower (app)
+import SPITest (app)
 
 main :: IO ()
 main = compilePlatforms conf (coloredLEDPlatforms app)
