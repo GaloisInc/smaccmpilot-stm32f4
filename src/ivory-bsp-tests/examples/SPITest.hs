@@ -46,30 +46,84 @@ devicedriver device = task "devicedriver" $ do
 
   taskInit $ do
     gpioSetup     pinE2
+    gpioSetup     pinE3
     spiInit       periph
     spiDeviceInit device
 
-{-
+  done <- taskLocal "done"
+
+  (txbuffer :: Ref Global (Array 64 (Stored Uint8)))
+               <- taskLocal "rxbuffer"
+  txbuffersize <- taskLocal "rxbuffersize"
+  txbufferpos  <- taskLocal "rxbufferpos"
+
+  (rxbuffer :: Ref Global (Array 64 (Stored Uint8)))
+               <- taskLocal "rxbuffer"
+  rxbuffersize <- taskLocal "rxbuffersize"
+  rxbufferpos  <- taskLocal "rxbufferpos"
+
+
   irq <- withUnsafeSignalEvent
                 (stm32f4Interrupt interrupt)
                 "interrupt"
                 (do gpioToggle pinE2
+                    modifyReg (spiRegCR2 periph)
+                      (clearBit spi_cr2_txeie >>
+                       clearBit spi_cr2_rxneie)
                     interrupt_disable interrupt)
 
   handle irq "irq" $ \_ -> do
-    return ()
--}
+    gpioOn pinE3
+    tx_pos <- deref txbufferpos
+    tx_sz  <- deref txbuffersize
+    rx_pos <- deref rxbufferpos
+    rx_sz  <- deref rxbuffersize
+
+    sr <- getReg (spiRegSR periph)
+    when (bitToBool (sr #. spi_sr_rxne)) $ do
+      when (rx_pos <? rx_sz) $ do
+        r <- spiGetDR periph
+        store (rxbuffer ! rx_pos) r
+        store rxbufferpos (rx_pos + 1)
+        modifyReg (spiRegCR2 periph) (setBit spi_cr2_txeie)
+      when (rx_pos ==? rx_sz) $ do
+        spiDeviceDeselect device
+        store done true
+
+    when (bitToBool (sr #. spi_sr_txe)) $ do
+      when (tx_pos <? tx_sz) $ do
+        w <- deref (txbuffer ! tx_pos)
+        store txbufferpos (tx_pos + 1)
+        spiSetDR periph w
+        modifyReg (spiRegCR2 periph) (setBit spi_cr2_rxneie)
+
+    gpioOff pinE3
+    interrupt_enable interrupt
 
   onPeriod (Milliseconds 100) $ \_ -> do
-    spiDeviceSelect device
-    spiBusBegin     platform device
-    spiSetDR        periph   0xF1
-    waitTXE
-    spiSetDR        periph   0xF2
-    waitTXE
-    waitNotBSY
-    spiBusEnd       periph
-    spiDeviceDeselect device
+    ready <- deref done
+    when ready $ do
+      store done false
+      store (txbuffer ! 0) 0xF1
+      store (txbuffer ! 1) 0xF2
+      store txbufferpos 0
+      store txbuffersize 2
+      store rxbufferpos 0
+      store rxbuffersize 2
+
+      spiDeviceSelect device
+      spiBusBegin     platform device
+      tx0 <- deref (txbuffer ! 0)
+      store txbufferpos 1
+      spiSetDR        periph   tx0
+      modifyReg (spiRegCR2 periph) (setBit spi_cr2_txeie)
+
+--      waitTXE
+--      spiSetDR        periph   0xF2
+--      waitTXE
+--      waitNotBSY
+--      spiBusEnd       periph
+--      spiDeviceDeselect device
 
   where
   periph = spiDevPeripheral device
