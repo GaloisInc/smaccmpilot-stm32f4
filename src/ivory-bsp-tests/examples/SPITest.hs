@@ -38,19 +38,26 @@ app ::  forall p . (ColoredLEDs p, BoardHSE p, STM32F4Signal p) => Tower p ()
 app = do
   devicedriver testdevice
 
+debugPin1, debugPin2, debugPin3 :: Maybe GPIOPin
+debugPin1 = Just pinE2
+debugPin2 = Just pinE4
+debugPin3 = Just pinE5
 
 devicedriver :: forall p . (STM32F4Signal p, BoardHSE p)
              => SPIDevice -> Tower p ()
 devicedriver device = task "devicedriver" $ do
   taskModuleDef $ hw_moduledef
 
+  done <- taskLocal "done"
+
   taskInit $ do
-    gpioSetup     pinE2
-    gpioSetup     pinE3
+    debugSetup     debugPin1
+    debugSetup     debugPin2
+    debugSetup     debugPin3
     spiInit       periph
     spiDeviceInit device
+    store done true
 
-  done <- taskLocal "done"
 
   (txbuffer :: Ref Global (Array 64 (Stored Uint8)))
                <- taskLocal "rxbuffer"
@@ -62,42 +69,50 @@ devicedriver device = task "devicedriver" $ do
   rxbuffersize <- taskLocal "rxbuffersize"
   rxbufferpos  <- taskLocal "rxbufferpos"
 
+  taskPriority 3
 
   irq <- withUnsafeSignalEvent
                 (stm32f4Interrupt interrupt)
                 "interrupt"
-                (do gpioToggle pinE2
+                (do debugToggle debugPin1
                     modifyReg (spiRegCR2 periph)
                       (clearBit spi_cr2_txeie >>
                        clearBit spi_cr2_rxneie)
                     interrupt_disable interrupt)
 
   handle irq "irq" $ \_ -> do
-    gpioOn pinE3
     tx_pos <- deref txbufferpos
     tx_sz  <- deref txbuffersize
     rx_pos <- deref rxbufferpos
     rx_sz  <- deref rxbuffersize
 
     sr <- getReg (spiRegSR periph)
-    when (bitToBool (sr #. spi_sr_rxne)) $ do
-      when (rx_pos <? rx_sz) $ do
-        r <- spiGetDR periph
-        store (rxbuffer ! rx_pos) r
-        store rxbufferpos (rx_pos + 1)
-        modifyReg (spiRegCR2 periph) (setBit spi_cr2_txeie)
-      when (rx_pos ==? rx_sz) $ do
-        spiDeviceDeselect device
-        store done true
+    cond_
+      [ bitToBool (sr #. spi_sr_rxne) ==> do
+          debugOn debugPin2
+          when (rx_pos <? rx_sz) $ do
+            r <- spiGetDR periph
+            store (rxbuffer ! rx_pos) r
+            store rxbufferpos (rx_pos + 1)
+            when (rx_pos <=? (rx_sz - 2)) $ do
+               modifyReg (spiRegCR2 periph) (setBit spi_cr2_txeie)
+          when (rx_pos ==? (rx_sz - 1)) $ do
+            spiBusEnd       periph
+            spiDeviceDeselect device
+            store done true
+          debugOff debugPin2
 
-    when (bitToBool (sr #. spi_sr_txe)) $ do
-      when (tx_pos <? tx_sz) $ do
-        w <- deref (txbuffer ! tx_pos)
-        store txbufferpos (tx_pos + 1)
-        spiSetDR periph w
-        modifyReg (spiRegCR2 periph) (setBit spi_cr2_rxneie)
+      , bitToBool (sr #. spi_sr_txe) ==> do
+          debugOn debugPin3
+          when (tx_pos <? tx_sz) $ do
+            w <- deref (txbuffer ! tx_pos)
+            spiSetDR periph w
+          when (tx_pos <=? tx_sz) $ do
+            store txbufferpos (tx_pos + 1)
+            modifyReg (spiRegCR2 periph) (setBit spi_cr2_rxneie)
+          debugOff debugPin3
+      ]
 
-    gpioOff pinE3
     interrupt_enable interrupt
 
   onPeriod (Milliseconds 100) $ \_ -> do
@@ -106,10 +121,11 @@ devicedriver device = task "devicedriver" $ do
       store done false
       store (txbuffer ! 0) 0xF1
       store (txbuffer ! 1) 0xF2
+      store (txbuffer ! 2) 0xF3
       store txbufferpos 0
-      store txbuffersize 2
+      store txbuffersize 3
       store rxbufferpos 0
-      store rxbuffersize 2
+      store rxbuffersize 3
 
       spiDeviceSelect device
       spiBusBegin     platform device
@@ -117,13 +133,12 @@ devicedriver device = task "devicedriver" $ do
       store txbufferpos 1
       spiSetDR        periph   tx0
       modifyReg (spiRegCR2 periph) (setBit spi_cr2_txeie)
+      interrupt_enable interrupt
 
---      waitTXE
---      spiSetDR        periph   0xF2
---      waitTXE
---      waitNotBSY
---      spiBusEnd       periph
---      spiDeviceDeselect device
+    unless ready $ do
+      return () -- XXX big error - if 100ms have passed
+                -- this means the driver has hung somewhere.
+                -- Maybe we should try restarting the driver?
 
   where
   periph = spiDevPeripheral device
@@ -132,39 +147,25 @@ devicedriver device = task "devicedriver" $ do
   platform :: Proxy p
   platform = Proxy
 
-  waitTXE :: Ivory (ProcEffects s ()) ()
-  waitTXE = do
-    comment "wait for txe"
-    forever $ do
-      sr <- getReg (spiRegSR periph)
-      when (bitToBool (sr #. spi_sr_txe))
-           breakOut
-
-  waitNotBSY :: Ivory (ProcEffects s ()) ()
-  waitNotBSY = do
-    comment "wait not busy"
-    forever $ do
-      sr <- getReg (spiRegSR periph)
-      unless (bitToBool (sr #. spi_sr_bsy))
-           breakOut
-
-
-
 -- Helpers
-gpioSetup :: GPIOPin -> Ivory eff ()
-gpioSetup p = do
+debugSetup :: Maybe GPIOPin -> Ivory eff ()
+debugSetup (Just p) = do
   pinEnable        p
   pinSetOutputType p gpio_outputtype_pushpull
   pinSetSpeed      p gpio_speed_50mhz
   pinSetPUPD       p gpio_pupd_none
-  gpioOff          p
-gpioOff :: GPIOPin -> Ivory eff ()
-gpioOff p = do
   pinClear         p
   pinSetMode       p gpio_mode_output
-gpioOn :: GPIOPin -> Ivory eff ()
-gpioOn p = do
-  pinSet           p
-  pinSetMode       p gpio_mode_output
-gpioToggle :: GPIOPin -> Ivory eff ()
-gpioToggle p = gpioOn p >> gpioOff p
+debugSetup Nothing = return ()
+
+debugOff :: Maybe GPIOPin -> Ivory eff ()
+debugOff (Just p) = pinClear p
+debugOff Nothing  = return ()
+
+debugOn :: Maybe GPIOPin -> Ivory eff ()
+debugOn (Just p) = pinSet p
+debugOn Nothing  = return ()
+
+debugToggle :: Maybe GPIOPin -> Ivory eff ()
+debugToggle p = debugOn p >> debugOff p
+
