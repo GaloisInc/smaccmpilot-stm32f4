@@ -95,8 +95,6 @@ spiPeripheralDriver periph devices req_sink res_source = do
   resbuffer    <- taskLocal "resbuffer"
   resbufferpos <- taskLocal "resbufferpos"
 
-  currdevice   <- taskLocal "currentdevice"
-
   taskPriority 3
 
   irq <- withUnsafeSignalEvent
@@ -126,7 +124,7 @@ spiPeripheralDriver periph devices req_sink res_source = do
                modifyReg (spiRegCR2 periph) (setBit spi_cr2_txeie)
           when (rx_pos ==? (rx_sz - 1)) $ do
             spiBusEnd       periph
-            chooseDevice spiDeviceDeselect currdevice
+            chooseDevice spiDeviceDeselect (reqbuffer ~> tx_device)
             emit_ resultEmitter (constRef resbuffer)
             store done true
           debugOff debugPin2
@@ -158,8 +156,8 @@ spiPeripheralDriver periph devices req_sink res_source = do
       tx0 <- deref ((reqbuffer ~> tx_buf) ! 0)
       store reqbufferpos 1
       -- select the device and setup the spi peripheral
-      chooseDevice spiDeviceSelect currdevice
-      chooseDevice (spiBusBegin platform) currdevice
+      chooseDevice spiDeviceSelect        (reqbuffer ~> tx_device)
+      chooseDevice (spiBusBegin platform) (reqbuffer ~> tx_device)
       -- Send the first byte, enable tx empty interrupt
       spiSetDR  periph tx0
       modifyReg (spiRegCR2 periph) (setBit spi_cr2_txeie)
@@ -176,8 +174,11 @@ spiPeripheralDriver periph devices req_sink res_source = do
   chooseDevice :: (SPIDevice -> Ivory eff ())
                -> Ref Global (Stored Uint8) -> Ivory eff ()
   chooseDevice callback devref = do
+    comment "selecting device:"
     currdev <- deref devref
+    assert (currdev <? (fromIntegral (length devices)))
     cond_ (zipWith (aux currdev) devices [(0::Integer)..])
+    comment "end selecting configured device"
     where
     aux cd device idx = cd ==? (fromIntegral idx) ==> callback device
 
