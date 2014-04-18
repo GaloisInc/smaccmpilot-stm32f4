@@ -142,17 +142,6 @@ spiDeviceInit dev = do
   pinSetOutputType  pin gpio_outputtype_pushpull
   pinSetSpeed       pin gpio_speed_2mhz
 
-spiDeviceBegin :: (GetAlloc eff ~ Scope s, BoardHSE p)
-               => Proxy p -> SPIDevice -> Ivory eff ()
-spiDeviceBegin platform dev = do
-  spiBusBegin platform dev
-  spiDeviceSelect dev
-  -- Enable transfer interrupts:
-  spiSetTXEIE periph
-  spiSetRXNEIE periph
-  where
-  periph = spiDevPeripheral dev
-
 spiBusBegin :: (GetAlloc eff ~ Scope s, BoardHSE p)
             => Proxy p -> SPIDevice -> Ivory eff ()
 spiBusBegin platform dev = do
@@ -160,7 +149,9 @@ spiBusBegin platform dev = do
   spiClearCr1         periph
   spiClearCr2         periph
   spiModifyCr1        periph [ spi_cr1_mstr, spi_cr1_ssm, spi_cr1_ssi ] true
+  comment "calculate baud"
   baud <- spiDevBaud  platform periph (spiDevClockHz dev)
+  comment "end calculate baud"
   spiSetBaud          periph baud
   spiSetClockPolarity periph (spiDevClockPolarity dev)
   spiSetClockPhase    periph (spiDevClockPhase    dev)

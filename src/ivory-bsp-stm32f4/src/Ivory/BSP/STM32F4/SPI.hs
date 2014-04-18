@@ -9,14 +9,8 @@ module Ivory.BSP.STM32F4.SPI
   , SPIClockPolarity(..)
   , SPIClockPhase(..)
   , SPIBitOrder(..)
-  -- Peripheral API:
-  , spiInit
-  , spiInitISR
-  , spiISRHandlerName
-  -- Device API:
-  , spiDeviceInit
-  , spiDeviceBegin
-  , spiDeviceEnd
   ) where
+
+-- XXX fill out the correct export list later
 
 import Ivory.BSP.STM32F4.SPI.Peripheral
