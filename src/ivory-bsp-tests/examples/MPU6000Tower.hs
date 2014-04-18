@@ -39,36 +39,34 @@ mpu6k = SPIDevice
 app ::  forall p . (ColoredLEDs p, BoardHSE p, STM32F4Signal p) => Tower p ()
 app = do
   (uarti, uarto) <- uartTower uart1 115200 (Proxy :: Proxy 128)
-  (toSig, froSig) <- spiTower spi1
-  task "spiCtl" $ spiCtl spi1 mpu6k toSig froSig uarto
+  (toSpi, fromSpi) <- spiTower [mpu6k]
+  mpu6kCtl toSpi fromSpi uarto
 
-spiCtl :: forall p
+mpu6kCtl :: forall p
         . (BoardHSE p, STM32F4Signal p)
-       => SPIPeriph
-       -> SPIDevice
-       -> ChannelSource (Struct "spi_transmission")
+       => ChannelSource (Struct "spi_transaction_request")
        -> ChannelSink   (Struct "spi_transaction_result")
-       -> ChannelSource (Stored Uint8)
-       -> Task p ()
-spiCtl spi device toSig froSPIDriver chdbg = do
-  eSig   <- withChannelEmitter  toSig   "toSig"
-  eDbg   <- withChannelEmitter  chdbg   "chdbg"
+       -> ChannelSource (Stored Uint8) -- Stdout
+       -> Tower p ()
+mpu6kCtl toDriver fromDriver toDebug = task "mpu6kCtl" $ do
+  spiResult <- withChannelEvent fromDriver "fromDriver"
+  spiRequest <- withChannelEmitter toDriver "toDriver"
+  debugEmitter  <- withChannelEmitter toDebug  "toDebug"
   taskModuleDef $ hw_moduledef
   let putc :: (GetAlloc eff ~ Scope cs) => Char -> Ivory eff ()
-      putc c = local (ival (fromIntegral (ord c))) >>= \r -> emit_ eDbg (constRef r)
+      putc c = do
+        r <- local (ival (fromIntegral (ord c)))
+        emit_ debugEmitter (constRef r)
       puts :: (GetAlloc eff ~ Scope cs) => String -> Ivory eff ()
       puts str = mapM_ putc str
       putdig :: (GetAlloc eff ~ Scope cs) => Uint8 -> Ivory eff ()
       putdig d = do  -- Put an integer between 0 and 10
         r <- local (ival (d + (fromIntegral (ord '0'))))
-        emit_ eDbg (constRef r)
+        emit_ debugEmitter (constRef r)
       platform = (Proxy :: Proxy p)
   (state :: Ref Global (Stored Uint8)) <- taskLocal "state"
   taskInit $ do
-    spiInit spi
     let max_syscall_priority = (12::Uint8)
-    spiInitISR spi (max_syscall_priority + 1)
-    spiDeviceInit device
     store state 0
 
   startEvent <- withPeriodicEvent (Milliseconds 1000)
@@ -76,33 +74,26 @@ spiCtl spi device toSig froSPIDriver chdbg = do
         s <- deref state
         when (s ==? 0) $ do
           store state 1
-          MPU6000.getWhoAmI eSig
-          spiDeviceBegin platform mpu6k
+          MPU6000.getWhoAmI spiRequest
           puts "initializing mpu6k\n"
         when (s ==? 2) $ do
           store state 3
-          MPU6000.disableI2C eSig
-          spiDeviceBegin platform mpu6k
+          MPU6000.disableI2C spiRequest
           puts "disabling i2c\n"
         when (s ==? 4) $ do
           store state 5
-          MPU6000.wake eSig
-          spiDeviceBegin platform mpu6k
+          MPU6000.wake spiRequest
           puts "waking device\n"
         when (s ==? 6) $ do
           store state 7
-          MPU6000.setScale eSig
-          spiDeviceBegin platform mpu6k
+          MPU6000.setScale spiRequest
           puts "setting gyro scale\n"
         when (s ==? 8) $ do -- begin getsensors
           store state 9 -- Fetching sensors
-          MPU6000.getSensors eSig
-          spiDeviceBegin platform mpu6k
+          MPU6000.getSensors spiRequest
           puts "getsensors\n"
 
-  spiEvent <- withChannelEvent froSPIDriver "fromSpiDriver"
-  handle spiEvent "spiEvent" $ \result -> do
-        spiDeviceEnd mpu6k
+  handle spiResult "spiResult" $ \result -> do
         s <- deref state
         cond_
           [ s <? 9 ==>
