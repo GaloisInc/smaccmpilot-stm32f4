@@ -14,15 +14,18 @@ import Ivory.HW
 import Ivory.HW.Module
 import Ivory.BitData
 
+import Ivory.BSP.STM32F4.GPIO
+import Ivory.BSP.STM32F4.RCC
 import Ivory.BSP.STM32F4.Signalable
 import Ivory.BSP.STM32F4.SPI.Regs
 import Ivory.BSP.STM32F4.SPI.Peripheral
 import Ivory.BSP.STM32F4.Interrupt
 
 [ivory|
-struct spi_transmission
-  { tx_buf  :: Array 128 (Stored Uint8)
-  ; tx_len  :: Stored (Ix 128)
+struct spi_transaction_request
+  { tx_device :: Stored Uint8
+  ; tx_buf    :: Array 128 (Stored Uint8)
+  ; tx_len    :: Stored (Ix 128)
   }
 |]
 
@@ -34,125 +37,178 @@ struct spi_transaction_result
   }
 |]
 
-spiTower :: (STM32F4Signal p)
-         => SPIPeriph
-         -> Tower p ( ChannelSource (Struct "spi_transmission")
+spiTower :: (BoardHSE p, STM32F4Signal p)
+         => [SPIDevice]
+         -> Tower p ( ChannelSource (Struct "spi_transaction_request")
                     , ChannelSink   (Struct "spi_transaction_result"))
-spiTower spi = do
+spiTower devices = do
   towerDepends spiTowerTypes
   towerModule  spiTowerTypes
-  toSig  <- channel
-  froSig <- channel
-  task "spiDriver" $ spiTask spi (snk toSig) (src froSig)
-  return (src toSig, snk froSig)
+  reqchan <- channel' (Proxy :: Proxy 2) Nothing
+  reschan <- channel' (Proxy :: Proxy 2) Nothing
+  task (periphname ++ "PeripheralDriver") $
+    spiPeripheralDriver periph devices (snk reqchan) (src reschan)
+  return (src reqchan, snk reschan)
+  where
+  periphname = spiName periph
+  periph = case devices of
+    [] -> err "for an empty device set"
+    d:ds ->
+      let canonicalp = spiDevPeripheral d
+      in case and (map (\d' -> canonicalp `eqname` spiDevPeripheral d') ds) of
+        True -> canonicalp
+        False -> err "with devices on different peripherals"
+  eqname a b = spiName a == spiName b
+  err m = error ("spiTower cannot be created " ++ m)
 
 spiTowerTypes :: Module
 spiTowerTypes = package "spiTowerTypes" $ do
-  defStruct (Proxy :: Proxy "spi_transmission")
+  defStruct (Proxy :: Proxy "spi_transaction_request")
   defStruct (Proxy :: Proxy "spi_transaction_result")
 
-spiTask :: (STM32F4Signal p)
-       => SPIPeriph
-       -> ChannelSink   (Struct "spi_transmission")
-       -> ChannelSource (Struct "spi_transaction_result")
-       -> Task p ()
-spiTask spi froCtl toCtl = do
-  eCtl <- withChannelEmitter  toCtl "toCtl"
-  rCtl <- withChannelReceiver froCtl "froCtl"
-  --signalName $ spiISRHandlerName spi
-  (activestate :: Ref Global (Stored IBool))                    <- taskLocal "activestate"
-  (txstate     :: Ref Global (Struct "spi_transmission"))       <- taskLocal "txstate"
-  (txidx       :: Ref Global (Stored (Ix 128)))                 <- taskLocal "txidx"
-  (rxstate     :: Ref Global (Struct "spi_transaction_result")) <- taskLocal "rxstate"
-  (rxleft      :: Ref Global (Stored Uint8))                    <- taskLocal "rxleft"
-  taskModuleDef $ do
-    hw_moduledef
-    private $ depend spiTowerTypes
+spiPeripheralDriver :: forall p
+                     . (STM32F4Signal p, BoardHSE p)
+                    => SPIPeriph
+                    -> [SPIDevice]
+                    -> ChannelSink   (Struct "spi_transaction_request")
+                    -> ChannelSource (Struct "spi_transaction_result")
+                    -> Task p ()
+spiPeripheralDriver periph devices req_sink res_source = do
+  taskModuleDef $ hw_moduledef
 
-  interrupt <- withUnsafeSignalEvent
-    (stm32f4Interrupt (spiInterrupt spi))
-    (spiName spi ++ "_isr")
-    (do --dbg_isr dbg
-        interrupt_disable (spiInterrupt spi))
-  handle interrupt "interrupt" $ \_ -> do
-    active <- deref activestate
-    unless active $ do
-      got <- receive rCtl txstate
-      ifte_ got (do
-        expected <- deref (txstate ~> tx_len)
-        store txidx  0
-        store activestate true
-        store rxleft (safeCast expected)
-        store (rxstate ~> rx_idx) 0
-        ) 
-        -- The ISR should only go off when inactive if a new
-        -- ctl has been posted to rCtl.
-        (postError 1 eCtl)
+  requestEvent  <- withChannelEvent   req_sink   "req_sink"
+  resultEmitter <- withChannelEmitter res_source "res_source"
 
-    -- then check if there is a new transaction available on
-    -- the rCtl channel
-    sr <- getReg (spiRegSR spi)
+  done <- taskLocal "done"
+
+  taskInit $ do
+    debugSetup     debugPin1
+    debugSetup     debugPin2
+    debugSetup     debugPin3
+    spiInit        periph
+    mapM_ spiDeviceInit devices
+    store done true
+
+  reqbuffer    <- taskLocal "reqbuffer"
+  reqbufferpos <- taskLocal "reqbufferpos"
+
+  resbuffer    <- taskLocal "resbuffer"
+  resbufferpos <- taskLocal "resbufferpos"
+
+  currdevice   <- taskLocal "currentdevice"
+
+  taskPriority 3
+
+  irq <- withUnsafeSignalEvent
+                (stm32f4Interrupt interrupt)
+                "interrupt"
+                (do debugToggle debugPin1
+                    modifyReg (spiRegCR2 periph)
+                      (clearBit spi_cr2_txeie >>
+                       clearBit spi_cr2_rxneie)
+                    interrupt_disable interrupt)
+
+  handle irq "irq" $ \_ -> do
+    tx_pos <- deref reqbufferpos
+    tx_sz  <- deref (reqbuffer ~> tx_len)
+    rx_pos <- deref resbufferpos
+    rx_sz  <- deref (resbuffer ~> rx_idx)
+
+    sr <- getReg (spiRegSR periph)
     cond_
       [ bitToBool (sr #. spi_sr_rxne) ==> do
-          -- Got rxinterrupt, so 
-          dr <- spiGetDR spi
-          remaining <- rxStore rxstate rxleft dr
-          -- Check if we have received all of the bytes expected
-          ifte_ (remaining >? 0)
-            -- If there are bytes remaining, enable the tx interrupt
-            (spiSetTXEIE spi)
-            (do -- Otherwise, we're done receiving, so disable the
-                -- receive interrupt
-                spiClearRXNEIE spi
-                -- set the isr state to take a new message again next time
-                store activestate false
-                -- Send eCtl signal indicating transaction complete.
-                transactionComplete rxstate eCtl)
+          debugOn debugPin2
+          when (rx_pos <? rx_sz) $ do
+            r <- spiGetDR periph
+            store ((resbuffer ~> rx_buf) ! rx_pos) r
+            store resbufferpos (rx_pos + 1)
+            when (rx_pos <=? (rx_sz - 2)) $ do
+               modifyReg (spiRegCR2 periph) (setBit spi_cr2_txeie)
+          when (rx_pos ==? (rx_sz - 1)) $ do
+            spiBusEnd       periph
+            chooseDevice spiDeviceDeselect currdevice
+            emit_ resultEmitter (constRef resbuffer)
+            store done true
+          debugOff debugPin2
+
       , bitToBool (sr #. spi_sr_txe) ==> do
-          -- Got tx interrupt: disable it
-          spiClearTXEIE spi
-          -- Check if we have sent all of the bytes expected
-          txremain <- txRemaining txstate txidx
-          when (txremain >? 0) $ do
-            -- Enable rx interrupt, allowing state machine to continue.
-            spiSetRXNEIE spi
-            -- Get the next byte, and transmit it.
-            outgoing <- txPop txstate txidx
-            spiSetDR spi outgoing
+          debugOn debugPin3
+          when (tx_pos <? tx_sz) $ do
+            w <- deref ((reqbuffer ~> tx_buf) ! tx_pos)
+            spiSetDR periph w
+          when (tx_pos <=? tx_sz) $ do
+            store reqbufferpos (tx_pos + 1)
+            modifyReg (spiRegCR2 periph) (setBit spi_cr2_rxneie)
+          debugOff debugPin3
       ]
-    interrupt_enable (spiInterrupt spi)
 
+    interrupt_enable interrupt
+
+  handle requestEvent "request" $ \req -> do
+    ready <- deref done
+    when ready $ do
+      store done false
+      -- Initialize request and result state
+      refCopy reqbuffer req
+      reqlen <- deref (reqbuffer ~> tx_len)
+      store reqbufferpos 0
+      store resbufferpos 0
+      store (resbuffer ~> rx_idx) reqlen
+      -- Get the first byte to transmit
+      tx0 <- deref ((reqbuffer ~> tx_buf) ! 0)
+      store reqbufferpos 1
+      -- select the device and setup the spi peripheral
+      chooseDevice spiDeviceSelect currdevice
+      chooseDevice (spiBusBegin platform) currdevice
+      -- Send the first byte, enable tx empty interrupt
+      spiSetDR  periph tx0
+      modifyReg (spiRegCR2 periph) (setBit spi_cr2_txeie)
+      interrupt_enable interrupt
+
+    unless ready $ do
+      return () -- XXX how do we want to handle this error?
   where
-  postError ecode ch = do
-    r <- local (istruct [ resultcode .= (ival ecode)])
-    emit_ ch (constRef r)
-  transactionComplete r ch = do
-    store (r ~> resultcode) 0 -- Success
-    emit_ ch (constRef r)
+  interrupt = spiInterrupt periph
+  platform :: Proxy p
+  platform = Proxy
 
-  txRemaining :: Ref s (Struct "spi_transmission") -> Ref s' (Stored (Ix 128))
-              -> Ivory eff (Ix 128)
-  txRemaining  txstate txidx = do
-    len <- deref (txstate ~> tx_len)
-    idx <- deref txidx
-    return (len - idx)
 
-  txPop :: Ref s (Struct "spi_transmission") -> Ref s' (Stored (Ix 128))
-              -> Ivory eff Uint8
-  txPop txstate txidx = do
-    -- Invariant: txidx <= (txstate ~> tx_len)
-    idx <- deref txidx
-    v <- deref ((txstate ~> tx_buf) ! idx)
-    store txidx (idx + 1)
-    return v
+  chooseDevice :: (SPIDevice -> Ivory eff ())
+               -> Ref Global (Stored Uint8) -> Ivory eff ()
+  chooseDevice callback devref = do
+    currdev <- deref devref
+    cond_ (zipWith (aux currdev) devices [(0::Integer)..])
+    where
+    aux cd device idx = cd ==? (fromIntegral idx) ==> callback device
 
-  rxStore :: Ref s (Struct "spi_transaction_result") -> Ref s (Stored Uint8)
-          -> Uint8 -> Ivory eff Uint8
-  rxStore rxstate rxleft v = do
-    offs <- deref (rxstate ~> rx_idx)
-    store ((rxstate ~> rx_buf) ! offs) v
-    store (rxstate ~> rx_idx) (offs + 1)
-    left <- deref rxleft
-    store rxleft (left - 1)
-    return (left - 1)
+
+-- Debugging Helpers: useful for development, disabled for production.
+debugPin1, debugPin2, debugPin3 :: Maybe GPIOPin
+debugPin1 = Nothing
+debugPin2 = Nothing
+debugPin3 = Nothing
+--debugPin1 = Just pinE2
+--debugPin2 = Just pinE4
+--debugPin3 = Just pinE5
+
+debugSetup :: Maybe GPIOPin -> Ivory eff ()
+debugSetup (Just p) = do
+  pinEnable        p
+  pinSetOutputType p gpio_outputtype_pushpull
+  pinSetSpeed      p gpio_speed_50mhz
+  pinSetPUPD       p gpio_pupd_none
+  pinClear         p
+  pinSetMode       p gpio_mode_output
+debugSetup Nothing = return ()
+
+debugOff :: Maybe GPIOPin -> Ivory eff ()
+debugOff (Just p) = pinClear p
+debugOff Nothing  = return ()
+
+debugOn :: Maybe GPIOPin -> Ivory eff ()
+debugOn (Just p) = pinSet p
+debugOn Nothing  = return ()
+
+debugToggle :: Maybe GPIOPin -> Ivory eff ()
+debugToggle p = debugOn p >> debugOff p
 
