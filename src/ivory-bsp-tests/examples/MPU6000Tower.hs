@@ -70,6 +70,9 @@ mpu6kCtl toDriver fromDriver toDebug = task "mpu6kCtl" $ do
     let max_syscall_priority = (12::Uint8)
     store state 0
 
+  whoamiresult <- taskLocal "whoamiresult"
+  sensorsresult <- taskLocal "sensorsresult"
+
   startEvent <- withPeriodicEvent (Milliseconds 1000)
   handle startEvent "startEvent" $ \_ -> do
         s <- deref state
@@ -97,10 +100,14 @@ mpu6kCtl toDriver fromDriver toDebug = task "mpu6kCtl" $ do
   handle spiResult "spiResult" $ \result -> do
         s <- deref state
         cond_
-          [ s <? 9 ==>
+          [ s ==? 1 ==> do
+              refCopy whoamiresult result
+              store state (s+1)
+          , s <? 9 ==> do
+              -- XXX what about basic data validity checks?
               store state (s+1)
           , s ==? 9 ==> do
-              comment "XXX do something here with sensor data"
+              refCopy sensorsresult result
               store state 8 -- Ready to grab sensors again.
           , true ==> -- Error
               store state 0
