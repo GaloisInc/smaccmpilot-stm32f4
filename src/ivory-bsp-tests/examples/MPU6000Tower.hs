@@ -34,6 +34,7 @@ mpu6k = SPIDevice
   , spiDevClockPolarity = ClockPolarityLow
   , spiDevClockPhase    = ClockPhase1
   , spiDevBitOrder      = MSBFirst
+  , spiDevName          = "mpu6k"
   }
 
 app ::  forall p . (ColoredLEDs p, BoardHSE p, STM32F4Signal p) => Tower p ()

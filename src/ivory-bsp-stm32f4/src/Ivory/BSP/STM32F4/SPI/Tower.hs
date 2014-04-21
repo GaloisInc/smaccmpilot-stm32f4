@@ -2,6 +2,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeOperators #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module Ivory.BSP.STM32F4.SPI.Tower where
@@ -142,6 +143,15 @@ spiPeripheralDriver periph devices req_sink res_source = do
 
     interrupt_enable interrupt
 
+  let deviceBeginProc :: SPIDevice -> Def('[]:->())
+      deviceBeginProc dev = proc ((spiDevName dev) ++ "_devicebegin") $
+        body $ do
+          spiDeviceSelect dev
+          spiBusBegin platform dev
+
+  taskModuleDef $ do
+    mapM_ (incl . deviceBeginProc) devices
+
   handle requestEvent "request" $ \req -> do
     ready <- deref done
     when ready $ do
@@ -156,8 +166,7 @@ spiPeripheralDriver periph devices req_sink res_source = do
       tx0 <- deref ((reqbuffer ~> tx_buf) ! 0)
       store reqbufferpos 1
       -- select the device and setup the spi peripheral
-      chooseDevice spiDeviceSelect        (reqbuffer ~> tx_device)
-      chooseDevice (spiBusBegin platform) (reqbuffer ~> tx_device)
+      chooseDevice (call_ . deviceBeginProc) (reqbuffer ~> tx_device)
       -- Send the first byte, enable tx empty interrupt
       spiSetDR  periph tx0
       modifyReg (spiRegCR2 periph) (setBit spi_cr2_txeie)
@@ -165,6 +174,7 @@ spiPeripheralDriver periph devices req_sink res_source = do
 
     unless ready $ do
       return () -- XXX how do we want to handle this error?
+
   where
   interrupt = spiInterrupt periph
   platform :: Proxy p

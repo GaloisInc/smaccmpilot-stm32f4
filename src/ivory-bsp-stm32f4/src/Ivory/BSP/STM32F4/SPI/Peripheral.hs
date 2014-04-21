@@ -15,6 +15,7 @@ module Ivory.BSP.STM32F4.SPI.Peripheral where
 import Ivory.Language
 import Ivory.BitData
 import Ivory.HW
+import Ivory.Stdlib
 
 import Ivory.BSP.STM32F4.SPI.RegTypes
 import Ivory.BSP.STM32F4.SPI.Regs
@@ -131,6 +132,7 @@ data SPIDevice = SPIDevice
   , spiDevClockPolarity :: SPIClockPolarity
   , spiDevClockPhase    :: SPIClockPhase
   , spiDevBitOrder      :: SPIBitOrder
+  , spiDevName          :: String
   }
 
 spiDeviceInit :: (GetAlloc eff ~ Scope s) => SPIDevice -> Ivory eff ()
@@ -142,21 +144,32 @@ spiDeviceInit dev = do
   pinSetOutputType  pin gpio_outputtype_pushpull
   pinSetSpeed       pin gpio_speed_2mhz
 
-spiBusBegin :: (GetAlloc eff ~ Scope s, BoardHSE p)
+spiBusBegin :: (GetAlloc eff ~ Scope cs, BoardHSE p)
             => Proxy p -> SPIDevice -> Ivory eff ()
 spiBusBegin platform dev = do
+  -- XXX can i eliminate this on/off cycle?
   spiModifyCr1        periph [ spi_cr1_spe ] true
   spiClearCr1         periph
   spiClearCr2         periph
-  spiModifyCr1        periph [ spi_cr1_mstr, spi_cr1_ssm, spi_cr1_ssi ] true
-  comment "calculate baud"
+  -- XXX Can we change the platform code to just calculate this
+  -- statically? Shouldn't need runtime config, since that should
+  -- always be the same
   baud <- spiDevBaud  platform periph (spiDevClockHz dev)
-  comment "end calculate baud"
-  spiSetBaud          periph baud
-  spiSetClockPolarity periph (spiDevClockPolarity dev)
-  spiSetClockPhase    periph (spiDevClockPhase    dev)
-  spiSetBitOrder      periph (spiDevBitOrder      dev)
-  spiModifyCr1        periph [ spi_cr1_spe ] true
+  modifyReg (spiRegCR1 periph) $ do
+    setBit   spi_cr1_mstr
+    setBit   spi_cr1_ssm
+    setBit   spi_cr1_ssi
+    setField spi_cr1_br baud
+    setBit   spi_cr1_spe
+    case spiDevClockPolarity dev of
+      ClockPolarityLow  -> clearBit spi_cr1_cpol
+      ClockPolarityHigh -> setBit  spi_cr1_cpol
+    case spiDevClockPhase dev of
+      ClockPhase1 -> clearBit spi_cr1_cpha
+      ClockPhase2 -> setBit   spi_cr1_cpha
+    case spiDevBitOrder dev of
+      LSBFirst -> setBit   spi_cr1_lsbfirst
+      MSBFirst -> clearBit spi_cr1_lsbfirst
   where
   periph = spiDevPeripheral dev
 
@@ -200,11 +213,12 @@ spiDevBaud :: (GetAlloc eff ~ Scope s, BoardHSE p)
            => Proxy p -> SPIPeriph -> Integer -> Ivory eff SPIBaud
 spiDevBaud platform periph hz = do
   fplk <- getFreqPClk platform (spiPClk periph)
-  let bestWithoutGoingOver = foldl aux spi_baud_div_256 tbl
+  comment ("got fplk, target is " ++ show hz)
+  let bestWithoutGoingOver = map aux tbl
       target = fromIntegral hz
-      aux k (br, brdiv) =
-        ((fplk `iDiv` brdiv) <? target) ? (br,k)
-  return bestWithoutGoingOver
+      aux (br, brdiv) =
+        ((fplk `iDiv` brdiv) <? target) ==> return br
+  cond (bestWithoutGoingOver ++ [ true ==> return spi_baud_div_256 ])
   where
   tbl = [( spi_baud_div_2,   2)
         ,( spi_baud_div_4,   4)

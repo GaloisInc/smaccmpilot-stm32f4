@@ -26,6 +26,7 @@ testdevice1 = SPIDevice
   , spiDevClockPolarity = ClockPolarityLow
   , spiDevClockPhase    = ClockPhase1
   , spiDevBitOrder      = MSBFirst
+  , spiDevName          = "testdevice1_2500khz_pinE2"
   }
 
 testdevice2 :: SPIDevice
@@ -37,6 +38,7 @@ testdevice2 = SPIDevice
   , spiDevClockPolarity = ClockPolarityLow
   , spiDevClockPhase    = ClockPhase1
   , spiDevBitOrder      = MSBFirst
+  , spiDevName          = "testdevice2_500khz_pinE3"
   }
 
 app ::  forall p . (ColoredLEDs p, BoardHSE p, STM32F4Signal p) => Tower p ()
@@ -46,9 +48,9 @@ app = do
   task "simplecontroller" $ do
     req_emitter <- withChannelEmitter req "req"
     res_event   <- withChannelEvent   res "res"
-    periodic    <- withPeriodicEvent (Milliseconds 25)
+    periodic    <- withPeriodicEvent (Milliseconds 250)
     handleV periodic "periodic" $ \p -> do
-      ifte_ ((p .% 50000) >=? 25000)
+      ifte_ ((p .% 500000) >=? 250000)
         (do r <- local $ istruct
                    [ tx_device .= ival 0 -- Should be pinE2 / 1mhz
                    , tx_buf    .= iarray [ival 0xF1, ival 0xF2, ival 0xF3]
