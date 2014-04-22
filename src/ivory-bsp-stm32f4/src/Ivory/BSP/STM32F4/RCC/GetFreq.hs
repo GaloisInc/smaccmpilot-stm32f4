@@ -85,11 +85,11 @@ getFreqPClk1 p = do
 getFreqPClk2 :: (GetAlloc eff ~ Scope s, BoardHSE p)
              => Proxy p -> Ivory eff Uint32
 getFreqPClk2 p = do
-  comment "begin getFreqPClk1"
+  comment "begin getFreqPClk2"
   sysclk <- getFreqSysClk p
   cfgr <- getReg regRCC_CFGR
   res <- dividePPREx (cfgr #. rcc_cfgr_ppre2) sysclk
-  comment "end getFreqPClk1"
+  comment "end getFreqPClk2"
   return res
 
 data PClk = PClk1 | PClk2
