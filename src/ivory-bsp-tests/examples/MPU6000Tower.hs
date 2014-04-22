@@ -28,7 +28,7 @@ import qualified MPU6000
 mpu6k :: SPIDevice
 mpu6k = SPIDevice
   { spiDevPeripheral    = spi1
-  , spiDevCSPin         = pinB1
+  , spiDevCSPin         = pinB0
   , spiDevClockHz       = 500000
   , spiDevCSActive      = ActiveLow
   , spiDevClockPolarity = ClockPolarityLow
@@ -78,12 +78,12 @@ mpu6kCtl toDriver fromDriver toDebug = task "mpu6kCtl" $ do
         s <- deref state
         when (s ==? 0) $ do
           store state 1
-          MPU6000.getWhoAmI spiRequest
-          puts "initializing mpu6k\n"
-        when (s ==? 2) $ do
-          store state 3
           MPU6000.disableI2C spiRequest
-          puts "disabling i2c\n"
+          puts "mpu6k disabling i2c\n"
+        when (s ==? 2) $ do
+          MPU6000.getWhoAmI spiRequest
+          puts "get whoami\n"
+          store state 3
         when (s ==? 4) $ do
           store state 5
           MPU6000.wake spiRequest
@@ -100,7 +100,7 @@ mpu6kCtl toDriver fromDriver toDebug = task "mpu6kCtl" $ do
   handle spiResult "spiResult" $ \result -> do
         s <- deref state
         cond_
-          [ s ==? 1 ==> do
+          [ s ==? 3 ==> do
               refCopy whoamiresult result
               store state (s+1)
           , s <? 9 ==> do
