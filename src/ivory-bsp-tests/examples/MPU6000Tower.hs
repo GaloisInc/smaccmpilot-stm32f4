@@ -21,7 +21,6 @@ import Ivory.BSP.STM32F4.SPI.Tower
 import Ivory.BSP.STM32F4.Signalable
 
 import Platforms
-import LEDTower (ledController)
 
 import qualified MPU6000
 
@@ -39,7 +38,7 @@ mpu6k = SPIDevice
 
 app ::  forall p . (ColoredLEDs p, BoardHSE p, STM32F4Signal p) => Tower p ()
 app = do
-  (uarti, uarto) <- uartTower uart1 115200 (Proxy :: Proxy 128)
+  (_uarti, uarto) <- uartTower uart1 115200 (Proxy :: Proxy 128)
   (toSpi, fromSpi) <- spiTower [mpu6k]
   mpu6kCtl toSpi fromSpi uarto
 
@@ -64,10 +63,9 @@ mpu6kCtl toDriver fromDriver toDebug = task "mpu6kCtl" $ do
       putdig d = do  -- Put an integer between 0 and 10
         r <- local (ival (d + (fromIntegral (ord '0'))))
         emit_ debugEmitter (constRef r)
-      platform = (Proxy :: Proxy p)
   (state :: Ref Global (Stored Uint8)) <- taskLocal "state"
+
   taskInit $ do
-    let max_syscall_priority = (12::Uint8)
     store state 0
 
   whoamiresult <- taskLocal "whoamiresult"
