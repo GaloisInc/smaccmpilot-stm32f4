@@ -36,7 +36,7 @@ data I2CPeriph = I2CPeriph
   , i2cRegFLTR     :: BitDataReg I2C_FLTR
   , i2cRCCEnable   :: forall eff . Ivory eff ()
   , i2cRCCDisable  :: forall eff . Ivory eff ()
-  , i2cIntEvt      :: Interrupt
+  , i2cIntEvent    :: Interrupt
   , i2cIntError    :: Interrupt
   , i2cName        :: String
   }
@@ -61,7 +61,7 @@ mkI2CPeriph base rccfield evtint errint n =
     , i2cRegFLTR    = reg 0x24 "fltr"
     , i2cRCCEnable  = rccEnable  regRCC_APB1ENR rccfield
     , i2cRCCDisable = rccDisable regRCC_APB1ENR rccfield
-    , i2cIntEvt     = evtint
+    , i2cIntEvent   = evtint
     , i2cIntError   = errint
     , i2cName       = n
     }
