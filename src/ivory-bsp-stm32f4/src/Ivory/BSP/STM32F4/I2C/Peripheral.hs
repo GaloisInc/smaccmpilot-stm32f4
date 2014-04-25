@@ -99,7 +99,6 @@ i2cInit periph sda scl platform = do
 
   pclk1 <- getFreqPClk1 platform
   ccr   <- calcHSCCR pclk1
-  --let ccr = 4
   modifyReg (i2cRegCCR periph) $ do
     setBit i2c_ccr_fastmode
     setBit i2c_ccr_duty
