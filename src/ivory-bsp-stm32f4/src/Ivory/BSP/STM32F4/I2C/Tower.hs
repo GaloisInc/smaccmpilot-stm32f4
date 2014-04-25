@@ -79,6 +79,9 @@ i2cPeripheralDriver periph sda scl req_sink res_source = do
     debugSetup     debugPin2
     debugSetup     debugPin3
     i2cInit        periph sda scl (Proxy :: Proxy p)
+    -- Setup hardware for interrupts
+    interrupt_enable (i2cIntEvent periph)
+    interrupt_enable (i2cIntError periph)
     store done true
 
   (reqbuffer :: Ref Global (Struct "i2c_transaction_request")) <- taskLocal "reqbuffer"
@@ -108,8 +111,12 @@ i2cPeripheralDriver periph sda scl req_sink res_source = do
   handle err_irq "error_irq" $ \_ -> do
     _sr1 <- getReg (i2cRegSR1 periph)
     _sr2 <- getReg (i2cRegSR2 periph)
-    -- XXX write 0 to SR1 - ref impl sint sure what fields count, or why....
+    -- Clear SR1 - note, reference impl didn't say which bits or why,
+    -- so i'm just dupliciating it faithfully, possibly not correctly.
+    clearSR1 periph
     -- Send Stop
+    setStop periph
+    -- If there is an active transaction, terminate it
     active <- iNot `fmap` deref done
     when active $ do
       store done true
@@ -172,6 +179,7 @@ i2cPeripheralDriver periph sda scl req_sink res_source = do
               setStop periph
           , (read_remaining ==? 1) ==> do  -- Now 0 remaining
               -- Done - send the i2c_transaction_response
+              store done true
               store (resbuffer ~> resultcode) 0
               emit_ resultEmitter (constRef resbuffer)
           ]
@@ -185,9 +193,12 @@ i2cPeripheralDriver periph sda scl req_sink res_source = do
               modifyReg (i2cRegDR periph) $
                 setField i2c_dr_data (fromRep w)
           , (read_remaining >? 0) ==> do
+              -- Done writing, ready to read: send repeated start
               setStart periph
           , true ==> do
               setStop periph
+              -- Done, send response
+              store done true
               store (resbuffer ~> resultcode) 0
               emit_ resultEmitter (constRef resbuffer)
           ]
@@ -197,23 +208,18 @@ i2cPeripheralDriver periph sda scl req_sink res_source = do
     interrupt_enable (i2cIntEvent periph)
 
   handle requestEvent "request" $ \req -> do
-    ready <- deref done
-    when ready $ do
+    d <- deref done
+    when d $ do
+      debugOn debugPin3
       -- Setup state
       store done false
       refCopy reqbuffer req
       store reqbufferpos 0
       store resbufferpos 0
-      -- Setup hardware
       setStart periph
-      modifyReg (i2cRegCR2 periph) $ do
-        setBit i2c_cr2_itbufen
-        setBit i2c_cr2_itevten
-        setBit i2c_cr2_iterren
-      interrupt_enable (i2cIntEvent periph)
-      interrupt_enable (i2cIntError periph)
+      debugOff debugPin3
 
-    unless ready $ do
+    unless d $ do
       return () -- XXX how do we want to handle this error?
 
 setStop :: I2CPeriph -> Ivory (ProcEffects eff ()) ()
@@ -237,6 +243,24 @@ setStart periph = do
     cr1 <- getReg (i2cRegCR1 periph)
     unless (bitToBool (cr1 #. i2c_cr1_start)) $
       breakOut
+
+clearSR1 :: I2CPeriph -> Ivory eff ()
+clearSR1 periph = modifyReg (i2cRegSR1 periph) $ do
+  clearBit i2c_sr1_smbalert
+  clearBit i2c_sr1_timeout
+  clearBit i2c_sr1_pecerr
+  clearBit i2c_sr1_ovr
+  clearBit i2c_sr1_af
+  clearBit i2c_sr1_arlo
+  clearBit i2c_sr1_berr
+  clearBit i2c_sr1_txe
+  clearBit i2c_sr1_rxne
+  clearBit i2c_sr1_stopf
+  clearBit i2c_sr1_add10
+  clearBit i2c_sr1_btf
+  clearBit i2c_sr1_addr
+  clearBit i2c_sr1_sb
+
 
 -- Debugging Helpers: useful for development, disabled for production.
 debugPin1, debugPin2, debugPin3 :: Maybe GPIOPin

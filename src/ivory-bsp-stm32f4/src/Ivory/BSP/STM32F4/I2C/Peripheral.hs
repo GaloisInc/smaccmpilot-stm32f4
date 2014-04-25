@@ -92,13 +92,20 @@ i2cInit periph sda scl platform = do
   modifyReg (i2cRegCR2 periph) $ do
     setField i2c_cr2_freq (fromRep (42 :: Uint8))
 
+  modifyReg (i2cRegCR2 periph) $ do
+    setBit i2c_cr2_itbufen
+    setBit i2c_cr2_itevten
+    setBit i2c_cr2_iterren
+
   pclk1 <- getFreqPClk1 platform
   ccr   <- calcHSCCR pclk1
+  --let ccr = 4
   modifyReg (i2cRegCCR periph) $ do
     setBit i2c_ccr_fastmode
     setBit i2c_ccr_duty
     setField i2c_ccr_ccr (fromRep ccr)
 
+  modifyReg (i2cRegCR1 periph) $ setBit i2c_cr1_pe
   where
   calcHSCCR :: Uint32 -> Ivory eff Uint16
   calcHSCCR pclk = do
