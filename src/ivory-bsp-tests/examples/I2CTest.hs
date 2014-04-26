@@ -28,17 +28,20 @@ app = do
     handleV periodic "periodic" $ \p -> do
       ifte_ ((p .% 500000) >=? 250000)
         (do r <- local $ istruct
-                   [ tx_addr   .= ival 0x22
-                   , tx_buf    .= iarray [ival 0xF1, ival 0xF2, ival 0xF3]
+                   -- Write values 0xF2, 0xF3 to page 0
+                   [ tx_addr   .= ival 0x50
+                   , tx_buf    .= iarray [ival 0x00, ival 0xF2, ival 0xF3]
                    , tx_len    .= ival 3
                    , rx_len    .= ival 0
                    ]
             emit_ req_emitter (constRef r))
         (do r <- local $ istruct
-                   [ tx_addr   .= ival 0x44
-                   , tx_buf    .= iarray [ival 0xF4, ival 0xF5, ival 0xF6, ival 0xF7]
-                   , tx_len    .= ival 4
-                   , rx_len    .= ival 4 -- Should error, there's no device attached
+                   [ tx_addr   .= ival 0x50
+                   -- Read 3 values out of page 0 (should be 0xF2, 0xF3, and
+                   -- anything)
+                   , tx_buf    .= iarray [ival 0x00]
+                   , tx_len    .= ival 1
+                   , rx_len    .= ival 3
                    ]
             emit_ req_emitter (constRef r))
 
