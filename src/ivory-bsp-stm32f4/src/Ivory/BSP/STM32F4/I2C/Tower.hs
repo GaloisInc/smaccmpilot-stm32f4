@@ -129,14 +129,6 @@ i2cPeripheralDriver periph sda scl req_sink res_source = do
   handle evt_irq "event_irq" $ \_ -> do
     active <- iNot `fmap` deref done
     when active $ do
-      tx_pos <- deref reqbufferpos
-      tx_sz  <- deref (reqbuffer ~> tx_len)
-      tx_ad  <- deref (reqbuffer ~> tx_addr)
-      rx_pos <- deref resbufferpos
-      rx_sz  <- deref (reqbuffer ~> rx_len)
-
-      let write_remaining = tx_sz - tx_pos
-          read_remaining =  rx_sz - rx_pos
 
       -- Hardware requires us to read both status registers.
       -- We don't actually need the contents of SR2.
@@ -144,12 +136,24 @@ i2cPeripheralDriver periph sda scl req_sink res_source = do
       _sr2 <- getReg (i2cRegSR2 periph)
 
       when (bitToBool (sr1 #. i2c_sr1_sb)) $ do
+        tx_sz  <- deref (reqbuffer ~> tx_len)
+        tx_pos <- deref reqbufferpos
+        tx_ad  <- deref (reqbuffer ~> tx_addr)
+        let write_remaining = tx_sz - tx_pos
         -- Start bit sent. Send addr field:
-        addr <- assign ((tx_ad * 2) + ((tx_sz >? 0) ? (0,1)))
+        addr <- assign ((tx_ad * 2) + ((write_remaining >? 0) ? (0,1)))
         modifyReg (i2cRegDR periph) $
           setField i2c_dr_data (fromRep addr)
 
-      when (bitToBool (sr1 #. i2c_sr1_addr)) $
+      when (bitToBool (sr1 #. i2c_sr1_addr)) $ do
+        tx_pos <- deref reqbufferpos
+        tx_sz  <- deref (reqbuffer ~> tx_len)
+        rx_pos <- deref resbufferpos
+        rx_sz  <- deref (reqbuffer ~> rx_len)
+
+        let write_remaining = tx_sz - tx_pos
+            read_remaining =  rx_sz - rx_pos
+
         cond_
           [ (write_remaining >? 0) ==> do
               -- Writing: take a byte off the write buffer, write to DR
@@ -166,6 +170,10 @@ i2cPeripheralDriver periph sda scl req_sink res_source = do
               setStop periph
           ]
       when (bitToBool (sr1 #. i2c_sr1_rxne)) $ do
+        rx_pos <- deref resbufferpos
+        rx_sz  <- deref (reqbuffer ~> rx_len)
+
+        let read_remaining =  rx_sz - rx_pos
         -- Read into the read buffer
         dr <- getReg (i2cRegDR periph)
         r  <- assign (toRep (dr #. i2c_dr_data))
@@ -185,7 +193,16 @@ i2cPeripheralDriver periph sda scl req_sink res_source = do
           ]
 
       when ((bitToBool (sr1 #. i2c_sr1_txe))
-        .&& (iNot (bitToBool (sr1 #. i2c_sr1_btf)))) $ cond_
+        .&& (iNot (bitToBool (sr1 #. i2c_sr1_btf)))) $ do
+
+        tx_pos <- deref reqbufferpos
+        tx_sz  <- deref (reqbuffer ~> tx_len)
+        rx_pos <- deref resbufferpos
+        rx_sz  <- deref (reqbuffer ~> rx_len)
+
+        let write_remaining = tx_sz - tx_pos
+            read_remaining =  rx_sz - rx_pos
+        cond_
           -- TXE set, BTF clear: tx buffer is empty, still writing
           [ (write_remaining >? 0) ==> do
               w <- deref ((reqbuffer ~> tx_buf) ! tx_pos)
