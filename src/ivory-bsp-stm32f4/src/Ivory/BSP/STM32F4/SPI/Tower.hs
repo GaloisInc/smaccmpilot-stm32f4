@@ -1,9 +1,7 @@
-{-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeOperators #-}
-{-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module Ivory.BSP.STM32F4.SPI.Tower where
 
@@ -20,23 +18,10 @@ import Ivory.BSP.STM32F4.RCC
 import Ivory.BSP.STM32F4.Signalable
 import Ivory.BSP.STM32F4.SPI.Regs
 import Ivory.BSP.STM32F4.SPI.Peripheral
+import Ivory.BSP.STM32F4.SPI.Tower.Types
+import Ivory.BSP.STM32F4.SPI.Tower.Types.SPIDeviceHandle
 import Ivory.BSP.STM32F4.Interrupt
 
-[ivory|
-struct spi_transaction_request
-  { tx_device :: Stored Uint8
-  ; tx_buf    :: Array 128 (Stored Uint8)
-  ; tx_len    :: Stored (Ix 128)
-  }
-|]
-
-[ivory|
-struct spi_transaction_result
-  { resultcode :: Stored Uint8
-  ; rx_buf     :: Array 128 (Stored Uint8)
-  ; rx_idx     :: Stored (Ix 128)
-  }
-|]
 
 spiTower :: (BoardHSE p, STM32F4Signal p)
          => [SPIDevice]
@@ -62,10 +47,6 @@ spiTower devices = do
   eqname a b = spiName a == spiName b
   err m = error ("spiTower cannot be created " ++ m)
 
-spiTowerTypes :: Module
-spiTowerTypes = package "spiTowerTypes" $ do
-  defStruct (Proxy :: Proxy "spi_transaction_request")
-  defStruct (Proxy :: Proxy "spi_transaction_result")
 
 spiPeripheralDriver :: forall p
                      . (STM32F4Signal p, BoardHSE p)
@@ -182,15 +163,17 @@ spiPeripheralDriver periph devices req_sink res_source = do
 
 
   chooseDevice :: (SPIDevice -> Ivory eff ())
-               -> Ref Global (Stored Uint8) -> Ivory eff ()
+               -> Ref Global (Stored SPIDeviceHandle) -> Ivory eff ()
   chooseDevice callback devref = do
     comment "selecting device:"
     currdev <- deref devref
-    assert (currdev <? (fromIntegral (length devices)))
+    assert (currdev <? invalidhandle)
     cond_ (zipWith (aux currdev) devices [(0::Integer)..])
     comment "end selecting configured device"
     where
-    aux cd device idx = cd ==? (fromIntegral idx) ==> callback device
+    invalidhandle = SPIDeviceHandle (fromIntegral (length devices))
+    aux cd device idx =
+      cd ==? SPIDeviceHandle (fromIntegral idx) ==> callback device
 
 
 -- Debugging Helpers: useful for development, disabled for production.
