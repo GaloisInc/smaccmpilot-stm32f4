@@ -6,12 +6,14 @@
 module SMACCMPilot.Hardware.MPU6000.SPI where
 
 import Ivory.Language
+import Ivory.Stdlib
 import Ivory.Tower
 import Ivory.Tower.StateMachine
 import Ivory.BSP.STM32F4.SPI.Tower.Types
 import Ivory.BSP.STM32F4.SPI.Tower.Types.SPIDeviceHandle
 
 import SMACCMPilot.Hardware.MPU6000.Regs
+import SMACCMPilot.Hardware.MPU6000.RawSensor
 
 readRegAddr :: Reg -> Uint8
 readRegAddr reg = 0x80 .| (fromIntegral (regAddr reg))
@@ -49,6 +51,39 @@ getSensorsReq dev = fmap constRef $ local $ istruct
   , tx_len    .= ival 15 -- addr, 6 accel, 2 temp, 6 gyro
   ]
 
+rawSensorFromResponse :: (GetAlloc eff ~ Scope s)
+                      => ConstRef s1 (Struct "spi_transaction_result")
+                      -> ITime
+                      -> Ivory eff (ConstRef (Stack s) (Struct "mpu6000_raw_sensor"))
+rawSensorFromResponse res t = do
+  ax_h <- deref ((res ~> rx_buf) ! 1)
+  ax_l <- deref ((res ~> rx_buf) ! 2)
+  ay_h <- deref ((res ~> rx_buf) ! 3)
+  ay_l <- deref ((res ~> rx_buf) ! 4)
+  az_h <- deref ((res ~> rx_buf) ! 5)
+  az_l <- deref ((res ~> rx_buf) ! 6)
+  te_h <- deref ((res ~> rx_buf) ! 7)
+  te_l <- deref ((res ~> rx_buf) ! 8)
+  gx_h <- deref ((res ~> rx_buf) ! 9)
+  gx_l <- deref ((res ~> rx_buf) ! 10)
+  gy_h <- deref ((res ~> rx_buf) ! 11)
+  gy_l <- deref ((res ~> rx_buf) ! 12)
+  gz_h <- deref ((res ~> rx_buf) ! 13)
+  gz_l <- deref ((res ~> rx_buf) ! 14)
+  fmap constRef $ local $ istruct
+    [ valid   .= ival true
+    , time    .= ival t
+    , gyro_x  .= ival (hilo gx_h gx_l)
+    , gyro_y  .= ival (hilo gy_h gy_l)
+    , gyro_z  .= ival (hilo gz_h gz_l)
+    , accel_x .= ival (hilo ax_h ax_l)
+    , accel_y .= ival (hilo ay_h ay_l)
+    , accel_z .= ival (hilo az_h az_l)
+    , temp    .= ival (hilo te_h te_l)
+    ]
+  where
+  hilo :: Uint8 -> Uint8 -> Uint16
+  hilo h l = ((safeCast h) * 256) + safeCast l
 
 initializerMachine :: SPIDeviceHandle
                    -> ChannelEmitter (Struct "spi_transaction_request")
@@ -67,9 +102,11 @@ initializerMachine dev req_emitter result_evt = do
                                    (const (return ()))
                                    whoami
 
-    -- Poll the WhoAmI register. Check for expected result of XXX
+    -- Poll the WhoAmI register. Check for expected result of 0x68
     whoami <- rpc "whoami" (readRegReq dev WhoAmI)
-                           (\res -> return ()) -- XXX CHECK
+                           (\res -> do
+                                idbyte <- deref ((res ~> rx_buf) ! 1)
+                                unless (idbyte ==? 0x68) (store failed true))
                            wake
 
     -- Wake the sensor device, use internal oscillator
