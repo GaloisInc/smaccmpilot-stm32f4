@@ -17,7 +17,9 @@ library
                        SMACCMPilot.Hardware.GPS.Types.Position,
                        SMACCMPilot.Hardware.GPS.Types.GPSFix,
                        SMACCMPilot.Hardware.GPS.UBlox,
-                       SMACCMPilot.Hardware.GPS.UBlox.Types
+                       SMACCMPilot.Hardware.GPS.UBlox.Types,
+                       SMACCMPilot.Hardware.MPU6000.Regs,
+                       SMACCMPilot.Hardware.MPU6000.SPI
   build-depends:       base >= 4.6,
                        monadLib,
                        ivory,
