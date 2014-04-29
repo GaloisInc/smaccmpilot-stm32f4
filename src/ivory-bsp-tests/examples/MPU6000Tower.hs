@@ -17,7 +17,6 @@ import Ivory.BSP.STM32F4.UART
 import Ivory.BSP.STM32F4.UART.Tower
 import Ivory.BSP.STM32F4.RCC
 import Ivory.BSP.STM32F4.SPI
-import Ivory.BSP.STM32F4.SPI.Tower
 import Ivory.BSP.STM32F4.Signalable
 
 import Platforms

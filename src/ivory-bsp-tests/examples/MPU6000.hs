@@ -6,7 +6,7 @@ module MPU6000 where
 import Ivory.Language
 import Ivory.Tower
 
-import Ivory.BSP.STM32F4.SPI.Tower
+import Ivory.BSP.STM32F4.SPI
 
 getWhoAmI :: (GetAlloc eff ~ Scope s)
           => ChannelEmitter (Struct "spi_transaction_request")
