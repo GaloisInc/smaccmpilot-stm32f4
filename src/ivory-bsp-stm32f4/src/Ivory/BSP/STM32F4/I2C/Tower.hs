@@ -1,9 +1,7 @@
-{-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeOperators #-}
-{-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module Ivory.BSP.STM32F4.I2C.Tower where
 
@@ -20,23 +18,10 @@ import Ivory.BSP.STM32F4.RCC
 import Ivory.BSP.STM32F4.Signalable
 import Ivory.BSP.STM32F4.I2C.Regs
 import Ivory.BSP.STM32F4.I2C.Peripheral
+import Ivory.BSP.STM32F4.I2C.Tower.Types
+import Ivory.BSP.STM32F4.I2C.Tower.Types.I2CDeviceAddr
 import Ivory.BSP.STM32F4.Interrupt
 
-[ivory|
-struct i2c_transaction_request
-  { tx_addr   :: Stored Uint8
-  ; tx_buf    :: Array 128 (Stored Uint8)
-  ; tx_len    :: Stored (Ix 128)
-  ; rx_len    :: Stored (Ix 128)
-  }
-|]
-
-[ivory|
-struct i2c_transaction_result
-  { resultcode :: Stored Uint8
-  ; rx_buf     :: Array 128 (Stored Uint8)
-  }
-|]
 
 i2cTower :: (BoardHSE p, STM32F4Signal p)
          => I2CPeriph
@@ -138,10 +123,11 @@ i2cPeripheralDriver periph sda scl req_sink res_source = do
       when (bitToBool (sr1 #. i2c_sr1_sb)) $ do
         tx_sz  <- deref (reqbuffer ~> tx_len)
         tx_pos <- deref reqbufferpos
-        tx_ad  <- deref (reqbuffer ~> tx_addr)
+        tx_ad <- deref (reqbuffer ~> tx_addr)
         let write_remaining = tx_sz - tx_pos
         -- Start bit sent. Send addr field:
-        addr <- assign ((tx_ad * 2) + ((write_remaining >? 0) ? (0,1)))
+        addr <- assign ((write_remaining >? 0) ?
+                          (writeAddr tx_ad, readAddr tx_ad))
         modifyReg (i2cRegDR periph) $
           setField i2c_dr_data (fromRep addr)
 
