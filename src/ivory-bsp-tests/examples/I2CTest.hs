@@ -12,8 +12,7 @@ import Ivory.BSP.STM32F4.GPIO
 import Ivory.BSP.STM32F4.RCC
 import Ivory.BSP.STM32F4.Signalable
 
-import Ivory.BSP.STM32F4.I2C.Peripheral
-import Ivory.BSP.STM32F4.I2C.Tower
+import Ivory.BSP.STM32F4.I2C
 
 import Platforms
 
@@ -29,14 +28,14 @@ app = do
       ifte_ ((p .% 500000) >=? 250000)
         (do r <- local $ istruct
                    -- Write values 0xF2, 0xF3, 0xEE to page 0
-                   [ tx_addr   .= ival 0x50
+                   [ tx_addr   .= ival eepromaddr
                    , tx_buf    .= iarray [ival 0x00, ival 0xF2, ival 0xF3, ival 0xEE]
                    , tx_len    .= ival 4
                    , rx_len    .= ival 0
                    ]
             emit_ req_emitter (constRef r))
         (do r <- local $ istruct
-                   [ tx_addr   .= ival 0x50
+                   [ tx_addr   .= ival eepromaddr
                    -- Read 3 values out of page 0 (should be 0xF2, 0xF3, 0xEE)
                    , tx_buf    .= iarray [ival 0x00]
                    , tx_len    .= ival 1
@@ -45,4 +44,6 @@ app = do
             emit_ req_emitter (constRef r))
 
     handle res_event "result" $ \_ -> return () -- XXX
-
+  where
+  -- Test against an AT24 EEPROM or equivalent
+  eepromaddr = I2CDeviceAddr 0x50
