@@ -21,7 +21,9 @@ library
                        SMACCMPilot.Hardware.MPU6000,
                        SMACCMPilot.Hardware.MPU6000.RawSensor,
                        SMACCMPilot.Hardware.MPU6000.Regs,
-                       SMACCMPilot.Hardware.MPU6000.SPI
+                       SMACCMPilot.Hardware.MPU6000.SPI,
+                       SMACCMPilot.Hardware.MS5611.Regs,
+                       SMACCMPilot.Hardware.MS5611.I2C
   build-depends:       base >= 4.6,
                        monadLib,
                        ivory,
