@@ -130,7 +130,10 @@ initializerMachine addr req_emitter res_evt  = do
               r <- deref (res ~> resultcode)
               when (r >? 0) (store init_f true)
               return $ branch (r >? 0) done
-            goto prom1
+            goto reset_wait
+
+    reset_wait <- stateNamed "reset_wait" $ do
+      timeout (Milliseconds 4) $ goto prom1
 
     prom1 <- promRead addr Coeff1 init_f c1 req_emitter res_evt prom2
 
