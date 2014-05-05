@@ -70,7 +70,7 @@ sensorsTower psnk osrc = task "sensorsCaptureTask" $ do
       call_ sensors_begin (sensorOrientation (Proxy :: Proxy p))
       return $ goto loop
 
-    loop <- stateNamed "captureloop" $ period 10 $ liftIvory_ $ do
+    loop <- stateNamed "captureloop" $ period (Milliseconds 10) $ liftIvory_ $ do
       -- following code disabled: I've seen this code malfunction and don't
       -- trust it
       -- call_ sensors_update_position
