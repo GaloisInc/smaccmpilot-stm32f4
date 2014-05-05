@@ -44,9 +44,9 @@ osrBits OSR2048 = 6
 osrBits OSR4096 = 8
 
 promBits :: PROM -> Word8
-promBits Coeff1  = 2
-promBits Coeff2  = 4
-promBits Coeff3  = 6
-promBits Coeff4  = 8
-promBits Coeff5  = 10
-promBits Coeff6  = 12
+promBits Coeff1 = 2
+promBits Coeff2 = 4
+promBits Coeff3 = 6
+promBits Coeff4 = 8
+promBits Coeff5 = 10
+promBits Coeff6 = 12
