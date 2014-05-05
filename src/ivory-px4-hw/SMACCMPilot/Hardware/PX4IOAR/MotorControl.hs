@@ -87,11 +87,11 @@ motorControlTower decode motorChan = do
 
     sm <- stateMachine "ioar" $ mdo
       bootBegin <- stateNamed "bootBegin" $ do
-        timeout 100 $ liftIvory $ do
+        timeout (Milliseconds 100) $ liftIvory $ do
           select_set_all false
           store motorInit 0
           return $ goto init1
-      init1 <- stateNamed "init1" $ timeout 10 $ do
+      init1 <- stateNamed "init1" $ timeout (Milliseconds 10) $ do
         liftIvory_ $ do
           m <- deref motorInit
           when (m <? 4) $ do
@@ -99,19 +99,19 @@ motorControlTower decode motorChan = do
         putbyte (initBytes !! 0)
         putbyte (initBytes !! 1)
         goto init2
-      init2 <- stateNamed "init2" $ timeout 7 $ do
+      init2 <- stateNamed "init2" $ timeout (Milliseconds 7) $ do
         putbyte (initBytes !! 2)
         liftIvory_ $ do
           m <- deref motorInit
           put (m + 1)
         putbyte (initBytes !! 3)
         goto init3
-      init3 <- stateNamed "init3" $ timeout 1 $ do
+      init3 <- stateNamed "init3" $ timeout (Milliseconds 1) $ do
         liftIvory_ $ do
           m <- deref motorInit
           select_set m false
         goto init4
-      init4 <- stateNamed "init4" $ timeout 200 $ do
+      init4 <- stateNamed "init4" $ timeout (Milliseconds 200) $ do
         liftIvory $ do
           m <- deref motorInit
           store motorInit (m+1)
@@ -126,7 +126,7 @@ motorControlTower decode motorChan = do
           sendMultiPacket
         goto bootCheckComplete
       bootCheckComplete <- stateNamed "bootCheckComplete" $
-        timeout 2 $ liftIvory $ do
+        timeout (Milliseconds 2) $ liftIvory $ do
           t <- deref bootAttempts
           store bootAttempts (t+1)
           -- Need to try booting a bunch of times for it to work reliably.
@@ -140,7 +140,7 @@ motorControlTower decode motorChan = do
         entry $ liftIvory_ $ do
           arrayMap $ \i ->
             store (throttle ! i) 0.0
-        period 5 $ liftIvory_ $ do
+        period (Milliseconds 5) $ liftIvory_ $ do
           scaled   <- scale_motors (constRef throttle)
           packet   <- motor_packet scaled
           putPacket packet
