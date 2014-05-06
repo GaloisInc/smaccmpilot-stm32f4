@@ -94,19 +94,26 @@ i2cPeripheralDriver periph sda scl req_sink res_source = do
                     interrupt_disable (i2cIntError periph))
 
   handle err_irq "error_irq" $ \_ -> do
-    _sr1 <- getReg (i2cRegSR1 periph)
+    -- Must read these registers, sometimes reading dr helps too??
+    sr1  <- getReg (i2cRegSR1 periph)
     _sr2 <- getReg (i2cRegSR2 periph)
-    -- Clear SR1 - note, reference impl didn't say which bits or why,
-    -- so i'm just dupliciating it faithfully, possibly not correctly.
+    _dr  <- getReg (i2cRegDR periph)
+
+    -- If bus error (BERR), acknowledge failure (AF), send Stop
+    let must_release = bitToBool (sr1 #. i2c_sr1_berr)
+                   .|| bitToBool (sr1 #. i2c_sr1_af)
+    when must_release $ setStop periph
+
     clearSR1 periph
-    -- Send Stop
-    setStop periph
+
     -- If there is an active transaction, terminate it
     active <- iNot `fmap` deref done
     when active $ do
       store done true
       store (resbuffer ~> resultcode) 1
       emit_ resultEmitter (constRef resbuffer)
+
+    -- Re-enable interrupt
     modifyReg (i2cRegCR2 periph)
       (setBit i2c_cr2_iterren)
     interrupt_enable (i2cIntError periph)
@@ -231,7 +238,7 @@ setStop periph = do
   -- wait for the hardware to clear the stop bit before any further writes
   -- to CR1. Breaking this rule causes the I2C peripheral to lock up.
   modifyReg (i2cRegCR1 periph) $ setBit i2c_cr1_stop
-  forever $ do
+  times (15 :: Ix 16) $ \_ -> do
     cr1 <- getReg (i2cRegCR1 periph)
     unless (bitToBool (cr1 #. i2c_cr1_stop)) $
       breakOut
@@ -242,7 +249,7 @@ setStart periph = do
   -- wait for the hardware to clear the start bit before any further writes
   -- to CR1. Breaking this rule causes the I2C peripheral to lock up.
   modifyReg (i2cRegCR1 periph) $ setBit i2c_cr1_start
-  forever $ do
+  times (15 :: Ix 16) $ \_ -> do
     cr1 <- getReg (i2cRegCR1 periph)
     unless (bitToBool (cr1 #. i2c_cr1_start)) $
       breakOut
@@ -267,12 +274,9 @@ clearSR1 periph = modifyReg (i2cRegSR1 periph) $ do
 
 -- Debugging Helpers: useful for development, disabled for production.
 debugPin1, debugPin2, debugPin3 :: Maybe GPIOPin
---debugPin1 = Nothing
---debugPin2 = Nothing
---debugPin3 = Nothing
-debugPin1 = Just pinE2
-debugPin2 = Just pinE4
-debugPin3 = Just pinE5
+debugPin1 = Nothing
+debugPin2 = Nothing
+debugPin3 = Nothing
 
 debugSetup :: Maybe GPIOPin -> Ivory eff ()
 debugSetup (Just p) = do
