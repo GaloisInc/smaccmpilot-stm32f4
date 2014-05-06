@@ -55,20 +55,13 @@ ms5611ctl :: forall p
        -> I2CDeviceAddr
        -> Tower p ()
 ms5611ctl toDriver fromDriver addr = task "ms5611ctl" $ do
-  i2cRequest <- withChannelEmitter toDriver "toDriver"
-  i2cResult <- withChannelEvent fromDriver "fromDriver"
+  i2cRequest <- withChannelEmitter toDriver "i2cRequest"
+  i2cResult <- withChannelEvent fromDriver "i2cResult"
   --sensorEmitter <- withChannelEmitter sensorSource "sensorOutput"
 
-  (initMachine, deviceprops) <- initializerMachine addr i2cRequest i2cResult
-
+  (driver, deviceprops) <- driverMachine addr i2cRequest i2cResult
+                              (\_ _ _ -> return ()) -- XXX
   taskStackSize 3072
 
   taskInit $ do
-    begin initMachine
-
-  p <- withPeriodicEvent (Milliseconds 5) -- 200hz
-  handle p "period" $ \_ -> do
-    initializing <- active initMachine
-    unless initializing $ do
-      e <- deref (init_failure deviceprops)
-      comment "placeholder"
+    begin driver

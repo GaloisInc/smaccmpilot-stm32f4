@@ -97,11 +97,16 @@ data MS5611DeviceProps =
     , coeff6       :: ConstRef Global (Stored Uint16)
     }
 
-initializerMachine :: I2CDeviceAddr
-                   -> ChannelEmitter (Struct "i2c_transaction_request")
-                   -> Event          (Struct "i2c_transaction_result")
-                   -> Task p (Runnable, MS5611DeviceProps)
-initializerMachine addr req_emitter res_evt  = do
+type PressureSample = Uint32
+type TemperatureSample = Uint32
+
+driverMachine :: I2CDeviceAddr
+              -> ChannelEmitter (Struct "i2c_transaction_request")
+              -> Event          (Struct "i2c_transaction_result")
+              -> (forall eff . IBool -> PressureSample -> TemperatureSample
+                            -> Ivory eff ())
+              -> Task p (Runnable, MS5611DeviceProps)
+driverMachine addr req_emitter res_evt sample_k = do
   init_f <- taskLocal "init_failure"
   c1     <- taskLocal "coeff1"
   c2     <- taskLocal "coeff2"
@@ -119,17 +124,31 @@ initializerMachine addr req_emitter res_evt  = do
         , coeff6       = constRef c6
         }
 
-  m <- stateMachine "ms5611InitializerMachine" $ mdo
+  samp_f <- taskLocal "sample_failure"
+  samp_p <- taskLocal "sample_pressure"
+  samp_t <- taskLocal "sample_temperature"
+  let check_sample_failure :: ConstRef s (Struct "i2c_transaction_result") -> Ivory eff ()
+      check_sample_failure res = do
+          r <- deref (res ~> resultcode)
+          when (r >? 0) (store samp_f true)
+
+      send_sample :: Ivory eff ()
+      send_sample = do
+        f <- deref samp_f
+        p <- deref samp_p
+        t <- deref samp_t
+        sample_k f p t
+
+  m <- stateMachine "ms5611DriverMachine" $ mdo
     b <- stateNamed "begin" $ do
           entry $ liftIvory_ $ do
             store init_f false
             req <- commandRequest addr Reset
             emit_ req_emitter req
           on res_evt $ \res -> do
-            liftIvory $ do
+            liftIvory_ $ do
               r <- deref (res ~> resultcode)
               when (r >? 0) (store init_f true)
-              return $ branch (r >? 0) done
             goto reset_wait
 
     reset_wait <- stateNamed "reset_wait" $ do
@@ -140,7 +159,64 @@ initializerMachine addr req_emitter res_evt  = do
     prom3 <- promRead addr Coeff3 init_f c3 req_emitter res_evt prom4
     prom4 <- promRead addr Coeff4 init_f c4 req_emitter res_evt prom5
     prom5 <- promRead addr Coeff5 init_f c5 req_emitter res_evt prom6
-    prom6 <- promRead addr Coeff6 init_f c6 req_emitter res_evt done
+    prom6 <- promRead addr Coeff6 init_f c6 req_emitter res_evt convertP
+
+
+    convertP <- stateNamed "convertPressure" $ do
+      entry $ liftIvory_ $ do
+        store samp_f false
+        req <- commandRequest addr (ConvertD1 OSR4096)
+        emit_ req_emitter req
+      on res_evt $ \res -> do
+        liftIvory_ $ check_sample_failure res
+        goto latchP
+
+    latchP   <- stateNamed "latchPressure" $ do
+      timeout (Milliseconds 9) $ liftIvory_ $ do
+        req <- commandRequest addr ADCRead
+        emit_ req_emitter req
+      on res_evt $ \res -> do
+        liftIvory_ $ check_sample_failure res
+        goto readP
+
+    readP    <- stateNamed "readPressure" $ do
+      entry $ liftIvory_ $ do
+        req <- adcFetchRequest addr
+        emit_ req_emitter req
+      on res_evt $ \res -> do
+        liftIvory_ $ do
+          check_sample_failure res
+          threebytesample res >>= store samp_p
+        goto convertT
+
+    convertT <- stateNamed "convertTemperature" $ do
+      entry $ liftIvory_ $ do
+        store samp_f false
+        req <- commandRequest addr (ConvertD2 OSR4096)
+        emit_ req_emitter req
+      on res_evt $ \res -> do
+        liftIvory_ $ check_sample_failure res
+        goto latchT
+
+    latchT   <- stateNamed "latchTemperature" $ do
+      timeout (Milliseconds 9) $ liftIvory_ $ do
+        req <- commandRequest addr ADCRead
+        emit_ req_emitter req
+      on res_evt $ \res -> do
+        liftIvory_ $ check_sample_failure res
+        goto readT
+
+    readT    <- stateNamed "readTemperature" $ do
+      entry $ liftIvory_ $ do
+        req <- adcFetchRequest addr
+        emit_ req_emitter req
+      on res_evt $ \res -> do
+        liftIvory_ $ do
+          check_sample_failure res
+          threebytesample res >>= store samp_t
+          send_sample
+        goto convertP
+
 
     done <- stateNamed "done" $ entry $ halt
 
@@ -148,4 +224,12 @@ initializerMachine addr req_emitter res_evt  = do
 
   return (m, props)
 
+
+threebytesample :: ConstRef s (Struct "i2c_transaction_result")
+                -> Ivory eff Uint32
+threebytesample resp = do
+  h <- deref ((resp ~> rx_buf) ! 0)
+  m <- deref ((resp ~> rx_buf) ! 1)
+  l <- deref ((resp ~> rx_buf) ! 2)
+  assign ((safeCast h) * 65536 + (safeCast m) * 255 + (safeCast l))
 
