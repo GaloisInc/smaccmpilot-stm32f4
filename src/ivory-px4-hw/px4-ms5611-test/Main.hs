@@ -61,7 +61,7 @@ ms5611ctl toDriver fromDriver addr = task "ms5611ctl" $ do
 
   (initMachine, deviceprops) <- initializerMachine addr i2cRequest i2cResult
 
-  taskStackSize 2048
+  taskStackSize 3072
 
   taskInit $ do
     begin initMachine

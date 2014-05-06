@@ -136,8 +136,11 @@ initializerMachine addr req_emitter res_evt  = do
       timeout (Milliseconds 4) $ goto prom1
 
     prom1 <- promRead addr Coeff1 init_f c1 req_emitter res_evt prom2
-
-    prom2 <- promRead addr Coeff2 init_f c2 req_emitter res_evt done
+    prom2 <- promRead addr Coeff2 init_f c2 req_emitter res_evt prom3
+    prom3 <- promRead addr Coeff3 init_f c3 req_emitter res_evt prom4
+    prom4 <- promRead addr Coeff4 init_f c4 req_emitter res_evt prom5
+    prom5 <- promRead addr Coeff5 init_f c5 req_emitter res_evt prom6
+    prom6 <- promRead addr Coeff6 init_f c6 req_emitter res_evt done
 
     done <- stateNamed "done" $ entry $ halt
 
