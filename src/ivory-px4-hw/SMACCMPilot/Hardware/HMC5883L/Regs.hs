@@ -20,7 +20,6 @@ data Reg
   | IdentC
   deriving (Eq, Show)
 
-
 regAddr :: Reg -> Word8
 regAddr ConfA  = 0
 regAddr ConfB  = 1
@@ -36,6 +35,13 @@ regAddr IdentA = 10
 regAddr IdentB = 11
 regAddr IdentC = 12
 
+data SampleAveraging
+  = NoAveraging
+  | Average2
+  | Average4
+  | Average8
+  deriving (Eq, Show)
+
 data OutputRate
   = Rate0_75hz
   | Rate1_5hz
@@ -46,18 +52,32 @@ data OutputRate
   | Rate75Hz
   deriving (Eq, Show)
 
+data BiasMode
+  = NoBias
+  | PositiveBias
+  | NegativeBias
 
--- Ignoring the other settings in confA because I don't need them (leaving zero)
-confA :: OutputRate -> Word8
-confA o = bs o `shiftL` 2
+confAVal :: SampleAveraging -> OutputRate -> BiasMode -> Word8
+confAVal a o b =  (savg  a `shiftL` 5)
+              .|. (orate o `shiftL` 2)
+              .|. (bmode b `shiftL` 0)
   where
-  bs Rate0_75hz = 0
-  bs Rate1_5hz  = 1
-  bs Rate3hz    = 2
-  bs Rate7_5hz  = 3
-  bs Rate15hz   = 4
-  bs Rate30hz   = 5
-  bs Rate75Hz   = 6
+  savg NoAveraging = 0
+  savg Average2    = 1
+  savg Average4    = 2
+  savg Average8    = 3
+
+  orate Rate0_75hz = 0
+  orate Rate1_5hz  = 1
+  orate Rate3hz    = 2
+  orate Rate7_5hz  = 3
+  orate Rate15hz   = 4
+  orate Rate30hz   = 5
+  orate Rate75Hz   = 6
+
+  bmode NoBias       = 0
+  bmode PositiveBias = 1
+  bmode NegativeBias = 2
 
 data Gain
   = LSBGauss1370
@@ -70,8 +90,8 @@ data Gain
   | LSBGauss230
   deriving (Eq, Show)
 
-confB :: Gain -> Word8
-confB g = bs g `shiftL` 4
+confBVal :: Gain -> Word8
+confBVal g = bs g `shiftL` 4
   where
   bs LSBGauss1370 = 0
   bs LSBGauss1090 = 1
@@ -82,4 +102,14 @@ confB g = bs g `shiftL` 4
   bs LSBGauss330  = 6
   bs LSBGauss230  = 7
 
+data MeasMode
+  = Continious
+  | Single
+  | Idle
+  deriving (Eq, Show)
+
+modeVal :: MeasMode -> Word8
+modeVal Continious = 0
+modeVal Single     = 1
+modeVal Idle       = 2
 
