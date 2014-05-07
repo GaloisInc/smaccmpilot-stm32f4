@@ -7,7 +7,6 @@
 module Main where
 
 import Ivory.Language
-import Ivory.Stdlib
 
 import Ivory.Tower
 import Ivory.Tower.StateMachine
@@ -22,7 +21,7 @@ import Ivory.BSP.STM32F4.GPIO
 import Ivory.BSP.STM32F4.I2C
 import Ivory.BSP.STM32F4.Signalable
 
-import SMACCMPilot.Hardware.MS5611.I2C
+import SMACCMPilot.Hardware.MS5611
 
 import Platform
 
@@ -33,10 +32,8 @@ main = compilePlatforms conf (gpsPlatforms app)
 
 app :: forall p . (MPU6kPlatform p, BoardHSE p, STM32F4Signal p) => Tower p ()
 app = do
-  --towerModule  rawSensorTypeModule
-  --towerDepends rawSensorTypeModule
-
-  --raw_sensor <- channel
+  towerModule  ms5611TypesModule
+  towerDepends ms5611TypesModule
 
   (_consIn,_consOut) <- uartTower (consoleUart (Proxy :: Proxy p))
                                 115200 (Proxy :: Proxy 128)
@@ -46,7 +43,6 @@ app = do
   -- 0b01110110 = 0x76
   ms5611ctl req res (I2CDeviceAddr 0x76)
 
-  -- XXX hook snk raw_sensor up to console.
 
 ms5611ctl :: forall p
         . (BoardHSE p, STM32F4Signal p)
@@ -59,9 +55,31 @@ ms5611ctl toDriver fromDriver addr = task "ms5611ctl" $ do
   i2cResult <- withChannelEvent fromDriver "i2cResult"
   --sensorEmitter <- withChannelEmitter sensorSource "sensorOutput"
 
-  (driver, deviceprops) <- driverMachine addr i2cRequest i2cResult
-                              (\_ _ _ -> return ()) -- XXX
+  calibration <- taskLocal "calibration"
+  sample      <- taskLocal "calibration"
+  initfail    <- taskLocal "initfail"
+  samplefail  <- taskLocal "samplefail"
+
+  driver <- testDriverMachine addr i2cRequest i2cResult
+              calibration sample initfail samplefail
+
   taskStackSize 3072
 
   taskInit $ do
     begin driver
+
+testDriverMachine :: I2CDeviceAddr
+                  -> ChannelEmitter (Struct "i2c_transaction_request")
+                  -> Event          (Struct "i2c_transaction_result")
+                  -> Ref Global (Struct "ms5611_calibration")
+                  -> Ref Global (Struct "ms5611_sample")
+                  -> Ref Global (Stored IBool)
+                  -> Ref Global (Stored IBool)
+                  -> Task p Runnable
+testDriverMachine addr i2cRequest i2cResult calibration sample ifail sfail =
+  stateMachine "ms5611TestDriver" $ mdo
+    setup <- sensorSetup addr ifail calibration i2cRequest i2cResult read
+    read  <- sensorRead  addr sfail sample      i2cRequest i2cResult read
+    return setup
+
+
