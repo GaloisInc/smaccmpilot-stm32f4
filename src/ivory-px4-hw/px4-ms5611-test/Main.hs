@@ -16,6 +16,7 @@ import Ivory.BSP.STM32F4.RCC (BoardHSE)
 import qualified Ivory.HW.SearchDir          as HW
 import qualified Ivory.BSP.STM32F4.SearchDir as BSP
 
+import Ivory.BSP.STM32F4.UART.Tower
 import Ivory.BSP.STM32F4.GPIO
 import Ivory.BSP.STM32F4.I2C
 import Ivory.BSP.STM32F4.Signalable
@@ -33,6 +34,9 @@ app :: forall p . (MPU6kPlatform p, BoardHSE p, STM32F4Signal p) => Tower p ()
 app = do
   towerModule  ms5611TypesModule
   towerDepends ms5611TypesModule
+  (_shelli,_shello ) <- uartTower (consoleUart (Proxy :: Proxy p))
+                                115200 (Proxy :: Proxy 128)
+
   (req, res) <- i2cTower i2c2 pinB10 pinB11
   ms5611ctl req res (I2CDeviceAddr 0x76)
 
