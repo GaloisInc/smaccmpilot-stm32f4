@@ -35,9 +35,6 @@ app = do
   towerDepends rawSensorTypeModule
 
   raw_sensor <- channel
-  -- XXX hook snk raw_sensor up to console.
-  --(_consIn,_consOut) <- uartTower (consoleUart (Proxy :: Proxy p))
-  --                              115200 (Proxy :: Proxy 128)
 
   (req, res) <- spiTower [mpu6000Device (Proxy :: Proxy p)]
   mpu6kCtl req res (src raw_sensor) (SPIDeviceHandle 0)
