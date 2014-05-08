@@ -16,7 +16,6 @@ import Ivory.BSP.STM32F4.RCC (BoardHSE)
 import qualified Ivory.HW.SearchDir          as HW
 import qualified Ivory.BSP.STM32F4.SearchDir as BSP
 
-import Ivory.BSP.STM32F4.UART.Tower
 import Ivory.BSP.STM32F4.GPIO
 import Ivory.BSP.STM32F4.I2C
 import Ivory.BSP.STM32F4.Signalable
@@ -34,13 +33,7 @@ app :: forall p . (MPU6kPlatform p, BoardHSE p, STM32F4Signal p) => Tower p ()
 app = do
   towerModule  ms5611TypesModule
   towerDepends ms5611TypesModule
-
-  (_consIn,_consOut) <- uartTower (consoleUart (Proxy :: Proxy p))
-                                115200 (Proxy :: Proxy 128)
-
   (req, res) <- i2cTower i2c2 pinB10 pinB11
-
-  -- 0b01110110 = 0x76
   ms5611ctl req res (I2CDeviceAddr 0x76)
 
 
@@ -53,10 +46,9 @@ ms5611ctl :: forall p
 ms5611ctl toDriver fromDriver addr = task "ms5611ctl" $ do
   i2cRequest <- withChannelEmitter toDriver "i2cRequest"
   i2cResult <- withChannelEvent fromDriver "i2cResult"
-  --sensorEmitter <- withChannelEmitter sensorSource "sensorOutput"
 
   calibration <- taskLocal "calibration"
-  sample      <- taskLocal "calibration"
+  sample      <- taskLocal "sample"
   initfail    <- taskLocal "initfail"
   samplefail  <- taskLocal "samplefail"
 
