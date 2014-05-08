@@ -37,7 +37,7 @@ app = do
 
   (req, res) <- i2cTower i2c2 pinB10 pinB11
 
-  hmc5883lctl req res (I2CDeviceAddr 0x3C)
+  hmc5883lctl req res (I2CDeviceAddr 0x1e)
 
 
 hmc5883lctl :: forall p
