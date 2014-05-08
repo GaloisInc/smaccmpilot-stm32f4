@@ -77,6 +77,8 @@ i2cPeripheralDriver periph sda scl req_sink res_source = do
 
   taskPriority 3
 
+  (invalid_request :: Ref Global (Stored Uint32)) <- taskLocal "invalid_request"
+
   evt_irq <- withUnsafeSignalEvent
                 (stm32f4Interrupt (i2cIntEvent periph))
                 "event_interrupt"
@@ -230,6 +232,7 @@ i2cPeripheralDriver periph sda scl req_sink res_source = do
       debugOff debugPin3
 
     unless d $ do
+      invalid_request %= (+1)
       return () -- XXX how do we want to handle this error?
 
 setStop :: I2CPeriph -> Ivory (ProcEffects eff ()) ()
