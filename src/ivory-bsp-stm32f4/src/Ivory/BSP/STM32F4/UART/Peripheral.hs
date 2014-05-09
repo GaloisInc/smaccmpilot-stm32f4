@@ -170,10 +170,10 @@ uartInit uart platform baud = do
     setBit uart_cr1_te
     setBit uart_cr1_re
 
-uartInitISR :: (GetAlloc eff ~ Scope s) => UART -> Uint8 -> Ivory eff ()
-uartInitISR uart priority = do
-  interrupt_set_priority inter priority
-  interrupt_enable       inter
+uartInitISR :: (GetAlloc eff ~ Scope s) => UART -> Ivory eff ()
+uartInitISR uart = do
+  interrupt_set_to_syscall_priority inter
+  interrupt_enable                  inter
   setRXNEIE uart true
   where
   inter = uartInterrupt uart

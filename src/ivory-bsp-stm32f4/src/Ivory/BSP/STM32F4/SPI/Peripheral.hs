@@ -107,10 +107,10 @@ spiInit spi = do
   initOutPin (spiPinMosi spi) (spiPinAF spi)
   initOutPin (spiPinSck  spi) (spiPinAF spi)
 
-spiInitISR :: (GetAlloc eff ~ Scope s) => SPIPeriph -> Uint8 -> Ivory eff ()
-spiInitISR spi priority = do
-  ISR.interrupt_set_priority inter priority
-  ISR.interrupt_enable       inter
+spiInitISR :: (GetAlloc eff ~ Scope s) => SPIPeriph -> Ivory eff ()
+spiInitISR spi = do
+  ISR.interrupt_set_to_syscall_priority inter
+  ISR.interrupt_enable                  inter
   where
   inter = spiInterrupt spi
 

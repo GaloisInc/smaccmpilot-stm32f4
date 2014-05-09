@@ -129,10 +129,7 @@ uartTowerTask uart baud snk_ostream src_istream txcheck_evt dbg = do
     debug_init dbg
     store txpending false
     uartInit    uart (Proxy :: Proxy p) (fromIntegral baud)
-    -- MAGIC NUMBER: freertos syscalls must be lower (numerically greater
-    -- than) level 11
-    let max_syscall_priority = (12::Uint8)
-    uartInitISR uart max_syscall_priority
+    uartInitISR uart
 
   handle interrupt "interrupt" $ \_msg -> do
     debug_evthandler_start dbg
