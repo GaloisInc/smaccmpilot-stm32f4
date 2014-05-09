@@ -2,6 +2,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeFamilies #-}
 
 module Ivory.BSP.STM32F4.I2C.Tower where
 
@@ -63,6 +64,7 @@ i2cPeripheralDriver periph sda scl req_sink res_source = do
     debugSetup     debugPin1
     debugSetup     debugPin2
     debugSetup     debugPin3
+    debugSetup     debugPin4
     i2cInit        periph sda scl (Proxy :: Proxy p)
     -- Setup hardware for interrupts
     interrupt_enable (i2cIntEvent periph)
@@ -113,6 +115,7 @@ i2cPeripheralDriver periph sda scl req_sink res_source = do
     when active $ do
       store done true
       store (resbuffer ~> resultcode) 1
+      debugToggle debugPin4
       emit_ resultEmitter (constRef resbuffer)
 
     -- Re-enable interrupt
@@ -184,6 +187,7 @@ i2cPeripheralDriver periph sda scl req_sink res_source = do
               -- Done - send the i2c_transaction_response
               store done true
               store (resbuffer ~> resultcode) 0
+              debugToggle debugPin4
               emit_ resultEmitter (constRef resbuffer)
           ]
 
@@ -212,6 +216,7 @@ i2cPeripheralDriver periph sda scl req_sink res_source = do
               -- Done, send response
               store done true
               store (resbuffer ~> resultcode) 0
+              debugToggle debugPin4
               emit_ resultEmitter (constRef resbuffer)
           ]
 
@@ -276,10 +281,15 @@ clearSR1 periph = modifyReg (i2cRegSR1 periph) $ do
 
 
 -- Debugging Helpers: useful for development, disabled for production.
-debugPin1, debugPin2, debugPin3 :: Maybe GPIOPin
-debugPin1 = Nothing
-debugPin2 = Nothing
-debugPin3 = Nothing
+debugPin1, debugPin2, debugPin3, debugPin4 :: Maybe GPIOPin
+-- Debug 1: toggles on event interrupt
+debugPin1 = Nothing -- Just pinB8 -- i2c1 sda
+-- Debug 2: toggles on error interrupt
+debugPin2 = Nothing -- Just pinB9 -- i2c1 scl
+-- Debug 3: active when starting driver with request
+debugPin3 = Nothing -- Just pinC12 -- uart5 tx
+-- Debug 4: toggles when terminating driver with response
+debugPin4 = Nothing -- Just pinD2  -- uart5 rx
 
 debugSetup :: Maybe GPIOPin -> Ivory eff ()
 debugSetup (Just p) = do
@@ -300,7 +310,13 @@ debugOn (Just p) = pinSet p
 debugOn Nothing  = return ()
 
 debugToggle :: Maybe GPIOPin -> Ivory eff ()
-debugToggle p = debugOn p >> debugOff p
+debugToggle p = do
+  -- turn it on three times just to take a bit longer. sometimes my
+  -- logic analyzer can't catch a single on/off blip.
+  debugOn p
+  debugOn p
+  debugOn p
+  debugOff p
 
 
 
