@@ -8,6 +8,21 @@
 # "LICENSE" for more information.
 #
 
+
+# Build configuration options:
+# use the CONFIG_PLATFORMS variable to restrict the platforms you build for.
+# Some examples:
+## CONFIG_PLATFORMS = px4fmu17_ioar_freertos
+## CONFIG_PLATFORMS = px4fmu17_bare_freertos
+
+# Build configuration options:
+# use the TARGET variable to only build a particular executable
+# Some examples:
+## TARGET = build/$(CONFIG_PLATFORMS)/img/flight
+## TARGET = build/$(CONFIG_PLATFORMS)/img/px4-mpu6k-test
+## TARGET = build/$(CONFIG_PLATFORMS)/img/px4-ms5611-test
+## TARGET = build/$(CONFIG_PLATFORMS)/img/px4-hmc5883l-test
+
 # GCC prefix for the Cortex-M4 toolchain.
 #CONFIG_CORTEX_M4_PREFIX := $(HOME)/local/gcc-arm-none-eabi-4_6-2012q1/bin/arm-none-eabi-
 # Or if the toolchain is in your PATH:
