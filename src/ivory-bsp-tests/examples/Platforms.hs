@@ -34,6 +34,18 @@ stm32f4SignalableInstance ''PX4FMUv17
 instance BoardHSE PX4FMUv17 where
   hseFreq _ = f24MHz
 
+---------- PX4FMUv24 ----------------------------------------------------------
+data PX4FMUv24 = PX4FMUv24
+
+instance ColoredLEDs PX4FMUv24 where
+  redLED _  = LED pinE12 ActiveLow
+  blueLED _ = LED pinC1  ActiveLow -- DOES NOT EXIST. pinC1 is unassigned.
+
+stm32f4SignalableInstance ''PX4FMUv24
+
+instance BoardHSE PX4FMUv24 where
+  hseFreq _ = f24MHz
+
 ---------- F4Discovery --------------------------------------------------------
 data F4Discovery = F4Discovery
 
@@ -68,5 +80,6 @@ coloredLEDPlatforms app =
     ,("px4fmu17_ioar",     Twr (app :: Tower PX4FMUv17 ()))
     ,("stm32f4discovery",  Twr (app :: Tower F4Discovery ()))
     ,("open407vc",         Twr (app :: Tower Open407VC ()))
+    ,("px4fmu24",          Twr (app :: Tower PX4FMUv24 ()))
     ]
 
