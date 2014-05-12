@@ -42,7 +42,6 @@ FLIGHT_HIL_REAL_OBJECTS += $(IVORY_PKG_FLIGHT_HIL_OBJECTS)
 FLIGHT_HIL_LIBRARIES    += libapwrapper.a
 FLIGHT_HIL_LIBRARIES    += libstandalone-aphal.a
 FLIGHT_HIL_LIBRARIES    += libstandalone-apahrs.a
-FLIGHT_HIL_LIBRARIES    += libhwf4-nouart.a
 FLIGHT_HIL_LIBRARIES    += libFreeRTOS.a
 FLIGHT_HIL_LIBRARIES    += commsec.a
 
