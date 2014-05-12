@@ -33,35 +33,9 @@
  *
  ****************************************************************************/
 
-/* The STM32F405 has 1024Kb of FLASH beginning at address 0x0800:0000 and
- * 192Kb of SRAM. SRAM is split up into three blocks:
- *
- * 1) 112Kb of SRAM beginning at address 0x2000:0000
- * 2)  16Kb of SRAM beginning at address 0x2001:c000
- * 3)  64Kb of TCM SRAM beginning at address 0x1000:0000
- *
- * When booting from FLASH, FLASH memory is aliased to address 0x0000:0000
- * where the code expects to begin execution by jumping to the entry point in
- * the 0x0800:0000 address range.
- *
- * HWF4: In the original linker script, the first 0x4000 of flash was
- * reserved for the bootloader.  For now, we'll place the application
- * at the start of flash until we start using a boot loader again.
- */
+/* Memory map included from external file */
 
-MEMORY
-{
-#ifdef CONFIG_PX4FMU_BOOTLOADER
-  flash (rx)   : ORIGIN = 0x08004000, LENGTH = 1008K
-#else
-  flash (rx)   : ORIGIN = 0x08000000, LENGTH = 1024K
-#endif
-  sram (rwx)   : ORIGIN = 0x20000000, LENGTH = 128K
-  ccsram (rwx) : ORIGIN = 0x10000000, LENGTH = 64K
-}
-
-/* Top of the user mode stack. */
-_estack = 0x20020000;           /* top of 128KiB of SRAM */
+#include "memory.inc"
 
 /* Error in the linker if heap and stack don't fit. */
 _min_heap_size = 0;

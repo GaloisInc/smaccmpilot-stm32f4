@@ -113,7 +113,7 @@ quiet_cmd_as_o_S = AS       $<
       cmd_as_o_S = $(CC) $(CFLAGS) -c -o $@ $<
 
 quiet_cmd_cpp_lds_S = CPP      $<
-      cmd_cpp_lds_S = $(CPP) -P $(LDSCRIPT_OPTS) -o $@ $<
+      cmd_cpp_lds_S = $(CPP) -P $(LDSCRIPT_OPTS) -I./mk/chip/$(CHIP) -o $@ $<
 
 # Compile an assembly source (.S) file to an object file.
 $(OBJ_DIR)/%.o: %.S

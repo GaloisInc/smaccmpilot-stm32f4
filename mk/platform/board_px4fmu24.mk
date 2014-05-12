@@ -14,6 +14,8 @@
 # Frequency of the HSE crystal in Hz.
 BOARD_HSE_FREQ := 24000000
 
+CHIP := stm32f427
+
 # Note compatibility with HWF4 library
 CONFIG_LIBHWF4_COMPAT := 0
 

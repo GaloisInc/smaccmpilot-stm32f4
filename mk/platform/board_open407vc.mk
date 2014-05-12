@@ -14,6 +14,10 @@
 # Frequency of the HSE crystal in Hz.
 BOARD_HSE_FREQ := 8000000
 
+# for our purposes, its compatible with f405
+# which is the same chip w/o ethernet peripheral
+CHIP := stm32f405
+
 # Note compatibility with HWF4 library
 CONFIG_LIBHWF4_COMPAT := 1
 

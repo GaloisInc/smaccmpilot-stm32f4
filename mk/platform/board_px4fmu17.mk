@@ -15,6 +15,8 @@
 # Frequency of the HSE crystal in Hz.
 BOARD_HSE_FREQ := 24000000
 
+CHIP := stm32f405
+
 # Add the HSE frequency to the default CFLAGS.
 CFLAGS += -DHSE_VALUE=$(BOARD_HSE_FREQ)
 
