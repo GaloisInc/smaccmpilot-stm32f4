@@ -14,6 +14,9 @@
 # Frequency of the HSE crystal in Hz.
 BOARD_HSE_FREQ := 8000000
 
+# Note compatibility with HWF4 library
+CONFIG_LIBHWF4_COMPAT := 1
+
 # Add the HSE frequency to the default CFLAGS.
 CFLAGS += -DHSE_VALUE=$(BOARD_HSE_FREQ)
 

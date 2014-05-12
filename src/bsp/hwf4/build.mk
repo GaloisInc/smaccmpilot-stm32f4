@@ -34,6 +34,8 @@ HWF4_OBJECTS :=    \
   src/eeprom.o     \
   src/ardrone.o
 
-$(eval $(call when_os,freertos,library,HWF4))
+ifeq ($(CONFIG_LIBHWF4_COMPAT),1)
+  $(eval $(call when_os,freertos,library,HWF4))
+endif
 
 # vim: set ft=make noet ts=2:
