@@ -7,6 +7,7 @@ module SMACCMPilot.Communications where
 
 import GHC.TypeLits
 import Ivory.Language
+import Ivory.Language.Proxy
 import Data.Word
 
 --------------------------------------------------------------------------------
@@ -20,7 +21,7 @@ type MAVLinkIx = Ix 80
 type MAVLinkArray = Array 80 (Stored Uint8)
 
 mavlinkSize :: Integer
-mavlinkSize = fromSing (sing :: Sing 80)
+mavlinkSize = fromTypeNat (aNat :: NatType 80)
 
 --------------------------------------------------------------------------------
 -- Must be mavlinkSize + 16
@@ -30,7 +31,7 @@ type CommsecIx = Ix 96
 type CommsecArray = Array 96 (Stored Uint8)
 
 commsecPkgSize :: Integer
-commsecPkgSize = fromSing (sing :: Sing 96)
+commsecPkgSize = fromTypeNat (aNat :: NatType 96)
 
 --------------------------------------------------------------------------------
 
@@ -42,7 +43,7 @@ type HxstreamIx = Ix 195
 type HxstreamArray = Array 195 (Stored Uint8)
 
 hxstreamPkgSize :: Integer
-hxstreamPkgSize = fromSing (sing :: Sing 195)
+hxstreamPkgSize = fromTypeNat (aNat :: NatType 195)
 
 --------------------------------------------------------------------------------
 
