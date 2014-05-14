@@ -13,8 +13,6 @@ maintainer:          pat@galois.com
 build-type:          Simple
 cabal-version:       >=1.8
 
-data-files: support/ivory_stm32f4_interrupt.h,
-            support/ivory_stm32f4_interrupt.c
 
 library
   exposed-modules:     Ivory.BSP.STM32F4.MemoryMap,
