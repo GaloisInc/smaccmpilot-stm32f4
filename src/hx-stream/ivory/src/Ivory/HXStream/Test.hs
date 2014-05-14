@@ -107,7 +107,7 @@ mkRnd = return . test
 runTests :: IO ()
 runTests = do
   p <- Q.runIO mkRnd
-  runCompiler [hxstreamModule, cmodule p]
+  _ <- runCompiler [hxstreamModule, cmodule p]
               initialOpts { includeDir = "test"
                           , srcDir     = "test"
                           , constFold = True

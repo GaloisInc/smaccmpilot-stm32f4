@@ -19,6 +19,7 @@ module Main where
 
 --------------------------------------------------------------------------------
 
+import Control.Monad (void)
 import Ivory.Language
 -- XXX testing
 import Ivory.Compile.C.CmdlineFrontend
@@ -252,7 +253,7 @@ main = build
 -- runCompiler [modulePkg] initialOpts { stdOut = True }
 
 build :: IO ()
-build = runCompiler [modulePkg]
+build = void $ runCompiler [modulePkg]
   initialOpts { stdOut     = False
               , constFold  = True
               , srcDir     = "ivory-gen"
