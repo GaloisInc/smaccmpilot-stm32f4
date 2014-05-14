@@ -119,7 +119,7 @@ library
 
                        SMACCMPilot.SafePack
 
-  build-depends:       base ==4.6.*,
+  build-depends:       base >= 4.6,
                        monadLib,
                        ivory,
                        ivory-stdlib,
@@ -141,7 +141,7 @@ library
 
 executable flight-gen
   main-is:             FlightGen.hs
-  build-depends:       base ==4.6.*,
+  build-depends:       base >= 4.6,
                        monadLib,
                        ivory,
                        ivory-stdlib,
@@ -164,7 +164,7 @@ executable flight-gen
 
 executable flight-hil-gen
   main-is:             HILGen.hs
-  build-depends:       base ==4.6.*,
+  build-depends:       base >= 4.6,
                        monadLib,
                        ivory,
                        ivory-stdlib,

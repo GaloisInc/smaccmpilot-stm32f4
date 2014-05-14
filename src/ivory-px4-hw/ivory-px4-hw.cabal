@@ -48,7 +48,7 @@ executable             copter-motor-test-gen
   main-is:             Main.hs
   hs-source-dirs:      copter-motor-test
   other-modules:       Platform
-  build-depends:       base ==4.6.*,
+  build-depends:       base >= 4.6,
                        monadLib,
                        ivory,
                        ivory-stdlib,
@@ -69,7 +69,7 @@ executable             ublox-gps-test-gen
   main-is:             Main.hs
   hs-source-dirs:      ublox-gps-test
   other-modules:       Platform
-  build-depends:       base ==4.6.*,
+  build-depends:       base >= 4.6,
                        monadLib,
                        ivory,
                        ivory-stdlib,
