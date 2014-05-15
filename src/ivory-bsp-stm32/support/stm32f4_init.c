@@ -30,7 +30,7 @@ void init_libc(void) {
 	__libc_init_array();
 }
 
-/* ------------------------- init_operatingsystem -------------------------- */
+/* ------------------------- main -------------------------- */
 #ifdef TOWER_OS_FREERTOS
 
 #include <FreeRTOS.h>
@@ -42,15 +42,16 @@ static void tower_launch_task(void *machtnichts) {
 	for(;;);
 }
 
-void init_operatingsystem(void) {
+int main (void) {
 	xTaskCreate(tower_launch_task, (signed char *)"twrlaunch",
 		256, NULL, 0, NULL);
 	vTaskStartScheduler();
 	for(;;);
+	return 0; // unreachable
 }
 
 #else
-#error require operating system definition
+#error main requires operating system specific definition
 #endif
 
 

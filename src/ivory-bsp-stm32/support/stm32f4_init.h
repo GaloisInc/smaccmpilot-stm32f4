@@ -6,7 +6,7 @@
 
 void init_relocate(void);
 void init_libc(void);
-void init_operatingsystem(void);
+int  main(void);
 
 #endif //__STM32F4_INIT_H__
 
