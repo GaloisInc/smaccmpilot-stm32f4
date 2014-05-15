@@ -14,7 +14,7 @@ import qualified Ivory.Stdlib.SearchDir as Stdlib
 import qualified Ivory.HW.SearchDir as HW
 
 import           Ivory.BSP.STM32F4.Signalable
-import qualified Ivory.BSP.STM32F4.SearchDir as BSP
+import qualified Ivory.BSP.STM32.SearchDir   as BSP
 import qualified Ivory.BSP.STM32F4.RCC       as BSP
 
 import SMACCMPilot.Flight.Platforms
