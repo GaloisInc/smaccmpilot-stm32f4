@@ -2,7 +2,7 @@
 import Ivory.Tower.Frontend
 
 import qualified Ivory.HW.SearchDir as HW
-import qualified Ivory.BSP.STM32F4.SearchDir as BSP
+import qualified Ivory.BSP.STM32.SearchDir as BSP
 
 import Platforms
 import I2CTest (app)

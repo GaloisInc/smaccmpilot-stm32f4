@@ -25,7 +25,7 @@ executable bsp-uart-tower-test-gen
                        ivory-hw,
                        tower          >= 0.8,
                        tower-frontend >= 0.8,
-                       ivory-bsp-stm32f4
+                       ivory-bsp-stm32
   ghc-options:         -Wall
 
 executable bsp-uart-stress-test-gen
@@ -42,7 +42,7 @@ executable bsp-uart-stress-test-gen
                        ivory-hw,
                        tower          >= 0.8,
                        tower-frontend >= 0.8,
-                       ivory-bsp-stm32f4
+                       ivory-bsp-stm32
   ghc-options:         -Wall
 
 executable bsp-led-tower-test-gen
@@ -58,7 +58,7 @@ executable bsp-led-tower-test-gen
                        ivory-hw,
                        tower          >= 0.8,
                        tower-frontend >= 0.8,
-                       ivory-bsp-stm32f4
+                       ivory-bsp-stm32
   ghc-options:         -Wall
 
 executable bsp-spi-test-gen
@@ -75,7 +75,7 @@ executable bsp-spi-test-gen
                        ivory-hw,
                        tower          >= 0.8,
                        tower-frontend >= 0.8,
-                       ivory-bsp-stm32f4
+                       ivory-bsp-stm32
   ghc-options:          -Wall
 
 executable bsp-i2c-test-gen
@@ -91,7 +91,7 @@ executable bsp-i2c-test-gen
                        ivory-hw,
                        tower          >= 0.8,
                        tower-frontend >= 0.8,
-                       ivory-bsp-stm32f4
+                       ivory-bsp-stm32
   ghc-options:          -Wall
 
 -- disabled: not a maintnence priority at the moment, might delete
@@ -107,7 +107,7 @@ executable bsp-i2c-test-gen
 --                       ivory-hw,
 --                       tower          >= 0.8,
 --                       tower-frontend >= 0.8,
---                       ivory-bsp-stm32f4
+--                       ivory-bsp-stm32
 --  ghc-options:         -Wall
 --
 
@@ -123,7 +123,7 @@ executable bsp-led-test-gen
                        ivory-backend-c,
                        ivory-bitdata,
                        ivory-hw,
-                       ivory-bsp-stm32f4
+                       ivory-bsp-stm32
   ghc-options:         -Wall
 
 
@@ -136,6 +136,6 @@ executable bsp-uart-test-gen
                        ivory-backend-c,
                        ivory-bitdata,
                        ivory-hw,
-                       ivory-bsp-stm32f4
+                       ivory-bsp-stm32
   ghc-options:         -Wall
 

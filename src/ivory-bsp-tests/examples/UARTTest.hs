@@ -22,7 +22,7 @@ import qualified Ivory.HW.SearchDir as HW
 import Ivory.HW.Module (hw_moduledef)
 import Ivory.BSP.STM32F4.GPIO
 
-import qualified Ivory.BSP.STM32F4.SearchDir as BSP
+import qualified Ivory.BSP.STM32.SearchDir as BSP
 
 import Ivory.BSP.STM32F4.UART
 import Ivory.BSP.STM32F4.UART.Peripheral

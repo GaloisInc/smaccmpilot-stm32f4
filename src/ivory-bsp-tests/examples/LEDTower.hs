@@ -7,6 +7,7 @@ import Ivory.Tower
 
 import Ivory.HW.Module
 import Ivory.BSP.STM32F4.GPIO
+import Ivory.BSP.STM32F4.Init
 
 data LEDPolarity = ActiveHigh | ActiveLow
 data LED = LED GPIOPin LEDPolarity
@@ -75,6 +76,7 @@ blink per outSource = do
 
 blinkApp :: Integer -> [LED] -> Tower p ()
 blinkApp period pins = do
+  stm32f4InitTower
   (src_led, sink_led) <- channel
   task "blink"  $ blink         period src_led
   task "ledhw"  $ ledController pins   sink_led
