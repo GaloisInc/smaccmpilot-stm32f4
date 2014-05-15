@@ -31,7 +31,7 @@ void init_libc(void) {
 }
 
 /* ------------------------- main -------------------------- */
-#ifdef TOWER_OS_FREERTOS
+#if (defined(TOWER_OS) && (TOWER_OS==freertos))
 
 #include <FreeRTOS.h>
 #include <task.h>
