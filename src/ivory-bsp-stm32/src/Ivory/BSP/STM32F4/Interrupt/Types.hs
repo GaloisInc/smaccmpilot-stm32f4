@@ -7,11 +7,13 @@
 
 module Ivory.BSP.STM32F4.Interrupt.Types where
 
+import Ivory.BSP.ARMv7M.SystemControl.NVIC (IRQn(..))
+
 data IRQ = Exception Exception
          | Interrupt Interrupt
          deriving (Eq, Show)
 
-irqn :: IRQ -> Int
+irqn :: IRQ -> IRQn
 irqn (Exception e) = exceptionIRQn e
 irqn (Interrupt i) = interruptIRQn i
 
@@ -30,15 +32,15 @@ data Exception
   | SysTick
   deriving (Eq, Show, Enum)
 
-exceptionIRQn :: Exception -> Int
-exceptionIRQn NonMaskable     = -14
-exceptionIRQn MemoryManagment = -12
-exceptionIRQn BusFault        = -11
-exceptionIRQn UsageFault      = -10
-exceptionIRQn SVCall          = -5
-exceptionIRQn DebugMonitor    = -4
-exceptionIRQn PendSV          = -2
-exceptionIRQn SysTick         = -1
+exceptionIRQn :: Exception -> IRQn
+exceptionIRQn NonMaskable     = IRQn (-14)
+exceptionIRQn MemoryManagment = IRQn (-12)
+exceptionIRQn BusFault        = IRQn (-11)
+exceptionIRQn UsageFault      = IRQn (-10)
+exceptionIRQn SVCall          = IRQn (-5)
+exceptionIRQn DebugMonitor    = IRQn (-4)
+exceptionIRQn PendSV          = IRQn (-2)
+exceptionIRQn SysTick         = IRQn (-1)
 
 data Interrupt
   = WWDG                -- Window WatchDog Interrupt
@@ -125,6 +127,6 @@ data Interrupt
   | FPU                 -- FPU global interrupt
   deriving (Eq, Show, Enum)
 
-interruptIRQn :: Interrupt -> Int
-interruptIRQn = fromEnum
+interruptIRQn :: Interrupt -> IRQn
+interruptIRQn = IRQn . fromIntegral . fromEnum
 

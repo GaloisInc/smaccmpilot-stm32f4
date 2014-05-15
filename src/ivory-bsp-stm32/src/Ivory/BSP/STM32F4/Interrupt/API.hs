@@ -7,8 +7,8 @@
 
 module Ivory.BSP.STM32F4.Interrupt.API where
 
+import Ivory.BSP.ARMv7M.SystemControl.NVIC
 import Ivory.BSP.STM32F4.Interrupt.Types
-import Ivory.BSP.STM32F4.Interrupt.Regs
 
 import Ivory.Language
 import Ivory.BitData
@@ -19,25 +19,25 @@ import Ivory.HW
 
 interrupt_enable :: Interrupt -> Ivory eff ()
 interrupt_enable i = do
-  let (reg, bitN) = nvic_ISER_int i
+  let (reg, bitN) = nvic_ISER (interruptIRQn i)
   setReg reg $ do
     setBit (nvic_iser_setena #> bitIx bitN)
 
 interrupt_disable :: Interrupt -> Ivory eff ()
 interrupt_disable i = do
-  let (reg, bitN) = nvic_ICER_int i
+  let (reg, bitN) = nvic_ICER (interruptIRQn i)
   setReg reg $ do
     setBit (nvic_icer_clrena #> bitIx bitN)
 
 interrupt_set_pending :: Interrupt -> Ivory eff ()
 interrupt_set_pending i = do
-  let (reg, bitN) = nvic_ISPR_int i
+  let (reg, bitN) = nvic_ISPR (interruptIRQn i)
   setReg reg $ do
     setBit (nvic_ispr_setpend #> bitIx bitN)
 
 interrupt_clear_pending :: Interrupt -> Ivory eff ()
 interrupt_clear_pending i = do
-  let (reg, bitN) = nvic_ICPR_int i
+  let (reg, bitN) = nvic_ICPR (interruptIRQn i)
   setReg reg $ do
     setBit (nvic_icpr_clrpend #> bitIx bitN)
 
@@ -47,7 +47,7 @@ interrupt_set_priority :: Interrupt -> Uint8 -> Ivory eff ()
 interrupt_set_priority i pri = do
   assert (pri <? (1 `iShiftL` nvic_prio_shift))
   let pri' = pri `iShiftL` nvic_prio_shift
-  writeReg (nvic_IPR_int i) pri'
+  writeReg (nvic_IPR (interruptIRQn i)) pri'
   where
   -- | The STM32F4 NVIC ignores writes to the low 4 bits of the
   -- interrupt priority registers.  We hide this from callers, so the
