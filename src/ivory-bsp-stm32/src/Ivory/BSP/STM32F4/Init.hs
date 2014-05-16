@@ -6,6 +6,7 @@ module Ivory.BSP.STM32F4.Init where
 import Ivory.Language
 import Ivory.Tower
 
+import Ivory.BSP.ARMv7M.Exception
 import Ivory.BSP.STM32F4.VectorTable
 
 stm32f4InitModule :: Module
@@ -41,7 +42,7 @@ main :: Def('[]:->())
 main = externProc "main"
 
 reset_handler :: Def('[]:->())
-reset_handler = proc "Reset_Handler" $ body $ do
+reset_handler = proc (exceptionHandlerName Reset) $ body $ do
   call_ init_relocate
   call_ init_clocks
   call_ init_libc

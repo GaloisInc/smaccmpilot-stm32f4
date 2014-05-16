@@ -7,6 +7,7 @@ module Ivory.BSP.STM32F4.Signalable.Class
   ) where
 
 import Ivory.Tower
+import Ivory.BSP.ARMv7M.Exception
 import Ivory.BSP.STM32F4.Interrupt
 
 class (Signalable a) => STM32F4Signal a where

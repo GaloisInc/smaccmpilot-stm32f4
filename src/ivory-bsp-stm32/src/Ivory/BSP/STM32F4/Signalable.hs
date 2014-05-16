@@ -8,6 +8,7 @@ module Ivory.BSP.STM32F4.Signalable
 
 import Ivory.Tower
 
+import Ivory.BSP.ARMv7M.Exception
 import Ivory.BSP.STM32F4.Interrupt
 import Ivory.BSP.STM32F4.Signalable.Class
 
@@ -63,7 +64,7 @@ stm32f4SignalableInstance pt = do
   irqlist = AppE (AppE
     (VarE '(++))
     (AppE (AppE (VarE 'map) (ConE 'Exception))
-          (AppE (VarE 'enumFrom) (ConE 'NonMaskable))))
+          (AppE (VarE 'enumFrom) (ConE 'Reset))))
     (AppE (AppE (VarE 'map) (ConE 'Interrupt))
                 (AppE (VarE 'enumFrom) (ConE 'WWDG)))
 

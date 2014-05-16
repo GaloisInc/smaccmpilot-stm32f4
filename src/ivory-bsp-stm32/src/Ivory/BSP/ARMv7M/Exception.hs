@@ -16,6 +16,9 @@ data Exception
   | SysTick
   deriving (Eq, Show, Enum)
 
+exceptionHandlerName :: Exception -> String
+exceptionHandlerName e = (show e) ++ "_Handler"
+
 exceptionIRQn :: Exception -> IRQn
 exceptionIRQn Reset           = IRQn (-15)
 exceptionIRQn NonMaskable     = IRQn (-14)
