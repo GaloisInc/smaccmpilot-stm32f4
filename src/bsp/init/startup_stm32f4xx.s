@@ -108,11 +108,11 @@ g_pfnVectors:
   .word  0
   .word  0
   .word  0
-  .word  vPortSVCHandler
+  .word  SVCall_Handler
   .word  DebugMon_Handler
   .word  0
-  .word  xPortPendSVHandler
-  .word  xPortSysTickHandler
+  .word  PendSV_Handler
+  .word  SysTick_Handler
   
   /* External Interrupts */
   .word     WWDG_IRQHandler                   /* Window WatchDog              */                                        
