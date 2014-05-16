@@ -17,8 +17,7 @@ import Ivory.BitData
 import Ivory.HW
 
 import Ivory.BSP.ARMv7M.MemoryMap
-
-newtype IRQn = IRQn { unIRQn :: Integer }
+import Ivory.BSP.ARMv7M.Exception
 
 ----------------------------------------------------------------------
 -- NVIC Registers

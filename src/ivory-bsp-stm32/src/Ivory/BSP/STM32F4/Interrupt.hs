@@ -15,6 +15,7 @@ module Ivory.BSP.STM32F4.Interrupt
   , interrupt_set_to_syscall_priority
   ) where
 
+import Ivory.BSP.ARMv7M.Exception
 import Ivory.BSP.STM32F4.Interrupt.Types
 import Ivory.BSP.STM32F4.Interrupt.API
 

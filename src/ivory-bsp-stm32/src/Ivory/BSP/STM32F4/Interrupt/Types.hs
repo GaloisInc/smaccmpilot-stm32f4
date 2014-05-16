@@ -7,7 +7,7 @@
 
 module Ivory.BSP.STM32F4.Interrupt.Types where
 
-import Ivory.BSP.ARMv7M.SystemControl.NVIC (IRQn(..))
+import Ivory.BSP.ARMv7M.Exception
 
 data IRQ = Exception Exception
          | Interrupt Interrupt
@@ -17,30 +17,11 @@ irqn :: IRQ -> IRQn
 irqn (Exception e) = exceptionIRQn e
 irqn (Interrupt i) = interruptIRQn i
 
+-- not really, use exceptionTable / interruptTable for this... and has to be
+-- maybe to handle blanks
 irqs :: [IRQ]
 irqs = map Exception (enumFrom NonMaskable)
     ++ map Interrupt (enumFrom WWDG)
-
-data Exception
-  = NonMaskable
-  | MemoryManagment
-  | BusFault
-  | UsageFault
-  | SVCall
-  | DebugMonitor
-  | PendSV
-  | SysTick
-  deriving (Eq, Show, Enum)
-
-exceptionIRQn :: Exception -> IRQn
-exceptionIRQn NonMaskable     = IRQn (-14)
-exceptionIRQn MemoryManagment = IRQn (-12)
-exceptionIRQn BusFault        = IRQn (-11)
-exceptionIRQn UsageFault      = IRQn (-10)
-exceptionIRQn SVCall          = IRQn (-5)
-exceptionIRQn DebugMonitor    = IRQn (-4)
-exceptionIRQn PendSV          = IRQn (-2)
-exceptionIRQn SysTick         = IRQn (-1)
 
 data Interrupt
   = WWDG                -- Window WatchDog Interrupt
@@ -129,4 +110,7 @@ data Interrupt
 
 interruptIRQn :: Interrupt -> IRQn
 interruptIRQn = IRQn . fromIntegral . fromEnum
+
+interruptTable :: [Maybe Interrupt]
+interruptTable = map Just (enumFrom WWDG)
 
