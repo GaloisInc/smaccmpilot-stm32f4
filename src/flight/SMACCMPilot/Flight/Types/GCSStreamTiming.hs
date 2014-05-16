@@ -41,16 +41,16 @@ struct gcsstream_schedule
 
 -- Params: fixed until updated by the GCS user.
 struct gcsstream_timing
-  { heartbeat           :: Struct "gcsstream_data"
-  ; servo_output_raw    :: Struct "gcsstream_data"
-  ; attitude            :: Struct "gcsstream_data"
-  ; gps_raw_int         :: Struct "gcsstream_data"
-  ; vfr_hud             :: Struct "gcsstream_data"
-  ; global_position_int :: Struct "gcsstream_data"
-  ; params              :: Struct "gcsstream_data"
-  ; veh_commsec         :: Struct "gcsstream_data"
-  ; radio               :: Struct "gcsstream_data"
-  ; debug               :: Struct "gcsstream_data"
+  { heartbeat           :: Struct gcsstream_data
+  ; servo_output_raw    :: Struct gcsstream_data
+  ; attitude            :: Struct gcsstream_data
+  ; gps_raw_int         :: Struct gcsstream_data
+  ; vfr_hud             :: Struct gcsstream_data
+  ; global_position_int :: Struct gcsstream_data
+  ; params              :: Struct gcsstream_data
+  ; veh_commsec         :: Struct gcsstream_data
+  ; radio               :: Struct gcsstream_data
+  ; debug               :: Struct gcsstream_data
   }
 
 |]

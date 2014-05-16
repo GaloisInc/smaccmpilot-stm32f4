@@ -15,13 +15,11 @@ struct i2c_transaction_request
   ; tx_len    :: Stored (Ix 128)
   ; rx_len    :: Stored (Ix 128)
   }
-|]
 
-[ivory|
 struct i2c_transaction_result
   { resultcode :: Stored Uint8
   ; rx_buf     :: Array 128 (Stored Uint8)
   }
-|]
 
+|]
 

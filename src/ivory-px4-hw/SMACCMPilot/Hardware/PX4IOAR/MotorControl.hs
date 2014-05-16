@@ -72,7 +72,7 @@ motorControlTower decode motorChan = do
         put :: (Scope cs ~ GetAlloc eff) => Uint8 -> Ivory eff ()
         put b = emitV_ ostream b
         putbyte b = liftIvory_ (put b >> flush)
-        putPacket :: (SingI n)
+        putPacket :: (ANat n)
                   => ConstRef s (Array n (Stored Uint8))
                   -> Ivory (AllocEffects cs) ()
         putPacket p = do

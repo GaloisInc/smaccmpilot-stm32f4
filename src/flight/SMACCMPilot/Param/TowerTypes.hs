@@ -19,6 +19,6 @@ import Ivory.Language
 
 -- | Define a string type for parameter names.
 [ivory|
-string ParamString 16
+string struct ParamString 16
 |]
 

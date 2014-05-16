@@ -46,7 +46,7 @@ emptyDbg =
     }
 
 uartTower :: forall n p
-           . (SingI n, BoardHSE p, STM32F4Signal p)
+           . (ANat n, BoardHSE p, STM32F4Signal p)
           => UART
           -> Integer
           -> Proxy (n :: Nat)
@@ -55,7 +55,7 @@ uartTower :: forall n p
 uartTower u b s = uartTowerDebuggable u b s emptyDbg
 
 uartTowerFlushable :: forall n p
-           . (SingI n, BoardHSE p, STM32F4Signal p)
+           . (ANat n, BoardHSE p, STM32F4Signal p)
           => UART
           -> Integer
           -> Proxy (n :: Nat)
@@ -75,7 +75,7 @@ uartTowerFlushable uart baud sizeproxy = do
 
 
 uartTowerDebuggable :: forall n p
-           . (SingI n, BoardHSE p, STM32F4Signal p)
+           . (ANat n, BoardHSE p, STM32F4Signal p)
           => UART
           -> Integer
           -> Proxy (n :: Nat)

@@ -1,4 +1,5 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE DataKinds #-}
 
 module Ivory.BSP.STM32F4.SPI.Tower.Types.SPIDeviceHandle
   ( SPIDeviceHandle(..)

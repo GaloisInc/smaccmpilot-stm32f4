@@ -5,7 +5,6 @@
 
 module SMACCMPilot.Communications where
 
-import GHC.TypeLits
 import Ivory.Language
 import Ivory.Language.Proxy
 import Data.Word

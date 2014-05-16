@@ -22,11 +22,12 @@ module SMACCMPilot.SafePack (
   munpack, marrayUnpack, unpackFrom, unpackFrom_
 ) where
 
-import GHC.TypeLits
 import Ivory.Language
 import MonadLib hiding (local)
 
 import SMACCMPilot.Mavlink.Pack
+
+import Control.Applicative
 
 -- TODO: We probably need a "skip" function that adjusts the offset in
 -- PackM/UnpackM in case we want to skip fields.
@@ -46,7 +47,7 @@ class MonadIvory m where
 -- checking (at code-generation time).
 newtype PackM eff a =
   PackM {
-    runPackM :: forall s len. (SingI len)
+    runPackM :: forall s len. (ANat len)
              => (StateT Int
                  (ReaderT (Ref s (Array len (Stored Uint8)))
                   (Ivory eff)) a)
@@ -55,6 +56,10 @@ newtype PackM eff a =
 instance Monad (PackM eff) where
   return x = PackM (return x)
   (PackM m) >>= f = PackM (m >>= runPackM . f)
+
+-- instance Applicative (PackM eff) where
+--   pure x  = PackM (pure x)
+--   f <*> x = PackM (f <*> x)
 
 instance MonadIvory PackM where
   liftI m = PackM (lift (lift m))
@@ -83,7 +88,7 @@ mpack ref = PackM $ do
 -- generation time if too much data is packed into the array.
 --
 -- XXX array ref should be const
-marrayPack :: forall eff a len s.  (MavlinkPackable a, SingI len)
+marrayPack :: forall eff a len s.  (MavlinkPackable a, ANat len)
            => Ref s (Array len (Stored a)) -> PackM eff ()
 marrayPack arr = PackM $ do
   buf    <- ask
@@ -98,7 +103,7 @@ marrayPack arr = PackM $ do
 
 -- | Begin a context to pack values into a byte array, given an
 -- initial offset.  Returns the final offset.
-packInto :: (SingI len)
+packInto :: (ANat len)
          => (Ref s (Array len (Stored Uint8))) -- buf
          -> Int                                -- offset
          -> PackM eff ()                       -- body
@@ -107,7 +112,7 @@ packInto buf offset m =
   runReaderT buf (liftM snd (runStateT offset (runPackM m)))
 
 -- | Like "packInto" but doesn't return the final offset.
-packInto_ :: (SingI len)
+packInto_ :: (ANat len)
           => (Ref s (Array len (Stored Uint8))) -- buf
           -> Int                                -- offset
           -> PackM eff ()                       -- body
@@ -121,7 +126,7 @@ packInto_ buf offset m = packInto buf offset m >> return ()
 -- checking (at code-generation time).
 newtype UnpackM eff a =
   UnpackM {
-    runUnpackM :: forall s len. (SingI len)
+    runUnpackM :: forall s len. (ANat len)
                => (StateT Int
                    (ReaderT (ConstRef s (Array len (Stored Uint8)))
                     (Ivory eff)) a)
@@ -133,6 +138,10 @@ instance Monad (UnpackM eff) where
 
 instance MonadIvory UnpackM where
   liftI m = UnpackM (lift (lift m))
+
+-- instance Applicative (UnpackM eff) where
+--   pure x   = UnpackM (pure x)
+--   f <*> x  = UnpackM (f <*> x)
 
 -- | Unpack a value from the array stored in the context established
 -- by "unpackFrom" into a reference.  An error will be thrown at code
@@ -157,7 +166,7 @@ munpack ref = UnpackM $ do
 -- established by "unpackFrom".  An error will be thrown at code
 -- generation time if too much data is unpacked from the array.
 marrayUnpack :: forall eff a len s.
-                (MavlinkPackable a, SingI len, IvoryStore a)
+                (MavlinkPackable a, ANat len, IvoryStore a)
              => Ref s (Array len (Stored a))
              -> UnpackM eff ()
 marrayUnpack arr = UnpackM $ do
@@ -173,7 +182,7 @@ marrayUnpack arr = UnpackM $ do
 
 -- | Begin a context to unpack values from a byte array, given an
 -- initial offset.  Returns the final offset.
-unpackFrom :: (SingI len)
+unpackFrom :: (ANat len)
            => (ConstRef s (Array len (Stored Uint8))) -- buf
            -> Int                                     -- offset
            -> UnpackM eff ()                          -- body
@@ -182,7 +191,7 @@ unpackFrom buf offset m =
   runReaderT buf (liftM snd (runStateT offset (runUnpackM m)))
 
 -- | Like "unpackFrom" but doesn't return the final offset.
-unpackFrom_ :: (SingI len)
+unpackFrom_ :: (ANat len)
             => (ConstRef s (Array len (Stored Uint8))) -- buf
             -> Int                                     -- offset
             -> UnpackM eff ()                          -- body

@@ -69,7 +69,7 @@ instance MavlinkPackable IDouble where
  unpack       = importProc "mavlink_unpack_double"   packheader
  packedSize _ = 8
 
-arrayPack :: (SingI len, MavlinkPackable rep)
+arrayPack :: (ANat len, MavlinkPackable rep)
            => Ref s1 (CArray (Stored Uint8))
            -> Uint8
            -> ConstRef s2 (Array len (Stored rep))
@@ -79,7 +79,7 @@ arrayPack dst offs src = do
   arrayMap $ \ix -> do -- Produce a loop of pack calls
     call_ pack dst (offs + safeCast ix) =<< deref (arr ! ix)
 
-arrayUnpack :: (SingI len, MavlinkPackable rep, IvoryStore rep)
+arrayUnpack :: (ANat len, MavlinkPackable rep, IvoryStore rep)
             => ConstRef s1 (CArray (Stored Uint8))
             -> Uint8
             -> Ref s (Array len (Stored rep))

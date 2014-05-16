@@ -29,4 +29,5 @@ executable hxstream-serial-test
                         serialport,
                         dlist,
                         hxstream
+  default-language:     Haskell2010
 

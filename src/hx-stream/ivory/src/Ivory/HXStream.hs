@@ -195,7 +195,7 @@ decode fh = decodes [fh]
 
 -- | Takes a tag, frame array, and a 'put' function and encodes according to the
 -- hxstream protocol.
-encode ::   SingI n
+encode ::   ANat n
          => Tag
          -> ConstRef s (Array n (Stored Uint8))
          -> (Uint8 -> Ivory (AllocEffects cs) ())

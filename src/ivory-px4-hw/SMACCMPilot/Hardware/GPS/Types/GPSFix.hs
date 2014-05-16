@@ -1,4 +1,5 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE DataKinds #-}
 
 module SMACCMPilot.Hardware.GPS.Types.GPSFix
   ( GPSFix

@@ -1,4 +1,5 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE DataKinds #-}
 
 module Ivory.BSP.STM32F4.I2C.Tower.Types.I2CDeviceAddr
   ( I2CDeviceAddr(..)

@@ -1,4 +1,5 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE DataKinds #-}
 
 module SMACCMPilot.Flight.Types.ArmedMode
   ( ArmedMode()

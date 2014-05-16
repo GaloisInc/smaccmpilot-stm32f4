@@ -19,9 +19,7 @@ struct ms5611_calibration
   ; coeff5  :: Stored Uint16
   ; coeff6  :: Stored Uint16
   }
-|]
 
-[ivory|
 struct ms5611_sample
   { temperature :: Stored Uint32
   ; pressure    :: Stored Uint32

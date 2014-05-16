@@ -90,7 +90,7 @@ executable             px4-mpu6k-test-gen
   main-is:             Main.hs
   hs-source-dirs:      px4-mpu6k-test
   other-modules:       Platform
-  build-depends:       base ==4.6.*,
+  build-depends:       base >= 4.6,
                        monadLib,
                        ivory,
                        ivory-stdlib,
@@ -111,7 +111,7 @@ executable             px4-ms5611-test-gen
   main-is:             Main.hs
   hs-source-dirs:      px4-ms5611-test
   other-modules:       Platform
-  build-depends:       base ==4.6.*,
+  build-depends:       base >= 4.6,
                        monadLib,
                        ivory,
                        ivory-stdlib,
@@ -132,7 +132,7 @@ executable             px4-hmc5883l-test-gen
   main-is:             Main.hs
   hs-source-dirs:      px4-hmc5883l-test
   other-modules:       Platform
-  build-depends:       base ==4.6.*,
+  build-depends:       base >= 4.6,
                        monadLib,
                        ivory,
                        ivory-stdlib,
