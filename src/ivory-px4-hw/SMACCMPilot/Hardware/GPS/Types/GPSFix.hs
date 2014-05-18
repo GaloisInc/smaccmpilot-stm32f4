@@ -1,4 +1,5 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE DataKinds #-}
 
 module SMACCMPilot.Hardware.GPS.Types.GPSFix
@@ -12,6 +13,9 @@ import Ivory.Language
 
 newtype GPSFix = GPSFix Uint32
   deriving (IvoryType, IvoryVar, IvoryExpr, IvoryEq, IvoryStore, IvoryInit)
+
+instance IvorySizeOf (Stored GPSFix) where
+  sizeOfBytes _ = sizeOfBytes (Proxy :: Proxy (Stored Uint32))
 
 fix_none, fix_2d, fix_3d :: GPSFix
 fix_none = GPSFix 0

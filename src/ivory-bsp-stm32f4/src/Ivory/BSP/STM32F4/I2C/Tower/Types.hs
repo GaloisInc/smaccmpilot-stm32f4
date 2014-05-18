@@ -22,4 +22,3 @@ struct i2c_transaction_result
   }
 
 |]
-

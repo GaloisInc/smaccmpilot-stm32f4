@@ -1,4 +1,5 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE DataKinds #-}
 
 module SMACCMPilot.Flight.Types.ArmedMode
@@ -13,6 +14,9 @@ import Ivory.Language
 newtype ArmedMode = ArmedMode Uint32
   deriving ( IvoryType, IvoryVar, IvoryExpr, IvoryEq
            , IvoryStore, IvoryInit, IvoryZeroVal)
+
+instance IvorySizeOf (Stored ArmedMode) where
+  sizeOfBytes _ = sizeOfBytes (Proxy :: Proxy (Stored Uint32))
 
 safe :: ArmedMode
 safe = ArmedMode 0
