@@ -17,7 +17,6 @@ $(eval $(call tower_pkg,IVORY_PKG_LED_TEST,$(BSP_LED_TOWER_TEST)))
 
 BSP_LED_TEST_IMG          := bsp-led-test
 
-## BSP_LED_TEST_OBJECTS      := freertos/main.o
 BSP_LED_TEST_LIBRARIES    += libFreeRTOS.a
 BSP_LED_TEST_INCLUDES     += $(FREERTOS_CFLAGS)
 

@@ -21,7 +21,6 @@ APP_BSPUARTTEST_INCLUDES     += $(FREERTOS_CFLAGS)
 APP_BSPUARTTEST_REAL_OBJECTS += $(IVORY_PKG_UART_TEST_OBJECTS)
 APP_BSPUARTTEST_LIBS         += -lm
 
-#APP_BSPUARTTEST_INCLUDES     += -I$(TOP)/apps/bsp-uart-test
 APP_BSPUARTTEST_INCLUDES     += -I$(TOP)/src/bsp/include
 APP_BSPUARTTEST_INCLUDES     += $(IVORY_PKG_UART_TEST_CFLAGS)
 
@@ -31,8 +30,6 @@ APP_BSPUARTTEST_DISABLE_GLOBAL_STARTUP_OBJECTS := 1
 $(eval $(call cbmc_pkg,APP_BSPUARTTEST,IVORY_PKG_UART_TEST))
 
 $(eval $(call when_os,freertos,image,APP_BSPUARTTEST))
-$(eval $(call when_os,echronos,echronos_gen,APP_BSPUARTTEST))
-$(eval $(call when_os,echronos,image,APP_BSPUARTTEST))
 
 # ------------------------------------------------------------------------------
 # AADL Build
