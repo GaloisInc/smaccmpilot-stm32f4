@@ -1,8 +1,9 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
 -- Compiler imports:
-import Ivory.Language
-import Ivory.Tower.Frontend
+import           Ivory.Language
+import           Ivory.Tower.Frontend
+import           Ivory.BSP.STM32.BoardHSE
 import qualified Ivory.HW.SearchDir as HW
 import qualified Ivory.BSP.STM32.SearchDir as BSP
 
@@ -11,7 +12,7 @@ import Ivory.Tower
 import LEDTower (blinkApp)
 import Platforms
 
-app :: forall p . (ColoredLEDs p) => Tower p ()
+app :: forall p . (BoardHSE p, ColoredLEDs p) => Tower p ()
 app = blinkApp period leds
   where
   period = 250

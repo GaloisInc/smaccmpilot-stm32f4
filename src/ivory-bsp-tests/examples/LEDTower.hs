@@ -6,6 +6,7 @@ import Ivory.Language
 import Ivory.Tower
 
 import Ivory.HW.Module
+import Ivory.BSP.STM32.BoardHSE
 import Ivory.BSP.STM32F4.GPIO
 import Ivory.BSP.STM32F4.Init
 
@@ -74,7 +75,7 @@ blink per outSource = do
     emitV_ outEmitter ((toIMilliseconds time) .% (2*p) <? p)
   where p = fromIntegral per
 
-blinkApp :: Integer -> [LED] -> Tower p ()
+blinkApp :: (BoardHSE p) => Integer -> [LED] -> Tower p ()
 blinkApp period pins = do
   stm32f4InitTower
   (src_led, sink_led) <- channel
