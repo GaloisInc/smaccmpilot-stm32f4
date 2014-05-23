@@ -8,6 +8,7 @@ module I2CTest where
 import Ivory.Language
 import Ivory.Tower
 
+import Ivory.BSP.STM32F4.Init
 import Ivory.BSP.STM32F4.GPIO
 import Ivory.BSP.STM32F4.RCC
 import Ivory.BSP.STM32F4.Signalable
@@ -18,6 +19,8 @@ import Platforms
 
 app ::  forall p . (ColoredLEDs p, BoardHSE p, STM32F4Signal p) => Tower p ()
 app = do
+  stm32f4InitTower
+
   (req, res) <- i2cTower i2c1 pinB6 pinB7
 
   task "simplecontroller" $ do

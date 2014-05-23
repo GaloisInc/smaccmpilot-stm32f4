@@ -8,6 +8,7 @@ module SPITest where
 import Ivory.Language
 import Ivory.Tower
 
+import Ivory.BSP.STM32F4.Init
 import Ivory.BSP.STM32F4.GPIO
 import Ivory.BSP.STM32F4.RCC
 import Ivory.BSP.STM32F4.Signalable
@@ -42,6 +43,8 @@ testdevice2 = SPIDevice
 
 app ::  forall p . (ColoredLEDs p, BoardHSE p, STM32F4Signal p) => Tower p ()
 app = do
+  stm32f4InitTower
+
   (req, res) <- spiTower [testdevice1, testdevice2]
 
   task "simplecontroller" $ do

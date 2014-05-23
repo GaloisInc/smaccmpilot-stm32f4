@@ -75,9 +75,8 @@ blink per outSource = do
     emitV_ outEmitter ((toIMilliseconds time) .% (2*p) <? p)
   where p = fromIntegral per
 
-blinkApp :: (BoardHSE p) => Integer -> [LED] -> Tower p ()
+blinkApp :: Integer -> [LED] -> Tower p ()
 blinkApp period pins = do
-  stm32f4InitTower
   (src_led, sink_led) <- channel
   task "blink"  $ blink         period src_led
   task "ledhw"  $ ledController pins   sink_led

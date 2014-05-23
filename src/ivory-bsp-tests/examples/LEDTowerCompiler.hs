@@ -4,6 +4,7 @@
 import           Ivory.Language
 import           Ivory.Tower.Frontend
 import           Ivory.BSP.STM32.BoardHSE
+import           Ivory.BSP.STM32F4.Init
 import qualified Ivory.HW.SearchDir as HW
 import qualified Ivory.BSP.STM32.SearchDir as BSP
 
@@ -13,7 +14,9 @@ import LEDTower (blinkApp)
 import Platforms
 
 app :: forall p . (BoardHSE p, ColoredLEDs p) => Tower p ()
-app = blinkApp period leds
+app = do
+  stm32f4InitTower
+  blinkApp period leds
   where
   period = 250
   leds = [redLED p, blueLED p]

@@ -14,6 +14,7 @@ import Ivory.Tower
 import Platforms
 import LEDTower
 
+import Ivory.BSP.STM32F4.Init
 import Ivory.BSP.STM32F4.GPIO
 import Ivory.BSP.STM32F4.UART
 import Ivory.BSP.STM32F4.UART.Tower
@@ -118,6 +119,8 @@ gpioOn p = do
 
 app :: forall p . (ColoredLEDs p, BoardHSE p, STM32F4Signal p) => Tower p ()
 app = do
+  stm32f4InitTower
+
   -- XXX doesn't uartTower return source, sink in the wrong pairing?
 
 --  uart3streams <- uartTower uart3 57600 (Proxy :: Proxy 256)

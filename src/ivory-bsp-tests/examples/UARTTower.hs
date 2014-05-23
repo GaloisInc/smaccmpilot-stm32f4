@@ -14,6 +14,7 @@ import Ivory.Tower
 import Platforms
 import LEDTower
 
+import Ivory.BSP.STM32F4.Init
 import Ivory.BSP.STM32F4.UART
 import Ivory.BSP.STM32F4.UART.Tower
 import Ivory.BSP.STM32F4.RCC
@@ -23,13 +24,14 @@ import Ivory.BSP.STM32F4.Signalable
 
 app :: forall p . (ColoredLEDs p, BoardHSE p, STM32F4Signal p) => Tower p ()
 app = do
+  stm32f4InitTower
   -- Starts two tasks: a blink task and a controller task.  Periodically blink
   -- the blue LED.
   blinkApp period [blue]
   -- A new queue
   redledctl <- channel
   -- Starts a UART (serial) task
-  (istream, ostream) <- uartTower uart1 115200 (Proxy :: Proxy 256)
+  (istream, ostream) <- uartTower uart5 115200 (Proxy :: Proxy 256)
   -- Start the task defined below
   echoPrompt "hello world" ostream istream (src redledctl)
   -- A task that takes control input (Boolean) from the echo prompt and controls
