@@ -18,11 +18,36 @@ import Ivory.BSP.STM32F4.MemoryMap (rcc_periph_base)
 
 import Ivory.BSP.STM32F4.RCC.RegTypes
 
+
 -- This driver is, for now, incomplete: it only covers the config register and
 -- peripheral clock enable registers, and leaves out the various other system
 -- clock, peripheral reset, and peripheral clock low power mode registers which
 -- we have no use for at the moment.
 
+-- Control Register ------------------------------------------------------------
+
+[bitdata|
+ bitdata RCC_CR :: Bits 32 = rcc_cr
+  { _                 :: Bits 4
+  , rcc_cr_plli2s_rdy :: Bit
+  , rcc_cr_plli2s_on  :: Bit
+  , rcc_cr_pll_rdy    :: Bit
+  , rcc_cr_pll_on     :: Bit
+  , _                 :: Bits 4
+  , rcc_cr_css_on     :: Bit
+  , rcc_cr_hse_byp    :: Bit
+  , rcc_cr_hse_rdy    :: Bit
+  , rcc_cr_hse_on     :: Bit
+  , rcc_cr_hsical     :: Bits 8
+  , rcc_cr_hsitrim    :: Bits 5
+  , _                 :: Bit
+  , rcc_cr_hsi_rdy    :: Bit
+  , rcc_cr_hsi_on     :: Bit
+  }
+|]
+
+regRCC_CR :: BitDataReg RCC_CR
+regRCC_CR = mkBitDataRegNamed rcc_periph_base "rcc_cr"
 
 -- PLL Configuration Register --------------------------------------------------
 
@@ -63,6 +88,40 @@ regRCC_PLLCFGR = mkBitDataRegNamed (rcc_periph_base + 0x04) "rcc_pllcfgr"
 
 regRCC_CFGR :: BitDataReg RCC_CFGR
 regRCC_CFGR = mkBitDataRegNamed (rcc_periph_base + 0x08) "rcc_cfgr"
+
+-- Clock Configuration Register ------------------------------------------------
+
+[bitdata|
+ bitdata RCC_CIR :: Bits 32 = rcc_cir
+  { _                    :: Bits 8
+  , rcc_cir_cssc         :: Bit
+  , _                    :: Bit
+  , rcc_cir_plli2s_rdyc  :: Bit
+  , rcc_cir_pll_rdyc     :: Bit
+  , rcc_cir_hse_rdyc     :: Bit
+  , rcc_cir_hsi_rdyc     :: Bit
+  , rcc_cir_lse_rdyc     :: Bit
+  , rcc_cir_lsi_rdyc     :: Bit
+  , _                    :: Bits 2
+  , rcc_cir_plli2s_rdyie :: Bit
+  , rcc_cir_pll_rdyie    :: Bit
+  , rcc_cir_hse_rdyie    :: Bit
+  , rcc_cir_hsi_rdyie    :: Bit
+  , rcc_cir_lse_rdyie    :: Bit
+  , rcc_cir_lsi_rdyie    :: Bit
+  , rcc_cir_cssf         :: Bit
+  , _                    :: Bit
+  , rcc_cir_plli2s_rdyf  :: Bit
+  , rcc_cir_pll_rdyf     :: Bit
+  , rcc_cir_hse_rdyf     :: Bit
+  , rcc_cir_hsi_rdyf     :: Bit
+  , rcc_cir_lse_rdyf     :: Bit
+  , rcc_cir_lsi_rdyf     :: Bit
+  }
+|]
+
+regRCC_CIR :: BitDataReg RCC_CIR
+regRCC_CIR = mkBitDataRegNamed (rcc_periph_base + 0x0c) "rcc_cir"
 
 
 -- AHB Peripheral Clock Enable Registers ---------------------------------------

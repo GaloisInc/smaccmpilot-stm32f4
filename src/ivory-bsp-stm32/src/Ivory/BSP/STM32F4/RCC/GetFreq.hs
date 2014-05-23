@@ -46,6 +46,7 @@ sysClkSource p sws = foldl aux (return hsiFreq) tbl
               ,(rcc_sysclk_pll, pllSysClk p)
               ]
 
+-- XXX we can probably make this totally static now
 pllSysClk :: (BoardHSE p) => Proxy p -> Ivory eff Uint32
 pllSysClk p = do
   pllcfgr <- getReg regRCC_PLLCFGR
@@ -114,6 +115,7 @@ divideHPRE hpre n = n `iDiv` divisor
         ,(rcc_hpre_div512, 512)
         ]
 
+-- XXX we can probably make all use sites of this static now
 dividePPREx :: RCC_PPREx -> Uint32 -> Ivory eff Uint32
 dividePPREx pprex n = do
   d <- assign divisor
