@@ -12,7 +12,10 @@ module Ivory.BSP.STM32F4.RCC (
 
   -- * system clock frequency
   , PClk(..)
-  , BoardHSE(..)
+
+  , BoardHSE(..) -- XXX eventaully extract these two
+  , hseFreq
+
   , getFreqSysClk
   , getFreqHClk
   , getFreqPClk1
@@ -20,6 +23,7 @@ module Ivory.BSP.STM32F4.RCC (
   , getFreqPClk
 ) where
 
+import Ivory.BSP.STM32.BoardHSE
 import Ivory.BSP.STM32F4.RCC.Class
 import Ivory.BSP.STM32F4.RCC.Regs
 import Ivory.BSP.STM32F4.RCC.RegTypes

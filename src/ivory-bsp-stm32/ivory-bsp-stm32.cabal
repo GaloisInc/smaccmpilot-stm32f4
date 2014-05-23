@@ -18,6 +18,7 @@ library
                        Ivory.BSP.ARMv7M.MemoryMap,
                        Ivory.BSP.ARMv7M.SystemControl.NVIC,
 
+                       Ivory.BSP.STM32.BoardHSE,
                        Ivory.BSP.STM32.SearchDir,
 
                        Ivory.BSP.STM32F4.MemoryMap,

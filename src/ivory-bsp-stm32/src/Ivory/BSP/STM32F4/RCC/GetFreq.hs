@@ -18,11 +18,10 @@ import Ivory.Stdlib
 import Ivory.BitData
 import Ivory.HW
 
+import Ivory.BSP.STM32.BoardHSE
+
 import Ivory.BSP.STM32F4.RCC.RegTypes
 import Ivory.BSP.STM32F4.RCC.Regs
-
-class BoardHSE p where
-  hseFreq :: Proxy p -> Uint32
 
 eqBits :: (BitData a) => a -> a -> IBool
 eqBits l r = (toBits l) ==? (toBits r)
