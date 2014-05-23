@@ -28,7 +28,7 @@ stm32f4InitModule platform = package "stm32f4_ivory_init" $ do
     incl (init_clocks platform)
     incl init_relocate
     incl init_libc
-    incl main
+    incl main_proc
 
 stm32f4InitTower :: forall p . (BoardHSE p) => Tower p ()
 stm32f4InitTower = do
@@ -47,15 +47,15 @@ init_relocate = externProc "init_relocate"
 init_libc :: Def('[]:->())
 init_libc = externProc "init_libc"
 
-main :: Def('[]:->())
-main = externProc "main"
+main_proc :: Def('[]:->())
+main_proc = externProc "main"
 
 reset_handler :: (BoardHSE p) => Proxy p => Def('[]:->())
 reset_handler platform = proc (exceptionHandlerName Reset) $ body $ do
   call_ init_relocate
   call_ (init_clocks platform)
   call_ init_libc
-  call_ main
+  call_ main_proc
 
 init_clocks :: (BoardHSE p) => Proxy p -> Def('[]:->())
 init_clocks platform = proc "init_clocks" $ body $ do
