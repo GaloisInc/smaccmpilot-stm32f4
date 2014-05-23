@@ -15,9 +15,9 @@ import Ivory.BSP.STM32F4.GPIO
 import Ivory.BSP.STM32F4.SPI.Peripheral
 import Ivory.BSP.STM32F4.Signalable
 
-f24MHz :: Uint32
+f24MHz :: Integer
 f24MHz = 24000000
-f8MHz :: Uint32
+f8MHz :: Integer
 f8MHz = 8000000
 
 data PX4FMU17_IOAR = PX4FMU17_IOAR
@@ -46,19 +46,19 @@ fmu17MPU6k = SPIDevice
   }
 
 instance BoardHSE PX4FMU17_IOAR where
-  hseFreq _ = f24MHz
+  hseFreqHz _ = f24MHz
 instance MPU6kPlatform PX4FMU17_IOAR where
   consoleUart _ = uart1
   mpu6000Device _ = fmu17MPU6k
 
 instance BoardHSE PX4FMU17_Bare where
-  hseFreq _ = f24MHz
+  hseFreqHz _ = f24MHz
 instance MPU6kPlatform PX4FMU17_Bare where
   consoleUart _ = uart1
   mpu6000Device _ = fmu17MPU6k
 
 instance BoardHSE Open407VC where
-  hseFreq _ = f8MHz
+  hseFreqHz _ = f8MHz
 instance MPU6kPlatform Open407VC where
   consoleUart _ = uart1
   mpu6000Device _ = fmu17MPU6k -- XXX debug device?

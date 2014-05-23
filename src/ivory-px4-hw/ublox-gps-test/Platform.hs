@@ -13,9 +13,9 @@ import Ivory.BSP.STM32F4.RCC
 import Ivory.BSP.STM32F4.UART
 import Ivory.BSP.STM32F4.Signalable
 
-f24MHz :: Uint32
+f24MHz :: Integer
 f24MHz = 24000000
-f8MHz :: Uint32
+f8MHz :: Integer
 f8MHz = 8000000
 
 data PX4FMU17_IOAR = PX4FMU17_IOAR
@@ -33,25 +33,25 @@ class GPSUart p where
   gpsUart     :: Proxy p -> UART
 
 instance BoardHSE PX4FMU17_IOAR where
-  hseFreq _ = f24MHz
+  hseFreqHz _ = f24MHz
 instance GPSUart PX4FMU17_IOAR where
   consoleUart _ = uart1
   gpsUart _ = uart6
 
 instance BoardHSE PX4FMU17_Bare where
-  hseFreq _ = f24MHz
+  hseFreqHz _ = f24MHz
 instance GPSUart PX4FMU17_Bare where
   consoleUart _ = uart1
   gpsUart _ = uart6
 
 instance BoardHSE Open407VC where
-  hseFreq _ = f8MHz
+  hseFreqHz _ = f8MHz
 instance GPSUart Open407VC where
   consoleUart _ = uart1
   gpsUart _ = uart2
 
 instance BoardHSE PX4FMU24 where
-  hseFreq _ = f24MHz
+  hseFreqHz _ = f24MHz
 instance GPSUart PX4FMU24 where
   consoleUart _ = uart1
   gpsUart _ = uart3

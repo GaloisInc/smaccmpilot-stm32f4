@@ -13,8 +13,8 @@ stm32f4SignalableInstance ''PX4FMU17_IOAR
 stm32f4SignalableInstance ''PX4FMU17_Bare
 
 instance BoardHSE PX4FMU17_IOAR where
-  hseFreq _ = 24000000
+  hseFreqHz _ = 24000000
 
 instance BoardHSE PX4FMU17_Bare where
-  hseFreq _ = 24000000
+  hseFreqHz _ = 24000000
 

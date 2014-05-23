@@ -17,9 +17,9 @@ class ColoredLEDs p where
   redLED  :: Proxy p -> LED
   blueLED :: Proxy p -> LED
 
-f24MHz :: Uint32
+f24MHz :: Integer
 f24MHz = 24000000
-f8MHz :: Uint32
+f8MHz :: Integer
 f8MHz = 8000000
 
 ---------- PX4FMUv17 ----------------------------------------------------------
@@ -32,7 +32,7 @@ instance ColoredLEDs PX4FMUv17 where
 stm32f4SignalableInstance ''PX4FMUv17
 
 instance BoardHSE PX4FMUv17 where
-  hseFreq _ = f24MHz
+  hseFreqHz _ = f24MHz
 
 ---------- PX4FMUv24 ----------------------------------------------------------
 data PX4FMUv24 = PX4FMUv24
@@ -44,7 +44,7 @@ instance ColoredLEDs PX4FMUv24 where
 stm32f4SignalableInstance ''PX4FMUv24
 
 instance BoardHSE PX4FMUv24 where
-  hseFreq _ = f24MHz
+  hseFreqHz _ = f24MHz
 
 ---------- F4Discovery --------------------------------------------------------
 data F4Discovery = F4Discovery
@@ -56,7 +56,7 @@ instance ColoredLEDs F4Discovery where
   blueLED _ = LED pinD15 ActiveHigh
 
 instance BoardHSE F4Discovery where
-  hseFreq _ = f8MHz
+  hseFreqHz _ = f8MHz
 
 ---------- Open407VC ----------------------------------------------------------
 data Open407VC = Open407VC
@@ -68,7 +68,7 @@ instance ColoredLEDs Open407VC where
   blueLED _ = LED pinD13 ActiveHigh
 
 instance BoardHSE Open407VC where
-  hseFreq _ = f8MHz
+  hseFreqHz _ = f8MHz
 
 
 --------- Platform lookup by name ---------------------------------------------

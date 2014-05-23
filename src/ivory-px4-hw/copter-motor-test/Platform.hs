@@ -15,7 +15,7 @@ import Ivory.BSP.STM32F4.Signalable
 import qualified SMACCMPilot.Hardware.PX4IOAR as IOAR
 import qualified SMACCMPilot.Hardware.PX4FMU17 as Bare
 
-f24MHz :: Uint32
+f24MHz :: Integer
 f24MHz = 24000000
 
 class RawMotorControl p where
@@ -31,13 +31,13 @@ instance RawMotorControl PX4FMU17_IOAR where
   rawMotorControl = IOAR.motorControlTower cpystack
 
 instance BoardHSE PX4FMU17_IOAR where
-  hseFreq _ = f24MHz
+  hseFreqHz _ = f24MHz
 
 instance RawMotorControl PX4FMU17_Bare where
   rawMotorControl = Bare.motorControlTower cpystack
 
 instance BoardHSE PX4FMU17_Bare where
-  hseFreq _ = f24MHz
+  hseFreqHz _ = f24MHz
 
 cpystack :: ConstRef s (Array 4 (Stored IFloat))
          -> Ivory (AllocEffects cs)
