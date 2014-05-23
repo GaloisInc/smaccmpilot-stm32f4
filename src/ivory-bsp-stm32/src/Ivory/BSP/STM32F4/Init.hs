@@ -15,24 +15,25 @@ import Ivory.BSP.ARMv7M.Exception
 import Ivory.BSP.STM32F4.VectorTable
 import Ivory.BSP.STM32F4.RCC
 import Ivory.BSP.STM32F4.PWR
+import Ivory.BSP.STM32F4.Flash
 
-stm32f4InitModule :: Module
-stm32f4InitModule = package "stm32f4_ivory_init" $ do
+stm32f4InitModule :: (BoardHSE p) => Proxy p -> Module
+stm32f4InitModule platform = package "stm32f4_ivory_init" $ do
   inclHeader "stm32f4_init.h"
   sourceDep  "stm32f4_init.h"
   sourceDep  "stm32f4_init.c"
-  incl reset_handler
+  incl (reset_handler platform)
   hw_moduledef
   private $ do
-    incl init_clocks
+    incl (init_clocks platform)
     incl init_relocate
     incl init_libc
     incl main
 
-stm32f4InitTower :: Tower p ()
+stm32f4InitTower :: forall p . (BoardHSE p) => Tower p ()
 stm32f4InitTower = do
   towerArtifact vectorArtifact
-  towerModule stm32f4InitModule
+  towerModule (stm32f4InitModule (Proxy :: Proxy p))
   where
   vectorArtifact = Artifact
     { artifact_filepath = "stm32f4_vectors.s"
@@ -49,15 +50,15 @@ init_libc = externProc "init_libc"
 main :: Def('[]:->())
 main = externProc "main"
 
-reset_handler :: Def('[]:->())
-reset_handler = proc (exceptionHandlerName Reset) $ body $ do
+reset_handler :: (BoardHSE p) => Proxy p => Def('[]:->())
+reset_handler platform = proc (exceptionHandlerName Reset) $ body $ do
   call_ init_relocate
-  call_ init_clocks
+  call_ (init_clocks platform)
   call_ init_libc
   call_ main
 
-init_clocks :: Def('[]:->())
-init_clocks = proc "init_clocks" $ body $ do
+init_clocks :: (BoardHSE p) => Proxy p -> Def('[]:->())
+init_clocks platform = proc "init_clocks" $ body $ do
   -- RCC clock config to default reset state
   --   RCC->CR |= 0x01
   --   RCC->CFGR = 0
@@ -144,23 +145,44 @@ init_clocks = proc "init_clocks" $ body $ do
   --                PLL_N = 336
   --                PLL_P = 2
   --                PLL_Q = 7
+  modifyReg regRCC_PLLCFGR $ do
+    let m = fromIntegral ((hseFreqHz platform) `div` 1000000)
+        n = 336
+        p = 2
+        q = 7
+    setField rcc_pllcfgr_pllm (fromRep m)
+    setField rcc_pllcfgr_plln (fromRep n)
+    setField rcc_pllcfgr_pllp (fromRep p)
+    setField rcc_pllcfgr_pllq (fromRep q)
+
   -- Enable main PLL:
   --   RCC->CR |= PLLON
-
+  modifyReg regRCC_CR $ setBit rcc_cr_pll_on
   -- Spin until RCC->CR PLLRDY bit is high
+  forever $ do
+    cr <- getReg regRCC_CR
+    when (bitToBool (cr #. rcc_cr_pll_rdy)) $ breakOut
 
-  -- Configure flash prefetch, instruction cache, data cache, wait state
-  --   FLASH->ACR = ICEN | DCEN | LATENCY_5WS
+  -- Configure flash prefetch, instruction cache, data cache, wait state 5
+  modifyReg regFLASH_ACR $ do
+    setBit flash_acr_ic_en
+    setBit flash_acr_dc_en
+    setField flash_acr_latency (fromRep 5)
 
   -- Select main PLL as system clock source
-  --   RCC->CFGR clear SW field (set to zero)
-  --   RCC->CFGR set SW to PLL
+  modifyReg regRCC_CFGR $ do
+    setField rcc_cfgr_sw rcc_sysclk_pll
 
   -- Spin until main PLL is ready:
   --   while (RCC->CFGR SWS field != SW_PLL);
+  forever $ do
+    cfgr <- getReg regRCC_CFGR
+    when ((cfgr #. rcc_cfgr_sws) ==? rcc_sysclk_pll) $ breakOut
 
   -- Set vector table location
   --   SCB->VTOR = (intptr_t)(&g_vectors[0])
+  -- XXX is this actually needed? bootloader should have taken care of it. we
+  -- didn't relocate it.
 
 
 
