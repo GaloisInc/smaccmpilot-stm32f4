@@ -65,6 +65,8 @@ library
                        Ivory.BSP.STM32F4.PWR,
                        Ivory.BSP.STM32F4.PWR.Regs,
                        Ivory.BSP.STM32F4.PWR.RegTypes,
+                       Ivory.BSP.STM32F4.Flash,
+                       Ivory.BSP.STM32F4.Flash.Regs,
                        Ivory.BSP.STM32F4.Signalable,
                        Ivory.BSP.STM32F4.Signalable.Class,
                        Ivory.BSP.STM32F4.Init,
