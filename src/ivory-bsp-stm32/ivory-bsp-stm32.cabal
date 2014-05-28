@@ -21,6 +21,9 @@ library
                        Ivory.BSP.STM32.BoardHSE,
                        Ivory.BSP.STM32.SearchDir,
 
+                       Ivory.BSP.STM32.Peripheral.Flash.Peripheral,
+                       Ivory.BSP.STM32.Peripheral.Flash.Regs,
+
                        Ivory.BSP.STM32.Peripheral.GPIOF4.RegTypes,
                        Ivory.BSP.STM32.Peripheral.GPIOF4.Regs,
                        Ivory.BSP.STM32.Peripheral.GPIOF4.TH,
@@ -69,7 +72,6 @@ library
                        Ivory.BSP.STM32F405.PWR.Regs,
                        Ivory.BSP.STM32F405.PWR.RegTypes,
                        Ivory.BSP.STM32F405.Flash,
-                       Ivory.BSP.STM32F405.Flash.Regs,
                        Ivory.BSP.STM32F405.Signalable,
                        Ivory.BSP.STM32F405.Signalable.Class,
                        Ivory.BSP.STM32F405.Init,

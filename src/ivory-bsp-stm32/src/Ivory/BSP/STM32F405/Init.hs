@@ -149,7 +149,7 @@ init_clocks platform = proc "init_clocks" $ body $ do
     when (bitToBool (cr #. rcc_cr_pll_rdy)) $ breakOut
 
   -- Configure flash prefetch, instruction cache, data cache, wait state 5
-  modifyReg regFLASH_ACR $ do
+  modifyReg (flash_reg_acr flash) $ do
     setBit flash_acr_ic_en
     setBit flash_acr_dc_en
     setField flash_acr_latency (fromRep 5)

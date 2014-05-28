@@ -9,13 +9,9 @@
 -- All Rights Reserved.
 --
 
-module Ivory.BSP.STM32F405.Flash.Regs where
+module Ivory.BSP.STM32.Peripheral.Flash.Regs where
 
 import Ivory.BitData
-import Ivory.HW
-
-import Ivory.BSP.STM32F405.MemoryMap (flash_r_periph_base)
-
 
 -- Access Control Register ----------------------------------------------------
 
@@ -32,9 +28,6 @@ import Ivory.BSP.STM32F405.MemoryMap (flash_r_periph_base)
   }
 |]
 
-regFLASH_ACR :: BitDataReg FLASH_ACR
-regFLASH_ACR = mkBitDataRegNamed flash_r_periph_base "flash_acr"
-
 -- Key Register ----------------------------------------------------------------
 
 [bitdata|
@@ -43,9 +36,6 @@ regFLASH_ACR = mkBitDataRegNamed flash_r_periph_base "flash_acr"
   }
 |]
 
-regFLASH_KEYR :: BitDataReg FLASH_KEYR
-regFLASH_KEYR = mkBitDataRegNamed (flash_r_periph_base + 0x04) "flash_keyr"
-
 -- Option Key Register ---------------------------------------------------------
 
 [bitdata|
@@ -53,9 +43,6 @@ regFLASH_KEYR = mkBitDataRegNamed (flash_r_periph_base + 0x04) "flash_keyr"
   { flash_optkeyr_key     :: Bits 32
   }
 |]
-
-regFLASH_OPTKEYR :: BitDataReg FLASH_OPTKEYR
-regFLASH_OPTKEYR = mkBitDataRegNamed (flash_r_periph_base + 0x08) "flash_optkeyr"
 
 -- Status Register -------------------------------------------------------------
 
@@ -73,9 +60,6 @@ regFLASH_OPTKEYR = mkBitDataRegNamed (flash_r_periph_base + 0x08) "flash_optkeyr
   , flash_sr_eop     :: Bit
   }
 |]
-
-regFLASH_SR :: BitDataReg FLASH_SR
-regFLASH_SR = mkBitDataRegNamed (flash_r_periph_base + 0x0C) "flash_sr"
 
 -- Control Register ------------------------------------------------------------
 
@@ -97,9 +81,6 @@ regFLASH_SR = mkBitDataRegNamed (flash_r_periph_base + 0x0C) "flash_sr"
   }
 |]
 
-regFLASH_CR :: BitDataReg FLASH_CR
-regFLASH_CR = mkBitDataRegNamed (flash_r_periph_base + 0x10) "flash_cr"
-
 -- Option Control Register -----------------------------------------------------
 
 [bitdata|
@@ -117,5 +98,3 @@ regFLASH_CR = mkBitDataRegNamed (flash_r_periph_base + 0x10) "flash_cr"
   }
 |]
 
-regFLASH_optcr :: BitDataReg FLASH_CR
-regFLASH_optcr = mkBitDataRegNamed (flash_r_periph_base + 0x14) "flash_cr"
