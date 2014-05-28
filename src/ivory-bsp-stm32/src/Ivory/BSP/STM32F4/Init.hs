@@ -60,8 +60,6 @@ reset_handler platform = proc (exceptionHandlerName Reset) $ body $ do
 init_clocks :: (BoardHSE p) => Proxy p -> Def('[]:->())
 init_clocks platform = proc "init_clocks" $ body $ do
   -- RCC clock config to default reset state
-  --   RCC->CR |= 0x01
-  --   RCC->CFGR = 0
   modifyReg regRCC_CR $ setBit rcc_cr_hsi_on
   modifyReg regRCC_CFGR $ do
     setField rcc_cfgr_mco2     rcc_mcox_sysclk
@@ -76,14 +74,12 @@ init_clocks platform = proc "init_clocks" $ body $ do
     setField rcc_cfgr_sws      rcc_sysclk_hsi
 
   -- Reset HSEOn, CSSOn, PLLOn bits
-  --   RCC->CR &= etc
   modifyReg regRCC_CR $ do
     clearBit rcc_cr_hse_on
     clearBit rcc_cr_css_on
     clearBit rcc_cr_pll_on
 
   -- Reset PLLCFGR register
-  --   RCC->PLLCFGR = 0x24003010
   modifyReg regRCC_PLLCFGR $ do
     setField rcc_pllcfgr_pllq   (fromRep 2)
     setBit   rcc_pllcfgr_pllsrc
@@ -92,11 +88,9 @@ init_clocks platform = proc "init_clocks" $ body $ do
     setField rcc_pllcfgr_pllm   (fromRep 16)
 
   -- Reset HSEBYP bit
-  --   RCC->CR &= etc
   modifyReg regRCC_CR $ clearBit rcc_cr_hse_byp
 
   -- Disable all interrupts
-  --   RCC->CIR = 0x0
   modifyReg regRCC_CIR $ do
     clearBit rcc_cir_plli2s_rdyie
     clearBit rcc_cir_pll_rdyie
@@ -106,7 +100,6 @@ init_clocks platform = proc "init_clocks" $ body $ do
     clearBit rcc_cir_lsi_rdyie
 
   -- Enable HSE
-  --   RCC->CR |= RCC_CR_HSEON
   modifyReg regRCC_CR $ setBit rcc_cr_hse_on
 
   -- Spin for a little bit waiting for RCC->CR HSERDY bit to be high
@@ -125,38 +118,30 @@ init_clocks platform = proc "init_clocks" $ body $ do
     forever $ return ()
 
   -- Select regulator voltage output scale 1 mode, sys freq 168mhz
-  --   RCC->APB1ENR |= RCC_APB1ENR_PWREN
   modifyReg regRCC_APB1ENR $ setBit rcc_apb1en_pwr
-  --   PWR->CR |= PWR_CR_VOS
   modifyReg regPWR_CR $ setBit pwr_cr_vos
-  -- HCLK = SYSCLK div 1
-  -- PCLK2 = HCLK div 2
-  -- PCLK1 = HCLK div 4
+
+  -- Select bus clock dividers
+  -- HCLK  = SYSCLK
+  -- PCLK1 = SYSCLK div 4
+  -- PCLK2 = SYSCLK div 2
   modifyReg regRCC_CFGR $ do
     setField rcc_cfgr_hpre  rcc_hpre_none
-    setField rcc_cfgr_ppre2 rcc_pprex_div2
     setField rcc_cfgr_ppre1 rcc_pprex_div4
+    setField rcc_cfgr_ppre2 rcc_pprex_div2
 
   -- Configure main PLL:
-  --   RCC->PLLCFGR = PLL_M | PLL_N << 6 | ((PLL_P >> 1) -1) << 16 | PLLSRC_HSE
-  --                | PLL_Q << 24
-  --                where
-  --                PLL_M = HSE_FREQ / 1000000
-  --                PLL_N = 336
-  --                PLL_P = 2
-  --                PLL_Q = 7
   modifyReg regRCC_PLLCFGR $ do
-    let m = fromIntegral ((hseFreqHz platform) `div` 1000000)
-        n = 336
-        p = 2
-        q = 7
+    let m = fromIntegral ((hseFreqHz platform) `div` 1000000) -- base input 1mhz
+        n = 336 -- can be divided into 168 and 48
+        p = rcc_pllp_div2 -- m*n/p = 168 mhz pll sysclk
+        q = 7   -- m*n/q = 48  mhz pll 48clk
     setField rcc_pllcfgr_pllm (fromRep m)
     setField rcc_pllcfgr_plln (fromRep n)
-    setField rcc_pllcfgr_pllp (fromRep p)
+    setField rcc_pllcfgr_pllp p
     setField rcc_pllcfgr_pllq (fromRep q)
 
   -- Enable main PLL:
-  --   RCC->CR |= PLLON
   modifyReg regRCC_CR $ setBit rcc_cr_pll_on
   -- Spin until RCC->CR PLLRDY bit is high
   forever $ do
@@ -174,15 +159,8 @@ init_clocks platform = proc "init_clocks" $ body $ do
     setField rcc_cfgr_sw rcc_sysclk_pll
 
   -- Spin until main PLL is ready:
-  --   while (RCC->CFGR SWS field != SW_PLL);
   forever $ do
     cfgr <- getReg regRCC_CFGR
     when ((cfgr #. rcc_cfgr_sws) ==? rcc_sysclk_pll) $ breakOut
-
-  -- Set vector table location
-  --   SCB->VTOR = (intptr_t)(&g_vectors[0])
-  -- XXX is this actually needed? bootloader should have taken care of it. we
-  -- didn't relocate it.
-
 
 
