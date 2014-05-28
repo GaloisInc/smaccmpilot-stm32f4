@@ -19,6 +19,7 @@ library
                        Ivory.BSP.ARMv7M.SystemControl.NVIC,
 
                        Ivory.BSP.STM32.BoardHSE,
+                       Ivory.BSP.STM32.Platform,
                        Ivory.BSP.STM32.SearchDir,
 
                        Ivory.BSP.STM32.Peripheral.Flash.Peripheral,
@@ -34,6 +35,8 @@ library
                        Ivory.BSP.STM32.Peripheral.I2C.Tower,
                        Ivory.BSP.STM32.Peripheral.I2C.Tower.Types,
                        Ivory.BSP.STM32.Peripheral.I2C.Tower.Types.I2CDeviceAddr,
+
+                       Ivory.BSP.STM32F405.Platform,
                        Ivory.BSP.STM32F405.MemoryMap,
                        Ivory.BSP.STM32F405.Interrupt,
                        Ivory.BSP.STM32F405.Interrupt.API,
