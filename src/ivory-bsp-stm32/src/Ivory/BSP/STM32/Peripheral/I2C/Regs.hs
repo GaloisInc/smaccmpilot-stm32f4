@@ -9,7 +9,7 @@
 -- All Rights Reserved.
 --
 
-module Ivory.BSP.STM32F405.I2C.Regs where
+module Ivory.BSP.STM32.Peripheral.I2C.Regs where
 
 import Ivory.BitData
 

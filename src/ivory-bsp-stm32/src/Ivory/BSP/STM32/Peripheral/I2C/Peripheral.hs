@@ -10,7 +10,7 @@
 -- All Rights Reserved.
 --
 
-module Ivory.BSP.STM32F405.I2C.Peripheral where
+module Ivory.BSP.STM32.Peripheral.I2C.Peripheral where
 
 import Ivory.Language
 import Ivory.HW
@@ -21,7 +21,7 @@ import Ivory.BSP.STM32F405.GPIO
 import Ivory.BSP.STM32F405.MemoryMap
 import Ivory.BSP.STM32F405.RCC
 
-import Ivory.BSP.STM32F405.I2C.Regs
+import Ivory.BSP.STM32.Peripheral.I2C.Regs
 
 data I2CPeriph = I2CPeriph
   { i2cRegCR1      :: BitDataReg I2C_CR1
@@ -42,7 +42,7 @@ data I2CPeriph = I2CPeriph
   }
 
 mkI2CPeriph :: Integer -- Base
-            -> BitDataField RCC_APB1ENR Bit -- RCC Bit
+            -> BitDataField RCC_APB1ENR Bit -- RCC Bit -- XXX
             -> Interrupt -- event interrupt
             -> Interrupt -- error interrupt
             -> String -- Name

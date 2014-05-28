@@ -4,7 +4,7 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE TypeFamilies #-}
 
-module Ivory.BSP.STM32F405.I2C.Tower where
+module Ivory.BSP.STM32.Peripheral.I2C.Tower where
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -17,10 +17,10 @@ import Ivory.BitData
 import Ivory.BSP.STM32F405.GPIO
 import Ivory.BSP.STM32F405.RCC
 import Ivory.BSP.STM32F405.Signalable
-import Ivory.BSP.STM32F405.I2C.Regs
-import Ivory.BSP.STM32F405.I2C.Peripheral
-import Ivory.BSP.STM32F405.I2C.Tower.Types
-import Ivory.BSP.STM32F405.I2C.Tower.Types.I2CDeviceAddr
+import Ivory.BSP.STM32.Peripheral.I2C.Regs
+import Ivory.BSP.STM32.Peripheral.I2C.Peripheral
+import Ivory.BSP.STM32.Peripheral.I2C.Tower.Types
+import Ivory.BSP.STM32.Peripheral.I2C.Tower.Types.I2CDeviceAddr
 import Ivory.BSP.STM32F405.Interrupt
 
 
