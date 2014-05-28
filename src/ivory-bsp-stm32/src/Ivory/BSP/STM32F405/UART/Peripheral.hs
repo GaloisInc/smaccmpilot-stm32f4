@@ -45,10 +45,6 @@ data UART = UART
   , uartName       :: String
   }
 
-instance RCCDevice UART where
-  rccDeviceEnable  = uartRCCEnable
-  rccDeviceDisable = uartRCCDisable
-
 mkUART :: (BitData a, IvoryIOReg (BitDataRep a))
        => Integer
        -> BitDataReg a
@@ -154,7 +150,7 @@ uartInit :: (GetAlloc eff ~ Scope s, BoardHSE p)
          => UART -> Proxy p -> Uint32 -> Ivory eff ()
 uartInit uart platform baud = do
   -- Enable the peripheral clock and set up GPIOs.
-  rccDeviceEnable uart
+  uartRCCEnable uart
   initPin (uartPinTx uart) (uartPinAF uart)
   initPin (uartPinRx uart) (uartPinAF uart)
 
