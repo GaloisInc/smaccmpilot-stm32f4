@@ -71,7 +71,6 @@ library
                        filepath,
                        ivory,
                        ivory-stdlib,
-                       ivory-bitdata,
                        ivory-hw,
                        tower >= 0.8
 

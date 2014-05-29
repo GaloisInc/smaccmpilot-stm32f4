@@ -11,7 +11,6 @@ import Ivory.BSP.STM32F4.Interrupt.Types
 import Ivory.BSP.STM32F4.Interrupt.Regs
 
 import Ivory.Language
-import Ivory.BitData
 import Ivory.HW
 
 ----------------------------------------------------------------------

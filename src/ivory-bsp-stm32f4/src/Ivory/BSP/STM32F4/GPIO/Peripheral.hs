@@ -16,7 +16,7 @@
 module Ivory.BSP.STM32F4.GPIO.Peripheral where
 
 import Ivory.Language
-import Ivory.BitData
+
 import Ivory.HW
 
 import Ivory.BSP.STM32F4.GPIO.RegTypes

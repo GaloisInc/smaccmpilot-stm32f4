@@ -11,9 +11,9 @@
 
 module Ivory.BSP.STM32F4.GPIO.RegTypes where
 
-import Ivory.BitData
+import Ivory.Language
 
-[bitdata|
+[ivory|
  bitdata GPIO_Mode :: Bits 2
   = gpio_mode_input   as 0
   | gpio_mode_output  as 1

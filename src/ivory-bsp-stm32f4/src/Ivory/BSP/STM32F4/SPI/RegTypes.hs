@@ -11,9 +11,9 @@
 
 module Ivory.BSP.STM32F4.SPI.RegTypes where
 
-import Ivory.BitData
+import Ivory.Language
 
-[bitdata|
+[ivory|
  bitdata SPIBaud :: Bits 3
    = spi_baud_div_2   as 0
    | spi_baud_div_4   as 1

@@ -10,7 +10,7 @@ module SMACCMPilot.Hardware.PX4FMU17.MotorControl
 import Ivory.Language
 import Ivory.HW
 import Ivory.HW.Module
-import Ivory.BitData
+
 import Ivory.Tower
 
 import Ivory.BSP.STM32F4.GTIM2345

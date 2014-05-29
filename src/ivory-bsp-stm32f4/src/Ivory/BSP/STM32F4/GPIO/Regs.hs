@@ -11,13 +11,13 @@
 
 module Ivory.BSP.STM32F4.GPIO.Regs where
 
-import Ivory.BitData
 
+import Ivory.Language
 import Ivory.BSP.STM32F4.GPIO.RegTypes
 
 -- As this modules shows, having arrays of bit fields in bit data
 -- definitions would be a useful addition.
-[bitdata|
+[ivory|
  bitdata GPIO_MODER :: Bits 32 = gpio_moder
   { gpio_mode_15  :: GPIO_Mode
   , gpio_mode_14  :: GPIO_Mode

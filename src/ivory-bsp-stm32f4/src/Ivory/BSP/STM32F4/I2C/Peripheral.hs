@@ -14,7 +14,7 @@ module Ivory.BSP.STM32F4.I2C.Peripheral where
 
 import Ivory.Language
 import Ivory.HW
-import Ivory.BitData
+
 
 import Ivory.BSP.STM32F4.Interrupt
 import Ivory.BSP.STM32F4.GPIO

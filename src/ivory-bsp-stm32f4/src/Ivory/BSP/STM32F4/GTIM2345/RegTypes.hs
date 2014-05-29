@@ -11,10 +11,10 @@
 
 module Ivory.BSP.STM32F4.GTIM2345.RegTypes where
 
-import Ivory.BitData
+import Ivory.Language
 
 -- Compare Mode bit field definitions:
-[bitdata|
+[ivory|
  bitdata CCMRMode :: Bits 3
    = ccmr_mode_frzn     as 0
    | ccmr_mode_chact    as 1
@@ -27,7 +27,7 @@ import Ivory.BitData
 |]
 
 -- Capture/Compare Selection bit field definitions:
-[bitdata|
+[ivory|
  bitdata CCSMode :: Bits 2
    = ccs_mode_out   as 0
    | ccs_mode_in1   as 1

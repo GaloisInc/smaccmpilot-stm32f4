@@ -13,7 +13,7 @@ module Ivory.BSP.STM32F4.Interrupt.Regs where
 
 import Data.Bits ((.&.), shiftR)
 import Ivory.Language
-import Ivory.BitData
+
 import Ivory.HW
 
 import Ivory.BSP.STM32F4.MemoryMap
@@ -22,7 +22,7 @@ import Ivory.BSP.STM32F4.Interrupt.Types
 ----------------------------------------------------------------------
 -- NVIC Registers
 
-[bitdata|
+[ivory|
   bitdata NVIC_ISER :: Bits 32 = nvic_iser
     { nvic_iser_setena :: BitArray 32 Bit }
 

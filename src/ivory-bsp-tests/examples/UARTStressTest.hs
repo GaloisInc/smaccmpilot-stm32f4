@@ -5,14 +5,11 @@
 
 module UARTStressTest where
 
-import Data.Char (ord)
-
 import Ivory.Language
 import Ivory.Stdlib
 import Ivory.Tower
 
 import Platforms
-import LEDTower
 
 import Ivory.BSP.STM32F4.GPIO
 import Ivory.BSP.STM32F4.UART
@@ -45,10 +42,10 @@ pollingLoopback :: ChannelSource (Stored Uint8)
                 -> String
                 -> Uint8
                 -> Tower p ()
-pollingLoopback src snk handlepin n correctval = task (named "pollingLoopback") $ do
+pollingLoopback src' snk' handlepin n correctval = task (named "pollingLoopback") $ do
   timer <- withPeriodicEvent (Milliseconds 1)
-  out <- withChannelEmitter  src "out"
-  inp <- withChannelReceiver snk "in"
+  out <- withChannelEmitter  src' "out"
+  inp <- withChannelReceiver snk' "in"
 
   success <- taskLocalInit (named "success") (ival (0 :: Uint32))
   state   <- taskLocalInit (named "state")   (ival ready)

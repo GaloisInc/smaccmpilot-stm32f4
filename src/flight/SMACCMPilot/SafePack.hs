@@ -1,6 +1,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+
 --
 -- SafePack.hs --- Checked binary packing/unpacking.
 --
@@ -24,10 +25,9 @@ module SMACCMPilot.SafePack (
 
 import Ivory.Language
 import MonadLib hiding (local)
-
+import Control.Applicative
 import SMACCMPilot.Mavlink.Pack
 
-import Control.Applicative
 
 -- TODO: We probably need a "skip" function that adjusts the offset in
 -- PackM/UnpackM in case we want to skip fields.
@@ -53,13 +53,17 @@ newtype PackM eff a =
                   (Ivory eff)) a)
   }
 
+
+instance Functor (PackM eff) where
+  fmap f (PackM x) = PackM (fmap f x)
+
+instance Applicative (PackM eff) where
+  pure x  = PackM (pure x)
+  (PackM f) <*> (PackM x) = PackM (f <*> x)
+
 instance Monad (PackM eff) where
   return x = PackM (return x)
   (PackM m) >>= f = PackM (m >>= runPackM . f)
-
--- instance Applicative (PackM eff) where
---   pure x  = PackM (pure x)
---   f <*> x = PackM (f <*> x)
 
 instance MonadIvory PackM where
   liftI m = PackM (lift (lift m))
@@ -132,16 +136,19 @@ newtype UnpackM eff a =
                     (Ivory eff)) a)
   }
 
+instance Functor (UnpackM eff) where
+  fmap f (UnpackM x) = UnpackM (fmap f x)
+
+instance Applicative (UnpackM eff) where
+  pure x  = UnpackM (pure x)
+  (UnpackM f) <*> (UnpackM x) = UnpackM (f <*> x)
+
 instance Monad (UnpackM eff) where
   return x = UnpackM (return x)
   (UnpackM m) >>= f = UnpackM (m >>= runUnpackM . f)
 
 instance MonadIvory UnpackM where
   liftI m = UnpackM (lift (lift m))
-
--- instance Applicative (UnpackM eff) where
---   pure x   = UnpackM (pure x)
---   f <*> x  = UnpackM (f <*> x)
 
 -- | Unpack a value from the array stored in the context established
 -- by "unpackFrom" into a reference.  An error will be thrown at code

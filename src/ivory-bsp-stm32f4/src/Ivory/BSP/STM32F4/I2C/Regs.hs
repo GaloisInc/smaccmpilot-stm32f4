@@ -11,12 +11,12 @@
 
 module Ivory.BSP.STM32F4.I2C.Regs where
 
-import Ivory.BitData
+import Ivory.Language
 
 ----------------------------------------------------------------------
 -- I2C Registers
 
-[bitdata|
+[ivory|
  bitdata I2C_CR1 :: Bits 16 = i2c_cr1
    { i2c_cr1_swrst      :: Bit
    , _                  :: Bit

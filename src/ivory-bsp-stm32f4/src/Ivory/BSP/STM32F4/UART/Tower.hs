@@ -14,7 +14,7 @@ import Ivory.Tower
 import Ivory.Tower.Signal (withUnsafeSignalEvent)
 import Ivory.HW
 import Ivory.HW.Module
-import Ivory.BitData
+
 
 import Ivory.BSP.STM32F4.Signalable
 import Ivory.BSP.STM32F4.UART.Regs

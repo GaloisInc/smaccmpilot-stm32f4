@@ -11,10 +11,10 @@
 
 module Ivory.BSP.STM32F4.GTIM2345.Regs where
 
-import Ivory.BitData
+import Ivory.Language
 import Ivory.BSP.STM32F4.GTIM2345.RegTypes
 
-[bitdata|
+[ivory|
  bitdata GTIM_CR1 :: Bits 32 = gtim_cr1
   { _             :: Bits 22
   , gtim_cr1_ckd  :: Bits 2
@@ -28,7 +28,7 @@ import Ivory.BSP.STM32F4.GTIM2345.RegTypes
   }
 |]
 
-[bitdata|
+[ivory|
  bitdata GTIM_CR2 :: Bits 32 = gtim_cr2
   { _             :: Bits 25
   , gtim_cr2_ti1s :: Bit
@@ -38,7 +38,7 @@ import Ivory.BSP.STM32F4.GTIM2345.RegTypes
   }
 |]
 
-[bitdata|
+[ivory|
  bitdata GTIM_SMCR  :: Bits 32 = gtim_smcr
   { _               :: Bits 16
   , gtim_smcr_etp   :: Bit
@@ -52,7 +52,7 @@ import Ivory.BSP.STM32F4.GTIM2345.RegTypes
   }
 |]
 
-[bitdata|
+[ivory|
  bitdata GTIM_DIER  :: Bits 32 = gtim_dier
   { _               :: Bits 17
   , gtim_dier_tde   :: Bit
@@ -73,7 +73,7 @@ import Ivory.BSP.STM32F4.GTIM2345.RegTypes
   }
 |]
 
-[bitdata|
+[ivory|
  bitdata GTIM_SR    :: Bits 32 = gtim_sr
   { _               :: Bits 19
   , gtim_sr_cc4of   :: Bit
@@ -91,7 +91,7 @@ import Ivory.BSP.STM32F4.GTIM2345.RegTypes
   }
 |]
 
-[bitdata|
+[ivory|
  bitdata GTIM_EGR   :: Bits 32 = gtim_egr
   { _               :: Bits 25
   , gtim_egr_tg     :: Bit
@@ -104,7 +104,7 @@ import Ivory.BSP.STM32F4.GTIM2345.RegTypes
   }
 |]
 
-[bitdata|
+[ivory|
  bitdata GTIM_CCMR1_OCM    :: Bits 32 = gtim_ccmr1_ocm
   { _                      :: Bits 16
   , gtim_ccmr1_ocm_oc2ce   :: Bit
@@ -120,7 +120,7 @@ import Ivory.BSP.STM32F4.GTIM2345.RegTypes
   }
 |]
 
-[bitdata|
+[ivory|
  bitdata GTIM_CCMR1_ICM    :: Bits 32 = gtim_ccmr1_icm
   { _                      :: Bits 16
   , gtim_ccmr1_icm_ic2f    :: Bits 4
@@ -132,7 +132,7 @@ import Ivory.BSP.STM32F4.GTIM2345.RegTypes
   }
 |]
 
-[bitdata|
+[ivory|
  bitdata GTIM_CCMR2_OCM    :: Bits 32 = gtim_ccmr2_ocm
   { _                      :: Bits 16
   , gtim_ccmr2_ocm_oc4ce   :: Bit
@@ -148,7 +148,7 @@ import Ivory.BSP.STM32F4.GTIM2345.RegTypes
   }
 |]
 
-[bitdata|
+[ivory|
  bitdata GTIM_CCMR2_ICM    :: Bits 32 = gtim_ccmr2_icm
   { _                      :: Bits 16
   , gtim_ccmr2_icm_ic4f    :: Bits 4
@@ -160,7 +160,7 @@ import Ivory.BSP.STM32F4.GTIM2345.RegTypes
   }
 |]
 
-[bitdata|
+[ivory|
  bitdata GTIM_CCER         :: Bits 32 = gtim_ccer
   { _                      :: Bits 16
   , gtim_ccer_cc4np        :: Bit
@@ -182,20 +182,20 @@ import Ivory.BSP.STM32F4.GTIM2345.RegTypes
   }
 |]
 
-[bitdata|
+[ivory|
  bitdata GTIM_PSC          :: Bits 32 = gtim_psc
   { _                      :: Bits 16
   , gtim_psc_psc           :: Bits 16
   }
 |]
 
-[bitdata|
+[ivory|
  bitdata GTIM_32           :: Bits 32 = gtim_32
   { gtim_32_data           :: Bits 32
   }
 |]
 
-[bitdata|
+[ivory|
  bitdata GTIM_16           :: Bits 32 = gtim_16
   { _                      :: Bits 16
   , gtim_16_data           :: Bits 16

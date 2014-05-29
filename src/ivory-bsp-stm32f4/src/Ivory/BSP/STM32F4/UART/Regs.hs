@@ -11,14 +11,14 @@
 
 module Ivory.BSP.STM32F4.UART.Regs where
 
-import Ivory.BitData
 
+import Ivory.Language
 import Ivory.BSP.STM32F4.UART.Types
 
 ----------------------------------------------------------------------
 -- UART Registers
 
-[bitdata|
+[ivory|
  bitdata UART_SR :: Bits 16 = uart_sr
    { _                :: Bits 6
    , uart_sr_cts      :: Bit

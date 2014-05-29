@@ -11,9 +11,9 @@
 
 module Ivory.BSP.STM32F4.UART.Types where
 
-import Ivory.BitData
+import Ivory.Language
 
-[bitdata|
+[ivory|
  bitdata UART_WordLen :: Bits 1
    = uart_word_len_8 as 0
    | uart_word_len_9 as 1

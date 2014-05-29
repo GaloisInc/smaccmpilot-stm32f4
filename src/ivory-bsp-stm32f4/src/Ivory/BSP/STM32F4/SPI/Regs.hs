@@ -11,14 +11,14 @@
 
 module Ivory.BSP.STM32F4.SPI.Regs where
 
-import Ivory.BitData
 
+import Ivory.Language
 import Ivory.BSP.STM32F4.SPI.RegTypes
 
 ----------------------------------------------------------------------
 -- SPI Registers
 
-[bitdata|
+[ivory|
  bitdata SPI_CR1 :: Bits 16 = spi_cr1
    { spi_cr1_bidimode :: Bit
    , spi_cr1_bidioe   :: Bit

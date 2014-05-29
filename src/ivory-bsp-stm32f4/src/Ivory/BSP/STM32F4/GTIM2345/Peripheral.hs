@@ -13,7 +13,7 @@
 module Ivory.BSP.STM32F4.GTIM2345.Peripheral where
 
 import Ivory.Language
-import Ivory.BitData
+
 import Ivory.HW
 
 import Ivory.BSP.STM32F4.GTIM2345.Regs
