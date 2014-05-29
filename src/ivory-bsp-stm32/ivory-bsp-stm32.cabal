@@ -19,8 +19,11 @@ library
                        Ivory.BSP.ARMv7M.SystemControl.NVIC,
 
                        Ivory.BSP.STM32.BoardHSE,
-                       Ivory.BSP.STM32.Platform,
                        Ivory.BSP.STM32.SearchDir,
+
+                       Ivory.BSP.STM32.Signalable,
+                       Ivory.BSP.STM32.Signalable.TH,
+                       Ivory.BSP.STM32.Signalable.Class,
 
                        Ivory.BSP.STM32.Peripheral.Flash.Peripheral,
                        Ivory.BSP.STM32.Peripheral.Flash.Regs,
@@ -75,8 +78,6 @@ library
                        Ivory.BSP.STM32F405.PWR.Regs,
                        Ivory.BSP.STM32F405.PWR.RegTypes,
                        Ivory.BSP.STM32F405.Flash,
-                       Ivory.BSP.STM32F405.Signalable,
-                       Ivory.BSP.STM32F405.Signalable.Class,
                        Ivory.BSP.STM32F405.Init,
                        Ivory.BSP.STM32F405.VectorTable
 

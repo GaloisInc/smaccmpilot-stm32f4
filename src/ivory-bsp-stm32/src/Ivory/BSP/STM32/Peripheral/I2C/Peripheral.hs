@@ -16,14 +16,13 @@ import Ivory.Language
 import Ivory.HW
 import Ivory.BitData
 
-import Ivory.BSP.STM32F405.Interrupt
-import Ivory.BSP.STM32F405.GPIO
-import Ivory.BSP.STM32F405.MemoryMap
-import Ivory.BSP.STM32F405.RCC
+import Ivory.BSP.STM32.Signalable
+import Ivory.BSP.STM32F405.GPIO -- XXX
+import Ivory.BSP.STM32F405.RCC  -- XXX
 
 import Ivory.BSP.STM32.Peripheral.I2C.Regs
 
-data I2CPeriph = I2CPeriph
+data I2CPeriph i = I2CPeriph
   { i2cRegCR1      :: BitDataReg I2C_CR1
   , i2cRegCR2      :: BitDataReg I2C_CR2
   , i2cRegOAR1     :: BitDataReg I2C_OAR1
@@ -36,17 +35,18 @@ data I2CPeriph = I2CPeriph
   , i2cRegFLTR     :: BitDataReg I2C_FLTR
   , i2cRCCEnable   :: forall eff . Ivory eff ()
   , i2cRCCDisable  :: forall eff . Ivory eff ()
-  , i2cIntEvent    :: Interrupt
-  , i2cIntError    :: Interrupt
+  , i2cIntEvent    :: i
+  , i2cIntError    :: i
   , i2cName        :: String
   }
 
-mkI2CPeriph :: Integer -- Base
-            -> BitDataField RCC_APB1ENR Bit -- RCC Bit -- XXX
-            -> Interrupt -- event interrupt
-            -> Interrupt -- error interrupt
+mkI2CPeriph :: (STM32Signal i)
+            => Integer -- Base
+            -> BitDataField RCC_APB1ENR Bit -- RCC Bit 
+            -> (STM32Interrupt i) -- event interrupt
+            -> (STM32Interrupt i) -- error interrupt
             -> String -- Name
-            -> I2CPeriph
+            -> I2CPeriph (STM32Interrupt i)
 mkI2CPeriph base rccfield evtint errint n =
   I2CPeriph
     { i2cRegCR1     = reg 0x00 "cr1"
@@ -69,17 +69,8 @@ mkI2CPeriph base rccfield evtint errint n =
   reg :: (IvoryIOReg (BitDataRep d)) => Integer -> String -> BitDataReg d
   reg offs name = mkBitDataRegNamed (base + offs) (n ++ "->" ++ name)
 
-i2c1 :: I2CPeriph
-i2c1 = mkI2CPeriph i2c1_periph_base rcc_apb1en_i2c1 I2C1_EV I2C1_ER "i2c1"
-
-i2c2 :: I2CPeriph
-i2c2 = mkI2CPeriph i2c2_periph_base rcc_apb1en_i2c2 I2C2_EV I2C2_ER "i2c2"
-
-i2c3 :: I2CPeriph
-i2c3 = mkI2CPeriph i2c3_periph_base rcc_apb1en_i2c3 I2C3_EV I2C3_ER "i2c3"
-
-i2cInit :: (BoardHSE p, GetAlloc eff ~ Scope cs)
-        => I2CPeriph -> GPIOPin -> GPIOPin -> Proxy p -> Ivory eff ()
+i2cInit :: (STM32Signal p, BoardHSE p, GetAlloc eff ~ Scope cs)
+        => I2CPeriph (STM32Interrupt p) -> GPIOPin -> GPIOPin -> Proxy p -> Ivory eff ()
 i2cInit periph sda scl platform = do
   i2cRCCEnable periph
   pinsetup sda

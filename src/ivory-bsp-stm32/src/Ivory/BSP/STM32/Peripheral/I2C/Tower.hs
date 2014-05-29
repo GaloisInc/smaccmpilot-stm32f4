@@ -14,18 +14,18 @@ import Ivory.HW
 import Ivory.HW.Module
 import Ivory.BitData
 
-import Ivory.BSP.STM32F405.GPIO
-import Ivory.BSP.STM32F405.RCC
-import Ivory.BSP.STM32F405.Signalable
+import Ivory.BSP.STM32.Signalable
+
+import Ivory.BSP.STM32F405.GPIO -- XXX
+import Ivory.BSP.STM32F405.RCC -- XXX
 import Ivory.BSP.STM32.Peripheral.I2C.Regs
 import Ivory.BSP.STM32.Peripheral.I2C.Peripheral
 import Ivory.BSP.STM32.Peripheral.I2C.Tower.Types
 import Ivory.BSP.STM32.Peripheral.I2C.Tower.Types.I2CDeviceAddr
-import Ivory.BSP.STM32F405.Interrupt
 
 
-i2cTower :: (BoardHSE p, STM32F4Signal p)
-         => I2CPeriph
+i2cTower :: (BoardHSE p, STM32Signal p)
+         => I2CPeriph (STM32Interrupt p)
          -> GPIOPin
          -> GPIOPin
          -> Tower p ( ChannelSource (Struct "i2c_transaction_request")
@@ -45,8 +45,8 @@ i2cTowerTypes = package "i2cTowerTypes" $ do
   defStruct (Proxy :: Proxy "i2c_transaction_result")
 
 i2cPeripheralDriver :: forall p
-                     . (STM32F4Signal p, BoardHSE p)
-                    => I2CPeriph
+                     . (STM32Signal p, BoardHSE p)
+                    => I2CPeriph (STM32Interrupt p)
                     -> GPIOPin
                     -> GPIOPin
                     -> ChannelSink   (Struct "i2c_transaction_request")
@@ -84,7 +84,7 @@ i2cPeripheralDriver periph sda scl req_sink res_source = do
   (invalid_request :: Ref Global (Stored Uint32)) <- taskLocal "invalid_request"
 
   evt_irq <- withUnsafeSignalEvent
-                (stm32f4Interrupt (i2cIntEvent periph))
+                (stm32Interrupt (i2cIntEvent periph))
                 "event_interrupt"
                 (do debugToggle debugPin1
                     modifyReg (i2cRegCR2 periph)
@@ -92,7 +92,7 @@ i2cPeripheralDriver periph sda scl req_sink res_source = do
                     interrupt_disable (i2cIntEvent periph))
 
   err_irq <- withUnsafeSignalEvent
-                (stm32f4Interrupt (i2cIntError periph))
+                (stm32Interrupt (i2cIntError periph))
                 "error_interrupt"
                 (do debugToggle debugPin2
                     modifyReg (i2cRegCR2 periph)
@@ -242,7 +242,7 @@ i2cPeripheralDriver periph sda scl req_sink res_source = do
       invalid_request %= (+1)
       return () -- XXX how do we want to handle this error?
 
-setStop :: I2CPeriph -> Ivory (ProcEffects eff ()) ()
+setStop :: I2CPeriph p -> Ivory (ProcEffects eff ()) ()
 setStop periph = do
   -- Generate an I2C Stop condition. Per the reference manual, we must
   -- wait for the hardware to clear the stop bit before any further writes
@@ -253,7 +253,7 @@ setStop periph = do
     unless (bitToBool (cr1 #. i2c_cr1_stop)) $
       breakOut
 
-setStart :: I2CPeriph -> Ivory (ProcEffects eff ()) ()
+setStart :: I2CPeriph p -> Ivory (ProcEffects eff ()) ()
 setStart periph = do
   -- Generate an I2C Start condition. Per the reference manual, we must
   -- wait for the hardware to clear the start bit before any further writes
@@ -264,7 +264,7 @@ setStart periph = do
     unless (bitToBool (cr1 #. i2c_cr1_start)) $
       breakOut
 
-clearSR1 :: I2CPeriph -> Ivory eff ()
+clearSR1 :: I2CPeriph p -> Ivory eff ()
 clearSR1 periph = modifyReg (i2cRegSR1 periph) $ do
   clearBit i2c_sr1_smbalert
   clearBit i2c_sr1_timeout

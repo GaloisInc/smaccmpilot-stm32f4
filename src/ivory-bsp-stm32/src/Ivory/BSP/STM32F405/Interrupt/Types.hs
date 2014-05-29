@@ -9,20 +9,6 @@ module Ivory.BSP.STM32F405.Interrupt.Types where
 
 import Ivory.BSP.ARMv7M.Exception
 
-data IRQ = Exception Exception
-         | Interrupt Interrupt
-         deriving (Eq, Show)
-
-irqn :: IRQ -> IRQn
-irqn (Exception e) = exceptionIRQn e
-irqn (Interrupt i) = interruptIRQn i
-
--- not really, use exceptionTable / interruptTable for this... and has to be
--- maybe to handle blanks
-irqs :: [IRQ]
-irqs = map Exception (enumFrom NonMaskable)
-    ++ map Interrupt (enumFrom WWDG)
-
 data Interrupt
   = WWDG                -- Window WatchDog Interrupt
   | PVD                 -- PVD through EXTI Line detection Interrupt
@@ -113,4 +99,10 @@ interruptIRQn = IRQn . fromIntegral . fromEnum
 
 interruptTable :: [Maybe Interrupt]
 interruptTable = map Just (enumFrom WWDG)
+
+interruptHandlerName :: Interrupt -> String
+interruptHandlerName i = (show i) ++ "_IRQHandler"
+
+interruptFromHandlerName :: String -> Maybe Interrupt
+interruptFromHandlerName _ = error "STM32F405.interruptFromHanderName is a stub" -- XXX FIXME
 

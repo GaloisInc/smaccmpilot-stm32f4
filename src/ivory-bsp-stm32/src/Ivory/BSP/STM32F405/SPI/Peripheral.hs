@@ -17,6 +17,8 @@ import Ivory.BitData
 import Ivory.HW
 import Ivory.Stdlib
 
+import Ivory.BSP.STM32.Signalable
+
 import Ivory.BSP.STM32F405.SPI.RegTypes
 import Ivory.BSP.STM32F405.SPI.Regs
 
@@ -28,7 +30,7 @@ import Ivory.BSP.STM32F405.MemoryMap
 import           Ivory.BSP.STM32F405.Interrupt (Interrupt())
 import qualified Ivory.BSP.STM32F405.Interrupt as ISR
 
-data SPIPeriph = SPIPeriph
+data SPIPeriph i = SPIPeriph
   { spiRegCR1      :: BitDataReg SPI_CR1
   , spiRegCR2      :: BitDataReg SPI_CR2
   , spiRegSR       :: BitDataReg SPI_SR
@@ -39,7 +41,7 @@ data SPIPeriph = SPIPeriph
   , spiPinMosi     :: GPIOPin
   , spiPinSck      :: GPIOPin
   , spiPinAF       :: GPIO_AF
-  , spiInterrupt   :: Interrupt
+  , spiInterrupt   :: i
   , spiPClk        :: PClk
   , spiName        :: String
   }
@@ -55,7 +57,7 @@ mkSPIPeriph :: (BitData a, IvoryIOReg (BitDataRep a))
             -> Interrupt
             -> PClk
             -> String
-            -> SPIPeriph
+            -> SPIPeriph Interrupt
 mkSPIPeriph base rccreg rccfield miso mosi sck af inter pclk n =
   SPIPeriph
     { spiRegCR1      = reg 0x00 "cr1"
@@ -76,7 +78,7 @@ mkSPIPeriph base rccreg rccfield miso mosi sck af inter pclk n =
   reg :: (IvoryIOReg (BitDataRep d)) => Integer -> String -> BitDataReg d
   reg offs name = mkBitDataRegNamed (base + offs) (n ++ "->" ++ name)
 
-spi1, spi2, spi3 :: SPIPeriph
+spi1, spi2, spi3 :: SPIPeriph Interrupt
 spi1 = mkSPIPeriph spi1_periph_base regRCC_APB2ENR rcc_apb2en_spi1
           pinA7  pinA6  pinA5  gpio_af_spi1 ISR.SPI1 PClk2 "spi1"
 spi2 = mkSPIPeriph spi2_periph_base regRCC_APB1ENR rcc_apb1en_spi2
@@ -100,22 +102,23 @@ initOutPin pin af = do
 
 -- | Enable peripheral and setup GPIOs. Must be performed
 --   before any other SPI peripheral actions.
-spiInit :: (GetAlloc eff ~ Scope s) => SPIPeriph -> Ivory eff ()
+spiInit :: (GetAlloc eff ~ Scope s) => SPIPeriph i -> Ivory eff ()
 spiInit spi = do
   spiRCCEnable spi
   initInPin  (spiPinMiso spi) (spiPinAF spi)
   initOutPin (spiPinMosi spi) (spiPinAF spi)
   initOutPin (spiPinSck  spi) (spiPinAF spi)
 
-spiInitISR :: (GetAlloc eff ~ Scope s) => SPIPeriph -> Ivory eff ()
+spiInitISR :: (STM32Signal p, GetAlloc eff ~ Scope s)
+           => SPIPeriph (STM32Interrupt p) -> Ivory eff ()
 spiInitISR spi = do
-  ISR.interrupt_set_to_syscall_priority inter
-  ISR.interrupt_enable                  inter
+  interrupt_set_to_syscall_priority inter
+  interrupt_enable                  inter
   where
   inter = spiInterrupt spi
 
-spiISRHandlerName :: SPIPeriph -> String
-spiISRHandlerName spi = ISR.interruptHandlerName (spiInterrupt spi)
+spiISRHandlerName :: (STM32Signal p) => SPIPeriph (STM32Interrupt p) -> String
+spiISRHandlerName spi = interruptHandlerName (spiInterrupt spi)
 
 -- Clock Polarity and Phase: see description
 -- of CPOL and CPHA in ST reference manual RM0090
@@ -124,8 +127,8 @@ data SPIClockPolarity = ClockPolarityLow | ClockPolarityHigh
 data SPIClockPhase    = ClockPhase1 | ClockPhase2
 data SPIBitOrder      = LSBFirst | MSBFirst
 
-data SPIDevice = SPIDevice
-  { spiDevPeripheral    :: SPIPeriph
+data SPIDevice i = SPIDevice
+  { spiDevPeripheral    :: SPIPeriph i
   , spiDevCSPin         :: GPIOPin
   , spiDevClockHz       :: Integer
   , spiDevCSActive      :: SPICSActive
@@ -135,7 +138,7 @@ data SPIDevice = SPIDevice
   , spiDevName          :: String
   }
 
-spiDeviceInit :: (GetAlloc eff ~ Scope s) => SPIDevice -> Ivory eff ()
+spiDeviceInit :: (GetAlloc eff ~ Scope s) => SPIDevice i -> Ivory eff ()
 spiDeviceInit dev = do
   let pin = spiDevCSPin dev
   pinEnable         pin
@@ -145,7 +148,7 @@ spiDeviceInit dev = do
   pinSetSpeed       pin gpio_speed_2mhz
 
 spiBusBegin :: (GetAlloc eff ~ Scope cs, BoardHSE p)
-            => Proxy p -> SPIDevice -> Ivory eff ()
+            => Proxy p -> SPIDevice i -> Ivory eff ()
 spiBusBegin platform dev = do
   -- XXX can i eliminate this on/off cycle?
   spiModifyCr1        periph [ spi_cr1_spe ] true
@@ -174,35 +177,35 @@ spiBusBegin platform dev = do
   periph = spiDevPeripheral dev
 
 
-spiBusEnd :: SPIPeriph -> Ivory eff ()
+spiBusEnd :: SPIPeriph i -> Ivory eff ()
 spiBusEnd  periph =
   spiModifyCr1 periph [ spi_cr1_spe ] false
 
-spiDeviceEnd   :: SPIDevice -> Ivory eff ()
+spiDeviceEnd :: SPIDevice i -> Ivory eff ()
 spiDeviceEnd dev = do
   spiDeviceDeselect dev
   spiBusEnd         periph
   where periph = spiDevPeripheral dev
 
 
-spiSetTXEIE :: SPIPeriph -> Ivory eff ()
+spiSetTXEIE :: SPIPeriph i -> Ivory eff ()
 spiSetTXEIE spi = modifyReg (spiRegCR2 spi) $ setBit spi_cr2_txeie
 
-spiClearTXEIE :: SPIPeriph -> Ivory eff ()
+spiClearTXEIE :: SPIPeriph i -> Ivory eff ()
 spiClearTXEIE spi = modifyReg (spiRegCR2 spi) $ clearBit spi_cr2_txeie
 
-spiSetRXNEIE :: SPIPeriph -> Ivory eff ()
+spiSetRXNEIE :: SPIPeriph i -> Ivory eff ()
 spiSetRXNEIE spi = modifyReg (spiRegCR2 spi) $ setBit spi_cr2_rxneie
 
-spiClearRXNEIE :: SPIPeriph -> Ivory eff ()
+spiClearRXNEIE :: SPIPeriph i -> Ivory eff ()
 spiClearRXNEIE spi = modifyReg (spiRegCR2 spi) $ clearBit spi_cr2_rxneie
 
-spiGetDR :: SPIPeriph -> Ivory eff Uint8
+spiGetDR :: SPIPeriph i -> Ivory eff Uint8
 spiGetDR spi = do
   r <- getReg (spiRegDR spi)
   return (toRep (r #. spi_dr_data))
 
-spiSetDR :: SPIPeriph -> Uint8 -> Ivory eff ()
+spiSetDR :: SPIPeriph i -> Uint8 -> Ivory eff ()
 spiSetDR spi b =
   setReg (spiRegDR spi) $
     setField spi_dr_data (fromRep b)
@@ -210,7 +213,7 @@ spiSetDR spi b =
 -- Internal Helper Functions ---------------------------------------------------
 
 spiDevBaud :: (GetAlloc eff ~ Scope s, BoardHSE p)
-           => Proxy p -> SPIPeriph -> Integer -> Ivory eff SPIBaud
+           => Proxy p -> SPIPeriph i -> Integer -> Ivory eff SPIBaud
 spiDevBaud platform periph hz = do
   fplk <- getFreqPClk platform (spiPClk periph)
   comment ("got fplk, target is " ++ show hz)
@@ -229,24 +232,24 @@ spiDevBaud platform periph hz = do
         ,( spi_baud_div_128, 128)
         ,( spi_baud_div_256, 256)]
 
-spiDeviceSelect   :: SPIDevice -> Ivory eff ()
+spiDeviceSelect   :: SPIDevice i -> Ivory eff ()
 spiDeviceSelect dev = case spiDevCSActive dev of
   ActiveHigh -> pinSet   (spiDevCSPin dev)
   ActiveLow  -> pinClear (spiDevCSPin dev)
 
-spiDeviceDeselect :: SPIDevice -> Ivory eff ()
+spiDeviceDeselect :: SPIDevice i -> Ivory eff ()
 spiDeviceDeselect dev = case spiDevCSActive dev of
   ActiveHigh -> pinClear (spiDevCSPin dev)
   ActiveLow  -> pinSet   (spiDevCSPin dev)
 
-spiSetBaud :: SPIPeriph -> SPIBaud -> Ivory eff ()
+spiSetBaud :: SPIPeriph i -> SPIBaud -> Ivory eff ()
 spiSetBaud periph baud = modifyReg (spiRegCR1 periph) $ setField spi_cr1_br baud
 
-spiModifyCr1 :: SPIPeriph -> [BitDataField SPI_CR1 Bit] -> IBool -> Ivory eff ()
+spiModifyCr1 :: SPIPeriph i -> [BitDataField SPI_CR1 Bit] -> IBool -> Ivory eff ()
 spiModifyCr1 periph fields b =
   modifyReg (spiRegCR1 periph) $ mapM_ (\f -> setField f (boolToBit b)) fields
 
-spiClearCr1 :: SPIPeriph -> Ivory eff ()
+spiClearCr1 :: SPIPeriph i -> Ivory eff ()
 spiClearCr1 periph = modifyReg (spiRegCR1 periph) $ do
   -- It may not be strictly necessary to clear all of these fields.
   -- I'm copying the implementation of the HWF4 lib, where REG->CR1 is set to 0
@@ -265,7 +268,7 @@ spiClearCr1 periph = modifyReg (spiRegCR1 periph) $ do
   clearBit spi_cr1_cpol
   clearBit spi_cr1_cpha
 
-spiClearCr2 :: SPIPeriph -> Ivory eff ()
+spiClearCr2 :: SPIPeriph i -> Ivory eff ()
 spiClearCr2 periph = modifyReg (spiRegCR2 periph) $ do
   -- May not be strictly necessary to set all these fields, see comment
   -- for spiClearCr1
@@ -276,19 +279,19 @@ spiClearCr2 periph = modifyReg (spiRegCR2 periph) $ do
   clearBit spi_cr2_txdmaen
   clearBit spi_cr2_rxdmaen
 
-spiSetClockPolarity :: SPIPeriph -> SPIClockPolarity -> Ivory eff ()
+spiSetClockPolarity :: SPIPeriph i -> SPIClockPolarity -> Ivory eff ()
 spiSetClockPolarity periph polarity =
   modifyReg (spiRegCR1 periph) $ case polarity of
     ClockPolarityLow  -> clearBit spi_cr1_cpol
     ClockPolarityHigh -> setBit  spi_cr1_cpol
 
-spiSetClockPhase :: SPIPeriph -> SPIClockPhase -> Ivory eff ()
+spiSetClockPhase :: SPIPeriph i -> SPIClockPhase -> Ivory eff ()
 spiSetClockPhase periph phase =
   modifyReg (spiRegCR1 periph) $ case phase of
     ClockPhase1 -> clearBit spi_cr1_cpha
     ClockPhase2 -> setBit   spi_cr1_cpha
 
-spiSetBitOrder :: SPIPeriph -> SPIBitOrder -> Ivory eff ()
+spiSetBitOrder :: SPIPeriph i-> SPIBitOrder -> Ivory eff ()
 spiSetBitOrder periph bitorder =
   modifyReg (spiRegCR1 periph) $ case bitorder of
     LSBFirst -> setBit   spi_cr1_lsbfirst

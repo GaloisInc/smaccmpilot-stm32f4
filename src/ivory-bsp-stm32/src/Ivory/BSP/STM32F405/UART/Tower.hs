@@ -16,11 +16,11 @@ import Ivory.HW
 import Ivory.HW.Module
 import Ivory.BitData
 
-import Ivory.BSP.STM32F405.Signalable
+import Ivory.BSP.STM32.Signalable
+
 import Ivory.BSP.STM32F405.UART.Regs
 import Ivory.BSP.STM32F405.UART.Peripheral
 import Ivory.BSP.STM32F405.RCC
-import Ivory.BSP.STM32F405.Interrupt
 
 data UARTTowerDebugger =
   UARTTowerDebugger
@@ -46,8 +46,8 @@ emptyDbg =
     }
 
 uartTower :: forall n p
-           . (SingI n, BoardHSE p, STM32F4Signal p)
-          => UART
+           . (SingI n, BoardHSE p, STM32Signal p)
+          => UART (STM32Interrupt p)
           -> Integer
           -> Proxy (n :: Nat)
           -> Tower p ( ChannelSink   (Stored Uint8)
@@ -55,8 +55,8 @@ uartTower :: forall n p
 uartTower u b s = uartTowerDebuggable u b s emptyDbg
 
 uartTowerFlushable :: forall n p
-           . (SingI n, BoardHSE p, STM32F4Signal p)
-          => UART
+           . (SingI n, BoardHSE p, STM32Signal p)
+          => UART (STM32Interrupt p)
           -> Integer
           -> Proxy (n :: Nat)
           -> Tower p ( ChannelSink   (Stored Uint8)
@@ -75,8 +75,8 @@ uartTowerFlushable uart baud sizeproxy = do
 
 
 uartTowerDebuggable :: forall n p
-           . (SingI n, BoardHSE p, STM32F4Signal p)
-          => UART
+           . (SingI n, BoardHSE p, STM32Signal p)
+          => UART (STM32Interrupt p)
           -> Integer
           -> Proxy (n :: Nat)
           -> UARTTowerDebugger
@@ -97,8 +97,8 @@ uartTowerDebuggable uart baud sizeproxy dbg = do
   txcheck_period = Milliseconds 1
 
 
-uartTowerTask :: forall p . (STM32F4Signal p, BoardHSE p)
-              => UART
+uartTowerTask :: forall p . (STM32Signal p, BoardHSE p)
+              => UART (STM32Interrupt p)
               -> Integer
               -> ChannelSink (Stored Uint8)
               -> ChannelSource (Stored Uint8)
@@ -118,7 +118,7 @@ uartTowerTask uart baud snk_ostream src_istream txcheck_evt dbg = do
   txpendingbyte <- taskLocal "txpendingbyte"
 
   interrupt <- withUnsafeSignalEvent
-    (stm32f4Interrupt (uartInterrupt uart))
+    (stm32Interrupt (uartInterrupt uart))
     (uartName uart ++ "_isr")
     (do debug_isr dbg
         setTXEIE uart false

@@ -13,18 +13,18 @@ import Ivory.HW
 import Ivory.HW.Module
 import Ivory.BitData
 
+import Ivory.BSP.STM32.Signalable
+
 import Ivory.BSP.STM32F405.GPIO
 import Ivory.BSP.STM32F405.RCC
-import Ivory.BSP.STM32F405.Signalable
 import Ivory.BSP.STM32F405.SPI.Regs
 import Ivory.BSP.STM32F405.SPI.Peripheral
 import Ivory.BSP.STM32F405.SPI.Tower.Types
 import Ivory.BSP.STM32F405.SPI.Tower.Types.SPIDeviceHandle
-import Ivory.BSP.STM32F405.Interrupt
 
 
-spiTower :: (BoardHSE p, STM32F4Signal p)
-         => [SPIDevice]
+spiTower :: (BoardHSE p, STM32Signal p)
+         => [SPIDevice (STM32Interrupt p)]
          -> Tower p ( ChannelSource (Struct "spi_transaction_request")
                     , ChannelSink   (Struct "spi_transaction_result"))
 spiTower devices = do
@@ -49,9 +49,9 @@ spiTower devices = do
 
 
 spiPeripheralDriver :: forall p
-                     . (STM32F4Signal p, BoardHSE p)
-                    => SPIPeriph
-                    -> [SPIDevice]
+                     . (STM32Signal p, BoardHSE p)
+                    => SPIPeriph (STM32Interrupt p)
+                    -> [SPIDevice (STM32Interrupt p)]
                     -> ChannelSink   (Struct "spi_transaction_request")
                     -> ChannelSource (Struct "spi_transaction_result")
                     -> Task p ()
@@ -80,7 +80,7 @@ spiPeripheralDriver periph devices req_sink res_source = do
   taskPriority 3
 
   irq <- withUnsafeSignalEvent
-                (stm32f4Interrupt interrupt)
+                (stm32Interrupt interrupt)
                 "interrupt"
                 (do debugToggle debugPin1
                     modifyReg (spiRegCR2 periph)
@@ -124,7 +124,7 @@ spiPeripheralDriver periph devices req_sink res_source = do
 
     interrupt_enable interrupt
 
-  let deviceBeginProc :: SPIDevice -> Def('[]:->())
+  let deviceBeginProc :: SPIDevice i -> Def('[]:->())
       deviceBeginProc dev = proc ((spiDevName dev) ++ "_devicebegin") $
         body $ do
           spiDeviceSelect dev
@@ -162,7 +162,7 @@ spiPeripheralDriver periph devices req_sink res_source = do
   platform = Proxy
 
 
-  chooseDevice :: (SPIDevice -> Ivory eff ())
+  chooseDevice :: (SPIDevice (STM32Interrupt p) -> Ivory eff ())
                -> Ref Global (Stored SPIDeviceHandle) -> Ivory eff ()
   chooseDevice callback devref = do
     comment "selecting device:"
