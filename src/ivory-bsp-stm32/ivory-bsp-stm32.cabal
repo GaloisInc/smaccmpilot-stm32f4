@@ -21,6 +21,7 @@ library
                        Ivory.BSP.STM32.BoardHSE,
                        Ivory.BSP.STM32.SearchDir,
 
+                       Ivory.BSP.STM32.Interrupt,
                        Ivory.BSP.STM32.Signalable,
                        Ivory.BSP.STM32.Signalable.TH,
                        Ivory.BSP.STM32.Signalable.Class,
