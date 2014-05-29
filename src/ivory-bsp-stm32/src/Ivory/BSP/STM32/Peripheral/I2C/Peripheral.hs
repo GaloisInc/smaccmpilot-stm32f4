@@ -40,13 +40,12 @@ data I2CPeriph i = I2CPeriph
   , i2cName        :: String
   }
 
-mkI2CPeriph :: (STM32Signal i)
-            => Integer -- Base
+mkI2CPeriph :: Integer -- Base
             -> BitDataField RCC_APB1ENR Bit -- RCC Bit 
-            -> (STM32Interrupt i) -- event interrupt
-            -> (STM32Interrupt i) -- error interrupt
+            -> i -- event interrupt
+            -> i -- error interrupt
             -> String -- Name
-            -> I2CPeriph (STM32Interrupt i)
+            -> I2CPeriph i
 mkI2CPeriph base rccfield evtint errint n =
   I2CPeriph
     { i2cRegCR1     = reg 0x00 "cr1"

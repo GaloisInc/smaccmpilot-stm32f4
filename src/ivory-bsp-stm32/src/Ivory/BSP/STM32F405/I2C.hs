@@ -18,7 +18,6 @@ import Ivory.BSP.STM32.Peripheral.I2C.Tower.Types.I2CDeviceAddr
 
 --import Ivory.BSP.STM32.Interrupt
 
-import Ivory.BSP.STM32F405.GPIO
 import Ivory.BSP.STM32F405.Interrupt
 import Ivory.BSP.STM32F405.MemoryMap
 import Ivory.BSP.STM32F405.RCC
