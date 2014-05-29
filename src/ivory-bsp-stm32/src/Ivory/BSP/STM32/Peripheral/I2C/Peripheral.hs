@@ -16,6 +16,7 @@ import Ivory.Language
 import Ivory.HW
 import Ivory.BitData
 
+import Ivory.BSP.STM32.Interrupt
 import Ivory.BSP.STM32.Signalable
 import Ivory.BSP.STM32F405.GPIO -- XXX
 import Ivory.BSP.STM32F405.RCC  -- XXX
@@ -68,8 +69,8 @@ mkI2CPeriph base rccfield evtint errint n =
   reg :: (IvoryIOReg (BitDataRep d)) => Integer -> String -> BitDataReg d
   reg offs name = mkBitDataRegNamed (base + offs) (n ++ "->" ++ name)
 
-i2cInit :: (STM32Signal p, BoardHSE p, GetAlloc eff ~ Scope cs)
-        => I2CPeriph (STM32Interrupt p) -> GPIOPin -> GPIOPin -> Proxy p -> Ivory eff ()
+i2cInit :: (STM32Interrupt i, BoardHSE p, GetAlloc eff ~ Scope cs)
+        => I2CPeriph i -> GPIOPin -> GPIOPin -> Proxy p -> Ivory eff ()
 i2cInit periph sda scl platform = do
   i2cRCCEnable periph
   pinsetup sda

@@ -17,6 +17,7 @@ import Ivory.BitData
 import Ivory.HW
 import Ivory.Stdlib
 
+import Ivory.BSP.STM32.Interrupt
 import Ivory.BSP.STM32.Signalable
 
 import Ivory.BSP.STM32F405.SPI.RegTypes
@@ -109,15 +110,15 @@ spiInit spi = do
   initOutPin (spiPinMosi spi) (spiPinAF spi)
   initOutPin (spiPinSck  spi) (spiPinAF spi)
 
-spiInitISR :: (STM32Signal p, GetAlloc eff ~ Scope s)
-           => SPIPeriph (STM32Interrupt p) -> Ivory eff ()
+spiInitISR :: (STM32Interrupt i, GetAlloc eff ~ Scope s)
+           => SPIPeriph i -> Ivory eff ()
 spiInitISR spi = do
   interrupt_set_to_syscall_priority inter
   interrupt_enable                  inter
   where
   inter = spiInterrupt spi
 
-spiISRHandlerName :: (STM32Signal p) => SPIPeriph (STM32Interrupt p) -> String
+spiISRHandlerName :: (STM32Signal i p) => SPIPeriph i -> String
 spiISRHandlerName spi = interruptHandlerName (spiInterrupt spi)
 
 -- Clock Polarity and Phase: see description

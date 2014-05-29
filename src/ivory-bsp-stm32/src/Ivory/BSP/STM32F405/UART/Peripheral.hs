@@ -18,7 +18,7 @@ import Ivory.Language
 import Ivory.BitData
 import Ivory.HW
 
-import Ivory.BSP.STM32.Signalable
+import Ivory.BSP.STM32.Interrupt
 
 import Ivory.BSP.STM32F405.UART.Types
 import Ivory.BSP.STM32F405.UART.Regs
@@ -168,8 +168,8 @@ uartInit uart platform baud = do
     setBit uart_cr1_te
     setBit uart_cr1_re
 
-uartInitISR :: (STM32Signal p, GetAlloc eff ~ Scope s)
-            => UART (STM32Interrupt p) -> Ivory eff ()
+uartInitISR :: (STM32Interrupt i, GetAlloc eff ~ Scope s)
+            => UART i -> Ivory eff ()
 uartInitISR uart = do
   interrupt_set_to_syscall_priority inter
   interrupt_enable                  inter
