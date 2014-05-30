@@ -14,14 +14,9 @@
 module Ivory.BSP.STM32F405.RCC.GetFreq where
 
 import Ivory.Language
-import Ivory.Stdlib
 import Ivory.BitData
-import Ivory.HW
 
 import Ivory.BSP.STM32.BoardHSE
-
-import Ivory.BSP.STM32F405.RCC.RegTypes
-import Ivory.BSP.STM32F405.RCC.Regs
 
 eqBits :: (BitData a) => a -> a -> IBool
 eqBits l r = (toBits l) ==? (toBits r)
