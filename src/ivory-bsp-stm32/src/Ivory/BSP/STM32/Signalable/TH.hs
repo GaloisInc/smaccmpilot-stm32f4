@@ -8,27 +8,28 @@ module Ivory.BSP.STM32.Signalable.TH
 import Ivory.Tower
 
 import Ivory.BSP.STM32.Signalable.Class
+import Ivory.BSP.STM32.Interrupt
 import Language.Haskell.TH.Syntax
 
-stm32SignalableInstance :: Name -> Q [Dec]
-stm32SignalableInstance pt = do
+stm32SignalableInstance :: Name -> Name -> Q [Dec]
+stm32SignalableInstance platformtype interrupttype = do
   n <- newName "n"
   return
     [ InstanceD []
-        (AppT (ConT ''Signalable) (ConT pt))
+        (AppT (ConT ''Signalable) (ConT platformtype))
         [ stinstance
         , signalnamedef n
         ]
     , InstanceD []
-       (AppT (ConT ''STM32Signal) (ConT pt))
+       (AppT (AppT (ConT ''STM32Signal) (ConT interrupttype)) (ConT platformtype))
        [ stm32signaldef n
        ]
     ]
   where
-  stname = mkName ((nameBase pt) ++ "Signal")
+  stname = mkName ((nameBase platformtype) ++ "Signal")
   stinstance =
-    DataInstD [] ''SignalType [ConT pt]
-              [NormalC stname [(NotStrict, ConT ''IRQ)]]
+    DataInstD [] ''SignalType [ConT platformtype]
+              [NormalC stname [(NotStrict, AppT (ConT ''IRQ) (ConT interrupttype))]]
               [''Eq, ''Show]
   signalnamedef n =
     FunD 'signalName

@@ -102,7 +102,3 @@ interruptTable = map Just (enumFrom WWDG)
 
 interruptHandlerName :: Interrupt -> String
 interruptHandlerName i = (show i) ++ "_IRQHandler"
-
-interruptFromHandlerName :: String -> Maybe Interrupt
-interruptFromHandlerName _ = error "STM32F405.interruptFromHanderName is a stub" -- XXX FIXME
-
