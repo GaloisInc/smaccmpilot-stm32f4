@@ -2,24 +2,23 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 module UARTStressTest where
-
-import Data.Char (ord)
 
 import Ivory.Language
 import Ivory.Stdlib
 import Ivory.Tower
 
 import Platforms
-import LEDTower
 
-import Ivory.BSP.STM32F4.Init
-import Ivory.BSP.STM32F4.GPIO
-import Ivory.BSP.STM32F4.UART
-import Ivory.BSP.STM32F4.UART.Tower
-import Ivory.BSP.STM32F4.RCC
-import Ivory.BSP.STM32F4.Signalable
+import Ivory.BSP.STM32F405.Init
+import Ivory.BSP.STM32F405.GPIO
+import Ivory.BSP.STM32F405.UART
+import Ivory.BSP.STM32F405.UART.Tower
+import Ivory.BSP.STM32F405.RCC
+import qualified Ivory.BSP.STM32F405.Interrupt as F405
+import Ivory.BSP.STM32.Signalable
 
 ready :: Uint8
 ready = 0
@@ -46,10 +45,10 @@ pollingLoopback :: ChannelSource (Stored Uint8)
                 -> String
                 -> Uint8
                 -> Tower p ()
-pollingLoopback src snk handlepin n correctval = task (named "pollingLoopback") $ do
+pollingLoopback csrc csnk handlepin n correctval = task (named "pollingLoopback") $ do
   timer <- withPeriodicEvent (Milliseconds 1)
-  out <- withChannelEmitter  src "out"
-  inp <- withChannelReceiver snk "in"
+  out <- withChannelEmitter  csrc "out"
+  inp <- withChannelReceiver csnk "in"
 
   success <- taskLocalInit (named "success") (ival (0 :: Uint32))
   state   <- taskLocalInit (named "state")   (ival ready)
@@ -117,7 +116,7 @@ gpioOn p = do
   pinSet           p
   pinSetMode       p gpio_mode_output
 
-app :: forall p . (ColoredLEDs p, BoardHSE p, STM32F4Signal p) => Tower p ()
+app :: forall p . (ColoredLEDs p, BoardHSE p, STM32Signal F405.Interrupt p) => Tower p ()
 app = do
   stm32f4InitTower
 

@@ -20,13 +20,13 @@ import Ivory.Compile.C.CmdlineFrontend
 
 import qualified Ivory.HW.SearchDir as HW
 import Ivory.HW.Module (hw_moduledef)
-import Ivory.BSP.STM32F4.GPIO
+import Ivory.BSP.STM32F405.GPIO
 
 import qualified Ivory.BSP.STM32.SearchDir as BSP
 
-import Ivory.BSP.STM32F4.UART
-import Ivory.BSP.STM32F4.UART.Peripheral
-import Ivory.BSP.STM32F4.RCC
+import Ivory.BSP.STM32F405.UART
+import Ivory.BSP.STM32F405.UART.Peripheral
+import Ivory.BSP.STM32F405.RCC
 
 ledPins :: [GPIOPin]
 ledPins = [pinB14, pinB15]

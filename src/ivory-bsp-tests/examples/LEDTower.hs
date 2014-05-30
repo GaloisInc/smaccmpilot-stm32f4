@@ -7,8 +7,8 @@ import Ivory.Tower
 
 import Ivory.HW.Module
 import Ivory.BSP.STM32.BoardHSE
-import Ivory.BSP.STM32F4.GPIO
-import Ivory.BSP.STM32F4.Init
+import Ivory.BSP.STM32F405.GPIO
+import Ivory.BSP.STM32F405.Init
 
 data LEDPolarity = ActiveHigh | ActiveLow
 data LED = LED GPIOPin LEDPolarity

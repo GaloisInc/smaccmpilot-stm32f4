@@ -2,6 +2,7 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 module UARTTower where
 
@@ -14,15 +15,19 @@ import Ivory.Tower
 import Platforms
 import LEDTower
 
-import Ivory.BSP.STM32F4.Init
-import Ivory.BSP.STM32F4.UART
-import Ivory.BSP.STM32F4.UART.Tower
-import Ivory.BSP.STM32F4.RCC
-import Ivory.BSP.STM32F4.Signalable
+import Ivory.BSP.STM32F405.Init
+import Ivory.BSP.STM32F405.UART
+import Ivory.BSP.STM32F405.UART.Tower
+import Ivory.BSP.STM32F405.RCC
+
+import Ivory.BSP.STM32.Signalable
+import qualified Ivory.BSP.STM32F405.Interrupt as F405 -- XXX required until uartTower is properly polymorphic?
 
 --------------------------------------------------------------------------------
 
-app :: forall p . (ColoredLEDs p, BoardHSE p, STM32F4Signal p) => Tower p ()
+app :: forall p
+     . (ColoredLEDs p, BoardHSE p, STM32Signal F405.Interrupt p)
+    => Tower p ()
 app = do
   stm32f4InitTower
   -- Starts two tasks: a blink task and a controller task.  Periodically blink

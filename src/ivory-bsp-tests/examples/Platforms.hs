@@ -1,6 +1,8 @@
 {-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 module Platforms where
 
@@ -9,9 +11,10 @@ import Ivory.Tower
 import Ivory.Tower.Frontend
 
 import LEDTower
-import Ivory.BSP.STM32F4.GPIO
-import Ivory.BSP.STM32F4.RCC
-import Ivory.BSP.STM32F4.Signalable
+import Ivory.BSP.STM32F405.GPIO
+import Ivory.BSP.STM32F405.RCC
+import qualified Ivory.BSP.STM32F405.Interrupt as F405
+import Ivory.BSP.STM32.Signalable
 
 class ColoredLEDs p where
   redLED  :: Proxy p -> LED
@@ -29,7 +32,7 @@ instance ColoredLEDs PX4FMUv17 where
   redLED _  = LED pinB14 ActiveLow
   blueLED _ = LED pinB15 ActiveLow
 
-stm32f4SignalableInstance ''PX4FMUv17
+stm32SignalableInstance ''PX4FMUv17 ''F405.Interrupt
 
 instance BoardHSE PX4FMUv17 where
   hseFreqHz _ = f24MHz
@@ -41,7 +44,7 @@ instance ColoredLEDs PX4FMUv24 where
   redLED _  = LED pinE12 ActiveLow
   blueLED _ = LED pinC1  ActiveLow -- DOES NOT EXIST. pinC1 is unassigned.
 
-stm32f4SignalableInstance ''PX4FMUv24
+stm32SignalableInstance ''PX4FMUv24 ''F405.Interrupt
 
 instance BoardHSE PX4FMUv24 where
   hseFreqHz _ = f24MHz
@@ -49,7 +52,7 @@ instance BoardHSE PX4FMUv24 where
 ---------- F4Discovery --------------------------------------------------------
 data F4Discovery = F4Discovery
 
-stm32f4SignalableInstance ''F4Discovery
+stm32SignalableInstance ''F4Discovery ''F405.Interrupt
 
 instance ColoredLEDs F4Discovery where
   redLED _  = LED pinD14 ActiveHigh
@@ -61,7 +64,7 @@ instance BoardHSE F4Discovery where
 ---------- Open407VC ----------------------------------------------------------
 data Open407VC = Open407VC
 
-stm32f4SignalableInstance ''Open407VC
+stm32SignalableInstance ''Open407VC ''F405.Interrupt
 
 instance ColoredLEDs Open407VC where
   redLED _  = LED pinD12 ActiveHigh
@@ -73,7 +76,8 @@ instance BoardHSE Open407VC where
 
 --------- Platform lookup by name ---------------------------------------------
 
-coloredLEDPlatforms :: (forall p . (ColoredLEDs p, BoardHSE p, STM32F4Signal p)
+-- XXX fix interrupt polymorphism later
+coloredLEDPlatforms :: (forall p . (ColoredLEDs p, BoardHSE p, STM32Signal F405.Interrupt p)
                     => Tower p ()) -> [(String, Twr)]
 coloredLEDPlatforms app =
     [("px4fmu17_bare",     Twr (app :: Tower PX4FMUv17 ()))

@@ -12,7 +12,7 @@ import Control.Monad (zipWithM_)
 import Ivory.Language
 import Ivory.Compile.C.CmdlineFrontend
 import Ivory.HW.Module
-import Ivory.BSP.STM32F4.GPIO
+import Ivory.BSP.STM32F405.GPIO
 
 import qualified Ivory.HW.SearchDir as HW
 

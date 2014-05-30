@@ -4,7 +4,7 @@
 import           Ivory.Language
 import           Ivory.Tower.Frontend
 import           Ivory.BSP.STM32.BoardHSE
-import           Ivory.BSP.STM32F4.Init
+import           Ivory.BSP.STM32F405.Init
 import qualified Ivory.HW.SearchDir as HW
 import qualified Ivory.BSP.STM32.SearchDir as BSP
 
