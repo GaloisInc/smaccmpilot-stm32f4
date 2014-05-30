@@ -13,7 +13,7 @@ import Ivory.Stdlib
 import Ivory.Tower
 import Ivory.HW.Module (hw_moduledef)
 
-import Ivory.BSP.STM32F4.GPIO
+import Ivory.BSP.STM32F405.GPIO
 
 import qualified SMACCMPilot.Flight.Types.ArmedMode      as A
 import qualified SMACCMPilot.Flight.Types.ControlLaw     as CL

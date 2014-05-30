@@ -3,6 +3,7 @@
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE DeriveFoldable #-}
 {-# LANGUAGE DeriveTraversable #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 module SMACCMPilot.Flight
   ( flight
@@ -34,10 +35,11 @@ import SMACCMPilot.Hardware.GPS.Types (gpsTypesModule)
 import qualified SMACCMPilot.Flight.Commsec.CommsecOpts as C
 import qualified SMACCMPilot.Flight.Types.CommsecStatus as S
 
-import qualified Ivory.BSP.STM32F4.UART as UART
-import           Ivory.BSP.STM32F4.UART.Tower
-import           Ivory.BSP.STM32F4.Signalable
-import           Ivory.BSP.STM32F4.RCC (BoardHSE(..))
+import qualified Ivory.BSP.STM32F405.UART as UART
+import           Ivory.BSP.STM32F405.UART.Tower
+import           Ivory.BSP.STM32.Signalable
+import           Ivory.BSP.STM32F405.RCC (BoardHSE(..))
+import qualified Ivory.BSP.STM32F405.Interrupt as F405
 
 -- | All parameters in the system.
 data SysParams f = SysParams
@@ -49,7 +51,8 @@ sysParams :: Monad m => ParamT f m (SysParams f)
 sysParams =
   SysParams <$> group "" flightParams
 
-hil :: (STM32F4Signal p, BoardHSE p, MotorOutput p, SensorOrientation p)
+hil :: ( STM32Signal F405.Interrupt p
+       , BoardHSE p, MotorOutput p, SensorOrientation p)
     => C.Options
     -> Tower p ()
 hil opts = do
@@ -115,7 +118,8 @@ hil opts = do
   towerModule  gpsTypesModule
   towerDepends gpsTypesModule
 
-flight :: (STM32F4Signal p, BoardHSE p, MotorOutput p, SensorOrientation p)
+flight :: ( STM32Signal F405.Interrupt p, BoardHSE p, MotorOutput p
+          , SensorOrientation p)
        => C.Options
        -> Tower p ()
 flight opts = do

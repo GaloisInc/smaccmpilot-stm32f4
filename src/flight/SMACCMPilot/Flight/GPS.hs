@@ -1,18 +1,20 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 module SMACCMPilot.Flight.GPS (gpsTower) where
 
 import Ivory.Language
 import Ivory.Tower
-import Ivory.BSP.STM32F4.RCC
-import Ivory.BSP.STM32F4.UART
-import Ivory.BSP.STM32F4.UART.Tower
-import Ivory.BSP.STM32F4.Signalable
+import Ivory.BSP.STM32F405.RCC
+import Ivory.BSP.STM32F405.UART
+import Ivory.BSP.STM32F405.UART.Tower
+import Ivory.BSP.STM32.Signalable
 import SMACCMPilot.Hardware.GPS.UBlox
+import qualified Ivory.BSP.STM32F405.Interrupt as F405
 
-gpsTower :: (BoardHSE p, STM32F4Signal p)
-         => UART -> Tower p (ChannelSink (Struct "position"))
+gpsTower :: (BoardHSE p, STM32Signal F405.Interrupt p)
+         => UART F405.Interrupt -> Tower p (ChannelSink (Struct "position"))
 gpsTower uart = do
   (gpsi,_gpso) <- uartTower uart 38400 (Proxy :: Proxy 256)
   position <- channel
