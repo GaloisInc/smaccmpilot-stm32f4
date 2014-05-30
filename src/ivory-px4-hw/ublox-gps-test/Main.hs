@@ -2,6 +2,7 @@
 {-# LANGUAGE RecursiveDo #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 module Main where
 
@@ -14,12 +15,13 @@ import Ivory.Tower
 import Ivory.Tower.StateMachine
 import Ivory.Tower.Frontend
 
-import Ivory.BSP.STM32F4.RCC (BoardHSE)
+import Ivory.BSP.STM32F405.RCC (BoardHSE)
 import qualified Ivory.HW.SearchDir          as HW
 import qualified Ivory.BSP.STM32.SearchDir as BSP
 
-import Ivory.BSP.STM32F4.UART.Tower
-import Ivory.BSP.STM32F4.Signalable
+import Ivory.BSP.STM32F405.UART.Tower
+import Ivory.BSP.STM32.Signalable
+import qualified Ivory.BSP.STM32F405.Interrupt as F405
 
 import SMACCMPilot.Hardware.GPS.Types.Position as P
 import SMACCMPilot.Hardware.GPS.Types.GPSFix
@@ -31,7 +33,7 @@ main = compilePlatforms conf (gpsPlatforms app)
   where
   conf = searchPathConf [ HW.searchDir, BSP.searchDir ]
 
-app :: forall p . (GPSUart p, BoardHSE p, STM32F4Signal p) => Tower p ()
+app :: forall p . (GPSUart p, BoardHSE p, STM32Signal F405.Interrupt p) => Tower p ()
 app = do
   (shelli,shello ) <- uartTower (consoleUart (Proxy :: Proxy p))
                                 115200 (Proxy :: Proxy 128)

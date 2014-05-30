@@ -2,6 +2,8 @@
 {-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 
 module Platform where
 
@@ -9,11 +11,12 @@ import Ivory.Language
 import Ivory.Tower
 import Ivory.Tower.Frontend
 
-import Ivory.BSP.STM32F4.RCC
-import Ivory.BSP.STM32F4.UART
-import Ivory.BSP.STM32F4.GPIO
-import Ivory.BSP.STM32F4.SPI.Peripheral
-import Ivory.BSP.STM32F4.Signalable
+import Ivory.BSP.STM32F405.RCC
+import Ivory.BSP.STM32F405.UART
+import Ivory.BSP.STM32F405.GPIO
+import Ivory.BSP.STM32F405.SPI.Peripheral
+import qualified Ivory.BSP.STM32F405.Interrupt as F405
+import Ivory.BSP.STM32.Signalable
 
 f24MHz :: Integer
 f24MHz = 24000000
@@ -25,17 +28,17 @@ data PX4FMU17_Bare = PX4FMU17_Bare
 data Open407VC     = Open407VC
 data PX4FMU24      = PX4FMU24
 
-stm32f4SignalableInstance ''PX4FMU17_IOAR
-stm32f4SignalableInstance ''PX4FMU17_Bare
-stm32f4SignalableInstance ''Open407VC
-stm32f4SignalableInstance ''PX4FMU24
+stm32SignalableInstance ''PX4FMU17_IOAR ''F405.Interrupt
+stm32SignalableInstance ''PX4FMU17_Bare ''F405.Interrupt
+stm32SignalableInstance ''Open407VC     ''F405.Interrupt
+stm32SignalableInstance ''PX4FMU24      ''F405.Interrupt
 
 class MPU6kPlatform p where
-  consoleUart :: Proxy p -> UART
-  mpu6000Device :: Proxy p -> SPIDevice
+  consoleUart :: Proxy p -> UART F405.Interrupt
+  mpu6000Device :: Proxy p -> SPIDevice F405.Interrupt
 
 
-fmu17MPU6k :: SPIDevice
+fmu17MPU6k :: SPIDevice F405.Interrupt
 fmu17MPU6k = SPIDevice
   { spiDevPeripheral    = spi1
   , spiDevCSPin         = pinB0
@@ -71,7 +74,8 @@ instance MPU6kPlatform PX4FMU24 where
   consoleUart _ = uart1
   mpu6000Device _ = fmu17MPU6k -- XXX FIXME
 
-gpsPlatforms :: (forall p . (MPU6kPlatform p, BoardHSE p, STM32F4Signal p)
+gpsPlatforms :: (forall p
+                   . (MPU6kPlatform p, BoardHSE p, STM32Signal F405.Interrupt p)
                   => Tower p ())
              -> [(String, Twr)]
 gpsPlatforms app =

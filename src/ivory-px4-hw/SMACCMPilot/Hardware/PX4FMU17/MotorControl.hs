@@ -13,11 +13,11 @@ import Ivory.HW.Module
 import Ivory.BitData
 import Ivory.Tower
 
-import Ivory.BSP.STM32F4.GTIM2345
-import Ivory.BSP.STM32F4.GTIM2345.RegTypes
-import Ivory.BSP.STM32F4.GPIO
-import Ivory.BSP.STM32F4.GPIO.AF
-import Ivory.BSP.STM32F4.RCC
+import Ivory.BSP.STM32F405.GTIM2345
+import Ivory.BSP.STM32F405.GTIM2345.RegTypes
+import Ivory.BSP.STM32F405.GPIO
+import Ivory.BSP.STM32F405.GPIO.AF
+import Ivory.BSP.STM32F405.RCC
 
 -- In microseconds:
 minPWM, maxPWM :: Uint16
