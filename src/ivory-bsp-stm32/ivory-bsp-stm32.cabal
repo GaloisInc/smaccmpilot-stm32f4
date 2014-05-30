@@ -40,7 +40,10 @@ library
                        Ivory.BSP.STM32.Peripheral.I2C.Tower.Types,
                        Ivory.BSP.STM32.Peripheral.I2C.Tower.Types.I2CDeviceAddr,
 
-                       Ivory.BSP.STM32F405.Platform,
+                       Ivory.BSP.STM32.Peripheral.PWR.Regs,
+                       Ivory.BSP.STM32.Peripheral.PWR.RegTypes,
+                       Ivory.BSP.STM32.Peripheral.PWR.Peripheral,
+
                        Ivory.BSP.STM32F405.MemoryMap,
                        Ivory.BSP.STM32F405.Interrupt,
                        Ivory.BSP.STM32F405.Interrupt.API,
@@ -76,8 +79,6 @@ library
                        Ivory.BSP.STM32F405.UART.Peripheral,
                        Ivory.BSP.STM32F405.UART.Tower,
                        Ivory.BSP.STM32F405.PWR,
-                       Ivory.BSP.STM32F405.PWR.Regs,
-                       Ivory.BSP.STM32F405.PWR.RegTypes,
                        Ivory.BSP.STM32F405.Flash,
                        Ivory.BSP.STM32F405.Init,
                        Ivory.BSP.STM32F405.VectorTable

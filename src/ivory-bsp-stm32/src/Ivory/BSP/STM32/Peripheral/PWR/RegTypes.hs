@@ -9,7 +9,7 @@
 -- All Rights Reserved.
 --
 
-module Ivory.BSP.STM32F405.PWR.RegTypes where
+module Ivory.BSP.STM32.Peripheral.PWR.RegTypes where
 
 import Ivory.BitData
 

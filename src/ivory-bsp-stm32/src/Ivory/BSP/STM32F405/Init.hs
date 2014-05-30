@@ -119,7 +119,7 @@ init_clocks platform = proc "init_clocks" $ body $ do
 
   -- Select regulator voltage output scale 1 mode, sys freq 168mhz
   modifyReg regRCC_APB1ENR $ setBit rcc_apb1en_pwr
-  modifyReg regPWR_CR $ setBit pwr_cr_vos
+  modifyReg (pwr_reg_cr pwr) $ setBit pwr_cr_vos
 
   -- Select bus clock dividers
   -- HCLK  = SYSCLK

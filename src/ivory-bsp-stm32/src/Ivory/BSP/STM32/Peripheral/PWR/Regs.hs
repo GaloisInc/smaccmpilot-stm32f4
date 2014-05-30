@@ -9,16 +9,12 @@
 -- All Rights Reserved.
 --
 
-module Ivory.BSP.STM32F405.PWR.Regs where
+module Ivory.BSP.STM32.Peripheral.PWR.Regs where
 
 import Ivory.BitData
 import Ivory.HW
 
-import Ivory.BSP.STM32F405.MemoryMap (pwr_periph_base)
-
-import Ivory.BSP.STM32F405.PWR.RegTypes
-
-
+import Ivory.BSP.STM32.Peripheral.PWR.RegTypes
 
 -- Control Register ------------------------------------------------------------
 
@@ -38,10 +34,6 @@ import Ivory.BSP.STM32F405.PWR.RegTypes
   }
 |]
 
-regPWR_CR :: BitDataReg PWR_CR
-regPWR_CR = mkBitDataRegNamed pwr_periph_base "pwr_cr"
-
-
 -- Control Register ------------------------------------------------------------
 
 [bitdata|
@@ -58,8 +50,3 @@ regPWR_CR = mkBitDataRegNamed pwr_periph_base "pwr_cr"
   , pwr_csr_wuf       :: Bit
   }
 |]
-
-regPWR_CSR :: BitDataReg PWR_CSR
-regPWR_CSR = mkBitDataRegNamed (pwr_periph_base + 0x04) "pwr_csr"
-
-
