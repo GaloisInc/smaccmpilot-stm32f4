@@ -18,8 +18,8 @@ import LEDTower
 import Ivory.BSP.STM32F405.Init
 import Ivory.BSP.STM32F405.UART
 import Ivory.BSP.STM32F405.UART.Tower
-import Ivory.BSP.STM32F405.RCC
 
+import Ivory.BSP.STM32.BoardHSE
 import Ivory.BSP.STM32.Signalable
 import qualified Ivory.BSP.STM32F405.Interrupt as F405 -- XXX required until uartTower is properly polymorphic?
 

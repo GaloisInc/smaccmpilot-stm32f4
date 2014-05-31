@@ -4,9 +4,9 @@
 
 module SMACCMPilot.Flight.Platforms where
 
-import Ivory.BSP.STM32F405.RCC
 import qualified Ivory.BSP.STM32F405.Interrupt as F405
 import Ivory.BSP.STM32.Signalable
+import Ivory.BSP.STM32.BoardHSE
 
 data PX4FMU17_IOAR = PX4FMU17_IOAR
 data PX4FMU17_Bare = PX4FMU17_Bare

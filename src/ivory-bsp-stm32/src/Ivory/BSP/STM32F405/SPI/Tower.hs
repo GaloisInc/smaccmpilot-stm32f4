@@ -15,9 +15,9 @@ import Ivory.BitData
 
 import Ivory.BSP.STM32.Interrupt
 import Ivory.BSP.STM32.Signalable
+import Ivory.BSP.STM32.BoardHSE
 
 import Ivory.BSP.STM32F405.GPIO
-import Ivory.BSP.STM32F405.RCC
 import Ivory.BSP.STM32F405.SPI.Regs
 import Ivory.BSP.STM32F405.SPI.Peripheral
 import Ivory.BSP.STM32F405.SPI.Tower.Types

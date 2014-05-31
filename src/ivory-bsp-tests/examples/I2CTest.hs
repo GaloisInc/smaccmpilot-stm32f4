@@ -11,10 +11,10 @@ import Ivory.Tower
 
 import Ivory.BSP.STM32F405.Init
 import Ivory.BSP.STM32F405.GPIO
-import Ivory.BSP.STM32F405.RCC
 import Ivory.BSP.STM32F405.I2C
 import qualified Ivory.BSP.STM32F405.Interrupt as F405
 
+import Ivory.BSP.STM32.BoardHSE
 import Ivory.BSP.STM32.Signalable
 
 import Platforms

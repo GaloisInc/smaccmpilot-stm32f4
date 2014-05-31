@@ -13,15 +13,16 @@ import Ivory.Tower
 import Ivory.Tower.StateMachine
 import Ivory.Tower.Frontend
 
-import Ivory.BSP.STM32F405.RCC (BoardHSE)
 import qualified Ivory.HW.SearchDir          as HW
 import qualified Ivory.BSP.STM32.SearchDir as BSP
 
 import Ivory.BSP.STM32F405.UART.Tower
 import Ivory.BSP.STM32F405.GPIO
 import Ivory.BSP.STM32F405.I2C
-import Ivory.BSP.STM32.Signalable
 import qualified Ivory.BSP.STM32F405.Interrupt as F405
+
+import Ivory.BSP.STM32.BoardHSE
+import Ivory.BSP.STM32.Signalable
 
 import SMACCMPilot.Hardware.HMC5883L
 

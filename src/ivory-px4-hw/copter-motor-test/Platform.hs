@@ -11,7 +11,7 @@ import Ivory.Language
 import Ivory.Tower
 import Ivory.Tower.Frontend
 
-import Ivory.BSP.STM32F405.RCC
+import Ivory.BSP.STM32.BoardHSE
 import Ivory.BSP.STM32.Signalable
 import qualified Ivory.BSP.STM32F405.Interrupt as F405
 

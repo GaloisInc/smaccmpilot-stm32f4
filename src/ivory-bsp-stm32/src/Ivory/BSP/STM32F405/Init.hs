@@ -12,6 +12,9 @@ import Ivory.HW
 import Ivory.HW.Module (hw_moduledef)
 
 import Ivory.BSP.ARMv7M.Exception
+import Ivory.BSP.STM32.BoardHSE
+
+
 import Ivory.BSP.STM32F405.VectorTable
 import Ivory.BSP.STM32F405.RCC
 import Ivory.BSP.STM32F405.PWR

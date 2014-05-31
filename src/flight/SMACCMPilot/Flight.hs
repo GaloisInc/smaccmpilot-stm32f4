@@ -37,9 +37,9 @@ import qualified SMACCMPilot.Flight.Types.CommsecStatus as S
 
 import qualified Ivory.BSP.STM32F405.UART as UART
 import           Ivory.BSP.STM32F405.UART.Tower
-import           Ivory.BSP.STM32.Signalable
-import           Ivory.BSP.STM32F405.RCC (BoardHSE(..))
 import qualified Ivory.BSP.STM32F405.Interrupt as F405
+import           Ivory.BSP.STM32.Signalable
+import           Ivory.BSP.STM32.BoardHSE
 
 -- | All parameters in the system.
 data SysParams f = SysParams

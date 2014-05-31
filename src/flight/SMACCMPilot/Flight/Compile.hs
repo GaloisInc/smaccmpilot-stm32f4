@@ -14,16 +14,16 @@ import qualified Ivory.Stdlib.SearchDir as Stdlib
 
 import qualified Ivory.HW.SearchDir as HW
 
-import           Ivory.BSP.STM32.Signalable
 import qualified Ivory.BSP.STM32.SearchDir     as BSP
-import qualified Ivory.BSP.STM32F405.RCC       as BSP
 import qualified Ivory.BSP.STM32F405.Interrupt as F405
+import           Ivory.BSP.STM32.Signalable
+import           Ivory.BSP.STM32.BoardHSE
 
 import SMACCMPilot.Flight.Platforms
 import SMACCMPilot.Flight.Motors.Platforms
 import SMACCMPilot.Flight.Sensors.Platforms
 
-compile :: (forall p . ( STM32Signal F405.Interrupt p, BSP.BoardHSE p
+compile :: (forall p . ( STM32Signal F405.Interrupt p, BoardHSE p
                        , MotorOutput p, SensorOrientation p)
         => Tower p ())
         -> [String]

@@ -18,7 +18,8 @@ import Ivory.BSP.STM32.Interrupt
 import Ivory.BSP.STM32.Signalable
 
 import Ivory.BSP.STM32F405.GPIO -- XXX
-import Ivory.BSP.STM32F405.RCC -- XXX
+
+import Ivory.BSP.STM32.BoardHSE
 import Ivory.BSP.STM32.Peripheral.I2C.Regs
 import Ivory.BSP.STM32.Peripheral.I2C.Peripheral
 import Ivory.BSP.STM32.Peripheral.I2C.Tower.Types

@@ -16,8 +16,8 @@ import Ivory.BSP.STM32F405.Init
 import Ivory.BSP.STM32F405.GPIO
 import Ivory.BSP.STM32F405.UART
 import Ivory.BSP.STM32F405.UART.Tower
-import Ivory.BSP.STM32F405.RCC
 import qualified Ivory.BSP.STM32F405.Interrupt as F405
+import Ivory.BSP.STM32.BoardHSE
 import Ivory.BSP.STM32.Signalable
 
 ready :: Uint8

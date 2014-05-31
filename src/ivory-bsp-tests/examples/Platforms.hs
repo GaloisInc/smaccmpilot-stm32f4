@@ -12,8 +12,8 @@ import Ivory.Tower.Frontend
 
 import LEDTower
 import Ivory.BSP.STM32F405.GPIO
-import Ivory.BSP.STM32F405.RCC
 import qualified Ivory.BSP.STM32F405.Interrupt as F405
+import Ivory.BSP.STM32.BoardHSE
 import Ivory.BSP.STM32.Signalable
 
 class ColoredLEDs p where

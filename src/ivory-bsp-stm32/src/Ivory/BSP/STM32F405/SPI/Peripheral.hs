@@ -19,6 +19,7 @@ import Ivory.Stdlib
 
 import Ivory.BSP.STM32.Interrupt
 import Ivory.BSP.STM32.Signalable
+import Ivory.BSP.STM32.BoardHSE
 
 import Ivory.BSP.STM32F405.SPI.RegTypes
 import Ivory.BSP.STM32F405.SPI.Regs

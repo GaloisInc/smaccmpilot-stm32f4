@@ -14,13 +14,14 @@ import Ivory.Tower
 import Ivory.Tower.StateMachine
 import Ivory.Tower.Frontend
 
-import Ivory.BSP.STM32F405.RCC (BoardHSE)
 import qualified Ivory.HW.SearchDir          as HW
 import qualified Ivory.BSP.STM32.SearchDir as BSP
 
 import Ivory.BSP.STM32F405.UART
 import Ivory.BSP.STM32F405.UART.Tower
+
 import Ivory.BSP.STM32.Signalable
+import Ivory.BSP.STM32.BoardHSE
 
 import qualified Ivory.BSP.STM32F405.Interrupt as F405
 

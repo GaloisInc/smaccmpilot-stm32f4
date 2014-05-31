@@ -19,6 +19,8 @@ import Ivory.BSP.STM32F405.GPIO
 import Ivory.BSP.STM32F405.GPIO.AF
 import Ivory.BSP.STM32F405.RCC
 
+import Ivory.BSP.STM32.BoardHSE
+
 -- In microseconds:
 minPWM, maxPWM :: Uint16
 minPWM = 1100

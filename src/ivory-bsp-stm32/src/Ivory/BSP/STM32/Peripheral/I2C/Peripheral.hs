@@ -18,8 +18,9 @@ import Ivory.BitData
 
 import Ivory.BSP.STM32.Interrupt
 import Ivory.BSP.STM32F405.GPIO -- XXX
-import Ivory.BSP.STM32F405.RCC  -- XXX
+import Ivory.BSP.STM32F405.RCC -- XXX
 
+import Ivory.BSP.STM32.BoardHSE
 import Ivory.BSP.STM32.Peripheral.I2C.Regs
 
 data I2CPeriph i = I2CPeriph

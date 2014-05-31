@@ -26,7 +26,7 @@ import qualified Ivory.BSP.STM32.SearchDir as BSP
 
 import Ivory.BSP.STM32F405.UART
 import Ivory.BSP.STM32F405.UART.Peripheral
-import Ivory.BSP.STM32F405.RCC
+import Ivory.BSP.STM32.BoardHSE
 
 ledPins :: [GPIOPin]
 ledPins = [pinB14, pinB15]

@@ -11,12 +11,13 @@ import Ivory.Language
 import Ivory.Tower
 import Ivory.Tower.Frontend
 
-import Ivory.BSP.STM32F405.RCC
 import Ivory.BSP.STM32F405.UART
 import Ivory.BSP.STM32F405.GPIO
 import Ivory.BSP.STM32F405.SPI.Peripheral
-import Ivory.BSP.STM32.Signalable
 import qualified Ivory.BSP.STM32F405.Interrupt as F405
+
+import Ivory.BSP.STM32.Signalable
+import Ivory.BSP.STM32.BoardHSE
 
 f24MHz :: Integer
 f24MHz = 24000000

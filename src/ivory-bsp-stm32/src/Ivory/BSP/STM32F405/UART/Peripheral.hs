@@ -19,6 +19,7 @@ import Ivory.BitData
 import Ivory.HW
 
 import Ivory.BSP.STM32.Interrupt
+import Ivory.BSP.STM32.BoardHSE
 
 import Ivory.BSP.STM32F405.UART.Types
 import Ivory.BSP.STM32F405.UART.Regs
