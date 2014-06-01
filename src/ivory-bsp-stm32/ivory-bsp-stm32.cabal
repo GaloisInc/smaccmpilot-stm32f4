@@ -18,15 +18,18 @@ library
                        Ivory.BSP.ARMv7M.MemoryMap,
                        Ivory.BSP.ARMv7M.SystemControl.NVIC,
 
-                       Ivory.BSP.STM32.BoardHSE,
                        Ivory.BSP.STM32.SearchDir,
+
+                       Ivory.BSP.STM32.BoardHSE,
+                       Ivory.BSP.STM32.ClockConfig,
+                       Ivory.BSP.STM32.MemoryMap,
 
                        Ivory.BSP.STM32.Interrupt,
                        Ivory.BSP.STM32.Signalable,
                        Ivory.BSP.STM32.Signalable.TH,
                        Ivory.BSP.STM32.Signalable.Class,
 
-                       Ivory.BSP.STM32.Peripheral.Flash.Peripheral,
+                       Ivory.BSP.STM32.Peripheral.Flash,
                        Ivory.BSP.STM32.Peripheral.Flash.Regs,
 
                        Ivory.BSP.STM32.Peripheral.GPIOF4.RegTypes,
@@ -40,9 +43,12 @@ library
                        Ivory.BSP.STM32.Peripheral.I2C.Tower.Types,
                        Ivory.BSP.STM32.Peripheral.I2C.Tower.Types.I2CDeviceAddr,
 
+                       Ivory.BSP.STM32.Peripheral.PWR,
                        Ivory.BSP.STM32.Peripheral.PWR.Regs,
                        Ivory.BSP.STM32.Peripheral.PWR.RegTypes,
-                       Ivory.BSP.STM32.Peripheral.PWR.Peripheral,
+
+                       Ivory.BSP.STM32.Peripheral.RCC.RegTypes,
+                       Ivory.BSP.STM32.Peripheral.RCC.Regs,
 
                        Ivory.BSP.STM32F405.MemoryMap,
                        Ivory.BSP.STM32F405.Interrupt,
@@ -58,7 +64,6 @@ library
                        Ivory.BSP.STM32F405.I2C,
                        Ivory.BSP.STM32F405.RCC,
                        Ivory.BSP.STM32F405.RCC.GetFreq,
-                       Ivory.BSP.STM32F405.RCC.RegTypes,
                        Ivory.BSP.STM32F405.RCC.Regs,
                        Ivory.BSP.STM32F405.RCC.Class,
                        Ivory.BSP.STM32F405.GPIO,
@@ -78,8 +83,6 @@ library
                        Ivory.BSP.STM32F405.UART.Regs,
                        Ivory.BSP.STM32F405.UART.Peripheral,
                        Ivory.BSP.STM32F405.UART.Tower,
-                       Ivory.BSP.STM32F405.PWR,
-                       Ivory.BSP.STM32F405.Flash,
                        Ivory.BSP.STM32F405.Init,
                        Ivory.BSP.STM32F405.VectorTable
 

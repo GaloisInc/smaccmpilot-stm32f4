@@ -13,12 +13,11 @@ import Ivory.HW.Module (hw_moduledef)
 
 import Ivory.BSP.ARMv7M.Exception
 import Ivory.BSP.STM32.BoardHSE
-
+import Ivory.BSP.STM32.Peripheral.Flash
+import Ivory.BSP.STM32.Peripheral.PWR
 
 import Ivory.BSP.STM32F405.VectorTable
 import Ivory.BSP.STM32F405.RCC
-import Ivory.BSP.STM32F405.PWR
-import Ivory.BSP.STM32F405.Flash
 
 stm32f4InitModule :: (BoardHSE p) => Proxy p -> Module
 stm32f4InitModule platform = package "stm32f4_ivory_init" $ do

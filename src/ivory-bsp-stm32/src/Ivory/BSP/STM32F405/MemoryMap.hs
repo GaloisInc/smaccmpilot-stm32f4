@@ -8,25 +8,16 @@
 
 module Ivory.BSP.STM32F405.MemoryMap where
 
+import Ivory.BSP.STM32.MemoryMap
+
 flash_base, ccmdataram_base, sram1_base, sram2_base :: Integer
 flash_base      = 0x08000000
 ccmdataram_base = 0x10000000
 sram1_base      = 0x20000000
 sram2_base      = 0x2001C000
 
-periph_base :: Integer
-periph_base = 0x40000000
-
 bkpsram_base :: Integer
 bkpsram_base = 0x40024000
-
-apb1_periph_base, apb2_periph_base :: Integer
-apb1_periph_base = periph_base
-apb2_periph_base = periph_base + 0x00010000
-
-ahb1_periph_base, ahb2_periph_base :: Integer
-ahb1_periph_base = periph_base + 0x00020000
-ahb2_periph_base = periph_base + 0x10000000
 
 --- APB1 Peripherals
 tim2_periph_base :: Integer
@@ -79,8 +70,8 @@ can1_periph_base :: Integer
 can1_periph_base = apb1_periph_base + 0x6400
 can2_periph_base :: Integer
 can2_periph_base = apb1_periph_base + 0x6800
-pwr_periph_base :: Integer
-pwr_periph_base = apb1_periph_base + 0x7000
+--pwr_periph_base :: Integer
+--pwr_periph_base = apb1_periph_base + 0x7000
 dac_periph_base :: Integer
 dac_periph_base = apb1_periph_base + 0x7400
 
@@ -137,10 +128,10 @@ gpioi_periph_base :: Integer
 gpioi_periph_base = ahb1_periph_base + 0x2000
 crc_periph_base :: Integer
 crc_periph_base = ahb1_periph_base + 0x3000
-rcc_periph_base :: Integer
-rcc_periph_base = ahb1_periph_base + 0x3800
-flash_r_periph_base :: Integer
-flash_r_periph_base = ahb1_periph_base + 0x3C00
+--rcc_periph_base :: Integer
+--rcc_periph_base = ahb1_periph_base + 0x3800
+--flash_r_periph_base :: Integer
+--flash_r_periph_base = ahb1_periph_base + 0x3C00
 dma1_periph_base :: Integer
 dma1_periph_base = ahb1_periph_base + 0x6000
 dma2_periph_base :: Integer
@@ -158,6 +149,3 @@ hash_periph_base = ahb2_periph_base + 0x60400
 rng_periph_base :: Integer
 rng_periph_base = ahb2_periph_base + 0x60800
 
--- Cortex-M4 peripherals
-nvic_base :: Integer
-nvic_base = 0xE000E100

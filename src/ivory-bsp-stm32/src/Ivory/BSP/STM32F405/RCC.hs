@@ -7,7 +7,8 @@
 
 module Ivory.BSP.STM32F405.RCC
   ( module Ivory.BSP.STM32F405.RCC.Regs
-  , module Ivory.BSP.STM32F405.RCC.RegTypes
+  , module Ivory.BSP.STM32.Peripheral.RCC.RegTypes
+  , module Ivory.BSP.STM32.Peripheral.RCC.Regs
   , rccEnable
   , rccDisable
   -- * system clock frequency
@@ -22,5 +23,6 @@ module Ivory.BSP.STM32F405.RCC
 
 import Ivory.BSP.STM32F405.RCC.Class
 import Ivory.BSP.STM32F405.RCC.Regs
-import Ivory.BSP.STM32F405.RCC.RegTypes
+import Ivory.BSP.STM32.Peripheral.RCC.Regs
+import Ivory.BSP.STM32.Peripheral.RCC.RegTypes
 import Ivory.BSP.STM32F405.RCC.GetFreq

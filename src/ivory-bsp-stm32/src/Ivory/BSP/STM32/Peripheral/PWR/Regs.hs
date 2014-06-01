@@ -12,7 +12,6 @@
 module Ivory.BSP.STM32.Peripheral.PWR.Regs where
 
 import Ivory.BitData
-import Ivory.HW
 
 import Ivory.BSP.STM32.Peripheral.PWR.RegTypes
 
