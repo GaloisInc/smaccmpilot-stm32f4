@@ -21,7 +21,7 @@ import Ivory.BSP.STM32F405.UART
 import Ivory.BSP.STM32F405.UART.Tower
 
 import Ivory.BSP.STM32.Signalable
-import Ivory.BSP.STM32.BoardHSE
+import Ivory.BSP.STM32.PlatformClock
 
 import qualified Ivory.BSP.STM32F405.Interrupt as F405
 
@@ -32,7 +32,7 @@ main = compilePlatforms conf (motorPlatforms app)
   where
   conf = searchPathConf [ HW.searchDir, BSP.searchDir ]
 
-app :: (RawMotorControl p, BoardHSE p, STM32Signal F405.Interrupt p)
+app :: (RawMotorControl p, PlatformClock p, STM32Signal F405.Interrupt p)
     => Tower p ()
 app = do
   c <- channel

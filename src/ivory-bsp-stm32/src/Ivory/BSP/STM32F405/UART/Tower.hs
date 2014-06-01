@@ -18,7 +18,7 @@ import Ivory.BitData
 
 import Ivory.BSP.STM32.Interrupt
 import Ivory.BSP.STM32.Signalable
-import Ivory.BSP.STM32.BoardHSE
+import Ivory.BSP.STM32.PlatformClock
 
 import Ivory.BSP.STM32F405.UART.Regs
 import Ivory.BSP.STM32F405.UART.Peripheral
@@ -47,7 +47,7 @@ emptyDbg =
     }
 
 uartTower :: forall i n p
-           . (SingI n, BoardHSE p, STM32Signal i p)
+           . (SingI n, PlatformClock p, STM32Signal i p)
           => UART i
           -> Integer
           -> Proxy (n :: Nat)
@@ -56,7 +56,7 @@ uartTower :: forall i n p
 uartTower u b s = uartTowerDebuggable u b s emptyDbg
 
 uartTowerFlushable :: forall i n p
-           . (SingI n, BoardHSE p, STM32Signal i p)
+           . (SingI n, PlatformClock p, STM32Signal i p)
           => UART i
           -> Integer
           -> Proxy (n :: Nat)
@@ -76,7 +76,7 @@ uartTowerFlushable uart baud sizeproxy = do
 
 
 uartTowerDebuggable :: forall i n p
-           . (SingI n, BoardHSE p, STM32Signal i p)
+           . (SingI n, PlatformClock p, STM32Signal i p)
           => UART i
           -> Integer
           -> Proxy (n :: Nat)
@@ -99,7 +99,7 @@ uartTowerDebuggable uart baud sizeproxy dbg = do
 
 
 uartTowerTask :: forall i p
-               . (STM32Signal i p, BoardHSE p)
+               . (STM32Signal i p, PlatformClock p)
               => UART i
               -> Integer
               -> ChannelSink (Stored Uint8)

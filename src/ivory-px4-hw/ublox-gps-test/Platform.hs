@@ -12,15 +12,11 @@ import Ivory.Tower
 import Ivory.Tower.Frontend
 
 import Ivory.BSP.STM32F405.UART
+import Ivory.BSP.STM32F405.ClockConfig
 import qualified Ivory.BSP.STM32F405.Interrupt as F405
 
 import Ivory.BSP.STM32.Signalable
-import Ivory.BSP.STM32.BoardHSE
-
-f24MHz :: Integer
-f24MHz = 24000000
-f8MHz :: Integer
-f8MHz = 8000000
+import Ivory.BSP.STM32.PlatformClock
 
 data PX4FMU17_IOAR = PX4FMU17_IOAR
 data PX4FMU17_Bare = PX4FMU17_Bare
@@ -36,31 +32,31 @@ class GPSUart p where
   consoleUart :: Proxy p -> UART F405.Interrupt
   gpsUart     :: Proxy p -> UART F405.Interrupt
 
-instance BoardHSE PX4FMU17_IOAR where
-  hseFreqHz _ = f24MHz
+instance PlatformClock PX4FMU17_IOAR where
+  platformClockConfig _ = f405ExtXtalMHz 24
 instance GPSUart PX4FMU17_IOAR where
   consoleUart _ = uart1
   gpsUart _ = uart6
 
-instance BoardHSE PX4FMU17_Bare where
-  hseFreqHz _ = f24MHz
+instance PlatformClock PX4FMU17_Bare where
+  platformClockConfig _ = f405ExtXtalMHz 24
 instance GPSUart PX4FMU17_Bare where
   consoleUart _ = uart1
   gpsUart _ = uart6
 
-instance BoardHSE Open407VC where
-  hseFreqHz _ = f8MHz
+instance PlatformClock Open407VC where
+  platformClockConfig _ = f405ExtXtalMHz 8
 instance GPSUart Open407VC where
   consoleUart _ = uart1
   gpsUart _ = uart2
 
-instance BoardHSE PX4FMU24 where
-  hseFreqHz _ = f24MHz
+instance PlatformClock PX4FMU24 where
+  platformClockConfig _ = f405ExtXtalMHz 24
 instance GPSUart PX4FMU24 where
   consoleUart _ = uart1
   gpsUart _ = uart3
 
-gpsPlatforms :: (forall p . (GPSUart p, BoardHSE p, STM32Signal F405.Interrupt p)
+gpsPlatforms :: (forall p . (GPSUart p, PlatformClock p, STM32Signal F405.Interrupt p)
                   => Tower p ())
              -> [(String, Twr)]
 gpsPlatforms app =

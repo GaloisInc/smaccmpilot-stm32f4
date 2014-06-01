@@ -19,14 +19,14 @@ import Ivory.BSP.STM32F405.Init
 import Ivory.BSP.STM32F405.UART
 import Ivory.BSP.STM32F405.UART.Tower
 
-import Ivory.BSP.STM32.BoardHSE
+import Ivory.BSP.STM32.PlatformClock
 import Ivory.BSP.STM32.Signalable
 import qualified Ivory.BSP.STM32F405.Interrupt as F405 -- XXX required until uartTower is properly polymorphic?
 
 --------------------------------------------------------------------------------
 
 app :: forall p
-     . (ColoredLEDs p, BoardHSE p, STM32Signal F405.Interrupt p)
+     . (ColoredLEDs p, PlatformClock p, STM32Signal F405.Interrupt p)
     => Tower p ()
 app = do
   stm32f4InitTower

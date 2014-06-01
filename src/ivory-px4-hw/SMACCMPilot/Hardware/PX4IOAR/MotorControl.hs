@@ -22,7 +22,7 @@ import Ivory.BSP.STM32F405.GPIO
 import qualified Ivory.BSP.STM32F405.Interrupt as F405
 
 import Ivory.BSP.STM32.Signalable
-import Ivory.BSP.STM32.BoardHSE
+import Ivory.BSP.STM32.PlatformClock
 
 select_pins :: [GPIOPin]
 select_pins = [ pinC4, pinC5, pinA0, pinA1 ]
@@ -54,7 +54,7 @@ select_set_all v = mapM_ act select_pins
   where -- Active Low:
   act pin = ifte_ v (pinClear pin) (pinSet pin)
 
-motorControlTower :: ( IvoryArea a, IvoryZero a, BoardHSE p
+motorControlTower :: ( IvoryArea a, IvoryZero a, PlatformClock p
                      , STM32Signal F405.Interrupt p)
              => (forall s cs . ConstRef s a
                   -> Ivory (AllocEffects cs)

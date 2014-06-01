@@ -21,7 +21,7 @@ import Ivory.BSP.STM32F405.GPIO
 import Ivory.BSP.STM32F405.I2C
 import qualified Ivory.BSP.STM32F405.Interrupt as F405
 
-import Ivory.BSP.STM32.BoardHSE
+import Ivory.BSP.STM32.PlatformClock
 import Ivory.BSP.STM32.Signalable
 
 import SMACCMPilot.Hardware.HMC5883L
@@ -33,7 +33,7 @@ main = compilePlatforms conf (gpsPlatforms app)
   where
   conf = searchPathConf [ HW.searchDir, BSP.searchDir ]
 
-app :: forall p . (MPU6kPlatform p, BoardHSE p, STM32Signal F405.Interrupt p)
+app :: forall p . (MPU6kPlatform p, PlatformClock p, STM32Signal F405.Interrupt p)
     => Tower p ()
 app = do
   (_consIn,_consOut) <- uartTower (consoleUart (Proxy :: Proxy p))
@@ -45,7 +45,7 @@ app = do
 
 
 hmc5883lctl :: forall p
-        . (BoardHSE p, STM32Signal F405.Interrupt p)
+        . (PlatformClock p, STM32Signal F405.Interrupt p)
        => ChannelSource (Struct "i2c_transaction_request")
        -> ChannelSink   (Struct "i2c_transaction_result")
        -> I2CDeviceAddr

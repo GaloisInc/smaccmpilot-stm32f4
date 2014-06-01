@@ -19,14 +19,14 @@ import Ivory.BSP.STM32.Signalable
 
 import Ivory.BSP.STM32F405.GPIO -- XXX
 
-import Ivory.BSP.STM32.BoardHSE
+import Ivory.BSP.STM32.PlatformClock
 import Ivory.BSP.STM32.Peripheral.I2C.Regs
 import Ivory.BSP.STM32.Peripheral.I2C.Peripheral
 import Ivory.BSP.STM32.Peripheral.I2C.Tower.Types
 import Ivory.BSP.STM32.Peripheral.I2C.Tower.Types.I2CDeviceAddr
 
 
-i2cTower :: (BoardHSE p, STM32Signal i p)
+i2cTower :: (PlatformClock p, STM32Signal i p)
          => I2CPeriph i
          -> GPIOPin
          -> GPIOPin
@@ -47,7 +47,7 @@ i2cTowerTypes = package "i2cTowerTypes" $ do
   defStruct (Proxy :: Proxy "i2c_transaction_result")
 
 i2cPeripheralDriver :: forall i p
-                     . (STM32Signal i p, BoardHSE p)
+                     . (STM32Signal i p, PlatformClock p)
                     => I2CPeriph i
                     -> GPIOPin
                     -> GPIOPin

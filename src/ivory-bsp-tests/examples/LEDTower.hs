@@ -6,7 +6,7 @@ import Ivory.Language
 import Ivory.Tower
 
 import Ivory.HW.Module
-import Ivory.BSP.STM32.BoardHSE
+import Ivory.BSP.STM32.PlatformClock
 import Ivory.BSP.STM32F405.GPIO
 import Ivory.BSP.STM32F405.Init
 

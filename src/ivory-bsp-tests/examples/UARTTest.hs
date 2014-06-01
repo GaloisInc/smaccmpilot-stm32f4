@@ -26,7 +26,9 @@ import qualified Ivory.BSP.STM32.SearchDir as BSP
 
 import Ivory.BSP.STM32F405.UART
 import Ivory.BSP.STM32F405.UART.Peripheral
-import Ivory.BSP.STM32.BoardHSE
+import Ivory.BSP.STM32F405.ClockConfig
+
+import Ivory.BSP.STM32.PlatformClock
 
 ledPins :: [GPIOPin]
 ledPins = [pinB14, pinB15]
@@ -50,8 +52,8 @@ ledOff pin = pinSetMode pin gpio_mode_analog
 -- We don't have a real Tower frontend for this build
 -- so I'm going to do something unsightly:
 data DummyHSE = DummyHSE
-instance BoardHSE DummyHSE where
-  hseFreqHz _ = 24000000
+instance PlatformClock DummyHSE where
+  platformClockConfig _ = f405ExtXtal (mhz 24)
 
 main_task :: Def ('[Ptr s (Stored Uint8)] :-> ())
 main_task = proc "main_task" $ \_ -> body $ do

@@ -39,7 +39,7 @@ import qualified Ivory.BSP.STM32F405.UART as UART
 import           Ivory.BSP.STM32F405.UART.Tower
 import qualified Ivory.BSP.STM32F405.Interrupt as F405
 import           Ivory.BSP.STM32.Signalable
-import           Ivory.BSP.STM32.BoardHSE
+import           Ivory.BSP.STM32.PlatformClock
 
 -- | All parameters in the system.
 data SysParams f = SysParams
@@ -52,7 +52,7 @@ sysParams =
   SysParams <$> group "" flightParams
 
 hil :: ( STM32Signal F405.Interrupt p
-       , BoardHSE p, MotorOutput p, SensorOrientation p)
+       , PlatformClock p, MotorOutput p, SensorOrientation p)
     => C.Options
     -> Tower p ()
 hil opts = do
@@ -118,7 +118,7 @@ hil opts = do
   towerModule  gpsTypesModule
   towerDepends gpsTypesModule
 
-flight :: ( STM32Signal F405.Interrupt p, BoardHSE p, MotorOutput p
+flight :: ( STM32Signal F405.Interrupt p, PlatformClock p, MotorOutput p
           , SensorOrientation p)
        => C.Options
        -> Tower p ()

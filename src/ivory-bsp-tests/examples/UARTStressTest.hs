@@ -17,7 +17,7 @@ import Ivory.BSP.STM32F405.GPIO
 import Ivory.BSP.STM32F405.UART
 import Ivory.BSP.STM32F405.UART.Tower
 import qualified Ivory.BSP.STM32F405.Interrupt as F405
-import Ivory.BSP.STM32.BoardHSE
+import Ivory.BSP.STM32.PlatformClock
 import Ivory.BSP.STM32.Signalable
 
 ready :: Uint8
@@ -116,7 +116,7 @@ gpioOn p = do
   pinSet           p
   pinSetMode       p gpio_mode_output
 
-app :: forall p . (ColoredLEDs p, BoardHSE p, STM32Signal F405.Interrupt p) => Tower p ()
+app :: forall p . (ColoredLEDs p, PlatformClock p, STM32Signal F405.Interrupt p) => Tower p ()
 app = do
   stm32f4InitTower
 

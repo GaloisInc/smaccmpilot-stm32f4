@@ -48,3 +48,10 @@ clockPClk1Hz cc = clockHClkHz cc `div` (clockconfig_pclk1_divider cc)
 clockPClk2Hz :: ClockConfig -> Integer
 clockPClk2Hz cc = clockHClkHz cc `div` (clockconfig_pclk2_divider cc)
 
+data PClk = PClk1 | PClk2
+
+clockPClkHz :: PClk -> ClockConfig -> Integer
+clockPClkHz PClk1 = clockPClk1Hz
+clockPClkHz PClk2 = clockPClk2Hz
+
+

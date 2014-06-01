@@ -21,7 +21,7 @@ import Ivory.BSP.STM32F405.I2C
 import qualified Ivory.BSP.STM32F405.Interrupt as F405
 
 import Ivory.BSP.STM32.Signalable
-import Ivory.BSP.STM32.BoardHSE
+import Ivory.BSP.STM32.PlatformClock
 
 import SMACCMPilot.Hardware.MS5611
 
@@ -32,7 +32,7 @@ main = compilePlatforms conf (gpsPlatforms app)
   where
   conf = searchPathConf [ HW.searchDir, BSP.searchDir ]
 
-app :: forall p . (MPU6kPlatform p, BoardHSE p, STM32Signal F405.Interrupt p)
+app :: forall p . (MPU6kPlatform p, PlatformClock p, STM32Signal F405.Interrupt p)
     => Tower p ()
 app = do
   towerModule  ms5611TypesModule
@@ -42,7 +42,7 @@ app = do
 
 
 ms5611ctl :: forall p
-        . (BoardHSE p, STM32Signal F405.Interrupt p)
+        . (PlatformClock p, STM32Signal F405.Interrupt p)
        => ChannelSource (Struct "i2c_transaction_request")
        -> ChannelSink   (Struct "i2c_transaction_result")
        -> I2CDeviceAddr

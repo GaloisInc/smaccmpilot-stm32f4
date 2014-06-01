@@ -15,7 +15,7 @@ import Ivory.BSP.STM32F405.SPI
 import qualified Ivory.BSP.STM32F405.Interrupt as F405
 
 import Ivory.BSP.STM32.Signalable
-import Ivory.BSP.STM32.BoardHSE
+import Ivory.BSP.STM32.PlatformClock
 
 import Platforms
 
@@ -43,7 +43,7 @@ testdevice2 = SPIDevice
   , spiDevName          = "testdevice2_500khz_pinE3"
   }
 
-app ::  forall p . (ColoredLEDs p, BoardHSE p, STM32Signal F405.Interrupt p) => Tower p ()
+app ::  forall p . (ColoredLEDs p, PlatformClock p, STM32Signal F405.Interrupt p) => Tower p ()
 app = do
   stm32f4InitTower
 

@@ -20,9 +20,9 @@ library
 
                        Ivory.BSP.STM32.SearchDir,
 
-                       Ivory.BSP.STM32.BoardHSE,
                        Ivory.BSP.STM32.ClockConfig,
                        Ivory.BSP.STM32.MemoryMap,
+                       Ivory.BSP.STM32.PlatformClock,
 
                        Ivory.BSP.STM32.Interrupt,
                        Ivory.BSP.STM32.Signalable,
@@ -47,9 +47,11 @@ library
                        Ivory.BSP.STM32.Peripheral.PWR.Regs,
                        Ivory.BSP.STM32.Peripheral.PWR.RegTypes,
 
+                       Ivory.BSP.STM32.Peripheral.RCC,
                        Ivory.BSP.STM32.Peripheral.RCC.RegTypes,
                        Ivory.BSP.STM32.Peripheral.RCC.Regs,
 
+                       Ivory.BSP.STM32F405.ClockConfig,
                        Ivory.BSP.STM32F405.MemoryMap,
                        Ivory.BSP.STM32F405.Interrupt,
                        Ivory.BSP.STM32F405.Interrupt.API,

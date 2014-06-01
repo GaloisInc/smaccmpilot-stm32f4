@@ -15,7 +15,7 @@ import Ivory.BitData
 
 import Ivory.BSP.STM32.Interrupt
 import Ivory.BSP.STM32.Signalable
-import Ivory.BSP.STM32.BoardHSE
+import Ivory.BSP.STM32.PlatformClock
 
 import Ivory.BSP.STM32F405.GPIO
 import Ivory.BSP.STM32F405.SPI.Regs
@@ -24,7 +24,7 @@ import Ivory.BSP.STM32F405.SPI.Tower.Types
 import Ivory.BSP.STM32F405.SPI.Tower.Types.SPIDeviceHandle
 
 
-spiTower :: (BoardHSE p, STM32Signal i p)
+spiTower :: (PlatformClock p, STM32Signal i p)
          => [SPIDevice i]
          -> Tower p ( ChannelSource (Struct "spi_transaction_request")
                     , ChannelSink   (Struct "spi_transaction_result"))
@@ -50,7 +50,7 @@ spiTower devices = do
 
 
 spiPeripheralDriver :: forall i p
-                     . (STM32Signal i p, BoardHSE p)
+                     . (STM32Signal i p, PlatformClock p)
                     => SPIPeriph i
                     -> [SPIDevice i]
                     -> ChannelSink   (Struct "spi_transaction_request")

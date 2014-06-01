@@ -19,7 +19,7 @@ import Ivory.BSP.STM32F405.GPIO
 import Ivory.BSP.STM32F405.GPIO.AF
 import Ivory.BSP.STM32F405.RCC
 
-import Ivory.BSP.STM32.BoardHSE
+import Ivory.BSP.STM32.PlatformClock
 
 -- In microseconds:
 minPWM, maxPWM :: Uint16
@@ -27,7 +27,7 @@ minPWM = 1100
 maxPWM = 1900
 
 motorControlTower :: forall a p
-                   . (IvoryArea a, IvoryZero a, BoardHSE p)
+                   . (IvoryArea a, IvoryZero a, PlatformClock p)
                   => (forall s cs . ConstRef s a
                        -> Ivory (AllocEffects cs)
                             (ConstRef (Stack cs) (Array 4 (Stored IFloat))))
@@ -42,7 +42,7 @@ motorControlTower decode motorChan = do
       throttle <- decode encThrottle
       pwm_output throttle
 
-hw_init :: (BoardHSE p, GetAlloc eff ~ Scope cs)
+hw_init :: (PlatformClock p, GetAlloc eff ~ Scope cs)
         => Proxy p -> Ivory eff ()
 hw_init platform = do
   tim_init platform tim2
@@ -57,7 +57,7 @@ pwm_out_pin af p = do
   pinSetSpeed      p gpio_speed_50mhz
   pinSetAF         p af
 
-tim_init :: (BoardHSE p, GetAlloc eff ~ Scope cs)
+tim_init :: (PlatformClock p, GetAlloc eff ~ Scope cs)
          => Proxy p -> GTIM16 -> Ivory eff ()
 tim_init platform gtim = do
   gtimRCCEnable gtim

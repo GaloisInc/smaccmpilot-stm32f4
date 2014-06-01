@@ -19,7 +19,7 @@ import Ivory.Stdlib
 
 import Ivory.BSP.STM32.Interrupt
 import Ivory.BSP.STM32.Signalable
-import Ivory.BSP.STM32.BoardHSE
+import Ivory.BSP.STM32.PlatformClock
 
 import Ivory.BSP.STM32F405.SPI.RegTypes
 import Ivory.BSP.STM32F405.SPI.Regs
@@ -149,7 +149,7 @@ spiDeviceInit dev = do
   pinSetOutputType  pin gpio_outputtype_pushpull
   pinSetSpeed       pin gpio_speed_2mhz
 
-spiBusBegin :: (GetAlloc eff ~ Scope cs, BoardHSE p)
+spiBusBegin :: (GetAlloc eff ~ Scope cs, PlatformClock p)
             => Proxy p -> SPIDevice i -> Ivory eff ()
 spiBusBegin platform dev = do
   -- XXX can i eliminate this on/off cycle?
@@ -214,7 +214,7 @@ spiSetDR spi b =
 
 -- Internal Helper Functions ---------------------------------------------------
 
-spiDevBaud :: (GetAlloc eff ~ Scope s, BoardHSE p)
+spiDevBaud :: (GetAlloc eff ~ Scope s, PlatformClock p)
            => Proxy p -> SPIPeriph i -> Integer -> Ivory eff SPIBaud
 spiDevBaud platform periph hz = do
   fplk <- getFreqPClk platform (spiPClk periph)

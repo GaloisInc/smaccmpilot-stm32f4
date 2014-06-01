@@ -12,14 +12,14 @@ import Ivory.HW
 import Ivory.HW.Module (hw_moduledef)
 
 import Ivory.BSP.ARMv7M.Exception
-import Ivory.BSP.STM32.BoardHSE
+import Ivory.BSP.STM32.PlatformClock
 import Ivory.BSP.STM32.Peripheral.Flash
 import Ivory.BSP.STM32.Peripheral.PWR
 
 import Ivory.BSP.STM32F405.VectorTable
 import Ivory.BSP.STM32.Peripheral.RCC
 
-stm32f4InitModule :: (BoardHSE p) => Proxy p -> Module
+stm32f4InitModule :: (PlatformClock p) => Proxy p -> Module
 stm32f4InitModule platform = package "stm32f4_ivory_init" $ do
   inclHeader "stm32f4_init.h"
   sourceDep  "stm32f4_init.h"
@@ -32,7 +32,7 @@ stm32f4InitModule platform = package "stm32f4_ivory_init" $ do
     incl init_libc
     incl main_proc
 
-stm32f4InitTower :: forall p . (BoardHSE p) => Tower p ()
+stm32f4InitTower :: forall p . (PlatformClock p) => Tower p ()
 stm32f4InitTower = do
   towerArtifact vectorArtifact
   towerModule (stm32f4InitModule (Proxy :: Proxy p))
@@ -52,15 +52,15 @@ init_libc = externProc "init_libc"
 main_proc :: Def('[]:->())
 main_proc = externProc "main"
 
-reset_handler :: (BoardHSE p) => Proxy p => Def('[]:->())
+reset_handler :: (PlatformClock p) => Proxy p => Def('[]:->())
 reset_handler platform = proc (exceptionHandlerName Reset) $ body $ do
   call_ init_relocate
   call_ (init_clocks platform)
   call_ init_libc
   call_ main_proc
 
-init_clocks :: (BoardHSE p) => Proxy p -> Def('[]:->())
-init_clocks platform = proc "init_clocks" $ body $ do
+init_clocks :: (PlatformClock p) => Proxy p -> Def('[]:->())
+init_clocks _platform = proc "init_clocks" $ body $ do
   -- RCC clock config to default reset state
   modifyReg (rcc_reg_cr rcc) $ setBit rcc_cr_hsi_on
   modifyReg (rcc_reg_cfgr rcc) $ do
@@ -134,7 +134,8 @@ init_clocks platform = proc "init_clocks" $ body $ do
 
   -- Configure main PLL:
   modifyReg (rcc_reg_pllcfgr rcc) $ do
-    let m = fromIntegral ((hseFreqHz platform) `div` 1000000) -- base input 1mhz
+    let -- m = fromIntegral ((hseFreqHz platform) `div` 1000000) -- base input 1mhz
+        m = 24 -- XXX PLACEHOLDER UNTIL WE REFACTOR THIS TO USE ClockConfig
         n = 336 -- can be divided into 168 and 48
         p = rcc_pllp_div2 -- m*n/p = 168 mhz pll sysclk
         q = 7   -- m*n/q = 48  mhz pll 48clk
