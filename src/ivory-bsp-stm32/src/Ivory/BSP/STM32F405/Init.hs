@@ -17,7 +17,7 @@ import Ivory.BSP.STM32.Peripheral.Flash
 import Ivory.BSP.STM32.Peripheral.PWR
 
 import Ivory.BSP.STM32F405.VectorTable
-import Ivory.BSP.STM32F405.RCC
+import Ivory.BSP.STM32.Peripheral.RCC
 
 stm32f4InitModule :: (BoardHSE p) => Proxy p -> Module
 stm32f4InitModule platform = package "stm32f4_ivory_init" $ do
@@ -62,8 +62,8 @@ reset_handler platform = proc (exceptionHandlerName Reset) $ body $ do
 init_clocks :: (BoardHSE p) => Proxy p -> Def('[]:->())
 init_clocks platform = proc "init_clocks" $ body $ do
   -- RCC clock config to default reset state
-  modifyReg regRCC_CR $ setBit rcc_cr_hsi_on
-  modifyReg regRCC_CFGR $ do
+  modifyReg (rcc_reg_cr rcc) $ setBit rcc_cr_hsi_on
+  modifyReg (rcc_reg_cfgr rcc) $ do
     setField rcc_cfgr_mco2     rcc_mcox_sysclk
     setField rcc_cfgr_mco2_pre rcc_mcoxpre_none
     setField rcc_cfgr_mco1_pre rcc_mcoxpre_none
@@ -76,13 +76,13 @@ init_clocks platform = proc "init_clocks" $ body $ do
     setField rcc_cfgr_sws      rcc_sysclk_hsi
 
   -- Reset HSEOn, CSSOn, PLLOn bits
-  modifyReg regRCC_CR $ do
+  modifyReg (rcc_reg_cr rcc) $ do
     clearBit rcc_cr_hse_on
     clearBit rcc_cr_css_on
     clearBit rcc_cr_pll_on
 
   -- Reset PLLCFGR register
-  modifyReg regRCC_PLLCFGR $ do
+  modifyReg (rcc_reg_pllcfgr rcc) $ do
     setField rcc_pllcfgr_pllq   (fromRep 2)
     setBit   rcc_pllcfgr_pllsrc
     setField rcc_pllcfgr_pllp   rcc_pllp_div2
@@ -90,10 +90,10 @@ init_clocks platform = proc "init_clocks" $ body $ do
     setField rcc_pllcfgr_pllm   (fromRep 16)
 
   -- Reset HSEBYP bit
-  modifyReg regRCC_CR $ clearBit rcc_cr_hse_byp
+  modifyReg (rcc_reg_cr rcc) $ clearBit rcc_cr_hse_byp
 
   -- Disable all interrupts
-  modifyReg regRCC_CIR $ do
+  modifyReg (rcc_reg_cir rcc) $ do
     clearBit rcc_cir_plli2s_rdyie
     clearBit rcc_cir_pll_rdyie
     clearBit rcc_cir_hse_rdyie
@@ -102,12 +102,12 @@ init_clocks platform = proc "init_clocks" $ body $ do
     clearBit rcc_cir_lsi_rdyie
 
   -- Enable HSE
-  modifyReg regRCC_CR $ setBit rcc_cr_hse_on
+  modifyReg (rcc_reg_cr rcc) $ setBit rcc_cr_hse_on
 
   -- Spin for a little bit waiting for RCC->CR HSERDY bit to be high
   hserdy <- local (ival false)
   arrayMap $ \(_ :: Ix 1024) -> do
-    cr <- getReg regRCC_CR
+    cr <- getReg (rcc_reg_cr rcc)
     when (bitToBool (cr #. rcc_cr_hse_rdy)) $ do
       store hserdy true
       breakOut
@@ -120,20 +120,20 @@ init_clocks platform = proc "init_clocks" $ body $ do
     forever $ return ()
 
   -- Select regulator voltage output scale 1 mode, sys freq 168mhz
-  modifyReg regRCC_APB1ENR $ setBit rcc_apb1en_pwr
+  modifyReg (rcc_reg_apb1enr rcc) $ setBit rcc_apb1en_pwr
   modifyReg (pwr_reg_cr pwr) $ setBit pwr_cr_vos
 
   -- Select bus clock dividers
   -- HCLK  = SYSCLK
   -- PCLK1 = SYSCLK div 4
   -- PCLK2 = SYSCLK div 2
-  modifyReg regRCC_CFGR $ do
+  modifyReg (rcc_reg_cfgr rcc) $ do
     setField rcc_cfgr_hpre  rcc_hpre_none
     setField rcc_cfgr_ppre1 rcc_pprex_div4
     setField rcc_cfgr_ppre2 rcc_pprex_div2
 
   -- Configure main PLL:
-  modifyReg regRCC_PLLCFGR $ do
+  modifyReg (rcc_reg_pllcfgr rcc) $ do
     let m = fromIntegral ((hseFreqHz platform) `div` 1000000) -- base input 1mhz
         n = 336 -- can be divided into 168 and 48
         p = rcc_pllp_div2 -- m*n/p = 168 mhz pll sysclk
@@ -144,10 +144,10 @@ init_clocks platform = proc "init_clocks" $ body $ do
     setField rcc_pllcfgr_pllq (fromRep q)
 
   -- Enable main PLL:
-  modifyReg regRCC_CR $ setBit rcc_cr_pll_on
+  modifyReg (rcc_reg_cr rcc) $ setBit rcc_cr_pll_on
   -- Spin until RCC->CR PLLRDY bit is high
   forever $ do
-    cr <- getReg regRCC_CR
+    cr <- getReg (rcc_reg_cr rcc)
     when (bitToBool (cr #. rcc_cr_pll_rdy)) $ breakOut
 
   -- Configure flash prefetch, instruction cache, data cache, wait state 5
@@ -157,12 +157,12 @@ init_clocks platform = proc "init_clocks" $ body $ do
     setField flash_acr_latency (fromRep 5)
 
   -- Select main PLL as system clock source
-  modifyReg regRCC_CFGR $ do
+  modifyReg (rcc_reg_cfgr rcc) $ do
     setField rcc_cfgr_sw rcc_sysclk_pll
 
   -- Spin until main PLL is ready:
   forever $ do
-    cfgr <- getReg regRCC_CFGR
+    cfgr <- getReg (rcc_reg_cfgr rcc)
     when ((cfgr #. rcc_cfgr_sws) ==? rcc_sysclk_pll) $ breakOut
 
 

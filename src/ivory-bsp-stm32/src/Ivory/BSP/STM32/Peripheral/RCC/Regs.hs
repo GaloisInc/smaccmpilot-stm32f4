@@ -14,12 +14,8 @@
 module Ivory.BSP.STM32.Peripheral.RCC.Regs where
 
 import Ivory.BitData
-import Ivory.HW
-
-import Ivory.BSP.STM32.MemoryMap (rcc_periph_base)
 
 import Ivory.BSP.STM32.Peripheral.RCC.RegTypes
-
 
 -- Control Register ------------------------------------------------------------
 
@@ -43,9 +39,6 @@ import Ivory.BSP.STM32.Peripheral.RCC.RegTypes
   }
 |]
 
-regRCC_CR :: BitDataReg RCC_CR
-regRCC_CR = mkBitDataRegNamed rcc_periph_base "rcc_cr"
-
 -- PLL Configuration Register --------------------------------------------------
 
 [bitdata|
@@ -60,9 +53,6 @@ regRCC_CR = mkBitDataRegNamed rcc_periph_base "rcc_cr"
   , rcc_pllcfgr_pllm      :: Bits 6 --   2 <= pllm <= 63
   }
 |]
-
-regRCC_PLLCFGR :: BitDataReg RCC_PLLCFGR
-regRCC_PLLCFGR = mkBitDataRegNamed (rcc_periph_base + 0x04) "rcc_pllcfgr"
 
 -- Clock Configuration Register ------------------------------------------------
 
@@ -82,9 +72,6 @@ regRCC_PLLCFGR = mkBitDataRegNamed (rcc_periph_base + 0x04) "rcc_pllcfgr"
   , rcc_cfgr_sw           :: RCC_SYSCLK
   }
 |]
-
-regRCC_CFGR :: BitDataReg RCC_CFGR
-regRCC_CFGR = mkBitDataRegNamed (rcc_periph_base + 0x08) "rcc_cfgr"
 
 -- Clock Configuration Register ------------------------------------------------
 
@@ -117,6 +104,15 @@ regRCC_CFGR = mkBitDataRegNamed (rcc_periph_base + 0x08) "rcc_cfgr"
   }
 |]
 
-regRCC_CIR :: BitDataReg RCC_CIR
-regRCC_CIR = mkBitDataRegNamed (rcc_periph_base + 0x0c) "rcc_cir"
+-- APB Peripheral Clock Enable Register: Limited to just essential PWR
+-- peripheral
+-- Be sure to create a full device specific register! and check that your device
+-- actually does use the same bit for PWR as this states.
 
+[bitdata|
+ bitdata RCC_APB1ENR :: Bits 32 = rcc_apb1enr
+  { _                    :: Bits 3
+  , rcc_apb1en_pwr       :: Bit
+  , _                    :: Bits 28
+  }
+|]
