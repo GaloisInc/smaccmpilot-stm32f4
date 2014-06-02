@@ -46,8 +46,12 @@ data ATIM = ATIM
   }
 
 -- | Create an ATIM given the base register address.
-mkATIM :: Integer -> BitDataField RCC_APB2ENR Bit -> String -> ATIM
-mkATIM base rccfield n =
+mkATIM :: Integer
+       -> (forall eff . Ivory eff ())
+       -> (forall eff . Ivory eff ())
+       -> String
+       -> ATIM
+mkATIM base rccen rccdis n =
   ATIM
     { atimRegCR1         = reg 0x00 "cr1"
     , atimRegCR2         = reg 0x04 "cr2"
@@ -68,17 +72,27 @@ mkATIM base rccfield n =
     , atimRegCCR3        = reg 0x3C "ccr3"
     , atimRegCCR4        = reg 0x40 "ccr4"
     , atimRegBDTR        = reg 0x44 "bdtr"
-    , atimRCCEnable      = rccEnable  rccreg rccfield
-    , atimRCCDisable     = rccDisable rccreg rccfield
+    , atimRCCEnable      = rccen
+    , atimRCCDisable     = rccdis
     }
   where
   reg :: (IvoryIOReg (BitDataRep d)) => Integer -> String -> BitDataReg d
   reg offs name = mkBitDataRegNamed (base + offs) (n ++ "->" ++ name)
-  rccreg = regRCC_APB2ENR -- TIM1 and TIM8 are in APB2
 
 tim1 :: ATIM
-tim1 = mkATIM tim1_periph_base rcc_apb2en_tim1 "tim1"
+tim1 = mkATIM tim1_periph_base
+          (rccEnable rcc_apb2en_tim1)
+          (rccDisable rcc_apb2en_tim1)
+          "tim1"
 
 tim8 :: ATIM
-tim8 = mkATIM tim8_periph_base rcc_apb2en_tim8 "tim8"
+tim8 = mkATIM tim8_periph_base
+          (rccEnable rcc_apb2en_tim8)
+          (rccDisable rcc_apb2en_tim8)
+          "tim8"
 
+-- TIM1 and TIM8 are in APB2
+rccEnable :: BitDataField RCC_APB2ENR Bit -> Ivory eff ()
+rccEnable f = modifyReg regRCC_APB2ENR $ setBit f
+rccDisable :: BitDataField RCC_APB2ENR Bit -> Ivory eff ()
+rccDisable f = modifyReg regRCC_APB2ENR $ clearBit f

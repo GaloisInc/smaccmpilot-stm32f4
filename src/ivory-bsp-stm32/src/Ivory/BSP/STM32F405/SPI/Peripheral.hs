@@ -48,10 +48,9 @@ data SPIPeriph i = SPIPeriph
   , spiName        :: String
   }
 
-mkSPIPeriph :: (BitData a, IvoryIOReg (BitDataRep a))
-            => Integer
-            -> BitDataReg a
-            -> BitDataField a Bit
+mkSPIPeriph :: Integer
+            -> (forall eff . Ivory eff ())
+            -> (forall eff . Ivory eff ())
             -> GPIOPin
             -> GPIOPin
             -> GPIOPin
@@ -60,14 +59,14 @@ mkSPIPeriph :: (BitData a, IvoryIOReg (BitDataRep a))
             -> PClk
             -> String
             -> SPIPeriph Interrupt
-mkSPIPeriph base rccreg rccfield miso mosi sck af inter pclk n =
+mkSPIPeriph base rccen rccdis miso mosi sck af inter pclk n =
   SPIPeriph
     { spiRegCR1      = reg 0x00 "cr1"
     , spiRegCR2      = reg 0x04 "cr2"
     , spiRegSR       = reg 0x08 "sr"
     , spiRegDR       = reg 0x0C "dr"
-    , spiRCCEnable   = rccEnable  rccreg rccfield
-    , spiRCCDisable  = rccDisable rccreg rccfield
+    , spiRCCEnable   = rccen
+    , spiRCCDisable  = rccdis
     , spiPinMiso     = miso
     , spiPinMosi     = mosi
     , spiPinSck      = sck
@@ -81,12 +80,23 @@ mkSPIPeriph base rccreg rccfield miso mosi sck af inter pclk n =
   reg offs name = mkBitDataRegNamed (base + offs) (n ++ "->" ++ name)
 
 spi1, spi2, spi3 :: SPIPeriph Interrupt
-spi1 = mkSPIPeriph spi1_periph_base regRCC_APB2ENR rcc_apb2en_spi1
+spi1 = mkSPIPeriph spi1_periph_base rccenable rccdisable
           pinA7  pinA6  pinA5  gpio_af_spi1 ISR.SPI1 PClk2 "spi1"
-spi2 = mkSPIPeriph spi2_periph_base regRCC_APB1ENR rcc_apb1en_spi2
+  where
+  rccenable  = modifyReg regRCC_APB2ENR $ setBit rcc_apb2en_spi1
+  rccdisable = modifyReg regRCC_APB2ENR $ clearBit rcc_apb2en_spi1
+
+spi2 = mkSPIPeriph spi2_periph_base rccenable rccdisable
           pinC3  pinC2  pinB10 gpio_af_spi2 ISR.SPI2 PClk1 "spi2"
-spi3 = mkSPIPeriph spi3_periph_base regRCC_APB1ENR rcc_apb1en_spi3
+  where
+  rccenable  = modifyReg regRCC_APB1ENR $ setBit rcc_apb1en_spi2
+  rccdisable = modifyReg regRCC_APB1ENR $ clearBit rcc_apb1en_spi2
+
+spi3 = mkSPIPeriph spi3_periph_base rccenable rccdisable
           pinC12 pinC11 pinC10 gpio_af_spi3 ISR.SPI3 PClk1 "spi3"
+  where
+  rccenable  = modifyReg regRCC_APB1ENR $ setBit rcc_apb1en_spi3
+  rccdisable = modifyReg regRCC_APB1ENR $ clearBit rcc_apb1en_spi3
 
 initInPin :: GPIOPin -> GPIO_AF -> Ivory eff ()
 initInPin pin af = do

@@ -48,10 +48,9 @@ data UART i = UART
   , uartName       :: String
   }
 
-mkUART :: (BitData a, IvoryIOReg (BitDataRep a))
-       => Integer
-       -> BitDataReg a
-       -> BitDataField a Bit
+mkUART :: Integer
+       -> (forall eff . Ivory eff ())
+       -> (forall eff . Ivory eff ())
        -> GPIOPin -- Transmit
        -> GPIOPin -- Receive
        -> GPIO_AF
@@ -59,7 +58,7 @@ mkUART :: (BitData a, IvoryIOReg (BitDataRep a))
        -> PClk
        -> String
        -> UART i
-mkUART base rccreg rccfield tx rx af interrupt pclk n = UART
+mkUART base rccen rccdis tx rx af interrupt pclk n = UART
   { uartRegSR      = reg 0x00 "sr"
   , uartRegDR      = reg 0x04 "dr"
   , uartRegBRR     = reg 0x08 "brr"
@@ -67,8 +66,8 @@ mkUART base rccreg rccfield tx rx af interrupt pclk n = UART
   , uartRegCR2     = reg 0x10 "cr2"
   , uartRegCR3     = reg 0x14 "cr3"
   , uartRegGTPR    = reg 0x18 "gtpr"
-  , uartRCCEnable  = rccEnable  rccreg rccfield
-  , uartRCCDisable = rccDisable rccreg rccfield
+  , uartRCCEnable  = rccen
+  , uartRCCDisable = rccdis
   , uartPinTx      = tx
   , uartPinRx      = rx
   , uartPinAF      = af
@@ -82,23 +81,53 @@ mkUART base rccreg rccfield tx rx af interrupt pclk n = UART
 
 uart1, uart2, uart3, uart4, uart5, uart6 :: UART F405.Interrupt
 uart1 = mkUART uart1_periph_base
-                regRCC_APB2ENR rcc_apb2en_uart1 pinB6  pinB7
+                rccenable rccdisable
+                pinB6  pinB7
                 gpio_af_uart1 F405.USART1 PClk2 "uart1"
+  where
+  rccenable  = modifyReg regRCC_APB2ENR $ setBit   rcc_apb2en_uart1
+  rccdisable = modifyReg regRCC_APB2ENR $ clearBit rcc_apb2en_uart1
+
 uart2 = mkUART uart2_periph_base
-                regRCC_APB1ENR rcc_apb1en_uart2 pinA2  pinA3
+                rccenable rccdisable
+                pinA2  pinA3
                 gpio_af_uart2 F405.USART2 PClk1 "uart2"
+  where
+  rccenable  = modifyReg regRCC_APB1ENR $ setBit   rcc_apb1en_uart2
+  rccdisable = modifyReg regRCC_APB1ENR $ clearBit rcc_apb1en_uart2
+
 uart3 = mkUART uart3_periph_base
-                regRCC_APB1ENR rcc_apb1en_uart3 pinB10 pinB12
+                rccenable rccdisable
+                pinB10 pinB12
                 gpio_af_uart3 F405.USART3 PClk1 "uart3"
+  where
+  rccenable  = modifyReg regRCC_APB1ENR $ setBit   rcc_apb1en_uart3
+  rccdisable = modifyReg regRCC_APB1ENR $ clearBit rcc_apb1en_uart3
+
 uart4 = mkUART uart4_periph_base
-                regRCC_APB1ENR rcc_apb1en_uart4 pinC10 pinC11
+                rccenable rccdisable
+                pinC10 pinC11
                 gpio_af_uart4 F405.UART4 PClk1 "uart4"
+  where
+  rccenable  = modifyReg regRCC_APB1ENR $ setBit   rcc_apb1en_uart4
+  rccdisable = modifyReg regRCC_APB1ENR $ clearBit rcc_apb1en_uart4
+
 uart5 = mkUART uart5_periph_base
-                regRCC_APB1ENR rcc_apb1en_uart5 pinC12 pinD2
+                rccenable rccdisable
+                pinC12 pinD2
                 gpio_af_uart5 F405.UART5 PClk1 "uart5"
+  where
+  rccenable  = modifyReg regRCC_APB1ENR $ setBit   rcc_apb1en_uart5
+  rccdisable = modifyReg regRCC_APB1ENR $ clearBit rcc_apb1en_uart5
+
 uart6 = mkUART uart6_periph_base
-                regRCC_APB2ENR rcc_apb2en_uart6 pinC6  pinC7
+                rccenable rccdisable
+                pinC6  pinC7
                 gpio_af_uart6 F405.USART6 PClk2 "uart6"
+  where
+  rccenable  = modifyReg regRCC_APB2ENR $ setBit   rcc_apb2en_uart6
+  rccdisable = modifyReg regRCC_APB2ENR $ clearBit rcc_apb2en_uart6
+
 
 -- | Initialize GPIO pins for a UART.
 initPin :: GPIOPin -> GPIO_AF -> Ivory eff ()

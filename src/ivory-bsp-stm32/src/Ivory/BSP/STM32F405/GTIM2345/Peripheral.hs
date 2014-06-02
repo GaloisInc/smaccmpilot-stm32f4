@@ -49,8 +49,12 @@ data GTIM a = GTIM
 
 -- | Create a GPIO port given the base register address.
 mkGTIM :: (IvoryIOReg (BitDataRep a))
-       => Integer -> BitDataField RCC_APB1ENR Bit -> String -> GTIM a
-mkGTIM base rccfield n =
+       => Integer -- Base Addr
+       -> (forall eff . Ivory eff ()) -- RCC Enable
+       -> (forall eff . Ivory eff ()) -- RCC Disable
+       -> String
+       -> GTIM a
+mkGTIM base rccen rccdis n =
   GTIM
     { gtimRegCR1         = reg 0x00 "cr1"
     , gtimRegCR2         = reg 0x04 "cr2"
@@ -70,32 +74,56 @@ mkGTIM base rccfield n =
     , gtimRegCCR2        = reg 0x38 "ccr2"
     , gtimRegCCR3        = reg 0x3C "ccr3"
     , gtimRegCCR4        = reg 0x40 "ccr4"
-    , gtimRCCEnable      = rccEnable  rccreg rccfield
-    , gtimRCCDisable     = rccDisable rccreg rccfield
+    , gtimRCCEnable      = rccen
+    , gtimRCCDisable     = rccdis
     }
   where
   reg :: (IvoryIOReg (BitDataRep d)) => Integer -> String -> BitDataReg d
   reg offs name = mkBitDataRegNamed (base + offs) (n ++ "->" ++ name)
-  rccreg = regRCC_APB1ENR -- All TIM2345 are in APB1
 
 tim2 :: GTIM16
-tim2 = mkGTIM tim2_periph_base rcc_apb1en_tim2 "tim2"
+tim2 = mkGTIM tim2_periph_base
+          (rccEnable rcc_apb1en_tim2)
+          (rccDisable rcc_apb1en_tim2)
+          "tim2"
 
 tim3 :: GTIM16
-tim3 = mkGTIM tim3_periph_base rcc_apb1en_tim3 "tim3"
+tim3 = mkGTIM tim3_periph_base
+          (rccEnable rcc_apb1en_tim3)
+          (rccDisable rcc_apb1en_tim3)
+          "tim3"
 
 tim4 :: GTIM16
-tim4 = mkGTIM tim4_periph_base rcc_apb1en_tim4 "tim4"
+tim4 = mkGTIM tim4_periph_base
+          (rccEnable rcc_apb1en_tim4)
+          (rccDisable rcc_apb1en_tim4)
+          "tim4"
 
 tim5 :: GTIM16
-tim5 = mkGTIM tim5_periph_base rcc_apb1en_tim5 "tim5"
+tim5 = mkGTIM tim5_periph_base
+          (rccEnable rcc_apb1en_tim5)
+          (rccDisable rcc_apb1en_tim5)
+          "tim5"
 
 -- Both TIM2 and TIM5 are really 32 bit timers, but you can safely make
 -- believe they are 16 bit.
 
 tim2_32 :: GTIM32
-tim2_32 = mkGTIM tim2_periph_base rcc_apb1en_tim2 "tim2"
+tim2_32 = mkGTIM tim2_periph_base
+            (rccEnable rcc_apb1en_tim2)
+            (rccDisable rcc_apb1en_tim2)
+            "tim2"
 
 tim5_32 :: GTIM32
-tim5_32 = mkGTIM tim5_periph_base rcc_apb1en_tim5 "tim5"
+tim5_32 = mkGTIM tim5_periph_base
+            (rccEnable rcc_apb1en_tim5)
+            (rccDisable rcc_apb1en_tim5)
+            "tim5"
+
+
+-- All TIM2345 are in APB1
+rccEnable :: BitDataField RCC_APB1ENR Bit -> Ivory eff ()
+rccEnable f = modifyReg regRCC_APB1ENR $ setBit f
+rccDisable :: BitDataField RCC_APB1ENR Bit -> Ivory eff ()
+rccDisable f = modifyReg regRCC_APB1ENR $ clearBit f
 

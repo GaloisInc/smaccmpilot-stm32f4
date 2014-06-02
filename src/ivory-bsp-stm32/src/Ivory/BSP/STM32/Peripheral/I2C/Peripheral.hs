@@ -42,12 +42,13 @@ data I2CPeriph i = I2CPeriph
   }
 
 mkI2CPeriph :: Integer -- Base
-            -> BitDataField RCC_APB1ENR Bit -- RCC Bit 
+            -> (forall eff . Ivory eff ()) -- RCC Enable
+            -> (forall eff . Ivory eff ()) -- RCC Disable
             -> i -- event interrupt
             -> i -- error interrupt
             -> String -- Name
             -> I2CPeriph i
-mkI2CPeriph base rccfield evtint errint n =
+mkI2CPeriph base rccenable rccdisable evtint errint n =
   I2CPeriph
     { i2cRegCR1     = reg 0x00 "cr1"
     , i2cRegCR2     = reg 0x04 "cr2"
@@ -59,8 +60,8 @@ mkI2CPeriph base rccfield evtint errint n =
     , i2cRegCCR     = reg 0x1C "ccr"
     , i2cRegTRISE   = reg 0x20 "trise"
     , i2cRegFLTR    = reg 0x24 "fltr"
-    , i2cRCCEnable  = rccEnable  regRCC_APB1ENR rccfield
-    , i2cRCCDisable = rccDisable regRCC_APB1ENR rccfield
+    , i2cRCCEnable  = rccenable
+    , i2cRCCDisable = rccdisable
     , i2cIntEvent   = evtint
     , i2cIntError   = errint
     , i2cName       = n
