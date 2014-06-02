@@ -53,7 +53,7 @@ ledOff pin = pinSetMode pin gpio_mode_analog
 -- so I'm going to do something unsightly:
 data DummyHSE = DummyHSE
 instance PlatformClock DummyHSE where
-  platformClockConfig _ = f405ExtXtal (mhz 24)
+  platformClockConfig _ = f405ExtXtalMHz 24
 
 main_task :: Def ('[Ptr s (Stored Uint8)] :-> ())
 main_task = proc "main_task" $ \_ -> body $ do
