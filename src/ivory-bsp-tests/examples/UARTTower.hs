@@ -29,7 +29,7 @@ app :: forall p
      . (ColoredLEDs p, PlatformClock p, STM32Signal F405.Interrupt p)
     => Tower p ()
 app = do
-  stm32f4InitTower
+  stm32f405InitTower
   -- Starts two tasks: a blink task and a controller task.  Periodically blink
   -- the blue LED.
   blinkApp period [blue]

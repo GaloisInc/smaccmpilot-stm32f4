@@ -23,7 +23,7 @@ app :: forall p
      . (ColoredLEDs p, PlatformClock p, STM32Signal F405.Interrupt p)
     => Tower p ()
 app = do
-  stm32f4InitTower
+  stm32f405InitTower
 
   (req, res) <- i2cTower i2c1 pinB6 pinB7
 

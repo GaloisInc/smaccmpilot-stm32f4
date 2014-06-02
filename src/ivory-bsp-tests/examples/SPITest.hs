@@ -45,7 +45,7 @@ testdevice2 = SPIDevice
 
 app ::  forall p . (ColoredLEDs p, PlatformClock p, STM32Signal F405.Interrupt p) => Tower p ()
 app = do
-  stm32f4InitTower
+  stm32f405InitTower
 
   (req, res) <- spiTower [testdevice1, testdevice2]
 

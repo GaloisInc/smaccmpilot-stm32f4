@@ -23,6 +23,7 @@ library
                        Ivory.BSP.STM32.ClockConfig,
                        Ivory.BSP.STM32.MemoryMap,
                        Ivory.BSP.STM32.PlatformClock,
+                       Ivory.BSP.STM32.Init,
 
                        Ivory.BSP.STM32.Interrupt,
                        Ivory.BSP.STM32.Signalable,

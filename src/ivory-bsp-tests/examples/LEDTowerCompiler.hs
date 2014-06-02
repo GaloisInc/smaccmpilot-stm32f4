@@ -15,7 +15,7 @@ import Platforms
 
 app :: forall p . (PlatformClock p, ColoredLEDs p) => Tower p ()
 app = do
-  stm32f4InitTower
+  stm32f405InitTower
   blinkApp period leds
   where
   period = 250
