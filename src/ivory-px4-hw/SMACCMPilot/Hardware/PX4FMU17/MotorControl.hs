@@ -17,9 +17,9 @@ import Ivory.BSP.STM32F405.GTIM2345
 import Ivory.BSP.STM32F405.GTIM2345.RegTypes
 import Ivory.BSP.STM32F405.GPIO
 import Ivory.BSP.STM32F405.GPIO.AF
-import Ivory.BSP.STM32F405.RCC
 
 import Ivory.BSP.STM32.PlatformClock
+import Ivory.BSP.STM32.ClockConfig
 
 -- In microseconds:
 minPWM, maxPWM :: Uint16
@@ -63,11 +63,12 @@ tim_init platform gtim = do
   gtimRCCEnable gtim
   -- Set the timer prescaler for 1MHz operation:
   -- TIM2345 timer input is 2*PCLK1
-  timFreq <- (2*) `fmap` getFreqPClk1 platform
-  let finput = 1000000
+  let fpclk1 = clockPClk1Hz (platformClockConfig platform)
+  timFreq <- assign (fromIntegral (2*fpclk1))
+  let finput = 1000000 :: Uint32
   tdivider <- assign $ (timFreq `iDiv` finput) - 1
-  tdividerInt <- assign $ castWith 0 tdivider
-  setReg (gtimRegPSC gtim) $ setField gtim_16_data (fromRep tdividerInt)
+  tdividerI16 <- assign $ castWith 0 tdivider
+  setReg (gtimRegPSC gtim) $ setField gtim_16_data (fromRep tdividerI16)
   -- Set the auto reload at 50Hz:
   let freload = 50
       tarr = castWith 0 $ finput `iDiv` freload

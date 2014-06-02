@@ -1,3 +1,4 @@
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE Rank2Types #-}
@@ -20,6 +21,7 @@ import Ivory.Stdlib
 import Ivory.BSP.STM32.Interrupt
 import Ivory.BSP.STM32.Signalable
 import Ivory.BSP.STM32.PlatformClock
+import Ivory.BSP.STM32.ClockConfig
 
 import Ivory.BSP.STM32F405.SPI.RegTypes
 import Ivory.BSP.STM32F405.SPI.Regs
@@ -227,7 +229,8 @@ spiSetDR spi b =
 spiDevBaud :: (GetAlloc eff ~ Scope s, PlatformClock p)
            => Proxy p -> SPIPeriph i -> Integer -> Ivory eff SPIBaud
 spiDevBaud platform periph hz = do
-  fplk <- getFreqPClk platform (spiPClk periph)
+  (fplk :: Uint32) <- assign (fromIntegral (clockPClkHz (spiPClk periph)
+                                  (platformClockConfig platform)))
   comment ("got fplk, target is " ++ show hz)
   let bestWithoutGoingOver = map aux tbl
       target = fromIntegral hz

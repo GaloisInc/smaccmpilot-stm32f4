@@ -18,9 +18,9 @@ import Ivory.BitData
 
 import Ivory.BSP.STM32.Interrupt
 import Ivory.BSP.STM32F405.GPIO -- XXX
-import Ivory.BSP.STM32F405.RCC -- XXX
 
 import Ivory.BSP.STM32.PlatformClock
+import Ivory.BSP.STM32.ClockConfig
 import Ivory.BSP.STM32.Peripheral.I2C.Regs
 
 data I2CPeriph i = I2CPeriph
@@ -89,7 +89,7 @@ i2cInit periph sda scl platform = do
     setBit i2c_cr2_itevten
     setBit i2c_cr2_iterren
 
-  pclk1 <- getFreqPClk1 platform
+  pclk1 <- assign (fromIntegral (clockPClk1Hz (platformClockConfig platform)))
   ccr   <- calcHSCCR pclk1
   modifyReg (i2cRegCCR periph) $ do
     setBit i2c_ccr_fastmode

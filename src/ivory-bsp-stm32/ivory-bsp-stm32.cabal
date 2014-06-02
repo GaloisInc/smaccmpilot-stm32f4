@@ -66,7 +66,6 @@ library
                        Ivory.BSP.STM32F405.SPI.Tower.Types.SPIDeviceHandle,
                        Ivory.BSP.STM32F405.I2C,
                        Ivory.BSP.STM32F405.RCC,
-                       Ivory.BSP.STM32F405.RCC.GetFreq,
                        Ivory.BSP.STM32F405.RCC.Regs,
                        Ivory.BSP.STM32F405.GPIO,
                        Ivory.BSP.STM32F405.GPIO.AF,

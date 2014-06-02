@@ -20,6 +20,7 @@ import Ivory.HW
 
 import Ivory.BSP.STM32.Interrupt
 import Ivory.BSP.STM32.PlatformClock
+import Ivory.BSP.STM32.ClockConfig
 
 import Ivory.BSP.STM32F405.UART.Types
 import Ivory.BSP.STM32F405.UART.Regs
@@ -142,7 +143,9 @@ initPin p af = do
 -- | Set the BRR register of a UART given a baud rate.
 setBaudRate :: (GetAlloc eff ~ Scope s, PlatformClock p) => UART i -> Proxy p -> Uint32 -> Ivory eff ()
 setBaudRate uart platform baud = do
-  pclk    <- assign =<< getFreqPClk platform (uartPClk uart)
+  --pclk    <- assign =<< getFreqPClk platform (uartPClk uart)
+  pclk    <- assign (fromIntegral (clockPClkHz (uartPClk uart)
+                        (platformClockConfig platform)))
   cr1     <- getReg (uartRegCR1 uart)
   isOver8 <- assign (bitToBool (cr1 #. uart_cr1_over8))
   ipart   <- assign ((25 * pclk) `iDiv` (baud * (isOver8 ? (2, 4))))

@@ -10,18 +10,9 @@ module Ivory.BSP.STM32F405.RCC
   ( module Ivory.BSP.STM32F405.RCC.Regs
   , module Ivory.BSP.STM32.Peripheral.RCC.RegTypes
   , module Ivory.BSP.STM32.Peripheral.RCC.Regs
-  -- * system clock frequency
-  , PClk(..)
-
-  , getFreqSysClk
-  , getFreqHClk
-  , getFreqPClk1
-  , getFreqPClk2
-  , getFreqPClk
   ) where
 
 import Ivory.BSP.STM32F405.RCC.Regs
 import Ivory.BSP.STM32.Peripheral.RCC.Regs hiding (RCC_APB1ENR, rcc_apb1enr, rcc_apb1en_pwr) -- Overridden.
 import Ivory.BSP.STM32.Peripheral.RCC.RegTypes
-import Ivory.BSP.STM32F405.RCC.GetFreq
 
