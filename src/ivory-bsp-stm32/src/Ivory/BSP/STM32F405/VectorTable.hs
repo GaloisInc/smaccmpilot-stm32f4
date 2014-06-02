@@ -43,7 +43,7 @@ vector_table = unlines $
   , ""
   , "\t.word _estack"
   ] ++
-  map (entry . (fmap exceptionHandlerName)) exceptionTable ++ -- XXX freertos names needed for some of these.
+  map (entry . (fmap exceptionHandlerName)) exceptionTable ++
   map (entry . (fmap interruptHandlerName)) interruptTable ++
   [ ""
   , "\t.size g_vectors, .-g_vectors"
