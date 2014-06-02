@@ -9,10 +9,10 @@
 -- All Rights Reserved.
 --
 
-module Ivory.BSP.STM32F405.ATIM18.Regs where
+module Ivory.BSP.STM32.Peripheral.ATIM18.Regs where
 
 import Ivory.BitData
-import Ivory.BSP.STM32F405.ATIM18.RegTypes
+import Ivory.BSP.STM32.Peripheral.ATIM18.RegTypes
 
 [bitdata|
  bitdata ATIM_CR1 :: Bits 32 = atim_cr1
