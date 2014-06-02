@@ -14,7 +14,6 @@ import Ivory.BitData
 import Ivory.Tower
 
 import Ivory.BSP.STM32F405.GTIM2345
-import Ivory.BSP.STM32F405.GTIM2345.RegTypes
 import Ivory.BSP.STM32F405.GPIO
 import Ivory.BSP.STM32F405.GPIO.AF
 

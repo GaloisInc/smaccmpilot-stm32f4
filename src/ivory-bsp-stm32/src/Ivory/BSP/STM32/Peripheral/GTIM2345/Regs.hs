@@ -9,10 +9,10 @@
 -- All Rights Reserved.
 --
 
-module Ivory.BSP.STM32F405.GTIM2345.Regs where
+module Ivory.BSP.STM32.Peripheral.GTIM2345.Regs where
 
 import Ivory.BitData
-import Ivory.BSP.STM32F405.GTIM2345.RegTypes
+import Ivory.BSP.STM32.Peripheral.GTIM2345.RegTypes
 
 [bitdata|
  bitdata GTIM_CR1 :: Bits 32 = gtim_cr1

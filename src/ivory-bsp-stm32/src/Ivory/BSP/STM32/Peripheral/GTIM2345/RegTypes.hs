@@ -8,7 +8,7 @@
 -- All Rights Reserved.
 --
 
-module Ivory.BSP.STM32F405.GTIM2345.RegTypes where
+module Ivory.BSP.STM32.Peripheral.GTIM2345.RegTypes where
 
 import Ivory.BitData
 

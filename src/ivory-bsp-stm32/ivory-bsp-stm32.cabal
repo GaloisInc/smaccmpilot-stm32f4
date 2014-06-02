@@ -42,6 +42,10 @@ library
                        Ivory.BSP.STM32.Peripheral.GPIOF4.TH,
                        Ivory.BSP.STM32.Peripheral.GPIOF4.Peripheral,
 
+                       Ivory.BSP.STM32.Peripheral.GTIM2345.Regs,
+                       Ivory.BSP.STM32.Peripheral.GTIM2345.RegTypes,
+                       Ivory.BSP.STM32.Peripheral.GTIM2345.Peripheral,
+
                        Ivory.BSP.STM32.Peripheral.I2C.Regs,
                        Ivory.BSP.STM32.Peripheral.I2C.Peripheral,
                        Ivory.BSP.STM32.Peripheral.I2C.Tower,
@@ -76,9 +80,6 @@ library
                        Ivory.BSP.STM32F405.GPIO.Ports,
                        Ivory.BSP.STM32F405.GPIO.Pins,
                        Ivory.BSP.STM32F405.GTIM2345,
-                       Ivory.BSP.STM32F405.GTIM2345.Regs,
-                       Ivory.BSP.STM32F405.GTIM2345.RegTypes,
-                       Ivory.BSP.STM32F405.GTIM2345.Peripheral,
                        Ivory.BSP.STM32F405.ATIM18,
                        Ivory.BSP.STM32F405.UART,
                        Ivory.BSP.STM32F405.UART.Types,
