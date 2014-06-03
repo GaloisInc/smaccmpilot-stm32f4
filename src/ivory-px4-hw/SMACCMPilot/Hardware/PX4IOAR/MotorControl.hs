@@ -16,8 +16,8 @@ import Ivory.Stdlib
 import Ivory.Tower
 import Ivory.Tower.StateMachine
 
+import Ivory.BSP.STM32.Peripheral.UART (uartTowerFlushable)
 import Ivory.BSP.STM32F405.UART
-import Ivory.BSP.STM32F405.UART.Tower
 import Ivory.BSP.STM32F405.GPIO
 import qualified Ivory.BSP.STM32F405.Interrupt as F405
 

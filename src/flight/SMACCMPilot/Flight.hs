@@ -35,8 +35,8 @@ import SMACCMPilot.Hardware.GPS.Types (gpsTypesModule)
 import qualified SMACCMPilot.Flight.Commsec.CommsecOpts as C
 import qualified SMACCMPilot.Flight.Types.CommsecStatus as S
 
+import           Ivory.BSP.STM32.Peripheral.UART (uartTower)
 import qualified Ivory.BSP.STM32F405.UART as UART
-import           Ivory.BSP.STM32F405.UART.Tower
 import qualified Ivory.BSP.STM32F405.Interrupt as F405
 import           Ivory.BSP.STM32.Signalable
 import           Ivory.BSP.STM32.PlatformClock
