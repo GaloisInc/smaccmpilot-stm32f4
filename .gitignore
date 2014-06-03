@@ -19,3 +19,5 @@ setup-config
 package.conf.inplace
 gcs.sh
 cabal.sandbox.config
+cov-int
+smaccmpilot.tgz
