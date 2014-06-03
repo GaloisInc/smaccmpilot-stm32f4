@@ -79,6 +79,9 @@ CONFIG_CPP_CHECK_PREFIX := /usr/bin
 # Likely available with your (Linux distro) installer.
 CONFIG_FRAMA_C_PREFIX := /usr/bin
 
+# Coverity token for uploading to Coverity Scan.  Email Lee Pike if you are interested in submitting builds.
+CONFIG_COVERITY_TOKEN :=
+
 # for model-checking with CBMC
 
 # add a path to your local installation of the CBMC model-checker

@@ -83,5 +83,23 @@ cppcheck: default
 framac-check: TARGET = frama-c-check
 framac-check: default
 
+# Get the current git comment hash.
+LOG= $(shell git log -n 1 --pretty=format:"%H")
+
+# Coverity checks.  Assumes Coverity-Scan tools are in your $PATH.
+.PHONY: coverity-build
+coverity-build:
+	# cov-configure --comptype gcc --compiler $(CONFIG_CORTEX_M4_PREFIX)gcc
+	# cov-build --dir cov-int/ make PLATFORM=px4fmu17_ioar_freertos TARGET=flight
+	# tar czvf smaccmpilot.tgz cov-int
+	curl --form project=GaloisInc%2Fsmaccmpilot-stm32f4 \
+			 --form token=$(CONFIG_COVERITY_TOKEN) \
+			 --form email=leepike@gmail.com \
+			 --form file=@smaccmpilot.tgz \
+			 --form version=$(LOG) \
+			 --form description="smaccmpilot source" \
+			 https://scan.coverity.com/builds?project=GaloisInc%2Fsmaccmpilot-stm32f4
+
 clean:
 	-rm -rf ./build
+	-rm -rf ./smaccmpilot.tgz
