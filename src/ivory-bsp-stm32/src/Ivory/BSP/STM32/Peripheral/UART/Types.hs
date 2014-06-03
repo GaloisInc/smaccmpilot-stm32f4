@@ -9,7 +9,7 @@
 -- All Rights Reserved.
 --
 
-module Ivory.BSP.STM32F405.UART.Types where
+module Ivory.BSP.STM32.Peripheral.UART.Types where
 
 import Ivory.BitData
 

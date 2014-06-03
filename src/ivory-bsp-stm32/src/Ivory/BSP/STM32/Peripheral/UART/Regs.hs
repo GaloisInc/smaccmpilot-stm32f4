@@ -9,11 +9,11 @@
 -- All Rights Reserved.
 --
 
-module Ivory.BSP.STM32F405.UART.Regs where
+module Ivory.BSP.STM32.Peripheral.UART.Regs where
 
 import Ivory.BitData
 
-import Ivory.BSP.STM32F405.UART.Types
+import Ivory.BSP.STM32.Peripheral.UART.Types
 
 ----------------------------------------------------------------------
 -- UART Registers

@@ -69,6 +69,12 @@ library
                        Ivory.BSP.STM32.Peripheral.SPI.Tower.Types,
                        Ivory.BSP.STM32.Peripheral.SPI.Tower.Types.SPIDeviceHandle,
 
+                       Ivory.BSP.STM32.Peripheral.UART,
+                       Ivory.BSP.STM32.Peripheral.UART.Types,
+                       Ivory.BSP.STM32.Peripheral.UART.Regs,
+                       Ivory.BSP.STM32.Peripheral.UART.Peripheral,
+                       Ivory.BSP.STM32.Peripheral.UART.Tower,
+
                        Ivory.BSP.STM32F405.ClockConfig,
                        Ivory.BSP.STM32F405.MemoryMap,
                        Ivory.BSP.STM32F405.Interrupt,
@@ -85,10 +91,6 @@ library
                        Ivory.BSP.STM32F405.GTIM2345,
                        Ivory.BSP.STM32F405.ATIM18,
                        Ivory.BSP.STM32F405.UART,
-                       Ivory.BSP.STM32F405.UART.Types,
-                       Ivory.BSP.STM32F405.UART.Regs,
-                       Ivory.BSP.STM32F405.UART.Peripheral,
-                       Ivory.BSP.STM32F405.UART.Tower,
                        Ivory.BSP.STM32F405.Init,
                        Ivory.BSP.STM32F405.VectorTable
 

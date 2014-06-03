@@ -4,7 +4,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE RankNTypes #-}
 
-module Ivory.BSP.STM32F405.UART.Tower where
+module Ivory.BSP.STM32.Peripheral.UART.Tower where
 
 import GHC.TypeLits
 
@@ -20,8 +20,8 @@ import Ivory.BSP.STM32.Interrupt
 import Ivory.BSP.STM32.Signalable
 import Ivory.BSP.STM32.PlatformClock
 
-import Ivory.BSP.STM32F405.UART.Regs
-import Ivory.BSP.STM32F405.UART.Peripheral
+import Ivory.BSP.STM32.Peripheral.UART.Regs
+import Ivory.BSP.STM32.Peripheral.UART.Peripheral
 
 data UARTTowerDebugger =
   UARTTowerDebugger
