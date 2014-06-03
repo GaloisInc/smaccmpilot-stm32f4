@@ -89,9 +89,9 @@ LOG= $(shell git log -n 1 --pretty=format:"%H")
 # Coverity checks.  Assumes Coverity-Scan tools are in your $PATH.
 .PHONY: coverity-build
 coverity-build:
-	# cov-configure --comptype gcc --compiler $(CONFIG_CORTEX_M4_PREFIX)gcc
-	# cov-build --dir cov-int/ make PLATFORM=px4fmu17_ioar_freertos TARGET=flight
-	# tar czvf smaccmpilot.tgz cov-int
+	cov-configure --comptype gcc --compiler $(CONFIG_CORTEX_M4_PREFIX)gcc
+	cov-build --dir cov-int/ make PLATFORM=px4fmu17_ioar_freertos TARGET=flight
+	tar czvf smaccmpilot.tgz cov-int
 	curl --form project=GaloisInc%2Fsmaccmpilot-stm32f4 \
 			 --form token=$(CONFIG_COVERITY_TOKEN) \
 			 --form email=leepike@gmail.com \
