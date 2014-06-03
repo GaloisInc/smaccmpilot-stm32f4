@@ -1,6 +1,6 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
-module Ivory.BSP.STM32F405.SPI.Tower.Types.SPIDeviceHandle
+module Ivory.BSP.STM32.Peripheral.SPI.Tower.Types.SPIDeviceHandle
   ( SPIDeviceHandle(..)
   ) where
 

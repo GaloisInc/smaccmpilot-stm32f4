@@ -11,7 +11,7 @@
 -- All Rights Reserved.
 --
 
-module Ivory.BSP.STM32F405.SPI.Peripheral where
+module Ivory.BSP.STM32.Peripheral.SPI.Peripheral where
 
 import Ivory.Language
 import Ivory.BitData
@@ -23,16 +23,10 @@ import Ivory.BSP.STM32.Signalable
 import Ivory.BSP.STM32.PlatformClock
 import Ivory.BSP.STM32.ClockConfig
 
-import Ivory.BSP.STM32F405.SPI.RegTypes
-import Ivory.BSP.STM32F405.SPI.Regs
+import Ivory.BSP.STM32.Peripheral.SPI.RegTypes
+import Ivory.BSP.STM32.Peripheral.SPI.Regs
 
-import Ivory.BSP.STM32F405.RCC
-import Ivory.BSP.STM32F405.GPIO
-import Ivory.BSP.STM32F405.GPIO.AF
-import Ivory.BSP.STM32F405.MemoryMap
-
-import           Ivory.BSP.STM32F405.Interrupt (Interrupt())
-import qualified Ivory.BSP.STM32F405.Interrupt as ISR
+import Ivory.BSP.STM32.Peripheral.GPIOF4
 
 data SPIPeriph i = SPIPeriph
   { spiRegCR1      :: BitDataReg SPI_CR1
@@ -57,10 +51,10 @@ mkSPIPeriph :: Integer
             -> GPIOPin
             -> GPIOPin
             -> GPIO_AF
-            -> Interrupt
+            -> i
             -> PClk
             -> String
-            -> SPIPeriph Interrupt
+            -> SPIPeriph i
 mkSPIPeriph base rccen rccdis miso mosi sck af inter pclk n =
   SPIPeriph
     { spiRegCR1      = reg 0x00 "cr1"
@@ -81,24 +75,6 @@ mkSPIPeriph base rccen rccdis miso mosi sck af inter pclk n =
   reg :: (IvoryIOReg (BitDataRep d)) => Integer -> String -> BitDataReg d
   reg offs name = mkBitDataRegNamed (base + offs) (n ++ "->" ++ name)
 
-spi1, spi2, spi3 :: SPIPeriph Interrupt
-spi1 = mkSPIPeriph spi1_periph_base rccenable rccdisable
-          pinA7  pinA6  pinA5  gpio_af_spi1 ISR.SPI1 PClk2 "spi1"
-  where
-  rccenable  = modifyReg regRCC_APB2ENR $ setBit rcc_apb2en_spi1
-  rccdisable = modifyReg regRCC_APB2ENR $ clearBit rcc_apb2en_spi1
-
-spi2 = mkSPIPeriph spi2_periph_base rccenable rccdisable
-          pinC3  pinC2  pinB10 gpio_af_spi2 ISR.SPI2 PClk1 "spi2"
-  where
-  rccenable  = modifyReg regRCC_APB1ENR $ setBit rcc_apb1en_spi2
-  rccdisable = modifyReg regRCC_APB1ENR $ clearBit rcc_apb1en_spi2
-
-spi3 = mkSPIPeriph spi3_periph_base rccenable rccdisable
-          pinC12 pinC11 pinC10 gpio_af_spi3 ISR.SPI3 PClk1 "spi3"
-  where
-  rccenable  = modifyReg regRCC_APB1ENR $ setBit rcc_apb1en_spi3
-  rccdisable = modifyReg regRCC_APB1ENR $ clearBit rcc_apb1en_spi3
 
 initInPin :: GPIOPin -> GPIO_AF -> Ivory eff ()
 initInPin pin af = do

@@ -3,7 +3,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeOperators #-}
 
-module Ivory.BSP.STM32F405.SPI.Tower where
+module Ivory.BSP.STM32.Peripheral.SPI.Tower where
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -17,11 +17,11 @@ import Ivory.BSP.STM32.Interrupt
 import Ivory.BSP.STM32.Signalable
 import Ivory.BSP.STM32.PlatformClock
 
-import Ivory.BSP.STM32F405.GPIO
-import Ivory.BSP.STM32F405.SPI.Regs
-import Ivory.BSP.STM32F405.SPI.Peripheral
-import Ivory.BSP.STM32F405.SPI.Tower.Types
-import Ivory.BSP.STM32F405.SPI.Tower.Types.SPIDeviceHandle
+import Ivory.BSP.STM32.Peripheral.GPIOF4
+import Ivory.BSP.STM32.Peripheral.SPI.Regs
+import Ivory.BSP.STM32.Peripheral.SPI.Peripheral
+import Ivory.BSP.STM32.Peripheral.SPI.Tower.Types
+import Ivory.BSP.STM32.Peripheral.SPI.Tower.Types.SPIDeviceHandle
 
 
 spiTower :: (PlatformClock p, STM32Signal i p)

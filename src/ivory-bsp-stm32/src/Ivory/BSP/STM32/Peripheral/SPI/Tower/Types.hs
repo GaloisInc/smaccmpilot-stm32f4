@@ -3,10 +3,10 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
-module Ivory.BSP.STM32F405.SPI.Tower.Types where
+module Ivory.BSP.STM32.Peripheral.SPI.Tower.Types where
 
 import Ivory.Language
-import Ivory.BSP.STM32F405.SPI.Tower.Types.SPIDeviceHandle
+import Ivory.BSP.STM32.Peripheral.SPI.Tower.Types.SPIDeviceHandle
 
 [ivory|
 struct spi_transaction_request

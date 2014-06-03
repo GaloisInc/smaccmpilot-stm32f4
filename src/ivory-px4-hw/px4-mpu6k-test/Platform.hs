@@ -11,14 +11,15 @@ import Ivory.Language
 import Ivory.Tower
 import Ivory.Tower.Frontend
 
-import Ivory.BSP.STM32F405.UART
-import Ivory.BSP.STM32F405.GPIO
-import Ivory.BSP.STM32F405.SPI.Peripheral
-import Ivory.BSP.STM32F405.ClockConfig
-import qualified Ivory.BSP.STM32F405.Interrupt as F405
-
+import Ivory.BSP.STM32.Peripheral.SPI
 import Ivory.BSP.STM32.Signalable
 import Ivory.BSP.STM32.PlatformClock
+
+import Ivory.BSP.STM32F405.UART
+import Ivory.BSP.STM32F405.GPIO
+import Ivory.BSP.STM32F405.SPI
+import Ivory.BSP.STM32F405.ClockConfig
+import qualified Ivory.BSP.STM32F405.Interrupt as F405
 
 data PX4FMU17_IOAR = PX4FMU17_IOAR
 data PX4FMU17_Bare = PX4FMU17_Bare

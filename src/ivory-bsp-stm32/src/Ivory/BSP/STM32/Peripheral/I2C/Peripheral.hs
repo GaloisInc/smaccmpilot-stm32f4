@@ -17,7 +17,7 @@ import Ivory.HW
 import Ivory.BitData
 
 import Ivory.BSP.STM32.Interrupt
-import Ivory.BSP.STM32F405.GPIO -- XXX
+import Ivory.BSP.STM32.Peripheral.GPIOF4
 
 import Ivory.BSP.STM32.PlatformClock
 import Ivory.BSP.STM32.ClockConfig

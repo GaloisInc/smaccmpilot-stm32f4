@@ -8,7 +8,7 @@
 -- All Rights Reserved.
 --
 
-module Ivory.BSP.STM32F405.SPI.RegTypes where
+module Ivory.BSP.STM32.Peripheral.SPI.RegTypes where
 
 import Ivory.BitData
 

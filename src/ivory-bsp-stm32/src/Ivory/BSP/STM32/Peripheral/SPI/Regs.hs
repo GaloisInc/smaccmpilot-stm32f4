@@ -3,17 +3,17 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 --
--- Regs.hs --- SPI peripheral registers for the STM32F4.
+-- Regs.hs --- SPI peripheral registers for the STM32
 --
 -- Copyright (C) 2013, Galois, Inc.
 -- All Rights Reserved.
 --
 
-module Ivory.BSP.STM32F405.SPI.Regs where
+module Ivory.BSP.STM32.Peripheral.SPI.Regs where
 
 import Ivory.BitData
 
-import Ivory.BSP.STM32F405.SPI.RegTypes
+import Ivory.BSP.STM32.Peripheral.SPI.RegTypes
 
 ----------------------------------------------------------------------
 -- SPI Registers
