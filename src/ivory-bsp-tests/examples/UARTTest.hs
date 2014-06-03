@@ -20,13 +20,15 @@ import Ivory.Compile.C.CmdlineFrontend
 
 import qualified Ivory.HW.SearchDir as HW
 import Ivory.HW.Module (hw_moduledef)
-import Ivory.BSP.STM32F4.GPIO
+import Ivory.BSP.STM32F405.GPIO
 
-import qualified Ivory.BSP.STM32F4.SearchDir as BSP
+import qualified Ivory.BSP.STM32.SearchDir as BSP
 
-import Ivory.BSP.STM32F4.UART
-import Ivory.BSP.STM32F4.UART.Peripheral
-import Ivory.BSP.STM32F4.RCC
+import Ivory.BSP.STM32.Peripheral.UART
+import Ivory.BSP.STM32F405.UART
+import Ivory.BSP.STM32F405.ClockConfig
+
+import Ivory.BSP.STM32.PlatformClock
 
 ledPins :: [GPIOPin]
 ledPins = [pinB14, pinB15]
@@ -50,8 +52,8 @@ ledOff pin = pinSetMode pin gpio_mode_analog
 -- We don't have a real Tower frontend for this build
 -- so I'm going to do something unsightly:
 data DummyHSE = DummyHSE
-instance BoardHSE DummyHSE where
-  hseFreq _ = 24000000
+instance PlatformClock DummyHSE where
+  platformClockConfig _ = f405ExtXtalMHz 24
 
 main_task :: Def ('[Ptr s (Stored Uint8)] :-> ())
 main_task = proc "main_task" $ \_ -> body $ do

@@ -1,18 +1,22 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
 -- Compiler imports:
-import Ivory.Language
-import Ivory.Tower.Frontend
+import           Ivory.Language
+import           Ivory.Tower.Frontend
+import           Ivory.BSP.STM32.PlatformClock
+import           Ivory.BSP.STM32F405.Init
 import qualified Ivory.HW.SearchDir as HW
-import qualified Ivory.BSP.STM32F4.SearchDir as BSP
+import qualified Ivory.BSP.STM32.SearchDir as BSP
 
 -- App imports:
 import Ivory.Tower
 import LEDTower (blinkApp)
 import Platforms
 
-app :: forall p . (ColoredLEDs p) => Tower p ()
-app = blinkApp period leds
+app :: forall p . (PlatformClock p, ColoredLEDs p) => Tower p ()
+app = do
+  stm32f405InitTower
+  blinkApp period leds
   where
   period = 250
   leds = [redLED p, blueLED p]

@@ -3,6 +3,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 module Main where
 
@@ -12,13 +13,15 @@ import Ivory.Tower
 import Ivory.Tower.StateMachine
 import Ivory.Tower.Frontend
 
-import Ivory.BSP.STM32F4.RCC (BoardHSE)
 import qualified Ivory.HW.SearchDir          as HW
-import qualified Ivory.BSP.STM32F4.SearchDir as BSP
+import qualified Ivory.BSP.STM32.SearchDir as BSP
 
-import Ivory.BSP.STM32F4.GPIO
-import Ivory.BSP.STM32F4.I2C
-import Ivory.BSP.STM32F4.Signalable
+import Ivory.BSP.STM32F405.GPIO
+import Ivory.BSP.STM32F405.I2C
+import qualified Ivory.BSP.STM32F405.Interrupt as F405
+
+import Ivory.BSP.STM32.Signalable
+import Ivory.BSP.STM32.PlatformClock
 
 import SMACCMPilot.Hardware.MS5611
 
@@ -29,7 +32,8 @@ main = compilePlatforms conf (gpsPlatforms app)
   where
   conf = searchPathConf [ HW.searchDir, BSP.searchDir ]
 
-app :: forall p . (MPU6kPlatform p, BoardHSE p, STM32F4Signal p) => Tower p ()
+app :: forall p . (MPU6kPlatform p, PlatformClock p, STM32Signal F405.Interrupt p)
+    => Tower p ()
 app = do
   towerModule  ms5611TypesModule
   towerDepends ms5611TypesModule
@@ -38,7 +42,7 @@ app = do
 
 
 ms5611ctl :: forall p
-        . (BoardHSE p, STM32F4Signal p)
+        . (PlatformClock p, STM32Signal F405.Interrupt p)
        => ChannelSource (Struct "i2c_transaction_request")
        -> ChannelSink   (Struct "i2c_transaction_result")
        -> I2CDeviceAddr

@@ -9,7 +9,8 @@
 # "LICENSE" for more information.
 #
 
-$(eval $(call tower_pkg,IVORY_PKG_HMC5883L_TEST,px4-hmc5883l-test-gen))
+$(eval $(call when_platforms,px4fmu17_ioar_freertos px4fmu17_bare_freertos,\
+                tower_pkg,IVORY_PKG_HMC5883L_TEST,px4-hmc5883l-test-gen))
 
 PX4_HMC5883L_TEST_IMG          := px4-hmc5883l-test
 
@@ -22,8 +23,5 @@ PX4_HMC5883L_TEST_CFLAGS       += $(IVORY_PKG_HMC5883L_TEST_CFLAGS)
 PX4_HMC5883L_TEST_CFLAGS       += $(PX4_HMC5883L_TEST_INCLUDES)
 
 
-$(eval $(call cbmc_pkg,PX4_HMC5883L_TEST,IVORY_PKG_HMC5883L_TEST))
-
-$(eval $(call when_os,freertos,image,PX4_HMC5883L_TEST))
-$(eval $(call when_os,echronos,echronos_gen,PX4_HMC5883L_TEST))
-$(eval $(call when_os,echronos,image,PX4_HMC5883L_TEST))
+$(eval $(call when_platforms,px4fmu17_ioar_freertos px4fmu_bare_freertos,\
+                  image,PX4_HMC5883L_TEST))

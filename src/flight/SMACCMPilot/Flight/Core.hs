@@ -12,7 +12,7 @@ import Ivory.Language
 import Ivory.Tower
 import Ivory.Stdlib (stdlibModules)
 
-import qualified Ivory.BSP.STM32F4.GPIO as GPIO
+import qualified Ivory.BSP.STM32F405.GPIO as GPIO
 import           Ivory.HXStream
 
 import           SMACCMPilot.Mavlink.Messages (mavlinkMessageModules)

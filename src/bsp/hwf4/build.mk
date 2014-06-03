@@ -34,26 +34,8 @@ HWF4_OBJECTS :=    \
   src/eeprom.o     \
   src/ardrone.o
 
-$(eval $(call when_os,freertos,library,HWF4))
+ifeq ($(CONFIG_LIBHWF4_COMPAT),1)
+  $(eval $(call when_os,freertos,library,HWF4))
+endif
 
-HWF4_NOUART_LIB     := libhwf4-nouart.a
-
-HWF4_NOUART_INCLUDES  += -I$(TOP)/src/bsp/hwf4/include
-HWF4_NOUART_INCLUDES  += -I$(TOP)/src/bsp/include
-
-HWF4_NOUART_CFLAGS  += $(FREERTOS_CFLAGS)
-HWF4_NOUART_CFLAGS  += $(HWF4_NOUART_INCLUDES)
-
-HWF4_NOUART_OBJECTS :=    \
-  src/rcc.o        \
-  src/interrupt.o  \
-  src/i2c.o        \
-  src/gpio.o       \
-  src/spi.o        \
-  src/fault.o      \
-  src/timer.o      \
-  src/led.o        \
-  src/eeprom.o
-
-$(eval $(call when_os,freertos,library,HWF4_NOUART))
 # vim: set ft=make noet ts=2:

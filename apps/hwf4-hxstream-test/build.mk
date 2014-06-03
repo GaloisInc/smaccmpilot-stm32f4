@@ -28,6 +28,8 @@ APP_HWF4_HXSTREAM_LIBRARIES    += libFreeRTOS.a
 
 APP_HWF4_HXSTREAM_LIBS         += -lm
 
-$(eval $(call when_os,freertos,image,APP_HWF4_HXSTREAM))
+ifeq ($(CONFIG_HWF4_COMPATIBILITY),1)
+  $(eval $(call when_os,freertos,image,APP_HWF4_HXSTREAM))
+endif
 
 # vim: set ft=make noet ts=2:

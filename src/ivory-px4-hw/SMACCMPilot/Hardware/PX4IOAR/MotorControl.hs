@@ -3,6 +3,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE RecursiveDo #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 module SMACCMPilot.Hardware.PX4IOAR.MotorControl
   ( motorControlTower
@@ -15,11 +16,13 @@ import Ivory.Stdlib
 import Ivory.Tower
 import Ivory.Tower.StateMachine
 
-import Ivory.BSP.STM32F4.UART
-import Ivory.BSP.STM32F4.UART.Tower
-import Ivory.BSP.STM32F4.GPIO
-import Ivory.BSP.STM32F4.RCC
-import Ivory.BSP.STM32F4.Signalable
+import Ivory.BSP.STM32.Peripheral.UART (uartTowerFlushable)
+import Ivory.BSP.STM32F405.UART
+import Ivory.BSP.STM32F405.GPIO
+import qualified Ivory.BSP.STM32F405.Interrupt as F405
+
+import Ivory.BSP.STM32.Signalable
+import Ivory.BSP.STM32.PlatformClock
 
 select_pins :: [GPIOPin]
 select_pins = [ pinC4, pinC5, pinA0, pinA1 ]
@@ -51,7 +54,8 @@ select_set_all v = mapM_ act select_pins
   where -- Active Low:
   act pin = ifte_ v (pinClear pin) (pinSet pin)
 
-motorControlTower :: (IvoryArea a, IvoryZero a, BoardHSE p, STM32F4Signal p)
+motorControlTower :: ( IvoryArea a, IvoryZero a, PlatformClock p
+                     , STM32Signal F405.Interrupt p)
              => (forall s cs . ConstRef s a
                   -> Ivory (AllocEffects cs)
                        (ConstRef (Stack cs) (Array 4 (Stored IFloat))))

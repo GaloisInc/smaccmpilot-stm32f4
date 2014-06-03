@@ -3,6 +3,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 module Main where
 
@@ -13,12 +14,14 @@ import Ivory.Tower
 import Ivory.Tower.StateMachine
 import Ivory.Tower.Frontend
 
-import Ivory.BSP.STM32F4.RCC (BoardHSE)
 import qualified Ivory.HW.SearchDir          as HW
-import qualified Ivory.BSP.STM32F4.SearchDir as BSP
+import qualified Ivory.BSP.STM32.SearchDir   as BSP
 
-import Ivory.BSP.STM32F4.SPI
-import Ivory.BSP.STM32F4.Signalable
+import Ivory.BSP.STM32F405.SPI
+import qualified Ivory.BSP.STM32F405.Interrupt as F405
+
+import Ivory.BSP.STM32.Signalable
+import Ivory.BSP.STM32.PlatformClock
 
 import SMACCMPilot.Hardware.MPU6000
 
@@ -29,7 +32,7 @@ main = compilePlatforms conf (gpsPlatforms app)
   where
   conf = searchPathConf [ HW.searchDir, BSP.searchDir ]
 
-app :: forall p . (MPU6kPlatform p, BoardHSE p, STM32F4Signal p) => Tower p ()
+app :: forall p . (MPU6kPlatform p, PlatformClock p, STM32Signal F405.Interrupt p) => Tower p ()
 app = do
   towerModule  rawSensorTypeModule
   towerDepends rawSensorTypeModule
@@ -40,7 +43,7 @@ app = do
   mpu6kCtl req res (src raw_sensor) (SPIDeviceHandle 0)
 
 mpu6kCtl :: forall p
-        . (BoardHSE p, STM32F4Signal p)
+        . (PlatformClock p, STM32Signal F405.Interrupt p)
        => ChannelSource (Struct "spi_transaction_request")
        -> ChannelSink   (Struct "spi_transaction_result")
        -> ChannelSource (Struct "mpu6000_raw_sensor")

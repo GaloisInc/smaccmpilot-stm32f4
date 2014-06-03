@@ -45,7 +45,8 @@ $(1)_TOWER_DOT  = $$($(1)_GEN_DIR)/$(2).dot
 $(1)_TOWER_PDF  = $$($(1)_GEN_DIR)/$(2).pdf
 
 $(call ivory_pkg,$1,$2,--platform=$$($(CONFIG_PLATFORM)_TOWER_PLATFORM) \
-                       --operating-system=$$($(CONFIG_PLATFORM)_TOWER_OS))
+                       --operating-system=$$($(CONFIG_PLATFORM)_TOWER_OS),\
+                       -DTOWER_OS=$$($(CONFIG_PLATFORM)_TOWER_OS))
 
 $$($(1)_TOWER_PDF): $$($(1)_TOWER_DOT)
 	$(call cmd,dot,$1,$$($(1)_TOWER_DOT),$$($(1)_TOWER_PDF))
@@ -60,6 +61,7 @@ endef
 # $1 package name
 # $2 package generator exe
 # $3 extra flags for package generator exe
+# $4 extra CFLAGS
 
 define ivory_pkg
 $(1)_PREFIX           := $(dir $(lastword $(filter %/build.mk,$(MAKEFILE_LIST))))
@@ -67,6 +69,7 @@ $(1)_GEN_DIR          := $$(GEN_DIR)/$$($(1)_PREFIX)
 $(1)_DEP_FILE         := $$($(1)_GEN_DIR)/dep.mk
 $(1)_GEN_EXE          := $$(CONFIG_CABAL_SANDBOX)/bin/$(2)
 $(1)_CFLAGS           := -I$$($(1)_GEN_DIR)
+$(1)_CFLAGS           += $(4)
 
 -include $$($(1)_DEP_FILE)
 
@@ -102,7 +105,9 @@ $(1)_SYMS := $$(shell $$($(1)_GEN_EXE)                  \
 	  $(3))
 endif
 
-$(1)_OBJECTS := $$(patsubst $$($(1)_GEN_DIR)%.c,$$(OBJ_DIR)/$$($(1)_PREFIX)%.o,$$($(1)_SOURCES))
+$(1)_OBJECTS := $$(patsubst $$($(1)_GEN_DIR)%.c,$$(OBJ_DIR)/$$($(1)_PREFIX)%.o,\
+                 $$(patsubst $$($(1)_GEN_DIR)%.s,$$(OBJ_DIR)/$$($(1)_PREFIX)%.o,\
+                  $$($(1)_SOURCES)))
 
 endef
 

@@ -2,6 +2,8 @@
 {-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 
 module Platform where
 
@@ -9,14 +11,13 @@ import Ivory.Language
 import Ivory.Tower
 import Ivory.Tower.Frontend
 
-import Ivory.BSP.STM32F4.RCC
-import Ivory.BSP.STM32F4.Signalable
+import Ivory.BSP.STM32.PlatformClock
+import Ivory.BSP.STM32.Signalable
+import qualified Ivory.BSP.STM32F405.Interrupt as F405
+import Ivory.BSP.STM32F405.ClockConfig
 
 import qualified SMACCMPilot.Hardware.PX4IOAR as IOAR
 import qualified SMACCMPilot.Hardware.PX4FMU17 as Bare
-
-f24MHz :: Uint32
-f24MHz = 24000000
 
 class RawMotorControl p where
   rawMotorControl :: ChannelSink (Array 4 (Stored IFloat)) -> Tower p ()
@@ -24,20 +25,20 @@ class RawMotorControl p where
 data PX4FMU17_IOAR = PX4FMU17_IOAR
 data PX4FMU17_Bare = PX4FMU17_Bare
 
-stm32f4SignalableInstance ''PX4FMU17_IOAR
-stm32f4SignalableInstance ''PX4FMU17_Bare
+stm32SignalableInstance ''PX4FMU17_IOAR ''F405.Interrupt
+stm32SignalableInstance ''PX4FMU17_Bare ''F405.Interrupt
 
 instance RawMotorControl PX4FMU17_IOAR where
   rawMotorControl = IOAR.motorControlTower cpystack
 
-instance BoardHSE PX4FMU17_IOAR where
-  hseFreq _ = f24MHz
+instance PlatformClock PX4FMU17_IOAR where
+  platformClockConfig _ = f405ExtXtalMHz 24
 
 instance RawMotorControl PX4FMU17_Bare where
   rawMotorControl = Bare.motorControlTower cpystack
 
-instance BoardHSE PX4FMU17_Bare where
-  hseFreq _ = f24MHz
+instance PlatformClock PX4FMU17_Bare where
+  platformClockConfig _ = f405ExtXtalMHz 24
 
 cpystack :: ConstRef s (Array 4 (Stored IFloat))
          -> Ivory (AllocEffects cs)
@@ -47,7 +48,8 @@ cpystack v = do
   arrayMap $ \i -> deref (v ! i) >>= store (l ! i)
   return (constRef l)
 
-motorPlatforms :: (forall p . (RawMotorControl p, BoardHSE p, STM32F4Signal p) 
+motorPlatforms :: (forall p . (RawMotorControl p, PlatformClock p
+                    , STM32Signal F405.Interrupt p)
                     => Tower p ())
                -> [(String, Twr)]
 motorPlatforms app =

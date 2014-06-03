@@ -17,20 +17,18 @@ $(eval $(call tower_pkg,IVORY_PKG_LED_TEST,$(BSP_LED_TOWER_TEST)))
 
 BSP_LED_TEST_IMG          := bsp-led-test
 
-ifneq ($($(CONFIG_PLATFORM)_TOWER_OS),echronos)
-BSP_LED_TEST_OBJECTS      := freertos/main.o
 BSP_LED_TEST_LIBRARIES    += libFreeRTOS.a
 BSP_LED_TEST_INCLUDES     += $(FREERTOS_CFLAGS)
-else
-BSP_LED_TEST_ECHRONOS_PRX := echronos/bsp-led-test.prx
-BSP_LED_TEST_OBJECTS      := echronos/main.o
-endif
 
 BSP_LED_TEST_REAL_OBJECTS += $(IVORY_PKG_LED_TEST_OBJECTS)
 
 BSP_LED_TEST_INCLUDES     += -I$(TOP)/src/bsp/include
 BSP_LED_TEST_INCLUDES     += $(IVORY_PKG_LED_TEST_CFLAGS)
 BSP_LED_TEST_CFLAGS       += -O2 $(BSP_LED_TEST_INCLUDES)
+
+BSP_LED_TEST_DISABLE_GLOBAL_STARTUP_OBJECTS := 1
+
+# XXX move that decl to the mk config
 
 
 $(eval $(call cbmc_pkg,BSP_LED_TEST,IVORY_PKG_LED_TEST))

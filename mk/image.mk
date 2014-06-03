@@ -27,7 +27,9 @@
 # FOO_LIBS        system libraries to link against (eg: -lfoo)
 define image
 $(1)_PREFIX         := $(dir $(lastword $(filter %/build.mk,$(MAKEFILE_LIST))))
+ifeq ($$($(1)_DISABLE_GLOBAL_STARTUP_OBJECTS),)
 $(1)_REAL_OBJECTS   += $$(addprefix $$(OBJ_DIR)/,$$(STARTUP_OBJECTS))
+endif
 $(1)_REAL_OBJECTS   += $$(addprefix $$(OBJ_DIR)/$$($(1)_PREFIX),$$($(1)_OBJECTS))
 $(1)_REAL_IMG       := $$(addprefix $$(IMG_DIR)/,$$($(1)_IMG))
 $(1)_REAL_BIN       := $$($(1)_REAL_IMG).bin

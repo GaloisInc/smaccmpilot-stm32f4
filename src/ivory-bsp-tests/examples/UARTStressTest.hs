@@ -1,6 +1,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE DataKinds #-}
 
 module UARTStressTest where
@@ -11,11 +12,14 @@ import Ivory.Tower
 
 import Platforms
 
-import Ivory.BSP.STM32F4.GPIO
-import Ivory.BSP.STM32F4.UART
-import Ivory.BSP.STM32F4.UART.Tower
-import Ivory.BSP.STM32F4.RCC
-import Ivory.BSP.STM32F4.Signalable
+import qualified Ivory.BSP.STM32F405.Interrupt as F405
+import Ivory.BSP.STM32.Signalable
+import Ivory.BSP.STM32.PlatformClock
+
+import Ivory.BSP.STM32.Peripheral.UART.Tower
+import Ivory.BSP.STM32F405.GPIO
+import Ivory.BSP.STM32F405.UART
+import Ivory.BSP.STM32F405.Init
 
 ready :: Uint8
 ready = 0
@@ -113,8 +117,10 @@ gpioOn p = do
   pinSet           p
   pinSetMode       p gpio_mode_output
 
-app :: forall p . (ColoredLEDs p, BoardHSE p, STM32F4Signal p) => Tower p ()
+app :: forall p . (ColoredLEDs p, PlatformClock p, STM32Signal F405.Interrupt p)
+    => Tower p ()
 app = do
+  stm32f405InitTower
   -- XXX doesn't uartTower return source, sink in the wrong pairing?
 
 --  uart3streams <- uartTower uart3 57600 (Proxy :: Proxy 256)

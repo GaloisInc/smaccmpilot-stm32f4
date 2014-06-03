@@ -2,21 +2,25 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 module SPITest where
 
 import Ivory.Language
 import Ivory.Tower
 
-import Ivory.BSP.STM32F4.GPIO
-import Ivory.BSP.STM32F4.RCC
-import Ivory.BSP.STM32F4.Signalable
+import Ivory.BSP.STM32F405.Init
+import Ivory.BSP.STM32F405.GPIO
+import Ivory.BSP.STM32F405.SPI
+import qualified Ivory.BSP.STM32F405.Interrupt as F405
 
-import Ivory.BSP.STM32F4.SPI
+import Ivory.BSP.STM32.Signalable
+import Ivory.BSP.STM32.PlatformClock
+import Ivory.BSP.STM32.Peripheral.SPI
 
 import Platforms
 
-testdevice1 :: SPIDevice
+testdevice1 :: SPIDevice F405.Interrupt
 testdevice1 = SPIDevice
   { spiDevPeripheral    = spi3
   , spiDevCSPin         = pinE2
@@ -28,7 +32,7 @@ testdevice1 = SPIDevice
   , spiDevName          = "testdevice1_2500khz_pinE2"
   }
 
-testdevice2 :: SPIDevice
+testdevice2 :: SPIDevice F405.Interrupt
 testdevice2 = SPIDevice
   { spiDevPeripheral    = spi3
   , spiDevCSPin         = pinE3
@@ -40,8 +44,10 @@ testdevice2 = SPIDevice
   , spiDevName          = "testdevice2_500khz_pinE3"
   }
 
-app ::  forall p . (ColoredLEDs p, BoardHSE p, STM32F4Signal p) => Tower p ()
+app ::  forall p . (ColoredLEDs p, PlatformClock p, STM32Signal F405.Interrupt p) => Tower p ()
 app = do
+  stm32f405InitTower
+
   (req, res) <- spiTower [testdevice1, testdevice2]
 
   task "simplecontroller" $ do

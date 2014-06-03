@@ -62,6 +62,8 @@ px4fmu17_ioar_echronos: allplatforms
 px4fmu17_bare_echronos: PLATFORMS = px4fmu17_bare_echronos
 px4fmu17_bare_echronos: allplatforms
 
+px4fmu24_freertos: PLATFORMS = px4fmu24_freertos
+px4fmu24_freertos: allplatforms
 
 aadl: PLATFORMS = px4fmu17_ioar_aadl
 aadl: allplatforms
