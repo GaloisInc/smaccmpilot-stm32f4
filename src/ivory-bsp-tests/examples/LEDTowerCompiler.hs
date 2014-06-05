@@ -23,7 +23,7 @@ app = do
   p = (Proxy :: Proxy p)
 
 main :: IO ()
-main = compilePlatforms conf (coloredLEDPlatforms app)
+main = compilePlatforms conf (testPlatforms app)
   where
   conf = searchPathConf [HW.searchDir, BSP.searchDir]
 

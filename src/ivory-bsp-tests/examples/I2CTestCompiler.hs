@@ -8,7 +8,7 @@ import Platforms
 import I2CTest (app)
 
 main :: IO ()
-main = compilePlatforms conf (coloredLEDPlatforms app)
+main = compilePlatforms conf (testPlatforms app)
   where
   conf = searchPathConf [HW.searchDir, BSP.searchDir]
 

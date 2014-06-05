@@ -21,12 +21,11 @@ import Ivory.BSP.STM32F405.UART
 
 import Ivory.BSP.STM32.PlatformClock
 import Ivory.BSP.STM32.Signalable
-import qualified Ivory.BSP.STM32F405.Interrupt as F405 -- XXX required until uartTower is properly polymorphic?
 
 --------------------------------------------------------------------------------
 
-app :: forall p
-     . (ColoredLEDs p, PlatformClock p, STM32Signal F405.Interrupt p)
+app :: forall i p
+     . (ColoredLEDs p, PlatformClock p, STM32Signal i p, DemoUART i p)
     => Tower p ()
 app = do
   stm32f405InitTower
@@ -36,7 +35,7 @@ app = do
   -- A new queue
   redledctl <- channel
   -- Starts a UART (serial) task
-  (istream, ostream) <- uartTower uart5 115200 (Proxy :: Proxy 256)
+  (istream, ostream) <- uartTower (demoUART (Proxy :: Proxy p)) 115200 (Proxy :: Proxy 256)
   -- Start the task defined below
   echoPrompt "hello world" ostream istream (src redledctl)
   -- A task that takes control input (Boolean) from the echo prompt and controls
