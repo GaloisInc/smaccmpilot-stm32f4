@@ -76,16 +76,10 @@ regRCC_AHB3ENR :: BitDataReg RCC_AHB3ENR
 regRCC_AHB3ENR = mkBitDataRegNamed (rcc_periph_base + 0x38) "rcc_ahb3enr"
 
 -- APB Peripheral Clock Enable Registers ---------------------------------------
--- Note: the reference manual lists separate register maps for two subsets of
--- the STM32F4, the F42xxx/F43xxx and the (F405xx/07xx and F415xx/17xx)
--- subfamlies. These types match the F42xxx/F43xxx series, which is mostly a
--- superset of the F405&c. series, with the exception that F405 has a SPI4 and
--- F42xxx does not.
 
 [ivory|
  bitdata RCC_APB1ENR :: Bits 32 = rcc_apb1enr
-  { rcc_apb1en_uart8      :: Bit
-  , rcc_apb1en_uart7      :: Bit
+  { _                     :: Bits 2
   , rcc_apb1en_dac        :: Bit
   , rcc_apb1en_pwr        :: Bit
   , _                     :: Bit
