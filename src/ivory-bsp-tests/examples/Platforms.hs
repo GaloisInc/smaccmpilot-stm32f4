@@ -30,17 +30,17 @@ class ColoredLEDs p where
   redLED  :: Proxy p -> LED
   blueLED :: Proxy p -> LED
 
-class (PlatformClock p, STM32Signal i p) => BoardInitializer i p where
+class (PlatformClock p, STM32Signal p) => BoardInitializer p where
   boardInitializer :: Tower p ()
 
-class (STM32Signal i p) => TestUART i p where
-  testUART :: Proxy p -> UART i
+class (STM32Signal p) => TestUART p where
+  testUART :: Proxy p -> UART (InterruptType p)
 
-class (STM32Signal i p) => TestSPI i p where
-  testSPI :: Proxy p -> SPIPeriph i
+class (STM32Signal p) => TestSPI p where
+  testSPI :: Proxy p -> SPIPeriph (InterruptType p)
 
-class (STM32Signal i p) => TestI2C i p where
-  testI2C :: Proxy p -> I2CPeriph i
+class (STM32Signal p) => TestI2C p where
+  testI2C :: Proxy p -> I2CPeriph (InterruptType p)
   testSDA :: Proxy p -> GPIOPin
   testSCL :: Proxy p -> GPIOPin
 
@@ -56,16 +56,16 @@ stm32SignalableInstance ''PX4FMUv17 ''F405.Interrupt
 instance PlatformClock PX4FMUv17 where
   platformClockConfig _ = f405ExtXtalMHz 24
 
-instance BoardInitializer F405.Interrupt PX4FMUv17 where
+instance BoardInitializer PX4FMUv17 where
   boardInitializer = stm32f405InitTower
 
-instance TestUART F405.Interrupt PX4FMUv17 where
+instance TestUART PX4FMUv17 where
   testUART _ = F405.uart5
 
-instance TestSPI F405.Interrupt PX4FMUv17 where
+instance TestSPI PX4FMUv17 where
   testSPI _ = F405.spi3
 
-instance TestI2C F405.Interrupt PX4FMUv17 where
+instance TestI2C PX4FMUv17 where
   testI2C _ = F405.i2c1
   testSDA _ = F405.pinB6
   testSCL _ = F405.pinB7
@@ -82,16 +82,16 @@ stm32SignalableInstance ''PX4FMUv24 ''F405.Interrupt -- XXX FIXME
 instance PlatformClock PX4FMUv24 where
   platformClockConfig _ = f405ExtXtalMHz 24
 
-instance BoardInitializer F405.Interrupt PX4FMUv24 where
+instance BoardInitializer PX4FMUv24 where
   boardInitializer = stm32f405InitTower -- XXX FIXME
 
-instance TestUART F405.Interrupt PX4FMUv24 where
+instance TestUART PX4FMUv24 where
   testUART _ = F405.uart5 -- XXX FIXME
 
-instance TestSPI F405.Interrupt PX4FMUv24 where
+instance TestSPI PX4FMUv24 where
   testSPI _ = F405.spi3 -- XXX FIXME
 
-instance TestI2C F405.Interrupt PX4FMUv24 where
+instance TestI2C PX4FMUv24 where
   testI2C _ = F405.i2c1 -- XXX FIXME
   testSDA _ = F405.pinB6
   testSCL _ = F405.pinB7
@@ -109,16 +109,16 @@ instance ColoredLEDs F4Discovery where
 instance PlatformClock F4Discovery where
   platformClockConfig _ = f405ExtXtalMHz 8
 
-instance BoardInitializer F405.Interrupt F4Discovery where
+instance BoardInitializer F4Discovery where
   boardInitializer = stm32f405InitTower
 
-instance TestUART F405.Interrupt F4Discovery where
+instance TestUART F4Discovery where
   testUART _ = F405.uart1
 
-instance TestSPI F405.Interrupt F4Discovery where
+instance TestSPI F4Discovery where
   testSPI _ = F405.spi3
 
-instance TestI2C F405.Interrupt F4Discovery where
+instance TestI2C F4Discovery where
   testI2C _ = F405.i2c1 -- XXX FIXME
   testSDA _ = F405.pinB6
   testSCL _ = F405.pinB7
@@ -135,30 +135,30 @@ instance ColoredLEDs Open407VC where
 instance PlatformClock Open407VC where
   platformClockConfig _ = f405ExtXtalMHz 8
 
-instance BoardInitializer F405.Interrupt Open407VC where
+instance BoardInitializer Open407VC where
   boardInitializer = stm32f405InitTower
 
-instance TestUART F405.Interrupt Open407VC where
+instance TestUART Open407VC where
   testUART _ = F405.uart2
 
-instance TestSPI F405.Interrupt Open407VC where
+instance TestSPI Open407VC where
   testSPI _ = F405.spi3
 
-instance TestI2C F405.Interrupt Open407VC where
+instance TestI2C Open407VC where
   testI2C _ = F405.i2c1
   testSDA _ = F405.pinB6
   testSCL _ = F405.pinB7
 
 --------- Platform lookup by name ---------------------------------------------
 
-testPlatforms :: (forall i p
+testPlatforms :: (forall p
                   . ( ColoredLEDs p
                     , PlatformClock p
-                    , STM32Signal i p
-                    , BoardInitializer i p
-                    , TestUART i p
-                    , TestSPI i p
-                    , TestI2C i p)
+                    , STM32Signal p
+                    , BoardInitializer p
+                    , TestUART p
+                    , TestSPI p
+                    , TestI2C p)
                     => Tower p ()) -> [(String, Twr)]
 testPlatforms app =
     [("px4fmu17_bare",     Twr (app :: Tower PX4FMUv17 ()))

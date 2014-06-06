@@ -4,6 +4,7 @@
 {-# LANGUAGE DeriveFoldable #-}
 {-# LANGUAGE DeriveTraversable #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE TypeFamilies #-}
 
 module SMACCMPilot.Flight
   ( flight
@@ -51,7 +52,7 @@ sysParams :: Monad m => ParamT f m (SysParams f)
 sysParams =
   SysParams <$> group "" flightParams
 
-hil :: ( STM32Signal F405.Interrupt p
+hil :: ( STM32Signal p, InterruptType p ~ F405.Interrupt
        , PlatformClock p, MotorOutput p, SensorOrientation p)
     => C.Options
     -> Tower p ()
@@ -118,7 +119,8 @@ hil opts = do
   towerModule  gpsTypesModule
   towerDepends gpsTypesModule
 
-flight :: ( STM32Signal F405.Interrupt p, PlatformClock p, MotorOutput p
+flight :: ( STM32Signal p, InterruptType p ~ F405.Interrupt
+          , PlatformClock p, MotorOutput p
           , SensorOrientation p)
        => C.Options
        -> Tower p ()

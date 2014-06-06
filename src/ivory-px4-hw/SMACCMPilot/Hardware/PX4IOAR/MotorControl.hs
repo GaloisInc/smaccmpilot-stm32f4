@@ -55,7 +55,7 @@ select_set_all v = mapM_ act select_pins
   act pin = ifte_ v (pinClear pin) (pinSet pin)
 
 motorControlTower :: ( IvoryArea a, IvoryZero a, PlatformClock p
-                     , STM32Signal F405.Interrupt p)
+                     , STM32Signal p, InterruptType p ~ F405.Interrupt)
              => (forall s cs . ConstRef s a
                   -> Ivory (AllocEffects cs)
                        (ConstRef (Stack cs) (Array 4 (Stored IFloat))))

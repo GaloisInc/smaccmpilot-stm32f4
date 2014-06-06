@@ -9,17 +9,16 @@ module I2CTest where
 import Ivory.Language
 import Ivory.Tower
 
-import Ivory.BSP.STM32F405.Init
 import Ivory.BSP.STM32.Peripheral.I2C
 import Ivory.BSP.STM32.PlatformClock
 
 import Platforms
 
-app :: forall i p
-     . (ColoredLEDs p, PlatformClock p, TestI2C i p)
+app :: forall p
+     . (ColoredLEDs p, PlatformClock p, TestI2C p, BoardInitializer p)
     => Tower p ()
 app = do
-  stm32f405InitTower
+  boardInitializer
 
   (req, res) <- i2cTower (testI2C platform) (testSDA platform) (testSCL platform)
 

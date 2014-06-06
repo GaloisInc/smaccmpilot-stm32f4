@@ -32,7 +32,8 @@ main = compilePlatforms conf (gpsPlatforms app)
   where
   conf = searchPathConf [ HW.searchDir, BSP.searchDir ]
 
-app :: forall p . (MPU6kPlatform p, PlatformClock p, STM32Signal F405.Interrupt p)
+app :: forall p . (MPU6kPlatform p, PlatformClock p, STM32Signal p
+                  , InterruptType p ~ F405.Interrupt)
     => Tower p ()
 app = do
   towerModule  ms5611TypesModule
@@ -42,7 +43,7 @@ app = do
 
 
 ms5611ctl :: forall p
-        . (PlatformClock p, STM32Signal F405.Interrupt p)
+        . (PlatformClock p, STM32Signal p, InterruptType p ~ F405.Interrupt)
        => ChannelSource (Struct "i2c_transaction_request")
        -> ChannelSink   (Struct "i2c_transaction_result")
        -> I2CDeviceAddr

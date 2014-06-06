@@ -73,7 +73,7 @@ instance MPU6kPlatform PX4FMU24 where
   mpu6000Device _ = fmu17MPU6k -- XXX FIXME
 
 gpsPlatforms :: (forall p
-                   . (MPU6kPlatform p, PlatformClock p, STM32Signal F405.Interrupt p)
+                   . (MPU6kPlatform p, PlatformClock p, STM32Signal p, InterruptType p ~ F405.Interrupt)
                   => Tower p ())
              -> [(String, Twr)]
 gpsPlatforms app =

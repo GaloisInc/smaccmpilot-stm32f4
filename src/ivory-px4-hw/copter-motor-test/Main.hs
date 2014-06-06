@@ -2,6 +2,7 @@
 {-# LANGUAGE RecursiveDo #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE TypeFamilies #-}
 
 module Main where
 
@@ -32,7 +33,8 @@ main = compilePlatforms conf (motorPlatforms app)
   where
   conf = searchPathConf [ HW.searchDir, BSP.searchDir ]
 
-app :: (RawMotorControl p, PlatformClock p, STM32Signal F405.Interrupt p)
+app :: ( RawMotorControl p, PlatformClock p, STM32Signal p
+       , InterruptType p ~ F405.Interrupt)
     => Tower p ()
 app = do
   c <- channel
@@ -52,7 +54,9 @@ shell greet ostream istream motorstream = task "shell" $ do
   -- withStackSize 1024 -- XXX
   motorNum <- taskLocal "motorNum"
   (throttle :: Ref Global (Array 4 (Stored Uint8))) <- taskLocal "throttle"
-  let puts str = mapM_ (\c -> putc (fromIntegral (ord c))) str
+  let puts :: (GetAlloc eff ~ Scope s) => [Char] -> Ivory eff ()
+      puts str = mapM_ (\c -> putc (fromIntegral (ord c))) str
+      putc :: (GetAlloc eff ~ Scope s) => Uint8 -> Ivory eff ()
       putc c = emitV_ out c
   sm <- stateMachine "motor_shell" $ mdo
     init <- stateNamed "init" $ entry $ do

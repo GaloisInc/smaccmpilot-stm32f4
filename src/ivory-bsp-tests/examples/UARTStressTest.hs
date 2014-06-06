@@ -113,7 +113,7 @@ gpioOn p = do
   pinSet           p
   pinSetMode       p gpio_mode_output
 
-app :: forall i p . (ColoredLEDs p, PlatformClock p, BoardInitializer i p, TestUART i p)
+app :: forall p . (ColoredLEDs p, PlatformClock p, BoardInitializer p, TestUART p)
     => Tower p ()
 app = do
   boardInitializer

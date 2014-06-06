@@ -20,8 +20,8 @@ import Ivory.BSP.STM32.PlatformClock
 
 --------------------------------------------------------------------------------
 
-app :: forall i p
-     . (ColoredLEDs p, PlatformClock p, BoardInitializer i p, TestUART i p)
+app :: forall p
+     . (ColoredLEDs p, PlatformClock p, BoardInitializer p, TestUART p)
     => Tower p ()
 app = do
   boardInitializer

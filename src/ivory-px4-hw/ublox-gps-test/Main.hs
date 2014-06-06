@@ -3,6 +3,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE TypeFamilies #-}
 
 module Main where
 
@@ -34,7 +35,8 @@ main = compilePlatforms conf (gpsPlatforms app)
   where
   conf = searchPathConf [ HW.searchDir, BSP.searchDir ]
 
-app :: forall p . (GPSUart p, PlatformClock p, STM32Signal F405.Interrupt p) => Tower p ()
+app :: forall p . (GPSUart p, PlatformClock p, STM32Signal p, InterruptType p ~ F405.Interrupt)
+    => Tower p ()
 app = do
   (shelli,shello ) <- uartTower (consoleUart (Proxy :: Proxy p))
                                 115200 (Proxy :: Proxy 128)
@@ -64,7 +66,9 @@ shell greet ostream istream ipos = task "shell" $ do
   inp <- withChannelEvent    istream "istream"
   posin <- withChannelEvent  ipos    "positionin"
   -- withStackSize 1024 -- XXX
-  let puts str = mapM_ (\c -> putc (fromIntegral (ord c))) str
+  let puts :: (GetAlloc eff ~ Scope s) => [Char] -> Ivory eff ()
+      puts str = mapM_ (\c -> putc (fromIntegral (ord c))) str
+      putc :: (GetAlloc eff ~ Scope s) => Uint8 -> Ivory eff ()
       putc c = emitV_ out c
 
   sm <- stateMachine "motor_shell" $ mdo

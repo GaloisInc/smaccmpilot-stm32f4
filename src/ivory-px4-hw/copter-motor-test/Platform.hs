@@ -49,7 +49,7 @@ cpystack v = do
   return (constRef l)
 
 motorPlatforms :: (forall p . (RawMotorControl p, PlatformClock p
-                    , STM32Signal F405.Interrupt p)
+                    , STM32Signal p, InterruptType p ~ F405.Interrupt)
                     => Tower p ())
                -> [(String, Twr)]
 motorPlatforms app =

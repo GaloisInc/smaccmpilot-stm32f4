@@ -56,7 +56,7 @@ instance GPSUart PX4FMU24 where
   consoleUart _ = uart1
   gpsUart _ = uart3
 
-gpsPlatforms :: (forall p . (GPSUart p, PlatformClock p, STM32Signal F405.Interrupt p)
+gpsPlatforms :: (forall p . (GPSUart p, PlatformClock p, STM32Signal p, InterruptType p ~ F405.Interrupt)
                   => Tower p ())
              -> [(String, Twr)]
 gpsPlatforms app =

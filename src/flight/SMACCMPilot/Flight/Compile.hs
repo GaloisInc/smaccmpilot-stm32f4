@@ -1,6 +1,7 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE TypeFamilies #-}
 
 module SMACCMPilot.Flight.Compile
   ( compile
@@ -23,8 +24,8 @@ import SMACCMPilot.Flight.Platforms
 import SMACCMPilot.Flight.Motors.Platforms
 import SMACCMPilot.Flight.Sensors.Platforms
 
-compile :: (forall p . ( STM32Signal F405.Interrupt p, PlatformClock p
-                       , MotorOutput p, SensorOrientation p)
+compile :: (forall p . ( STM32Signal p, InterruptType p ~ F405.Interrupt
+                       , PlatformClock p, MotorOutput p, SensorOrientation p)
         => Tower p ())
         -> [String]
         -> IO ()

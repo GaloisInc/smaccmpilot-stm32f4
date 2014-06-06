@@ -21,8 +21,9 @@ stm32SignalableInstance platformtype interrupttype = do
         , signalnamedef n
         ]
     , InstanceD []
-       (AppT (AppT (ConT ''STM32Signal) (ConT interrupttype)) (ConT platformtype))
-       [ stm32signaldef n
+       (AppT (ConT ''STM32Signal) (ConT platformtype))
+       [ TySynInstD ''InterruptType [ConT platformtype] (ConT interrupttype)
+       , stm32signaldef n
        ]
     ]
   where

@@ -9,19 +9,20 @@ module SPITest where
 import Ivory.Language
 import Ivory.Tower
 
+import Ivory.BSP.STM32.Peripheral.SPI.Tower
+import Ivory.BSP.STM32.Peripheral.SPI.Tower.Types
+import Ivory.BSP.STM32.Peripheral.SPI.Tower.Types.SPIDeviceHandle
 import Ivory.BSP.STM32.Peripheral.SPI
 import Ivory.BSP.STM32.PlatformClock
 import Ivory.BSP.STM32F405.GPIO
 
 import Platforms
 
-app ::  forall i p . (ColoredLEDs p, PlatformClock p, BoardInitializer i p, TestSPI i p)
+app ::  forall p . (ColoredLEDs p, PlatformClock p, BoardInitializer p, TestSPI p)
     => Tower p ()
 app = do
   boardInitializer
-  (req, res) <- spiTower [ testdevice1 spiperiph
-                         , testdevice2 spiperiph
-                         ]
+  (req, res) <- spiTower [ testdevice1, testdevice2 ]
 
   task "simplecontroller" $ do
     req_emitter <- withChannelEmitter req "req"
@@ -49,10 +50,8 @@ app = do
       assert ((len  ==? 3) .|| (len ==? 4))
 
   where
-  spiperiph = testSPI (Proxy :: Proxy p)
-
-  testdevice1 :: SPIPeriph i -> SPIDevice i
-  testdevice1 periph = SPIDevice
+  periph = testSPI (Proxy :: Proxy p)
+  testdevice1 = SPIDevice
     { spiDevPeripheral    = periph
     , spiDevCSPin         = pinE2
     , spiDevClockHz       = 2500000
@@ -62,9 +61,7 @@ app = do
     , spiDevBitOrder      = MSBFirst
     , spiDevName          = "testdevice1_2500khz_pinE2"
     }
-
-  testdevice2 :: SPIPeriph i -> SPIDevice i
-  testdevice2 periph = SPIDevice
+  testdevice2 = SPIDevice
     { spiDevPeripheral    = periph
     , spiDevCSPin         = pinE3
     , spiDevClockHz       = 500000
