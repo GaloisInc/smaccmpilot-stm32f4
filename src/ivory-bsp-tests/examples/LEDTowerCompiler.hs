@@ -4,7 +4,6 @@
 import           Ivory.Language
 import           Ivory.Tower.Frontend
 import           Ivory.BSP.STM32.PlatformClock
-import           Ivory.BSP.STM32F405.Init
 import qualified Ivory.HW.SearchDir as HW
 import qualified Ivory.BSP.STM32.SearchDir as BSP
 
@@ -13,9 +12,10 @@ import Ivory.Tower
 import LEDTower (blinkApp)
 import Platforms
 
-app :: forall p . (PlatformClock p, ColoredLEDs p) => Tower p ()
+app :: forall i p . (PlatformClock p, ColoredLEDs p, BoardInitializer i p)
+    => Tower p ()
 app = do
-  stm32f405InitTower
+  boardInitializer
   blinkApp period leds
   where
   period = 250

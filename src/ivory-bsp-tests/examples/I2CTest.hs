@@ -10,22 +10,18 @@ import Ivory.Language
 import Ivory.Tower
 
 import Ivory.BSP.STM32F405.Init
-import Ivory.BSP.STM32F405.GPIO
-import Ivory.BSP.STM32F405.I2C
-import qualified Ivory.BSP.STM32F405.Interrupt as F405
-
+import Ivory.BSP.STM32.Peripheral.I2C
 import Ivory.BSP.STM32.PlatformClock
-import Ivory.BSP.STM32.Signalable
 
 import Platforms
 
-app :: forall p
-     . (ColoredLEDs p, PlatformClock p, STM32Signal F405.Interrupt p)
+app :: forall i p
+     . (ColoredLEDs p, PlatformClock p, TestI2C i p)
     => Tower p ()
 app = do
   stm32f405InitTower
 
-  (req, res) <- i2cTower i2c1 pinB6 pinB7
+  (req, res) <- i2cTower (testI2C platform) (testSDA platform) (testSCL platform)
 
   task "simplecontroller" $ do
     req_emitter <- withChannelEmitter req "req"
@@ -54,3 +50,4 @@ app = do
   where
   -- Test against an AT24 EEPROM or equivalent
   eepromaddr = I2CDeviceAddr 0x50
+  platform = Proxy :: Proxy p

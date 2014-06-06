@@ -15,37 +15,31 @@ import Ivory.Tower
 import Platforms
 import LEDTower
 
-import Ivory.BSP.STM32.Peripheral.UART (uartTower)
-import Ivory.BSP.STM32F405.Init
-import Ivory.BSP.STM32F405.UART
-
+import Ivory.BSP.STM32.Peripheral.UART
 import Ivory.BSP.STM32.PlatformClock
-import Ivory.BSP.STM32.Signalable
 
 --------------------------------------------------------------------------------
 
 app :: forall i p
-     . (ColoredLEDs p, PlatformClock p, STM32Signal i p, DemoUART i p)
+     . (ColoredLEDs p, PlatformClock p, BoardInitializer i p, TestUART i p)
     => Tower p ()
 app = do
-  stm32f405InitTower
+  boardInitializer
   -- Starts two tasks: a blink task and a controller task.  Periodically blink
   -- the blue LED.
-  blinkApp period [blue]
+  blinkApp period [blueLED platform]
   -- A new queue
   redledctl <- channel
   -- Starts a UART (serial) task
-  (istream, ostream) <- uartTower (demoUART (Proxy :: Proxy p)) 115200 (Proxy :: Proxy 256)
+  (istream, ostream) <- uartTower (testUART platform) 115200 (Proxy :: Proxy 256)
   -- Start the task defined below
   echoPrompt "hello world" ostream istream (src redledctl)
   -- A task that takes control input (Boolean) from the echo prompt and controls
   -- the red LED based on it.
-  task "settableLED" $ ledController [red] (snk redledctl)
+  task "settableLED" $ ledController [redLED platform] (snk redledctl)
   where
+  platform = Proxy :: Proxy p
   period = 333
-  -- red and blue LEDs provided through ColoredLEDs typeclass:
-  red  = redLED  (Proxy :: Proxy p)
-  blue = blueLED (Proxy :: Proxy p)
 
 --------------------------------------------------------------------------------
 

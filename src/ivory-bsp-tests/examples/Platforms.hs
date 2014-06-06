@@ -13,10 +13,16 @@ import Ivory.Tower.Frontend
 import LEDTower
 import qualified Ivory.BSP.STM32F405.UART        as F405
 import qualified Ivory.BSP.STM32F405.GPIO        as F405
+import qualified Ivory.BSP.STM32F405.SPI         as F405
+import qualified Ivory.BSP.STM32F405.I2C         as F405
+import           Ivory.BSP.STM32F405.Init
 import           Ivory.BSP.STM32F405.ClockConfig
 import qualified Ivory.BSP.STM32F405.Interrupt   as F405
 
+import Ivory.BSP.STM32.Peripheral.GPIOF4
 import Ivory.BSP.STM32.Peripheral.UART
+import Ivory.BSP.STM32.Peripheral.SPI hiding (ActiveHigh, ActiveLow)
+import Ivory.BSP.STM32.Peripheral.I2C
 import Ivory.BSP.STM32.PlatformClock
 import Ivory.BSP.STM32.Signalable
 
@@ -24,8 +30,19 @@ class ColoredLEDs p where
   redLED  :: Proxy p -> LED
   blueLED :: Proxy p -> LED
 
-class (STM32Signal i p) => DemoUART i p where
-  demoUART :: Proxy p -> UART i
+class (PlatformClock p, STM32Signal i p) => BoardInitializer i p where
+  boardInitializer :: Tower p ()
+
+class (STM32Signal i p) => TestUART i p where
+  testUART :: Proxy p -> UART i
+
+class (STM32Signal i p) => TestSPI i p where
+  testSPI :: Proxy p -> SPIPeriph i
+
+class (STM32Signal i p) => TestI2C i p where
+  testI2C :: Proxy p -> I2CPeriph i
+  testSDA :: Proxy p -> GPIOPin
+  testSCL :: Proxy p -> GPIOPin
 
 ---------- PX4FMUv17 ----------------------------------------------------------
 data PX4FMUv17 = PX4FMUv17
@@ -39,8 +56,19 @@ stm32SignalableInstance ''PX4FMUv17 ''F405.Interrupt
 instance PlatformClock PX4FMUv17 where
   platformClockConfig _ = f405ExtXtalMHz 24
 
-instance DemoUART F405.Interrupt PX4FMUv17 where
-  demoUART _ = F405.uart5
+instance BoardInitializer F405.Interrupt PX4FMUv17 where
+  boardInitializer = stm32f405InitTower
+
+instance TestUART F405.Interrupt PX4FMUv17 where
+  testUART _ = F405.uart5
+
+instance TestSPI F405.Interrupt PX4FMUv17 where
+  testSPI _ = F405.spi3
+
+instance TestI2C F405.Interrupt PX4FMUv17 where
+  testI2C _ = F405.i2c1
+  testSDA _ = F405.pinB6
+  testSCL _ = F405.pinB7
 
 ---------- PX4FMUv24 ----------------------------------------------------------
 data PX4FMUv24 = PX4FMUv24
@@ -54,8 +82,19 @@ stm32SignalableInstance ''PX4FMUv24 ''F405.Interrupt -- XXX FIXME
 instance PlatformClock PX4FMUv24 where
   platformClockConfig _ = f405ExtXtalMHz 24
 
-instance DemoUART F405.Interrupt PX4FMUv24 where
-  demoUART _ = F405.uart5 -- XXX FIXME
+instance BoardInitializer F405.Interrupt PX4FMUv24 where
+  boardInitializer = stm32f405InitTower -- XXX FIXME
+
+instance TestUART F405.Interrupt PX4FMUv24 where
+  testUART _ = F405.uart5 -- XXX FIXME
+
+instance TestSPI F405.Interrupt PX4FMUv24 where
+  testSPI _ = F405.spi3 -- XXX FIXME
+
+instance TestI2C F405.Interrupt PX4FMUv24 where
+  testI2C _ = F405.i2c1 -- XXX FIXME
+  testSDA _ = F405.pinB6
+  testSCL _ = F405.pinB7
 
 
 ---------- F4Discovery --------------------------------------------------------
@@ -70,8 +109,19 @@ instance ColoredLEDs F4Discovery where
 instance PlatformClock F4Discovery where
   platformClockConfig _ = f405ExtXtalMHz 8
 
-instance DemoUART F405.Interrupt F4Discovery where
-  demoUART _ = F405.uart1
+instance BoardInitializer F405.Interrupt F4Discovery where
+  boardInitializer = stm32f405InitTower
+
+instance TestUART F405.Interrupt F4Discovery where
+  testUART _ = F405.uart1
+
+instance TestSPI F405.Interrupt F4Discovery where
+  testSPI _ = F405.spi3
+
+instance TestI2C F405.Interrupt F4Discovery where
+  testI2C _ = F405.i2c1 -- XXX FIXME
+  testSDA _ = F405.pinB6
+  testSCL _ = F405.pinB7
 
 ---------- Open407VC ----------------------------------------------------------
 data Open407VC = Open407VC
@@ -85,8 +135,19 @@ instance ColoredLEDs Open407VC where
 instance PlatformClock Open407VC where
   platformClockConfig _ = f405ExtXtalMHz 8
 
-instance DemoUART F405.Interrupt Open407VC where
-  demoUART _ = F405.uart2
+instance BoardInitializer F405.Interrupt Open407VC where
+  boardInitializer = stm32f405InitTower
+
+instance TestUART F405.Interrupt Open407VC where
+  testUART _ = F405.uart2
+
+instance TestSPI F405.Interrupt Open407VC where
+  testSPI _ = F405.spi3
+
+instance TestI2C F405.Interrupt Open407VC where
+  testI2C _ = F405.i2c1
+  testSDA _ = F405.pinB6
+  testSCL _ = F405.pinB7
 
 --------- Platform lookup by name ---------------------------------------------
 
@@ -94,7 +155,10 @@ testPlatforms :: (forall i p
                   . ( ColoredLEDs p
                     , PlatformClock p
                     , STM32Signal i p
-                    , DemoUART i p)
+                    , BoardInitializer i p
+                    , TestUART i p
+                    , TestSPI i p
+                    , TestI2C i p)
                     => Tower p ()) -> [(String, Twr)]
 testPlatforms app =
     [("px4fmu17_bare",     Twr (app :: Tower PX4FMUv17 ()))

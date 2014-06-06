@@ -12,14 +12,10 @@ import Ivory.Tower
 
 import Platforms
 
-import qualified Ivory.BSP.STM32F405.Interrupt as F405
-import Ivory.BSP.STM32.Signalable
 import Ivory.BSP.STM32.PlatformClock
 
 import Ivory.BSP.STM32.Peripheral.UART.Tower
 import Ivory.BSP.STM32F405.GPIO
-import Ivory.BSP.STM32F405.UART
-import Ivory.BSP.STM32F405.Init
 
 ready :: Uint8
 ready = 0
@@ -117,45 +113,39 @@ gpioOn p = do
   pinSet           p
   pinSetMode       p gpio_mode_output
 
-app :: forall p . (ColoredLEDs p, PlatformClock p, STM32Signal F405.Interrupt p)
+app :: forall i p . (ColoredLEDs p, PlatformClock p, BoardInitializer i p, TestUART i p)
     => Tower p ()
 app = do
-  stm32f405InitTower
-  -- XXX doesn't uartTower return source, sink in the wrong pairing?
+  boardInitializer
 
---  uart3streams <- uartTower uart3 57600 (Proxy :: Proxy 256)
---  uart4streams <- uartTower uart4 57600 (Proxy :: Proxy 256)
-
-  (u1snk, u1src) <- uartTowerDebuggable uart1 57600 (Proxy :: Proxy 256) UARTTowerDebugger
-                      { debug_init = do
-                          gpioSetup pinD3
-                          gpioSetup pinD4
-                          gpioSetup pinD5
-                          gpioSetup pinD6
-                          gpioSetup pinD7
-                      , debug_isr = do
-                          gpioOn  pinD3
-                          gpioOff pinD3
-                      , debug_evthandler_start = do
-                          gpioOn  pinD4
-                      , debug_evthandler_end = do
-                          gpioOff pinD4
-                      , debug_txcheck = do
-                          gpioOn  pinD5
-                          gpioOff pinD5
-                      , debug_txcheck_pend = do
-                          gpioOn  pinD6
-                          gpioOff pinD6
-                      , debug_txeie = \en -> do
-                          ifte_ en
-                            (gpioOn  pinD7)
-                            (gpioOff pinD7)
-                      }
+  (u1snk, u1src) <- uartTowerDebuggable (testUART (Proxy :: Proxy p))
+                        57600 (Proxy :: Proxy 256) debugger
 
   pollingLoopback u1src u1snk pinD12 "uart1" 0x66
 
-  --(u2snk, u2src) <- uartTower uart2 57600 (Proxy :: Proxy 256)
-  --pollingLoopback u2src u2snk pinD13 "uart2" 0x77
-
-
+  where debugger = UARTTowerDebugger
+          { debug_init = do
+              gpioSetup pinD3
+              gpioSetup pinD4
+              gpioSetup pinD5
+              gpioSetup pinD6
+              gpioSetup pinD7
+          , debug_isr = do
+              gpioOn  pinD3
+              gpioOff pinD3
+          , debug_evthandler_start = do
+              gpioOn  pinD4
+          , debug_evthandler_end = do
+              gpioOff pinD4
+          , debug_txcheck = do
+              gpioOn  pinD5
+              gpioOff pinD5
+          , debug_txcheck_pend = do
+              gpioOn  pinD6
+              gpioOff pinD6
+          , debug_txeie = \en -> do
+              ifte_ en
+                (gpioOn  pinD7)
+                (gpioOff pinD7)
+          }
 

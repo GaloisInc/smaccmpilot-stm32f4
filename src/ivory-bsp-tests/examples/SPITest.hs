@@ -9,46 +9,19 @@ module SPITest where
 import Ivory.Language
 import Ivory.Tower
 
-import Ivory.BSP.STM32F405.Init
-import Ivory.BSP.STM32F405.GPIO
-import Ivory.BSP.STM32F405.SPI
-import qualified Ivory.BSP.STM32F405.Interrupt as F405
-
-import Ivory.BSP.STM32.Signalable
-import Ivory.BSP.STM32.PlatformClock
 import Ivory.BSP.STM32.Peripheral.SPI
+import Ivory.BSP.STM32.PlatformClock
+import Ivory.BSP.STM32F405.GPIO
 
 import Platforms
 
-testdevice1 :: SPIDevice F405.Interrupt
-testdevice1 = SPIDevice
-  { spiDevPeripheral    = spi3
-  , spiDevCSPin         = pinE2
-  , spiDevClockHz       = 2500000
-  , spiDevCSActive      = ActiveLow
-  , spiDevClockPolarity = ClockPolarityLow
-  , spiDevClockPhase    = ClockPhase1
-  , spiDevBitOrder      = MSBFirst
-  , spiDevName          = "testdevice1_2500khz_pinE2"
-  }
-
-testdevice2 :: SPIDevice F405.Interrupt
-testdevice2 = SPIDevice
-  { spiDevPeripheral    = spi3
-  , spiDevCSPin         = pinE3
-  , spiDevClockHz       = 500000
-  , spiDevCSActive      = ActiveLow
-  , spiDevClockPolarity = ClockPolarityLow
-  , spiDevClockPhase    = ClockPhase1
-  , spiDevBitOrder      = MSBFirst
-  , spiDevName          = "testdevice2_500khz_pinE3"
-  }
-
-app ::  forall p . (ColoredLEDs p, PlatformClock p, STM32Signal F405.Interrupt p) => Tower p ()
+app ::  forall i p . (ColoredLEDs p, PlatformClock p, BoardInitializer i p, TestSPI i p)
+    => Tower p ()
 app = do
-  stm32f405InitTower
-
-  (req, res) <- spiTower [testdevice1, testdevice2]
+  boardInitializer
+  (req, res) <- spiTower [ testdevice1 spiperiph
+                         , testdevice2 spiperiph
+                         ]
 
   task "simplecontroller" $ do
     req_emitter <- withChannelEmitter req "req"
@@ -75,3 +48,29 @@ app = do
       assert (code ==? 0)
       assert ((len  ==? 3) .|| (len ==? 4))
 
+  where
+  spiperiph = testSPI (Proxy :: Proxy p)
+
+  testdevice1 :: SPIPeriph i -> SPIDevice i
+  testdevice1 periph = SPIDevice
+    { spiDevPeripheral    = periph
+    , spiDevCSPin         = pinE2
+    , spiDevClockHz       = 2500000
+    , spiDevCSActive      = ActiveLow
+    , spiDevClockPolarity = ClockPolarityLow
+    , spiDevClockPhase    = ClockPhase1
+    , spiDevBitOrder      = MSBFirst
+    , spiDevName          = "testdevice1_2500khz_pinE2"
+    }
+
+  testdevice2 :: SPIPeriph i -> SPIDevice i
+  testdevice2 periph = SPIDevice
+    { spiDevPeripheral    = periph
+    , spiDevCSPin         = pinE3
+    , spiDevClockHz       = 500000
+    , spiDevCSActive      = ActiveLow
+    , spiDevClockPolarity = ClockPolarityLow
+    , spiDevClockPhase    = ClockPhase1
+    , spiDevBitOrder      = MSBFirst
+    , spiDevName          = "testdevice2_500khz_pinE3"
+    }

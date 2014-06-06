@@ -47,6 +47,7 @@ library
                        Ivory.BSP.STM32.Peripheral.GTIM2345.RegTypes,
                        Ivory.BSP.STM32.Peripheral.GTIM2345.Peripheral,
 
+                       Ivory.BSP.STM32.Peripheral.I2C,
                        Ivory.BSP.STM32.Peripheral.I2C.Regs,
                        Ivory.BSP.STM32.Peripheral.I2C.Peripheral,
                        Ivory.BSP.STM32.Peripheral.I2C.Tower,
