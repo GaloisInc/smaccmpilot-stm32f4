@@ -45,18 +45,18 @@ emptyDbg =
     , debug_txeie = const (return ())
     }
 
-uartTower :: forall i n p
-           . (ANat n, PlatformClock p, STM32Signal i p)
-          => UART i
+uartTower :: forall n p
+           . (ANat n, PlatformClock p, STM32Signal p)
+          => UART (InterruptType p)
           -> Integer
           -> Proxy (n :: Nat)
           -> Tower p ( ChannelSink   (Stored Uint8)
                      , ChannelSource (Stored Uint8))
 uartTower u b s = uartTowerDebuggable u b s emptyDbg
 
-uartTowerFlushable :: forall i n p
-           . (ANat n, PlatformClock p, STM32Signal i p)
-          => UART i
+uartTowerFlushable :: forall n p
+           . (ANat n, PlatformClock p, STM32Signal p)
+          => UART (InterruptType p)
           -> Integer
           -> Proxy (n :: Nat)
           -> Tower p ( ChannelSink   (Stored Uint8)
@@ -74,9 +74,9 @@ uartTowerFlushable uart baud sizeproxy = do
   return (snk_istream, src_ostream, src_flush)
 
 
-uartTowerDebuggable :: forall i n p
-           . (ANat n, PlatformClock p, STM32Signal i p)
-          => UART i
+uartTowerDebuggable :: forall n p
+           . (ANat n, PlatformClock p, STM32Signal p)
+          => UART (InterruptType p)
           -> Integer
           -> Proxy (n :: Nat)
           -> UARTTowerDebugger
@@ -97,9 +97,9 @@ uartTowerDebuggable uart baud sizeproxy dbg = do
   txcheck_period = Milliseconds 1
 
 
-uartTowerTask :: forall i p
-               . (STM32Signal i p, PlatformClock p)
-              => UART i
+uartTowerTask :: forall p
+               . (STM32Signal p, PlatformClock p)
+              => UART (InterruptType p)
               -> Integer
               -> ChannelSink (Stored Uint8)
               -> ChannelSource (Stored Uint8)

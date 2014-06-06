@@ -24,8 +24,8 @@ import Ivory.BSP.STM32.Peripheral.SPI.Tower.Types
 import Ivory.BSP.STM32.Peripheral.SPI.Tower.Types.SPIDeviceHandle
 
 
-spiTower :: (PlatformClock p, STM32Signal i p)
-         => [SPIDevice i]
+spiTower :: (PlatformClock p, STM32Signal p)
+         => [SPIDevice (InterruptType p)]
          -> Tower p ( ChannelSource (Struct "spi_transaction_request")
                     , ChannelSink   (Struct "spi_transaction_result"))
 spiTower devices = do
@@ -49,10 +49,10 @@ spiTower devices = do
   err m = error ("spiTower cannot be created " ++ m)
 
 
-spiPeripheralDriver :: forall i p
-                     . (STM32Signal i p, PlatformClock p)
-                    => SPIPeriph i
-                    -> [SPIDevice i]
+spiPeripheralDriver :: forall p
+                     . (STM32Signal p, PlatformClock p)
+                    => SPIPeriph (InterruptType p)
+                    -> [SPIDevice (InterruptType p)]
                     -> ChannelSink   (Struct "spi_transaction_request")
                     -> ChannelSource (Struct "spi_transaction_result")
                     -> Task p ()
@@ -163,7 +163,7 @@ spiPeripheralDriver periph devices req_sink res_source = do
   platform = Proxy
 
 
-  chooseDevice :: (SPIDevice i -> Ivory eff ())
+  chooseDevice :: (SPIDevice (InterruptType p) -> Ivory eff ())
                -> Ref Global (Stored SPIDeviceHandle) -> Ivory eff ()
   chooseDevice callback devref = do
     comment "selecting device:"

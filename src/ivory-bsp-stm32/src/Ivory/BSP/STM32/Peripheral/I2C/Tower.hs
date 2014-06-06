@@ -26,8 +26,8 @@ import Ivory.BSP.STM32.Peripheral.I2C.Tower.Types
 import Ivory.BSP.STM32.Peripheral.I2C.Tower.Types.I2CDeviceAddr
 
 
-i2cTower :: (PlatformClock p, STM32Signal i p)
-         => I2CPeriph i
+i2cTower :: (PlatformClock p, STM32Signal p)
+         => I2CPeriph (InterruptType p)
          -> GPIOPin
          -> GPIOPin
          -> Tower p ( ChannelSource (Struct "i2c_transaction_request")
@@ -46,9 +46,9 @@ i2cTowerTypes = package "i2cTowerTypes" $ do
   defStruct (Proxy :: Proxy "i2c_transaction_request")
   defStruct (Proxy :: Proxy "i2c_transaction_result")
 
-i2cPeripheralDriver :: forall i p
-                     . (STM32Signal i p, PlatformClock p)
-                    => I2CPeriph i
+i2cPeripheralDriver :: forall p
+                     . (STM32Signal p, PlatformClock p)
+                    => I2CPeriph (InterruptType p)
                     -> GPIOPin
                     -> GPIOPin
                     -> ChannelSink   (Struct "i2c_transaction_request")
