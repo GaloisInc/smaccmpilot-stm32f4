@@ -3,10 +3,10 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
-module Ivory.BSP.STM32.Peripheral.I2C.Tower.Types where
+module Ivory.BSP.STM32.Driver.I2C.Types where
 
 import Ivory.Language
-import Ivory.BSP.STM32.Peripheral.I2C.Tower.Types.I2CDeviceAddr
+import Ivory.BSP.STM32.Driver.I2C.I2CDeviceAddr
 
 [ivory|
 struct i2c_transaction_request

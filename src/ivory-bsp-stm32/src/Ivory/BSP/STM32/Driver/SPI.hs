@@ -3,7 +3,11 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeOperators #-}
 
-module Ivory.BSP.STM32.Peripheral.SPI.Tower where
+module Ivory.BSP.STM32.Driver.SPI
+  ( spiTower
+  , module Ivory.BSP.STM32.Driver.SPI.Types
+  , module Ivory.BSP.STM32.Driver.SPI.SPIDeviceHandle
+  ) where
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -20,8 +24,9 @@ import Ivory.BSP.STM32.PlatformClock
 import Ivory.BSP.STM32.Peripheral.GPIOF4
 import Ivory.BSP.STM32.Peripheral.SPI.Regs
 import Ivory.BSP.STM32.Peripheral.SPI.Peripheral
-import Ivory.BSP.STM32.Peripheral.SPI.Tower.Types
-import Ivory.BSP.STM32.Peripheral.SPI.Tower.Types.SPIDeviceHandle
+
+import Ivory.BSP.STM32.Driver.SPI.Types
+import Ivory.BSP.STM32.Driver.SPI.SPIDeviceHandle
 
 
 spiTower :: (PlatformClock p, STM32Signal p)
@@ -29,8 +34,8 @@ spiTower :: (PlatformClock p, STM32Signal p)
          -> Tower p ( ChannelSource (Struct "spi_transaction_request")
                     , ChannelSink   (Struct "spi_transaction_result"))
 spiTower devices = do
-  towerDepends spiTowerTypes
-  towerModule  spiTowerTypes
+  towerDepends spiDriverTypes
+  towerModule  spiDriverTypes
   reqchan <- channel' (Proxy :: Proxy 2) Nothing
   reschan <- channel' (Proxy :: Proxy 2) Nothing
   task (periphname ++ "PeripheralDriver") $

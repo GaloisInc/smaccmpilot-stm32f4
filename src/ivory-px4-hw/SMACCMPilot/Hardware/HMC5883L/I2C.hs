@@ -5,15 +5,16 @@
 
 module SMACCMPilot.Hardware.HMC5883L.I2C where
 
+import Data.Word
 import Ivory.Language
 import Ivory.Stdlib
 import Ivory.Tower
 import Ivory.Tower.StateMachine
-import Ivory.BSP.STM32F405.I2C
+
+import Ivory.BSP.STM32.Driver.I2C
 
 import SMACCMPilot.Hardware.HMC5883L.Regs
 
-import Data.Word
 
 regWriteRequest :: (GetAlloc eff ~ Scope s)
            => I2CDeviceAddr

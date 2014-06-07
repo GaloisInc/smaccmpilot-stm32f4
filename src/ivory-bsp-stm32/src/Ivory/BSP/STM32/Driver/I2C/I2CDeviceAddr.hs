@@ -2,7 +2,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE DataKinds #-}
 
-module Ivory.BSP.STM32.Peripheral.I2C.Tower.Types.I2CDeviceAddr
+module Ivory.BSP.STM32.Driver.I2C.I2CDeviceAddr
   ( I2CDeviceAddr(..)
   , readAddr
   , writeAddr

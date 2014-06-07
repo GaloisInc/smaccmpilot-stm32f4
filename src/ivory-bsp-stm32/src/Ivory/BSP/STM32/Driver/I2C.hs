@@ -4,7 +4,11 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE TypeFamilies #-}
 
-module Ivory.BSP.STM32.Peripheral.I2C.Tower where
+module Ivory.BSP.STM32.Driver.I2C
+  ( i2cTower
+  , module Ivory.BSP.STM32.Driver.I2C.Types
+  , module Ivory.BSP.STM32.Driver.I2C.I2CDeviceAddr
+  ) where
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -18,12 +22,12 @@ import Ivory.BSP.STM32.Interrupt
 import Ivory.BSP.STM32.Signalable
 
 import Ivory.BSP.STM32.Peripheral.GPIOF4
-
-import Ivory.BSP.STM32.PlatformClock
 import Ivory.BSP.STM32.Peripheral.I2C.Regs
 import Ivory.BSP.STM32.Peripheral.I2C.Peripheral
-import Ivory.BSP.STM32.Peripheral.I2C.Tower.Types
-import Ivory.BSP.STM32.Peripheral.I2C.Tower.Types.I2CDeviceAddr
+import Ivory.BSP.STM32.PlatformClock
+
+import Ivory.BSP.STM32.Driver.I2C.Types
+import Ivory.BSP.STM32.Driver.I2C.I2CDeviceAddr
 
 
 i2cTower :: (PlatformClock p, STM32Signal p)

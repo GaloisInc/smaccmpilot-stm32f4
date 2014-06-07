@@ -17,8 +17,9 @@ import Ivory.Tower.Frontend
 import qualified Ivory.HW.SearchDir          as HW
 import qualified Ivory.BSP.STM32.SearchDir   as BSP
 
-import Ivory.BSP.STM32F405.SPI
 import qualified Ivory.BSP.STM32F405.Interrupt as F405
+
+import Ivory.BSP.STM32.Driver.SPI
 
 import Ivory.BSP.STM32.Signalable
 import Ivory.BSP.STM32.PlatformClock

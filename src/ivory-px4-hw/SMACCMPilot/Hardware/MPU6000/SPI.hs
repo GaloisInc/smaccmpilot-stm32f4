@@ -9,7 +9,7 @@ import Ivory.Language
 import Ivory.Stdlib
 import Ivory.Tower
 import Ivory.Tower.StateMachine
-import Ivory.BSP.STM32F405.SPI
+import Ivory.BSP.STM32.Driver.SPI
 
 import SMACCMPilot.Hardware.MPU6000.Regs
 import SMACCMPilot.Hardware.MPU6000.RawSensor

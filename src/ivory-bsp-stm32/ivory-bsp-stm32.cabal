@@ -50,9 +50,6 @@ library
                        Ivory.BSP.STM32.Peripheral.I2C,
                        Ivory.BSP.STM32.Peripheral.I2C.Regs,
                        Ivory.BSP.STM32.Peripheral.I2C.Peripheral,
-                       Ivory.BSP.STM32.Peripheral.I2C.Tower,
-                       Ivory.BSP.STM32.Peripheral.I2C.Tower.Types,
-                       Ivory.BSP.STM32.Peripheral.I2C.Tower.Types.I2CDeviceAddr,
 
                        Ivory.BSP.STM32.Peripheral.PWR,
                        Ivory.BSP.STM32.Peripheral.PWR.Regs,
@@ -66,15 +63,21 @@ library
                        Ivory.BSP.STM32.Peripheral.SPI.Regs,
                        Ivory.BSP.STM32.Peripheral.SPI.RegTypes,
                        Ivory.BSP.STM32.Peripheral.SPI.Peripheral,
-                       Ivory.BSP.STM32.Peripheral.SPI.Tower,
-                       Ivory.BSP.STM32.Peripheral.SPI.Tower.Types,
-                       Ivory.BSP.STM32.Peripheral.SPI.Tower.Types.SPIDeviceHandle,
 
                        Ivory.BSP.STM32.Peripheral.UART,
                        Ivory.BSP.STM32.Peripheral.UART.Types,
                        Ivory.BSP.STM32.Peripheral.UART.Regs,
                        Ivory.BSP.STM32.Peripheral.UART.Peripheral,
-                       Ivory.BSP.STM32.Peripheral.UART.Tower,
+
+                       Ivory.BSP.STM32.Driver.I2C,
+                       Ivory.BSP.STM32.Driver.I2C.Types,
+                       Ivory.BSP.STM32.Driver.I2C.I2CDeviceAddr,
+
+                       Ivory.BSP.STM32.Driver.SPI,
+                       Ivory.BSP.STM32.Driver.SPI.Types,
+                       Ivory.BSP.STM32.Driver.SPI.SPIDeviceHandle,
+
+                       Ivory.BSP.STM32.Driver.UART,
 
                        Ivory.BSP.STM32F405.ClockConfig,
                        Ivory.BSP.STM32F405.MemoryMap,

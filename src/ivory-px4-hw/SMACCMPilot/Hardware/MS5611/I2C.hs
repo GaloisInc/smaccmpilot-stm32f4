@@ -9,7 +9,7 @@ import Ivory.Language
 import Ivory.Stdlib
 import Ivory.Tower
 import Ivory.Tower.StateMachine
-import Ivory.BSP.STM32F405.I2C
+import Ivory.BSP.STM32.Driver.I2C
 
 import SMACCMPilot.Hardware.MS5611.Regs
 import SMACCMPilot.Hardware.MS5611.Types

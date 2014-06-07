@@ -4,7 +4,12 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE RankNTypes #-}
 
-module Ivory.BSP.STM32.Peripheral.UART.Tower where
+module Ivory.BSP.STM32.Driver.UART
+  ( uartTower
+  , uartTowerFlushable
+  , uartTowerDebuggable
+  , UARTTowerDebugger(..)
+  ) where
 
 import GHC.TypeLits
 

@@ -18,7 +18,7 @@ import Ivory.Tower.Frontend
 import qualified Ivory.HW.SearchDir          as HW
 import qualified Ivory.BSP.STM32.SearchDir as BSP
 
-import Ivory.BSP.STM32.Peripheral.UART (uartTower)
+import Ivory.BSP.STM32.Driver.UART
 import Ivory.BSP.STM32F405.UART
 
 import Ivory.BSP.STM32.Signalable

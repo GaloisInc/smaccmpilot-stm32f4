@@ -12,6 +12,7 @@ import Ivory.Tower
 import Ivory.Tower.Frontend
 
 import Ivory.BSP.STM32.Peripheral.SPI
+import Ivory.BSP.STM32.Peripheral.UART
 import Ivory.BSP.STM32.Signalable
 import Ivory.BSP.STM32.PlatformClock
 

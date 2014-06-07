@@ -4,10 +4,10 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
-module Ivory.BSP.STM32.Peripheral.SPI.Tower.Types where
+module Ivory.BSP.STM32.Driver.SPI.Types where
 
 import Ivory.Language
-import Ivory.BSP.STM32.Peripheral.SPI.Tower.Types.SPIDeviceHandle
+import Ivory.BSP.STM32.Driver.SPI.SPIDeviceHandle
 
 [ivory|
 struct spi_transaction_request
@@ -24,8 +24,8 @@ struct spi_transaction_result
 
 |]
 
-spiTowerTypes :: Module
-spiTowerTypes = package "spiTowerTypes" $ do
+spiDriverTypes :: Module
+spiDriverTypes = package "spiDriverTypes" $ do
   defStruct (Proxy :: Proxy "spi_transaction_request")
   defStruct (Proxy :: Proxy "spi_transaction_result")
 

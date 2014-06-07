@@ -7,11 +7,7 @@
 
 
 module Ivory.BSP.STM32F405.UART
-  ( UART()
-  , uart1, uart2, uart3, uart4, uart5, uart6
-  , uartInit
-  , uartInitISR
-  , setBaudRate
+  ( uart1, uart2, uart3, uart4, uart5, uart6
   ) where
 
 import Ivory.BSP.STM32.Peripheral.UART

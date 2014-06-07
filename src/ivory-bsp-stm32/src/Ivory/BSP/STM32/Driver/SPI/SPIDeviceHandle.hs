@@ -2,7 +2,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE DataKinds #-}
 
-module Ivory.BSP.STM32.Peripheral.SPI.Tower.Types.SPIDeviceHandle
+module Ivory.BSP.STM32.Driver.SPI.SPIDeviceHandle
   ( SPIDeviceHandle(..)
   ) where
 
