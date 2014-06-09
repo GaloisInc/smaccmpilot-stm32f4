@@ -5,17 +5,13 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleContexts #-}
 
-module Main where
+module PX4.Tests.MPU6000 (app) where
 
 import Ivory.Language
 import Ivory.Stdlib
 
 import Ivory.Tower
 import Ivory.Tower.StateMachine
-import Ivory.Tower.Frontend
-
-import qualified Ivory.HW.SearchDir          as HW
-import qualified Ivory.BSP.STM32.SearchDir   as BSP
 
 import qualified Ivory.BSP.STM32F405.Interrupt as F405
 
@@ -26,14 +22,10 @@ import Ivory.BSP.STM32.PlatformClock
 
 import SMACCMPilot.Hardware.MPU6000
 
-import Platform
+import PX4.Tests.Platforms
 
-main :: IO ()
-main = compilePlatforms conf (gpsPlatforms app)
-  where
-  conf = searchPathConf [ HW.searchDir, BSP.searchDir ]
-
-app :: forall p . (MPU6kPlatform p, PlatformClock p, STM32Signal p, InterruptType p ~ F405.Interrupt)
+app :: forall p . ( TestPlatform p, PlatformClock p, STM32Signal p
+                  , InterruptType p ~ F405.Interrupt)
     => Tower p ()
 app = do
   towerModule  rawSensorTypeModule

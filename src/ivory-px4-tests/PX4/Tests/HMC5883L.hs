@@ -5,62 +5,54 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleContexts #-}
 
-module Main where
+module PX4.Tests.HMC5883L (app) where
 
 import Ivory.Language
 
 import Ivory.Tower
 import Ivory.Tower.StateMachine
-import Ivory.Tower.Frontend
-
-import qualified Ivory.HW.SearchDir          as HW
-import qualified Ivory.BSP.STM32.SearchDir as BSP
 
 import Ivory.BSP.STM32F405.GPIO
 import Ivory.BSP.STM32F405.I2C
-
 import qualified Ivory.BSP.STM32F405.Interrupt as F405
 
-import Ivory.BSP.STM32.Signalable
 import Ivory.BSP.STM32.PlatformClock
+import Ivory.BSP.STM32.Signalable
+import Ivory.BSP.STM32.Driver.UART
 import Ivory.BSP.STM32.Driver.I2C
 
-import SMACCMPilot.Hardware.MS5611
+import SMACCMPilot.Hardware.HMC5883L
 
-import Platform
+import PX4.Tests.Platforms
 
-main :: IO ()
-main = compilePlatforms conf (gpsPlatforms app)
-  where
-  conf = searchPathConf [ HW.searchDir, BSP.searchDir ]
-
-app :: forall p . (MPU6kPlatform p, PlatformClock p, STM32Signal p
+app :: forall p . ( TestPlatform p, PlatformClock p, STM32Signal p
                   , InterruptType p ~ F405.Interrupt)
     => Tower p ()
 app = do
-  towerModule  ms5611TypesModule
-  towerDepends ms5611TypesModule
+  (_consIn,_consOut) <- uartTower (consoleUart (Proxy :: Proxy p))
+                                115200 (Proxy :: Proxy 128)
+
   (req, res) <- i2cTower i2c2 pinB10 pinB11
-  ms5611ctl req res (I2CDeviceAddr 0x76)
+
+  hmc5883lctl req res (I2CDeviceAddr 0x1e)
 
 
-ms5611ctl :: forall p
+hmc5883lctl :: forall p
         . (PlatformClock p, STM32Signal p, InterruptType p ~ F405.Interrupt)
        => ChannelSource (Struct "i2c_transaction_request")
        -> ChannelSink   (Struct "i2c_transaction_result")
        -> I2CDeviceAddr
        -> Tower p ()
-ms5611ctl toDriver fromDriver addr = task "ms5611ctl" $ do
+hmc5883lctl toDriver fromDriver addr = task "hmc5883lctl" $ do
   i2cRequest <- withChannelEmitter toDriver "i2cRequest"
   i2cResult <- withChannelEvent fromDriver "i2cResult"
 
-  calibration <- taskLocal "calibration"
   sample      <- taskLocal "sample"
   initfail    <- taskLocal "initfail"
   samplefail  <- taskLocal "samplefail"
 
   driver <- testDriverMachine addr i2cRequest i2cResult
-              calibration sample initfail samplefail
+              sample initfail samplefail
 
   taskStackSize 3072
 
@@ -70,15 +62,18 @@ ms5611ctl toDriver fromDriver addr = task "ms5611ctl" $ do
 testDriverMachine :: I2CDeviceAddr
                   -> ChannelEmitter (Struct "i2c_transaction_request")
                   -> Event          (Struct "i2c_transaction_result")
-                  -> Ref Global (Struct "ms5611_calibration")
-                  -> Ref Global (Struct "ms5611_sample")
+                  -> Ref Global (Array 3 (Stored Uint16))
                   -> Ref Global (Stored IBool)
                   -> Ref Global (Stored IBool)
                   -> Task p Runnable
-testDriverMachine addr i2cRequest i2cResult calibration sample ifail sfail =
-  stateMachine "ms5611TestDriver" $ mdo
-    setup <- sensorSetup addr ifail calibration i2cRequest i2cResult read
-    read  <- sensorRead  addr sfail sample      i2cRequest i2cResult read
+testDriverMachine addr i2cRequest i2cResult sample ifail sfail =
+  stateMachine "hmc5883lTestDriver" $ mdo
+    setup <- sensorSetup addr ifail        i2cRequest i2cResult read
+    read  <- sensorRead  addr sfail sample i2cRequest i2cResult waitRead
+    waitRead <- stateNamed "waitRead" $
+      timeout (Milliseconds 13) $ -- XXX 75hz?
+        goto read
+
     return setup
 
 

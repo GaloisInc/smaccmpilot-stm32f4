@@ -5,7 +5,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE TypeFamilies #-}
 
-module Main where
+module PX4.Tests.Ublox (app) where
 
 import Data.Char (ord)
 
@@ -14,13 +14,8 @@ import Ivory.Stdlib
 
 import Ivory.Tower
 import Ivory.Tower.StateMachine
-import Ivory.Tower.Frontend
-
-import qualified Ivory.HW.SearchDir        as HW
-import qualified Ivory.BSP.STM32.SearchDir as BSP
 
 import Ivory.BSP.STM32.Driver.UART
-import Ivory.BSP.STM32.Peripheral.UART
 import Ivory.BSP.STM32.Signalable
 import Ivory.BSP.STM32.PlatformClock
 
@@ -29,14 +24,11 @@ import qualified Ivory.BSP.STM32F405.Interrupt as F405
 import SMACCMPilot.Hardware.GPS.Types.Position as P
 import SMACCMPilot.Hardware.GPS.Types.GPSFix
 import SMACCMPilot.Hardware.GPS.UBlox
-import Platform
 
-main :: IO ()
-main = compilePlatforms conf (gpsPlatforms app)
-  where
-  conf = searchPathConf [ HW.searchDir, BSP.searchDir ]
+import PX4.Tests.Platforms
 
-app :: forall p . (GPSUart p, PlatformClock p, STM32Signal p, InterruptType p ~ F405.Interrupt)
+app :: forall p . ( TestPlatform p, PlatformClock p, STM32Signal p
+                  , InterruptType p ~ F405.Interrupt)
     => Tower p ()
 app = do
   (shelli,shello ) <- uartTower (consoleUart (Proxy :: Proxy p))

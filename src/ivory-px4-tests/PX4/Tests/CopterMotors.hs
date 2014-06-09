@@ -4,7 +4,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE TypeFamilies #-}
 
-module Main where
+module PX4.Tests.CopterMotors (app) where
 
 import Data.Char (ord)
 
@@ -13,10 +13,6 @@ import Ivory.Stdlib
 
 import Ivory.Tower
 import Ivory.Tower.StateMachine
-import Ivory.Tower.Frontend
-
-import qualified Ivory.HW.SearchDir          as HW
-import qualified Ivory.BSP.STM32.SearchDir as BSP
 
 import Ivory.BSP.STM32.Driver.UART
 import Ivory.BSP.STM32F405.UART
@@ -26,12 +22,7 @@ import Ivory.BSP.STM32.PlatformClock
 
 import qualified Ivory.BSP.STM32F405.Interrupt as F405
 
-import Platform
-
-main :: IO ()
-main = compilePlatforms conf (motorPlatforms app)
-  where
-  conf = searchPathConf [ HW.searchDir, BSP.searchDir ]
+import PX4.Tests.Platforms
 
 app :: ( RawMotorControl p, PlatformClock p, STM32Signal p
        , InterruptType p ~ F405.Interrupt)
