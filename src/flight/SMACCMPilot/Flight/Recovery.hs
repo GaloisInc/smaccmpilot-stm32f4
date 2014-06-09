@@ -8,9 +8,9 @@ module SMACCMPilot.Flight.Recovery
 -- | Tower-tasks managing fault/attack recovery mechanisms.
 
 import qualified SMACCMPilot.Mavlink.Messages.VehCommsec as V
---import qualified SMACCMPilot.Communications              as Comm
 
 import           Ivory.Language
+import           Ivory.Language.Proxy
 import           Ivory.Stdlib
 import           Ivory.Tower
 import qualified SMACCMPilot.Flight.Types.CommsecStatus as C
@@ -37,7 +37,11 @@ alarm_threshold :: ITime
 alarm_threshold = fromIMilliseconds (40000 :: Sint64)
 --------------------------------------------------------------------------------
 
--- | True is OK, False is an alarm.
+-- | This task samples incoming messages to the vehicle to discover messages
+-- that fail decryption/authentication.  It returns the current result (True is
+-- OK, False is an alarm).  The task runs periodically.  The property monitored
+-- (`checkProp`) is whether we fill up the cicular buffer (of size `BufLen`)
+-- with bad commsec message tags within 40000ms.
 commsecRecoveryTask :: ChannelSink   (Struct "veh_commsec_msg")
                     -> ChannelSource (Stored C.CommsecStatus)
                     -> Task p ()
@@ -62,12 +66,10 @@ commsecRecoveryTask commsec_info_snk monitor_result_src = do
     commsecMonitor commsecReader cirBuf idx bufFull numBad result
     emit_ monitor_res_tx (constRef result)
 
-  taskModuleDef $ do
+  taskModuleDef $
     depend V.vehCommsecModule
 
   where
-  -- XXX let's make up an arbitrary monitor here.  If we're received more than
-  -- 10 bad messages in less than 20 seconds.
   commsecMonitor rx cirBuf idx bufFullRef prevBadRef resRef = do
     totalBadMsgs <- rx ~>* V.bad_msgs
     lastTime     <- getTime
@@ -77,16 +79,30 @@ commsecRecoveryTask commsec_info_snk monitor_result_src = do
     -- Store new values and check properties
     newTimeStamps currBad lastTime idx cirBuf bufFullRef resRef
 
-  newTimeStamps numBadVals t idxRef arr bufFullRef resRef =
+  -- Store all the new timestamps for when bad messages were received in the
+  -- circular buffer.
+  newTimeStamps :: (GetAlloc (AllowBreak eff) ~ Scope s)
+                => Uint32
+                -> ITime
+                -> Ref Global (Stored Idx)
+                -> Ref Global CirBuf
+                -> Ref Global (Stored IBool)
+                -> Ref Global (Stored C.CommsecStatus)
+                -> Ivory eff ()
+  newTimeStamps numBadVals t idxRef arr bufFullRef resRef = do
     -- For each bad value, we'll store the current timestamp, if we missed
     -- capturing it.
-    times (toIx numBadVals :: Ix BufLen)
+    let sz :: Sint32
+        sz = fromInteger $ fromTypeNat (aNat :: NatType BufLen)
+    let v = castWith sz (safeCast numBadVals :: Sint64) :: Sint32
+    times (toIx v :: Ix BufLen)
       $ const
       $ do res <- deref resRef
            -- If res has already failed, do nothing.
            when (res ==? C.secure)
-              (newTimeStamp t idxRef arr bufFullRef >>= store resRef)
+                (newTimeStamp t idxRef arr bufFullRef >>= store resRef)
 
+  -- Store a timestamp in the circular buffer.
   newTimeStamp :: (GetAlloc eff ~ Scope s)
                => ITime
                -> Ref s0 (Stored Idx)
