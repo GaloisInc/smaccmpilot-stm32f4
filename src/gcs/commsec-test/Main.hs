@@ -44,7 +44,7 @@ tagLen    = 8
 headerLen = 8
 
 mkIx :: Int -> PkgIx
-mkIx c = toIx (fromIntegral c :: Uint32)
+mkIx c = toIx (fromIntegral c :: Sint32)
 
 maxMsgLenI, tagLenI, headerLenI :: PkgIx
 maxMsgLenI = mkIx maxMsgLen
