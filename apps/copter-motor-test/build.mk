@@ -12,38 +12,28 @@
 #
 
 $(eval $(call when_platforms,px4fmu17_bare_freertos \
-			     px4fmu17_ioar_echronos \
 			     px4fmu17_ioar_freertos \
-				,tower_pkg,IVORY_PKG_COPTER_MOTOR_HW_TEST,copter-motor-test-gen))
+				,tower_pkg,IVORY_PKG_COPTER_MOTOR_TEST,copter-motor-test-gen))
 
-APP_COPTER_MOTOR_HW_TEST_IMG          := copter-motor-test
+COPTER_MOTOR_TEST_IMG          := copter-motor-test
 
-ifneq ($($(CONFIG_PLATFORM)_TOWER_OS),echronos)
-APP_COPTER_MOTOR_HW_TEST_OBJECTS      := freertos/main.o
-APP_COPTER_MOTOR_HW_TEST_LIBRARIES    += libFreeRTOS.a
-APP_COPTER_MOTOR_HW_TEST_INCLUDES     += $(FREERTOS_CFLAGS)
-else
-APP_COPTER_MOTOR_HW_TEST_ECHRONOS_PRX := echronos/copter-motor-test.prx
-APP_COPTER_MOTOR_HW_TEST_OBJECTS      := echronos/main.o
-endif
+COPTER_MOTOR_TEST_LIBRARIES    += libFreeRTOS.a
+COPTER_MOTOR_TEST_INCLUDES     += $(FREERTOS_CFLAGS)
 
-APP_COPTER_MOTOR_HW_TEST_REAL_OBJECTS += $(IVORY_PKG_COPTER_MOTOR_HW_TEST_OBJECTS)
-APP_COPTER_MOTOR_HW_TEST_LIBS         += -lm
+COPTER_MOTOR_TEST_REAL_OBJECTS += $(IVORY_PKG_COPTER_MOTOR_TEST_OBJECTS)
+COPTER_MOTOR_TEST_LIBS         += -lm
 
-APP_COPTER_MOTOR_HW_TEST_INCLUDES     += -I$(TOP)/src/bsp/include
-APP_COPTER_MOTOR_HW_TEST_INCLUDES     += $(IVORY_PKG_COPTER_MOTOR_HW_TEST_CFLAGS)
+COPTER_MOTOR_TEST_INCLUDES     += $(IVORY_PKG_COPTER_MOTOR_TEST_CFLAGS)
 
-APP_COPTER_MOTOR_HW_TEST_CFLAGS       += -O2 $(APP_COPTER_MOTOR_HW_TEST_INCLUDES)
+COPTER_MOTOR_TEST_CFLAGS       += $(COPTER_MOTOR_TEST_INCLUDES)
+COPTER_MOTOR_TEST_DISABLE_GLOBAL_STARTUP_OBJECTS := 1
 
 $(eval $(call when_platforms,px4fmu17_bare_freertos \
 			     px4fmu17_ioar_freertos \
-			     px4fmu17_ioar_echronos \
-				,cbmc_pkg,APP_COPTER_MOTOR_HW_TEST,IVORY_PKG_COPTER_MOTOR_HW_TEST))
+				,cbmc_pkg,COPTER_MOTOR_TEST,IVORY_PKG_COPTER_MOTOR_TEST))
 
-$(eval $(call when_os,echronos,echronos_gen,APP_COPTER_MOTOR_HW_TEST))
 $(eval $(call when_platforms,px4fmu17_bare_freertos \
 			     px4fmu17_ioar_freertos \
-			     px4fmu17_ioar_echronos \
-				,image,APP_COPTER_MOTOR_HW_TEST))
+				,image,COPTER_MOTOR_TEST))
 
 # vim: set ft=make noet ts=2:

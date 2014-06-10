@@ -20,6 +20,7 @@ import PX4.Tests.Platforms
 
 app :: forall p . (TestPlatform p) => Tower p ()
 app = do
+  boardInitializer
   towerModule  ms5611TypesModule
   towerDepends ms5611TypesModule
   (req, res) <- i2cTower (ms5611periph platform)

@@ -25,6 +25,7 @@ import PX4.Tests.Platforms
 
 app :: forall p . (TestPlatform p) => Tower p ()
 app = do
+  boardInitializer
   (shelli,shello ) <- uartTower (consoleUart (Proxy :: Proxy p))
                                 115200 (Proxy :: Proxy 128)
   (gpsi, _gpso) <- uartTower (gpsUart (Proxy :: Proxy p))

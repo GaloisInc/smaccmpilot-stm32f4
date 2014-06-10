@@ -14,7 +14,10 @@ library
                        PX4.Tests.Ublox,
                        PX4.Tests.MPU6000,
                        PX4.Tests.MS5611,
-                       PX4.Tests.HMC5883L
+                       PX4.Tests.HMC5883L,
+                       PX4.Tests.HMC5883L.Types,
+
+                       PX4.Tests.AllSensors
 
   build-depends:       base >= 4.6,
                        monadLib,
@@ -114,6 +117,26 @@ executable             px4-ms5611-test-gen
 
 executable             px4-hmc5883l-test-gen
   main-is:             HMC5883Test.hs
+  hs-source-dirs:      tests
+  build-depends:       base >= 4.6,
+                       monadLib,
+                       ivory,
+                       ivory-stdlib,
+                       ivory-backend-c,
+                       ivory-opts,
+                       ivory-hw,
+                       tower              >= 0.8,
+                       tower-statemachine >= 0.8,
+                       tower-frontend     >= 0.8,
+                       ivory-bsp-stm32,
+                       ivory-px4-hw,
+                       ivory-px4-tests
+
+  default-language:    Haskell2010
+  ghc-options:         -Wall
+
+executable             all-sensors-test-gen
+  main-is:             AllSensorsTest.hs
   hs-source-dirs:      tests
   build-depends:       base >= 4.6,
                        monadLib,

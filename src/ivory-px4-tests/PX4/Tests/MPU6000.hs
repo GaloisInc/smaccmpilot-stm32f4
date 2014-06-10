@@ -5,7 +5,9 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleContexts #-}
 
-module PX4.Tests.MPU6000 (app) where
+module PX4.Tests.MPU6000 (sensorProvider, testApp) where
+
+import Control.Monad (void)
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -19,8 +21,14 @@ import SMACCMPilot.Hardware.MPU6000
 
 import PX4.Tests.Platforms
 
-app :: forall p . (TestPlatform p) => Tower p ()
-app = do
+testApp :: (TestPlatform p) => Tower p ()
+testApp = do
+  boardInitializer
+  void sensorProvider
+
+sensorProvider :: forall p . (TestPlatform p)
+                => Tower p (ChannelSink (Struct "mpu6000_raw_sensor"))
+sensorProvider = do
   towerModule  rawSensorTypeModule
   towerDepends rawSensorTypeModule
 
@@ -28,6 +36,7 @@ app = do
 
   (req, res) <- spiTower [mpu6000Device platform]
   mpu6kCtl req res (src raw_sensor) (SPIDeviceHandle 0)
+  return (snk raw_sensor)
   where
   platform = Proxy :: Proxy p
 

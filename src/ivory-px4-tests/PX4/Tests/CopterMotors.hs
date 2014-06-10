@@ -22,6 +22,7 @@ app :: forall p
      . (TestPlatform p, RawMotorControl p)
     => Tower p ()
 app = do
+  boardInitializer
   c <- channel
   rawMotorControl (snk c)
   (i,o) <- uartTower (consoleUart platform) 115200 (Proxy :: Proxy 128)
