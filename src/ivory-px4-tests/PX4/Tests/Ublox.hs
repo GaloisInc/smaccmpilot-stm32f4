@@ -16,10 +16,6 @@ import Ivory.Tower
 import Ivory.Tower.StateMachine
 
 import Ivory.BSP.STM32.Driver.UART
-import Ivory.BSP.STM32.Signalable
-import Ivory.BSP.STM32.PlatformClock
-
-import qualified Ivory.BSP.STM32F405.Interrupt as F405
 
 import SMACCMPilot.Hardware.GPS.Types.Position as P
 import SMACCMPilot.Hardware.GPS.Types.GPSFix
@@ -27,9 +23,7 @@ import SMACCMPilot.Hardware.GPS.UBlox
 
 import PX4.Tests.Platforms
 
-app :: forall p . ( TestPlatform p, PlatformClock p, STM32Signal p
-                  , InterruptType p ~ F405.Interrupt)
-    => Tower p ()
+app :: forall p . (TestPlatform p) => Tower p ()
 app = do
   (shelli,shello ) <- uartTower (consoleUart (Proxy :: Proxy p))
                                 115200 (Proxy :: Proxy 128)

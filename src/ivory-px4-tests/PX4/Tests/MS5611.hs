@@ -12,35 +12,27 @@ import Ivory.Language
 import Ivory.Tower
 import Ivory.Tower.StateMachine
 
-import Ivory.BSP.STM32F405.GPIO
-import Ivory.BSP.STM32F405.I2C
-
-import qualified Ivory.BSP.STM32F405.Interrupt as F405
-
-import Ivory.BSP.STM32.Signalable
-import Ivory.BSP.STM32.PlatformClock
 import Ivory.BSP.STM32.Driver.I2C
 
 import SMACCMPilot.Hardware.MS5611
 
 import PX4.Tests.Platforms
 
-app :: forall p . (TestPlatform p, PlatformClock p, STM32Signal p
-                  , InterruptType p ~ F405.Interrupt)
-    => Tower p ()
+app :: forall p . (TestPlatform p) => Tower p ()
 app = do
   towerModule  ms5611TypesModule
   towerDepends ms5611TypesModule
-  (req, res) <- i2cTower i2c2 pinB10 pinB11
-  ms5611ctl req res (I2CDeviceAddr 0x76)
+  (req, res) <- i2cTower (ms5611periph platform)
+                         (ms5611sda platform)
+                         (ms5611scl platform)
+  ms5611ctl req res (ms5611addr platform)
+  where
+  platform = Proxy :: Proxy p
 
-
-ms5611ctl :: forall p
-        . (PlatformClock p, STM32Signal p, InterruptType p ~ F405.Interrupt)
-       => ChannelSource (Struct "i2c_transaction_request")
-       -> ChannelSink   (Struct "i2c_transaction_result")
-       -> I2CDeviceAddr
-       -> Tower p ()
+ms5611ctl :: ChannelSource (Struct "i2c_transaction_request")
+          -> ChannelSink   (Struct "i2c_transaction_result")
+          -> I2CDeviceAddr
+          -> Tower p ()
 ms5611ctl toDriver fromDriver addr = task "ms5611ctl" $ do
   i2cRequest <- withChannelEmitter toDriver "i2cRequest"
   i2cResult <- withChannelEvent fromDriver "i2cResult"

@@ -13,36 +13,29 @@ import Ivory.Stdlib
 import Ivory.Tower
 import Ivory.Tower.StateMachine
 
-import qualified Ivory.BSP.STM32F405.Interrupt as F405
-
 import Ivory.BSP.STM32.Driver.SPI
-
-import Ivory.BSP.STM32.Signalable
-import Ivory.BSP.STM32.PlatformClock
 
 import SMACCMPilot.Hardware.MPU6000
 
 import PX4.Tests.Platforms
 
-app :: forall p . ( TestPlatform p, PlatformClock p, STM32Signal p
-                  , InterruptType p ~ F405.Interrupt)
-    => Tower p ()
+app :: forall p . (TestPlatform p) => Tower p ()
 app = do
   towerModule  rawSensorTypeModule
   towerDepends rawSensorTypeModule
 
   raw_sensor <- channel
 
-  (req, res) <- spiTower [mpu6000Device (Proxy :: Proxy p)]
+  (req, res) <- spiTower [mpu6000Device platform]
   mpu6kCtl req res (src raw_sensor) (SPIDeviceHandle 0)
+  where
+  platform = Proxy :: Proxy p
 
-mpu6kCtl :: forall p
-        . (PlatformClock p, STM32Signal p, InterruptType p ~ F405.Interrupt)
-       => ChannelSource (Struct "spi_transaction_request")
-       -> ChannelSink   (Struct "spi_transaction_result")
-       -> ChannelSource (Struct "mpu6000_raw_sensor")
-       -> SPIDeviceHandle
-       -> Tower p ()
+mpu6kCtl :: ChannelSource (Struct "spi_transaction_request")
+         -> ChannelSink   (Struct "spi_transaction_result")
+         -> ChannelSource (Struct "mpu6000_raw_sensor")
+         -> SPIDeviceHandle
+         -> Tower p ()
 mpu6kCtl toDriver fromDriver sensorSource dh = task "mpu6kCtl" $ do
   spiRequest <- withChannelEmitter toDriver "toDriver"
   spiResult <- withChannelEvent fromDriver "fromDriver"

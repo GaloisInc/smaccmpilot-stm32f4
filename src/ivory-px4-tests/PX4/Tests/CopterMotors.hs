@@ -15,23 +15,19 @@ import Ivory.Tower
 import Ivory.Tower.StateMachine
 
 import Ivory.BSP.STM32.Driver.UART
-import Ivory.BSP.STM32F405.UART
-
-import Ivory.BSP.STM32.Signalable
-import Ivory.BSP.STM32.PlatformClock
-
-import qualified Ivory.BSP.STM32F405.Interrupt as F405
 
 import PX4.Tests.Platforms
 
-app :: ( RawMotorControl p, PlatformClock p, STM32Signal p
-       , InterruptType p ~ F405.Interrupt)
+app :: forall p
+     . (TestPlatform p, RawMotorControl p)
     => Tower p ()
 app = do
   c <- channel
   rawMotorControl (snk c)
-  (i,o) <- uartTower uart1 115200 (Proxy :: Proxy 128)
+  (i,o) <- uartTower (consoleUart platform) 115200 (Proxy :: Proxy 128)
   shell "motor control shell. hard to use? blame pat" o i (src c)
+  where
+  platform = Proxy :: Proxy p
 
 shell :: String
       -> ChannelSource (Stored Uint8)

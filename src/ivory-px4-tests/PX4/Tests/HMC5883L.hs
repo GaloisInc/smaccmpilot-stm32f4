@@ -12,12 +12,6 @@ import Ivory.Language
 import Ivory.Tower
 import Ivory.Tower.StateMachine
 
-import Ivory.BSP.STM32F405.GPIO
-import Ivory.BSP.STM32F405.I2C
-import qualified Ivory.BSP.STM32F405.Interrupt as F405
-
-import Ivory.BSP.STM32.PlatformClock
-import Ivory.BSP.STM32.Signalable
 import Ivory.BSP.STM32.Driver.UART
 import Ivory.BSP.STM32.Driver.I2C
 
@@ -25,21 +19,22 @@ import SMACCMPilot.Hardware.HMC5883L
 
 import PX4.Tests.Platforms
 
-app :: forall p . ( TestPlatform p, PlatformClock p, STM32Signal p
-                  , InterruptType p ~ F405.Interrupt)
-    => Tower p ()
+app :: forall p . (TestPlatform p) => Tower p ()
 app = do
-  (_consIn,_consOut) <- uartTower (consoleUart (Proxy :: Proxy p))
+  (_consIn,_consOut) <- uartTower (consoleUart platform)
                                 115200 (Proxy :: Proxy 128)
 
-  (req, res) <- i2cTower i2c2 pinB10 pinB11
+  (req, res) <- i2cTower (hmc5883periph platform)
+                         (hmc5883sda platform)
+                         (hmc5883scl platform)
 
-  hmc5883lctl req res (I2CDeviceAddr 0x1e)
+  hmc5883lctl req res (hmc5883addr platform)
 
+  where
+  platform = Proxy :: Proxy p
 
 hmc5883lctl :: forall p
-        . (PlatformClock p, STM32Signal p, InterruptType p ~ F405.Interrupt)
-       => ChannelSource (Struct "i2c_transaction_request")
+        . ChannelSource (Struct "i2c_transaction_request")
        -> ChannelSink   (Struct "i2c_transaction_result")
        -> I2CDeviceAddr
        -> Tower p ()
