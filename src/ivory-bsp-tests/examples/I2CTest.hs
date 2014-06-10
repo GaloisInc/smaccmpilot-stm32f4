@@ -9,7 +9,7 @@ module I2CTest where
 import Ivory.Language
 import Ivory.Tower
 
-import Ivory.BSP.STM32.Peripheral.I2C
+import Ivory.BSP.STM32.Driver.I2C
 import Ivory.BSP.STM32.PlatformClock
 
 import Platforms

@@ -12,7 +12,7 @@ import Ivory.Tower
 import LEDTower (blinkApp)
 import Platforms
 
-app :: forall i p . (PlatformClock p, ColoredLEDs p, BoardInitializer i p)
+app :: forall p . (PlatformClock p, ColoredLEDs p, BoardInitializer p)
     => Tower p ()
 app = do
   boardInitializer

@@ -14,7 +14,7 @@ import Platforms
 
 import Ivory.BSP.STM32.PlatformClock
 
-import Ivory.BSP.STM32.Peripheral.UART.Tower
+import Ivory.BSP.STM32.Driver.UART
 import Ivory.BSP.STM32F405.GPIO
 
 ready :: Uint8

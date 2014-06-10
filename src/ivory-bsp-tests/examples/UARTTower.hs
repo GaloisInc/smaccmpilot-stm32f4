@@ -15,6 +15,7 @@ import Ivory.Tower
 import Platforms
 import LEDTower
 
+import Ivory.BSP.STM32.Driver.UART
 import Ivory.BSP.STM32.Peripheral.UART
 import Ivory.BSP.STM32.PlatformClock
 

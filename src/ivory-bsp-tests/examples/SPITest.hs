@@ -9,10 +9,8 @@ module SPITest where
 import Ivory.Language
 import Ivory.Tower
 
-import Ivory.BSP.STM32.Peripheral.SPI.Tower
-import Ivory.BSP.STM32.Peripheral.SPI.Tower.Types
-import Ivory.BSP.STM32.Peripheral.SPI.Tower.Types.SPIDeviceHandle
 import Ivory.BSP.STM32.Peripheral.SPI
+import Ivory.BSP.STM32.Driver.SPI
 import Ivory.BSP.STM32.PlatformClock
 import Ivory.BSP.STM32F405.GPIO
 
