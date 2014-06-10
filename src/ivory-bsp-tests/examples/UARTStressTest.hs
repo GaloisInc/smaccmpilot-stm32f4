@@ -10,7 +10,7 @@ import Ivory.Language
 import Ivory.Stdlib
 import Ivory.Tower
 
-import Platforms
+import BSP.Tests.Platforms
 
 import Ivory.BSP.STM32.PlatformClock
 

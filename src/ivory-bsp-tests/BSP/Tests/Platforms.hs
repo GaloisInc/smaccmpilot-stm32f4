@@ -4,13 +4,12 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FlexibleContexts #-}
 
-module Platforms where
+module BSP.Tests.Platforms where
 
 import Ivory.Language
 import Ivory.Tower
 import Ivory.Tower.Frontend
 
-import LEDTower
 import qualified Ivory.BSP.STM32F405.UART        as F405
 import qualified Ivory.BSP.STM32F405.GPIO        as F405
 import qualified Ivory.BSP.STM32F405.SPI         as F405
@@ -25,6 +24,8 @@ import Ivory.BSP.STM32.Peripheral.SPI hiding (ActiveHigh, ActiveLow)
 import Ivory.BSP.STM32.Peripheral.I2C
 import Ivory.BSP.STM32.PlatformClock
 import Ivory.BSP.STM32.Signalable
+
+import BSP.Tests.LED
 
 class ColoredLEDs p where
   redLED  :: Proxy p -> LED

@@ -10,7 +10,7 @@ import qualified Ivory.BSP.STM32.SearchDir as BSP
 -- App imports:
 import Ivory.Tower
 import LEDTower (blinkApp)
-import Platforms
+import BSP.Tests.Platforms
 
 app :: forall p . (PlatformClock p, ColoredLEDs p, BoardInitializer p)
     => Tower p ()

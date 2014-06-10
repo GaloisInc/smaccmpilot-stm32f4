@@ -14,7 +14,7 @@ import Ivory.BSP.STM32.Driver.SPI
 import Ivory.BSP.STM32.PlatformClock
 import Ivory.BSP.STM32F405.GPIO
 
-import Platforms
+import BSP.Tests.Platforms
 
 app ::  forall p . (ColoredLEDs p, PlatformClock p, BoardInitializer p, TestSPI p)
     => Tower p ()

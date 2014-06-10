@@ -12,7 +12,7 @@ import Ivory.Tower
 import Ivory.BSP.STM32.Driver.I2C
 import Ivory.BSP.STM32.PlatformClock
 
-import Platforms
+import BSP.Tests.Platforms
 
 app :: forall p
      . (ColoredLEDs p, PlatformClock p, TestI2C p, BoardInitializer p)
