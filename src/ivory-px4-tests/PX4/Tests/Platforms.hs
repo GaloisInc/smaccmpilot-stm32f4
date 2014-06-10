@@ -27,6 +27,7 @@ import qualified Ivory.BSP.STM32F405.GPIO as F405
 import qualified Ivory.BSP.STM32F405.I2C  as F405
 import qualified Ivory.BSP.STM32F405.SPI  as F405
 import           Ivory.BSP.STM32F405.ClockConfig
+import           Ivory.BSP.STM32F405.Init
 import qualified Ivory.BSP.STM32F405.Interrupt as F405
 
 data PX4FMU17_IOAR = PX4FMU17_IOAR
@@ -40,6 +41,8 @@ stm32SignalableInstance ''Open407VC     ''F405.Interrupt
 stm32SignalableInstance ''PX4FMU24      ''F405.Interrupt
 
 class (STM32Signal p, PlatformClock p) => TestPlatform p where
+  boardInitializer :: Tower p ()
+
   consoleUart   :: Proxy p -> UART      (InterruptType p)
 
   gpsUart       :: Proxy p -> UART      (InterruptType p)
@@ -74,6 +77,7 @@ fmu17MPU6k = SPIDevice
 instance PlatformClock PX4FMU17_IOAR where
   platformClockConfig _ = f405ExtXtalMHz 24
 instance TestPlatform PX4FMU17_IOAR where
+  boardInitializer = stm32f405InitTower
   consoleUart _ = F405.uart1
   mpu6000Device _ = fmu17MPU6k
   gpsUart _ = F405.uart6
@@ -92,6 +96,7 @@ instance RawMotorControl PX4FMU17_IOAR where
 instance PlatformClock PX4FMU17_Bare where
   platformClockConfig _ = f405ExtXtalMHz 24
 instance TestPlatform PX4FMU17_Bare where
+  boardInitializer = stm32f405InitTower
   consoleUart _ = F405.uart1
   mpu6000Device _ = fmu17MPU6k
   gpsUart _ = F405.uart6
@@ -110,6 +115,7 @@ instance RawMotorControl PX4FMU17_Bare where
 instance PlatformClock Open407VC where
   platformClockConfig _ = f405ExtXtalMHz 8
 instance TestPlatform Open407VC where
+  boardInitializer = stm32f405InitTower
   consoleUart _ = F405.uart1
   mpu6000Device _ = fmu17MPU6k -- XXX debug device?
   gpsUart _ = F405.uart2
@@ -125,6 +131,7 @@ instance TestPlatform Open407VC where
 instance PlatformClock PX4FMU24 where
   platformClockConfig _ = f405ExtXtalMHz 24
 instance TestPlatform PX4FMU24 where
+  boardInitializer = stm32f405InitTower
   consoleUart _ = F405.uart1
   mpu6000Device _ = fmu17MPU6k -- XXX FIXME
   gpsUart _ = F405.uart3
