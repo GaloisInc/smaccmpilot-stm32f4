@@ -4,7 +4,7 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleContexts #-}
 
-module I2CTest where
+module BSP.Tests.I2C.TestApp where
 
 import Ivory.Language
 import Ivory.Tower

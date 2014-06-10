@@ -1,10 +1,11 @@
 {-# LANGUAGE DataKinds #-}
 
-module LEDTower where
+module BSP.Tests.LED.Blink where
 
 import Ivory.Language
 import Ivory.Tower
 import Ivory.HW.Module
+
 import BSP.Tests.LED
 ------------------------------
 
@@ -29,8 +30,8 @@ ledController leds rxer = do
 
 -- | Blink task: Given a period and a channel source, output an alternating
 --   stream of true / false on each period.
-blink :: Integer -> ChannelSource (Stored IBool) -> Task p ()
-blink per outSource = do
+blinkTask :: Integer -> ChannelSource (Stored IBool) -> Task p ()
+blinkTask per outSource = do
   -- Bring the emitter into scope for this Task
   outEmitter <- withChannelEmitter outSource "output"
   -- Declare a period for this Task
@@ -41,9 +42,9 @@ blink per outSource = do
     emitV_ outEmitter ((toIMilliseconds time) .% (2*p) <? p)
   where p = fromIntegral per
 
-blinkApp :: Integer -> [LED] -> Tower p ()
-blinkApp period pins = do
+blink :: Integer -> [LED] -> Tower p ()
+blink period pins = do
   (src_led, sink_led) <- channel
-  task "blink"  $ blink         period src_led
+  task "blink"  $ blinkTask     period src_led
   task "ledhw"  $ ledController pins   sink_led
 

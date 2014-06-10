@@ -4,7 +4,7 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleContexts #-}
 
-module SPITest where
+module BSP.Tests.SPI.TestApp where
 
 import Ivory.Language
 import Ivory.Tower

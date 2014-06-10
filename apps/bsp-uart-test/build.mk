@@ -11,36 +11,22 @@
 # Written by Pat Hickey <pat@galois.com>, January 08, 2013
 #
 
-$(eval $(call tower_pkg,IVORY_PKG_UART_TEST,bsp-uart-tower-test-gen))
+$(eval $(call tower_pkg,IVORY_PKG_BSP_UART_TEST,bsp-uart-test-gen))
 
-APP_BSPUARTTEST_IMG          := bsp-uart-test
+BSP_UART_TEST_IMG          := bsp-uart-test
 
-APP_BSPUARTTEST_LIBRARIES    += libFreeRTOS.a
-APP_BSPUARTTEST_INCLUDES     += $(FREERTOS_CFLAGS)
+BSP_UART_TEST_LIBRARIES    += libFreeRTOS.a
+BSP_UART_TEST_INCLUDES     += $(FREERTOS_CFLAGS)
 
-APP_BSPUARTTEST_REAL_OBJECTS += $(IVORY_PKG_UART_TEST_OBJECTS)
-APP_BSPUARTTEST_LIBS         += -lm
+BSP_UART_TEST_REAL_OBJECTS += $(IVORY_PKG_BSP_UART_TEST_OBJECTS)
+BSP_UART_TEST_LIBS         += -lm
 
-APP_BSPUARTTEST_INCLUDES     += -I$(TOP)/src/bsp/include
-APP_BSPUARTTEST_INCLUDES     += $(IVORY_PKG_UART_TEST_CFLAGS)
+BSP_UART_TEST_INCLUDES     += $(IVORY_PKG_BSP_UART_TEST_CFLAGS)
 
-APP_BSPUARTTEST_CFLAGS       += -O2 $(APP_BSPUARTTEST_INCLUDES)
-APP_BSPUARTTEST_DISABLE_GLOBAL_STARTUP_OBJECTS := 1
+BSP_UART_TEST_CFLAGS       += -O2 $(BSP_UART_TEST_INCLUDES)
+BSP_UART_TEST_DISABLE_GLOBAL_STARTUP_OBJECTS := 1
 
-$(eval $(call cbmc_pkg,APP_BSPUARTTEST,IVORY_PKG_UART_TEST))
+$(eval $(call cbmc_pkg,BSP_UART_TEST,IVORY_PKG_BSP_UART_TEST))
 
-$(eval $(call when_os,freertos,image,APP_BSPUARTTEST))
+$(eval $(call when_os,freertos,image,BSP_UART_TEST))
 
-# ------------------------------------------------------------------------------
-# AADL Build
-# ------------------------------------------------------------------------------
-
-LIB_BSPUARTTEST_LIB          := libbspuarttest.a
-LIB_BSPUARTTEST_REAL_OBJECTS += $(call filteroutstring,tower_task_loop_, \
-                                      $(IVORY_PKG_UART_TEST_OBJECTS))
-LIB_BSPUARTTEST_CFLAGS       += $(LIB_BSPUARTTEST_INCLUDES)
-LIB_BSPUARTTEST_CFLAGS       += $(IVORY_PKG_UART_TEST_CFLAGS)
-
-$(eval $(call when_os,aadl,library,LIB_BSPUARTTEST))
-
-# vim: set ft=make noet ts=2:

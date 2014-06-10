@@ -12,8 +12,14 @@ build-type:          Simple
 cabal-version:       >=1.8
 
 library
-  exposed-modules:     BSP.Tests.LED,
-                       BSP.Tests.Platforms
+  exposed-modules:     BSP.Tests.I2C.TestApp,
+                       BSP.Tests.LED,
+                       BSP.Tests.LED.Blink,
+                       BSP.Tests.LED.TestApp,
+                       BSP.Tests.Platforms,
+                       BSP.Tests.SPI.TestApp,
+                       BSP.Tests.UART.DebugApp,
+                       BSP.Tests.UART.TestApp
 
   build-depends:       base >= 4.6,
                        monadLib,
@@ -30,73 +36,9 @@ library
   default-language:    Haskell2010
   ghc-options:         -Wall
 
-executable bsp-uart-tower-test-gen
-  main-is:             UARTTowerCompiler.hs
-  other-modules:       UARTTower,
-                       LEDTower
-  hs-source-dirs:      examples
-  build-depends:       base >= 4.6,
-                       ivory,
-                       ivory-stdlib,
-                       ivory-backend-c,
-                       ivory-hw,
-                       tower          >= 0.8,
-                       tower-frontend >= 0.8,
-                       ivory-bsp-stm32,
-                       ivory-bsp-tests
-  ghc-options:         -Wall
-
-executable bsp-uart-stress-test-gen
-  main-is:             UARTStressTestCompiler.hs
-  other-modules:       UARTStressTest,
-                       LEDTower
-  hs-source-dirs:      examples
-  build-depends:       base >= 4.6,
-                       ivory,
-                       ivory-stdlib,
-                       ivory-backend-c,
-                       ivory-hw,
-                       tower          >= 0.8,
-                       tower-frontend >= 0.8,
-                       ivory-bsp-stm32,
-                       ivory-bsp-tests
-  ghc-options:         -Wall
-
-executable bsp-led-tower-test-gen
-  main-is:             LEDTowerCompiler.hs
-  other-modules:       LEDTower
-  hs-source-dirs:      examples
-  build-depends:       base >= 4.6,
-                       ivory,
-                       ivory-stdlib,
-                       ivory-backend-c,
-                       ivory-hw,
-                       tower          >= 0.8,
-                       tower-frontend >= 0.8,
-                       ivory-bsp-stm32,
-                       ivory-bsp-tests
-  ghc-options:         -Wall
-
-executable bsp-spi-test-gen
-  main-is:             SPITestCompiler.hs
-  other-modules:       SPITest,
-                       SPITypes
-  hs-source-dirs:      examples
-  build-depends:       base >= 4.6,
-                       ivory,
-                       ivory-stdlib,
-                       ivory-backend-c,
-                       ivory-hw,
-                       tower          >= 0.8,
-                       tower-frontend >= 0.8,
-                       ivory-bsp-stm32,
-                       ivory-bsp-tests
-  ghc-options:          -Wall
-
 executable bsp-i2c-test-gen
-  main-is:             I2CTestCompiler.hs
-  other-modules:       I2CTest
-  hs-source-dirs:      examples
+  main-is:             I2CTest.hs
+  hs-source-dirs:      tests
   build-depends:       base >= 4.6,
                        ivory,
                        ivory-stdlib,
@@ -107,30 +49,60 @@ executable bsp-i2c-test-gen
                        ivory-bsp-stm32,
                        ivory-bsp-tests
   ghc-options:          -Wall
-
----------------------------------------------
--- Pure ivory, without tower:
 
 executable bsp-led-test-gen
-  main-is:             LEDBlink.hs
-  hs-source-dirs:      examples
+  main-is:             LEDTest.hs
+  hs-source-dirs:      tests
   build-depends:       base >= 4.6,
                        ivory,
                        ivory-stdlib,
                        ivory-backend-c,
                        ivory-hw,
-                       ivory-bsp-stm32
-  ghc-options:         -Wall
+                       tower          >= 0.8,
+                       tower-frontend >= 0.8,
+                       ivory-bsp-stm32,
+                       ivory-bsp-tests
+  ghc-options:          -Wall
 
+executable bsp-spi-test-gen
+  main-is:             SPITest.hs
+  hs-source-dirs:      tests
+  build-depends:       base >= 4.6,
+                       ivory,
+                       ivory-stdlib,
+                       ivory-backend-c,
+                       ivory-hw,
+                       tower          >= 0.8,
+                       tower-frontend >= 0.8,
+                       ivory-bsp-stm32,
+                       ivory-bsp-tests
+  ghc-options:          -Wall
 
 executable bsp-uart-test-gen
   main-is:             UARTTest.hs
-  hs-source-dirs:      examples
+  hs-source-dirs:      tests
   build-depends:       base >= 4.6,
                        ivory,
                        ivory-stdlib,
                        ivory-backend-c,
                        ivory-hw,
-                       ivory-bsp-stm32
-  ghc-options:         -Wall
+                       tower          >= 0.8,
+                       tower-frontend >= 0.8,
+                       ivory-bsp-stm32,
+                       ivory-bsp-tests
+  ghc-options:          -Wall
+
+executable bsp-uart-debug-gen
+  main-is:             UARTDebug.hs
+  hs-source-dirs:      tests
+  build-depends:       base >= 4.6,
+                       ivory,
+                       ivory-stdlib,
+                       ivory-backend-c,
+                       ivory-hw,
+                       tower          >= 0.8,
+                       tower-frontend >= 0.8,
+                       ivory-bsp-stm32,
+                       ivory-bsp-tests
+  ghc-options:          -Wall
 

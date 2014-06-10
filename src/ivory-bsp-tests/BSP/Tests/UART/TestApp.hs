@@ -4,7 +4,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 
-module UARTTower where
+module BSP.Tests.UART.TestApp (app) where
 
 import Data.Char (ord)
 
@@ -13,10 +13,9 @@ import Ivory.Stdlib
 import Ivory.Tower
 
 import BSP.Tests.Platforms
-import LEDTower
+import BSP.Tests.LED.Blink
 
 import Ivory.BSP.STM32.Driver.UART
-import Ivory.BSP.STM32.Peripheral.UART
 import Ivory.BSP.STM32.PlatformClock
 
 --------------------------------------------------------------------------------
@@ -28,7 +27,7 @@ app = do
   boardInitializer
   -- Starts two tasks: a blink task and a controller task.  Periodically blink
   -- the blue LED.
-  blinkApp period [blueLED platform]
+  blink period [blueLED platform]
   -- A new queue
   redledctl <- channel
   -- Starts a UART (serial) task

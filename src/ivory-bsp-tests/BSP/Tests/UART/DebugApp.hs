@@ -4,7 +4,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE DataKinds #-}
 
-module UARTStressTest where
+module BSP.Tests.UART.DebugApp (app) where
 
 import Ivory.Language
 import Ivory.Stdlib
