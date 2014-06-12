@@ -47,7 +47,7 @@ sensorControl toDriver fromDriver sampleSource = task "sensorControl" $ do
 
   driver <- testDriverMachine i2cRequest i2cResult sampleEmitter
 
-  taskStackSize 3072
+  taskStackSize 4096
 
   taskInit $ do
     begin driver
