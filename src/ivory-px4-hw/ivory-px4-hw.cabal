@@ -23,6 +23,7 @@ library
                        SMACCMPilot.Hardware.MPU6000.Regs,
                        SMACCMPilot.Hardware.MPU6000.SPI,
                        SMACCMPilot.Hardware.MS5611,
+                       SMACCMPilot.Hardware.MS5611.Calibration,
                        SMACCMPilot.Hardware.MS5611.Types,
                        SMACCMPilot.Hardware.MS5611.Regs,
                        SMACCMPilot.Hardware.MS5611.I2C,
