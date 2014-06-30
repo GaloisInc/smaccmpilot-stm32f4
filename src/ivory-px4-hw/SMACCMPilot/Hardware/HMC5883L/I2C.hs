@@ -97,6 +97,7 @@ sensorRead i2caddr s req_emitter res_evt next = mdo
         payloadu16 res 0 1 >>= store ((s ~> sample) ! 0) -- XH, XL
         payloadu16 res 2 3 >>= store ((s ~> sample) ! 2) -- ZH, ZL
         payloadu16 res 4 5 >>= store ((s ~> sample) ! 1) -- YH, YL
+        getTime >>= store (s ~> time)
       goto next
 
   return readSetup

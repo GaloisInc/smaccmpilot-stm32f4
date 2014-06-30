@@ -198,6 +198,7 @@ sensorSample addr failure sample req_emitter res_evt next = mdo
       liftIvory_ $ do
         check_sample_failure res
         threebytesample res >>= store (sample ~> sample_temperature)
+        getTime >>= store (sample ~> sample_time)
       goto next
 
   return convertP
