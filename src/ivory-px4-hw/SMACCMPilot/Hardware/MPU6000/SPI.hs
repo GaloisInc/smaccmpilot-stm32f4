@@ -2,6 +2,7 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE RecursiveDo #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module SMACCMPilot.Hardware.MPU6000.SPI where
 
@@ -84,7 +85,8 @@ rawSensorFromResponse res t = do
   hilo :: Uint8 -> Uint8 -> Uint16
   hilo h l = ((safeCast h) * 256) + safeCast l
 
-initializerMachine :: SPIDeviceHandle
+initializerMachine :: forall p
+                    . SPIDeviceHandle
                    -> ChannelEmitter (Struct "spi_transaction_request")
                    -> Event          (Struct "spi_transaction_result")
                    -> Task p (Runnable, Ref Global (Stored IBool))
@@ -131,7 +133,7 @@ initializerMachine dev req_emitter result_evt = do
       -> (forall s2 s3 . (ConstRef s2 (Struct "spi_transaction_result"))
             -> Ivory (AllocEffects s3) ())
       -> StateLabel
-      -> MachineM StateLabel
+      -> MachineM p StateLabel
   rpc name request resultk statek = mdo
     getter <- stateNamed ("get" ++ name) $ entry $ do
       liftIvory_ $ do

@@ -45,6 +45,8 @@ measurement cal sample meas = do
 
   (temp :: Sint32) <- assign (twentyC + tempsense dT)
 
+  -- Step 2: calculate temperature compensated pressure
+  -- Intermediate values require 41 sig bits
   let c2_sint64 :: Sint64
       c2_sint64 = safeCast c2
       c4_sint64 :: Sint64
@@ -53,6 +55,7 @@ measurement cal sample meas = do
       dT_sint64 = safeCast dT
   (off :: Sint64) <- assign ( (c2_sint64 * 2^(16::Integer))
                             + ((c4_sint64 * dT_sint64) `iDiv` (2^(7::Integer))))
+  -- Intermediate values require 41 sig bits
   let c1_sint64 :: Sint64
       c1_sint64 = safeCast c1
       c3_sint64 :: Sint64
@@ -60,6 +63,7 @@ measurement cal sample meas = do
   (sens :: Sint64) <- assign ( (c1_sint64 * 2^(15::Integer))
                              + ((c3_sint64 * dT_sint64) `iDiv` (2^(8::Integer))))
 
+  -- Intermediate values require 58 sig bits
   let d1_sint64 :: Sint64
       d1_sint64 = safeCast d1
       pres_64 = ((((d1_sint64 * sens) `iDiv` (2^(21::Integer)))
@@ -71,3 +75,4 @@ measurement cal sample meas = do
   store (meas ~> pressure)    ((safeCast pres) / 100)
   store (meas ~> temperature) ((safeCast temp) / 100)
   store (meas ~> time)        t
+

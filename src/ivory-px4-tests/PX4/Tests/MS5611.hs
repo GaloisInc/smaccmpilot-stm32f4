@@ -15,6 +15,7 @@ import Ivory.Tower.StateMachine
 import Ivory.BSP.STM32.Driver.I2C
 
 import SMACCMPilot.Hardware.MS5611
+import SMACCMPilot.Hardware.MS5611.Calibration (measurement)
 
 import PX4.Tests.Platforms
 
@@ -40,11 +41,10 @@ ms5611ctl toDriver fromDriver addr = task "ms5611ctl" $ do
 
   calibration <- taskLocal "calibration"
   sample      <- taskLocal "sample"
-  initfail    <- taskLocal "initfail"
-  samplefail  <- taskLocal "samplefail"
+  meas        <- taskLocal "meas"
 
   driver <- testDriverMachine addr i2cRequest i2cResult
-              calibration sample initfail samplefail
+              calibration sample meas (meas ~> initfail) (meas ~> sampfail)
 
   taskStackSize 3072
 
@@ -56,13 +56,17 @@ testDriverMachine :: I2CDeviceAddr
                   -> Event          (Struct "i2c_transaction_result")
                   -> Ref Global (Struct "ms5611_calibration")
                   -> Ref Global (Struct "ms5611_sample")
+                  -> Ref Global (Struct "ms5611_measurement")
                   -> Ref Global (Stored IBool)
                   -> Ref Global (Stored IBool)
                   -> Task p Runnable
-testDriverMachine addr i2cRequest i2cResult calibration sample ifail sfail =
+testDriverMachine addr i2cRequest i2cResult calibration sample meas ifail sfail =
   stateMachine "ms5611TestDriver" $ mdo
-    setup <- sensorSetup addr ifail calibration i2cRequest i2cResult read
-    read  <- sensorRead  addr sfail sample      i2cRequest i2cResult read
+    setup <- sensorSetup  addr ifail calibration i2cRequest i2cResult read
+    read  <- sensorSample addr sfail sample      i2cRequest i2cResult m
+    m     <- stateNamed "ms5611_measurement" $ entry $ do
+      liftIvory_ $ measurement (constRef calibration) (constRef sample) meas
+      goto read
     return setup
 
 

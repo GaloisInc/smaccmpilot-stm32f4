@@ -30,11 +30,11 @@ regWriteRequest addr r v = fmap constRef $ local $ istruct
 
 
 sensorSetup :: I2CDeviceAddr
-         -> Ref Global (Stored IBool)
-         -> ChannelEmitter (Struct "i2c_transaction_request")
-         -> Event          (Struct "i2c_transaction_result")
-         -> StateLabel
-         -> MachineM StateLabel
+            -> Ref Global (Stored IBool)
+            -> ChannelEmitter (Struct "i2c_transaction_request")
+            -> Event          (Struct "i2c_transaction_result")
+            -> StateLabel
+            -> MachineM p StateLabel
 sensorSetup i2caddr failure req_emitter res_evt next = mdo
   writeConfA <- writeReg ConfA confa writeConfB
   writeConfB <- writeReg ConfB confb writeMode
@@ -61,12 +61,12 @@ sensorSetup i2caddr failure req_emitter res_evt next = mdo
     when (r >? 0) (store failure true)
 
 sensorRead :: I2CDeviceAddr
-         -> Ref Global (Stored IBool)
-         -> Ref Global (Array 3 (Stored Uint16))
-         -> ChannelEmitter (Struct "i2c_transaction_request")
-         -> Event          (Struct "i2c_transaction_result")
-         -> StateLabel
-         -> MachineM StateLabel
+           -> Ref Global (Stored IBool)
+           -> Ref Global (Array 3 (Stored Uint16))
+           -> ChannelEmitter (Struct "i2c_transaction_request")
+           -> Event          (Struct "i2c_transaction_result")
+           -> StateLabel
+           -> MachineM p StateLabel
 sensorRead i2caddr failure value req_emitter res_evt next = mdo
   readSetup <- stateNamed (named "read_setup") $ do
     entry $ liftIvory_ $ do

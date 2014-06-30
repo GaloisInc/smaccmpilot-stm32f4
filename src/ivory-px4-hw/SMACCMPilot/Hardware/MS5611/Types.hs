@@ -27,8 +27,8 @@ struct ms5611_sample
   }
 
 struct ms5611_measurement
-  { init_fail   :: Stored IBool
-  ; samp_fail   :: Stored IBool
+  { initfail   :: Stored IBool
+  ; sampfail   :: Stored IBool
   ; temperature :: Stored IFloat -- deg celsius
   ; pressure    :: Stored IFloat -- mbar
   ; time        :: Stored ITime

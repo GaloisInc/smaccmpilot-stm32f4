@@ -18,7 +18,7 @@ import qualified SMACCMPilot.Hardware.MS5611         as M
 import qualified SMACCMPilot.Hardware.HMC5883L       as H
 
 import PX4.Tests.Platforms
-import PX4.Tests.HMC5883L.Types as H
+import qualified PX4.Tests.HMC5883L.Types as H
 
 app :: forall p . (TestPlatform p) => Tower p ()
 app = do
@@ -58,17 +58,15 @@ testDriverMachine :: forall p . (TestPlatform p)
                   -> ChannelEmitter (Struct "hmc5883l_sample")
                   -> Task p Runnable
 testDriverMachine i2cRequest i2cResult sampleEmitter = do
-  h <- taskLocal "hmc5883l_sample"
+  h             <- taskLocal "hmc5883l_sample"
   m_calibration <- taskLocal "ms5611_calibration"
-  m_sample      <- taskLocal "ms5611_sample"
-  m_ifail       <- taskLocal "ms5611_initfail"
-  m_sfail       <- taskLocal "ms5611_samplefail"
+  m             <- taskLocal "ms5611_measurement"
   stateMachine "multiSensorDriver" $ mdo
-    m_setup <- M.sensorSetup m_addr m_ifail m_calibration i2cRequest i2cResult h_setup
-    h_setup <- H.sensorSetup h_addr (h ~> initfail)       i2cRequest i2cResult m_read
+    m_setup <- M.sensorSetup m_addr (m ~> M.initfail) m_calibration i2cRequest i2cResult h_setup
+    h_setup <- H.sensorSetup h_addr (h ~> H.initfail)               i2cRequest i2cResult m_read
 
-    m_read  <- M.sensorRead  m_addr m_sfail m_sample      i2cRequest i2cResult h_read
-    h_read  <- H.sensorRead  h_addr (h ~> samplefail) (h ~> sample) i2cRequest i2cResult waitRead
+    m_read  <- M.sensorRead  m_addr (constRef m_calibration) m          i2cRequest i2cResult h_read
+    h_read  <- H.sensorRead  h_addr (h ~> H.samplefail) (h ~> H.sample) i2cRequest i2cResult waitRead
 
     waitRead <- stateNamed "waitRead" $ do
       entry $
