@@ -13,7 +13,7 @@ import Ivory.Tower.StateMachine
 import Ivory.BSP.STM32.Driver.SPI
 
 import SMACCMPilot.Hardware.MPU6000.Regs
-import SMACCMPilot.Hardware.MPU6000.RawSensor
+import SMACCMPilot.Hardware.MPU6000.Types
 
 readRegAddr :: Reg -> Uint8
 readRegAddr reg = 0x80 .| (fromIntegral (regAddr reg))
@@ -54,7 +54,7 @@ getSensorsReq dev = fmap constRef $ local $ istruct
 rawSensorFromResponse :: (GetAlloc eff ~ Scope s)
                       => ConstRef s1 (Struct "spi_transaction_result")
                       -> ITime
-                      -> Ivory eff (ConstRef (Stack s) (Struct "mpu6000_raw_sensor"))
+                      -> Ivory eff (ConstRef (Stack s) (Struct "mpu6000_sample"))
 rawSensorFromResponse res t = do
   ax_h <- deref ((res ~> rx_buf) ! 1)
   ax_l <- deref ((res ~> rx_buf) ! 2)

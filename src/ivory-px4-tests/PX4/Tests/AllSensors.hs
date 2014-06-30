@@ -13,51 +13,67 @@ import Ivory.Tower
 import Ivory.Tower.StateMachine
 
 import Ivory.BSP.STM32.Driver.I2C
+import Ivory.BSP.STM32.Driver.SPI
 
+import qualified SMACCMPilot.Hardware.MPU6000        as G
 import qualified SMACCMPilot.Hardware.MS5611         as M
 import qualified SMACCMPilot.Hardware.HMC5883L       as H
 
-import PX4.Tests.Platforms
-import qualified PX4.Tests.HMC5883L.Types as H
+import           PX4.Tests.Platforms
+import           PX4.Tests.MPU6000 (mpu6000SensorManager)
+import qualified PX4.Tests.HMC5883L.Types as H -- XXX MOVE TO LIB
 
 app :: forall p . (TestPlatform p) => Tower p ()
 app = do
   boardInitializer
+  (ireq, ires) <- i2cTower (ms5611periph platform)
+                           (ms5611sda platform)
+                           (ms5611scl platform)
+  ms5611meas     <- channel
+  hmc5883lsample <- channel
+  i2cSensorManager ireq ires (src ms5611meas) (src hmc5883lsample)
+
+  mpu6000sample <- channel
+  (sreq, sres) <- spiTower [mpu6000Device platform]
+  mpu6000SensorManager sreq sres (src mpu6000sample) (SPIDeviceHandle 0)
+
+  towerModule  G.mpu6000TypesModule
+  towerDepends G.mpu6000TypesModule
   towerModule  M.ms5611TypesModule
   towerDepends M.ms5611TypesModule
   towerModule  H.hmc5883lTypesModule
   towerDepends H.hmc5883lTypesModule
-  (req, res) <- i2cTower (ms5611periph platform)
-                         (ms5611sda platform)
-                         (ms5611scl platform)
-  sampleChan <- channel
-  sensorControl req res (src sampleChan)
   where
   platform = Proxy :: Proxy p
 
-sensorControl :: forall p . (TestPlatform p)
+i2cSensorManager :: forall p . (TestPlatform p)
               => ChannelSource (Struct "i2c_transaction_request")
               -> ChannelSink   (Struct "i2c_transaction_result")
+              -> ChannelSource (Struct "ms5611_measurement")
               -> ChannelSource (Struct "hmc5883l_sample")
               -> Tower p ()
-sensorControl toDriver fromDriver sampleSource = task "sensorControl" $ do
-  i2cRequest <- withChannelEmitter toDriver "i2cRequest"
-  i2cResult <- withChannelEvent fromDriver "i2cResult"
-  sampleEmitter <- withChannelEmitter sampleSource "sample"
+i2cSensorManager toDriver fromDriver ms5611MeasSource hmc5883lSampleSource =
+  task "i2cSensorManager" $ do
+    i2cRequest      <- withChannelEmitter toDriver "i2cRequest"
+    i2cResult       <- withChannelEvent   fromDriver "i2cResult"
+    ms5611Emitter   <- withChannelEmitter ms5611MeasSource "ms5611Meas"
+    hmc5883lEmitter <- withChannelEmitter hmc5883lSampleSource "hmc5883lSample"
 
-  driver <- testDriverMachine i2cRequest i2cResult sampleEmitter
+    driver <- i2cSensorMachine i2cRequest i2cResult
+                ms5611Emitter hmc5883lEmitter
 
-  taskStackSize 4096
+    taskStackSize 4096
 
-  taskInit $ do
-    begin driver
+    taskInit $ do
+      begin driver
 
-testDriverMachine :: forall p . (TestPlatform p)
-                  => ChannelEmitter (Struct "i2c_transaction_request")
-                  -> Event          (Struct "i2c_transaction_result")
-                  -> ChannelEmitter (Struct "hmc5883l_sample")
-                  -> Task p Runnable
-testDriverMachine i2cRequest i2cResult sampleEmitter = do
+i2cSensorMachine :: forall p . (TestPlatform p)
+                 => ChannelEmitter (Struct "i2c_transaction_request")
+                 -> Event          (Struct "i2c_transaction_result")
+                 -> ChannelEmitter (Struct "ms5611_measurement")
+                 -> ChannelEmitter (Struct "hmc5883l_sample")
+                 -> Task p Runnable
+i2cSensorMachine i2cRequest i2cResult ms5611MeasEmitter hmc5883lSampleEmitter = do
   h             <- taskLocal "hmc5883l_sample"
   m_calibration <- taskLocal "ms5611_calibration"
   m             <- taskLocal "ms5611_measurement"
@@ -69,8 +85,9 @@ testDriverMachine i2cRequest i2cResult sampleEmitter = do
     h_read  <- H.sensorRead  h_addr (h ~> H.samplefail) (h ~> H.sample) i2cRequest i2cResult waitRead
 
     waitRead <- stateNamed "waitRead" $ do
-      entry $
-        liftIvory_ (emit_ sampleEmitter (constRef h))
+      entry $ liftIvory_ $ do
+        emit_ ms5611MeasEmitter     (constRef m)
+        emit_ hmc5883lSampleEmitter (constRef h)
       timeout (Milliseconds 13) $ -- XXX 75hz?
         goto m_read
 

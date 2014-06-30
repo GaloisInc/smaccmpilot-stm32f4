@@ -4,17 +4,17 @@
 {-# LANGUAGE QuasiQuotes #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
-module SMACCMPilot.Hardware.MPU6000.RawSensor where
+module SMACCMPilot.Hardware.MPU6000.Types where
 
 import Ivory.Language
 import Ivory.Tower.Types.Time
 
-rawSensorTypeModule :: Module
-rawSensorTypeModule = package "mpu6000_raw_sensor_type" $ do
-  defStruct (Proxy :: Proxy "mpu6000_raw_sensor")
+mpu6000TypesModule :: Module
+mpu6000TypesModule = package "mpu6000_types" $ do
+  defStruct (Proxy :: Proxy "mpu6000_sample")
 
 [ivory|
-struct mpu6000_raw_sensor
+struct mpu6000_sample
   { valid     :: Stored IBool
   ; time      :: Stored ITime
   ; gyro_x    :: Stored Uint16

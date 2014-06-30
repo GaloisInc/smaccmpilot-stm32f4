@@ -19,7 +19,7 @@ library
                        SMACCMPilot.Hardware.GPS.UBlox,
                        SMACCMPilot.Hardware.GPS.UBlox.Types,
                        SMACCMPilot.Hardware.MPU6000,
-                       SMACCMPilot.Hardware.MPU6000.RawSensor,
+                       SMACCMPilot.Hardware.MPU6000.Types,
                        SMACCMPilot.Hardware.MPU6000.Regs,
                        SMACCMPilot.Hardware.MPU6000.SPI,
                        SMACCMPilot.Hardware.MS5611,
