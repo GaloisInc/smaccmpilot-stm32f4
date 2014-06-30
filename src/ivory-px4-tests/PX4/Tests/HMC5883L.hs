@@ -19,7 +19,6 @@ import Ivory.BSP.STM32.Driver.I2C
 import SMACCMPilot.Hardware.HMC5883L
 
 import PX4.Tests.Platforms
-import PX4.Tests.HMC5883L.Types
 
 app :: forall p . (TestPlatform p) => Tower p ()
 app = do
@@ -63,8 +62,8 @@ testDriverMachine :: I2CDeviceAddr
 testDriverMachine addr i2cRequest i2cResult sampleEmitter = do
   s <- taskLocal "sample_buffer"
   stateMachine "hmc5883lTestDriver" $ mdo
-    setup <- sensorSetup addr (s ~> initfail)                 i2cRequest i2cResult read
-    read  <- sensorRead  addr (s ~> samplefail) (s ~> sample) i2cRequest i2cResult waitRead
+    setup <- sensorSetup addr (s ~> initfail) i2cRequest i2cResult read
+    read  <- sensorRead  addr s               i2cRequest i2cResult waitRead
     waitRead <- stateNamed "waitRead" $ do
       entry $
         liftIvory_ (emit_ sampleEmitter (constRef s))

@@ -14,7 +14,7 @@ import Ivory.Tower.StateMachine
 import Ivory.BSP.STM32.Driver.I2C
 
 import SMACCMPilot.Hardware.HMC5883L.Regs
-
+import SMACCMPilot.Hardware.HMC5883L.Types
 
 regWriteRequest :: (GetAlloc eff ~ Scope s)
            => I2CDeviceAddr
@@ -61,16 +61,15 @@ sensorSetup i2caddr failure req_emitter res_evt next = mdo
     when (r >? 0) (store failure true)
 
 sensorRead :: I2CDeviceAddr
-           -> Ref Global (Stored IBool)
-           -> Ref Global (Array 3 (Stored Uint16))
+           -> Ref Global (Struct "hmc5883l_sample")
            -> ChannelEmitter (Struct "i2c_transaction_request")
            -> Event          (Struct "i2c_transaction_result")
            -> StateLabel
            -> MachineM p StateLabel
-sensorRead i2caddr failure value req_emitter res_evt next = mdo
+sensorRead i2caddr s req_emitter res_evt next = mdo
   readSetup <- stateNamed (named "read_setup") $ do
     entry $ liftIvory_ $ do
-      store failure false
+      store (s ~> samplefail) false
       -- send an i2c command to setup sensors read
       req <- fmap constRef $ local $ istruct
         [ tx_addr .= ival i2caddr
@@ -95,9 +94,9 @@ sensorRead i2caddr failure value req_emitter res_evt next = mdo
     on res_evt $ \res -> do
       liftIvory_ $ do
         checki2csuccess res
-        payloadu16 res 0 1 >>= store (value ! 0) -- XH, XL
-        payloadu16 res 2 3 >>= store (value ! 2) -- ZH, ZL
-        payloadu16 res 4 5 >>= store (value ! 1) -- YH, YL
+        payloadu16 res 0 1 >>= store ((s ~> sample) ! 0) -- XH, XL
+        payloadu16 res 2 3 >>= store ((s ~> sample) ! 2) -- ZH, ZL
+        payloadu16 res 4 5 >>= store ((s ~> sample) ! 1) -- YH, YL
       goto next
 
   return readSetup
@@ -106,7 +105,7 @@ sensorRead i2caddr failure value req_emitter res_evt next = mdo
   checki2csuccess :: ConstRef s (Struct "i2c_transaction_result") -> Ivory eff ()
   checki2csuccess res = do
     r <- deref (res ~> resultcode)
-    when (r >? 0) (store failure true)
+    when (r >? 0) (store (s ~> samplefail) true)
 
   payloadu16 :: ConstRef s (Struct "i2c_transaction_result")
              -> Ix 128 -> Ix 128 -> Ivory eff Uint16

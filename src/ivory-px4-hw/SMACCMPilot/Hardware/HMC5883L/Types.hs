@@ -5,7 +5,7 @@
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
-module PX4.Tests.HMC5883L.Types where
+module SMACCMPilot.Hardware.HMC5883L.Types where
 
 import Ivory.Language
 
