@@ -78,7 +78,7 @@ instance PlatformClock PX4FMU17_IOAR where
   platformClockConfig _ = f405ExtXtalMHz 24
 instance TestPlatform PX4FMU17_IOAR where
   boardInitializer = stm32f405InitTower
-  consoleUart _ = F405.uart1
+  consoleUart _ = F405.uart5
   mpu6000Device _ = fmu17MPU6k
   gpsUart _ = F405.uart6
   hmc5883periph _ = F405.i2c2
@@ -97,7 +97,7 @@ instance PlatformClock PX4FMU17_Bare where
   platformClockConfig _ = f405ExtXtalMHz 24
 instance TestPlatform PX4FMU17_Bare where
   boardInitializer = stm32f405InitTower
-  consoleUart _ = F405.uart1
+  consoleUart _ = F405.uart5
   mpu6000Device _ = fmu17MPU6k
   gpsUart _ = F405.uart6
   hmc5883periph _ = F405.i2c2
