@@ -115,9 +115,7 @@ library
                        SMACCMPilot.Param,
                        SMACCMPilot.Param.Base,
                        SMACCMPilot.Param.TowerTypes,
-                       SMACCMPilot.Param.Tower,
-
-                       SMACCMPilot.SafePack
+                       SMACCMPilot.Param.Tower
 
   build-depends:       base >= 4.6,
                        monadLib,

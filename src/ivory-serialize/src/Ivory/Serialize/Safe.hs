@@ -9,7 +9,7 @@
 -- All Rights Reserved.
 --
 
-module SMACCMPilot.SafePack (
+module Ivory.Serialize.Safe (
   -- * Classes
   MonadIvory, liftI,
 
@@ -23,13 +23,10 @@ module SMACCMPilot.SafePack (
   munpack, marrayUnpack, unpackFrom, unpackFrom_
 ) where
 
--- XXX MOVE THIS INTO IVORY SERIALIZE PACKAGE
-
 import Ivory.Language
 import Ivory.Serialize
 import MonadLib hiding (local)
 import Control.Applicative
-
 
 -- TODO: We probably need a "skip" function that adjusts the offset in
 -- PackM/UnpackM in case we want to skip fields.
