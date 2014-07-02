@@ -59,11 +59,46 @@ static inline void ivory_serialize_pack_prim_8(uint8_t *dst, const uint8_t *src)
 #endif
 }
 
-// Macros to cast any source type to a uint8_t*.
-#define ivory_serialize_pack_1(dst, offs, src) ivory_serialize_pack_prim_1((dst) + (offs), (const uint8_t *)(&src))
-#define ivory_serialize_pack_2(dst, offs, src) ivory_serialize_pack_prim_2((dst) + (offs), (const uint8_t *)(&src))
-#define ivory_serialize_pack_4(dst, offs, src) ivory_serialize_pack_prim_4((dst) + (offs), (const uint8_t *)(&src))
-#define ivory_serialize_pack_8(dst, offs, src) ivory_serialize_pack_prim_8((dst) + (offs), (const uint8_t *)(&src))
+// Functions to take care of offset and cast any source type to correct prim size:
+static inline void ivory_serialize_pack_uint8(uint8_t *dst, uint32_t offs, uint8_t src) {
+	ivory_serialize_pack_prim_1(dst + offs, (const uint8_t *)(&src));
+}
+
+static inline void ivory_serialize_pack_int8(uint8_t *dst, uint32_t offs, int8_t src) {
+	ivory_serialize_pack_prim_1(dst + offs, (const uint8_t *)(&src));
+}
+
+static inline void ivory_serialize_pack_uint16(uint8_t *dst, uint32_t offs, uint16_t src) {
+	ivory_serialize_pack_prim_2(dst + offs, (const uint8_t *)(&src));
+}
+
+static inline void ivory_serialize_pack_int16(uint8_t *dst, uint32_t offs, int16_t src) {
+	ivory_serialize_pack_prim_2(dst + offs, (const uint8_t *)(&src));
+}
+
+static inline void ivory_serialize_pack_uint32(uint8_t *dst, uint32_t offs, uint32_t src) {
+	ivory_serialize_pack_prim_4(dst + offs, (const uint8_t *)(&src));
+}
+
+static inline void ivory_serialize_pack_int32(uint8_t *dst, uint32_t offs, int32_t src) {
+	ivory_serialize_pack_prim_4(dst + offs, (const uint8_t *)(&src));
+}
+
+static inline void ivory_serialize_pack_float(uint8_t *dst, uint32_t offs, float src) {
+	ivory_serialize_pack_prim_4(dst + offs, (const uint8_t *)(&src));
+}
+
+static inline void ivory_serialize_pack_uint64(uint8_t *dst, uint32_t offs, uint64_t src) {
+	ivory_serialize_pack_prim_8(dst + offs, (const uint8_t *)(&src));
+}
+
+static inline void ivory_serialize_pack_int64(uint8_t *dst, uint32_t offs, int64_t src) {
+	ivory_serialize_pack_prim_8(dst + offs, (const uint8_t *)(&src));
+}
+
+static inline void ivory_serialize_pack_double(uint8_t *dst, uint32_t offs, double src) {
+	ivory_serialize_pack_prim_8(dst + offs, (const uint8_t *)(&src));
+}
 
 // Unpacking primitives:
 

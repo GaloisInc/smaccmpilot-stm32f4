@@ -19,7 +19,7 @@ instance Serializable Uint8 where
   pack dst offs src = call_ pack_proc dst offs src
     where
     pack_proc :: Def('[Ref s (CArray (Stored Uint8)), Uint32, Uint8] :-> ())
-    pack_proc = importProc "ivory_serialize_pack_1" serializeHeader
+    pack_proc = importProc "ivory_serialize_pack_uint8" serializeHeader
 
   unpack src offs   = call unpack_proc src offs
     where
@@ -32,7 +32,7 @@ instance Serializable Sint8 where
   pack dst offs src = call_ pack_proc dst offs src
     where
     pack_proc :: Def('[Ref s (CArray (Stored Uint8)), Uint32, Sint8] :-> ())
-    pack_proc = importProc "ivory_serialize_pack_1" serializeHeader
+    pack_proc = importProc "ivory_serialize_pack_int8" serializeHeader
 
   unpack src offs   = call unpack_proc src offs
     where
@@ -46,7 +46,7 @@ instance Serializable Uint16 where
   pack dst offs src = call_ pack_proc dst offs src
     where
     pack_proc :: Def('[Ref s (CArray (Stored Uint8)), Uint32, Uint16] :-> ())
-    pack_proc = importProc "ivory_serialize_pack_2" serializeHeader
+    pack_proc = importProc "ivory_serialize_pack_uint16" serializeHeader
 
   unpack src offs   = call unpack_proc src offs
     where
@@ -59,7 +59,7 @@ instance Serializable Sint16 where
   pack dst offs src = call_ pack_proc dst offs src
     where
     pack_proc :: Def('[Ref s (CArray (Stored Uint8)), Uint32, Sint16] :-> ())
-    pack_proc = importProc "ivory_serialize_pack_2" serializeHeader
+    pack_proc = importProc "ivory_serialize_pack_int16" serializeHeader
 
   unpack src offs   = call unpack_proc src offs
     where
@@ -72,7 +72,7 @@ instance Serializable Uint32 where
   pack dst offs src = call_ pack_proc dst offs src
     where
     pack_proc :: Def('[Ref s (CArray (Stored Uint8)), Uint32, Uint32] :-> ())
-    pack_proc = importProc "ivory_serialize_pack_4" serializeHeader
+    pack_proc = importProc "ivory_serialize_pack_uint32" serializeHeader
 
   unpack src offs   = call unpack_proc src offs
     where
@@ -85,7 +85,7 @@ instance Serializable Sint32 where
   pack dst offs src = call_ pack_proc dst offs src
     where
     pack_proc :: Def('[Ref s (CArray (Stored Uint8)), Uint32, Sint32] :-> ())
-    pack_proc = importProc "ivory_serialize_pack_4" serializeHeader
+    pack_proc = importProc "ivory_serialize_pack_int32" serializeHeader
 
   unpack src offs   = call unpack_proc src offs
     where
@@ -98,7 +98,7 @@ instance Serializable IFloat where
   pack dst offs src = call_ pack_proc dst offs src
     where
     pack_proc :: Def('[Ref s (CArray (Stored Uint8)), Uint32, IFloat] :-> ())
-    pack_proc = importProc "ivory_serialize_pack_4" serializeHeader
+    pack_proc = importProc "ivory_serialize_pack_float" serializeHeader
 
   unpack src offs   = call unpack_proc src offs
     where
@@ -111,7 +111,7 @@ instance Serializable Uint64 where
   pack dst offs src = call_ pack_proc dst offs src
     where
     pack_proc :: Def('[Ref s (CArray (Stored Uint8)), Uint32, Uint64] :-> ())
-    pack_proc = importProc "ivory_serialize_pack_8" serializeHeader
+    pack_proc = importProc "ivory_serialize_pack_uint64" serializeHeader
 
   unpack src offs   = call unpack_proc src offs
     where
@@ -124,7 +124,7 @@ instance Serializable Sint64 where
   pack dst offs src = call_ pack_proc dst offs src
     where
     pack_proc :: Def('[Ref s (CArray (Stored Uint8)), Uint32, Sint64] :-> ())
-    pack_proc = importProc "ivory_serialize_pack_8" serializeHeader
+    pack_proc = importProc "ivory_serialize_pack_int64" serializeHeader
 
   unpack src offs   = call unpack_proc src offs
     where
@@ -137,7 +137,7 @@ instance Serializable IDouble where
   pack dst offs src = call_ pack_proc dst offs src
     where
     pack_proc :: Def('[Ref s (CArray (Stored Uint8)), Uint32, IDouble] :-> ())
-    pack_proc = importProc "ivory_serialize_pack_8" serializeHeader
+    pack_proc = importProc "ivory_serialize_pack_double" serializeHeader
 
   unpack src offs   = call unpack_proc src offs
     where
