@@ -17,14 +17,15 @@ module Ivory.Serialize.Safe (
   PackM, UnpackM,
 
   -- * Packing
-  mpack, marrayPack, packInto, packInto_,
+  mpack, mpackV, marrayPack, packInto, packInto_,
 
   -- * Unpacking
   munpack, marrayUnpack, unpackFrom, unpackFrom_
 ) where
 
 import Ivory.Language
-import Ivory.Serialize
+import Ivory.Serialize.Class
+import Ivory.Serialize.Array
 import MonadLib hiding (local)
 import Control.Applicative
 
@@ -70,14 +71,15 @@ instance MonadIvory PackM where
 -- | Dereference a "ConstRef" and pack the value into the array stored
 -- in the context established by "packInto".  An error will be thrown
 -- at code generation time if too much data is packed into the array.
---
--- XXX maybe this should just take an "a" instead of a reference?  It
--- is nice for symmetry with "munpack" though.
 mpack :: (Serializable a) => ConstRef s (Stored a) -> PackM eff ()
-mpack ref = PackM $ do
+mpack ref = do
+  val <- PackM $ lift $ lift $ deref ref
+  mpackV val
+
+mpackV :: (Serializable a) => a -> PackM eff ()
+mpackV val = PackM $ do
   buf    <- ask
   offset <- get
-  val    <- lift $ lift $ deref ref
   let new_offset = offset + packedSize val
   if new_offset > arrayLen buf
     then error $ "packing " ++ (show new_offset) ++ " bytes into "
