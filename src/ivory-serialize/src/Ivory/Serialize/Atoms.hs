@@ -13,6 +13,7 @@ serializeHeader = "ivory_serialize_prim.h"
 serializeModule :: Module
 serializeModule = package "ivory_serialize" $ do
   inclHeader serializeHeader
+  sourceDep  serializeHeader
 
 instance Serializable Uint8 where
   pack dst offs src = call_ pack_proc dst offs src

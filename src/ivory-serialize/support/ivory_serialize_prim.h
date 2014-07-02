@@ -120,52 +120,52 @@ static inline uint64_t ivory_serialize_unpack_prim_8(const uint8_t *src){
 // Functions to cast unpacked result to specific destination types:
 static inline uint8_t ivory_serialize_unpack_uint8(const uint8_t *src, uint32_t offs) {
 	uint8_t t = ivory_serialize_unpack_prim_1(src+offs);
-	return (*uint8_t *)(&t);
+	return *(uint8_t *)(&t);
 }
 
 static inline int8_t ivory_serialize_unpack_int8(const uint8_t *src, uint32_t offs) {
 	uint8_t t = ivory_serialize_unpack_prim_1(src+offs);
-	return (*int8_t *)(&t);
+	return *(int8_t *)(&t);
 }
 
 static inline uint16_t ivory_serialize_unpack_uint16(const uint8_t *src, uint32_t offs) {
 	uint16_t t = ivory_serialize_unpack_prim_2(src+offs);
-	return (*uint16_t *)(&t);
+	return *(uint16_t *)(&t);
 }
 
 static inline int16_t ivory_serialize_unpack_int16(const uint8_t *src, uint32_t offs) {
 	uint16_t t = ivory_serialize_unpack_prim_2(src+offs);
-	return (*int16_t *)(&t);
+	return *(int16_t *)(&t);
 }
 
 static inline uint32_t ivory_serialize_unpack_uint32(const uint8_t *src, uint32_t offs) {
 	uint32_t t = ivory_serialize_unpack_prim_4(src+offs);
-	return (*uint32_t *)(&t);
+	return *(uint32_t *)(&t);
 }
 
 static inline int32_t ivory_serialize_unpack_int32(const uint8_t *src, uint32_t offs) {
 	uint32_t t = ivory_serialize_unpack_prim_4(src+offs);
-	return (*int32_t *)(&t);
+	return *(int32_t *)(&t);
 }
 
-static inline float ivory_serialize_unpack_int32(const uint8_t *src, uint32_t offs) {
+static inline float ivory_serialize_unpack_float(const uint8_t *src, uint32_t offs) {
 	uint32_t t = ivory_serialize_unpack_prim_4(src+offs);
-	return (*float *)(&t);
+	return *(float *)(&t);
 }
 
 static inline uint64_t ivory_serialize_unpack_uint64(const uint8_t *src, uint32_t offs) {
 	uint64_t t = ivory_serialize_unpack_prim_8(src+offs);
-	return (*uint64_t *)(&t);
+	return *(uint64_t *)(&t);
 }
 
 static inline int64_t ivory_serialize_unpack_int64(const uint8_t *src, uint32_t offs) {
 	uint64_t t = ivory_serialize_unpack_prim_8(src+offs);
-	return (*int64_t *)(&t);
+	return *(int64_t *)(&t);
 }
 
-static inline double ivory_serialize_unpack_int64(const uint8_t *src, uint32_t offs) {
+static inline double ivory_serialize_unpack_double(const uint8_t *src, uint32_t offs) {
 	uint64_t t = ivory_serialize_unpack_prim_8(src+offs);
-	return (*double *)(&t);
+	return *(double *)(&t);
 }
 
 #endif // __IVORY_SERIALIZE_PRIM_H__
