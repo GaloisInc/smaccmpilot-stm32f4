@@ -23,10 +23,12 @@ module SMACCMPilot.SafePack (
   munpack, marrayUnpack, unpackFrom, unpackFrom_
 ) where
 
+-- XXX MOVE THIS INTO IVORY SERIALIZE PACKAGE
+
 import Ivory.Language
+import Ivory.Serialize
 import MonadLib hiding (local)
 import Control.Applicative
-import SMACCMPilot.Mavlink.Pack
 
 
 -- TODO: We probably need a "skip" function that adjusts the offset in
@@ -74,7 +76,7 @@ instance MonadIvory PackM where
 --
 -- XXX maybe this should just take an "a" instead of a reference?  It
 -- is nice for symmetry with "munpack" though.
-mpack :: (MavlinkPackable a) => ConstRef s (Stored a) -> PackM eff ()
+mpack :: (Serializable a) => ConstRef s (Stored a) -> PackM eff ()
 mpack ref = PackM $ do
   buf    <- ask
   offset <- get
@@ -84,7 +86,7 @@ mpack ref = PackM $ do
     then error $ "packing " ++ (show new_offset) ++ " bytes into "
               ++ "array of length " ++ (show (arrayLen buf :: Int))
     else return ()
-  lift $ lift $ call_ pack (toCArray buf) (fromIntegral offset) val
+  lift $ lift $  pack (toCArray buf) (fromIntegral offset) val
   set new_offset
 
 -- | Pack an array of packable values into the array stored in the
@@ -92,7 +94,7 @@ mpack ref = PackM $ do
 -- generation time if too much data is packed into the array.
 --
 -- XXX array ref should be const
-marrayPack :: forall eff a len s.  (MavlinkPackable a, ANat len)
+marrayPack :: forall eff a len s.  (Serializable a, ANat len)
            => Ref s (Array len (Stored a)) -> PackM eff ()
 marrayPack arr = PackM $ do
   buf    <- ask
@@ -154,7 +156,7 @@ instance MonadIvory UnpackM where
 -- by "unpackFrom" into a reference.  An error will be thrown at code
 -- generation time if too much data is unpacked from the array.
 munpack :: forall eff a s.
-           (MavlinkPackable a, IvoryStore a)
+           (Serializable a, IvoryStore a)
         => Ref s (Stored a) -> UnpackM eff ()
 munpack ref = UnpackM $ do
   buf    <- ask
@@ -165,7 +167,7 @@ munpack ref = UnpackM $ do
               ++ "array of length " ++ (show (arrayLen buf :: Int))
     else return ()
   lift $ lift $ do
-    val <- call unpack (toCArray buf) (fromIntegral offset)
+    val <- unpack (toCArray buf) (fromIntegral offset)
     store ref val
   set new_offset
 
@@ -173,7 +175,7 @@ munpack ref = UnpackM $ do
 -- established by "unpackFrom".  An error will be thrown at code
 -- generation time if too much data is unpacked from the array.
 marrayUnpack :: forall eff a len s.
-                (MavlinkPackable a, ANat len, IvoryStore a)
+                (Serializable a, ANat len, IvoryStore a)
              => Ref s (Array len (Stored a))
              -> UnpackM eff ()
 marrayUnpack arr = UnpackM $ do
