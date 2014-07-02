@@ -10,7 +10,7 @@
 
 module SMACCMPilot.Mavlink.Messages.AttitudeQuaternion where
 
-import SMACCMPilot.Mavlink.Pack
+import Ivory.Serialize
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
@@ -25,7 +25,7 @@ attitudeQuaternionCrcExtra = 246
 
 attitudeQuaternionModule :: Module
 attitudeQuaternionModule = package "mavlink_attitude_quaternion_msg" $ do
-  depend packModule
+  depend serializeModule
   depend mavlinkSendModule
   incl mkAttitudeQuaternionSender
   incl attitudeQuaternionUnpack
@@ -55,14 +55,14 @@ mkAttitudeQuaternionSender =
   $ do
   arr <- local (iarray [] :: Init (Array 32 (Stored Uint8)))
   let buf = toCArray arr
-  call_ pack buf 0 =<< deref (msg ~> time_boot_ms)
-  call_ pack buf 4 =<< deref (msg ~> q1)
-  call_ pack buf 8 =<< deref (msg ~> q2)
-  call_ pack buf 12 =<< deref (msg ~> q3)
-  call_ pack buf 16 =<< deref (msg ~> q4)
-  call_ pack buf 20 =<< deref (msg ~> rollspeed)
-  call_ pack buf 24 =<< deref (msg ~> pitchspeed)
-  call_ pack buf 28 =<< deref (msg ~> yawspeed)
+  pack buf 0 =<< deref (msg ~> time_boot_ms)
+  pack buf 4 =<< deref (msg ~> q1)
+  pack buf 8 =<< deref (msg ~> q2)
+  pack buf 12 =<< deref (msg ~> q3)
+  pack buf 16 =<< deref (msg ~> q4)
+  pack buf 20 =<< deref (msg ~> rollspeed)
+  pack buf 24 =<< deref (msg ~> pitchspeed)
+  pack buf 28 =<< deref (msg ~> yawspeed)
   -- 6: header len, 2: CRC len
   let usedLen    = 6 + 32 + 2 :: Integer
   let sendArr    = sendStruct ~> mav_array
@@ -85,12 +85,12 @@ attitudeQuaternionUnpack :: Def ('[ Ref s1 (Struct "attitude_quaternion_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
 attitudeQuaternionUnpack = proc "mavlink_attitude_quaternion_unpack" $ \ msg buf -> body $ do
-  store (msg ~> time_boot_ms) =<< call unpack buf 0
-  store (msg ~> q1) =<< call unpack buf 4
-  store (msg ~> q2) =<< call unpack buf 8
-  store (msg ~> q3) =<< call unpack buf 12
-  store (msg ~> q4) =<< call unpack buf 16
-  store (msg ~> rollspeed) =<< call unpack buf 20
-  store (msg ~> pitchspeed) =<< call unpack buf 24
-  store (msg ~> yawspeed) =<< call unpack buf 28
+  store (msg ~> time_boot_ms) =<< unpack buf 0
+  store (msg ~> q1) =<< unpack buf 4
+  store (msg ~> q2) =<< unpack buf 8
+  store (msg ~> q3) =<< unpack buf 12
+  store (msg ~> q4) =<< unpack buf 16
+  store (msg ~> rollspeed) =<< unpack buf 20
+  store (msg ~> pitchspeed) =<< unpack buf 24
+  store (msg ~> yawspeed) =<< unpack buf 28
 

@@ -10,7 +10,7 @@
 
 module SMACCMPilot.Mavlink.Messages.SystemTime where
 
-import SMACCMPilot.Mavlink.Pack
+import Ivory.Serialize
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
@@ -25,7 +25,7 @@ systemTimeCrcExtra = 137
 
 systemTimeModule :: Module
 systemTimeModule = package "mavlink_system_time_msg" $ do
-  depend packModule
+  depend serializeModule
   depend mavlinkSendModule
   incl mkSystemTimeSender
   incl systemTimeUnpack
@@ -49,8 +49,8 @@ mkSystemTimeSender =
   $ do
   arr <- local (iarray [] :: Init (Array 12 (Stored Uint8)))
   let buf = toCArray arr
-  call_ pack buf 0 =<< deref (msg ~> time_unix_usec)
-  call_ pack buf 8 =<< deref (msg ~> time_boot_ms)
+  pack buf 0 =<< deref (msg ~> time_unix_usec)
+  pack buf 8 =<< deref (msg ~> time_boot_ms)
   -- 6: header len, 2: CRC len
   let usedLen    = 6 + 12 + 2 :: Integer
   let sendArr    = sendStruct ~> mav_array
@@ -73,6 +73,6 @@ systemTimeUnpack :: Def ('[ Ref s1 (Struct "system_time_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
 systemTimeUnpack = proc "mavlink_system_time_unpack" $ \ msg buf -> body $ do
-  store (msg ~> time_unix_usec) =<< call unpack buf 0
-  store (msg ~> time_boot_ms) =<< call unpack buf 8
+  store (msg ~> time_unix_usec) =<< unpack buf 0
+  store (msg ~> time_boot_ms) =<< unpack buf 8
 

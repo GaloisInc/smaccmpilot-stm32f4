@@ -10,7 +10,7 @@
 
 module SMACCMPilot.Mavlink.Messages.MissionItemReached where
 
-import SMACCMPilot.Mavlink.Pack
+import Ivory.Serialize
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
@@ -25,7 +25,7 @@ missionItemReachedCrcExtra = 11
 
 missionItemReachedModule :: Module
 missionItemReachedModule = package "mavlink_mission_item_reached_msg" $ do
-  depend packModule
+  depend serializeModule
   depend mavlinkSendModule
   incl mkMissionItemReachedSender
   incl missionItemReachedUnpack
@@ -48,7 +48,7 @@ mkMissionItemReachedSender =
   $ do
   arr <- local (iarray [] :: Init (Array 2 (Stored Uint8)))
   let buf = toCArray arr
-  call_ pack buf 0 =<< deref (msg ~> mission_item_reached_seq)
+  pack buf 0 =<< deref (msg ~> mission_item_reached_seq)
   -- 6: header len, 2: CRC len
   let usedLen    = 6 + 2 + 2 :: Integer
   let sendArr    = sendStruct ~> mav_array
@@ -71,5 +71,5 @@ missionItemReachedUnpack :: Def ('[ Ref s1 (Struct "mission_item_reached_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
 missionItemReachedUnpack = proc "mavlink_mission_item_reached_unpack" $ \ msg buf -> body $ do
-  store (msg ~> mission_item_reached_seq) =<< call unpack buf 0
+  store (msg ~> mission_item_reached_seq) =<< unpack buf 0
 

@@ -10,7 +10,7 @@
 
 module SMACCMPilot.Mavlink.Messages.DataStream where
 
-import SMACCMPilot.Mavlink.Pack
+import Ivory.Serialize
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
@@ -25,7 +25,7 @@ dataStreamCrcExtra = 21
 
 dataStreamModule :: Module
 dataStreamModule = package "mavlink_data_stream_msg" $ do
-  depend packModule
+  depend serializeModule
   depend mavlinkSendModule
   incl mkDataStreamSender
   incl dataStreamUnpack
@@ -50,9 +50,9 @@ mkDataStreamSender =
   $ do
   arr <- local (iarray [] :: Init (Array 4 (Stored Uint8)))
   let buf = toCArray arr
-  call_ pack buf 0 =<< deref (msg ~> message_rate)
-  call_ pack buf 2 =<< deref (msg ~> stream_id)
-  call_ pack buf 3 =<< deref (msg ~> on_off)
+  pack buf 0 =<< deref (msg ~> message_rate)
+  pack buf 2 =<< deref (msg ~> stream_id)
+  pack buf 3 =<< deref (msg ~> on_off)
   -- 6: header len, 2: CRC len
   let usedLen    = 6 + 4 + 2 :: Integer
   let sendArr    = sendStruct ~> mav_array
@@ -75,7 +75,7 @@ dataStreamUnpack :: Def ('[ Ref s1 (Struct "data_stream_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
 dataStreamUnpack = proc "mavlink_data_stream_unpack" $ \ msg buf -> body $ do
-  store (msg ~> message_rate) =<< call unpack buf 0
-  store (msg ~> stream_id) =<< call unpack buf 2
-  store (msg ~> on_off) =<< call unpack buf 3
+  store (msg ~> message_rate) =<< unpack buf 0
+  store (msg ~> stream_id) =<< unpack buf 2
+  store (msg ~> on_off) =<< unpack buf 3
 

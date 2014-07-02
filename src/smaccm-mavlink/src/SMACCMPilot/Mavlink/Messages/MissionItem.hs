@@ -10,7 +10,7 @@
 
 module SMACCMPilot.Mavlink.Messages.MissionItem where
 
-import SMACCMPilot.Mavlink.Pack
+import Ivory.Serialize
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
@@ -25,7 +25,7 @@ missionItemCrcExtra = 254
 
 missionItemModule :: Module
 missionItemModule = package "mavlink_mission_item_msg" $ do
-  depend packModule
+  depend serializeModule
   depend mavlinkSendModule
   incl mkMissionItemSender
   incl missionItemUnpack
@@ -61,20 +61,20 @@ mkMissionItemSender =
   $ do
   arr <- local (iarray [] :: Init (Array 37 (Stored Uint8)))
   let buf = toCArray arr
-  call_ pack buf 0 =<< deref (msg ~> param1)
-  call_ pack buf 4 =<< deref (msg ~> param2)
-  call_ pack buf 8 =<< deref (msg ~> param3)
-  call_ pack buf 12 =<< deref (msg ~> param4)
-  call_ pack buf 16 =<< deref (msg ~> x)
-  call_ pack buf 20 =<< deref (msg ~> y)
-  call_ pack buf 24 =<< deref (msg ~> z)
-  call_ pack buf 28 =<< deref (msg ~> mission_item_seq)
-  call_ pack buf 30 =<< deref (msg ~> command)
-  call_ pack buf 32 =<< deref (msg ~> target_system)
-  call_ pack buf 33 =<< deref (msg ~> target_component)
-  call_ pack buf 34 =<< deref (msg ~> frame)
-  call_ pack buf 35 =<< deref (msg ~> current)
-  call_ pack buf 36 =<< deref (msg ~> autocontinue)
+  pack buf 0 =<< deref (msg ~> param1)
+  pack buf 4 =<< deref (msg ~> param2)
+  pack buf 8 =<< deref (msg ~> param3)
+  pack buf 12 =<< deref (msg ~> param4)
+  pack buf 16 =<< deref (msg ~> x)
+  pack buf 20 =<< deref (msg ~> y)
+  pack buf 24 =<< deref (msg ~> z)
+  pack buf 28 =<< deref (msg ~> mission_item_seq)
+  pack buf 30 =<< deref (msg ~> command)
+  pack buf 32 =<< deref (msg ~> target_system)
+  pack buf 33 =<< deref (msg ~> target_component)
+  pack buf 34 =<< deref (msg ~> frame)
+  pack buf 35 =<< deref (msg ~> current)
+  pack buf 36 =<< deref (msg ~> autocontinue)
   -- 6: header len, 2: CRC len
   let usedLen    = 6 + 37 + 2 :: Integer
   let sendArr    = sendStruct ~> mav_array
@@ -97,18 +97,18 @@ missionItemUnpack :: Def ('[ Ref s1 (Struct "mission_item_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
 missionItemUnpack = proc "mavlink_mission_item_unpack" $ \ msg buf -> body $ do
-  store (msg ~> param1) =<< call unpack buf 0
-  store (msg ~> param2) =<< call unpack buf 4
-  store (msg ~> param3) =<< call unpack buf 8
-  store (msg ~> param4) =<< call unpack buf 12
-  store (msg ~> x) =<< call unpack buf 16
-  store (msg ~> y) =<< call unpack buf 20
-  store (msg ~> z) =<< call unpack buf 24
-  store (msg ~> mission_item_seq) =<< call unpack buf 28
-  store (msg ~> command) =<< call unpack buf 30
-  store (msg ~> target_system) =<< call unpack buf 32
-  store (msg ~> target_component) =<< call unpack buf 33
-  store (msg ~> frame) =<< call unpack buf 34
-  store (msg ~> current) =<< call unpack buf 35
-  store (msg ~> autocontinue) =<< call unpack buf 36
+  store (msg ~> param1) =<< unpack buf 0
+  store (msg ~> param2) =<< unpack buf 4
+  store (msg ~> param3) =<< unpack buf 8
+  store (msg ~> param4) =<< unpack buf 12
+  store (msg ~> x) =<< unpack buf 16
+  store (msg ~> y) =<< unpack buf 20
+  store (msg ~> z) =<< unpack buf 24
+  store (msg ~> mission_item_seq) =<< unpack buf 28
+  store (msg ~> command) =<< unpack buf 30
+  store (msg ~> target_system) =<< unpack buf 32
+  store (msg ~> target_component) =<< unpack buf 33
+  store (msg ~> frame) =<< unpack buf 34
+  store (msg ~> current) =<< unpack buf 35
+  store (msg ~> autocontinue) =<< unpack buf 36
 

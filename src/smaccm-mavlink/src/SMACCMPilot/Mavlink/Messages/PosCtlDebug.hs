@@ -10,7 +10,7 @@
 
 module SMACCMPilot.Mavlink.Messages.PosCtlDebug where
 
-import SMACCMPilot.Mavlink.Pack
+import Ivory.Serialize
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
@@ -25,7 +25,7 @@ posCtlDebugCrcExtra = 23
 
 posCtlDebugModule :: Module
 posCtlDebugModule = package "mavlink_pos_ctl_debug_msg" $ do
-  depend packModule
+  depend serializeModule
   depend mavlinkSendModule
   incl mkPosCtlDebugSender
   incl posCtlDebugUnpack
@@ -62,21 +62,21 @@ mkPosCtlDebugSender =
   $ do
   arr <- local (iarray [] :: Init (Array 60 (Stored Uint8)))
   let buf = toCArray arr
-  call_ pack buf 0 =<< deref (msg ~> x_vel_setpt)
-  call_ pack buf 4 =<< deref (msg ~> y_vel_setpt)
-  call_ pack buf 8 =<< deref (msg ~> head_setpt)
-  call_ pack buf 12 =<< deref (msg ~> lat_setpt)
-  call_ pack buf 16 =<< deref (msg ~> lon_setpt)
-  call_ pack buf 20 =<< deref (msg ~> x_deviation)
-  call_ pack buf 24 =<< deref (msg ~> y_deviation)
-  call_ pack buf 28 =<< deref (msg ~> x_vel_est)
-  call_ pack buf 32 =<< deref (msg ~> x_vel_p)
-  call_ pack buf 36 =<< deref (msg ~> x_vel_i)
-  call_ pack buf 40 =<< deref (msg ~> x_vel_d)
-  call_ pack buf 44 =<< deref (msg ~> y_vel_est)
-  call_ pack buf 48 =<< deref (msg ~> y_vel_p)
-  call_ pack buf 52 =<< deref (msg ~> y_vel_i)
-  call_ pack buf 56 =<< deref (msg ~> y_vel_d)
+  pack buf 0 =<< deref (msg ~> x_vel_setpt)
+  pack buf 4 =<< deref (msg ~> y_vel_setpt)
+  pack buf 8 =<< deref (msg ~> head_setpt)
+  pack buf 12 =<< deref (msg ~> lat_setpt)
+  pack buf 16 =<< deref (msg ~> lon_setpt)
+  pack buf 20 =<< deref (msg ~> x_deviation)
+  pack buf 24 =<< deref (msg ~> y_deviation)
+  pack buf 28 =<< deref (msg ~> x_vel_est)
+  pack buf 32 =<< deref (msg ~> x_vel_p)
+  pack buf 36 =<< deref (msg ~> x_vel_i)
+  pack buf 40 =<< deref (msg ~> x_vel_d)
+  pack buf 44 =<< deref (msg ~> y_vel_est)
+  pack buf 48 =<< deref (msg ~> y_vel_p)
+  pack buf 52 =<< deref (msg ~> y_vel_i)
+  pack buf 56 =<< deref (msg ~> y_vel_d)
   -- 6: header len, 2: CRC len
   let usedLen    = 6 + 60 + 2 :: Integer
   let sendArr    = sendStruct ~> mav_array
@@ -99,19 +99,19 @@ posCtlDebugUnpack :: Def ('[ Ref s1 (Struct "pos_ctl_debug_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
 posCtlDebugUnpack = proc "mavlink_pos_ctl_debug_unpack" $ \ msg buf -> body $ do
-  store (msg ~> x_vel_setpt) =<< call unpack buf 0
-  store (msg ~> y_vel_setpt) =<< call unpack buf 4
-  store (msg ~> head_setpt) =<< call unpack buf 8
-  store (msg ~> lat_setpt) =<< call unpack buf 12
-  store (msg ~> lon_setpt) =<< call unpack buf 16
-  store (msg ~> x_deviation) =<< call unpack buf 20
-  store (msg ~> y_deviation) =<< call unpack buf 24
-  store (msg ~> x_vel_est) =<< call unpack buf 28
-  store (msg ~> x_vel_p) =<< call unpack buf 32
-  store (msg ~> x_vel_i) =<< call unpack buf 36
-  store (msg ~> x_vel_d) =<< call unpack buf 40
-  store (msg ~> y_vel_est) =<< call unpack buf 44
-  store (msg ~> y_vel_p) =<< call unpack buf 48
-  store (msg ~> y_vel_i) =<< call unpack buf 52
-  store (msg ~> y_vel_d) =<< call unpack buf 56
+  store (msg ~> x_vel_setpt) =<< unpack buf 0
+  store (msg ~> y_vel_setpt) =<< unpack buf 4
+  store (msg ~> head_setpt) =<< unpack buf 8
+  store (msg ~> lat_setpt) =<< unpack buf 12
+  store (msg ~> lon_setpt) =<< unpack buf 16
+  store (msg ~> x_deviation) =<< unpack buf 20
+  store (msg ~> y_deviation) =<< unpack buf 24
+  store (msg ~> x_vel_est) =<< unpack buf 28
+  store (msg ~> x_vel_p) =<< unpack buf 32
+  store (msg ~> x_vel_i) =<< unpack buf 36
+  store (msg ~> x_vel_d) =<< unpack buf 40
+  store (msg ~> y_vel_est) =<< unpack buf 44
+  store (msg ~> y_vel_p) =<< unpack buf 48
+  store (msg ~> y_vel_i) =<< unpack buf 52
+  store (msg ~> y_vel_d) =<< unpack buf 56
 

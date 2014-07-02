@@ -10,7 +10,7 @@
 
 module SMACCMPilot.Mavlink.Messages.Debug where
 
-import SMACCMPilot.Mavlink.Pack
+import Ivory.Serialize
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
@@ -25,7 +25,7 @@ debugCrcExtra = 46
 
 debugModule :: Module
 debugModule = package "mavlink_debug_msg" $ do
-  depend packModule
+  depend serializeModule
   depend mavlinkSendModule
   incl mkDebugSender
   incl debugUnpack
@@ -50,9 +50,9 @@ mkDebugSender =
   $ do
   arr <- local (iarray [] :: Init (Array 9 (Stored Uint8)))
   let buf = toCArray arr
-  call_ pack buf 0 =<< deref (msg ~> time_boot_ms)
-  call_ pack buf 4 =<< deref (msg ~> value)
-  call_ pack buf 8 =<< deref (msg ~> ind)
+  pack buf 0 =<< deref (msg ~> time_boot_ms)
+  pack buf 4 =<< deref (msg ~> value)
+  pack buf 8 =<< deref (msg ~> ind)
   -- 6: header len, 2: CRC len
   let usedLen    = 6 + 9 + 2 :: Integer
   let sendArr    = sendStruct ~> mav_array
@@ -75,7 +75,7 @@ debugUnpack :: Def ('[ Ref s1 (Struct "debug_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
 debugUnpack = proc "mavlink_debug_unpack" $ \ msg buf -> body $ do
-  store (msg ~> time_boot_ms) =<< call unpack buf 0
-  store (msg ~> value) =<< call unpack buf 4
-  store (msg ~> ind) =<< call unpack buf 8
+  store (msg ~> time_boot_ms) =<< unpack buf 0
+  store (msg ~> value) =<< unpack buf 4
+  store (msg ~> ind) =<< unpack buf 8
 

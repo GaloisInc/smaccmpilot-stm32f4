@@ -10,7 +10,7 @@
 
 module SMACCMPilot.Mavlink.Messages.Heartbeat where
 
-import SMACCMPilot.Mavlink.Pack
+import Ivory.Serialize
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
@@ -25,7 +25,7 @@ heartbeatCrcExtra = 50
 
 heartbeatModule :: Module
 heartbeatModule = package "mavlink_heartbeat_msg" $ do
-  depend packModule
+  depend serializeModule
   depend mavlinkSendModule
   incl mkHeartbeatSender
   incl heartbeatUnpack
@@ -53,12 +53,12 @@ mkHeartbeatSender =
   $ do
   arr <- local (iarray [] :: Init (Array 9 (Stored Uint8)))
   let buf = toCArray arr
-  call_ pack buf 0 =<< deref (msg ~> custom_mode)
-  call_ pack buf 4 =<< deref (msg ~> mavtype)
-  call_ pack buf 5 =<< deref (msg ~> autopilot)
-  call_ pack buf 6 =<< deref (msg ~> base_mode)
-  call_ pack buf 7 =<< deref (msg ~> system_status)
-  call_ pack buf 8 =<< deref (msg ~> mavlink_version)
+  pack buf 0 =<< deref (msg ~> custom_mode)
+  pack buf 4 =<< deref (msg ~> mavtype)
+  pack buf 5 =<< deref (msg ~> autopilot)
+  pack buf 6 =<< deref (msg ~> base_mode)
+  pack buf 7 =<< deref (msg ~> system_status)
+  pack buf 8 =<< deref (msg ~> mavlink_version)
   -- 6: header len, 2: CRC len
   let usedLen    = 6 + 9 + 2 :: Integer
   let sendArr    = sendStruct ~> mav_array
@@ -81,10 +81,10 @@ heartbeatUnpack :: Def ('[ Ref s1 (Struct "heartbeat_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
 heartbeatUnpack = proc "mavlink_heartbeat_unpack" $ \ msg buf -> body $ do
-  store (msg ~> custom_mode) =<< call unpack buf 0
-  store (msg ~> mavtype) =<< call unpack buf 4
-  store (msg ~> autopilot) =<< call unpack buf 5
-  store (msg ~> base_mode) =<< call unpack buf 6
-  store (msg ~> system_status) =<< call unpack buf 7
-  store (msg ~> mavlink_version) =<< call unpack buf 8
+  store (msg ~> custom_mode) =<< unpack buf 0
+  store (msg ~> mavtype) =<< unpack buf 4
+  store (msg ~> autopilot) =<< unpack buf 5
+  store (msg ~> base_mode) =<< unpack buf 6
+  store (msg ~> system_status) =<< unpack buf 7
+  store (msg ~> mavlink_version) =<< unpack buf 8
 

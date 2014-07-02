@@ -10,7 +10,7 @@
 
 module SMACCMPilot.Mavlink.Messages.RequestDataStream where
 
-import SMACCMPilot.Mavlink.Pack
+import Ivory.Serialize
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
@@ -25,7 +25,7 @@ requestDataStreamCrcExtra = 148
 
 requestDataStreamModule :: Module
 requestDataStreamModule = package "mavlink_request_data_stream_msg" $ do
-  depend packModule
+  depend serializeModule
   depend mavlinkSendModule
   incl mkRequestDataStreamSender
   incl requestDataStreamUnpack
@@ -52,11 +52,11 @@ mkRequestDataStreamSender =
   $ do
   arr <- local (iarray [] :: Init (Array 6 (Stored Uint8)))
   let buf = toCArray arr
-  call_ pack buf 0 =<< deref (msg ~> req_message_rate)
-  call_ pack buf 2 =<< deref (msg ~> target_system)
-  call_ pack buf 3 =<< deref (msg ~> target_component)
-  call_ pack buf 4 =<< deref (msg ~> req_stream_id)
-  call_ pack buf 5 =<< deref (msg ~> start_stop)
+  pack buf 0 =<< deref (msg ~> req_message_rate)
+  pack buf 2 =<< deref (msg ~> target_system)
+  pack buf 3 =<< deref (msg ~> target_component)
+  pack buf 4 =<< deref (msg ~> req_stream_id)
+  pack buf 5 =<< deref (msg ~> start_stop)
   -- 6: header len, 2: CRC len
   let usedLen    = 6 + 6 + 2 :: Integer
   let sendArr    = sendStruct ~> mav_array
@@ -79,9 +79,9 @@ requestDataStreamUnpack :: Def ('[ Ref s1 (Struct "request_data_stream_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
 requestDataStreamUnpack = proc "mavlink_request_data_stream_unpack" $ \ msg buf -> body $ do
-  store (msg ~> req_message_rate) =<< call unpack buf 0
-  store (msg ~> target_system) =<< call unpack buf 2
-  store (msg ~> target_component) =<< call unpack buf 3
-  store (msg ~> req_stream_id) =<< call unpack buf 4
-  store (msg ~> start_stop) =<< call unpack buf 5
+  store (msg ~> req_message_rate) =<< unpack buf 0
+  store (msg ~> target_system) =<< unpack buf 2
+  store (msg ~> target_component) =<< unpack buf 3
+  store (msg ~> req_stream_id) =<< unpack buf 4
+  store (msg ~> start_stop) =<< unpack buf 5
 

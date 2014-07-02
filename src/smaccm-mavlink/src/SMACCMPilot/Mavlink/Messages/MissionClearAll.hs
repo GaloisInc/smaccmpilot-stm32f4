@@ -10,7 +10,7 @@
 
 module SMACCMPilot.Mavlink.Messages.MissionClearAll where
 
-import SMACCMPilot.Mavlink.Pack
+import Ivory.Serialize
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
@@ -25,7 +25,7 @@ missionClearAllCrcExtra = 232
 
 missionClearAllModule :: Module
 missionClearAllModule = package "mavlink_mission_clear_all_msg" $ do
-  depend packModule
+  depend serializeModule
   depend mavlinkSendModule
   incl mkMissionClearAllSender
   incl missionClearAllUnpack
@@ -49,8 +49,8 @@ mkMissionClearAllSender =
   $ do
   arr <- local (iarray [] :: Init (Array 2 (Stored Uint8)))
   let buf = toCArray arr
-  call_ pack buf 0 =<< deref (msg ~> target_system)
-  call_ pack buf 1 =<< deref (msg ~> target_component)
+  pack buf 0 =<< deref (msg ~> target_system)
+  pack buf 1 =<< deref (msg ~> target_component)
   -- 6: header len, 2: CRC len
   let usedLen    = 6 + 2 + 2 :: Integer
   let sendArr    = sendStruct ~> mav_array
@@ -73,6 +73,6 @@ missionClearAllUnpack :: Def ('[ Ref s1 (Struct "mission_clear_all_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
 missionClearAllUnpack = proc "mavlink_mission_clear_all_unpack" $ \ msg buf -> body $ do
-  store (msg ~> target_system) =<< call unpack buf 0
-  store (msg ~> target_component) =<< call unpack buf 1
+  store (msg ~> target_system) =<< unpack buf 0
+  store (msg ~> target_component) =<< unpack buf 1
 

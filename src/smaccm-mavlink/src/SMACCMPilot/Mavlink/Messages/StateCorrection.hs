@@ -10,7 +10,7 @@
 
 module SMACCMPilot.Mavlink.Messages.StateCorrection where
 
-import SMACCMPilot.Mavlink.Pack
+import Ivory.Serialize
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
@@ -25,7 +25,7 @@ stateCorrectionCrcExtra = 130
 
 stateCorrectionModule :: Module
 stateCorrectionModule = package "mavlink_state_correction_msg" $ do
-  depend packModule
+  depend serializeModule
   depend mavlinkSendModule
   incl mkStateCorrectionSender
   incl stateCorrectionUnpack
@@ -56,15 +56,15 @@ mkStateCorrectionSender =
   $ do
   arr <- local (iarray [] :: Init (Array 36 (Stored Uint8)))
   let buf = toCArray arr
-  call_ pack buf 0 =<< deref (msg ~> xErr)
-  call_ pack buf 4 =<< deref (msg ~> yErr)
-  call_ pack buf 8 =<< deref (msg ~> zErr)
-  call_ pack buf 12 =<< deref (msg ~> rollErr)
-  call_ pack buf 16 =<< deref (msg ~> pitchErr)
-  call_ pack buf 20 =<< deref (msg ~> yawErr)
-  call_ pack buf 24 =<< deref (msg ~> vxErr)
-  call_ pack buf 28 =<< deref (msg ~> vyErr)
-  call_ pack buf 32 =<< deref (msg ~> vzErr)
+  pack buf 0 =<< deref (msg ~> xErr)
+  pack buf 4 =<< deref (msg ~> yErr)
+  pack buf 8 =<< deref (msg ~> zErr)
+  pack buf 12 =<< deref (msg ~> rollErr)
+  pack buf 16 =<< deref (msg ~> pitchErr)
+  pack buf 20 =<< deref (msg ~> yawErr)
+  pack buf 24 =<< deref (msg ~> vxErr)
+  pack buf 28 =<< deref (msg ~> vyErr)
+  pack buf 32 =<< deref (msg ~> vzErr)
   -- 6: header len, 2: CRC len
   let usedLen    = 6 + 36 + 2 :: Integer
   let sendArr    = sendStruct ~> mav_array
@@ -87,13 +87,13 @@ stateCorrectionUnpack :: Def ('[ Ref s1 (Struct "state_correction_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
 stateCorrectionUnpack = proc "mavlink_state_correction_unpack" $ \ msg buf -> body $ do
-  store (msg ~> xErr) =<< call unpack buf 0
-  store (msg ~> yErr) =<< call unpack buf 4
-  store (msg ~> zErr) =<< call unpack buf 8
-  store (msg ~> rollErr) =<< call unpack buf 12
-  store (msg ~> pitchErr) =<< call unpack buf 16
-  store (msg ~> yawErr) =<< call unpack buf 20
-  store (msg ~> vxErr) =<< call unpack buf 24
-  store (msg ~> vyErr) =<< call unpack buf 28
-  store (msg ~> vzErr) =<< call unpack buf 32
+  store (msg ~> xErr) =<< unpack buf 0
+  store (msg ~> yErr) =<< unpack buf 4
+  store (msg ~> zErr) =<< unpack buf 8
+  store (msg ~> rollErr) =<< unpack buf 12
+  store (msg ~> pitchErr) =<< unpack buf 16
+  store (msg ~> yawErr) =<< unpack buf 20
+  store (msg ~> vxErr) =<< unpack buf 24
+  store (msg ~> vyErr) =<< unpack buf 28
+  store (msg ~> vzErr) =<< unpack buf 32
 

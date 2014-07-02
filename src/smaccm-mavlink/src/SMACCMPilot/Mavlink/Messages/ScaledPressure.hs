@@ -10,7 +10,7 @@
 
 module SMACCMPilot.Mavlink.Messages.ScaledPressure where
 
-import SMACCMPilot.Mavlink.Pack
+import Ivory.Serialize
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
@@ -25,7 +25,7 @@ scaledPressureCrcExtra = 115
 
 scaledPressureModule :: Module
 scaledPressureModule = package "mavlink_scaled_pressure_msg" $ do
-  depend packModule
+  depend serializeModule
   depend mavlinkSendModule
   incl mkScaledPressureSender
   incl scaledPressureUnpack
@@ -51,10 +51,10 @@ mkScaledPressureSender =
   $ do
   arr <- local (iarray [] :: Init (Array 14 (Stored Uint8)))
   let buf = toCArray arr
-  call_ pack buf 0 =<< deref (msg ~> time_boot_ms)
-  call_ pack buf 4 =<< deref (msg ~> press_abs)
-  call_ pack buf 8 =<< deref (msg ~> press_diff)
-  call_ pack buf 12 =<< deref (msg ~> temperature)
+  pack buf 0 =<< deref (msg ~> time_boot_ms)
+  pack buf 4 =<< deref (msg ~> press_abs)
+  pack buf 8 =<< deref (msg ~> press_diff)
+  pack buf 12 =<< deref (msg ~> temperature)
   -- 6: header len, 2: CRC len
   let usedLen    = 6 + 14 + 2 :: Integer
   let sendArr    = sendStruct ~> mav_array
@@ -77,8 +77,8 @@ scaledPressureUnpack :: Def ('[ Ref s1 (Struct "scaled_pressure_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
 scaledPressureUnpack = proc "mavlink_scaled_pressure_unpack" $ \ msg buf -> body $ do
-  store (msg ~> time_boot_ms) =<< call unpack buf 0
-  store (msg ~> press_abs) =<< call unpack buf 4
-  store (msg ~> press_diff) =<< call unpack buf 8
-  store (msg ~> temperature) =<< call unpack buf 12
+  store (msg ~> time_boot_ms) =<< unpack buf 0
+  store (msg ~> press_abs) =<< unpack buf 4
+  store (msg ~> press_diff) =<< unpack buf 8
+  store (msg ~> temperature) =<< unpack buf 12
 

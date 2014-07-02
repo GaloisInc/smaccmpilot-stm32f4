@@ -10,7 +10,7 @@
 
 module SMACCMPilot.Mavlink.Messages.AuthKey where
 
-import SMACCMPilot.Mavlink.Pack
+import Ivory.Serialize
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
@@ -25,7 +25,7 @@ authKeyCrcExtra = 119
 
 authKeyModule :: Module
 authKeyModule = package "mavlink_auth_key_msg" $ do
-  depend packModule
+  depend serializeModule
   depend mavlinkSendModule
   incl mkAuthKeySender
   incl authKeyUnpack

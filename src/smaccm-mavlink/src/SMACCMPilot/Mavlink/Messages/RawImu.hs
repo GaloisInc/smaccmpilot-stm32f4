@@ -10,7 +10,7 @@
 
 module SMACCMPilot.Mavlink.Messages.RawImu where
 
-import SMACCMPilot.Mavlink.Pack
+import Ivory.Serialize
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
@@ -25,7 +25,7 @@ rawImuCrcExtra = 144
 
 rawImuModule :: Module
 rawImuModule = package "mavlink_raw_imu_msg" $ do
-  depend packModule
+  depend serializeModule
   depend mavlinkSendModule
   incl mkRawImuSender
   incl rawImuUnpack
@@ -57,16 +57,16 @@ mkRawImuSender =
   $ do
   arr <- local (iarray [] :: Init (Array 26 (Stored Uint8)))
   let buf = toCArray arr
-  call_ pack buf 0 =<< deref (msg ~> time_usec)
-  call_ pack buf 8 =<< deref (msg ~> xacc)
-  call_ pack buf 10 =<< deref (msg ~> yacc)
-  call_ pack buf 12 =<< deref (msg ~> zacc)
-  call_ pack buf 14 =<< deref (msg ~> xgyro)
-  call_ pack buf 16 =<< deref (msg ~> ygyro)
-  call_ pack buf 18 =<< deref (msg ~> zgyro)
-  call_ pack buf 20 =<< deref (msg ~> xmag)
-  call_ pack buf 22 =<< deref (msg ~> ymag)
-  call_ pack buf 24 =<< deref (msg ~> zmag)
+  pack buf 0 =<< deref (msg ~> time_usec)
+  pack buf 8 =<< deref (msg ~> xacc)
+  pack buf 10 =<< deref (msg ~> yacc)
+  pack buf 12 =<< deref (msg ~> zacc)
+  pack buf 14 =<< deref (msg ~> xgyro)
+  pack buf 16 =<< deref (msg ~> ygyro)
+  pack buf 18 =<< deref (msg ~> zgyro)
+  pack buf 20 =<< deref (msg ~> xmag)
+  pack buf 22 =<< deref (msg ~> ymag)
+  pack buf 24 =<< deref (msg ~> zmag)
   -- 6: header len, 2: CRC len
   let usedLen    = 6 + 26 + 2 :: Integer
   let sendArr    = sendStruct ~> mav_array
@@ -89,14 +89,14 @@ rawImuUnpack :: Def ('[ Ref s1 (Struct "raw_imu_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
 rawImuUnpack = proc "mavlink_raw_imu_unpack" $ \ msg buf -> body $ do
-  store (msg ~> time_usec) =<< call unpack buf 0
-  store (msg ~> xacc) =<< call unpack buf 8
-  store (msg ~> yacc) =<< call unpack buf 10
-  store (msg ~> zacc) =<< call unpack buf 12
-  store (msg ~> xgyro) =<< call unpack buf 14
-  store (msg ~> ygyro) =<< call unpack buf 16
-  store (msg ~> zgyro) =<< call unpack buf 18
-  store (msg ~> xmag) =<< call unpack buf 20
-  store (msg ~> ymag) =<< call unpack buf 22
-  store (msg ~> zmag) =<< call unpack buf 24
+  store (msg ~> time_usec) =<< unpack buf 0
+  store (msg ~> xacc) =<< unpack buf 8
+  store (msg ~> yacc) =<< unpack buf 10
+  store (msg ~> zacc) =<< unpack buf 12
+  store (msg ~> xgyro) =<< unpack buf 14
+  store (msg ~> ygyro) =<< unpack buf 16
+  store (msg ~> zgyro) =<< unpack buf 18
+  store (msg ~> xmag) =<< unpack buf 20
+  store (msg ~> ymag) =<< unpack buf 22
+  store (msg ~> zmag) =<< unpack buf 24
 

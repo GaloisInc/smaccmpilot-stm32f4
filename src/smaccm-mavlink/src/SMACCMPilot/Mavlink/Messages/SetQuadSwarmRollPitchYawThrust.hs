@@ -10,7 +10,7 @@
 
 module SMACCMPilot.Mavlink.Messages.SetQuadSwarmRollPitchYawThrust where
 
-import SMACCMPilot.Mavlink.Pack
+import Ivory.Serialize
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
@@ -25,7 +25,7 @@ setQuadSwarmRollPitchYawThrustCrcExtra = 240
 
 setQuadSwarmRollPitchYawThrustModule :: Module
 setQuadSwarmRollPitchYawThrustModule = package "mavlink_set_quad_swarm_roll_pitch_yaw_thrust_msg" $ do
-  depend packModule
+  depend serializeModule
   depend mavlinkSendModule
   incl mkSetQuadSwarmRollPitchYawThrustSender
   incl setQuadSwarmRollPitchYawThrustUnpack
@@ -53,8 +53,8 @@ mkSetQuadSwarmRollPitchYawThrustSender =
   $ do
   arr <- local (iarray [] :: Init (Array 34 (Stored Uint8)))
   let buf = toCArray arr
-  call_ pack buf 32 =<< deref (msg ~> group)
-  call_ pack buf 33 =<< deref (msg ~> mode)
+  pack buf 32 =<< deref (msg ~> group)
+  pack buf 33 =<< deref (msg ~> mode)
   arrayPack buf 0 (msg ~> roll)
   arrayPack buf 8 (msg ~> pitch)
   arrayPack buf 16 (msg ~> yaw)
@@ -81,8 +81,8 @@ setQuadSwarmRollPitchYawThrustUnpack :: Def ('[ Ref s1 (Struct "set_quad_swarm_r
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
 setQuadSwarmRollPitchYawThrustUnpack = proc "mavlink_set_quad_swarm_roll_pitch_yaw_thrust_unpack" $ \ msg buf -> body $ do
-  store (msg ~> group) =<< call unpack buf 32
-  store (msg ~> mode) =<< call unpack buf 33
+  store (msg ~> group) =<< unpack buf 32
+  store (msg ~> mode) =<< unpack buf 33
   arrayUnpack buf 0 (msg ~> roll)
   arrayUnpack buf 8 (msg ~> pitch)
   arrayUnpack buf 16 (msg ~> yaw)

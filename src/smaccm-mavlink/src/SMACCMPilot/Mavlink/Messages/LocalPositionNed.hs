@@ -10,7 +10,7 @@
 
 module SMACCMPilot.Mavlink.Messages.LocalPositionNed where
 
-import SMACCMPilot.Mavlink.Pack
+import Ivory.Serialize
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
@@ -25,7 +25,7 @@ localPositionNedCrcExtra = 185
 
 localPositionNedModule :: Module
 localPositionNedModule = package "mavlink_local_position_ned_msg" $ do
-  depend packModule
+  depend serializeModule
   depend mavlinkSendModule
   incl mkLocalPositionNedSender
   incl localPositionNedUnpack
@@ -54,13 +54,13 @@ mkLocalPositionNedSender =
   $ do
   arr <- local (iarray [] :: Init (Array 28 (Stored Uint8)))
   let buf = toCArray arr
-  call_ pack buf 0 =<< deref (msg ~> time_boot_ms)
-  call_ pack buf 4 =<< deref (msg ~> x)
-  call_ pack buf 8 =<< deref (msg ~> y)
-  call_ pack buf 12 =<< deref (msg ~> z)
-  call_ pack buf 16 =<< deref (msg ~> vx)
-  call_ pack buf 20 =<< deref (msg ~> vy)
-  call_ pack buf 24 =<< deref (msg ~> vz)
+  pack buf 0 =<< deref (msg ~> time_boot_ms)
+  pack buf 4 =<< deref (msg ~> x)
+  pack buf 8 =<< deref (msg ~> y)
+  pack buf 12 =<< deref (msg ~> z)
+  pack buf 16 =<< deref (msg ~> vx)
+  pack buf 20 =<< deref (msg ~> vy)
+  pack buf 24 =<< deref (msg ~> vz)
   -- 6: header len, 2: CRC len
   let usedLen    = 6 + 28 + 2 :: Integer
   let sendArr    = sendStruct ~> mav_array
@@ -83,11 +83,11 @@ localPositionNedUnpack :: Def ('[ Ref s1 (Struct "local_position_ned_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
 localPositionNedUnpack = proc "mavlink_local_position_ned_unpack" $ \ msg buf -> body $ do
-  store (msg ~> time_boot_ms) =<< call unpack buf 0
-  store (msg ~> x) =<< call unpack buf 4
-  store (msg ~> y) =<< call unpack buf 8
-  store (msg ~> z) =<< call unpack buf 12
-  store (msg ~> vx) =<< call unpack buf 16
-  store (msg ~> vy) =<< call unpack buf 20
-  store (msg ~> vz) =<< call unpack buf 24
+  store (msg ~> time_boot_ms) =<< unpack buf 0
+  store (msg ~> x) =<< unpack buf 4
+  store (msg ~> y) =<< unpack buf 8
+  store (msg ~> z) =<< unpack buf 12
+  store (msg ~> vx) =<< unpack buf 16
+  store (msg ~> vy) =<< unpack buf 20
+  store (msg ~> vz) =<< unpack buf 24
 

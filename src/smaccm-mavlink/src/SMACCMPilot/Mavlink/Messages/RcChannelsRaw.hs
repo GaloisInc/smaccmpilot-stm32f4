@@ -10,7 +10,7 @@
 
 module SMACCMPilot.Mavlink.Messages.RcChannelsRaw where
 
-import SMACCMPilot.Mavlink.Pack
+import Ivory.Serialize
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
@@ -25,7 +25,7 @@ rcChannelsRawCrcExtra = 244
 
 rcChannelsRawModule :: Module
 rcChannelsRawModule = package "mavlink_rc_channels_raw_msg" $ do
-  depend packModule
+  depend serializeModule
   depend mavlinkSendModule
   incl mkRcChannelsRawSender
   incl rcChannelsRawUnpack
@@ -58,17 +58,17 @@ mkRcChannelsRawSender =
   $ do
   arr <- local (iarray [] :: Init (Array 22 (Stored Uint8)))
   let buf = toCArray arr
-  call_ pack buf 0 =<< deref (msg ~> time_boot_ms)
-  call_ pack buf 4 =<< deref (msg ~> chan1_raw)
-  call_ pack buf 6 =<< deref (msg ~> chan2_raw)
-  call_ pack buf 8 =<< deref (msg ~> chan3_raw)
-  call_ pack buf 10 =<< deref (msg ~> chan4_raw)
-  call_ pack buf 12 =<< deref (msg ~> chan5_raw)
-  call_ pack buf 14 =<< deref (msg ~> chan6_raw)
-  call_ pack buf 16 =<< deref (msg ~> chan7_raw)
-  call_ pack buf 18 =<< deref (msg ~> chan8_raw)
-  call_ pack buf 20 =<< deref (msg ~> port)
-  call_ pack buf 21 =<< deref (msg ~> rssi)
+  pack buf 0 =<< deref (msg ~> time_boot_ms)
+  pack buf 4 =<< deref (msg ~> chan1_raw)
+  pack buf 6 =<< deref (msg ~> chan2_raw)
+  pack buf 8 =<< deref (msg ~> chan3_raw)
+  pack buf 10 =<< deref (msg ~> chan4_raw)
+  pack buf 12 =<< deref (msg ~> chan5_raw)
+  pack buf 14 =<< deref (msg ~> chan6_raw)
+  pack buf 16 =<< deref (msg ~> chan7_raw)
+  pack buf 18 =<< deref (msg ~> chan8_raw)
+  pack buf 20 =<< deref (msg ~> port)
+  pack buf 21 =<< deref (msg ~> rssi)
   -- 6: header len, 2: CRC len
   let usedLen    = 6 + 22 + 2 :: Integer
   let sendArr    = sendStruct ~> mav_array
@@ -91,15 +91,15 @@ rcChannelsRawUnpack :: Def ('[ Ref s1 (Struct "rc_channels_raw_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
 rcChannelsRawUnpack = proc "mavlink_rc_channels_raw_unpack" $ \ msg buf -> body $ do
-  store (msg ~> time_boot_ms) =<< call unpack buf 0
-  store (msg ~> chan1_raw) =<< call unpack buf 4
-  store (msg ~> chan2_raw) =<< call unpack buf 6
-  store (msg ~> chan3_raw) =<< call unpack buf 8
-  store (msg ~> chan4_raw) =<< call unpack buf 10
-  store (msg ~> chan5_raw) =<< call unpack buf 12
-  store (msg ~> chan6_raw) =<< call unpack buf 14
-  store (msg ~> chan7_raw) =<< call unpack buf 16
-  store (msg ~> chan8_raw) =<< call unpack buf 18
-  store (msg ~> port) =<< call unpack buf 20
-  store (msg ~> rssi) =<< call unpack buf 21
+  store (msg ~> time_boot_ms) =<< unpack buf 0
+  store (msg ~> chan1_raw) =<< unpack buf 4
+  store (msg ~> chan2_raw) =<< unpack buf 6
+  store (msg ~> chan3_raw) =<< unpack buf 8
+  store (msg ~> chan4_raw) =<< unpack buf 10
+  store (msg ~> chan5_raw) =<< unpack buf 12
+  store (msg ~> chan6_raw) =<< unpack buf 14
+  store (msg ~> chan7_raw) =<< unpack buf 16
+  store (msg ~> chan8_raw) =<< unpack buf 18
+  store (msg ~> port) =<< unpack buf 20
+  store (msg ~> rssi) =<< unpack buf 21
 

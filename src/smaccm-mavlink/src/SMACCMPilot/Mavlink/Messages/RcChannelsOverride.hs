@@ -10,7 +10,7 @@
 
 module SMACCMPilot.Mavlink.Messages.RcChannelsOverride where
 
-import SMACCMPilot.Mavlink.Pack
+import Ivory.Serialize
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
@@ -25,7 +25,7 @@ rcChannelsOverrideCrcExtra = 124
 
 rcChannelsOverrideModule :: Module
 rcChannelsOverrideModule = package "mavlink_rc_channels_override_msg" $ do
-  depend packModule
+  depend serializeModule
   depend mavlinkSendModule
   incl mkRcChannelsOverrideSender
   incl rcChannelsOverrideUnpack
@@ -57,16 +57,16 @@ mkRcChannelsOverrideSender =
   $ do
   arr <- local (iarray [] :: Init (Array 18 (Stored Uint8)))
   let buf = toCArray arr
-  call_ pack buf 0 =<< deref (msg ~> chan1_raw)
-  call_ pack buf 2 =<< deref (msg ~> chan2_raw)
-  call_ pack buf 4 =<< deref (msg ~> chan3_raw)
-  call_ pack buf 6 =<< deref (msg ~> chan4_raw)
-  call_ pack buf 8 =<< deref (msg ~> chan5_raw)
-  call_ pack buf 10 =<< deref (msg ~> chan6_raw)
-  call_ pack buf 12 =<< deref (msg ~> chan7_raw)
-  call_ pack buf 14 =<< deref (msg ~> chan8_raw)
-  call_ pack buf 16 =<< deref (msg ~> target_system)
-  call_ pack buf 17 =<< deref (msg ~> target_component)
+  pack buf 0 =<< deref (msg ~> chan1_raw)
+  pack buf 2 =<< deref (msg ~> chan2_raw)
+  pack buf 4 =<< deref (msg ~> chan3_raw)
+  pack buf 6 =<< deref (msg ~> chan4_raw)
+  pack buf 8 =<< deref (msg ~> chan5_raw)
+  pack buf 10 =<< deref (msg ~> chan6_raw)
+  pack buf 12 =<< deref (msg ~> chan7_raw)
+  pack buf 14 =<< deref (msg ~> chan8_raw)
+  pack buf 16 =<< deref (msg ~> target_system)
+  pack buf 17 =<< deref (msg ~> target_component)
   -- 6: header len, 2: CRC len
   let usedLen    = 6 + 18 + 2 :: Integer
   let sendArr    = sendStruct ~> mav_array
@@ -89,14 +89,14 @@ rcChannelsOverrideUnpack :: Def ('[ Ref s1 (Struct "rc_channels_override_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
 rcChannelsOverrideUnpack = proc "mavlink_rc_channels_override_unpack" $ \ msg buf -> body $ do
-  store (msg ~> chan1_raw) =<< call unpack buf 0
-  store (msg ~> chan2_raw) =<< call unpack buf 2
-  store (msg ~> chan3_raw) =<< call unpack buf 4
-  store (msg ~> chan4_raw) =<< call unpack buf 6
-  store (msg ~> chan5_raw) =<< call unpack buf 8
-  store (msg ~> chan6_raw) =<< call unpack buf 10
-  store (msg ~> chan7_raw) =<< call unpack buf 12
-  store (msg ~> chan8_raw) =<< call unpack buf 14
-  store (msg ~> target_system) =<< call unpack buf 16
-  store (msg ~> target_component) =<< call unpack buf 17
+  store (msg ~> chan1_raw) =<< unpack buf 0
+  store (msg ~> chan2_raw) =<< unpack buf 2
+  store (msg ~> chan3_raw) =<< unpack buf 4
+  store (msg ~> chan4_raw) =<< unpack buf 6
+  store (msg ~> chan5_raw) =<< unpack buf 8
+  store (msg ~> chan6_raw) =<< unpack buf 10
+  store (msg ~> chan7_raw) =<< unpack buf 12
+  store (msg ~> chan8_raw) =<< unpack buf 14
+  store (msg ~> target_system) =<< unpack buf 16
+  store (msg ~> target_component) =<< unpack buf 17
 

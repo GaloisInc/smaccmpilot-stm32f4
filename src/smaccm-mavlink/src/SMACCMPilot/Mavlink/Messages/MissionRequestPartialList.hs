@@ -10,7 +10,7 @@
 
 module SMACCMPilot.Mavlink.Messages.MissionRequestPartialList where
 
-import SMACCMPilot.Mavlink.Pack
+import Ivory.Serialize
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
@@ -25,7 +25,7 @@ missionRequestPartialListCrcExtra = 212
 
 missionRequestPartialListModule :: Module
 missionRequestPartialListModule = package "mavlink_mission_request_partial_list_msg" $ do
-  depend packModule
+  depend serializeModule
   depend mavlinkSendModule
   incl mkMissionRequestPartialListSender
   incl missionRequestPartialListUnpack
@@ -51,10 +51,10 @@ mkMissionRequestPartialListSender =
   $ do
   arr <- local (iarray [] :: Init (Array 6 (Stored Uint8)))
   let buf = toCArray arr
-  call_ pack buf 0 =<< deref (msg ~> start_index)
-  call_ pack buf 2 =<< deref (msg ~> end_index)
-  call_ pack buf 4 =<< deref (msg ~> target_system)
-  call_ pack buf 5 =<< deref (msg ~> target_component)
+  pack buf 0 =<< deref (msg ~> start_index)
+  pack buf 2 =<< deref (msg ~> end_index)
+  pack buf 4 =<< deref (msg ~> target_system)
+  pack buf 5 =<< deref (msg ~> target_component)
   -- 6: header len, 2: CRC len
   let usedLen    = 6 + 6 + 2 :: Integer
   let sendArr    = sendStruct ~> mav_array
@@ -77,8 +77,8 @@ missionRequestPartialListUnpack :: Def ('[ Ref s1 (Struct "mission_request_parti
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
 missionRequestPartialListUnpack = proc "mavlink_mission_request_partial_list_unpack" $ \ msg buf -> body $ do
-  store (msg ~> start_index) =<< call unpack buf 0
-  store (msg ~> end_index) =<< call unpack buf 2
-  store (msg ~> target_system) =<< call unpack buf 4
-  store (msg ~> target_component) =<< call unpack buf 5
+  store (msg ~> start_index) =<< unpack buf 0
+  store (msg ~> end_index) =<< unpack buf 2
+  store (msg ~> target_system) =<< unpack buf 4
+  store (msg ~> target_component) =<< unpack buf 5
 

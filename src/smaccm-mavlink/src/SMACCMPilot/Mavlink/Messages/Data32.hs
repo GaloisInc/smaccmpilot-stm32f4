@@ -10,7 +10,7 @@
 
 module SMACCMPilot.Mavlink.Messages.Data32 where
 
-import SMACCMPilot.Mavlink.Pack
+import Ivory.Serialize
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
@@ -25,7 +25,7 @@ data32CrcExtra = 240
 
 data32Module :: Module
 data32Module = package "mavlink_data32_msg" $ do
-  depend packModule
+  depend serializeModule
   depend mavlinkSendModule
   incl mkData32Sender
   incl data32Unpack
@@ -50,8 +50,8 @@ mkData32Sender =
   $ do
   arr <- local (iarray [] :: Init (Array 34 (Stored Uint8)))
   let buf = toCArray arr
-  call_ pack buf 0 =<< deref (msg ~> data32_type)
-  call_ pack buf 1 =<< deref (msg ~> len)
+  pack buf 0 =<< deref (msg ~> data32_type)
+  pack buf 1 =<< deref (msg ~> len)
   arrayPack buf 2 (msg ~> data32)
   -- 6: header len, 2: CRC len
   let usedLen    = 6 + 34 + 2 :: Integer
@@ -75,7 +75,7 @@ data32Unpack :: Def ('[ Ref s1 (Struct "data32_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
 data32Unpack = proc "mavlink_data32_unpack" $ \ msg buf -> body $ do
-  store (msg ~> data32_type) =<< call unpack buf 0
-  store (msg ~> len) =<< call unpack buf 1
+  store (msg ~> data32_type) =<< unpack buf 0
+  store (msg ~> len) =<< unpack buf 1
   arrayUnpack buf 2 (msg ~> data32)
 

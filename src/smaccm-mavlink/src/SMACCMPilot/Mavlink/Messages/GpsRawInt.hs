@@ -10,7 +10,7 @@
 
 module SMACCMPilot.Mavlink.Messages.GpsRawInt where
 
-import SMACCMPilot.Mavlink.Pack
+import Ivory.Serialize
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
@@ -25,7 +25,7 @@ gpsRawIntCrcExtra = 24
 
 gpsRawIntModule :: Module
 gpsRawIntModule = package "mavlink_gps_raw_int_msg" $ do
-  depend packModule
+  depend serializeModule
   depend mavlinkSendModule
   incl mkGpsRawIntSender
   incl gpsRawIntUnpack
@@ -57,16 +57,16 @@ mkGpsRawIntSender =
   $ do
   arr <- local (iarray [] :: Init (Array 30 (Stored Uint8)))
   let buf = toCArray arr
-  call_ pack buf 0 =<< deref (msg ~> time_usec)
-  call_ pack buf 8 =<< deref (msg ~> lat)
-  call_ pack buf 12 =<< deref (msg ~> lon)
-  call_ pack buf 16 =<< deref (msg ~> alt)
-  call_ pack buf 20 =<< deref (msg ~> eph)
-  call_ pack buf 22 =<< deref (msg ~> epv)
-  call_ pack buf 24 =<< deref (msg ~> vel)
-  call_ pack buf 26 =<< deref (msg ~> cog)
-  call_ pack buf 28 =<< deref (msg ~> fix_type)
-  call_ pack buf 29 =<< deref (msg ~> satellites_visible)
+  pack buf 0 =<< deref (msg ~> time_usec)
+  pack buf 8 =<< deref (msg ~> lat)
+  pack buf 12 =<< deref (msg ~> lon)
+  pack buf 16 =<< deref (msg ~> alt)
+  pack buf 20 =<< deref (msg ~> eph)
+  pack buf 22 =<< deref (msg ~> epv)
+  pack buf 24 =<< deref (msg ~> vel)
+  pack buf 26 =<< deref (msg ~> cog)
+  pack buf 28 =<< deref (msg ~> fix_type)
+  pack buf 29 =<< deref (msg ~> satellites_visible)
   -- 6: header len, 2: CRC len
   let usedLen    = 6 + 30 + 2 :: Integer
   let sendArr    = sendStruct ~> mav_array
@@ -89,14 +89,14 @@ gpsRawIntUnpack :: Def ('[ Ref s1 (Struct "gps_raw_int_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
 gpsRawIntUnpack = proc "mavlink_gps_raw_int_unpack" $ \ msg buf -> body $ do
-  store (msg ~> time_usec) =<< call unpack buf 0
-  store (msg ~> lat) =<< call unpack buf 8
-  store (msg ~> lon) =<< call unpack buf 12
-  store (msg ~> alt) =<< call unpack buf 16
-  store (msg ~> eph) =<< call unpack buf 20
-  store (msg ~> epv) =<< call unpack buf 22
-  store (msg ~> vel) =<< call unpack buf 24
-  store (msg ~> cog) =<< call unpack buf 26
-  store (msg ~> fix_type) =<< call unpack buf 28
-  store (msg ~> satellites_visible) =<< call unpack buf 29
+  store (msg ~> time_usec) =<< unpack buf 0
+  store (msg ~> lat) =<< unpack buf 8
+  store (msg ~> lon) =<< unpack buf 12
+  store (msg ~> alt) =<< unpack buf 16
+  store (msg ~> eph) =<< unpack buf 20
+  store (msg ~> epv) =<< unpack buf 22
+  store (msg ~> vel) =<< unpack buf 24
+  store (msg ~> cog) =<< unpack buf 26
+  store (msg ~> fix_type) =<< unpack buf 28
+  store (msg ~> satellites_visible) =<< unpack buf 29
 

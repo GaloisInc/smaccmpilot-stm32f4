@@ -10,7 +10,7 @@
 
 module SMACCMPilot.Mavlink.Messages.GlobalVisionPositionEstimate where
 
-import SMACCMPilot.Mavlink.Pack
+import Ivory.Serialize
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
@@ -25,7 +25,7 @@ globalVisionPositionEstimateCrcExtra = 102
 
 globalVisionPositionEstimateModule :: Module
 globalVisionPositionEstimateModule = package "mavlink_global_vision_position_estimate_msg" $ do
-  depend packModule
+  depend serializeModule
   depend mavlinkSendModule
   incl mkGlobalVisionPositionEstimateSender
   incl globalVisionPositionEstimateUnpack
@@ -54,13 +54,13 @@ mkGlobalVisionPositionEstimateSender =
   $ do
   arr <- local (iarray [] :: Init (Array 32 (Stored Uint8)))
   let buf = toCArray arr
-  call_ pack buf 0 =<< deref (msg ~> usec)
-  call_ pack buf 8 =<< deref (msg ~> x)
-  call_ pack buf 12 =<< deref (msg ~> y)
-  call_ pack buf 16 =<< deref (msg ~> z)
-  call_ pack buf 20 =<< deref (msg ~> roll)
-  call_ pack buf 24 =<< deref (msg ~> pitch)
-  call_ pack buf 28 =<< deref (msg ~> yaw)
+  pack buf 0 =<< deref (msg ~> usec)
+  pack buf 8 =<< deref (msg ~> x)
+  pack buf 12 =<< deref (msg ~> y)
+  pack buf 16 =<< deref (msg ~> z)
+  pack buf 20 =<< deref (msg ~> roll)
+  pack buf 24 =<< deref (msg ~> pitch)
+  pack buf 28 =<< deref (msg ~> yaw)
   -- 6: header len, 2: CRC len
   let usedLen    = 6 + 32 + 2 :: Integer
   let sendArr    = sendStruct ~> mav_array
@@ -83,11 +83,11 @@ globalVisionPositionEstimateUnpack :: Def ('[ Ref s1 (Struct "global_vision_posi
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
 globalVisionPositionEstimateUnpack = proc "mavlink_global_vision_position_estimate_unpack" $ \ msg buf -> body $ do
-  store (msg ~> usec) =<< call unpack buf 0
-  store (msg ~> x) =<< call unpack buf 8
-  store (msg ~> y) =<< call unpack buf 12
-  store (msg ~> z) =<< call unpack buf 16
-  store (msg ~> roll) =<< call unpack buf 20
-  store (msg ~> pitch) =<< call unpack buf 24
-  store (msg ~> yaw) =<< call unpack buf 28
+  store (msg ~> usec) =<< unpack buf 0
+  store (msg ~> x) =<< unpack buf 8
+  store (msg ~> y) =<< unpack buf 12
+  store (msg ~> z) =<< unpack buf 16
+  store (msg ~> roll) =<< unpack buf 20
+  store (msg ~> pitch) =<< unpack buf 24
+  store (msg ~> yaw) =<< unpack buf 28
 

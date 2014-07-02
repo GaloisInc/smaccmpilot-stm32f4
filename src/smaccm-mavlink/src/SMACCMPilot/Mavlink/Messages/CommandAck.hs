@@ -10,7 +10,7 @@
 
 module SMACCMPilot.Mavlink.Messages.CommandAck where
 
-import SMACCMPilot.Mavlink.Pack
+import Ivory.Serialize
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
@@ -25,7 +25,7 @@ commandAckCrcExtra = 143
 
 commandAckModule :: Module
 commandAckModule = package "mavlink_command_ack_msg" $ do
-  depend packModule
+  depend serializeModule
   depend mavlinkSendModule
   incl mkCommandAckSender
   incl commandAckUnpack
@@ -49,8 +49,8 @@ mkCommandAckSender =
   $ do
   arr <- local (iarray [] :: Init (Array 3 (Stored Uint8)))
   let buf = toCArray arr
-  call_ pack buf 0 =<< deref (msg ~> command)
-  call_ pack buf 2 =<< deref (msg ~> result)
+  pack buf 0 =<< deref (msg ~> command)
+  pack buf 2 =<< deref (msg ~> result)
   -- 6: header len, 2: CRC len
   let usedLen    = 6 + 3 + 2 :: Integer
   let sendArr    = sendStruct ~> mav_array
@@ -73,6 +73,6 @@ commandAckUnpack :: Def ('[ Ref s1 (Struct "command_ack_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
 commandAckUnpack = proc "mavlink_command_ack_unpack" $ \ msg buf -> body $ do
-  store (msg ~> command) =<< call unpack buf 0
-  store (msg ~> result) =<< call unpack buf 2
+  store (msg ~> command) =<< unpack buf 0
+  store (msg ~> result) =<< unpack buf 2
 

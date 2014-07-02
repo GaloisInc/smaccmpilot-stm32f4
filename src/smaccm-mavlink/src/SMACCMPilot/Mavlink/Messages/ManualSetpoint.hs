@@ -10,7 +10,7 @@
 
 module SMACCMPilot.Mavlink.Messages.ManualSetpoint where
 
-import SMACCMPilot.Mavlink.Pack
+import Ivory.Serialize
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
@@ -25,7 +25,7 @@ manualSetpointCrcExtra = 106
 
 manualSetpointModule :: Module
 manualSetpointModule = package "mavlink_manual_setpoint_msg" $ do
-  depend packModule
+  depend serializeModule
   depend mavlinkSendModule
   incl mkManualSetpointSender
   incl manualSetpointUnpack
@@ -54,13 +54,13 @@ mkManualSetpointSender =
   $ do
   arr <- local (iarray [] :: Init (Array 22 (Stored Uint8)))
   let buf = toCArray arr
-  call_ pack buf 0 =<< deref (msg ~> time_boot_ms)
-  call_ pack buf 4 =<< deref (msg ~> roll)
-  call_ pack buf 8 =<< deref (msg ~> pitch)
-  call_ pack buf 12 =<< deref (msg ~> yaw)
-  call_ pack buf 16 =<< deref (msg ~> thrust)
-  call_ pack buf 20 =<< deref (msg ~> mode_switch)
-  call_ pack buf 21 =<< deref (msg ~> manual_override_switch)
+  pack buf 0 =<< deref (msg ~> time_boot_ms)
+  pack buf 4 =<< deref (msg ~> roll)
+  pack buf 8 =<< deref (msg ~> pitch)
+  pack buf 12 =<< deref (msg ~> yaw)
+  pack buf 16 =<< deref (msg ~> thrust)
+  pack buf 20 =<< deref (msg ~> mode_switch)
+  pack buf 21 =<< deref (msg ~> manual_override_switch)
   -- 6: header len, 2: CRC len
   let usedLen    = 6 + 22 + 2 :: Integer
   let sendArr    = sendStruct ~> mav_array
@@ -83,11 +83,11 @@ manualSetpointUnpack :: Def ('[ Ref s1 (Struct "manual_setpoint_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
 manualSetpointUnpack = proc "mavlink_manual_setpoint_unpack" $ \ msg buf -> body $ do
-  store (msg ~> time_boot_ms) =<< call unpack buf 0
-  store (msg ~> roll) =<< call unpack buf 4
-  store (msg ~> pitch) =<< call unpack buf 8
-  store (msg ~> yaw) =<< call unpack buf 12
-  store (msg ~> thrust) =<< call unpack buf 16
-  store (msg ~> mode_switch) =<< call unpack buf 20
-  store (msg ~> manual_override_switch) =<< call unpack buf 21
+  store (msg ~> time_boot_ms) =<< unpack buf 0
+  store (msg ~> roll) =<< unpack buf 4
+  store (msg ~> pitch) =<< unpack buf 8
+  store (msg ~> yaw) =<< unpack buf 12
+  store (msg ~> thrust) =<< unpack buf 16
+  store (msg ~> mode_switch) =<< unpack buf 20
+  store (msg ~> manual_override_switch) =<< unpack buf 21
 

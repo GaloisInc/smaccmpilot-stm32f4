@@ -10,7 +10,7 @@
 
 module SMACCMPilot.Mavlink.Messages.OpticalFlow where
 
-import SMACCMPilot.Mavlink.Pack
+import Ivory.Serialize
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
@@ -25,7 +25,7 @@ opticalFlowCrcExtra = 175
 
 opticalFlowModule :: Module
 opticalFlowModule = package "mavlink_optical_flow_msg" $ do
-  depend packModule
+  depend serializeModule
   depend mavlinkSendModule
   incl mkOpticalFlowSender
   incl opticalFlowUnpack
@@ -55,14 +55,14 @@ mkOpticalFlowSender =
   $ do
   arr <- local (iarray [] :: Init (Array 26 (Stored Uint8)))
   let buf = toCArray arr
-  call_ pack buf 0 =<< deref (msg ~> time_usec)
-  call_ pack buf 8 =<< deref (msg ~> flow_comp_m_x)
-  call_ pack buf 12 =<< deref (msg ~> flow_comp_m_y)
-  call_ pack buf 16 =<< deref (msg ~> ground_distance)
-  call_ pack buf 20 =<< deref (msg ~> flow_x)
-  call_ pack buf 22 =<< deref (msg ~> flow_y)
-  call_ pack buf 24 =<< deref (msg ~> sensor_id)
-  call_ pack buf 25 =<< deref (msg ~> quality)
+  pack buf 0 =<< deref (msg ~> time_usec)
+  pack buf 8 =<< deref (msg ~> flow_comp_m_x)
+  pack buf 12 =<< deref (msg ~> flow_comp_m_y)
+  pack buf 16 =<< deref (msg ~> ground_distance)
+  pack buf 20 =<< deref (msg ~> flow_x)
+  pack buf 22 =<< deref (msg ~> flow_y)
+  pack buf 24 =<< deref (msg ~> sensor_id)
+  pack buf 25 =<< deref (msg ~> quality)
   -- 6: header len, 2: CRC len
   let usedLen    = 6 + 26 + 2 :: Integer
   let sendArr    = sendStruct ~> mav_array
@@ -85,12 +85,12 @@ opticalFlowUnpack :: Def ('[ Ref s1 (Struct "optical_flow_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
 opticalFlowUnpack = proc "mavlink_optical_flow_unpack" $ \ msg buf -> body $ do
-  store (msg ~> time_usec) =<< call unpack buf 0
-  store (msg ~> flow_comp_m_x) =<< call unpack buf 8
-  store (msg ~> flow_comp_m_y) =<< call unpack buf 12
-  store (msg ~> ground_distance) =<< call unpack buf 16
-  store (msg ~> flow_x) =<< call unpack buf 20
-  store (msg ~> flow_y) =<< call unpack buf 22
-  store (msg ~> sensor_id) =<< call unpack buf 24
-  store (msg ~> quality) =<< call unpack buf 25
+  store (msg ~> time_usec) =<< unpack buf 0
+  store (msg ~> flow_comp_m_x) =<< unpack buf 8
+  store (msg ~> flow_comp_m_y) =<< unpack buf 12
+  store (msg ~> ground_distance) =<< unpack buf 16
+  store (msg ~> flow_x) =<< unpack buf 20
+  store (msg ~> flow_y) =<< unpack buf 22
+  store (msg ~> sensor_id) =<< unpack buf 24
+  store (msg ~> quality) =<< unpack buf 25
 

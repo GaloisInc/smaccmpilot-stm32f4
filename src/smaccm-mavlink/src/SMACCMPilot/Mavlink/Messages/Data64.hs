@@ -10,7 +10,7 @@
 
 module SMACCMPilot.Mavlink.Messages.Data64 where
 
-import SMACCMPilot.Mavlink.Pack
+import Ivory.Serialize
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
@@ -25,7 +25,7 @@ data64CrcExtra = 170
 
 data64Module :: Module
 data64Module = package "mavlink_data64_msg" $ do
-  depend packModule
+  depend serializeModule
   depend mavlinkSendModule
   incl mkData64Sender
   incl data64Unpack
@@ -50,8 +50,8 @@ mkData64Sender =
   $ do
   arr <- local (iarray [] :: Init (Array 66 (Stored Uint8)))
   let buf = toCArray arr
-  call_ pack buf 0 =<< deref (msg ~> data64_type)
-  call_ pack buf 1 =<< deref (msg ~> len)
+  pack buf 0 =<< deref (msg ~> data64_type)
+  pack buf 1 =<< deref (msg ~> len)
   arrayPack buf 2 (msg ~> data64)
   -- 6: header len, 2: CRC len
   let usedLen    = 6 + 66 + 2 :: Integer
@@ -75,7 +75,7 @@ data64Unpack :: Def ('[ Ref s1 (Struct "data64_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
 data64Unpack = proc "mavlink_data64_unpack" $ \ msg buf -> body $ do
-  store (msg ~> data64_type) =<< call unpack buf 0
-  store (msg ~> len) =<< call unpack buf 1
+  store (msg ~> data64_type) =<< unpack buf 0
+  store (msg ~> len) =<< unpack buf 1
   arrayUnpack buf 2 (msg ~> data64)
 

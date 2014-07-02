@@ -10,7 +10,7 @@
 
 module SMACCMPilot.Mavlink.Messages.NavControllerOutput where
 
-import SMACCMPilot.Mavlink.Pack
+import Ivory.Serialize
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
@@ -25,7 +25,7 @@ navControllerOutputCrcExtra = 183
 
 navControllerOutputModule :: Module
 navControllerOutputModule = package "mavlink_nav_controller_output_msg" $ do
-  depend packModule
+  depend serializeModule
   depend mavlinkSendModule
   incl mkNavControllerOutputSender
   incl navControllerOutputUnpack
@@ -55,14 +55,14 @@ mkNavControllerOutputSender =
   $ do
   arr <- local (iarray [] :: Init (Array 26 (Stored Uint8)))
   let buf = toCArray arr
-  call_ pack buf 0 =<< deref (msg ~> nav_roll)
-  call_ pack buf 4 =<< deref (msg ~> nav_pitch)
-  call_ pack buf 8 =<< deref (msg ~> alt_error)
-  call_ pack buf 12 =<< deref (msg ~> aspd_error)
-  call_ pack buf 16 =<< deref (msg ~> xtrack_error)
-  call_ pack buf 20 =<< deref (msg ~> nav_bearing)
-  call_ pack buf 22 =<< deref (msg ~> target_bearing)
-  call_ pack buf 24 =<< deref (msg ~> wp_dist)
+  pack buf 0 =<< deref (msg ~> nav_roll)
+  pack buf 4 =<< deref (msg ~> nav_pitch)
+  pack buf 8 =<< deref (msg ~> alt_error)
+  pack buf 12 =<< deref (msg ~> aspd_error)
+  pack buf 16 =<< deref (msg ~> xtrack_error)
+  pack buf 20 =<< deref (msg ~> nav_bearing)
+  pack buf 22 =<< deref (msg ~> target_bearing)
+  pack buf 24 =<< deref (msg ~> wp_dist)
   -- 6: header len, 2: CRC len
   let usedLen    = 6 + 26 + 2 :: Integer
   let sendArr    = sendStruct ~> mav_array
@@ -85,12 +85,12 @@ navControllerOutputUnpack :: Def ('[ Ref s1 (Struct "nav_controller_output_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
 navControllerOutputUnpack = proc "mavlink_nav_controller_output_unpack" $ \ msg buf -> body $ do
-  store (msg ~> nav_roll) =<< call unpack buf 0
-  store (msg ~> nav_pitch) =<< call unpack buf 4
-  store (msg ~> alt_error) =<< call unpack buf 8
-  store (msg ~> aspd_error) =<< call unpack buf 12
-  store (msg ~> xtrack_error) =<< call unpack buf 16
-  store (msg ~> nav_bearing) =<< call unpack buf 20
-  store (msg ~> target_bearing) =<< call unpack buf 22
-  store (msg ~> wp_dist) =<< call unpack buf 24
+  store (msg ~> nav_roll) =<< unpack buf 0
+  store (msg ~> nav_pitch) =<< unpack buf 4
+  store (msg ~> alt_error) =<< unpack buf 8
+  store (msg ~> aspd_error) =<< unpack buf 12
+  store (msg ~> xtrack_error) =<< unpack buf 16
+  store (msg ~> nav_bearing) =<< unpack buf 20
+  store (msg ~> target_bearing) =<< unpack buf 22
+  store (msg ~> wp_dist) =<< unpack buf 24
 

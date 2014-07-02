@@ -10,7 +10,7 @@
 
 module SMACCMPilot.Mavlink.Messages.GlobalPositionInt where
 
-import SMACCMPilot.Mavlink.Pack
+import Ivory.Serialize
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
@@ -25,7 +25,7 @@ globalPositionIntCrcExtra = 104
 
 globalPositionIntModule :: Module
 globalPositionIntModule = package "mavlink_global_position_int_msg" $ do
-  depend packModule
+  depend serializeModule
   depend mavlinkSendModule
   incl mkGlobalPositionIntSender
   incl globalPositionIntUnpack
@@ -56,15 +56,15 @@ mkGlobalPositionIntSender =
   $ do
   arr <- local (iarray [] :: Init (Array 28 (Stored Uint8)))
   let buf = toCArray arr
-  call_ pack buf 0 =<< deref (msg ~> time_boot_ms)
-  call_ pack buf 4 =<< deref (msg ~> lat)
-  call_ pack buf 8 =<< deref (msg ~> lon)
-  call_ pack buf 12 =<< deref (msg ~> alt)
-  call_ pack buf 16 =<< deref (msg ~> relative_alt)
-  call_ pack buf 20 =<< deref (msg ~> vx)
-  call_ pack buf 22 =<< deref (msg ~> vy)
-  call_ pack buf 24 =<< deref (msg ~> vz)
-  call_ pack buf 26 =<< deref (msg ~> hdg)
+  pack buf 0 =<< deref (msg ~> time_boot_ms)
+  pack buf 4 =<< deref (msg ~> lat)
+  pack buf 8 =<< deref (msg ~> lon)
+  pack buf 12 =<< deref (msg ~> alt)
+  pack buf 16 =<< deref (msg ~> relative_alt)
+  pack buf 20 =<< deref (msg ~> vx)
+  pack buf 22 =<< deref (msg ~> vy)
+  pack buf 24 =<< deref (msg ~> vz)
+  pack buf 26 =<< deref (msg ~> hdg)
   -- 6: header len, 2: CRC len
   let usedLen    = 6 + 28 + 2 :: Integer
   let sendArr    = sendStruct ~> mav_array
@@ -87,13 +87,13 @@ globalPositionIntUnpack :: Def ('[ Ref s1 (Struct "global_position_int_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
 globalPositionIntUnpack = proc "mavlink_global_position_int_unpack" $ \ msg buf -> body $ do
-  store (msg ~> time_boot_ms) =<< call unpack buf 0
-  store (msg ~> lat) =<< call unpack buf 4
-  store (msg ~> lon) =<< call unpack buf 8
-  store (msg ~> alt) =<< call unpack buf 12
-  store (msg ~> relative_alt) =<< call unpack buf 16
-  store (msg ~> vx) =<< call unpack buf 20
-  store (msg ~> vy) =<< call unpack buf 22
-  store (msg ~> vz) =<< call unpack buf 24
-  store (msg ~> hdg) =<< call unpack buf 26
+  store (msg ~> time_boot_ms) =<< unpack buf 0
+  store (msg ~> lat) =<< unpack buf 4
+  store (msg ~> lon) =<< unpack buf 8
+  store (msg ~> alt) =<< unpack buf 12
+  store (msg ~> relative_alt) =<< unpack buf 16
+  store (msg ~> vx) =<< unpack buf 20
+  store (msg ~> vy) =<< unpack buf 22
+  store (msg ~> vz) =<< unpack buf 24
+  store (msg ~> hdg) =<< unpack buf 26
 

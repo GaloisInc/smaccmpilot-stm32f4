@@ -10,7 +10,7 @@
 
 module SMACCMPilot.Mavlink.Messages.SetRollPitchYawThrust where
 
-import SMACCMPilot.Mavlink.Pack
+import Ivory.Serialize
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
@@ -25,7 +25,7 @@ setRollPitchYawThrustCrcExtra = 100
 
 setRollPitchYawThrustModule :: Module
 setRollPitchYawThrustModule = package "mavlink_set_roll_pitch_yaw_thrust_msg" $ do
-  depend packModule
+  depend serializeModule
   depend mavlinkSendModule
   incl mkSetRollPitchYawThrustSender
   incl setRollPitchYawThrustUnpack
@@ -53,12 +53,12 @@ mkSetRollPitchYawThrustSender =
   $ do
   arr <- local (iarray [] :: Init (Array 18 (Stored Uint8)))
   let buf = toCArray arr
-  call_ pack buf 0 =<< deref (msg ~> roll)
-  call_ pack buf 4 =<< deref (msg ~> pitch)
-  call_ pack buf 8 =<< deref (msg ~> yaw)
-  call_ pack buf 12 =<< deref (msg ~> thrust)
-  call_ pack buf 16 =<< deref (msg ~> target_system)
-  call_ pack buf 17 =<< deref (msg ~> target_component)
+  pack buf 0 =<< deref (msg ~> roll)
+  pack buf 4 =<< deref (msg ~> pitch)
+  pack buf 8 =<< deref (msg ~> yaw)
+  pack buf 12 =<< deref (msg ~> thrust)
+  pack buf 16 =<< deref (msg ~> target_system)
+  pack buf 17 =<< deref (msg ~> target_component)
   -- 6: header len, 2: CRC len
   let usedLen    = 6 + 18 + 2 :: Integer
   let sendArr    = sendStruct ~> mav_array
@@ -81,10 +81,10 @@ setRollPitchYawThrustUnpack :: Def ('[ Ref s1 (Struct "set_roll_pitch_yaw_thrust
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
 setRollPitchYawThrustUnpack = proc "mavlink_set_roll_pitch_yaw_thrust_unpack" $ \ msg buf -> body $ do
-  store (msg ~> roll) =<< call unpack buf 0
-  store (msg ~> pitch) =<< call unpack buf 4
-  store (msg ~> yaw) =<< call unpack buf 8
-  store (msg ~> thrust) =<< call unpack buf 12
-  store (msg ~> target_system) =<< call unpack buf 16
-  store (msg ~> target_component) =<< call unpack buf 17
+  store (msg ~> roll) =<< unpack buf 0
+  store (msg ~> pitch) =<< unpack buf 4
+  store (msg ~> yaw) =<< unpack buf 8
+  store (msg ~> thrust) =<< unpack buf 12
+  store (msg ~> target_system) =<< unpack buf 16
+  store (msg ~> target_component) =<< unpack buf 17
 

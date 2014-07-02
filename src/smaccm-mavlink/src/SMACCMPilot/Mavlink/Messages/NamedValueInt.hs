@@ -10,7 +10,7 @@
 
 module SMACCMPilot.Mavlink.Messages.NamedValueInt where
 
-import SMACCMPilot.Mavlink.Pack
+import Ivory.Serialize
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
@@ -25,7 +25,7 @@ namedValueIntCrcExtra = 44
 
 namedValueIntModule :: Module
 namedValueIntModule = package "mavlink_named_value_int_msg" $ do
-  depend packModule
+  depend serializeModule
   depend mavlinkSendModule
   incl mkNamedValueIntSender
   incl namedValueIntUnpack
@@ -50,8 +50,8 @@ mkNamedValueIntSender =
   $ do
   arr <- local (iarray [] :: Init (Array 18 (Stored Uint8)))
   let buf = toCArray arr
-  call_ pack buf 0 =<< deref (msg ~> time_boot_ms)
-  call_ pack buf 4 =<< deref (msg ~> value)
+  pack buf 0 =<< deref (msg ~> time_boot_ms)
+  pack buf 4 =<< deref (msg ~> value)
   arrayPack buf 8 (msg ~> name)
   -- 6: header len, 2: CRC len
   let usedLen    = 6 + 18 + 2 :: Integer
@@ -75,7 +75,7 @@ namedValueIntUnpack :: Def ('[ Ref s1 (Struct "named_value_int_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
 namedValueIntUnpack = proc "mavlink_named_value_int_unpack" $ \ msg buf -> body $ do
-  store (msg ~> time_boot_ms) =<< call unpack buf 0
-  store (msg ~> value) =<< call unpack buf 4
+  store (msg ~> time_boot_ms) =<< unpack buf 0
+  store (msg ~> value) =<< unpack buf 4
   arrayUnpack buf 8 (msg ~> name)
 
