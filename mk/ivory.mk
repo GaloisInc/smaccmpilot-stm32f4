@@ -92,6 +92,7 @@ $$($(1)_HEADERS) $$($(1)_SOURCES) $$($(1)_TOWER_DOT): $$($(1)_DEP_FILE) $$($(1)_
           --overflow                                          \
           --div-zero                                          \
           --ix-check                                          \
+          --bitshift-check                                    \
           --const-fold                                        \
 	  $$(IVORY_OPTS)                                            \
           $(COMMSEC_ARGS) \
