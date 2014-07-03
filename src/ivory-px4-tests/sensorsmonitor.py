@@ -13,48 +13,65 @@ defaults = {
     'rtscts': False,
     'xonxoff': False }
 
-
 class Barometer(object):
     def __init__(self, binary):
         self.binary = binary
-        (ifail, sfail, pres, temp, t) = struct.unpack("<BBffQ", binary)
-        self.ifail = ifail
-        self.sfail = sfail
-        self.pres  = pres
-        self.temp  = temp
-        self.t     = t
+        try:
+            (ifail, sfail, pres, temp, t) = struct.unpack("<BBffQ", binary)
+            self.ifail = ifail
+            self.sfail = sfail
+            self.pres  = pres
+            self.temp  = temp
+            self.t     = t
+            self.errormsg = None
+        except Exception:
+            self.errormsg = ("Barometer: bad size %d" % (len(binary)))
     def display(self):
+        if self.errormsg:
+            return self.errormsg
         return ("Baro ifail %d sfail %d mmhg %4.4f degc %2.2f micros %d" %
             (self.ifail, self.sfail, self.pres, self.temp, self.t))
 
 class Compass(object):
     def __init__(self, binary):
         self.binary = binary
-        (ifail, sfail, x, y, z, t) = struct.unpack("<BBhhhQ", binary)
-        self.ifail = ifail
-        self.sfail = sfail
-        self.x     = x
-        self.y     = y
-        self.z     = z
-        self.t     = t
+        try:
+            (ifail, sfail, x, y, z, t) = struct.unpack("<BBhhhQ", binary)
+            self.ifail = ifail
+            self.sfail = sfail
+            self.x     = x
+            self.y     = y
+            self.z     = z
+            self.t     = t
+            self.errormsg = None
+        except Exception:
+            self.errormsg = ("Compass: bad size %d" % (len(binary)))
     def display(self):
+        if self.errormsg:
+            return self.errormsg
         return ("Compass ifail %d sfail %d x %4d y %4d z %4d micros %d" %
             (self.ifail, self.sfail, self.x, self.y, self.z, self.t))
 
 class Gyro(object):
     def __init__(self, binary):
         self.binary = binary
-        (valid, gx, gy, gz, ax, ay, az, temp, t) = struct.unpack("<BhhhhhhhQ", binary)
-        self.valid = valid
-        self.gx    = gx
-        self.gy    = gy
-        self.gz    = gz
-        self.ax    = ax
-        self.ay    = ay
-        self.az    = az
-        self.temp  = temp
-        self.t     = t
+        try:
+            (valid, gx, gy, gz, ax, ay, az, temp, t) = struct.unpack("<BhhhhhhhQ", binary)
+            self.valid = valid
+            self.gx    = gx
+            self.gy    = gy
+            self.gz    = gz
+            self.ax    = ax
+            self.ay    = ay
+            self.az    = az
+            self.temp  = temp
+            self.t     = t
+            self.errormsg = None
+        except Exception:
+            self.errormsg = ("Gyro: bad size %d" % (len(binary)))
     def display(self):
+        if self.errormsg:
+            return self.errormsg
         return ("Gyro valid %d gx %4d gy %4d gz %4d ax %4d ay %4d az %4d temp %d micros %d" %
             (self.valid, self.gx, self.gy, self.gz, self.ax, self.ay, self.az, self.temp, self.t))
 
