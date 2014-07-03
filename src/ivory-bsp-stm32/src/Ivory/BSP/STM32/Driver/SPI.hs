@@ -83,7 +83,7 @@ spiPeripheralDriver periph devices req_sink res_source = do
   resbuffer    <- taskLocal "resbuffer"
   resbufferpos <- taskLocal "resbufferpos"
 
-  taskPriority 3
+  taskPriority 4
 
   irq <- withUnsafeSignalEvent
                 (stm32Interrupt interrupt)

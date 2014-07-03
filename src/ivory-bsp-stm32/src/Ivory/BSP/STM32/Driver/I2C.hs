@@ -85,7 +85,7 @@ i2cPeripheralDriver periph sda scl req_sink res_source = do
   (resbuffer :: Ref Global (Struct "i2c_transaction_result"))  <- taskLocal "resbuffer"
   (resbufferpos :: Ref Global (Stored (Ix 128)))               <- taskLocal "resbufferpos"
 
-  taskPriority 3
+  taskPriority 4
 
   (invalid_request :: Ref Global (Stored Uint32)) <- taskLocal "invalid_request"
 
