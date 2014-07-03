@@ -7,14 +7,16 @@
 
 module PX4.Tests.HMC5883L (app) where
 
-import Control.Monad (void)
 
 import Ivory.Language
+import Ivory.Serialize
 
 import Ivory.Tower
 import Ivory.Tower.StateMachine
 
 import Ivory.BSP.STM32.Driver.I2C
+import Ivory.BSP.STM32.Driver.UART
+import qualified Ivory.HXStream as HX
 
 import SMACCMPilot.Hardware.HMC5883L
 
@@ -29,10 +31,38 @@ app = do
                          (hmc5883sda platform)
                          (hmc5883scl platform)
 
-  void $ hmc5883lctl req res (hmc5883addr platform)
+  samples <- hmc5883lctl req res (hmc5883addr platform)
+  (_uarti,uarto) <- uartTower (consoleUart platform) 115200 (Proxy :: Proxy 128)
 
+  hmc5883lSender samples uarto
+
+  towerDepends serializeModule
+  towerModule  serializeModule
   where
   platform = Proxy :: Proxy p
+
+hmc5883lSender :: ChannelSink (Struct "hmc5883l_sample")
+               -> ChannelSource (Stored Uint8)
+               -> Tower p ()
+hmc5883lSender samplesink charsource =
+  task "hmc5883lsender" $ do
+    out  <- withChannelEmitter charsource "out"
+    samp <- withChannelEvent samplesink "sample"
+    (buf :: Ref Global (Array 16 (Stored Uint8))) <- taskLocal "serialization_buf"
+    handle samp "sample" $ \s -> noReturn $ do
+      ifail <- deref (s ~> initfail)
+      sfail <- deref (s ~> samplefail)
+      stime <- deref (s ~> time)
+      packInto_ buf 0 $ do
+        mpackV (ifail ? ((1 :: Uint8), 0))
+        mpackV (sfail ? ((1 :: Uint8), 0))
+        mpack ((s ~> sample) ! 0)
+        mpack ((s ~> sample) ! 1)
+        mpack ((s ~> sample) ! 2)
+        mpackV (toIMicroseconds stime)
+      HX.encode tag (constRef buf) (emitV_ out)
+  where
+  tag = 99 -- 'c' for compass
 
 hmc5883lctl :: forall p
         . ChannelSource (Struct "i2c_transaction_request")
