@@ -4,6 +4,7 @@
 {-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE AllowAmbiguousTypes #-}
 --
 -- Peripheral.hs --- SPI peripheral driver for the STM32F4.
 --
@@ -107,8 +108,8 @@ spiInitISR spi = do
   where
   inter = spiInterrupt spi
 
-spiISRHandlerName :: (STM32Signal i p) => SPIPeriph i -> String
-spiISRHandlerName spi = interruptHandlerName (spiInterrupt spi)
+spiISRHandlerName :: (STM32Signal i p) => p -> SPIPeriph i -> String
+spiISRHandlerName _ spi = interruptHandlerName (spiInterrupt spi)
 
 -- Clock Polarity and Phase: see description
 -- of CPOL and CPHA in ST reference manual RM0090
