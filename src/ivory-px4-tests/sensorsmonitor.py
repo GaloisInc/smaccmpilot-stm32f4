@@ -25,7 +25,7 @@ class Barometer(object):
         self.t     = t
     def display(self):
         return ("Baro ifail %d sfail %d mmhg %4.4f degc %2.2f micros %d" %
-            (self.ifail, self.ifail, self.pres, self.temp, self.t))
+            (self.ifail, self.sfail, self.pres, self.temp, self.t))
 
 class Compass(object):
     def __init__(self, binary):
@@ -39,7 +39,24 @@ class Compass(object):
         self.t     = t
     def display(self):
         return ("Compass ifail %d sfail %d x %4d y %4d z %4d micros %d" %
-            (self.ifail, self.ifail, self.x, self.y, self.z, self.t))
+            (self.ifail, self.sfail, self.x, self.y, self.z, self.t))
+
+class Gyro(object):
+    def __init__(self, binary):
+        self.binary = binary
+        (valid, gx, gy, gz, ax, ay, az, temp, t) = struct.unpack("<BhhhhhhhQ", binary)
+        self.valid = valid
+        self.gx    = gx
+        self.gy    = gy
+        self.gz    = gz
+        self.ax    = ax
+        self.ay    = ay
+        self.az    = az
+        self.temp  = temp
+        self.t     = t
+    def display(self):
+        return ("Gyro valid %d gx %4d gy %4d gz %4d ax %4d ay %4d az %4d temp %d micros %d" %
+            (self.valid, self.gx, self.gy, self.gz, self.ax, self.ay, self.az, self.temp, self.t))
 
 class SensorParser(object):
     def __init__(self,radio,opts):
@@ -58,6 +75,8 @@ class SensorParser(object):
                 sensors.append(Barometer(payload))
             if t == 99: # 'c' compass
                 sensors.append(Compass(payload))
+            if t == 103: # 'g' gyro
+                sensors.append(Gyro(payload))
         return (statuses, sensors)
 
 class SerialPortProvider(object):
