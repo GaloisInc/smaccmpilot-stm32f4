@@ -19,7 +19,6 @@ import Ivory.HW
 import Ivory.Stdlib
 
 import Ivory.BSP.STM32.Interrupt
-import Ivory.BSP.STM32.Signalable
 import Ivory.BSP.STM32.PlatformClock
 import Ivory.BSP.STM32.ClockConfig
 
@@ -106,9 +105,6 @@ spiInitISR spi = do
   interrupt_enable                  inter
   where
   inter = spiInterrupt spi
-
-spiISRHandlerName :: (STM32Signal p) => SPIPeriph (InterruptType p) -> String
-spiISRHandlerName spi = interruptHandlerName (spiInterrupt spi)
 
 -- Clock Polarity and Phase: see description
 -- of CPOL and CPHA in ST reference manual RM0090
