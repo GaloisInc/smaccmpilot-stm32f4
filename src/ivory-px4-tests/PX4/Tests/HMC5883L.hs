@@ -34,7 +34,9 @@ app = do
   samples <- hmc5883lctl req res (hmc5883addr platform)
   (_uarti,uarto) <- uartTower (consoleUart platform) 115200 (Proxy :: Proxy 128)
 
-  hmc5883lSender samples uarto
+  task "hmc5883lsender" $ do
+    uartout <- withChannelEmitter uarto "uartout"
+    hmc5883lSender samples uartout
 
   towerDepends serializeModule
   towerModule  serializeModule
@@ -42,25 +44,23 @@ app = do
   platform = Proxy :: Proxy p
 
 hmc5883lSender :: ChannelSink (Struct "hmc5883l_sample")
-               -> ChannelSource (Stored Uint8)
-               -> Tower p ()
-hmc5883lSender samplesink charsource =
-  task "hmc5883lsender" $ do
-    out  <- withChannelEmitter charsource "out"
-    samp <- withChannelEvent samplesink "sample"
-    (buf :: Ref Global (Array 16 (Stored Uint8))) <- taskLocal "serialization_buf"
-    handle samp "sample" $ \s -> noReturn $ do
-      ifail <- deref (s ~> initfail)
-      sfail <- deref (s ~> samplefail)
-      stime <- deref (s ~> time)
-      packInto_ buf 0 $ do
-        mpackV (ifail ? ((1 :: Uint8), 0))
-        mpackV (sfail ? ((1 :: Uint8), 0))
-        mpack ((s ~> sample) ! 0)
-        mpack ((s ~> sample) ! 1)
-        mpack ((s ~> sample) ! 2)
-        mpackV (toIMicroseconds stime)
-      HX.encode tag (constRef buf) (emitV_ out)
+               -> ChannelEmitter (Stored Uint8)
+               -> Task p ()
+hmc5883lSender samplesink out = do
+  samp <- withChannelEvent samplesink "sample"
+  (buf :: Ref Global (Array 16 (Stored Uint8))) <- taskLocal "hmc5883l_ser_buf"
+  handle samp "sample" $ \s -> noReturn $ do
+    ifail <- deref (s ~> initfail)
+    sfail <- deref (s ~> samplefail)
+    stime <- deref (s ~> time)
+    packInto_ buf 0 $ do
+      mpackV (ifail ? ((1 :: Uint8), 0))
+      mpackV (sfail ? ((1 :: Uint8), 0))
+      mpack ((s ~> sample) ! 0)
+      mpack ((s ~> sample) ! 1)
+      mpack ((s ~> sample) ! 2)
+      mpackV (toIMicroseconds stime)
+    HX.encode tag (constRef buf) (emitV_ out)
   where
   tag = 99 -- 'c' for compass
 
