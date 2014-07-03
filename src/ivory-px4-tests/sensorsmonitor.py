@@ -3,7 +3,7 @@
 # Pat Hickey, 2 July 2014
 
 
-import serial, sys, optparse, time, mavlink_messages, threading, struct
+import serial, sys, optparse, time, threading, struct
 import hxframing, util
 
 defaults = {
@@ -13,6 +13,19 @@ defaults = {
     'rtscts': False,
     'xonxoff': False }
 
+
+class Barometer(object):
+    def __init__(self, binary):
+        self.binary = binary
+        (ifail, sfail, pres, temp, t) = struct.unpack("<BBffQ", binary)
+        self.ifail = ifail
+        self.sfail = sfail
+        self.pres  = pres
+        self.temp  = temp
+        self.t     = t
+    def display(self):
+        return ("Baro ifail %d sfail %d mmhg %4.4f degc %2.2f micros %d" %
+            (self.ifail, self.ifail, self.pres, self.temp, self.t))
 
 class Compass(object):
     def __init__(self, binary):
@@ -41,7 +54,8 @@ class SensorParser(object):
                 parsed = util.at_b_response(payload)
                 if parsed != None:
                     statuses.append(parsed)
-
+            if t == 98: # 'b' barometer
+                sensors.append(Barometer(payload))
             if t == 99: # 'c' compass
                 sensors.append(Compass(payload))
         return (statuses, sensors)
