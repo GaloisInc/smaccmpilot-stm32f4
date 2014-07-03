@@ -1,5 +1,6 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE CPP #-}
 
 module Ivory.BSP.STM32.Signalable.TH
   ( stm32SignalableInstance
@@ -22,11 +23,16 @@ stm32SignalableInstance platformtype interrupttype = do
         ]
     , InstanceD []
        (AppT (ConT ''STM32Signal) (ConT platformtype))
-       [ TySynInstD ''InterruptType [ConT platformtype] (ConT interrupttype)
+       [ inst
        , stm32signaldef n
        ]
     ]
   where
+#if __GLASGOW_HASKELL__ >= 708
+  inst = TySynInstD ''InterruptType (TySynEqn [ConT platformtype] (ConT interrupttype))
+#else
+  inst = TySynInstD ''InterruptType [ConT platformtype] (ConT interrupttype)
+#endif
   stname = mkName ((nameBase platformtype) ++ "Signal")
   stinstance =
     DataInstD [] ''SignalType [ConT platformtype]
