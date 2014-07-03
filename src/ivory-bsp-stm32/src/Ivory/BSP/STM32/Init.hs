@@ -40,7 +40,7 @@ init_libc = externProc "init_libc"
 main_proc :: Def('[]:->())
 main_proc = externProc "main"
 
-reset_handler :: (PlatformClock p) => Proxy p -> Def('[]:->())
+reset_handler :: (PlatformClock p) => Proxy p => Def('[]:->())
 reset_handler platform = proc (exceptionHandlerName Reset) $ body $ do
   call_ init_relocate
   call_ (init_clocks platform)
