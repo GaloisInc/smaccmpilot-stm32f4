@@ -8,19 +8,23 @@
 module PX4.Tests.AllSensors (app) where
 
 import Ivory.Language
+import Ivory.Serialize
 
 import Ivory.Tower
 import Ivory.Tower.StateMachine
 
 import Ivory.BSP.STM32.Driver.I2C
 import Ivory.BSP.STM32.Driver.SPI
+import Ivory.BSP.STM32.Driver.UART
 
 import qualified SMACCMPilot.Hardware.MPU6000        as G
 import qualified SMACCMPilot.Hardware.MS5611         as M
 import qualified SMACCMPilot.Hardware.HMC5883L       as H
 
 import           PX4.Tests.Platforms
-import           PX4.Tests.MPU6000 (mpu6000SensorManager)
+import           PX4.Tests.MPU6000  (mpu6000SensorManager, mpu6000Sender)
+import           PX4.Tests.MS5611   (ms5611Sender)
+import           PX4.Tests.HMC5883L (hmc5883lSender)
 
 app :: forall p . (TestPlatform p) => Tower p ()
 app = do
@@ -36,6 +40,16 @@ app = do
   (sreq, sres) <- spiTower [mpu6000Device platform]
   mpu6000SensorManager sreq sres (src mpu6000sample) (SPIDeviceHandle 0)
 
+  (_uarti,uarto) <- uartTower (consoleUart platform) 115200 (Proxy :: Proxy 128)
+
+  task "sensorsender" $ do
+    uartout <- withChannelEmitter uarto "uartout"
+    hmc5883lSender (snk hmc5883lsample) uartout
+    ms5611Sender   (snk ms5611meas)     uartout
+    mpu6000Sender  (snk mpu6000sample)  uartout
+
+  towerDepends serializeModule
+  towerModule  serializeModule
   towerModule  G.mpu6000TypesModule
   towerDepends G.mpu6000TypesModule
   towerModule  M.ms5611TypesModule
