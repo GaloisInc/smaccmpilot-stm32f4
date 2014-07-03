@@ -5,7 +5,7 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleContexts #-}
 
-module PX4.Tests.MS5611 (app) where
+module PX4.Tests.MS5611 (ms5611Sender, app) where
 
 import Ivory.Language
 import Ivory.Serialize

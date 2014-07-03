@@ -5,7 +5,7 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleContexts #-}
 
-module PX4.Tests.MPU6000 (mpu6000SensorManager, testApp) where
+module PX4.Tests.MPU6000 (mpu6000SensorManager, mpu6000Sender, testApp) where
 
 import Ivory.Language
 import Ivory.Stdlib

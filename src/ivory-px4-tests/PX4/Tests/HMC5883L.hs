@@ -5,8 +5,7 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleContexts #-}
 
-module PX4.Tests.HMC5883L (app) where
-
+module PX4.Tests.HMC5883L (hmc5883lSender, app) where
 
 import Ivory.Language
 import Ivory.Serialize
