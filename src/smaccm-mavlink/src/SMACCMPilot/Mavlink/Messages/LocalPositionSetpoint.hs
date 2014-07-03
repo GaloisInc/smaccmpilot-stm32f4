@@ -10,7 +10,7 @@
 
 module SMACCMPilot.Mavlink.Messages.LocalPositionSetpoint where
 
-import SMACCMPilot.Mavlink.Pack
+import Ivory.Serialize
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
@@ -25,7 +25,7 @@ localPositionSetpointCrcExtra = 223
 
 localPositionSetpointModule :: Module
 localPositionSetpointModule = package "mavlink_local_position_setpoint_msg" $ do
-  depend packModule
+  depend serializeModule
   depend mavlinkSendModule
   incl mkLocalPositionSetpointSender
   incl localPositionSetpointUnpack
@@ -52,11 +52,11 @@ mkLocalPositionSetpointSender =
   $ do
   arr <- local (iarray [] :: Init (Array 17 (Stored Uint8)))
   let buf = toCArray arr
-  call_ pack buf 0 =<< deref (msg ~> x)
-  call_ pack buf 4 =<< deref (msg ~> y)
-  call_ pack buf 8 =<< deref (msg ~> z)
-  call_ pack buf 12 =<< deref (msg ~> yaw)
-  call_ pack buf 16 =<< deref (msg ~> coordinate_frame)
+  pack buf 0 =<< deref (msg ~> x)
+  pack buf 4 =<< deref (msg ~> y)
+  pack buf 8 =<< deref (msg ~> z)
+  pack buf 12 =<< deref (msg ~> yaw)
+  pack buf 16 =<< deref (msg ~> coordinate_frame)
   -- 6: header len, 2: CRC len
   let usedLen    = 6 + 17 + 2 :: Integer
   let sendArr    = sendStruct ~> mav_array
@@ -79,9 +79,9 @@ localPositionSetpointUnpack :: Def ('[ Ref s1 (Struct "local_position_setpoint_m
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
 localPositionSetpointUnpack = proc "mavlink_local_position_setpoint_unpack" $ \ msg buf -> body $ do
-  store (msg ~> x) =<< call unpack buf 0
-  store (msg ~> y) =<< call unpack buf 4
-  store (msg ~> z) =<< call unpack buf 8
-  store (msg ~> yaw) =<< call unpack buf 12
-  store (msg ~> coordinate_frame) =<< call unpack buf 16
+  store (msg ~> x) =<< unpack buf 0
+  store (msg ~> y) =<< unpack buf 4
+  store (msg ~> z) =<< unpack buf 8
+  store (msg ~> yaw) =<< unpack buf 12
+  store (msg ~> coordinate_frame) =<< unpack buf 16
 

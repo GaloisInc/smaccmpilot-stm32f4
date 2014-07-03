@@ -10,7 +10,7 @@
 
 module SMACCMPilot.Mavlink.Messages.AttCtlDebug where
 
-import SMACCMPilot.Mavlink.Pack
+import Ivory.Serialize
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
@@ -25,7 +25,7 @@ attCtlDebugCrcExtra = 187
 
 attCtlDebugModule :: Module
 attCtlDebugModule = package "mavlink_att_ctl_debug_msg" $ do
-  depend packModule
+  depend serializeModule
   depend mavlinkSendModule
   incl mkAttCtlDebugSender
   incl attCtlDebugUnpack
@@ -55,14 +55,14 @@ mkAttCtlDebugSender =
   $ do
   arr <- local (iarray [] :: Init (Array 32 (Stored Uint8)))
   let buf = toCArray arr
-  call_ pack buf 0 =<< deref (msg ~> head_setpt)
-  call_ pack buf 4 =<< deref (msg ~> head_rate_setpt)
-  call_ pack buf 8 =<< deref (msg ~> head_ctl_p)
-  call_ pack buf 12 =<< deref (msg ~> head_ctl_d)
-  call_ pack buf 16 =<< deref (msg ~> pitch_setpt)
-  call_ pack buf 20 =<< deref (msg ~> pitch_rate_setpt)
-  call_ pack buf 24 =<< deref (msg ~> roll_setpt)
-  call_ pack buf 28 =<< deref (msg ~> roll_rate_setpt)
+  pack buf 0 =<< deref (msg ~> head_setpt)
+  pack buf 4 =<< deref (msg ~> head_rate_setpt)
+  pack buf 8 =<< deref (msg ~> head_ctl_p)
+  pack buf 12 =<< deref (msg ~> head_ctl_d)
+  pack buf 16 =<< deref (msg ~> pitch_setpt)
+  pack buf 20 =<< deref (msg ~> pitch_rate_setpt)
+  pack buf 24 =<< deref (msg ~> roll_setpt)
+  pack buf 28 =<< deref (msg ~> roll_rate_setpt)
   -- 6: header len, 2: CRC len
   let usedLen    = 6 + 32 + 2 :: Integer
   let sendArr    = sendStruct ~> mav_array
@@ -85,12 +85,12 @@ attCtlDebugUnpack :: Def ('[ Ref s1 (Struct "att_ctl_debug_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
 attCtlDebugUnpack = proc "mavlink_att_ctl_debug_unpack" $ \ msg buf -> body $ do
-  store (msg ~> head_setpt) =<< call unpack buf 0
-  store (msg ~> head_rate_setpt) =<< call unpack buf 4
-  store (msg ~> head_ctl_p) =<< call unpack buf 8
-  store (msg ~> head_ctl_d) =<< call unpack buf 12
-  store (msg ~> pitch_setpt) =<< call unpack buf 16
-  store (msg ~> pitch_rate_setpt) =<< call unpack buf 20
-  store (msg ~> roll_setpt) =<< call unpack buf 24
-  store (msg ~> roll_rate_setpt) =<< call unpack buf 28
+  store (msg ~> head_setpt) =<< unpack buf 0
+  store (msg ~> head_rate_setpt) =<< unpack buf 4
+  store (msg ~> head_ctl_p) =<< unpack buf 8
+  store (msg ~> head_ctl_d) =<< unpack buf 12
+  store (msg ~> pitch_setpt) =<< unpack buf 16
+  store (msg ~> pitch_rate_setpt) =<< unpack buf 20
+  store (msg ~> roll_setpt) =<< unpack buf 24
+  store (msg ~> roll_rate_setpt) =<< unpack buf 28
 

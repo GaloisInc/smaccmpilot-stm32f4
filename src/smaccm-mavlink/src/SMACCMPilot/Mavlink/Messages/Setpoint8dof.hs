@@ -10,7 +10,7 @@
 
 module SMACCMPilot.Mavlink.Messages.Setpoint8dof where
 
-import SMACCMPilot.Mavlink.Pack
+import Ivory.Serialize
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
@@ -25,7 +25,7 @@ setpoint8dofCrcExtra = 241
 
 setpoint8dofModule :: Module
 setpoint8dofModule = package "mavlink_setpoint_8dof_msg" $ do
-  depend packModule
+  depend serializeModule
   depend mavlinkSendModule
   incl mkSetpoint8dofSender
   incl setpoint8dofUnpack
@@ -56,15 +56,15 @@ mkSetpoint8dofSender =
   $ do
   arr <- local (iarray [] :: Init (Array 33 (Stored Uint8)))
   let buf = toCArray arr
-  call_ pack buf 0 =<< deref (msg ~> val1)
-  call_ pack buf 4 =<< deref (msg ~> val2)
-  call_ pack buf 8 =<< deref (msg ~> val3)
-  call_ pack buf 12 =<< deref (msg ~> val4)
-  call_ pack buf 16 =<< deref (msg ~> val5)
-  call_ pack buf 20 =<< deref (msg ~> val6)
-  call_ pack buf 24 =<< deref (msg ~> val7)
-  call_ pack buf 28 =<< deref (msg ~> val8)
-  call_ pack buf 32 =<< deref (msg ~> target_system)
+  pack buf 0 =<< deref (msg ~> val1)
+  pack buf 4 =<< deref (msg ~> val2)
+  pack buf 8 =<< deref (msg ~> val3)
+  pack buf 12 =<< deref (msg ~> val4)
+  pack buf 16 =<< deref (msg ~> val5)
+  pack buf 20 =<< deref (msg ~> val6)
+  pack buf 24 =<< deref (msg ~> val7)
+  pack buf 28 =<< deref (msg ~> val8)
+  pack buf 32 =<< deref (msg ~> target_system)
   -- 6: header len, 2: CRC len
   let usedLen    = 6 + 33 + 2 :: Integer
   let sendArr    = sendStruct ~> mav_array
@@ -87,13 +87,13 @@ setpoint8dofUnpack :: Def ('[ Ref s1 (Struct "setpoint_8dof_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
 setpoint8dofUnpack = proc "mavlink_setpoint_8dof_unpack" $ \ msg buf -> body $ do
-  store (msg ~> val1) =<< call unpack buf 0
-  store (msg ~> val2) =<< call unpack buf 4
-  store (msg ~> val3) =<< call unpack buf 8
-  store (msg ~> val4) =<< call unpack buf 12
-  store (msg ~> val5) =<< call unpack buf 16
-  store (msg ~> val6) =<< call unpack buf 20
-  store (msg ~> val7) =<< call unpack buf 24
-  store (msg ~> val8) =<< call unpack buf 28
-  store (msg ~> target_system) =<< call unpack buf 32
+  store (msg ~> val1) =<< unpack buf 0
+  store (msg ~> val2) =<< unpack buf 4
+  store (msg ~> val3) =<< unpack buf 8
+  store (msg ~> val4) =<< unpack buf 12
+  store (msg ~> val5) =<< unpack buf 16
+  store (msg ~> val6) =<< unpack buf 20
+  store (msg ~> val7) =<< unpack buf 24
+  store (msg ~> val8) =<< unpack buf 28
+  store (msg ~> target_system) =<< unpack buf 32
 

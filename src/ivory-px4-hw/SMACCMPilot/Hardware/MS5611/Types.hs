@@ -21,8 +21,16 @@ struct ms5611_calibration
   }
 
 struct ms5611_sample
-  { temperature :: Stored Uint32
-  ; pressure    :: Stored Uint32
+  { sample_temperature :: Stored Uint32
+  ; sample_pressure    :: Stored Uint32
+  ; sample_time        :: Stored ITime
+  }
+
+struct ms5611_measurement
+  { initfail   :: Stored IBool
+  ; sampfail   :: Stored IBool
+  ; temperature :: Stored IFloat -- deg celsius
+  ; pressure    :: Stored IFloat -- mbar
   ; time        :: Stored ITime
   }
 |]
@@ -31,4 +39,5 @@ ms5611TypesModule :: Module
 ms5611TypesModule = package "ms5611_types" $ do
   defStruct (Proxy :: Proxy "ms5611_calibration")
   defStruct (Proxy :: Proxy "ms5611_sample")
+  defStruct (Proxy :: Proxy "ms5611_measurement")
 

@@ -10,7 +10,7 @@
 
 module SMACCMPilot.Mavlink.Messages.SetGlobalPositionSetpointInt where
 
-import SMACCMPilot.Mavlink.Pack
+import Ivory.Serialize
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
@@ -25,7 +25,7 @@ setGlobalPositionSetpointIntCrcExtra = 33
 
 setGlobalPositionSetpointIntModule :: Module
 setGlobalPositionSetpointIntModule = package "mavlink_set_global_position_setpoint_int_msg" $ do
-  depend packModule
+  depend serializeModule
   depend mavlinkSendModule
   incl mkSetGlobalPositionSetpointIntSender
   incl setGlobalPositionSetpointIntUnpack
@@ -52,11 +52,11 @@ mkSetGlobalPositionSetpointIntSender =
   $ do
   arr <- local (iarray [] :: Init (Array 15 (Stored Uint8)))
   let buf = toCArray arr
-  call_ pack buf 0 =<< deref (msg ~> latitude)
-  call_ pack buf 4 =<< deref (msg ~> longitude)
-  call_ pack buf 8 =<< deref (msg ~> altitude)
-  call_ pack buf 12 =<< deref (msg ~> yaw)
-  call_ pack buf 14 =<< deref (msg ~> coordinate_frame)
+  pack buf 0 =<< deref (msg ~> latitude)
+  pack buf 4 =<< deref (msg ~> longitude)
+  pack buf 8 =<< deref (msg ~> altitude)
+  pack buf 12 =<< deref (msg ~> yaw)
+  pack buf 14 =<< deref (msg ~> coordinate_frame)
   -- 6: header len, 2: CRC len
   let usedLen    = 6 + 15 + 2 :: Integer
   let sendArr    = sendStruct ~> mav_array
@@ -79,9 +79,9 @@ setGlobalPositionSetpointIntUnpack :: Def ('[ Ref s1 (Struct "set_global_positio
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
 setGlobalPositionSetpointIntUnpack = proc "mavlink_set_global_position_setpoint_int_unpack" $ \ msg buf -> body $ do
-  store (msg ~> latitude) =<< call unpack buf 0
-  store (msg ~> longitude) =<< call unpack buf 4
-  store (msg ~> altitude) =<< call unpack buf 8
-  store (msg ~> yaw) =<< call unpack buf 12
-  store (msg ~> coordinate_frame) =<< call unpack buf 14
+  store (msg ~> latitude) =<< unpack buf 0
+  store (msg ~> longitude) =<< unpack buf 4
+  store (msg ~> altitude) =<< unpack buf 8
+  store (msg ~> yaw) =<< unpack buf 12
+  store (msg ~> coordinate_frame) =<< unpack buf 14
 

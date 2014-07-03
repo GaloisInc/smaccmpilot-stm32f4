@@ -10,7 +10,7 @@
 
 module SMACCMPilot.Mavlink.Messages.Attitude where
 
-import SMACCMPilot.Mavlink.Pack
+import Ivory.Serialize
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
@@ -25,7 +25,7 @@ attitudeCrcExtra = 39
 
 attitudeModule :: Module
 attitudeModule = package "mavlink_attitude_msg" $ do
-  depend packModule
+  depend serializeModule
   depend mavlinkSendModule
   incl mkAttitudeSender
   incl attitudeUnpack
@@ -54,13 +54,13 @@ mkAttitudeSender =
   $ do
   arr <- local (iarray [] :: Init (Array 28 (Stored Uint8)))
   let buf = toCArray arr
-  call_ pack buf 0 =<< deref (msg ~> time_boot_ms)
-  call_ pack buf 4 =<< deref (msg ~> roll)
-  call_ pack buf 8 =<< deref (msg ~> pitch)
-  call_ pack buf 12 =<< deref (msg ~> yaw)
-  call_ pack buf 16 =<< deref (msg ~> rollspeed)
-  call_ pack buf 20 =<< deref (msg ~> pitchspeed)
-  call_ pack buf 24 =<< deref (msg ~> yawspeed)
+  pack buf 0 =<< deref (msg ~> time_boot_ms)
+  pack buf 4 =<< deref (msg ~> roll)
+  pack buf 8 =<< deref (msg ~> pitch)
+  pack buf 12 =<< deref (msg ~> yaw)
+  pack buf 16 =<< deref (msg ~> rollspeed)
+  pack buf 20 =<< deref (msg ~> pitchspeed)
+  pack buf 24 =<< deref (msg ~> yawspeed)
   -- 6: header len, 2: CRC len
   let usedLen    = 6 + 28 + 2 :: Integer
   let sendArr    = sendStruct ~> mav_array
@@ -83,11 +83,11 @@ attitudeUnpack :: Def ('[ Ref s1 (Struct "attitude_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
 attitudeUnpack = proc "mavlink_attitude_unpack" $ \ msg buf -> body $ do
-  store (msg ~> time_boot_ms) =<< call unpack buf 0
-  store (msg ~> roll) =<< call unpack buf 4
-  store (msg ~> pitch) =<< call unpack buf 8
-  store (msg ~> yaw) =<< call unpack buf 12
-  store (msg ~> rollspeed) =<< call unpack buf 16
-  store (msg ~> pitchspeed) =<< call unpack buf 20
-  store (msg ~> yawspeed) =<< call unpack buf 24
+  store (msg ~> time_boot_ms) =<< unpack buf 0
+  store (msg ~> roll) =<< unpack buf 4
+  store (msg ~> pitch) =<< unpack buf 8
+  store (msg ~> yaw) =<< unpack buf 12
+  store (msg ~> rollspeed) =<< unpack buf 16
+  store (msg ~> pitchspeed) =<< unpack buf 20
+  store (msg ~> yawspeed) =<< unpack buf 24
 

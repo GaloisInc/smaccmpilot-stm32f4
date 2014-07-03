@@ -10,7 +10,7 @@
 
 module SMACCMPilot.Mavlink.Messages.VehCommsec where
 
-import SMACCMPilot.Mavlink.Pack
+import Ivory.Serialize
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
@@ -25,7 +25,7 @@ vehCommsecCrcExtra = 112
 
 vehCommsecModule :: Module
 vehCommsecModule = package "mavlink_veh_commsec_msg" $ do
-  depend packModule
+  depend serializeModule
   depend mavlinkSendModule
   incl mkVehCommsecSender
   incl vehCommsecUnpack
@@ -51,10 +51,10 @@ mkVehCommsecSender =
   $ do
   arr <- local (iarray [] :: Init (Array 13 (Stored Uint8)))
   let buf = toCArray arr
-  call_ pack buf 0 =<< deref (msg ~> time)
-  call_ pack buf 4 =<< deref (msg ~> good_msgs)
-  call_ pack buf 8 =<< deref (msg ~> bad_msgs)
-  call_ pack buf 12 =<< deref (msg ~> commsec_err)
+  pack buf 0 =<< deref (msg ~> time)
+  pack buf 4 =<< deref (msg ~> good_msgs)
+  pack buf 8 =<< deref (msg ~> bad_msgs)
+  pack buf 12 =<< deref (msg ~> commsec_err)
   -- 6: header len, 2: CRC len
   let usedLen    = 6 + 13 + 2 :: Integer
   let sendArr    = sendStruct ~> mav_array
@@ -77,8 +77,8 @@ vehCommsecUnpack :: Def ('[ Ref s1 (Struct "veh_commsec_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
 vehCommsecUnpack = proc "mavlink_veh_commsec_unpack" $ \ msg buf -> body $ do
-  store (msg ~> time) =<< call unpack buf 0
-  store (msg ~> good_msgs) =<< call unpack buf 4
-  store (msg ~> bad_msgs) =<< call unpack buf 8
-  store (msg ~> commsec_err) =<< call unpack buf 12
+  store (msg ~> time) =<< unpack buf 0
+  store (msg ~> good_msgs) =<< unpack buf 4
+  store (msg ~> bad_msgs) =<< unpack buf 8
+  store (msg ~> commsec_err) =<< unpack buf 12
 

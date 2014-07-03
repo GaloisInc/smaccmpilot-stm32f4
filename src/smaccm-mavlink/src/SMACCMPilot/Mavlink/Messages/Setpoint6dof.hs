@@ -10,7 +10,7 @@
 
 module SMACCMPilot.Mavlink.Messages.Setpoint6dof where
 
-import SMACCMPilot.Mavlink.Pack
+import Ivory.Serialize
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
@@ -25,7 +25,7 @@ setpoint6dofCrcExtra = 15
 
 setpoint6dofModule :: Module
 setpoint6dofModule = package "mavlink_setpoint_6dof_msg" $ do
-  depend packModule
+  depend serializeModule
   depend mavlinkSendModule
   incl mkSetpoint6dofSender
   incl setpoint6dofUnpack
@@ -54,13 +54,13 @@ mkSetpoint6dofSender =
   $ do
   arr <- local (iarray [] :: Init (Array 25 (Stored Uint8)))
   let buf = toCArray arr
-  call_ pack buf 0 =<< deref (msg ~> trans_x)
-  call_ pack buf 4 =<< deref (msg ~> trans_y)
-  call_ pack buf 8 =<< deref (msg ~> trans_z)
-  call_ pack buf 12 =<< deref (msg ~> rot_x)
-  call_ pack buf 16 =<< deref (msg ~> rot_y)
-  call_ pack buf 20 =<< deref (msg ~> rot_z)
-  call_ pack buf 24 =<< deref (msg ~> target_system)
+  pack buf 0 =<< deref (msg ~> trans_x)
+  pack buf 4 =<< deref (msg ~> trans_y)
+  pack buf 8 =<< deref (msg ~> trans_z)
+  pack buf 12 =<< deref (msg ~> rot_x)
+  pack buf 16 =<< deref (msg ~> rot_y)
+  pack buf 20 =<< deref (msg ~> rot_z)
+  pack buf 24 =<< deref (msg ~> target_system)
   -- 6: header len, 2: CRC len
   let usedLen    = 6 + 25 + 2 :: Integer
   let sendArr    = sendStruct ~> mav_array
@@ -83,11 +83,11 @@ setpoint6dofUnpack :: Def ('[ Ref s1 (Struct "setpoint_6dof_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
 setpoint6dofUnpack = proc "mavlink_setpoint_6dof_unpack" $ \ msg buf -> body $ do
-  store (msg ~> trans_x) =<< call unpack buf 0
-  store (msg ~> trans_y) =<< call unpack buf 4
-  store (msg ~> trans_z) =<< call unpack buf 8
-  store (msg ~> rot_x) =<< call unpack buf 12
-  store (msg ~> rot_y) =<< call unpack buf 16
-  store (msg ~> rot_z) =<< call unpack buf 20
-  store (msg ~> target_system) =<< call unpack buf 24
+  store (msg ~> trans_x) =<< unpack buf 0
+  store (msg ~> trans_y) =<< unpack buf 4
+  store (msg ~> trans_z) =<< unpack buf 8
+  store (msg ~> rot_x) =<< unpack buf 12
+  store (msg ~> rot_y) =<< unpack buf 16
+  store (msg ~> rot_z) =<< unpack buf 20
+  store (msg ~> target_system) =<< unpack buf 24
 

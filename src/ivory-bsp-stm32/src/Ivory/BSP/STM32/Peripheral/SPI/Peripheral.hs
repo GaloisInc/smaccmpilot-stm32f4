@@ -107,7 +107,7 @@ spiInitISR spi = do
   where
   inter = spiInterrupt spi
 
-spiISRHandlerName :: (STM32Signal i p) => SPIPeriph i -> String
+spiISRHandlerName :: (STM32Signal p) => SPIPeriph (InterruptType p) -> String
 spiISRHandlerName spi = interruptHandlerName (spiInterrupt spi)
 
 -- Clock Polarity and Phase: see description

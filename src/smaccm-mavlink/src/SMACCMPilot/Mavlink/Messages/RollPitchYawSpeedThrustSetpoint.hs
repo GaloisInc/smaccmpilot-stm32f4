@@ -10,7 +10,7 @@
 
 module SMACCMPilot.Mavlink.Messages.RollPitchYawSpeedThrustSetpoint where
 
-import SMACCMPilot.Mavlink.Pack
+import Ivory.Serialize
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
@@ -25,7 +25,7 @@ rollPitchYawSpeedThrustSetpointCrcExtra = 238
 
 rollPitchYawSpeedThrustSetpointModule :: Module
 rollPitchYawSpeedThrustSetpointModule = package "mavlink_roll_pitch_yaw_speed_thrust_setpoint_msg" $ do
-  depend packModule
+  depend serializeModule
   depend mavlinkSendModule
   incl mkRollPitchYawSpeedThrustSetpointSender
   incl rollPitchYawSpeedThrustSetpointUnpack
@@ -52,11 +52,11 @@ mkRollPitchYawSpeedThrustSetpointSender =
   $ do
   arr <- local (iarray [] :: Init (Array 20 (Stored Uint8)))
   let buf = toCArray arr
-  call_ pack buf 0 =<< deref (msg ~> time_boot_ms)
-  call_ pack buf 4 =<< deref (msg ~> roll_speed)
-  call_ pack buf 8 =<< deref (msg ~> pitch_speed)
-  call_ pack buf 12 =<< deref (msg ~> yaw_speed)
-  call_ pack buf 16 =<< deref (msg ~> thrust)
+  pack buf 0 =<< deref (msg ~> time_boot_ms)
+  pack buf 4 =<< deref (msg ~> roll_speed)
+  pack buf 8 =<< deref (msg ~> pitch_speed)
+  pack buf 12 =<< deref (msg ~> yaw_speed)
+  pack buf 16 =<< deref (msg ~> thrust)
   -- 6: header len, 2: CRC len
   let usedLen    = 6 + 20 + 2 :: Integer
   let sendArr    = sendStruct ~> mav_array
@@ -79,9 +79,9 @@ rollPitchYawSpeedThrustSetpointUnpack :: Def ('[ Ref s1 (Struct "roll_pitch_yaw_
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
 rollPitchYawSpeedThrustSetpointUnpack = proc "mavlink_roll_pitch_yaw_speed_thrust_setpoint_unpack" $ \ msg buf -> body $ do
-  store (msg ~> time_boot_ms) =<< call unpack buf 0
-  store (msg ~> roll_speed) =<< call unpack buf 4
-  store (msg ~> pitch_speed) =<< call unpack buf 8
-  store (msg ~> yaw_speed) =<< call unpack buf 12
-  store (msg ~> thrust) =<< call unpack buf 16
+  store (msg ~> time_boot_ms) =<< unpack buf 0
+  store (msg ~> roll_speed) =<< unpack buf 4
+  store (msg ~> pitch_speed) =<< unpack buf 8
+  store (msg ~> yaw_speed) =<< unpack buf 12
+  store (msg ~> thrust) =<< unpack buf 16
 

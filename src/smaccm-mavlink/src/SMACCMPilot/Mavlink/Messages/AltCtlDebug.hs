@@ -10,7 +10,7 @@
 
 module SMACCMPilot.Mavlink.Messages.AltCtlDebug where
 
-import SMACCMPilot.Mavlink.Pack
+import Ivory.Serialize
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
@@ -25,7 +25,7 @@ altCtlDebugCrcExtra = 130
 
 altCtlDebugModule :: Module
 altCtlDebugModule = package "mavlink_alt_ctl_debug_msg" $ do
-  depend packModule
+  depend serializeModule
   depend mavlinkSendModule
   incl mkAltCtlDebugSender
   incl altCtlDebugUnpack
@@ -60,19 +60,19 @@ mkAltCtlDebugSender =
   $ do
   arr <- local (iarray [] :: Init (Array 52 (Stored Uint8)))
   let buf = toCArray arr
-  call_ pack buf 0 =<< deref (msg ~> alt_est)
-  call_ pack buf 4 =<< deref (msg ~> alt_rate_est)
-  call_ pack buf 8 =<< deref (msg ~> thrust_p)
-  call_ pack buf 12 =<< deref (msg ~> thrust_i)
-  call_ pack buf 16 =<< deref (msg ~> thrust_d)
-  call_ pack buf 20 =<< deref (msg ~> thrust_i_reset)
-  call_ pack buf 24 =<< deref (msg ~> ui_setp)
-  call_ pack buf 28 =<< deref (msg ~> ui_rate_setp)
-  call_ pack buf 32 =<< deref (msg ~> pos_p)
-  call_ pack buf 36 =<< deref (msg ~> pos_i)
-  call_ pack buf 40 =<< deref (msg ~> pos_d)
-  call_ pack buf 44 =<< deref (msg ~> pos_setp)
-  call_ pack buf 48 =<< deref (msg ~> pos_rate_setp)
+  pack buf 0 =<< deref (msg ~> alt_est)
+  pack buf 4 =<< deref (msg ~> alt_rate_est)
+  pack buf 8 =<< deref (msg ~> thrust_p)
+  pack buf 12 =<< deref (msg ~> thrust_i)
+  pack buf 16 =<< deref (msg ~> thrust_d)
+  pack buf 20 =<< deref (msg ~> thrust_i_reset)
+  pack buf 24 =<< deref (msg ~> ui_setp)
+  pack buf 28 =<< deref (msg ~> ui_rate_setp)
+  pack buf 32 =<< deref (msg ~> pos_p)
+  pack buf 36 =<< deref (msg ~> pos_i)
+  pack buf 40 =<< deref (msg ~> pos_d)
+  pack buf 44 =<< deref (msg ~> pos_setp)
+  pack buf 48 =<< deref (msg ~> pos_rate_setp)
   -- 6: header len, 2: CRC len
   let usedLen    = 6 + 52 + 2 :: Integer
   let sendArr    = sendStruct ~> mav_array
@@ -95,17 +95,17 @@ altCtlDebugUnpack :: Def ('[ Ref s1 (Struct "alt_ctl_debug_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
 altCtlDebugUnpack = proc "mavlink_alt_ctl_debug_unpack" $ \ msg buf -> body $ do
-  store (msg ~> alt_est) =<< call unpack buf 0
-  store (msg ~> alt_rate_est) =<< call unpack buf 4
-  store (msg ~> thrust_p) =<< call unpack buf 8
-  store (msg ~> thrust_i) =<< call unpack buf 12
-  store (msg ~> thrust_d) =<< call unpack buf 16
-  store (msg ~> thrust_i_reset) =<< call unpack buf 20
-  store (msg ~> ui_setp) =<< call unpack buf 24
-  store (msg ~> ui_rate_setp) =<< call unpack buf 28
-  store (msg ~> pos_p) =<< call unpack buf 32
-  store (msg ~> pos_i) =<< call unpack buf 36
-  store (msg ~> pos_d) =<< call unpack buf 40
-  store (msg ~> pos_setp) =<< call unpack buf 44
-  store (msg ~> pos_rate_setp) =<< call unpack buf 48
+  store (msg ~> alt_est) =<< unpack buf 0
+  store (msg ~> alt_rate_est) =<< unpack buf 4
+  store (msg ~> thrust_p) =<< unpack buf 8
+  store (msg ~> thrust_i) =<< unpack buf 12
+  store (msg ~> thrust_d) =<< unpack buf 16
+  store (msg ~> thrust_i_reset) =<< unpack buf 20
+  store (msg ~> ui_setp) =<< unpack buf 24
+  store (msg ~> ui_rate_setp) =<< unpack buf 28
+  store (msg ~> pos_p) =<< unpack buf 32
+  store (msg ~> pos_i) =<< unpack buf 36
+  store (msg ~> pos_d) =<< unpack buf 40
+  store (msg ~> pos_setp) =<< unpack buf 44
+  store (msg ~> pos_rate_setp) =<< unpack buf 48
 

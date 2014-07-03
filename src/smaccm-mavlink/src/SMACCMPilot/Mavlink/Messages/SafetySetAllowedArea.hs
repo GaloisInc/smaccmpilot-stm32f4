@@ -10,7 +10,7 @@
 
 module SMACCMPilot.Mavlink.Messages.SafetySetAllowedArea where
 
-import SMACCMPilot.Mavlink.Pack
+import Ivory.Serialize
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
@@ -25,7 +25,7 @@ safetySetAllowedAreaCrcExtra = 15
 
 safetySetAllowedAreaModule :: Module
 safetySetAllowedAreaModule = package "mavlink_safety_set_allowed_area_msg" $ do
-  depend packModule
+  depend serializeModule
   depend mavlinkSendModule
   incl mkSafetySetAllowedAreaSender
   incl safetySetAllowedAreaUnpack
@@ -56,15 +56,15 @@ mkSafetySetAllowedAreaSender =
   $ do
   arr <- local (iarray [] :: Init (Array 27 (Stored Uint8)))
   let buf = toCArray arr
-  call_ pack buf 0 =<< deref (msg ~> p1x)
-  call_ pack buf 4 =<< deref (msg ~> p1y)
-  call_ pack buf 8 =<< deref (msg ~> p1z)
-  call_ pack buf 12 =<< deref (msg ~> p2x)
-  call_ pack buf 16 =<< deref (msg ~> p2y)
-  call_ pack buf 20 =<< deref (msg ~> p2z)
-  call_ pack buf 24 =<< deref (msg ~> target_system)
-  call_ pack buf 25 =<< deref (msg ~> target_component)
-  call_ pack buf 26 =<< deref (msg ~> frame)
+  pack buf 0 =<< deref (msg ~> p1x)
+  pack buf 4 =<< deref (msg ~> p1y)
+  pack buf 8 =<< deref (msg ~> p1z)
+  pack buf 12 =<< deref (msg ~> p2x)
+  pack buf 16 =<< deref (msg ~> p2y)
+  pack buf 20 =<< deref (msg ~> p2z)
+  pack buf 24 =<< deref (msg ~> target_system)
+  pack buf 25 =<< deref (msg ~> target_component)
+  pack buf 26 =<< deref (msg ~> frame)
   -- 6: header len, 2: CRC len
   let usedLen    = 6 + 27 + 2 :: Integer
   let sendArr    = sendStruct ~> mav_array
@@ -87,13 +87,13 @@ safetySetAllowedAreaUnpack :: Def ('[ Ref s1 (Struct "safety_set_allowed_area_ms
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
 safetySetAllowedAreaUnpack = proc "mavlink_safety_set_allowed_area_unpack" $ \ msg buf -> body $ do
-  store (msg ~> p1x) =<< call unpack buf 0
-  store (msg ~> p1y) =<< call unpack buf 4
-  store (msg ~> p1z) =<< call unpack buf 8
-  store (msg ~> p2x) =<< call unpack buf 12
-  store (msg ~> p2y) =<< call unpack buf 16
-  store (msg ~> p2z) =<< call unpack buf 20
-  store (msg ~> target_system) =<< call unpack buf 24
-  store (msg ~> target_component) =<< call unpack buf 25
-  store (msg ~> frame) =<< call unpack buf 26
+  store (msg ~> p1x) =<< unpack buf 0
+  store (msg ~> p1y) =<< unpack buf 4
+  store (msg ~> p1z) =<< unpack buf 8
+  store (msg ~> p2x) =<< unpack buf 12
+  store (msg ~> p2y) =<< unpack buf 16
+  store (msg ~> p2z) =<< unpack buf 20
+  store (msg ~> target_system) =<< unpack buf 24
+  store (msg ~> target_component) =<< unpack buf 25
+  store (msg ~> frame) =<< unpack buf 26
 

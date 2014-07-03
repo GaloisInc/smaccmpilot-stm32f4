@@ -115,9 +115,7 @@ library
                        SMACCMPilot.Param,
                        SMACCMPilot.Param.Base,
                        SMACCMPilot.Param.TowerTypes,
-                       SMACCMPilot.Param.Tower,
-
-                       SMACCMPilot.SafePack
+                       SMACCMPilot.Param.Tower
 
   build-depends:       base >= 4.6,
                        monadLib,
@@ -126,6 +124,7 @@ library
                        ivory-backend-c,
                        ivory-opts,
                        ivory-hw,
+                       ivory-serialize,
                        tower              >= 0.8,
                        tower-frontend     >= 0.8,
                        tower-statemachine >= 0.8,
@@ -147,6 +146,7 @@ executable flight-gen
                        ivory-backend-c,
                        ivory-opts,
                        ivory-hw,
+                       ivory-serialize,
                        tower              >= 0.8,
                        tower-frontend     >= 0.8,
                        tower-statemachine >= 0.8,
@@ -169,6 +169,7 @@ executable flight-hil-gen
                        ivory-backend-c,
                        ivory-opts,
                        ivory-hw,
+                       ivory-serialize,
                        tower              >= 0.8,
                        tower-frontend     >= 0.8,
                        tower-statemachine >= 0.8,

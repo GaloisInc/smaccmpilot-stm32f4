@@ -10,7 +10,7 @@
 
 module SMACCMPilot.Mavlink.Messages.GpsGlobalOrigin where
 
-import SMACCMPilot.Mavlink.Pack
+import Ivory.Serialize
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
@@ -25,7 +25,7 @@ gpsGlobalOriginCrcExtra = 39
 
 gpsGlobalOriginModule :: Module
 gpsGlobalOriginModule = package "mavlink_gps_global_origin_msg" $ do
-  depend packModule
+  depend serializeModule
   depend mavlinkSendModule
   incl mkGpsGlobalOriginSender
   incl gpsGlobalOriginUnpack
@@ -50,9 +50,9 @@ mkGpsGlobalOriginSender =
   $ do
   arr <- local (iarray [] :: Init (Array 12 (Stored Uint8)))
   let buf = toCArray arr
-  call_ pack buf 0 =<< deref (msg ~> latitude)
-  call_ pack buf 4 =<< deref (msg ~> longitude)
-  call_ pack buf 8 =<< deref (msg ~> altitude)
+  pack buf 0 =<< deref (msg ~> latitude)
+  pack buf 4 =<< deref (msg ~> longitude)
+  pack buf 8 =<< deref (msg ~> altitude)
   -- 6: header len, 2: CRC len
   let usedLen    = 6 + 12 + 2 :: Integer
   let sendArr    = sendStruct ~> mav_array
@@ -75,7 +75,7 @@ gpsGlobalOriginUnpack :: Def ('[ Ref s1 (Struct "gps_global_origin_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
 gpsGlobalOriginUnpack = proc "mavlink_gps_global_origin_unpack" $ \ msg buf -> body $ do
-  store (msg ~> latitude) =<< call unpack buf 0
-  store (msg ~> longitude) =<< call unpack buf 4
-  store (msg ~> altitude) =<< call unpack buf 8
+  store (msg ~> latitude) =<< unpack buf 0
+  store (msg ~> longitude) =<< unpack buf 4
+  store (msg ~> altitude) =<< unpack buf 8
 

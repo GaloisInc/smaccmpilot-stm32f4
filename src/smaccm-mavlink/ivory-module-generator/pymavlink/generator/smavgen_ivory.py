@@ -112,13 +112,13 @@ def generate_message_ivory(directory, m):
     array_defs = [ ivory_name(s,m) + " :: Array %d (Stored %s)" %
                     (s.array_length, ivory_type[s.type])
                     for s in m.array_fields ]
-    scalar_pack_calls = [ "call_ pack buf %d =<< deref (msg ~> %s)" %
+    scalar_pack_calls = [ "pack buf %d =<< deref (msg ~> %s)" %
                     (s.wire_offset, ivory_name(s,m))
                     for s in m.scalar_fields]
     array_pack_calls = [ "arrayPack buf %d (msg ~> %s)" %
                     (s.wire_offset, ivory_name(s,m))
                     for s in m.array_fields]
-    scalar_unpack_calls = [ "store (msg ~> %s) =<< call unpack buf %d" %
+    scalar_unpack_calls = [ "store (msg ~> %s) =<< unpack buf %d" %
                             (ivory_name(s, m), s.wire_offset)
                             for s in m.scalar_fields]
     array_unpack_calls = [ "arrayUnpack buf %d (msg ~> %s)" %
@@ -142,7 +142,7 @@ def generate_message_ivory(directory, m):
 
 module SMACCMPilot.Mavlink.Messages.${name_module} where
 
-import SMACCMPilot.Mavlink.Pack
+import Ivory.Serialize
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
@@ -157,7 +157,7 @@ ${name_camel}CrcExtra = ${crc_extra}
 
 ${name_camel}Module :: Module
 ${name_camel}Module = package "mavlink_${name_lower}_msg" $ do
-  depend packModule
+  depend serializeModule
   depend mavlinkSendModule
   incl mk${name_module}Sender
   incl ${name_camel}Unpack

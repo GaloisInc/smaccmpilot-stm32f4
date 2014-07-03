@@ -10,7 +10,7 @@
 
 module SMACCMPilot.Mavlink.Messages.ParamSet where
 
-import SMACCMPilot.Mavlink.Pack
+import Ivory.Serialize
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
@@ -25,7 +25,7 @@ paramSetCrcExtra = 168
 
 paramSetModule :: Module
 paramSetModule = package "mavlink_param_set_msg" $ do
-  depend packModule
+  depend serializeModule
   depend mavlinkSendModule
   incl mkParamSetSender
   incl paramSetUnpack
@@ -52,10 +52,10 @@ mkParamSetSender =
   $ do
   arr <- local (iarray [] :: Init (Array 23 (Stored Uint8)))
   let buf = toCArray arr
-  call_ pack buf 0 =<< deref (msg ~> param_value)
-  call_ pack buf 4 =<< deref (msg ~> target_system)
-  call_ pack buf 5 =<< deref (msg ~> target_component)
-  call_ pack buf 22 =<< deref (msg ~> param_type)
+  pack buf 0 =<< deref (msg ~> param_value)
+  pack buf 4 =<< deref (msg ~> target_system)
+  pack buf 5 =<< deref (msg ~> target_component)
+  pack buf 22 =<< deref (msg ~> param_type)
   arrayPack buf 6 (msg ~> param_id)
   -- 6: header len, 2: CRC len
   let usedLen    = 6 + 23 + 2 :: Integer
@@ -79,9 +79,9 @@ paramSetUnpack :: Def ('[ Ref s1 (Struct "param_set_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
 paramSetUnpack = proc "mavlink_param_set_unpack" $ \ msg buf -> body $ do
-  store (msg ~> param_value) =<< call unpack buf 0
-  store (msg ~> target_system) =<< call unpack buf 4
-  store (msg ~> target_component) =<< call unpack buf 5
-  store (msg ~> param_type) =<< call unpack buf 22
+  store (msg ~> param_value) =<< unpack buf 0
+  store (msg ~> target_system) =<< unpack buf 4
+  store (msg ~> target_component) =<< unpack buf 5
+  store (msg ~> param_type) =<< unpack buf 22
   arrayUnpack buf 6 (msg ~> param_id)
 

@@ -10,7 +10,7 @@
 
 module SMACCMPilot.Mavlink.Messages.HighresImu where
 
-import SMACCMPilot.Mavlink.Pack
+import Ivory.Serialize
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
@@ -25,7 +25,7 @@ highresImuCrcExtra = 93
 
 highresImuModule :: Module
 highresImuModule = package "mavlink_highres_imu_msg" $ do
-  depend packModule
+  depend serializeModule
   depend mavlinkSendModule
   incl mkHighresImuSender
   incl highresImuUnpack
@@ -62,21 +62,21 @@ mkHighresImuSender =
   $ do
   arr <- local (iarray [] :: Init (Array 62 (Stored Uint8)))
   let buf = toCArray arr
-  call_ pack buf 0 =<< deref (msg ~> time_usec)
-  call_ pack buf 8 =<< deref (msg ~> xacc)
-  call_ pack buf 12 =<< deref (msg ~> yacc)
-  call_ pack buf 16 =<< deref (msg ~> zacc)
-  call_ pack buf 20 =<< deref (msg ~> xgyro)
-  call_ pack buf 24 =<< deref (msg ~> ygyro)
-  call_ pack buf 28 =<< deref (msg ~> zgyro)
-  call_ pack buf 32 =<< deref (msg ~> xmag)
-  call_ pack buf 36 =<< deref (msg ~> ymag)
-  call_ pack buf 40 =<< deref (msg ~> zmag)
-  call_ pack buf 44 =<< deref (msg ~> abs_pressure)
-  call_ pack buf 48 =<< deref (msg ~> diff_pressure)
-  call_ pack buf 52 =<< deref (msg ~> pressure_alt)
-  call_ pack buf 56 =<< deref (msg ~> temperature)
-  call_ pack buf 60 =<< deref (msg ~> fields_updated)
+  pack buf 0 =<< deref (msg ~> time_usec)
+  pack buf 8 =<< deref (msg ~> xacc)
+  pack buf 12 =<< deref (msg ~> yacc)
+  pack buf 16 =<< deref (msg ~> zacc)
+  pack buf 20 =<< deref (msg ~> xgyro)
+  pack buf 24 =<< deref (msg ~> ygyro)
+  pack buf 28 =<< deref (msg ~> zgyro)
+  pack buf 32 =<< deref (msg ~> xmag)
+  pack buf 36 =<< deref (msg ~> ymag)
+  pack buf 40 =<< deref (msg ~> zmag)
+  pack buf 44 =<< deref (msg ~> abs_pressure)
+  pack buf 48 =<< deref (msg ~> diff_pressure)
+  pack buf 52 =<< deref (msg ~> pressure_alt)
+  pack buf 56 =<< deref (msg ~> temperature)
+  pack buf 60 =<< deref (msg ~> fields_updated)
   -- 6: header len, 2: CRC len
   let usedLen    = 6 + 62 + 2 :: Integer
   let sendArr    = sendStruct ~> mav_array
@@ -99,19 +99,19 @@ highresImuUnpack :: Def ('[ Ref s1 (Struct "highres_imu_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
 highresImuUnpack = proc "mavlink_highres_imu_unpack" $ \ msg buf -> body $ do
-  store (msg ~> time_usec) =<< call unpack buf 0
-  store (msg ~> xacc) =<< call unpack buf 8
-  store (msg ~> yacc) =<< call unpack buf 12
-  store (msg ~> zacc) =<< call unpack buf 16
-  store (msg ~> xgyro) =<< call unpack buf 20
-  store (msg ~> ygyro) =<< call unpack buf 24
-  store (msg ~> zgyro) =<< call unpack buf 28
-  store (msg ~> xmag) =<< call unpack buf 32
-  store (msg ~> ymag) =<< call unpack buf 36
-  store (msg ~> zmag) =<< call unpack buf 40
-  store (msg ~> abs_pressure) =<< call unpack buf 44
-  store (msg ~> diff_pressure) =<< call unpack buf 48
-  store (msg ~> pressure_alt) =<< call unpack buf 52
-  store (msg ~> temperature) =<< call unpack buf 56
-  store (msg ~> fields_updated) =<< call unpack buf 60
+  store (msg ~> time_usec) =<< unpack buf 0
+  store (msg ~> xacc) =<< unpack buf 8
+  store (msg ~> yacc) =<< unpack buf 12
+  store (msg ~> zacc) =<< unpack buf 16
+  store (msg ~> xgyro) =<< unpack buf 20
+  store (msg ~> ygyro) =<< unpack buf 24
+  store (msg ~> zgyro) =<< unpack buf 28
+  store (msg ~> xmag) =<< unpack buf 32
+  store (msg ~> ymag) =<< unpack buf 36
+  store (msg ~> zmag) =<< unpack buf 40
+  store (msg ~> abs_pressure) =<< unpack buf 44
+  store (msg ~> diff_pressure) =<< unpack buf 48
+  store (msg ~> pressure_alt) =<< unpack buf 52
+  store (msg ~> temperature) =<< unpack buf 56
+  store (msg ~> fields_updated) =<< unpack buf 60
 

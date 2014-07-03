@@ -10,7 +10,7 @@
 
 module SMACCMPilot.Mavlink.Messages.MissionSetCurrent where
 
-import SMACCMPilot.Mavlink.Pack
+import Ivory.Serialize
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
@@ -25,7 +25,7 @@ missionSetCurrentCrcExtra = 28
 
 missionSetCurrentModule :: Module
 missionSetCurrentModule = package "mavlink_mission_set_current_msg" $ do
-  depend packModule
+  depend serializeModule
   depend mavlinkSendModule
   incl mkMissionSetCurrentSender
   incl missionSetCurrentUnpack
@@ -50,9 +50,9 @@ mkMissionSetCurrentSender =
   $ do
   arr <- local (iarray [] :: Init (Array 4 (Stored Uint8)))
   let buf = toCArray arr
-  call_ pack buf 0 =<< deref (msg ~> mission_set_current_seq)
-  call_ pack buf 2 =<< deref (msg ~> target_system)
-  call_ pack buf 3 =<< deref (msg ~> target_component)
+  pack buf 0 =<< deref (msg ~> mission_set_current_seq)
+  pack buf 2 =<< deref (msg ~> target_system)
+  pack buf 3 =<< deref (msg ~> target_component)
   -- 6: header len, 2: CRC len
   let usedLen    = 6 + 4 + 2 :: Integer
   let sendArr    = sendStruct ~> mav_array
@@ -75,7 +75,7 @@ missionSetCurrentUnpack :: Def ('[ Ref s1 (Struct "mission_set_current_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
 missionSetCurrentUnpack = proc "mavlink_mission_set_current_unpack" $ \ msg buf -> body $ do
-  store (msg ~> mission_set_current_seq) =<< call unpack buf 0
-  store (msg ~> target_system) =<< call unpack buf 2
-  store (msg ~> target_component) =<< call unpack buf 3
+  store (msg ~> mission_set_current_seq) =<< unpack buf 0
+  store (msg ~> target_system) =<< unpack buf 2
+  store (msg ~> target_component) =<< unpack buf 3
 

@@ -10,7 +10,7 @@
 
 module SMACCMPilot.Mavlink.Messages.ManualControl where
 
-import SMACCMPilot.Mavlink.Pack
+import Ivory.Serialize
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
@@ -25,7 +25,7 @@ manualControlCrcExtra = 243
 
 manualControlModule :: Module
 manualControlModule = package "mavlink_manual_control_msg" $ do
-  depend packModule
+  depend serializeModule
   depend mavlinkSendModule
   incl mkManualControlSender
   incl manualControlUnpack
@@ -53,12 +53,12 @@ mkManualControlSender =
   $ do
   arr <- local (iarray [] :: Init (Array 11 (Stored Uint8)))
   let buf = toCArray arr
-  call_ pack buf 0 =<< deref (msg ~> x)
-  call_ pack buf 2 =<< deref (msg ~> y)
-  call_ pack buf 4 =<< deref (msg ~> z)
-  call_ pack buf 6 =<< deref (msg ~> r)
-  call_ pack buf 8 =<< deref (msg ~> buttons)
-  call_ pack buf 10 =<< deref (msg ~> target)
+  pack buf 0 =<< deref (msg ~> x)
+  pack buf 2 =<< deref (msg ~> y)
+  pack buf 4 =<< deref (msg ~> z)
+  pack buf 6 =<< deref (msg ~> r)
+  pack buf 8 =<< deref (msg ~> buttons)
+  pack buf 10 =<< deref (msg ~> target)
   -- 6: header len, 2: CRC len
   let usedLen    = 6 + 11 + 2 :: Integer
   let sendArr    = sendStruct ~> mav_array
@@ -81,10 +81,10 @@ manualControlUnpack :: Def ('[ Ref s1 (Struct "manual_control_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
 manualControlUnpack = proc "mavlink_manual_control_unpack" $ \ msg buf -> body $ do
-  store (msg ~> x) =<< call unpack buf 0
-  store (msg ~> y) =<< call unpack buf 2
-  store (msg ~> z) =<< call unpack buf 4
-  store (msg ~> r) =<< call unpack buf 6
-  store (msg ~> buttons) =<< call unpack buf 8
-  store (msg ~> target) =<< call unpack buf 10
+  store (msg ~> x) =<< unpack buf 0
+  store (msg ~> y) =<< unpack buf 2
+  store (msg ~> z) =<< unpack buf 4
+  store (msg ~> r) =<< unpack buf 6
+  store (msg ~> buttons) =<< unpack buf 8
+  store (msg ~> target) =<< unpack buf 10
 

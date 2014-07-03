@@ -10,7 +10,7 @@
 
 module SMACCMPilot.Mavlink.Messages.HilState where
 
-import SMACCMPilot.Mavlink.Pack
+import Ivory.Serialize
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
@@ -25,7 +25,7 @@ hilStateCrcExtra = 183
 
 hilStateModule :: Module
 hilStateModule = package "mavlink_hil_state_msg" $ do
-  depend packModule
+  depend serializeModule
   depend mavlinkSendModule
   incl mkHilStateSender
   incl hilStateUnpack
@@ -63,22 +63,22 @@ mkHilStateSender =
   $ do
   arr <- local (iarray [] :: Init (Array 56 (Stored Uint8)))
   let buf = toCArray arr
-  call_ pack buf 0 =<< deref (msg ~> time_usec)
-  call_ pack buf 8 =<< deref (msg ~> roll)
-  call_ pack buf 12 =<< deref (msg ~> pitch)
-  call_ pack buf 16 =<< deref (msg ~> yaw)
-  call_ pack buf 20 =<< deref (msg ~> rollspeed)
-  call_ pack buf 24 =<< deref (msg ~> pitchspeed)
-  call_ pack buf 28 =<< deref (msg ~> yawspeed)
-  call_ pack buf 32 =<< deref (msg ~> lat)
-  call_ pack buf 36 =<< deref (msg ~> lon)
-  call_ pack buf 40 =<< deref (msg ~> alt)
-  call_ pack buf 44 =<< deref (msg ~> vx)
-  call_ pack buf 46 =<< deref (msg ~> vy)
-  call_ pack buf 48 =<< deref (msg ~> vz)
-  call_ pack buf 50 =<< deref (msg ~> xacc)
-  call_ pack buf 52 =<< deref (msg ~> yacc)
-  call_ pack buf 54 =<< deref (msg ~> zacc)
+  pack buf 0 =<< deref (msg ~> time_usec)
+  pack buf 8 =<< deref (msg ~> roll)
+  pack buf 12 =<< deref (msg ~> pitch)
+  pack buf 16 =<< deref (msg ~> yaw)
+  pack buf 20 =<< deref (msg ~> rollspeed)
+  pack buf 24 =<< deref (msg ~> pitchspeed)
+  pack buf 28 =<< deref (msg ~> yawspeed)
+  pack buf 32 =<< deref (msg ~> lat)
+  pack buf 36 =<< deref (msg ~> lon)
+  pack buf 40 =<< deref (msg ~> alt)
+  pack buf 44 =<< deref (msg ~> vx)
+  pack buf 46 =<< deref (msg ~> vy)
+  pack buf 48 =<< deref (msg ~> vz)
+  pack buf 50 =<< deref (msg ~> xacc)
+  pack buf 52 =<< deref (msg ~> yacc)
+  pack buf 54 =<< deref (msg ~> zacc)
   -- 6: header len, 2: CRC len
   let usedLen    = 6 + 56 + 2 :: Integer
   let sendArr    = sendStruct ~> mav_array
@@ -101,20 +101,20 @@ hilStateUnpack :: Def ('[ Ref s1 (Struct "hil_state_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
 hilStateUnpack = proc "mavlink_hil_state_unpack" $ \ msg buf -> body $ do
-  store (msg ~> time_usec) =<< call unpack buf 0
-  store (msg ~> roll) =<< call unpack buf 8
-  store (msg ~> pitch) =<< call unpack buf 12
-  store (msg ~> yaw) =<< call unpack buf 16
-  store (msg ~> rollspeed) =<< call unpack buf 20
-  store (msg ~> pitchspeed) =<< call unpack buf 24
-  store (msg ~> yawspeed) =<< call unpack buf 28
-  store (msg ~> lat) =<< call unpack buf 32
-  store (msg ~> lon) =<< call unpack buf 36
-  store (msg ~> alt) =<< call unpack buf 40
-  store (msg ~> vx) =<< call unpack buf 44
-  store (msg ~> vy) =<< call unpack buf 46
-  store (msg ~> vz) =<< call unpack buf 48
-  store (msg ~> xacc) =<< call unpack buf 50
-  store (msg ~> yacc) =<< call unpack buf 52
-  store (msg ~> zacc) =<< call unpack buf 54
+  store (msg ~> time_usec) =<< unpack buf 0
+  store (msg ~> roll) =<< unpack buf 8
+  store (msg ~> pitch) =<< unpack buf 12
+  store (msg ~> yaw) =<< unpack buf 16
+  store (msg ~> rollspeed) =<< unpack buf 20
+  store (msg ~> pitchspeed) =<< unpack buf 24
+  store (msg ~> yawspeed) =<< unpack buf 28
+  store (msg ~> lat) =<< unpack buf 32
+  store (msg ~> lon) =<< unpack buf 36
+  store (msg ~> alt) =<< unpack buf 40
+  store (msg ~> vx) =<< unpack buf 44
+  store (msg ~> vy) =<< unpack buf 46
+  store (msg ~> vz) =<< unpack buf 48
+  store (msg ~> xacc) =<< unpack buf 50
+  store (msg ~> yacc) =<< unpack buf 52
+  store (msg ~> zacc) =<< unpack buf 54
 

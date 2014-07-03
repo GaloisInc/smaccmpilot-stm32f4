@@ -10,7 +10,7 @@
 
 module SMACCMPilot.Mavlink.Messages.SetQuadMotorsSetpoint where
 
-import SMACCMPilot.Mavlink.Pack
+import Ivory.Serialize
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
@@ -25,7 +25,7 @@ setQuadMotorsSetpointCrcExtra = 30
 
 setQuadMotorsSetpointModule :: Module
 setQuadMotorsSetpointModule = package "mavlink_set_quad_motors_setpoint_msg" $ do
-  depend packModule
+  depend serializeModule
   depend mavlinkSendModule
   incl mkSetQuadMotorsSetpointSender
   incl setQuadMotorsSetpointUnpack
@@ -52,11 +52,11 @@ mkSetQuadMotorsSetpointSender =
   $ do
   arr <- local (iarray [] :: Init (Array 9 (Stored Uint8)))
   let buf = toCArray arr
-  call_ pack buf 0 =<< deref (msg ~> motor_front_nw)
-  call_ pack buf 2 =<< deref (msg ~> motor_right_ne)
-  call_ pack buf 4 =<< deref (msg ~> motor_back_se)
-  call_ pack buf 6 =<< deref (msg ~> motor_left_sw)
-  call_ pack buf 8 =<< deref (msg ~> target_system)
+  pack buf 0 =<< deref (msg ~> motor_front_nw)
+  pack buf 2 =<< deref (msg ~> motor_right_ne)
+  pack buf 4 =<< deref (msg ~> motor_back_se)
+  pack buf 6 =<< deref (msg ~> motor_left_sw)
+  pack buf 8 =<< deref (msg ~> target_system)
   -- 6: header len, 2: CRC len
   let usedLen    = 6 + 9 + 2 :: Integer
   let sendArr    = sendStruct ~> mav_array
@@ -79,9 +79,9 @@ setQuadMotorsSetpointUnpack :: Def ('[ Ref s1 (Struct "set_quad_motors_setpoint_
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
 setQuadMotorsSetpointUnpack = proc "mavlink_set_quad_motors_setpoint_unpack" $ \ msg buf -> body $ do
-  store (msg ~> motor_front_nw) =<< call unpack buf 0
-  store (msg ~> motor_right_ne) =<< call unpack buf 2
-  store (msg ~> motor_back_se) =<< call unpack buf 4
-  store (msg ~> motor_left_sw) =<< call unpack buf 6
-  store (msg ~> target_system) =<< call unpack buf 8
+  store (msg ~> motor_front_nw) =<< unpack buf 0
+  store (msg ~> motor_right_ne) =<< unpack buf 2
+  store (msg ~> motor_back_se) =<< unpack buf 4
+  store (msg ~> motor_left_sw) =<< unpack buf 6
+  store (msg ~> target_system) =<< unpack buf 8
 

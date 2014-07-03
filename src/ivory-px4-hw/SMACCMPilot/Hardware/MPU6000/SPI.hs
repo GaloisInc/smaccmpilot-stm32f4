@@ -2,6 +2,7 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE RecursiveDo #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module SMACCMPilot.Hardware.MPU6000.SPI where
 
@@ -9,10 +10,10 @@ import Ivory.Language
 import Ivory.Stdlib
 import Ivory.Tower
 import Ivory.Tower.StateMachine
-import Ivory.BSP.STM32F405.SPI
+import Ivory.BSP.STM32.Driver.SPI
 
 import SMACCMPilot.Hardware.MPU6000.Regs
-import SMACCMPilot.Hardware.MPU6000.RawSensor
+import SMACCMPilot.Hardware.MPU6000.Types
 
 readRegAddr :: Reg -> Uint8
 readRegAddr reg = 0x80 .| (fromIntegral (regAddr reg))
@@ -53,7 +54,7 @@ getSensorsReq dev = fmap constRef $ local $ istruct
 rawSensorFromResponse :: (GetAlloc eff ~ Scope s)
                       => ConstRef s1 (Struct "spi_transaction_result")
                       -> ITime
-                      -> Ivory eff (ConstRef (Stack s) (Struct "mpu6000_raw_sensor"))
+                      -> Ivory eff (ConstRef (Stack s) (Struct "mpu6000_sample"))
 rawSensorFromResponse res t = do
   ax_h <- deref ((res ~> rx_buf) ! 1)
   ax_l <- deref ((res ~> rx_buf) ! 2)
@@ -84,7 +85,8 @@ rawSensorFromResponse res t = do
   hilo :: Uint8 -> Uint8 -> Uint16
   hilo h l = ((safeCast h) * 256) + safeCast l
 
-initializerMachine :: SPIDeviceHandle
+initializerMachine :: forall p
+                    . SPIDeviceHandle
                    -> ChannelEmitter (Struct "spi_transaction_request")
                    -> Event          (Struct "spi_transaction_result")
                    -> Task p (Runnable, Ref Global (Stored IBool))
@@ -131,7 +133,7 @@ initializerMachine dev req_emitter result_evt = do
       -> (forall s2 s3 . (ConstRef s2 (Struct "spi_transaction_result"))
             -> Ivory (AllocEffects s3) ())
       -> StateLabel
-      -> MachineM StateLabel
+      -> MachineM p StateLabel
   rpc name request resultk statek = mdo
     getter <- stateNamed ("get" ++ name) $ entry $ do
       liftIvory_ $ do

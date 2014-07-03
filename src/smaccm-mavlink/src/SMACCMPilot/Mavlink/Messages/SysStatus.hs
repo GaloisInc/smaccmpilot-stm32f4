@@ -10,7 +10,7 @@
 
 module SMACCMPilot.Mavlink.Messages.SysStatus where
 
-import SMACCMPilot.Mavlink.Pack
+import Ivory.Serialize
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
@@ -25,7 +25,7 @@ sysStatusCrcExtra = 124
 
 sysStatusModule :: Module
 sysStatusModule = package "mavlink_sys_status_msg" $ do
-  depend packModule
+  depend serializeModule
   depend mavlinkSendModule
   incl mkSysStatusSender
   incl sysStatusUnpack
@@ -60,19 +60,19 @@ mkSysStatusSender =
   $ do
   arr <- local (iarray [] :: Init (Array 31 (Stored Uint8)))
   let buf = toCArray arr
-  call_ pack buf 0 =<< deref (msg ~> onboard_control_sensors_present)
-  call_ pack buf 4 =<< deref (msg ~> onboard_control_sensors_enabled)
-  call_ pack buf 8 =<< deref (msg ~> onboard_control_sensors_health)
-  call_ pack buf 12 =<< deref (msg ~> load)
-  call_ pack buf 14 =<< deref (msg ~> voltage_battery)
-  call_ pack buf 16 =<< deref (msg ~> current_battery)
-  call_ pack buf 18 =<< deref (msg ~> drop_rate_comm)
-  call_ pack buf 20 =<< deref (msg ~> errors_comm)
-  call_ pack buf 22 =<< deref (msg ~> errors_count1)
-  call_ pack buf 24 =<< deref (msg ~> errors_count2)
-  call_ pack buf 26 =<< deref (msg ~> errors_count3)
-  call_ pack buf 28 =<< deref (msg ~> errors_count4)
-  call_ pack buf 30 =<< deref (msg ~> battery_remaining)
+  pack buf 0 =<< deref (msg ~> onboard_control_sensors_present)
+  pack buf 4 =<< deref (msg ~> onboard_control_sensors_enabled)
+  pack buf 8 =<< deref (msg ~> onboard_control_sensors_health)
+  pack buf 12 =<< deref (msg ~> load)
+  pack buf 14 =<< deref (msg ~> voltage_battery)
+  pack buf 16 =<< deref (msg ~> current_battery)
+  pack buf 18 =<< deref (msg ~> drop_rate_comm)
+  pack buf 20 =<< deref (msg ~> errors_comm)
+  pack buf 22 =<< deref (msg ~> errors_count1)
+  pack buf 24 =<< deref (msg ~> errors_count2)
+  pack buf 26 =<< deref (msg ~> errors_count3)
+  pack buf 28 =<< deref (msg ~> errors_count4)
+  pack buf 30 =<< deref (msg ~> battery_remaining)
   -- 6: header len, 2: CRC len
   let usedLen    = 6 + 31 + 2 :: Integer
   let sendArr    = sendStruct ~> mav_array
@@ -95,17 +95,17 @@ sysStatusUnpack :: Def ('[ Ref s1 (Struct "sys_status_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
 sysStatusUnpack = proc "mavlink_sys_status_unpack" $ \ msg buf -> body $ do
-  store (msg ~> onboard_control_sensors_present) =<< call unpack buf 0
-  store (msg ~> onboard_control_sensors_enabled) =<< call unpack buf 4
-  store (msg ~> onboard_control_sensors_health) =<< call unpack buf 8
-  store (msg ~> load) =<< call unpack buf 12
-  store (msg ~> voltage_battery) =<< call unpack buf 14
-  store (msg ~> current_battery) =<< call unpack buf 16
-  store (msg ~> drop_rate_comm) =<< call unpack buf 18
-  store (msg ~> errors_comm) =<< call unpack buf 20
-  store (msg ~> errors_count1) =<< call unpack buf 22
-  store (msg ~> errors_count2) =<< call unpack buf 24
-  store (msg ~> errors_count3) =<< call unpack buf 26
-  store (msg ~> errors_count4) =<< call unpack buf 28
-  store (msg ~> battery_remaining) =<< call unpack buf 30
+  store (msg ~> onboard_control_sensors_present) =<< unpack buf 0
+  store (msg ~> onboard_control_sensors_enabled) =<< unpack buf 4
+  store (msg ~> onboard_control_sensors_health) =<< unpack buf 8
+  store (msg ~> load) =<< unpack buf 12
+  store (msg ~> voltage_battery) =<< unpack buf 14
+  store (msg ~> current_battery) =<< unpack buf 16
+  store (msg ~> drop_rate_comm) =<< unpack buf 18
+  store (msg ~> errors_comm) =<< unpack buf 20
+  store (msg ~> errors_count1) =<< unpack buf 22
+  store (msg ~> errors_count2) =<< unpack buf 24
+  store (msg ~> errors_count3) =<< unpack buf 26
+  store (msg ~> errors_count4) =<< unpack buf 28
+  store (msg ~> battery_remaining) =<< unpack buf 30
 

@@ -10,7 +10,7 @@
 
 module SMACCMPilot.Mavlink.Messages.ServoOutputRaw where
 
-import SMACCMPilot.Mavlink.Pack
+import Ivory.Serialize
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
@@ -25,7 +25,7 @@ servoOutputRawCrcExtra = 222
 
 servoOutputRawModule :: Module
 servoOutputRawModule = package "mavlink_servo_output_raw_msg" $ do
-  depend packModule
+  depend serializeModule
   depend mavlinkSendModule
   incl mkServoOutputRawSender
   incl servoOutputRawUnpack
@@ -57,16 +57,16 @@ mkServoOutputRawSender =
   $ do
   arr <- local (iarray [] :: Init (Array 21 (Stored Uint8)))
   let buf = toCArray arr
-  call_ pack buf 0 =<< deref (msg ~> time_usec)
-  call_ pack buf 4 =<< deref (msg ~> servo1_raw)
-  call_ pack buf 6 =<< deref (msg ~> servo2_raw)
-  call_ pack buf 8 =<< deref (msg ~> servo3_raw)
-  call_ pack buf 10 =<< deref (msg ~> servo4_raw)
-  call_ pack buf 12 =<< deref (msg ~> servo5_raw)
-  call_ pack buf 14 =<< deref (msg ~> servo6_raw)
-  call_ pack buf 16 =<< deref (msg ~> servo7_raw)
-  call_ pack buf 18 =<< deref (msg ~> servo8_raw)
-  call_ pack buf 20 =<< deref (msg ~> port)
+  pack buf 0 =<< deref (msg ~> time_usec)
+  pack buf 4 =<< deref (msg ~> servo1_raw)
+  pack buf 6 =<< deref (msg ~> servo2_raw)
+  pack buf 8 =<< deref (msg ~> servo3_raw)
+  pack buf 10 =<< deref (msg ~> servo4_raw)
+  pack buf 12 =<< deref (msg ~> servo5_raw)
+  pack buf 14 =<< deref (msg ~> servo6_raw)
+  pack buf 16 =<< deref (msg ~> servo7_raw)
+  pack buf 18 =<< deref (msg ~> servo8_raw)
+  pack buf 20 =<< deref (msg ~> port)
   -- 6: header len, 2: CRC len
   let usedLen    = 6 + 21 + 2 :: Integer
   let sendArr    = sendStruct ~> mav_array
@@ -89,14 +89,14 @@ servoOutputRawUnpack :: Def ('[ Ref s1 (Struct "servo_output_raw_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
 servoOutputRawUnpack = proc "mavlink_servo_output_raw_unpack" $ \ msg buf -> body $ do
-  store (msg ~> time_usec) =<< call unpack buf 0
-  store (msg ~> servo1_raw) =<< call unpack buf 4
-  store (msg ~> servo2_raw) =<< call unpack buf 6
-  store (msg ~> servo3_raw) =<< call unpack buf 8
-  store (msg ~> servo4_raw) =<< call unpack buf 10
-  store (msg ~> servo5_raw) =<< call unpack buf 12
-  store (msg ~> servo6_raw) =<< call unpack buf 14
-  store (msg ~> servo7_raw) =<< call unpack buf 16
-  store (msg ~> servo8_raw) =<< call unpack buf 18
-  store (msg ~> port) =<< call unpack buf 20
+  store (msg ~> time_usec) =<< unpack buf 0
+  store (msg ~> servo1_raw) =<< unpack buf 4
+  store (msg ~> servo2_raw) =<< unpack buf 6
+  store (msg ~> servo3_raw) =<< unpack buf 8
+  store (msg ~> servo4_raw) =<< unpack buf 10
+  store (msg ~> servo5_raw) =<< unpack buf 12
+  store (msg ~> servo6_raw) =<< unpack buf 14
+  store (msg ~> servo7_raw) =<< unpack buf 16
+  store (msg ~> servo8_raw) =<< unpack buf 18
+  store (msg ~> port) =<< unpack buf 20
 

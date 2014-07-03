@@ -10,7 +10,7 @@
 
 module SMACCMPilot.Mavlink.Messages.ChangeOperatorControlAck where
 
-import SMACCMPilot.Mavlink.Pack
+import Ivory.Serialize
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
@@ -25,7 +25,7 @@ changeOperatorControlAckCrcExtra = 104
 
 changeOperatorControlAckModule :: Module
 changeOperatorControlAckModule = package "mavlink_change_operator_control_ack_msg" $ do
-  depend packModule
+  depend serializeModule
   depend mavlinkSendModule
   incl mkChangeOperatorControlAckSender
   incl changeOperatorControlAckUnpack
@@ -50,9 +50,9 @@ mkChangeOperatorControlAckSender =
   $ do
   arr <- local (iarray [] :: Init (Array 3 (Stored Uint8)))
   let buf = toCArray arr
-  call_ pack buf 0 =<< deref (msg ~> gcs_system_id)
-  call_ pack buf 1 =<< deref (msg ~> control_request)
-  call_ pack buf 2 =<< deref (msg ~> ack)
+  pack buf 0 =<< deref (msg ~> gcs_system_id)
+  pack buf 1 =<< deref (msg ~> control_request)
+  pack buf 2 =<< deref (msg ~> ack)
   -- 6: header len, 2: CRC len
   let usedLen    = 6 + 3 + 2 :: Integer
   let sendArr    = sendStruct ~> mav_array
@@ -75,7 +75,7 @@ changeOperatorControlAckUnpack :: Def ('[ Ref s1 (Struct "change_operator_contro
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
 changeOperatorControlAckUnpack = proc "mavlink_change_operator_control_ack_unpack" $ \ msg buf -> body $ do
-  store (msg ~> gcs_system_id) =<< call unpack buf 0
-  store (msg ~> control_request) =<< call unpack buf 1
-  store (msg ~> ack) =<< call unpack buf 2
+  store (msg ~> gcs_system_id) =<< unpack buf 0
+  store (msg ~> control_request) =<< unpack buf 1
+  store (msg ~> ack) =<< unpack buf 2
 

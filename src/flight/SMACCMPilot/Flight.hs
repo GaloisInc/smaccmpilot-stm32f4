@@ -4,6 +4,7 @@
 {-# LANGUAGE DeriveFoldable #-}
 {-# LANGUAGE DeriveTraversable #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE TypeFamilies #-}
 
 module SMACCMPilot.Flight
   ( flight
@@ -35,8 +36,8 @@ import SMACCMPilot.Hardware.GPS.Types (gpsTypesModule)
 import qualified SMACCMPilot.Flight.Commsec.CommsecOpts as C
 import qualified SMACCMPilot.Flight.Types.CommsecStatus as S
 
-import           Ivory.BSP.STM32.Peripheral.UART (uartTower)
-import qualified Ivory.BSP.STM32F405.UART as UART
+import           Ivory.BSP.STM32.Driver.UART
+import qualified Ivory.BSP.STM32F405.UART      as F405
 import qualified Ivory.BSP.STM32F405.Interrupt as F405
 import           Ivory.BSP.STM32.Signalable
 import           Ivory.BSP.STM32.PlatformClock
@@ -51,7 +52,7 @@ sysParams :: Monad m => ParamT f m (SysParams f)
 sysParams =
   SysParams <$> group "" flightParams
 
-hil :: ( STM32Signal F405.Interrupt p
+hil :: ( STM32Signal p, InterruptType p ~ F405.Interrupt
        , PlatformClock p, MotorOutput p, SensorOrientation p)
     => C.Options
     -> Tower p ()
@@ -81,7 +82,7 @@ hil opts = do
                       }
 
   -- HIL-enabled GCS on uart1:
-  (istream, ostream) <- uartTower UART.uart1 57600 (Proxy :: Proxy 1024)
+  (istream, ostream) <- uartTower F405.uart1 57600 (Proxy :: Proxy 1024)
 
   -- Commsec reporter, to GCS TX from decrypter
   commsec_info       <- channel
@@ -118,7 +119,8 @@ hil opts = do
   towerModule  gpsTypesModule
   towerDepends gpsTypesModule
 
-flight :: ( STM32Signal F405.Interrupt p, PlatformClock p, MotorOutput p
+flight :: ( STM32Signal p, InterruptType p ~ F405.Interrupt
+          , PlatformClock p, MotorOutput p
           , SensorOrientation p)
        => C.Options
        -> Tower p ()
@@ -134,7 +136,7 @@ flight opts = do
   let snk_params       = portPairSink <$> params
 
   -- GPS Input on uart6 (valid for all px4fmu platforms)
-  gps_position   <- gpsTower UART.uart6
+  gps_position   <- gpsTower F405.uart6
   -- Sensors managed by AP_HAL
   sensorsTower gps_position (src sensors)
 
@@ -183,8 +185,8 @@ flight opts = do
             }
           paramList
 
-  gcsTower' "uart1" UART.uart1
-  gcsTower' "uart5" UART.uart5
+  gcsTower' "uart1" F405.uart1
+  gcsTower' "uart5" F405.uart5
 
   -- Recovery Tasks
   recoveryTower (snk commsec_info) (src commsec_mon_result)

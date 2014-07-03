@@ -9,10 +9,11 @@ import Ivory.Language
 import Ivory.Stdlib
 import Ivory.Tower
 import Ivory.Tower.StateMachine
-import Ivory.BSP.STM32F405.I2C
+import Ivory.BSP.STM32.Driver.I2C
 
 import SMACCMPilot.Hardware.MS5611.Regs
 import SMACCMPilot.Hardware.MS5611.Types
+import SMACCMPilot.Hardware.MS5611.Calibration (measurement)
 
 commandRequest :: (GetAlloc eff ~ Scope s)
            => I2CDeviceAddr
@@ -52,7 +53,7 @@ promRead :: I2CDeviceAddr
          -> ChannelEmitter (Struct "i2c_transaction_request")
          -> Event          (Struct "i2c_transaction_result")
          -> StateLabel
-         -> MachineM StateLabel
+         -> MachineM p StateLabel
 promRead i2caddr prom failure value req_emitter res_evt next = mdo
   cmdReq <- stateNamed (named "cmdReq") $ do
     entry $ liftIvory_ $ do
@@ -92,7 +93,7 @@ sensorSetup :: I2CDeviceAddr
             -> ChannelEmitter (Struct "i2c_transaction_request")
             -> Event          (Struct "i2c_transaction_result")
             -> StateLabel
-            -> MachineM StateLabel
+            -> MachineM p StateLabel
 sensorSetup addr failure calibration req_emitter res_evt next = mdo
   b <- stateNamed "begin" $ do
         entry $ liftIvory_ $ do
@@ -124,13 +125,28 @@ sensorSetup addr failure calibration req_emitter res_evt next = mdo
     when (r >? 0) (store failure true)
 
 sensorRead :: I2CDeviceAddr
-           -> Ref Global (Stored IBool)
-           -> Ref Global (Struct "ms5611_sample")
+           -> ConstRef Global (Struct "ms5611_calibration")
+           -> Ref Global (Struct "ms5611_measurement")
            -> ChannelEmitter (Struct "i2c_transaction_request")
            -> Event          (Struct "i2c_transaction_result")
            -> StateLabel
-           -> MachineM StateLabel
-sensorRead addr failure sample req_emitter res_evt next = mdo
+           -> MachineM p StateLabel
+sensorRead addr cal meas req_emitter res_evt next = mdo
+  sample <- machineLocal "ms5611_sample"
+  s <- sensorSample addr (meas ~> sampfail) sample req_emitter res_evt m
+  m <- stateNamed "ms5611_measurement" $ entry $ do
+    liftIvory_ $ measurement cal (constRef sample) meas
+    goto next
+  return s
+
+sensorSample :: I2CDeviceAddr
+             -> Ref Global (Stored IBool)
+             -> Ref Global (Struct "ms5611_sample")
+             -> ChannelEmitter (Struct "i2c_transaction_request")
+             -> Event          (Struct "i2c_transaction_result")
+             -> StateLabel
+             -> MachineM p StateLabel
+sensorSample addr failure sample req_emitter res_evt next = mdo
   convertP <- stateNamed "convertPressure" $ do
     entry $ liftIvory_ $ do
       store failure false
@@ -155,7 +171,7 @@ sensorRead addr failure sample req_emitter res_evt next = mdo
     on res_evt $ \res -> do
       liftIvory_ $ do
         check_sample_failure res
-        threebytesample res >>= store (sample ~> pressure)
+        threebytesample res >>= store (sample ~> sample_pressure)
       goto convertT
 
   convertT <- stateNamed "convertTemperature" $ do
@@ -181,7 +197,8 @@ sensorRead addr failure sample req_emitter res_evt next = mdo
     on res_evt $ \res -> do
       liftIvory_ $ do
         check_sample_failure res
-        threebytesample res >>= store (sample ~> temperature)
+        threebytesample res >>= store (sample ~> sample_temperature)
+        getTime >>= store (sample ~> sample_time)
       goto next
 
   return convertP

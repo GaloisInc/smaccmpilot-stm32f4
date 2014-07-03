@@ -10,7 +10,7 @@
 
 module SMACCMPilot.Mavlink.Messages.GcsRadio where
 
-import SMACCMPilot.Mavlink.Pack
+import Ivory.Serialize
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
@@ -25,7 +25,7 @@ gcsRadioCrcExtra = 108
 
 gcsRadioModule :: Module
 gcsRadioModule = package "mavlink_gcs_radio_msg" $ do
-  depend packModule
+  depend serializeModule
   depend mavlinkSendModule
   incl mkGcsRadioSender
   incl gcsRadioUnpack
@@ -54,13 +54,13 @@ mkGcsRadioSender =
   $ do
   arr <- local (iarray [] :: Init (Array 9 (Stored Uint8)))
   let buf = toCArray arr
-  call_ pack buf 0 =<< deref (msg ~> rxerrors)
-  call_ pack buf 2 =<< deref (msg ~> fixed)
-  call_ pack buf 4 =<< deref (msg ~> rssi)
-  call_ pack buf 5 =<< deref (msg ~> remrssi)
-  call_ pack buf 6 =<< deref (msg ~> txbuf)
-  call_ pack buf 7 =<< deref (msg ~> noise)
-  call_ pack buf 8 =<< deref (msg ~> remnoise)
+  pack buf 0 =<< deref (msg ~> rxerrors)
+  pack buf 2 =<< deref (msg ~> fixed)
+  pack buf 4 =<< deref (msg ~> rssi)
+  pack buf 5 =<< deref (msg ~> remrssi)
+  pack buf 6 =<< deref (msg ~> txbuf)
+  pack buf 7 =<< deref (msg ~> noise)
+  pack buf 8 =<< deref (msg ~> remnoise)
   -- 6: header len, 2: CRC len
   let usedLen    = 6 + 9 + 2 :: Integer
   let sendArr    = sendStruct ~> mav_array
@@ -83,11 +83,11 @@ gcsRadioUnpack :: Def ('[ Ref s1 (Struct "gcs_radio_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
 gcsRadioUnpack = proc "mavlink_gcs_radio_unpack" $ \ msg buf -> body $ do
-  store (msg ~> rxerrors) =<< call unpack buf 0
-  store (msg ~> fixed) =<< call unpack buf 2
-  store (msg ~> rssi) =<< call unpack buf 4
-  store (msg ~> remrssi) =<< call unpack buf 5
-  store (msg ~> txbuf) =<< call unpack buf 6
-  store (msg ~> noise) =<< call unpack buf 7
-  store (msg ~> remnoise) =<< call unpack buf 8
+  store (msg ~> rxerrors) =<< unpack buf 0
+  store (msg ~> fixed) =<< unpack buf 2
+  store (msg ~> rssi) =<< unpack buf 4
+  store (msg ~> remrssi) =<< unpack buf 5
+  store (msg ~> txbuf) =<< unpack buf 6
+  store (msg ~> noise) =<< unpack buf 7
+  store (msg ~> remnoise) =<< unpack buf 8
 

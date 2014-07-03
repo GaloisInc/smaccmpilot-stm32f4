@@ -10,7 +10,7 @@
 
 module SMACCMPilot.Mavlink.Messages.HilControls where
 
-import SMACCMPilot.Mavlink.Pack
+import Ivory.Serialize
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
@@ -25,7 +25,7 @@ hilControlsCrcExtra = 63
 
 hilControlsModule :: Module
 hilControlsModule = package "mavlink_hil_controls_msg" $ do
-  depend packModule
+  depend serializeModule
   depend mavlinkSendModule
   incl mkHilControlsSender
   incl hilControlsUnpack
@@ -58,17 +58,17 @@ mkHilControlsSender =
   $ do
   arr <- local (iarray [] :: Init (Array 42 (Stored Uint8)))
   let buf = toCArray arr
-  call_ pack buf 0 =<< deref (msg ~> time_usec)
-  call_ pack buf 8 =<< deref (msg ~> roll_ailerons)
-  call_ pack buf 12 =<< deref (msg ~> pitch_elevator)
-  call_ pack buf 16 =<< deref (msg ~> yaw_rudder)
-  call_ pack buf 20 =<< deref (msg ~> throttle)
-  call_ pack buf 24 =<< deref (msg ~> aux1)
-  call_ pack buf 28 =<< deref (msg ~> aux2)
-  call_ pack buf 32 =<< deref (msg ~> aux3)
-  call_ pack buf 36 =<< deref (msg ~> aux4)
-  call_ pack buf 40 =<< deref (msg ~> mode)
-  call_ pack buf 41 =<< deref (msg ~> nav_mode)
+  pack buf 0 =<< deref (msg ~> time_usec)
+  pack buf 8 =<< deref (msg ~> roll_ailerons)
+  pack buf 12 =<< deref (msg ~> pitch_elevator)
+  pack buf 16 =<< deref (msg ~> yaw_rudder)
+  pack buf 20 =<< deref (msg ~> throttle)
+  pack buf 24 =<< deref (msg ~> aux1)
+  pack buf 28 =<< deref (msg ~> aux2)
+  pack buf 32 =<< deref (msg ~> aux3)
+  pack buf 36 =<< deref (msg ~> aux4)
+  pack buf 40 =<< deref (msg ~> mode)
+  pack buf 41 =<< deref (msg ~> nav_mode)
   -- 6: header len, 2: CRC len
   let usedLen    = 6 + 42 + 2 :: Integer
   let sendArr    = sendStruct ~> mav_array
@@ -91,15 +91,15 @@ hilControlsUnpack :: Def ('[ Ref s1 (Struct "hil_controls_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
 hilControlsUnpack = proc "mavlink_hil_controls_unpack" $ \ msg buf -> body $ do
-  store (msg ~> time_usec) =<< call unpack buf 0
-  store (msg ~> roll_ailerons) =<< call unpack buf 8
-  store (msg ~> pitch_elevator) =<< call unpack buf 12
-  store (msg ~> yaw_rudder) =<< call unpack buf 16
-  store (msg ~> throttle) =<< call unpack buf 20
-  store (msg ~> aux1) =<< call unpack buf 24
-  store (msg ~> aux2) =<< call unpack buf 28
-  store (msg ~> aux3) =<< call unpack buf 32
-  store (msg ~> aux4) =<< call unpack buf 36
-  store (msg ~> mode) =<< call unpack buf 40
-  store (msg ~> nav_mode) =<< call unpack buf 41
+  store (msg ~> time_usec) =<< unpack buf 0
+  store (msg ~> roll_ailerons) =<< unpack buf 8
+  store (msg ~> pitch_elevator) =<< unpack buf 12
+  store (msg ~> yaw_rudder) =<< unpack buf 16
+  store (msg ~> throttle) =<< unpack buf 20
+  store (msg ~> aux1) =<< unpack buf 24
+  store (msg ~> aux2) =<< unpack buf 28
+  store (msg ~> aux3) =<< unpack buf 32
+  store (msg ~> aux4) =<< unpack buf 36
+  store (msg ~> mode) =<< unpack buf 40
+  store (msg ~> nav_mode) =<< unpack buf 41
 

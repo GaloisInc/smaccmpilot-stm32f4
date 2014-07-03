@@ -10,7 +10,7 @@
 
 module SMACCMPilot.Mavlink.Messages.RawPressure where
 
-import SMACCMPilot.Mavlink.Pack
+import Ivory.Serialize
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
@@ -25,7 +25,7 @@ rawPressureCrcExtra = 67
 
 rawPressureModule :: Module
 rawPressureModule = package "mavlink_raw_pressure_msg" $ do
-  depend packModule
+  depend serializeModule
   depend mavlinkSendModule
   incl mkRawPressureSender
   incl rawPressureUnpack
@@ -52,11 +52,11 @@ mkRawPressureSender =
   $ do
   arr <- local (iarray [] :: Init (Array 16 (Stored Uint8)))
   let buf = toCArray arr
-  call_ pack buf 0 =<< deref (msg ~> time_usec)
-  call_ pack buf 8 =<< deref (msg ~> press_abs)
-  call_ pack buf 10 =<< deref (msg ~> press_diff1)
-  call_ pack buf 12 =<< deref (msg ~> press_diff2)
-  call_ pack buf 14 =<< deref (msg ~> temperature)
+  pack buf 0 =<< deref (msg ~> time_usec)
+  pack buf 8 =<< deref (msg ~> press_abs)
+  pack buf 10 =<< deref (msg ~> press_diff1)
+  pack buf 12 =<< deref (msg ~> press_diff2)
+  pack buf 14 =<< deref (msg ~> temperature)
   -- 6: header len, 2: CRC len
   let usedLen    = 6 + 16 + 2 :: Integer
   let sendArr    = sendStruct ~> mav_array
@@ -79,9 +79,9 @@ rawPressureUnpack :: Def ('[ Ref s1 (Struct "raw_pressure_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
 rawPressureUnpack = proc "mavlink_raw_pressure_unpack" $ \ msg buf -> body $ do
-  store (msg ~> time_usec) =<< call unpack buf 0
-  store (msg ~> press_abs) =<< call unpack buf 8
-  store (msg ~> press_diff1) =<< call unpack buf 10
-  store (msg ~> press_diff2) =<< call unpack buf 12
-  store (msg ~> temperature) =<< call unpack buf 14
+  store (msg ~> time_usec) =<< unpack buf 0
+  store (msg ~> press_abs) =<< unpack buf 8
+  store (msg ~> press_diff1) =<< unpack buf 10
+  store (msg ~> press_diff2) =<< unpack buf 12
+  store (msg ~> temperature) =<< unpack buf 14
 

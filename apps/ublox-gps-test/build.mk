@@ -11,36 +11,29 @@
 # Written by Pat Hickey <pat@galois.com>, January 08, 2013
 #
 
-APP_UBLOX_GPS_TEST_PLATFORMS := px4fmu17_bare_freertos px4fmu17_ioar_freertos open407vc px4fmu17_ioar_echronos
+UBLOX_GPS_TEST_PLATFORMS := px4fmu17_bare_freertos px4fmu17_ioar_freertos open407vc
 
-$(eval $(call when_platforms, $(APP_UBLOX_GPS_TEST_PLATFORMS) \
+$(eval $(call when_platforms, $(UBLOX_GPS_TEST_PLATFORMS) \
 				,tower_pkg,IVORY_PKG_UBLOX_GPS_TEST,ublox-gps-test-gen))
 
-APP_UBLOX_GPS_TEST_IMG          := ublox-gps-test
+UBLOX_GPS_TEST_IMG          := ublox-gps-test
 
-ifneq ($($(CONFIG_PLATFORM)_TOWER_OS),echronos)
-APP_UBLOX_GPS_TEST_OBJECTS      := freertos/main.o
-APP_UBLOX_GPS_TEST_LIBRARIES    += libFreeRTOS.a
-APP_UBLOX_GPS_TEST_INCLUDES     += $(FREERTOS_CFLAGS)
-else
-APP_UBLOX_GPS_TEST_ECHRONOS_PRX := echronos/ublox-gps-test.prx
-APP_UBLOX_GPS_TEST_OBJECTS      := echronos/main.o
-APP_UBLOX_GPS_TEST_OBJECTS      += echronos/irq_wrappers.o
-endif
+UBLOX_GPS_TEST_LIBRARIES    += libFreeRTOS.a
+UBLOX_GPS_TEST_INCLUDES     += $(FREERTOS_CFLAGS)
 
-APP_UBLOX_GPS_TEST_REAL_OBJECTS += $(IVORY_PKG_UBLOX_GPS_TEST_OBJECTS)
-APP_UBLOX_GPS_TEST_LIBS         += -lm
+UBLOX_GPS_TEST_REAL_OBJECTS += $(IVORY_PKG_UBLOX_GPS_TEST_OBJECTS)
+UBLOX_GPS_TEST_LIBS         += -lm
 
-APP_UBLOX_GPS_TEST_INCLUDES     += -I$(TOP)/src/bsp/include
-APP_UBLOX_GPS_TEST_INCLUDES     += $(IVORY_PKG_UBLOX_GPS_TEST_CFLAGS)
+UBLOX_GPS_TEST_INCLUDES     += $(IVORY_PKG_UBLOX_GPS_TEST_CFLAGS)
 
-APP_UBLOX_GPS_TEST_CFLAGS       += -O2 $(APP_UBLOX_GPS_TEST_INCLUDES)
+UBLOX_GPS_TEST_CFLAGS       += -O2 $(UBLOX_GPS_TEST_INCLUDES)
+UBLOX_GPS_TEST_CFLAGS       += -O2 $(UBLOX_GPS_TEST_INCLUDES)
+UBLOX_GPS_TEST_DISABLE_GLOBAL_STARTUP_OBJECTS := 1
 
-$(eval $(call when_platforms,$(APP_UBLOX_GPS_TEST_PLATFORMS) \
-				,cbmc_pkg,APP_UBLOX_GPS_TEST,IVORY_PKG_UBLOX_GPS_TEST))
+$(eval $(call when_platforms,$(UBLOX_GPS_TEST_PLATFORMS) \
+				,cbmc_pkg,UBLOX_GPS_TEST,IVORY_PKG_UBLOX_GPS_TEST))
 
-$(eval $(call when_os,echronos,echronos_gen,APP_UBLOX_GPS_TEST))
-$(eval $(call when_platforms,$(APP_UBLOX_GPS_TEST_PLATFORMS) \
-				,image,APP_UBLOX_GPS_TEST))
+$(eval $(call when_platforms,$(UBLOX_GPS_TEST_PLATFORMS) \
+				,image,UBLOX_GPS_TEST))
 
 # vim: set ft=make noet ts=2:

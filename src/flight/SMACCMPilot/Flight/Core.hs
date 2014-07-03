@@ -11,6 +11,7 @@ module SMACCMPilot.Flight.Core
 import Ivory.Language
 import Ivory.Tower
 import Ivory.Stdlib (stdlibModules)
+import Ivory.Serialize (serializeModule)
 
 import qualified Ivory.BSP.STM32F405.GPIO as GPIO
 import           Ivory.HXStream
@@ -19,7 +20,6 @@ import           SMACCMPilot.Mavlink.Messages (mavlinkMessageModules)
 import           SMACCMPilot.Mavlink.Send     (mavlinkSendModule)
 import           SMACCMPilot.Mavlink.Receive  (mavlinkReceiveStateModule)
 import           SMACCMPilot.Mavlink.CRC      (mavlinkCRCModule)
-import           SMACCMPilot.Mavlink.Pack     (packModule)
 import           SMACCMPilot.Mavlink.Messages.VehCommsec (vehCommsecModule)
 
 import           SMACCMPilot.Flight.GCS.Transmit.MessageDriver (senderModules)
@@ -116,7 +116,7 @@ core sys = do
     ++ mavlinkMessageModules
     -- standard library
     ++ stdlibModules
-    ++ [ packModule
+    ++ [ serializeModule
        , mavlinkCRCModule
        , paramModule
        -- hxstream

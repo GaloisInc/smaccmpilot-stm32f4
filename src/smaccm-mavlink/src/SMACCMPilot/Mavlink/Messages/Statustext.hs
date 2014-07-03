@@ -10,7 +10,7 @@
 
 module SMACCMPilot.Mavlink.Messages.Statustext where
 
-import SMACCMPilot.Mavlink.Pack
+import Ivory.Serialize
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
@@ -25,7 +25,7 @@ statustextCrcExtra = 83
 
 statustextModule :: Module
 statustextModule = package "mavlink_statustext_msg" $ do
-  depend packModule
+  depend serializeModule
   depend mavlinkSendModule
   incl mkStatustextSender
   incl statustextUnpack
@@ -49,7 +49,7 @@ mkStatustextSender =
   $ do
   arr <- local (iarray [] :: Init (Array 51 (Stored Uint8)))
   let buf = toCArray arr
-  call_ pack buf 0 =<< deref (msg ~> severity)
+  pack buf 0 =<< deref (msg ~> severity)
   arrayPack buf 1 (msg ~> text)
   -- 6: header len, 2: CRC len
   let usedLen    = 6 + 51 + 2 :: Integer
@@ -73,6 +73,6 @@ statustextUnpack :: Def ('[ Ref s1 (Struct "statustext_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
 statustextUnpack = proc "mavlink_statustext_unpack" $ \ msg buf -> body $ do
-  store (msg ~> severity) =<< call unpack buf 0
+  store (msg ~> severity) =<< unpack buf 0
   arrayUnpack buf 1 (msg ~> text)
 

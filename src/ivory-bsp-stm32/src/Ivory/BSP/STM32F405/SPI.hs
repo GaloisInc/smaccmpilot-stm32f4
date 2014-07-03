@@ -1,22 +1,12 @@
 
 module Ivory.BSP.STM32F405.SPI
-  ( module Ivory.BSP.STM32.Peripheral.SPI.Regs
-  , module Ivory.BSP.STM32.Peripheral.SPI.RegTypes
-  , module Ivory.BSP.STM32.Peripheral.SPI.Tower
-  , module Ivory.BSP.STM32.Peripheral.SPI.Tower.Types
-  , module Ivory.BSP.STM32.Peripheral.SPI.Tower.Types.SPIDeviceHandle
-  , spi1
+  ( spi1
   , spi2
   , spi3
   ) where
 
 
-import Ivory.BSP.STM32.Peripheral.SPI.Peripheral
-import Ivory.BSP.STM32.Peripheral.SPI.Regs
-import Ivory.BSP.STM32.Peripheral.SPI.RegTypes
-import Ivory.BSP.STM32.Peripheral.SPI.Tower
-import Ivory.BSP.STM32.Peripheral.SPI.Tower.Types
-import Ivory.BSP.STM32.Peripheral.SPI.Tower.Types.SPIDeviceHandle
+import Ivory.BSP.STM32.Peripheral.SPI
 
 import Ivory.Language
 import Ivory.HW

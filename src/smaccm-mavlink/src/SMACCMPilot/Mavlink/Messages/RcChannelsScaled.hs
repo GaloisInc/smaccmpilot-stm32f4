@@ -10,7 +10,7 @@
 
 module SMACCMPilot.Mavlink.Messages.RcChannelsScaled where
 
-import SMACCMPilot.Mavlink.Pack
+import Ivory.Serialize
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
@@ -25,7 +25,7 @@ rcChannelsScaledCrcExtra = 237
 
 rcChannelsScaledModule :: Module
 rcChannelsScaledModule = package "mavlink_rc_channels_scaled_msg" $ do
-  depend packModule
+  depend serializeModule
   depend mavlinkSendModule
   incl mkRcChannelsScaledSender
   incl rcChannelsScaledUnpack
@@ -58,17 +58,17 @@ mkRcChannelsScaledSender =
   $ do
   arr <- local (iarray [] :: Init (Array 22 (Stored Uint8)))
   let buf = toCArray arr
-  call_ pack buf 0 =<< deref (msg ~> time_boot_ms)
-  call_ pack buf 4 =<< deref (msg ~> chan1_scaled)
-  call_ pack buf 6 =<< deref (msg ~> chan2_scaled)
-  call_ pack buf 8 =<< deref (msg ~> chan3_scaled)
-  call_ pack buf 10 =<< deref (msg ~> chan4_scaled)
-  call_ pack buf 12 =<< deref (msg ~> chan5_scaled)
-  call_ pack buf 14 =<< deref (msg ~> chan6_scaled)
-  call_ pack buf 16 =<< deref (msg ~> chan7_scaled)
-  call_ pack buf 18 =<< deref (msg ~> chan8_scaled)
-  call_ pack buf 20 =<< deref (msg ~> port)
-  call_ pack buf 21 =<< deref (msg ~> rssi)
+  pack buf 0 =<< deref (msg ~> time_boot_ms)
+  pack buf 4 =<< deref (msg ~> chan1_scaled)
+  pack buf 6 =<< deref (msg ~> chan2_scaled)
+  pack buf 8 =<< deref (msg ~> chan3_scaled)
+  pack buf 10 =<< deref (msg ~> chan4_scaled)
+  pack buf 12 =<< deref (msg ~> chan5_scaled)
+  pack buf 14 =<< deref (msg ~> chan6_scaled)
+  pack buf 16 =<< deref (msg ~> chan7_scaled)
+  pack buf 18 =<< deref (msg ~> chan8_scaled)
+  pack buf 20 =<< deref (msg ~> port)
+  pack buf 21 =<< deref (msg ~> rssi)
   -- 6: header len, 2: CRC len
   let usedLen    = 6 + 22 + 2 :: Integer
   let sendArr    = sendStruct ~> mav_array
@@ -91,15 +91,15 @@ rcChannelsScaledUnpack :: Def ('[ Ref s1 (Struct "rc_channels_scaled_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
 rcChannelsScaledUnpack = proc "mavlink_rc_channels_scaled_unpack" $ \ msg buf -> body $ do
-  store (msg ~> time_boot_ms) =<< call unpack buf 0
-  store (msg ~> chan1_scaled) =<< call unpack buf 4
-  store (msg ~> chan2_scaled) =<< call unpack buf 6
-  store (msg ~> chan3_scaled) =<< call unpack buf 8
-  store (msg ~> chan4_scaled) =<< call unpack buf 10
-  store (msg ~> chan5_scaled) =<< call unpack buf 12
-  store (msg ~> chan6_scaled) =<< call unpack buf 14
-  store (msg ~> chan7_scaled) =<< call unpack buf 16
-  store (msg ~> chan8_scaled) =<< call unpack buf 18
-  store (msg ~> port) =<< call unpack buf 20
-  store (msg ~> rssi) =<< call unpack buf 21
+  store (msg ~> time_boot_ms) =<< unpack buf 0
+  store (msg ~> chan1_scaled) =<< unpack buf 4
+  store (msg ~> chan2_scaled) =<< unpack buf 6
+  store (msg ~> chan3_scaled) =<< unpack buf 8
+  store (msg ~> chan4_scaled) =<< unpack buf 10
+  store (msg ~> chan5_scaled) =<< unpack buf 12
+  store (msg ~> chan6_scaled) =<< unpack buf 14
+  store (msg ~> chan7_scaled) =<< unpack buf 16
+  store (msg ~> chan8_scaled) =<< unpack buf 18
+  store (msg ~> port) =<< unpack buf 20
+  store (msg ~> rssi) =<< unpack buf 21
 

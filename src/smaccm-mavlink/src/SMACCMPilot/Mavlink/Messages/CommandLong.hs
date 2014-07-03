@@ -10,7 +10,7 @@
 
 module SMACCMPilot.Mavlink.Messages.CommandLong where
 
-import SMACCMPilot.Mavlink.Pack
+import Ivory.Serialize
 import SMACCMPilot.Mavlink.Unpack
 import SMACCMPilot.Mavlink.Send
 
@@ -25,7 +25,7 @@ commandLongCrcExtra = 152
 
 commandLongModule :: Module
 commandLongModule = package "mavlink_command_long_msg" $ do
-  depend packModule
+  depend serializeModule
   depend mavlinkSendModule
   incl mkCommandLongSender
   incl commandLongUnpack
@@ -58,17 +58,17 @@ mkCommandLongSender =
   $ do
   arr <- local (iarray [] :: Init (Array 33 (Stored Uint8)))
   let buf = toCArray arr
-  call_ pack buf 0 =<< deref (msg ~> param1)
-  call_ pack buf 4 =<< deref (msg ~> param2)
-  call_ pack buf 8 =<< deref (msg ~> param3)
-  call_ pack buf 12 =<< deref (msg ~> param4)
-  call_ pack buf 16 =<< deref (msg ~> param5)
-  call_ pack buf 20 =<< deref (msg ~> param6)
-  call_ pack buf 24 =<< deref (msg ~> param7)
-  call_ pack buf 28 =<< deref (msg ~> command)
-  call_ pack buf 30 =<< deref (msg ~> target_system)
-  call_ pack buf 31 =<< deref (msg ~> target_component)
-  call_ pack buf 32 =<< deref (msg ~> confirmation)
+  pack buf 0 =<< deref (msg ~> param1)
+  pack buf 4 =<< deref (msg ~> param2)
+  pack buf 8 =<< deref (msg ~> param3)
+  pack buf 12 =<< deref (msg ~> param4)
+  pack buf 16 =<< deref (msg ~> param5)
+  pack buf 20 =<< deref (msg ~> param6)
+  pack buf 24 =<< deref (msg ~> param7)
+  pack buf 28 =<< deref (msg ~> command)
+  pack buf 30 =<< deref (msg ~> target_system)
+  pack buf 31 =<< deref (msg ~> target_component)
+  pack buf 32 =<< deref (msg ~> confirmation)
   -- 6: header len, 2: CRC len
   let usedLen    = 6 + 33 + 2 :: Integer
   let sendArr    = sendStruct ~> mav_array
@@ -91,15 +91,15 @@ commandLongUnpack :: Def ('[ Ref s1 (Struct "command_long_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
 commandLongUnpack = proc "mavlink_command_long_unpack" $ \ msg buf -> body $ do
-  store (msg ~> param1) =<< call unpack buf 0
-  store (msg ~> param2) =<< call unpack buf 4
-  store (msg ~> param3) =<< call unpack buf 8
-  store (msg ~> param4) =<< call unpack buf 12
-  store (msg ~> param5) =<< call unpack buf 16
-  store (msg ~> param6) =<< call unpack buf 20
-  store (msg ~> param7) =<< call unpack buf 24
-  store (msg ~> command) =<< call unpack buf 28
-  store (msg ~> target_system) =<< call unpack buf 30
-  store (msg ~> target_component) =<< call unpack buf 31
-  store (msg ~> confirmation) =<< call unpack buf 32
+  store (msg ~> param1) =<< unpack buf 0
+  store (msg ~> param2) =<< unpack buf 4
+  store (msg ~> param3) =<< unpack buf 8
+  store (msg ~> param4) =<< unpack buf 12
+  store (msg ~> param5) =<< unpack buf 16
+  store (msg ~> param6) =<< unpack buf 20
+  store (msg ~> param7) =<< unpack buf 24
+  store (msg ~> command) =<< unpack buf 28
+  store (msg ~> target_system) =<< unpack buf 30
+  store (msg ~> target_component) =<< unpack buf 31
+  store (msg ~> confirmation) =<< unpack buf 32
 
