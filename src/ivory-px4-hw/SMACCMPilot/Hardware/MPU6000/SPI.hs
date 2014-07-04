@@ -91,11 +91,13 @@ initializerMachine :: forall p
                    -> Event          (Struct "spi_transaction_result")
                    -> Task p (Runnable, Ref Global (Stored IBool))
 initializerMachine dev req_emitter result_evt = do
+  retries <- taskLocal "mpu6000InitRetries"
   failed <- taskLocal "mpu6000InitFailed"
 
   m <- stateMachine "mpu6000InitailizerMachine" $ mdo
     b <- stateNamed "begin" $ entry $ do
-      liftIvory_ $ store failed false
+      liftIvory_ $ do
+        store retries (0 :: Uint8)
       goto disablei2c
 
     -- Disable the I2C slave device sharing pins with the SPI interface
@@ -107,7 +109,7 @@ initializerMachine dev req_emitter result_evt = do
     whoami <- rpc "whoami" (readRegReq dev WhoAmI)
                            (\res -> do
                                 idbyte <- deref ((res ~> rx_buf) ! 1)
-                                unless (idbyte ==? 0x68) (store failed true))
+                                store failed (iNot (idbyte ==? 0x68)))
                            wake
 
     -- Wake the sensor device, use internal oscillator
@@ -120,7 +122,14 @@ initializerMachine dev req_emitter result_evt = do
                                (const (return ()))
                                done
 
-    done <- stateNamed "done" $ entry $ halt
+    done <- stateNamed "done" $ entry $ liftIvory $ do
+      fd <- deref failed
+      rs <- deref retries
+      store retries (rs + 1)
+      return $ do
+        haltWhen (iNot fd)
+        haltWhen (rs >? 2)
+        goto disablei2c
 
     return b
 
