@@ -20,15 +20,23 @@ import Ivory.BSP.STM32.Driver.UART
 import qualified SMACCMPilot.Hardware.MPU6000        as G
 import qualified SMACCMPilot.Hardware.MS5611         as M
 import qualified SMACCMPilot.Hardware.HMC5883L       as H
+import qualified SMACCMPilot.Hardware.GPS.UBlox      as U
 
 import           PX4.Tests.Platforms
 import           PX4.Tests.MPU6000  (mpu6000SensorManager, mpu6000Sender)
 import           PX4.Tests.MS5611   (ms5611Sender)
 import           PX4.Tests.HMC5883L (hmc5883lSender)
+import           PX4.Tests.Ublox    (positionSender)
 
 app :: forall p . (TestPlatform p) => Tower p ()
 app = do
   boardInitializer
+
+  (gpsi, _gpso) <- uartTower (gpsUart (Proxy :: Proxy p))
+                                38400 (Proxy :: Proxy 128)
+  position <- channel
+  U.ubloxGPSTower gpsi (src position)
+
   (ireq, ires) <- i2cTower (ms5611periph platform)
                            (ms5611sda platform)
                            (ms5611scl platform)
@@ -47,6 +55,7 @@ app = do
     hmc5883lSender (snk hmc5883lsample) uartout
     ms5611Sender   (snk ms5611meas)     uartout
     mpu6000Sender  (snk mpu6000sample)  uartout
+    positionSender (snk position)       uartout
 
   towerDepends serializeModule
   towerModule  serializeModule

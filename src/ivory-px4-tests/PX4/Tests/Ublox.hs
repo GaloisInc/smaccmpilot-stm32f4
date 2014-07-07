@@ -5,7 +5,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE TypeFamilies #-}
 
-module PX4.Tests.Ublox (app) where
+module PX4.Tests.Ublox (app, positionSender) where
 
 import Ivory.Language
 import Ivory.Serialize
