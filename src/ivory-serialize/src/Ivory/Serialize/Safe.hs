@@ -81,10 +81,6 @@ mpackV val = PackM $ do
   buf    <- ask
   offset <- get
   let new_offset = offset + packedSize val
-  if new_offset > arrayLen buf
-    then error $ "packing " ++ (show new_offset) ++ " bytes into "
-              ++ "array of length " ++ (show (arrayLen buf :: Int))
-    else return ()
   lift $ lift $  pack (toCArray buf) (fromIntegral offset) val
   set new_offset
 
@@ -99,10 +95,6 @@ marrayPack arr = PackM $ do
   buf    <- ask
   offset <- get
   let new_offset = offset + (arrayLen arr * packedSize (undefined :: a))
-  if new_offset > arrayLen buf
-    then error $ "packing " ++ (show new_offset) ++ " bytes into "
-              ++ "array of length " ++ (show (arrayLen buf :: Int))
-    else return ()
   lift $ lift $ arrayPack (toCArray buf) (fromIntegral offset) (constRef arr)
   set new_offset
 
@@ -113,9 +105,13 @@ packInto :: (ANat len)
          -> Int                                -- offset
          -> PackM eff ()                       -- body
          -> Ivory eff Int
-packInto buf offset m =
-  runReaderT buf (liftM snd (runStateT offset (runPackM m)))
-
+packInto buf offset m = do
+  final_offs <- runReaderT buf (liftM snd (runStateT offset (runPackM m)))
+  if (final_offs > arrayLen buf)
+     then error $ "ivory-serialize packInto failed: packed " ++ 
+                  (show final_offs) ++ " bytes into array of length "  ++
+                  (show (arrayLen buf :: Int))
+     else return final_offs
 -- | Like "packInto" but doesn't return the final offset.
 packInto_ :: (ANat len)
           => (Ref s (Array len (Stored Uint8))) -- buf
@@ -161,10 +157,6 @@ munpack ref = UnpackM $ do
   buf    <- ask
   offset <- get
   let new_offset = offset + packedSize (undefined :: a)
-  if new_offset > arrayLen buf
-    then error $ "unpacking " ++ (show new_offset) ++ " bytes from "
-              ++ "array of length " ++ (show (arrayLen buf :: Int))
-    else return ()
   lift $ lift $ do
     val <- unpack (toCArray buf) (fromIntegral offset)
     store ref val
@@ -181,10 +173,6 @@ marrayUnpack arr = UnpackM $ do
   buf    <- ask
   offset <- get
   let new_offset = offset + (arrayLen arr * packedSize (undefined :: a))
-  if new_offset > arrayLen buf
-    then error $ "unpacking " ++ (show new_offset) ++ " bytes from "
-              ++ "array of length " ++ (show (arrayLen buf :: Int))
-    else return ()
   lift $ lift $ arrayUnpack (toCArray buf) (fromIntegral offset) arr
   set new_offset
 
@@ -195,8 +183,13 @@ unpackFrom :: (ANat len)
            -> Int                                     -- offset
            -> UnpackM eff ()                          -- body
            -> Ivory eff Int
-unpackFrom buf offset m =
-  runReaderT buf (liftM snd (runStateT offset (runUnpackM m)))
+unpackFrom buf offset m = do
+  final_offs <- runReaderT buf (liftM snd (runStateT offset (runUnpackM m)))
+  if (final_offs > arrayLen buf)
+     then error $ "ivory-serialize unpackFrom failed: unpacked " ++ 
+                  (show final_offs) ++ " bytes from array of length "  ++
+                  (show (arrayLen buf :: Int))
+     else return final_offs
 
 -- | Like "unpackFrom" but doesn't return the final offset.
 unpackFrom_ :: (ANat len)
