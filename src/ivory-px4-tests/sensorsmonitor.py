@@ -56,8 +56,9 @@ class Gyro(object):
     def __init__(self, binary):
         self.binary = binary
         try:
-            (valid, gx, gy, gz, ax, ay, az, temp, t) = struct.unpack("<BhhhhhhhQ", binary)
-            self.valid = valid
+            (ifail, sfail, gx, gy, gz, ax, ay, az, temp, t) = struct.unpack("<BBhhhhhhhQ", binary)
+            self.ifail = ifail
+            self.sfail = sfail
             self.gx    = gx
             self.gy    = gy
             self.gz    = gz
@@ -68,12 +69,12 @@ class Gyro(object):
             self.t     = t
             self.errormsg = None
         except Exception:
-            self.errormsg = ("Gyro: bad size %d" % (len(binary)))
+            self.errormsg = ("Gyro: bad size %d" % (len(binary) if binary else 0))
     def display(self):
         if self.errormsg:
             return self.errormsg
-        return ("Gyro valid %d gx %4d gy %4d gz %4d ax %4d ay %4d az %4d temp %d micros %d" %
-            (self.valid, self.gx, self.gy, self.gz, self.ax, self.ay, self.az, self.temp, self.t))
+        return ("Gyro ifail %d sfail %d gx %4d gy %4d gz %4d ax %4d ay %4d az %4d temp %d micros %d" %
+            (self.ifail, self.sfail, self.gx, self.gy, self.gz, self.ax, self.ay, self.az, self.temp, self.t))
 
 class SensorParser(object):
     def __init__(self,radio,opts):

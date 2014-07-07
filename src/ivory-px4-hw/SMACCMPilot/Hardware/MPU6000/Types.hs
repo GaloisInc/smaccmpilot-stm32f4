@@ -15,15 +15,16 @@ mpu6000TypesModule = package "mpu6000_types" $ do
 
 [ivory|
 struct mpu6000_sample
-  { valid     :: Stored IBool
-  ; time      :: Stored ITime
-  ; gyro_x    :: Stored Uint16
-  ; gyro_y    :: Stored Uint16
-  ; gyro_z    :: Stored Uint16
-  ; accel_x   :: Stored Uint16
-  ; accel_y   :: Stored Uint16
-  ; accel_z   :: Stored Uint16
-  ; temp      :: Stored Uint16
+  { initfail   :: Stored IBool
+  ; samplefail :: Stored IBool
+  ; gyro_x     :: Stored Uint16
+  ; gyro_y     :: Stored Uint16
+  ; gyro_z     :: Stored Uint16
+  ; accel_x    :: Stored Uint16
+  ; accel_y    :: Stored Uint16
+  ; accel_z    :: Stored Uint16
+  ; temp       :: Stored Uint16
+  ; time       :: Stored ITime
   }
 |]
 
