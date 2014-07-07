@@ -93,14 +93,15 @@ mpu6000SensorManager toDriver fromDriver sensorSource dh = task "mpu6kCtl" $ do
     running      <- deref transactionPending
     initerror    <- deref initError
     cond_
-      [ initializing .|| running ==> do
-          invalidTransaction result
-          emit_ sensorEmitter (constRef result)
-      , iNot initializing .&& initerror ==> do
+      [ initializing .|| (iNot initializing .&& initerror) ==> do
           store (result ~> initfail) true
           invalidTransaction result
           emit_ sensorEmitter (constRef result)
+      , running ==> do
+          invalidTransaction result
+          emit_ sensorEmitter (constRef result)
       , true ==> do
+          store (result ~> initfail) false
           store transactionPending true
           req <- getSensorsReq dh
           emit_ spiRequest req
