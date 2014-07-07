@@ -76,6 +76,34 @@ class Gyro(object):
         return ("Gyro ifail %d sfail %d gx %4d gy %4d gz %4d ax %4d ay %4d az %4d temp %d micros %d" %
             (self.ifail, self.sfail, self.gx, self.gy, self.gz, self.ax, self.ay, self.az, self.temp, self.t))
 
+class Position(object):
+    def __init__(self, binary):
+        self.binary = binary
+        try:
+          ##  (ifail, sfail, x, y, z, t) = struct.unpack("<BBhhhQ", binary)
+            (fix, num_sv, dop, lat, lon, alt, vnorth, veast, vdown, vground, heading, t) = \
+                    struct.unpack("<BBfllllllLfQ", binary)
+            self.fix        = fix
+            self.num_sv     = num_sv
+            self.dop        = dop
+            self.lat        = lat
+            self.lon        = lon
+            self.alt        = alt
+            self.vnorth     = vnorth
+            self.veast      = veast
+            self.vdown      = vdown
+            self.vground    = vground
+            self.heading    = heading
+            self.t          = t
+            self.errormsg = None
+        except Exception:
+            self.errormsg = ("Compass: bad size %d" % (len(binary)))
+    def display(self):
+        if self.errormsg:
+            return self.errormsg
+        return ("Position fix %d sats %d dop %f lat %d lon %d alt %d vnorth %d veast %d vdown %d vground %d heading %f millis %d" %
+            (self.fix, self.num_sv, self.dop, self.lat, self.lon, self.alt, self.vnorth, self.veast, self.vdown, self.vground, self.heading, self.t))
+
 class SensorParser(object):
     def __init__(self,radio,opts):
         self.radio = radio
@@ -95,6 +123,8 @@ class SensorParser(object):
                 sensors.append(Compass(payload))
             if t == 103: # 'g' gyro
                 sensors.append(Gyro(payload))
+            if t == 112: # 'p' position
+                sensors.append(Position(payload))
         return (statuses, sensors)
 
 class SerialPortProvider(object):
