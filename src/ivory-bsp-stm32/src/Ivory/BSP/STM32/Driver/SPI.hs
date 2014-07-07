@@ -74,6 +74,7 @@ spiPeripheralDriver periph devices req_sink res_source = do
     debugSetup     debugPin2
     debugSetup     debugPin3
     spiInit        periph
+    interrupt_set_to_syscall_priority interrupt
     mapM_ spiDeviceInit devices
     store done true
 
@@ -89,9 +90,6 @@ spiPeripheralDriver periph devices req_sink res_source = do
                 (stm32Interrupt interrupt)
                 "interrupt"
                 (do debugToggle debugPin1
-                    modifyReg (spiRegCR2 periph)
-                      (clearBit spi_cr2_txeie >>
-                       clearBit spi_cr2_rxneie)
                     interrupt_disable interrupt)
 
   handle irq "irq" $ \_ -> do
@@ -108,9 +106,8 @@ spiPeripheralDriver periph devices req_sink res_source = do
             r <- spiGetDR periph
             store ((resbuffer ~> rx_buf) ! rx_pos) r
             store resbufferpos (rx_pos + 1)
-            when (rx_pos <=? (rx_sz - 2)) $ do
-               modifyReg (spiRegCR2 periph) (setBit spi_cr2_txeie)
           when (rx_pos ==? (rx_sz - 1)) $ do
+            modifyReg (spiRegCR2 periph) (clearBit spi_cr2_txeie)
             spiBusEnd       periph
             chooseDevice spiDeviceDeselect (reqbuffer ~> tx_device)
             emit_ resultEmitter (constRef resbuffer)
@@ -122,19 +119,19 @@ spiPeripheralDriver periph devices req_sink res_source = do
           when (tx_pos <? tx_sz) $ do
             w <- deref ((reqbuffer ~> tx_buf) ! tx_pos)
             spiSetDR periph w
-          when (tx_pos <=? tx_sz) $ do
-            store reqbufferpos (tx_pos + 1)
-            modifyReg (spiRegCR2 periph) (setBit spi_cr2_rxneie)
+          ifte_ (tx_pos <=? tx_sz)
+            (do store reqbufferpos (tx_pos + 1)
+                modifyReg (spiRegCR2 periph) (setBit spi_cr2_rxneie))
+            (modifyReg (spiRegCR2 periph) (clearBit spi_cr2_rxneie))
           debugOff debugPin3
       ]
-
     interrupt_enable interrupt
 
   let deviceBeginProc :: SPIDevice i -> Def('[]:->())
       deviceBeginProc dev = proc ((spiDevName dev) ++ "_devicebegin") $
         body $ do
-          spiDeviceSelect dev
           spiBusBegin platform dev
+          spiDeviceSelect dev
 
   taskModuleDef $ do
     mapM_ (incl . deviceBeginProc) devices
