@@ -15,7 +15,25 @@ SERVER_ARGS="--senderid=@BASE_ID@ \
       --recvkey=@UAV_KEY@ \
       --recvsalt=@UAV_SALT@"
 
-while getopts "dvqs:b:hmo:" opt; do
+if [ -n "$DISPLAY" ]; then
+	# Try terminal emulators in this order:
+	# - x-terminal-emulator (Debian script which works like xterm)
+	# - gnome-terminal
+	# - xterm
+	# Fall back to running in the console if these aren't found.
+	TERM_ARGS="-e"
+	if [ -z "$TERM_APP" ]; then
+		if ! TERM_APP=$(which x-terminal-emulator); then
+			if TERM_APP=$(which gnome-terminal); then
+				TERM_ARGS="-x"
+			else
+				TERM_APP=$(which xterm)
+			fi
+		fi
+	fi
+fi
+
+while getopts "dvqs:b:hmo:t" opt; do
 	echo $opt
 	case $opt in
 		d)
@@ -42,6 +60,10 @@ while getopts "dvqs:b:hmo:" opt; do
 		o)
 			EXEC_MAVPROXY="$EXEC_MAVPROXY --out=$OPTARG"
 			;;
+		t)
+			# Suppress spinning mavproxy off to a terminal emulator.
+			TERM_APP=
+			;;
 		\?)
 			echo "Invalid option: -$OPTARG" >&2
 			exit 1
@@ -51,32 +73,12 @@ done
 
 echo starting commsec server: $COMMSEC_SERVER $SERVER_ARGS
 $BIN_DIR/$COMMSEC_SERVER $SERVER_ARGS &
+pid=$!
+trap 'kill $pid' EXIT
 
-if [ -z $TERM_APP ]; then
-	path_to_gnometerminal=$(which gnome-terminal)
-	path_to_xterm=$(which xterm)
-	if [ -x "$path_to_gnometerminal" ]; then
-		echo starting mavproxy in a new terminal: $EXEC_MAVPROXY;
-		gnome-terminal -x $EXEC_MAVPROXY;
-  elif [ -x "$path_to_xterm" ]; then
-		echo starting mavproxy in a new terminal: $EXEC_MAVPROXY
-		xterm -e "$EXEC_MAVPROXY"
-	else
-		echo Cannot find a terminal program. Try setting TERM_APP environment variable;
-		echo User can start mavproxy with: $EXEC_MAVPROXY;
-	fi
+if [ -n "$TERM_APP" ]; then
+	echo starting mavproxy in a new terminal: $EXEC_MAVPROXY
+	$TERM_APP $TERM_ARGS "$EXEC_MAVPROXY"
 else
-	echo starting mavproxy in a new terminal: $EXEC_MAVPROXY;
-	$TERM_APP -e "$EXEC_MAVPROXY";
+	$EXEC_MAVPROXY
 fi
-
-
-function kill() {
-    read -p "$*"
-}
-
-# Wait for input.
-kill "Press [Enter] to kill commsec server..."
-
-# Kill the script.
-killall $COMMSEC_SERVER
