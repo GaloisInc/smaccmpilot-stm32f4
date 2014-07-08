@@ -115,7 +115,7 @@ uartTowerTask uart baud snk_ostream src_istream txcheck_evt dbg = do
   o <- withChannelReceiver snk_ostream "ostream"
   i <- withChannelEmitter  src_istream "istream"
 
-  taskPriority 3 -- XXX Kinda arbitrary...
+  taskPriority 4 -- XXX Kinda arbitrary...
   taskModuleDef $ hw_moduledef
 
   rxoverruns    <- taskLocalInit (named "rx_overruns") (ival (0 :: Uint32))
