@@ -29,5 +29,5 @@ BSP_LED_TEST_DISABLE_GLOBAL_STARTUP_OBJECTS := 1
 
 $(eval $(call cbmc_pkg,BSP_LED_TEST,IVORY_PKG_BSP_LED_TEST))
 $(eval $(call when_os,freertos,image,BSP_LED_TEST))
-$(eval $(call frama_c_pkg,BSP_LED_TEST,$(BSP_LED_TOWER_TEST)))
+# $(eval $(call frama_c_pkg,BSP_LED_TEST,$(BSP_LED_TOWER_TEST)))
 

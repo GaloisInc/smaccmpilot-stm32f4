@@ -23,13 +23,12 @@ $(1)_PREFIX       := $(dir $(lastword $(filter %/build.mk,$(MAKEFILE_LIST))))
 $(1)_GEN_DIR      := $$(GEN_DIR)/$$($(1)_PREFIX)
 $(1)_ENTRY_FILE   := $$($(1)_GEN_DIR)/$(2)_entrypoints.mk
 
-# Defines the variables $(1)_TASKS and $(1)_SIGNALS, if they exist.
+# Defines the variables $(1)_TASKS, if they exist.
 -include $$($(1)_ENTRY_FILE)
 
 $(1)_ENTRY_FUNCS_LOGS += $$(patsubst %, %$(FRAMA_C_OUT), $$($(2)_TASKS))
-$(1)_ENTRY_FUNCS_LOGS += $$(patsubst %, %$(FRAMA_C_OUT), $$($(2)_SIGNALS))
 
-# Set the targets to be built.
+# Set the targets to be built, called in mk/main.mk.
 FRAMA_C += $$($(1)_ENTRY_FUNCS_LOGS)
 
 # Rule to build each log file for each entry point.
@@ -37,7 +36,7 @@ $$($(1)_ENTRY_FUNCS_LOGS):
 	cd $$($(1)_GEN_DIR) ; \
 	$(CONFIG_FRAMA_C_PREFIX)/frama-c \
 	-main $$(patsubst %$(FRAMA_C_OUT), %, $$@) \
-  -no-overflow -unsafe-arrays -lib-entry \
+  -unsafe-arrays -lib-entry \
   -val -slevel 1000 \
   -save $$@ \
   *.i
