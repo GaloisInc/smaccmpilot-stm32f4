@@ -113,12 +113,17 @@ initializerMachine dev req_emitter result_evt = do
     -- Wake the sensor device, use internal oscillator
     wake   <- rpc "wake" (writeRegReq dev PowerManagment1 0x00)
                          (const (return ()))
-                         setscale
+                         setaccelscale
+
+    -- Set accelerometer scale to +/- 16g
+    setaccelscale <- rpc "setaccelscale" (writeRegReq dev AccelConfig 0x18)
+                                         (const (return ()))
+                                         setgyroscale
 
     -- Set gyro scale to +/- 2000 dps
-    setscale <- rpc "setscale" (writeRegReq dev GyroConfig 0x18)
-                               (const (return ()))
-                               done
+    setgyroscale <- rpc "setgyroscale" (writeRegReq dev GyroConfig 0x18)
+                                       (const (return ()))
+                                       done
 
     done <- stateNamed "done" $ entry $ halt
 
