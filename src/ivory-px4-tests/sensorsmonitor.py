@@ -29,7 +29,7 @@ class Barometer(object):
     def display(self):
         if self.errormsg:
             return self.errormsg
-        return ("Baro ifail %d sfail %d mmhg %4.4f degc %2.2f micros %d" %
+        return ("Baro ifail %d sfail %d mbar % 9.4f degc % 5.2f micros %d" %
             (self.ifail, self.sfail, self.pres, self.temp, self.t))
 
 class Compass(object):
@@ -39,9 +39,10 @@ class Compass(object):
             (ifail, sfail, x, y, z, t) = struct.unpack("<BBhhhQ", binary)
             self.ifail = ifail
             self.sfail = sfail
-            self.x     = x
-            self.y     = y
-            self.z     = z
+            # convert to gauss
+            self.x     = x / 1370.0
+            self.y     = y / 1370.0
+            self.z     = z / 1370.0
             self.t     = t
             self.errormsg = None
         except Exception:
@@ -49,7 +50,7 @@ class Compass(object):
     def display(self):
         if self.errormsg:
             return self.errormsg
-        return ("Compass ifail %d sfail %d x %4d y %4d z %4d micros %d" %
+        return ("Compass ifail %d sfail %d x % 9.4f y % 9.4f z % 9.4f micros %d" %
             (self.ifail, self.sfail, self.x, self.y, self.z, self.t))
 
 class Gyro(object):
@@ -58,13 +59,16 @@ class Gyro(object):
         try:
             (valid, gx, gy, gz, ax, ay, az, temp, t) = struct.unpack("<BhhhhhhhQ", binary)
             self.valid = valid
-            self.gx    = gx
-            self.gy    = gy
-            self.gz    = gz
-            self.ax    = ax
-            self.ay    = ay
-            self.az    = az
-            self.temp  = temp
+            # convert to degrees per second
+            self.gx    = gx / 16.4
+            self.gy    = gy / 16.4
+            self.gz    = gz / 16.4
+            # convert to g
+            self.ax    = ax / 2048.0
+            self.ay    = ay / 2048.0
+            self.az    = az / 2048.0
+            # convert to degrees celsius
+            self.temp  = temp / 340.0 + 36.53
             self.t     = t
             self.errormsg = None
         except Exception:
@@ -72,7 +76,7 @@ class Gyro(object):
     def display(self):
         if self.errormsg:
             return self.errormsg
-        return ("Gyro valid %d gx %4d gy %4d gz %4d ax %4d ay %4d az %4d temp %d micros %d" %
+        return ("Gyro valid %d gx % 9.4f gy % 9.4f gz % 9.4f ax % 9.4f ay % 9.4f az % 9.4f temp % 9.4f micros %d" %
             (self.valid, self.gx, self.gy, self.gz, self.ax, self.ay, self.az, self.temp, self.t))
 
 class SensorParser(object):
