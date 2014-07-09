@@ -43,7 +43,7 @@ sensorSetup i2caddr failure req_emitter res_evt next = mdo
   where
   confa = confAVal Average8 Rate75Hz NoBias
   confb = confBVal LSBGauss1370
-  mode  = modeVal  Continious
+  mode  = modeVal  Continuous
 
   named n = "hmc8553l_" ++ n
 

@@ -103,13 +103,13 @@ confBVal g = bs g `shiftL` 4
   bs LSBGauss230  = 7
 
 data MeasMode
-  = Continious
+  = Continuous
   | Single
   | Idle
   deriving (Eq, Show)
 
 modeVal :: MeasMode -> Word8
-modeVal Continious = 0
+modeVal Continuous = 0
 modeVal Single     = 1
 modeVal Idle       = 2
 
