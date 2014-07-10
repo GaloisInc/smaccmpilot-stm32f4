@@ -248,6 +248,8 @@ if __name__ == "__main__":
             for s in sensors:
                 print ('Sensor< ' + s.display())
 
+            sys.stdout.flush()
+
             if opts.delay > 0.0:
                 time.sleep(opts.delay)
     except KeyboardInterrupt:
