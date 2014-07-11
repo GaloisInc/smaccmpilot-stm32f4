@@ -17,13 +17,13 @@ mpu6000TypesModule = package "mpu6000_types" $ do
 struct mpu6000_sample
   { valid     :: Stored IBool
   ; time      :: Stored ITime
-  ; gyro_x    :: Stored Uint16
-  ; gyro_y    :: Stored Uint16
-  ; gyro_z    :: Stored Uint16
-  ; accel_x   :: Stored Uint16
-  ; accel_y   :: Stored Uint16
-  ; accel_z   :: Stored Uint16
-  ; temp      :: Stored Uint16
+  ; gyro_x    :: Stored IFloat -- degrees/sec
+  ; gyro_y    :: Stored IFloat -- degrees/sec
+  ; gyro_z    :: Stored IFloat -- degrees/sec
+  ; accel_x   :: Stored IFloat -- m/s/s
+  ; accel_y   :: Stored IFloat -- m/s/s
+  ; accel_z   :: Stored IFloat -- m/s/s
+  ; temp      :: Stored IFloat -- degrees Celsius
   }
 |]
 

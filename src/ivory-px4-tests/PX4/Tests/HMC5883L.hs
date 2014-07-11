@@ -47,7 +47,7 @@ hmc5883lSender :: ChannelSink (Struct "hmc5883l_sample")
                -> Task p ()
 hmc5883lSender samplesink out = do
   samp <- withChannelEvent samplesink "sample"
-  (buf :: Ref Global (Array 16 (Stored Uint8))) <- taskLocal "hmc5883l_ser_buf"
+  (buf :: Ref Global (Array 22 (Stored Uint8))) <- taskLocal "hmc5883l_ser_buf"
   handle samp "sample" $ \s -> noReturn $ do
     ifail <- deref (s ~> initfail)
     sfail <- deref (s ~> samplefail)

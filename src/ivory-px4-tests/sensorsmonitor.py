@@ -36,13 +36,12 @@ class Compass(object):
     def __init__(self, binary):
         self.binary = binary
         try:
-            (ifail, sfail, x, y, z, t) = struct.unpack("<BBhhhQ", binary)
+            (ifail, sfail, x, y, z, t) = struct.unpack("<BBfffQ", binary)
             self.ifail = ifail
             self.sfail = sfail
-            # convert to gauss
-            self.x     = x / 1370.0
-            self.y     = y / 1370.0
-            self.z     = z / 1370.0
+            self.x     = x
+            self.y     = y
+            self.z     = z
             self.t     = t
             self.errormsg = None
         except Exception:
@@ -57,18 +56,15 @@ class Gyro(object):
     def __init__(self, binary):
         self.binary = binary
         try:
-            (valid, gx, gy, gz, ax, ay, az, temp, t) = struct.unpack("<BhhhhhhhQ", binary)
+            (valid, gx, gy, gz, ax, ay, az, temp, t) = struct.unpack("<BfffffffQ", binary)
             self.valid = valid
-            # convert to degrees per second
-            self.gx    = gx / 16.4
-            self.gy    = gy / 16.4
-            self.gz    = gz / 16.4
-            # convert to g
-            self.ax    = ax / 2048.0
-            self.ay    = ay / 2048.0
-            self.az    = az / 2048.0
-            # convert to degrees celsius
-            self.temp  = temp / 340.0 + 36.53
+            self.gx    = gx
+            self.gy    = gy
+            self.gz    = gz
+            self.ax    = ax
+            self.ay    = ay
+            self.az    = az
+            self.temp  = temp
             self.t     = t
             self.errormsg = None
         except Exception:

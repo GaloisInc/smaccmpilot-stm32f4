@@ -47,7 +47,7 @@ mpu6000Sender :: ChannelSink (Struct "mpu6000_sample")
               -> Task p ()
 mpu6000Sender meassink out = do
   meas <- withChannelEvent meassink "measurement"
-  (buf :: Ref Global (Array 23 (Stored Uint8))) <- taskLocal "mpu6000_ser_buf"
+  (buf :: Ref Global (Array 37 (Stored Uint8))) <- taskLocal "mpu6000_ser_buf"
   handle meas "measurement" $ \s -> noReturn $ do
     sfail <- deref (s ~> valid)
     stime <- deref (s ~> time)

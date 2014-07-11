@@ -30,7 +30,8 @@ library
                        SMACCMPilot.Hardware.HMC5883L,
                        SMACCMPilot.Hardware.HMC5883L.Types,
                        SMACCMPilot.Hardware.HMC5883L.Regs,
-                       SMACCMPilot.Hardware.HMC5883L.I2C
+                       SMACCMPilot.Hardware.HMC5883L.I2C,
+                       SMACCMPilot.Hardware.Util
   build-depends:       base >= 4.6,
                        monadLib,
                        ivory,

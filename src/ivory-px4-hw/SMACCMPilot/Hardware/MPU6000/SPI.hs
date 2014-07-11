@@ -14,6 +14,7 @@ import Ivory.BSP.STM32.Driver.SPI
 
 import SMACCMPilot.Hardware.MPU6000.Regs
 import SMACCMPilot.Hardware.MPU6000.Types
+import SMACCMPilot.Hardware.Util (twosComplement)
 
 readRegAddr :: Reg -> Uint8
 readRegAddr reg = 0x80 .| (fromIntegral (regAddr reg))
@@ -73,17 +74,23 @@ rawSensorFromResponse res t = do
   fmap constRef $ local $ istruct
     [ valid   .= ival true
     , time    .= ival t
-    , gyro_x  .= ival (hilo gx_h gx_l)
-    , gyro_y  .= ival (hilo gy_h gy_l)
-    , gyro_z  .= ival (hilo gz_h gz_l)
-    , accel_x .= ival (hilo ax_h ax_l)
-    , accel_y .= ival (hilo ay_h ay_l)
-    , accel_z .= ival (hilo az_h az_l)
-    , temp    .= ival (hilo te_h te_l)
+    -- convert to degrees per second
+    , gyro_x  .= ival (hilo gx_h gx_l / 16.4)
+    , gyro_y  .= ival (hilo gy_h gy_l / 16.4)
+    , gyro_z  .= ival (hilo gz_h gz_l / 16.4)
+    -- convert to m/s/s by way of g
+    , accel_x .= ival (hilo ax_h ax_l / 2048.0 * 9.80665)
+    , accel_y .= ival (hilo ay_h ay_l / 2048.0 * 9.80665)
+    , accel_z .= ival (hilo az_h az_l / 2048.0 * 9.80665)
+    -- convert to degrees Celsius
+    , temp    .= ival (hilo te_h te_l / 340.0 + 36.53)
     ]
   where
-  hilo :: Uint8 -> Uint8 -> Uint16
-  hilo h l = ((safeCast h) * 256) + safeCast l
+  hilo :: Uint8 -> Uint8 -> IFloat
+  hilo h l = safeCast $ twosComplement $ hiloUnsigned h l
+
+  hiloUnsigned :: Uint8 -> Uint8 -> Uint16
+  hiloUnsigned h l = (safeCast h `iShiftL` 8) .| safeCast l
 
 initializerMachine :: forall p
                     . SPIDeviceHandle

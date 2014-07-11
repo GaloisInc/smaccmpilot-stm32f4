@@ -18,7 +18,7 @@ hmc5883lTypesModule = package "hmc5883l_types" $ do
 struct hmc5883l_sample
   { initfail   :: Stored IBool
   ; samplefail :: Stored IBool
-  ; sample     :: Array 3 (Stored Uint16)
+  ; sample     :: Array 3 (Stored IFloat) -- Gauss
   ; time       :: Stored ITime
   }
 |]
