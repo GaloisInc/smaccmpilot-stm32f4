@@ -14,7 +14,6 @@ import Ivory.BSP.STM32.Driver.SPI
 
 import SMACCMPilot.Hardware.MPU6000.Regs
 import SMACCMPilot.Hardware.MPU6000.Types
-import SMACCMPilot.Hardware.Util (twosComplement)
 
 readRegAddr :: Reg -> Uint8
 readRegAddr reg = 0x80 .| (fromIntegral (regAddr reg))
@@ -87,7 +86,7 @@ rawSensorFromResponse res t = do
     ]
   where
   hilo :: Uint8 -> Uint8 -> IFloat
-  hilo h l = safeCast $ twosComplement $ hiloUnsigned h l
+  hilo h l = safeCast $ twosComplementCast $ hiloUnsigned h l
 
   hiloUnsigned :: Uint8 -> Uint8 -> Uint16
   hiloUnsigned h l = (safeCast h `iShiftL` 8) .| safeCast l

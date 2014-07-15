@@ -15,7 +15,6 @@ import Ivory.BSP.STM32.Driver.I2C
 
 import SMACCMPilot.Hardware.HMC5883L.Regs
 import SMACCMPilot.Hardware.HMC5883L.Types
-import SMACCMPilot.Hardware.Util (twosComplement)
 
 regWriteRequest :: (GetAlloc eff ~ Scope s)
            => I2CDeviceAddr
@@ -114,5 +113,5 @@ sensorRead i2caddr s req_emitter res_evt next = mdo
   payloadu16 res ixhi ixlo = do
     hi <- deref ((res ~> rx_buf) ! ixhi)
     lo <- deref ((res ~> rx_buf) ! ixlo)
-    assign $ safeCast (twosComplement ((safeCast hi `iShiftL` 8) .| safeCast lo) :: Sint16) / 1370.0
+    assign $ safeCast (twosComplementCast ((safeCast hi `iShiftL` 8) .| safeCast lo) :: Sint16) / 1370.0
 
