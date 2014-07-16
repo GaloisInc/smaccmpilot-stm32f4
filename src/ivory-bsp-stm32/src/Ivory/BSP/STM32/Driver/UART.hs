@@ -115,13 +115,13 @@ uartTowerTask uart baud snk_ostream src_istream txcheck_evt dbg = do
   o <- withChannelReceiver snk_ostream "ostream"
   i <- withChannelEmitter  src_istream "istream"
 
-  taskPriority 3 -- XXX Kinda arbitrary...
+  taskPriority 4 -- XXX Kinda arbitrary...
   taskModuleDef $ hw_moduledef
 
-  rxoverruns    <- taskLocalInit "rxoverruns" (ival (0 :: Uint32))
-  rxsuccess     <- taskLocalInit "rxsuccess" (ival (0 :: Uint32))
-  txpending     <- taskLocal "txpending"
-  txpendingbyte <- taskLocal "txpendingbyte"
+  rxoverruns    <- taskLocalInit (named "rx_overruns") (ival (0 :: Uint32))
+  rxsuccess     <- taskLocalInit (named "rx_success") (ival (0 :: Uint32))
+  txpending     <- taskLocal (named "tx_pending")
+  txpendingbyte <- taskLocal (named "tx_pendingbyte")
 
   interrupt <- withUnsafeSignalEvent
     (stm32Interrupt (uartInterrupt uart))
@@ -145,7 +145,8 @@ uartTowerTask uart baud snk_ostream src_istream txcheck_evt dbg = do
       byte <- readDR uart
       bref <- local (ival byte)
       emit_ i (constRef bref)
-      rxoverruns %= (+1) -- This is basically an error we can't handle...
+      rxoverruns %= (+1) -- This is basically an error we can't handle, but its
+                         -- useful to be able to check them with gdb
     when (bitToBool (sr #. uart_sr_rxne)) $ do
       byte <- readDR uart
       bref <- local (ival byte)
@@ -183,5 +184,4 @@ uartTowerTask uart baud snk_ostream src_istream txcheck_evt dbg = do
         setTXEIE uart true
 
 
-
-
+  where named n = (uartName uart) ++ "_"++ n

@@ -7,7 +7,6 @@
 module SMACCMPilot.Hardware.MPU6000.SPI where
 
 import Ivory.Language
-import Ivory.Stdlib
 import Ivory.Tower
 import Ivory.Tower.StateMachine
 import Ivory.BSP.STM32.Driver.SPI
@@ -53,9 +52,10 @@ getSensorsReq dev = fmap constRef $ local $ istruct
 
 rawSensorFromResponse :: (GetAlloc eff ~ Scope s)
                       => ConstRef s1 (Struct "spi_transaction_result")
-                      -> ITime
-                      -> Ivory eff (ConstRef (Stack s) (Struct "mpu6000_sample"))
-rawSensorFromResponse res t = do
+                      -> Ref s2 (Struct "mpu6000_sample")
+                      -> Ivory eff ()
+rawSensorFromResponse res r = do
+  t <- getTime
   ax_h <- deref ((res ~> rx_buf) ! 1)
   ax_l <- deref ((res ~> rx_buf) ! 2)
   ay_h <- deref ((res ~> rx_buf) ! 3)
@@ -70,20 +70,18 @@ rawSensorFromResponse res t = do
   gy_l <- deref ((res ~> rx_buf) ! 12)
   gz_h <- deref ((res ~> rx_buf) ! 13)
   gz_l <- deref ((res ~> rx_buf) ! 14)
-  fmap constRef $ local $ istruct
-    [ valid   .= ival true
-    , time    .= ival t
-    -- convert to degrees per second
-    , gyro_x  .= ival (hilo gx_h gx_l / 16.4)
-    , gyro_y  .= ival (hilo gy_h gy_l / 16.4)
-    , gyro_z  .= ival (hilo gz_h gz_l / 16.4)
-    -- convert to m/s/s by way of g
-    , accel_x .= ival (hilo ax_h ax_l / 2048.0 * 9.80665)
-    , accel_y .= ival (hilo ay_h ay_l / 2048.0 * 9.80665)
-    , accel_z .= ival (hilo az_h az_l / 2048.0 * 9.80665)
-    -- convert to degrees Celsius
-    , temp    .= ival (hilo te_h te_l / 340.0 + 36.53)
-    ]
+  store (r ~> samplefail)  false
+  -- convert to degrees per second
+  store (r ~> gyro_x)      (hilo gx_h gx_l / 16.4)
+  store (r ~> gyro_y)      (hilo gy_h gy_l / 16.4)
+  store (r ~> gyro_z)      (hilo gz_h gz_l / 16.4)
+  -- convert to m/s/s by way of g
+  store (r ~> accel_x)     (hilo ax_h ax_l / 2048.0 * 9.80665)
+  store (r ~> accel_y)     (hilo ay_h ay_l / 2048.0 * 9.80665)
+  store (r ~> accel_z)     (hilo az_h az_l / 2048.0 * 9.80665)
+  -- convert to degrees Celsius
+  store (r ~> temp)        (hilo te_h te_l / 340.0 + 36.53)
+  store (r ~> time)        t
   where
   hilo :: Uint8 -> Uint8 -> IFloat
   hilo h l = safeCast $ twosComplementCast $ hiloUnsigned h l
@@ -97,11 +95,13 @@ initializerMachine :: forall p
                    -> Event          (Struct "spi_transaction_result")
                    -> Task p (Runnable, Ref Global (Stored IBool))
 initializerMachine dev req_emitter result_evt = do
+  retries <- taskLocal "mpu6000InitRetries"
   failed <- taskLocal "mpu6000InitFailed"
 
   m <- stateMachine "mpu6000InitailizerMachine" $ mdo
     b <- stateNamed "begin" $ entry $ do
-      liftIvory_ $ store failed false
+      liftIvory_ $ do
+        store retries (0 :: Uint8)
       goto disablei2c
 
     -- Disable the I2C slave device sharing pins with the SPI interface
@@ -113,7 +113,7 @@ initializerMachine dev req_emitter result_evt = do
     whoami <- rpc "whoami" (readRegReq dev WhoAmI)
                            (\res -> do
                                 idbyte <- deref ((res ~> rx_buf) ! 1)
-                                unless (idbyte ==? 0x68) (store failed true))
+                                store failed (iNot (idbyte ==? 0x68)))
                            wake
 
     -- Wake the sensor device, use internal oscillator
@@ -131,7 +131,14 @@ initializerMachine dev req_emitter result_evt = do
                                        (const (return ()))
                                        done
 
-    done <- stateNamed "done" $ entry $ halt
+    done <- stateNamed "done" $ entry $ liftIvory $ do
+      fd <- deref failed
+      rs <- deref retries
+      store retries (rs + 1)
+      return $ do
+        haltWhen (iNot fd)
+        haltWhen (rs >? 2)
+        goto disablei2c
 
     return b
 
@@ -155,6 +162,5 @@ initializerMachine dev req_emitter result_evt = do
       liftIvory_ $ resultk res
       goto statek
     return getter
-
 
 

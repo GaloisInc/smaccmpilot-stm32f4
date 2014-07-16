@@ -47,11 +47,13 @@ mpu6000Sender :: ChannelSink (Struct "mpu6000_sample")
               -> Task p ()
 mpu6000Sender meassink out = do
   meas <- withChannelEvent meassink "measurement"
-  (buf :: Ref Global (Array 37 (Stored Uint8))) <- taskLocal "mpu6000_ser_buf"
+  (buf :: Ref Global (Array 38 (Stored Uint8))) <- taskLocal "mpu6000_ser_buf"
   handle meas "measurement" $ \s -> noReturn $ do
-    sfail <- deref (s ~> valid)
+    ifail <- deref (s ~> initfail)
+    sfail <- deref (s ~> samplefail)
     stime <- deref (s ~> time)
     packInto_ buf 0 $ do
+      mpackV (ifail ? ((1 :: Uint8), 0))
       mpackV (sfail ? ((1 :: Uint8), 0))
       mpack  (s ~> gyro_x)
       mpack  (s ~> gyro_y)
@@ -79,30 +81,51 @@ mpu6000SensorManager toDriver fromDriver sensorSource dh = task "mpu6kCtl" $ do
 
   taskStackSize 2048
 
+
+  transactionPending <- taskLocalInit "transactionPending" (ival false)
+  result             <- taskLocal     "mpu6000_result"
   taskInit $ do
     begin initMachine
 
   p <- withPeriodicEvent (Milliseconds 5) -- 200hz
   handle p "period" $ \_ -> do
     initializing <- active initMachine
-    unless initializing $ do
-      e <- deref initError
-      ifte_ e
-        (invalidSensor >>= emit_ sensorEmitter)
-        (getSensorsReq dh >>= emit_ spiRequest)
+    running      <- deref transactionPending
+    initerror    <- deref initError
+    cond_
+      [ initializing .|| (iNot initializing .&& initerror) ==> do
+          store (result ~> initfail) true
+          invalidTransaction result
+          emit_ sensorEmitter (constRef result)
+      , running ==> do
+          invalidTransaction result
+          emit_ sensorEmitter (constRef result)
+      , true ==> do
+          store (result ~> initfail) false
+          store transactionPending true
+          req <- getSensorsReq dh
+          emit_ spiRequest req
+      ]
 
   handle spiResult "spiResult" $ \res -> do
     initializing <- active initMachine
     unless initializing $ do
-      t <- getTime
-      r <- rawSensorFromResponse res t
-      emit_ sensorEmitter r
+      store transactionPending false
+      rawSensorFromResponse res result
+      emit_ sensorEmitter (constRef result)
 
   where
-  invalidSensor :: (GetAlloc eff ~ Scope s)
-                => Ivory eff (ConstRef (Stack s) (Struct "mpu6000_sample"))
-  invalidSensor = do
+  invalidTransaction :: (GetAlloc eff ~ Scope s)
+                => Ref s' (Struct "mpu6000_sample") -> Ivory eff ()
+  invalidTransaction r = do
     t <- getTime
-    fmap constRef $ local $ istruct
-      [ valid .= ival false, time .= ival t ]
+    store (r ~> samplefail) true
+    store (r ~> gyro_x)     0
+    store (r ~> gyro_y)     0
+    store (r ~> gyro_z)     0
+    store (r ~> accel_x)    0
+    store (r ~> accel_y)    0
+    store (r ~> accel_z)    0
+    store (r ~> temp)       0
+    store (r ~> time)       t
 

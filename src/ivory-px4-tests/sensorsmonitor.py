@@ -56,8 +56,9 @@ class Gyro(object):
     def __init__(self, binary):
         self.binary = binary
         try:
-            (valid, gx, gy, gz, ax, ay, az, temp, t) = struct.unpack("<BfffffffQ", binary)
-            self.valid = valid
+            (valid, gx, gy, gz, ax, ay, az, temp, t) = struct.unpack("<BBfffffffQ", binary)
+            self.ifail = ifail
+            self.sfail = sfail
             self.gx    = gx
             self.gy    = gy
             self.gz    = gz
@@ -68,12 +69,40 @@ class Gyro(object):
             self.t     = t
             self.errormsg = None
         except Exception:
-            self.errormsg = ("Gyro: bad size %d" % (len(binary)))
+            self.errormsg = ("Gyro: bad size %d" % (len(binary) if binary else 0))
     def display(self):
         if self.errormsg:
             return self.errormsg
         return ("Gyro valid %d gx % 9.4f gy % 9.4f gz % 9.4f ax % 9.4f ay % 9.4f az % 9.4f temp % 9.4f micros %d" %
             (self.valid, self.gx, self.gy, self.gz, self.ax, self.ay, self.az, self.temp, self.t))
+
+class Position(object):
+    def __init__(self, binary):
+        self.binary = binary
+        try:
+          ##  (ifail, sfail, x, y, z, t) = struct.unpack("<BBhhhQ", binary)
+            (fix, num_sv, dop, lat, lon, alt, vnorth, veast, vdown, vground, heading, t) = \
+                    struct.unpack("<BBfllllllLfQ", binary)
+            self.fix        = fix
+            self.num_sv     = num_sv
+            self.dop        = dop
+            self.lat        = lat
+            self.lon        = lon
+            self.alt        = alt
+            self.vnorth     = vnorth
+            self.veast      = veast
+            self.vdown      = vdown
+            self.vground    = vground
+            self.heading    = heading
+            self.t          = t
+            self.errormsg = None
+        except Exception:
+            self.errormsg = ("Compass: bad size %d" % (len(binary)))
+    def display(self):
+        if self.errormsg:
+            return self.errormsg
+        return ("Position fix %d sats %d dop %f lat %d lon %d alt %d vnorth %d veast %d vdown %d vground %d heading %f millis %d" %
+            (self.fix, self.num_sv, self.dop, self.lat, self.lon, self.alt, self.vnorth, self.veast, self.vdown, self.vground, self.heading, self.t))
 
 class SensorParser(object):
     def __init__(self,radio,opts):
@@ -94,6 +123,8 @@ class SensorParser(object):
                 sensors.append(Compass(payload))
             if t == 103: # 'g' gyro
                 sensors.append(Gyro(payload))
+            if t == 112: # 'p' position
+                sensors.append(Position(payload))
         return (statuses, sensors)
 
 class SerialPortProvider(object):

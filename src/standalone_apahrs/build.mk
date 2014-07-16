@@ -52,6 +52,7 @@ STANDALONE_HAL_LIB       := libstandalone-aphal.a
 
 STANDALONE_HAL_INCLUDES  += -I$(TOP)/src/standalone_apahrs
 STANDALONE_HAL_INCLUDES  += -I$(TOP)/src/standalone_apahrs/hwf4/include
+STANDALONE_HAL_INCLUDES  += $(HWF4_INCLUDES)
 ifneq ($($(CONFIG_PLATFORM)_TOWER_OS),echronos)
 STANDALONE_HAL_INCLUDES  += $(FREERTOS_CFLAGS)
 else
