@@ -26,7 +26,7 @@ data Sym
 instance Show Sym where
     show (Const v) = show (fromRational v :: Double)
     show (Var n) = show n
-    show (Add a (Mul b (Const (-1)))) = "(" ++ show a ++ " - " ++ show b ++ ")"
+    show (Add a (Mul (Const (-1)) b)) = "(" ++ show a ++ " - " ++ show b ++ ")"
     show (Add a b) = "(" ++ show a ++ " + " ++ show b ++ ")"
     show (Mul a (Pow b (-1))) = "(" ++ show a ++ " / " ++ show b ++ ")"
     show (Mul a b) = "(" ++ show a ++ " * " ++ show b ++ ")"
@@ -61,19 +61,25 @@ simplify :: Sym -> Sym
 simplify = simplifyOnce . descend simplify
 
 simplifyOnce :: Sym -> Sym
+simplifyOnce (Add (Var v1) (Var v2)) | v1 == v2 = Mul (Const 2) (Var v1)
 simplifyOnce (Add (Const 0) x) = x
-simplifyOnce (Add x (Const 0)) = x
 simplifyOnce (Add (Const a) (Const b)) = Const $ a + b
-simplifyOnce (Mul (Const 0) x) = Const 0
-simplifyOnce (Mul x (Const 0)) = Const 0
+simplifyOnce (Add (Const a) (Add (Const b) c)) = (Const $ a + b) + c
+simplifyOnce (Add (Add (Const a) b) c) = Const a + (b + c)
+simplifyOnce (Add a (Const b)) = Const b + a
+simplifyOnce (Add a (Add (Const b) c)) = Const b + (a + c)
+simplifyOnce (Mul (Var v1) (Var v2)) | v1 == v2 = Pow (Var v1) 2
+simplifyOnce (Mul (Const 0) _) = Const 0
 simplifyOnce (Mul (Const 1) x) = x
-simplifyOnce (Mul x (Const 1)) = x
 simplifyOnce (Mul (Const a) (Const b)) = Const $ a * b
-simplifyOnce (Pow (Const 0) x) = Const 0
-simplifyOnce (Pow x 0) = Const 1
-simplifyOnce (Pow (Const 1) _) = Const 1
+simplifyOnce (Mul (Const a) (Mul (Const b) c)) = (Const $ a * b) * c
+simplifyOnce (Mul (Mul (Const a) b) c) = Const a * (b * c)
+simplifyOnce (Mul a (Const b)) = Const b * a
+simplifyOnce (Mul a (Mul (Const b) c)) = Const b * (a * c)
+simplifyOnce (Pow _ 0) = Const 1
 simplifyOnce (Pow x 1) = x
 simplifyOnce (Pow (Const a) b) | (b', 0) <- properFraction b = Const $ a ^^ b'
+simplifyOnce (Pow (Pow x a) b) = x ^. (a * b)
 simplifyOnce e = e
 
 diff :: VarName -> Sym -> Sym
