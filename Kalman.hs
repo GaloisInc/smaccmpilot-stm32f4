@@ -110,7 +110,7 @@ hk_pos :: [([[Sym]], [[Sym]])]
 hk_pos = [ measurementUpdate [var v] stateVector kalmanP [[var r]] | (v, r) <- zip pos pos_R ]
 
 hk_tas :: ([[Sym]], [[Sym]])
-hk_tas = measurementUpdate [((vn - vwn) ^ 2 + (ve - vwe) ^ 2 + vd ^ 2) ^. 0.5] stateVector kalmanP [[var "R_TAS"]]
+hk_tas = measurementUpdate [((vn - vwn) ^. 2 + (ve - vwe) ^. 2 + vd ^. 2) ^. 0.5] stateVector kalmanP [[var "R_TAS"]]
     where
     [vn, ve, vd] = map var vel
     [vwn, vwe] = map var vw
