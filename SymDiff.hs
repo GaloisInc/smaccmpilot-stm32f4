@@ -65,7 +65,7 @@ simplifyOnce (Add (Var v1) (Var v2)) | v1 == v2 = Mul (Const 2) (Var v1)
 simplifyOnce (Add (Const 0) x) = x
 simplifyOnce (Add (Const a) (Const b)) = Const $ a + b
 simplifyOnce (Add (Const a) (Add (Const b) c)) = (Const $ a + b) + c
-simplifyOnce (Add (Add (Const a) b) c) = Const a + (b + c)
+simplifyOnce (Add (Add a b) c) = a + (b + c)
 simplifyOnce (Add a (Const b)) = Const b + a
 simplifyOnce (Add a (Add (Const b) c)) = Const b + (a + c)
 simplifyOnce (Mul (Var v1) (Var v2)) | v1 == v2 = Pow (Var v1) 2
@@ -73,7 +73,7 @@ simplifyOnce (Mul (Const 0) _) = Const 0
 simplifyOnce (Mul (Const 1) x) = x
 simplifyOnce (Mul (Const a) (Const b)) = Const $ a * b
 simplifyOnce (Mul (Const a) (Mul (Const b) c)) = (Const $ a * b) * c
-simplifyOnce (Mul (Mul (Const a) b) c) = Const a * (b * c)
+simplifyOnce (Mul (Mul a b) c) = a * (b * c)
 simplifyOnce (Mul a (Const b)) = Const b * a
 simplifyOnce (Mul a (Mul (Const b) c)) = Const b * (a * c)
 simplifyOnce (Pow _ 0) = Const 1
