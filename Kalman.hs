@@ -114,3 +114,6 @@ hk_tas = measurementUpdate [((vn - vwn) ^. 2 + (ve - vwe) ^. 2 + vd ^. 2) ^. 0.5
     where
     [vn, ve, vd] = map var vel
     [vwn, vwe] = map var vw
+
+hk_mag :: [([[Sym]], [[Sym]])]
+hk_mag = [ measurementUpdate [v] stateVector kalmanP [[var "R_MAG"]] | v <- zipWith (+) (map var magXYZ) $ matVecMult (transpose body2nav) $ map var magNED ]
