@@ -4,6 +4,7 @@ module SymDiff (
 ) where
 
 import Data.String
+import Data.Ratio
 
 infixr 8 ^.
 
@@ -30,7 +31,10 @@ instance Show Sym where
     show (Add a b) = "(" ++ show a ++ " + " ++ show b ++ ")"
     show (Mul a (Pow b (-1))) = "(" ++ show a ++ " / " ++ show b ++ ")"
     show (Mul a b) = "(" ++ show a ++ " * " ++ show b ++ ")"
-    show (Pow a b) = "(" ++ show a ++ " ^ " ++ show (fromRational b :: Double) ++ ")"
+    show (Pow a b) = case denominator b of
+        2 -> "sqrt(" ++ show (a ^. (fromIntegral $ numerator b)) ++ ")"
+        3 -> "cbrt(" ++ show (a ^. (fromIntegral $ numerator b)) ++ ")"
+        _ -> "(" ++ show a ++ " ^ " ++ show (fromRational b :: Double) ++ ")"
 
 var :: VarName -> Sym
 var = Var
@@ -78,7 +82,7 @@ simplifyOnce (Mul a (Const b)) = Const b * a
 simplifyOnce (Mul a (Mul (Const b) c)) = Const b * (a * c)
 simplifyOnce (Pow _ 0) = Const 1
 simplifyOnce (Pow x 1) = x
-simplifyOnce (Pow (Const a) b) | (b', 0) <- properFraction b = Const $ a ^^ b'
+simplifyOnce (Pow (Const a) b) | denominator b == 1 = Const $ a ^^ numerator b
 simplifyOnce (Pow (Pow x a) b) = x ^. (a * b)
 simplifyOnce e = e
 
