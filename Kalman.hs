@@ -116,6 +116,7 @@ deltaAngle = fmap var da - fmap var da_b
 -- acceptable for propagation of covariances
 qNew :: Quat (Sym VarName)
 qNew = quatMult quat $ Quat
+    -- XXX: every reference I've found says the scalar part should be 0 here
     ( 1
     -- XXX: why isn't dt in here somewhere?
     -- XXX: this can't generally produce a unit quaternion, can it?
