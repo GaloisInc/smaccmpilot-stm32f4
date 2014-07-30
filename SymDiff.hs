@@ -27,9 +27,9 @@ data Sym
 instance Show Sym where
     show (Const v) = show (fromRational v :: Double)
     show (Var n) = show n
-    show (Add a (Mul (Const (-1)) b)) = "(" ++ show a ++ " - " ++ show b ++ ")"
+    show (Add a (Mul (Const c) b)) | c < 0 = "(" ++ show a ++ " - " ++ show (Const (negate c) * b) ++ ")"
     show (Add a b) = "(" ++ show a ++ " + " ++ show b ++ ")"
-    show (Mul a (Pow b (-1))) = "(" ++ show a ++ " / " ++ show b ++ ")"
+    show (Mul a (Pow b c)) | c < 0 = "(" ++ show a ++ " / " ++ show (b ^. negate c) ++ ")"
     show (Mul a b) = "(" ++ show a ++ " * " ++ show b ++ ")"
     show (Pow a b) = case denominator b of
         2 -> "sqrt(" ++ show (a ^. (fromIntegral $ numerator b)) ++ ")"
