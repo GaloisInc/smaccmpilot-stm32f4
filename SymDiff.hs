@@ -45,6 +45,8 @@ instance Num Sym where
     a - b = a + (negate b)
     negate a = a * Const (-1)
     fromInteger = Const . fromInteger
+    abs = error "abs of a symbolic expression is not differentiable"
+    signum = error "signum of a symbolic expression is not differentiable"
 
 instance Fractional Sym where
     a / b = a * recip b
