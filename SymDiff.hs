@@ -1,21 +1,11 @@
 module SymDiff (
-    VarName(..), Sym, var, (^.),
+    Sym, var, (^.),
     diff, jacobian
 ) where
 
-import Data.String
 import Data.Ratio
 
 infixr 8 ^.
-
-newtype VarName = VarName String
-    deriving (Eq, Ord)
-
-instance Show VarName where
-    show (VarName s) = s
-
-instance IsString VarName where
-    fromString = VarName . fromString
 
 data Sym var
     = Const Rational

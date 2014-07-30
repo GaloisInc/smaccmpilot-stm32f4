@@ -6,6 +6,16 @@ import Quat
 import SymDiff
 
 import Data.List
+import Data.String
+
+newtype VarName = VarName String
+    deriving (Eq, Ord)
+
+instance Show VarName where
+    show (VarName s) = s
+
+instance IsString VarName where
+    fromString = VarName . fromString
 
 dt :: Sym VarName
 dt = var "dt" -- IMU time step - sec
