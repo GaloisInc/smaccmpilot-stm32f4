@@ -3,6 +3,9 @@ module Quat where
 newtype Quat a = Quat (a, a, a, a)
     deriving (Eq, Show)
 
+instance Functor Quat where
+    fmap f (Quat (a, b, c, d)) = Quat (f a, f b, f c, f d)
+
 quatFromList :: [a] -> Quat a
 quatFromList [a, b, c, d] = Quat (a, b, c, d)
 

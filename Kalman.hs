@@ -40,7 +40,7 @@ nStates :: Int
 nStates = length stateVector
 
 quat :: Quat (Sym VarName)
-quat = quatFromList $ map var quatVars
+quat = fmap var $ quatFromList quatVars
 
 body2nav :: [[Sym VarName]]
 body2nav = quatRotation quat
