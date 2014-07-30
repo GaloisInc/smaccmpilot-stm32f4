@@ -5,6 +5,7 @@ import Matrix
 import Quat
 import SymDiff
 
+import Data.Foldable
 import Data.List
 import Data.String
 
@@ -24,8 +25,10 @@ da, dv :: [VarName]
 da = ["dax", "day", "daz"] -- IMU delta angle measurements in body axes - rad
 dv = ["dvx", "dvy", "dvz"] -- IMU delta velocity measurements in body axes - m/sec
 
-quatVars, vel, vel_R, pos, pos_R, da_b, vw, magNED, magXYZ :: [VarName]
-quatVars = ["q0", "q1", "q2", "q3"] -- quaternions defining attitude of body axes relative to local NED
+quatVars :: Quat VarName
+quatVars = Quat ("q0", "q1", "q2", "q3") -- quaternions defining attitude of body axes relative to local NED
+
+vel, vel_R, pos, pos_R, da_b, vw, magNED, magXYZ :: [VarName]
 (vel, vel_R) = unzip [("vn", "R_VN"), ("ve", "R_VE"), ("vd", "R_VD")] -- NED velocity - m/sec
 (pos, pos_R) = unzip [("pn", "R_PN"), ("pe", "R_PE"), ("pd", "R_PD")] -- NED position - m
 da_b = ["dax_b", "day_b", "daz_b"] -- delta angle bias - rad
@@ -34,13 +37,13 @@ magNED = ["magN", "magE", "magD"] -- NED earth fixed magnetic field components -
 magXYZ = ["magX", "magY", "magZ"] -- XYZ body fixed magnetic field measurements - milligauss
 
 stateVector :: [VarName]
-stateVector = quatVars ++ vel ++ pos ++ da_b ++ vw ++ magNED ++ magXYZ
+stateVector = toList quatVars ++ vel ++ pos ++ da_b ++ vw ++ magNED ++ magXYZ
 
 nStates :: Int
 nStates = length stateVector
 
 quat :: Quat (Sym VarName)
-quat = fmap var $ quatFromList quatVars
+quat = fmap var quatVars
 
 body2nav :: [[Sym VarName]]
 body2nav = quatRotation quat
@@ -57,7 +60,7 @@ deltaAngle = zipWith (-) (map var da) (map var da_b)
 -- use a first order expansion of rotation to calculate the quaternion increment
 -- acceptable for propagation of covariances
 qNew :: [Sym VarName]
-qNew = quatToList $ quatMult quat $ Quat
+qNew = toList $ quatMult quat $ Quat
     ( 1
     -- XXX: why isn't dt in here somewhere?
     -- XXX: this can't generally produce a unit quaternion, can it?

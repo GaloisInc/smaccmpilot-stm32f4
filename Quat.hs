@@ -1,16 +1,16 @@
 module Quat where
 
+import Data.Foldable
+import Data.Monoid
+
 newtype Quat a = Quat (a, a, a, a)
     deriving (Eq, Show)
 
 instance Functor Quat where
     fmap f (Quat (a, b, c, d)) = Quat (f a, f b, f c, f d)
 
-quatFromList :: [a] -> Quat a
-quatFromList [a, b, c, d] = Quat (a, b, c, d)
-
-quatToList :: Quat a -> [a]
-quatToList (Quat (a, b, c, d)) = [a, b, c, d]
+instance Foldable Quat where
+    foldMap f (Quat (a, b, c, d)) = mconcat [f a, f b, f c, f d]
 
 quatMult :: Num a => Quat a -> Quat a -> Quat a
 quatMult (Quat (a1, b1, c1, d1)) (Quat (a2, b2, c2, d2)) = Quat (
