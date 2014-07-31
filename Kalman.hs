@@ -127,7 +127,7 @@ qNew = quatMult quat $ Quat
 
 -- XXX: because `g` is constant, it disappears from the Jacobian. so why is it here?
 g :: NED (Sym VarName)
-g = fmap var $ NED "gn" "ge" "gd" -- NED gravity vector - m/sec^2
+g = NED 0 0 9.80665 -- NED gravity vector - m/sec^2
 
 -- define the velocity update equations
 -- ignore coriolis terms for linearisation purposes
