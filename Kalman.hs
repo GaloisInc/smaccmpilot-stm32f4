@@ -136,7 +136,7 @@ vNew :: NED (Sym VarName)
 vNew = fmap var vel + body2nav (fmap var dv) + fmap (* dt) g
 
 pNew :: NED (Sym VarName)
-pNew = fmap var pos + fmap ((* dt) . var) vel
+pNew = fmap var pos + fmap (* dt) (fmap var vel + fmap (/ 2) (body2nav (fmap var dv)))
 
 processEqns :: [Sym VarName]
 processEqns = toList qNew ++ toList vNew ++ toList pNew ++ map var (toList da_b ++ vw ++ toList magNED ++ toList magXYZ)
