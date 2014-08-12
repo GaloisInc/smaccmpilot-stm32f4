@@ -12,6 +12,7 @@ data Sym var
     | Mul (Sym var) (Sym var)
     | Pow (Sym var) (Sym var)
     | Ln (Sym var)
+    | Exp (Sym var)
 
 instance Show var => Show (Sym var) where
     show (Const v) = show (fromRational v :: Double)
@@ -28,6 +29,7 @@ instance Show var => Show (Sym var) where
         _ -> generic
         where generic = "(" ++ show a ++ " ^ " ++ show b ++ ")"
     show (Ln a) = "ln " ++ show a
+    show (Exp a) = "e ^ " ++ show a
 
 var :: var -> Sym var
 var = Var
@@ -49,6 +51,7 @@ instance Fractional (Sym var) where
 instance Floating (Sym var) where
     pi = error "Pi isn't symbolic. It's real."
     sqrt x = x ** 0.5
+    exp = simplifyOnce . Exp
     log = simplifyOnce . Ln
     a ** b = simplifyOnce $ Pow a b
 
@@ -59,6 +62,7 @@ descend f (Add a b) = Add (f a) (f b)
 descend f (Mul a b) = Mul (f a) (f b)
 descend f (Pow a b) = Pow (f a) (f b)
 descend f (Ln a) = Ln (f a)
+descend f (Exp a) = Exp (f a)
 
 simplify :: Sym var -> Sym var
 simplify = simplifyOnce . descend simplify
@@ -83,6 +87,12 @@ simplifyOnce (Pow (Const 1) _) = Const 1
 simplifyOnce (Pow x (Const 1)) = x
 simplifyOnce (Pow (Const a) (Const b)) | denominator b == 1 = Const $ a ^^ numerator b
 simplifyOnce (Pow (Pow x a) b) = x ** (a * b)
+simplifyOnce (Pow (Exp a) b) = exp (a * b)
+simplifyOnce (Ln (Exp x)) = x
+simplifyOnce (Exp (Ln x)) = x
+simplifyOnce (Exp (Add a b)) = exp a * exp b
+simplifyOnce (Ln (Mul a b)) = log a + log b
+simplifyOnce (Ln (Pow a b)) = b * log a
 simplifyOnce e = e
 
 diff :: Eq var => var -> Sym var -> Sym var
@@ -93,6 +103,7 @@ diff wrt (Mul a b) = diff wrt a * b + a * diff wrt b
 diff wrt (Pow a (Const b)) = (a ** Const (b - 1)) * diff wrt a * Const b -- simplify the most common power-rule case
 diff wrt (Pow a b) = Pow a b * (diff wrt a * b / a + diff wrt b * log a)
 diff wrt (Ln a) = recip a
+diff wrt (Exp a) = Exp a
 
 jacobian :: Eq var => [Sym var] -> [var] -> [[Sym var]]
 jacobian fns vars = [ [ diff var fn | var <- vars ] | fn <- fns ]
