@@ -13,6 +13,11 @@ data Sym var
     | Pow (Sym var) (Sym var)
     | Ln (Sym var)
     | Exp (Sym var)
+    | Sin (Sym var)
+    | Cos (Sym var)
+    | ArcSin (Sym var)
+    | ArcCos (Sym var)
+    | ArcTan (Sym var)
 
 instance Show var => Show (Sym var) where
     show (Const v) = show (fromRational v :: Double)
@@ -30,6 +35,11 @@ instance Show var => Show (Sym var) where
         where generic = "(" ++ show a ++ " ^ " ++ show b ++ ")"
     show (Ln a) = "ln " ++ show a
     show (Exp a) = "e ^ " ++ show a
+    show (Sin a) = "sin " ++ show a
+    show (Cos a) = "cos " ++ show a
+    show (ArcSin a) = "asin " ++ show a
+    show (ArcCos a) = "acos " ++ show a
+    show (ArcTan a) = "atan " ++ show a
 
 var :: var -> Sym var
 var = Var
@@ -54,6 +64,11 @@ instance Floating (Sym var) where
     exp = simplifyOnce . Exp
     log = simplifyOnce . Ln
     a ** b = simplifyOnce $ Pow a b
+    sin = simplifyOnce . Sin
+    cos = simplifyOnce . Cos
+    asin = simplifyOnce . ArcSin
+    acos = simplifyOnce . ArcCos
+    atan = simplifyOnce . ArcTan
 
 descend :: (Sym var -> Sym var) -> Sym var -> Sym var
 descend _ (Const x) = Const x
@@ -63,6 +78,11 @@ descend f (Mul a b) = Mul (f a) (f b)
 descend f (Pow a b) = Pow (f a) (f b)
 descend f (Ln a) = Ln (f a)
 descend f (Exp a) = Exp (f a)
+descend f (Sin a) = Sin (f a)
+descend f (Cos a) = Cos (f a)
+descend f (ArcSin a) = ArcSin (f a)
+descend f (ArcCos a) = ArcCos (f a)
+descend f (ArcTan a) = ArcTan (f a)
 
 simplify :: Sym var -> Sym var
 simplify = simplifyOnce . descend simplify
@@ -93,6 +113,10 @@ simplifyOnce (Exp (Ln x)) = x
 simplifyOnce (Exp (Add a b)) = exp a * exp b
 simplifyOnce (Ln (Mul a b)) = log a + log b
 simplifyOnce (Ln (Pow a b)) = b * log a
+simplifyOnce (ArcSin (Sin x)) = x
+simplifyOnce (Sin (ArcSin x)) = x
+simplifyOnce (ArcCos (Cos x)) = x
+simplifyOnce (Cos (ArcCos x)) = x
 simplifyOnce e = e
 
 diff :: Eq var => var -> Sym var -> Sym var
@@ -104,6 +128,11 @@ diff wrt (Pow a (Const b)) = (a ** Const (b - 1)) * diff wrt a * Const b -- simp
 diff wrt (Pow a b) = Pow a b * (diff wrt a * b / a + diff wrt b * log a)
 diff wrt (Ln a) = recip a
 diff wrt (Exp a) = Exp a
+diff wrt (Sin a) = cos a * diff wrt a
+diff wrt (Cos a) = negate (sin a) * diff wrt a
+diff wrt (ArcSin a) = recip (sqrt (1 - a ** 2)) * diff wrt a
+diff wrt (ArcCos a) = negate (recip (sqrt (1 - a ** 2))) * diff wrt a
+diff wrt (ArcTan a) = recip (a ** 2 + 1) * diff wrt a
 
 jacobian :: Eq var => [Sym var] -> [var] -> [[Sym var]]
 jacobian fns vars = [ [ diff var fn | var <- vars ] | fn <- fns ]
