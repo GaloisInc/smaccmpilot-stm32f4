@@ -116,14 +116,15 @@ deltaAngle = fmap var da - fmap var da_b
 -- acceptable for propagation of covariances
 qNew :: Quat (Sym VarName)
 qNew = quatMult quat $ Quat
-    -- XXX: every reference I've found says the scalar part should be 0 here
-    ( 1
+    ( cos (rotationMag / 2)
     -- XXX: why isn't dt in here somewhere?
-    -- XXX: this can't generally produce a unit quaternion, can it?
-    , 0.5 * x deltaAngle
-    , 0.5 * y deltaAngle
-    , 0.5 * z deltaAngle
+    , x deltaAngle * rotScalar
+    , y deltaAngle * rotScalar
+    , z deltaAngle * rotScalar
     )
+    where
+    rotationMag = sqrt (x deltaAngle ** 2 + y deltaAngle ** 2 + z deltaAngle ** 2)
+    rotScalar = sin (rotationMag / 2) / rotationMag
 
 -- XXX: because `g` is constant, it disappears from the Jacobian. so why is it here?
 g :: NED (Sym VarName)
