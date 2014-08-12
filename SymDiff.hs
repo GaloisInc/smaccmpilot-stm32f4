@@ -1,5 +1,5 @@
 module SymDiff (
-    Sym, var, (^.),
+    Sym, var, (^.), lnSym,
     diff, jacobian
 ) where
 
@@ -12,19 +12,24 @@ data Sym var
     | Var var
     | Add (Sym var) (Sym var)
     | Mul (Sym var) (Sym var)
-    | Pow (Sym var) Rational
+    | Pow (Sym var) (Sym var)
+    | Ln (Sym var)
 
 instance Show var => Show (Sym var) where
     show (Const v) = show (fromRational v :: Double)
     show (Var n) = show n
     show (Add a (Mul (Const c) b)) | c < 0 = "(" ++ show a ++ " - " ++ show (Const (negate c) * b) ++ ")"
     show (Add a b) = "(" ++ show a ++ " + " ++ show b ++ ")"
-    show (Mul a (Pow b c)) | c < 0 = "(" ++ show a ++ " / " ++ show (b ^. negate c) ++ ")"
+    show (Mul a (Pow b (Const c))) | c < 0 = "(" ++ show a ++ " / " ++ show (b ^. Const (negate c)) ++ ")"
     show (Mul a b) = "(" ++ show a ++ " * " ++ show b ++ ")"
-    show (Pow a b) = case denominator b of
-        2 -> "sqrt(" ++ show (a ^. (fromIntegral $ numerator b)) ++ ")"
-        3 -> "cbrt(" ++ show (a ^. (fromIntegral $ numerator b)) ++ ")"
-        _ -> "(" ++ show a ++ " ^ " ++ show (fromRational b :: Double) ++ ")"
+    show (Pow a b) = case b of
+        Const c -> case denominator c of
+            2 -> "sqrt(" ++ show (a ^. (fromIntegral $ numerator c)) ++ ")"
+            3 -> "cbrt(" ++ show (a ^. (fromIntegral $ numerator c)) ++ ")"
+            _ -> generic
+        _ -> generic
+        where generic = "(" ++ show a ++ " ^ " ++ show b ++ ")"
+    show (Ln a) = "ln " ++ show a
 
 var :: var -> Sym var
 var = Var
@@ -40,18 +45,22 @@ instance Num (Sym var) where
 
 instance Fractional (Sym var) where
     a / b = a * recip b
-    recip a = a ^. (-1)
+    recip a = a ^. Const (-1)
     fromRational = Const
 
-(^.) :: Sym var -> Rational -> Sym var
+(^.) :: Sym var -> Sym var -> Sym var
 a ^. b = simplifyOnce $ Pow a b
+
+lnSym :: Sym var -> Sym var
+lnSym = simplifyOnce . Ln
 
 descend :: (Sym var -> Sym var) -> Sym var -> Sym var
 descend _ (Const x) = Const x
 descend _ (Var v) = Var v
 descend f (Add a b) = Add (f a) (f b)
 descend f (Mul a b) = Mul (f a) (f b)
-descend f (Pow a b) = Pow (f a) b
+descend f (Pow a b) = Pow (f a) (f b)
+descend f (Ln a) = Ln (f a)
 
 simplify :: Sym var -> Sym var
 simplify = simplifyOnce . descend simplify
@@ -70,9 +79,11 @@ simplifyOnce (Mul (Const a) (Mul (Const b) c)) = (Const $ a * b) * c
 simplifyOnce (Mul (Mul a b) c) = a * (b * c)
 simplifyOnce (Mul a (Const b)) = Const b * a
 simplifyOnce (Mul a (Mul (Const b) c)) = Const b * (a * c)
-simplifyOnce (Pow _ 0) = Const 1
-simplifyOnce (Pow x 1) = x
-simplifyOnce (Pow (Const a) b) | denominator b == 1 = Const $ a ^^ numerator b
+simplifyOnce (Pow (Const 0) _) = Const 0
+simplifyOnce (Pow _ (Const 0)) = Const 1
+simplifyOnce (Pow (Const 1) _) = Const 1
+simplifyOnce (Pow x (Const 1)) = x
+simplifyOnce (Pow (Const a) (Const b)) | denominator b == 1 = Const $ a ^^ numerator b
 simplifyOnce (Pow (Pow x a) b) = x ^. (a * b)
 simplifyOnce e = e
 
@@ -81,7 +92,9 @@ diff _ (Const _) = 0
 diff wrt (Var v) = if v == wrt then 1 else 0
 diff wrt (Add a b) = diff wrt a + diff wrt b
 diff wrt (Mul a b) = diff wrt a * b + a * diff wrt b
-diff wrt (Pow a b) = (a ^. (b - 1)) * diff wrt a * Const b
+diff wrt (Pow a (Const b)) = (a ^. Const (b - 1)) * diff wrt a * Const b -- simplify the most common power-rule case
+diff wrt (Pow a b) = Pow a b * (diff wrt a * b / a + diff wrt b * Ln a)
+diff wrt (Ln a) = recip a
 
 jacobian :: Eq var => [Sym var] -> [var] -> [[Sym var]]
 jacobian fns vars = [ [ diff var fn | var <- vars ] | fn <- fns ]
