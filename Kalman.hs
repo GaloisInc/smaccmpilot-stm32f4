@@ -179,7 +179,7 @@ hk_pos :: [([[Sym VarName]], [[Sym VarName]])]
 hk_pos = [ measurementUpdate [var v] stateVector kalmanP [[var r]] | (v, r) <- zip (toList pos) (toList pos_R) ]
 
 hk_tas :: ([[Sym VarName]], [[Sym VarName]])
-hk_tas = measurementUpdate [((var (north vel) - vwn) ^. 2 + (var (east vel) - vwe) ^. 2 + var (down vel) ^. 2) ^. 0.5] stateVector kalmanP [[var "R_TAS"]]
+hk_tas = measurementUpdate [sqrt ((var (north vel) - vwn) ** 2 + (var (east vel) - vwe) ** 2 + var (down vel) ** 2)] stateVector kalmanP [[var "R_TAS"]]
     where
     [vwn, vwe] = map var vw
 
