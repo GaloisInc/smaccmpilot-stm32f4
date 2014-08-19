@@ -34,6 +34,10 @@ library
                        Ivory.BSP.STM32.Peripheral.ATIM18.RegTypes,
                        Ivory.BSP.STM32.Peripheral.ATIM18.Peripheral,
 
+                       Ivory.BSP.STM32.Peripheral.CAN,
+                       Ivory.BSP.STM32.Peripheral.CAN.Peripheral,
+                       Ivory.BSP.STM32.Peripheral.CAN.Regs,
+
                        Ivory.BSP.STM32.Peripheral.Flash,
                        Ivory.BSP.STM32.Peripheral.Flash.Regs,
 
