@@ -21,6 +21,13 @@ import Ivory.BSP.STM32.PlatformClock
 import Ivory.HW
 import Ivory.Language
 
+data CANTXRegs = CANTXRegs
+  { canRegTIR      :: BitDataReg CAN_TIR
+  , canRegTDTR     :: BitDataReg CAN_TDTR
+  , canRegTDLR     :: BitDataReg CAN_TDLR
+  , canRegTDHR     :: BitDataReg CAN_TDHR
+  }
+
 data CANPeriph i = CANPeriph
   { canRegMCR      :: BitDataReg CAN_MCR
   , canRegMSR      :: BitDataReg CAN_MSR
@@ -30,18 +37,7 @@ data CANPeriph i = CANPeriph
   , canRegIER      :: BitDataReg CAN_IER
   , canRegESR      :: BitDataReg CAN_ESR
   , canRegBTR      :: BitDataReg CAN_BTR
-  , canRegTI0R     :: BitDataReg CAN_TIR
-  , canRegTDT0R    :: BitDataReg CAN_TDTR
-  , canRegTDL0R    :: BitDataReg CAN_TDLR
-  , canRegTDH0R    :: BitDataReg CAN_TDHR
-  , canRegTI1R     :: BitDataReg CAN_TIR
-  , canRegTDT1R    :: BitDataReg CAN_TDTR
-  , canRegTDL1R    :: BitDataReg CAN_TDLR
-  , canRegTDH1R    :: BitDataReg CAN_TDHR
-  , canRegTI2R     :: BitDataReg CAN_TIR
-  , canRegTDT2R    :: BitDataReg CAN_TDTR
-  , canRegTDL2R    :: BitDataReg CAN_TDLR
-  , canRegTDH2R    :: BitDataReg CAN_TDHR
+  , canRegTX       :: [CANTXRegs]
   , canRegRI0R     :: BitDataReg CAN_RIR
   , canRegRDT0R    :: BitDataReg CAN_RDTR
   , canRegRDL0R    :: BitDataReg CAN_RDLR
@@ -70,42 +66,47 @@ mkCANPeriph :: Integer -- Base
             -> CANPeriph i
 mkCANPeriph base rccen rccdis txint rx0int rx1int sceint n =
   CANPeriph
-    { canRegMCR     = reg 0x000 "mcr"
-    , canRegMSR     = reg 0x004 "msr"
-    , canRegTSR     = reg 0x008 "tsr"
-    , canRegRF0R    = reg 0x00C "rf0r"
-    , canRegRF1R    = reg 0x010 "rf1r"
-    , canRegIER     = reg 0x014 "ier"
-    , canRegESR     = reg 0x018 "esr"
-    , canRegBTR     = reg 0x01C "btr"
+    { canRegMCR      = reg 0x000 "mcr"
+    , canRegMSR      = reg 0x004 "msr"
+    , canRegTSR      = reg 0x008 "tsr"
+    , canRegRF0R     = reg 0x00C "rf0r"
+    , canRegRF1R     = reg 0x010 "rf1r"
+    , canRegIER      = reg 0x014 "ier"
+    , canRegESR      = reg 0x018 "esr"
+    , canRegBTR      = reg 0x01C "btr"
     -- 0x020-0x17F reserved
-    , canRegTI0R    = reg 0x180 "ti0r"
-    , canRegTDT0R   = reg 0x184 "tdt0r"
-    , canRegTDL0R   = reg 0x188 "tdl0r"
-    , canRegTDH0R   = reg 0x18C "tdh0r"
-    , canRegTI1R    = reg 0x190 "ti1r"
-    , canRegTDT1R   = reg 0x194 "tdt1r"
-    , canRegTDL1R   = reg 0x198 "tdl1r"
-    , canRegTDH1R   = reg 0x19C "tdh1r"
-    , canRegTI2R    = reg 0x1A0 "ti2r"
-    , canRegTDT2R   = reg 0x1A4 "tdt2r"
-    , canRegTDL2R   = reg 0x1A8 "tdl2r"
-    , canRegTDH2R   = reg 0x1AC "tdh2r"
-    , canRegRI0R    = reg 0x1B0 "ri0r"
-    , canRegRDT0R   = reg 0x1B4 "rdt0r"
-    , canRegRDL0R   = reg 0x1B8 "rdl0r"
-    , canRegRDH0R   = reg 0x1BC "rdh0r"
-    , canRegRI1R    = reg 0x1C0 "ri1r"
-    , canRegRDT1R   = reg 0x1C4 "rdt1r"
-    , canRegRDL1R   = reg 0x1C8 "rdl1r"
-    , canRegRDH1R   = reg 0x1CC "rdh1r"
-    , canRCCEnable  = rccen
-    , canRCCDisable = rccdis
-    , canIntTX      = txint
-    , canIntRX0     = rx0int
-    , canIntRX1     = rx1int
-    , canIntSCE     = sceint
-    , canName       = n
+    , canRegTX       =
+      [ CANTXRegs
+        { canRegTIR  = reg 0x180 "ti0r"
+        , canRegTDTR = reg 0x184 "tdt0r"
+        , canRegTDLR = reg 0x188 "tdl0r"
+        , canRegTDHR = reg 0x18C "tdh0r" }
+      , CANTXRegs
+        { canRegTIR  = reg 0x190 "ti1r"
+        , canRegTDTR = reg 0x194 "tdt1r"
+        , canRegTDLR = reg 0x198 "tdl1r"
+        , canRegTDHR = reg 0x19C "tdh1r" }
+      , CANTXRegs
+        { canRegTIR  = reg 0x1A0 "ti2r"
+        , canRegTDTR = reg 0x1A4 "tdt2r"
+        , canRegTDLR = reg 0x1A8 "tdl2r"
+        , canRegTDHR = reg 0x1AC "tdh2r" }
+      ]
+    , canRegRI0R     = reg 0x1B0 "ri0r"
+    , canRegRDT0R    = reg 0x1B4 "rdt0r"
+    , canRegRDL0R    = reg 0x1B8 "rdl0r"
+    , canRegRDH0R    = reg 0x1BC "rdh0r"
+    , canRegRI1R     = reg 0x1C0 "ri1r"
+    , canRegRDT1R    = reg 0x1C4 "rdt1r"
+    , canRegRDL1R    = reg 0x1C8 "rdl1r"
+    , canRegRDH1R    = reg 0x1CC "rdh1r"
+    , canRCCEnable   = rccen
+    , canRCCDisable  = rccdis
+    , canIntTX       = txint
+    , canIntRX0      = rx0int
+    , canIntRX1      = rx1int
+    , canIntSCE      = sceint
+    , canName        = n
     }
   where
   reg :: (IvoryIOReg (BitDataRep d)) => Integer -> String -> BitDataReg d
