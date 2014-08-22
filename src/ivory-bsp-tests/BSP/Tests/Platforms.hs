@@ -10,6 +10,7 @@ import Ivory.Language
 import Ivory.Tower
 import Ivory.Tower.Frontend
 
+import qualified Ivory.BSP.STM32F405.CAN         as F405
 import qualified Ivory.BSP.STM32F405.UART        as F405
 import qualified Ivory.BSP.STM32F405.GPIO        as F405
 import qualified Ivory.BSP.STM32F405.SPI         as F405
@@ -18,6 +19,7 @@ import           Ivory.BSP.STM32F405.Init
 import           Ivory.BSP.STM32F405.ClockConfig
 import qualified Ivory.BSP.STM32F405.Interrupt   as F405
 
+import Ivory.BSP.STM32.Peripheral.CAN
 import Ivory.BSP.STM32.Peripheral.GPIOF4
 import Ivory.BSP.STM32.Peripheral.UART
 import Ivory.BSP.STM32.Peripheral.SPI hiding (ActiveHigh, ActiveLow)
@@ -45,6 +47,9 @@ class (STM32Signal p) => TestI2C p where
   testSDA :: Proxy p -> GPIOPin
   testSCL :: Proxy p -> GPIOPin
 
+class (STM32Signal p) => TestCAN p where
+  testCAN :: Proxy p -> CANPeriph (InterruptType p)
+
 ---------- PX4FMUv17 ----------------------------------------------------------
 data PX4FMUv17 = PX4FMUv17
 
@@ -71,6 +76,9 @@ instance TestI2C PX4FMUv17 where
   testSDA _ = F405.pinB6
   testSCL _ = F405.pinB7
 
+instance TestCAN PX4FMUv17 where
+  testCAN _ = F405.can1
+
 ---------- PX4FMUv24 ----------------------------------------------------------
 data PX4FMUv24 = PX4FMUv24
 
@@ -96,6 +104,9 @@ instance TestI2C PX4FMUv24 where
   testI2C _ = F405.i2c1 -- XXX FIXME
   testSDA _ = F405.pinB6
   testSCL _ = F405.pinB7
+
+instance TestCAN PX4FMUv24 where
+  testCAN _ = F405.can1
 
 
 ---------- F4Discovery --------------------------------------------------------
@@ -124,6 +135,9 @@ instance TestI2C F4Discovery where
   testSDA _ = F405.pinB6
   testSCL _ = F405.pinB7
 
+instance TestCAN F4Discovery where
+  testCAN _ = F405.can1
+
 ---------- Open407VC ----------------------------------------------------------
 data Open407VC = Open407VC
 
@@ -150,6 +164,9 @@ instance TestI2C Open407VC where
   testSDA _ = F405.pinB6
   testSCL _ = F405.pinB7
 
+instance TestCAN Open407VC where
+  testCAN _ = F405.can1
+
 --------- Platform lookup by name ---------------------------------------------
 
 testPlatforms :: (forall p
@@ -159,7 +176,8 @@ testPlatforms :: (forall p
                     , BoardInitializer p
                     , TestUART p
                     , TestSPI p
-                    , TestI2C p)
+                    , TestI2C p
+                    , TestCAN p)
                     => Tower p ()) -> [(String, Twr)]
 testPlatforms app =
     [("px4fmu17_bare",     Twr (app :: Tower PX4FMUv17 ()))
