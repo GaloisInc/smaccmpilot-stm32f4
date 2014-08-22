@@ -109,6 +109,8 @@ canPeripheralDriver periph bitrate req_sink _res_source pendingRequests = do
       enqueued' <- deref enqueued
       unless enqueued' $ emit_ pendRequest req
 
+  taskModuleDef $ incl sendRequest
+
   tx_irq <- withUnsafeSignalEvent
                 (stm32Interrupt $ canIntTX periph)
                 "tx_interrupt"
