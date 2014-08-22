@@ -81,7 +81,7 @@ canPeripheralDriver periph bitrate req_sink _res_source pendingRequests = do
       hi_bytes <- mapM (\idx-> fmap fromRep $ deref ((req ~> tx_buf) ! idx)) [4, 5, 6, 7]
 
       tsr <- getReg (canRegTSR periph)
-      let mailbox_code = tsr #. can_tsr_code
+      mailbox_code <- assign $ tsr #. can_tsr_code
       assert (toRep mailbox_code <? 3)
 
       enqueued <- local izero
