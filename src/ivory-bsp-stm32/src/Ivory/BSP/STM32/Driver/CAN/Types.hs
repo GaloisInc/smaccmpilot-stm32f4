@@ -14,7 +14,7 @@ struct can_transmit_request
   ; tx_ide    :: Stored IBool
   ; tx_rtr    :: Stored IBool
   ; tx_buf    :: Array 8 (Stored Uint8)
-  ; tx_len    :: Stored (Ix 8)
+  ; tx_len    :: Stored (Ix 9)
   }
 
 struct can_receive_result
@@ -22,7 +22,7 @@ struct can_receive_result
   ; rx_ide    :: Stored IBool
   ; rx_rtr    :: Stored IBool
   ; rx_buf    :: Array 8 (Stored Uint8)
-  ; rx_len    :: Stored (Ix 8)
+  ; rx_len    :: Stored (Ix 9)
   ; rx_fmi    :: Stored Uint8
   ; rx_time   :: Stored Uint16
   }
