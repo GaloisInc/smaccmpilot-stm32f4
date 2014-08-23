@@ -168,7 +168,9 @@ canInit :: (STM32Interrupt i, PlatformClock p, GetAlloc eff ~ Scope cs, Break ~ 
 canInit periph bitrate platform = do
   canRCCEnable periph
 
-  modifyReg (canRegMCR periph) $ setBit can_mcr_inrq
+  modifyReg (canRegMCR periph) $ do
+    setBit can_mcr_inrq
+    clearBit can_mcr_sleep
   loopUntil $ do
     msr <- getReg (canRegMSR periph)
     return $ getBitDataField can_msr_inak msr /=? fromRep 0
@@ -186,9 +188,7 @@ canInit periph bitrate platform = do
     setField can_btr_ts1 $ fromRep $ fromInteger $ bit_timing_time_segment_1 best - 1
     setField can_btr_brp $ fromRep $ fromInteger $ bit_timing_baud_rate_prescaler best - 1
 
-  modifyReg (canRegMCR periph) $ do
-    clearBit can_mcr_inrq
-    clearBit can_mcr_sleep
+  modifyReg (canRegMCR periph) $ clearBit can_mcr_inrq
   loopUntil $ do
     msr <- getReg (canRegMSR periph)
     return $ getBitDataField can_msr_inak msr ==? fromRep 0 .&& getBitDataField can_msr_slak msr ==? fromRep 0
