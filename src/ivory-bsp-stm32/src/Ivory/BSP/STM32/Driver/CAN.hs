@@ -8,7 +8,7 @@ module Ivory.BSP.STM32.Driver.CAN
   , module Ivory.BSP.STM32.Driver.CAN.Types
   ) where
 
-import Control.Monad (zipWithM_)
+import Control.Monad (zipWithM_, forM_)
 import Ivory.Language
 import Ivory.Stdlib
 import Ivory.Tower
@@ -61,6 +61,7 @@ canPeripheralDriver periph bitrate req_sink _res_source pendingRequests = do
 
   taskInit $ do
     canInit periph bitrate (Proxy :: Proxy p)
+    modifyReg (canRegIER periph) $ setBit can_ier_tmeie
     interrupt_set_to_syscall_priority $ canIntTX periph
     interrupt_set_to_syscall_priority $ canIntRX0 periph
     interrupt_set_to_syscall_priority $ canIntRX1 periph
@@ -117,9 +118,19 @@ canPeripheralDriver periph bitrate req_sink _res_source pendingRequests = do
                 (interrupt_disable $ canIntTX periph)
 
   handle tx_irq "tx_irq" $ \_ -> do
+    tsr <- getReg $ canRegTSR periph
     next <- local izero
-    sendMore <- receive nextRequest next
-    when sendMore $ call_ sendRequest $ constRef next
+    -- Refill all mailboxes that have finished transmitting.
+    forM_ [can_tsr_rqcp0, can_tsr_rqcp1, can_tsr_rqcp2] $ \ rqcp_field ->
+      when (bitToBool $ tsr #. rqcp_field) $ do
+        -- Acknowledge completion by writing a 1 to the completion
+        -- field. Note that the other fields are either read-only or
+        -- only do something if you write a 1 to them. So we don't need
+        -- a read-modify-write cycle, and in fact using modifyReg could
+        -- be harmful.
+        setReg (canRegTSR periph) $ setBit rqcp_field
+        sendMore <- receive nextRequest next
+        when sendMore $ call_ sendRequest $ constRef next
     interrupt_enable $ canIntTX periph
 
   handle requestEvent "request" $ call_ sendRequest
