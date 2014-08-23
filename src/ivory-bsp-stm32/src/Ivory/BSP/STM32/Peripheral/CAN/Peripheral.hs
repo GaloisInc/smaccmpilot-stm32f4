@@ -189,6 +189,3 @@ canInit periph bitrate platform = do
     setField can_btr_brp $ fromRep $ fromInteger $ bit_timing_baud_rate_prescaler best - 1
 
   modifyReg (canRegMCR periph) $ clearBit can_mcr_inrq
-  loopUntil $ do
-    msr <- getReg (canRegMSR periph)
-    return $ getBitDataField can_msr_inak msr ==? fromRep 0 .&& getBitDataField can_msr_slak msr ==? fromRep 0
