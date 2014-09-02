@@ -12,11 +12,12 @@
 
 module Ivory.BSP.STM32.Peripheral.CAN.Peripheral where
 
-import Control.Monad (when)
+import Control.Monad (when, forM_)
 import Data.Ratio
 import Ivory.BSP.STM32.ClockConfig
 import Ivory.BSP.STM32.Interrupt
 import Ivory.BSP.STM32.Peripheral.CAN.Regs
+import Ivory.BSP.STM32.Peripheral.GPIOF4
 import Ivory.BSP.STM32.PlatformClock
 import Ivory.HW
 import Ivory.Language
@@ -164,9 +165,15 @@ legalTimings pclk bitrate =
   ]
 
 canInit :: (STM32Interrupt i, PlatformClock p, GetAlloc eff ~ Scope cs, Break ~ GetBreaks (AllowBreak eff))
-        => CANPeriph i -> Integer -> Proxy p -> Ivory eff ()
-canInit periph bitrate platform = do
+        => CANPeriph i -> Integer -> GPIOPin -> GPIOPin -> Proxy p -> Ivory eff ()
+canInit periph bitrate rxpin txpin platform = do
   canRCCEnable periph
+  forM_ [rxpin, txpin] $ \ p -> do
+    pinEnable        p
+    pinSetOutputType p gpio_outputtype_pushpull
+    pinSetPUPD       p gpio_pupd_none
+    pinSetAF         p gpio_af9 -- All CAN peripherals connect to af9
+    pinSetMode       p gpio_mode_af
 
   modifyReg (canRegMCR periph) $ do
     setBit can_mcr_inrq

@@ -20,7 +20,7 @@ app :: forall p
 app = do
   boardInitializer
 
-  (req, res) <- canTower (testCAN platform) 500000
+  (req, res) <- canTower (testCAN platform) 500000 (testCANRX platform) (testCANTX platform)
 
   task "simplecontroller" $ do
     req_emitter <- withChannelEmitter req "req"

@@ -22,6 +22,7 @@ import Ivory.BSP.STM32.Signalable
 import Ivory.BSP.STM32.PlatformClock
 
 import Ivory.BSP.STM32.Peripheral.CAN
+import Ivory.BSP.STM32.Peripheral.GPIOF4
 
 import Ivory.BSP.STM32.Driver.CAN.Types
 
@@ -29,16 +30,18 @@ import Ivory.BSP.STM32.Driver.CAN.Types
 canTower :: (PlatformClock p, STM32Signal p)
          => CANPeriph (InterruptType p)
          -> Integer
+         -> GPIOPin
+         -> GPIOPin
          -> Tower p ( ChannelSource (Struct "can_transmit_request")
                     , ChannelSink   (Struct "can_receive_result"))
-canTower periph bitrate = do
+canTower periph bitrate rxpin txpin = do
   towerDepends canDriverTypes
   towerModule  canDriverTypes
   pendingRequests <- channel' (Proxy :: Proxy 2) Nothing
   reqchan <- channel' (Proxy :: Proxy 2) Nothing
   reschan <- channel' (Proxy :: Proxy 16) Nothing
   task (canName periph ++ "PeripheralDriver") $
-    canPeripheralDriver periph bitrate (snk reqchan) (src reschan) pendingRequests
+    canPeripheralDriver periph bitrate rxpin txpin (snk reqchan) (src reschan) pendingRequests
   return (src reqchan, snk reschan)
 
 
@@ -46,11 +49,13 @@ canPeripheralDriver :: forall p
                      . (STM32Signal p, PlatformClock p)
                     => CANPeriph (InterruptType p)
                     -> Integer
+                    -> GPIOPin
+                    -> GPIOPin
                     -> ChannelSink   (Struct "can_transmit_request")
                     -> ChannelSource (Struct "can_receive_result")
                     -> (ChannelSource (Struct "can_transmit_request"), ChannelSink (Struct "can_transmit_request"))
                     -> Task p ()
-canPeripheralDriver periph bitrate req_sink _res_source pendingRequests = do
+canPeripheralDriver periph bitrate rxpin txpin req_sink _res_source pendingRequests = do
   taskModuleDef $ hw_moduledef
 
   nextRequest <- withChannelReceiver (snk pendingRequests) "pend_sink"
@@ -60,7 +65,7 @@ canPeripheralDriver periph bitrate req_sink _res_source pendingRequests = do
   -- resultEmitter <- withChannelEmitter res_source "res_source"
 
   taskInit $ do
-    canInit periph bitrate (Proxy :: Proxy p)
+    canInit periph bitrate rxpin txpin (Proxy :: Proxy p)
     modifyReg (canRegIER periph) $ setBit can_ier_tmeie
     interrupt_set_to_syscall_priority $ canIntTX periph
     interrupt_set_to_syscall_priority $ canIntRX0 periph
