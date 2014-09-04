@@ -1,6 +1,7 @@
 module Ivory.BSP.STM32F405.CAN
   ( can1
   , can2
+  , canFilters
   ) where
 
 import Ivory.Language
@@ -10,6 +11,11 @@ import Ivory.BSP.STM32.Peripheral.CAN
 import Ivory.BSP.STM32F405.Interrupt
 import Ivory.BSP.STM32F405.MemoryMap
 import Ivory.BSP.STM32F405.RCC
+
+canFilters :: CANPeriphFilters
+canFilters = mkCANPeriphFilters can1_periph_base
+          (rccEnable rcc_apb1en_can1)
+          (rccDisable rcc_apb1en_can1)
 
 can1 :: CANPeriph Interrupt
 can1 = mkCANPeriph can1_periph_base
