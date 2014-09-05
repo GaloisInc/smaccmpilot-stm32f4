@@ -29,24 +29,23 @@ data CANTXRegs = CANTXRegs
   , canRegTDHR     :: BitDataReg CAN_TDHR
   }
 
+data CANRXRegs = CANRXRegs
+  { canRegRFR      :: BitDataReg CAN_RFR
+  , canRegRIR      :: BitDataReg CAN_RIR
+  , canRegRDTR     :: BitDataReg CAN_RDTR
+  , canRegRDLR     :: BitDataReg CAN_RDLR
+  , canRegRDHR     :: BitDataReg CAN_RDHR
+  }
+
 data CANPeriph i = CANPeriph
   { canRegMCR      :: BitDataReg CAN_MCR
   , canRegMSR      :: BitDataReg CAN_MSR
   , canRegTSR      :: BitDataReg CAN_TSR
-  , canRegRF0R     :: BitDataReg CAN_RFR
-  , canRegRF1R     :: BitDataReg CAN_RFR
   , canRegIER      :: BitDataReg CAN_IER
   , canRegESR      :: BitDataReg CAN_ESR
   , canRegBTR      :: BitDataReg CAN_BTR
   , canRegTX       :: [CANTXRegs]
-  , canRegRI0R     :: BitDataReg CAN_RIR
-  , canRegRDT0R    :: BitDataReg CAN_RDTR
-  , canRegRDL0R    :: BitDataReg CAN_RDLR
-  , canRegRDH0R    :: BitDataReg CAN_RDHR
-  , canRegRI1R     :: BitDataReg CAN_RIR
-  , canRegRDT1R    :: BitDataReg CAN_RDTR
-  , canRegRDL1R    :: BitDataReg CAN_RDLR
-  , canRegRDH1R    :: BitDataReg CAN_RDHR
+  , canRegRX       :: [CANRXRegs]
   , canRCCEnable   :: forall eff . Ivory eff ()
   , canRCCDisable  :: forall eff . Ivory eff ()
   , canIntTX       :: i
@@ -70,8 +69,7 @@ mkCANPeriph base rccen rccdis txint rx0int rx1int sceint n =
     { canRegMCR      = reg 0x000 "mcr"
     , canRegMSR      = reg 0x004 "msr"
     , canRegTSR      = reg 0x008 "tsr"
-    , canRegRF0R     = reg 0x00C "rf0r"
-    , canRegRF1R     = reg 0x010 "rf1r"
+    -- RF0R and RF1R are grouped in CANRXRegs below
     , canRegIER      = reg 0x014 "ier"
     , canRegESR      = reg 0x018 "esr"
     , canRegBTR      = reg 0x01C "btr"
@@ -93,14 +91,20 @@ mkCANPeriph base rccen rccdis txint rx0int rx1int sceint n =
         , canRegTDLR = reg 0x1A8 "tdl2r"
         , canRegTDHR = reg 0x1AC "tdh2r" }
       ]
-    , canRegRI0R     = reg 0x1B0 "ri0r"
-    , canRegRDT0R    = reg 0x1B4 "rdt0r"
-    , canRegRDL0R    = reg 0x1B8 "rdl0r"
-    , canRegRDH0R    = reg 0x1BC "rdh0r"
-    , canRegRI1R     = reg 0x1C0 "ri1r"
-    , canRegRDT1R    = reg 0x1C4 "rdt1r"
-    , canRegRDL1R    = reg 0x1C8 "rdl1r"
-    , canRegRDH1R    = reg 0x1CC "rdh1r"
+    , canRegRX       =
+      [ CANRXRegs
+        { canRegRFR  = reg 0x00C "rf0r"
+        , canRegRIR  = reg 0x1B0 "ri0r"
+        , canRegRDTR = reg 0x1B4 "rdt0r"
+        , canRegRDLR = reg 0x1B8 "rdl0r"
+        , canRegRDHR = reg 0x1BC "rdh0r" }
+      , CANRXRegs
+        { canRegRFR  = reg 0x010 "rf1r"
+        , canRegRIR  = reg 0x1C0 "ri1r"
+        , canRegRDTR = reg 0x1C4 "rdt1r"
+        , canRegRDLR = reg 0x1C8 "rdl1r"
+        , canRegRDHR = reg 0x1CC "rdh1r" }
+      ]
     , canRCCEnable   = rccen
     , canRCCDisable  = rccdis
     , canIntTX       = txint
