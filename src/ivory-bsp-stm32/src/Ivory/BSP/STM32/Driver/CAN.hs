@@ -141,7 +141,7 @@ canPeripheralDriver periph bitrate rxpin txpin req_sink res_source pendingReques
       sendRequest = proc "sendRequest" $ \ req -> body $ do
       can_id <- deref (req ~> tx_id)
       ide <- deref (req ~> tx_ide)
-      let stid = lbits $ ide ? (can_id `iShiftR` 17, can_id)
+      let stid = lbits $ ide ? (can_id `iShiftR` 18, can_id)
       let exid = ide ? (can_id, 0)
       rtr <- deref (req ~> tx_rtr)
       len <- deref (req ~> tx_len)
