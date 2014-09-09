@@ -1,3 +1,4 @@
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE RankNTypes #-}
 
@@ -55,34 +56,81 @@ mkCANPeriphFilters base rccen rccdis =
   filterRegs :: IvoryIOReg (BitDataRep a) => Integer -> ((Integer, Integer), (Integer, Integer)) -> String -> Array (Integer, Integer) (BitDataReg a)
   filterRegs offs ix width = listArray ix [ reg (offs + 4 * (i * 2 + x)) ("f" ++ show i ++ "r" ++ show x ++ width) | (i, x) <- range ix ]
 
-canFilterInit :: CANPeriphFilters -> Ivory eff ()
-canFilterInit periph = do
+data CANFilterID32 = CANFilterID32
+  { canFilterSTID32 :: Bits 11
+  , canFilterEXID32 :: Bits 18
+  , canFilterIDE32 :: Bool
+  , canFilterRTR32 :: Bool
+  }
+
+data CANFilterID16 = CANFilterID16
+  { canFilterSTID16 :: Bits 11
+  , canFilterEXID16 :: Bits 3
+  , canFilterIDE16 :: Bool
+  , canFilterRTR16 :: Bool
+  }
+
+data CANFilterContents
+  = CANFilter16 CANFilterID16 CANFilterID16 CANFilterID16 CANFilterID16
+  | CANFilter32 CANFilterID32 CANFilterID32
+
+data CANFilterBankMode = CANFilterMask | CANFilterList
+
+data CANFIFO = CANFIFO0 | CANFIFO1
+
+data CANFilterBank
+  = CANFilterBank CANFIFO CANFilterBankMode CANFilterContents
+
+canFilterInit :: CANPeriphFilters -> [CANFilterBank] -> [CANFilterBank] -> Ivory eff ()
+canFilterInit periph can1banks can2banks = do
+  let banks = zip [0..] $ can1banks ++ can2banks
+  if length banks <= 28 then return () else fail "too many filter banks passed to canFilterInit"
+
   -- ensure the CAN master is active
   canRCCEnableF periph
 
-  -- set up one filter for CAN1 and one for CAN2
   modifyReg (canRegFMR periph) $ do
     setBit can_fmr_finit
-    setField can_fmr_can2sb $ fromRep 1
-  -- put both filters in Identifier Mask mode
-  modifyReg (canRegFM1R periph) $ do
-    clearBit $ can_fm1r_fbm #> bitIx 0
-    clearBit $ can_fm1r_fbm #> bitIx 1
-  -- put both filters in Single 32-bit Scale configuration
-  modifyReg (canRegFS1R periph) $ do
-    setBit $ can_fs1r_fsc #> bitIx 0
-    setBit $ can_fs1r_fsc #> bitIx 1
-  -- assign matching messages to FIFO 0 in the appropriate CAN1/CAN2 peripheral
-  modifyReg (canRegFFA1R periph) $ do
-    clearBit $ can_ffa1r_ffa #> bitIx 0
-    clearBit $ can_ffa1r_ffa #> bitIx 1
-  -- mark all bits as "don't care", so the filter matches any message
-  forM_ [0, 1] $ \ i -> forM_ [0, 1] $ \ x ->
-    setReg (canRegFiRx32 periph ! (i, x)) clear
+    setField can_fmr_can2sb $ fromRep $ fromIntegral $ length can1banks
+
+  forM_ banks $ \ (i, CANFilterBank _ _ c) -> case c of
+    CANFilter16 f1 f2 f3 f4 -> do
+      let dual16 x y = do
+          setField can_firx16_stid0 $ canFilterSTID16 x
+          (if canFilterIDE16 x then setBit else clearBit) can_firx16_ide0
+          (if canFilterRTR16 x then setBit else clearBit) can_firx16_rtr0
+          setField can_firx16_exid0 $ canFilterEXID16 x
+          setField can_firx16_stid1 $ canFilterSTID16 y
+          (if canFilterIDE16 y then setBit else clearBit) can_firx16_ide1
+          (if canFilterRTR16 y then setBit else clearBit) can_firx16_rtr1
+          setField can_firx16_exid1 $ canFilterEXID16 y
+      setReg (canRegFiRx16 periph ! (toInteger i, 0)) $ dual16 f1 f2
+      setReg (canRegFiRx16 periph ! (toInteger i, 1)) $ dual16 f3 f4
+    CANFilter32 f1 f2 -> do
+      let single32 x = do
+          setField can_firx32_stid $ canFilterSTID32 x
+          setField can_firx32_exid $ canFilterEXID32 x
+          (if canFilterIDE32 x then setBit else clearBit) can_firx32_ide
+          (if canFilterRTR32 x then setBit else clearBit) can_firx32_rtr
+      setReg (canRegFiRx32 periph ! (toInteger i, 0)) $ single32 f1
+      setReg (canRegFiRx32 periph ! (toInteger i, 1)) $ single32 f2
+
+  modifyReg (canRegFM1R periph) $ sequence_
+    [ (case m of CANFilterMask -> clearBit; CANFilterList -> setBit) $ can_fm1r_fbm #> bitIx i
+    | (i, CANFilterBank _ m _) <- banks ]
+
+  modifyReg (canRegFFA1R periph) $ sequence_
+    [ (case f of CANFIFO0 -> clearBit; CANFIFO1 -> setBit) $ can_ffa1r_ffa #> bitIx i
+    | (i, CANFilterBank f _ _) <- banks ]
+
+  modifyReg (canRegFS1R periph) $ sequence_
+    [ (case c of CANFilter16{} -> clearBit; CANFilter32{} -> setBit) $ can_fs1r_fsc #> bitIx i
+    | (i, CANFilterBank _ _ c) <- banks ]
+
   -- activate the new filters; ensure unused entries are disabled
   modifyReg (canRegFA1R periph) $ sequence_
-    [ (if i < 2 then setBit else clearBit) (can_fa1r_fact #> bitIx i)
-    | i <- [0 .. bitLength (undefined #. can_fa1r_fact) - 1] ]
+    [ (if i < length banks then setBit else clearBit) $ can_fa1r_fact #> bitIx i | i <- [0..27] ]
+
   -- allow the peripherals to start receiving packets with the new filters
   modifyReg (canRegFMR periph) $ do
     clearBit can_fmr_finit
