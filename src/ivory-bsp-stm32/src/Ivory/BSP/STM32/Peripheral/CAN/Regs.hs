@@ -231,12 +231,12 @@ import Ivory.Language
 
  bitdata CAN_FiRx16 :: Bits 32 = can_firx16
    { can_firx16_stid1   :: Bits 11
-   , can_firx16_ide1    :: Bit
    , can_firx16_rtr1    :: Bit
+   , can_firx16_ide1    :: Bit
    , can_firx16_exid1   :: Bits 3
    , can_firx16_stid0   :: Bits 11
-   , can_firx16_ide0    :: Bit
    , can_firx16_rtr0    :: Bit
+   , can_firx16_ide0    :: Bit
    , can_firx16_exid0   :: Bits 3
    }
 
