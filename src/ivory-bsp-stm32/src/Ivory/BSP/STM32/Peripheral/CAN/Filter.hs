@@ -93,6 +93,10 @@ canFilterInit periph can1banks can2banks = do
     setBit can_fmr_finit
     setField can_fmr_can2sb $ fromRep $ fromIntegral $ length can1banks
 
+  -- deactivate any existing filters
+  modifyReg (canRegFA1R periph) $ sequence_
+    [ clearBit $ can_fa1r_fact #> bitIx i | i <- [0..27] ]
+
   forM_ banks $ \ (i, CANFilterBank _ _ c) -> case c of
     CANFilter16 f1 f2 f3 f4 -> do
       let dual16 x y = do
@@ -127,9 +131,9 @@ canFilterInit periph can1banks can2banks = do
     [ (case c of CANFilter16{} -> clearBit; CANFilter32{} -> setBit) $ can_fs1r_fsc #> bitIx i
     | (i, CANFilterBank _ _ c) <- banks ]
 
-  -- activate the new filters; ensure unused entries are disabled
+  -- activate the new filters
   modifyReg (canRegFA1R periph) $ sequence_
-    [ (if i < length banks then setBit else clearBit) $ can_fa1r_fact #> bitIx i | i <- [0..27] ]
+    [ setBit $ can_fa1r_fact #> bitIx i | (i, _) <- banks ]
 
   -- allow the peripherals to start receiving packets with the new filters
   modifyReg (canRegFMR periph) $ do
