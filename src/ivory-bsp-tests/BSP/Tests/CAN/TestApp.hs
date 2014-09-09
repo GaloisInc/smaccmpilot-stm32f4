@@ -10,8 +10,10 @@ import Ivory.Language
 import Ivory.Tower
 
 import Ivory.BSP.STM32.Driver.CAN
+import Ivory.BSP.STM32.Peripheral.CAN.Filter
 import Ivory.BSP.STM32.PlatformClock
 
+import BSP.Tests.LED
 import BSP.Tests.Platforms
 
 app :: forall p
@@ -23,6 +25,11 @@ app = do
   (req, res) <- canTower (testCAN platform) 500000 (testCANRX platform) (testCANTX platform)
 
   task "simplecontroller" $ do
+    taskInit $ do
+      let emptyID = CANFilterID32 (fromRep 0) (fromRep 0) False False
+      canFilterInit (testCANFilters platform) [CANFilterBank CANFIFO0 CANFilterMask $ CANFilter32 emptyID emptyID] []
+      ledSetup $ redLED platform
+
     req_emitter <- withChannelEmitter req "req"
     res_event   <- withChannelEvent   res "res"
     periodic    <- withPeriodicEvent (Milliseconds 250)
@@ -37,6 +44,12 @@ app = do
         ]
       emit_ req_emitter $ constRef r
 
-    handle res_event "result" $ \_ -> return () -- TODO
+    received <- taskLocalInit "can_received_count" (ival (0 :: Uint32))
+    handle res_event "result" $ \_ -> do
+      count <- deref received
+      store received (count + 1)
+      ifte_ (count .& 1 ==? 0)
+        (ledOn $ redLED platform)
+        (ledOff $ redLED platform)
   where
   platform = Proxy :: Proxy p

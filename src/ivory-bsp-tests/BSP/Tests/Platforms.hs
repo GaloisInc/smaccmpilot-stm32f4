@@ -51,6 +51,7 @@ class (STM32Signal p) => TestCAN p where
   testCAN :: Proxy p -> CANPeriph (InterruptType p)
   testCANRX :: Proxy p -> GPIOPin
   testCANTX :: Proxy p -> GPIOPin
+  testCANFilters :: Proxy p -> CANPeriphFilters
 
 ---------- PX4FMUv17 ----------------------------------------------------------
 data PX4FMUv17 = PX4FMUv17
@@ -82,6 +83,7 @@ instance TestCAN PX4FMUv17 where
   testCAN _ = F405.can1
   testCANRX _ = F405.pinD0
   testCANTX _ = F405.pinD1
+  testCANFilters _ = F405.canFilters
 
 ---------- PX4FMUv24 ----------------------------------------------------------
 data PX4FMUv24 = PX4FMUv24
@@ -113,6 +115,7 @@ instance TestCAN PX4FMUv24 where
   testCAN _ = F405.can1
   testCANRX _ = F405.pinD0
   testCANTX _ = F405.pinD1
+  testCANFilters _ = F405.canFilters
 
 
 ---------- F4Discovery --------------------------------------------------------
@@ -145,6 +148,7 @@ instance TestCAN F4Discovery where
   testCAN _ = F405.can1
   testCANRX _ = F405.pinD0
   testCANTX _ = F405.pinD1
+  testCANFilters _ = F405.canFilters
 
 ---------- Open407VC ----------------------------------------------------------
 data Open407VC = Open407VC
@@ -176,6 +180,7 @@ instance TestCAN Open407VC where
   testCAN _ = F405.can1
   testCANRX _ = F405.pinD0
   testCANTX _ = F405.pinD1
+  testCANFilters _ = F405.canFilters
 
 --------- Platform lookup by name ---------------------------------------------
 
