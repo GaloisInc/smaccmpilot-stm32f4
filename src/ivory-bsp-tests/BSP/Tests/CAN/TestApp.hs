@@ -29,6 +29,7 @@ app = do
       let emptyID = CANFilterID32 (fromRep 0) (fromRep 0) False False
       canFilterInit (testCANFilters platform) [CANFilterBank CANFIFO0 CANFilterMask $ CANFilter32 emptyID emptyID] []
       ledSetup $ redLED platform
+      ledOn $ redLED platform
 
     req_emitter <- withChannelEmitter req "req"
     res_event   <- withChannelEvent   res "res"
@@ -49,7 +50,7 @@ app = do
       count <- deref received
       store received (count + 1)
       ifte_ (count .& 1 ==? 0)
-        (ledOn $ redLED platform)
         (ledOff $ redLED platform)
+        (ledOn $ redLED platform)
   where
   platform = Proxy :: Proxy p
