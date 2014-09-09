@@ -55,25 +55,87 @@ canPeripheralDriver :: forall p
                     -> ChannelSource (Struct "can_receive_result")
                     -> (ChannelSource (Struct "can_transmit_request"), ChannelSink (Struct "can_transmit_request"))
                     -> Task p ()
-canPeripheralDriver periph bitrate rxpin txpin req_sink _res_source pendingRequests = do
+canPeripheralDriver periph bitrate rxpin txpin req_sink res_source pendingRequests = do
   taskModuleDef $ hw_moduledef
 
   nextRequest <- withChannelReceiver (snk pendingRequests) "pend_sink"
   pendRequest <- withChannelEmitter (src pendingRequests) "pend_source"
 
   requestEvent  <- withChannelEvent req_sink "req_sink"
-  -- resultEmitter <- withChannelEmitter res_source "res_source"
+  resultEmitter <- withChannelEmitter res_source "res_source"
 
   taskInit $ do
     canInit periph bitrate rxpin txpin (Proxy :: Proxy p)
-    modifyReg (canRegIER periph) $ setBit can_ier_tmeie
+    modifyReg (canRegIER periph) $ do
+      setBit can_ier_tmeie
+      setBit can_ier_fmpie0
+      setBit can_ier_fmpie1
     interrupt_set_to_syscall_priority $ canIntTX periph
     interrupt_set_to_syscall_priority $ canIntRX0 periph
     interrupt_set_to_syscall_priority $ canIntRX1 periph
     interrupt_set_to_syscall_priority $ canIntSCE periph
     interrupt_enable $ canIntTX periph
+    interrupt_enable $ canIntRX0 periph
+    interrupt_enable $ canIntRX1 periph
 
   taskPriority 4
+
+  rx0_irq <- withUnsafeSignalEvent
+                (stm32Interrupt $ canIntRX0 periph)
+                "rx0_interrupt"
+                (interrupt_disable $ canIntRX0 periph)
+
+  rx1_irq <- withUnsafeSignalEvent
+                (stm32Interrupt $ canIntRX1 periph)
+                "rx1_interrupt"
+                (interrupt_disable $ canIntRX1 periph)
+
+  let emitMessage = proc "emitMessage" $ \ rir rdtr rdlr rdhr -> body $ do
+        ide <- assign $ bitToBool $ rir #. can_rir_ide
+        stid <- assign $ safeCast $ toRep $ rir #. can_rir_stid
+        ident <- assign $ ide ? (stid `iShiftL` 18 .| (toRep $ rir #. can_rir_exid), stid)
+
+        msg <- local $ istruct
+          [ rx_id .= ival ident
+          , rx_ide .= ival ide
+          , rx_rtr .= ival (bitToBool $ rir #. can_rir_rtr)
+          , rx_buf .= iarray (map ival $ map toRep $
+              map (rdlr #.) [can_rdlr_data0, can_rdlr_data1, can_rdlr_data2, can_rdlr_data3] ++
+              map (rdhr #.) [can_rdhr_data4, can_rdhr_data5, can_rdhr_data6, can_rdhr_data7])
+          , rx_len .= ival (toIx $ toRep $ rdtr #. can_rdtr_dlc)
+          , rx_fmi .= ival (toRep $ rdtr #. can_rdtr_fmi)
+          , rx_time .= ival (toRep $ rdtr #. can_rdtr_time)
+          ]
+        emit_ resultEmitter $ constRef msg
+        retVoid
+
+  let receiveMessage fifo int = do
+      forever $ do
+        rfr <- getReg $ canRegRFR fifo
+        -- If the FIFO is empty, we have nothing to do.
+        when (rfr #. can_rfr_fmp ==? fromRep 0) breakOut
+
+        -- If the FIFO is still reloading the mailbox, we can't pull the
+        -- next message out. All we can do is loop and try again.
+        unless (bitToBool $ rfr #. can_rfr_rfom) $ do
+          rir <- getReg $ canRegRIR fifo
+          rdtr <- getReg $ canRegRDTR fifo
+          rdlr <- getReg $ canRegRDLR fifo
+          rdhr <- getReg $ canRegRDHR fifo
+
+          -- Release this FIFO entry ASAP to overlap the mailbox reload
+          -- with the emitMessage call.
+          setReg (canRegRFR fifo) $ do
+            setBit can_rfr_rfom
+            setBit can_rfr_fovr
+            setBit can_rfr_full
+
+          call_ emitMessage rir rdtr rdlr rdhr
+
+      interrupt_enable int
+
+  handle rx0_irq "rx0_irq" $ \_ -> receiveMessage (canRegRX periph !! 0) (canIntRX0 periph)
+  handle rx1_irq "rx1_irq" $ \_ -> receiveMessage (canRegRX periph !! 1) (canIntRX1 periph)
 
   let sendRequest :: Def ('[ConstRef s1 (Struct "can_transmit_request")] :-> ())
       sendRequest = proc "sendRequest" $ \ req -> body $ do
@@ -115,8 +177,6 @@ canPeripheralDriver periph bitrate rxpin txpin req_sink _res_source pendingReque
       enqueued' <- deref enqueued
       unless enqueued' $ emit_ pendRequest req
 
-  taskModuleDef $ incl sendRequest
-
   tx_irq <- withUnsafeSignalEvent
                 (stm32Interrupt $ canIntTX periph)
                 "tx_interrupt"
@@ -139,3 +199,7 @@ canPeripheralDriver periph bitrate rxpin txpin req_sink _res_source pendingReque
     interrupt_enable $ canIntTX periph
 
   handle requestEvent "request" $ call_ sendRequest
+
+  taskModuleDef $ do
+    incl sendRequest
+    incl emitMessage
