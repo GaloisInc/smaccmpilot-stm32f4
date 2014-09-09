@@ -200,3 +200,9 @@ canInit periph bitrate rxpin txpin platform = do
     setField can_btr_brp $ fromRep $ fromInteger $ bit_timing_baud_rate_prescaler best - 1
 
   modifyReg (canRegMCR periph) $ clearBit can_mcr_inrq
+
+  -- clear any pending status interrupts
+  setReg (canRegMSR periph) $ do
+    setBit can_msr_slaki
+    setBit can_msr_wkui
+    setBit can_msr_erri
