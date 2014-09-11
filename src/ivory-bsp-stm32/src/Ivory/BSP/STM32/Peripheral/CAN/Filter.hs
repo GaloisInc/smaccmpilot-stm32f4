@@ -42,7 +42,7 @@ mkCANPeriphFilters base rccen rccdis =
     -- 0x210 reserved
     , canRegFFA1R    = reg 0x214 "ffa1r"
     -- 0x218 reserved
-    , canRegFA1R     = reg 0x214 "fa1r"
+    , canRegFA1R     = reg 0x21C "fa1r"
     -- 0x220-0x23F reserved
     , canRegFiRx32   = filterRegs 0x240 ((0, 0), (27, 1)) "32"
     , canRegFiRx16   = filterRegs 0x240 ((0, 0), (27, 1)) "16"
