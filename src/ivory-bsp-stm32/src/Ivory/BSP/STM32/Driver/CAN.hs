@@ -143,15 +143,14 @@ canPeripheralDriver periph bitrate rxpin txpin req_sink res_source pendingReques
 
       tsr <- getReg (canRegTSR periph)
       mailbox_code <- assign $ tsr #. can_tsr_code
-      assert (toRep mailbox_code <? 3)
+      assert $ toRep mailbox_code <? fromIntegral (length $ canRegTX periph)
 
       enqueued <- local izero
       cond_
-        [ mailbox_code ==? fromRep (fromIntegral mailbox_idx) ==> do
-          store enqueued $ bitToBool $ tsr #. ([can_tsr_tme0, can_tsr_tme1, can_tsr_tme2] !! mailbox_idx)
+        [ mailbox_code ==? fromRep (fromInteger mailbox_idx) ==> do
+          store enqueued $ bitToBool $ tsr #. canTXEmpty txmailbox
           enqueued' <- deref enqueued
           when enqueued' $ do
-            let txmailbox = canRegTX periph !! mailbox_idx
             modifyReg (canRegTDTR txmailbox) $ do
               clearBit can_tdtr_tgt
               setField can_tdtr_dlc $ fromRep $ castDefault $ fromIx len
@@ -165,7 +164,7 @@ canPeripheralDriver periph bitrate rxpin txpin req_sink res_source pendingReques
               setField can_tir_ide $ boolToBit ide
               setField can_tir_rtr $ boolToBit rtr
               setBit can_tir_txrq
-        | mailbox_idx <- [0..2]
+        | (mailbox_idx, txmailbox) <- zip [0..] $ canRegTX periph
         ]
       enqueued' <- deref enqueued
       unless enqueued' $ emit_ pendRequest req
