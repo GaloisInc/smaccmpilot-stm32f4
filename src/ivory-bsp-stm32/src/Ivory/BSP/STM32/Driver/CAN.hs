@@ -1,4 +1,5 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeOperators #-}
@@ -8,7 +9,7 @@ module Ivory.BSP.STM32.Driver.CAN
   , module Ivory.BSP.STM32.Driver.CAN.Types
   ) where
 
-import Control.Monad (zipWithM_, forM_)
+import Control.Monad (forM_)
 import Ivory.Language
 import Ivory.Stdlib
 import Ivory.Tower
@@ -138,8 +139,14 @@ canPeripheralDriver periph bitrate rxpin txpin req_sink res_source pendingReques
       let exid = ide ? (can_id, 0)
       rtr <- deref (req ~> tx_rtr)
       len <- deref (req ~> tx_len)
-      low_bytes <- mapM (\idx-> fmap fromRep $ deref ((req ~> tx_buf) ! idx)) [0, 1, 2, 3]
-      hi_bytes <- mapM (\idx-> fmap fromRep $ deref ((req ~> tx_buf) ! idx)) [4, 5, 6, 7]
+
+      let get_bytes :: (BitData reg, SafeCast Uint8 (BitDataRep reg)) => [(Ix 8, BitDataField reg (Bits 8))] -> Ivory eff [BitDataM reg ()]
+          get_bytes = mapM $ \ (idx, field) -> do
+            v <- deref $ (req ~> tx_buf) ! idx
+            return $ setField field $ fromRep v
+
+      low_bytes <- get_bytes [(0, can_tdlr_data0), (1, can_tdlr_data1), (2, can_tdlr_data2), (3, can_tdlr_data3)]
+      hi_bytes <- get_bytes [(4, can_tdhr_data4), (5, can_tdhr_data5), (6, can_tdhr_data6), (7, can_tdhr_data7)]
 
       tsr <- getReg (canRegTSR periph)
       mailbox_code <- assign $ tsr #. can_tsr_code
@@ -154,10 +161,8 @@ canPeripheralDriver periph bitrate rxpin txpin req_sink res_source pendingReques
             modifyReg (canRegTDTR txmailbox) $ do
               clearBit can_tdtr_tgt
               setField can_tdtr_dlc $ fromRep $ castDefault $ fromIx len
-            setReg (canRegTDLR txmailbox) $
-              zipWithM_ setField [can_tdlr_data0, can_tdlr_data1, can_tdlr_data2, can_tdlr_data3] low_bytes
-            setReg (canRegTDHR txmailbox) $
-              zipWithM_ setField [can_tdhr_data4, can_tdhr_data5, can_tdhr_data6, can_tdhr_data7] hi_bytes
+            setReg (canRegTDLR txmailbox) $ sequence_ low_bytes
+            setReg (canRegTDHR txmailbox) $ sequence_ hi_bytes
             setReg (canRegTIR txmailbox) $ do
               setField can_tir_stid $ fromRep stid
               setField can_tir_exid $ fromRep exid
