@@ -29,12 +29,13 @@ data CANTXRegs = CANTXRegs
   , canRegTDHR     :: BitDataReg CAN_TDHR
   }
 
-data CANRXRegs = CANRXRegs
+data CANRXRegs i = CANRXRegs
   { canRegRFR      :: BitDataReg CAN_RFR
   , canRegRIR      :: BitDataReg CAN_RIR
   , canRegRDTR     :: BitDataReg CAN_RDTR
   , canRegRDLR     :: BitDataReg CAN_RDLR
   , canRegRDHR     :: BitDataReg CAN_RDHR
+  , canIntRX       :: i
   }
 
 data CANPeriph i = CANPeriph
@@ -45,12 +46,10 @@ data CANPeriph i = CANPeriph
   , canRegESR      :: BitDataReg CAN_ESR
   , canRegBTR      :: BitDataReg CAN_BTR
   , canRegTX       :: [CANTXRegs]
-  , canRegRX       :: [CANRXRegs]
+  , canRegRX       :: [CANRXRegs i]
   , canRCCEnable   :: forall eff . Ivory eff ()
   , canRCCDisable  :: forall eff . Ivory eff ()
   , canIntTX       :: i
-  , canIntRX0      :: i
-  , canIntRX1      :: i
   , canIntSCE      :: i
   , canName        :: String
   }
@@ -97,19 +96,19 @@ mkCANPeriph base rccen rccdis txint rx0int rx1int sceint n =
         , canRegRIR  = reg 0x1B0 "ri0r"
         , canRegRDTR = reg 0x1B4 "rdt0r"
         , canRegRDLR = reg 0x1B8 "rdl0r"
-        , canRegRDHR = reg 0x1BC "rdh0r" }
+        , canRegRDHR = reg 0x1BC "rdh0r"
+        , canIntRX   = rx0int }
       , CANRXRegs
         { canRegRFR  = reg 0x010 "rf1r"
         , canRegRIR  = reg 0x1C0 "ri1r"
         , canRegRDTR = reg 0x1C4 "rdt1r"
         , canRegRDLR = reg 0x1C8 "rdl1r"
-        , canRegRDHR = reg 0x1CC "rdh1r" }
+        , canRegRDHR = reg 0x1CC "rdh1r"
+        , canIntRX   = rx1int }
       ]
     , canRCCEnable   = rccen
     , canRCCDisable  = rccdis
     , canIntTX       = txint
-    , canIntRX0      = rx0int
-    , canIntRX1      = rx1int
     , canIntSCE      = sceint
     , canName        = n
     }

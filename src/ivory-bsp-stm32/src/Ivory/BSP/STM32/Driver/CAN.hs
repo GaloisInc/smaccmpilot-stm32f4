@@ -71,24 +71,13 @@ canPeripheralDriver periph bitrate rxpin txpin req_sink res_source pendingReques
       setBit can_ier_fmpie0
       setBit can_ier_fmpie1
     interrupt_set_to_syscall_priority $ canIntTX periph
-    interrupt_set_to_syscall_priority $ canIntRX0 periph
-    interrupt_set_to_syscall_priority $ canIntRX1 periph
     interrupt_set_to_syscall_priority $ canIntSCE periph
     interrupt_enable $ canIntTX periph
-    interrupt_enable $ canIntRX0 periph
-    interrupt_enable $ canIntRX1 periph
+    forM_ (canRegRX periph) $ \ fifo -> do
+      interrupt_set_to_syscall_priority $ canIntRX fifo
+      interrupt_enable $ canIntRX fifo
 
   taskPriority 4
-
-  rx0_irq <- withUnsafeSignalEvent
-                (stm32Interrupt $ canIntRX0 periph)
-                "rx0_interrupt"
-                (interrupt_disable $ canIntRX0 periph)
-
-  rx1_irq <- withUnsafeSignalEvent
-                (stm32Interrupt $ canIntRX1 periph)
-                "rx1_interrupt"
-                (interrupt_disable $ canIntRX1 periph)
 
   let emitMessage = proc "emitMessage" $ \ rir rdtr rdlr rdhr -> body $ do
         ide <- assign $ bitToBool $ rir #. can_rir_ide
@@ -109,7 +98,7 @@ canPeripheralDriver periph bitrate rxpin txpin req_sink res_source pendingReques
         emit_ resultEmitter $ constRef msg
         retVoid
 
-  let receiveMessage fifo int = do
+  let receiveMessage fifo = do
       forever $ do
         rfr <- getReg $ canRegRFR fifo
         -- If the FIFO is empty, we have nothing to do.
@@ -132,10 +121,14 @@ canPeripheralDriver periph bitrate rxpin txpin req_sink res_source pendingReques
 
           call_ emitMessage rir rdtr rdlr rdhr
 
-      interrupt_enable int
+      interrupt_enable $ canIntRX fifo
 
-  handle rx0_irq "rx0_irq" $ \_ -> receiveMessage (canRegRX periph !! 0) (canIntRX0 periph)
-  handle rx1_irq "rx1_irq" $ \_ -> receiveMessage (canRegRX periph !! 1) (canIntRX1 periph)
+  forM_ (zip [0 :: Int ..] $ canRegRX periph) $ \ (idx, fifo) -> do
+    rx_irq <- withUnsafeSignalEvent
+                  (stm32Interrupt $ canIntRX fifo)
+                  ("rx" ++ show idx ++ "_interrupt")
+                  (interrupt_disable $ canIntRX fifo)
+    handle rx_irq ("rx" ++ show idx ++ "_irq") $ \_ -> receiveMessage fifo
 
   let sendRequest :: Def ('[ConstRef s1 (Struct "can_transmit_request")] :-> ())
       sendRequest = proc "sendRequest" $ \ req -> body $ do
