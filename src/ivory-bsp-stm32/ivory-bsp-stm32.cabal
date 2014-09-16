@@ -34,6 +34,11 @@ library
                        Ivory.BSP.STM32.Peripheral.ATIM18.RegTypes,
                        Ivory.BSP.STM32.Peripheral.ATIM18.Peripheral,
 
+                       Ivory.BSP.STM32.Peripheral.CAN,
+                       Ivory.BSP.STM32.Peripheral.CAN.Filter,
+                       Ivory.BSP.STM32.Peripheral.CAN.Peripheral,
+                       Ivory.BSP.STM32.Peripheral.CAN.Regs,
+
                        Ivory.BSP.STM32.Peripheral.Flash,
                        Ivory.BSP.STM32.Peripheral.Flash.Regs,
 
@@ -69,6 +74,9 @@ library
                        Ivory.BSP.STM32.Peripheral.UART.Regs,
                        Ivory.BSP.STM32.Peripheral.UART.Peripheral,
 
+                       Ivory.BSP.STM32.Driver.CAN,
+                       Ivory.BSP.STM32.Driver.CAN.Types,
+
                        Ivory.BSP.STM32.Driver.I2C,
                        Ivory.BSP.STM32.Driver.I2C.Types,
                        Ivory.BSP.STM32.Driver.I2C.I2CDeviceAddr,
@@ -85,6 +93,7 @@ library
                        Ivory.BSP.STM32F405.Interrupt,
                        Ivory.BSP.STM32F405.Interrupt.API,
                        Ivory.BSP.STM32F405.Interrupt.Types,
+                       Ivory.BSP.STM32F405.CAN,
                        Ivory.BSP.STM32F405.SPI,
                        Ivory.BSP.STM32F405.I2C,
                        Ivory.BSP.STM32F405.RCC,
@@ -102,6 +111,7 @@ library
   other-modules:       Paths_ivory_bsp_stm32
   hs-source-dirs:      src
   build-depends:       base >= 4.6,
+                       array,
                        template-haskell,
                        filepath,
                        ivory,
