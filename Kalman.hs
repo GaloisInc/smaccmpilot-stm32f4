@@ -115,7 +115,7 @@ deltaAngle = fmap var da - fmap var da_b
 -- use a first order expansion of rotation to calculate the quaternion increment
 -- acceptable for propagation of covariances
 qNew :: Quat (Sym VarName)
-qNew = quatMult quat $ Quat
+qNew = quat * Quat
     ( cos (rotationMag / 2)
     -- XXX: why isn't dt in here somewhere?
     , x deltaAngle * rotScalar

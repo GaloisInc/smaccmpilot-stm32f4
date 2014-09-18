@@ -12,13 +12,18 @@ instance Functor Quat where
 instance Foldable Quat where
     foldMap f (Quat (a, b, c, d)) = mconcat [f a, f b, f c, f d]
 
-quatMult :: Num a => Quat a -> Quat a -> Quat a
-quatMult (Quat (a1, b1, c1, d1)) (Quat (a2, b2, c2, d2)) = Quat (
-        a1 * a2 - b1 * b2 - c1 * c2 - d1 * d2,
-        a1 * b2 + b1 * a2 + c1 * d2 - d1 * c2,
-        a1 * c2 - b1 * d2 + c1 * a2 + d1 * b2,
-        a1 * d2 + b1 * c2 - c1 * b2 + d1 * a2
-    )
+instance Num a => Num (Quat a) where
+    (Quat (a1, b1, c1, d1)) + (Quat (a2, b2, c2, d2)) = Quat (a1 + a2, b1 + b2, c1 + c2, d1 + d2)
+    negate = fmap negate
+
+    (Quat (a1, b1, c1, d1)) * (Quat (a2, b2, c2, d2)) = Quat (
+            a1 * a2 - b1 * b2 - c1 * c2 - d1 * d2,
+            a1 * b2 + b1 * a2 + c1 * d2 - d1 * c2,
+            a1 * c2 - b1 * d2 + c1 * a2 + d1 * b2,
+            a1 * d2 + b1 * c2 - c1 * b2 + d1 * a2
+        )
+
+    fromInteger i = Quat (fromInteger i, 0, 0, 0)
 
 quatRotation :: Num a => Quat a -> [[a]]
 quatRotation (Quat (q0, q1, q2, q3)) = [
