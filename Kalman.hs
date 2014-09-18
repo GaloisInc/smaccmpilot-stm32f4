@@ -112,19 +112,17 @@ deltaAngle :: XYZ (Sym VarName)
 deltaAngle = fmap var da - fmap var da_b
 
 -- define the attitude update equations
--- use a first order expansion of rotation to calculate the quaternion increment
--- acceptable for propagation of covariances
+-- This approximates the discretization of `qdot = 0.5 * <0, deltaAngle> * q`.
+-- It assumes that dt is sufficiently small. The closed-form analytic
+-- discretization requires dividing by |deltaAngle|, which may be 0.
+-- * _Strapdown Inertial Navigation Technology, 2nd Ed_, section 11.2.5 (on
+--   pages 319-320) gives qdot and its analytic discretization, without proof.
+-- * http://en.wikipedia.org/wiki/Discretization derives the general form of
+--   discretization, and mentions this approximation.
+-- * http://www.euclideanspace.com/physics/kinematics/angularvelocity/QuaternionDifferentiation2.pdf
+--   derives qdot from angular momentum.
 qNew :: Quat (Sym VarName)
-qNew = quat * Quat
-    ( cos (rotationMag / 2)
-    -- XXX: why isn't dt in here somewhere?
-    , x deltaAngle * rotScalar
-    , y deltaAngle * rotScalar
-    , z deltaAngle * rotScalar
-    )
-    where
-    rotationMag = sqrt (x deltaAngle ** 2 + y deltaAngle ** 2 + z deltaAngle ** 2)
-    rotScalar = sin (rotationMag / 2) / rotationMag
+qNew = quat + fmap (* dt) (Quat (0, x deltaAngle / 2, y deltaAngle / 2, z deltaAngle / 2)) * quat
 
 -- XXX: because `g` is constant, it disappears from the Jacobian. so why is it here?
 g :: NED (Sym VarName)
