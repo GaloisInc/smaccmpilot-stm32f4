@@ -10,16 +10,6 @@ import Data.List
 import Data.Monoid
 import Data.String
 
-newtype VarName = VarName String
-    deriving (Eq, Ord)
-
-instance Show VarName where
-    show (VarName s) = s
-
-instance IsString VarName where
-    fromString = VarName . fromString
-
-
 -- For measurements/states in navigation frame
 data NED a = NED { north :: a, east :: a, down :: a }
     deriving Show
@@ -118,6 +108,20 @@ instance Foldable DisturbanceVector where
         , foldMap f $ disturbanceAccel v
         ]
 
+nStates :: Int
+nStates = length $ toList stateVector
+
+-- Sample inputs
+
+newtype VarName = VarName String
+    deriving (Eq, Ord)
+
+instance Show VarName where
+    show (VarName s) = s
+
+instance IsString VarName where
+    fromString = VarName . fromString
+
 stateVector :: StateVector VarName
 stateVector = StateVector
     { stateOrient = Quat ("q0", "q1", "q2", "q3") -- quaternions defining attitude of body axes relative to local NED
@@ -128,6 +132,11 @@ stateVector = StateVector
     , stateMagNED = NED "magN" "magE" "magD" -- NED earth fixed magnetic field components - milligauss
     , stateMagXYZ = XYZ "magX" "magY" "magZ" -- XYZ body fixed magnetic field measurements - milligauss
     }
+
+kalmanP :: IsString var => [[Sym var]]
+kalmanP = [ [ var $ fromString $ "OP_" ++ show i ++ "_" ++ show j | j <- idxs ] | i <- idxs ]
+    where
+    idxs = [1..nStates]
 
 distVector :: DisturbanceVector VarName
 distVector = DisturbanceVector
@@ -140,6 +149,20 @@ distCovariance = DisturbanceVector
     { disturbanceGyro = XYZ "daxCov" "dayCov" "dazCov"
     , disturbanceAccel = XYZ "dvxCov" "dvyCov" "dvzCov"
     }
+
+velCovariance :: NED VarName
+velCovariance = NED "R_VN" "R_VE" "R_VD"
+
+posCovariance :: NED VarName
+posCovariance = NED "R_PN" "R_PE" "R_PD"
+
+tasCovariance :: VarName
+tasCovariance = "R_TAS"
+
+magCovariance :: VarName
+magCovariance = "R_MAG"
+
+-- Kalman equations
 
 body2nav :: Num a => StateVector a -> XYZ a -> NED a
 body2nav = fst . convertFrames . stateOrient
@@ -182,38 +205,32 @@ kalmanG dt state dist = jacobian (toList $ processModel (var dt) (fmap var state
 kalmanQ :: DisturbanceVector var -> [[Sym var]] -> [[Sym var]]
 kalmanQ cov g = matMult g $ matMult (diagMat $ map var $ toList cov) $ transpose g
 
-kalmanP :: IsString var => StateVector var -> [[Sym var]]
-kalmanP state = [ [ var $ fromString $ "OP_" ++ show i ++ "_" ++ show j | j <- idxs ] | i <- idxs ]
-    where
-    idxs = zipWith const [1..] $ toList state
-
-kalmanPP :: (Eq var, IsString var) => var -> StateVector var -> DisturbanceVector var -> DisturbanceVector var -> [[Sym var]]
-kalmanPP dt state dist cov = matBinOp (+) q $ matMult f $ matMult p $ transpose f
+kalmanPP :: Eq var => var -> StateVector var -> DisturbanceVector var -> DisturbanceVector var -> [[Sym var]] -> [[Sym var]]
+kalmanPP dt state dist cov p = matBinOp (+) q $ matMult f $ matMult p $ transpose f
     where
     f = kalmanF dt state dist
     g = kalmanG dt state dist
     q = kalmanQ cov g
-    p = kalmanP state
 
-measurementUpdate :: (Eq var, IsString var) => StateVector var -> [Sym var] -> [[Sym var]] -> ([[Sym var]], [[Sym var]])
-measurementUpdate state measurements obsCov = (obsModel, obsGain)
+measurementUpdate :: Eq var => StateVector var -> [Sym var] -> [[Sym var]] -> [[Sym var]] -> ([[Sym var]], [[Sym var]])
+measurementUpdate state measurements obsCov errorCov = (obsModel, obsGain)
     where
     obsModel = jacobian measurements (toList state)
-    ph = matMult (kalmanP state) $ transpose obsModel
+    ph = matMult errorCov $ transpose obsModel
     obsGain = matMult ph $ matInvert $ matBinOp (+) obsCov $ matMult obsModel ph
 
-hk_vel :: (Eq var, IsString var) => StateVector var -> [([[Sym var]], [[Sym var]])]
-hk_vel state = [ measurementUpdate state [var v] [[var r]] | (v, r) <- zip (toList $ stateVel state) (toList $ NED "R_VN" "R_VE" "R_VD") ]
+hk_vel :: Eq var => NED var -> StateVector var -> [[Sym var]] -> [([[Sym var]], [[Sym var]])]
+hk_vel cov state p = [ measurementUpdate state [var v] [[var r]] p | (v, r) <- zip (toList $ stateVel state) (toList cov) ]
 
-hk_pos :: (Eq var, IsString var) => StateVector var -> [([[Sym var]], [[Sym var]])]
-hk_pos state = [ measurementUpdate state [var v] [[var r]] | (v, r) <- zip (toList $ statePos state) (toList $ NED "R_PN" "R_PE" "R_PD") ]
+hk_pos :: Eq var => NED var -> StateVector var -> [[Sym var]] -> [([[Sym var]], [[Sym var]])]
+hk_pos cov state p = [ measurementUpdate state [var v] [[var r]] p | (v, r) <- zip (toList $ statePos state) (toList cov) ]
 
-hk_tas :: (Eq var, IsString var) => StateVector var -> ([[Sym var]], [[Sym var]])
-hk_tas state = measurementUpdate state [sqrt $ sum $ map (** 2) $ toList $ stateVel stateSym - stateWind stateSym] [[var "R_TAS"]]
+hk_tas :: Eq var => var -> StateVector var -> [[Sym var]] -> ([[Sym var]], [[Sym var]])
+hk_tas cov state p = measurementUpdate state [sqrt $ sum $ map (** 2) $ toList $ stateVel stateSym - stateWind stateSym] [[var cov]] p
     where
     stateSym = fmap var state
 
-hk_mag :: (Eq var, IsString var) => StateVector var -> [([[Sym var]], [[Sym var]])]
-hk_mag state = [ measurementUpdate state [v] [[var "R_MAG"]] | v <- toList $ stateMagXYZ stateSym + nav2body stateSym (stateMagNED stateSym) ]
+hk_mag :: Eq var => var -> StateVector var -> [[Sym var]] -> [([[Sym var]], [[Sym var]])]
+hk_mag cov state p = [ measurementUpdate state [v] [[var cov]] p | v <- toList $ stateMagXYZ stateSym + nav2body stateSym (stateMagNED stateSym) ]
     where
     stateSym = fmap var state
