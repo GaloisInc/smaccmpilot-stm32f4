@@ -212,25 +212,26 @@ kalmanPP dt state dist cov p = matBinOp (+) q $ matMult f $ matMult p $ transpos
     g = kalmanG dt state dist
     q = kalmanQ cov g
 
-measurementUpdate :: Eq var => StateVector var -> [Sym var] -> [[Sym var]] -> [[Sym var]] -> ([[Sym var]], [[Sym var]])
+type MeasurementModel var = ([[Sym var]], [[Sym var]])
+measurementUpdate :: Eq var => StateVector var -> [Sym var] -> [[Sym var]] -> [[Sym var]] -> MeasurementModel var
 measurementUpdate state measurements obsCov errorCov = (obsModel, obsGain)
     where
     obsModel = jacobian measurements (toList state)
     ph = matMult errorCov $ transpose obsModel
     obsGain = matMult ph $ matInvert $ matBinOp (+) obsCov $ matMult obsModel ph
 
-hk_vel :: Eq var => NED var -> StateVector var -> [[Sym var]] -> [([[Sym var]], [[Sym var]])]
+hk_vel :: Eq var => NED var -> StateVector var -> [[Sym var]] -> [MeasurementModel var]
 hk_vel cov state p = [ measurementUpdate state [var v] [[var r]] p | (v, r) <- zip (toList $ stateVel state) (toList cov) ]
 
-hk_pos :: Eq var => NED var -> StateVector var -> [[Sym var]] -> [([[Sym var]], [[Sym var]])]
+hk_pos :: Eq var => NED var -> StateVector var -> [[Sym var]] -> [MeasurementModel var]
 hk_pos cov state p = [ measurementUpdate state [var v] [[var r]] p | (v, r) <- zip (toList $ statePos state) (toList cov) ]
 
-hk_tas :: Eq var => var -> StateVector var -> [[Sym var]] -> ([[Sym var]], [[Sym var]])
+hk_tas :: Eq var => var -> StateVector var -> [[Sym var]] -> MeasurementModel var
 hk_tas cov state p = measurementUpdate state [sqrt $ sum $ map (** 2) $ toList $ stateVel stateSym - stateWind stateSym] [[var cov]] p
     where
     stateSym = fmap var state
 
-hk_mag :: Eq var => var -> StateVector var -> [[Sym var]] -> [([[Sym var]], [[Sym var]])]
+hk_mag :: Eq var => var -> StateVector var -> [[Sym var]] -> [MeasurementModel var]
 hk_mag cov state p = [ measurementUpdate state [v] [[var cov]] p | v <- toList $ stateMagXYZ stateSym + nav2body stateSym (stateMagNED stateSym) ]
     where
     stateSym = fmap var state
