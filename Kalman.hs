@@ -212,26 +212,29 @@ kalmanPP dt state dist cov p = matBinOp (+) q $ matMult f $ matMult p $ transpos
     g = kalmanG dt state dist
     q = kalmanQ cov g
 
-type MeasurementModel var = ([[Sym var]], [[Sym var]])
-measurementUpdate :: Eq var => StateVector var -> [Sym var] -> [[Sym var]] -> [[Sym var]] -> MeasurementModel var
-measurementUpdate state measurements obsCov errorCov = (obsModel, obsGain)
+type MeasurementModel var = ([Sym var], [(var, Sym var)], [[Sym var]])
+measurementUpdate :: Eq var => StateVector var -> [(var, Sym var)] -> [[Sym var]] -> [[Sym var]] -> MeasurementModel var
+measurementUpdate state measurements obsCov errorCov = (innovation, state', errorCov')
     where
-    obsModel = jacobian measurements (toList state)
+    innovation = [ var v - h | (v, h) <- measurements ]
+    obsModel = jacobian (map snd measurements) (toList state)
     ph = matMult errorCov $ transpose obsModel
     obsGain = matMult ph $ matInvert $ matBinOp (+) obsCov $ matMult obsModel ph
+    state' = [ (v, var v + update) | (v, update) <- zip (toList state) (matVecMult obsGain innovation) ]
+    errorCov' = matBinOp (-) errorCov $ matMult (matMult obsGain obsModel) errorCov
 
-hk_vel :: Eq var => NED var -> StateVector var -> [[Sym var]] -> [MeasurementModel var]
-hk_vel cov state p = [ measurementUpdate state [var v] [[var r]] p | (v, r) <- zip (toList $ stateVel state) (toList cov) ]
+fuseVel :: Eq var => NED var -> NED var -> StateVector var -> [[Sym var]] -> [MeasurementModel var]
+fuseVel cov meas state p = [ measurementUpdate state [(m, var v)] [[var r]] p | (v, r, m) <- zip3 (toList $ stateVel state) (toList cov) (toList meas) ]
 
-hk_pos :: Eq var => NED var -> StateVector var -> [[Sym var]] -> [MeasurementModel var]
-hk_pos cov state p = [ measurementUpdate state [var v] [[var r]] p | (v, r) <- zip (toList $ statePos state) (toList cov) ]
+fusePos :: Eq var => NED var -> NED var -> StateVector var -> [[Sym var]] -> [MeasurementModel var]
+fusePos cov meas state p = [ measurementUpdate state [(m, var v)] [[var r]] p | (v, r, m) <- zip3 (toList $ statePos state) (toList cov) (toList meas) ]
 
-hk_tas :: Eq var => var -> StateVector var -> [[Sym var]] -> MeasurementModel var
-hk_tas cov state p = measurementUpdate state [sqrt $ sum $ map (** 2) $ toList $ stateVel stateSym - stateWind stateSym] [[var cov]] p
+fuseTAS :: Eq var => var -> var -> StateVector var -> [[Sym var]] -> MeasurementModel var
+fuseTAS cov meas state p = measurementUpdate state [(meas, sqrt $ sum $ map (** 2) $ toList $ stateVel stateSym - stateWind stateSym)] [[var cov]] p
     where
     stateSym = fmap var state
 
-hk_mag :: Eq var => var -> StateVector var -> [[Sym var]] -> [MeasurementModel var]
-hk_mag cov state p = [ measurementUpdate state [v] [[var cov]] p | v <- toList $ stateMagXYZ stateSym + nav2body stateSym (stateMagNED stateSym) ]
+fuseMag :: Eq var => var -> XYZ var -> StateVector var -> [[Sym var]] -> [MeasurementModel var]
+fuseMag cov meas state p = [ measurementUpdate state [(m, v)] [[var cov]] p | (v, m) <- zip (toList $ stateMagXYZ stateSym + nav2body stateSym (stateMagNED stateSym)) (toList meas) ]
     where
     stateSym = fmap var state
