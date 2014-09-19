@@ -70,6 +70,20 @@ instance Floating (Sym var) where
     acos = simplifyOnce . ArcCos
     atan = simplifyOnce . ArcTan
 
+instance Functor Sym where
+    fmap _ (Const x) = Const x
+    fmap f (Var v) = Var (f v)
+    fmap f (Add a b) = Add (fmap f a) (fmap f b)
+    fmap f (Mul a b) = Mul (fmap f a) (fmap f b)
+    fmap f (Pow a b) = Pow (fmap f a) (fmap f b)
+    fmap f (Ln a) = Ln (fmap f a)
+    fmap f (Exp a) = Exp (fmap f a)
+    fmap f (Sin a) = Sin (fmap f a)
+    fmap f (Cos a) = Cos (fmap f a)
+    fmap f (ArcSin a) = ArcSin (fmap f a)
+    fmap f (ArcCos a) = ArcCos (fmap f a)
+    fmap f (ArcTan a) = ArcTan (fmap f a)
+
 descend :: (Sym var -> Sym var) -> Sym var -> Sym var
 descend _ (Const x) = Const x
 descend _ (Var v) = Var v
