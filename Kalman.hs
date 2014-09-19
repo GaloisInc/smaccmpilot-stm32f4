@@ -5,7 +5,7 @@ import Matrix
 import Quat
 import SymDiff
 
-import Data.Foldable
+import Data.Foldable (Foldable(..), toList)
 import Data.List
 import Data.Monoid
 import Data.String
@@ -22,6 +22,7 @@ instance IsString VarName where
 
 -- For measurements/states in navigation frame
 data NED a = NED { north :: a, east :: a, down :: a }
+    deriving Show
 
 instance Foldable NED where
     foldMap f ned = f (north ned) `mappend` f (east ned) `mappend` f (down ned)
@@ -40,6 +41,7 @@ instance Num a => Num (NED a) where
 
 -- For measurements/states in body frame
 data XYZ a = XYZ { x :: a, y :: a, z :: a }
+    deriving Show
 
 instance Foldable XYZ where
     foldMap f xyz = f (x xyz) `mappend` f (y xyz) `mappend` f (z xyz)
@@ -65,122 +67,153 @@ convertFrames q = (toNav, toBody)
     toNav = convert rotate2nav (\[n, e, d]-> NED n e d)
     toBody = convert (transpose rotate2nav) (\[x, y, z]-> XYZ x y z)
 
+data StateVector a = StateVector
+    { stateOrient :: Quat a
+    , stateVel :: NED a
+    , statePos :: NED a
+    , stateGyroBias :: XYZ a
+    , stateWind :: NED a
+    , stateMagNED :: NED a
+    , stateMagXYZ :: XYZ a
+    }
+    deriving Show
 
-dt :: Sym VarName
-dt = var "dt" -- IMU time step - sec
+instance Functor StateVector where
+    fmap f v = StateVector
+        { stateOrient = fmap f $ stateOrient v
+        , stateVel = fmap f $ stateVel v
+        , statePos = fmap f $ statePos v
+        , stateGyroBias = fmap f $ stateGyroBias v
+        , stateWind = fmap f $ stateWind v
+        , stateMagNED = fmap f $ stateMagNED v
+        , stateMagXYZ = fmap f $ stateMagXYZ v
+        }
 
-da, dv :: XYZ VarName
-da = XYZ "dax" "day" "daz" -- IMU delta angle measurements in body axes - rad
-dv = XYZ "dvx" "dvy" "dvz" -- IMU delta velocity measurements in body axes - m/sec
+instance Foldable StateVector where
+    foldMap f v = mconcat
+        [ foldMap f $ stateOrient v
+        , foldMap f $ stateVel v
+        , foldMap f $ statePos v
+        , foldMap f $ stateGyroBias v
+        , foldMap f $ stateWind v
+        , foldMap f $ stateMagNED v
+        , foldMap f $ stateMagXYZ v
+        ]
 
-quatVars :: Quat VarName
-quatVars = Quat ("q0", "q1", "q2", "q3") -- quaternions defining attitude of body axes relative to local NED
+data DisturbanceVector a = DisturbanceVector
+    { disturbanceGyro :: XYZ a
+    , disturbanceAccel :: XYZ a
+    }
+    deriving Show
 
-vel, vel_R, pos, pos_R :: NED VarName
-vel = NED "vn" "ve" "vd" -- NED velocity - m/sec
-pos = NED "pn" "pe" "pd" -- NED position - m
-vel_R = NED "R_VN" "R_VE" "R_VD"
-pos_R = NED "R_PN" "R_PE" "R_PD"
-da_b :: XYZ VarName
-da_b = XYZ "dax_b" "day_b" "daz_b" -- delta angle bias - rad
-vw :: [VarName]
-vw = ["vwn", "vwe"] -- NE wind velocity - m/sec
-magNED :: NED VarName
-magNED = NED "magN" "magE" "magD" -- NED earth fixed magnetic field components - milligauss
-magXYZ :: XYZ VarName
-magXYZ = XYZ "magX" "magY" "magZ" -- XYZ body fixed magnetic field measurements - milligauss
+instance Functor DisturbanceVector where
+    fmap f v = DisturbanceVector
+        { disturbanceGyro = fmap f $ disturbanceGyro v
+        , disturbanceAccel = fmap f $ disturbanceAccel v
+        }
 
-stateVector :: [VarName]
-stateVector = toList quatVars ++ toList vel ++ toList pos ++ toList da_b ++ vw ++ toList magNED ++ toList magXYZ
+instance Foldable DisturbanceVector where
+    foldMap f v = mconcat
+        [ foldMap f $ disturbanceGyro v
+        , foldMap f $ disturbanceAccel v
+        ]
 
-nStates :: Int
-nStates = length stateVector
+stateVector :: StateVector VarName
+stateVector = StateVector
+    { stateOrient = Quat ("q0", "q1", "q2", "q3") -- quaternions defining attitude of body axes relative to local NED
+    , stateVel = NED "vn" "ve" "vd" -- NED velocity - m/sec
+    , statePos = NED "pn" "pe" "pd" -- NED position - m
+    , stateGyroBias = XYZ "dax_b" "day_b" "daz_b" -- delta angle bias - rad
+    , stateWind = NED "vwn" "vwe" "vwd" -- NE wind velocity - m/sec
+    , stateMagNED = NED "magN" "magE" "magD" -- NED earth fixed magnetic field components - milligauss
+    , stateMagXYZ = XYZ "magX" "magY" "magZ" -- XYZ body fixed magnetic field measurements - milligauss
+    }
 
-quat :: Quat (Sym VarName)
-quat = fmap var quatVars
+distVector :: DisturbanceVector VarName
+distVector = DisturbanceVector
+    { disturbanceGyro = XYZ "dax" "day" "daz" -- IMU delta angle measurements in body axes - rad
+    , disturbanceAccel = XYZ "dvx" "dvy" "dvz" -- IMU delta velocity measurements in body axes - m/sec
+    }
 
-body2nav :: XYZ (Sym VarName) -> NED (Sym VarName)
-nav2body :: NED (Sym VarName) -> XYZ (Sym VarName)
-(body2nav, nav2body) = convertFrames quat
+distCovariance :: DisturbanceVector VarName
+distCovariance = DisturbanceVector
+    { disturbanceGyro = XYZ "daxCov" "dayCov" "dazCov"
+    , disturbanceAccel = XYZ "dvxCov" "dvyCov" "dvzCov"
+    }
 
--- define the bias corrected delta angle
--- Ignore coning compensation and earths rotation as these effect are
--- negligible in terms of covariance growth compared to other efects for our
--- grade of sensor
--- deltaAngle = da - da_b + 1/12*cross(da_prev,da) - transpose(Cbn)*([omn; ome; omd])*dt;
-deltaAngle :: XYZ (Sym VarName)
-deltaAngle = fmap var da - fmap var da_b
+body2nav :: Num a => StateVector a -> XYZ a -> NED a
+body2nav = fst . convertFrames . stateOrient
+nav2body :: Num a => StateVector a -> NED a -> XYZ a
+nav2body = snd . convertFrames . stateOrient
 
--- define the attitude update equations
--- This approximates the discretization of `qdot = 0.5 * <0, deltaAngle> * q`.
--- It assumes that dt is sufficiently small. The closed-form analytic
--- discretization requires dividing by |deltaAngle|, which may be 0.
--- * _Strapdown Inertial Navigation Technology, 2nd Ed_, section 11.2.5 (on
---   pages 319-320) gives qdot and its analytic discretization, without proof.
--- * http://en.wikipedia.org/wiki/Discretization derives the general form of
---   discretization, and mentions this approximation.
--- * http://www.euclideanspace.com/physics/kinematics/angularvelocity/QuaternionDifferentiation2.pdf
---   derives qdot from angular momentum.
-qNew :: Quat (Sym VarName)
-qNew = quat + fmap (* dt) (Quat (0, x deltaAngle / 2, y deltaAngle / 2, z deltaAngle / 2)) * quat
+processModel :: (Num a, Fractional a) => a -> StateVector a -> DisturbanceVector a -> StateVector a
+processModel dt state dist = state
+    -- This approximates the discretization of `qdot = 0.5 * <0, deltaAngle> * q`.
+    -- It assumes that dt is sufficiently small. The closed-form analytic
+    -- discretization requires dividing by |deltaAngle|, which may be 0.
+    -- * _Strapdown Inertial Navigation Technology, 2nd Ed_, section 11.2.5 (on
+    --   pages 319-320) gives qdot and its analytic discretization, without proof.
+    -- * http://en.wikipedia.org/wiki/Discretization derives the general form of
+    --   discretization, and mentions this approximation.
+    -- * http://www.euclideanspace.com/physics/kinematics/angularvelocity/QuaternionDifferentiation2.pdf
+    --   derives qdot from angular momentum.
+    { stateOrient = (1 + fmap (* (dt / 2)) deltaQuat) * stateOrient state
+    , stateVel = stateVel state + deltaVel
+    , statePos = statePos state + fmap (* dt) (stateVel state + fmap (/ 2) deltaVel)
+    -- remaining state vector elements are unchanged by the process model
+    }
+    where
+    deltaAngle = disturbanceGyro dist - stateGyroBias state
+    deltaQuat = Quat (0, x deltaAngle, y deltaAngle, z deltaAngle)
+    -- XXX: shouldn't accel be multiplied by dt too?
+    deltaVel = body2nav state (disturbanceAccel dist) + fmap (* dt) g
+    g = NED 0 0 9.80665 -- NED gravity vector - m/sec^2
 
--- XXX: because `g` is constant, it disappears from the Jacobian. so why is it here?
-g :: NED (Sym VarName)
-g = NED 0 0 9.80665 -- NED gravity vector - m/sec^2
-
--- define the velocity update equations
--- ignore coriolis terms for linearisation purposes
-vNew :: NED (Sym VarName)
--- XXX: shouldn't dv be multiplied by dt too?
-vNew = fmap var vel + body2nav (fmap var dv) + fmap (* dt) g
-
-pNew :: NED (Sym VarName)
-pNew = fmap var pos + fmap (* dt) (fmap var vel + fmap (/ 2) (body2nav (fmap var dv)))
-
-processEqns :: [Sym VarName]
-processEqns = toList qNew ++ toList vNew ++ toList pNew ++ map var (toList da_b ++ vw ++ toList magNED ++ toList magXYZ)
-
-kalmanF :: [[Sym VarName]]
-kalmanF = jacobian processEqns stateVector
+kalmanF :: Eq var => var -> StateVector var -> DisturbanceVector var -> [[Sym var]]
+kalmanF dt state dist = jacobian (toList $ processModel (var dt) (fmap var state) (fmap var dist)) (toList state)
 
 -- Define the control (disturbance) vector. Error growth in the inertial
 -- solution is assumed to be driven by 'noise' in the delta angles and
 -- velocities, after bias effects have been removed. This is OK becasue we
 -- have sensor bias accounted for in the state equations.
-distVector :: [VarName]
-distVector = toList da ++ toList dv
+kalmanG :: Eq var => var -> StateVector var -> DisturbanceVector var -> [[Sym var]]
+kalmanG dt state dist = jacobian (toList $ processModel (var dt) (fmap var state) (fmap var dist)) (toList dist)
 
-kalmanG :: [[Sym VarName]]
-kalmanG = jacobian processEqns distVector
+kalmanQ :: DisturbanceVector var -> [[Sym var]] -> [[Sym var]]
+kalmanQ cov g = matMult g $ matMult (diagMat $ map var $ toList cov) $ transpose g
 
-kalmanQ :: [[Sym VarName]]
-kalmanQ = matMult kalmanG $ matMult imuNoise $ transpose kalmanG
+kalmanP :: IsString var => StateVector var -> [[Sym var]]
+kalmanP state = [ [ var $ fromString $ "OP_" ++ show i ++ "_" ++ show j | j <- idxs ] | i <- idxs ]
     where
-    imuNoise = diagMat $ map var ["daxCov", "dayCov", "dazCov", "dvxCov", "dvyCov", "dvzCov"]
+    idxs = zipWith const [1..] $ toList state
 
-kalmanP :: [[Sym VarName]]
-kalmanP = [ [ var $ VarName $ "OP_" ++ show i ++ "_" ++ show j | j <- [1..nStates] ] | i <- [1..nStates] ]
-
-kalmanPP :: [[Sym VarName]]
-kalmanPP = matBinOp (+) kalmanQ $ matMult kalmanF $ matMult kalmanP $ transpose kalmanF
-
-measurementUpdate :: [Sym VarName] -> [VarName] -> [[Sym VarName]] -> [[Sym VarName]] -> ([[Sym VarName]], [[Sym VarName]])
-measurementUpdate measurements states errorCov obsCov = (obsModel, obsGain)
+kalmanPP :: (Eq var, IsString var) => var -> StateVector var -> DisturbanceVector var -> DisturbanceVector var -> [[Sym var]]
+kalmanPP dt state dist cov = matBinOp (+) q $ matMult f $ matMult p $ transpose f
     where
-    obsModel = jacobian measurements states
-    ph = matMult errorCov $ transpose obsModel
+    f = kalmanF dt state dist
+    g = kalmanG dt state dist
+    q = kalmanQ cov g
+    p = kalmanP state
+
+measurementUpdate :: (Eq var, IsString var) => StateVector var -> [Sym var] -> [[Sym var]] -> ([[Sym var]], [[Sym var]])
+measurementUpdate state measurements obsCov = (obsModel, obsGain)
+    where
+    obsModel = jacobian measurements (toList state)
+    ph = matMult (kalmanP state) $ transpose obsModel
     obsGain = matMult ph $ matInvert $ matBinOp (+) obsCov $ matMult obsModel ph
 
-hk_vel :: [([[Sym VarName]], [[Sym VarName]])]
-hk_vel = [ measurementUpdate [var v] stateVector kalmanP [[var r]] | (v, r) <- zip (toList vel) (toList vel_R) ]
+hk_vel :: (Eq var, IsString var) => StateVector var -> [([[Sym var]], [[Sym var]])]
+hk_vel state = [ measurementUpdate state [var v] [[var r]] | (v, r) <- zip (toList $ stateVel state) (toList $ NED "R_VN" "R_VE" "R_VD") ]
 
-hk_pos :: [([[Sym VarName]], [[Sym VarName]])]
-hk_pos = [ measurementUpdate [var v] stateVector kalmanP [[var r]] | (v, r) <- zip (toList pos) (toList pos_R) ]
+hk_pos :: (Eq var, IsString var) => StateVector var -> [([[Sym var]], [[Sym var]])]
+hk_pos state = [ measurementUpdate state [var v] [[var r]] | (v, r) <- zip (toList $ statePos state) (toList $ NED "R_PN" "R_PE" "R_PD") ]
 
-hk_tas :: ([[Sym VarName]], [[Sym VarName]])
-hk_tas = measurementUpdate [sqrt ((var (north vel) - vwn) ** 2 + (var (east vel) - vwe) ** 2 + var (down vel) ** 2)] stateVector kalmanP [[var "R_TAS"]]
+hk_tas :: (Eq var, IsString var) => StateVector var -> ([[Sym var]], [[Sym var]])
+hk_tas state = measurementUpdate state [sqrt $ sum $ map (** 2) $ toList $ stateVel stateSym - stateWind stateSym] [[var "R_TAS"]]
     where
-    [vwn, vwe] = map var vw
+    stateSym = fmap var state
 
-hk_mag :: [([[Sym VarName]], [[Sym VarName]])]
-hk_mag = [ measurementUpdate [v] stateVector kalmanP [[var "R_MAG"]] | v <- toList $ fmap var magXYZ + nav2body (fmap var magNED) ]
+hk_mag :: (Eq var, IsString var) => StateVector var -> [([[Sym var]], [[Sym var]])]
+hk_mag state = [ measurementUpdate state [v] [[var "R_MAG"]] | v <- toList $ stateMagXYZ stateSym + nav2body stateSym (stateMagNED stateSym) ]
+    where
+    stateSym = fmap var state
