@@ -213,7 +213,7 @@ kalmanPP dt state dist cov p = matBinOp (+) q $ matMult f $ matMult p $ transpos
     q = kalmanQ cov g
 
 type MeasurementModel var = ([Sym var], [(var, Sym var)], [[Sym var]])
-measurementUpdate :: Eq var => StateVector var -> [(var, Sym var)] -> [[Sym var]] -> [[Sym var]] -> MeasurementModel var
+measurementUpdate :: (Foldable t, Eq var) => t var -> [(var, Sym var)] -> [[Sym var]] -> [[Sym var]] -> MeasurementModel var
 measurementUpdate state measurements obsCov errorCov = (innovation, state', errorCov')
     where
     innovation = [ var v - h | (v, h) <- measurements ]
