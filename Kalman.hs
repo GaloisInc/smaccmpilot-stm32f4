@@ -192,18 +192,18 @@ processModel dt state dist = state
     deltaVel = body2nav state (disturbanceAccel dist) + fmap (* dt) g
     g = ned 0 0 9.80665 -- NED gravity vector - m/sec^2
 
-fuseVel :: Eq var => NED var -> NED var -> StateVector var -> [[Sym var]] -> [MeasurementModel var]
+fuseVel :: Eq var => NED var -> NED var -> StateVector var -> [[Sym var]] -> [MeasurementModel StateVector var]
 fuseVel cov meas state p = [ measurementUpdate state [(m, var v)] [[var r]] p | (v, r, m) <- zip3 (toList $ stateVel state) (toList cov) (toList meas) ]
 
-fusePos :: Eq var => NED var -> NED var -> StateVector var -> [[Sym var]] -> [MeasurementModel var]
+fusePos :: Eq var => NED var -> NED var -> StateVector var -> [[Sym var]] -> [MeasurementModel StateVector var]
 fusePos cov meas state p = [ measurementUpdate state [(m, var v)] [[var r]] p | (v, r, m) <- zip3 (toList $ statePos state) (toList cov) (toList meas) ]
 
-fuseTAS :: Eq var => var -> var -> StateVector var -> [[Sym var]] -> MeasurementModel var
+fuseTAS :: Eq var => var -> var -> StateVector var -> [[Sym var]] -> MeasurementModel StateVector var
 fuseTAS cov meas state p = measurementUpdate state [(meas, sqrt $ sum $ map (** 2) $ toList $ stateVel stateSym - stateWind stateSym)] [[var cov]] p
     where
     stateSym = fmap var state
 
-fuseMag :: Eq var => var -> XYZ var -> StateVector var -> [[Sym var]] -> [MeasurementModel var]
+fuseMag :: Eq var => var -> XYZ var -> StateVector var -> [[Sym var]] -> [MeasurementModel StateVector var]
 fuseMag cov meas state p = [ measurementUpdate state [(m, v)] [[var cov]] p | (v, m) <- zip (toList $ stateMagXYZ stateSym + nav2body stateSym (stateMagNED stateSym)) (toList meas) ]
     where
     stateSym = fmap var state
