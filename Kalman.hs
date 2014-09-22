@@ -90,6 +90,10 @@ instance Foldable StateVector where
         , foldMap f $ stateMagXYZ v
         ]
 
+-- Define the control (disturbance) vector. Error growth in the inertial
+-- solution is assumed to be driven by 'noise' in the delta angles and
+-- velocities, after bias effects have been removed. This is OK becasue we
+-- have sensor bias accounted for in the state equations.
 data DisturbanceVector a = DisturbanceVector
     { disturbanceGyro :: XYZ a
     , disturbanceAccel :: XYZ a
@@ -192,25 +196,13 @@ processModel dt state dist = state
     deltaVel = body2nav state (disturbanceAccel dist) + fmap (* dt) g
     g = NED 0 0 9.80665 -- NED gravity vector - m/sec^2
 
-kalmanF :: Eq var => var -> StateVector var -> DisturbanceVector var -> [[Sym var]]
-kalmanF dt state dist = jacobian (toList $ processModel (var dt) (fmap var state) (fmap var dist)) (toList state)
-
--- Define the control (disturbance) vector. Error growth in the inertial
--- solution is assumed to be driven by 'noise' in the delta angles and
--- velocities, after bias effects have been removed. This is OK becasue we
--- have sensor bias accounted for in the state equations.
-kalmanG :: Eq var => var -> StateVector var -> DisturbanceVector var -> [[Sym var]]
-kalmanG dt state dist = jacobian (toList $ processModel (var dt) (fmap var state) (fmap var dist)) (toList dist)
-
-kalmanQ :: DisturbanceVector var -> [[Sym var]] -> [[Sym var]]
-kalmanQ cov g = matMult g $ matMult (diagMat $ map var $ toList cov) $ transpose g
-
-kalmanPP :: Eq var => var -> StateVector var -> DisturbanceVector var -> DisturbanceVector var -> [[Sym var]] -> [[Sym var]]
-kalmanPP dt state dist cov p = matBinOp (+) q $ matMult f $ matMult p $ transpose f
+kalmanPredict :: (Eq var, Functor state, Foldable state, Functor dist, Foldable dist) => (state (Sym var) -> dist (Sym var) -> state (Sym var)) -> state var -> dist var -> dist var -> [[Sym var]] -> [[Sym var]]
+kalmanPredict process state dist cov p = matBinOp (+) q $ matMult f $ matMult p $ transpose f
     where
-    f = kalmanF dt state dist
-    g = kalmanG dt state dist
-    q = kalmanQ cov g
+    state' = toList $ process (fmap var state) (fmap var dist)
+    f = jacobian state' $ toList state
+    g = jacobian state' $ toList dist
+    q = matMult g $ matMult (diagMat $ map var $ toList cov) $ transpose g
 
 type MeasurementModel var = ([Sym var], [(var, Sym var)], [[Sym var]])
 measurementUpdate :: (Foldable t, Eq var) => t var -> [(var, Sym var)] -> [[Sym var]] -> [[Sym var]] -> MeasurementModel var
