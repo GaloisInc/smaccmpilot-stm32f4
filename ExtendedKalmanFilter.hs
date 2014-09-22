@@ -16,14 +16,15 @@ kalmanPredict process state dist cov p = matBinOp (+) q $ matMult f $ matMult p 
     g = jacobian state' $ toList dist
     q = matMult g $ matMult (diagMat $ map var $ toList cov) $ transpose g
 
-type MeasurementModel state var = ([Sym var], state (Sym var), [[Sym var]])
+type MeasurementModel state var = ([Sym var], [[Sym var]], state (Sym var), [[Sym var]])
 measurementUpdate :: (Traversable state, Eq var) => state var -> [(var, Sym var)] -> [[Sym var]] -> [[Sym var]] -> MeasurementModel state var
-measurementUpdate state measurements obsCov errorCov = (innovation, state', errorCov')
+measurementUpdate state measurements obsCov errorCov = (innovation, innovCov, state', errorCov')
     where
     innovation = [ var v - h | (v, h) <- measurements ]
     obsModel = jacobian (map snd measurements) (toList state)
     ph = matMult errorCov $ transpose obsModel
-    obsGain = matMult ph $ matInvert $ matBinOp (+) obsCov $ matMult obsModel ph
+    innovCov = matBinOp (+) obsCov $ matMult obsModel ph
+    obsGain = matMult ph $ matInvert innovCov
     errorCov' = matBinOp (-) errorCov $ matMult (matMult obsGain obsModel) errorCov
 
     -- By the above definitions, there must be exactly as many elements in

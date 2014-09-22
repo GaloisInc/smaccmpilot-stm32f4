@@ -212,13 +212,15 @@ processModel dt state dist = state
     g = ned 0 0 9.80665 -- NED gravity vector - m/sec^2
 
 -- A Fusion is a function from measurement covariance and measurement to
--- innovation, new state, and new estimated state covariance. This version only
--- supports scalar measurements. It's useful for sequential fusion. It's also
--- useful for partial measurements, such as measuring only altitude when you've
--- modeled 3D position.
-type Fusion var = var -> var -> (Sym var, StateVector (Sym var), [[Sym var]])
+-- innovation, innovation covariance, new state, and new estimated state
+-- covariance.
+--
+-- This version only supports scalar measurements. It's useful for sequential
+-- fusion. It's also useful for partial measurements, such as measuring only
+-- altitude when you've modeled 3D position.
+type Fusion var = var -> var -> (Sym var, Sym var, StateVector (Sym var), [[Sym var]])
 fusion :: Eq var => StateVector var -> [[Sym var]] -> Sym var -> Fusion var
-fusion state p v cov m = let ([innov], state', p') = measurementUpdate state [(m, v)] [[var cov]] p in (innov, state', p')
+fusion state p v cov m = let ([innov], [[innovCov]], state', p') = measurementUpdate state [(m, v)] [[var cov]] p in (innov, innovCov, state', p')
 
 fuseVel :: Eq var => StateVector var -> [[Sym var]] -> NED (Fusion var)
 fuseVel state p = fusion state p <$> fmap var (stateVel state)
