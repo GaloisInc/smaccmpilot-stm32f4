@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Kalman where
 
+import ExtendedKalmanFilter
 import Matrix
 import Quat
 import SymDiff
@@ -195,25 +196,6 @@ processModel dt state dist = state
     -- XXX: shouldn't accel be multiplied by dt too?
     deltaVel = body2nav state (disturbanceAccel dist) + fmap (* dt) g
     g = NED 0 0 9.80665 -- NED gravity vector - m/sec^2
-
-kalmanPredict :: (Eq var, Functor state, Foldable state, Functor dist, Foldable dist) => (state (Sym var) -> dist (Sym var) -> state (Sym var)) -> state var -> dist var -> dist var -> [[Sym var]] -> [[Sym var]]
-kalmanPredict process state dist cov p = matBinOp (+) q $ matMult f $ matMult p $ transpose f
-    where
-    state' = toList $ process (fmap var state) (fmap var dist)
-    f = jacobian state' $ toList state
-    g = jacobian state' $ toList dist
-    q = matMult g $ matMult (diagMat $ map var $ toList cov) $ transpose g
-
-type MeasurementModel var = ([Sym var], [(var, Sym var)], [[Sym var]])
-measurementUpdate :: (Foldable t, Eq var) => t var -> [(var, Sym var)] -> [[Sym var]] -> [[Sym var]] -> MeasurementModel var
-measurementUpdate state measurements obsCov errorCov = (innovation, state', errorCov')
-    where
-    innovation = [ var v - h | (v, h) <- measurements ]
-    obsModel = jacobian (map snd measurements) (toList state)
-    ph = matMult errorCov $ transpose obsModel
-    obsGain = matMult ph $ matInvert $ matBinOp (+) obsCov $ matMult obsModel ph
-    state' = [ (v, var v + update) | (v, update) <- zip (toList state) (matVecMult obsGain innovation) ]
-    errorCov' = matBinOp (-) errorCov $ matMult (matMult obsGain obsModel) errorCov
 
 fuseVel :: Eq var => NED var -> NED var -> StateVector var -> [[Sym var]] -> [MeasurementModel var]
 fuseVel cov meas state p = [ measurementUpdate state [(m, var v)] [[var r]] p | (v, r, m) <- zip3 (toList $ stateVel state) (toList cov) (toList meas) ]
