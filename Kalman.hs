@@ -211,18 +211,27 @@ processModel dt state dist = state
     deltaVel = body2nav state (disturbanceAccel dist) + fmap (* dt) g
     g = ned 0 0 9.80665 -- NED gravity vector - m/sec^2
 
-fuseVel :: Eq var => NED var -> NED var -> StateVector var -> [[Sym var]] -> [MeasurementModel StateVector var]
-fuseVel cov meas state p = [ measurementUpdate state [(m, var v)] [[var r]] p | (v, r, m) <- zip3 (toList $ stateVel state) (toList cov) (toList meas) ]
+-- A Fusion is a function from measurement covariance and measurement to
+-- innovation, new state, and new estimated state covariance. This version only
+-- supports scalar measurements. It's useful for sequential fusion. It's also
+-- useful for partial measurements, such as measuring only altitude when you've
+-- modeled 3D position.
+type Fusion var = var -> var -> (Sym var, StateVector (Sym var), [[Sym var]])
+fusion :: Eq var => StateVector var -> [[Sym var]] -> Sym var -> Fusion var
+fusion state p v cov m = let ([innov], state', p') = measurementUpdate state [(m, v)] [[var cov]] p in (innov, state', p')
 
-fusePos :: Eq var => NED var -> NED var -> StateVector var -> [[Sym var]] -> [MeasurementModel StateVector var]
-fusePos cov meas state p = [ measurementUpdate state [(m, var v)] [[var r]] p | (v, r, m) <- zip3 (toList $ statePos state) (toList cov) (toList meas) ]
+fuseVel :: Eq var => StateVector var -> [[Sym var]] -> NED (Fusion var)
+fuseVel state p = fusion state p <$> fmap var (stateVel state)
 
-fuseTAS :: Eq var => var -> var -> StateVector var -> [[Sym var]] -> MeasurementModel StateVector var
-fuseTAS cov meas state p = measurementUpdate state [(meas, sqrt $ sum $ map (** 2) $ toList $ stateVel stateSym - stateWind stateSym)] [[var cov]] p
+fusePos :: Eq var => StateVector var -> [[Sym var]] -> NED (Fusion var)
+fusePos state p = fusion state p <$> fmap var (statePos state)
+
+fuseTAS :: Eq var => StateVector var -> [[Sym var]] -> Fusion var
+fuseTAS state p = fusion state p (sqrt $ sum $ map (** 2) $ toList $ stateVel stateSym - stateWind stateSym)
     where
     stateSym = fmap var state
 
-fuseMag :: Eq var => var -> XYZ var -> StateVector var -> [[Sym var]] -> [MeasurementModel StateVector var]
-fuseMag cov meas state p = [ measurementUpdate state [(m, v)] [[var cov]] p | (v, m) <- zip (toList $ stateMagXYZ stateSym + nav2body stateSym (stateMagNED stateSym)) (toList meas) ]
+fuseMag :: Eq var => StateVector var -> [[Sym var]] -> XYZ (Fusion var)
+fuseMag state p = fusion state p <$> stateMagXYZ stateSym + nav2body stateSym (stateMagNED stateSym)
     where
     stateSym = fmap var state
