@@ -1,7 +1,9 @@
 module Quat where
 
+import Control.Applicative
 import Data.Foldable
 import Data.Monoid
+import Data.Traversable
 
 newtype Quat a = Quat (a, a, a, a)
     deriving (Eq, Show)
@@ -11,6 +13,9 @@ instance Functor Quat where
 
 instance Foldable Quat where
     foldMap f (Quat (a, b, c, d)) = mconcat [f a, f b, f c, f d]
+
+instance Traversable Quat where
+    sequenceA (Quat (fa, fb, fc, fd)) = Quat <$> ((,,,) <$> fa <*> fb <*> fc <*> fd)
 
 instance Num a => Num (Quat a) where
     (Quat (a1, b1, c1, d1)) + (Quat (a2, b2, c2, d2)) = Quat (a1 + a2, b1 + b2, c1 + c2, d1 + d2)

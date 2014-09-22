@@ -8,21 +8,23 @@ import Quat
 import SymDiff
 import Vec3
 
+import Control.Applicative
 import Data.Foldable (Foldable(..), toList)
 import Data.List
 import Data.Monoid
 import Data.String
+import Data.Traversable
 
 -- For measurements/states in navigation frame
 newtype NED a = NED (Vec3 a)
-    deriving (Show, Foldable, Functor, Num)
+    deriving (Show, Foldable, Functor, Traversable, Num)
 
 ned :: a -> a -> a -> NED a
 ned n e d = NED $ Vec3 n e d
 
 -- For measurements/states in body frame
 newtype XYZ a = XYZ (Vec3 a)
-    deriving (Show, Foldable, Functor, Num)
+    deriving (Show, Foldable, Functor, Traversable, Num)
 
 xyz :: a -> a -> a -> XYZ a
 xyz a b c = XYZ $ Vec3 a b c
@@ -69,6 +71,16 @@ instance Foldable StateVector where
         , foldMap f $ stateMagXYZ v
         ]
 
+instance Traversable StateVector where
+    sequenceA v = StateVector
+        <$> sequenceA (stateOrient v)
+        <*> sequenceA (stateVel v)
+        <*> sequenceA (statePos v)
+        <*> sequenceA (stateGyroBias v)
+        <*> sequenceA (stateWind v)
+        <*> sequenceA (stateMagNED v)
+        <*> sequenceA (stateMagXYZ v)
+
 -- Define the control (disturbance) vector. Error growth in the inertial
 -- solution is assumed to be driven by 'noise' in the delta angles and
 -- velocities, after bias effects have been removed. This is OK becasue we
@@ -90,6 +102,11 @@ instance Foldable DisturbanceVector where
         [ foldMap f $ disturbanceGyro v
         , foldMap f $ disturbanceAccel v
         ]
+
+instance Traversable DisturbanceVector where
+    sequenceA v = DisturbanceVector
+        <$> sequenceA (disturbanceGyro v)
+        <*> sequenceA (disturbanceAccel v)
 
 nStates :: Int
 nStates = length $ toList stateVector
