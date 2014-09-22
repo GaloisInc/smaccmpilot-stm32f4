@@ -8,8 +8,12 @@ import Data.Traversable
 newtype Quat a = Quat (a, a, a, a)
     deriving (Eq, Show)
 
+instance Applicative Quat where
+    pure v = Quat (v, v, v, v)
+    (Quat (a1, b1, c1, d1)) <*> (Quat (a2, b2, c2, d2)) = Quat (a1 a2, b1 b2, c1 c2, d1 d2)
+
 instance Functor Quat where
-    fmap f (Quat (a, b, c, d)) = Quat (f a, f b, f c, f d)
+    fmap = liftA
 
 instance Foldable Quat where
     foldMap f (Quat (a, b, c, d)) = mconcat [f a, f b, f c, f d]
@@ -18,7 +22,7 @@ instance Traversable Quat where
     sequenceA (Quat (fa, fb, fc, fd)) = Quat <$> ((,,,) <$> fa <*> fb <*> fc <*> fd)
 
 instance Num a => Num (Quat a) where
-    (Quat (a1, b1, c1, d1)) + (Quat (a2, b2, c2, d2)) = Quat (a1 + a2, b1 + b2, c1 + c2, d1 + d2)
+    q1 + q2 = (+) <$> q1 <*> q2
     negate = fmap negate
 
     (Quat (a1, b1, c1, d1)) * (Quat (a2, b2, c2, d2)) = Quat (

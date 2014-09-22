@@ -17,14 +17,14 @@ import Data.Traversable
 
 -- For measurements/states in navigation frame
 newtype NED a = NED (Vec3 a)
-    deriving (Show, Foldable, Functor, Traversable, Num)
+    deriving (Show, Applicative, Foldable, Functor, Traversable, Num)
 
 ned :: a -> a -> a -> NED a
 ned n e d = NED $ Vec3 n e d
 
 -- For measurements/states in body frame
 newtype XYZ a = XYZ (Vec3 a)
-    deriving (Show, Foldable, Functor, Traversable, Num)
+    deriving (Show, Applicative, Foldable, Functor, Traversable, Num)
 
 xyz :: a -> a -> a -> XYZ a
 xyz a b c = XYZ $ Vec3 a b c
@@ -49,16 +49,28 @@ data StateVector a = StateVector
     }
     deriving Show
 
-instance Functor StateVector where
-    fmap f v = StateVector
-        { stateOrient = fmap f $ stateOrient v
-        , stateVel = fmap f $ stateVel v
-        , statePos = fmap f $ statePos v
-        , stateGyroBias = fmap f $ stateGyroBias v
-        , stateWind = fmap f $ stateWind v
-        , stateMagNED = fmap f $ stateMagNED v
-        , stateMagXYZ = fmap f $ stateMagXYZ v
+instance Applicative StateVector where
+    pure v = StateVector
+        { stateOrient = pure v
+        , stateVel = pure v
+        , statePos = pure v
+        , stateGyroBias = pure v
+        , stateWind = pure v
+        , stateMagNED = pure v
+        , stateMagXYZ = pure v
         }
+    v1 <*> v2 = StateVector
+        { stateOrient = stateOrient v1 <*> stateOrient v2
+        , stateVel = stateVel v1 <*> stateVel v2
+        , statePos = statePos v1 <*> statePos v2
+        , stateGyroBias = stateGyroBias v1 <*> stateGyroBias v2
+        , stateWind = stateWind v1 <*> stateWind v2
+        , stateMagNED = stateMagNED v1 <*> stateMagNED v2
+        , stateMagXYZ = stateMagXYZ v1 <*> stateMagXYZ v2
+        }
+
+instance Functor StateVector where
+    fmap = liftA
 
 instance Foldable StateVector where
     foldMap f v = mconcat
@@ -91,11 +103,18 @@ data DisturbanceVector a = DisturbanceVector
     }
     deriving Show
 
-instance Functor DisturbanceVector where
-    fmap f v = DisturbanceVector
-        { disturbanceGyro = fmap f $ disturbanceGyro v
-        , disturbanceAccel = fmap f $ disturbanceAccel v
+instance Applicative DisturbanceVector where
+    pure v = DisturbanceVector
+        { disturbanceGyro = pure v
+        , disturbanceAccel = pure v
         }
+    v1 <*> v2 = DisturbanceVector
+        { disturbanceGyro = disturbanceGyro v1 <*> disturbanceGyro v2
+        , disturbanceAccel = disturbanceAccel v1 <*> disturbanceAccel v2
+        }
+
+instance Functor DisturbanceVector where
+    fmap = liftA
 
 instance Foldable DisturbanceVector where
     foldMap f v = mconcat
@@ -109,7 +128,7 @@ instance Traversable DisturbanceVector where
         <*> sequenceA (disturbanceAccel v)
 
 nStates :: Int
-nStates = length $ toList stateVector
+nStates = length $ toList (pure () :: StateVector ())
 
 -- Sample inputs
 
