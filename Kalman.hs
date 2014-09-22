@@ -1,3 +1,4 @@
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Kalman where
 
@@ -5,6 +6,7 @@ import ExtendedKalmanFilter
 import Matrix
 import Quat
 import SymDiff
+import Vec3
 
 import Data.Foldable (Foldable(..), toList)
 import Data.List
@@ -12,42 +14,18 @@ import Data.Monoid
 import Data.String
 
 -- For measurements/states in navigation frame
-data NED a = NED { north :: a, east :: a, down :: a }
-    deriving Show
+newtype NED a = NED (Vec3 a)
+    deriving (Show, Foldable, Functor, Num)
 
-instance Foldable NED where
-    foldMap f ned = f (north ned) `mappend` f (east ned) `mappend` f (down ned)
-
-instance Functor NED where
-    fmap f ned = NED (f $ north ned) (f $ east ned) (f $ down ned)
-
-instance Num a => Num (NED a) where
-    (NED u1 u2 u3) + (NED v1 v2 v3) = NED (u1 + v1) (u2 + v2) (u3 + v3)
-    (NED u1 u2 u3) * (NED v1 v2 v3) = NED (u2 * v3 - u3 * v2) (u3 * v1 - u1 * v3) (u1 * v2 - u2 * v1)
-    negate = fmap negate
-    fromInteger i = error "NED vectors can't be constructed by fromInteger"
-    abs ned = error "NED vectors are not closed under abs"
-    signum ned = error "NED vectors are not closed under signum"
-
+ned :: a -> a -> a -> NED a
+ned n e d = NED $ Vec3 n e d
 
 -- For measurements/states in body frame
-data XYZ a = XYZ { x :: a, y :: a, z :: a }
-    deriving Show
+newtype XYZ a = XYZ (Vec3 a)
+    deriving (Show, Foldable, Functor, Num)
 
-instance Foldable XYZ where
-    foldMap f xyz = f (x xyz) `mappend` f (y xyz) `mappend` f (z xyz)
-
-instance Functor XYZ where
-    fmap f xyz = XYZ (f $ x xyz) (f $ y xyz) (f $ z xyz)
-
-instance Num a => Num (XYZ a) where
-    (XYZ u1 u2 u3) + (XYZ v1 v2 v3) = XYZ (u1 + v1) (u2 + v2) (u3 + v3)
-    (XYZ u1 u2 u3) * (XYZ v1 v2 v3) = XYZ (u2 * v3 - u3 * v2) (u3 * v1 - u1 * v3) (u1 * v2 - u2 * v1)
-    negate = fmap negate
-    fromInteger i = error "XYZ vectors can't be constructed by fromInteger"
-    abs xyz = error "XYZ vectors are not closed under abs"
-    signum xyz = error "XYZ vectors are not closed under signum"
-
+xyz :: a -> a -> a -> XYZ a
+xyz a b c = XYZ $ Vec3 a b c
 
 -- Rotate between coordinate frames through a given quaternion
 convertFrames :: Num a => Quat a -> (XYZ a -> NED a, NED a -> XYZ a)
@@ -55,8 +33,8 @@ convertFrames q = (toNav, toBody)
     where
     rotate2nav = quatRotation q
     convert mat mkVector = mkVector . matVecMult mat . toList
-    toNav = convert rotate2nav (\[n, e, d]-> NED n e d)
-    toBody = convert (transpose rotate2nav) (\[x, y, z]-> XYZ x y z)
+    toNav = convert rotate2nav (\[n, e, d]-> ned n e d)
+    toBody = convert (transpose rotate2nav) (\[x, y, z]-> xyz x y z)
 
 data StateVector a = StateVector
     { stateOrient :: Quat a
@@ -130,12 +108,12 @@ instance IsString VarName where
 stateVector :: StateVector VarName
 stateVector = StateVector
     { stateOrient = Quat ("q0", "q1", "q2", "q3") -- quaternions defining attitude of body axes relative to local NED
-    , stateVel = NED "vn" "ve" "vd" -- NED velocity - m/sec
-    , statePos = NED "pn" "pe" "pd" -- NED position - m
-    , stateGyroBias = XYZ "dax_b" "day_b" "daz_b" -- delta angle bias - rad
-    , stateWind = NED "vwn" "vwe" "vwd" -- NE wind velocity - m/sec
-    , stateMagNED = NED "magN" "magE" "magD" -- NED earth fixed magnetic field components - milligauss
-    , stateMagXYZ = XYZ "magX" "magY" "magZ" -- XYZ body fixed magnetic field measurements - milligauss
+    , stateVel = ned "vn" "ve" "vd" -- NED velocity - m/sec
+    , statePos = ned "pn" "pe" "pd" -- NED position - m
+    , stateGyroBias = xyz "dax_b" "day_b" "daz_b" -- delta angle bias - rad
+    , stateWind = ned "vwn" "vwe" "vwd" -- NE wind velocity - m/sec
+    , stateMagNED = ned "magN" "magE" "magD" -- NED earth fixed magnetic field components - milligauss
+    , stateMagXYZ = xyz "magX" "magY" "magZ" -- XYZ body fixed magnetic field measurements - milligauss
     }
 
 kalmanP :: IsString var => [[Sym var]]
@@ -145,21 +123,21 @@ kalmanP = [ [ var $ fromString $ "OP_" ++ show i ++ "_" ++ show j | j <- idxs ] 
 
 distVector :: DisturbanceVector VarName
 distVector = DisturbanceVector
-    { disturbanceGyro = XYZ "dax" "day" "daz" -- IMU delta angle measurements in body axes - rad
-    , disturbanceAccel = XYZ "dvx" "dvy" "dvz" -- IMU delta velocity measurements in body axes - m/sec
+    { disturbanceGyro = xyz "dax" "day" "daz" -- IMU delta angle measurements in body axes - rad
+    , disturbanceAccel = xyz "dvx" "dvy" "dvz" -- IMU delta velocity measurements in body axes - m/sec
     }
 
 distCovariance :: DisturbanceVector VarName
 distCovariance = DisturbanceVector
-    { disturbanceGyro = XYZ "daxCov" "dayCov" "dazCov"
-    , disturbanceAccel = XYZ "dvxCov" "dvyCov" "dvzCov"
+    { disturbanceGyro = xyz "daxCov" "dayCov" "dazCov"
+    , disturbanceAccel = xyz "dvxCov" "dvyCov" "dvzCov"
     }
 
 velCovariance :: NED VarName
-velCovariance = NED "R_VN" "R_VE" "R_VD"
+velCovariance = ned "R_VN" "R_VE" "R_VD"
 
 posCovariance :: NED VarName
-posCovariance = NED "R_PN" "R_PE" "R_PD"
+posCovariance = ned "R_PN" "R_PE" "R_PD"
 
 tasCovariance :: VarName
 tasCovariance = "R_TAS"
@@ -191,11 +169,11 @@ processModel dt state dist = state
     -- remaining state vector elements are unchanged by the process model
     }
     where
-    deltaAngle = disturbanceGyro dist - stateGyroBias state
-    deltaQuat = Quat (0, x deltaAngle, y deltaAngle, z deltaAngle)
+    (XYZ (Vec3 deltaX deltaY deltaZ)) = disturbanceGyro dist - stateGyroBias state
+    deltaQuat = Quat (0, deltaX, deltaY, deltaZ)
     -- XXX: shouldn't accel be multiplied by dt too?
     deltaVel = body2nav state (disturbanceAccel dist) + fmap (* dt) g
-    g = NED 0 0 9.80665 -- NED gravity vector - m/sec^2
+    g = ned 0 0 9.80665 -- NED gravity vector - m/sec^2
 
 fuseVel :: Eq var => NED var -> NED var -> StateVector var -> [[Sym var]] -> [MeasurementModel var]
 fuseVel cov meas state p = [ measurementUpdate state [(m, var v)] [[var r]] p | (v, r, m) <- zip3 (toList $ stateVel state) (toList cov) (toList meas) ]
