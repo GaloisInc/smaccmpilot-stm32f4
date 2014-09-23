@@ -1,5 +1,5 @@
 module SymDiff (
-    Sym, var,
+    Sym, var, eval,
     diff, jacobian
 ) where
 
