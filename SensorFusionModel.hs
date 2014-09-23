@@ -1,5 +1,5 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-module Kalman where
+module SensorFusionModel where
 
 import ExtendedKalmanFilter
 import Matrix

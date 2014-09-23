@@ -2,7 +2,7 @@
 module Simulate where
 
 import ExtendedKalmanFilter
-import Kalman
+import SensorFusionModel
 import Quat
 import SymDiff
 import Vec3
