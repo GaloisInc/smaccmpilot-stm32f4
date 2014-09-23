@@ -5,7 +5,7 @@ import Data.Foldable
 import Data.Monoid
 import Data.Traversable
 
-data Vec3 a = Vec3 a a a
+data Vec3 a = Vec3 { vecX :: a, vecY :: a, vecZ :: a }
     deriving Show
 
 instance Applicative Vec3 where

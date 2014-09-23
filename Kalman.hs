@@ -16,14 +16,14 @@ import Data.String
 import Data.Traversable
 
 -- For measurements/states in navigation frame
-newtype NED a = NED (Vec3 a)
+newtype NED a = NED { nedToVec3 :: Vec3 a }
     deriving (Show, Applicative, Foldable, Functor, Traversable, Num)
 
 ned :: a -> a -> a -> NED a
 ned n e d = NED $ Vec3 n e d
 
 -- For measurements/states in body frame
-newtype XYZ a = XYZ (Vec3 a)
+newtype XYZ a = XYZ { xyzToVec3 :: Vec3 a }
     deriving (Show, Applicative, Foldable, Functor, Traversable, Num)
 
 xyz :: a -> a -> a -> XYZ a
@@ -218,22 +218,27 @@ processModel dt state dist = state
 -- This version only supports scalar measurements. It's useful for sequential
 -- fusion. It's also useful for partial measurements, such as measuring only
 -- altitude when you've modeled 3D position.
-type Fusion var = var -> var -> (Sym var, Sym var, StateVector (Sym var), [[Sym var]])
-fusion :: Eq var => StateVector var -> [[Sym var]] -> Sym var -> Fusion var
-fusion state p v cov m = let ([innov], [[innovCov]], state', p') = measurementUpdate state [(m, v)] [[var cov]] p in (innov, innovCov, state', p')
+type Fusion var = var -> var -> StateVector var -> [[Sym var]] -> (Sym var, Sym var, StateVector (Sym var), [[Sym var]])
+fusion :: Eq var => (StateVector (Sym var) -> Sym var) -> Fusion var
+fusion v cov m state p = let ([innov], [[innovCov]], state', p') = measurementUpdate state [(m, v (fmap var state))] [[var cov]] p in (innov, innovCov, state', p')
 
-fuseVel :: Eq var => StateVector var -> [[Sym var]] -> NED (Fusion var)
-fuseVel state p = fusion state p <$> fmap var (stateVel state)
+composeF :: Functor t => t (b -> c) -> (a -> b) -> t (a -> c)
+composeF f g = fmap (. g) f
 
-fusePos :: Eq var => StateVector var -> [[Sym var]] -> NED (Fusion var)
-fusePos state p = fusion state p <$> fmap var (statePos state)
+selNED :: NED (NED a -> a)
+selNED = ned vecX vecY vecZ `composeF` nedToVec3
 
-fuseTAS :: Eq var => StateVector var -> [[Sym var]] -> Fusion var
-fuseTAS state p = fusion state p (sqrt $ sum $ map (** 2) $ toList $ stateVel stateSym - stateWind stateSym)
-    where
-    stateSym = fmap var state
+selXYZ :: XYZ (XYZ a -> a)
+selXYZ = xyz vecX vecY vecZ `composeF` xyzToVec3
 
-fuseMag :: Eq var => StateVector var -> [[Sym var]] -> XYZ (Fusion var)
-fuseMag state p = fusion state p <$> stateMagXYZ stateSym + nav2body stateSym (stateMagNED stateSym)
-    where
-    stateSym = fmap var state
+fuseVel :: Eq var => NED (Fusion var)
+fuseVel = fusion <$> selNED `composeF` stateVel
+
+fusePos :: Eq var => NED (Fusion var)
+fusePos = fusion <$> selNED `composeF` statePos
+
+fuseTAS :: Eq var => Fusion var
+fuseTAS = fusion $ \ state -> sqrt $ sum $ map (** 2) $ toList $ stateVel state - stateWind state
+
+fuseMag :: Eq var => XYZ (Fusion var)
+fuseMag = fusion <$> selXYZ `composeF` \ state -> stateMagXYZ state + nav2body state (stateMagNED state)
