@@ -151,7 +151,7 @@ diff wrt (ArcTan a) = recip (a ** 2 + 1) * diff wrt a
 jacobian :: Eq var => [Sym var] -> [var] -> [[Sym var]]
 jacobian fns vars = [ [ diff var fn | var <- vars ] | fn <- fns ]
 
-eval :: (Num a, Fractional a, Floating a) => Sym a -> a
+eval :: Floating a => Sym a -> a
 eval (Const x) = fromRational x
 eval (Var v) = v
 eval (Add a b) = eval a + eval b
