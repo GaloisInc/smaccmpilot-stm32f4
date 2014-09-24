@@ -37,13 +37,13 @@ convertFrames q = (toNav, toBody)
     toBody = convert (transpose rotate2nav) (\[x, y, z]-> xyz x y z)
 
 data StateVector a = StateVector
-    { stateOrient :: Quat a
-    , stateVel :: NED a
-    , statePos :: NED a
-    , stateGyroBias :: XYZ a
-    , stateWind :: NED a
-    , stateMagNED :: NED a
-    , stateMagXYZ :: XYZ a
+    { stateOrient :: Quat a -- quaternions defining attitude of body axes relative to local NED
+    , stateVel :: NED a -- NED velocity - m/sec
+    , statePos :: NED a -- NED position - m
+    , stateGyroBias :: XYZ a -- delta angle bias - rad
+    , stateWind :: NED a -- NED wind velocity - m/sec
+    , stateMagNED :: NED a -- NED earth fixed magnetic field components - milligauss
+    , stateMagXYZ :: XYZ a -- XYZ body fixed magnetic field measurements - milligauss
     }
     deriving Show
 
