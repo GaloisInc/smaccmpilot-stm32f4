@@ -11,7 +11,7 @@ import Control.Applicative
 import Data.Foldable
 import Data.Traversable
 import MonadLib (runId, Id, runStateT, StateT, get, set, sets)
-import Prelude hiding (mapM, sequence)
+import Prelude hiding (mapM, sequence, sum)
 
 kalmanP :: Fractional a => [[a]]
 kalmanP = diagMat $ toList $ fmap (^ 2) $ StateVector
@@ -73,13 +73,18 @@ getUniq = sets (\ x -> (x, x + 1))
 runUniq :: Uniq a -> a
 runUniq = fst . runId . runStateT 0
 
+fixQuat :: Floating a => StateVector a -> StateVector a
+fixQuat state = (pure id) { stateOrient = pure (/ quatMag) } <*> state
+    where
+    quatMag = sqrt $ sum $ fmap (^ 2) $ stateOrient state
+
 runProcessModel :: (Floating a, Real a) => a -> DisturbanceVector a -> KalmanState a ()
 runProcessModel dt dist = do
     (state, p) <- get
     let state' = processModel dt state dist
     let getValue idx = (dt : toList dist ++ toList state) !! idx
     let p' = map (map (eval . fmap getValue)) $ updateUniq $ map (map realToFrac) p
-    set (state', p')
+    set (fixQuat state', p')
     where
     (dtUniq, distUniq, stateUniq) = runUniq $ (,,) <$> getUniq <*> mapM (const getUniq) (pure ()) <*> mapM (const getUniq) (pure ())
     updateUniq = kalmanPredict (processModel (var dtUniq)) stateUniq distUniq (distCovariance (var dtUniq))
@@ -89,7 +94,7 @@ runFusion fuse = \ measurement -> do
     (state, p) <- get
     let getValue idx = (measurement : toList state) !! idx
     let (innov, innovCov, state', p') = updateUniq $ map (map realToFrac) p
-    set (fmap (eval . fmap getValue) state', map (map (eval . fmap getValue)) p' `asTypeOf` p)
+    set (fixQuat $ fmap (eval . fmap getValue) state', map (map (eval . fmap getValue)) p')
     return (eval $ fmap getValue innov, eval $ fmap getValue innovCov)
     where
     (measurementUniq, stateUniq) = runUniq $ (,) <$> getUniq <*> mapM (const getUniq) (pure ())
