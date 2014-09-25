@@ -37,13 +37,13 @@ convertFrames q = (toNav, toBody)
     toBody = convert (transpose rotate2nav) (\[x, y, z]-> xyz x y z)
 
 data StateVector a = StateVector
-    { stateOrient :: Quat a -- quaternions defining attitude of body axes relative to local NED
-    , stateVel :: NED a -- NED velocity - m/sec
-    , statePos :: NED a -- NED position - m
-    , stateGyroBias :: XYZ a -- delta angle bias - rad
-    , stateWind :: NED a -- NED wind velocity - m/sec
-    , stateMagNED :: NED a -- NED earth fixed magnetic field components - milligauss
-    , stateMagXYZ :: XYZ a -- XYZ body fixed magnetic field measurements - milligauss
+    { stateOrient :: !(Quat a) -- quaternions defining attitude of body axes relative to local NED
+    , stateVel :: !(NED a) -- NED velocity - m/sec
+    , statePos :: !(NED a) -- NED position - m
+    , stateGyroBias :: !(XYZ a) -- delta angle bias - rad
+    , stateWind :: !(NED a) -- NED wind velocity - m/sec
+    , stateMagNED :: !(NED a) -- NED earth fixed magnetic field components - milligauss
+    , stateMagXYZ :: !(XYZ a) -- XYZ body fixed magnetic field measurements - milligauss
     }
     deriving Show
 
@@ -96,8 +96,8 @@ instance Traversable StateVector where
 -- velocities, after bias effects have been removed. This is OK becasue we
 -- have sensor bias accounted for in the state equations.
 data DisturbanceVector a = DisturbanceVector
-    { disturbanceGyro :: XYZ a
-    , disturbanceAccel :: XYZ a
+    { disturbanceGyro :: !(XYZ a) -- XYZ body rotation rate in rad/second
+    , disturbanceAccel :: !(XYZ a) -- XYZ body acceleration in meters/second/second
     }
     deriving Show
 
