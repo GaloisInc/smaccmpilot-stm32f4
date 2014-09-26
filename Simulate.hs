@@ -39,10 +39,11 @@ initAttitude (XYZ accel) (XYZ mag) declination = heading * pitch * roll
     pitch = Quat (cos (initialPitch / 2), 0, sin (initialPitch / 2), 0)
     heading = Quat (cos (initialHdg / 2), 0, 0, sin (initialHdg / 2))
 
-initDynamic :: RealFloat a => XYZ a -> XYZ a -> XYZ a -> a -> NED a -> StateVector a
-initDynamic accel mag magBias declination vel = (pure 0)
+initDynamic :: RealFloat a => XYZ a -> XYZ a -> XYZ a -> a -> NED a -> NED a -> StateVector a
+initDynamic accel mag magBias declination vel pos = (pure 0)
     { stateOrient = initQuat
     , stateVel = vel
+    , statePos = pos
     , stateMagNED = initMagNED
     , stateMagXYZ = magBias
     }

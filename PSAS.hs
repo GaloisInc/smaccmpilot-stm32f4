@@ -49,7 +49,7 @@ data ADISMessage = ADISMessage
     deriving Show
 
 newtype MPL3Message = MPL3Message
-    { mpl3Pressure :: Double -- in kPa
+    { mpl3Pressure :: Double -- in Pascals
     }
     deriving Show
 
@@ -77,7 +77,7 @@ getMessageType msg = do
             skip 4
             return $ ADIS $ ADISMessage { adisGyro = gyro, adisAcc = acc, adisMagn = magn }
         "MPL3" -> return $ do
-            pressure <- scale 1.5625e-5 getWord32be
+            pressure <- scale (1.5625e-5 * 1000) getWord32be
             skip 2
             return $ MPL3 $ MPL3Message { mpl3Pressure = pressure }
         _ -> Nothing
@@ -85,6 +85,17 @@ getMessageType msg = do
         Done left _ v | S.null left -> return v
         Fail _ _ err -> error $ "failed on " ++ show (psasFourCC msg) ++ ": " ++ err
         _ -> error $ "leftovers after " ++ show (psasFourCC msg)
+
+pressureToHeight :: Floating a => a -> a
+pressureToHeight pressure = (baseAltitude * lapseRate + baseTemperature / ((pressure / basePressure) ** (airGasConstant * lapseRate / (g_0 * airMass))) - baseTemperature) / lapseRate
+    where
+    basePressure = 101325 -- Pascals
+    baseTemperature = 288.15 -- K
+    lapseRate = -0.0065 -- K/m
+    baseAltitude = 0 -- m
+    airGasConstant = 8.31432 --  N-m/mol-K
+    g_0 = 9.80665 -- m/s/s
+    airMass = 0.0289644 -- kg/mol
 
 initialMeasurements :: (Last PSASTimestamp, Last ADISMessage, Last MPL3Message) -> Get (PSASTimestamp, ADISMessage, MPL3Message)
 initialMeasurements (Last (Just t), Last (Just a), Last (Just m)) = return (t, a, m)
@@ -98,20 +109,23 @@ initialMeasurements prev = do
 runPSAS :: KalmanState Get Double a -> Get (a, (PSASTimestamp, StateVector Double, [[Double]]))
 runPSAS filter = do
     (ts, adis, mpl3) <- initialMeasurements mempty
-    let initialState = initDynamic (adisAcc adis) (adisMagn adis) (pure 0) 0 (pure 0)
+    let depth = negate $ pressureToHeight $ mpl3Pressure mpl3
+    let initialState = initDynamic (adisAcc adis) (adisMagn adis) (pure 0) 0 (pure 0) (ned 0 0 depth)
     runKalmanState ts initialState filter
 
 psasFilter :: KalmanState Get Double (Maybe [Double])
 psasFilter = do
     msg <- lift getMessage
+    (lasttime, laststate, _) <- get
     case getMessageType msg of
         Just (ADIS v) -> do
-            (lasttime, _, _) <- get
             runProcessModel (psasTimestamp msg - lasttime) $ DisturbanceVector { disturbanceGyro = adisGyro v, disturbanceAccel = adisAcc v }
             _ <- runFuseMag $ adisMagn v
             sets_ $ \ (_, state, p) -> (psasTimestamp msg, state, p)
-            (newtime, state', _) <- get
-            return $ Just $ newtime : toList state'
+            return $ Just $ lasttime : toList laststate
+        Just (MPL3 v) -> do
+            _ <- runFuseHeight $ negate $ pressureToHeight $ mpl3Pressure v
+            return $ Just $ lasttime : toList laststate
         _ -> return Nothing
 
 main :: IO ()
@@ -120,5 +134,5 @@ main = do
     logfile <- case args of
         [] -> L.getContents
         fname : _ -> L.readFile fname
-    let (states, _) = runGet (runPSAS $ replicateM 20480 psasFilter) logfile
-    mapM_ (putStrLn . unwords . map show) $ catMaybes states
+    let (states, (finalTime, finalState, _)) = runGet (runPSAS $ replicateM (2048 * 3) psasFilter) logfile
+    mapM_ (putStrLn . unwords . map show) $ catMaybes states ++ [finalTime : toList finalState]
