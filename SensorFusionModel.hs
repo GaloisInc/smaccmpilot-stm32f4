@@ -154,8 +154,7 @@ processModel dt state dist = state
     where
     (XYZ (Vec3 deltaX deltaY deltaZ)) = disturbanceGyro dist - stateGyroBias state
     deltaQuat = Quat (0, deltaX, deltaY, deltaZ)
-    -- XXX: shouldn't accel be multiplied by dt too?
-    deltaVel = body2nav state (disturbanceAccel dist) + fmap (* dt) g
+    deltaVel = fmap (* dt) $ body2nav state (disturbanceAccel dist) + g
     g = ned 0 0 9.80665 -- NED gravity vector - m/sec^2
 
 -- A Fusion is a function from measurement covariance and measurement to
