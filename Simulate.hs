@@ -62,10 +62,10 @@ distCovariance dt = DisturbanceVector
     , disturbanceAccel = pure ((dt * accelProcessNoise) ^ 2)
     }
 
-type KalmanState a = StateT (StateVector a, [[a]]) Id
+type KalmanState m a = StateT (a, StateVector a, [[a]]) m
 
-runKalmanState :: Fractional a => StateVector a -> KalmanState a b -> (b, (StateVector a, [[a]]))
-runKalmanState state = runId . runStateT (state, kalmanP)
+runKalmanState :: (Monad m, Fractional a) => a -> StateVector a -> KalmanState m a b -> m (b, (a, StateVector a, [[a]]))
+runKalmanState ts state = runStateT (ts, state, kalmanP)
 
 type Uniq a = StateT Int Id a
 getUniq :: Uniq Int
@@ -78,39 +78,39 @@ fixQuat state = (pure id) { stateOrient = pure (/ quatMag) } <*> state
     where
     quatMag = sqrt $ sum $ fmap (^ 2) $ stateOrient state
 
-runProcessModel :: (Floating a, Real a) => a -> DisturbanceVector a -> KalmanState a ()
-runProcessModel dt dist = do
-    (state, p) <- get
+runProcessModel :: (Monad m, Floating a, Real a) => a -> DisturbanceVector a -> KalmanState m a ()
+runProcessModel = \ dt dist -> do
+    (ts, state, p) <- get
     let state' = processModel dt state dist
     let getValue idx = (dt : toList dist ++ toList state) !! idx
     let p' = map (map (eval . fmap getValue)) $ updateUniq $ map (map realToFrac) p
-    set (fixQuat state', p')
+    set (ts, fixQuat state', p')
     where
     (dtUniq, distUniq, stateUniq) = runUniq $ (,,) <$> getUniq <*> mapM (const getUniq) (pure ()) <*> mapM (const getUniq) (pure ())
     updateUniq = kalmanPredict (processModel (var dtUniq)) stateUniq distUniq (distCovariance (var dtUniq))
 
-runFusion :: (Floating a, Real a) => (Int -> StateVector Int -> [[Sym Int]] -> (Sym Int, Sym Int, StateVector (Sym Int), [[Sym Int]])) -> a -> KalmanState a (a, a)
+runFusion :: (Monad m, Floating a, Real a) => (Int -> StateVector Int -> [[Sym Int]] -> (Sym Int, Sym Int, StateVector (Sym Int), [[Sym Int]])) -> a -> KalmanState m a (a, a)
 runFusion fuse = \ measurement -> do
-    (state, p) <- get
+    (ts, state, p) <- get
     let getValue idx = (measurement : toList state) !! idx
     let (innov, innovCov, state', p') = updateUniq $ map (map realToFrac) p
-    set (fixQuat $ fmap (eval . fmap getValue) state', map (map (eval . fmap getValue)) p')
+    set (ts, fixQuat $ fmap (eval . fmap getValue) state', map (map (eval . fmap getValue)) p')
     return (eval $ fmap getValue innov, eval $ fmap getValue innovCov)
     where
     (measurementUniq, stateUniq) = runUniq $ (,) <$> getUniq <*> mapM (const getUniq) (pure ())
     updateUniq = fuse measurementUniq stateUniq
 
-runFuseVel :: (Floating a, Real a) => NED a -> KalmanState a (NED (a, a))
+runFuseVel :: (Monad m, Floating a, Real a) => NED a -> KalmanState m a (NED (a, a))
 runFuseVel measurement = sequence $ runFusion <$> (fuseVel <*> ned 0.04 0.04 0.08) <*> measurement
 
-runFusePos :: (Floating a, Real a) => NED a -> KalmanState a (NED (a, a))
+runFusePos :: (Monad m, Floating a, Real a) => NED a -> KalmanState m a (NED (a, a))
 runFusePos measurement = sequence $ runFusion <$> (fusePos <*> pure 4) <*> measurement
 
-runFuseHeight :: (Floating a, Real a) => a -> KalmanState a (a, a)
+runFuseHeight :: (Monad m, Floating a, Real a) => a -> KalmanState m a (a, a)
 runFuseHeight = runFusion $ (vecZ $ nedToVec3 $ fusePos) 4
 
-runFuseTAS :: (Floating a, Real a) => a -> KalmanState a (a, a)
+runFuseTAS :: (Monad m, Floating a, Real a) => a -> KalmanState m a (a, a)
 runFuseTAS = runFusion $ fuseTAS 2
 
-runFuseMag :: (Floating a, Real a) => XYZ a -> KalmanState a (XYZ (a, a))
+runFuseMag :: (Monad m, Floating a, Real a) => XYZ a -> KalmanState m a (XYZ (a, a))
 runFuseMag measurement = sequence $ runFusion <$> (fuseMag <*> pure 0.0025) <*> measurement
