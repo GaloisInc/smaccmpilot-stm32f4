@@ -1,10 +1,10 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+
 module SensorFusionModel where
 
 import ExtendedKalmanFilter
 import Matrix
 import Quat
-import SymDiff
 import Vec3
 
 import Control.Applicative
@@ -164,27 +164,24 @@ processModel dt state dist = state
 -- This version only supports scalar measurements. It's useful for sequential
 -- fusion. It's also useful for partial measurements, such as measuring only
 -- altitude when you've modeled 3D position.
-type Fusion var = Sym var -> var -> StateVector var -> [[Sym var]] -> (Sym var, Sym var, StateVector (Sym var), [[Sym var]])
-fusion :: Eq var => (StateVector (Sym var) -> Sym var) -> Fusion var
-fusion v cov m state p = let ([innov], [[innovCov]], state', p') = measurementUpdate state [(m, v (fmap var state))] [[cov]] p in (innov, innovCov, state', p')
+type Fusion var = var -> var -> StateVector var -> [[var]] -> (var, var, StateVector var, [[var]])
+fusion :: Fractional var => Measurement StateVector var -> Fusion var
+fusion v cov m state p = let ([innov], [[innovCov]], state', p') = measurementUpdate state [(m, v)] [[cov]] p in (innov, innovCov, state', p')
 
-composeF :: Functor t => t (b -> c) -> (a -> b) -> t (a -> c)
-composeF f g = fmap (. g) f
+fuseVel :: Fractional var => NED (Fusion var)
+fuseVel = fusion <$> ned (Measurement $ vecX . getVel) (Measurement $ vecY . getVel) (Measurement $ vecZ . getVel)
+    where
+    getVel = nedToVec3 . stateVel
 
-selNED :: NED (NED a -> a)
-selNED = ned vecX vecY vecZ `composeF` nedToVec3
+fusePos :: Fractional var => NED (Fusion var)
+fusePos = fusion <$> ned (Measurement $ vecX . getPos) (Measurement $ vecY . getPos) (Measurement $ vecZ . getPos)
+    where
+    getPos = nedToVec3 . statePos
 
-selXYZ :: XYZ (XYZ a -> a)
-selXYZ = xyz vecX vecY vecZ `composeF` xyzToVec3
+fuseTAS :: Floating var => Fusion var
+fuseTAS = fusion $ Measurement $ \ state -> sqrt $ sum $ map (** 2) $ toList $ stateVel state - stateWind state
 
-fuseVel :: Eq var => NED (Fusion var)
-fuseVel = fusion <$> selNED `composeF` stateVel
-
-fusePos :: Eq var => NED (Fusion var)
-fusePos = fusion <$> selNED `composeF` statePos
-
-fuseTAS :: Eq var => Fusion var
-fuseTAS = fusion $ \ state -> sqrt $ sum $ map (** 2) $ toList $ stateVel state - stateWind state
-
-fuseMag :: Eq var => XYZ (Fusion var)
-fuseMag = fusion <$> selXYZ `composeF` \ state -> stateMagXYZ state + nav2body state (stateMagNED state)
+fuseMag :: Fractional var => XYZ (Fusion var)
+fuseMag = fusion <$> xyz (Measurement $ vecX . getMag) (Measurement $ vecY . getMag) (Measurement $ vecZ . getMag)
+    where
+    getMag state = xyzToVec3 $ stateMagXYZ state + nav2body state (stateMagNED state)

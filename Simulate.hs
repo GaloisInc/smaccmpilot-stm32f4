@@ -4,13 +4,13 @@ import ExtendedKalmanFilter
 import Matrix
 import SensorFusionModel
 import Quat
-import SymDiff
 import Vec3
 
 import Control.Applicative
 import Data.Foldable
 import Data.Traversable
-import MonadLib (runId, Id, runStateT, StateT, get, set, sets)
+import MonadLib (runStateT, StateT, get, set)
+import Numeric.AD
 import Prelude hiding (mapM, sequence, sum)
 
 kalmanP :: Fractional a => [[a]]
@@ -68,38 +68,24 @@ type KalmanState m a = StateT (a, StateVector a, [[a]]) m
 runKalmanState :: (Monad m, Fractional a) => a -> StateVector a -> KalmanState m a b -> m (b, (a, StateVector a, [[a]]))
 runKalmanState ts state = runStateT (ts, state, kalmanP)
 
-type Uniq a = StateT Int Id a
-getUniq :: Uniq Int
-getUniq = sets (\ x -> (x, x + 1))
-runUniq :: Uniq a -> a
-runUniq = fst . runId . runStateT 0
-
 fixQuat :: Floating a => StateVector a -> StateVector a
 fixQuat state = (pure id) { stateOrient = pure (/ quatMag) } <*> state
     where
     quatMag = sqrt $ sum $ fmap (^ 2) $ stateOrient state
 
-runProcessModel :: (Monad m, Floating a, Real a) => a -> DisturbanceVector a -> KalmanState m a ()
-runProcessModel = \ dt dist -> do
+runProcessModel :: (Monad m, Floating a) => a -> DisturbanceVector a -> KalmanState m a ()
+runProcessModel dt dist = do
     (ts, state, p) <- get
     let state' = processModel dt state dist
-    let getValue idx = (dt : toList dist ++ toList state) !! idx
-    let p' = map (map (eval . fmap getValue)) $ updateUniq $ map (map realToFrac) p
+    let p' = kalmanPredict (processModel $ auto dt) state dist (distCovariance dt) p
     set (ts, fixQuat state', p')
-    where
-    (dtUniq, distUniq, stateUniq) = runUniq $ (,,) <$> getUniq <*> mapM (const getUniq) (pure ()) <*> mapM (const getUniq) (pure ())
-    updateUniq = kalmanPredict (processModel (var dtUniq)) stateUniq distUniq (distCovariance (var dtUniq))
 
-runFusion :: (Monad m, Floating a, Real a) => (Int -> StateVector Int -> [[Sym Int]] -> (Sym Int, Sym Int, StateVector (Sym Int), [[Sym Int]])) -> a -> KalmanState m a (a, a)
-runFusion fuse = \ measurement -> do
+runFusion :: (Monad m, Floating a) => (a -> StateVector a -> [[a]] -> (a, a, StateVector a, [[a]])) -> a -> KalmanState m a (a, a)
+runFusion fuse measurement = do
     (ts, state, p) <- get
-    let getValue idx = (measurement : toList state) !! idx
-    let (innov, innovCov, state', p') = updateUniq $ map (map realToFrac) p
-    set (ts, fixQuat $ fmap (eval . fmap getValue) state', map (map (eval . fmap getValue)) p')
-    return (eval $ fmap getValue innov, eval $ fmap getValue innovCov)
-    where
-    (measurementUniq, stateUniq) = runUniq $ (,) <$> getUniq <*> mapM (const getUniq) (pure ())
-    updateUniq = fuse measurementUniq stateUniq
+    let (innov, innovCov, state', p') = fuse measurement state p
+    set (ts, fixQuat state', p')
+    return (innov, innovCov)
 
 runFuseVel :: (Monad m, Floating a, Real a) => NED a -> KalmanState m a (NED (a, a))
 runFuseVel measurement = sequence $ runFusion <$> (fuseVel <*> ned 0.04 0.04 0.08) <*> measurement
