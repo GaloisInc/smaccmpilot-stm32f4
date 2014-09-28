@@ -35,6 +35,7 @@ mjoin (first, top, left, rest) = ([[first]] `hcat` top) ++ (left `hcat` rest)
 
 matInvert :: Fractional a => [[a]] -> [[a]]
 matInvert [] = []
+matInvert [[a]] = [[recip a]]
 matInvert m = mjoin (a', b', c', d')
     where
     (a, b, c, d) = msplit m
