@@ -10,7 +10,6 @@ import Vec3
 import Control.Applicative
 import Data.Foldable (Foldable(..), toList)
 import Data.List
-import Data.Monoid
 import Data.Traversable
 
 -- For measurements/states in navigation frame
@@ -71,15 +70,7 @@ instance Functor StateVector where
     fmap = liftA
 
 instance Foldable StateVector where
-    foldMap f v = mconcat
-        [ foldMap f $ stateOrient v
-        , foldMap f $ stateVel v
-        , foldMap f $ statePos v
-        , foldMap f $ stateGyroBias v
-        , foldMap f $ stateWind v
-        , foldMap f $ stateMagNED v
-        , foldMap f $ stateMagXYZ v
-        ]
+    foldMap = foldMapDefault
 
 instance Traversable StateVector where
     sequenceA v = StateVector
@@ -115,10 +106,7 @@ instance Functor DisturbanceVector where
     fmap = liftA
 
 instance Foldable DisturbanceVector where
-    foldMap f v = mconcat
-        [ foldMap f $ disturbanceGyro v
-        , foldMap f $ disturbanceAccel v
-        ]
+    foldMap = foldMapDefault
 
 instance Traversable DisturbanceVector where
     sequenceA v = DisturbanceVector

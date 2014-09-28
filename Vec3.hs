@@ -2,7 +2,6 @@ module Vec3 where
 
 import Control.Applicative
 import Data.Foldable
-import Data.Monoid
 import Data.Traversable
 
 data Vec3 a = Vec3 { vecX :: !a, vecY :: !a, vecZ :: !a }
@@ -13,7 +12,7 @@ instance Applicative Vec3 where
     Vec3 x1 y1 z1 <*> Vec3 x2 y2 z2 = Vec3 (x1 x2) (y1 y2) (z1 z2)
 
 instance Foldable Vec3 where
-    foldMap f (Vec3 x y z) = f x `mappend` f y `mappend` f z
+    foldMap = foldMapDefault
 
 instance Functor Vec3 where
     fmap = liftA
