@@ -7,7 +7,7 @@ import Data.Traversable
 import Matrix
 
 data Vec3 a = Vec3 { vecX :: !a, vecY :: !a, vecZ :: !a }
-    deriving Show
+    deriving (Eq, Show)
 
 instance Applicative Vec3 where
     pure v = Vec3 v v v

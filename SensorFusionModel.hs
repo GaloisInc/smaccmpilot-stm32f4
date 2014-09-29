@@ -138,7 +138,7 @@ nStates = length $ toList (pure () :: StateVector ())
 
 kalmanP :: Fractional a => StateVector (StateVector a)
 kalmanP = diagMat $ fmap (^ 2) $ StateVector
-    { stateOrient = Quat (0.5, 0.5, 0.5, 5)
+    { stateOrient = Quat 0.5 (Vec3 0.5 0.5 5)
     , stateVel = pure 0.7
     , statePos = ned 15 15 5
     , stateGyroBias = pure $ 0.1 * deg2rad * dtIMU
@@ -158,9 +158,9 @@ initAttitude (XYZ accel) (XYZ mag) declination = heading * pitch * roll
     magX = (vecX mag) * cos initialPitch + (vecY mag) * sin initialRoll * sin initialPitch + (vecZ mag) * cos initialRoll * sin initialPitch
     magY = (vecY mag) * cos initialRoll - (vecZ mag) * sin initialRoll
     initialHdg = atan2 (negate magY) magX + declination
-    roll = Quat (cos (initialRoll / 2), sin (initialRoll / 2), 0, 0)
-    pitch = Quat (cos (initialPitch / 2), 0, sin (initialPitch / 2), 0)
-    heading = Quat (cos (initialHdg / 2), 0, 0, sin (initialHdg / 2))
+    roll = fromAxisAngle (Vec3 1 0 0) initialRoll
+    pitch = fromAxisAngle (Vec3 0 1 0) initialPitch
+    heading = fromAxisAngle (Vec3 0 0 1) initialHdg
 
 initDynamic :: RealFloat a => XYZ a -> XYZ a -> XYZ a -> a -> NED a -> NED a -> StateVector a
 initDynamic accel mag magBias declination vel pos = (pure 0)
@@ -224,8 +224,7 @@ processModel dt state dist = state
     -- remaining state vector elements are unchanged by the process model
     }
     where
-    (XYZ (Vec3 deltaX deltaY deltaZ)) = disturbanceGyro dist - stateGyroBias state
-    deltaQuat = Quat (0, deltaX, deltaY, deltaZ)
+    deltaQuat = Quat 0 $ xyzToVec3 $ disturbanceGyro dist - stateGyroBias state
     deltaVel = fmap (* dt) $ body2nav state (disturbanceAccel dist) + g
     g = ned 0 0 9.80665 -- NED gravity vector - m/sec^2
 
