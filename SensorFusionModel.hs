@@ -134,6 +134,72 @@ instance Distributive DisturbanceVector where
 nStates :: Int
 nStates = length $ toList (pure () :: StateVector ())
 
+-- Model initialization
+
+kalmanP :: Fractional a => StateVector (StateVector a)
+kalmanP = diagMat $ fmap (^ 2) $ StateVector
+    { stateOrient = Quat (0.5, 0.5, 0.5, 5)
+    , stateVel = pure 0.7
+    , statePos = ned 15 15 5
+    , stateGyroBias = pure $ 0.1 * deg2rad * dtIMU
+    , stateWind = pure 8
+    , stateMagNED = pure 0.02
+    , stateMagXYZ = pure 0.02
+    }
+    where
+    deg2rad = realToFrac (pi :: Double) / 180
+    dtIMU = 0.1 -- FIXME: get dt from caller
+
+initAttitude :: RealFloat a => XYZ a -> XYZ a -> a -> Quat a
+initAttitude (XYZ accel) (XYZ mag) declination = heading * pitch * roll
+    where
+    initialRoll = atan2 (negate (vecY accel)) (negate (vecZ accel))
+    initialPitch = atan2 (vecX accel) (negate (vecZ accel))
+    magX = (vecX mag) * cos initialPitch + (vecY mag) * sin initialRoll * sin initialPitch + (vecZ mag) * cos initialRoll * sin initialPitch
+    magY = (vecY mag) * cos initialRoll - (vecZ mag) * sin initialRoll
+    initialHdg = atan2 (negate magY) magX + declination
+    roll = Quat (cos (initialRoll / 2), sin (initialRoll / 2), 0, 0)
+    pitch = Quat (cos (initialPitch / 2), 0, sin (initialPitch / 2), 0)
+    heading = Quat (cos (initialHdg / 2), 0, 0, sin (initialHdg / 2))
+
+initDynamic :: RealFloat a => XYZ a -> XYZ a -> XYZ a -> a -> NED a -> NED a -> StateVector a
+initDynamic accel mag magBias declination vel pos = (pure 0)
+    { stateOrient = initQuat
+    , stateVel = vel
+    , statePos = pos
+    , stateMagNED = initMagNED
+    , stateMagXYZ = magBias
+    }
+    where
+    initMagXYZ = mag - magBias
+    initQuat = initAttitude accel initMagXYZ declination
+    initMagNED = fst (convertFrames initQuat) initMagXYZ
+    -- TODO: re-implement InertialNav's calcEarthRateNED
+
+-- Model noise parameters
+
+gyroProcessNoise, accelProcessNoise :: Fractional a => a
+gyroProcessNoise = 1.4544411e-2
+accelProcessNoise = 0.5
+
+distCovariance :: Fractional a => a -> DisturbanceVector a
+distCovariance dt = DisturbanceVector
+    { disturbanceGyro = pure ((dt * gyroProcessNoise) ^ 2)
+    , disturbanceAccel = pure ((dt * accelProcessNoise) ^ 2)
+    }
+
+velNoise :: Fractional a => NED a
+velNoise = ned 0.04 0.04 0.08
+
+posNoise :: Fractional a => NED a
+posNoise = pure 4
+
+tasNoise :: Fractional a => a
+tasNoise = 2
+
+magNoise :: Fractional a => XYZ a
+magNoise = pure 0.0025
+
 -- Kalman equations
 
 body2nav :: Num a => StateVector a -> XYZ a -> NED a
