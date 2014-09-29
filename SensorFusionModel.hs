@@ -8,20 +8,20 @@ import Quat
 import Vec3
 
 import Control.Applicative
+import Data.Distributive
 import Data.Foldable (Foldable(..), toList)
-import Data.List
 import Data.Traversable
 
 -- For measurements/states in navigation frame
 newtype NED a = NED { nedToVec3 :: Vec3 a }
-    deriving (Show, Applicative, Foldable, Functor, Traversable, Num)
+    deriving (Show, Applicative, Pointwise, Foldable, Functor, Traversable, Distributive, Num)
 
 ned :: a -> a -> a -> NED a
 ned n e d = NED $ Vec3 n e d
 
 -- For measurements/states in body frame
 newtype XYZ a = XYZ { xyzToVec3 :: Vec3 a }
-    deriving (Show, Applicative, Foldable, Functor, Traversable, Num)
+    deriving (Show, Applicative, Pointwise, Foldable, Functor, Traversable, Distributive, Num)
 
 xyz :: a -> a -> a -> XYZ a
 xyz a b c = XYZ $ Vec3 a b c
@@ -30,10 +30,9 @@ xyz a b c = XYZ $ Vec3 a b c
 convertFrames :: Num a => Quat a -> (XYZ a -> NED a, NED a -> XYZ a)
 convertFrames q = (toNav, toBody)
     where
-    rotate2nav = quatRotation q
-    convert mat mkVector = mkVector . matVecMult mat . toList
-    toNav = convert rotate2nav (\[n, e, d]-> ned n e d)
-    toBody = convert (transpose rotate2nav) (\[x, y, z]-> xyz x y z)
+    rotate2nav = NED $ fmap XYZ $ quatRotation q
+    toNav = matVecMult rotate2nav
+    toBody = matVecMult (matTranspose rotate2nav)
 
 data StateVector a = StateVector
     { stateOrient :: !(Quat a) -- quaternions defining attitude of body axes relative to local NED
@@ -65,6 +64,7 @@ instance Applicative StateVector where
         , stateMagNED = stateMagNED v1 <*> stateMagNED v2
         , stateMagXYZ = stateMagXYZ v1 <*> stateMagXYZ v2
         }
+instance Pointwise StateVector where
 
 instance Functor StateVector where
     fmap = liftA
@@ -81,6 +81,17 @@ instance Traversable StateVector where
         <*> sequenceA (stateWind v)
         <*> sequenceA (stateMagNED v)
         <*> sequenceA (stateMagXYZ v)
+
+instance Distributive StateVector where
+    distribute f = StateVector
+        { stateOrient = distribute $ fmap stateOrient f
+        , stateVel = distribute $ fmap stateVel f
+        , statePos = distribute $ fmap statePos f
+        , stateGyroBias = distribute $ fmap stateGyroBias f
+        , stateWind = distribute $ fmap stateWind f
+        , stateMagNED = distribute $ fmap stateMagNED f
+        , stateMagXYZ = distribute $ fmap stateMagXYZ f
+        }
 
 -- Define the control (disturbance) vector. Error growth in the inertial
 -- solution is assumed to be driven by 'noise' in the delta angles and
@@ -101,6 +112,7 @@ instance Applicative DisturbanceVector where
         { disturbanceGyro = disturbanceGyro v1 <*> disturbanceGyro v2
         , disturbanceAccel = disturbanceAccel v1 <*> disturbanceAccel v2
         }
+instance Pointwise DisturbanceVector where
 
 instance Functor DisturbanceVector where
     fmap = liftA
@@ -112,6 +124,12 @@ instance Traversable DisturbanceVector where
     sequenceA v = DisturbanceVector
         <$> sequenceA (disturbanceGyro v)
         <*> sequenceA (disturbanceAccel v)
+
+instance Distributive DisturbanceVector where
+    distribute f = DisturbanceVector
+        { disturbanceGyro = distribute $ fmap disturbanceGyro f
+        , disturbanceAccel = distribute $ fmap disturbanceAccel f
+        }
 
 nStates :: Int
 nStates = length $ toList (pure () :: StateVector ())
@@ -145,6 +163,22 @@ processModel dt state dist = state
     deltaVel = fmap (* dt) $ body2nav state (disturbanceAccel dist) + g
     g = ned 0 0 9.80665 -- NED gravity vector - m/sec^2
 
+newtype Singleton a = Singleton a
+
+instance Applicative Singleton where
+    pure = Singleton
+    Singleton a <*> Singleton b = Singleton (a b)
+instance Pointwise Singleton where
+
+instance Functor Singleton where
+    fmap = liftA
+
+instance Traversable Singleton where
+    sequenceA (Singleton v) = fmap Singleton v
+
+instance Foldable Singleton where
+    foldMap = foldMapDefault
+
 -- A Fusion is a function from measurement covariance and measurement to
 -- innovation, innovation covariance, new state, and new estimated state
 -- covariance.
@@ -152,9 +186,9 @@ processModel dt state dist = state
 -- This version only supports scalar measurements. It's useful for sequential
 -- fusion. It's also useful for partial measurements, such as measuring only
 -- altitude when you've modeled 3D position.
-type Fusion var = var -> var -> StateVector var -> [[var]] -> (var, var, StateVector var, [[var]])
+type Fusion var = var -> var -> StateVector var -> StateVector (StateVector var) -> (var, var, StateVector var, StateVector (StateVector var))
 fusion :: Fractional var => Measurement StateVector var -> Fusion var
-fusion v cov m state p = let ([innov], [[innovCov]], state', p') = measurementUpdate state [(m, v)] [[cov]] p in (innov, innovCov, state', p')
+fusion v cov m state p = let (Singleton innov, Singleton (Singleton innovCov), state', p') = measurementUpdate state (Singleton (m, v)) (Singleton (Singleton cov)) p in (innov, innovCov, state', p')
 
 fuseVel :: Fractional var => NED (Fusion var)
 fuseVel = fusion <$> ned (Measurement $ vecX . getVel) (Measurement $ vecY . getVel) (Measurement $ vecZ . getVel)

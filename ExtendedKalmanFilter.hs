@@ -5,38 +5,31 @@ module ExtendedKalmanFilter where
 
 import Matrix
 
-import Data.Foldable (Foldable(..), toList)
-import Data.List
+import Control.Applicative
+import Data.Distributive
 import Data.Reflection (Reifies)
 import Data.Traversable
-import MonadLib (runId, runStateT, sets)
 import Numeric.AD.Internal.Reverse (Tape)
 import Numeric.AD.Mode.Reverse
 
-kalmanPredict :: (Traversable state, Traversable dist, Num var) => (forall s. Reifies s Tape => state (Reverse s var) -> dist (Reverse s var) -> state (Reverse s var)) -> state var -> dist var -> dist var -> [[var]] -> [[var]]
-kalmanPredict process state dist cov = \ p -> matBinOp (+) q $ matMult f $ matMult p $ transpose f
+kalmanPredict :: (Pointwise state, Traversable state, Distributive state, Pointwise dist, Traversable dist, Distributive dist, Num var) => (forall s. Reifies s Tape => state (Reverse s var) -> dist (Reverse s var) -> state (Reverse s var)) -> state var -> dist var -> dist var -> state (state var) -> state (state var)
+kalmanPredict process state dist cov = \ p -> matBinOp (+) q $ matMult f $ matMult p $ matTranspose f
     where
-    f = map toList $ jacobian (\ state' -> toList $ process state' (fmap auto dist)) state
-    g = map toList $ jacobian (\ dist' -> toList $ process (fmap auto state) dist') dist
-    q = matMult g $ matMult (diagMat $ toList cov) $ transpose g
+    f = jacobian (\ state' -> process state' (fmap auto dist)) state
+    g = jacobian (\ dist' -> process (fmap auto state) dist') dist
+    q = matMult g $ matMult (diagMat cov) $ matTranspose g
 
 newtype Measurement state var = Measurement { runMeasurement :: forall s. Reifies s Tape => state (Reverse s var) -> Reverse s var }
 
-type MeasurementModel state var = ([var], [[var]], state var, [[var]])
-measurementUpdate :: (Traversable state, Fractional var) => state var -> [(var, Measurement state var)] -> [[var]] -> [[var]] -> MeasurementModel state var
+type MeasurementModel obs state var = (obs var, obs (obs var), state var, state (state var))
+measurementUpdate :: (Pointwise obs, Traversable obs, Pointwise state, Traversable state, Distributive state, Fractional var) => state var -> obs (var, Measurement state var) -> obs (obs var) -> state (state var) -> MeasurementModel obs state var
 measurementUpdate state measurements obsCov errorCov = (innovation, innovCov, state', errorCov')
     where
-    (predicted, obsModelVectors) = unzip $ jacobian' (\ state' -> [ runMeasurement h state' | (_, h) <- measurements ]) state
-    innovation = zipWith (-) (map fst measurements) predicted
-    obsModel = map toList obsModelVectors
-    ph = matMult errorCov $ transpose obsModel
+    predicted = jacobian' (\ state' -> fmap (\ (_, h) -> runMeasurement h state') measurements) state
+    innovation = (-) <$> fmap fst measurements <*> fmap fst predicted
+    obsModel = fmap snd predicted
+    ph = matMult errorCov $ matTranspose obsModel
     innovCov = matBinOp (+) obsCov $ matMult obsModel ph
     obsGain = matMult ph $ matInvert innovCov
     errorCov' = matBinOp (-) errorCov $ matMult (matMult obsGain obsModel) errorCov
-
-    -- By the above definitions, there must be exactly as many elements in
-    -- `state` as in (matVecMult obsGain innovation). Therefore the pattern
-    -- matches in this definition can't fail.
-    (state', []) = runId $ runStateT (matVecMult obsGain innovation) $ forM state $ \ v -> do
-        update <- sets $ \ (x:xs) -> (x, xs)
-        return $ v + update
+    state' = (+) <$> state <*> matVecMult obsGain innovation

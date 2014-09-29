@@ -1,8 +1,10 @@
 module Quat where
 
 import Control.Applicative
+import Data.Distributive
 import Data.Foldable
 import Data.Traversable
+import Vec3
 
 newtype Quat a = Quat (a, a, a, a)
     deriving (Eq, Show)
@@ -20,6 +22,9 @@ instance Foldable Quat where
 instance Traversable Quat where
     sequenceA (Quat (fa, fb, fc, fd)) = Quat <$> ((,,,) <$> fa <*> fb <*> fc <*> fd)
 
+instance Distributive Quat where
+    distribute f = Quat ((fmap (\ (Quat (v, _, _, _)) -> v) f), (fmap (\ (Quat (_, v, _, _)) -> v) f), (fmap (\ (Quat (_, _, v, _)) -> v) f), (fmap (\ (Quat (_, _, _, v)) -> v) f))
+
 instance Num a => Num (Quat a) where
     q1 + q2 = (+) <$> q1 <*> q2
     negate = fmap negate
@@ -33,9 +38,8 @@ instance Num a => Num (Quat a) where
 
     fromInteger i = Quat (fromInteger i, 0, 0, 0)
 
-quatRotation :: Num a => Quat a -> [[a]]
-quatRotation (Quat (q0, q1, q2, q3)) = [
-        [ q0 ^ 2 + q1 ^ 2 - q2 ^ 2 - q3 ^ 2, 2 * (q1 * q2 - q0 * q3), 2 * (q1 * q3 + q0 * q2) ],
-        [ 2 * (q1 * q2 + q0 * q3), q0 ^ 2 - q1 ^ 2 + q2 ^ 2 - q3 ^ 2, 2 * (q2 * q3 - q0 * q1) ],
-        [ 2 * (q1 * q3 - q0 * q2), 2 * (q2 * q3 + q0 * q1), q0 ^ 2 - q1 ^ 2 - q2 ^ 2 + q3 ^ 2 ]
-    ]
+quatRotation :: Num a => Quat a -> Vec3 (Vec3 a)
+quatRotation (Quat (q0, q1, q2, q3)) = Vec3
+    (Vec3 (q0 ^ 2 + q1 ^ 2 - q2 ^ 2 - q3 ^ 2) (2 * (q1 * q2 - q0 * q3)) (2 * (q1 * q3 + q0 * q2)))
+    (Vec3 (2 * (q1 * q2 + q0 * q3)) (q0 ^ 2 - q1 ^ 2 + q2 ^ 2 - q3 ^ 2) (2 * (q2 * q3 - q0 * q1)))
+    (Vec3 (2 * (q1 * q3 - q0 * q2)) (2 * (q2 * q3 + q0 * q1)) (q0 ^ 2 - q1 ^ 2 - q2 ^ 2 + q3 ^ 2))

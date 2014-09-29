@@ -1,8 +1,10 @@
 module Vec3 where
 
 import Control.Applicative
+import Data.Distributive
 import Data.Foldable
 import Data.Traversable
+import Matrix
 
 data Vec3 a = Vec3 { vecX :: !a, vecY :: !a, vecZ :: !a }
     deriving Show
@@ -10,6 +12,7 @@ data Vec3 a = Vec3 { vecX :: !a, vecY :: !a, vecZ :: !a }
 instance Applicative Vec3 where
     pure v = Vec3 v v v
     Vec3 x1 y1 z1 <*> Vec3 x2 y2 z2 = Vec3 (x1 x2) (y1 y2) (z1 z2)
+instance Pointwise Vec3 where
 
 instance Foldable Vec3 where
     foldMap = foldMapDefault
@@ -19,6 +22,9 @@ instance Functor Vec3 where
 
 instance Traversable Vec3 where
     sequenceA (Vec3 fx fy fz) = Vec3 <$> fx <*> fy <*> fz
+
+instance Distributive Vec3 where
+    distribute f = Vec3 (fmap vecX f) (fmap vecY f) (fmap vecZ f)
 
 instance Num a => Num (Vec3 a) where
     v1 + v2 = (+) <$> v1 <*> v2

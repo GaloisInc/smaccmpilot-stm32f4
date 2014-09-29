@@ -13,8 +13,8 @@ import MonadLib (runStateT, StateT, get, set)
 import Numeric.AD
 import Prelude hiding (mapM, sequence, sum)
 
-kalmanP :: Fractional a => [[a]]
-kalmanP = diagMat $ toList $ fmap (^ 2) $ StateVector
+kalmanP :: Fractional a => StateVector (StateVector a)
+kalmanP = diagMat $ fmap (^ 2) $ StateVector
     { stateOrient = Quat (0.5, 0.5, 0.5, 5)
     , stateVel = pure 0.7
     , statePos = ned 15 15 5
@@ -63,9 +63,9 @@ distCovariance dt = DisturbanceVector
     , disturbanceAccel = pure ((dt * accelProcessNoise) ^ 2)
     }
 
-type KalmanState m a = StateT (a, StateVector a, [[a]]) m
+type KalmanState m a = StateT (a, StateVector a, StateVector (StateVector a)) m
 
-runKalmanState :: (Monad m, Fractional a) => a -> StateVector a -> KalmanState m a b -> m (b, (a, StateVector a, [[a]]))
+runKalmanState :: (Monad m, Fractional a) => a -> StateVector a -> KalmanState m a b -> m (b, (a, StateVector a, StateVector (StateVector a)))
 runKalmanState ts state = runStateT (ts, state, kalmanP)
 
 fixQuat :: Floating a => StateVector a -> StateVector a
@@ -80,7 +80,7 @@ runProcessModel dt dist = do
     let p' = kalmanPredict (processModel $ auto dt) state dist (distCovariance dt) p
     set (ts, fixQuat state', p')
 
-runFusion :: (Monad m, Floating a) => (a -> StateVector a -> [[a]] -> (a, a, StateVector a, [[a]])) -> a -> KalmanState m a (a, a)
+runFusion :: (Monad m, Floating a) => (a -> StateVector a -> StateVector (StateVector a) -> (a, a, StateVector a, StateVector (StateVector a))) -> a -> KalmanState m a (a, a)
 runFusion fuse measurement = do
     (ts, state, p) <- get
     let (innov, innovCov, state', p') = fuse measurement state p

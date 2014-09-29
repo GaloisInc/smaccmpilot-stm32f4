@@ -106,7 +106,7 @@ initialMeasurements prev = do
         Just (MPL3 v) -> (Last (Just $ psasTimestamp msg), mempty, Last (Just v))
         _ -> mempty
 
-runPSAS :: KalmanState Get Double a -> Get (a, (PSASTimestamp, StateVector Double, [[Double]]))
+runPSAS :: KalmanState Get Double a -> Get (a, (PSASTimestamp, StateVector Double, StateVector (StateVector Double)))
 runPSAS filter = do
     (ts, adis, mpl3) <- initialMeasurements mempty
     let depth = negate $ pressureToHeight $ mpl3Pressure mpl3
