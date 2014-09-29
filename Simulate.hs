@@ -50,7 +50,7 @@ initDynamic accel mag magBias declination vel pos = (pure 0)
     where
     initMagXYZ = mag - magBias
     initQuat = initAttitude accel initMagXYZ declination
-    initMagNED = let [n, e, d] = matVecMult (quatRotation initQuat) (toList initMagXYZ) in ned n e d
+    initMagNED = fst (convertFrames initQuat) initMagXYZ
     -- TODO: re-implement InertialNav's calcEarthRateNED
 
 gyroProcessNoise, accelProcessNoise :: Fractional a => a
