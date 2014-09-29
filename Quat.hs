@@ -32,14 +32,16 @@ instance Num a => Num (Quat a) where
     (Quat s1 v1) * (Quat s2 v2) = Quat (s1 * s2 - dotp v1 v2) (fmap (s1 *) v2 + fmap (s2 *) v1 + v1 * v2)
     fromInteger i = Quat (fromInteger i) (pure 0)
 
-    abs q = error "abs not defined for Quat"
-    signum q = error "signum not defined for Quat"
+    abs _ = error "abs not defined for Quat"
+    signum _ = error "signum not defined for Quat"
 
 fromAxisAngle :: Floating a => Vec3 a -> a -> Quat a
 fromAxisAngle axis angle = Quat (cos (angle / 2)) (fmap (sin (angle / 2) *) axis)
 
 quatRotation :: Num a => Quat a -> Vec3 (Vec3 a)
 quatRotation (Quat q0 (Vec3 q1 q2 q3)) = Vec3
-    (Vec3 (q0 ^ 2 + q1 ^ 2 - q2 ^ 2 - q3 ^ 2) (2 * (q1 * q2 - q0 * q3)) (2 * (q1 * q3 + q0 * q2)))
-    (Vec3 (2 * (q1 * q2 + q0 * q3)) (q0 ^ 2 - q1 ^ 2 + q2 ^ 2 - q3 ^ 2) (2 * (q2 * q3 - q0 * q1)))
-    (Vec3 (2 * (q1 * q3 - q0 * q2)) (2 * (q2 * q3 + q0 * q1)) (q0 ^ 2 - q1 ^ 2 - q2 ^ 2 + q3 ^ 2))
+    (Vec3 (sq q0 + sq q1 - sq q2 - sq q3) (2 * (q1 * q2 - q0 * q3)) (2 * (q1 * q3 + q0 * q2)))
+    (Vec3 (2 * (q1 * q2 + q0 * q3)) (sq q0 - sq q1 + sq q2 - sq q3) (2 * (q2 * q3 - q0 * q1)))
+    (Vec3 (2 * (q1 * q3 - q0 * q2)) (2 * (q2 * q3 + q0 * q1)) (sq q0 - sq q1 - sq q2 + sq q3))
+    where
+    sq x = x ^ (2 :: Int)

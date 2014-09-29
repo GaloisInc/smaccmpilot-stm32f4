@@ -1,9 +1,7 @@
 module Simulate where
 
 import ExtendedKalmanFilter
-import Matrix
 import SensorFusionModel
-import Quat
 import Vec3
 
 import Control.Applicative
@@ -21,7 +19,7 @@ runKalmanState ts state = runStateT (ts, state, kalmanP)
 fixQuat :: Floating a => StateVector a -> StateVector a
 fixQuat state = (pure id) { stateOrient = pure (/ quatMag) } <*> state
     where
-    quatMag = sqrt $ sum $ fmap (^ 2) $ stateOrient state
+    quatMag = sqrt $ sum $ fmap (^ (2 :: Int)) $ stateOrient state
 
 runProcessModel :: (Monad m, Floating a) => a -> DisturbanceVector a -> KalmanState m a ()
 runProcessModel dt dist = do

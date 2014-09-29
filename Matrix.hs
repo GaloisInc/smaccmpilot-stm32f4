@@ -53,8 +53,8 @@ instance Applicative L where
     (L a) <*> (L b) = L $ zipWith ($) a b
 instance Pointwise L where
 
-msplit :: L (L a) -> (a, L a, L a, L (L a))
-msplit (L (L row : rows)) = (first, L top, L left, L $ map L rest)
+msplit :: [a] -> [L a] -> (a, L a, L a, L (L a))
+msplit row rows = (first, L top, L left, L $ map L rest)
     where
     first : top = row
     (left, rest) = unzip $ map (\ (L (x:xs)) -> (x, xs)) rows
@@ -65,9 +65,9 @@ mjoin (first, L top, L left, L rest) = L $ (L $ first : top) : (zipWith (\ l (L 
 matInvertList :: Fractional a => L (L a) -> L (L a)
 matInvertList (L []) = L []
 matInvertList (L [L [a]]) = L [L [recip a]]
-matInvertList m = mjoin (a', b', c', d')
+matInvertList (L (L row : rows)) = mjoin (a', b', c', d')
     where
-    (a, b, c, d) = msplit m
+    (a, b, c, d) = msplit row rows
     aInv = recip a
     caInv = fmap (* aInv) c
     aInvb = fmap (aInv *) b

@@ -137,7 +137,7 @@ nStates = length $ toList (pure () :: StateVector ())
 -- Model initialization
 
 kalmanP :: Fractional a => StateVector (StateVector a)
-kalmanP = diagMat $ fmap (^ 2) $ StateVector
+kalmanP = diagMat $ fmap (^ (2 :: Int)) $ StateVector
     { stateOrient = Quat 0.5 (Vec3 0.5 0.5 5)
     , stateVel = pure 0.7
     , statePos = ned 15 15 5
@@ -183,9 +183,9 @@ gyroProcessNoise = 1.4544411e-2
 accelProcessNoise = 0.5
 
 distCovariance :: Fractional a => a -> DisturbanceVector a
-distCovariance dt = DisturbanceVector
-    { disturbanceGyro = pure ((dt * gyroProcessNoise) ^ 2)
-    , disturbanceAccel = pure ((dt * accelProcessNoise) ^ 2)
+distCovariance dt = fmap (^ (2 :: Int)) $ DisturbanceVector
+    { disturbanceGyro = pure (dt * gyroProcessNoise)
+    , disturbanceAccel = pure (dt * accelProcessNoise)
     }
 
 velNoise :: Fractional a => NED a

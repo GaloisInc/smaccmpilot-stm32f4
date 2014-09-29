@@ -19,7 +19,6 @@ import Prelude hiding (mapM_, sequence)
 import SensorFusionModel
 import Simulate
 import System.Environment
-import Vec3
 
 type PSASTimestamp = Double
 data PSASMessage = PSASMessage
@@ -107,11 +106,11 @@ initialMeasurements prev = do
         _ -> mempty
 
 runPSAS :: KalmanState Get Double a -> Get (a, (PSASTimestamp, StateVector Double, StateVector (StateVector Double)))
-runPSAS filter = do
+runPSAS go = do
     (ts, adis, mpl3) <- initialMeasurements mempty
     let depth = negate $ pressureToHeight $ mpl3Pressure mpl3
     let initialState = initDynamic (adisAcc adis) (adisMagn adis) (pure 0) 0 (pure 0) (ned 0 0 depth)
-    runKalmanState ts initialState filter
+    runKalmanState ts initialState go
 
 psasFilter :: KalmanState Get Double (Maybe [Double])
 psasFilter = do
