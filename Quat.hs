@@ -36,6 +36,9 @@ instance Num a => Num (Quat a) where
             a1 * d2 + b1 * c2 - c1 * b2 + d1 * a2
         )
 
+    abs q = error "abs not defined for Quat"
+    signum q = error "signum not defined for Quat"
+
     fromInteger i = Quat (fromInteger i, 0, 0, 0)
 
 quatRotation :: Num a => Quat a -> Vec3 (Vec3 a)
