@@ -1,6 +1,6 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
-module Matrix where
+module SMACCM.INS.Matrix where
 
 import Control.Applicative
 import Data.Distributive

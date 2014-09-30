@@ -1,16 +1,15 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
-module SensorFusionModel where
-
-import ExtendedKalmanFilter
-import Matrix
-import Quat
-import Vec3
+module SMACCM.INS.SensorFusionModel where
 
 import Control.Applicative
 import Data.Distributive
 import Data.Foldable (Foldable(..), toList)
 import Data.Traversable
+import SMACCM.INS.ExtendedKalmanFilter
+import SMACCM.INS.Matrix
+import SMACCM.INS.Quat
+import SMACCM.INS.Vec3
 
 -- For measurements/states in navigation frame
 newtype NED a = NED { nedToVec3 :: Vec3 a }

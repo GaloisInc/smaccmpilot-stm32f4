@@ -1,9 +1,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE Rank2Types #-}
 
-module ExtendedKalmanFilter where
-
-import Matrix
+module SMACCM.INS.ExtendedKalmanFilter where
 
 import Control.Applicative
 import Data.Distributive
@@ -11,6 +9,7 @@ import Data.Reflection (Reifies)
 import Data.Traversable
 import Numeric.AD.Internal.Reverse (Tape)
 import Numeric.AD.Mode.Reverse
+import SMACCM.INS.Matrix
 
 kalmanPredict :: (Pointwise state, Traversable state, Distributive state, Pointwise dist, Traversable dist, Distributive dist, Num var) => (forall s. Reifies s Tape => state (Reverse s var) -> dist (Reverse s var) -> state (Reverse s var)) -> state var -> dist var -> dist var -> state (state var) -> state (state var)
 kalmanPredict process state dist cov = \ p -> matBinOp (+) q $ matMult f $ matMult p $ matTranspose f

@@ -1,8 +1,4 @@
-module Simulate where
-
-import ExtendedKalmanFilter
-import SensorFusionModel
-import Vec3
+module SMACCM.INS.Simulate where
 
 import Control.Applicative
 import Data.Foldable
@@ -10,6 +6,9 @@ import Data.Traversable
 import MonadLib (runStateT, StateT, get, set)
 import Numeric.AD
 import Prelude hiding (mapM, sequence, sum)
+import SMACCM.INS.ExtendedKalmanFilter
+import SMACCM.INS.SensorFusionModel
+import SMACCM.INS.Vec3
 
 type KalmanState m a = StateT (a, StateVector a, StateVector (StateVector a)) m
 

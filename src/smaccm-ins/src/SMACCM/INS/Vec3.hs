@@ -1,10 +1,10 @@
-module Vec3 where
+module SMACCM.INS.Vec3 where
 
 import Control.Applicative
 import Data.Distributive
 import Data.Foldable
 import Data.Traversable
-import Matrix
+import SMACCM.INS.Matrix
 
 data Vec3 a = Vec3 { vecX :: !a, vecY :: !a, vecZ :: !a }
     deriving (Eq, Show)

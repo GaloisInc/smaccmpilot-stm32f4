@@ -1,11 +1,11 @@
-module Quat where
+module SMACCM.INS.Quat where
 
 import Control.Applicative
 import Data.Distributive
 import Data.Foldable
 import Data.Traversable
-import Matrix (dotp)
-import Vec3
+import SMACCM.INS.Matrix (dotp)
+import SMACCM.INS.Vec3
 
 data Quat a = Quat { quatScalar :: !a, quatVector :: !(Vec3 a) }
     deriving (Eq, Show)

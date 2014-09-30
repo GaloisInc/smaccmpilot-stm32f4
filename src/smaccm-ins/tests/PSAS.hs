@@ -16,8 +16,8 @@ import Data.Traversable
 import Data.Word
 import MonadLib (lift, get, sets_)
 import Prelude hiding (mapM_, sequence)
-import SensorFusionModel
-import Simulate
+import SMACCM.INS.SensorFusionModel
+import SMACCM.INS.Simulate
 import System.Environment
 
 type PSASTimestamp = Double
