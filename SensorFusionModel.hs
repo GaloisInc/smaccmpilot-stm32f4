@@ -138,7 +138,7 @@ nStates = length $ toList (pure () :: StateVector ())
 
 kalmanP :: Fractional a => StateVector (StateVector a)
 kalmanP = diagMat $ fmap (^ (2 :: Int)) $ StateVector
-    { stateOrient = Quat 0.5 (Vec3 0.5 0.5 5)
+    { stateOrient = pure 0.1
     , stateVel = pure 0.7
     , statePos = ned 15 15 5
     , stateGyroBias = pure $ 0.1 * deg2rad * dtIMU
