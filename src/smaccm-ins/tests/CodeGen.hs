@@ -1,0 +1,98 @@
+{-# OPTIONS_GHC -fno-warn-orphans #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE TypeOperators #-}
+
+import Control.Applicative
+import Data.Foldable
+import Data.Traversable
+import qualified Ivory.Compile.C.CmdlineFrontend as C (compile)
+import Ivory.Language
+import Numeric.AD
+import Prelude hiding (mapM, sequence_)
+import SMACCM.INS.ExtendedKalmanFilter
+import SMACCM.INS.Matrix (Pointwise)
+import SMACCM.INS.Quat
+import SMACCM.INS.SensorFusionModel
+import SMACCM.INS.Vec3
+
+[ivory|
+struct kalman_state
+  { orient :: Array 4 (Stored IDouble)
+  ; vel :: Array 3 (Stored IDouble)
+  ; pos :: Array 3 (Stored IDouble)
+  ; gyro_bias :: Array 3 (Stored IDouble)
+  ; wind :: Array 3 (Stored IDouble)
+  ; mag_ned :: Array 3 (Stored IDouble)
+  ; mag_xyz :: Array 3 (Stored IDouble)
+  }
+
+struct kalman_covariance
+  { cov_orient :: Array 4 (Struct kalman_state)
+  ; cov_vel :: Array 3 (Struct kalman_state)
+  ; cov_pos :: Array 3 (Struct kalman_state)
+  ; cov_gyro_bias :: Array 3 (Struct kalman_state)
+  ; cov_wind :: Array 3 (Struct kalman_state)
+  ; cov_mag_ned :: Array 3 (Struct kalman_state)
+  ; cov_mag_xyz :: Array 3 (Struct kalman_state)
+  }
+|]
+
+kalman_state :: MemArea (Struct "kalman_state")
+kalman_state = area "kalman_state" Nothing
+
+kalman_covariance :: MemArea (Struct "kalman_covariance")
+kalman_covariance = area "kalman_covariance" Nothing
+
+vec3FromArray :: IvoryArea v => Vec3 ((Ref s t -> Ref s (Array 3 v)) -> Ref s t -> Ref s v)
+vec3FromArray = Vec3 ((! 0) .) ((! 1) .) ((! 2) .)
+
+stateVectorFromStruct :: Ref s (Struct "kalman_state") -> StateVector (Ref s (Stored IDouble))
+stateVectorFromStruct s = StateVector
+  { stateOrient = Quat ((! 0) .) (Vec3 ((! 1) .) ((! 2) .) ((! 3) .)) <*> pure (~> orient)
+  , stateVel = NED vec3FromArray <*> pure (~> vel)
+  , statePos = NED vec3FromArray <*> pure (~> pos)
+  , stateGyroBias = XYZ vec3FromArray <*> pure (~> gyro_bias)
+  , stateWind = NED vec3FromArray <*> pure (~> wind)
+  , stateMagNED = NED vec3FromArray <*> pure (~> mag_ned)
+  , stateMagXYZ = XYZ vec3FromArray <*> pure (~> mag_xyz)
+  } <*> pure s
+
+stateVector :: StateVector (Ref Global (Stored IDouble))
+stateVector = stateVectorFromStruct (addrOf kalman_state)
+
+p :: StateVector (StateVector (Ref Global (Stored IDouble)))
+p = stateVectorFromStruct <$> (StateVector
+  { stateOrient = Quat ((! 0) .) (Vec3 ((! 1) .) ((! 2) .) ((! 3) .)) <*> pure (~> cov_orient)
+  , stateVel = NED vec3FromArray <*> pure (~> cov_vel)
+  , statePos = NED vec3FromArray <*> pure (~> cov_pos)
+  , stateGyroBias = XYZ vec3FromArray <*> pure (~> cov_gyro_bias)
+  , stateWind = NED vec3FromArray <*> pure (~> cov_wind)
+  , stateMagNED = NED vec3FromArray <*> pure (~> cov_mag_ned)
+  , stateMagXYZ = XYZ vec3FromArray <*> pure (~> cov_mag_xyz)
+  } <*> pure (addrOf kalman_covariance))
+
+storeRow :: (Foldable f, Pointwise f, IvoryStore a) => f (Ref s (Stored a)) -> f a -> Ivory eff ()
+storeRow vars vals = sequence_ $ liftA2 store vars vals
+
+kalman_predict :: Def ('[IDouble, IDouble, IDouble, IDouble, IDouble, IDouble, IDouble] :-> ())
+kalman_predict = proc "kalman_predict" $ \ dt dax day daz dvx dvy dvz -> body $ do
+  stateVectorTemp <- mapM deref stateVector
+  pTemp <- mapM (mapM deref) p
+  let distVector = DisturbanceVector { disturbanceGyro = xyz dax day daz, disturbanceAccel = xyz dvx dvy dvz }
+  let stateVector' = processModel dt stateVectorTemp distVector
+  let p' = kalmanPredict (processModel (auto dt)) stateVectorTemp distVector (distCovariance dt) pTemp
+  storeRow stateVector stateVector'
+  sequence_ $ liftA2 storeRow p p'
+
+ins_module :: Module
+ins_module = package "smaccm_ins" $ do
+  defStruct (Proxy :: Proxy "kalman_state")
+  defStruct (Proxy :: Proxy "kalman_covariance")
+  defMemArea kalman_state
+  defMemArea kalman_covariance
+  incl kalman_predict
+
+main :: IO ()
+main = C.compile [ ins_module ]
