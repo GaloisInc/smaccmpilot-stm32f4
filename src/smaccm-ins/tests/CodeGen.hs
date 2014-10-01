@@ -9,6 +9,7 @@ import Data.Foldable
 import Data.Traversable
 import qualified Ivory.Compile.C.CmdlineFrontend as C (compile)
 import Ivory.Language
+import Ivory.Stdlib
 import Numeric.AD
 import Prelude hiding (mapM, sequence_)
 import SMACCM.INS.ExtendedKalmanFilter
@@ -86,6 +87,22 @@ kalman_predict = proc "kalman_predict" $ \ dt dax day daz dvx dvy dvz -> body $ 
   storeRow stateVector stateVector'
   sequence_ $ liftA2 storeRow p p'
 
+applyUpdate :: IDouble -> (StateVector IDouble -> StateVector (StateVector IDouble) -> (IDouble, IDouble, StateVector IDouble, StateVector (StateVector IDouble))) -> Ivory eff ()
+applyUpdate cov fusionStep = do
+    stateVectorTemp <- mapM deref stateVector
+    pTemp <- mapM (mapM deref) p
+    let (innovSym, innovCovSym, stateVector', p') = fusionStep stateVectorTemp pTemp
+    innovCov <- assign innovCovSym
+    -- TODO: when innovCov < cov, add cov to the "right" elements of p
+    when (innovCov >=? cov) $ do
+      innov <- assign innovSym
+      when (innov ^ (2 :: Int) / innovCov <? 5 ^ (2 :: Int)) $ do
+        storeRow stateVector stateVector'
+        sequence_ $ liftA2 storeRow p p'
+
+mag_measure :: Def ('[IDouble, IDouble, IDouble] :-> ())
+mag_measure = proc "mag_measure" $ \ magX magY magZ -> body $ sequence_ $ applyUpdate <$> magNoise <*> (fuseMag <*> magNoise <*> xyz magX magY magZ)
+
 ins_module :: Module
 ins_module = package "smaccm_ins" $ do
   defStruct (Proxy :: Proxy "kalman_state")
@@ -93,6 +110,7 @@ ins_module = package "smaccm_ins" $ do
   defMemArea kalman_state
   defMemArea kalman_covariance
   incl kalman_predict
+  incl mag_measure
 
 main :: IO ()
 main = C.compile [ ins_module ]

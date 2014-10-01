@@ -45,6 +45,7 @@ executable codegen
                        ad >=4.2 && <4.3,
                        ivory >=0.1 && <0.2,
                        ivory-backend-c >=0.1 && <0.2,
+                       ivory-stdlib >=0.1 && <0.2,
                        smaccm-ins
   default-language:    Haskell2010
   ghc-options:         -Wall -Werror
