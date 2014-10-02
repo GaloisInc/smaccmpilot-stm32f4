@@ -10,6 +10,7 @@ import Data.Traversable
 import qualified Ivory.Compile.C.CmdlineFrontend as C (compile)
 import Ivory.Language
 import Ivory.Stdlib
+import IvoryCSE
 import Numeric.AD
 import Prelude hiding (mapM, sequence_)
 import SMACCM.INS.ExtendedKalmanFilter
@@ -74,8 +75,8 @@ p = stateVectorFromStruct <$> (StateVector
   , stateMagXYZ = XYZ vec3FromArray <*> pure (~> cov_mag_xyz)
   } <*> pure (addrOf kalman_covariance))
 
-storeRow :: (Foldable f, Pointwise f, IvoryStore a) => f (Ref s (Stored a)) -> f a -> Ivory eff ()
-storeRow vars vals = sequence_ $ liftA2 store vars vals
+storeRow :: (Foldable f, Pointwise f, IvoryStore a, IvoryExpr a) => f (Ref s (Stored a)) -> f a -> Ivory eff ()
+storeRow vars vals = sequence_ $ liftA2 (\ var val -> cse val >>= store var) vars vals
 
 kalman_predict :: Def ('[IDouble, IDouble, IDouble, IDouble, IDouble, IDouble, IDouble] :-> ())
 kalman_predict = proc "kalman_predict" $ \ dt dax day daz dvx dvy dvz -> body $ do

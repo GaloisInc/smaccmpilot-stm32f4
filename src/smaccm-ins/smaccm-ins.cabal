@@ -43,6 +43,8 @@ executable codegen
   main-is:             CodeGen.hs
   build-depends:       base >=4.6 && <4.7,
                        ad >=4.2 && <4.3,
+                       containers >=0.5 && <0.6,
+                       data-reify >=0.6 && <0.7,
                        ivory >=0.1 && <0.2,
                        ivory-backend-c >=0.1 && <0.2,
                        ivory-stdlib >=0.1 && <0.2,
