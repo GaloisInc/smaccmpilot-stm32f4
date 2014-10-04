@@ -101,6 +101,15 @@ applyUpdate cov fusionStep = do
         storeRow stateVector stateVector'
         sequence_ $ liftA2 storeRow p p'
 
+vel_measure :: Def ('[IDouble, IDouble, IDouble] :-> ())
+vel_measure = proc "vel_measure" $ \ velN velE velD -> body $ sequence_ $ applyUpdate <$> velNoise <*> (fuseVel <*> velNoise <*> ned velN velE velD)
+
+pos_measure :: Def ('[IDouble, IDouble, IDouble] :-> ())
+pos_measure = proc "pos_measure" $ \ posN posE posD -> body $ sequence_ $ applyUpdate <$> posNoise <*> (fusePos <*> posNoise <*> ned posN posE posD)
+
+tas_measure :: Def ('[IDouble, IDouble, IDouble] :-> ())
+tas_measure = proc "tas_measure" $ \ tas -> body $ applyUpdate tasNoise $ fuseTAS tasNoise tas
+
 mag_measure :: Def ('[IDouble, IDouble, IDouble] :-> ())
 mag_measure = proc "mag_measure" $ \ magX magY magZ -> body $ sequence_ $ applyUpdate <$> magNoise <*> (fuseMag <*> magNoise <*> xyz magX magY magZ)
 
@@ -111,6 +120,9 @@ ins_module = package "smaccm_ins" $ do
   defMemArea kalman_state
   defMemArea kalman_covariance
   incl kalman_predict
+  incl vel_measure
+  incl pos_measure
+  incl tas_measure
   incl mag_measure
 
 main :: IO ()
