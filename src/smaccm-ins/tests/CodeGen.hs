@@ -93,10 +93,10 @@ applyUpdate cov fusionStep = do
     stateVectorTemp <- mapM deref stateVector
     pTemp <- mapM (mapM deref) p
     let (innovSym, innovCovSym, stateVector', p') = fusionStep stateVectorTemp pTemp
-    innovCov <- assign innovCovSym
+    innovCov <- assign =<< cse innovCovSym
     -- TODO: when innovCov < cov, add cov to the "right" elements of p
     when (innovCov >=? cov) $ do
-      innov <- assign innovSym
+      innov <- assign =<< cse innovSym
       when (innov ^ (2 :: Int) / innovCov <? 5 ^ (2 :: Int)) $ do
         storeRow stateVector stateVector'
         sequence_ $ liftA2 storeRow p p'
