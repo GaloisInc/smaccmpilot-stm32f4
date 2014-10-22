@@ -10,12 +10,11 @@ import qualified Data.ByteString as S
 import qualified Data.ByteString.Lazy as L
 import Data.Foldable
 import Data.Int
-import Data.Maybe
 import Data.Monoid
 import Data.Traversable
 import Data.Word
 import MonadLib (lift, get, sets_)
-import Prelude hiding (mapM_, sequence)
+import Prelude hiding (sequence, sequence_)
 import SMACCM.INS.SensorFusionModel
 import SMACCM.INS.Simulate
 import System.Environment
@@ -112,20 +111,24 @@ runPSAS go = do
     let initialState = initDynamic (adisAcc adis) (adisMagn adis) (pure 0) 0 (pure 0) (ned 0 0 depth)
     runKalmanState ts initialState go
 
-psasFilter :: KalmanState Get Double (Maybe [Double])
+psasFilter :: KalmanState Get Double (IO ())
 psasFilter = do
     msg <- lift getMessage
     (lasttime, laststate, _) <- get
     case getMessageType msg of
         Just (ADIS v) -> do
             runProcessModel (psasTimestamp msg - lasttime) $ DisturbanceVector { disturbanceGyro = adisGyro v, disturbanceAccel = adisAcc v }
-            _ <- runFuseMag $ adisMagn v
+            magStatus <- runFuseMag $ adisMagn v
             sets_ $ \ (_, state, p) -> (psasTimestamp msg, state, p)
-            return $ Just $ lasttime : toList laststate
+            return $ do
+                putStrLn $ unwords $ "pre-mag" : map show (lasttime : toList laststate)
+                putStrLn $ unwords $ "mag" : map show (toList (fmap fst magStatus) ++ toList (fmap snd magStatus))
         Just (MPL3 v) -> do
-            _ <- runFuseHeight $ negate $ pressureToHeight $ mpl3Pressure v
-            return $ Just $ lasttime : toList laststate
-        _ -> return Nothing
+            (innov, innovVar) <- runFuseHeight $ negate $ pressureToHeight $ mpl3Pressure v
+            return $ do
+                putStrLn $ unwords $ "pre-mpl" : map show (lasttime : toList laststate)
+                putStrLn $ unwords $ "mpl" : map show [innov, innovVar]
+        _ -> return (return ())
 
 main :: IO ()
 main = do
@@ -134,4 +137,5 @@ main = do
         [] -> L.getContents
         fname : _ -> L.readFile fname
     let (states, (finalTime, finalState, _)) = runGet (runPSAS $ replicateM (2048 * 3) psasFilter) logfile
-    mapM_ (putStrLn . unwords . map show) $ catMaybes states ++ [finalTime : toList finalState]
+    sequence_ states
+    putStrLn $ unwords $ "final" : map show (finalTime : toList finalState)
