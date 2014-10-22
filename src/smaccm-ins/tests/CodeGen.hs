@@ -107,7 +107,7 @@ vel_measure = proc "vel_measure" $ \ velN velE velD -> body $ sequence_ $ applyU
 pos_measure :: Def ('[IDouble, IDouble, IDouble] :-> ())
 pos_measure = proc "pos_measure" $ \ posN posE posD -> body $ sequence_ $ applyUpdate <$> posNoise <*> (fusePos <*> posNoise <*> ned posN posE posD)
 
-tas_measure :: Def ('[IDouble, IDouble, IDouble] :-> ())
+tas_measure :: Def ('[IDouble] :-> ())
 tas_measure = proc "tas_measure" $ \ tas -> body $ applyUpdate tasNoise $ fuseTAS tasNoise tas
 
 mag_measure :: Def ('[IDouble, IDouble, IDouble] :-> ())
