@@ -4,9 +4,7 @@ import Control.Applicative
 import Data.Foldable
 import Data.Traversable
 import MonadLib (runStateT, StateT, get, set)
-import Numeric.AD
 import Prelude hiding (mapM, sequence, sum)
-import SMACCM.INS.ExtendedKalmanFilter
 import SMACCM.INS.SensorFusionModel
 import SMACCM.INS.Vec3
 
@@ -23,8 +21,8 @@ fixQuat state = (pure id) { stateOrient = pure (/ quatMag) } <*> state
 runProcessModel :: (Monad m, Floating a) => a -> DisturbanceVector a -> KalmanState m a ()
 runProcessModel dt dist = do
     (ts, state, p) <- get
-    let state' = processModel dt state dist
-    let p' = kalmanPredict (processModel $ auto dt) state dist (distCovariance dt) p
+    let processNoise = pure (pure 0)
+    let (state', p') = updateProcess dt state dist p processNoise
     set (ts, fixQuat state', p')
 
 runFusion :: (Monad m, Floating a, Ord a) => (a -> StateVector a -> StateVector (StateVector a) -> (a, a, StateVector a, StateVector (StateVector a))) -> a -> KalmanState m a (a, a)

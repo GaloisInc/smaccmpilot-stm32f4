@@ -6,6 +6,7 @@ import Control.Applicative
 import Data.Distributive
 import Data.Foldable (Foldable(..), toList)
 import Data.Traversable
+import Numeric.AD
 import SMACCM.INS.ExtendedKalmanFilter
 import SMACCM.INS.Matrix
 import SMACCM.INS.Quat
@@ -130,6 +131,34 @@ instance Distributive DisturbanceVector where
         , disturbanceAccel = distribute $ fmap disturbanceAccel f
         }
 
+data AugmentState a = AugmentState { getState :: StateVector a, getDisturbance :: DisturbanceVector a }
+
+instance Applicative AugmentState where
+    pure v = AugmentState (pure v) (pure v)
+    v1 <*> v2 = AugmentState
+        { getState = getState v1 <*> getState v2
+        , getDisturbance = getDisturbance v1 <*> getDisturbance v2
+        }
+
+instance Pointwise AugmentState where
+
+instance Functor AugmentState where
+    fmap = liftA
+
+instance Foldable AugmentState where
+    foldMap = foldMapDefault
+
+instance Traversable AugmentState where
+    sequenceA v = AugmentState
+        <$> sequenceA (getState v)
+        <*> sequenceA (getDisturbance v)
+
+instance Distributive AugmentState where
+    distribute f = AugmentState
+        { getState = distribute $ fmap getState f
+        , getDisturbance = distribute $ fmap getDisturbance f
+        }
+
 nStates :: Int
 nStates = length $ toList (pure () :: StateVector ())
 
@@ -206,26 +235,37 @@ body2nav = fst . convertFrames . stateOrient
 nav2body :: Num a => StateVector a -> NED a -> XYZ a
 nav2body = snd . convertFrames . stateOrient
 
-processModel :: (Num a, Fractional a) => a -> StateVector a -> DisturbanceVector a -> StateVector a
-processModel dt state dist = state
-    -- This approximates the discretization of `qdot = 0.5 * <0, deltaAngle> * q`.
-    -- It assumes that dt is sufficiently small. The closed-form analytic
-    -- discretization requires dividing by |deltaAngle|, which may be 0.
-    -- * _Strapdown Inertial Navigation Technology, 2nd Ed_, section 11.2.5 (on
-    --   pages 319-320) gives qdot and its analytic discretization, without proof.
-    -- * http://en.wikipedia.org/wiki/Discretization derives the general form of
-    --   discretization, and mentions this approximation.
-    -- * http://www.euclideanspace.com/physics/kinematics/angularvelocity/QuaternionDifferentiation2.pdf
-    --   derives qdot from angular momentum.
-    { stateOrient = (1 + fmap (* (dt / 2)) deltaQuat) * stateOrient state
-    , stateVel = stateVel state + deltaVel
-    , statePos = statePos state + fmap (* dt) (stateVel state + fmap (/ 2) deltaVel)
-    -- remaining state vector elements are unchanged by the process model
-    }
+processModel :: Fractional a => a -> AugmentState a -> AugmentState a
+processModel dt (AugmentState state dist) = AugmentState state' $ pure 0
     where
+    state' = state
+        -- This approximates the discretization of `qdot = 0.5 * <0, deltaAngle> * q`.
+        -- It assumes that dt is sufficiently small. The closed-form analytic
+        -- discretization requires dividing by |deltaAngle|, which may be 0.
+        -- * _Strapdown Inertial Navigation Technology, 2nd Ed_, section 11.2.5 (on
+        --   pages 319-320) gives qdot and its analytic discretization, without proof.
+        -- * http://en.wikipedia.org/wiki/Discretization derives the general form of
+        --   discretization, and mentions this approximation.
+        -- * http://www.euclideanspace.com/physics/kinematics/angularvelocity/QuaternionDifferentiation2.pdf
+        --   derives qdot from angular momentum.
+        { stateOrient = (1 + fmap (* (dt / 2)) deltaQuat) * stateOrient state
+        , stateVel = stateVel state + deltaVel
+        , statePos = statePos state + fmap (* dt) (stateVel state + fmap (/ 2) deltaVel)
+        -- remaining state vector elements are unchanged by the process model
+        }
     deltaQuat = Quat 0 $ xyzToVec3 $ disturbanceGyro dist - stateGyroBias state
     deltaVel = fmap (* dt) $ body2nav state (disturbanceAccel dist) + g
     g = ned 0 0 9.80665 -- NED gravity vector - m/sec^2
+
+augment2D :: Num a => StateVector (StateVector a) -> DisturbanceVector (DisturbanceVector a) -> AugmentState (AugmentState a)
+augment2D ul lr = AugmentState (liftA2 AugmentState ul (pure (pure 0))) (liftA2 AugmentState (pure (pure 0)) lr)
+
+updateProcess :: Fractional a => a -> StateVector a -> DisturbanceVector a -> StateVector (StateVector a) -> StateVector (StateVector a) -> (StateVector a, StateVector (StateVector a))
+updateProcess dt state dist p noise = (getState state', fmap getState $ getState p')
+    where
+    augmentedCovariance = augment2D p $ diagMat $ distCovariance dt
+    augmentedNoise = augment2D noise (pure (pure 0))
+    (state', p') = kalmanPredict (processModel (auto dt)) (AugmentState state dist) augmentedNoise augmentedCovariance
 
 newtype Singleton a = Singleton a
 

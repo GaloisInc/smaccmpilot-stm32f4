@@ -11,12 +11,12 @@ import Numeric.AD.Internal.Reverse (Tape)
 import Numeric.AD.Mode.Reverse
 import SMACCM.INS.Matrix
 
-kalmanPredict :: (Pointwise state, Traversable state, Distributive state, Pointwise dist, Traversable dist, Distributive dist, Num var) => (forall s. Reifies s Tape => state (Reverse s var) -> dist (Reverse s var) -> state (Reverse s var)) -> state var -> dist var -> dist var -> state (state var) -> state (state var)
-kalmanPredict process state dist cov = \ p -> matBinOp (+) q $ matMult f $ matMult p $ matTranspose f
+kalmanPredict :: (Pointwise state, Traversable state, Distributive state, Num var) => (forall s. Reifies s Tape => state (Reverse s var) -> state (Reverse s var)) -> state var -> state (state var) -> state (state var) -> (state var, state (state var))
+kalmanPredict process state q = \ p -> (state', matBinOp (+) q $ matMult f $ matMult p $ matTranspose f)
     where
-    f = jacobian (\ stateVars -> process stateVars (fmap auto dist)) state
-    g = jacobian (\ distVars -> process (fmap auto state) distVars) dist
-    q = matMult g $ matMult (diagMat cov) $ matTranspose g
+    predicted = jacobian' process state
+    state' = fmap fst predicted
+    f = fmap snd predicted
 
 newtype Measurement state var = Measurement { runMeasurement :: forall s. Reifies s Tape => state (Reverse s var) -> Reverse s var }
 
