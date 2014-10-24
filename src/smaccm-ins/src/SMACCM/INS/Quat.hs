@@ -4,7 +4,7 @@ import Control.Applicative
 import Data.Distributive
 import Data.Foldable
 import Data.Traversable
-import SMACCM.INS.Matrix (dotp)
+import SMACCM.INS.Matrix (dotp, Pointwise)
 import SMACCM.INS.Vec3
 
 data Quat a = Quat { quatScalar :: !a, quatVector :: !(Vec3 a) }
@@ -13,6 +13,8 @@ data Quat a = Quat { quatScalar :: !a, quatVector :: !(Vec3 a) }
 instance Applicative Quat where
     pure v = Quat v $ pure v
     (Quat s1 v1) <*> (Quat s2 v2) = Quat (s1 s2) (v1 <*> v2)
+
+instance Pointwise Quat where
 
 instance Functor Quat where
     fmap = liftA
