@@ -27,11 +27,14 @@ runProcessModel dt dist = do
     let p' = kalmanPredict (processModel $ auto dt) state dist (distCovariance dt) p
     set (ts, fixQuat state', p')
 
-runFusion :: (Monad m, Floating a) => (a -> StateVector a -> StateVector (StateVector a) -> (a, a, StateVector a, StateVector (StateVector a))) -> a -> KalmanState m a (a, a)
+runFusion :: (Monad m, Floating a, Ord a) => (a -> StateVector a -> StateVector (StateVector a) -> (a, a, StateVector a, StateVector (StateVector a))) -> a -> KalmanState m a (a, a)
 runFusion fuse measurement = do
     (ts, state, p) <- get
     let (innov, innovCov, state', p') = fuse measurement state p
-    set (ts, fixQuat state', p')
+    let speed = sqrt $ sum $ fmap (^ (2 :: Int)) $ stateVel state
+    let whenFlying = if speed < 4 then \ _new old -> old else \ new _old -> new
+    let observable = (pure const) { stateWind = pure whenFlying, stateMagNED = pure whenFlying, stateMagXYZ = pure whenFlying }
+    set (ts, observable <*> fixQuat state' <*> state, observable <*> p' <*> p)
     return (innov, innovCov)
 
 runFuseVel :: (Monad m, Floating a, Real a) => NED a -> KalmanState m a (NED (a, a))

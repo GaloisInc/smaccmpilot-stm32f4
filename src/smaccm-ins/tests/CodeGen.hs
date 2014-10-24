@@ -2,6 +2,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE TypeOperators #-}
 
 import Control.Applicative
@@ -12,7 +13,7 @@ import Ivory.Language
 import Ivory.Stdlib
 import IvoryCSE
 import Numeric.AD
-import Prelude hiding (mapM, sequence_)
+import Prelude hiding (mapM, sequence_, sum)
 import SMACCM.INS.ExtendedKalmanFilter
 import SMACCM.INS.Matrix (Pointwise)
 import SMACCM.INS.Quat
@@ -98,8 +99,19 @@ applyUpdate cov fusionStep = do
     when (innovCov >=? cov) $ do
       innov <- assign =<< cse innovSym
       when (innov ^ (2 :: Int) / innovCov <? 5 ^ (2 :: Int)) $ do
-        storeRow stateVector stateVector'
-        sequence_ $ liftA2 storeRow p p'
+        let save :: (Foldable f, Pointwise f) => (forall a. StateVector a -> f a) -> Ivory eff ()
+            save sel = do
+              storeRow (sel stateVector) (sel stateVector')
+              sequence_ $ liftA2 storeRow (sel p) (sel p')
+        save stateOrient
+        save stateVel
+        save statePos
+        save stateGyroBias
+        let speed = sqrt $ sum $ fmap (^ (2 :: Int)) $ stateVel stateVectorTemp
+        when (speed <? 4) $ do
+          save stateWind
+          save stateMagNED
+          save stateMagXYZ
 
 vel_measure :: Def ('[IDouble, IDouble, IDouble] :-> ())
 vel_measure = proc "vel_measure" $ \ velN velE velD -> body $ sequence_ $ applyUpdate <$> velNoise <*> (fuseVel <*> velNoise <*> ned velN velE velD)
