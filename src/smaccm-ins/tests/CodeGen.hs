@@ -82,7 +82,10 @@ kalman_predict = proc "kalman_predict" $ \ dt dax day daz dvx dvy dvz -> body $ 
   stateVectorTemp <- mapM deref stateVector
   pTemp <- mapM (mapM deref) p
   let distVector = DisturbanceVector { disturbanceGyro = xyz dax day daz, disturbanceAccel = xyz dvx dvy dvz }
-  let noise = processNoise dt
+  let speed = sqrt $ sum $ fmap (^ (2 :: Int)) $ stateVel stateVectorTemp
+  onGround <- assign $ speed <? 4
+  let whenFlying v = onGround ? (0, v)
+  let noise = (pure id) { stateWind = pure whenFlying, stateMagNED = pure whenFlying, stateMagXYZ = pure whenFlying } <*> processNoise dt
   let (stateVector', p') = updateProcess dt stateVectorTemp distVector pTemp $ diagMat noise
   storeRow stateVector stateVector'
   sequence_ $ liftA2 storeRow p p'

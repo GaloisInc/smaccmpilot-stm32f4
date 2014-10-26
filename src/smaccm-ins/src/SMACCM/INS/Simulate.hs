@@ -19,10 +19,11 @@ fixQuat state = (pure id) { stateOrient = pure (/ quatMag) } <*> state
     where
     quatMag = sqrt $ sum $ fmap (^ (2 :: Int)) $ stateOrient state
 
-runProcessModel :: (Monad m, Floating a) => a -> DisturbanceVector a -> KalmanState m a ()
+runProcessModel :: (Monad m, Floating a, Ord a) => a -> DisturbanceVector a -> KalmanState m a ()
 runProcessModel dt dist = do
     (ts, state, p) <- get
-    let noise = processNoise dt
+    let speed = sqrt $ sum $ fmap (^ (2 :: Int)) $ stateVel state
+    let noise = if speed < 4 then (processNoise dt) { stateWind = pure 0, stateMagNED = pure 0, stateMagXYZ = pure 0 } else processNoise dt
     let (state', p') = updateProcess dt state dist p $ diagMat noise
     set (ts, fixQuat state', p')
 
