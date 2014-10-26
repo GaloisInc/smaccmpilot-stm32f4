@@ -13,7 +13,7 @@ import Ivory.Language
 import Ivory.Stdlib
 import IvoryCSE
 import Prelude hiding (mapM, sequence_, sum)
-import SMACCM.INS.Matrix (Pointwise)
+import SMACCM.INS.Matrix (Pointwise, diagMat)
 import SMACCM.INS.Quat
 import SMACCM.INS.SensorFusionModel
 import SMACCM.INS.Vec3
@@ -82,8 +82,8 @@ kalman_predict = proc "kalman_predict" $ \ dt dax day daz dvx dvy dvz -> body $ 
   stateVectorTemp <- mapM deref stateVector
   pTemp <- mapM (mapM deref) p
   let distVector = DisturbanceVector { disturbanceGyro = xyz dax day daz, disturbanceAccel = xyz dvx dvy dvz }
-  let processNoise = pure (pure 0)
-  let (stateVector', p') = updateProcess dt stateVectorTemp distVector pTemp processNoise
+  let noise = processNoise dt
+  let (stateVector', p') = updateProcess dt stateVectorTemp distVector pTemp $ diagMat noise
   storeRow stateVector stateVector'
   sequence_ $ liftA2 storeRow p p'
 

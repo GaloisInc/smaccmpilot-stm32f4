@@ -206,14 +206,21 @@ initDynamic accel mag magBias declination vel pos = (pure 0)
 
 -- Model noise parameters
 
-gyroProcessNoise, accelProcessNoise :: Fractional a => a
-gyroProcessNoise = 1.4544411e-2
-accelProcessNoise = 0.5
+processNoise :: Fractional a => a -> StateVector a
+processNoise dt = fmap (^ (2 :: Int)) $ fmap (dt *) $ StateVector
+    { stateOrient = pure 1.0e-9
+    , stateVel = pure 1.0e-9
+    , statePos = pure 1.0e-9
+    , stateGyroBias = pure 5.0e-7
+    , stateWind = pure 0.1
+    , stateMagNED = pure 3.0e-4
+    , stateMagXYZ = pure 3.0e-4
+    }
 
 distCovariance :: Fractional a => a -> DisturbanceVector a
-distCovariance dt = fmap (^ (2 :: Int)) $ DisturbanceVector
-    { disturbanceGyro = pure (dt * gyroProcessNoise)
-    , disturbanceAccel = pure (dt * accelProcessNoise)
+distCovariance dt = fmap (^ (2 :: Int)) $ fmap (dt *) $ DisturbanceVector
+    { disturbanceGyro = pure 1.4544411e-2
+    , disturbanceAccel = pure 0.5
     }
 
 velNoise :: Fractional a => NED a
