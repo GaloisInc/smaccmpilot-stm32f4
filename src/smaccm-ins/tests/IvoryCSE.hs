@@ -6,8 +6,8 @@ module IvoryCSE (cse) where
 
 import Control.Applicative
 import Data.Foldable
-import Data.Map (Map)
-import qualified Data.Map as Map
+import Data.Map.Strict (Map)
+import qualified Data.Map.Strict as Map
 import Data.Monoid
 import Data.Reify
 import Data.Traversable
@@ -15,6 +15,7 @@ import Ivory.Language
 import Ivory.Language.Monad
 import Ivory.Language.Type
 import qualified Ivory.Language.Syntax as AST
+import Prelude hiding (foldr)
 import System.IO.Unsafe (unsafePerformIO)
 
 newtype MonoidMap k v = MonoidMap { getMap :: Map k v }
@@ -64,11 +65,11 @@ instance MuRef AST.Expr where
 
 toExpr :: ExprF AST.Expr -> AST.Expr
 toExpr (ExpSimpleF ex) = ex
-toExpr (ExpLabelF ty ex nm) = AST.ExpLabel ty ex nm
-toExpr (ExpIndexF ty1 ex1 ty2 ex2) = AST.ExpIndex ty1 ex1 ty2 ex2
-toExpr (ExpToIxF ex bound) = AST.ExpToIx ex bound
-toExpr (ExpSafeCastF ty ex) = AST.ExpSafeCast ty ex
-toExpr (ExpOpF op args) = AST.ExpOp op args
+toExpr (ExpLabelF ty ex nm) = ex `seq` AST.ExpLabel ty ex nm
+toExpr (ExpIndexF ty1 ex1 ty2 ex2) = ex1 `seq` ex2 `seq` AST.ExpIndex ty1 ex1 ty2 ex2
+toExpr (ExpToIxF ex bound) = ex `seq` AST.ExpToIx ex bound
+toExpr (ExpSafeCastF ty ex) = ex `seq` AST.ExpSafeCast ty ex
+toExpr (ExpOpF op args) = foldr seq (AST.ExpOp op args) args
 
 useAtType :: Ord k => k -> AST.Type -> MonoidMap k (Sum Int, TypeLattice)
 useAtType k ty = MonoidMap $ Map.singleton k (Sum 1, HasType ty)
@@ -107,17 +108,17 @@ emitSubexpr (ident, Annotated uses ty ex) emitted = do
     _ | uses < 2 -> return $ toExpr $ fmap getSubexpr ex
     _ -> do
       ex' <- freshVar "cse"
-      emit $ AST.Assign ty ex' $ toExpr $ fmap getSubexpr ex
+      emit $! AST.Assign ty ex' $! toExpr $ fmap getSubexpr ex
       return $ AST.ExpVar ex'
-  return $ Map.insert ident ex' emitted
+  return $! Map.insert ident ex' emitted
 
 cseExprF :: Graph Annotated -> Ivory eff AST.Expr
 cseExprF (Graph subexprs root) = do
   subexprs' <- foldrM emitSubexpr Map.empty subexprs
   let Just rootExpr = Map.lookup root subexprs'
-  return rootExpr
+  return $! rootExpr
 
 cse :: IvoryExpr e => e -> Ivory eff e
-cse expr = fmap wrapExpr $ cseExprF $ annotateTypes ty $ unsafePerformIO $ reifyGraph ex
+cse expr = fmap wrapExpr $! cseExprF $ annotateTypes ty $ unsafePerformIO $ reifyGraph ex
   where
   AST.Typed ty ex = typedExpr expr
