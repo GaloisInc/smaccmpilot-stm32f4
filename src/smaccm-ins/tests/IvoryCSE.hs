@@ -1,4 +1,5 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
+{-# LANGUAGE DeriveFoldable #-}
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE TypeFamilies #-}
 
@@ -26,20 +27,6 @@ instance (Ord k, Monoid v) => Monoid (MonoidMap k v) where
   mappend (MonoidMap a) (MonoidMap b) = MonoidMap $ Map.unionWith mappend a b
   mconcat maps = MonoidMap $ Map.unionsWith mappend [ m | MonoidMap m <- maps ]
 
-data TypeLattice
-  = UnknownType
-  | HasType AST.Type
-  | IllegalType
-  deriving Show
-
-instance Monoid TypeLattice where
-  mempty = UnknownType
-  mappend UnknownType t = t
-  mappend IllegalType _ = IllegalType
-  mappend t UnknownType = t
-  mappend _ IllegalType = IllegalType
-  mappend (HasType a) (HasType b) = if a == b then HasType a else IllegalType
-
 data ExprF t
   = ExpSimpleF AST.Expr
     -- ^ For expressions that cannot contain any expressions recursively.
@@ -48,7 +35,7 @@ data ExprF t
   | ExpToIxF t Integer
   | ExpSafeCastF AST.Type t
   | ExpOpF AST.ExpOp [t]
-  deriving (Show, Functor)
+  deriving (Show, Foldable, Functor)
 
 instance MuRef AST.Expr where
   type DeRef AST.Expr = ExprF
@@ -71,54 +58,53 @@ toExpr (ExpToIxF ex bound) = ex `seq` AST.ExpToIx ex bound
 toExpr (ExpSafeCastF ty ex) = ex `seq` AST.ExpSafeCast ty ex
 toExpr (ExpOpF op args) = foldr seq (AST.ExpOp op args) args
 
-useAtType :: Ord k => k -> AST.Type -> MonoidMap k (Sum Int, TypeLattice)
-useAtType k ty = MonoidMap $ Map.singleton k (Sum 1, HasType ty)
+labelTypes :: ExprF k -> AST.Type -> ExprF (AST.Type, k)
+labelTypes (ExpSimpleF e) _ = ExpSimpleF e
+labelTypes (ExpLabelF ty ex nm) _ = ExpLabelF ty (ty, ex) nm
+labelTypes (ExpIndexF ty1 ex1 ty2 ex2) _ = ExpIndexF ty1 (ty1, ex1) ty2 (ty2, ex2)
+labelTypes (ExpToIxF ex bd) _ = ExpToIxF (AST.TyInt AST.Int32, ex) bd
+labelTypes (ExpSafeCastF ty ex) _ = ExpSafeCastF ty (ty, ex)
+labelTypes (ExpOpF op args) ty = ExpOpF op $ case op of
+  AST.ExpEq t -> map ((,) t) args
+  AST.ExpNeq t -> map ((,) t) args
+  AST.ExpCond -> let (cond, rest) = splitAt 1 args in map ((,) AST.TyBool) cond ++ map ((,) ty) rest
+  AST.ExpGt _ t -> map ((,) t) args
+  AST.ExpLt _ t -> map ((,) t) args
+  AST.ExpIsNan t  -> map ((,) t) args
+  AST.ExpIsInf t  -> map ((,) t) args
+  _ -> map ((,) ty) args
 
-findUses :: Ord k => AST.Type -> ExprF k -> MonoidMap k (Sum Int, TypeLattice)
-findUses _ (ExpSimpleF{}) = mempty
-findUses _ (ExpLabelF ty ex _) = ex `useAtType` ty
-findUses _ (ExpIndexF ty1 ex1 ty2 ex2) = (ex1 `useAtType` ty1) `mappend` (ex2 `useAtType` ty2)
-findUses _ (ExpToIxF ex _) = ex `useAtType` AST.TyInt AST.Int32
-findUses _ (ExpSafeCastF ty ex) = ex `useAtType` ty
-findUses ty (ExpOpF op args) = mconcat $ case op of
-  AST.ExpEq t -> map (`useAtType` t) args
-  AST.ExpNeq t -> map (`useAtType` t) args
-  AST.ExpCond -> let (cond, rest) = splitAt 1 args in map (`useAtType` AST.TyBool) cond ++ map (`useAtType` ty) rest
-  AST.ExpGt _ t -> map (`useAtType` t) args
-  AST.ExpLt _ t -> map (`useAtType` t) args
-  AST.ExpIsNan t  -> map (`useAtType` t) args
-  AST.ExpIsInf t  -> map (`useAtType` t) args
-  _ -> map (`useAtType` ty) args
-
-data Annotated k = Annotated !Int !AST.Type !(ExprF k)
+data Annotated k = Annotated !(Map AST.Type Int) !(ExprF k)
 
 annotateTypes :: AST.Type -> Graph ExprF -> Graph Annotated
-annotateTypes rootTy (Graph subexprs root) = Graph (snd $ mapAccumL update (root `useAtType` rootTy) subexprs) root
+annotateTypes rootTy (Graph subexprs root) = Graph (snd $ mapAccumL update (useAtType rootTy root) subexprs) root
   where
-  update types (uniq, ex) = case Map.lookup uniq $ getMap types of
-    Just (Sum uses, HasType ty) -> (types `mappend` findUses ty ex, (uniq, Annotated uses ty ex))
-    Just _ -> error "IvoryCSE.annotateTypes: common subexpression used at two different types"
+  useAtType ty k = MonoidMap $ Map.singleton k $ MonoidMap $ Map.singleton ty (Sum 1)
+  update useMap (uniq, ex) = case Map.lookup uniq $ getMap useMap of
+    Just (MonoidMap typeMap) -> (useMap `mappend` foldMap (foldMap (uncurry useAtType) . labelTypes ex) (Map.keys typeMap), (uniq, Annotated (fmap getSum typeMap) ex))
     Nothing -> error "IvoryCSE.annotateTypes: cycle detected in expression"
 
-emitSubexpr :: Ord k => (k, Annotated k) -> Map k AST.Expr -> Ivory eff (Map k AST.Expr)
-emitSubexpr (ident, Annotated uses ty ex) emitted = do
-  let getSubexpr k = let Just v = Map.lookup k emitted in v
-  ex' <- case ex of
-    ExpSimpleF ex' -> return ex'
-    _ | uses < 2 -> return $ toExpr $ fmap getSubexpr ex
-    _ -> do
-      ex' <- freshVar "cse"
-      emit $! AST.Assign ty ex' $! toExpr $ fmap getSubexpr ex
-      return $ AST.ExpVar ex'
-  return $! Map.insert ident ex' emitted
+emitSubexpr :: Ord k => (k, Annotated k) -> Map (AST.Type, k) AST.Expr -> Ivory eff (Map (AST.Type, k) AST.Expr)
+emitSubexpr (ident, Annotated typeMap ex) earlier = foldrM atType earlier $ Map.toList typeMap
+  where
+  getSubexpr k = let Just v = Map.lookup k earlier in v
+  atType (ty, uses) emitted = do
+    ex' <- case ex of
+      ExpSimpleF ex' -> return ex'
+      _ | uses < 2 -> return $ toExpr $ fmap getSubexpr $ labelTypes ex ty
+      _ -> do
+        ex' <- freshVar "cse"
+        emit $! AST.Assign ty ex' $! toExpr $ fmap getSubexpr $ labelTypes ex ty
+        return $ AST.ExpVar ex'
+    return $! Map.insert (ty, ident) ex' emitted
 
-cseExprF :: Graph Annotated -> Ivory eff AST.Expr
-cseExprF (Graph subexprs root) = do
+cseExprF :: AST.Type -> Graph Annotated -> Ivory eff AST.Expr
+cseExprF rootTy (Graph subexprs root) = do
   subexprs' <- foldrM emitSubexpr Map.empty subexprs
-  let Just rootExpr = Map.lookup root subexprs'
+  let Just rootExpr = Map.lookup (rootTy, root) subexprs'
   return $! rootExpr
 
 cse :: IvoryExpr e => e -> Ivory eff e
-cse expr = fmap wrapExpr $! cseExprF $ annotateTypes ty $ unsafePerformIO $ reifyGraph ex
+cse expr = fmap wrapExpr $! cseExprF ty $ annotateTypes ty $ unsafePerformIO $ reifyGraph ex
   where
   AST.Typed ty ex = typedExpr expr
