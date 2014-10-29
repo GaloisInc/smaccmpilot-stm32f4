@@ -75,10 +75,10 @@ p = stateVectorFromStruct <$> (StateVector
   } <*> pure (addrOf kalman_covariance))
 
 storeRow :: (Foldable f, Pointwise f, IvoryStore a, IvoryExpr a) => f (Ref s (Stored a)) -> f a -> Ivory eff ()
-storeRow vars vals = sequence_ $ liftA2 (\ var val -> cse val >>= store var) vars vals
+storeRow vars vals = sequence_ $ liftA2 store vars vals
 
 kalman_predict :: Def ('[IDouble, IDouble, IDouble, IDouble, IDouble, IDouble, IDouble] :-> ())
-kalman_predict = proc "kalman_predict" $ \ dt dax day daz dvx dvy dvz -> body $ do
+kalman_predict = cse $ proc "kalman_predict" $ \ dt dax day daz dvx dvy dvz -> body $ do
   stateVectorTemp <- mapM deref stateVector
   pTemp <- mapM (mapM deref) p
   let distVector = DisturbanceVector { disturbanceGyro = xyz dax day daz, disturbanceAccel = xyz dvx dvy dvz }
@@ -94,11 +94,9 @@ applyUpdate :: IDouble -> (StateVector IDouble -> StateVector (StateVector IDoub
 applyUpdate cov fusionStep = do
     stateVectorTemp <- mapM deref stateVector
     pTemp <- mapM (mapM deref) p
-    let (innovSym, innovCovSym, stateVector', p') = fusionStep stateVectorTemp pTemp
-    innovCov <- assign =<< cse innovCovSym
+    let (innov, innovCov, stateVector', p') = fusionStep stateVectorTemp pTemp
     -- TODO: when innovCov < cov, add cov to the "right" elements of p
     when (innovCov >=? cov) $ do
-      innov <- assign =<< cse innovSym
       when (innov ^ (2 :: Int) / innovCov <? 5 ^ (2 :: Int)) $ do
         let save :: (Foldable f, Pointwise f) => (forall a. StateVector a -> f a) -> Ivory eff ()
             save sel = do
@@ -115,16 +113,16 @@ applyUpdate cov fusionStep = do
           save stateMagXYZ
 
 vel_measure :: Def ('[IDouble, IDouble, IDouble] :-> ())
-vel_measure = proc "vel_measure" $ \ velN velE velD -> body $ sequence_ $ applyUpdate <$> velNoise <*> (fuseVel <*> velNoise <*> ned velN velE velD)
+vel_measure = cse $ proc "vel_measure" $ \ velN velE velD -> body $ sequence_ $ applyUpdate <$> velNoise <*> (fuseVel <*> velNoise <*> ned velN velE velD)
 
 pos_measure :: Def ('[IDouble, IDouble, IDouble] :-> ())
-pos_measure = proc "pos_measure" $ \ posN posE posD -> body $ sequence_ $ applyUpdate <$> posNoise <*> (fusePos <*> posNoise <*> ned posN posE posD)
+pos_measure = cse $ proc "pos_measure" $ \ posN posE posD -> body $ sequence_ $ applyUpdate <$> posNoise <*> (fusePos <*> posNoise <*> ned posN posE posD)
 
 tas_measure :: Def ('[IDouble] :-> ())
-tas_measure = proc "tas_measure" $ \ tas -> body $ applyUpdate tasNoise $ fuseTAS tasNoise tas
+tas_measure = cse $ proc "tas_measure" $ \ tas -> body $ applyUpdate tasNoise $ fuseTAS tasNoise tas
 
 mag_measure :: Def ('[IDouble, IDouble, IDouble] :-> ())
-mag_measure = proc "mag_measure" $ \ magX magY magZ -> body $ sequence_ $ applyUpdate <$> magNoise <*> (fuseMag <*> magNoise <*> xyz magX magY magZ)
+mag_measure = cse $ proc "mag_measure" $ \ magX magY magZ -> body $ sequence_ $ applyUpdate <$> magNoise <*> (fuseMag <*> magNoise <*> xyz magX magY magZ)
 
 ins_module :: Module
 ins_module = package "smaccm_ins" $ do

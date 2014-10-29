@@ -1,31 +1,25 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE DeriveFoldable #-}
 {-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE DeriveTraversable #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module IvoryCSE (cse) where
 
 import Control.Applicative
+import qualified Data.DList as D
 import Data.Foldable
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import Data.Monoid
 import Data.Reify
 import Data.Traversable
-import Ivory.Language
-import Ivory.Language.Monad
-import Ivory.Language.Type
+import Ivory.Language.Proc
 import qualified Ivory.Language.Syntax as AST
-import Prelude hiding (foldr)
+import MonadLib (WriterT, StateT, Id, get, sets, sets_, put, collect, runM)
+import Prelude hiding (foldr, mapM, mapM_)
 import System.IO.Unsafe (unsafePerformIO)
-
-newtype MonoidMap k v = MonoidMap { getMap :: Map k v }
-  deriving Show
-
-instance (Ord k, Monoid v) => Monoid (MonoidMap k v) where
-  mempty = MonoidMap Map.empty
-  mappend (MonoidMap a) (MonoidMap b) = MonoidMap $ Map.unionWith mappend a b
-  mconcat maps = MonoidMap $ Map.unionsWith mappend [ m | MonoidMap m <- maps ]
 
 data ExprF t
   = ExpSimpleF AST.Expr
@@ -35,36 +29,63 @@ data ExprF t
   | ExpToIxF t Integer
   | ExpSafeCastF AST.Type t
   | ExpOpF AST.ExpOp [t]
-  deriving (Show, Foldable, Functor)
+  deriving (Show, Foldable, Functor, Traversable)
+
+data BlockF t
+  = StmtSimple AST.Stmt
+    -- ^ For statements that cannot contain any expressions, or that we don't want to CSE.
+  | StmtIfTE t t t
+  | StmtStore AST.Type AST.Expr t
+  | StmtAssign AST.Type AST.Var t
+  | Block [t]
+  deriving Show
+
+data CSE t
+  = CSEExpr (ExprF t)
+  | CSEBlock (BlockF t)
+  deriving Show
 
 instance MuRef AST.Expr where
-  type DeRef AST.Expr = ExprF
-  mapDeRef _ e@(AST.ExpSym{}) = pure $ ExpSimpleF e
-  mapDeRef _ e@(AST.ExpVar{}) = pure $ ExpSimpleF e
-  mapDeRef _ e@(AST.ExpLit{}) = pure $ ExpSimpleF e
-  mapDeRef child (AST.ExpLabel ty ex nm) = ExpLabelF <$> pure ty <*> child ex <*> pure nm
-  mapDeRef child (AST.ExpIndex ty1 ex1 ty2 ex2) = ExpIndexF <$> pure ty1 <*> child ex1 <*> pure ty2 <*> child ex2
-  mapDeRef child (AST.ExpToIx ex bound) = ExpToIxF <$> child ex <*> pure bound
-  mapDeRef child (AST.ExpSafeCast ty ex) = ExpSafeCastF ty <$> child ex
-  mapDeRef child (AST.ExpOp op args) = ExpOpF op <$> traverse child args
-  mapDeRef _ e@(AST.ExpAddrOfGlobal{}) = pure $ ExpSimpleF e
-  mapDeRef _ e@(AST.ExpMaxMin{}) = pure $ ExpSimpleF e
+  type DeRef AST.Expr = CSE
+  mapDeRef child e = CSEExpr <$> case e of
+    AST.ExpSym{} -> pure $ ExpSimpleF e
+    AST.ExpVar{} -> pure $ ExpSimpleF e
+    AST.ExpLit{} -> pure $ ExpSimpleF e
+    AST.ExpLabel ty ex nm -> ExpLabelF <$> pure ty <*> child ex <*> pure nm
+    AST.ExpIndex ty1 ex1 ty2 ex2 -> ExpIndexF <$> pure ty1 <*> child ex1 <*> pure ty2 <*> child ex2
+    AST.ExpToIx ex bound -> ExpToIxF <$> child ex <*> pure bound
+    AST.ExpSafeCast ty ex -> ExpSafeCastF ty <$> child ex
+    AST.ExpOp op args -> ExpOpF op <$> traverse child args
+    AST.ExpAddrOfGlobal{} -> pure $ ExpSimpleF e
+    AST.ExpMaxMin{} -> pure $ ExpSimpleF e
+
+instance MuRef AST.Stmt where
+  type DeRef AST.Stmt = CSE
+  mapDeRef child stmt = CSEBlock <$> case stmt of
+    AST.IfTE cond tb fb -> StmtIfTE <$> child cond <*> child tb <*> child fb
+    AST.Store ty lhs rhs -> StmtStore ty <$> pure lhs <*> child rhs
+    AST.Assign ty var ex -> StmtAssign ty var <$> child ex
+    s -> pure $ StmtSimple s
+
+instance (MuRef a, DeRef [a] ~ DeRef a) => MuRef [a] where
+  type DeRef [a] = CSE
+  mapDeRef child xs = CSEBlock <$> Block <$> traverse child xs
 
 toExpr :: ExprF AST.Expr -> AST.Expr
 toExpr (ExpSimpleF ex) = ex
-toExpr (ExpLabelF ty ex nm) = ex `seq` AST.ExpLabel ty ex nm
-toExpr (ExpIndexF ty1 ex1 ty2 ex2) = ex1 `seq` ex2 `seq` AST.ExpIndex ty1 ex1 ty2 ex2
-toExpr (ExpToIxF ex bound) = ex `seq` AST.ExpToIx ex bound
-toExpr (ExpSafeCastF ty ex) = ex `seq` AST.ExpSafeCast ty ex
-toExpr (ExpOpF op args) = foldr seq (AST.ExpOp op args) args
+toExpr (ExpLabelF ty ex nm) = AST.ExpLabel ty ex nm
+toExpr (ExpIndexF ty1 ex1 ty2 ex2) = AST.ExpIndex ty1 ex1 ty2 ex2
+toExpr (ExpToIxF ex bound) = AST.ExpToIx ex bound
+toExpr (ExpSafeCastF ty ex) = AST.ExpSafeCast ty ex
+toExpr (ExpOpF op args) = AST.ExpOp op args
 
-labelTypes :: ExprF k -> AST.Type -> ExprF (AST.Type, k)
-labelTypes (ExpSimpleF e) _ = ExpSimpleF e
-labelTypes (ExpLabelF ty ex nm) _ = ExpLabelF ty (ty, ex) nm
-labelTypes (ExpIndexF ty1 ex1 ty2 ex2) _ = ExpIndexF ty1 (ty1, ex1) ty2 (ty2, ex2)
-labelTypes (ExpToIxF ex bd) _ = ExpToIxF (AST.TyInt AST.Int32, ex) bd
-labelTypes (ExpSafeCastF ty ex) _ = ExpSafeCastF ty (ty, ex)
-labelTypes (ExpOpF op args) ty = ExpOpF op $ case op of
+labelTypes :: AST.Type -> ExprF k -> ExprF (AST.Type, k)
+labelTypes _ (ExpSimpleF e) = ExpSimpleF e
+labelTypes _ (ExpLabelF ty ex nm) = ExpLabelF ty (ty, ex) nm
+labelTypes _ (ExpIndexF ty1 ex1 ty2 ex2) = ExpIndexF ty1 (ty1, ex1) ty2 (ty2, ex2)
+labelTypes _ (ExpToIxF ex bd) = ExpToIxF (AST.TyInt AST.Int32, ex) bd
+labelTypes _ (ExpSafeCastF ty ex) = ExpSafeCastF ty (ty, ex)
+labelTypes ty (ExpOpF op args) = ExpOpF op $ case op of
   AST.ExpEq t -> map ((,) t) args
   AST.ExpNeq t -> map ((,) t) args
   AST.ExpCond -> let (cond, rest) = splitAt 1 args in map ((,) AST.TyBool) cond ++ map ((,) ty) rest
@@ -74,37 +95,62 @@ labelTypes (ExpOpF op args) ty = ExpOpF op $ case op of
   AST.ExpIsInf t  -> map ((,) t) args
   _ -> map ((,) ty) args
 
-data Annotated k = Annotated !(Map AST.Type Int) !(ExprF k)
+type Available = Map (AST.Type, Unique) AST.Var
 
-annotateTypes :: AST.Type -> Graph ExprF -> Graph Annotated
-annotateTypes rootTy (Graph subexprs root) = Graph (snd $ mapAccumL update (useAtType rootTy root) subexprs) root
+type BlockM a = WriterT (D.DList AST.Stmt) (StateT (Available, Int) Id) a
+
+genBlock :: BlockM () -> BlockM AST.Block
+genBlock gen = do
+  (avail, _) <- get
+  ((), stmts) <- collect gen
+  sets_ $ \ (_, maxId) -> (avail, maxId)
+  return $ D.toList stmts
+
+type Facts = (Map Unique (ExprF Unique), Map Unique (BlockM ()))
+
+updateFacts :: (Unique, CSE Unique) -> Facts -> Facts
+updateFacts (ident, CSEExpr expr) (exprFacts, blockFacts) = (Map.insert ident expr exprFacts, blockFacts)
+updateFacts (ident, CSEBlock block) (exprFacts, blockFacts) = updateBlockFacts $ case block of
+  StmtSimple s -> put $ D.singleton s
+  StmtIfTE exId tId fId -> do
+    cond <- emitExpr (AST.TyBool, exId)
+    tb <- genBlock $ lookupBlock tId
+    fb <- genBlock $ lookupBlock fId
+    put $ D.singleton $ AST.IfTE cond tb fb
+  StmtAssign ty var exId -> do
+    ex <- emitExpr (ty, exId)
+    put $ D.singleton $ AST.Assign ty var ex
+  StmtStore ty lhs rhsId -> do
+    rhs <- emitExpr (ty, rhsId)
+    put $ D.singleton $ AST.Store ty lhs rhs
+  Block stmts -> mapM_ lookupBlock stmts
   where
-  useAtType ty k = MonoidMap $ Map.singleton k $ MonoidMap $ Map.singleton ty (Sum 1)
-  update useMap (uniq, ex) = case Map.lookup uniq $ getMap useMap of
-    Just (MonoidMap typeMap) -> (useMap `mappend` foldMap (foldMap (uncurry useAtType) . labelTypes ex) (Map.keys typeMap), (uniq, Annotated (fmap getSum typeMap) ex))
-    Nothing -> error "IvoryCSE.annotateTypes: cycle detected in expression"
+  lookupExpr e = let Just facts = Map.lookup e exprFacts in facts
+  lookupBlock b = let Just facts = Map.lookup b blockFacts in facts
+  updateBlockFacts newFacts = (exprFacts, Map.insert ident newFacts blockFacts)
 
-emitSubexpr :: Ord k => (k, Annotated k) -> Map (AST.Type, k) AST.Expr -> Ivory eff (Map (AST.Type, k) AST.Expr)
-emitSubexpr (ident, Annotated typeMap ex) earlier = foldrM atType earlier $ Map.toList typeMap
+  emitExpr label@(ty, exId) = case lookupExpr exId of
+    ExpSimpleF e -> return e
+    ex -> do
+      (avail, _) <- get
+      case Map.lookup label avail of
+        Just var -> return $ AST.ExpVar var
+        Nothing -> do
+          ex' <- mapM emitExpr $ labelTypes ty ex
+          var <- sets $ \ (avail', maxId) ->
+            let var = AST.VarName $ "cse" ++ show maxId
+            in (var, (Map.insert label var avail', maxId + 1))
+          put $ D.singleton $ AST.Assign ty var $ toExpr ex'
+          return $ AST.ExpVar var
+
+reconstruct :: Graph CSE -> AST.Block
+reconstruct (Graph subexprs root) = D.toList rootBlock
   where
-  getSubexpr k = let Just v = Map.lookup k earlier in v
-  atType (ty, uses) emitted = do
-    ex' <- case ex of
-      ExpSimpleF ex' -> return ex'
-      _ | uses < 2 -> return $ toExpr $ fmap getSubexpr $ labelTypes ex ty
-      _ -> do
-        ex' <- freshVar "cse"
-        emit $! AST.Assign ty ex' $! toExpr $ fmap getSubexpr $ labelTypes ex ty
-        return $ AST.ExpVar ex'
-    return $! Map.insert (ty, ident) ex' emitted
+  (_, blockFacts) = foldr updateFacts mempty subexprs
+  Just rootGen = Map.lookup root blockFacts
+  (((), rootBlock), _finalState) = runM rootGen (Map.empty, 0)
 
-cseExprF :: AST.Type -> Graph Annotated -> Ivory eff AST.Expr
-cseExprF rootTy (Graph subexprs root) = do
-  subexprs' <- foldrM emitSubexpr Map.empty subexprs
-  let Just rootExpr = Map.lookup (rootTy, root) subexprs'
-  return $! rootExpr
-
-cse :: IvoryExpr e => e -> Ivory eff e
-cse expr = fmap wrapExpr $! cseExprF ty $ annotateTypes ty $ unsafePerformIO $ reifyGraph ex
-  where
-  AST.Typed ty ex = typedExpr expr
+cse :: Def proc -> Def proc
+cse (DefProc def) = DefProc def
+  { AST.procBody = reconstruct $ unsafePerformIO $ reifyGraph $ AST.procBody def }
+cse def = def
