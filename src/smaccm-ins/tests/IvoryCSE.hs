@@ -12,6 +12,7 @@ import qualified Data.DList as D
 import Data.Foldable
 import Data.IntMap.Strict (IntMap)
 import qualified Data.IntMap.Strict as IntMap
+import Data.List (sort)
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import Data.Monoid
@@ -196,7 +197,21 @@ dedup (ident, expr) (seen, remap, facts) = case Map.lookup expr' seen of
   Just ident' -> (seen, IntMap.insert ident ident' remap, facts)
   Nothing -> (Map.insert expr' ident seen, remap, updateFacts (ident, expr') facts)
   where
-  expr' = fmap (\ k -> IntMap.findWithDefault k k remap) expr
+  expr' = case fmap (\ k -> IntMap.findWithDefault k k remap) expr of
+    -- If this operator is commutative, we can put its arguments in any
+    -- order we want. If we choose the same order every time, more
+    -- semantically equivalent subexpressions will be factored out.
+    CSEExpr (ExpOpF op args) | isCommutative op -> CSEExpr $ ExpOpF op $ sort args
+    asis -> asis
+
+  isCommutative (AST.ExpEq _) = True
+  isCommutative (AST.ExpNeq _) = True
+  isCommutative AST.ExpMul = True
+  isCommutative AST.ExpAdd = True
+  isCommutative AST.ExpBitAnd = True
+  isCommutative AST.ExpBitOr = True
+  isCommutative AST.ExpBitXor = True
+  isCommutative _ = False
 
 -- | Given a reified AST, reconstruct an Ivory AST with all sharing made
 -- explicit.
