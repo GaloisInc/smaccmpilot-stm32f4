@@ -38,7 +38,7 @@ type BlockM a = WriterT (D.DList AST.Stmt) (StateT Bindings Id) a
 data CSE t
   = CSEExpr (ExprF t)
   | CSEBlock (BlockF t)
-  deriving Show
+  deriving (Show, Eq, Ord, Functor)
 
 -- | During CSE, we replace recursive references to an expression with a
 -- unique ID for that expression.
@@ -50,7 +50,7 @@ data ExprF t
   | ExpToIxF t Integer
   | ExpSafeCastF AST.Type t
   | ExpOpF AST.ExpOp [t]
-  deriving (Show, Foldable, Functor, Traversable)
+  deriving (Show, Eq, Ord, Foldable, Functor, Traversable)
 
 instance MuRef AST.Expr where
   type DeRef AST.Expr = CSE
@@ -114,7 +114,7 @@ data BlockF t
   | StmtStore AST.Type AST.Expr t
   | StmtAssign AST.Type AST.Var t
   | Block [t]
-  deriving Show
+  deriving (Show, Eq, Ord, Functor)
 
 instance MuRef AST.Stmt where
   type DeRef AST.Stmt = CSE
@@ -187,12 +187,23 @@ updateFacts (ident, CSEExpr expr) (exprFacts, blockFacts) = (IntMap.insert ident
           put $ D.singleton $ AST.Assign ty var $ toExpr ex'
           return $ AST.ExpVar var
 
+-- | Wrapper around Facts to track unshared duplicates.
+type Dupes = (Map (CSE Unique) Unique, IntMap Unique, Facts)
+
+-- | Wrapper around updateFacts to remove unshared duplicates.
+dedup :: (Unique, CSE Unique) -> Dupes -> Dupes
+dedup (ident, expr) (seen, remap, facts) = case Map.lookup expr' seen of
+  Just ident' -> (seen, IntMap.insert ident ident' remap, facts)
+  Nothing -> (Map.insert expr' ident seen, remap, updateFacts (ident, expr') facts)
+  where
+  expr' = fmap (\ k -> IntMap.findWithDefault k k remap) expr
+
 -- | Given a reified AST, reconstruct an Ivory AST with all sharing made
 -- explicit.
 reconstruct :: Graph CSE -> AST.Block
 reconstruct (Graph subexprs root) = D.toList rootBlock
   where
-  (_, blockFacts) = foldr updateFacts mempty subexprs
+  (_, _, (_, blockFacts)) = foldr dedup mempty subexprs
   Just rootGen = IntMap.lookup root blockFacts
   (((), rootBlock), _finalBindings) = runM rootGen $ Bindings Map.empty 0
 
