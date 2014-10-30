@@ -24,7 +24,10 @@ import Prelude hiding (foldr, mapM, mapM_)
 import System.IO.Unsafe (unsafePerformIO)
 
 -- | Variable assignments emitted so far.
-type Bindings = (Map (Unique, AST.Type) AST.Var, Int)
+data Bindings = Bindings
+  { availableBindings :: (Map (Unique, AST.Type) AST.Var)
+  , totalBindings :: Int
+  }
 
 -- | A monad for emitting both source-level statements as well as
 -- assignments that capture common subexpressions.
@@ -142,9 +145,9 @@ toBlock expr block b = case b of
 -- remove them from the available set for subsequent statements.
 genBlock :: BlockM () -> BlockM AST.Block
 genBlock gen = do
-  (avail, _) <- get
+  oldBindings <- get
   ((), stmts) <- collect gen
-  sets_ $ \ (_, maxId) -> (avail, maxId)
+  sets_ $ \ newBindings -> newBindings { availableBindings = availableBindings oldBindings }
   return $ D.toList stmts
 
 -- | Data to accumulate as we analyze each expression and each
@@ -170,14 +173,17 @@ updateFacts (ident, CSEExpr expr) (exprFacts, blockFacts) = (IntMap.insert ident
   fact = case expr of
     ExpSimpleF e -> const $ return e
     ex -> \ ty -> do
-      (avail, _) <- get
-      case Map.lookup (ident, ty) avail of
+      bindings <- get
+      case Map.lookup (ident, ty) $ availableBindings bindings of
         Just var -> return $ AST.ExpVar var
         Nothing -> do
           ex' <- mapM (uncurry $ getFact exprFacts) $ labelTypes ty ex
-          var <- sets $ \ (avail', maxId) ->
+          var <- sets $ \ (Bindings { availableBindings = avail, totalBindings = maxId}) ->
             let var = AST.VarName $ "cse" ++ show maxId
-            in (var, (Map.insert (ident, ty) var avail', maxId + 1))
+            in (var, Bindings
+                { availableBindings = Map.insert (ident, ty) var avail
+                , totalBindings = maxId + 1
+                })
           put $ D.singleton $ AST.Assign ty var $ toExpr ex'
           return $ AST.ExpVar var
 
@@ -188,7 +194,7 @@ reconstruct (Graph subexprs root) = D.toList rootBlock
   where
   (_, blockFacts) = foldr updateFacts mempty subexprs
   Just rootGen = IntMap.lookup root blockFacts
-  (((), rootBlock), _finalState) = runM rootGen (Map.empty, 0)
+  (((), rootBlock), _finalBindings) = runM rootGen $ Bindings Map.empty 0
 
 -- | Find each common sub-expression and extract it to a new variable,
 -- making any sharing explicit. However, this function should never move
