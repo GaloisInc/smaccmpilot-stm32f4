@@ -10,6 +10,8 @@ module IvoryCSE (cse) where
 import Control.Applicative
 import qualified Data.DList as D
 import Data.Foldable
+import Data.IntMap.Strict (IntMap)
+import qualified Data.IntMap.Strict as IntMap
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import Data.Monoid
@@ -147,23 +149,23 @@ genBlock gen = do
 
 -- | Data to accumulate as we analyze each expression and each
 -- block/statement.
-type Facts = (Map Unique (AST.Type -> BlockM AST.Expr), Map Unique (BlockM ()))
+type Facts = (IntMap (AST.Type -> BlockM AST.Expr), IntMap (BlockM ()))
 
 -- | We can only generate code from a DAG, so this function calls
 -- `error` if the reified graph has cycles. Because we walk the AST in
 -- topo-sorted order, if we haven't already computed the desired fact,
 -- then we're trying to follow a back-edge in the graph, and that means
 -- the graph has cycles.
-getFact :: Map Unique v -> Unique -> v
-getFact m k = case Map.lookup k m of
+getFact :: IntMap v -> Unique -> v
+getFact m k = case IntMap.lookup k m of
   Nothing -> error "IvoryCSE: cycle detected in expression graph"
   Just v -> v
 
 -- | Walk a reified AST in topo-sorted order, accumulating analysis
 -- results.
 updateFacts :: (Unique, CSE Unique) -> Facts -> Facts
-updateFacts (ident, CSEBlock block) (exprFacts, blockFacts) = (exprFacts, Map.insert ident (toBlock (getFact exprFacts) (getFact blockFacts) block) blockFacts)
-updateFacts (ident, CSEExpr expr) (exprFacts, blockFacts) = (Map.insert ident fact exprFacts, blockFacts)
+updateFacts (ident, CSEBlock block) (exprFacts, blockFacts) = (exprFacts, IntMap.insert ident (toBlock (getFact exprFacts) (getFact blockFacts) block) blockFacts)
+updateFacts (ident, CSEExpr expr) (exprFacts, blockFacts) = (IntMap.insert ident fact exprFacts, blockFacts)
   where
   fact = case expr of
     ExpSimpleF e -> const $ return e
@@ -185,7 +187,7 @@ reconstruct :: Graph CSE -> AST.Block
 reconstruct (Graph subexprs root) = D.toList rootBlock
   where
   (_, blockFacts) = foldr updateFacts mempty subexprs
-  Just rootGen = Map.lookup root blockFacts
+  Just rootGen = IntMap.lookup root blockFacts
   (((), rootBlock), _finalState) = runM rootGen (Map.empty, 0)
 
 -- | Find each common sub-expression and extract it to a new variable,
