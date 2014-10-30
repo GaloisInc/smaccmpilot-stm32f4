@@ -21,6 +21,22 @@ import MonadLib (WriterT, StateT, Id, get, sets, sets_, put, collect, runM)
 import Prelude hiding (foldr, mapM, mapM_)
 import System.IO.Unsafe (unsafePerformIO)
 
+-- | Variable assignments emitted so far.
+type Bindings = (Map (AST.Type, Unique) AST.Var, Int)
+
+-- | A monad for emitting both source-level statements as well as
+-- assignments that capture common subexpressions.
+type BlockM a = WriterT (D.DList AST.Stmt) (StateT Bindings Id) a
+
+-- | We perform CSE on expressions but also across all the blocks in a
+-- procedure.
+data CSE t
+  = CSEExpr (ExprF t)
+  | CSEBlock (BlockF t)
+  deriving Show
+
+-- | During CSE, we replace recursive references to an expression with a
+-- unique ID for that expression.
 data ExprF t
   = ExpSimpleF AST.Expr
     -- ^ For expressions that cannot contain any expressions recursively.
@@ -30,20 +46,6 @@ data ExprF t
   | ExpSafeCastF AST.Type t
   | ExpOpF AST.ExpOp [t]
   deriving (Show, Foldable, Functor, Traversable)
-
-data BlockF t
-  = StmtSimple AST.Stmt
-    -- ^ For statements that cannot contain any expressions, or that we don't want to CSE.
-  | StmtIfTE t t t
-  | StmtStore AST.Type AST.Expr t
-  | StmtAssign AST.Type AST.Var t
-  | Block [t]
-  deriving Show
-
-data CSE t
-  = CSEExpr (ExprF t)
-  | CSEBlock (BlockF t)
-  deriving Show
 
 instance MuRef AST.Expr where
   type DeRef AST.Expr = CSE
@@ -59,18 +61,7 @@ instance MuRef AST.Expr where
     AST.ExpAddrOfGlobal{} -> pure $ ExpSimpleF e
     AST.ExpMaxMin{} -> pure $ ExpSimpleF e
 
-instance MuRef AST.Stmt where
-  type DeRef AST.Stmt = CSE
-  mapDeRef child stmt = CSEBlock <$> case stmt of
-    AST.IfTE cond tb fb -> StmtIfTE <$> child cond <*> child tb <*> child fb
-    AST.Store ty lhs rhs -> StmtStore ty <$> pure lhs <*> child rhs
-    AST.Assign ty var ex -> StmtAssign ty var <$> child ex
-    s -> pure $ StmtSimple s
-
-instance (MuRef a, DeRef [a] ~ DeRef a) => MuRef [a] where
-  type DeRef [a] = CSE
-  mapDeRef child xs = CSEBlock <$> Block <$> traverse child xs
-
+-- | Convert a flattened expression back to a real expression.
 toExpr :: ExprF AST.Expr -> AST.Expr
 toExpr (ExpSimpleF ex) = ex
 toExpr (ExpLabelF ty ex nm) = AST.ExpLabel ty ex nm
@@ -79,6 +70,8 @@ toExpr (ExpToIxF ex bound) = AST.ExpToIx ex bound
 toExpr (ExpSafeCastF ty ex) = AST.ExpSafeCast ty ex
 toExpr (ExpOpF op args) = AST.ExpOp op args
 
+-- | Label all sub-expressions with the type at which they're used,
+-- assuming that this expression is used at the given type.
 labelTypes :: AST.Type -> ExprF k -> ExprF (AST.Type, k)
 labelTypes _ (ExpSimpleF e) = ExpSimpleF e
 labelTypes _ (ExpLabelF ty ex nm) = ExpLabelF ty (ty, ex) nm
@@ -95,10 +88,54 @@ labelTypes ty (ExpOpF op args) = ExpOpF op $ case op of
   AST.ExpIsInf t  -> map ((,) t) args
   _ -> map ((,) ty) args
 
-type Available = Map (AST.Type, Unique) AST.Var
+-- | Like ExprF, we replace recursive references to
+-- blocks/statements/expressions with unique IDs.
+--
+-- Note that we treat statements as a kind of block, because extracting
+-- assignments for the common subexpressions in a statement can result
+-- in multiple statements, which looks much like a block.
+--
+-- We're not performing CSE on all recursive references yet. For
+-- example, extracting common reference-typed expressions from the
+-- left-hand side of Store or the right-hand side of Deref generated
+-- incorrect code when I tried it. This list can be extended as needed,
+-- though.
+data BlockF t
+  = StmtSimple AST.Stmt
+    -- ^ For statements that cannot contain any expressions, or that we don't want to CSE.
+  | StmtIfTE t t t
+  | StmtStore AST.Type AST.Expr t
+  | StmtAssign AST.Type AST.Var t
+  | Block [t]
+  deriving Show
 
-type BlockM a = WriterT (D.DList AST.Stmt) (StateT (Available, Int) Id) a
+instance MuRef AST.Stmt where
+  type DeRef AST.Stmt = CSE
+  mapDeRef child stmt = CSEBlock <$> case stmt of
+    AST.IfTE cond tb fb -> StmtIfTE <$> child cond <*> child tb <*> child fb
+    AST.Store ty lhs rhs -> StmtStore ty <$> pure lhs <*> child rhs
+    AST.Assign ty var ex -> StmtAssign ty var <$> child ex
+    s -> pure $ StmtSimple s
 
+instance (MuRef a, DeRef [a] ~ DeRef a) => MuRef [a] where
+  type DeRef [a] = CSE
+  mapDeRef child xs = CSEBlock <$> Block <$> traverse child xs
+
+-- | Convert a flattened statement or block back to a real block.
+toBlock :: ((AST.Type, k) -> BlockM AST.Expr) -> (k -> BlockM ()) -> BlockF k -> BlockM ()
+toBlock expr block b = case b of
+  StmtSimple s -> stmt $ return s
+  StmtIfTE ex tb fb -> stmt $ AST.IfTE <$> expr (AST.TyBool, ex) <*> genBlock (block tb) <*> genBlock (block fb)
+  StmtAssign ty var ex -> stmt $ AST.Assign ty var <$> expr (ty, ex)
+  StmtStore ty lhs rhs -> stmt $ AST.Store ty lhs <$> expr (ty, rhs)
+  Block stmts -> mapM_ block stmts
+  where
+  stmt stmtM = fmap D.singleton stmtM >>= put
+
+-- | When a statement contains a block, we need to propagate the
+-- available expressions into that block. However, on exit from that
+-- block, the expressions it made newly-available go out of scope, so we
+-- remove them from the available set for subsequent statements.
 genBlock :: BlockM () -> BlockM AST.Block
 genBlock gen = do
   (avail, _) <- get
@@ -106,32 +143,21 @@ genBlock gen = do
   sets_ $ \ (_, maxId) -> (avail, maxId)
   return $ D.toList stmts
 
+-- | Data to accumulate as we analyze each expression and each
+-- block/statement.
 type Facts = (Map Unique (ExprF Unique), Map Unique (BlockM ()))
 
+-- | Walk a reified AST in topo-sorted order, accumulating analysis
+-- results.
 updateFacts :: (Unique, CSE Unique) -> Facts -> Facts
 updateFacts (ident, CSEExpr expr) (exprFacts, blockFacts) = (Map.insert ident expr exprFacts, blockFacts)
-updateFacts (ident, CSEBlock block) (exprFacts, blockFacts) = updateBlockFacts $ case block of
-  StmtSimple s -> put $ D.singleton s
-  StmtIfTE exId tId fId -> do
-    cond <- emitExpr (AST.TyBool, exId)
-    tb <- genBlock $ lookupBlock tId
-    fb <- genBlock $ lookupBlock fId
-    put $ D.singleton $ AST.IfTE cond tb fb
-  StmtAssign ty var exId -> do
-    ex <- emitExpr (ty, exId)
-    put $ D.singleton $ AST.Assign ty var ex
-  StmtStore ty lhs rhsId -> do
-    rhs <- emitExpr (ty, rhsId)
-    put $ D.singleton $ AST.Store ty lhs rhs
-  Block stmts -> mapM_ lookupBlock stmts
+updateFacts (ident, CSEBlock block) (exprFacts, blockFacts) = (exprFacts, Map.insert ident (toBlock emitExpr lookupBlock block) blockFacts)
   where
-  lookupExpr e = let Just facts = Map.lookup e exprFacts in facts
   lookupBlock b = let Just facts = Map.lookup b blockFacts in facts
-  updateBlockFacts newFacts = (exprFacts, Map.insert ident newFacts blockFacts)
-
-  emitExpr label@(ty, exId) = case lookupExpr exId of
-    ExpSimpleF e -> return e
-    ex -> do
+  emitExpr label@(ty, exId) = case Map.lookup exId exprFacts of
+    Nothing -> error "IvoryCSE.emitExpr: infinite cycle in expression graph"
+    Just (ExpSimpleF e) -> return e
+    Just ex -> do
       (avail, _) <- get
       case Map.lookup label avail of
         Just var -> return $ AST.ExpVar var
@@ -143,6 +169,8 @@ updateFacts (ident, CSEBlock block) (exprFacts, blockFacts) = updateBlockFacts $
           put $ D.singleton $ AST.Assign ty var $ toExpr ex'
           return $ AST.ExpVar var
 
+-- | Given a reified AST, reconstruct an Ivory AST with all sharing made
+-- explicit.
 reconstruct :: Graph CSE -> AST.Block
 reconstruct (Graph subexprs root) = D.toList rootBlock
   where
@@ -150,6 +178,11 @@ reconstruct (Graph subexprs root) = D.toList rootBlock
   Just rootGen = Map.lookup root blockFacts
   (((), rootBlock), _finalState) = runM rootGen (Map.empty, 0)
 
+-- | Find each common sub-expression and extract it to a new variable,
+-- making any sharing explicit. However, this function should never move
+-- evaluation of an expression earlier than it would have occurred in
+-- the source program, which means that sometimes an expression must be
+-- re-computed on each of several execution paths.
 cse :: Def proc -> Def proc
 cse (DefProc def) = DefProc def
   { AST.procBody = reconstruct $ unsafePerformIO $ reifyGraph $ AST.procBody def }
