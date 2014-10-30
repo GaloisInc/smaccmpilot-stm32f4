@@ -22,7 +22,7 @@ import Prelude hiding (foldr, mapM, mapM_)
 import System.IO.Unsafe (unsafePerformIO)
 
 -- | Variable assignments emitted so far.
-type Bindings = (Map (AST.Type, Unique) AST.Var, Int)
+type Bindings = (Map (Unique, AST.Type) AST.Var, Int)
 
 -- | A monad for emitting both source-level statements as well as
 -- assignments that capture common subexpressions.
@@ -72,21 +72,23 @@ toExpr (ExpOpF op args) = AST.ExpOp op args
 
 -- | Label all sub-expressions with the type at which they're used,
 -- assuming that this expression is used at the given type.
-labelTypes :: AST.Type -> ExprF k -> ExprF (AST.Type, k)
+labelTypes :: AST.Type -> ExprF k -> ExprF (k, AST.Type)
 labelTypes _ (ExpSimpleF e) = ExpSimpleF e
-labelTypes _ (ExpLabelF ty ex nm) = ExpLabelF ty (ty, ex) nm
-labelTypes _ (ExpIndexF ty1 ex1 ty2 ex2) = ExpIndexF ty1 (ty1, ex1) ty2 (ty2, ex2)
-labelTypes _ (ExpToIxF ex bd) = ExpToIxF (AST.TyInt AST.Int32, ex) bd
-labelTypes _ (ExpSafeCastF ty ex) = ExpSafeCastF ty (ty, ex)
+labelTypes _ (ExpLabelF ty ex nm) = ExpLabelF ty (ex, ty) nm
+labelTypes _ (ExpIndexF ty1 ex1 ty2 ex2) = ExpIndexF ty1 (ex1, ty1) ty2 (ex2, ty2)
+labelTypes _ (ExpToIxF ex bd) = ExpToIxF (ex, AST.TyInt AST.Int32) bd
+labelTypes _ (ExpSafeCastF ty ex) = ExpSafeCastF ty (ex, ty)
 labelTypes ty (ExpOpF op args) = ExpOpF op $ case op of
-  AST.ExpEq t -> map ((,) t) args
-  AST.ExpNeq t -> map ((,) t) args
-  AST.ExpCond -> let (cond, rest) = splitAt 1 args in map ((,) AST.TyBool) cond ++ map ((,) ty) rest
-  AST.ExpGt _ t -> map ((,) t) args
-  AST.ExpLt _ t -> map ((,) t) args
-  AST.ExpIsNan t  -> map ((,) t) args
-  AST.ExpIsInf t  -> map ((,) t) args
-  _ -> map ((,) ty) args
+  AST.ExpEq t -> map (`atType` t) args
+  AST.ExpNeq t -> map (`atType` t) args
+  AST.ExpCond -> let (cond, rest) = splitAt 1 args in map (`atType` AST.TyBool) cond ++ map (`atType` ty) rest
+  AST.ExpGt _ t -> map (`atType` t) args
+  AST.ExpLt _ t -> map (`atType` t) args
+  AST.ExpIsNan t  -> map (`atType` t) args
+  AST.ExpIsInf t  -> map (`atType` t) args
+  _ -> map (`atType` ty) args
+  where
+  atType = (,)
 
 -- | Like ExprF, we replace recursive references to
 -- blocks/statements/expressions with unique IDs.
@@ -122,12 +124,12 @@ instance (MuRef a, DeRef [a] ~ DeRef a) => MuRef [a] where
   mapDeRef child xs = CSEBlock <$> Block <$> traverse child xs
 
 -- | Convert a flattened statement or block back to a real block.
-toBlock :: ((AST.Type, k) -> BlockM AST.Expr) -> (k -> BlockM ()) -> BlockF k -> BlockM ()
+toBlock :: (k -> AST.Type -> BlockM AST.Expr) -> (k -> BlockM ()) -> BlockF k -> BlockM ()
 toBlock expr block b = case b of
   StmtSimple s -> stmt $ return s
-  StmtIfTE ex tb fb -> stmt $ AST.IfTE <$> expr (AST.TyBool, ex) <*> genBlock (block tb) <*> genBlock (block fb)
-  StmtAssign ty var ex -> stmt $ AST.Assign ty var <$> expr (ty, ex)
-  StmtStore ty lhs rhs -> stmt $ AST.Store ty lhs <$> expr (ty, rhs)
+  StmtIfTE ex tb fb -> stmt $ AST.IfTE <$> expr ex AST.TyBool <*> genBlock (block tb) <*> genBlock (block fb)
+  StmtAssign ty var ex -> stmt $ AST.Assign ty var <$> expr ex ty
+  StmtStore ty lhs rhs -> stmt $ AST.Store ty lhs <$> expr rhs ty
   Block stmts -> mapM_ block stmts
   where
   stmt stmtM = fmap D.singleton stmtM >>= put
@@ -145,27 +147,35 @@ genBlock gen = do
 
 -- | Data to accumulate as we analyze each expression and each
 -- block/statement.
-type Facts = (Map Unique (ExprF Unique), Map Unique (BlockM ()))
+type Facts = (Map Unique (AST.Type -> BlockM AST.Expr), Map Unique (BlockM ()))
+
+-- | We can only generate code from a DAG, so this function calls
+-- `error` if the reified graph has cycles. Because we walk the AST in
+-- topo-sorted order, if we haven't already computed the desired fact,
+-- then we're trying to follow a back-edge in the graph, and that means
+-- the graph has cycles.
+getFact :: Map Unique v -> Unique -> v
+getFact m k = case Map.lookup k m of
+  Nothing -> error "IvoryCSE: cycle detected in expression graph"
+  Just v -> v
 
 -- | Walk a reified AST in topo-sorted order, accumulating analysis
 -- results.
 updateFacts :: (Unique, CSE Unique) -> Facts -> Facts
-updateFacts (ident, CSEExpr expr) (exprFacts, blockFacts) = (Map.insert ident expr exprFacts, blockFacts)
-updateFacts (ident, CSEBlock block) (exprFacts, blockFacts) = (exprFacts, Map.insert ident (toBlock emitExpr lookupBlock block) blockFacts)
+updateFacts (ident, CSEBlock block) (exprFacts, blockFacts) = (exprFacts, Map.insert ident (toBlock (getFact exprFacts) (getFact blockFacts) block) blockFacts)
+updateFacts (ident, CSEExpr expr) (exprFacts, blockFacts) = (Map.insert ident fact exprFacts, blockFacts)
   where
-  lookupBlock b = let Just facts = Map.lookup b blockFacts in facts
-  emitExpr label@(ty, exId) = case Map.lookup exId exprFacts of
-    Nothing -> error "IvoryCSE.emitExpr: infinite cycle in expression graph"
-    Just (ExpSimpleF e) -> return e
-    Just ex -> do
+  fact = case expr of
+    ExpSimpleF e -> const $ return e
+    ex -> \ ty -> do
       (avail, _) <- get
-      case Map.lookup label avail of
+      case Map.lookup (ident, ty) avail of
         Just var -> return $ AST.ExpVar var
         Nothing -> do
-          ex' <- mapM emitExpr $ labelTypes ty ex
+          ex' <- mapM (uncurry $ getFact exprFacts) $ labelTypes ty ex
           var <- sets $ \ (avail', maxId) ->
             let var = AST.VarName $ "cse" ++ show maxId
-            in (var, (Map.insert label var avail', maxId + 1))
+            in (var, (Map.insert (ident, ty) var avail', maxId + 1))
           put $ D.singleton $ AST.Assign ty var $ toExpr ex'
           return $ AST.ExpVar var
 
