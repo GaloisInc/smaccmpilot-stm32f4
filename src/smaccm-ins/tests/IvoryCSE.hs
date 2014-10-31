@@ -191,12 +191,38 @@ updateFacts (ident, CSEExpr expr) (exprFacts, blockFacts) = (IntMap.insert ident
 -- | Wrapper around Facts to track unshared duplicates.
 type Dupes = (Map (CSE Unique) Unique, IntMap Unique, Facts)
 
--- | Wrapper around updateFacts to remove unshared duplicates.
+-- | Wrapper around updateFacts to remove unshared duplicates. Also,
+-- checking for equality of statements or expressions is constant-time
+-- in this representation, so apply any simplifications that rely on
+-- equality of subtrees here.
 dedup :: (Unique, CSE Unique) -> Dupes -> Dupes
-dedup (ident, expr) (seen, remap, facts) = case Map.lookup expr' seen of
-  Just ident' -> (seen, IntMap.insert ident ident' remap, facts)
-  Nothing -> (Map.insert expr' ident seen, remap, updateFacts (ident, expr') facts)
+dedup (ident, expr) (seen, remap, facts) = case expr' of
+  -- If this operator is idempotent and its operands are equal, we can
+  -- replace it with either operand without changing its meaning.
+  CSEExpr (ExpOpF AST.ExpAnd [a, b]) | a == b -> remapTo a
+  CSEExpr (ExpOpF AST.ExpOr [a, b]) | a == b -> remapTo a
+  CSEExpr (ExpOpF AST.ExpBitAnd [a, b]) | a == b -> remapTo a
+  CSEExpr (ExpOpF AST.ExpBitOr [a, b]) | a == b -> remapTo a
+
+  -- If both branches of a conditional expression or statement have the
+  -- same effect, then we don't need to evaluate the condition; we can
+  -- just replace it with either branch. This is not safe in C because
+  -- the condition might have side effects, but Ivory expressions never
+  -- have side effects.
+  CSEExpr (ExpOpF AST.ExpCond [_, t, f]) | t == f -> remapTo t
+  -- NOTE: This results in inserting a Block directly into another
+  -- Block, which can't happen any other way.
+  CSEBlock (StmtIfTE _ t f) | t == f -> remapTo t
+
+  -- Single-statement blocks generate the same code as the statement.
+  CSEBlock (Block [s]) -> remapTo s
+
+  -- No equal subtrees, so run with it.
+  _ -> case Map.lookup expr' seen of
+    Just ident' -> remapTo ident'
+    Nothing -> (Map.insert expr' ident seen, remap, updateFacts (ident, expr') facts)
   where
+  remapTo ident' = (seen, IntMap.insert ident ident' remap, facts)
   expr' = case fmap (\ k -> IntMap.findWithDefault k k remap) expr of
     -- If this operator is commutative, we can put its arguments in any
     -- order we want. If we choose the same order every time, more
