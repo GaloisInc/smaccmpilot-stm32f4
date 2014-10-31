@@ -17,22 +17,30 @@ import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import Data.Monoid
 import Data.Reify
+import Data.Set (Set)
+import qualified Data.Set as Set
 import Data.Traversable
 import Ivory.Language.Proc
 import qualified Ivory.Language.Syntax as AST
-import MonadLib (WriterT, StateT, Id, get, sets, sets_, put, collect, runM)
+import MonadLib (WriterT, StateT, Id, get, set, sets, sets_, put, collect, lift, runM)
 import Prelude hiding (foldr, mapM, mapM_)
 import System.IO.Unsafe (unsafePerformIO)
 
 -- | Variable assignments emitted so far.
 data Bindings = Bindings
   { availableBindings :: (Map (Unique, AST.Type) AST.Var)
+  , unusedBindings :: Set AST.Var
   , totalBindings :: Int
   }
 
 -- | A monad for emitting both source-level statements as well as
 -- assignments that capture common subexpressions.
-type BlockM a = WriterT (D.DList AST.Stmt) (StateT Bindings Id) a
+--
+-- Note that the StateT is outside the WriterT so that we can first run
+-- the StateT, getting a set of expressions which shouldn't be assigned
+-- to fresh names, and only then decide whether to write out Assign
+-- statements. See the comment in `updateFacts`.
+type BlockM a = StateT Bindings (WriterT (D.DList AST.Stmt) Id) a
 
 -- | We perform CSE on expressions but also across all the blocks in a
 -- procedure.
@@ -167,26 +175,40 @@ getFact m k = case IntMap.lookup k m of
 
 -- | Walk a reified AST in topo-sorted order, accumulating analysis
 -- results.
-updateFacts :: (Unique, CSE Unique) -> Facts -> Facts
-updateFacts (ident, CSEBlock block) (exprFacts, blockFacts) = (exprFacts, IntMap.insert ident (toBlock (getFact exprFacts) (getFact blockFacts) block) blockFacts)
-updateFacts (ident, CSEExpr expr) (exprFacts, blockFacts) = (IntMap.insert ident fact exprFacts, blockFacts)
+--
+-- `usedOnce` must be the final value of `unusedBindings` after analysis
+-- is complete.
+updateFacts :: Set AST.Var -> (Unique, CSE Unique) -> Facts -> Facts
+updateFacts _ (ident, CSEBlock block) (exprFacts, blockFacts) = (exprFacts, IntMap.insert ident (toBlock (getFact exprFacts) (getFact blockFacts) block) blockFacts)
+updateFacts usedOnce (ident, CSEExpr expr) (exprFacts, blockFacts) = (IntMap.insert ident fact exprFacts, blockFacts)
   where
   fact = case expr of
     ExpSimpleF e -> const $ return e
     ex -> \ ty -> do
       bindings <- get
       case Map.lookup (ident, ty) $ availableBindings bindings of
-        Just var -> return $ AST.ExpVar var
+        Just var -> do
+          set $ bindings { unusedBindings = Set.delete var $ unusedBindings bindings }
+          return $ AST.ExpVar var
         Nothing -> do
-          ex' <- mapM (uncurry $ getFact exprFacts) $ labelTypes ty ex
-          var <- sets $ \ (Bindings { availableBindings = avail, totalBindings = maxId}) ->
+          ex' <- fmap toExpr $ mapM (uncurry $ getFact exprFacts) $ labelTypes ty ex
+          var <- sets $ \ (Bindings { availableBindings = avail, unusedBindings = unused, totalBindings = maxId}) ->
             let var = AST.VarName $ "cse" ++ show maxId
             in (var, Bindings
                 { availableBindings = Map.insert (ident, ty) var avail
+                , unusedBindings = Set.insert var unused
                 , totalBindings = maxId + 1
                 })
-          put $ D.singleton $ AST.Assign ty var $ toExpr ex'
-          return $ AST.ExpVar var
+          -- Defer a final decision on whether to inline this expression
+          -- or allocate a variable for it until we've finished running
+          -- the State monad and can extract the unusedBindings set from
+          -- there. After that the Writer monad can make decisions based
+          -- on usedOnce without throwing a <<loop>> exception.
+          lift $ if var `Set.member` usedOnce
+            then return ex'
+            else do
+              put $ D.singleton $ AST.Assign ty var ex'
+              return $ AST.ExpVar var
 
 -- | Values that we may generate by simplification rules on the reified
 -- representation of the graph.
@@ -216,8 +238,8 @@ type Dupes = (Map (CSE Unique) Unique, IntMap Unique, Facts)
 -- checking for equality of statements or expressions is constant-time
 -- in this representation, so apply any simplifications that rely on
 -- equality of subtrees here.
-dedup :: (Unique, CSE Unique) -> Dupes -> Dupes
-dedup (ident, expr) (seen, remap, facts) = case expr' of
+dedup :: Set AST.Var -> (Unique, CSE Unique) -> Dupes -> Dupes
+dedup usedOnce (ident, expr) (seen, remap, facts) = case expr' of
   -- If this operator yields a constant on equal operands, we can
   -- rewrite it to that constant.
   CSEExpr (ExpOpF (AST.ExpEq _) [a, b]) | a == b -> remapTo $ constUnique ConstTrue
@@ -250,7 +272,7 @@ dedup (ident, expr) (seen, remap, facts) = case expr' of
   -- No equal subtrees, so run with it.
   _ -> case Map.lookup expr' seen of
     Just ident' -> remapTo ident'
-    Nothing -> (Map.insert expr' ident seen, remap, updateFacts (ident, expr') facts)
+    Nothing -> (Map.insert expr' ident seen, remap, updateFacts usedOnce (ident, expr') facts)
   where
   remapTo ident' = (seen, IntMap.insert ident ident' remap, facts)
   expr' = case fmap (\ k -> IntMap.findWithDefault k k remap) expr of
@@ -278,9 +300,9 @@ dedup (ident, expr) (seen, remap, facts) = case expr' of
 reconstruct :: Graph CSE -> AST.Block
 reconstruct (Graph subexprs root) = D.toList rootBlock
   where
-  (_, _, (_, blockFacts)) = foldr dedup mempty $ subexprs ++ [ (constUnique c, constExpr c) | c <- [minBound..maxBound] ]
+  (_, _, (_, blockFacts)) = foldr (dedup usedOnce) mempty $ subexprs ++ [ (constUnique c, constExpr c) | c <- [minBound..maxBound] ]
   Just rootGen = IntMap.lookup root blockFacts
-  (((), rootBlock), _finalBindings) = runM rootGen $ Bindings Map.empty 0
+  (((), Bindings { unusedBindings = usedOnce }), rootBlock) = runM rootGen $ Bindings Map.empty Set.empty 0
 
 -- | Find each common sub-expression and extract it to a new variable,
 -- making any sharing explicit. However, this function should never move
