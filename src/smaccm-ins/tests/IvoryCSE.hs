@@ -188,6 +188,27 @@ updateFacts (ident, CSEExpr expr) (exprFacts, blockFacts) = (IntMap.insert ident
           put $ D.singleton $ AST.Assign ty var $ toExpr ex'
           return $ AST.ExpVar var
 
+-- | Values that we may generate by simplification rules on the reified
+-- representation of the graph.
+data Constant
+  = ConstFalse
+  | ConstTrue
+  | ConstZero
+  | ConstTwo
+  deriving (Bounded, Enum)
+
+-- | AST implementation for each constant value.
+constExpr :: Constant -> CSE Unique
+constExpr ConstFalse = CSEExpr $ ExpSimpleF $ AST.ExpLit $ AST.LitBool False
+constExpr ConstTrue = CSEExpr $ ExpSimpleF $ AST.ExpLit $ AST.LitBool True
+constExpr ConstZero = CSEExpr $ ExpSimpleF $ AST.ExpLit $ AST.LitInteger 0
+constExpr ConstTwo = CSEExpr $ ExpSimpleF $ AST.ExpLit $ AST.LitInteger 2
+
+-- | Generate a unique integer for each constant which doesn't collide
+-- with any IDs that reifyGraph may generate.
+constUnique :: Constant -> Unique
+constUnique c = negate $ 1 + fromEnum c
+
 -- | Wrapper around Facts to track unshared duplicates.
 type Dupes = (Map (CSE Unique) Unique, IntMap Unique, Facts)
 
@@ -197,6 +218,15 @@ type Dupes = (Map (CSE Unique) Unique, IntMap Unique, Facts)
 -- equality of subtrees here.
 dedup :: (Unique, CSE Unique) -> Dupes -> Dupes
 dedup (ident, expr) (seen, remap, facts) = case expr' of
+  -- If this operator yields a constant on equal operands, we can
+  -- rewrite it to that constant.
+  CSEExpr (ExpOpF (AST.ExpEq _) [a, b]) | a == b -> remapTo $ constUnique ConstTrue
+  CSEExpr (ExpOpF (AST.ExpNeq _) [a, b]) | a == b -> remapTo $ constUnique ConstFalse
+  CSEExpr (ExpOpF (AST.ExpGt isEq _) [a, b]) | a == b -> remapTo $ if isEq then constUnique ConstTrue else constUnique ConstFalse
+  CSEExpr (ExpOpF (AST.ExpLt isEq _) [a, b]) | a == b -> remapTo $ if isEq then constUnique ConstTrue else constUnique ConstFalse
+  CSEExpr (ExpOpF AST.ExpSub [a, b]) | a == b -> remapTo $ constUnique ConstZero
+  CSEExpr (ExpOpF AST.ExpBitXor [a, b]) | a == b -> remapTo $ constUnique ConstZero
+
   -- If this operator is idempotent and its operands are equal, we can
   -- replace it with either operand without changing its meaning.
   CSEExpr (ExpOpF AST.ExpAnd [a, b]) | a == b -> remapTo a
@@ -224,6 +254,10 @@ dedup (ident, expr) (seen, remap, facts) = case expr' of
   where
   remapTo ident' = (seen, IntMap.insert ident ident' remap, facts)
   expr' = case fmap (\ k -> IntMap.findWithDefault k k remap) expr of
+    -- Perhaps this operator can be replaced by a simpler one when its
+    -- operands are equal.
+    CSEExpr (ExpOpF AST.ExpAdd [a, b]) | a == b -> CSEExpr $ ExpOpF AST.ExpMul $ sort [constUnique ConstTwo, a]
+
     -- If this operator is commutative, we can put its arguments in any
     -- order we want. If we choose the same order every time, more
     -- semantically equivalent subexpressions will be factored out.
@@ -244,7 +278,7 @@ dedup (ident, expr) (seen, remap, facts) = case expr' of
 reconstruct :: Graph CSE -> AST.Block
 reconstruct (Graph subexprs root) = D.toList rootBlock
   where
-  (_, _, (_, blockFacts)) = foldr dedup mempty subexprs
+  (_, _, (_, blockFacts)) = foldr dedup mempty $ subexprs ++ [ (constUnique c, constExpr c) | c <- [minBound..maxBound] ]
   Just rootGen = IntMap.lookup root blockFacts
   (((), rootBlock), _finalBindings) = runM rootGen $ Bindings Map.empty 0
 
