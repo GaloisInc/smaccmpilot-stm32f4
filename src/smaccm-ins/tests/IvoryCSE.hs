@@ -12,13 +12,13 @@ import qualified Data.DList as D
 import Data.Foldable
 import Data.IntMap.Strict (IntMap)
 import qualified Data.IntMap.Strict as IntMap
+import Data.IntSet (IntSet)
+import qualified Data.IntSet as IntSet
 import Data.List (sort)
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import Data.Monoid
 import Data.Reify
-import Data.Set (Set)
-import qualified Data.Set as Set
 import Data.Traversable
 import Ivory.Language.Proc
 import qualified Ivory.Language.Syntax as AST
@@ -28,8 +28,8 @@ import System.IO.Unsafe (unsafePerformIO)
 
 -- | Variable assignments emitted so far.
 data Bindings = Bindings
-  { availableBindings :: (Map (Unique, AST.Type) AST.Var)
-  , unusedBindings :: Set AST.Var
+  { availableBindings :: (Map (Unique, AST.Type) Int)
+  , unusedBindings :: IntSet
   , totalBindings :: Int
   }
 
@@ -178,37 +178,37 @@ getFact m k = case IntMap.lookup k m of
 --
 -- `usedOnce` must be the final value of `unusedBindings` after analysis
 -- is complete.
-updateFacts :: Set AST.Var -> (Unique, CSE Unique) -> Facts -> Facts
+updateFacts :: IntSet -> (Unique, CSE Unique) -> Facts -> Facts
 updateFacts _ (ident, CSEBlock block) (exprFacts, blockFacts) = (exprFacts, IntMap.insert ident (toBlock (getFact exprFacts) (getFact blockFacts) block) blockFacts)
 updateFacts usedOnce (ident, CSEExpr expr) (exprFacts, blockFacts) = (IntMap.insert ident fact exprFacts, blockFacts)
   where
+  nameOf var = AST.VarName $ "cse" ++ show var
   fact = case expr of
     ExpSimpleF e -> const $ return e
     ex -> \ ty -> do
       bindings <- get
       case Map.lookup (ident, ty) $ availableBindings bindings of
         Just var -> do
-          set $ bindings { unusedBindings = Set.delete var $ unusedBindings bindings }
-          return $ AST.ExpVar var
+          set $ bindings { unusedBindings = IntSet.delete var $ unusedBindings bindings }
+          return $ AST.ExpVar $ nameOf var
         Nothing -> do
           ex' <- fmap toExpr $ mapM (uncurry $ getFact exprFacts) $ labelTypes ty ex
           var <- sets $ \ (Bindings { availableBindings = avail, unusedBindings = unused, totalBindings = maxId}) ->
-            let var = AST.VarName $ "cse" ++ show maxId
-            in (var, Bindings
-                { availableBindings = Map.insert (ident, ty) var avail
-                , unusedBindings = Set.insert var unused
-                , totalBindings = maxId + 1
-                })
+            (maxId, Bindings
+              { availableBindings = Map.insert (ident, ty) maxId avail
+              , unusedBindings = IntSet.insert maxId unused
+              , totalBindings = maxId + 1
+              })
           -- Defer a final decision on whether to inline this expression
           -- or allocate a variable for it until we've finished running
           -- the State monad and can extract the unusedBindings set from
           -- there. After that the Writer monad can make decisions based
           -- on usedOnce without throwing a <<loop>> exception.
-          lift $ if var `Set.member` usedOnce
+          lift $ if var `IntSet.member` usedOnce
             then return ex'
             else do
-              put $ D.singleton $ AST.Assign ty var ex'
-              return $ AST.ExpVar var
+              put $ D.singleton $ AST.Assign ty (nameOf var) ex'
+              return $ AST.ExpVar $ nameOf var
 
 -- | Values that we may generate by simplification rules on the reified
 -- representation of the graph.
@@ -238,7 +238,7 @@ type Dupes = (Map (CSE Unique) Unique, IntMap Unique, Facts)
 -- checking for equality of statements or expressions is constant-time
 -- in this representation, so apply any simplifications that rely on
 -- equality of subtrees here.
-dedup :: Set AST.Var -> (Unique, CSE Unique) -> Dupes -> Dupes
+dedup :: IntSet -> (Unique, CSE Unique) -> Dupes -> Dupes
 dedup usedOnce (ident, expr) (seen, remap, facts) = case expr' of
   -- If this operator yields a constant on equal operands, we can
   -- rewrite it to that constant.
@@ -302,7 +302,7 @@ reconstruct (Graph subexprs root) = D.toList rootBlock
   where
   (_, _, (_, blockFacts)) = foldr (dedup usedOnce) mempty $ subexprs ++ [ (constUnique c, constExpr c) | c <- [minBound..maxBound] ]
   Just rootGen = IntMap.lookup root blockFacts
-  (((), Bindings { unusedBindings = usedOnce }), rootBlock) = runM rootGen $ Bindings Map.empty Set.empty 0
+  (((), Bindings { unusedBindings = usedOnce }), rootBlock) = runM rootGen $ Bindings Map.empty IntSet.empty 0
 
 -- | Find each common sub-expression and extract it to a new variable,
 -- making any sharing explicit. However, this function should never move
