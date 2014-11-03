@@ -111,16 +111,15 @@ labelTypes ty (ExpOpF op args) = ExpOpF op $ case op of
 -- assignments for the common subexpressions in a statement can result
 -- in multiple statements, which looks much like a block.
 --
--- We're not performing CSE on all recursive references yet. For
--- example, extracting common reference-typed expressions from the
--- left-hand side of Store or the right-hand side of Deref generated
--- incorrect code when I tried it. This list can be extended as needed,
--- though.
+-- We're not performing CSE on all recursive references yet. Unsupported
+-- statement types should generate correct, but unoptimized, code. This
+-- list can be extended as needed, though.
 data BlockF t
   = StmtSimple AST.Stmt
     -- ^ For statements that cannot contain any expressions, or that we don't want to CSE.
   | StmtIfTE t t t
-  | StmtStore AST.Type AST.Expr t
+  | StmtDeref AST.Type AST.Var t
+  | StmtStore AST.Type t t
   | StmtAssign AST.Type AST.Var t
   | Block [t]
   deriving (Show, Eq, Ord, Functor)
@@ -129,7 +128,8 @@ instance MuRef AST.Stmt where
   type DeRef AST.Stmt = CSE
   mapDeRef child stmt = CSEBlock <$> case stmt of
     AST.IfTE cond tb fb -> StmtIfTE <$> child cond <*> child tb <*> child fb
-    AST.Store ty lhs rhs -> StmtStore ty <$> pure lhs <*> child rhs
+    AST.Deref ty var ex -> StmtDeref ty var <$> child ex
+    AST.Store ty lhs rhs -> StmtStore ty <$> child lhs <*> child rhs
     AST.Assign ty var ex -> StmtAssign ty var <$> child ex
     s -> pure $ StmtSimple s
 
@@ -142,8 +142,9 @@ toBlock :: (k -> AST.Type -> BlockM AST.Expr) -> (k -> BlockM ()) -> BlockF k ->
 toBlock expr block b = case b of
   StmtSimple s -> stmt $ return s
   StmtIfTE ex tb fb -> stmt $ AST.IfTE <$> expr ex AST.TyBool <*> genBlock (block tb) <*> genBlock (block fb)
+  StmtDeref ty var ex -> stmt $ AST.Deref ty var <$> expr ex (AST.TyRef ty)
+  StmtStore ty lhs rhs -> stmt $ AST.Store ty <$> expr lhs (AST.TyRef ty) <*> expr rhs ty
   StmtAssign ty var ex -> stmt $ AST.Assign ty var <$> expr ex ty
-  StmtStore ty lhs rhs -> stmt $ AST.Store ty lhs <$> expr rhs ty
   Block stmts -> mapM_ block stmts
   where
   stmt stmtM = fmap D.singleton stmtM >>= put
