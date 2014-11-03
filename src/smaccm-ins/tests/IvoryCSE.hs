@@ -20,6 +20,7 @@ import qualified Data.Map.Strict as Map
 import Data.Monoid
 import Data.Reify
 import Data.Traversable
+import Ivory.Language.Array (ixRep)
 import Ivory.Language.Proc
 import qualified Ivory.Language.Syntax as AST
 import MonadLib (WriterT, StateT, Id, get, set, sets, sets_, put, collect, lift, runM)
@@ -90,7 +91,7 @@ labelTypes :: AST.Type -> ExprF k -> ExprF (k, AST.Type)
 labelTypes _ (ExpSimpleF e) = ExpSimpleF e
 labelTypes _ (ExpLabelF ty ex nm) = ExpLabelF ty (ex, AST.TyRef ty) nm
 labelTypes _ (ExpIndexF ty1 ex1 ty2 ex2) = ExpIndexF ty1 (ex1, AST.TyRef ty1) ty2 (ex2, ty2)
-labelTypes _ (ExpToIxF ex bd) = ExpToIxF (ex, AST.TyInt AST.Int32) bd
+labelTypes _ (ExpToIxF ex bd) = ExpToIxF (ex, ixRep) bd
 labelTypes _ (ExpSafeCastF ty ex) = ExpSafeCastF ty (ex, ty)
 labelTypes ty (ExpOpF op args) = ExpOpF op $ case op of
   AST.ExpEq t -> map (`atType` t) args
