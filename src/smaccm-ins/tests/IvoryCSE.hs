@@ -242,12 +242,13 @@ dedup :: IntSet -> (Unique, CSE Unique) -> Dupes -> Dupes
 dedup usedOnce (ident, expr) (seen, remap, facts) = case expr' of
   -- If this operator yields a constant on equal operands, we can
   -- rewrite it to that constant.
-  CSEExpr (ExpOpF (AST.ExpEq _) [a, b]) | a == b -> remapTo $ constUnique ConstTrue
-  CSEExpr (ExpOpF (AST.ExpNeq _) [a, b]) | a == b -> remapTo $ constUnique ConstFalse
-  CSEExpr (ExpOpF (AST.ExpGt isEq _) [a, b]) | a == b -> remapTo $ if isEq then constUnique ConstTrue else constUnique ConstFalse
-  CSEExpr (ExpOpF (AST.ExpLt isEq _) [a, b]) | a == b -> remapTo $ if isEq then constUnique ConstTrue else constUnique ConstFalse
-  CSEExpr (ExpOpF AST.ExpSub [a, b]) | a == b -> remapTo $ constUnique ConstZero
+  CSEExpr (ExpOpF (AST.ExpEq ty) [a, b]) | not (isFloat ty) && a == b -> remapTo $ constUnique ConstTrue
+  CSEExpr (ExpOpF (AST.ExpNeq ty) [a, b]) | not (isFloat ty) && a == b -> remapTo $ constUnique ConstFalse
+  CSEExpr (ExpOpF (AST.ExpGt isEq ty) [a, b]) | not (isFloat ty) && a == b -> remapTo $ if isEq then constUnique ConstTrue else constUnique ConstFalse
+  CSEExpr (ExpOpF (AST.ExpLt isEq ty) [a, b]) | not (isFloat ty) && a == b -> remapTo $ if isEq then constUnique ConstTrue else constUnique ConstFalse
   CSEExpr (ExpOpF AST.ExpBitXor [a, b]) | a == b -> remapTo $ constUnique ConstZero
+  -- NOTE: This transformation is not safe for ExpSub on floating-point
+  -- values, which could be NaN.
 
   -- If this operator is idempotent and its operands are equal, we can
   -- replace it with either operand without changing its meaning.
@@ -285,6 +286,10 @@ dedup usedOnce (ident, expr) (seen, remap, facts) = case expr' of
     -- semantically equivalent subexpressions will be factored out.
     CSEExpr (ExpOpF op args) | isCommutative op -> CSEExpr $ ExpOpF op $ sort args
     asis -> asis
+
+  isFloat AST.TyFloat = True
+  isFloat AST.TyDouble = True
+  isFloat _ = False
 
   isCommutative (AST.ExpEq _) = True
   isCommutative (AST.ExpNeq _) = True
