@@ -88,8 +88,8 @@ toExpr (ExpOpF op args) = AST.ExpOp op args
 -- assuming that this expression is used at the given type.
 labelTypes :: AST.Type -> ExprF k -> ExprF (k, AST.Type)
 labelTypes _ (ExpSimpleF e) = ExpSimpleF e
-labelTypes _ (ExpLabelF ty ex nm) = ExpLabelF ty (ex, ty) nm
-labelTypes _ (ExpIndexF ty1 ex1 ty2 ex2) = ExpIndexF ty1 (ex1, ty1) ty2 (ex2, ty2)
+labelTypes _ (ExpLabelF ty ex nm) = ExpLabelF ty (ex, AST.TyRef ty) nm
+labelTypes _ (ExpIndexF ty1 ex1 ty2 ex2) = ExpIndexF ty1 (ex1, AST.TyRef ty1) ty2 (ex2, ty2)
 labelTypes _ (ExpToIxF ex bd) = ExpToIxF (ex, AST.TyInt AST.Int32) bd
 labelTypes _ (ExpSafeCastF ty ex) = ExpSafeCastF ty (ex, ty)
 labelTypes ty (ExpOpF op args) = ExpOpF op $ case op of
