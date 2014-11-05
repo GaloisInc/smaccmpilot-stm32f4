@@ -312,7 +312,7 @@ fusePos = fusion <$> ned (Measurement $ vecX . getPos) (Measurement $ vecY . get
     getPos = nedToVec3 . statePos
 
 fuseTAS :: Floating var => Fusion var
-fuseTAS = fusion $ Measurement $ \ state -> sqrt $ sum $ map (** 2) $ toList $ stateVel state - stateWind state
+fuseTAS = fusion $ Measurement $ \ state -> vecMag $ stateVel state - stateWind state
 
 fuseMag :: Fractional var => XYZ (Fusion var)
 fuseMag = fusion <$> xyz (Measurement $ vecX . getMag) (Measurement $ vecY . getMag) (Measurement $ vecZ . getMag)

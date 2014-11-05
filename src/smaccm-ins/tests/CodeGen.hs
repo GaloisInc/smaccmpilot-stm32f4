@@ -82,7 +82,7 @@ kalman_predict = cse $ proc "kalman_predict" $ \ dt dax day daz dvx dvy dvz -> b
   stateVectorTemp <- mapM deref stateVector
   pTemp <- mapM (mapM deref) p
   let distVector = DisturbanceVector { disturbanceGyro = xyz dax day daz, disturbanceAccel = xyz dvx dvy dvz }
-  let speed = sqrt $ sum $ fmap (^ (2 :: Int)) $ stateVel stateVectorTemp
+  let speed = vecMag $ stateVel stateVectorTemp
   onGround <- assign $ speed <? 4
   let whenFlying v = onGround ? (0, v)
   let noise = (pure id) { stateWind = pure whenFlying, stateMagNED = pure whenFlying, stateMagXYZ = pure whenFlying } <*> processNoise dt
@@ -106,7 +106,7 @@ applyUpdate cov fusionStep = do
         save stateVel
         save statePos
         save stateGyroBias
-        let speed = sqrt $ sum $ fmap (^ (2 :: Int)) $ stateVel stateVectorTemp
+        let speed = vecMag $ stateVel stateVectorTemp
         when (speed <? 4) $ do
           save stateWind
           save stateMagNED

@@ -4,6 +4,7 @@ import Control.Applicative
 import Data.Distributive
 import Data.Foldable
 import Data.Traversable
+import Prelude hiding (sum)
 import SMACCM.INS.Matrix
 
 data Vec3 a = Vec3 { vecX :: !a, vecY :: !a, vecZ :: !a }
@@ -33,3 +34,6 @@ instance Num a => Num (Vec3 a) where
     fromInteger _ = error "Vec3 vectors can't be constructed by fromInteger"
     abs _ = error "Vec3 vectors are not closed under abs"
     signum _ = error "Vec3 vectors are not closed under signum"
+
+vecMag :: (Functor f, Foldable f, Floating a) => f a -> a
+vecMag = sqrt . sum . fmap (^ (2 :: Int))
