@@ -169,14 +169,13 @@ kalmanP = diagMat $ fmap (^ (2 :: Int)) $ StateVector
     { stateOrient = pure 0.1
     , stateVel = pure 0.7
     , statePos = ned 15 15 5
-    , stateGyroBias = pure $ 0.1 * deg2rad * dtIMU
+    , stateGyroBias = pure $ 1 * deg2rad
     , stateWind = pure 8
     , stateMagNED = pure 0.02
     , stateMagXYZ = pure 0.02
     }
     where
     deg2rad = realToFrac (pi :: Double) / 180
-    dtIMU = 0.1 -- FIXME: get dt from caller
 
 initAttitude :: RealFloat a => XYZ a -> XYZ a -> a -> Quat a
 initAttitude (XYZ accel) (XYZ mag) declination = heading * pitch * roll
@@ -217,10 +216,10 @@ processNoise dt = fmap (^ (2 :: Int)) $ fmap (dt *) $ StateVector
     , stateMagXYZ = pure 3.0e-4
     }
 
-distCovariance :: Fractional a => a -> DisturbanceVector a
-distCovariance dt = fmap (^ (2 :: Int)) $ fmap (dt *) $ DisturbanceVector
-    { disturbanceGyro = pure 1.4544411e-2
-    , disturbanceAccel = pure 0.5
+distCovariance :: Fractional a => DisturbanceVector a
+distCovariance = fmap (^ (2 :: Int)) $ DisturbanceVector
+    { disturbanceGyro = pure 7.762875447020379e-3
+    , disturbanceAccel = pure 0.05
     }
 
 velNoise :: Fractional a => NED a
@@ -233,7 +232,7 @@ tasNoise :: Fractional a => a
 tasNoise = 2
 
 magNoise :: Fractional a => XYZ a
-magNoise = pure 0.0025
+magNoise = pure 1.4826
 
 -- Kalman equations
 
@@ -270,7 +269,7 @@ augment2D ul lr = AugmentState (liftA2 AugmentState ul (pure (pure 0))) (liftA2 
 updateProcess :: Fractional a => a -> StateVector a -> DisturbanceVector a -> StateVector (StateVector a) -> StateVector (StateVector a) -> (StateVector a, StateVector (StateVector a))
 updateProcess dt state dist p noise = (getState state', fmap getState $ getState p')
     where
-    augmentedCovariance = augment2D p $ diagMat $ distCovariance dt
+    augmentedCovariance = augment2D p $ diagMat distCovariance
     augmentedNoise = augment2D noise (pure (pure 0))
     (state', p') = kalmanPredict (processModel (auto dt)) (AugmentState state dist) augmentedNoise augmentedCovariance
 
