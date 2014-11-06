@@ -4,9 +4,10 @@ module SMACCM.INS.SensorFusionModel where
 
 import Control.Applicative
 import Data.Distributive
-import Data.Foldable (Foldable(..), toList)
+import Data.Foldable
 import Data.Traversable
 import Numeric.AD
+import Prelude hiding (foldr, sum)
 import SMACCM.INS.ExtendedKalmanFilter
 import SMACCM.INS.Matrix
 import SMACCM.INS.Quat
@@ -241,7 +242,7 @@ body2nav = fst . convertFrames . stateOrient
 nav2body :: Num a => StateVector a -> NED a -> XYZ a
 nav2body = snd . convertFrames . stateOrient
 
-processModel :: Floating a => a -> AugmentState a -> AugmentState a
+processModel :: Fractional a => a -> AugmentState a -> AugmentState a
 processModel dt (AugmentState state dist) = AugmentState state' $ pure 0
     where
     state' = state
@@ -257,15 +258,30 @@ processModel dt (AugmentState state dist) = AugmentState state' $ pure 0
         , statePos = statePos state + fmap (* dt) (stateVel state + fmap (/ 2) deltaVel)
         -- remaining state vector elements are unchanged by the process model
         }
-    deltaRot = xyzToVec3 $ fmap (* dt) $ disturbanceGyro dist - stateGyroBias state
-    deltaQuat = fromAxisAngle (fmap (/ vecMag deltaRot) deltaRot) (vecMag deltaRot)
+    -- Even fairly low-order approximations introduce error small enough
+    -- that it's swamped by other filter errors.
+    deltaQuat = approxAxisAngle 3 $ xyzToVec3 $ fmap (* dt) $ disturbanceGyro dist - stateGyroBias state
     deltaVel = fmap (* dt) $ body2nav state (disturbanceAccel dist) + g
     g = ned 0 0 9.80665 -- NED gravity vector - m/sec^2
+
+-- The Taylor series expansion of the quaternion axis-angle formula never
+-- divides by any quantity that might be zero. It also avoids computing fancy
+-- floating-point functions like sin, cos, or sqrt. And since the ARM chip
+-- we're running on doesn't have those fancy functions in hardware, this
+-- implementation is as efficient as we're going to get anyway.
+approxAxisAngle :: Fractional a => Int -> Vec3 a -> Quat a
+approxAxisAngle order rotation = Quat c $ fmap (s *) rotation
+    where
+    halfSigmaSq = 0.25 * sum (fmap (^ (2 :: Int)) rotation)
+    go prev idx = let cosTerm = prev / fromIntegral (negate idx); sinTerm = cosTerm / fromIntegral (idx + 1) in cosTerm : sinTerm : go (sinTerm * halfSigmaSq) (idx + 2)
+    combine term (l, r) = (r + term, l)
+    (c, s2) = foldr combine (1, 1) $ take (order - 1) $ go halfSigmaSq (2 :: Int)
+    s = 0.5 * s2
 
 augment2D :: Num a => StateVector (StateVector a) -> DisturbanceVector (DisturbanceVector a) -> AugmentState (AugmentState a)
 augment2D ul lr = AugmentState (liftA2 AugmentState ul (pure (pure 0))) (liftA2 AugmentState (pure (pure 0)) lr)
 
-updateProcess :: Floating a => a -> StateVector a -> DisturbanceVector a -> StateVector (StateVector a) -> StateVector (StateVector a) -> (StateVector a, StateVector (StateVector a))
+updateProcess :: Fractional a => a -> StateVector a -> DisturbanceVector a -> StateVector (StateVector a) -> StateVector (StateVector a) -> (StateVector a, StateVector (StateVector a))
 updateProcess dt state dist p noise = (getState state', fmap getState $ getState p')
     where
     augmentedCovariance = augment2D p $ diagMat distCovariance
