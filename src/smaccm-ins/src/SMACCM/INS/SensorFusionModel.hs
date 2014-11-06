@@ -241,32 +241,31 @@ body2nav = fst . convertFrames . stateOrient
 nav2body :: Num a => StateVector a -> NED a -> XYZ a
 nav2body = snd . convertFrames . stateOrient
 
-processModel :: Fractional a => a -> AugmentState a -> AugmentState a
+processModel :: Floating a => a -> AugmentState a -> AugmentState a
 processModel dt (AugmentState state dist) = AugmentState state' $ pure 0
     where
     state' = state
-        -- This approximates the discretization of `qdot = 0.5 * <0, deltaAngle> * q`.
-        -- It assumes that dt is sufficiently small. The closed-form analytic
-        -- discretization requires dividing by |deltaAngle|, which may be 0.
+        -- Discretization of `qdot = 0.5 * <0, deltaAngle> * q`.
         -- * _Strapdown Inertial Navigation Technology, 2nd Ed_, section 11.2.5 (on
         --   pages 319-320) gives qdot and its analytic discretization, without proof.
         -- * http://en.wikipedia.org/wiki/Discretization derives the general form of
-        --   discretization, and mentions this approximation.
+        --   discretization.
         -- * http://www.euclideanspace.com/physics/kinematics/angularvelocity/QuaternionDifferentiation2.pdf
         --   derives qdot from angular momentum.
-        { stateOrient = (1 + fmap (* (dt / 2)) deltaQuat) * stateOrient state
+        { stateOrient = fmap (/ 2) deltaQuat * stateOrient state
         , stateVel = stateVel state + deltaVel
         , statePos = statePos state + fmap (* dt) (stateVel state + fmap (/ 2) deltaVel)
         -- remaining state vector elements are unchanged by the process model
         }
-    deltaQuat = Quat 0 $ xyzToVec3 $ disturbanceGyro dist - stateGyroBias state
+    deltaRot = xyzToVec3 $ fmap (* dt) $ disturbanceGyro dist - stateGyroBias state
+    deltaQuat = fromAxisAngle (fmap (/ vecMag deltaRot) deltaRot) (vecMag deltaRot)
     deltaVel = fmap (* dt) $ body2nav state (disturbanceAccel dist) + g
     g = ned 0 0 9.80665 -- NED gravity vector - m/sec^2
 
 augment2D :: Num a => StateVector (StateVector a) -> DisturbanceVector (DisturbanceVector a) -> AugmentState (AugmentState a)
 augment2D ul lr = AugmentState (liftA2 AugmentState ul (pure (pure 0))) (liftA2 AugmentState (pure (pure 0)) lr)
 
-updateProcess :: Fractional a => a -> StateVector a -> DisturbanceVector a -> StateVector (StateVector a) -> StateVector (StateVector a) -> (StateVector a, StateVector (StateVector a))
+updateProcess :: Floating a => a -> StateVector a -> DisturbanceVector a -> StateVector (StateVector a) -> StateVector (StateVector a) -> (StateVector a, StateVector (StateVector a))
 updateProcess dt state dist p noise = (getState state', fmap getState $ getState p')
     where
     augmentedCovariance = augment2D p $ diagMat distCovariance
