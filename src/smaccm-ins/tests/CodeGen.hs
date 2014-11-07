@@ -14,6 +14,7 @@ import Ivory.Stdlib
 import IvoryCSE
 import Prelude hiding (mapM, sequence_, sum)
 import SMACCM.INS.Matrix (Pointwise, diagMat)
+import SMACCM.INS.Pressure
 import SMACCM.INS.Quat
 import SMACCM.INS.SensorFusionModel
 import SMACCM.INS.Vec3
@@ -39,6 +40,9 @@ struct kalman_covariance
   ; cov_mag_xyz :: Array 3 (Struct kalman_state)
   }
 |]
+
+instance HasAtan2 IDouble where
+  arctan2 = atan2F
 
 kalman_state :: MemArea (Struct "kalman_state")
 kalman_state = area "kalman_state" Nothing
@@ -76,6 +80,15 @@ p = stateVectorFromStruct <$> (StateVector
 
 storeRow :: (Foldable f, Pointwise f, IvoryStore a, IvoryExpr a) => f (Ref s (Stored a)) -> f a -> Ivory eff ()
 storeRow vars vals = sequence_ $ liftA2 store vars vals
+
+kalman_init :: Def ('[IDouble, IDouble, IDouble, IDouble, IDouble, IDouble, IDouble] :-> ())
+kalman_init = cse $ proc "kalman_init" $ \ accX accY accZ magX magY magZ pressure -> body $ do
+    let depth = negate $ pressureToHeight pressure
+    let acc = XYZ $ Vec3 accX accY accZ
+    let mag = XYZ $ Vec3 magX magY magZ
+    let initialState = initDynamic acc mag (pure 0) 0 (pure 0) (ned 0 0 depth)
+    storeRow stateVector initialState
+    sequence_ $ liftA2 storeRow p kalmanP
 
 kalman_predict :: Def ('[IDouble, IDouble, IDouble, IDouble, IDouble, IDouble, IDouble] :-> ())
 kalman_predict = cse $ proc "kalman_predict" $ \ dt dax day daz dvx dvy dvz -> body $ do
@@ -130,6 +143,7 @@ ins_module = package "smaccm_ins" $ do
   defStruct (Proxy :: Proxy "kalman_covariance")
   defMemArea kalman_state
   defMemArea kalman_covariance
+  incl kalman_init
   incl kalman_predict
   incl vel_measure
   incl pos_measure

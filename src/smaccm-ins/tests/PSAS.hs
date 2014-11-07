@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -19,6 +20,9 @@ import SMACCM.INS.Pressure
 import SMACCM.INS.SensorFusionModel
 import SMACCM.INS.Simulate
 import System.Environment
+
+instance HasAtan2 Double where
+    arctan2 = atan2
 
 type PSASTimestamp = Double
 data PSASMessage = PSASMessage

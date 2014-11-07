@@ -165,6 +165,9 @@ nStates = length $ toList (pure () :: StateVector ())
 
 -- Model initialization
 
+class HasAtan2 a where
+    arctan2 :: a -> a -> a
+
 kalmanP :: Fractional a => StateVector (StateVector a)
 kalmanP = diagMat $ fmap (^ (2 :: Int)) $ StateVector
     { stateOrient = pure 0.1
@@ -178,19 +181,19 @@ kalmanP = diagMat $ fmap (^ (2 :: Int)) $ StateVector
     where
     deg2rad = realToFrac (pi :: Double) / 180
 
-initAttitude :: RealFloat a => XYZ a -> XYZ a -> a -> Quat a
+initAttitude :: (Floating a, HasAtan2 a) => XYZ a -> XYZ a -> a -> Quat a
 initAttitude (XYZ accel) (XYZ mag) declination = heading * pitch * roll
     where
-    initialRoll = atan2 (negate (vecY accel)) (negate (vecZ accel))
-    initialPitch = atan2 (vecX accel) (negate (vecZ accel))
+    initialRoll = arctan2 (negate (vecY accel)) (negate (vecZ accel))
+    initialPitch = arctan2 (vecX accel) (negate (vecZ accel))
     magX = (vecX mag) * cos initialPitch + (vecY mag) * sin initialRoll * sin initialPitch + (vecZ mag) * cos initialRoll * sin initialPitch
     magY = (vecY mag) * cos initialRoll - (vecZ mag) * sin initialRoll
-    initialHdg = atan2 (negate magY) magX + declination
+    initialHdg = arctan2 (negate magY) magX + declination
     roll = fromAxisAngle (Vec3 1 0 0) initialRoll
     pitch = fromAxisAngle (Vec3 0 1 0) initialPitch
     heading = fromAxisAngle (Vec3 0 0 1) initialHdg
 
-initDynamic :: RealFloat a => XYZ a -> XYZ a -> XYZ a -> a -> NED a -> NED a -> StateVector a
+initDynamic :: (Floating a, HasAtan2 a) => XYZ a -> XYZ a -> XYZ a -> a -> NED a -> NED a -> StateVector a
 initDynamic accel mag magBias declination vel pos = (pure 0)
     { stateOrient = initQuat
     , stateVel = vel
