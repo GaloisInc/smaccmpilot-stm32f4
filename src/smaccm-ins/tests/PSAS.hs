@@ -15,6 +15,7 @@ import Data.Traversable
 import Data.Word
 import MonadLib (lift, get, sets_)
 import Prelude hiding (sequence, sequence_)
+import SMACCM.INS.Pressure
 import SMACCM.INS.SensorFusionModel
 import SMACCM.INS.Simulate
 import System.Environment
@@ -83,17 +84,6 @@ getMessageType msg = do
         Done left _ v | S.null left -> return v
         Fail _ _ err -> error $ "failed on " ++ show (psasFourCC msg) ++ ": " ++ err
         _ -> error $ "leftovers after " ++ show (psasFourCC msg)
-
-pressureToHeight :: Floating a => a -> a
-pressureToHeight pressure = (baseAltitude * lapseRate + baseTemperature / ((pressure / basePressure) ** (airGasConstant * lapseRate / (g_0 * airMass))) - baseTemperature) / lapseRate
-    where
-    basePressure = 101325 -- Pascals
-    baseTemperature = 288.15 -- K
-    lapseRate = -0.0065 -- K/m
-    baseAltitude = 0 -- m
-    airGasConstant = 8.31432 --  N-m/mol-K
-    g_0 = 9.80665 -- m/s/s
-    airMass = 0.0289644 -- kg/mol
 
 initialMeasurements :: (Last PSASTimestamp, Last ADISMessage, Last MPL3Message) -> Get (PSASTimestamp, ADISMessage, MPL3Message)
 initialMeasurements (Last (Just t), Last (Just a), Last (Just m)) = return (t, a, m)

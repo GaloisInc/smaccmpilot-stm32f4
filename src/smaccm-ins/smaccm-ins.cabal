@@ -15,6 +15,7 @@ library
   hs-source-dirs:      src
   exposed-modules:     SMACCM.INS.ExtendedKalmanFilter,
                        SMACCM.INS.Matrix,
+                       SMACCM.INS.Pressure,
                        SMACCM.INS.Quat,
                        SMACCM.INS.SensorFusionModel,
                        SMACCM.INS.Simulate,
