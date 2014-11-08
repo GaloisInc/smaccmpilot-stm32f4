@@ -89,9 +89,10 @@ applyUpdate cov fusionStep = do
     pTemp <- mapM (mapM deref) p
     let (innov, innovCov, stateVectorPreCorrected, p') = fusionStep stateVectorTemp pTemp
     let stateVector' = fixQuat stateVectorPreCorrected
+    let forceUpdate = true -- filter state is not yet right; muddle through anyway
     -- TODO: when innovCov < cov, add cov to the "right" elements of p
-    when (innovCov >=? cov) $ do
-      when (innov ^ (2 :: Int) / innovCov <? 5 ^ (2 :: Int)) $ do
+    when (forceUpdate .|| innovCov >=? cov) $ do
+      when (forceUpdate .|| innov ^ (2 :: Int) / innovCov <? 5 ^ (2 :: Int)) $ do
         let save :: (Foldable f, Pointwise f) => (forall a. StateVector a -> f a) -> Ivory eff ()
             save sel = do
               storeRow (sel stateVector) (sel stateVector')
