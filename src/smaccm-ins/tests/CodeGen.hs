@@ -58,6 +58,9 @@ p = stateVectorFromStruct <$> (StateVector
 storeRow :: (Foldable f, Pointwise f, IvoryStore a, IvoryExpr a) => f (Ref s (Stored a)) -> f a -> Ivory eff ()
 storeRow vars vals = sequence_ $ liftA2 store vars vals
 
+fixQuat :: Floating a => StateVector a -> StateVector a
+fixQuat state = (pure id) { stateOrient = pure (/ vecMag (stateOrient state)) } <*> state
+
 kalman_init :: Def ('[IDouble, IDouble, IDouble, IDouble, IDouble, IDouble, IDouble] :-> ())
 kalman_init = cse $ proc "kalman_init" $ \ accX accY accZ magX magY magZ pressure -> body $ do
     let depth = negate $ pressureToHeight pressure
@@ -77,14 +80,15 @@ kalman_predict = cse $ proc "kalman_predict" $ \ dt dax day daz dvx dvy dvz -> b
   let whenFlying v = onGround ? (0, v)
   let noise = (pure id) { stateWind = pure whenFlying, stateMagNED = pure whenFlying, stateMagXYZ = pure whenFlying } <*> processNoise dt
   let (stateVector', p') = updateProcess dt stateVectorTemp distVector pTemp $ diagMat noise
-  storeRow stateVector stateVector'
+  storeRow stateVector $ fixQuat stateVector'
   sequence_ $ liftA2 storeRow p p'
 
 applyUpdate :: IDouble -> (StateVector IDouble -> StateVector (StateVector IDouble) -> (IDouble, IDouble, StateVector IDouble, StateVector (StateVector IDouble))) -> Ivory eff ()
 applyUpdate cov fusionStep = do
     stateVectorTemp <- mapM deref stateVector
     pTemp <- mapM (mapM deref) p
-    let (innov, innovCov, stateVector', p') = fusionStep stateVectorTemp pTemp
+    let (innov, innovCov, stateVectorPreCorrected, p') = fusionStep stateVectorTemp pTemp
+    let stateVector' = fixQuat stateVectorPreCorrected
     -- TODO: when innovCov < cov, add cov to the "right" elements of p
     when (innovCov >=? cov) $ do
       when (innov ^ (2 :: Int) / innovCov <? 5 ^ (2 :: Int)) $ do
