@@ -40,8 +40,8 @@ runFuseVel measurement = sequence $ runFusion <$> (fuseVel <*> velNoise) <*> mea
 runFusePos :: (Monad m, Floating a, Real a) => NED a -> KalmanState m a (NED (a, a))
 runFusePos measurement = sequence $ runFusion <$> (fusePos <*> posNoise) <*> measurement
 
-runFuseHeight :: (Monad m, Floating a, Real a) => a -> KalmanState m a (a, a)
-runFuseHeight = runFusion $ vecZ $ nedToVec3 $ fusePos <*> posNoise
+runFusePressure :: (Monad m, Floating a, Real a) => a -> KalmanState m a (a, a)
+runFusePressure = runFusion $ fusePressure pressureNoise
 
 runFuseTAS :: (Monad m, Floating a, Real a) => a -> KalmanState m a (a, a)
 runFuseTAS = runFusion $ fuseTAS tasNoise

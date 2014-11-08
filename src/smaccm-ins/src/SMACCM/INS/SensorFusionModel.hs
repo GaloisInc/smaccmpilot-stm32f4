@@ -10,6 +10,7 @@ import Numeric.AD
 import Prelude hiding (foldr, sum)
 import SMACCM.INS.ExtendedKalmanFilter
 import SMACCM.INS.Matrix
+import SMACCM.INS.Pressure
 import SMACCM.INS.Quat
 import SMACCM.INS.Vec3
 
@@ -232,6 +233,9 @@ velNoise = ned 0.04 0.04 0.08
 posNoise :: Fractional a => NED a
 posNoise = pure 4
 
+pressureNoise :: Fractional a => a
+pressureNoise = 128.39316
+
 tasNoise :: Fractional a => a
 tasNoise = 2
 
@@ -327,6 +331,9 @@ fusePos :: Fractional var => NED (Fusion var)
 fusePos = fusion <$> ned (Measurement $ vecX . getPos) (Measurement $ vecY . getPos) (Measurement $ vecZ . getPos)
     where
     getPos = nedToVec3 . statePos
+
+fusePressure :: Floating var => Fusion var
+fusePressure = fusion $ Measurement $ \ state -> heightToPressure $ negate $ vecZ $ nedToVec3 $ statePos state
 
 fuseTAS :: Floating var => Fusion var
 fuseTAS = fusion $ Measurement $ \ state -> vecMag $ stateVel state - stateWind state

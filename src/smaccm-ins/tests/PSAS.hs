@@ -118,7 +118,7 @@ psasFilter = do
                 putStrLn $ unwords $ "pre-mag" : map show (lasttime : toList laststate)
                 putStrLn $ unwords $ "mag" : map show (toList (fmap fst magStatus) ++ toList (fmap snd magStatus))
         Just (MPL3 v) -> do
-            (innov, innovVar) <- runFuseHeight $ negate $ pressureToHeight $ mpl3Pressure v
+            (innov, innovVar) <- runFusePressure $ mpl3Pressure v
             return $ do
                 putStrLn $ unwords $ "pre-mpl" : map show (lasttime : toList laststate)
                 putStrLn $ unwords $ "mpl" : map show [innov, innovVar]

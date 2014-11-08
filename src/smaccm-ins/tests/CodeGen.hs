@@ -112,6 +112,9 @@ vel_measure = cse $ proc "vel_measure" $ \ velN velE velD -> body $ sequence_ $ 
 pos_measure :: Def ('[IDouble, IDouble, IDouble] :-> ())
 pos_measure = cse $ proc "pos_measure" $ \ posN posE posD -> body $ sequence_ $ applyUpdate <$> posNoise <*> (fusePos <*> posNoise <*> ned posN posE posD)
 
+pressure_measure :: Def ('[IDouble] :-> ())
+pressure_measure = cse $ proc "pressure_measure" $ \ pressure -> body $ applyUpdate pressureNoise $ fusePressure pressureNoise pressure
+
 tas_measure :: Def ('[IDouble] :-> ())
 tas_measure = cse $ proc "tas_measure" $ \ tas -> body $ applyUpdate tasNoise $ fuseTAS tasNoise tas
 
@@ -128,6 +131,7 @@ ins_module = package "smaccm_ins" $ do
   incl kalman_predict
   incl vel_measure
   incl pos_measure
+  incl pressure_measure
   incl tas_measure
   incl mag_measure
 
