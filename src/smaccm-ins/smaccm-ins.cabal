@@ -20,37 +20,37 @@ library
                        SMACCM.INS.SensorFusionModel,
                        SMACCM.INS.Simulate,
                        SMACCM.INS.Vec3
-  build-depends:       base >=4.6 && <4.7,
-                       ad >=4.2 && <4.3,
-                       distributive >=0.4 && <0.5,
-                       monadLib >= 3.7 && < 3.8,
-                       reflection >=1.5 && <1.6
+  build-depends:       base >=4.6,
+                       ad >=4.2,
+                       distributive >=0.4,
+                       monadLib >= 3.7,
+                       reflection >=1.5
   default-language:    Haskell2010
-  ghc-options:         -Wall -Werror
+  ghc-options:         -Wall -Werrror
 
 executable psas
   hs-source-dirs:      tests
   main-is:             PSAS.hs
-  build-depends:       base >=4.6 && <4.7,
-                       binary >=0.7 && <0.8,
-                       bytestring >=0.10 && <0.11,
-                       monadLib >= 3.7 && < 3.8,
+  build-depends:       base >=4.6,
+                       binary >=0.7,
+                       bytestring >=0.10,
+                       monadLib >= 3.7,
                        smaccm-ins
   default-language:    Haskell2010
-  ghc-options:         -Wall -Werror
+  ghc-options:         -Wall -Werrror
 
 executable codegen
   hs-source-dirs:      tests
   main-is:             CodeGen.hs
-  build-depends:       base >=4.6 && <4.7,
-                       ad >=4.2 && <4.3,
-                       containers >=0.5 && <0.6,
-                       data-reify >=0.6 && <0.7,
-                       dlist >=0.7 && <0.8,
-                       ivory >=0.1 && <0.2,
-                       ivory-backend-c >=0.1 && <0.2,
-                       ivory-stdlib >=0.1 && <0.2,
-                       monadLib >= 3.7 && < 3.8,
+  build-depends:       base >=4.6,
+                       ad >=4.2,
+                       containers >=0.5,
+                       data-reify >=0.6,
+                       dlist >=0.7,
+                       ivory >=0.1,
+                       ivory-backend-c >=0.1,
+                       ivory-stdlib >=0.1,
+                       monadLib >= 3.7,
                        smaccm-ins
   default-language:    Haskell2010
-  ghc-options:         -Wall -Werror
+  ghc-options:         -Wall -Werrror
