@@ -26,7 +26,7 @@ library
                        monadLib >= 3.7,
                        reflection >=1.5
   default-language:    Haskell2010
-  ghc-options:         -Wall -Werrror
+  ghc-options:         -Wall -Werror
 
 executable psas
   hs-source-dirs:      tests
@@ -37,7 +37,7 @@ executable psas
                        monadLib >= 3.7,
                        smaccm-ins
   default-language:    Haskell2010
-  ghc-options:         -Wall -Werrror
+  ghc-options:         -Wall -Werror
 
 executable codegen
   hs-source-dirs:      tests
@@ -53,4 +53,4 @@ executable codegen
                        monadLib >= 3.7,
                        smaccm-ins
   default-language:    Haskell2010
-  ghc-options:         -Wall -Werrror
+  ghc-options:         -Wall -Werror
