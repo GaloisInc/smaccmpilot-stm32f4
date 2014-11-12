@@ -137,4 +137,4 @@ ins_module = package "smaccm_ins" $ do
   incl mag_measure
 
 main :: IO ()
-main = C.compile [ ins_module ]
+main = C.compile [ ins_module ] []

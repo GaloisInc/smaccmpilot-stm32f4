@@ -1,18 +1,11 @@
 CC = gcc
 CFLAGS = -Wall -Os -Igen
-CODEGEN = dist/build/codegen/codegen
+FILTER_SOURCES = gen/smaccm_ins.c
 
 all: gen/psas
 
-$(CODEGEN):
-	cabal build codegen
-
--include gen/deps
-gen/deps: $(CODEGEN)
-	$(CODEGEN) --include-dir=gen --src-dir=gen --dep-prefix=FILTER --dep-file=$@
-
-$(FILTER_SOURCES) $(FILTER_HEADERS): $(CODEGEN)
-	$(CODEGEN) --include-dir=gen --src-dir=gen --const-fold
+$(FILTER_SOURCES):
+	cabal run --only codegen -- --src-dir=gen --const-fold
 
 gen/%: tests/%.o $(addsuffix .o, $(basename $(FILTER_SOURCES)))
 	$(CC) -o $@ $^ -lm
@@ -20,4 +13,4 @@ gen/%: tests/%.o $(addsuffix .o, $(basename $(FILTER_SOURCES)))
 clean:
 	rm -rf gen
 
-.PHONY: $(CODEGEN) clean
+.PHONY: $(FILTER_SOURCES) clean
