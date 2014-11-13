@@ -21,9 +21,6 @@ import SMACCM.INS.SensorFusionModel
 import SMACCM.INS.Simulate
 import System.Environment
 
-instance HasAtan2 Double where
-    arctan2 = atan2
-
 type PSASTimestamp = Double
 data PSASMessage = PSASMessage
     { psasFourCC :: S.ByteString

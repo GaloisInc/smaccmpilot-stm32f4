@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 module SMACCM.INS.SensorFusionModel where
@@ -168,6 +169,9 @@ nStates = length $ toList (pure () :: StateVector ())
 
 class HasAtan2 a where
     arctan2 :: a -> a -> a
+
+instance HasAtan2 Double where
+    arctan2 = atan2
 
 kalmanP :: Fractional a => StateVector (StateVector a)
 kalmanP = diagMat $ fmap (^ (2 :: Int)) $ StateVector
