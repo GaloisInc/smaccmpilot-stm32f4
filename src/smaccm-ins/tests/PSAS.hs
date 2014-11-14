@@ -21,6 +21,31 @@ import SMACCM.INS.SensorFusionModel
 import SMACCM.INS.Simulate
 import System.Environment
 
+-- Model noise parameters
+
+processNoise :: Fractional a => a -> StateVector a
+processNoise dt = fmap (^ (2 :: Int)) $ fmap (dt *) $ StateVector
+    { stateOrient = pure 1.0e-9
+    , stateVel = pure 1.0e-9
+    , statePos = pure 1.0e-9
+    , stateGyroBias = pure 5.0e-7
+    , stateWind = pure 0.1
+    , stateMagNED = pure 3.0e-4
+    , stateMagXYZ = pure 3.0e-4
+    }
+
+distCovariance :: Fractional a => DisturbanceVector a
+distCovariance = fmap (^ (2 :: Int)) $ DisturbanceVector
+    { disturbanceGyro = pure 7.762875447020379e-3
+    , disturbanceAccel = pure 0.05
+    }
+
+pressureNoise :: Fractional a => a
+pressureNoise = 128.39316
+
+magNoise :: Fractional a => XYZ a
+magNoise = pure 1.4826
+
 type PSASTimestamp = Double
 data PSASMessage = PSASMessage
     { psasFourCC :: S.ByteString
@@ -108,14 +133,15 @@ psasFilter = do
     (lasttime, laststate, _) <- get
     case getMessageType msg of
         Just (ADIS v) -> do
-            runProcessModel (psasTimestamp msg - lasttime) $ DisturbanceVector { disturbanceGyro = adisGyro v, disturbanceAccel = adisAcc v }
-            magStatus <- runFuseMag $ adisMagn v
+            let dt = psasTimestamp msg - lasttime
+            runProcessModel dt (processNoise dt) distCovariance $ DisturbanceVector { disturbanceGyro = adisGyro v, disturbanceAccel = adisAcc v }
+            magStatus <- runFuseMag magNoise $ adisMagn v
             sets_ $ \ (_, state, p) -> (psasTimestamp msg, state, p)
             return $ do
                 putStrLn $ unwords $ "pre-mag" : map show (lasttime : toList laststate)
                 putStrLn $ unwords $ "mag" : map show (toList (fmap fst magStatus) ++ toList (fmap snd magStatus))
         Just (MPL3 v) -> do
-            (innov, innovVar) <- runFusePressure $ mpl3Pressure v
+            (innov, innovVar) <- runFusePressure pressureNoise $ mpl3Pressure v
             return $ do
                 putStrLn $ unwords $ "pre-mpl" : map show (lasttime : toList laststate)
                 putStrLn $ unwords $ "mpl" : map show [innov, innovVar]

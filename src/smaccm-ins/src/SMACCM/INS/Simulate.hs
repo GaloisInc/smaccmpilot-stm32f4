@@ -4,7 +4,6 @@ import Control.Applicative
 import Data.Traversable
 import MonadLib (runStateT, StateT, get, set)
 import Prelude hiding (mapM, sequence, sum)
-import SMACCM.INS.Matrix (diagMat)
 import SMACCM.INS.SensorFusionModel
 import SMACCM.INS.Vec3
 
@@ -16,12 +15,12 @@ runKalmanState ts state = runStateT (ts, state, kalmanP)
 fixQuat :: Floating a => StateVector a -> StateVector a
 fixQuat state = (pure id) { stateOrient = pure (/ vecMag (stateOrient state)) } <*> state
 
-runProcessModel :: (Monad m, Floating a, Ord a) => a -> DisturbanceVector a -> KalmanState m a ()
-runProcessModel dt dist = do
+runProcessModel :: (Monad m, Floating a, Ord a) => a -> StateVector a -> DisturbanceVector a -> DisturbanceVector a -> KalmanState m a ()
+runProcessModel dt noise distNoise dist = do
     (ts, state, p) <- get
     let speed = vecMag $ stateVel state
-    let noise = if speed < 4 then (processNoise dt) { stateWind = pure 0, stateMagNED = pure 0, stateMagXYZ = pure 0 } else processNoise dt
-    let (state', p') = updateProcess dt state dist p $ diagMat noise
+    let noise' = if speed < 4 then noise { stateWind = pure 0, stateMagNED = pure 0, stateMagXYZ = pure 0 } else noise
+    let (state', p') = updateProcess dt state dist p noise' distNoise
     set (ts, fixQuat state', p')
 
 runFusion :: (Monad m, Floating a, Ord a) => (a -> StateVector a -> StateVector (StateVector a) -> (a, a, StateVector a, StateVector (StateVector a))) -> a -> KalmanState m a (a, a)
@@ -34,17 +33,17 @@ runFusion fuse measurement = do
     set (ts, observable <*> fixQuat state' <*> state, observable <*> p' <*> p)
     return (innov, innovCov)
 
-runFuseVel :: (Monad m, Floating a, Real a) => NED a -> KalmanState m a (NED (a, a))
-runFuseVel measurement = sequence $ runFusion <$> (fuseVel <*> velNoise) <*> measurement
+runFuseVel :: (Monad m, Floating a, Real a) => NED a -> NED a -> KalmanState m a (NED (a, a))
+runFuseVel noise measurement = sequence $ runFusion <$> (fuseVel <*> noise) <*> measurement
 
-runFusePos :: (Monad m, Floating a, Real a) => NED a -> KalmanState m a (NED (a, a))
-runFusePos measurement = sequence $ runFusion <$> (fusePos <*> posNoise) <*> measurement
+runFusePos :: (Monad m, Floating a, Real a) => NED a -> NED a -> KalmanState m a (NED (a, a))
+runFusePos noise measurement = sequence $ runFusion <$> (fusePos <*> noise) <*> measurement
 
-runFusePressure :: (Monad m, Floating a, Real a) => a -> KalmanState m a (a, a)
-runFusePressure = runFusion $ fusePressure pressureNoise
+runFusePressure :: (Monad m, Floating a, Real a) => a -> a -> KalmanState m a (a, a)
+runFusePressure noise = runFusion $ fusePressure noise
 
-runFuseTAS :: (Monad m, Floating a, Real a) => a -> KalmanState m a (a, a)
-runFuseTAS = runFusion $ fuseTAS tasNoise
+runFuseTAS :: (Monad m, Floating a, Real a) => a -> a -> KalmanState m a (a, a)
+runFuseTAS noise = runFusion $ fuseTAS noise
 
-runFuseMag :: (Monad m, Floating a, Real a) => XYZ a -> KalmanState m a (XYZ (a, a))
-runFuseMag measurement = sequence $ runFusion <$> (fuseMag <*> magNoise) <*> measurement
+runFuseMag :: (Monad m, Floating a, Real a) => XYZ a -> XYZ a -> KalmanState m a (XYZ (a, a))
+runFuseMag noise measurement = sequence $ runFusion <$> (fuseMag <*> noise) <*> measurement

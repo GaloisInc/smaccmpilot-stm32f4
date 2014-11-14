@@ -212,40 +212,6 @@ initDynamic accel mag magBias declination vel pos = (pure 0)
     initMagNED = fst (convertFrames initQuat) initMagXYZ
     -- TODO: re-implement InertialNav's calcEarthRateNED
 
--- Model noise parameters
-
-processNoise :: Fractional a => a -> StateVector a
-processNoise dt = fmap (^ (2 :: Int)) $ fmap (dt *) $ StateVector
-    { stateOrient = pure 1.0e-9
-    , stateVel = pure 1.0e-9
-    , statePos = pure 1.0e-9
-    , stateGyroBias = pure 5.0e-7
-    , stateWind = pure 0.1
-    , stateMagNED = pure 3.0e-4
-    , stateMagXYZ = pure 3.0e-4
-    }
-
-distCovariance :: Fractional a => DisturbanceVector a
-distCovariance = fmap (^ (2 :: Int)) $ DisturbanceVector
-    { disturbanceGyro = pure 7.762875447020379e-3
-    , disturbanceAccel = pure 0.05
-    }
-
-velNoise :: Fractional a => NED a
-velNoise = ned 0.04 0.04 0.08
-
-posNoise :: Fractional a => NED a
-posNoise = pure 4
-
-pressureNoise :: Fractional a => a
-pressureNoise = 128.39316
-
-tasNoise :: Fractional a => a
-tasNoise = 2
-
-magNoise :: Fractional a => XYZ a
-magNoise = pure 1.4826
-
 -- Kalman equations
 
 body2nav :: Num a => StateVector a -> XYZ a -> NED a
@@ -292,11 +258,11 @@ approxAxisAngle order rotation = Quat c $ fmap (s *) rotation
 augment2D :: Num a => StateVector (StateVector a) -> DisturbanceVector (DisturbanceVector a) -> AugmentState (AugmentState a)
 augment2D ul lr = AugmentState (liftA2 AugmentState ul (pure (pure 0))) (liftA2 AugmentState (pure (pure 0)) lr)
 
-updateProcess :: Fractional a => a -> StateVector a -> DisturbanceVector a -> StateVector (StateVector a) -> StateVector (StateVector a) -> (StateVector a, StateVector (StateVector a))
-updateProcess dt state dist p noise = (getState state', fmap getState $ getState p')
+updateProcess :: Fractional a => a -> StateVector a -> DisturbanceVector a -> StateVector (StateVector a) -> StateVector a -> DisturbanceVector a -> (StateVector a, StateVector (StateVector a))
+updateProcess dt state dist p noise distNoise = (getState state', fmap getState $ getState p')
     where
-    augmentedCovariance = augment2D p $ diagMat distCovariance
-    augmentedNoise = augment2D noise (pure (pure 0))
+    augmentedCovariance = augment2D p $ diagMat distNoise
+    augmentedNoise = augment2D (diagMat noise) (pure (pure 0))
     (state', p') = kalmanPredict (processModel (auto dt)) (AugmentState state dist) augmentedNoise augmentedCovariance
 
 newtype Singleton a = Singleton a
