@@ -230,7 +230,7 @@ processModel dt (AugmentState state dist) = AugmentState state' $ pure 0
         --   discretization.
         -- * http://www.euclideanspace.com/physics/kinematics/angularvelocity/QuaternionDifferentiation2.pdf
         --   derives qdot from angular momentum.
-        { stateOrient = fmap (/ 2) deltaQuat * stateOrient state
+        { stateOrient = stateOrient state * deltaQuat
         , stateVel = stateVel state + deltaVel
         , statePos = statePos state + fmap (* dt) (stateVel state + fmap (/ 2) deltaVel)
         -- remaining state vector elements are unchanged by the process model
