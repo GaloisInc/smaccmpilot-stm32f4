@@ -1,18 +1,33 @@
-# -*- Mode: makefile-gmake; indent-tabs-mode: t; tab-width: 2 -*-
 
-EXEC = test/test
+IVORY_REPO ?= ../../../../ivory
 
-.PHONY: all $(EXEC) run clean
+default:
+	cabal build
 
-all: $(EXEC)
+create-sandbox:
+	cabal sandbox init
+	cabal sandbox add-source $(IVORY_REPO)/ivory
+	cabal sandbox add-source $(IVORY_REPO)/ivory-artifact
+	cabal sandbox add-source $(IVORY_REPO)/ivory-hw
+	cabal sandbox add-source $(IVORY_REPO)/ivory-opts
+	cabal sandbox add-source $(IVORY_REPO)/ivory-stdlib
+	cabal sandbox add-source $(IVORY_REPO)/ivory-backend-c
+	cabal sandbox add-source $(IVORY_REPO)/ivory-serialize
+	cabal sandbox add-source $(IVORY_REPO)/ivory-quickcheck
+	cabal install --dependencies-only
 
-$(EXEC): test/hxstream-test.c  test/hxstream-test.h  test/ivory.h
-	gcc -std=c99 -Wall test/hxstream-test.c -o $(EXEC)
+test-gen:
+	cabal run ivory-hxstream-test
 
-run:
-	$(EXEC)
+test: test-gen
+	make -C hxstream-test
+
+test-clean:
+	-rm -rf hxstream-test
 
 clean:
-	-rm -rf test
+	-rm -rf dist
 
-
+clean-sandbox: clean
+	-rm -rf .cabal-sandbox
+	-rm cabal.sandbox.config

@@ -5,13 +5,12 @@
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
-module Ivory.HXStream.Test where
+module Main where
 
 import Data.String (fromString)
-import System.Directory (doesFileExist)
-import Control.Monad (unless)
 
 import Ivory.HXStream
+import Ivory.Artifact
 import Ivory.Language
 import Ivory.Stdlib hiding (unless)
 import Ivory.Compile.C.CmdlineFrontend
@@ -104,15 +103,14 @@ mkRnd = return . test
                               , (1,return 0x7c)
                               ,(8, Q.arbitrary)]
 
-runTests :: IO ()
-runTests = do
+main :: IO ()
+main = do
   p <- Q.runIO mkRnd
-  _ <- runCompiler [hxstreamModule, cmodule p]
-              initialOpts { includeDir = "test"
-                          , srcDir     = "test"
+  runCompiler [hxstreamModule, cmodule p]
+              [artifactString "Makefile" (makefile pkgName)]
+              initialOpts { outDir = Just "hxstream-test"
                           , constFold = True
                           }
-  writeMakefile pkgName
   where
   pkgName = "hxstream-test"
   cmodule p = package pkgName $ do
@@ -123,13 +121,8 @@ runTests = do
     incl encodeTest
     incl decodeTest
 
-writeMakefile :: String -> IO ()
-writeMakefile pkgname = do
-  e <- doesFileExist path
-  unless e $ writeFile path (makefile pkgname)
-  where
-  path = "test/Makefile"
-  makefile fname = unlines
+makefile :: String -> String
+makefile fname = unlines
     [ "CFLAGS += -std=c99"
     , "CFLAGS += -DIVORY_DEPLOY"
     , "CFLAGS += -g3"
