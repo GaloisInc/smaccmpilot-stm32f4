@@ -1,5 +1,5 @@
 
-default: ivory-px4-tests
+default: ivory-hxstream ivory-px4-hw
 
 ivory-hxstream:
 	make -C src/hxstream/ivory create-sandbox
