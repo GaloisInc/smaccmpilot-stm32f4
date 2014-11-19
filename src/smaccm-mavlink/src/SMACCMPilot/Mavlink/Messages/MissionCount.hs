@@ -10,12 +10,10 @@
 
 module SMACCMPilot.Mavlink.Messages.MissionCount where
 
-import Ivory.Serialize
-import SMACCMPilot.Mavlink.Unpack
-import SMACCMPilot.Mavlink.Send
-
 import Ivory.Language
-import Ivory.Stdlib
+import Ivory.Serialize
+import SMACCMPilot.Mavlink.Send
+import SMACCMPilot.Mavlink.Unpack
 
 missionCountMsgId :: Uint8
 missionCountMsgId = 44
@@ -30,6 +28,8 @@ missionCountModule = package "mavlink_mission_count_msg" $ do
   incl mkMissionCountSender
   incl missionCountUnpack
   defStruct (Proxy :: Proxy "mission_count_msg")
+  incl missionCountPackRef
+  incl missionCountUnpackRef
 
 [ivory|
 struct mission_count_msg
@@ -44,29 +44,7 @@ mkMissionCountSender ::
         , Ref s1 (Stored Uint8) -- seqNum
         , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
-mkMissionCountSender =
-  proc "mavlink_mission_count_msg_send"
-  $ \msg seqNum sendStruct -> body
-  $ do
-  arr <- local (iarray [] :: Init (Array 4 (Stored Uint8)))
-  let buf = toCArray arr
-  pack buf 0 =<< deref (msg ~> count)
-  pack buf 2 =<< deref (msg ~> target_system)
-  pack buf 3 =<< deref (msg ~> target_component)
-  -- 6: header len, 2: CRC len
-  let usedLen    = 6 + 4 + 2 :: Integer
-  let sendArr    = sendStruct ~> mav_array
-  let sendArrLen = arrayLen sendArr
-  if sendArrLen < usedLen
-    then error "missionCount payload of length 4 is too large!"
-    else do -- Copy, leaving room for the payload
-            arrayCopy sendArr arr 6 (arrayLen arr)
-            call_ mavlinkSendWithWriter
-                    missionCountMsgId
-                    missionCountCrcExtra
-                    4
-                    seqNum
-                    sendStruct
+mkMissionCountSender = makeMavlinkSender "mission_count_msg" missionCountMsgId missionCountCrcExtra
 
 instance MavlinkUnpackableMsg "mission_count_msg" where
     unpackMsg = ( missionCountUnpack , missionCountMsgId )
@@ -74,8 +52,26 @@ instance MavlinkUnpackableMsg "mission_count_msg" where
 missionCountUnpack :: Def ('[ Ref s1 (Struct "mission_count_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-missionCountUnpack = proc "mavlink_mission_count_unpack" $ \ msg buf -> body $ do
-  store (msg ~> count) =<< unpack buf 0
-  store (msg ~> target_system) =<< unpack buf 2
-  store (msg ~> target_component) =<< unpack buf 3
+missionCountUnpack = proc "mavlink_mission_count_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
 
+missionCountPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
+                              , Uint32
+                              , ConstRef s2 (Struct "mission_count_msg")
+                              ] :-> () )
+missionCountPackRef = proc "mavlink_mission_count_pack_ref" $ \ buf off msg -> body $ do
+  packRef buf (off + 0) (msg ~> count)
+  packRef buf (off + 2) (msg ~> target_system)
+  packRef buf (off + 3) (msg ~> target_component)
+
+missionCountUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
+                                , Uint32
+                                , Ref s2 (Struct "mission_count_msg")
+                                ] :-> () )
+missionCountUnpackRef = proc "mavlink_mission_count_unpack_ref" $ \ buf off msg -> body $ do
+  unpackRef buf (off + 0) (msg ~> count)
+  unpackRef buf (off + 2) (msg ~> target_system)
+  unpackRef buf (off + 3) (msg ~> target_component)
+
+instance SerializableRef (Struct "mission_count_msg") where
+  packRef = call_ missionCountPackRef
+  unpackRef = call_ missionCountUnpackRef

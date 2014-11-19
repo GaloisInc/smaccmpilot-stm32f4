@@ -10,12 +10,10 @@
 
 module SMACCMPilot.Mavlink.Messages.AltCtlDebug where
 
-import Ivory.Serialize
-import SMACCMPilot.Mavlink.Unpack
-import SMACCMPilot.Mavlink.Send
-
 import Ivory.Language
-import Ivory.Stdlib
+import Ivory.Serialize
+import SMACCMPilot.Mavlink.Send
+import SMACCMPilot.Mavlink.Unpack
 
 altCtlDebugMsgId :: Uint8
 altCtlDebugMsgId = 173
@@ -30,6 +28,8 @@ altCtlDebugModule = package "mavlink_alt_ctl_debug_msg" $ do
   incl mkAltCtlDebugSender
   incl altCtlDebugUnpack
   defStruct (Proxy :: Proxy "alt_ctl_debug_msg")
+  incl altCtlDebugPackRef
+  incl altCtlDebugUnpackRef
 
 [ivory|
 struct alt_ctl_debug_msg
@@ -54,39 +54,7 @@ mkAltCtlDebugSender ::
         , Ref s1 (Stored Uint8) -- seqNum
         , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
-mkAltCtlDebugSender =
-  proc "mavlink_alt_ctl_debug_msg_send"
-  $ \msg seqNum sendStruct -> body
-  $ do
-  arr <- local (iarray [] :: Init (Array 52 (Stored Uint8)))
-  let buf = toCArray arr
-  pack buf 0 =<< deref (msg ~> alt_est)
-  pack buf 4 =<< deref (msg ~> alt_rate_est)
-  pack buf 8 =<< deref (msg ~> thrust_p)
-  pack buf 12 =<< deref (msg ~> thrust_i)
-  pack buf 16 =<< deref (msg ~> thrust_d)
-  pack buf 20 =<< deref (msg ~> thrust_i_reset)
-  pack buf 24 =<< deref (msg ~> ui_setp)
-  pack buf 28 =<< deref (msg ~> ui_rate_setp)
-  pack buf 32 =<< deref (msg ~> pos_p)
-  pack buf 36 =<< deref (msg ~> pos_i)
-  pack buf 40 =<< deref (msg ~> pos_d)
-  pack buf 44 =<< deref (msg ~> pos_setp)
-  pack buf 48 =<< deref (msg ~> pos_rate_setp)
-  -- 6: header len, 2: CRC len
-  let usedLen    = 6 + 52 + 2 :: Integer
-  let sendArr    = sendStruct ~> mav_array
-  let sendArrLen = arrayLen sendArr
-  if sendArrLen < usedLen
-    then error "altCtlDebug payload of length 52 is too large!"
-    else do -- Copy, leaving room for the payload
-            arrayCopy sendArr arr 6 (arrayLen arr)
-            call_ mavlinkSendWithWriter
-                    altCtlDebugMsgId
-                    altCtlDebugCrcExtra
-                    52
-                    seqNum
-                    sendStruct
+mkAltCtlDebugSender = makeMavlinkSender "alt_ctl_debug_msg" altCtlDebugMsgId altCtlDebugCrcExtra
 
 instance MavlinkUnpackableMsg "alt_ctl_debug_msg" where
     unpackMsg = ( altCtlDebugUnpack , altCtlDebugMsgId )
@@ -94,18 +62,46 @@ instance MavlinkUnpackableMsg "alt_ctl_debug_msg" where
 altCtlDebugUnpack :: Def ('[ Ref s1 (Struct "alt_ctl_debug_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-altCtlDebugUnpack = proc "mavlink_alt_ctl_debug_unpack" $ \ msg buf -> body $ do
-  store (msg ~> alt_est) =<< unpack buf 0
-  store (msg ~> alt_rate_est) =<< unpack buf 4
-  store (msg ~> thrust_p) =<< unpack buf 8
-  store (msg ~> thrust_i) =<< unpack buf 12
-  store (msg ~> thrust_d) =<< unpack buf 16
-  store (msg ~> thrust_i_reset) =<< unpack buf 20
-  store (msg ~> ui_setp) =<< unpack buf 24
-  store (msg ~> ui_rate_setp) =<< unpack buf 28
-  store (msg ~> pos_p) =<< unpack buf 32
-  store (msg ~> pos_i) =<< unpack buf 36
-  store (msg ~> pos_d) =<< unpack buf 40
-  store (msg ~> pos_setp) =<< unpack buf 44
-  store (msg ~> pos_rate_setp) =<< unpack buf 48
+altCtlDebugUnpack = proc "mavlink_alt_ctl_debug_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
 
+altCtlDebugPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
+                              , Uint32
+                              , ConstRef s2 (Struct "alt_ctl_debug_msg")
+                              ] :-> () )
+altCtlDebugPackRef = proc "mavlink_alt_ctl_debug_pack_ref" $ \ buf off msg -> body $ do
+  packRef buf (off + 0) (msg ~> alt_est)
+  packRef buf (off + 4) (msg ~> alt_rate_est)
+  packRef buf (off + 8) (msg ~> thrust_p)
+  packRef buf (off + 12) (msg ~> thrust_i)
+  packRef buf (off + 16) (msg ~> thrust_d)
+  packRef buf (off + 20) (msg ~> thrust_i_reset)
+  packRef buf (off + 24) (msg ~> ui_setp)
+  packRef buf (off + 28) (msg ~> ui_rate_setp)
+  packRef buf (off + 32) (msg ~> pos_p)
+  packRef buf (off + 36) (msg ~> pos_i)
+  packRef buf (off + 40) (msg ~> pos_d)
+  packRef buf (off + 44) (msg ~> pos_setp)
+  packRef buf (off + 48) (msg ~> pos_rate_setp)
+
+altCtlDebugUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
+                                , Uint32
+                                , Ref s2 (Struct "alt_ctl_debug_msg")
+                                ] :-> () )
+altCtlDebugUnpackRef = proc "mavlink_alt_ctl_debug_unpack_ref" $ \ buf off msg -> body $ do
+  unpackRef buf (off + 0) (msg ~> alt_est)
+  unpackRef buf (off + 4) (msg ~> alt_rate_est)
+  unpackRef buf (off + 8) (msg ~> thrust_p)
+  unpackRef buf (off + 12) (msg ~> thrust_i)
+  unpackRef buf (off + 16) (msg ~> thrust_d)
+  unpackRef buf (off + 20) (msg ~> thrust_i_reset)
+  unpackRef buf (off + 24) (msg ~> ui_setp)
+  unpackRef buf (off + 28) (msg ~> ui_rate_setp)
+  unpackRef buf (off + 32) (msg ~> pos_p)
+  unpackRef buf (off + 36) (msg ~> pos_i)
+  unpackRef buf (off + 40) (msg ~> pos_d)
+  unpackRef buf (off + 44) (msg ~> pos_setp)
+  unpackRef buf (off + 48) (msg ~> pos_rate_setp)
+
+instance SerializableRef (Struct "alt_ctl_debug_msg") where
+  packRef = call_ altCtlDebugPackRef
+  unpackRef = call_ altCtlDebugUnpackRef

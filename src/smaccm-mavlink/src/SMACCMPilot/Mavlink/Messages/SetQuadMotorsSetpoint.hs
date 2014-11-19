@@ -10,12 +10,10 @@
 
 module SMACCMPilot.Mavlink.Messages.SetQuadMotorsSetpoint where
 
-import Ivory.Serialize
-import SMACCMPilot.Mavlink.Unpack
-import SMACCMPilot.Mavlink.Send
-
 import Ivory.Language
-import Ivory.Stdlib
+import Ivory.Serialize
+import SMACCMPilot.Mavlink.Send
+import SMACCMPilot.Mavlink.Unpack
 
 setQuadMotorsSetpointMsgId :: Uint8
 setQuadMotorsSetpointMsgId = 60
@@ -30,6 +28,8 @@ setQuadMotorsSetpointModule = package "mavlink_set_quad_motors_setpoint_msg" $ d
   incl mkSetQuadMotorsSetpointSender
   incl setQuadMotorsSetpointUnpack
   defStruct (Proxy :: Proxy "set_quad_motors_setpoint_msg")
+  incl setQuadMotorsSetpointPackRef
+  incl setQuadMotorsSetpointUnpackRef
 
 [ivory|
 struct set_quad_motors_setpoint_msg
@@ -46,31 +46,7 @@ mkSetQuadMotorsSetpointSender ::
         , Ref s1 (Stored Uint8) -- seqNum
         , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
-mkSetQuadMotorsSetpointSender =
-  proc "mavlink_set_quad_motors_setpoint_msg_send"
-  $ \msg seqNum sendStruct -> body
-  $ do
-  arr <- local (iarray [] :: Init (Array 9 (Stored Uint8)))
-  let buf = toCArray arr
-  pack buf 0 =<< deref (msg ~> motor_front_nw)
-  pack buf 2 =<< deref (msg ~> motor_right_ne)
-  pack buf 4 =<< deref (msg ~> motor_back_se)
-  pack buf 6 =<< deref (msg ~> motor_left_sw)
-  pack buf 8 =<< deref (msg ~> target_system)
-  -- 6: header len, 2: CRC len
-  let usedLen    = 6 + 9 + 2 :: Integer
-  let sendArr    = sendStruct ~> mav_array
-  let sendArrLen = arrayLen sendArr
-  if sendArrLen < usedLen
-    then error "setQuadMotorsSetpoint payload of length 9 is too large!"
-    else do -- Copy, leaving room for the payload
-            arrayCopy sendArr arr 6 (arrayLen arr)
-            call_ mavlinkSendWithWriter
-                    setQuadMotorsSetpointMsgId
-                    setQuadMotorsSetpointCrcExtra
-                    9
-                    seqNum
-                    sendStruct
+mkSetQuadMotorsSetpointSender = makeMavlinkSender "set_quad_motors_setpoint_msg" setQuadMotorsSetpointMsgId setQuadMotorsSetpointCrcExtra
 
 instance MavlinkUnpackableMsg "set_quad_motors_setpoint_msg" where
     unpackMsg = ( setQuadMotorsSetpointUnpack , setQuadMotorsSetpointMsgId )
@@ -78,10 +54,30 @@ instance MavlinkUnpackableMsg "set_quad_motors_setpoint_msg" where
 setQuadMotorsSetpointUnpack :: Def ('[ Ref s1 (Struct "set_quad_motors_setpoint_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-setQuadMotorsSetpointUnpack = proc "mavlink_set_quad_motors_setpoint_unpack" $ \ msg buf -> body $ do
-  store (msg ~> motor_front_nw) =<< unpack buf 0
-  store (msg ~> motor_right_ne) =<< unpack buf 2
-  store (msg ~> motor_back_se) =<< unpack buf 4
-  store (msg ~> motor_left_sw) =<< unpack buf 6
-  store (msg ~> target_system) =<< unpack buf 8
+setQuadMotorsSetpointUnpack = proc "mavlink_set_quad_motors_setpoint_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
 
+setQuadMotorsSetpointPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
+                              , Uint32
+                              , ConstRef s2 (Struct "set_quad_motors_setpoint_msg")
+                              ] :-> () )
+setQuadMotorsSetpointPackRef = proc "mavlink_set_quad_motors_setpoint_pack_ref" $ \ buf off msg -> body $ do
+  packRef buf (off + 0) (msg ~> motor_front_nw)
+  packRef buf (off + 2) (msg ~> motor_right_ne)
+  packRef buf (off + 4) (msg ~> motor_back_se)
+  packRef buf (off + 6) (msg ~> motor_left_sw)
+  packRef buf (off + 8) (msg ~> target_system)
+
+setQuadMotorsSetpointUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
+                                , Uint32
+                                , Ref s2 (Struct "set_quad_motors_setpoint_msg")
+                                ] :-> () )
+setQuadMotorsSetpointUnpackRef = proc "mavlink_set_quad_motors_setpoint_unpack_ref" $ \ buf off msg -> body $ do
+  unpackRef buf (off + 0) (msg ~> motor_front_nw)
+  unpackRef buf (off + 2) (msg ~> motor_right_ne)
+  unpackRef buf (off + 4) (msg ~> motor_back_se)
+  unpackRef buf (off + 6) (msg ~> motor_left_sw)
+  unpackRef buf (off + 8) (msg ~> target_system)
+
+instance SerializableRef (Struct "set_quad_motors_setpoint_msg") where
+  packRef = call_ setQuadMotorsSetpointPackRef
+  unpackRef = call_ setQuadMotorsSetpointUnpackRef

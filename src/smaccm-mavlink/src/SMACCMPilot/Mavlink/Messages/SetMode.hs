@@ -10,12 +10,10 @@
 
 module SMACCMPilot.Mavlink.Messages.SetMode where
 
-import Ivory.Serialize
-import SMACCMPilot.Mavlink.Unpack
-import SMACCMPilot.Mavlink.Send
-
 import Ivory.Language
-import Ivory.Stdlib
+import Ivory.Serialize
+import SMACCMPilot.Mavlink.Send
+import SMACCMPilot.Mavlink.Unpack
 
 setModeMsgId :: Uint8
 setModeMsgId = 11
@@ -30,6 +28,8 @@ setModeModule = package "mavlink_set_mode_msg" $ do
   incl mkSetModeSender
   incl setModeUnpack
   defStruct (Proxy :: Proxy "set_mode_msg")
+  incl setModePackRef
+  incl setModeUnpackRef
 
 [ivory|
 struct set_mode_msg
@@ -44,29 +44,7 @@ mkSetModeSender ::
         , Ref s1 (Stored Uint8) -- seqNum
         , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
-mkSetModeSender =
-  proc "mavlink_set_mode_msg_send"
-  $ \msg seqNum sendStruct -> body
-  $ do
-  arr <- local (iarray [] :: Init (Array 6 (Stored Uint8)))
-  let buf = toCArray arr
-  pack buf 0 =<< deref (msg ~> custom_mode)
-  pack buf 4 =<< deref (msg ~> target_system)
-  pack buf 5 =<< deref (msg ~> base_mode)
-  -- 6: header len, 2: CRC len
-  let usedLen    = 6 + 6 + 2 :: Integer
-  let sendArr    = sendStruct ~> mav_array
-  let sendArrLen = arrayLen sendArr
-  if sendArrLen < usedLen
-    then error "setMode payload of length 6 is too large!"
-    else do -- Copy, leaving room for the payload
-            arrayCopy sendArr arr 6 (arrayLen arr)
-            call_ mavlinkSendWithWriter
-                    setModeMsgId
-                    setModeCrcExtra
-                    6
-                    seqNum
-                    sendStruct
+mkSetModeSender = makeMavlinkSender "set_mode_msg" setModeMsgId setModeCrcExtra
 
 instance MavlinkUnpackableMsg "set_mode_msg" where
     unpackMsg = ( setModeUnpack , setModeMsgId )
@@ -74,8 +52,26 @@ instance MavlinkUnpackableMsg "set_mode_msg" where
 setModeUnpack :: Def ('[ Ref s1 (Struct "set_mode_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-setModeUnpack = proc "mavlink_set_mode_unpack" $ \ msg buf -> body $ do
-  store (msg ~> custom_mode) =<< unpack buf 0
-  store (msg ~> target_system) =<< unpack buf 4
-  store (msg ~> base_mode) =<< unpack buf 5
+setModeUnpack = proc "mavlink_set_mode_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
 
+setModePackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
+                              , Uint32
+                              , ConstRef s2 (Struct "set_mode_msg")
+                              ] :-> () )
+setModePackRef = proc "mavlink_set_mode_pack_ref" $ \ buf off msg -> body $ do
+  packRef buf (off + 0) (msg ~> custom_mode)
+  packRef buf (off + 4) (msg ~> target_system)
+  packRef buf (off + 5) (msg ~> base_mode)
+
+setModeUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
+                                , Uint32
+                                , Ref s2 (Struct "set_mode_msg")
+                                ] :-> () )
+setModeUnpackRef = proc "mavlink_set_mode_unpack_ref" $ \ buf off msg -> body $ do
+  unpackRef buf (off + 0) (msg ~> custom_mode)
+  unpackRef buf (off + 4) (msg ~> target_system)
+  unpackRef buf (off + 5) (msg ~> base_mode)
+
+instance SerializableRef (Struct "set_mode_msg") where
+  packRef = call_ setModePackRef
+  unpackRef = call_ setModeUnpackRef

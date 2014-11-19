@@ -10,12 +10,10 @@
 
 module SMACCMPilot.Mavlink.Messages.SetRollPitchYawThrust where
 
-import Ivory.Serialize
-import SMACCMPilot.Mavlink.Unpack
-import SMACCMPilot.Mavlink.Send
-
 import Ivory.Language
-import Ivory.Stdlib
+import Ivory.Serialize
+import SMACCMPilot.Mavlink.Send
+import SMACCMPilot.Mavlink.Unpack
 
 setRollPitchYawThrustMsgId :: Uint8
 setRollPitchYawThrustMsgId = 56
@@ -30,6 +28,8 @@ setRollPitchYawThrustModule = package "mavlink_set_roll_pitch_yaw_thrust_msg" $ 
   incl mkSetRollPitchYawThrustSender
   incl setRollPitchYawThrustUnpack
   defStruct (Proxy :: Proxy "set_roll_pitch_yaw_thrust_msg")
+  incl setRollPitchYawThrustPackRef
+  incl setRollPitchYawThrustUnpackRef
 
 [ivory|
 struct set_roll_pitch_yaw_thrust_msg
@@ -47,32 +47,7 @@ mkSetRollPitchYawThrustSender ::
         , Ref s1 (Stored Uint8) -- seqNum
         , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
-mkSetRollPitchYawThrustSender =
-  proc "mavlink_set_roll_pitch_yaw_thrust_msg_send"
-  $ \msg seqNum sendStruct -> body
-  $ do
-  arr <- local (iarray [] :: Init (Array 18 (Stored Uint8)))
-  let buf = toCArray arr
-  pack buf 0 =<< deref (msg ~> roll)
-  pack buf 4 =<< deref (msg ~> pitch)
-  pack buf 8 =<< deref (msg ~> yaw)
-  pack buf 12 =<< deref (msg ~> thrust)
-  pack buf 16 =<< deref (msg ~> target_system)
-  pack buf 17 =<< deref (msg ~> target_component)
-  -- 6: header len, 2: CRC len
-  let usedLen    = 6 + 18 + 2 :: Integer
-  let sendArr    = sendStruct ~> mav_array
-  let sendArrLen = arrayLen sendArr
-  if sendArrLen < usedLen
-    then error "setRollPitchYawThrust payload of length 18 is too large!"
-    else do -- Copy, leaving room for the payload
-            arrayCopy sendArr arr 6 (arrayLen arr)
-            call_ mavlinkSendWithWriter
-                    setRollPitchYawThrustMsgId
-                    setRollPitchYawThrustCrcExtra
-                    18
-                    seqNum
-                    sendStruct
+mkSetRollPitchYawThrustSender = makeMavlinkSender "set_roll_pitch_yaw_thrust_msg" setRollPitchYawThrustMsgId setRollPitchYawThrustCrcExtra
 
 instance MavlinkUnpackableMsg "set_roll_pitch_yaw_thrust_msg" where
     unpackMsg = ( setRollPitchYawThrustUnpack , setRollPitchYawThrustMsgId )
@@ -80,11 +55,32 @@ instance MavlinkUnpackableMsg "set_roll_pitch_yaw_thrust_msg" where
 setRollPitchYawThrustUnpack :: Def ('[ Ref s1 (Struct "set_roll_pitch_yaw_thrust_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-setRollPitchYawThrustUnpack = proc "mavlink_set_roll_pitch_yaw_thrust_unpack" $ \ msg buf -> body $ do
-  store (msg ~> roll) =<< unpack buf 0
-  store (msg ~> pitch) =<< unpack buf 4
-  store (msg ~> yaw) =<< unpack buf 8
-  store (msg ~> thrust) =<< unpack buf 12
-  store (msg ~> target_system) =<< unpack buf 16
-  store (msg ~> target_component) =<< unpack buf 17
+setRollPitchYawThrustUnpack = proc "mavlink_set_roll_pitch_yaw_thrust_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
 
+setRollPitchYawThrustPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
+                              , Uint32
+                              , ConstRef s2 (Struct "set_roll_pitch_yaw_thrust_msg")
+                              ] :-> () )
+setRollPitchYawThrustPackRef = proc "mavlink_set_roll_pitch_yaw_thrust_pack_ref" $ \ buf off msg -> body $ do
+  packRef buf (off + 0) (msg ~> roll)
+  packRef buf (off + 4) (msg ~> pitch)
+  packRef buf (off + 8) (msg ~> yaw)
+  packRef buf (off + 12) (msg ~> thrust)
+  packRef buf (off + 16) (msg ~> target_system)
+  packRef buf (off + 17) (msg ~> target_component)
+
+setRollPitchYawThrustUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
+                                , Uint32
+                                , Ref s2 (Struct "set_roll_pitch_yaw_thrust_msg")
+                                ] :-> () )
+setRollPitchYawThrustUnpackRef = proc "mavlink_set_roll_pitch_yaw_thrust_unpack_ref" $ \ buf off msg -> body $ do
+  unpackRef buf (off + 0) (msg ~> roll)
+  unpackRef buf (off + 4) (msg ~> pitch)
+  unpackRef buf (off + 8) (msg ~> yaw)
+  unpackRef buf (off + 12) (msg ~> thrust)
+  unpackRef buf (off + 16) (msg ~> target_system)
+  unpackRef buf (off + 17) (msg ~> target_component)
+
+instance SerializableRef (Struct "set_roll_pitch_yaw_thrust_msg") where
+  packRef = call_ setRollPitchYawThrustPackRef
+  unpackRef = call_ setRollPitchYawThrustUnpackRef

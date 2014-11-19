@@ -10,12 +10,10 @@
 
 module SMACCMPilot.Mavlink.Messages.GcsRadio where
 
-import Ivory.Serialize
-import SMACCMPilot.Mavlink.Unpack
-import SMACCMPilot.Mavlink.Send
-
 import Ivory.Language
-import Ivory.Stdlib
+import Ivory.Serialize
+import SMACCMPilot.Mavlink.Send
+import SMACCMPilot.Mavlink.Unpack
 
 gcsRadioMsgId :: Uint8
 gcsRadioMsgId = 175
@@ -30,6 +28,8 @@ gcsRadioModule = package "mavlink_gcs_radio_msg" $ do
   incl mkGcsRadioSender
   incl gcsRadioUnpack
   defStruct (Proxy :: Proxy "gcs_radio_msg")
+  incl gcsRadioPackRef
+  incl gcsRadioUnpackRef
 
 [ivory|
 struct gcs_radio_msg
@@ -48,33 +48,7 @@ mkGcsRadioSender ::
         , Ref s1 (Stored Uint8) -- seqNum
         , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
-mkGcsRadioSender =
-  proc "mavlink_gcs_radio_msg_send"
-  $ \msg seqNum sendStruct -> body
-  $ do
-  arr <- local (iarray [] :: Init (Array 9 (Stored Uint8)))
-  let buf = toCArray arr
-  pack buf 0 =<< deref (msg ~> rxerrors)
-  pack buf 2 =<< deref (msg ~> fixed)
-  pack buf 4 =<< deref (msg ~> rssi)
-  pack buf 5 =<< deref (msg ~> remrssi)
-  pack buf 6 =<< deref (msg ~> txbuf)
-  pack buf 7 =<< deref (msg ~> noise)
-  pack buf 8 =<< deref (msg ~> remnoise)
-  -- 6: header len, 2: CRC len
-  let usedLen    = 6 + 9 + 2 :: Integer
-  let sendArr    = sendStruct ~> mav_array
-  let sendArrLen = arrayLen sendArr
-  if sendArrLen < usedLen
-    then error "gcsRadio payload of length 9 is too large!"
-    else do -- Copy, leaving room for the payload
-            arrayCopy sendArr arr 6 (arrayLen arr)
-            call_ mavlinkSendWithWriter
-                    gcsRadioMsgId
-                    gcsRadioCrcExtra
-                    9
-                    seqNum
-                    sendStruct
+mkGcsRadioSender = makeMavlinkSender "gcs_radio_msg" gcsRadioMsgId gcsRadioCrcExtra
 
 instance MavlinkUnpackableMsg "gcs_radio_msg" where
     unpackMsg = ( gcsRadioUnpack , gcsRadioMsgId )
@@ -82,12 +56,34 @@ instance MavlinkUnpackableMsg "gcs_radio_msg" where
 gcsRadioUnpack :: Def ('[ Ref s1 (Struct "gcs_radio_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-gcsRadioUnpack = proc "mavlink_gcs_radio_unpack" $ \ msg buf -> body $ do
-  store (msg ~> rxerrors) =<< unpack buf 0
-  store (msg ~> fixed) =<< unpack buf 2
-  store (msg ~> rssi) =<< unpack buf 4
-  store (msg ~> remrssi) =<< unpack buf 5
-  store (msg ~> txbuf) =<< unpack buf 6
-  store (msg ~> noise) =<< unpack buf 7
-  store (msg ~> remnoise) =<< unpack buf 8
+gcsRadioUnpack = proc "mavlink_gcs_radio_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
 
+gcsRadioPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
+                              , Uint32
+                              , ConstRef s2 (Struct "gcs_radio_msg")
+                              ] :-> () )
+gcsRadioPackRef = proc "mavlink_gcs_radio_pack_ref" $ \ buf off msg -> body $ do
+  packRef buf (off + 0) (msg ~> rxerrors)
+  packRef buf (off + 2) (msg ~> fixed)
+  packRef buf (off + 4) (msg ~> rssi)
+  packRef buf (off + 5) (msg ~> remrssi)
+  packRef buf (off + 6) (msg ~> txbuf)
+  packRef buf (off + 7) (msg ~> noise)
+  packRef buf (off + 8) (msg ~> remnoise)
+
+gcsRadioUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
+                                , Uint32
+                                , Ref s2 (Struct "gcs_radio_msg")
+                                ] :-> () )
+gcsRadioUnpackRef = proc "mavlink_gcs_radio_unpack_ref" $ \ buf off msg -> body $ do
+  unpackRef buf (off + 0) (msg ~> rxerrors)
+  unpackRef buf (off + 2) (msg ~> fixed)
+  unpackRef buf (off + 4) (msg ~> rssi)
+  unpackRef buf (off + 5) (msg ~> remrssi)
+  unpackRef buf (off + 6) (msg ~> txbuf)
+  unpackRef buf (off + 7) (msg ~> noise)
+  unpackRef buf (off + 8) (msg ~> remnoise)
+
+instance SerializableRef (Struct "gcs_radio_msg") where
+  packRef = call_ gcsRadioPackRef
+  unpackRef = call_ gcsRadioUnpackRef

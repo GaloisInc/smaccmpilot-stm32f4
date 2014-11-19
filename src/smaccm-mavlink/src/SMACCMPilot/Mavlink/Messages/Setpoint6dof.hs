@@ -10,12 +10,10 @@
 
 module SMACCMPilot.Mavlink.Messages.Setpoint6dof where
 
-import Ivory.Serialize
-import SMACCMPilot.Mavlink.Unpack
-import SMACCMPilot.Mavlink.Send
-
 import Ivory.Language
-import Ivory.Stdlib
+import Ivory.Serialize
+import SMACCMPilot.Mavlink.Send
+import SMACCMPilot.Mavlink.Unpack
 
 setpoint6dofMsgId :: Uint8
 setpoint6dofMsgId = 149
@@ -30,6 +28,8 @@ setpoint6dofModule = package "mavlink_setpoint_6dof_msg" $ do
   incl mkSetpoint6dofSender
   incl setpoint6dofUnpack
   defStruct (Proxy :: Proxy "setpoint_6dof_msg")
+  incl setpoint6dofPackRef
+  incl setpoint6dofUnpackRef
 
 [ivory|
 struct setpoint_6dof_msg
@@ -48,33 +48,7 @@ mkSetpoint6dofSender ::
         , Ref s1 (Stored Uint8) -- seqNum
         , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
-mkSetpoint6dofSender =
-  proc "mavlink_setpoint_6dof_msg_send"
-  $ \msg seqNum sendStruct -> body
-  $ do
-  arr <- local (iarray [] :: Init (Array 25 (Stored Uint8)))
-  let buf = toCArray arr
-  pack buf 0 =<< deref (msg ~> trans_x)
-  pack buf 4 =<< deref (msg ~> trans_y)
-  pack buf 8 =<< deref (msg ~> trans_z)
-  pack buf 12 =<< deref (msg ~> rot_x)
-  pack buf 16 =<< deref (msg ~> rot_y)
-  pack buf 20 =<< deref (msg ~> rot_z)
-  pack buf 24 =<< deref (msg ~> target_system)
-  -- 6: header len, 2: CRC len
-  let usedLen    = 6 + 25 + 2 :: Integer
-  let sendArr    = sendStruct ~> mav_array
-  let sendArrLen = arrayLen sendArr
-  if sendArrLen < usedLen
-    then error "setpoint6dof payload of length 25 is too large!"
-    else do -- Copy, leaving room for the payload
-            arrayCopy sendArr arr 6 (arrayLen arr)
-            call_ mavlinkSendWithWriter
-                    setpoint6dofMsgId
-                    setpoint6dofCrcExtra
-                    25
-                    seqNum
-                    sendStruct
+mkSetpoint6dofSender = makeMavlinkSender "setpoint_6dof_msg" setpoint6dofMsgId setpoint6dofCrcExtra
 
 instance MavlinkUnpackableMsg "setpoint_6dof_msg" where
     unpackMsg = ( setpoint6dofUnpack , setpoint6dofMsgId )
@@ -82,12 +56,34 @@ instance MavlinkUnpackableMsg "setpoint_6dof_msg" where
 setpoint6dofUnpack :: Def ('[ Ref s1 (Struct "setpoint_6dof_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-setpoint6dofUnpack = proc "mavlink_setpoint_6dof_unpack" $ \ msg buf -> body $ do
-  store (msg ~> trans_x) =<< unpack buf 0
-  store (msg ~> trans_y) =<< unpack buf 4
-  store (msg ~> trans_z) =<< unpack buf 8
-  store (msg ~> rot_x) =<< unpack buf 12
-  store (msg ~> rot_y) =<< unpack buf 16
-  store (msg ~> rot_z) =<< unpack buf 20
-  store (msg ~> target_system) =<< unpack buf 24
+setpoint6dofUnpack = proc "mavlink_setpoint_6dof_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
 
+setpoint6dofPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
+                              , Uint32
+                              , ConstRef s2 (Struct "setpoint_6dof_msg")
+                              ] :-> () )
+setpoint6dofPackRef = proc "mavlink_setpoint_6dof_pack_ref" $ \ buf off msg -> body $ do
+  packRef buf (off + 0) (msg ~> trans_x)
+  packRef buf (off + 4) (msg ~> trans_y)
+  packRef buf (off + 8) (msg ~> trans_z)
+  packRef buf (off + 12) (msg ~> rot_x)
+  packRef buf (off + 16) (msg ~> rot_y)
+  packRef buf (off + 20) (msg ~> rot_z)
+  packRef buf (off + 24) (msg ~> target_system)
+
+setpoint6dofUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
+                                , Uint32
+                                , Ref s2 (Struct "setpoint_6dof_msg")
+                                ] :-> () )
+setpoint6dofUnpackRef = proc "mavlink_setpoint_6dof_unpack_ref" $ \ buf off msg -> body $ do
+  unpackRef buf (off + 0) (msg ~> trans_x)
+  unpackRef buf (off + 4) (msg ~> trans_y)
+  unpackRef buf (off + 8) (msg ~> trans_z)
+  unpackRef buf (off + 12) (msg ~> rot_x)
+  unpackRef buf (off + 16) (msg ~> rot_y)
+  unpackRef buf (off + 20) (msg ~> rot_z)
+  unpackRef buf (off + 24) (msg ~> target_system)
+
+instance SerializableRef (Struct "setpoint_6dof_msg") where
+  packRef = call_ setpoint6dofPackRef
+  unpackRef = call_ setpoint6dofUnpackRef

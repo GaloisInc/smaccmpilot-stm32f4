@@ -10,12 +10,10 @@
 
 module SMACCMPilot.Mavlink.Messages.StateCorrection where
 
-import Ivory.Serialize
-import SMACCMPilot.Mavlink.Unpack
-import SMACCMPilot.Mavlink.Send
-
 import Ivory.Language
-import Ivory.Stdlib
+import Ivory.Serialize
+import SMACCMPilot.Mavlink.Send
+import SMACCMPilot.Mavlink.Unpack
 
 stateCorrectionMsgId :: Uint8
 stateCorrectionMsgId = 64
@@ -30,6 +28,8 @@ stateCorrectionModule = package "mavlink_state_correction_msg" $ do
   incl mkStateCorrectionSender
   incl stateCorrectionUnpack
   defStruct (Proxy :: Proxy "state_correction_msg")
+  incl stateCorrectionPackRef
+  incl stateCorrectionUnpackRef
 
 [ivory|
 struct state_correction_msg
@@ -50,35 +50,7 @@ mkStateCorrectionSender ::
         , Ref s1 (Stored Uint8) -- seqNum
         , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
-mkStateCorrectionSender =
-  proc "mavlink_state_correction_msg_send"
-  $ \msg seqNum sendStruct -> body
-  $ do
-  arr <- local (iarray [] :: Init (Array 36 (Stored Uint8)))
-  let buf = toCArray arr
-  pack buf 0 =<< deref (msg ~> xErr)
-  pack buf 4 =<< deref (msg ~> yErr)
-  pack buf 8 =<< deref (msg ~> zErr)
-  pack buf 12 =<< deref (msg ~> rollErr)
-  pack buf 16 =<< deref (msg ~> pitchErr)
-  pack buf 20 =<< deref (msg ~> yawErr)
-  pack buf 24 =<< deref (msg ~> vxErr)
-  pack buf 28 =<< deref (msg ~> vyErr)
-  pack buf 32 =<< deref (msg ~> vzErr)
-  -- 6: header len, 2: CRC len
-  let usedLen    = 6 + 36 + 2 :: Integer
-  let sendArr    = sendStruct ~> mav_array
-  let sendArrLen = arrayLen sendArr
-  if sendArrLen < usedLen
-    then error "stateCorrection payload of length 36 is too large!"
-    else do -- Copy, leaving room for the payload
-            arrayCopy sendArr arr 6 (arrayLen arr)
-            call_ mavlinkSendWithWriter
-                    stateCorrectionMsgId
-                    stateCorrectionCrcExtra
-                    36
-                    seqNum
-                    sendStruct
+mkStateCorrectionSender = makeMavlinkSender "state_correction_msg" stateCorrectionMsgId stateCorrectionCrcExtra
 
 instance MavlinkUnpackableMsg "state_correction_msg" where
     unpackMsg = ( stateCorrectionUnpack , stateCorrectionMsgId )
@@ -86,14 +58,38 @@ instance MavlinkUnpackableMsg "state_correction_msg" where
 stateCorrectionUnpack :: Def ('[ Ref s1 (Struct "state_correction_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-stateCorrectionUnpack = proc "mavlink_state_correction_unpack" $ \ msg buf -> body $ do
-  store (msg ~> xErr) =<< unpack buf 0
-  store (msg ~> yErr) =<< unpack buf 4
-  store (msg ~> zErr) =<< unpack buf 8
-  store (msg ~> rollErr) =<< unpack buf 12
-  store (msg ~> pitchErr) =<< unpack buf 16
-  store (msg ~> yawErr) =<< unpack buf 20
-  store (msg ~> vxErr) =<< unpack buf 24
-  store (msg ~> vyErr) =<< unpack buf 28
-  store (msg ~> vzErr) =<< unpack buf 32
+stateCorrectionUnpack = proc "mavlink_state_correction_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
 
+stateCorrectionPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
+                              , Uint32
+                              , ConstRef s2 (Struct "state_correction_msg")
+                              ] :-> () )
+stateCorrectionPackRef = proc "mavlink_state_correction_pack_ref" $ \ buf off msg -> body $ do
+  packRef buf (off + 0) (msg ~> xErr)
+  packRef buf (off + 4) (msg ~> yErr)
+  packRef buf (off + 8) (msg ~> zErr)
+  packRef buf (off + 12) (msg ~> rollErr)
+  packRef buf (off + 16) (msg ~> pitchErr)
+  packRef buf (off + 20) (msg ~> yawErr)
+  packRef buf (off + 24) (msg ~> vxErr)
+  packRef buf (off + 28) (msg ~> vyErr)
+  packRef buf (off + 32) (msg ~> vzErr)
+
+stateCorrectionUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
+                                , Uint32
+                                , Ref s2 (Struct "state_correction_msg")
+                                ] :-> () )
+stateCorrectionUnpackRef = proc "mavlink_state_correction_unpack_ref" $ \ buf off msg -> body $ do
+  unpackRef buf (off + 0) (msg ~> xErr)
+  unpackRef buf (off + 4) (msg ~> yErr)
+  unpackRef buf (off + 8) (msg ~> zErr)
+  unpackRef buf (off + 12) (msg ~> rollErr)
+  unpackRef buf (off + 16) (msg ~> pitchErr)
+  unpackRef buf (off + 20) (msg ~> yawErr)
+  unpackRef buf (off + 24) (msg ~> vxErr)
+  unpackRef buf (off + 28) (msg ~> vyErr)
+  unpackRef buf (off + 32) (msg ~> vzErr)
+
+instance SerializableRef (Struct "state_correction_msg") where
+  packRef = call_ stateCorrectionPackRef
+  unpackRef = call_ stateCorrectionUnpackRef

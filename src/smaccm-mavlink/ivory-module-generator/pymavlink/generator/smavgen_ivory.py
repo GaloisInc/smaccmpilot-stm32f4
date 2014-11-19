@@ -112,22 +112,16 @@ def generate_message_ivory(directory, m):
     array_defs = [ ivory_name(s,m) + " :: Array %d (Stored %s)" %
                     (s.array_length, ivory_type[s.type])
                     for s in m.array_fields ]
-    scalar_pack_calls = [ "pack buf %d =<< deref (msg ~> %s)" %
-                    (s.wire_offset, ivory_name(s,m))
-                    for s in m.scalar_fields]
-    array_pack_calls = [ "arrayPack buf %d (msg ~> %s)" %
-                    (s.wire_offset, ivory_name(s,m))
-                    for s in m.array_fields]
-    scalar_unpack_calls = [ "store (msg ~> %s) =<< unpack buf %d" %
-                            (ivory_name(s, m), s.wire_offset)
-                            for s in m.scalar_fields]
-    array_unpack_calls = [ "arrayUnpack buf %d (msg ~> %s)" %
-                           (s.wire_offset, ivory_name(s, m))
-                           for s in m.array_fields]
+    pack_calls = [ "packRef buf (off + %d) (msg ~> %s)" %
+                   (s.wire_offset, ivory_name(s,m))
+                   for s in m.scalar_fields + m.array_fields]
+    unpack_calls = [ "unpackRef buf (off + %d) (msg ~> %s)" %
+                     (s.wire_offset, ivory_name(s, m))
+                     for s in m.scalar_fields + m.array_fields]
     mdict = m.__dict__
     mdict.update({'struct_fields': ("\n  ; ").join(scalar_defs + array_defs)
-                 ,'packing': ("\n  ").join(scalar_pack_calls + array_pack_calls)
-                 ,'unpacking': "\n  ".join(scalar_unpack_calls + array_unpack_calls)})
+                 ,'packing': ("\n  ").join(pack_calls)
+                 ,'unpacking': "\n  ".join(unpack_calls)})
     f = open(os.path.join(directory, 'Messages/%s.hs' % m.name_module), mode='w')
     t.write(f, '''
 {-# LANGUAGE DataKinds #-}
@@ -142,12 +136,10 @@ def generate_message_ivory(directory, m):
 
 module SMACCMPilot.Mavlink.Messages.${name_module} where
 
-import Ivory.Serialize
-import SMACCMPilot.Mavlink.Unpack
-import SMACCMPilot.Mavlink.Send
-
 import Ivory.Language
-import Ivory.Stdlib
+import Ivory.Serialize
+import SMACCMPilot.Mavlink.Send
+import SMACCMPilot.Mavlink.Unpack
 
 ${name_camel}MsgId :: Uint8
 ${name_camel}MsgId = ${id}
@@ -162,6 +154,8 @@ ${name_camel}Module = package "mavlink_${name_lower}_msg" $ do
   incl mk${name_module}Sender
   incl ${name_camel}Unpack
   defStruct (Proxy :: Proxy "${name_lower}_msg")
+  incl ${name_camel}PackRef
+  incl ${name_camel}UnpackRef
 
 [ivory|
 struct ${name_lower}_msg
@@ -174,27 +168,7 @@ mk${name_module}Sender ::
         , Ref s1 (Stored Uint8) -- seqNum
         , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
-mk${name_module}Sender =
-  proc "mavlink_${name_lower}_msg_send"
-  $ \msg seqNum sendStruct -> body
-  $ do
-  arr <- local (iarray [] :: Init (Array ${wire_length} (Stored Uint8)))
-  let buf = toCArray arr
-  ${packing}
-  -- 6: header len, 2: CRC len
-  let usedLen    = 6 + ${wire_length} + 2 :: Integer
-  let sendArr    = sendStruct ~> mav_array
-  let sendArrLen = arrayLen sendArr
-  if sendArrLen < usedLen
-    then error "${name_camel} payload of length ${wire_length} is too large!"
-    else do -- Copy, leaving room for the payload
-            arrayCopy sendArr arr 6 (arrayLen arr)
-            call_ mavlinkSendWithWriter
-                    ${name_camel}MsgId
-                    ${name_camel}CrcExtra
-                    ${wire_length}
-                    seqNum
-                    sendStruct
+mk${name_module}Sender = makeMavlinkSender "${name_lower}_msg" ${name_camel}MsgId ${name_camel}CrcExtra
 
 instance MavlinkUnpackableMsg "${name_lower}_msg" where
     unpackMsg = ( ${name_camel}Unpack , ${name_camel}MsgId )
@@ -202,9 +176,25 @@ instance MavlinkUnpackableMsg "${name_lower}_msg" where
 ${name_camel}Unpack :: Def ('[ Ref s1 (Struct "${name_lower}_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-${name_camel}Unpack = proc "mavlink_${name_lower}_unpack" $ \ msg buf -> body $ do
+${name_camel}Unpack = proc "mavlink_${name_lower}_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
+
+${name_camel}PackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
+                              , Uint32
+                              , ConstRef s2 (Struct "${name_lower}_msg")
+                              ] :-> () )
+${name_camel}PackRef = proc "mavlink_${name_lower}_pack_ref" $ \ buf off msg -> body $ do
+  ${packing}
+
+${name_camel}UnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
+                                , Uint32
+                                , Ref s2 (Struct "${name_lower}_msg")
+                                ] :-> () )
+${name_camel}UnpackRef = proc "mavlink_${name_lower}_unpack_ref" $ \ buf off msg -> body $ do
   ${unpacking}
 
+instance SerializableRef (Struct "${name_lower}_msg") where
+  packRef = call_ ${name_camel}PackRef
+  unpackRef = call_ ${name_camel}UnpackRef
 ''', mdict)
     f.close()
 

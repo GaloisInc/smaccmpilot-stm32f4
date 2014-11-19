@@ -10,12 +10,10 @@
 
 module SMACCMPilot.Mavlink.Messages.VfrHud where
 
-import Ivory.Serialize
-import SMACCMPilot.Mavlink.Unpack
-import SMACCMPilot.Mavlink.Send
-
 import Ivory.Language
-import Ivory.Stdlib
+import Ivory.Serialize
+import SMACCMPilot.Mavlink.Send
+import SMACCMPilot.Mavlink.Unpack
 
 vfrHudMsgId :: Uint8
 vfrHudMsgId = 74
@@ -30,6 +28,8 @@ vfrHudModule = package "mavlink_vfr_hud_msg" $ do
   incl mkVfrHudSender
   incl vfrHudUnpack
   defStruct (Proxy :: Proxy "vfr_hud_msg")
+  incl vfrHudPackRef
+  incl vfrHudUnpackRef
 
 [ivory|
 struct vfr_hud_msg
@@ -47,32 +47,7 @@ mkVfrHudSender ::
         , Ref s1 (Stored Uint8) -- seqNum
         , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
-mkVfrHudSender =
-  proc "mavlink_vfr_hud_msg_send"
-  $ \msg seqNum sendStruct -> body
-  $ do
-  arr <- local (iarray [] :: Init (Array 20 (Stored Uint8)))
-  let buf = toCArray arr
-  pack buf 0 =<< deref (msg ~> airspeed)
-  pack buf 4 =<< deref (msg ~> groundspeed)
-  pack buf 8 =<< deref (msg ~> alt)
-  pack buf 12 =<< deref (msg ~> climb)
-  pack buf 16 =<< deref (msg ~> heading)
-  pack buf 18 =<< deref (msg ~> throttle)
-  -- 6: header len, 2: CRC len
-  let usedLen    = 6 + 20 + 2 :: Integer
-  let sendArr    = sendStruct ~> mav_array
-  let sendArrLen = arrayLen sendArr
-  if sendArrLen < usedLen
-    then error "vfrHud payload of length 20 is too large!"
-    else do -- Copy, leaving room for the payload
-            arrayCopy sendArr arr 6 (arrayLen arr)
-            call_ mavlinkSendWithWriter
-                    vfrHudMsgId
-                    vfrHudCrcExtra
-                    20
-                    seqNum
-                    sendStruct
+mkVfrHudSender = makeMavlinkSender "vfr_hud_msg" vfrHudMsgId vfrHudCrcExtra
 
 instance MavlinkUnpackableMsg "vfr_hud_msg" where
     unpackMsg = ( vfrHudUnpack , vfrHudMsgId )
@@ -80,11 +55,32 @@ instance MavlinkUnpackableMsg "vfr_hud_msg" where
 vfrHudUnpack :: Def ('[ Ref s1 (Struct "vfr_hud_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-vfrHudUnpack = proc "mavlink_vfr_hud_unpack" $ \ msg buf -> body $ do
-  store (msg ~> airspeed) =<< unpack buf 0
-  store (msg ~> groundspeed) =<< unpack buf 4
-  store (msg ~> alt) =<< unpack buf 8
-  store (msg ~> climb) =<< unpack buf 12
-  store (msg ~> heading) =<< unpack buf 16
-  store (msg ~> throttle) =<< unpack buf 18
+vfrHudUnpack = proc "mavlink_vfr_hud_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
 
+vfrHudPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
+                              , Uint32
+                              , ConstRef s2 (Struct "vfr_hud_msg")
+                              ] :-> () )
+vfrHudPackRef = proc "mavlink_vfr_hud_pack_ref" $ \ buf off msg -> body $ do
+  packRef buf (off + 0) (msg ~> airspeed)
+  packRef buf (off + 4) (msg ~> groundspeed)
+  packRef buf (off + 8) (msg ~> alt)
+  packRef buf (off + 12) (msg ~> climb)
+  packRef buf (off + 16) (msg ~> heading)
+  packRef buf (off + 18) (msg ~> throttle)
+
+vfrHudUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
+                                , Uint32
+                                , Ref s2 (Struct "vfr_hud_msg")
+                                ] :-> () )
+vfrHudUnpackRef = proc "mavlink_vfr_hud_unpack_ref" $ \ buf off msg -> body $ do
+  unpackRef buf (off + 0) (msg ~> airspeed)
+  unpackRef buf (off + 4) (msg ~> groundspeed)
+  unpackRef buf (off + 8) (msg ~> alt)
+  unpackRef buf (off + 12) (msg ~> climb)
+  unpackRef buf (off + 16) (msg ~> heading)
+  unpackRef buf (off + 18) (msg ~> throttle)
+
+instance SerializableRef (Struct "vfr_hud_msg") where
+  packRef = call_ vfrHudPackRef
+  unpackRef = call_ vfrHudUnpackRef

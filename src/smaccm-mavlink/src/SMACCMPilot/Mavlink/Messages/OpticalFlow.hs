@@ -10,12 +10,10 @@
 
 module SMACCMPilot.Mavlink.Messages.OpticalFlow where
 
-import Ivory.Serialize
-import SMACCMPilot.Mavlink.Unpack
-import SMACCMPilot.Mavlink.Send
-
 import Ivory.Language
-import Ivory.Stdlib
+import Ivory.Serialize
+import SMACCMPilot.Mavlink.Send
+import SMACCMPilot.Mavlink.Unpack
 
 opticalFlowMsgId :: Uint8
 opticalFlowMsgId = 100
@@ -30,6 +28,8 @@ opticalFlowModule = package "mavlink_optical_flow_msg" $ do
   incl mkOpticalFlowSender
   incl opticalFlowUnpack
   defStruct (Proxy :: Proxy "optical_flow_msg")
+  incl opticalFlowPackRef
+  incl opticalFlowUnpackRef
 
 [ivory|
 struct optical_flow_msg
@@ -49,34 +49,7 @@ mkOpticalFlowSender ::
         , Ref s1 (Stored Uint8) -- seqNum
         , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
-mkOpticalFlowSender =
-  proc "mavlink_optical_flow_msg_send"
-  $ \msg seqNum sendStruct -> body
-  $ do
-  arr <- local (iarray [] :: Init (Array 26 (Stored Uint8)))
-  let buf = toCArray arr
-  pack buf 0 =<< deref (msg ~> time_usec)
-  pack buf 8 =<< deref (msg ~> flow_comp_m_x)
-  pack buf 12 =<< deref (msg ~> flow_comp_m_y)
-  pack buf 16 =<< deref (msg ~> ground_distance)
-  pack buf 20 =<< deref (msg ~> flow_x)
-  pack buf 22 =<< deref (msg ~> flow_y)
-  pack buf 24 =<< deref (msg ~> sensor_id)
-  pack buf 25 =<< deref (msg ~> quality)
-  -- 6: header len, 2: CRC len
-  let usedLen    = 6 + 26 + 2 :: Integer
-  let sendArr    = sendStruct ~> mav_array
-  let sendArrLen = arrayLen sendArr
-  if sendArrLen < usedLen
-    then error "opticalFlow payload of length 26 is too large!"
-    else do -- Copy, leaving room for the payload
-            arrayCopy sendArr arr 6 (arrayLen arr)
-            call_ mavlinkSendWithWriter
-                    opticalFlowMsgId
-                    opticalFlowCrcExtra
-                    26
-                    seqNum
-                    sendStruct
+mkOpticalFlowSender = makeMavlinkSender "optical_flow_msg" opticalFlowMsgId opticalFlowCrcExtra
 
 instance MavlinkUnpackableMsg "optical_flow_msg" where
     unpackMsg = ( opticalFlowUnpack , opticalFlowMsgId )
@@ -84,13 +57,36 @@ instance MavlinkUnpackableMsg "optical_flow_msg" where
 opticalFlowUnpack :: Def ('[ Ref s1 (Struct "optical_flow_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-opticalFlowUnpack = proc "mavlink_optical_flow_unpack" $ \ msg buf -> body $ do
-  store (msg ~> time_usec) =<< unpack buf 0
-  store (msg ~> flow_comp_m_x) =<< unpack buf 8
-  store (msg ~> flow_comp_m_y) =<< unpack buf 12
-  store (msg ~> ground_distance) =<< unpack buf 16
-  store (msg ~> flow_x) =<< unpack buf 20
-  store (msg ~> flow_y) =<< unpack buf 22
-  store (msg ~> sensor_id) =<< unpack buf 24
-  store (msg ~> quality) =<< unpack buf 25
+opticalFlowUnpack = proc "mavlink_optical_flow_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
 
+opticalFlowPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
+                              , Uint32
+                              , ConstRef s2 (Struct "optical_flow_msg")
+                              ] :-> () )
+opticalFlowPackRef = proc "mavlink_optical_flow_pack_ref" $ \ buf off msg -> body $ do
+  packRef buf (off + 0) (msg ~> time_usec)
+  packRef buf (off + 8) (msg ~> flow_comp_m_x)
+  packRef buf (off + 12) (msg ~> flow_comp_m_y)
+  packRef buf (off + 16) (msg ~> ground_distance)
+  packRef buf (off + 20) (msg ~> flow_x)
+  packRef buf (off + 22) (msg ~> flow_y)
+  packRef buf (off + 24) (msg ~> sensor_id)
+  packRef buf (off + 25) (msg ~> quality)
+
+opticalFlowUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
+                                , Uint32
+                                , Ref s2 (Struct "optical_flow_msg")
+                                ] :-> () )
+opticalFlowUnpackRef = proc "mavlink_optical_flow_unpack_ref" $ \ buf off msg -> body $ do
+  unpackRef buf (off + 0) (msg ~> time_usec)
+  unpackRef buf (off + 8) (msg ~> flow_comp_m_x)
+  unpackRef buf (off + 12) (msg ~> flow_comp_m_y)
+  unpackRef buf (off + 16) (msg ~> ground_distance)
+  unpackRef buf (off + 20) (msg ~> flow_x)
+  unpackRef buf (off + 22) (msg ~> flow_y)
+  unpackRef buf (off + 24) (msg ~> sensor_id)
+  unpackRef buf (off + 25) (msg ~> quality)
+
+instance SerializableRef (Struct "optical_flow_msg") where
+  packRef = call_ opticalFlowPackRef
+  unpackRef = call_ opticalFlowUnpackRef

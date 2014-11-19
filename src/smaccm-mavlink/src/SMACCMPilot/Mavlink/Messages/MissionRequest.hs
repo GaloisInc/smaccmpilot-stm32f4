@@ -10,12 +10,10 @@
 
 module SMACCMPilot.Mavlink.Messages.MissionRequest where
 
-import Ivory.Serialize
-import SMACCMPilot.Mavlink.Unpack
-import SMACCMPilot.Mavlink.Send
-
 import Ivory.Language
-import Ivory.Stdlib
+import Ivory.Serialize
+import SMACCMPilot.Mavlink.Send
+import SMACCMPilot.Mavlink.Unpack
 
 missionRequestMsgId :: Uint8
 missionRequestMsgId = 40
@@ -30,6 +28,8 @@ missionRequestModule = package "mavlink_mission_request_msg" $ do
   incl mkMissionRequestSender
   incl missionRequestUnpack
   defStruct (Proxy :: Proxy "mission_request_msg")
+  incl missionRequestPackRef
+  incl missionRequestUnpackRef
 
 [ivory|
 struct mission_request_msg
@@ -44,29 +44,7 @@ mkMissionRequestSender ::
         , Ref s1 (Stored Uint8) -- seqNum
         , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
-mkMissionRequestSender =
-  proc "mavlink_mission_request_msg_send"
-  $ \msg seqNum sendStruct -> body
-  $ do
-  arr <- local (iarray [] :: Init (Array 4 (Stored Uint8)))
-  let buf = toCArray arr
-  pack buf 0 =<< deref (msg ~> mission_request_seq)
-  pack buf 2 =<< deref (msg ~> target_system)
-  pack buf 3 =<< deref (msg ~> target_component)
-  -- 6: header len, 2: CRC len
-  let usedLen    = 6 + 4 + 2 :: Integer
-  let sendArr    = sendStruct ~> mav_array
-  let sendArrLen = arrayLen sendArr
-  if sendArrLen < usedLen
-    then error "missionRequest payload of length 4 is too large!"
-    else do -- Copy, leaving room for the payload
-            arrayCopy sendArr arr 6 (arrayLen arr)
-            call_ mavlinkSendWithWriter
-                    missionRequestMsgId
-                    missionRequestCrcExtra
-                    4
-                    seqNum
-                    sendStruct
+mkMissionRequestSender = makeMavlinkSender "mission_request_msg" missionRequestMsgId missionRequestCrcExtra
 
 instance MavlinkUnpackableMsg "mission_request_msg" where
     unpackMsg = ( missionRequestUnpack , missionRequestMsgId )
@@ -74,8 +52,26 @@ instance MavlinkUnpackableMsg "mission_request_msg" where
 missionRequestUnpack :: Def ('[ Ref s1 (Struct "mission_request_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-missionRequestUnpack = proc "mavlink_mission_request_unpack" $ \ msg buf -> body $ do
-  store (msg ~> mission_request_seq) =<< unpack buf 0
-  store (msg ~> target_system) =<< unpack buf 2
-  store (msg ~> target_component) =<< unpack buf 3
+missionRequestUnpack = proc "mavlink_mission_request_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
 
+missionRequestPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
+                              , Uint32
+                              , ConstRef s2 (Struct "mission_request_msg")
+                              ] :-> () )
+missionRequestPackRef = proc "mavlink_mission_request_pack_ref" $ \ buf off msg -> body $ do
+  packRef buf (off + 0) (msg ~> mission_request_seq)
+  packRef buf (off + 2) (msg ~> target_system)
+  packRef buf (off + 3) (msg ~> target_component)
+
+missionRequestUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
+                                , Uint32
+                                , Ref s2 (Struct "mission_request_msg")
+                                ] :-> () )
+missionRequestUnpackRef = proc "mavlink_mission_request_unpack_ref" $ \ buf off msg -> body $ do
+  unpackRef buf (off + 0) (msg ~> mission_request_seq)
+  unpackRef buf (off + 2) (msg ~> target_system)
+  unpackRef buf (off + 3) (msg ~> target_component)
+
+instance SerializableRef (Struct "mission_request_msg") where
+  packRef = call_ missionRequestPackRef
+  unpackRef = call_ missionRequestUnpackRef

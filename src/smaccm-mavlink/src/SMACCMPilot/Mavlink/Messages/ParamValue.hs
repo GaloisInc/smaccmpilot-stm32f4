@@ -10,12 +10,10 @@
 
 module SMACCMPilot.Mavlink.Messages.ParamValue where
 
-import Ivory.Serialize
-import SMACCMPilot.Mavlink.Unpack
-import SMACCMPilot.Mavlink.Send
-
 import Ivory.Language
-import Ivory.Stdlib
+import Ivory.Serialize
+import SMACCMPilot.Mavlink.Send
+import SMACCMPilot.Mavlink.Unpack
 
 paramValueMsgId :: Uint8
 paramValueMsgId = 22
@@ -30,6 +28,8 @@ paramValueModule = package "mavlink_param_value_msg" $ do
   incl mkParamValueSender
   incl paramValueUnpack
   defStruct (Proxy :: Proxy "param_value_msg")
+  incl paramValuePackRef
+  incl paramValueUnpackRef
 
 [ivory|
 struct param_value_msg
@@ -46,31 +46,7 @@ mkParamValueSender ::
         , Ref s1 (Stored Uint8) -- seqNum
         , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
-mkParamValueSender =
-  proc "mavlink_param_value_msg_send"
-  $ \msg seqNum sendStruct -> body
-  $ do
-  arr <- local (iarray [] :: Init (Array 25 (Stored Uint8)))
-  let buf = toCArray arr
-  pack buf 0 =<< deref (msg ~> param_value)
-  pack buf 4 =<< deref (msg ~> param_count)
-  pack buf 6 =<< deref (msg ~> param_index)
-  pack buf 24 =<< deref (msg ~> param_type)
-  arrayPack buf 8 (msg ~> param_id)
-  -- 6: header len, 2: CRC len
-  let usedLen    = 6 + 25 + 2 :: Integer
-  let sendArr    = sendStruct ~> mav_array
-  let sendArrLen = arrayLen sendArr
-  if sendArrLen < usedLen
-    then error "paramValue payload of length 25 is too large!"
-    else do -- Copy, leaving room for the payload
-            arrayCopy sendArr arr 6 (arrayLen arr)
-            call_ mavlinkSendWithWriter
-                    paramValueMsgId
-                    paramValueCrcExtra
-                    25
-                    seqNum
-                    sendStruct
+mkParamValueSender = makeMavlinkSender "param_value_msg" paramValueMsgId paramValueCrcExtra
 
 instance MavlinkUnpackableMsg "param_value_msg" where
     unpackMsg = ( paramValueUnpack , paramValueMsgId )
@@ -78,10 +54,30 @@ instance MavlinkUnpackableMsg "param_value_msg" where
 paramValueUnpack :: Def ('[ Ref s1 (Struct "param_value_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-paramValueUnpack = proc "mavlink_param_value_unpack" $ \ msg buf -> body $ do
-  store (msg ~> param_value) =<< unpack buf 0
-  store (msg ~> param_count) =<< unpack buf 4
-  store (msg ~> param_index) =<< unpack buf 6
-  store (msg ~> param_type) =<< unpack buf 24
-  arrayUnpack buf 8 (msg ~> param_id)
+paramValueUnpack = proc "mavlink_param_value_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
 
+paramValuePackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
+                              , Uint32
+                              , ConstRef s2 (Struct "param_value_msg")
+                              ] :-> () )
+paramValuePackRef = proc "mavlink_param_value_pack_ref" $ \ buf off msg -> body $ do
+  packRef buf (off + 0) (msg ~> param_value)
+  packRef buf (off + 4) (msg ~> param_count)
+  packRef buf (off + 6) (msg ~> param_index)
+  packRef buf (off + 24) (msg ~> param_type)
+  packRef buf (off + 8) (msg ~> param_id)
+
+paramValueUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
+                                , Uint32
+                                , Ref s2 (Struct "param_value_msg")
+                                ] :-> () )
+paramValueUnpackRef = proc "mavlink_param_value_unpack_ref" $ \ buf off msg -> body $ do
+  unpackRef buf (off + 0) (msg ~> param_value)
+  unpackRef buf (off + 4) (msg ~> param_count)
+  unpackRef buf (off + 6) (msg ~> param_index)
+  unpackRef buf (off + 24) (msg ~> param_type)
+  unpackRef buf (off + 8) (msg ~> param_id)
+
+instance SerializableRef (Struct "param_value_msg") where
+  packRef = call_ paramValuePackRef
+  unpackRef = call_ paramValueUnpackRef

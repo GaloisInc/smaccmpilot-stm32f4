@@ -10,12 +10,10 @@
 
 module SMACCMPilot.Mavlink.Messages.RawPressure where
 
-import Ivory.Serialize
-import SMACCMPilot.Mavlink.Unpack
-import SMACCMPilot.Mavlink.Send
-
 import Ivory.Language
-import Ivory.Stdlib
+import Ivory.Serialize
+import SMACCMPilot.Mavlink.Send
+import SMACCMPilot.Mavlink.Unpack
 
 rawPressureMsgId :: Uint8
 rawPressureMsgId = 28
@@ -30,6 +28,8 @@ rawPressureModule = package "mavlink_raw_pressure_msg" $ do
   incl mkRawPressureSender
   incl rawPressureUnpack
   defStruct (Proxy :: Proxy "raw_pressure_msg")
+  incl rawPressurePackRef
+  incl rawPressureUnpackRef
 
 [ivory|
 struct raw_pressure_msg
@@ -46,31 +46,7 @@ mkRawPressureSender ::
         , Ref s1 (Stored Uint8) -- seqNum
         , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
-mkRawPressureSender =
-  proc "mavlink_raw_pressure_msg_send"
-  $ \msg seqNum sendStruct -> body
-  $ do
-  arr <- local (iarray [] :: Init (Array 16 (Stored Uint8)))
-  let buf = toCArray arr
-  pack buf 0 =<< deref (msg ~> time_usec)
-  pack buf 8 =<< deref (msg ~> press_abs)
-  pack buf 10 =<< deref (msg ~> press_diff1)
-  pack buf 12 =<< deref (msg ~> press_diff2)
-  pack buf 14 =<< deref (msg ~> temperature)
-  -- 6: header len, 2: CRC len
-  let usedLen    = 6 + 16 + 2 :: Integer
-  let sendArr    = sendStruct ~> mav_array
-  let sendArrLen = arrayLen sendArr
-  if sendArrLen < usedLen
-    then error "rawPressure payload of length 16 is too large!"
-    else do -- Copy, leaving room for the payload
-            arrayCopy sendArr arr 6 (arrayLen arr)
-            call_ mavlinkSendWithWriter
-                    rawPressureMsgId
-                    rawPressureCrcExtra
-                    16
-                    seqNum
-                    sendStruct
+mkRawPressureSender = makeMavlinkSender "raw_pressure_msg" rawPressureMsgId rawPressureCrcExtra
 
 instance MavlinkUnpackableMsg "raw_pressure_msg" where
     unpackMsg = ( rawPressureUnpack , rawPressureMsgId )
@@ -78,10 +54,30 @@ instance MavlinkUnpackableMsg "raw_pressure_msg" where
 rawPressureUnpack :: Def ('[ Ref s1 (Struct "raw_pressure_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-rawPressureUnpack = proc "mavlink_raw_pressure_unpack" $ \ msg buf -> body $ do
-  store (msg ~> time_usec) =<< unpack buf 0
-  store (msg ~> press_abs) =<< unpack buf 8
-  store (msg ~> press_diff1) =<< unpack buf 10
-  store (msg ~> press_diff2) =<< unpack buf 12
-  store (msg ~> temperature) =<< unpack buf 14
+rawPressureUnpack = proc "mavlink_raw_pressure_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
 
+rawPressurePackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
+                              , Uint32
+                              , ConstRef s2 (Struct "raw_pressure_msg")
+                              ] :-> () )
+rawPressurePackRef = proc "mavlink_raw_pressure_pack_ref" $ \ buf off msg -> body $ do
+  packRef buf (off + 0) (msg ~> time_usec)
+  packRef buf (off + 8) (msg ~> press_abs)
+  packRef buf (off + 10) (msg ~> press_diff1)
+  packRef buf (off + 12) (msg ~> press_diff2)
+  packRef buf (off + 14) (msg ~> temperature)
+
+rawPressureUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
+                                , Uint32
+                                , Ref s2 (Struct "raw_pressure_msg")
+                                ] :-> () )
+rawPressureUnpackRef = proc "mavlink_raw_pressure_unpack_ref" $ \ buf off msg -> body $ do
+  unpackRef buf (off + 0) (msg ~> time_usec)
+  unpackRef buf (off + 8) (msg ~> press_abs)
+  unpackRef buf (off + 10) (msg ~> press_diff1)
+  unpackRef buf (off + 12) (msg ~> press_diff2)
+  unpackRef buf (off + 14) (msg ~> temperature)
+
+instance SerializableRef (Struct "raw_pressure_msg") where
+  packRef = call_ rawPressurePackRef
+  unpackRef = call_ rawPressureUnpackRef

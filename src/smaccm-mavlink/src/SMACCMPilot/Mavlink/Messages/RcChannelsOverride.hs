@@ -10,12 +10,10 @@
 
 module SMACCMPilot.Mavlink.Messages.RcChannelsOverride where
 
-import Ivory.Serialize
-import SMACCMPilot.Mavlink.Unpack
-import SMACCMPilot.Mavlink.Send
-
 import Ivory.Language
-import Ivory.Stdlib
+import Ivory.Serialize
+import SMACCMPilot.Mavlink.Send
+import SMACCMPilot.Mavlink.Unpack
 
 rcChannelsOverrideMsgId :: Uint8
 rcChannelsOverrideMsgId = 70
@@ -30,6 +28,8 @@ rcChannelsOverrideModule = package "mavlink_rc_channels_override_msg" $ do
   incl mkRcChannelsOverrideSender
   incl rcChannelsOverrideUnpack
   defStruct (Proxy :: Proxy "rc_channels_override_msg")
+  incl rcChannelsOverridePackRef
+  incl rcChannelsOverrideUnpackRef
 
 [ivory|
 struct rc_channels_override_msg
@@ -51,36 +51,7 @@ mkRcChannelsOverrideSender ::
         , Ref s1 (Stored Uint8) -- seqNum
         , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
-mkRcChannelsOverrideSender =
-  proc "mavlink_rc_channels_override_msg_send"
-  $ \msg seqNum sendStruct -> body
-  $ do
-  arr <- local (iarray [] :: Init (Array 18 (Stored Uint8)))
-  let buf = toCArray arr
-  pack buf 0 =<< deref (msg ~> chan1_raw)
-  pack buf 2 =<< deref (msg ~> chan2_raw)
-  pack buf 4 =<< deref (msg ~> chan3_raw)
-  pack buf 6 =<< deref (msg ~> chan4_raw)
-  pack buf 8 =<< deref (msg ~> chan5_raw)
-  pack buf 10 =<< deref (msg ~> chan6_raw)
-  pack buf 12 =<< deref (msg ~> chan7_raw)
-  pack buf 14 =<< deref (msg ~> chan8_raw)
-  pack buf 16 =<< deref (msg ~> target_system)
-  pack buf 17 =<< deref (msg ~> target_component)
-  -- 6: header len, 2: CRC len
-  let usedLen    = 6 + 18 + 2 :: Integer
-  let sendArr    = sendStruct ~> mav_array
-  let sendArrLen = arrayLen sendArr
-  if sendArrLen < usedLen
-    then error "rcChannelsOverride payload of length 18 is too large!"
-    else do -- Copy, leaving room for the payload
-            arrayCopy sendArr arr 6 (arrayLen arr)
-            call_ mavlinkSendWithWriter
-                    rcChannelsOverrideMsgId
-                    rcChannelsOverrideCrcExtra
-                    18
-                    seqNum
-                    sendStruct
+mkRcChannelsOverrideSender = makeMavlinkSender "rc_channels_override_msg" rcChannelsOverrideMsgId rcChannelsOverrideCrcExtra
 
 instance MavlinkUnpackableMsg "rc_channels_override_msg" where
     unpackMsg = ( rcChannelsOverrideUnpack , rcChannelsOverrideMsgId )
@@ -88,15 +59,40 @@ instance MavlinkUnpackableMsg "rc_channels_override_msg" where
 rcChannelsOverrideUnpack :: Def ('[ Ref s1 (Struct "rc_channels_override_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-rcChannelsOverrideUnpack = proc "mavlink_rc_channels_override_unpack" $ \ msg buf -> body $ do
-  store (msg ~> chan1_raw) =<< unpack buf 0
-  store (msg ~> chan2_raw) =<< unpack buf 2
-  store (msg ~> chan3_raw) =<< unpack buf 4
-  store (msg ~> chan4_raw) =<< unpack buf 6
-  store (msg ~> chan5_raw) =<< unpack buf 8
-  store (msg ~> chan6_raw) =<< unpack buf 10
-  store (msg ~> chan7_raw) =<< unpack buf 12
-  store (msg ~> chan8_raw) =<< unpack buf 14
-  store (msg ~> target_system) =<< unpack buf 16
-  store (msg ~> target_component) =<< unpack buf 17
+rcChannelsOverrideUnpack = proc "mavlink_rc_channels_override_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
 
+rcChannelsOverridePackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
+                              , Uint32
+                              , ConstRef s2 (Struct "rc_channels_override_msg")
+                              ] :-> () )
+rcChannelsOverridePackRef = proc "mavlink_rc_channels_override_pack_ref" $ \ buf off msg -> body $ do
+  packRef buf (off + 0) (msg ~> chan1_raw)
+  packRef buf (off + 2) (msg ~> chan2_raw)
+  packRef buf (off + 4) (msg ~> chan3_raw)
+  packRef buf (off + 6) (msg ~> chan4_raw)
+  packRef buf (off + 8) (msg ~> chan5_raw)
+  packRef buf (off + 10) (msg ~> chan6_raw)
+  packRef buf (off + 12) (msg ~> chan7_raw)
+  packRef buf (off + 14) (msg ~> chan8_raw)
+  packRef buf (off + 16) (msg ~> target_system)
+  packRef buf (off + 17) (msg ~> target_component)
+
+rcChannelsOverrideUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
+                                , Uint32
+                                , Ref s2 (Struct "rc_channels_override_msg")
+                                ] :-> () )
+rcChannelsOverrideUnpackRef = proc "mavlink_rc_channels_override_unpack_ref" $ \ buf off msg -> body $ do
+  unpackRef buf (off + 0) (msg ~> chan1_raw)
+  unpackRef buf (off + 2) (msg ~> chan2_raw)
+  unpackRef buf (off + 4) (msg ~> chan3_raw)
+  unpackRef buf (off + 6) (msg ~> chan4_raw)
+  unpackRef buf (off + 8) (msg ~> chan5_raw)
+  unpackRef buf (off + 10) (msg ~> chan6_raw)
+  unpackRef buf (off + 12) (msg ~> chan7_raw)
+  unpackRef buf (off + 14) (msg ~> chan8_raw)
+  unpackRef buf (off + 16) (msg ~> target_system)
+  unpackRef buf (off + 17) (msg ~> target_component)
+
+instance SerializableRef (Struct "rc_channels_override_msg") where
+  packRef = call_ rcChannelsOverridePackRef
+  unpackRef = call_ rcChannelsOverrideUnpackRef

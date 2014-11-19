@@ -10,12 +10,10 @@
 
 module SMACCMPilot.Mavlink.Messages.MissionWritePartialList where
 
-import Ivory.Serialize
-import SMACCMPilot.Mavlink.Unpack
-import SMACCMPilot.Mavlink.Send
-
 import Ivory.Language
-import Ivory.Stdlib
+import Ivory.Serialize
+import SMACCMPilot.Mavlink.Send
+import SMACCMPilot.Mavlink.Unpack
 
 missionWritePartialListMsgId :: Uint8
 missionWritePartialListMsgId = 38
@@ -30,6 +28,8 @@ missionWritePartialListModule = package "mavlink_mission_write_partial_list_msg"
   incl mkMissionWritePartialListSender
   incl missionWritePartialListUnpack
   defStruct (Proxy :: Proxy "mission_write_partial_list_msg")
+  incl missionWritePartialListPackRef
+  incl missionWritePartialListUnpackRef
 
 [ivory|
 struct mission_write_partial_list_msg
@@ -45,30 +45,7 @@ mkMissionWritePartialListSender ::
         , Ref s1 (Stored Uint8) -- seqNum
         , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
-mkMissionWritePartialListSender =
-  proc "mavlink_mission_write_partial_list_msg_send"
-  $ \msg seqNum sendStruct -> body
-  $ do
-  arr <- local (iarray [] :: Init (Array 6 (Stored Uint8)))
-  let buf = toCArray arr
-  pack buf 0 =<< deref (msg ~> start_index)
-  pack buf 2 =<< deref (msg ~> end_index)
-  pack buf 4 =<< deref (msg ~> target_system)
-  pack buf 5 =<< deref (msg ~> target_component)
-  -- 6: header len, 2: CRC len
-  let usedLen    = 6 + 6 + 2 :: Integer
-  let sendArr    = sendStruct ~> mav_array
-  let sendArrLen = arrayLen sendArr
-  if sendArrLen < usedLen
-    then error "missionWritePartialList payload of length 6 is too large!"
-    else do -- Copy, leaving room for the payload
-            arrayCopy sendArr arr 6 (arrayLen arr)
-            call_ mavlinkSendWithWriter
-                    missionWritePartialListMsgId
-                    missionWritePartialListCrcExtra
-                    6
-                    seqNum
-                    sendStruct
+mkMissionWritePartialListSender = makeMavlinkSender "mission_write_partial_list_msg" missionWritePartialListMsgId missionWritePartialListCrcExtra
 
 instance MavlinkUnpackableMsg "mission_write_partial_list_msg" where
     unpackMsg = ( missionWritePartialListUnpack , missionWritePartialListMsgId )
@@ -76,9 +53,28 @@ instance MavlinkUnpackableMsg "mission_write_partial_list_msg" where
 missionWritePartialListUnpack :: Def ('[ Ref s1 (Struct "mission_write_partial_list_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-missionWritePartialListUnpack = proc "mavlink_mission_write_partial_list_unpack" $ \ msg buf -> body $ do
-  store (msg ~> start_index) =<< unpack buf 0
-  store (msg ~> end_index) =<< unpack buf 2
-  store (msg ~> target_system) =<< unpack buf 4
-  store (msg ~> target_component) =<< unpack buf 5
+missionWritePartialListUnpack = proc "mavlink_mission_write_partial_list_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
 
+missionWritePartialListPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
+                              , Uint32
+                              , ConstRef s2 (Struct "mission_write_partial_list_msg")
+                              ] :-> () )
+missionWritePartialListPackRef = proc "mavlink_mission_write_partial_list_pack_ref" $ \ buf off msg -> body $ do
+  packRef buf (off + 0) (msg ~> start_index)
+  packRef buf (off + 2) (msg ~> end_index)
+  packRef buf (off + 4) (msg ~> target_system)
+  packRef buf (off + 5) (msg ~> target_component)
+
+missionWritePartialListUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
+                                , Uint32
+                                , Ref s2 (Struct "mission_write_partial_list_msg")
+                                ] :-> () )
+missionWritePartialListUnpackRef = proc "mavlink_mission_write_partial_list_unpack_ref" $ \ buf off msg -> body $ do
+  unpackRef buf (off + 0) (msg ~> start_index)
+  unpackRef buf (off + 2) (msg ~> end_index)
+  unpackRef buf (off + 4) (msg ~> target_system)
+  unpackRef buf (off + 5) (msg ~> target_component)
+
+instance SerializableRef (Struct "mission_write_partial_list_msg") where
+  packRef = call_ missionWritePartialListPackRef
+  unpackRef = call_ missionWritePartialListUnpackRef

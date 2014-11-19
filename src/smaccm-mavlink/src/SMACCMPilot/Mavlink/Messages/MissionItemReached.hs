@@ -10,12 +10,10 @@
 
 module SMACCMPilot.Mavlink.Messages.MissionItemReached where
 
-import Ivory.Serialize
-import SMACCMPilot.Mavlink.Unpack
-import SMACCMPilot.Mavlink.Send
-
 import Ivory.Language
-import Ivory.Stdlib
+import Ivory.Serialize
+import SMACCMPilot.Mavlink.Send
+import SMACCMPilot.Mavlink.Unpack
 
 missionItemReachedMsgId :: Uint8
 missionItemReachedMsgId = 46
@@ -30,6 +28,8 @@ missionItemReachedModule = package "mavlink_mission_item_reached_msg" $ do
   incl mkMissionItemReachedSender
   incl missionItemReachedUnpack
   defStruct (Proxy :: Proxy "mission_item_reached_msg")
+  incl missionItemReachedPackRef
+  incl missionItemReachedUnpackRef
 
 [ivory|
 struct mission_item_reached_msg
@@ -42,27 +42,7 @@ mkMissionItemReachedSender ::
         , Ref s1 (Stored Uint8) -- seqNum
         , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
-mkMissionItemReachedSender =
-  proc "mavlink_mission_item_reached_msg_send"
-  $ \msg seqNum sendStruct -> body
-  $ do
-  arr <- local (iarray [] :: Init (Array 2 (Stored Uint8)))
-  let buf = toCArray arr
-  pack buf 0 =<< deref (msg ~> mission_item_reached_seq)
-  -- 6: header len, 2: CRC len
-  let usedLen    = 6 + 2 + 2 :: Integer
-  let sendArr    = sendStruct ~> mav_array
-  let sendArrLen = arrayLen sendArr
-  if sendArrLen < usedLen
-    then error "missionItemReached payload of length 2 is too large!"
-    else do -- Copy, leaving room for the payload
-            arrayCopy sendArr arr 6 (arrayLen arr)
-            call_ mavlinkSendWithWriter
-                    missionItemReachedMsgId
-                    missionItemReachedCrcExtra
-                    2
-                    seqNum
-                    sendStruct
+mkMissionItemReachedSender = makeMavlinkSender "mission_item_reached_msg" missionItemReachedMsgId missionItemReachedCrcExtra
 
 instance MavlinkUnpackableMsg "mission_item_reached_msg" where
     unpackMsg = ( missionItemReachedUnpack , missionItemReachedMsgId )
@@ -70,6 +50,22 @@ instance MavlinkUnpackableMsg "mission_item_reached_msg" where
 missionItemReachedUnpack :: Def ('[ Ref s1 (Struct "mission_item_reached_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-missionItemReachedUnpack = proc "mavlink_mission_item_reached_unpack" $ \ msg buf -> body $ do
-  store (msg ~> mission_item_reached_seq) =<< unpack buf 0
+missionItemReachedUnpack = proc "mavlink_mission_item_reached_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
 
+missionItemReachedPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
+                              , Uint32
+                              , ConstRef s2 (Struct "mission_item_reached_msg")
+                              ] :-> () )
+missionItemReachedPackRef = proc "mavlink_mission_item_reached_pack_ref" $ \ buf off msg -> body $ do
+  packRef buf (off + 0) (msg ~> mission_item_reached_seq)
+
+missionItemReachedUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
+                                , Uint32
+                                , Ref s2 (Struct "mission_item_reached_msg")
+                                ] :-> () )
+missionItemReachedUnpackRef = proc "mavlink_mission_item_reached_unpack_ref" $ \ buf off msg -> body $ do
+  unpackRef buf (off + 0) (msg ~> mission_item_reached_seq)
+
+instance SerializableRef (Struct "mission_item_reached_msg") where
+  packRef = call_ missionItemReachedPackRef
+  unpackRef = call_ missionItemReachedUnpackRef

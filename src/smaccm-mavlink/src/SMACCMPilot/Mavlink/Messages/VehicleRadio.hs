@@ -10,12 +10,10 @@
 
 module SMACCMPilot.Mavlink.Messages.VehicleRadio where
 
-import Ivory.Serialize
-import SMACCMPilot.Mavlink.Unpack
-import SMACCMPilot.Mavlink.Send
-
 import Ivory.Language
-import Ivory.Stdlib
+import Ivory.Serialize
+import SMACCMPilot.Mavlink.Send
+import SMACCMPilot.Mavlink.Unpack
 
 vehicleRadioMsgId :: Uint8
 vehicleRadioMsgId = 174
@@ -30,6 +28,8 @@ vehicleRadioModule = package "mavlink_vehicle_radio_msg" $ do
   incl mkVehicleRadioSender
   incl vehicleRadioUnpack
   defStruct (Proxy :: Proxy "vehicle_radio_msg")
+  incl vehicleRadioPackRef
+  incl vehicleRadioUnpackRef
 
 [ivory|
 struct vehicle_radio_msg
@@ -48,33 +48,7 @@ mkVehicleRadioSender ::
         , Ref s1 (Stored Uint8) -- seqNum
         , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
-mkVehicleRadioSender =
-  proc "mavlink_vehicle_radio_msg_send"
-  $ \msg seqNum sendStruct -> body
-  $ do
-  arr <- local (iarray [] :: Init (Array 9 (Stored Uint8)))
-  let buf = toCArray arr
-  pack buf 0 =<< deref (msg ~> rxerrors)
-  pack buf 2 =<< deref (msg ~> fixed)
-  pack buf 4 =<< deref (msg ~> rssi)
-  pack buf 5 =<< deref (msg ~> remrssi)
-  pack buf 6 =<< deref (msg ~> txbuf)
-  pack buf 7 =<< deref (msg ~> noise)
-  pack buf 8 =<< deref (msg ~> remnoise)
-  -- 6: header len, 2: CRC len
-  let usedLen    = 6 + 9 + 2 :: Integer
-  let sendArr    = sendStruct ~> mav_array
-  let sendArrLen = arrayLen sendArr
-  if sendArrLen < usedLen
-    then error "vehicleRadio payload of length 9 is too large!"
-    else do -- Copy, leaving room for the payload
-            arrayCopy sendArr arr 6 (arrayLen arr)
-            call_ mavlinkSendWithWriter
-                    vehicleRadioMsgId
-                    vehicleRadioCrcExtra
-                    9
-                    seqNum
-                    sendStruct
+mkVehicleRadioSender = makeMavlinkSender "vehicle_radio_msg" vehicleRadioMsgId vehicleRadioCrcExtra
 
 instance MavlinkUnpackableMsg "vehicle_radio_msg" where
     unpackMsg = ( vehicleRadioUnpack , vehicleRadioMsgId )
@@ -82,12 +56,34 @@ instance MavlinkUnpackableMsg "vehicle_radio_msg" where
 vehicleRadioUnpack :: Def ('[ Ref s1 (Struct "vehicle_radio_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-vehicleRadioUnpack = proc "mavlink_vehicle_radio_unpack" $ \ msg buf -> body $ do
-  store (msg ~> rxerrors) =<< unpack buf 0
-  store (msg ~> fixed) =<< unpack buf 2
-  store (msg ~> rssi) =<< unpack buf 4
-  store (msg ~> remrssi) =<< unpack buf 5
-  store (msg ~> txbuf) =<< unpack buf 6
-  store (msg ~> noise) =<< unpack buf 7
-  store (msg ~> remnoise) =<< unpack buf 8
+vehicleRadioUnpack = proc "mavlink_vehicle_radio_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
 
+vehicleRadioPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
+                              , Uint32
+                              , ConstRef s2 (Struct "vehicle_radio_msg")
+                              ] :-> () )
+vehicleRadioPackRef = proc "mavlink_vehicle_radio_pack_ref" $ \ buf off msg -> body $ do
+  packRef buf (off + 0) (msg ~> rxerrors)
+  packRef buf (off + 2) (msg ~> fixed)
+  packRef buf (off + 4) (msg ~> rssi)
+  packRef buf (off + 5) (msg ~> remrssi)
+  packRef buf (off + 6) (msg ~> txbuf)
+  packRef buf (off + 7) (msg ~> noise)
+  packRef buf (off + 8) (msg ~> remnoise)
+
+vehicleRadioUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
+                                , Uint32
+                                , Ref s2 (Struct "vehicle_radio_msg")
+                                ] :-> () )
+vehicleRadioUnpackRef = proc "mavlink_vehicle_radio_unpack_ref" $ \ buf off msg -> body $ do
+  unpackRef buf (off + 0) (msg ~> rxerrors)
+  unpackRef buf (off + 2) (msg ~> fixed)
+  unpackRef buf (off + 4) (msg ~> rssi)
+  unpackRef buf (off + 5) (msg ~> remrssi)
+  unpackRef buf (off + 6) (msg ~> txbuf)
+  unpackRef buf (off + 7) (msg ~> noise)
+  unpackRef buf (off + 8) (msg ~> remnoise)
+
+instance SerializableRef (Struct "vehicle_radio_msg") where
+  packRef = call_ vehicleRadioPackRef
+  unpackRef = call_ vehicleRadioUnpackRef

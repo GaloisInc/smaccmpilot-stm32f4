@@ -10,12 +10,10 @@
 
 module SMACCMPilot.Mavlink.Messages.AttCtlDebug where
 
-import Ivory.Serialize
-import SMACCMPilot.Mavlink.Unpack
-import SMACCMPilot.Mavlink.Send
-
 import Ivory.Language
-import Ivory.Stdlib
+import Ivory.Serialize
+import SMACCMPilot.Mavlink.Send
+import SMACCMPilot.Mavlink.Unpack
 
 attCtlDebugMsgId :: Uint8
 attCtlDebugMsgId = 186
@@ -30,6 +28,8 @@ attCtlDebugModule = package "mavlink_att_ctl_debug_msg" $ do
   incl mkAttCtlDebugSender
   incl attCtlDebugUnpack
   defStruct (Proxy :: Proxy "att_ctl_debug_msg")
+  incl attCtlDebugPackRef
+  incl attCtlDebugUnpackRef
 
 [ivory|
 struct att_ctl_debug_msg
@@ -49,34 +49,7 @@ mkAttCtlDebugSender ::
         , Ref s1 (Stored Uint8) -- seqNum
         , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
-mkAttCtlDebugSender =
-  proc "mavlink_att_ctl_debug_msg_send"
-  $ \msg seqNum sendStruct -> body
-  $ do
-  arr <- local (iarray [] :: Init (Array 32 (Stored Uint8)))
-  let buf = toCArray arr
-  pack buf 0 =<< deref (msg ~> head_setpt)
-  pack buf 4 =<< deref (msg ~> head_rate_setpt)
-  pack buf 8 =<< deref (msg ~> head_ctl_p)
-  pack buf 12 =<< deref (msg ~> head_ctl_d)
-  pack buf 16 =<< deref (msg ~> pitch_setpt)
-  pack buf 20 =<< deref (msg ~> pitch_rate_setpt)
-  pack buf 24 =<< deref (msg ~> roll_setpt)
-  pack buf 28 =<< deref (msg ~> roll_rate_setpt)
-  -- 6: header len, 2: CRC len
-  let usedLen    = 6 + 32 + 2 :: Integer
-  let sendArr    = sendStruct ~> mav_array
-  let sendArrLen = arrayLen sendArr
-  if sendArrLen < usedLen
-    then error "attCtlDebug payload of length 32 is too large!"
-    else do -- Copy, leaving room for the payload
-            arrayCopy sendArr arr 6 (arrayLen arr)
-            call_ mavlinkSendWithWriter
-                    attCtlDebugMsgId
-                    attCtlDebugCrcExtra
-                    32
-                    seqNum
-                    sendStruct
+mkAttCtlDebugSender = makeMavlinkSender "att_ctl_debug_msg" attCtlDebugMsgId attCtlDebugCrcExtra
 
 instance MavlinkUnpackableMsg "att_ctl_debug_msg" where
     unpackMsg = ( attCtlDebugUnpack , attCtlDebugMsgId )
@@ -84,13 +57,36 @@ instance MavlinkUnpackableMsg "att_ctl_debug_msg" where
 attCtlDebugUnpack :: Def ('[ Ref s1 (Struct "att_ctl_debug_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-attCtlDebugUnpack = proc "mavlink_att_ctl_debug_unpack" $ \ msg buf -> body $ do
-  store (msg ~> head_setpt) =<< unpack buf 0
-  store (msg ~> head_rate_setpt) =<< unpack buf 4
-  store (msg ~> head_ctl_p) =<< unpack buf 8
-  store (msg ~> head_ctl_d) =<< unpack buf 12
-  store (msg ~> pitch_setpt) =<< unpack buf 16
-  store (msg ~> pitch_rate_setpt) =<< unpack buf 20
-  store (msg ~> roll_setpt) =<< unpack buf 24
-  store (msg ~> roll_rate_setpt) =<< unpack buf 28
+attCtlDebugUnpack = proc "mavlink_att_ctl_debug_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
 
+attCtlDebugPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
+                              , Uint32
+                              , ConstRef s2 (Struct "att_ctl_debug_msg")
+                              ] :-> () )
+attCtlDebugPackRef = proc "mavlink_att_ctl_debug_pack_ref" $ \ buf off msg -> body $ do
+  packRef buf (off + 0) (msg ~> head_setpt)
+  packRef buf (off + 4) (msg ~> head_rate_setpt)
+  packRef buf (off + 8) (msg ~> head_ctl_p)
+  packRef buf (off + 12) (msg ~> head_ctl_d)
+  packRef buf (off + 16) (msg ~> pitch_setpt)
+  packRef buf (off + 20) (msg ~> pitch_rate_setpt)
+  packRef buf (off + 24) (msg ~> roll_setpt)
+  packRef buf (off + 28) (msg ~> roll_rate_setpt)
+
+attCtlDebugUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
+                                , Uint32
+                                , Ref s2 (Struct "att_ctl_debug_msg")
+                                ] :-> () )
+attCtlDebugUnpackRef = proc "mavlink_att_ctl_debug_unpack_ref" $ \ buf off msg -> body $ do
+  unpackRef buf (off + 0) (msg ~> head_setpt)
+  unpackRef buf (off + 4) (msg ~> head_rate_setpt)
+  unpackRef buf (off + 8) (msg ~> head_ctl_p)
+  unpackRef buf (off + 12) (msg ~> head_ctl_d)
+  unpackRef buf (off + 16) (msg ~> pitch_setpt)
+  unpackRef buf (off + 20) (msg ~> pitch_rate_setpt)
+  unpackRef buf (off + 24) (msg ~> roll_setpt)
+  unpackRef buf (off + 28) (msg ~> roll_rate_setpt)
+
+instance SerializableRef (Struct "att_ctl_debug_msg") where
+  packRef = call_ attCtlDebugPackRef
+  unpackRef = call_ attCtlDebugUnpackRef

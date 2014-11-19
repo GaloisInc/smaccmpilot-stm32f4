@@ -10,12 +10,10 @@
 
 module SMACCMPilot.Mavlink.Messages.Setpoint8dof where
 
-import Ivory.Serialize
-import SMACCMPilot.Mavlink.Unpack
-import SMACCMPilot.Mavlink.Send
-
 import Ivory.Language
-import Ivory.Stdlib
+import Ivory.Serialize
+import SMACCMPilot.Mavlink.Send
+import SMACCMPilot.Mavlink.Unpack
 
 setpoint8dofMsgId :: Uint8
 setpoint8dofMsgId = 148
@@ -30,6 +28,8 @@ setpoint8dofModule = package "mavlink_setpoint_8dof_msg" $ do
   incl mkSetpoint8dofSender
   incl setpoint8dofUnpack
   defStruct (Proxy :: Proxy "setpoint_8dof_msg")
+  incl setpoint8dofPackRef
+  incl setpoint8dofUnpackRef
 
 [ivory|
 struct setpoint_8dof_msg
@@ -50,35 +50,7 @@ mkSetpoint8dofSender ::
         , Ref s1 (Stored Uint8) -- seqNum
         , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
-mkSetpoint8dofSender =
-  proc "mavlink_setpoint_8dof_msg_send"
-  $ \msg seqNum sendStruct -> body
-  $ do
-  arr <- local (iarray [] :: Init (Array 33 (Stored Uint8)))
-  let buf = toCArray arr
-  pack buf 0 =<< deref (msg ~> val1)
-  pack buf 4 =<< deref (msg ~> val2)
-  pack buf 8 =<< deref (msg ~> val3)
-  pack buf 12 =<< deref (msg ~> val4)
-  pack buf 16 =<< deref (msg ~> val5)
-  pack buf 20 =<< deref (msg ~> val6)
-  pack buf 24 =<< deref (msg ~> val7)
-  pack buf 28 =<< deref (msg ~> val8)
-  pack buf 32 =<< deref (msg ~> target_system)
-  -- 6: header len, 2: CRC len
-  let usedLen    = 6 + 33 + 2 :: Integer
-  let sendArr    = sendStruct ~> mav_array
-  let sendArrLen = arrayLen sendArr
-  if sendArrLen < usedLen
-    then error "setpoint8dof payload of length 33 is too large!"
-    else do -- Copy, leaving room for the payload
-            arrayCopy sendArr arr 6 (arrayLen arr)
-            call_ mavlinkSendWithWriter
-                    setpoint8dofMsgId
-                    setpoint8dofCrcExtra
-                    33
-                    seqNum
-                    sendStruct
+mkSetpoint8dofSender = makeMavlinkSender "setpoint_8dof_msg" setpoint8dofMsgId setpoint8dofCrcExtra
 
 instance MavlinkUnpackableMsg "setpoint_8dof_msg" where
     unpackMsg = ( setpoint8dofUnpack , setpoint8dofMsgId )
@@ -86,14 +58,38 @@ instance MavlinkUnpackableMsg "setpoint_8dof_msg" where
 setpoint8dofUnpack :: Def ('[ Ref s1 (Struct "setpoint_8dof_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-setpoint8dofUnpack = proc "mavlink_setpoint_8dof_unpack" $ \ msg buf -> body $ do
-  store (msg ~> val1) =<< unpack buf 0
-  store (msg ~> val2) =<< unpack buf 4
-  store (msg ~> val3) =<< unpack buf 8
-  store (msg ~> val4) =<< unpack buf 12
-  store (msg ~> val5) =<< unpack buf 16
-  store (msg ~> val6) =<< unpack buf 20
-  store (msg ~> val7) =<< unpack buf 24
-  store (msg ~> val8) =<< unpack buf 28
-  store (msg ~> target_system) =<< unpack buf 32
+setpoint8dofUnpack = proc "mavlink_setpoint_8dof_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
 
+setpoint8dofPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
+                              , Uint32
+                              , ConstRef s2 (Struct "setpoint_8dof_msg")
+                              ] :-> () )
+setpoint8dofPackRef = proc "mavlink_setpoint_8dof_pack_ref" $ \ buf off msg -> body $ do
+  packRef buf (off + 0) (msg ~> val1)
+  packRef buf (off + 4) (msg ~> val2)
+  packRef buf (off + 8) (msg ~> val3)
+  packRef buf (off + 12) (msg ~> val4)
+  packRef buf (off + 16) (msg ~> val5)
+  packRef buf (off + 20) (msg ~> val6)
+  packRef buf (off + 24) (msg ~> val7)
+  packRef buf (off + 28) (msg ~> val8)
+  packRef buf (off + 32) (msg ~> target_system)
+
+setpoint8dofUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
+                                , Uint32
+                                , Ref s2 (Struct "setpoint_8dof_msg")
+                                ] :-> () )
+setpoint8dofUnpackRef = proc "mavlink_setpoint_8dof_unpack_ref" $ \ buf off msg -> body $ do
+  unpackRef buf (off + 0) (msg ~> val1)
+  unpackRef buf (off + 4) (msg ~> val2)
+  unpackRef buf (off + 8) (msg ~> val3)
+  unpackRef buf (off + 12) (msg ~> val4)
+  unpackRef buf (off + 16) (msg ~> val5)
+  unpackRef buf (off + 20) (msg ~> val6)
+  unpackRef buf (off + 24) (msg ~> val7)
+  unpackRef buf (off + 28) (msg ~> val8)
+  unpackRef buf (off + 32) (msg ~> target_system)
+
+instance SerializableRef (Struct "setpoint_8dof_msg") where
+  packRef = call_ setpoint8dofPackRef
+  unpackRef = call_ setpoint8dofUnpackRef

@@ -10,12 +10,10 @@
 
 module SMACCMPilot.Mavlink.Messages.NavControllerOutput where
 
-import Ivory.Serialize
-import SMACCMPilot.Mavlink.Unpack
-import SMACCMPilot.Mavlink.Send
-
 import Ivory.Language
-import Ivory.Stdlib
+import Ivory.Serialize
+import SMACCMPilot.Mavlink.Send
+import SMACCMPilot.Mavlink.Unpack
 
 navControllerOutputMsgId :: Uint8
 navControllerOutputMsgId = 62
@@ -30,6 +28,8 @@ navControllerOutputModule = package "mavlink_nav_controller_output_msg" $ do
   incl mkNavControllerOutputSender
   incl navControllerOutputUnpack
   defStruct (Proxy :: Proxy "nav_controller_output_msg")
+  incl navControllerOutputPackRef
+  incl navControllerOutputUnpackRef
 
 [ivory|
 struct nav_controller_output_msg
@@ -49,34 +49,7 @@ mkNavControllerOutputSender ::
         , Ref s1 (Stored Uint8) -- seqNum
         , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
-mkNavControllerOutputSender =
-  proc "mavlink_nav_controller_output_msg_send"
-  $ \msg seqNum sendStruct -> body
-  $ do
-  arr <- local (iarray [] :: Init (Array 26 (Stored Uint8)))
-  let buf = toCArray arr
-  pack buf 0 =<< deref (msg ~> nav_roll)
-  pack buf 4 =<< deref (msg ~> nav_pitch)
-  pack buf 8 =<< deref (msg ~> alt_error)
-  pack buf 12 =<< deref (msg ~> aspd_error)
-  pack buf 16 =<< deref (msg ~> xtrack_error)
-  pack buf 20 =<< deref (msg ~> nav_bearing)
-  pack buf 22 =<< deref (msg ~> target_bearing)
-  pack buf 24 =<< deref (msg ~> wp_dist)
-  -- 6: header len, 2: CRC len
-  let usedLen    = 6 + 26 + 2 :: Integer
-  let sendArr    = sendStruct ~> mav_array
-  let sendArrLen = arrayLen sendArr
-  if sendArrLen < usedLen
-    then error "navControllerOutput payload of length 26 is too large!"
-    else do -- Copy, leaving room for the payload
-            arrayCopy sendArr arr 6 (arrayLen arr)
-            call_ mavlinkSendWithWriter
-                    navControllerOutputMsgId
-                    navControllerOutputCrcExtra
-                    26
-                    seqNum
-                    sendStruct
+mkNavControllerOutputSender = makeMavlinkSender "nav_controller_output_msg" navControllerOutputMsgId navControllerOutputCrcExtra
 
 instance MavlinkUnpackableMsg "nav_controller_output_msg" where
     unpackMsg = ( navControllerOutputUnpack , navControllerOutputMsgId )
@@ -84,13 +57,36 @@ instance MavlinkUnpackableMsg "nav_controller_output_msg" where
 navControllerOutputUnpack :: Def ('[ Ref s1 (Struct "nav_controller_output_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-navControllerOutputUnpack = proc "mavlink_nav_controller_output_unpack" $ \ msg buf -> body $ do
-  store (msg ~> nav_roll) =<< unpack buf 0
-  store (msg ~> nav_pitch) =<< unpack buf 4
-  store (msg ~> alt_error) =<< unpack buf 8
-  store (msg ~> aspd_error) =<< unpack buf 12
-  store (msg ~> xtrack_error) =<< unpack buf 16
-  store (msg ~> nav_bearing) =<< unpack buf 20
-  store (msg ~> target_bearing) =<< unpack buf 22
-  store (msg ~> wp_dist) =<< unpack buf 24
+navControllerOutputUnpack = proc "mavlink_nav_controller_output_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
 
+navControllerOutputPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
+                              , Uint32
+                              , ConstRef s2 (Struct "nav_controller_output_msg")
+                              ] :-> () )
+navControllerOutputPackRef = proc "mavlink_nav_controller_output_pack_ref" $ \ buf off msg -> body $ do
+  packRef buf (off + 0) (msg ~> nav_roll)
+  packRef buf (off + 4) (msg ~> nav_pitch)
+  packRef buf (off + 8) (msg ~> alt_error)
+  packRef buf (off + 12) (msg ~> aspd_error)
+  packRef buf (off + 16) (msg ~> xtrack_error)
+  packRef buf (off + 20) (msg ~> nav_bearing)
+  packRef buf (off + 22) (msg ~> target_bearing)
+  packRef buf (off + 24) (msg ~> wp_dist)
+
+navControllerOutputUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
+                                , Uint32
+                                , Ref s2 (Struct "nav_controller_output_msg")
+                                ] :-> () )
+navControllerOutputUnpackRef = proc "mavlink_nav_controller_output_unpack_ref" $ \ buf off msg -> body $ do
+  unpackRef buf (off + 0) (msg ~> nav_roll)
+  unpackRef buf (off + 4) (msg ~> nav_pitch)
+  unpackRef buf (off + 8) (msg ~> alt_error)
+  unpackRef buf (off + 12) (msg ~> aspd_error)
+  unpackRef buf (off + 16) (msg ~> xtrack_error)
+  unpackRef buf (off + 20) (msg ~> nav_bearing)
+  unpackRef buf (off + 22) (msg ~> target_bearing)
+  unpackRef buf (off + 24) (msg ~> wp_dist)
+
+instance SerializableRef (Struct "nav_controller_output_msg") where
+  packRef = call_ navControllerOutputPackRef
+  unpackRef = call_ navControllerOutputUnpackRef

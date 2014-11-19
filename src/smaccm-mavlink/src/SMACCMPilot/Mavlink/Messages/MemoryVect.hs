@@ -10,12 +10,10 @@
 
 module SMACCMPilot.Mavlink.Messages.MemoryVect where
 
-import Ivory.Serialize
-import SMACCMPilot.Mavlink.Unpack
-import SMACCMPilot.Mavlink.Send
-
 import Ivory.Language
-import Ivory.Stdlib
+import Ivory.Serialize
+import SMACCMPilot.Mavlink.Send
+import SMACCMPilot.Mavlink.Unpack
 
 memoryVectMsgId :: Uint8
 memoryVectMsgId = 249
@@ -30,6 +28,8 @@ memoryVectModule = package "mavlink_memory_vect_msg" $ do
   incl mkMemoryVectSender
   incl memoryVectUnpack
   defStruct (Proxy :: Proxy "memory_vect_msg")
+  incl memoryVectPackRef
+  incl memoryVectUnpackRef
 
 [ivory|
 struct memory_vect_msg
@@ -45,30 +45,7 @@ mkMemoryVectSender ::
         , Ref s1 (Stored Uint8) -- seqNum
         , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
-mkMemoryVectSender =
-  proc "mavlink_memory_vect_msg_send"
-  $ \msg seqNum sendStruct -> body
-  $ do
-  arr <- local (iarray [] :: Init (Array 36 (Stored Uint8)))
-  let buf = toCArray arr
-  pack buf 0 =<< deref (msg ~> address)
-  pack buf 2 =<< deref (msg ~> ver)
-  pack buf 3 =<< deref (msg ~> memory_vect_type)
-  arrayPack buf 4 (msg ~> value)
-  -- 6: header len, 2: CRC len
-  let usedLen    = 6 + 36 + 2 :: Integer
-  let sendArr    = sendStruct ~> mav_array
-  let sendArrLen = arrayLen sendArr
-  if sendArrLen < usedLen
-    then error "memoryVect payload of length 36 is too large!"
-    else do -- Copy, leaving room for the payload
-            arrayCopy sendArr arr 6 (arrayLen arr)
-            call_ mavlinkSendWithWriter
-                    memoryVectMsgId
-                    memoryVectCrcExtra
-                    36
-                    seqNum
-                    sendStruct
+mkMemoryVectSender = makeMavlinkSender "memory_vect_msg" memoryVectMsgId memoryVectCrcExtra
 
 instance MavlinkUnpackableMsg "memory_vect_msg" where
     unpackMsg = ( memoryVectUnpack , memoryVectMsgId )
@@ -76,9 +53,28 @@ instance MavlinkUnpackableMsg "memory_vect_msg" where
 memoryVectUnpack :: Def ('[ Ref s1 (Struct "memory_vect_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-memoryVectUnpack = proc "mavlink_memory_vect_unpack" $ \ msg buf -> body $ do
-  store (msg ~> address) =<< unpack buf 0
-  store (msg ~> ver) =<< unpack buf 2
-  store (msg ~> memory_vect_type) =<< unpack buf 3
-  arrayUnpack buf 4 (msg ~> value)
+memoryVectUnpack = proc "mavlink_memory_vect_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
 
+memoryVectPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
+                              , Uint32
+                              , ConstRef s2 (Struct "memory_vect_msg")
+                              ] :-> () )
+memoryVectPackRef = proc "mavlink_memory_vect_pack_ref" $ \ buf off msg -> body $ do
+  packRef buf (off + 0) (msg ~> address)
+  packRef buf (off + 2) (msg ~> ver)
+  packRef buf (off + 3) (msg ~> memory_vect_type)
+  packRef buf (off + 4) (msg ~> value)
+
+memoryVectUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
+                                , Uint32
+                                , Ref s2 (Struct "memory_vect_msg")
+                                ] :-> () )
+memoryVectUnpackRef = proc "mavlink_memory_vect_unpack_ref" $ \ buf off msg -> body $ do
+  unpackRef buf (off + 0) (msg ~> address)
+  unpackRef buf (off + 2) (msg ~> ver)
+  unpackRef buf (off + 3) (msg ~> memory_vect_type)
+  unpackRef buf (off + 4) (msg ~> value)
+
+instance SerializableRef (Struct "memory_vect_msg") where
+  packRef = call_ memoryVectPackRef
+  unpackRef = call_ memoryVectUnpackRef

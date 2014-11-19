@@ -10,12 +10,10 @@
 
 module SMACCMPilot.Mavlink.Messages.RequestDataStream where
 
-import Ivory.Serialize
-import SMACCMPilot.Mavlink.Unpack
-import SMACCMPilot.Mavlink.Send
-
 import Ivory.Language
-import Ivory.Stdlib
+import Ivory.Serialize
+import SMACCMPilot.Mavlink.Send
+import SMACCMPilot.Mavlink.Unpack
 
 requestDataStreamMsgId :: Uint8
 requestDataStreamMsgId = 66
@@ -30,6 +28,8 @@ requestDataStreamModule = package "mavlink_request_data_stream_msg" $ do
   incl mkRequestDataStreamSender
   incl requestDataStreamUnpack
   defStruct (Proxy :: Proxy "request_data_stream_msg")
+  incl requestDataStreamPackRef
+  incl requestDataStreamUnpackRef
 
 [ivory|
 struct request_data_stream_msg
@@ -46,31 +46,7 @@ mkRequestDataStreamSender ::
         , Ref s1 (Stored Uint8) -- seqNum
         , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
-mkRequestDataStreamSender =
-  proc "mavlink_request_data_stream_msg_send"
-  $ \msg seqNum sendStruct -> body
-  $ do
-  arr <- local (iarray [] :: Init (Array 6 (Stored Uint8)))
-  let buf = toCArray arr
-  pack buf 0 =<< deref (msg ~> req_message_rate)
-  pack buf 2 =<< deref (msg ~> target_system)
-  pack buf 3 =<< deref (msg ~> target_component)
-  pack buf 4 =<< deref (msg ~> req_stream_id)
-  pack buf 5 =<< deref (msg ~> start_stop)
-  -- 6: header len, 2: CRC len
-  let usedLen    = 6 + 6 + 2 :: Integer
-  let sendArr    = sendStruct ~> mav_array
-  let sendArrLen = arrayLen sendArr
-  if sendArrLen < usedLen
-    then error "requestDataStream payload of length 6 is too large!"
-    else do -- Copy, leaving room for the payload
-            arrayCopy sendArr arr 6 (arrayLen arr)
-            call_ mavlinkSendWithWriter
-                    requestDataStreamMsgId
-                    requestDataStreamCrcExtra
-                    6
-                    seqNum
-                    sendStruct
+mkRequestDataStreamSender = makeMavlinkSender "request_data_stream_msg" requestDataStreamMsgId requestDataStreamCrcExtra
 
 instance MavlinkUnpackableMsg "request_data_stream_msg" where
     unpackMsg = ( requestDataStreamUnpack , requestDataStreamMsgId )
@@ -78,10 +54,30 @@ instance MavlinkUnpackableMsg "request_data_stream_msg" where
 requestDataStreamUnpack :: Def ('[ Ref s1 (Struct "request_data_stream_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-requestDataStreamUnpack = proc "mavlink_request_data_stream_unpack" $ \ msg buf -> body $ do
-  store (msg ~> req_message_rate) =<< unpack buf 0
-  store (msg ~> target_system) =<< unpack buf 2
-  store (msg ~> target_component) =<< unpack buf 3
-  store (msg ~> req_stream_id) =<< unpack buf 4
-  store (msg ~> start_stop) =<< unpack buf 5
+requestDataStreamUnpack = proc "mavlink_request_data_stream_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
 
+requestDataStreamPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
+                              , Uint32
+                              , ConstRef s2 (Struct "request_data_stream_msg")
+                              ] :-> () )
+requestDataStreamPackRef = proc "mavlink_request_data_stream_pack_ref" $ \ buf off msg -> body $ do
+  packRef buf (off + 0) (msg ~> req_message_rate)
+  packRef buf (off + 2) (msg ~> target_system)
+  packRef buf (off + 3) (msg ~> target_component)
+  packRef buf (off + 4) (msg ~> req_stream_id)
+  packRef buf (off + 5) (msg ~> start_stop)
+
+requestDataStreamUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
+                                , Uint32
+                                , Ref s2 (Struct "request_data_stream_msg")
+                                ] :-> () )
+requestDataStreamUnpackRef = proc "mavlink_request_data_stream_unpack_ref" $ \ buf off msg -> body $ do
+  unpackRef buf (off + 0) (msg ~> req_message_rate)
+  unpackRef buf (off + 2) (msg ~> target_system)
+  unpackRef buf (off + 3) (msg ~> target_component)
+  unpackRef buf (off + 4) (msg ~> req_stream_id)
+  unpackRef buf (off + 5) (msg ~> start_stop)
+
+instance SerializableRef (Struct "request_data_stream_msg") where
+  packRef = call_ requestDataStreamPackRef
+  unpackRef = call_ requestDataStreamUnpackRef

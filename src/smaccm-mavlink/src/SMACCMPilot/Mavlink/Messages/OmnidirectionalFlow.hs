@@ -10,12 +10,10 @@
 
 module SMACCMPilot.Mavlink.Messages.OmnidirectionalFlow where
 
-import Ivory.Serialize
-import SMACCMPilot.Mavlink.Unpack
-import SMACCMPilot.Mavlink.Send
-
 import Ivory.Language
-import Ivory.Stdlib
+import Ivory.Serialize
+import SMACCMPilot.Mavlink.Send
+import SMACCMPilot.Mavlink.Unpack
 
 omnidirectionalFlowMsgId :: Uint8
 omnidirectionalFlowMsgId = 106
@@ -30,6 +28,8 @@ omnidirectionalFlowModule = package "mavlink_omnidirectional_flow_msg" $ do
   incl mkOmnidirectionalFlowSender
   incl omnidirectionalFlowUnpack
   defStruct (Proxy :: Proxy "omnidirectional_flow_msg")
+  incl omnidirectionalFlowPackRef
+  incl omnidirectionalFlowUnpackRef
 
 [ivory|
 struct omnidirectional_flow_msg
@@ -47,32 +47,7 @@ mkOmnidirectionalFlowSender ::
         , Ref s1 (Stored Uint8) -- seqNum
         , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
-mkOmnidirectionalFlowSender =
-  proc "mavlink_omnidirectional_flow_msg_send"
-  $ \msg seqNum sendStruct -> body
-  $ do
-  arr <- local (iarray [] :: Init (Array 54 (Stored Uint8)))
-  let buf = toCArray arr
-  pack buf 0 =<< deref (msg ~> time_usec)
-  pack buf 8 =<< deref (msg ~> front_distance_m)
-  pack buf 52 =<< deref (msg ~> sensor_id)
-  pack buf 53 =<< deref (msg ~> quality)
-  arrayPack buf 12 (msg ~> left)
-  arrayPack buf 32 (msg ~> right)
-  -- 6: header len, 2: CRC len
-  let usedLen    = 6 + 54 + 2 :: Integer
-  let sendArr    = sendStruct ~> mav_array
-  let sendArrLen = arrayLen sendArr
-  if sendArrLen < usedLen
-    then error "omnidirectionalFlow payload of length 54 is too large!"
-    else do -- Copy, leaving room for the payload
-            arrayCopy sendArr arr 6 (arrayLen arr)
-            call_ mavlinkSendWithWriter
-                    omnidirectionalFlowMsgId
-                    omnidirectionalFlowCrcExtra
-                    54
-                    seqNum
-                    sendStruct
+mkOmnidirectionalFlowSender = makeMavlinkSender "omnidirectional_flow_msg" omnidirectionalFlowMsgId omnidirectionalFlowCrcExtra
 
 instance MavlinkUnpackableMsg "omnidirectional_flow_msg" where
     unpackMsg = ( omnidirectionalFlowUnpack , omnidirectionalFlowMsgId )
@@ -80,11 +55,32 @@ instance MavlinkUnpackableMsg "omnidirectional_flow_msg" where
 omnidirectionalFlowUnpack :: Def ('[ Ref s1 (Struct "omnidirectional_flow_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-omnidirectionalFlowUnpack = proc "mavlink_omnidirectional_flow_unpack" $ \ msg buf -> body $ do
-  store (msg ~> time_usec) =<< unpack buf 0
-  store (msg ~> front_distance_m) =<< unpack buf 8
-  store (msg ~> sensor_id) =<< unpack buf 52
-  store (msg ~> quality) =<< unpack buf 53
-  arrayUnpack buf 12 (msg ~> left)
-  arrayUnpack buf 32 (msg ~> right)
+omnidirectionalFlowUnpack = proc "mavlink_omnidirectional_flow_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
 
+omnidirectionalFlowPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
+                              , Uint32
+                              , ConstRef s2 (Struct "omnidirectional_flow_msg")
+                              ] :-> () )
+omnidirectionalFlowPackRef = proc "mavlink_omnidirectional_flow_pack_ref" $ \ buf off msg -> body $ do
+  packRef buf (off + 0) (msg ~> time_usec)
+  packRef buf (off + 8) (msg ~> front_distance_m)
+  packRef buf (off + 52) (msg ~> sensor_id)
+  packRef buf (off + 53) (msg ~> quality)
+  packRef buf (off + 12) (msg ~> left)
+  packRef buf (off + 32) (msg ~> right)
+
+omnidirectionalFlowUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
+                                , Uint32
+                                , Ref s2 (Struct "omnidirectional_flow_msg")
+                                ] :-> () )
+omnidirectionalFlowUnpackRef = proc "mavlink_omnidirectional_flow_unpack_ref" $ \ buf off msg -> body $ do
+  unpackRef buf (off + 0) (msg ~> time_usec)
+  unpackRef buf (off + 8) (msg ~> front_distance_m)
+  unpackRef buf (off + 52) (msg ~> sensor_id)
+  unpackRef buf (off + 53) (msg ~> quality)
+  unpackRef buf (off + 12) (msg ~> left)
+  unpackRef buf (off + 32) (msg ~> right)
+
+instance SerializableRef (Struct "omnidirectional_flow_msg") where
+  packRef = call_ omnidirectionalFlowPackRef
+  unpackRef = call_ omnidirectionalFlowUnpackRef

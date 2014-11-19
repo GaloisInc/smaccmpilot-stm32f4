@@ -10,12 +10,10 @@
 
 module SMACCMPilot.Mavlink.Messages.Data32 where
 
-import Ivory.Serialize
-import SMACCMPilot.Mavlink.Unpack
-import SMACCMPilot.Mavlink.Send
-
 import Ivory.Language
-import Ivory.Stdlib
+import Ivory.Serialize
+import SMACCMPilot.Mavlink.Send
+import SMACCMPilot.Mavlink.Unpack
 
 data32MsgId :: Uint8
 data32MsgId = 170
@@ -30,6 +28,8 @@ data32Module = package "mavlink_data32_msg" $ do
   incl mkData32Sender
   incl data32Unpack
   defStruct (Proxy :: Proxy "data32_msg")
+  incl data32PackRef
+  incl data32UnpackRef
 
 [ivory|
 struct data32_msg
@@ -44,29 +44,7 @@ mkData32Sender ::
         , Ref s1 (Stored Uint8) -- seqNum
         , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
-mkData32Sender =
-  proc "mavlink_data32_msg_send"
-  $ \msg seqNum sendStruct -> body
-  $ do
-  arr <- local (iarray [] :: Init (Array 34 (Stored Uint8)))
-  let buf = toCArray arr
-  pack buf 0 =<< deref (msg ~> data32_type)
-  pack buf 1 =<< deref (msg ~> len)
-  arrayPack buf 2 (msg ~> data32)
-  -- 6: header len, 2: CRC len
-  let usedLen    = 6 + 34 + 2 :: Integer
-  let sendArr    = sendStruct ~> mav_array
-  let sendArrLen = arrayLen sendArr
-  if sendArrLen < usedLen
-    then error "data32 payload of length 34 is too large!"
-    else do -- Copy, leaving room for the payload
-            arrayCopy sendArr arr 6 (arrayLen arr)
-            call_ mavlinkSendWithWriter
-                    data32MsgId
-                    data32CrcExtra
-                    34
-                    seqNum
-                    sendStruct
+mkData32Sender = makeMavlinkSender "data32_msg" data32MsgId data32CrcExtra
 
 instance MavlinkUnpackableMsg "data32_msg" where
     unpackMsg = ( data32Unpack , data32MsgId )
@@ -74,8 +52,26 @@ instance MavlinkUnpackableMsg "data32_msg" where
 data32Unpack :: Def ('[ Ref s1 (Struct "data32_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-data32Unpack = proc "mavlink_data32_unpack" $ \ msg buf -> body $ do
-  store (msg ~> data32_type) =<< unpack buf 0
-  store (msg ~> len) =<< unpack buf 1
-  arrayUnpack buf 2 (msg ~> data32)
+data32Unpack = proc "mavlink_data32_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
 
+data32PackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
+                              , Uint32
+                              , ConstRef s2 (Struct "data32_msg")
+                              ] :-> () )
+data32PackRef = proc "mavlink_data32_pack_ref" $ \ buf off msg -> body $ do
+  packRef buf (off + 0) (msg ~> data32_type)
+  packRef buf (off + 1) (msg ~> len)
+  packRef buf (off + 2) (msg ~> data32)
+
+data32UnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
+                                , Uint32
+                                , Ref s2 (Struct "data32_msg")
+                                ] :-> () )
+data32UnpackRef = proc "mavlink_data32_unpack_ref" $ \ buf off msg -> body $ do
+  unpackRef buf (off + 0) (msg ~> data32_type)
+  unpackRef buf (off + 1) (msg ~> len)
+  unpackRef buf (off + 2) (msg ~> data32)
+
+instance SerializableRef (Struct "data32_msg") where
+  packRef = call_ data32PackRef
+  unpackRef = call_ data32UnpackRef

@@ -10,12 +10,10 @@
 
 module SMACCMPilot.Mavlink.Messages.VehCommsec where
 
-import Ivory.Serialize
-import SMACCMPilot.Mavlink.Unpack
-import SMACCMPilot.Mavlink.Send
-
 import Ivory.Language
-import Ivory.Stdlib
+import Ivory.Serialize
+import SMACCMPilot.Mavlink.Send
+import SMACCMPilot.Mavlink.Unpack
 
 vehCommsecMsgId :: Uint8
 vehCommsecMsgId = 185
@@ -30,6 +28,8 @@ vehCommsecModule = package "mavlink_veh_commsec_msg" $ do
   incl mkVehCommsecSender
   incl vehCommsecUnpack
   defStruct (Proxy :: Proxy "veh_commsec_msg")
+  incl vehCommsecPackRef
+  incl vehCommsecUnpackRef
 
 [ivory|
 struct veh_commsec_msg
@@ -45,30 +45,7 @@ mkVehCommsecSender ::
         , Ref s1 (Stored Uint8) -- seqNum
         , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
-mkVehCommsecSender =
-  proc "mavlink_veh_commsec_msg_send"
-  $ \msg seqNum sendStruct -> body
-  $ do
-  arr <- local (iarray [] :: Init (Array 13 (Stored Uint8)))
-  let buf = toCArray arr
-  pack buf 0 =<< deref (msg ~> time)
-  pack buf 4 =<< deref (msg ~> good_msgs)
-  pack buf 8 =<< deref (msg ~> bad_msgs)
-  pack buf 12 =<< deref (msg ~> commsec_err)
-  -- 6: header len, 2: CRC len
-  let usedLen    = 6 + 13 + 2 :: Integer
-  let sendArr    = sendStruct ~> mav_array
-  let sendArrLen = arrayLen sendArr
-  if sendArrLen < usedLen
-    then error "vehCommsec payload of length 13 is too large!"
-    else do -- Copy, leaving room for the payload
-            arrayCopy sendArr arr 6 (arrayLen arr)
-            call_ mavlinkSendWithWriter
-                    vehCommsecMsgId
-                    vehCommsecCrcExtra
-                    13
-                    seqNum
-                    sendStruct
+mkVehCommsecSender = makeMavlinkSender "veh_commsec_msg" vehCommsecMsgId vehCommsecCrcExtra
 
 instance MavlinkUnpackableMsg "veh_commsec_msg" where
     unpackMsg = ( vehCommsecUnpack , vehCommsecMsgId )
@@ -76,9 +53,28 @@ instance MavlinkUnpackableMsg "veh_commsec_msg" where
 vehCommsecUnpack :: Def ('[ Ref s1 (Struct "veh_commsec_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-vehCommsecUnpack = proc "mavlink_veh_commsec_unpack" $ \ msg buf -> body $ do
-  store (msg ~> time) =<< unpack buf 0
-  store (msg ~> good_msgs) =<< unpack buf 4
-  store (msg ~> bad_msgs) =<< unpack buf 8
-  store (msg ~> commsec_err) =<< unpack buf 12
+vehCommsecUnpack = proc "mavlink_veh_commsec_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
 
+vehCommsecPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
+                              , Uint32
+                              , ConstRef s2 (Struct "veh_commsec_msg")
+                              ] :-> () )
+vehCommsecPackRef = proc "mavlink_veh_commsec_pack_ref" $ \ buf off msg -> body $ do
+  packRef buf (off + 0) (msg ~> time)
+  packRef buf (off + 4) (msg ~> good_msgs)
+  packRef buf (off + 8) (msg ~> bad_msgs)
+  packRef buf (off + 12) (msg ~> commsec_err)
+
+vehCommsecUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
+                                , Uint32
+                                , Ref s2 (Struct "veh_commsec_msg")
+                                ] :-> () )
+vehCommsecUnpackRef = proc "mavlink_veh_commsec_unpack_ref" $ \ buf off msg -> body $ do
+  unpackRef buf (off + 0) (msg ~> time)
+  unpackRef buf (off + 4) (msg ~> good_msgs)
+  unpackRef buf (off + 8) (msg ~> bad_msgs)
+  unpackRef buf (off + 12) (msg ~> commsec_err)
+
+instance SerializableRef (Struct "veh_commsec_msg") where
+  packRef = call_ vehCommsecPackRef
+  unpackRef = call_ vehCommsecUnpackRef

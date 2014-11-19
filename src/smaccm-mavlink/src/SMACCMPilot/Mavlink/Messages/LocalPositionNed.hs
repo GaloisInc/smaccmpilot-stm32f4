@@ -10,12 +10,10 @@
 
 module SMACCMPilot.Mavlink.Messages.LocalPositionNed where
 
-import Ivory.Serialize
-import SMACCMPilot.Mavlink.Unpack
-import SMACCMPilot.Mavlink.Send
-
 import Ivory.Language
-import Ivory.Stdlib
+import Ivory.Serialize
+import SMACCMPilot.Mavlink.Send
+import SMACCMPilot.Mavlink.Unpack
 
 localPositionNedMsgId :: Uint8
 localPositionNedMsgId = 32
@@ -30,6 +28,8 @@ localPositionNedModule = package "mavlink_local_position_ned_msg" $ do
   incl mkLocalPositionNedSender
   incl localPositionNedUnpack
   defStruct (Proxy :: Proxy "local_position_ned_msg")
+  incl localPositionNedPackRef
+  incl localPositionNedUnpackRef
 
 [ivory|
 struct local_position_ned_msg
@@ -48,33 +48,7 @@ mkLocalPositionNedSender ::
         , Ref s1 (Stored Uint8) -- seqNum
         , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
-mkLocalPositionNedSender =
-  proc "mavlink_local_position_ned_msg_send"
-  $ \msg seqNum sendStruct -> body
-  $ do
-  arr <- local (iarray [] :: Init (Array 28 (Stored Uint8)))
-  let buf = toCArray arr
-  pack buf 0 =<< deref (msg ~> time_boot_ms)
-  pack buf 4 =<< deref (msg ~> x)
-  pack buf 8 =<< deref (msg ~> y)
-  pack buf 12 =<< deref (msg ~> z)
-  pack buf 16 =<< deref (msg ~> vx)
-  pack buf 20 =<< deref (msg ~> vy)
-  pack buf 24 =<< deref (msg ~> vz)
-  -- 6: header len, 2: CRC len
-  let usedLen    = 6 + 28 + 2 :: Integer
-  let sendArr    = sendStruct ~> mav_array
-  let sendArrLen = arrayLen sendArr
-  if sendArrLen < usedLen
-    then error "localPositionNed payload of length 28 is too large!"
-    else do -- Copy, leaving room for the payload
-            arrayCopy sendArr arr 6 (arrayLen arr)
-            call_ mavlinkSendWithWriter
-                    localPositionNedMsgId
-                    localPositionNedCrcExtra
-                    28
-                    seqNum
-                    sendStruct
+mkLocalPositionNedSender = makeMavlinkSender "local_position_ned_msg" localPositionNedMsgId localPositionNedCrcExtra
 
 instance MavlinkUnpackableMsg "local_position_ned_msg" where
     unpackMsg = ( localPositionNedUnpack , localPositionNedMsgId )
@@ -82,12 +56,34 @@ instance MavlinkUnpackableMsg "local_position_ned_msg" where
 localPositionNedUnpack :: Def ('[ Ref s1 (Struct "local_position_ned_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-localPositionNedUnpack = proc "mavlink_local_position_ned_unpack" $ \ msg buf -> body $ do
-  store (msg ~> time_boot_ms) =<< unpack buf 0
-  store (msg ~> x) =<< unpack buf 4
-  store (msg ~> y) =<< unpack buf 8
-  store (msg ~> z) =<< unpack buf 12
-  store (msg ~> vx) =<< unpack buf 16
-  store (msg ~> vy) =<< unpack buf 20
-  store (msg ~> vz) =<< unpack buf 24
+localPositionNedUnpack = proc "mavlink_local_position_ned_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
 
+localPositionNedPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
+                              , Uint32
+                              , ConstRef s2 (Struct "local_position_ned_msg")
+                              ] :-> () )
+localPositionNedPackRef = proc "mavlink_local_position_ned_pack_ref" $ \ buf off msg -> body $ do
+  packRef buf (off + 0) (msg ~> time_boot_ms)
+  packRef buf (off + 4) (msg ~> x)
+  packRef buf (off + 8) (msg ~> y)
+  packRef buf (off + 12) (msg ~> z)
+  packRef buf (off + 16) (msg ~> vx)
+  packRef buf (off + 20) (msg ~> vy)
+  packRef buf (off + 24) (msg ~> vz)
+
+localPositionNedUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
+                                , Uint32
+                                , Ref s2 (Struct "local_position_ned_msg")
+                                ] :-> () )
+localPositionNedUnpackRef = proc "mavlink_local_position_ned_unpack_ref" $ \ buf off msg -> body $ do
+  unpackRef buf (off + 0) (msg ~> time_boot_ms)
+  unpackRef buf (off + 4) (msg ~> x)
+  unpackRef buf (off + 8) (msg ~> y)
+  unpackRef buf (off + 12) (msg ~> z)
+  unpackRef buf (off + 16) (msg ~> vx)
+  unpackRef buf (off + 20) (msg ~> vy)
+  unpackRef buf (off + 24) (msg ~> vz)
+
+instance SerializableRef (Struct "local_position_ned_msg") where
+  packRef = call_ localPositionNedPackRef
+  unpackRef = call_ localPositionNedUnpackRef

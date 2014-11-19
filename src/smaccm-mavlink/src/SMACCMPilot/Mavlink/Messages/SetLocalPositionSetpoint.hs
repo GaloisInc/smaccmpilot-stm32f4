@@ -10,12 +10,10 @@
 
 module SMACCMPilot.Mavlink.Messages.SetLocalPositionSetpoint where
 
-import Ivory.Serialize
-import SMACCMPilot.Mavlink.Unpack
-import SMACCMPilot.Mavlink.Send
-
 import Ivory.Language
-import Ivory.Stdlib
+import Ivory.Serialize
+import SMACCMPilot.Mavlink.Send
+import SMACCMPilot.Mavlink.Unpack
 
 setLocalPositionSetpointMsgId :: Uint8
 setLocalPositionSetpointMsgId = 50
@@ -30,6 +28,8 @@ setLocalPositionSetpointModule = package "mavlink_set_local_position_setpoint_ms
   incl mkSetLocalPositionSetpointSender
   incl setLocalPositionSetpointUnpack
   defStruct (Proxy :: Proxy "set_local_position_setpoint_msg")
+  incl setLocalPositionSetpointPackRef
+  incl setLocalPositionSetpointUnpackRef
 
 [ivory|
 struct set_local_position_setpoint_msg
@@ -48,33 +48,7 @@ mkSetLocalPositionSetpointSender ::
         , Ref s1 (Stored Uint8) -- seqNum
         , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
-mkSetLocalPositionSetpointSender =
-  proc "mavlink_set_local_position_setpoint_msg_send"
-  $ \msg seqNum sendStruct -> body
-  $ do
-  arr <- local (iarray [] :: Init (Array 19 (Stored Uint8)))
-  let buf = toCArray arr
-  pack buf 0 =<< deref (msg ~> x)
-  pack buf 4 =<< deref (msg ~> y)
-  pack buf 8 =<< deref (msg ~> z)
-  pack buf 12 =<< deref (msg ~> yaw)
-  pack buf 16 =<< deref (msg ~> target_system)
-  pack buf 17 =<< deref (msg ~> target_component)
-  pack buf 18 =<< deref (msg ~> coordinate_frame)
-  -- 6: header len, 2: CRC len
-  let usedLen    = 6 + 19 + 2 :: Integer
-  let sendArr    = sendStruct ~> mav_array
-  let sendArrLen = arrayLen sendArr
-  if sendArrLen < usedLen
-    then error "setLocalPositionSetpoint payload of length 19 is too large!"
-    else do -- Copy, leaving room for the payload
-            arrayCopy sendArr arr 6 (arrayLen arr)
-            call_ mavlinkSendWithWriter
-                    setLocalPositionSetpointMsgId
-                    setLocalPositionSetpointCrcExtra
-                    19
-                    seqNum
-                    sendStruct
+mkSetLocalPositionSetpointSender = makeMavlinkSender "set_local_position_setpoint_msg" setLocalPositionSetpointMsgId setLocalPositionSetpointCrcExtra
 
 instance MavlinkUnpackableMsg "set_local_position_setpoint_msg" where
     unpackMsg = ( setLocalPositionSetpointUnpack , setLocalPositionSetpointMsgId )
@@ -82,12 +56,34 @@ instance MavlinkUnpackableMsg "set_local_position_setpoint_msg" where
 setLocalPositionSetpointUnpack :: Def ('[ Ref s1 (Struct "set_local_position_setpoint_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-setLocalPositionSetpointUnpack = proc "mavlink_set_local_position_setpoint_unpack" $ \ msg buf -> body $ do
-  store (msg ~> x) =<< unpack buf 0
-  store (msg ~> y) =<< unpack buf 4
-  store (msg ~> z) =<< unpack buf 8
-  store (msg ~> yaw) =<< unpack buf 12
-  store (msg ~> target_system) =<< unpack buf 16
-  store (msg ~> target_component) =<< unpack buf 17
-  store (msg ~> coordinate_frame) =<< unpack buf 18
+setLocalPositionSetpointUnpack = proc "mavlink_set_local_position_setpoint_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
 
+setLocalPositionSetpointPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
+                              , Uint32
+                              , ConstRef s2 (Struct "set_local_position_setpoint_msg")
+                              ] :-> () )
+setLocalPositionSetpointPackRef = proc "mavlink_set_local_position_setpoint_pack_ref" $ \ buf off msg -> body $ do
+  packRef buf (off + 0) (msg ~> x)
+  packRef buf (off + 4) (msg ~> y)
+  packRef buf (off + 8) (msg ~> z)
+  packRef buf (off + 12) (msg ~> yaw)
+  packRef buf (off + 16) (msg ~> target_system)
+  packRef buf (off + 17) (msg ~> target_component)
+  packRef buf (off + 18) (msg ~> coordinate_frame)
+
+setLocalPositionSetpointUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
+                                , Uint32
+                                , Ref s2 (Struct "set_local_position_setpoint_msg")
+                                ] :-> () )
+setLocalPositionSetpointUnpackRef = proc "mavlink_set_local_position_setpoint_unpack_ref" $ \ buf off msg -> body $ do
+  unpackRef buf (off + 0) (msg ~> x)
+  unpackRef buf (off + 4) (msg ~> y)
+  unpackRef buf (off + 8) (msg ~> z)
+  unpackRef buf (off + 12) (msg ~> yaw)
+  unpackRef buf (off + 16) (msg ~> target_system)
+  unpackRef buf (off + 17) (msg ~> target_component)
+  unpackRef buf (off + 18) (msg ~> coordinate_frame)
+
+instance SerializableRef (Struct "set_local_position_setpoint_msg") where
+  packRef = call_ setLocalPositionSetpointPackRef
+  unpackRef = call_ setLocalPositionSetpointUnpackRef

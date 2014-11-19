@@ -10,12 +10,10 @@
 
 module SMACCMPilot.Mavlink.Messages.DataStream where
 
-import Ivory.Serialize
-import SMACCMPilot.Mavlink.Unpack
-import SMACCMPilot.Mavlink.Send
-
 import Ivory.Language
-import Ivory.Stdlib
+import Ivory.Serialize
+import SMACCMPilot.Mavlink.Send
+import SMACCMPilot.Mavlink.Unpack
 
 dataStreamMsgId :: Uint8
 dataStreamMsgId = 67
@@ -30,6 +28,8 @@ dataStreamModule = package "mavlink_data_stream_msg" $ do
   incl mkDataStreamSender
   incl dataStreamUnpack
   defStruct (Proxy :: Proxy "data_stream_msg")
+  incl dataStreamPackRef
+  incl dataStreamUnpackRef
 
 [ivory|
 struct data_stream_msg
@@ -44,29 +44,7 @@ mkDataStreamSender ::
         , Ref s1 (Stored Uint8) -- seqNum
         , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
-mkDataStreamSender =
-  proc "mavlink_data_stream_msg_send"
-  $ \msg seqNum sendStruct -> body
-  $ do
-  arr <- local (iarray [] :: Init (Array 4 (Stored Uint8)))
-  let buf = toCArray arr
-  pack buf 0 =<< deref (msg ~> message_rate)
-  pack buf 2 =<< deref (msg ~> stream_id)
-  pack buf 3 =<< deref (msg ~> on_off)
-  -- 6: header len, 2: CRC len
-  let usedLen    = 6 + 4 + 2 :: Integer
-  let sendArr    = sendStruct ~> mav_array
-  let sendArrLen = arrayLen sendArr
-  if sendArrLen < usedLen
-    then error "dataStream payload of length 4 is too large!"
-    else do -- Copy, leaving room for the payload
-            arrayCopy sendArr arr 6 (arrayLen arr)
-            call_ mavlinkSendWithWriter
-                    dataStreamMsgId
-                    dataStreamCrcExtra
-                    4
-                    seqNum
-                    sendStruct
+mkDataStreamSender = makeMavlinkSender "data_stream_msg" dataStreamMsgId dataStreamCrcExtra
 
 instance MavlinkUnpackableMsg "data_stream_msg" where
     unpackMsg = ( dataStreamUnpack , dataStreamMsgId )
@@ -74,8 +52,26 @@ instance MavlinkUnpackableMsg "data_stream_msg" where
 dataStreamUnpack :: Def ('[ Ref s1 (Struct "data_stream_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-dataStreamUnpack = proc "mavlink_data_stream_unpack" $ \ msg buf -> body $ do
-  store (msg ~> message_rate) =<< unpack buf 0
-  store (msg ~> stream_id) =<< unpack buf 2
-  store (msg ~> on_off) =<< unpack buf 3
+dataStreamUnpack = proc "mavlink_data_stream_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
 
+dataStreamPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
+                              , Uint32
+                              , ConstRef s2 (Struct "data_stream_msg")
+                              ] :-> () )
+dataStreamPackRef = proc "mavlink_data_stream_pack_ref" $ \ buf off msg -> body $ do
+  packRef buf (off + 0) (msg ~> message_rate)
+  packRef buf (off + 2) (msg ~> stream_id)
+  packRef buf (off + 3) (msg ~> on_off)
+
+dataStreamUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
+                                , Uint32
+                                , Ref s2 (Struct "data_stream_msg")
+                                ] :-> () )
+dataStreamUnpackRef = proc "mavlink_data_stream_unpack_ref" $ \ buf off msg -> body $ do
+  unpackRef buf (off + 0) (msg ~> message_rate)
+  unpackRef buf (off + 2) (msg ~> stream_id)
+  unpackRef buf (off + 3) (msg ~> on_off)
+
+instance SerializableRef (Struct "data_stream_msg") where
+  packRef = call_ dataStreamPackRef
+  unpackRef = call_ dataStreamUnpackRef

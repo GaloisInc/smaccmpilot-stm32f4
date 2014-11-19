@@ -10,12 +10,10 @@
 
 module SMACCMPilot.Mavlink.Messages.AuthKey where
 
-import Ivory.Serialize
-import SMACCMPilot.Mavlink.Unpack
-import SMACCMPilot.Mavlink.Send
-
 import Ivory.Language
-import Ivory.Stdlib
+import Ivory.Serialize
+import SMACCMPilot.Mavlink.Send
+import SMACCMPilot.Mavlink.Unpack
 
 authKeyMsgId :: Uint8
 authKeyMsgId = 7
@@ -30,6 +28,8 @@ authKeyModule = package "mavlink_auth_key_msg" $ do
   incl mkAuthKeySender
   incl authKeyUnpack
   defStruct (Proxy :: Proxy "auth_key_msg")
+  incl authKeyPackRef
+  incl authKeyUnpackRef
 
 [ivory|
 struct auth_key_msg
@@ -42,27 +42,7 @@ mkAuthKeySender ::
         , Ref s1 (Stored Uint8) -- seqNum
         , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
-mkAuthKeySender =
-  proc "mavlink_auth_key_msg_send"
-  $ \msg seqNum sendStruct -> body
-  $ do
-  arr <- local (iarray [] :: Init (Array 32 (Stored Uint8)))
-  let buf = toCArray arr
-  arrayPack buf 0 (msg ~> key)
-  -- 6: header len, 2: CRC len
-  let usedLen    = 6 + 32 + 2 :: Integer
-  let sendArr    = sendStruct ~> mav_array
-  let sendArrLen = arrayLen sendArr
-  if sendArrLen < usedLen
-    then error "authKey payload of length 32 is too large!"
-    else do -- Copy, leaving room for the payload
-            arrayCopy sendArr arr 6 (arrayLen arr)
-            call_ mavlinkSendWithWriter
-                    authKeyMsgId
-                    authKeyCrcExtra
-                    32
-                    seqNum
-                    sendStruct
+mkAuthKeySender = makeMavlinkSender "auth_key_msg" authKeyMsgId authKeyCrcExtra
 
 instance MavlinkUnpackableMsg "auth_key_msg" where
     unpackMsg = ( authKeyUnpack , authKeyMsgId )
@@ -70,6 +50,22 @@ instance MavlinkUnpackableMsg "auth_key_msg" where
 authKeyUnpack :: Def ('[ Ref s1 (Struct "auth_key_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-authKeyUnpack = proc "mavlink_auth_key_unpack" $ \ msg buf -> body $ do
-  arrayUnpack buf 0 (msg ~> key)
+authKeyUnpack = proc "mavlink_auth_key_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
 
+authKeyPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
+                              , Uint32
+                              , ConstRef s2 (Struct "auth_key_msg")
+                              ] :-> () )
+authKeyPackRef = proc "mavlink_auth_key_pack_ref" $ \ buf off msg -> body $ do
+  packRef buf (off + 0) (msg ~> key)
+
+authKeyUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
+                                , Uint32
+                                , Ref s2 (Struct "auth_key_msg")
+                                ] :-> () )
+authKeyUnpackRef = proc "mavlink_auth_key_unpack_ref" $ \ buf off msg -> body $ do
+  unpackRef buf (off + 0) (msg ~> key)
+
+instance SerializableRef (Struct "auth_key_msg") where
+  packRef = call_ authKeyPackRef
+  unpackRef = call_ authKeyUnpackRef

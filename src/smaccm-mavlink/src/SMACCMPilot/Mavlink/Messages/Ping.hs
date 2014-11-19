@@ -10,12 +10,10 @@
 
 module SMACCMPilot.Mavlink.Messages.Ping where
 
-import Ivory.Serialize
-import SMACCMPilot.Mavlink.Unpack
-import SMACCMPilot.Mavlink.Send
-
 import Ivory.Language
-import Ivory.Stdlib
+import Ivory.Serialize
+import SMACCMPilot.Mavlink.Send
+import SMACCMPilot.Mavlink.Unpack
 
 pingMsgId :: Uint8
 pingMsgId = 4
@@ -30,6 +28,8 @@ pingModule = package "mavlink_ping_msg" $ do
   incl mkPingSender
   incl pingUnpack
   defStruct (Proxy :: Proxy "ping_msg")
+  incl pingPackRef
+  incl pingUnpackRef
 
 [ivory|
 struct ping_msg
@@ -45,30 +45,7 @@ mkPingSender ::
         , Ref s1 (Stored Uint8) -- seqNum
         , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
-mkPingSender =
-  proc "mavlink_ping_msg_send"
-  $ \msg seqNum sendStruct -> body
-  $ do
-  arr <- local (iarray [] :: Init (Array 14 (Stored Uint8)))
-  let buf = toCArray arr
-  pack buf 0 =<< deref (msg ~> time_usec)
-  pack buf 8 =<< deref (msg ~> ping_seq)
-  pack buf 12 =<< deref (msg ~> target_system)
-  pack buf 13 =<< deref (msg ~> target_component)
-  -- 6: header len, 2: CRC len
-  let usedLen    = 6 + 14 + 2 :: Integer
-  let sendArr    = sendStruct ~> mav_array
-  let sendArrLen = arrayLen sendArr
-  if sendArrLen < usedLen
-    then error "ping payload of length 14 is too large!"
-    else do -- Copy, leaving room for the payload
-            arrayCopy sendArr arr 6 (arrayLen arr)
-            call_ mavlinkSendWithWriter
-                    pingMsgId
-                    pingCrcExtra
-                    14
-                    seqNum
-                    sendStruct
+mkPingSender = makeMavlinkSender "ping_msg" pingMsgId pingCrcExtra
 
 instance MavlinkUnpackableMsg "ping_msg" where
     unpackMsg = ( pingUnpack , pingMsgId )
@@ -76,9 +53,28 @@ instance MavlinkUnpackableMsg "ping_msg" where
 pingUnpack :: Def ('[ Ref s1 (Struct "ping_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-pingUnpack = proc "mavlink_ping_unpack" $ \ msg buf -> body $ do
-  store (msg ~> time_usec) =<< unpack buf 0
-  store (msg ~> ping_seq) =<< unpack buf 8
-  store (msg ~> target_system) =<< unpack buf 12
-  store (msg ~> target_component) =<< unpack buf 13
+pingUnpack = proc "mavlink_ping_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
 
+pingPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
+                              , Uint32
+                              , ConstRef s2 (Struct "ping_msg")
+                              ] :-> () )
+pingPackRef = proc "mavlink_ping_pack_ref" $ \ buf off msg -> body $ do
+  packRef buf (off + 0) (msg ~> time_usec)
+  packRef buf (off + 8) (msg ~> ping_seq)
+  packRef buf (off + 12) (msg ~> target_system)
+  packRef buf (off + 13) (msg ~> target_component)
+
+pingUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
+                                , Uint32
+                                , Ref s2 (Struct "ping_msg")
+                                ] :-> () )
+pingUnpackRef = proc "mavlink_ping_unpack_ref" $ \ buf off msg -> body $ do
+  unpackRef buf (off + 0) (msg ~> time_usec)
+  unpackRef buf (off + 8) (msg ~> ping_seq)
+  unpackRef buf (off + 12) (msg ~> target_system)
+  unpackRef buf (off + 13) (msg ~> target_component)
+
+instance SerializableRef (Struct "ping_msg") where
+  packRef = call_ pingPackRef
+  unpackRef = call_ pingUnpackRef

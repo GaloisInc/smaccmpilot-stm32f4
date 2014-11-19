@@ -10,12 +10,10 @@
 
 module SMACCMPilot.Mavlink.Messages.PosCtlDebug where
 
-import Ivory.Serialize
-import SMACCMPilot.Mavlink.Unpack
-import SMACCMPilot.Mavlink.Send
-
 import Ivory.Language
-import Ivory.Stdlib
+import Ivory.Serialize
+import SMACCMPilot.Mavlink.Send
+import SMACCMPilot.Mavlink.Unpack
 
 posCtlDebugMsgId :: Uint8
 posCtlDebugMsgId = 187
@@ -30,6 +28,8 @@ posCtlDebugModule = package "mavlink_pos_ctl_debug_msg" $ do
   incl mkPosCtlDebugSender
   incl posCtlDebugUnpack
   defStruct (Proxy :: Proxy "pos_ctl_debug_msg")
+  incl posCtlDebugPackRef
+  incl posCtlDebugUnpackRef
 
 [ivory|
 struct pos_ctl_debug_msg
@@ -56,41 +56,7 @@ mkPosCtlDebugSender ::
         , Ref s1 (Stored Uint8) -- seqNum
         , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
-mkPosCtlDebugSender =
-  proc "mavlink_pos_ctl_debug_msg_send"
-  $ \msg seqNum sendStruct -> body
-  $ do
-  arr <- local (iarray [] :: Init (Array 60 (Stored Uint8)))
-  let buf = toCArray arr
-  pack buf 0 =<< deref (msg ~> x_vel_setpt)
-  pack buf 4 =<< deref (msg ~> y_vel_setpt)
-  pack buf 8 =<< deref (msg ~> head_setpt)
-  pack buf 12 =<< deref (msg ~> lat_setpt)
-  pack buf 16 =<< deref (msg ~> lon_setpt)
-  pack buf 20 =<< deref (msg ~> x_deviation)
-  pack buf 24 =<< deref (msg ~> y_deviation)
-  pack buf 28 =<< deref (msg ~> x_vel_est)
-  pack buf 32 =<< deref (msg ~> x_vel_p)
-  pack buf 36 =<< deref (msg ~> x_vel_i)
-  pack buf 40 =<< deref (msg ~> x_vel_d)
-  pack buf 44 =<< deref (msg ~> y_vel_est)
-  pack buf 48 =<< deref (msg ~> y_vel_p)
-  pack buf 52 =<< deref (msg ~> y_vel_i)
-  pack buf 56 =<< deref (msg ~> y_vel_d)
-  -- 6: header len, 2: CRC len
-  let usedLen    = 6 + 60 + 2 :: Integer
-  let sendArr    = sendStruct ~> mav_array
-  let sendArrLen = arrayLen sendArr
-  if sendArrLen < usedLen
-    then error "posCtlDebug payload of length 60 is too large!"
-    else do -- Copy, leaving room for the payload
-            arrayCopy sendArr arr 6 (arrayLen arr)
-            call_ mavlinkSendWithWriter
-                    posCtlDebugMsgId
-                    posCtlDebugCrcExtra
-                    60
-                    seqNum
-                    sendStruct
+mkPosCtlDebugSender = makeMavlinkSender "pos_ctl_debug_msg" posCtlDebugMsgId posCtlDebugCrcExtra
 
 instance MavlinkUnpackableMsg "pos_ctl_debug_msg" where
     unpackMsg = ( posCtlDebugUnpack , posCtlDebugMsgId )
@@ -98,20 +64,50 @@ instance MavlinkUnpackableMsg "pos_ctl_debug_msg" where
 posCtlDebugUnpack :: Def ('[ Ref s1 (Struct "pos_ctl_debug_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-posCtlDebugUnpack = proc "mavlink_pos_ctl_debug_unpack" $ \ msg buf -> body $ do
-  store (msg ~> x_vel_setpt) =<< unpack buf 0
-  store (msg ~> y_vel_setpt) =<< unpack buf 4
-  store (msg ~> head_setpt) =<< unpack buf 8
-  store (msg ~> lat_setpt) =<< unpack buf 12
-  store (msg ~> lon_setpt) =<< unpack buf 16
-  store (msg ~> x_deviation) =<< unpack buf 20
-  store (msg ~> y_deviation) =<< unpack buf 24
-  store (msg ~> x_vel_est) =<< unpack buf 28
-  store (msg ~> x_vel_p) =<< unpack buf 32
-  store (msg ~> x_vel_i) =<< unpack buf 36
-  store (msg ~> x_vel_d) =<< unpack buf 40
-  store (msg ~> y_vel_est) =<< unpack buf 44
-  store (msg ~> y_vel_p) =<< unpack buf 48
-  store (msg ~> y_vel_i) =<< unpack buf 52
-  store (msg ~> y_vel_d) =<< unpack buf 56
+posCtlDebugUnpack = proc "mavlink_pos_ctl_debug_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
 
+posCtlDebugPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
+                              , Uint32
+                              , ConstRef s2 (Struct "pos_ctl_debug_msg")
+                              ] :-> () )
+posCtlDebugPackRef = proc "mavlink_pos_ctl_debug_pack_ref" $ \ buf off msg -> body $ do
+  packRef buf (off + 0) (msg ~> x_vel_setpt)
+  packRef buf (off + 4) (msg ~> y_vel_setpt)
+  packRef buf (off + 8) (msg ~> head_setpt)
+  packRef buf (off + 12) (msg ~> lat_setpt)
+  packRef buf (off + 16) (msg ~> lon_setpt)
+  packRef buf (off + 20) (msg ~> x_deviation)
+  packRef buf (off + 24) (msg ~> y_deviation)
+  packRef buf (off + 28) (msg ~> x_vel_est)
+  packRef buf (off + 32) (msg ~> x_vel_p)
+  packRef buf (off + 36) (msg ~> x_vel_i)
+  packRef buf (off + 40) (msg ~> x_vel_d)
+  packRef buf (off + 44) (msg ~> y_vel_est)
+  packRef buf (off + 48) (msg ~> y_vel_p)
+  packRef buf (off + 52) (msg ~> y_vel_i)
+  packRef buf (off + 56) (msg ~> y_vel_d)
+
+posCtlDebugUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
+                                , Uint32
+                                , Ref s2 (Struct "pos_ctl_debug_msg")
+                                ] :-> () )
+posCtlDebugUnpackRef = proc "mavlink_pos_ctl_debug_unpack_ref" $ \ buf off msg -> body $ do
+  unpackRef buf (off + 0) (msg ~> x_vel_setpt)
+  unpackRef buf (off + 4) (msg ~> y_vel_setpt)
+  unpackRef buf (off + 8) (msg ~> head_setpt)
+  unpackRef buf (off + 12) (msg ~> lat_setpt)
+  unpackRef buf (off + 16) (msg ~> lon_setpt)
+  unpackRef buf (off + 20) (msg ~> x_deviation)
+  unpackRef buf (off + 24) (msg ~> y_deviation)
+  unpackRef buf (off + 28) (msg ~> x_vel_est)
+  unpackRef buf (off + 32) (msg ~> x_vel_p)
+  unpackRef buf (off + 36) (msg ~> x_vel_i)
+  unpackRef buf (off + 40) (msg ~> x_vel_d)
+  unpackRef buf (off + 44) (msg ~> y_vel_est)
+  unpackRef buf (off + 48) (msg ~> y_vel_p)
+  unpackRef buf (off + 52) (msg ~> y_vel_i)
+  unpackRef buf (off + 56) (msg ~> y_vel_d)
+
+instance SerializableRef (Struct "pos_ctl_debug_msg") where
+  packRef = call_ posCtlDebugPackRef
+  unpackRef = call_ posCtlDebugUnpackRef

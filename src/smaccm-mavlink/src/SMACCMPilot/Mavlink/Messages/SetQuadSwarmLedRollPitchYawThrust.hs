@@ -10,12 +10,10 @@
 
 module SMACCMPilot.Mavlink.Messages.SetQuadSwarmLedRollPitchYawThrust where
 
-import Ivory.Serialize
-import SMACCMPilot.Mavlink.Unpack
-import SMACCMPilot.Mavlink.Send
-
 import Ivory.Language
-import Ivory.Stdlib
+import Ivory.Serialize
+import SMACCMPilot.Mavlink.Send
+import SMACCMPilot.Mavlink.Unpack
 
 setQuadSwarmLedRollPitchYawThrustMsgId :: Uint8
 setQuadSwarmLedRollPitchYawThrustMsgId = 63
@@ -30,6 +28,8 @@ setQuadSwarmLedRollPitchYawThrustModule = package "mavlink_set_quad_swarm_led_ro
   incl mkSetQuadSwarmLedRollPitchYawThrustSender
   incl setQuadSwarmLedRollPitchYawThrustUnpack
   defStruct (Proxy :: Proxy "set_quad_swarm_led_roll_pitch_yaw_thrust_msg")
+  incl setQuadSwarmLedRollPitchYawThrustPackRef
+  incl setQuadSwarmLedRollPitchYawThrustUnpackRef
 
 [ivory|
 struct set_quad_swarm_led_roll_pitch_yaw_thrust_msg
@@ -50,35 +50,7 @@ mkSetQuadSwarmLedRollPitchYawThrustSender ::
         , Ref s1 (Stored Uint8) -- seqNum
         , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
-mkSetQuadSwarmLedRollPitchYawThrustSender =
-  proc "mavlink_set_quad_swarm_led_roll_pitch_yaw_thrust_msg_send"
-  $ \msg seqNum sendStruct -> body
-  $ do
-  arr <- local (iarray [] :: Init (Array 46 (Stored Uint8)))
-  let buf = toCArray arr
-  pack buf 32 =<< deref (msg ~> group)
-  pack buf 33 =<< deref (msg ~> mode)
-  arrayPack buf 0 (msg ~> roll)
-  arrayPack buf 8 (msg ~> pitch)
-  arrayPack buf 16 (msg ~> yaw)
-  arrayPack buf 24 (msg ~> thrust)
-  arrayPack buf 34 (msg ~> led_red)
-  arrayPack buf 38 (msg ~> led_blue)
-  arrayPack buf 42 (msg ~> led_green)
-  -- 6: header len, 2: CRC len
-  let usedLen    = 6 + 46 + 2 :: Integer
-  let sendArr    = sendStruct ~> mav_array
-  let sendArrLen = arrayLen sendArr
-  if sendArrLen < usedLen
-    then error "setQuadSwarmLedRollPitchYawThrust payload of length 46 is too large!"
-    else do -- Copy, leaving room for the payload
-            arrayCopy sendArr arr 6 (arrayLen arr)
-            call_ mavlinkSendWithWriter
-                    setQuadSwarmLedRollPitchYawThrustMsgId
-                    setQuadSwarmLedRollPitchYawThrustCrcExtra
-                    46
-                    seqNum
-                    sendStruct
+mkSetQuadSwarmLedRollPitchYawThrustSender = makeMavlinkSender "set_quad_swarm_led_roll_pitch_yaw_thrust_msg" setQuadSwarmLedRollPitchYawThrustMsgId setQuadSwarmLedRollPitchYawThrustCrcExtra
 
 instance MavlinkUnpackableMsg "set_quad_swarm_led_roll_pitch_yaw_thrust_msg" where
     unpackMsg = ( setQuadSwarmLedRollPitchYawThrustUnpack , setQuadSwarmLedRollPitchYawThrustMsgId )
@@ -86,14 +58,38 @@ instance MavlinkUnpackableMsg "set_quad_swarm_led_roll_pitch_yaw_thrust_msg" whe
 setQuadSwarmLedRollPitchYawThrustUnpack :: Def ('[ Ref s1 (Struct "set_quad_swarm_led_roll_pitch_yaw_thrust_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-setQuadSwarmLedRollPitchYawThrustUnpack = proc "mavlink_set_quad_swarm_led_roll_pitch_yaw_thrust_unpack" $ \ msg buf -> body $ do
-  store (msg ~> group) =<< unpack buf 32
-  store (msg ~> mode) =<< unpack buf 33
-  arrayUnpack buf 0 (msg ~> roll)
-  arrayUnpack buf 8 (msg ~> pitch)
-  arrayUnpack buf 16 (msg ~> yaw)
-  arrayUnpack buf 24 (msg ~> thrust)
-  arrayUnpack buf 34 (msg ~> led_red)
-  arrayUnpack buf 38 (msg ~> led_blue)
-  arrayUnpack buf 42 (msg ~> led_green)
+setQuadSwarmLedRollPitchYawThrustUnpack = proc "mavlink_set_quad_swarm_led_roll_pitch_yaw_thrust_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
 
+setQuadSwarmLedRollPitchYawThrustPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
+                              , Uint32
+                              , ConstRef s2 (Struct "set_quad_swarm_led_roll_pitch_yaw_thrust_msg")
+                              ] :-> () )
+setQuadSwarmLedRollPitchYawThrustPackRef = proc "mavlink_set_quad_swarm_led_roll_pitch_yaw_thrust_pack_ref" $ \ buf off msg -> body $ do
+  packRef buf (off + 32) (msg ~> group)
+  packRef buf (off + 33) (msg ~> mode)
+  packRef buf (off + 0) (msg ~> roll)
+  packRef buf (off + 8) (msg ~> pitch)
+  packRef buf (off + 16) (msg ~> yaw)
+  packRef buf (off + 24) (msg ~> thrust)
+  packRef buf (off + 34) (msg ~> led_red)
+  packRef buf (off + 38) (msg ~> led_blue)
+  packRef buf (off + 42) (msg ~> led_green)
+
+setQuadSwarmLedRollPitchYawThrustUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
+                                , Uint32
+                                , Ref s2 (Struct "set_quad_swarm_led_roll_pitch_yaw_thrust_msg")
+                                ] :-> () )
+setQuadSwarmLedRollPitchYawThrustUnpackRef = proc "mavlink_set_quad_swarm_led_roll_pitch_yaw_thrust_unpack_ref" $ \ buf off msg -> body $ do
+  unpackRef buf (off + 32) (msg ~> group)
+  unpackRef buf (off + 33) (msg ~> mode)
+  unpackRef buf (off + 0) (msg ~> roll)
+  unpackRef buf (off + 8) (msg ~> pitch)
+  unpackRef buf (off + 16) (msg ~> yaw)
+  unpackRef buf (off + 24) (msg ~> thrust)
+  unpackRef buf (off + 34) (msg ~> led_red)
+  unpackRef buf (off + 38) (msg ~> led_blue)
+  unpackRef buf (off + 42) (msg ~> led_green)
+
+instance SerializableRef (Struct "set_quad_swarm_led_roll_pitch_yaw_thrust_msg") where
+  packRef = call_ setQuadSwarmLedRollPitchYawThrustPackRef
+  unpackRef = call_ setQuadSwarmLedRollPitchYawThrustUnpackRef

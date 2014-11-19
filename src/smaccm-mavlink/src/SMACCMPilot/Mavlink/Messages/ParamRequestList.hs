@@ -10,12 +10,10 @@
 
 module SMACCMPilot.Mavlink.Messages.ParamRequestList where
 
-import Ivory.Serialize
-import SMACCMPilot.Mavlink.Unpack
-import SMACCMPilot.Mavlink.Send
-
 import Ivory.Language
-import Ivory.Stdlib
+import Ivory.Serialize
+import SMACCMPilot.Mavlink.Send
+import SMACCMPilot.Mavlink.Unpack
 
 paramRequestListMsgId :: Uint8
 paramRequestListMsgId = 21
@@ -30,6 +28,8 @@ paramRequestListModule = package "mavlink_param_request_list_msg" $ do
   incl mkParamRequestListSender
   incl paramRequestListUnpack
   defStruct (Proxy :: Proxy "param_request_list_msg")
+  incl paramRequestListPackRef
+  incl paramRequestListUnpackRef
 
 [ivory|
 struct param_request_list_msg
@@ -43,28 +43,7 @@ mkParamRequestListSender ::
         , Ref s1 (Stored Uint8) -- seqNum
         , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
-mkParamRequestListSender =
-  proc "mavlink_param_request_list_msg_send"
-  $ \msg seqNum sendStruct -> body
-  $ do
-  arr <- local (iarray [] :: Init (Array 2 (Stored Uint8)))
-  let buf = toCArray arr
-  pack buf 0 =<< deref (msg ~> target_system)
-  pack buf 1 =<< deref (msg ~> target_component)
-  -- 6: header len, 2: CRC len
-  let usedLen    = 6 + 2 + 2 :: Integer
-  let sendArr    = sendStruct ~> mav_array
-  let sendArrLen = arrayLen sendArr
-  if sendArrLen < usedLen
-    then error "paramRequestList payload of length 2 is too large!"
-    else do -- Copy, leaving room for the payload
-            arrayCopy sendArr arr 6 (arrayLen arr)
-            call_ mavlinkSendWithWriter
-                    paramRequestListMsgId
-                    paramRequestListCrcExtra
-                    2
-                    seqNum
-                    sendStruct
+mkParamRequestListSender = makeMavlinkSender "param_request_list_msg" paramRequestListMsgId paramRequestListCrcExtra
 
 instance MavlinkUnpackableMsg "param_request_list_msg" where
     unpackMsg = ( paramRequestListUnpack , paramRequestListMsgId )
@@ -72,7 +51,24 @@ instance MavlinkUnpackableMsg "param_request_list_msg" where
 paramRequestListUnpack :: Def ('[ Ref s1 (Struct "param_request_list_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-paramRequestListUnpack = proc "mavlink_param_request_list_unpack" $ \ msg buf -> body $ do
-  store (msg ~> target_system) =<< unpack buf 0
-  store (msg ~> target_component) =<< unpack buf 1
+paramRequestListUnpack = proc "mavlink_param_request_list_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
 
+paramRequestListPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
+                              , Uint32
+                              , ConstRef s2 (Struct "param_request_list_msg")
+                              ] :-> () )
+paramRequestListPackRef = proc "mavlink_param_request_list_pack_ref" $ \ buf off msg -> body $ do
+  packRef buf (off + 0) (msg ~> target_system)
+  packRef buf (off + 1) (msg ~> target_component)
+
+paramRequestListUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
+                                , Uint32
+                                , Ref s2 (Struct "param_request_list_msg")
+                                ] :-> () )
+paramRequestListUnpackRef = proc "mavlink_param_request_list_unpack_ref" $ \ buf off msg -> body $ do
+  unpackRef buf (off + 0) (msg ~> target_system)
+  unpackRef buf (off + 1) (msg ~> target_component)
+
+instance SerializableRef (Struct "param_request_list_msg") where
+  packRef = call_ paramRequestListPackRef
+  unpackRef = call_ paramRequestListUnpackRef

@@ -10,12 +10,10 @@
 
 module SMACCMPilot.Mavlink.Messages.Debug where
 
-import Ivory.Serialize
-import SMACCMPilot.Mavlink.Unpack
-import SMACCMPilot.Mavlink.Send
-
 import Ivory.Language
-import Ivory.Stdlib
+import Ivory.Serialize
+import SMACCMPilot.Mavlink.Send
+import SMACCMPilot.Mavlink.Unpack
 
 debugMsgId :: Uint8
 debugMsgId = 254
@@ -30,6 +28,8 @@ debugModule = package "mavlink_debug_msg" $ do
   incl mkDebugSender
   incl debugUnpack
   defStruct (Proxy :: Proxy "debug_msg")
+  incl debugPackRef
+  incl debugUnpackRef
 
 [ivory|
 struct debug_msg
@@ -44,29 +44,7 @@ mkDebugSender ::
         , Ref s1 (Stored Uint8) -- seqNum
         , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
-mkDebugSender =
-  proc "mavlink_debug_msg_send"
-  $ \msg seqNum sendStruct -> body
-  $ do
-  arr <- local (iarray [] :: Init (Array 9 (Stored Uint8)))
-  let buf = toCArray arr
-  pack buf 0 =<< deref (msg ~> time_boot_ms)
-  pack buf 4 =<< deref (msg ~> value)
-  pack buf 8 =<< deref (msg ~> ind)
-  -- 6: header len, 2: CRC len
-  let usedLen    = 6 + 9 + 2 :: Integer
-  let sendArr    = sendStruct ~> mav_array
-  let sendArrLen = arrayLen sendArr
-  if sendArrLen < usedLen
-    then error "debug payload of length 9 is too large!"
-    else do -- Copy, leaving room for the payload
-            arrayCopy sendArr arr 6 (arrayLen arr)
-            call_ mavlinkSendWithWriter
-                    debugMsgId
-                    debugCrcExtra
-                    9
-                    seqNum
-                    sendStruct
+mkDebugSender = makeMavlinkSender "debug_msg" debugMsgId debugCrcExtra
 
 instance MavlinkUnpackableMsg "debug_msg" where
     unpackMsg = ( debugUnpack , debugMsgId )
@@ -74,8 +52,26 @@ instance MavlinkUnpackableMsg "debug_msg" where
 debugUnpack :: Def ('[ Ref s1 (Struct "debug_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-debugUnpack = proc "mavlink_debug_unpack" $ \ msg buf -> body $ do
-  store (msg ~> time_boot_ms) =<< unpack buf 0
-  store (msg ~> value) =<< unpack buf 4
-  store (msg ~> ind) =<< unpack buf 8
+debugUnpack = proc "mavlink_debug_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
 
+debugPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
+                              , Uint32
+                              , ConstRef s2 (Struct "debug_msg")
+                              ] :-> () )
+debugPackRef = proc "mavlink_debug_pack_ref" $ \ buf off msg -> body $ do
+  packRef buf (off + 0) (msg ~> time_boot_ms)
+  packRef buf (off + 4) (msg ~> value)
+  packRef buf (off + 8) (msg ~> ind)
+
+debugUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
+                                , Uint32
+                                , Ref s2 (Struct "debug_msg")
+                                ] :-> () )
+debugUnpackRef = proc "mavlink_debug_unpack_ref" $ \ buf off msg -> body $ do
+  unpackRef buf (off + 0) (msg ~> time_boot_ms)
+  unpackRef buf (off + 4) (msg ~> value)
+  unpackRef buf (off + 8) (msg ~> ind)
+
+instance SerializableRef (Struct "debug_msg") where
+  packRef = call_ debugPackRef
+  unpackRef = call_ debugUnpackRef

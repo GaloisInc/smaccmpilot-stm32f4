@@ -10,12 +10,10 @@
 
 module SMACCMPilot.Mavlink.Messages.SystemTime where
 
-import Ivory.Serialize
-import SMACCMPilot.Mavlink.Unpack
-import SMACCMPilot.Mavlink.Send
-
 import Ivory.Language
-import Ivory.Stdlib
+import Ivory.Serialize
+import SMACCMPilot.Mavlink.Send
+import SMACCMPilot.Mavlink.Unpack
 
 systemTimeMsgId :: Uint8
 systemTimeMsgId = 2
@@ -30,6 +28,8 @@ systemTimeModule = package "mavlink_system_time_msg" $ do
   incl mkSystemTimeSender
   incl systemTimeUnpack
   defStruct (Proxy :: Proxy "system_time_msg")
+  incl systemTimePackRef
+  incl systemTimeUnpackRef
 
 [ivory|
 struct system_time_msg
@@ -43,28 +43,7 @@ mkSystemTimeSender ::
         , Ref s1 (Stored Uint8) -- seqNum
         , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
-mkSystemTimeSender =
-  proc "mavlink_system_time_msg_send"
-  $ \msg seqNum sendStruct -> body
-  $ do
-  arr <- local (iarray [] :: Init (Array 12 (Stored Uint8)))
-  let buf = toCArray arr
-  pack buf 0 =<< deref (msg ~> time_unix_usec)
-  pack buf 8 =<< deref (msg ~> time_boot_ms)
-  -- 6: header len, 2: CRC len
-  let usedLen    = 6 + 12 + 2 :: Integer
-  let sendArr    = sendStruct ~> mav_array
-  let sendArrLen = arrayLen sendArr
-  if sendArrLen < usedLen
-    then error "systemTime payload of length 12 is too large!"
-    else do -- Copy, leaving room for the payload
-            arrayCopy sendArr arr 6 (arrayLen arr)
-            call_ mavlinkSendWithWriter
-                    systemTimeMsgId
-                    systemTimeCrcExtra
-                    12
-                    seqNum
-                    sendStruct
+mkSystemTimeSender = makeMavlinkSender "system_time_msg" systemTimeMsgId systemTimeCrcExtra
 
 instance MavlinkUnpackableMsg "system_time_msg" where
     unpackMsg = ( systemTimeUnpack , systemTimeMsgId )
@@ -72,7 +51,24 @@ instance MavlinkUnpackableMsg "system_time_msg" where
 systemTimeUnpack :: Def ('[ Ref s1 (Struct "system_time_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-systemTimeUnpack = proc "mavlink_system_time_unpack" $ \ msg buf -> body $ do
-  store (msg ~> time_unix_usec) =<< unpack buf 0
-  store (msg ~> time_boot_ms) =<< unpack buf 8
+systemTimeUnpack = proc "mavlink_system_time_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
 
+systemTimePackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
+                              , Uint32
+                              , ConstRef s2 (Struct "system_time_msg")
+                              ] :-> () )
+systemTimePackRef = proc "mavlink_system_time_pack_ref" $ \ buf off msg -> body $ do
+  packRef buf (off + 0) (msg ~> time_unix_usec)
+  packRef buf (off + 8) (msg ~> time_boot_ms)
+
+systemTimeUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
+                                , Uint32
+                                , Ref s2 (Struct "system_time_msg")
+                                ] :-> () )
+systemTimeUnpackRef = proc "mavlink_system_time_unpack_ref" $ \ buf off msg -> body $ do
+  unpackRef buf (off + 0) (msg ~> time_unix_usec)
+  unpackRef buf (off + 8) (msg ~> time_boot_ms)
+
+instance SerializableRef (Struct "system_time_msg") where
+  packRef = call_ systemTimePackRef
+  unpackRef = call_ systemTimeUnpackRef

@@ -10,12 +10,10 @@
 
 module SMACCMPilot.Mavlink.Messages.Statustext where
 
-import Ivory.Serialize
-import SMACCMPilot.Mavlink.Unpack
-import SMACCMPilot.Mavlink.Send
-
 import Ivory.Language
-import Ivory.Stdlib
+import Ivory.Serialize
+import SMACCMPilot.Mavlink.Send
+import SMACCMPilot.Mavlink.Unpack
 
 statustextMsgId :: Uint8
 statustextMsgId = 253
@@ -30,6 +28,8 @@ statustextModule = package "mavlink_statustext_msg" $ do
   incl mkStatustextSender
   incl statustextUnpack
   defStruct (Proxy :: Proxy "statustext_msg")
+  incl statustextPackRef
+  incl statustextUnpackRef
 
 [ivory|
 struct statustext_msg
@@ -43,28 +43,7 @@ mkStatustextSender ::
         , Ref s1 (Stored Uint8) -- seqNum
         , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
-mkStatustextSender =
-  proc "mavlink_statustext_msg_send"
-  $ \msg seqNum sendStruct -> body
-  $ do
-  arr <- local (iarray [] :: Init (Array 51 (Stored Uint8)))
-  let buf = toCArray arr
-  pack buf 0 =<< deref (msg ~> severity)
-  arrayPack buf 1 (msg ~> text)
-  -- 6: header len, 2: CRC len
-  let usedLen    = 6 + 51 + 2 :: Integer
-  let sendArr    = sendStruct ~> mav_array
-  let sendArrLen = arrayLen sendArr
-  if sendArrLen < usedLen
-    then error "statustext payload of length 51 is too large!"
-    else do -- Copy, leaving room for the payload
-            arrayCopy sendArr arr 6 (arrayLen arr)
-            call_ mavlinkSendWithWriter
-                    statustextMsgId
-                    statustextCrcExtra
-                    51
-                    seqNum
-                    sendStruct
+mkStatustextSender = makeMavlinkSender "statustext_msg" statustextMsgId statustextCrcExtra
 
 instance MavlinkUnpackableMsg "statustext_msg" where
     unpackMsg = ( statustextUnpack , statustextMsgId )
@@ -72,7 +51,24 @@ instance MavlinkUnpackableMsg "statustext_msg" where
 statustextUnpack :: Def ('[ Ref s1 (Struct "statustext_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-statustextUnpack = proc "mavlink_statustext_unpack" $ \ msg buf -> body $ do
-  store (msg ~> severity) =<< unpack buf 0
-  arrayUnpack buf 1 (msg ~> text)
+statustextUnpack = proc "mavlink_statustext_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
 
+statustextPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
+                              , Uint32
+                              , ConstRef s2 (Struct "statustext_msg")
+                              ] :-> () )
+statustextPackRef = proc "mavlink_statustext_pack_ref" $ \ buf off msg -> body $ do
+  packRef buf (off + 0) (msg ~> severity)
+  packRef buf (off + 1) (msg ~> text)
+
+statustextUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
+                                , Uint32
+                                , Ref s2 (Struct "statustext_msg")
+                                ] :-> () )
+statustextUnpackRef = proc "mavlink_statustext_unpack_ref" $ \ buf off msg -> body $ do
+  unpackRef buf (off + 0) (msg ~> severity)
+  unpackRef buf (off + 1) (msg ~> text)
+
+instance SerializableRef (Struct "statustext_msg") where
+  packRef = call_ statustextPackRef
+  unpackRef = call_ statustextUnpackRef

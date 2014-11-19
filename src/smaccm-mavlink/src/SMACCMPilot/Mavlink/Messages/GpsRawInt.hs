@@ -10,12 +10,10 @@
 
 module SMACCMPilot.Mavlink.Messages.GpsRawInt where
 
-import Ivory.Serialize
-import SMACCMPilot.Mavlink.Unpack
-import SMACCMPilot.Mavlink.Send
-
 import Ivory.Language
-import Ivory.Stdlib
+import Ivory.Serialize
+import SMACCMPilot.Mavlink.Send
+import SMACCMPilot.Mavlink.Unpack
 
 gpsRawIntMsgId :: Uint8
 gpsRawIntMsgId = 24
@@ -30,6 +28,8 @@ gpsRawIntModule = package "mavlink_gps_raw_int_msg" $ do
   incl mkGpsRawIntSender
   incl gpsRawIntUnpack
   defStruct (Proxy :: Proxy "gps_raw_int_msg")
+  incl gpsRawIntPackRef
+  incl gpsRawIntUnpackRef
 
 [ivory|
 struct gps_raw_int_msg
@@ -51,36 +51,7 @@ mkGpsRawIntSender ::
         , Ref s1 (Stored Uint8) -- seqNum
         , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
-mkGpsRawIntSender =
-  proc "mavlink_gps_raw_int_msg_send"
-  $ \msg seqNum sendStruct -> body
-  $ do
-  arr <- local (iarray [] :: Init (Array 30 (Stored Uint8)))
-  let buf = toCArray arr
-  pack buf 0 =<< deref (msg ~> time_usec)
-  pack buf 8 =<< deref (msg ~> lat)
-  pack buf 12 =<< deref (msg ~> lon)
-  pack buf 16 =<< deref (msg ~> alt)
-  pack buf 20 =<< deref (msg ~> eph)
-  pack buf 22 =<< deref (msg ~> epv)
-  pack buf 24 =<< deref (msg ~> vel)
-  pack buf 26 =<< deref (msg ~> cog)
-  pack buf 28 =<< deref (msg ~> fix_type)
-  pack buf 29 =<< deref (msg ~> satellites_visible)
-  -- 6: header len, 2: CRC len
-  let usedLen    = 6 + 30 + 2 :: Integer
-  let sendArr    = sendStruct ~> mav_array
-  let sendArrLen = arrayLen sendArr
-  if sendArrLen < usedLen
-    then error "gpsRawInt payload of length 30 is too large!"
-    else do -- Copy, leaving room for the payload
-            arrayCopy sendArr arr 6 (arrayLen arr)
-            call_ mavlinkSendWithWriter
-                    gpsRawIntMsgId
-                    gpsRawIntCrcExtra
-                    30
-                    seqNum
-                    sendStruct
+mkGpsRawIntSender = makeMavlinkSender "gps_raw_int_msg" gpsRawIntMsgId gpsRawIntCrcExtra
 
 instance MavlinkUnpackableMsg "gps_raw_int_msg" where
     unpackMsg = ( gpsRawIntUnpack , gpsRawIntMsgId )
@@ -88,15 +59,40 @@ instance MavlinkUnpackableMsg "gps_raw_int_msg" where
 gpsRawIntUnpack :: Def ('[ Ref s1 (Struct "gps_raw_int_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-gpsRawIntUnpack = proc "mavlink_gps_raw_int_unpack" $ \ msg buf -> body $ do
-  store (msg ~> time_usec) =<< unpack buf 0
-  store (msg ~> lat) =<< unpack buf 8
-  store (msg ~> lon) =<< unpack buf 12
-  store (msg ~> alt) =<< unpack buf 16
-  store (msg ~> eph) =<< unpack buf 20
-  store (msg ~> epv) =<< unpack buf 22
-  store (msg ~> vel) =<< unpack buf 24
-  store (msg ~> cog) =<< unpack buf 26
-  store (msg ~> fix_type) =<< unpack buf 28
-  store (msg ~> satellites_visible) =<< unpack buf 29
+gpsRawIntUnpack = proc "mavlink_gps_raw_int_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
 
+gpsRawIntPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
+                              , Uint32
+                              , ConstRef s2 (Struct "gps_raw_int_msg")
+                              ] :-> () )
+gpsRawIntPackRef = proc "mavlink_gps_raw_int_pack_ref" $ \ buf off msg -> body $ do
+  packRef buf (off + 0) (msg ~> time_usec)
+  packRef buf (off + 8) (msg ~> lat)
+  packRef buf (off + 12) (msg ~> lon)
+  packRef buf (off + 16) (msg ~> alt)
+  packRef buf (off + 20) (msg ~> eph)
+  packRef buf (off + 22) (msg ~> epv)
+  packRef buf (off + 24) (msg ~> vel)
+  packRef buf (off + 26) (msg ~> cog)
+  packRef buf (off + 28) (msg ~> fix_type)
+  packRef buf (off + 29) (msg ~> satellites_visible)
+
+gpsRawIntUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
+                                , Uint32
+                                , Ref s2 (Struct "gps_raw_int_msg")
+                                ] :-> () )
+gpsRawIntUnpackRef = proc "mavlink_gps_raw_int_unpack_ref" $ \ buf off msg -> body $ do
+  unpackRef buf (off + 0) (msg ~> time_usec)
+  unpackRef buf (off + 8) (msg ~> lat)
+  unpackRef buf (off + 12) (msg ~> lon)
+  unpackRef buf (off + 16) (msg ~> alt)
+  unpackRef buf (off + 20) (msg ~> eph)
+  unpackRef buf (off + 22) (msg ~> epv)
+  unpackRef buf (off + 24) (msg ~> vel)
+  unpackRef buf (off + 26) (msg ~> cog)
+  unpackRef buf (off + 28) (msg ~> fix_type)
+  unpackRef buf (off + 29) (msg ~> satellites_visible)
+
+instance SerializableRef (Struct "gps_raw_int_msg") where
+  packRef = call_ gpsRawIntPackRef
+  unpackRef = call_ gpsRawIntUnpackRef

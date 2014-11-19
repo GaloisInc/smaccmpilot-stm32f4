@@ -10,12 +10,10 @@
 
 module SMACCMPilot.Mavlink.Messages.ChangeOperatorControl where
 
-import Ivory.Serialize
-import SMACCMPilot.Mavlink.Unpack
-import SMACCMPilot.Mavlink.Send
-
 import Ivory.Language
-import Ivory.Stdlib
+import Ivory.Serialize
+import SMACCMPilot.Mavlink.Send
+import SMACCMPilot.Mavlink.Unpack
 
 changeOperatorControlMsgId :: Uint8
 changeOperatorControlMsgId = 5
@@ -30,6 +28,8 @@ changeOperatorControlModule = package "mavlink_change_operator_control_msg" $ do
   incl mkChangeOperatorControlSender
   incl changeOperatorControlUnpack
   defStruct (Proxy :: Proxy "change_operator_control_msg")
+  incl changeOperatorControlPackRef
+  incl changeOperatorControlUnpackRef
 
 [ivory|
 struct change_operator_control_msg
@@ -45,30 +45,7 @@ mkChangeOperatorControlSender ::
         , Ref s1 (Stored Uint8) -- seqNum
         , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
-mkChangeOperatorControlSender =
-  proc "mavlink_change_operator_control_msg_send"
-  $ \msg seqNum sendStruct -> body
-  $ do
-  arr <- local (iarray [] :: Init (Array 28 (Stored Uint8)))
-  let buf = toCArray arr
-  pack buf 0 =<< deref (msg ~> target_system)
-  pack buf 1 =<< deref (msg ~> control_request)
-  pack buf 2 =<< deref (msg ~> version)
-  arrayPack buf 3 (msg ~> passkey)
-  -- 6: header len, 2: CRC len
-  let usedLen    = 6 + 28 + 2 :: Integer
-  let sendArr    = sendStruct ~> mav_array
-  let sendArrLen = arrayLen sendArr
-  if sendArrLen < usedLen
-    then error "changeOperatorControl payload of length 28 is too large!"
-    else do -- Copy, leaving room for the payload
-            arrayCopy sendArr arr 6 (arrayLen arr)
-            call_ mavlinkSendWithWriter
-                    changeOperatorControlMsgId
-                    changeOperatorControlCrcExtra
-                    28
-                    seqNum
-                    sendStruct
+mkChangeOperatorControlSender = makeMavlinkSender "change_operator_control_msg" changeOperatorControlMsgId changeOperatorControlCrcExtra
 
 instance MavlinkUnpackableMsg "change_operator_control_msg" where
     unpackMsg = ( changeOperatorControlUnpack , changeOperatorControlMsgId )
@@ -76,9 +53,28 @@ instance MavlinkUnpackableMsg "change_operator_control_msg" where
 changeOperatorControlUnpack :: Def ('[ Ref s1 (Struct "change_operator_control_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-changeOperatorControlUnpack = proc "mavlink_change_operator_control_unpack" $ \ msg buf -> body $ do
-  store (msg ~> target_system) =<< unpack buf 0
-  store (msg ~> control_request) =<< unpack buf 1
-  store (msg ~> version) =<< unpack buf 2
-  arrayUnpack buf 3 (msg ~> passkey)
+changeOperatorControlUnpack = proc "mavlink_change_operator_control_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
 
+changeOperatorControlPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
+                              , Uint32
+                              , ConstRef s2 (Struct "change_operator_control_msg")
+                              ] :-> () )
+changeOperatorControlPackRef = proc "mavlink_change_operator_control_pack_ref" $ \ buf off msg -> body $ do
+  packRef buf (off + 0) (msg ~> target_system)
+  packRef buf (off + 1) (msg ~> control_request)
+  packRef buf (off + 2) (msg ~> version)
+  packRef buf (off + 3) (msg ~> passkey)
+
+changeOperatorControlUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
+                                , Uint32
+                                , Ref s2 (Struct "change_operator_control_msg")
+                                ] :-> () )
+changeOperatorControlUnpackRef = proc "mavlink_change_operator_control_unpack_ref" $ \ buf off msg -> body $ do
+  unpackRef buf (off + 0) (msg ~> target_system)
+  unpackRef buf (off + 1) (msg ~> control_request)
+  unpackRef buf (off + 2) (msg ~> version)
+  unpackRef buf (off + 3) (msg ~> passkey)
+
+instance SerializableRef (Struct "change_operator_control_msg") where
+  packRef = call_ changeOperatorControlPackRef
+  unpackRef = call_ changeOperatorControlUnpackRef

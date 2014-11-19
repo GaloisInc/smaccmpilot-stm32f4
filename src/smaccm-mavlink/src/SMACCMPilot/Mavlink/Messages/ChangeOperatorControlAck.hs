@@ -10,12 +10,10 @@
 
 module SMACCMPilot.Mavlink.Messages.ChangeOperatorControlAck where
 
-import Ivory.Serialize
-import SMACCMPilot.Mavlink.Unpack
-import SMACCMPilot.Mavlink.Send
-
 import Ivory.Language
-import Ivory.Stdlib
+import Ivory.Serialize
+import SMACCMPilot.Mavlink.Send
+import SMACCMPilot.Mavlink.Unpack
 
 changeOperatorControlAckMsgId :: Uint8
 changeOperatorControlAckMsgId = 6
@@ -30,6 +28,8 @@ changeOperatorControlAckModule = package "mavlink_change_operator_control_ack_ms
   incl mkChangeOperatorControlAckSender
   incl changeOperatorControlAckUnpack
   defStruct (Proxy :: Proxy "change_operator_control_ack_msg")
+  incl changeOperatorControlAckPackRef
+  incl changeOperatorControlAckUnpackRef
 
 [ivory|
 struct change_operator_control_ack_msg
@@ -44,29 +44,7 @@ mkChangeOperatorControlAckSender ::
         , Ref s1 (Stored Uint8) -- seqNum
         , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
-mkChangeOperatorControlAckSender =
-  proc "mavlink_change_operator_control_ack_msg_send"
-  $ \msg seqNum sendStruct -> body
-  $ do
-  arr <- local (iarray [] :: Init (Array 3 (Stored Uint8)))
-  let buf = toCArray arr
-  pack buf 0 =<< deref (msg ~> gcs_system_id)
-  pack buf 1 =<< deref (msg ~> control_request)
-  pack buf 2 =<< deref (msg ~> ack)
-  -- 6: header len, 2: CRC len
-  let usedLen    = 6 + 3 + 2 :: Integer
-  let sendArr    = sendStruct ~> mav_array
-  let sendArrLen = arrayLen sendArr
-  if sendArrLen < usedLen
-    then error "changeOperatorControlAck payload of length 3 is too large!"
-    else do -- Copy, leaving room for the payload
-            arrayCopy sendArr arr 6 (arrayLen arr)
-            call_ mavlinkSendWithWriter
-                    changeOperatorControlAckMsgId
-                    changeOperatorControlAckCrcExtra
-                    3
-                    seqNum
-                    sendStruct
+mkChangeOperatorControlAckSender = makeMavlinkSender "change_operator_control_ack_msg" changeOperatorControlAckMsgId changeOperatorControlAckCrcExtra
 
 instance MavlinkUnpackableMsg "change_operator_control_ack_msg" where
     unpackMsg = ( changeOperatorControlAckUnpack , changeOperatorControlAckMsgId )
@@ -74,8 +52,26 @@ instance MavlinkUnpackableMsg "change_operator_control_ack_msg" where
 changeOperatorControlAckUnpack :: Def ('[ Ref s1 (Struct "change_operator_control_ack_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-changeOperatorControlAckUnpack = proc "mavlink_change_operator_control_ack_unpack" $ \ msg buf -> body $ do
-  store (msg ~> gcs_system_id) =<< unpack buf 0
-  store (msg ~> control_request) =<< unpack buf 1
-  store (msg ~> ack) =<< unpack buf 2
+changeOperatorControlAckUnpack = proc "mavlink_change_operator_control_ack_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
 
+changeOperatorControlAckPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
+                              , Uint32
+                              , ConstRef s2 (Struct "change_operator_control_ack_msg")
+                              ] :-> () )
+changeOperatorControlAckPackRef = proc "mavlink_change_operator_control_ack_pack_ref" $ \ buf off msg -> body $ do
+  packRef buf (off + 0) (msg ~> gcs_system_id)
+  packRef buf (off + 1) (msg ~> control_request)
+  packRef buf (off + 2) (msg ~> ack)
+
+changeOperatorControlAckUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
+                                , Uint32
+                                , Ref s2 (Struct "change_operator_control_ack_msg")
+                                ] :-> () )
+changeOperatorControlAckUnpackRef = proc "mavlink_change_operator_control_ack_unpack_ref" $ \ buf off msg -> body $ do
+  unpackRef buf (off + 0) (msg ~> gcs_system_id)
+  unpackRef buf (off + 1) (msg ~> control_request)
+  unpackRef buf (off + 2) (msg ~> ack)
+
+instance SerializableRef (Struct "change_operator_control_ack_msg") where
+  packRef = call_ changeOperatorControlAckPackRef
+  unpackRef = call_ changeOperatorControlAckUnpackRef

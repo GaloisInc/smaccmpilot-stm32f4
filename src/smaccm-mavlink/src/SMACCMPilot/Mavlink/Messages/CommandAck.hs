@@ -10,12 +10,10 @@
 
 module SMACCMPilot.Mavlink.Messages.CommandAck where
 
-import Ivory.Serialize
-import SMACCMPilot.Mavlink.Unpack
-import SMACCMPilot.Mavlink.Send
-
 import Ivory.Language
-import Ivory.Stdlib
+import Ivory.Serialize
+import SMACCMPilot.Mavlink.Send
+import SMACCMPilot.Mavlink.Unpack
 
 commandAckMsgId :: Uint8
 commandAckMsgId = 77
@@ -30,6 +28,8 @@ commandAckModule = package "mavlink_command_ack_msg" $ do
   incl mkCommandAckSender
   incl commandAckUnpack
   defStruct (Proxy :: Proxy "command_ack_msg")
+  incl commandAckPackRef
+  incl commandAckUnpackRef
 
 [ivory|
 struct command_ack_msg
@@ -43,28 +43,7 @@ mkCommandAckSender ::
         , Ref s1 (Stored Uint8) -- seqNum
         , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
-mkCommandAckSender =
-  proc "mavlink_command_ack_msg_send"
-  $ \msg seqNum sendStruct -> body
-  $ do
-  arr <- local (iarray [] :: Init (Array 3 (Stored Uint8)))
-  let buf = toCArray arr
-  pack buf 0 =<< deref (msg ~> command)
-  pack buf 2 =<< deref (msg ~> result)
-  -- 6: header len, 2: CRC len
-  let usedLen    = 6 + 3 + 2 :: Integer
-  let sendArr    = sendStruct ~> mav_array
-  let sendArrLen = arrayLen sendArr
-  if sendArrLen < usedLen
-    then error "commandAck payload of length 3 is too large!"
-    else do -- Copy, leaving room for the payload
-            arrayCopy sendArr arr 6 (arrayLen arr)
-            call_ mavlinkSendWithWriter
-                    commandAckMsgId
-                    commandAckCrcExtra
-                    3
-                    seqNum
-                    sendStruct
+mkCommandAckSender = makeMavlinkSender "command_ack_msg" commandAckMsgId commandAckCrcExtra
 
 instance MavlinkUnpackableMsg "command_ack_msg" where
     unpackMsg = ( commandAckUnpack , commandAckMsgId )
@@ -72,7 +51,24 @@ instance MavlinkUnpackableMsg "command_ack_msg" where
 commandAckUnpack :: Def ('[ Ref s1 (Struct "command_ack_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-commandAckUnpack = proc "mavlink_command_ack_unpack" $ \ msg buf -> body $ do
-  store (msg ~> command) =<< unpack buf 0
-  store (msg ~> result) =<< unpack buf 2
+commandAckUnpack = proc "mavlink_command_ack_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
 
+commandAckPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
+                              , Uint32
+                              , ConstRef s2 (Struct "command_ack_msg")
+                              ] :-> () )
+commandAckPackRef = proc "mavlink_command_ack_pack_ref" $ \ buf off msg -> body $ do
+  packRef buf (off + 0) (msg ~> command)
+  packRef buf (off + 2) (msg ~> result)
+
+commandAckUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
+                                , Uint32
+                                , Ref s2 (Struct "command_ack_msg")
+                                ] :-> () )
+commandAckUnpackRef = proc "mavlink_command_ack_unpack_ref" $ \ buf off msg -> body $ do
+  unpackRef buf (off + 0) (msg ~> command)
+  unpackRef buf (off + 2) (msg ~> result)
+
+instance SerializableRef (Struct "command_ack_msg") where
+  packRef = call_ commandAckPackRef
+  unpackRef = call_ commandAckUnpackRef

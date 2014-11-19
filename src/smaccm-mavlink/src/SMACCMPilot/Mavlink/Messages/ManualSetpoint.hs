@@ -10,12 +10,10 @@
 
 module SMACCMPilot.Mavlink.Messages.ManualSetpoint where
 
-import Ivory.Serialize
-import SMACCMPilot.Mavlink.Unpack
-import SMACCMPilot.Mavlink.Send
-
 import Ivory.Language
-import Ivory.Stdlib
+import Ivory.Serialize
+import SMACCMPilot.Mavlink.Send
+import SMACCMPilot.Mavlink.Unpack
 
 manualSetpointMsgId :: Uint8
 manualSetpointMsgId = 81
@@ -30,6 +28,8 @@ manualSetpointModule = package "mavlink_manual_setpoint_msg" $ do
   incl mkManualSetpointSender
   incl manualSetpointUnpack
   defStruct (Proxy :: Proxy "manual_setpoint_msg")
+  incl manualSetpointPackRef
+  incl manualSetpointUnpackRef
 
 [ivory|
 struct manual_setpoint_msg
@@ -48,33 +48,7 @@ mkManualSetpointSender ::
         , Ref s1 (Stored Uint8) -- seqNum
         , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
-mkManualSetpointSender =
-  proc "mavlink_manual_setpoint_msg_send"
-  $ \msg seqNum sendStruct -> body
-  $ do
-  arr <- local (iarray [] :: Init (Array 22 (Stored Uint8)))
-  let buf = toCArray arr
-  pack buf 0 =<< deref (msg ~> time_boot_ms)
-  pack buf 4 =<< deref (msg ~> roll)
-  pack buf 8 =<< deref (msg ~> pitch)
-  pack buf 12 =<< deref (msg ~> yaw)
-  pack buf 16 =<< deref (msg ~> thrust)
-  pack buf 20 =<< deref (msg ~> mode_switch)
-  pack buf 21 =<< deref (msg ~> manual_override_switch)
-  -- 6: header len, 2: CRC len
-  let usedLen    = 6 + 22 + 2 :: Integer
-  let sendArr    = sendStruct ~> mav_array
-  let sendArrLen = arrayLen sendArr
-  if sendArrLen < usedLen
-    then error "manualSetpoint payload of length 22 is too large!"
-    else do -- Copy, leaving room for the payload
-            arrayCopy sendArr arr 6 (arrayLen arr)
-            call_ mavlinkSendWithWriter
-                    manualSetpointMsgId
-                    manualSetpointCrcExtra
-                    22
-                    seqNum
-                    sendStruct
+mkManualSetpointSender = makeMavlinkSender "manual_setpoint_msg" manualSetpointMsgId manualSetpointCrcExtra
 
 instance MavlinkUnpackableMsg "manual_setpoint_msg" where
     unpackMsg = ( manualSetpointUnpack , manualSetpointMsgId )
@@ -82,12 +56,34 @@ instance MavlinkUnpackableMsg "manual_setpoint_msg" where
 manualSetpointUnpack :: Def ('[ Ref s1 (Struct "manual_setpoint_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-manualSetpointUnpack = proc "mavlink_manual_setpoint_unpack" $ \ msg buf -> body $ do
-  store (msg ~> time_boot_ms) =<< unpack buf 0
-  store (msg ~> roll) =<< unpack buf 4
-  store (msg ~> pitch) =<< unpack buf 8
-  store (msg ~> yaw) =<< unpack buf 12
-  store (msg ~> thrust) =<< unpack buf 16
-  store (msg ~> mode_switch) =<< unpack buf 20
-  store (msg ~> manual_override_switch) =<< unpack buf 21
+manualSetpointUnpack = proc "mavlink_manual_setpoint_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
 
+manualSetpointPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
+                              , Uint32
+                              , ConstRef s2 (Struct "manual_setpoint_msg")
+                              ] :-> () )
+manualSetpointPackRef = proc "mavlink_manual_setpoint_pack_ref" $ \ buf off msg -> body $ do
+  packRef buf (off + 0) (msg ~> time_boot_ms)
+  packRef buf (off + 4) (msg ~> roll)
+  packRef buf (off + 8) (msg ~> pitch)
+  packRef buf (off + 12) (msg ~> yaw)
+  packRef buf (off + 16) (msg ~> thrust)
+  packRef buf (off + 20) (msg ~> mode_switch)
+  packRef buf (off + 21) (msg ~> manual_override_switch)
+
+manualSetpointUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
+                                , Uint32
+                                , Ref s2 (Struct "manual_setpoint_msg")
+                                ] :-> () )
+manualSetpointUnpackRef = proc "mavlink_manual_setpoint_unpack_ref" $ \ buf off msg -> body $ do
+  unpackRef buf (off + 0) (msg ~> time_boot_ms)
+  unpackRef buf (off + 4) (msg ~> roll)
+  unpackRef buf (off + 8) (msg ~> pitch)
+  unpackRef buf (off + 12) (msg ~> yaw)
+  unpackRef buf (off + 16) (msg ~> thrust)
+  unpackRef buf (off + 20) (msg ~> mode_switch)
+  unpackRef buf (off + 21) (msg ~> manual_override_switch)
+
+instance SerializableRef (Struct "manual_setpoint_msg") where
+  packRef = call_ manualSetpointPackRef
+  unpackRef = call_ manualSetpointUnpackRef

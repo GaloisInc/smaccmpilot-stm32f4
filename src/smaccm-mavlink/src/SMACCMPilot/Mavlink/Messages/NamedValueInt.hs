@@ -10,12 +10,10 @@
 
 module SMACCMPilot.Mavlink.Messages.NamedValueInt where
 
-import Ivory.Serialize
-import SMACCMPilot.Mavlink.Unpack
-import SMACCMPilot.Mavlink.Send
-
 import Ivory.Language
-import Ivory.Stdlib
+import Ivory.Serialize
+import SMACCMPilot.Mavlink.Send
+import SMACCMPilot.Mavlink.Unpack
 
 namedValueIntMsgId :: Uint8
 namedValueIntMsgId = 252
@@ -30,6 +28,8 @@ namedValueIntModule = package "mavlink_named_value_int_msg" $ do
   incl mkNamedValueIntSender
   incl namedValueIntUnpack
   defStruct (Proxy :: Proxy "named_value_int_msg")
+  incl namedValueIntPackRef
+  incl namedValueIntUnpackRef
 
 [ivory|
 struct named_value_int_msg
@@ -44,29 +44,7 @@ mkNamedValueIntSender ::
         , Ref s1 (Stored Uint8) -- seqNum
         , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
-mkNamedValueIntSender =
-  proc "mavlink_named_value_int_msg_send"
-  $ \msg seqNum sendStruct -> body
-  $ do
-  arr <- local (iarray [] :: Init (Array 18 (Stored Uint8)))
-  let buf = toCArray arr
-  pack buf 0 =<< deref (msg ~> time_boot_ms)
-  pack buf 4 =<< deref (msg ~> value)
-  arrayPack buf 8 (msg ~> name)
-  -- 6: header len, 2: CRC len
-  let usedLen    = 6 + 18 + 2 :: Integer
-  let sendArr    = sendStruct ~> mav_array
-  let sendArrLen = arrayLen sendArr
-  if sendArrLen < usedLen
-    then error "namedValueInt payload of length 18 is too large!"
-    else do -- Copy, leaving room for the payload
-            arrayCopy sendArr arr 6 (arrayLen arr)
-            call_ mavlinkSendWithWriter
-                    namedValueIntMsgId
-                    namedValueIntCrcExtra
-                    18
-                    seqNum
-                    sendStruct
+mkNamedValueIntSender = makeMavlinkSender "named_value_int_msg" namedValueIntMsgId namedValueIntCrcExtra
 
 instance MavlinkUnpackableMsg "named_value_int_msg" where
     unpackMsg = ( namedValueIntUnpack , namedValueIntMsgId )
@@ -74,8 +52,26 @@ instance MavlinkUnpackableMsg "named_value_int_msg" where
 namedValueIntUnpack :: Def ('[ Ref s1 (Struct "named_value_int_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-namedValueIntUnpack = proc "mavlink_named_value_int_unpack" $ \ msg buf -> body $ do
-  store (msg ~> time_boot_ms) =<< unpack buf 0
-  store (msg ~> value) =<< unpack buf 4
-  arrayUnpack buf 8 (msg ~> name)
+namedValueIntUnpack = proc "mavlink_named_value_int_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
 
+namedValueIntPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
+                              , Uint32
+                              , ConstRef s2 (Struct "named_value_int_msg")
+                              ] :-> () )
+namedValueIntPackRef = proc "mavlink_named_value_int_pack_ref" $ \ buf off msg -> body $ do
+  packRef buf (off + 0) (msg ~> time_boot_ms)
+  packRef buf (off + 4) (msg ~> value)
+  packRef buf (off + 8) (msg ~> name)
+
+namedValueIntUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
+                                , Uint32
+                                , Ref s2 (Struct "named_value_int_msg")
+                                ] :-> () )
+namedValueIntUnpackRef = proc "mavlink_named_value_int_unpack_ref" $ \ buf off msg -> body $ do
+  unpackRef buf (off + 0) (msg ~> time_boot_ms)
+  unpackRef buf (off + 4) (msg ~> value)
+  unpackRef buf (off + 8) (msg ~> name)
+
+instance SerializableRef (Struct "named_value_int_msg") where
+  packRef = call_ namedValueIntPackRef
+  unpackRef = call_ namedValueIntUnpackRef

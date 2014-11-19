@@ -10,12 +10,10 @@
 
 module SMACCMPilot.Mavlink.Messages.ScaledImu where
 
-import Ivory.Serialize
-import SMACCMPilot.Mavlink.Unpack
-import SMACCMPilot.Mavlink.Send
-
 import Ivory.Language
-import Ivory.Stdlib
+import Ivory.Serialize
+import SMACCMPilot.Mavlink.Send
+import SMACCMPilot.Mavlink.Unpack
 
 scaledImuMsgId :: Uint8
 scaledImuMsgId = 26
@@ -30,6 +28,8 @@ scaledImuModule = package "mavlink_scaled_imu_msg" $ do
   incl mkScaledImuSender
   incl scaledImuUnpack
   defStruct (Proxy :: Proxy "scaled_imu_msg")
+  incl scaledImuPackRef
+  incl scaledImuUnpackRef
 
 [ivory|
 struct scaled_imu_msg
@@ -51,36 +51,7 @@ mkScaledImuSender ::
         , Ref s1 (Stored Uint8) -- seqNum
         , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
-mkScaledImuSender =
-  proc "mavlink_scaled_imu_msg_send"
-  $ \msg seqNum sendStruct -> body
-  $ do
-  arr <- local (iarray [] :: Init (Array 22 (Stored Uint8)))
-  let buf = toCArray arr
-  pack buf 0 =<< deref (msg ~> time_boot_ms)
-  pack buf 4 =<< deref (msg ~> xacc)
-  pack buf 6 =<< deref (msg ~> yacc)
-  pack buf 8 =<< deref (msg ~> zacc)
-  pack buf 10 =<< deref (msg ~> xgyro)
-  pack buf 12 =<< deref (msg ~> ygyro)
-  pack buf 14 =<< deref (msg ~> zgyro)
-  pack buf 16 =<< deref (msg ~> xmag)
-  pack buf 18 =<< deref (msg ~> ymag)
-  pack buf 20 =<< deref (msg ~> zmag)
-  -- 6: header len, 2: CRC len
-  let usedLen    = 6 + 22 + 2 :: Integer
-  let sendArr    = sendStruct ~> mav_array
-  let sendArrLen = arrayLen sendArr
-  if sendArrLen < usedLen
-    then error "scaledImu payload of length 22 is too large!"
-    else do -- Copy, leaving room for the payload
-            arrayCopy sendArr arr 6 (arrayLen arr)
-            call_ mavlinkSendWithWriter
-                    scaledImuMsgId
-                    scaledImuCrcExtra
-                    22
-                    seqNum
-                    sendStruct
+mkScaledImuSender = makeMavlinkSender "scaled_imu_msg" scaledImuMsgId scaledImuCrcExtra
 
 instance MavlinkUnpackableMsg "scaled_imu_msg" where
     unpackMsg = ( scaledImuUnpack , scaledImuMsgId )
@@ -88,15 +59,40 @@ instance MavlinkUnpackableMsg "scaled_imu_msg" where
 scaledImuUnpack :: Def ('[ Ref s1 (Struct "scaled_imu_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-scaledImuUnpack = proc "mavlink_scaled_imu_unpack" $ \ msg buf -> body $ do
-  store (msg ~> time_boot_ms) =<< unpack buf 0
-  store (msg ~> xacc) =<< unpack buf 4
-  store (msg ~> yacc) =<< unpack buf 6
-  store (msg ~> zacc) =<< unpack buf 8
-  store (msg ~> xgyro) =<< unpack buf 10
-  store (msg ~> ygyro) =<< unpack buf 12
-  store (msg ~> zgyro) =<< unpack buf 14
-  store (msg ~> xmag) =<< unpack buf 16
-  store (msg ~> ymag) =<< unpack buf 18
-  store (msg ~> zmag) =<< unpack buf 20
+scaledImuUnpack = proc "mavlink_scaled_imu_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
 
+scaledImuPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
+                              , Uint32
+                              , ConstRef s2 (Struct "scaled_imu_msg")
+                              ] :-> () )
+scaledImuPackRef = proc "mavlink_scaled_imu_pack_ref" $ \ buf off msg -> body $ do
+  packRef buf (off + 0) (msg ~> time_boot_ms)
+  packRef buf (off + 4) (msg ~> xacc)
+  packRef buf (off + 6) (msg ~> yacc)
+  packRef buf (off + 8) (msg ~> zacc)
+  packRef buf (off + 10) (msg ~> xgyro)
+  packRef buf (off + 12) (msg ~> ygyro)
+  packRef buf (off + 14) (msg ~> zgyro)
+  packRef buf (off + 16) (msg ~> xmag)
+  packRef buf (off + 18) (msg ~> ymag)
+  packRef buf (off + 20) (msg ~> zmag)
+
+scaledImuUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
+                                , Uint32
+                                , Ref s2 (Struct "scaled_imu_msg")
+                                ] :-> () )
+scaledImuUnpackRef = proc "mavlink_scaled_imu_unpack_ref" $ \ buf off msg -> body $ do
+  unpackRef buf (off + 0) (msg ~> time_boot_ms)
+  unpackRef buf (off + 4) (msg ~> xacc)
+  unpackRef buf (off + 6) (msg ~> yacc)
+  unpackRef buf (off + 8) (msg ~> zacc)
+  unpackRef buf (off + 10) (msg ~> xgyro)
+  unpackRef buf (off + 12) (msg ~> ygyro)
+  unpackRef buf (off + 14) (msg ~> zgyro)
+  unpackRef buf (off + 16) (msg ~> xmag)
+  unpackRef buf (off + 18) (msg ~> ymag)
+  unpackRef buf (off + 20) (msg ~> zmag)
+
+instance SerializableRef (Struct "scaled_imu_msg") where
+  packRef = call_ scaledImuPackRef
+  unpackRef = call_ scaledImuUnpackRef

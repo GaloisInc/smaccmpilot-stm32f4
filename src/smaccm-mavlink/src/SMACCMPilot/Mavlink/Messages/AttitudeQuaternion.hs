@@ -10,12 +10,10 @@
 
 module SMACCMPilot.Mavlink.Messages.AttitudeQuaternion where
 
-import Ivory.Serialize
-import SMACCMPilot.Mavlink.Unpack
-import SMACCMPilot.Mavlink.Send
-
 import Ivory.Language
-import Ivory.Stdlib
+import Ivory.Serialize
+import SMACCMPilot.Mavlink.Send
+import SMACCMPilot.Mavlink.Unpack
 
 attitudeQuaternionMsgId :: Uint8
 attitudeQuaternionMsgId = 31
@@ -30,6 +28,8 @@ attitudeQuaternionModule = package "mavlink_attitude_quaternion_msg" $ do
   incl mkAttitudeQuaternionSender
   incl attitudeQuaternionUnpack
   defStruct (Proxy :: Proxy "attitude_quaternion_msg")
+  incl attitudeQuaternionPackRef
+  incl attitudeQuaternionUnpackRef
 
 [ivory|
 struct attitude_quaternion_msg
@@ -49,34 +49,7 @@ mkAttitudeQuaternionSender ::
         , Ref s1 (Stored Uint8) -- seqNum
         , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
-mkAttitudeQuaternionSender =
-  proc "mavlink_attitude_quaternion_msg_send"
-  $ \msg seqNum sendStruct -> body
-  $ do
-  arr <- local (iarray [] :: Init (Array 32 (Stored Uint8)))
-  let buf = toCArray arr
-  pack buf 0 =<< deref (msg ~> time_boot_ms)
-  pack buf 4 =<< deref (msg ~> q1)
-  pack buf 8 =<< deref (msg ~> q2)
-  pack buf 12 =<< deref (msg ~> q3)
-  pack buf 16 =<< deref (msg ~> q4)
-  pack buf 20 =<< deref (msg ~> rollspeed)
-  pack buf 24 =<< deref (msg ~> pitchspeed)
-  pack buf 28 =<< deref (msg ~> yawspeed)
-  -- 6: header len, 2: CRC len
-  let usedLen    = 6 + 32 + 2 :: Integer
-  let sendArr    = sendStruct ~> mav_array
-  let sendArrLen = arrayLen sendArr
-  if sendArrLen < usedLen
-    then error "attitudeQuaternion payload of length 32 is too large!"
-    else do -- Copy, leaving room for the payload
-            arrayCopy sendArr arr 6 (arrayLen arr)
-            call_ mavlinkSendWithWriter
-                    attitudeQuaternionMsgId
-                    attitudeQuaternionCrcExtra
-                    32
-                    seqNum
-                    sendStruct
+mkAttitudeQuaternionSender = makeMavlinkSender "attitude_quaternion_msg" attitudeQuaternionMsgId attitudeQuaternionCrcExtra
 
 instance MavlinkUnpackableMsg "attitude_quaternion_msg" where
     unpackMsg = ( attitudeQuaternionUnpack , attitudeQuaternionMsgId )
@@ -84,13 +57,36 @@ instance MavlinkUnpackableMsg "attitude_quaternion_msg" where
 attitudeQuaternionUnpack :: Def ('[ Ref s1 (Struct "attitude_quaternion_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-attitudeQuaternionUnpack = proc "mavlink_attitude_quaternion_unpack" $ \ msg buf -> body $ do
-  store (msg ~> time_boot_ms) =<< unpack buf 0
-  store (msg ~> q1) =<< unpack buf 4
-  store (msg ~> q2) =<< unpack buf 8
-  store (msg ~> q3) =<< unpack buf 12
-  store (msg ~> q4) =<< unpack buf 16
-  store (msg ~> rollspeed) =<< unpack buf 20
-  store (msg ~> pitchspeed) =<< unpack buf 24
-  store (msg ~> yawspeed) =<< unpack buf 28
+attitudeQuaternionUnpack = proc "mavlink_attitude_quaternion_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
 
+attitudeQuaternionPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
+                              , Uint32
+                              , ConstRef s2 (Struct "attitude_quaternion_msg")
+                              ] :-> () )
+attitudeQuaternionPackRef = proc "mavlink_attitude_quaternion_pack_ref" $ \ buf off msg -> body $ do
+  packRef buf (off + 0) (msg ~> time_boot_ms)
+  packRef buf (off + 4) (msg ~> q1)
+  packRef buf (off + 8) (msg ~> q2)
+  packRef buf (off + 12) (msg ~> q3)
+  packRef buf (off + 16) (msg ~> q4)
+  packRef buf (off + 20) (msg ~> rollspeed)
+  packRef buf (off + 24) (msg ~> pitchspeed)
+  packRef buf (off + 28) (msg ~> yawspeed)
+
+attitudeQuaternionUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
+                                , Uint32
+                                , Ref s2 (Struct "attitude_quaternion_msg")
+                                ] :-> () )
+attitudeQuaternionUnpackRef = proc "mavlink_attitude_quaternion_unpack_ref" $ \ buf off msg -> body $ do
+  unpackRef buf (off + 0) (msg ~> time_boot_ms)
+  unpackRef buf (off + 4) (msg ~> q1)
+  unpackRef buf (off + 8) (msg ~> q2)
+  unpackRef buf (off + 12) (msg ~> q3)
+  unpackRef buf (off + 16) (msg ~> q4)
+  unpackRef buf (off + 20) (msg ~> rollspeed)
+  unpackRef buf (off + 24) (msg ~> pitchspeed)
+  unpackRef buf (off + 28) (msg ~> yawspeed)
+
+instance SerializableRef (Struct "attitude_quaternion_msg") where
+  packRef = call_ attitudeQuaternionPackRef
+  unpackRef = call_ attitudeQuaternionUnpackRef

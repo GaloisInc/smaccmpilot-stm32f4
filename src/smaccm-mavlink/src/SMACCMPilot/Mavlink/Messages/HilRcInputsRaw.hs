@@ -10,12 +10,10 @@
 
 module SMACCMPilot.Mavlink.Messages.HilRcInputsRaw where
 
-import Ivory.Serialize
-import SMACCMPilot.Mavlink.Unpack
-import SMACCMPilot.Mavlink.Send
-
 import Ivory.Language
-import Ivory.Stdlib
+import Ivory.Serialize
+import SMACCMPilot.Mavlink.Send
+import SMACCMPilot.Mavlink.Unpack
 
 hilRcInputsRawMsgId :: Uint8
 hilRcInputsRawMsgId = 92
@@ -30,6 +28,8 @@ hilRcInputsRawModule = package "mavlink_hil_rc_inputs_raw_msg" $ do
   incl mkHilRcInputsRawSender
   incl hilRcInputsRawUnpack
   defStruct (Proxy :: Proxy "hil_rc_inputs_raw_msg")
+  incl hilRcInputsRawPackRef
+  incl hilRcInputsRawUnpackRef
 
 [ivory|
 struct hil_rc_inputs_raw_msg
@@ -55,40 +55,7 @@ mkHilRcInputsRawSender ::
         , Ref s1 (Stored Uint8) -- seqNum
         , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
-mkHilRcInputsRawSender =
-  proc "mavlink_hil_rc_inputs_raw_msg_send"
-  $ \msg seqNum sendStruct -> body
-  $ do
-  arr <- local (iarray [] :: Init (Array 33 (Stored Uint8)))
-  let buf = toCArray arr
-  pack buf 0 =<< deref (msg ~> time_usec)
-  pack buf 8 =<< deref (msg ~> chan1_raw)
-  pack buf 10 =<< deref (msg ~> chan2_raw)
-  pack buf 12 =<< deref (msg ~> chan3_raw)
-  pack buf 14 =<< deref (msg ~> chan4_raw)
-  pack buf 16 =<< deref (msg ~> chan5_raw)
-  pack buf 18 =<< deref (msg ~> chan6_raw)
-  pack buf 20 =<< deref (msg ~> chan7_raw)
-  pack buf 22 =<< deref (msg ~> chan8_raw)
-  pack buf 24 =<< deref (msg ~> chan9_raw)
-  pack buf 26 =<< deref (msg ~> chan10_raw)
-  pack buf 28 =<< deref (msg ~> chan11_raw)
-  pack buf 30 =<< deref (msg ~> chan12_raw)
-  pack buf 32 =<< deref (msg ~> rssi)
-  -- 6: header len, 2: CRC len
-  let usedLen    = 6 + 33 + 2 :: Integer
-  let sendArr    = sendStruct ~> mav_array
-  let sendArrLen = arrayLen sendArr
-  if sendArrLen < usedLen
-    then error "hilRcInputsRaw payload of length 33 is too large!"
-    else do -- Copy, leaving room for the payload
-            arrayCopy sendArr arr 6 (arrayLen arr)
-            call_ mavlinkSendWithWriter
-                    hilRcInputsRawMsgId
-                    hilRcInputsRawCrcExtra
-                    33
-                    seqNum
-                    sendStruct
+mkHilRcInputsRawSender = makeMavlinkSender "hil_rc_inputs_raw_msg" hilRcInputsRawMsgId hilRcInputsRawCrcExtra
 
 instance MavlinkUnpackableMsg "hil_rc_inputs_raw_msg" where
     unpackMsg = ( hilRcInputsRawUnpack , hilRcInputsRawMsgId )
@@ -96,19 +63,48 @@ instance MavlinkUnpackableMsg "hil_rc_inputs_raw_msg" where
 hilRcInputsRawUnpack :: Def ('[ Ref s1 (Struct "hil_rc_inputs_raw_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-hilRcInputsRawUnpack = proc "mavlink_hil_rc_inputs_raw_unpack" $ \ msg buf -> body $ do
-  store (msg ~> time_usec) =<< unpack buf 0
-  store (msg ~> chan1_raw) =<< unpack buf 8
-  store (msg ~> chan2_raw) =<< unpack buf 10
-  store (msg ~> chan3_raw) =<< unpack buf 12
-  store (msg ~> chan4_raw) =<< unpack buf 14
-  store (msg ~> chan5_raw) =<< unpack buf 16
-  store (msg ~> chan6_raw) =<< unpack buf 18
-  store (msg ~> chan7_raw) =<< unpack buf 20
-  store (msg ~> chan8_raw) =<< unpack buf 22
-  store (msg ~> chan9_raw) =<< unpack buf 24
-  store (msg ~> chan10_raw) =<< unpack buf 26
-  store (msg ~> chan11_raw) =<< unpack buf 28
-  store (msg ~> chan12_raw) =<< unpack buf 30
-  store (msg ~> rssi) =<< unpack buf 32
+hilRcInputsRawUnpack = proc "mavlink_hil_rc_inputs_raw_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
 
+hilRcInputsRawPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
+                              , Uint32
+                              , ConstRef s2 (Struct "hil_rc_inputs_raw_msg")
+                              ] :-> () )
+hilRcInputsRawPackRef = proc "mavlink_hil_rc_inputs_raw_pack_ref" $ \ buf off msg -> body $ do
+  packRef buf (off + 0) (msg ~> time_usec)
+  packRef buf (off + 8) (msg ~> chan1_raw)
+  packRef buf (off + 10) (msg ~> chan2_raw)
+  packRef buf (off + 12) (msg ~> chan3_raw)
+  packRef buf (off + 14) (msg ~> chan4_raw)
+  packRef buf (off + 16) (msg ~> chan5_raw)
+  packRef buf (off + 18) (msg ~> chan6_raw)
+  packRef buf (off + 20) (msg ~> chan7_raw)
+  packRef buf (off + 22) (msg ~> chan8_raw)
+  packRef buf (off + 24) (msg ~> chan9_raw)
+  packRef buf (off + 26) (msg ~> chan10_raw)
+  packRef buf (off + 28) (msg ~> chan11_raw)
+  packRef buf (off + 30) (msg ~> chan12_raw)
+  packRef buf (off + 32) (msg ~> rssi)
+
+hilRcInputsRawUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
+                                , Uint32
+                                , Ref s2 (Struct "hil_rc_inputs_raw_msg")
+                                ] :-> () )
+hilRcInputsRawUnpackRef = proc "mavlink_hil_rc_inputs_raw_unpack_ref" $ \ buf off msg -> body $ do
+  unpackRef buf (off + 0) (msg ~> time_usec)
+  unpackRef buf (off + 8) (msg ~> chan1_raw)
+  unpackRef buf (off + 10) (msg ~> chan2_raw)
+  unpackRef buf (off + 12) (msg ~> chan3_raw)
+  unpackRef buf (off + 14) (msg ~> chan4_raw)
+  unpackRef buf (off + 16) (msg ~> chan5_raw)
+  unpackRef buf (off + 18) (msg ~> chan6_raw)
+  unpackRef buf (off + 20) (msg ~> chan7_raw)
+  unpackRef buf (off + 22) (msg ~> chan8_raw)
+  unpackRef buf (off + 24) (msg ~> chan9_raw)
+  unpackRef buf (off + 26) (msg ~> chan10_raw)
+  unpackRef buf (off + 28) (msg ~> chan11_raw)
+  unpackRef buf (off + 30) (msg ~> chan12_raw)
+  unpackRef buf (off + 32) (msg ~> rssi)
+
+instance SerializableRef (Struct "hil_rc_inputs_raw_msg") where
+  packRef = call_ hilRcInputsRawPackRef
+  unpackRef = call_ hilRcInputsRawUnpackRef

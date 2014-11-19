@@ -10,12 +10,10 @@
 
 module SMACCMPilot.Mavlink.Messages.VisionSpeedEstimate where
 
-import Ivory.Serialize
-import SMACCMPilot.Mavlink.Unpack
-import SMACCMPilot.Mavlink.Send
-
 import Ivory.Language
-import Ivory.Stdlib
+import Ivory.Serialize
+import SMACCMPilot.Mavlink.Send
+import SMACCMPilot.Mavlink.Unpack
 
 visionSpeedEstimateMsgId :: Uint8
 visionSpeedEstimateMsgId = 103
@@ -30,6 +28,8 @@ visionSpeedEstimateModule = package "mavlink_vision_speed_estimate_msg" $ do
   incl mkVisionSpeedEstimateSender
   incl visionSpeedEstimateUnpack
   defStruct (Proxy :: Proxy "vision_speed_estimate_msg")
+  incl visionSpeedEstimatePackRef
+  incl visionSpeedEstimateUnpackRef
 
 [ivory|
 struct vision_speed_estimate_msg
@@ -45,30 +45,7 @@ mkVisionSpeedEstimateSender ::
         , Ref s1 (Stored Uint8) -- seqNum
         , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
-mkVisionSpeedEstimateSender =
-  proc "mavlink_vision_speed_estimate_msg_send"
-  $ \msg seqNum sendStruct -> body
-  $ do
-  arr <- local (iarray [] :: Init (Array 20 (Stored Uint8)))
-  let buf = toCArray arr
-  pack buf 0 =<< deref (msg ~> usec)
-  pack buf 8 =<< deref (msg ~> x)
-  pack buf 12 =<< deref (msg ~> y)
-  pack buf 16 =<< deref (msg ~> z)
-  -- 6: header len, 2: CRC len
-  let usedLen    = 6 + 20 + 2 :: Integer
-  let sendArr    = sendStruct ~> mav_array
-  let sendArrLen = arrayLen sendArr
-  if sendArrLen < usedLen
-    then error "visionSpeedEstimate payload of length 20 is too large!"
-    else do -- Copy, leaving room for the payload
-            arrayCopy sendArr arr 6 (arrayLen arr)
-            call_ mavlinkSendWithWriter
-                    visionSpeedEstimateMsgId
-                    visionSpeedEstimateCrcExtra
-                    20
-                    seqNum
-                    sendStruct
+mkVisionSpeedEstimateSender = makeMavlinkSender "vision_speed_estimate_msg" visionSpeedEstimateMsgId visionSpeedEstimateCrcExtra
 
 instance MavlinkUnpackableMsg "vision_speed_estimate_msg" where
     unpackMsg = ( visionSpeedEstimateUnpack , visionSpeedEstimateMsgId )
@@ -76,9 +53,28 @@ instance MavlinkUnpackableMsg "vision_speed_estimate_msg" where
 visionSpeedEstimateUnpack :: Def ('[ Ref s1 (Struct "vision_speed_estimate_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-visionSpeedEstimateUnpack = proc "mavlink_vision_speed_estimate_unpack" $ \ msg buf -> body $ do
-  store (msg ~> usec) =<< unpack buf 0
-  store (msg ~> x) =<< unpack buf 8
-  store (msg ~> y) =<< unpack buf 12
-  store (msg ~> z) =<< unpack buf 16
+visionSpeedEstimateUnpack = proc "mavlink_vision_speed_estimate_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
 
+visionSpeedEstimatePackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
+                              , Uint32
+                              , ConstRef s2 (Struct "vision_speed_estimate_msg")
+                              ] :-> () )
+visionSpeedEstimatePackRef = proc "mavlink_vision_speed_estimate_pack_ref" $ \ buf off msg -> body $ do
+  packRef buf (off + 0) (msg ~> usec)
+  packRef buf (off + 8) (msg ~> x)
+  packRef buf (off + 12) (msg ~> y)
+  packRef buf (off + 16) (msg ~> z)
+
+visionSpeedEstimateUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
+                                , Uint32
+                                , Ref s2 (Struct "vision_speed_estimate_msg")
+                                ] :-> () )
+visionSpeedEstimateUnpackRef = proc "mavlink_vision_speed_estimate_unpack_ref" $ \ buf off msg -> body $ do
+  unpackRef buf (off + 0) (msg ~> usec)
+  unpackRef buf (off + 8) (msg ~> x)
+  unpackRef buf (off + 12) (msg ~> y)
+  unpackRef buf (off + 16) (msg ~> z)
+
+instance SerializableRef (Struct "vision_speed_estimate_msg") where
+  packRef = call_ visionSpeedEstimatePackRef
+  unpackRef = call_ visionSpeedEstimateUnpackRef

@@ -10,12 +10,10 @@
 
 module SMACCMPilot.Mavlink.Messages.Heartbeat where
 
-import Ivory.Serialize
-import SMACCMPilot.Mavlink.Unpack
-import SMACCMPilot.Mavlink.Send
-
 import Ivory.Language
-import Ivory.Stdlib
+import Ivory.Serialize
+import SMACCMPilot.Mavlink.Send
+import SMACCMPilot.Mavlink.Unpack
 
 heartbeatMsgId :: Uint8
 heartbeatMsgId = 0
@@ -30,6 +28,8 @@ heartbeatModule = package "mavlink_heartbeat_msg" $ do
   incl mkHeartbeatSender
   incl heartbeatUnpack
   defStruct (Proxy :: Proxy "heartbeat_msg")
+  incl heartbeatPackRef
+  incl heartbeatUnpackRef
 
 [ivory|
 struct heartbeat_msg
@@ -47,32 +47,7 @@ mkHeartbeatSender ::
         , Ref s1 (Stored Uint8) -- seqNum
         , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
-mkHeartbeatSender =
-  proc "mavlink_heartbeat_msg_send"
-  $ \msg seqNum sendStruct -> body
-  $ do
-  arr <- local (iarray [] :: Init (Array 9 (Stored Uint8)))
-  let buf = toCArray arr
-  pack buf 0 =<< deref (msg ~> custom_mode)
-  pack buf 4 =<< deref (msg ~> mavtype)
-  pack buf 5 =<< deref (msg ~> autopilot)
-  pack buf 6 =<< deref (msg ~> base_mode)
-  pack buf 7 =<< deref (msg ~> system_status)
-  pack buf 8 =<< deref (msg ~> mavlink_version)
-  -- 6: header len, 2: CRC len
-  let usedLen    = 6 + 9 + 2 :: Integer
-  let sendArr    = sendStruct ~> mav_array
-  let sendArrLen = arrayLen sendArr
-  if sendArrLen < usedLen
-    then error "heartbeat payload of length 9 is too large!"
-    else do -- Copy, leaving room for the payload
-            arrayCopy sendArr arr 6 (arrayLen arr)
-            call_ mavlinkSendWithWriter
-                    heartbeatMsgId
-                    heartbeatCrcExtra
-                    9
-                    seqNum
-                    sendStruct
+mkHeartbeatSender = makeMavlinkSender "heartbeat_msg" heartbeatMsgId heartbeatCrcExtra
 
 instance MavlinkUnpackableMsg "heartbeat_msg" where
     unpackMsg = ( heartbeatUnpack , heartbeatMsgId )
@@ -80,11 +55,32 @@ instance MavlinkUnpackableMsg "heartbeat_msg" where
 heartbeatUnpack :: Def ('[ Ref s1 (Struct "heartbeat_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-heartbeatUnpack = proc "mavlink_heartbeat_unpack" $ \ msg buf -> body $ do
-  store (msg ~> custom_mode) =<< unpack buf 0
-  store (msg ~> mavtype) =<< unpack buf 4
-  store (msg ~> autopilot) =<< unpack buf 5
-  store (msg ~> base_mode) =<< unpack buf 6
-  store (msg ~> system_status) =<< unpack buf 7
-  store (msg ~> mavlink_version) =<< unpack buf 8
+heartbeatUnpack = proc "mavlink_heartbeat_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
 
+heartbeatPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
+                              , Uint32
+                              , ConstRef s2 (Struct "heartbeat_msg")
+                              ] :-> () )
+heartbeatPackRef = proc "mavlink_heartbeat_pack_ref" $ \ buf off msg -> body $ do
+  packRef buf (off + 0) (msg ~> custom_mode)
+  packRef buf (off + 4) (msg ~> mavtype)
+  packRef buf (off + 5) (msg ~> autopilot)
+  packRef buf (off + 6) (msg ~> base_mode)
+  packRef buf (off + 7) (msg ~> system_status)
+  packRef buf (off + 8) (msg ~> mavlink_version)
+
+heartbeatUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
+                                , Uint32
+                                , Ref s2 (Struct "heartbeat_msg")
+                                ] :-> () )
+heartbeatUnpackRef = proc "mavlink_heartbeat_unpack_ref" $ \ buf off msg -> body $ do
+  unpackRef buf (off + 0) (msg ~> custom_mode)
+  unpackRef buf (off + 4) (msg ~> mavtype)
+  unpackRef buf (off + 5) (msg ~> autopilot)
+  unpackRef buf (off + 6) (msg ~> base_mode)
+  unpackRef buf (off + 7) (msg ~> system_status)
+  unpackRef buf (off + 8) (msg ~> mavlink_version)
+
+instance SerializableRef (Struct "heartbeat_msg") where
+  packRef = call_ heartbeatPackRef
+  unpackRef = call_ heartbeatUnpackRef

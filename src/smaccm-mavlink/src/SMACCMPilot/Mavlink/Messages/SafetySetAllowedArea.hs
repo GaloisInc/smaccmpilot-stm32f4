@@ -10,12 +10,10 @@
 
 module SMACCMPilot.Mavlink.Messages.SafetySetAllowedArea where
 
-import Ivory.Serialize
-import SMACCMPilot.Mavlink.Unpack
-import SMACCMPilot.Mavlink.Send
-
 import Ivory.Language
-import Ivory.Stdlib
+import Ivory.Serialize
+import SMACCMPilot.Mavlink.Send
+import SMACCMPilot.Mavlink.Unpack
 
 safetySetAllowedAreaMsgId :: Uint8
 safetySetAllowedAreaMsgId = 54
@@ -30,6 +28,8 @@ safetySetAllowedAreaModule = package "mavlink_safety_set_allowed_area_msg" $ do
   incl mkSafetySetAllowedAreaSender
   incl safetySetAllowedAreaUnpack
   defStruct (Proxy :: Proxy "safety_set_allowed_area_msg")
+  incl safetySetAllowedAreaPackRef
+  incl safetySetAllowedAreaUnpackRef
 
 [ivory|
 struct safety_set_allowed_area_msg
@@ -50,35 +50,7 @@ mkSafetySetAllowedAreaSender ::
         , Ref s1 (Stored Uint8) -- seqNum
         , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
-mkSafetySetAllowedAreaSender =
-  proc "mavlink_safety_set_allowed_area_msg_send"
-  $ \msg seqNum sendStruct -> body
-  $ do
-  arr <- local (iarray [] :: Init (Array 27 (Stored Uint8)))
-  let buf = toCArray arr
-  pack buf 0 =<< deref (msg ~> p1x)
-  pack buf 4 =<< deref (msg ~> p1y)
-  pack buf 8 =<< deref (msg ~> p1z)
-  pack buf 12 =<< deref (msg ~> p2x)
-  pack buf 16 =<< deref (msg ~> p2y)
-  pack buf 20 =<< deref (msg ~> p2z)
-  pack buf 24 =<< deref (msg ~> target_system)
-  pack buf 25 =<< deref (msg ~> target_component)
-  pack buf 26 =<< deref (msg ~> frame)
-  -- 6: header len, 2: CRC len
-  let usedLen    = 6 + 27 + 2 :: Integer
-  let sendArr    = sendStruct ~> mav_array
-  let sendArrLen = arrayLen sendArr
-  if sendArrLen < usedLen
-    then error "safetySetAllowedArea payload of length 27 is too large!"
-    else do -- Copy, leaving room for the payload
-            arrayCopy sendArr arr 6 (arrayLen arr)
-            call_ mavlinkSendWithWriter
-                    safetySetAllowedAreaMsgId
-                    safetySetAllowedAreaCrcExtra
-                    27
-                    seqNum
-                    sendStruct
+mkSafetySetAllowedAreaSender = makeMavlinkSender "safety_set_allowed_area_msg" safetySetAllowedAreaMsgId safetySetAllowedAreaCrcExtra
 
 instance MavlinkUnpackableMsg "safety_set_allowed_area_msg" where
     unpackMsg = ( safetySetAllowedAreaUnpack , safetySetAllowedAreaMsgId )
@@ -86,14 +58,38 @@ instance MavlinkUnpackableMsg "safety_set_allowed_area_msg" where
 safetySetAllowedAreaUnpack :: Def ('[ Ref s1 (Struct "safety_set_allowed_area_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-safetySetAllowedAreaUnpack = proc "mavlink_safety_set_allowed_area_unpack" $ \ msg buf -> body $ do
-  store (msg ~> p1x) =<< unpack buf 0
-  store (msg ~> p1y) =<< unpack buf 4
-  store (msg ~> p1z) =<< unpack buf 8
-  store (msg ~> p2x) =<< unpack buf 12
-  store (msg ~> p2y) =<< unpack buf 16
-  store (msg ~> p2z) =<< unpack buf 20
-  store (msg ~> target_system) =<< unpack buf 24
-  store (msg ~> target_component) =<< unpack buf 25
-  store (msg ~> frame) =<< unpack buf 26
+safetySetAllowedAreaUnpack = proc "mavlink_safety_set_allowed_area_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
 
+safetySetAllowedAreaPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
+                              , Uint32
+                              , ConstRef s2 (Struct "safety_set_allowed_area_msg")
+                              ] :-> () )
+safetySetAllowedAreaPackRef = proc "mavlink_safety_set_allowed_area_pack_ref" $ \ buf off msg -> body $ do
+  packRef buf (off + 0) (msg ~> p1x)
+  packRef buf (off + 4) (msg ~> p1y)
+  packRef buf (off + 8) (msg ~> p1z)
+  packRef buf (off + 12) (msg ~> p2x)
+  packRef buf (off + 16) (msg ~> p2y)
+  packRef buf (off + 20) (msg ~> p2z)
+  packRef buf (off + 24) (msg ~> target_system)
+  packRef buf (off + 25) (msg ~> target_component)
+  packRef buf (off + 26) (msg ~> frame)
+
+safetySetAllowedAreaUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
+                                , Uint32
+                                , Ref s2 (Struct "safety_set_allowed_area_msg")
+                                ] :-> () )
+safetySetAllowedAreaUnpackRef = proc "mavlink_safety_set_allowed_area_unpack_ref" $ \ buf off msg -> body $ do
+  unpackRef buf (off + 0) (msg ~> p1x)
+  unpackRef buf (off + 4) (msg ~> p1y)
+  unpackRef buf (off + 8) (msg ~> p1z)
+  unpackRef buf (off + 12) (msg ~> p2x)
+  unpackRef buf (off + 16) (msg ~> p2y)
+  unpackRef buf (off + 20) (msg ~> p2z)
+  unpackRef buf (off + 24) (msg ~> target_system)
+  unpackRef buf (off + 25) (msg ~> target_component)
+  unpackRef buf (off + 26) (msg ~> frame)
+
+instance SerializableRef (Struct "safety_set_allowed_area_msg") where
+  packRef = call_ safetySetAllowedAreaPackRef
+  unpackRef = call_ safetySetAllowedAreaUnpackRef

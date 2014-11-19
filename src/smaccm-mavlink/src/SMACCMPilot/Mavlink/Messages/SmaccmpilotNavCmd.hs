@@ -10,12 +10,10 @@
 
 module SMACCMPilot.Mavlink.Messages.SmaccmpilotNavCmd where
 
-import Ivory.Serialize
-import SMACCMPilot.Mavlink.Unpack
-import SMACCMPilot.Mavlink.Send
-
 import Ivory.Language
-import Ivory.Stdlib
+import Ivory.Serialize
+import SMACCMPilot.Mavlink.Send
+import SMACCMPilot.Mavlink.Unpack
 
 smaccmpilotNavCmdMsgId :: Uint8
 smaccmpilotNavCmdMsgId = 188
@@ -30,6 +28,8 @@ smaccmpilotNavCmdModule = package "mavlink_smaccmpilot_nav_cmd_msg" $ do
   incl mkSmaccmpilotNavCmdSender
   incl smaccmpilotNavCmdUnpack
   defStruct (Proxy :: Proxy "smaccmpilot_nav_cmd_msg")
+  incl smaccmpilotNavCmdPackRef
+  incl smaccmpilotNavCmdUnpackRef
 
 [ivory|
 struct smaccmpilot_nav_cmd_msg
@@ -54,39 +54,7 @@ mkSmaccmpilotNavCmdSender ::
         , Ref s1 (Stored Uint8) -- seqNum
         , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
-mkSmaccmpilotNavCmdSender =
-  proc "mavlink_smaccmpilot_nav_cmd_msg_send"
-  $ \msg seqNum sendStruct -> body
-  $ do
-  arr <- local (iarray [] :: Init (Array 32 (Stored Uint8)))
-  let buf = toCArray arr
-  pack buf 0 =<< deref (msg ~> alt_set)
-  pack buf 4 =<< deref (msg ~> alt_rate_set)
-  pack buf 8 =<< deref (msg ~> lat_set)
-  pack buf 12 =<< deref (msg ~> lon_set)
-  pack buf 16 =<< deref (msg ~> vel_x_set)
-  pack buf 20 =<< deref (msg ~> vel_y_set)
-  pack buf 24 =<< deref (msg ~> heading_set)
-  pack buf 26 =<< deref (msg ~> autoland_active)
-  pack buf 27 =<< deref (msg ~> autoland_complete)
-  pack buf 28 =<< deref (msg ~> alt_set_valid)
-  pack buf 29 =<< deref (msg ~> heading_set_valid)
-  pack buf 30 =<< deref (msg ~> lat_lon_set_valid)
-  pack buf 31 =<< deref (msg ~> vel_set_valid)
-  -- 6: header len, 2: CRC len
-  let usedLen    = 6 + 32 + 2 :: Integer
-  let sendArr    = sendStruct ~> mav_array
-  let sendArrLen = arrayLen sendArr
-  if sendArrLen < usedLen
-    then error "smaccmpilotNavCmd payload of length 32 is too large!"
-    else do -- Copy, leaving room for the payload
-            arrayCopy sendArr arr 6 (arrayLen arr)
-            call_ mavlinkSendWithWriter
-                    smaccmpilotNavCmdMsgId
-                    smaccmpilotNavCmdCrcExtra
-                    32
-                    seqNum
-                    sendStruct
+mkSmaccmpilotNavCmdSender = makeMavlinkSender "smaccmpilot_nav_cmd_msg" smaccmpilotNavCmdMsgId smaccmpilotNavCmdCrcExtra
 
 instance MavlinkUnpackableMsg "smaccmpilot_nav_cmd_msg" where
     unpackMsg = ( smaccmpilotNavCmdUnpack , smaccmpilotNavCmdMsgId )
@@ -94,18 +62,46 @@ instance MavlinkUnpackableMsg "smaccmpilot_nav_cmd_msg" where
 smaccmpilotNavCmdUnpack :: Def ('[ Ref s1 (Struct "smaccmpilot_nav_cmd_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-smaccmpilotNavCmdUnpack = proc "mavlink_smaccmpilot_nav_cmd_unpack" $ \ msg buf -> body $ do
-  store (msg ~> alt_set) =<< unpack buf 0
-  store (msg ~> alt_rate_set) =<< unpack buf 4
-  store (msg ~> lat_set) =<< unpack buf 8
-  store (msg ~> lon_set) =<< unpack buf 12
-  store (msg ~> vel_x_set) =<< unpack buf 16
-  store (msg ~> vel_y_set) =<< unpack buf 20
-  store (msg ~> heading_set) =<< unpack buf 24
-  store (msg ~> autoland_active) =<< unpack buf 26
-  store (msg ~> autoland_complete) =<< unpack buf 27
-  store (msg ~> alt_set_valid) =<< unpack buf 28
-  store (msg ~> heading_set_valid) =<< unpack buf 29
-  store (msg ~> lat_lon_set_valid) =<< unpack buf 30
-  store (msg ~> vel_set_valid) =<< unpack buf 31
+smaccmpilotNavCmdUnpack = proc "mavlink_smaccmpilot_nav_cmd_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
 
+smaccmpilotNavCmdPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
+                              , Uint32
+                              , ConstRef s2 (Struct "smaccmpilot_nav_cmd_msg")
+                              ] :-> () )
+smaccmpilotNavCmdPackRef = proc "mavlink_smaccmpilot_nav_cmd_pack_ref" $ \ buf off msg -> body $ do
+  packRef buf (off + 0) (msg ~> alt_set)
+  packRef buf (off + 4) (msg ~> alt_rate_set)
+  packRef buf (off + 8) (msg ~> lat_set)
+  packRef buf (off + 12) (msg ~> lon_set)
+  packRef buf (off + 16) (msg ~> vel_x_set)
+  packRef buf (off + 20) (msg ~> vel_y_set)
+  packRef buf (off + 24) (msg ~> heading_set)
+  packRef buf (off + 26) (msg ~> autoland_active)
+  packRef buf (off + 27) (msg ~> autoland_complete)
+  packRef buf (off + 28) (msg ~> alt_set_valid)
+  packRef buf (off + 29) (msg ~> heading_set_valid)
+  packRef buf (off + 30) (msg ~> lat_lon_set_valid)
+  packRef buf (off + 31) (msg ~> vel_set_valid)
+
+smaccmpilotNavCmdUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
+                                , Uint32
+                                , Ref s2 (Struct "smaccmpilot_nav_cmd_msg")
+                                ] :-> () )
+smaccmpilotNavCmdUnpackRef = proc "mavlink_smaccmpilot_nav_cmd_unpack_ref" $ \ buf off msg -> body $ do
+  unpackRef buf (off + 0) (msg ~> alt_set)
+  unpackRef buf (off + 4) (msg ~> alt_rate_set)
+  unpackRef buf (off + 8) (msg ~> lat_set)
+  unpackRef buf (off + 12) (msg ~> lon_set)
+  unpackRef buf (off + 16) (msg ~> vel_x_set)
+  unpackRef buf (off + 20) (msg ~> vel_y_set)
+  unpackRef buf (off + 24) (msg ~> heading_set)
+  unpackRef buf (off + 26) (msg ~> autoland_active)
+  unpackRef buf (off + 27) (msg ~> autoland_complete)
+  unpackRef buf (off + 28) (msg ~> alt_set_valid)
+  unpackRef buf (off + 29) (msg ~> heading_set_valid)
+  unpackRef buf (off + 30) (msg ~> lat_lon_set_valid)
+  unpackRef buf (off + 31) (msg ~> vel_set_valid)
+
+instance SerializableRef (Struct "smaccmpilot_nav_cmd_msg") where
+  packRef = call_ smaccmpilotNavCmdPackRef
+  unpackRef = call_ smaccmpilotNavCmdUnpackRef

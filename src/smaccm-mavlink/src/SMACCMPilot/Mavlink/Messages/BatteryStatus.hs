@@ -10,12 +10,10 @@
 
 module SMACCMPilot.Mavlink.Messages.BatteryStatus where
 
-import Ivory.Serialize
-import SMACCMPilot.Mavlink.Unpack
-import SMACCMPilot.Mavlink.Send
-
 import Ivory.Language
-import Ivory.Stdlib
+import Ivory.Serialize
+import SMACCMPilot.Mavlink.Send
+import SMACCMPilot.Mavlink.Unpack
 
 batteryStatusMsgId :: Uint8
 batteryStatusMsgId = 147
@@ -30,6 +28,8 @@ batteryStatusModule = package "mavlink_battery_status_msg" $ do
   incl mkBatteryStatusSender
   incl batteryStatusUnpack
   defStruct (Proxy :: Proxy "battery_status_msg")
+  incl batteryStatusPackRef
+  incl batteryStatusUnpackRef
 
 [ivory|
 struct battery_status_msg
@@ -50,35 +50,7 @@ mkBatteryStatusSender ::
         , Ref s1 (Stored Uint8) -- seqNum
         , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
-mkBatteryStatusSender =
-  proc "mavlink_battery_status_msg_send"
-  $ \msg seqNum sendStruct -> body
-  $ do
-  arr <- local (iarray [] :: Init (Array 16 (Stored Uint8)))
-  let buf = toCArray arr
-  pack buf 0 =<< deref (msg ~> voltage_cell_1)
-  pack buf 2 =<< deref (msg ~> voltage_cell_2)
-  pack buf 4 =<< deref (msg ~> voltage_cell_3)
-  pack buf 6 =<< deref (msg ~> voltage_cell_4)
-  pack buf 8 =<< deref (msg ~> voltage_cell_5)
-  pack buf 10 =<< deref (msg ~> voltage_cell_6)
-  pack buf 12 =<< deref (msg ~> current_battery)
-  pack buf 14 =<< deref (msg ~> accu_id)
-  pack buf 15 =<< deref (msg ~> battery_remaining)
-  -- 6: header len, 2: CRC len
-  let usedLen    = 6 + 16 + 2 :: Integer
-  let sendArr    = sendStruct ~> mav_array
-  let sendArrLen = arrayLen sendArr
-  if sendArrLen < usedLen
-    then error "batteryStatus payload of length 16 is too large!"
-    else do -- Copy, leaving room for the payload
-            arrayCopy sendArr arr 6 (arrayLen arr)
-            call_ mavlinkSendWithWriter
-                    batteryStatusMsgId
-                    batteryStatusCrcExtra
-                    16
-                    seqNum
-                    sendStruct
+mkBatteryStatusSender = makeMavlinkSender "battery_status_msg" batteryStatusMsgId batteryStatusCrcExtra
 
 instance MavlinkUnpackableMsg "battery_status_msg" where
     unpackMsg = ( batteryStatusUnpack , batteryStatusMsgId )
@@ -86,14 +58,38 @@ instance MavlinkUnpackableMsg "battery_status_msg" where
 batteryStatusUnpack :: Def ('[ Ref s1 (Struct "battery_status_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-batteryStatusUnpack = proc "mavlink_battery_status_unpack" $ \ msg buf -> body $ do
-  store (msg ~> voltage_cell_1) =<< unpack buf 0
-  store (msg ~> voltage_cell_2) =<< unpack buf 2
-  store (msg ~> voltage_cell_3) =<< unpack buf 4
-  store (msg ~> voltage_cell_4) =<< unpack buf 6
-  store (msg ~> voltage_cell_5) =<< unpack buf 8
-  store (msg ~> voltage_cell_6) =<< unpack buf 10
-  store (msg ~> current_battery) =<< unpack buf 12
-  store (msg ~> accu_id) =<< unpack buf 14
-  store (msg ~> battery_remaining) =<< unpack buf 15
+batteryStatusUnpack = proc "mavlink_battery_status_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
 
+batteryStatusPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
+                              , Uint32
+                              , ConstRef s2 (Struct "battery_status_msg")
+                              ] :-> () )
+batteryStatusPackRef = proc "mavlink_battery_status_pack_ref" $ \ buf off msg -> body $ do
+  packRef buf (off + 0) (msg ~> voltage_cell_1)
+  packRef buf (off + 2) (msg ~> voltage_cell_2)
+  packRef buf (off + 4) (msg ~> voltage_cell_3)
+  packRef buf (off + 6) (msg ~> voltage_cell_4)
+  packRef buf (off + 8) (msg ~> voltage_cell_5)
+  packRef buf (off + 10) (msg ~> voltage_cell_6)
+  packRef buf (off + 12) (msg ~> current_battery)
+  packRef buf (off + 14) (msg ~> accu_id)
+  packRef buf (off + 15) (msg ~> battery_remaining)
+
+batteryStatusUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
+                                , Uint32
+                                , Ref s2 (Struct "battery_status_msg")
+                                ] :-> () )
+batteryStatusUnpackRef = proc "mavlink_battery_status_unpack_ref" $ \ buf off msg -> body $ do
+  unpackRef buf (off + 0) (msg ~> voltage_cell_1)
+  unpackRef buf (off + 2) (msg ~> voltage_cell_2)
+  unpackRef buf (off + 4) (msg ~> voltage_cell_3)
+  unpackRef buf (off + 6) (msg ~> voltage_cell_4)
+  unpackRef buf (off + 8) (msg ~> voltage_cell_5)
+  unpackRef buf (off + 10) (msg ~> voltage_cell_6)
+  unpackRef buf (off + 12) (msg ~> current_battery)
+  unpackRef buf (off + 14) (msg ~> accu_id)
+  unpackRef buf (off + 15) (msg ~> battery_remaining)
+
+instance SerializableRef (Struct "battery_status_msg") where
+  packRef = call_ batteryStatusPackRef
+  unpackRef = call_ batteryStatusUnpackRef

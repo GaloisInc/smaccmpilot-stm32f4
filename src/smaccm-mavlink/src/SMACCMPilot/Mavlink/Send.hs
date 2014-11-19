@@ -10,6 +10,7 @@
 module SMACCMPilot.Mavlink.Send where
 
 import           Ivory.Language
+import           Ivory.Serialize
 import           Ivory.Stdlib
 
 import           SMACCMPilot.Mavlink.CRC
@@ -98,3 +99,28 @@ mavlinkSendModule = package "mavlinkSendModule" $ do
   defStruct (Proxy :: Proxy "mavlinkPacket")
 
 --------------------------------------------------------------------------------
+
+makeMavlinkSender :: forall s0 s1 a. (IvorySizeOf a, SerializableRef a)
+                  => String -- ^ type name
+                  -> Uint8 -- ^ message ID
+                  -> Uint8 -- ^ CRC extra byte
+                  -> Def ('[ ConstRef s0 a
+                           , Ref s1 (Stored Uint8)
+                           , Ref s1 (Struct "mavlinkPacket")
+                           ] :-> ())
+makeMavlinkSender name msgId crcExtra =
+  proc ("mavlink_" ++ name ++ "_send") $ \ msg seqNum sendStruct -> body $ do
+  let bodyLen    = sizeOfBytes (Proxy :: Proxy a)
+  -- 6: header len, 2: CRC len
+  let usedLen    = 6 + bodyLen + 2
+  let sendArr    = sendStruct ~> mav_array
+  if arrayLen sendArr < usedLen
+    then error $ name ++ " payload of length " ++ show bodyLen ++ " is too large!"
+    else do -- Copy, leaving room for the payload
+            packRef (toCArray sendArr) 6 msg
+            call_ mavlinkSendWithWriter
+                    msgId
+                    crcExtra
+                    (fromInteger bodyLen)
+                    seqNum
+                    sendStruct

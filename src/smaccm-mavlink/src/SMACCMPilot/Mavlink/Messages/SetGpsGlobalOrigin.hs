@@ -10,12 +10,10 @@
 
 module SMACCMPilot.Mavlink.Messages.SetGpsGlobalOrigin where
 
-import Ivory.Serialize
-import SMACCMPilot.Mavlink.Unpack
-import SMACCMPilot.Mavlink.Send
-
 import Ivory.Language
-import Ivory.Stdlib
+import Ivory.Serialize
+import SMACCMPilot.Mavlink.Send
+import SMACCMPilot.Mavlink.Unpack
 
 setGpsGlobalOriginMsgId :: Uint8
 setGpsGlobalOriginMsgId = 48
@@ -30,6 +28,8 @@ setGpsGlobalOriginModule = package "mavlink_set_gps_global_origin_msg" $ do
   incl mkSetGpsGlobalOriginSender
   incl setGpsGlobalOriginUnpack
   defStruct (Proxy :: Proxy "set_gps_global_origin_msg")
+  incl setGpsGlobalOriginPackRef
+  incl setGpsGlobalOriginUnpackRef
 
 [ivory|
 struct set_gps_global_origin_msg
@@ -45,30 +45,7 @@ mkSetGpsGlobalOriginSender ::
         , Ref s1 (Stored Uint8) -- seqNum
         , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
-mkSetGpsGlobalOriginSender =
-  proc "mavlink_set_gps_global_origin_msg_send"
-  $ \msg seqNum sendStruct -> body
-  $ do
-  arr <- local (iarray [] :: Init (Array 13 (Stored Uint8)))
-  let buf = toCArray arr
-  pack buf 0 =<< deref (msg ~> latitude)
-  pack buf 4 =<< deref (msg ~> longitude)
-  pack buf 8 =<< deref (msg ~> altitude)
-  pack buf 12 =<< deref (msg ~> target_system)
-  -- 6: header len, 2: CRC len
-  let usedLen    = 6 + 13 + 2 :: Integer
-  let sendArr    = sendStruct ~> mav_array
-  let sendArrLen = arrayLen sendArr
-  if sendArrLen < usedLen
-    then error "setGpsGlobalOrigin payload of length 13 is too large!"
-    else do -- Copy, leaving room for the payload
-            arrayCopy sendArr arr 6 (arrayLen arr)
-            call_ mavlinkSendWithWriter
-                    setGpsGlobalOriginMsgId
-                    setGpsGlobalOriginCrcExtra
-                    13
-                    seqNum
-                    sendStruct
+mkSetGpsGlobalOriginSender = makeMavlinkSender "set_gps_global_origin_msg" setGpsGlobalOriginMsgId setGpsGlobalOriginCrcExtra
 
 instance MavlinkUnpackableMsg "set_gps_global_origin_msg" where
     unpackMsg = ( setGpsGlobalOriginUnpack , setGpsGlobalOriginMsgId )
@@ -76,9 +53,28 @@ instance MavlinkUnpackableMsg "set_gps_global_origin_msg" where
 setGpsGlobalOriginUnpack :: Def ('[ Ref s1 (Struct "set_gps_global_origin_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-setGpsGlobalOriginUnpack = proc "mavlink_set_gps_global_origin_unpack" $ \ msg buf -> body $ do
-  store (msg ~> latitude) =<< unpack buf 0
-  store (msg ~> longitude) =<< unpack buf 4
-  store (msg ~> altitude) =<< unpack buf 8
-  store (msg ~> target_system) =<< unpack buf 12
+setGpsGlobalOriginUnpack = proc "mavlink_set_gps_global_origin_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
 
+setGpsGlobalOriginPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
+                              , Uint32
+                              , ConstRef s2 (Struct "set_gps_global_origin_msg")
+                              ] :-> () )
+setGpsGlobalOriginPackRef = proc "mavlink_set_gps_global_origin_pack_ref" $ \ buf off msg -> body $ do
+  packRef buf (off + 0) (msg ~> latitude)
+  packRef buf (off + 4) (msg ~> longitude)
+  packRef buf (off + 8) (msg ~> altitude)
+  packRef buf (off + 12) (msg ~> target_system)
+
+setGpsGlobalOriginUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
+                                , Uint32
+                                , Ref s2 (Struct "set_gps_global_origin_msg")
+                                ] :-> () )
+setGpsGlobalOriginUnpackRef = proc "mavlink_set_gps_global_origin_unpack_ref" $ \ buf off msg -> body $ do
+  unpackRef buf (off + 0) (msg ~> latitude)
+  unpackRef buf (off + 4) (msg ~> longitude)
+  unpackRef buf (off + 8) (msg ~> altitude)
+  unpackRef buf (off + 12) (msg ~> target_system)
+
+instance SerializableRef (Struct "set_gps_global_origin_msg") where
+  packRef = call_ setGpsGlobalOriginPackRef
+  unpackRef = call_ setGpsGlobalOriginUnpackRef

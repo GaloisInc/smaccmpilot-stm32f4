@@ -10,12 +10,10 @@
 
 module SMACCMPilot.Mavlink.Messages.GlobalVisionPositionEstimate where
 
-import Ivory.Serialize
-import SMACCMPilot.Mavlink.Unpack
-import SMACCMPilot.Mavlink.Send
-
 import Ivory.Language
-import Ivory.Stdlib
+import Ivory.Serialize
+import SMACCMPilot.Mavlink.Send
+import SMACCMPilot.Mavlink.Unpack
 
 globalVisionPositionEstimateMsgId :: Uint8
 globalVisionPositionEstimateMsgId = 101
@@ -30,6 +28,8 @@ globalVisionPositionEstimateModule = package "mavlink_global_vision_position_est
   incl mkGlobalVisionPositionEstimateSender
   incl globalVisionPositionEstimateUnpack
   defStruct (Proxy :: Proxy "global_vision_position_estimate_msg")
+  incl globalVisionPositionEstimatePackRef
+  incl globalVisionPositionEstimateUnpackRef
 
 [ivory|
 struct global_vision_position_estimate_msg
@@ -48,33 +48,7 @@ mkGlobalVisionPositionEstimateSender ::
         , Ref s1 (Stored Uint8) -- seqNum
         , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
-mkGlobalVisionPositionEstimateSender =
-  proc "mavlink_global_vision_position_estimate_msg_send"
-  $ \msg seqNum sendStruct -> body
-  $ do
-  arr <- local (iarray [] :: Init (Array 32 (Stored Uint8)))
-  let buf = toCArray arr
-  pack buf 0 =<< deref (msg ~> usec)
-  pack buf 8 =<< deref (msg ~> x)
-  pack buf 12 =<< deref (msg ~> y)
-  pack buf 16 =<< deref (msg ~> z)
-  pack buf 20 =<< deref (msg ~> roll)
-  pack buf 24 =<< deref (msg ~> pitch)
-  pack buf 28 =<< deref (msg ~> yaw)
-  -- 6: header len, 2: CRC len
-  let usedLen    = 6 + 32 + 2 :: Integer
-  let sendArr    = sendStruct ~> mav_array
-  let sendArrLen = arrayLen sendArr
-  if sendArrLen < usedLen
-    then error "globalVisionPositionEstimate payload of length 32 is too large!"
-    else do -- Copy, leaving room for the payload
-            arrayCopy sendArr arr 6 (arrayLen arr)
-            call_ mavlinkSendWithWriter
-                    globalVisionPositionEstimateMsgId
-                    globalVisionPositionEstimateCrcExtra
-                    32
-                    seqNum
-                    sendStruct
+mkGlobalVisionPositionEstimateSender = makeMavlinkSender "global_vision_position_estimate_msg" globalVisionPositionEstimateMsgId globalVisionPositionEstimateCrcExtra
 
 instance MavlinkUnpackableMsg "global_vision_position_estimate_msg" where
     unpackMsg = ( globalVisionPositionEstimateUnpack , globalVisionPositionEstimateMsgId )
@@ -82,12 +56,34 @@ instance MavlinkUnpackableMsg "global_vision_position_estimate_msg" where
 globalVisionPositionEstimateUnpack :: Def ('[ Ref s1 (Struct "global_vision_position_estimate_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-globalVisionPositionEstimateUnpack = proc "mavlink_global_vision_position_estimate_unpack" $ \ msg buf -> body $ do
-  store (msg ~> usec) =<< unpack buf 0
-  store (msg ~> x) =<< unpack buf 8
-  store (msg ~> y) =<< unpack buf 12
-  store (msg ~> z) =<< unpack buf 16
-  store (msg ~> roll) =<< unpack buf 20
-  store (msg ~> pitch) =<< unpack buf 24
-  store (msg ~> yaw) =<< unpack buf 28
+globalVisionPositionEstimateUnpack = proc "mavlink_global_vision_position_estimate_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
 
+globalVisionPositionEstimatePackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
+                              , Uint32
+                              , ConstRef s2 (Struct "global_vision_position_estimate_msg")
+                              ] :-> () )
+globalVisionPositionEstimatePackRef = proc "mavlink_global_vision_position_estimate_pack_ref" $ \ buf off msg -> body $ do
+  packRef buf (off + 0) (msg ~> usec)
+  packRef buf (off + 8) (msg ~> x)
+  packRef buf (off + 12) (msg ~> y)
+  packRef buf (off + 16) (msg ~> z)
+  packRef buf (off + 20) (msg ~> roll)
+  packRef buf (off + 24) (msg ~> pitch)
+  packRef buf (off + 28) (msg ~> yaw)
+
+globalVisionPositionEstimateUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
+                                , Uint32
+                                , Ref s2 (Struct "global_vision_position_estimate_msg")
+                                ] :-> () )
+globalVisionPositionEstimateUnpackRef = proc "mavlink_global_vision_position_estimate_unpack_ref" $ \ buf off msg -> body $ do
+  unpackRef buf (off + 0) (msg ~> usec)
+  unpackRef buf (off + 8) (msg ~> x)
+  unpackRef buf (off + 12) (msg ~> y)
+  unpackRef buf (off + 16) (msg ~> z)
+  unpackRef buf (off + 20) (msg ~> roll)
+  unpackRef buf (off + 24) (msg ~> pitch)
+  unpackRef buf (off + 28) (msg ~> yaw)
+
+instance SerializableRef (Struct "global_vision_position_estimate_msg") where
+  packRef = call_ globalVisionPositionEstimatePackRef
+  unpackRef = call_ globalVisionPositionEstimateUnpackRef

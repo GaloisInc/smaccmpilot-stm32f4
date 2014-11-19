@@ -10,12 +10,10 @@
 
 module SMACCMPilot.Mavlink.Messages.LocalPositionSetpoint where
 
-import Ivory.Serialize
-import SMACCMPilot.Mavlink.Unpack
-import SMACCMPilot.Mavlink.Send
-
 import Ivory.Language
-import Ivory.Stdlib
+import Ivory.Serialize
+import SMACCMPilot.Mavlink.Send
+import SMACCMPilot.Mavlink.Unpack
 
 localPositionSetpointMsgId :: Uint8
 localPositionSetpointMsgId = 51
@@ -30,6 +28,8 @@ localPositionSetpointModule = package "mavlink_local_position_setpoint_msg" $ do
   incl mkLocalPositionSetpointSender
   incl localPositionSetpointUnpack
   defStruct (Proxy :: Proxy "local_position_setpoint_msg")
+  incl localPositionSetpointPackRef
+  incl localPositionSetpointUnpackRef
 
 [ivory|
 struct local_position_setpoint_msg
@@ -46,31 +46,7 @@ mkLocalPositionSetpointSender ::
         , Ref s1 (Stored Uint8) -- seqNum
         , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
-mkLocalPositionSetpointSender =
-  proc "mavlink_local_position_setpoint_msg_send"
-  $ \msg seqNum sendStruct -> body
-  $ do
-  arr <- local (iarray [] :: Init (Array 17 (Stored Uint8)))
-  let buf = toCArray arr
-  pack buf 0 =<< deref (msg ~> x)
-  pack buf 4 =<< deref (msg ~> y)
-  pack buf 8 =<< deref (msg ~> z)
-  pack buf 12 =<< deref (msg ~> yaw)
-  pack buf 16 =<< deref (msg ~> coordinate_frame)
-  -- 6: header len, 2: CRC len
-  let usedLen    = 6 + 17 + 2 :: Integer
-  let sendArr    = sendStruct ~> mav_array
-  let sendArrLen = arrayLen sendArr
-  if sendArrLen < usedLen
-    then error "localPositionSetpoint payload of length 17 is too large!"
-    else do -- Copy, leaving room for the payload
-            arrayCopy sendArr arr 6 (arrayLen arr)
-            call_ mavlinkSendWithWriter
-                    localPositionSetpointMsgId
-                    localPositionSetpointCrcExtra
-                    17
-                    seqNum
-                    sendStruct
+mkLocalPositionSetpointSender = makeMavlinkSender "local_position_setpoint_msg" localPositionSetpointMsgId localPositionSetpointCrcExtra
 
 instance MavlinkUnpackableMsg "local_position_setpoint_msg" where
     unpackMsg = ( localPositionSetpointUnpack , localPositionSetpointMsgId )
@@ -78,10 +54,30 @@ instance MavlinkUnpackableMsg "local_position_setpoint_msg" where
 localPositionSetpointUnpack :: Def ('[ Ref s1 (Struct "local_position_setpoint_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-localPositionSetpointUnpack = proc "mavlink_local_position_setpoint_unpack" $ \ msg buf -> body $ do
-  store (msg ~> x) =<< unpack buf 0
-  store (msg ~> y) =<< unpack buf 4
-  store (msg ~> z) =<< unpack buf 8
-  store (msg ~> yaw) =<< unpack buf 12
-  store (msg ~> coordinate_frame) =<< unpack buf 16
+localPositionSetpointUnpack = proc "mavlink_local_position_setpoint_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
 
+localPositionSetpointPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
+                              , Uint32
+                              , ConstRef s2 (Struct "local_position_setpoint_msg")
+                              ] :-> () )
+localPositionSetpointPackRef = proc "mavlink_local_position_setpoint_pack_ref" $ \ buf off msg -> body $ do
+  packRef buf (off + 0) (msg ~> x)
+  packRef buf (off + 4) (msg ~> y)
+  packRef buf (off + 8) (msg ~> z)
+  packRef buf (off + 12) (msg ~> yaw)
+  packRef buf (off + 16) (msg ~> coordinate_frame)
+
+localPositionSetpointUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
+                                , Uint32
+                                , Ref s2 (Struct "local_position_setpoint_msg")
+                                ] :-> () )
+localPositionSetpointUnpackRef = proc "mavlink_local_position_setpoint_unpack_ref" $ \ buf off msg -> body $ do
+  unpackRef buf (off + 0) (msg ~> x)
+  unpackRef buf (off + 4) (msg ~> y)
+  unpackRef buf (off + 8) (msg ~> z)
+  unpackRef buf (off + 12) (msg ~> yaw)
+  unpackRef buf (off + 16) (msg ~> coordinate_frame)
+
+instance SerializableRef (Struct "local_position_setpoint_msg") where
+  packRef = call_ localPositionSetpointPackRef
+  unpackRef = call_ localPositionSetpointUnpackRef

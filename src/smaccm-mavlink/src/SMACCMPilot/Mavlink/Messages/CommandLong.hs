@@ -10,12 +10,10 @@
 
 module SMACCMPilot.Mavlink.Messages.CommandLong where
 
-import Ivory.Serialize
-import SMACCMPilot.Mavlink.Unpack
-import SMACCMPilot.Mavlink.Send
-
 import Ivory.Language
-import Ivory.Stdlib
+import Ivory.Serialize
+import SMACCMPilot.Mavlink.Send
+import SMACCMPilot.Mavlink.Unpack
 
 commandLongMsgId :: Uint8
 commandLongMsgId = 76
@@ -30,6 +28,8 @@ commandLongModule = package "mavlink_command_long_msg" $ do
   incl mkCommandLongSender
   incl commandLongUnpack
   defStruct (Proxy :: Proxy "command_long_msg")
+  incl commandLongPackRef
+  incl commandLongUnpackRef
 
 [ivory|
 struct command_long_msg
@@ -52,37 +52,7 @@ mkCommandLongSender ::
         , Ref s1 (Stored Uint8) -- seqNum
         , Ref s1 (Struct "mavlinkPacket") -- tx buffer/length
         ] :-> ())
-mkCommandLongSender =
-  proc "mavlink_command_long_msg_send"
-  $ \msg seqNum sendStruct -> body
-  $ do
-  arr <- local (iarray [] :: Init (Array 33 (Stored Uint8)))
-  let buf = toCArray arr
-  pack buf 0 =<< deref (msg ~> param1)
-  pack buf 4 =<< deref (msg ~> param2)
-  pack buf 8 =<< deref (msg ~> param3)
-  pack buf 12 =<< deref (msg ~> param4)
-  pack buf 16 =<< deref (msg ~> param5)
-  pack buf 20 =<< deref (msg ~> param6)
-  pack buf 24 =<< deref (msg ~> param7)
-  pack buf 28 =<< deref (msg ~> command)
-  pack buf 30 =<< deref (msg ~> target_system)
-  pack buf 31 =<< deref (msg ~> target_component)
-  pack buf 32 =<< deref (msg ~> confirmation)
-  -- 6: header len, 2: CRC len
-  let usedLen    = 6 + 33 + 2 :: Integer
-  let sendArr    = sendStruct ~> mav_array
-  let sendArrLen = arrayLen sendArr
-  if sendArrLen < usedLen
-    then error "commandLong payload of length 33 is too large!"
-    else do -- Copy, leaving room for the payload
-            arrayCopy sendArr arr 6 (arrayLen arr)
-            call_ mavlinkSendWithWriter
-                    commandLongMsgId
-                    commandLongCrcExtra
-                    33
-                    seqNum
-                    sendStruct
+mkCommandLongSender = makeMavlinkSender "command_long_msg" commandLongMsgId commandLongCrcExtra
 
 instance MavlinkUnpackableMsg "command_long_msg" where
     unpackMsg = ( commandLongUnpack , commandLongMsgId )
@@ -90,16 +60,42 @@ instance MavlinkUnpackableMsg "command_long_msg" where
 commandLongUnpack :: Def ('[ Ref s1 (Struct "command_long_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-commandLongUnpack = proc "mavlink_command_long_unpack" $ \ msg buf -> body $ do
-  store (msg ~> param1) =<< unpack buf 0
-  store (msg ~> param2) =<< unpack buf 4
-  store (msg ~> param3) =<< unpack buf 8
-  store (msg ~> param4) =<< unpack buf 12
-  store (msg ~> param5) =<< unpack buf 16
-  store (msg ~> param6) =<< unpack buf 20
-  store (msg ~> param7) =<< unpack buf 24
-  store (msg ~> command) =<< unpack buf 28
-  store (msg ~> target_system) =<< unpack buf 30
-  store (msg ~> target_component) =<< unpack buf 31
-  store (msg ~> confirmation) =<< unpack buf 32
+commandLongUnpack = proc "mavlink_command_long_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
 
+commandLongPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
+                              , Uint32
+                              , ConstRef s2 (Struct "command_long_msg")
+                              ] :-> () )
+commandLongPackRef = proc "mavlink_command_long_pack_ref" $ \ buf off msg -> body $ do
+  packRef buf (off + 0) (msg ~> param1)
+  packRef buf (off + 4) (msg ~> param2)
+  packRef buf (off + 8) (msg ~> param3)
+  packRef buf (off + 12) (msg ~> param4)
+  packRef buf (off + 16) (msg ~> param5)
+  packRef buf (off + 20) (msg ~> param6)
+  packRef buf (off + 24) (msg ~> param7)
+  packRef buf (off + 28) (msg ~> command)
+  packRef buf (off + 30) (msg ~> target_system)
+  packRef buf (off + 31) (msg ~> target_component)
+  packRef buf (off + 32) (msg ~> confirmation)
+
+commandLongUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
+                                , Uint32
+                                , Ref s2 (Struct "command_long_msg")
+                                ] :-> () )
+commandLongUnpackRef = proc "mavlink_command_long_unpack_ref" $ \ buf off msg -> body $ do
+  unpackRef buf (off + 0) (msg ~> param1)
+  unpackRef buf (off + 4) (msg ~> param2)
+  unpackRef buf (off + 8) (msg ~> param3)
+  unpackRef buf (off + 12) (msg ~> param4)
+  unpackRef buf (off + 16) (msg ~> param5)
+  unpackRef buf (off + 20) (msg ~> param6)
+  unpackRef buf (off + 24) (msg ~> param7)
+  unpackRef buf (off + 28) (msg ~> command)
+  unpackRef buf (off + 30) (msg ~> target_system)
+  unpackRef buf (off + 31) (msg ~> target_component)
+  unpackRef buf (off + 32) (msg ~> confirmation)
+
+instance SerializableRef (Struct "command_long_msg") where
+  packRef = call_ commandLongPackRef
+  unpackRef = call_ commandLongUnpackRef
