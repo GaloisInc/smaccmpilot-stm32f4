@@ -52,7 +52,7 @@ repositories:
 ### Haskell Tools
 
 This project requires the [GHC Haskell Compiler][ghc] version 7.6.3 or
-greater, and [Cabal][] 1.20 or higher.
+7.8.3, and [Cabal][] 1.20 or higher.
 
 [ghc]: https://www.haskell.org/ghc
 [Cabal]: https://www.haskell.org/cabal
