@@ -57,7 +57,7 @@ This project requires the [GHC Haskell Compiler][ghc] version 7.6.3 or
 [ghc]: https://www.haskell.org/ghc
 [Cabal]: https://www.haskell.org/cabal
 
-### Cortex-M4 Toolchain
+### Cross Compiler
 
 This project expects the [gcc-arm-embedded toolchain][1] to be present in your
 `PATH`.
