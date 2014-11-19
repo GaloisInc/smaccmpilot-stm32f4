@@ -2,9 +2,9 @@
 default: ivory-hxstream ivory-px4-hw
 
 ivory-hxstream:
-	make -C src/hxstream/ivory create-sandbox
-	make -C src/hxstream/ivory
-	make -C src/hxstream/ivory test
+	make -C src/hx-stream/ivory create-sandbox
+	make -C src/hx-stream/ivory
+	make -C src/hx-stream/ivory test
 
 ivory-px4-hw:
 	make -C src/ivory-px4-hw create-sandbox
