@@ -9,7 +9,6 @@ module SMACCMPilot.Hardware.PX4FMU17.MotorControl
 
 import Ivory.Language
 import Ivory.HW
-import Ivory.HW.Module
 
 import Ivory.Tower
 
@@ -17,7 +16,6 @@ import Ivory.BSP.STM32F405.GTIM2345
 import Ivory.BSP.STM32F405.GPIO
 import Ivory.BSP.STM32F405.GPIO.AF
 
-import Ivory.BSP.STM32.PlatformClock
 import Ivory.BSP.STM32.ClockConfig
 
 -- In microseconds:
@@ -25,26 +23,28 @@ minPWM, maxPWM :: Uint16
 minPWM = 1100
 maxPWM = 1900
 
-motorControlTower :: forall a p
-                   . (IvoryArea a, IvoryZero a, PlatformClock p)
-                  => (forall s cs . ConstRef s a
+motorControlTower :: forall a e
+                   . (IvoryArea a, IvoryZero a)
+                  => (e -> ClockConfig)
+                  -> (forall s cs . ConstRef s a
                        -> Ivory (AllocEffects cs)
                             (ConstRef (Stack cs) (Array 4 (Stored IFloat))))
-                  -> ChannelSink a
-                  -> Tower p ()
-motorControlTower decode motorChan = do
-  task "px4fmu17_pwm" $ do
-    istream <- withChannelEvent   motorChan  "motor_istream"
-    taskModuleDef $ hw_moduledef
-    taskInit $ hw_init (Proxy :: Proxy p)
-    handle istream "encThrottle" $ \encThrottle -> noReturn $ do
-      throttle <- decode encThrottle
-      pwm_output throttle
+                  -> ChanOutput a
+                  -> Tower e ()
+motorControlTower tocc decode motorChan = do
+  cc <- fmap tocc getEnv
+  monitor "px4fmu17_pwm" $ do
+    monitorModuleDef $ hw_moduledef
+    handler systemInit "init" $ callback $ const $ hw_init cc
+    handler motorChan "encThrottle" $ do
+      callback $ \encThrottle -> noReturn $ do
+        throttle <- decode encThrottle
+        pwm_output throttle
 
-hw_init :: (PlatformClock p, GetAlloc eff ~ Scope cs)
-        => Proxy p -> Ivory eff ()
-hw_init platform = do
-  tim_init platform tim2
+hw_init :: (GetAlloc eff ~ Scope cs)
+        => ClockConfig -> Ivory eff ()
+hw_init clockConfig = do
+  tim_init clockConfig tim2
   mapM_ (pwm_out_pin gpio_af_tim2) [pinA0, pinA1, pinA2, pinA3]
 --  pwm_arm tim2
 
@@ -56,13 +56,13 @@ pwm_out_pin af p = do
   pinSetSpeed      p gpio_speed_50mhz
   pinSetAF         p af
 
-tim_init :: (PlatformClock p, GetAlloc eff ~ Scope cs)
-         => Proxy p -> GTIM16 -> Ivory eff ()
-tim_init platform gtim = do
+tim_init :: (GetAlloc eff ~ Scope cs)
+         => ClockConfig -> GTIM16 -> Ivory eff ()
+tim_init clockConfig gtim = do
   gtimRCCEnable gtim
   -- Set the timer prescaler for 1MHz operation:
   -- TIM2345 timer input is 2*PCLK1
-  let fpclk1 = clockPClk1Hz (platformClockConfig platform)
+  let fpclk1 = clockPClk1Hz clockConfig
   timFreq <- assign (fromIntegral (2*fpclk1))
   let finput = 1000000 :: Uint32
   tdivider <- assign $ (timFreq `iDiv` finput) - 1

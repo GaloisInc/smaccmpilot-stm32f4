@@ -31,8 +31,8 @@ regWriteRequest addr r v = fmap constRef $ local $ istruct
 
 sensorSetup :: I2CDeviceAddr
             -> Ref Global (Stored IBool)
-            -> ChannelEmitter (Struct "i2c_transaction_request")
-            -> Event          (Struct "i2c_transaction_result")
+            -> Emitter (Struct "i2c_transaction_request")
+            -> ChanOutput (Struct "i2c_transaction_result")
             -> StateLabel
             -> MachineM p StateLabel
 sensorSetup i2caddr failure req_emitter res_evt next = mdo
@@ -47,10 +47,10 @@ sensorSetup i2caddr failure req_emitter res_evt next = mdo
 
   named n = "hmc8553l_" ++ n
 
-  writeReg reg val nextstate = stateNamed (named ("write" ++ show reg)) $ do
+  writeReg reg val nextstate = machineStateNamed (named ("write" ++ show reg)) $ do
     entry $ liftIvory_ $ do
       req <- regWriteRequest i2caddr reg val
-      emit_ req_emitter req
+      emit req_emitter req
     on res_evt $ \res -> do
       liftIvory_ $ checki2csuccess res
       goto nextstate
@@ -62,12 +62,12 @@ sensorSetup i2caddr failure req_emitter res_evt next = mdo
 
 sensorRead :: I2CDeviceAddr
            -> Ref Global (Struct "hmc5883l_sample")
-           -> ChannelEmitter (Struct "i2c_transaction_request")
-           -> Event          (Struct "i2c_transaction_result")
+           -> Emitter (Struct "i2c_transaction_request")
+           -> ChanOutput (Struct "i2c_transaction_result")
            -> StateLabel
            -> MachineM p StateLabel
 sensorRead i2caddr s req_emitter res_evt next = mdo
-  readSetup <- stateNamed (named "read_setup") $ do
+  readSetup <- machineStateNamed (named "read_setup") $ do
     entry $ liftIvory_ $ do
       store (s ~> samplefail) false
       -- send an i2c command to setup sensors read
@@ -77,12 +77,12 @@ sensorRead i2caddr s req_emitter res_evt next = mdo
         , tx_len  .= ival 1
         , rx_len  .= ival 0
         ]
-      emit_ req_emitter req
+      emit req_emitter req
     on res_evt $ \res -> do
       liftIvory_ $ checki2csuccess res
       goto readPerform
 
-  readPerform <- stateNamed (named "read_perform") $ do
+  readPerform <- machineStateNamed (named "read_perform") $ do
     entry $ liftIvory_ $ do
       req <- fmap constRef $ local $ istruct
         [ tx_addr .= ival i2caddr
@@ -90,7 +90,7 @@ sensorRead i2caddr s req_emitter res_evt next = mdo
         , tx_len  .= ival 0
         , rx_len  .= ival 6
         ]
-      emit_ req_emitter req
+      emit req_emitter req
     on res_evt $ \res -> do
       liftIvory_ $ do
         checki2csuccess res
