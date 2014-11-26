@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 module SMACCM.INS.Matrix where
@@ -6,7 +7,7 @@ import Control.Applicative
 import Data.Distributive
 import Data.Foldable
 import Data.Traversable
-import Prelude hiding (foldl, sum)
+import Prelude hiding (foldl, foldr, sum)
 
 -- The class of applicative functors that combine elements point by
 -- point. For lists, that would mean that liftA2 == zipWith; however,
@@ -45,27 +46,23 @@ diagMat vec = countUp
 matTranspose :: (Functor f, Distributive g) => f (g a) -> g (f a)
 matTranspose = distribute
 
-newtype L a = L [a]
-    deriving (Show, Functor, Foldable)
+instance Pointwise ZipList
+instance Foldable ZipList where
+    foldr k z = foldr k z . getZipList
 
-instance Applicative L where
-    pure = L . repeat
-    (L a) <*> (L b) = L $ zipWith ($) a b
-instance Pointwise L where
-
-msplit :: [a] -> [L a] -> (a, L a, L a, L (L a))
-msplit row rows = (first, L top, L left, L $ map L rest)
+msplit :: [a] -> [ZipList a] -> (a, ZipList a, ZipList a, ZipList (ZipList a))
+msplit row rows = (first, ZipList top, ZipList left, ZipList $ map ZipList rest)
     where
     first : top = row
-    (left, rest) = unzip $ map (\ (L (x:xs)) -> (x, xs)) rows
+    (left, rest) = unzip $ map (\ (ZipList (x:xs)) -> (x, xs)) rows
 
-mjoin :: (a, L a, L a, L (L a)) -> L (L a)
-mjoin (first, L top, L left, L rest) = L $ (L $ first : top) : (zipWith (\ l (L r) -> L $ l : r) left rest)
+mjoin :: (a, ZipList a, ZipList a, ZipList (ZipList a)) -> ZipList (ZipList a)
+mjoin (first, ZipList top, ZipList left, ZipList rest) = ZipList $ (ZipList $ first : top) : (zipWith (\ l (ZipList r) -> ZipList $ l : r) left rest)
 
-matInvertList :: Fractional a => L (L a) -> L (L a)
-matInvertList (L []) = L []
-matInvertList (L [L [a]]) = L [L [recip a]]
-matInvertList (L (L row : rows)) = mjoin (a', b', c', d')
+matInvertList :: Fractional a => ZipList (ZipList a) -> ZipList (ZipList a)
+matInvertList (ZipList []) = ZipList []
+matInvertList (ZipList [ZipList [a]]) = ZipList [ZipList [recip a]]
+matInvertList (ZipList (ZipList row : rows)) = mjoin (a', b', c', d')
     where
     (a, b, c, d) = msplit row rows
     aInv = recip a
@@ -76,12 +73,12 @@ matInvertList (L (L row : rows)) = mjoin (a', b', c', d')
     b' = fmap negate $ vecMatMult aInvb d'
     a' = aInv + dotp aInvb (matVecMult d' caInv)
 
-copyInto :: Traversable f => f a -> L a -> f a
-copyInto structure (L contents) = result
+copyInto :: Traversable f => f a -> ZipList a -> f a
+copyInto structure (ZipList contents) = result
     where
     ([], result) = mapAccumL (\ (x:xs) _ -> (xs, x)) contents structure
 
 matInvert :: (Traversable f, Fractional a) => f (f a) -> f (f a)
 matInvert m = copyInto m $ liftA2 copyInto (toL m) $ matInvertList $ fmap toL $ toL m
     where
-    toL = L . toList
+    toL = ZipList . toList
