@@ -11,12 +11,10 @@ import Ivory.Language
 import Ivory.Stdlib
 import IvoryCSE
 import IvoryFilter.Types
+import Linear
 import Prelude hiding (mapM, sequence_, sum)
-import SMACCM.INS.Matrix (Pointwise)
 import SMACCM.INS.Pressure
-import SMACCM.INS.Quat
 import SMACCM.INS.SensorFusionModel
-import SMACCM.INS.Vec3
 
 instance HasAtan2 IDouble where
   arctan2 = atan2F
@@ -61,12 +59,12 @@ kalman_state = area "kalman_state" Nothing
 kalman_covariance :: MemArea (Struct "kalman_covariance")
 kalman_covariance = area "kalman_covariance" Nothing
 
-vec3FromArray :: IvoryArea v => Vec3 ((Ref s t -> Ref s (Array 3 v)) -> Ref s t -> Ref s v)
-vec3FromArray = Vec3 ((! 0) .) ((! 1) .) ((! 2) .)
+vec3FromArray :: IvoryArea v => V3 ((Ref s t -> Ref s (Array 3 v)) -> Ref s t -> Ref s v)
+vec3FromArray = V3 ((! 0) .) ((! 1) .) ((! 2) .)
 
 stateVectorFromStruct :: Ref s (Struct "kalman_state") -> StateVector (Ref s (Stored IDouble))
 stateVectorFromStruct s = StateVector
-  { stateOrient = Quat ((! 0) .) (Vec3 ((! 1) .) ((! 2) .) ((! 3) .)) <*> pure (~> orient)
+  { stateOrient = Quaternion ((! 0) .) (V3 ((! 1) .) ((! 2) .) ((! 3) .)) <*> pure (~> orient)
   , stateVel = NED vec3FromArray <*> pure (~> vel)
   , statePos = NED vec3FromArray <*> pure (~> pos)
   , stateGyroBias = XYZ vec3FromArray <*> pure (~> gyro_bias)
@@ -80,7 +78,7 @@ stateVector = stateVectorFromStruct (addrOf kalman_state)
 
 p :: StateVector (StateVector (Ref Global (Stored IDouble)))
 p = stateVectorFromStruct <$> (StateVector
-  { stateOrient = Quat ((! 0) .) (Vec3 ((! 1) .) ((! 2) .) ((! 3) .)) <*> pure (~> cov_orient)
+  { stateOrient = Quaternion ((! 0) .) (V3 ((! 1) .) ((! 2) .) ((! 3) .)) <*> pure (~> cov_orient)
   , stateVel = NED vec3FromArray <*> pure (~> cov_vel)
   , statePos = NED vec3FromArray <*> pure (~> cov_pos)
   , stateGyroBias = XYZ vec3FromArray <*> pure (~> cov_gyro_bias)
@@ -89,17 +87,17 @@ p = stateVectorFromStruct <$> (StateVector
   , stateMagXYZ = XYZ vec3FromArray <*> pure (~> cov_mag_xyz)
   } <*> pure (addrOf kalman_covariance))
 
-storeRow :: (Foldable f, Pointwise f, IvoryStore a, IvoryExpr a) => f (Ref s (Stored a)) -> f a -> Ivory eff ()
+storeRow :: (Applicative f, Foldable f, IvoryStore a, IvoryExpr a) => f (Ref s (Stored a)) -> f a -> Ivory eff ()
 storeRow vars vals = sequence_ $ liftA2 store vars vals
 
 fixQuat :: Floating a => StateVector a -> StateVector a
-fixQuat state = (pure id) { stateOrient = pure (/ vecMag (stateOrient state)) } <*> state
+fixQuat state = state { stateOrient = signorm $ stateOrient state }
 
 kalman_init :: Def ('[IDouble, IDouble, IDouble, IDouble, IDouble, IDouble, IDouble] :-> ())
 kalman_init = cse $ proc "kalman_init" $ \ accX accY accZ magX magY magZ pressure -> body $ do
     let depth = negate $ pressureToHeight pressure
-    let acc = XYZ $ Vec3 accX accY accZ
-    let mag = XYZ $ Vec3 magX magY magZ
+    let acc = xyz accX accY accZ
+    let mag = xyz magX magY magZ
     let initialState = initDynamic acc mag (pure 0) 0 (pure 0) (ned 0 0 depth)
     storeRow stateVector initialState
     sequence_ $ liftA2 storeRow p kalmanP
@@ -109,7 +107,7 @@ kalman_predict = cse $ proc "kalman_predict" $ \ dt dax day daz dvx dvy dvz -> b
   stateVectorTemp <- mapM deref stateVector
   pTemp <- mapM (mapM deref) p
   let distVector = DisturbanceVector { disturbanceGyro = xyz dax day daz, disturbanceAccel = xyz dvx dvy dvz }
-  let speed = vecMag $ stateVel stateVectorTemp
+  let speed = norm $ stateVel stateVectorTemp
   onGround <- assign $ speed <? 4
   let whenFlying v = onGround ? (v, 0)
   let noise = (pure id) { stateWind = pure whenFlying, stateMagNED = pure whenFlying, stateMagXYZ = pure whenFlying } <*> processNoise dt
@@ -127,7 +125,7 @@ applyUpdate cov fusionStep = do
     -- TODO: when innovCov < cov, add cov to the "right" elements of p
     when (forceUpdate .|| innovCov >=? cov) $ do
       when (forceUpdate .|| innov ^ (2 :: Int) / innovCov <? 5 ^ (2 :: Int)) $ do
-        let save :: (Foldable f, Pointwise f) => (forall a. StateVector a -> f a) -> Ivory eff ()
+        let save :: (Applicative f, Foldable f) => (forall a. StateVector a -> f a) -> Ivory eff ()
             save sel = do
               storeRow (sel stateVector) (sel stateVector')
               sequence_ $ liftA2 storeRow (sel p) (sel p')
@@ -135,7 +133,7 @@ applyUpdate cov fusionStep = do
         save stateVel
         save statePos
         save stateGyroBias
-        let speed = vecMag $ stateVel stateVectorTemp
+        let speed = norm $ stateVel stateVectorTemp
         when (speed >=? 4) $ do
           save stateWind
           save stateMagNED

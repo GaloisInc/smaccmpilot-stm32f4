@@ -4,41 +4,48 @@
 module SMACCM.INS.SensorFusionModel where
 
 import Control.Applicative
+import Control.Lens
 import Data.Distributive
 import Data.Foldable
 import Data.Traversable
+import Linear
 import Numeric.AD
-import Prelude hiding (foldr, sum)
+import Prelude hiding (foldl1, foldr, sum)
 import SMACCM.INS.ExtendedKalmanFilter
-import SMACCM.INS.Matrix
 import SMACCM.INS.Pressure
-import SMACCM.INS.Quat
-import SMACCM.INS.Vec3
 
 -- For measurements/states in navigation frame
-newtype NED a = NED { nedToVec3 :: Vec3 a }
-    deriving (Show, Applicative, Pointwise, Foldable, Functor, Traversable, Distributive, Num)
+newtype NED a = NED { nedToVec3 :: V3 a }
+    deriving (Show, Additive, Applicative, Foldable, Functor, Metric, Traversable, Distributive, Num)
 
 ned :: a -> a -> a -> NED a
-ned n e d = NED $ Vec3 n e d
+ned n e d = NED $ V3 n e d
 
 -- For measurements/states in body frame
-newtype XYZ a = XYZ { xyzToVec3 :: Vec3 a }
-    deriving (Show, Applicative, Pointwise, Foldable, Functor, Traversable, Distributive, Num)
+newtype XYZ a = XYZ { xyzToVec3 :: V3 a }
+    deriving (Show, Additive, Applicative, Foldable, Functor, Metric, Traversable, Distributive, Num)
 
 xyz :: a -> a -> a -> XYZ a
-xyz a b c = XYZ $ Vec3 a b c
+xyz a b c = XYZ $ V3 a b c
+
+-- Linear's Num (Quaternion a) instance requires (RealFloat a) in order
+-- to implement signum, but we don't want to require RealFloat as it
+-- doesn't work for symbolic types. This is a copy of just the (*)
+-- implementation, which only needed (Num a).
+quatMul :: Num a => Quaternion a -> Quaternion a -> Quaternion a
+quatMul (Quaternion s1 v1) (Quaternion s2 v2)
+    = Quaternion (s1 * s2 - (v1 `dot` v2)) $ (v1 `cross` v2) + s1 *^ v2 + s2 *^ v1
 
 -- Rotate between coordinate frames through a given quaternion
-convertFrames :: Num a => Quat a -> (XYZ a -> NED a, NED a -> XYZ a)
+convertFrames :: Num a => Quaternion a -> (XYZ a -> NED a, NED a -> XYZ a)
 convertFrames q = (toNav, toBody)
     where
-    rotate2nav = NED $ fmap XYZ $ quatRotation q
-    toNav = matVecMult rotate2nav
-    toBody = matVecMult (matTranspose rotate2nav)
+    rotate2nav = NED $ fmap XYZ $ fromQuaternion q
+    toNav = (rotate2nav !*)
+    toBody = (transpose rotate2nav !*)
 
 data StateVector a = StateVector
-    { stateOrient :: !(Quat a) -- quaternions defining attitude of body axes relative to local NED
+    { stateOrient :: !(Quaternion a) -- quaternions defining attitude of body axes relative to local NED
     , stateVel :: !(NED a) -- NED velocity - m/sec
     , statePos :: !(NED a) -- NED position - m
     , stateGyroBias :: !(XYZ a) -- delta angle bias - rad
@@ -47,6 +54,9 @@ data StateVector a = StateVector
     , stateMagXYZ :: !(XYZ a) -- XYZ body fixed magnetic field measurements - milligauss
     }
     deriving Show
+
+instance Additive StateVector where
+    zero = pure 0
 
 instance Applicative StateVector where
     pure v = StateVector
@@ -67,7 +77,6 @@ instance Applicative StateVector where
         , stateMagNED = stateMagNED v1 <*> stateMagNED v2
         , stateMagXYZ = stateMagXYZ v1 <*> stateMagXYZ v2
         }
-instance Pointwise StateVector where
 
 instance Functor StateVector where
     fmap = liftA
@@ -115,7 +124,6 @@ instance Applicative DisturbanceVector where
         { disturbanceGyro = disturbanceGyro v1 <*> disturbanceGyro v2
         , disturbanceAccel = disturbanceAccel v1 <*> disturbanceAccel v2
         }
-instance Pointwise DisturbanceVector where
 
 instance Functor DisturbanceVector where
     fmap = liftA
@@ -136,14 +144,15 @@ instance Distributive DisturbanceVector where
 
 data AugmentState a = AugmentState { getState :: StateVector a, getDisturbance :: DisturbanceVector a }
 
+instance Additive AugmentState where
+    zero = pure 0
+
 instance Applicative AugmentState where
     pure v = AugmentState (pure v) (pure v)
     v1 <*> v2 = AugmentState
         { getState = getState v1 <*> getState v2
         , getDisturbance = getDisturbance v1 <*> getDisturbance v2
         }
-
-instance Pointwise AugmentState where
 
 instance Functor AugmentState where
     fmap = liftA
@@ -174,7 +183,7 @@ instance HasAtan2 Double where
     arctan2 = atan2
 
 kalmanP :: Fractional a => StateVector (StateVector a)
-kalmanP = diagMat $ fmap (^ (2 :: Int)) $ StateVector
+kalmanP = kronecker $ fmap (^ (2 :: Int)) $ StateVector
     { stateOrient = pure 0.1
     , stateVel = pure 0.7
     , statePos = ned 15 15 5
@@ -186,17 +195,19 @@ kalmanP = diagMat $ fmap (^ (2 :: Int)) $ StateVector
     where
     deg2rad = realToFrac (pi :: Double) / 180
 
-initAttitude :: (Floating a, HasAtan2 a) => XYZ a -> XYZ a -> a -> Quat a
-initAttitude (XYZ accel) (XYZ mag) declination = heading * pitch * roll
+initAttitude :: (Floating a, HasAtan2 a) => XYZ a -> XYZ a -> a -> Quaternion a
+initAttitude (XYZ accel) (XYZ mag) declination = foldl1 quatMul $ map (uncurry rotateAround)
+    [ (ez, initialHdg)
+    , (ey, initialPitch)
+    , (ex, initialRoll)
+    ]
     where
-    initialRoll = arctan2 (negate (vecY accel)) (negate (vecZ accel))
-    initialPitch = arctan2 (vecX accel) (negate (vecZ accel))
-    magX = (vecX mag) * cos initialPitch + (vecY mag) * sin initialRoll * sin initialPitch + (vecZ mag) * cos initialRoll * sin initialPitch
-    magY = (vecY mag) * cos initialRoll - (vecZ mag) * sin initialRoll
+    initialRoll = arctan2 (negate (accel ^._y)) (negate (accel ^._z))
+    initialPitch = arctan2 (accel ^._x) (negate (accel ^._z))
+    magX = (mag ^._x) * cos initialPitch + (mag ^._y) * sin initialRoll * sin initialPitch + (mag ^._z) * cos initialRoll * sin initialPitch
+    magY = (mag ^._y) * cos initialRoll - (mag ^._z) * sin initialRoll
     initialHdg = arctan2 (negate magY) magX + declination
-    roll = fromAxisAngle (Vec3 1 0 0) initialRoll
-    pitch = fromAxisAngle (Vec3 0 1 0) initialPitch
-    heading = fromAxisAngle (Vec3 0 0 1) initialHdg
+    rotateAround axis theta = Quaternion (cos half) $ pure 0 & el axis .~ (sin half) where half = theta / 2
 
 initDynamic :: (Floating a, HasAtan2 a) => XYZ a -> XYZ a -> XYZ a -> a -> NED a -> NED a -> StateVector a
 initDynamic accel mag magBias declination vel pos = (pure 0)
@@ -230,7 +241,7 @@ processModel dt (AugmentState state dist) = AugmentState state' $ pure 0
         --   discretization.
         -- * http://www.euclideanspace.com/physics/kinematics/angularvelocity/QuaternionDifferentiation2.pdf
         --   derives qdot from angular momentum.
-        { stateOrient = stateOrient state * deltaQuat
+        { stateOrient = stateOrient state `quatMul` deltaQuat
         , stateVel = stateVel state + deltaVel
         , statePos = statePos state + fmap (* dt) (stateVel state + fmap (/ 2) deltaVel)
         -- remaining state vector elements are unchanged by the process model
@@ -246,8 +257,8 @@ processModel dt (AugmentState state dist) = AugmentState state' $ pure 0
 -- floating-point functions like sin, cos, or sqrt. And since the ARM chip
 -- we're running on doesn't have those fancy functions in hardware, this
 -- implementation is as efficient as we're going to get anyway.
-approxAxisAngle :: Fractional a => Int -> Vec3 a -> Quat a
-approxAxisAngle order rotation = Quat c $ fmap (s *) rotation
+approxAxisAngle :: Fractional a => Int -> V3 a -> Quaternion a
+approxAxisAngle order rotation = Quaternion c $ fmap (s *) rotation
     where
     halfSigmaSq = 0.25 * sum (fmap (^ (2 :: Int)) rotation)
     go prev idx = let cosTerm = prev / fromIntegral (negate idx); sinTerm = cosTerm / fromIntegral (idx + 1) in cosTerm : sinTerm : go (sinTerm * halfSigmaSq) (idx + 2)
@@ -261,25 +272,9 @@ augment2D ul lr = AugmentState (liftA2 AugmentState ul (pure (pure 0))) (liftA2 
 updateProcess :: Fractional a => a -> StateVector a -> DisturbanceVector a -> StateVector (StateVector a) -> StateVector a -> DisturbanceVector a -> (StateVector a, StateVector (StateVector a))
 updateProcess dt state dist p noise distNoise = (getState state', fmap getState $ getState p')
     where
-    augmentedCovariance = augment2D p $ diagMat distNoise
-    augmentedNoise = augment2D (diagMat noise) (pure (pure 0))
+    augmentedCovariance = augment2D p $ kronecker distNoise
+    augmentedNoise = augment2D (kronecker noise) (pure (pure 0))
     (state', p') = kalmanPredict (processModel (auto dt)) (AugmentState state dist) augmentedNoise augmentedCovariance
-
-newtype Singleton a = Singleton a
-
-instance Applicative Singleton where
-    pure = Singleton
-    Singleton a <*> Singleton b = Singleton (a b)
-instance Pointwise Singleton where
-
-instance Functor Singleton where
-    fmap = liftA
-
-instance Traversable Singleton where
-    sequenceA (Singleton v) = fmap Singleton v
-
-instance Foldable Singleton where
-    foldMap = foldMapDefault
 
 -- A Fusion is a function from measurement covariance and measurement to
 -- innovation, innovation covariance, new state, and new estimated state
@@ -290,25 +285,25 @@ instance Foldable Singleton where
 -- altitude when you've modeled 3D position.
 type Fusion var = var -> var -> StateVector var -> StateVector (StateVector var) -> (var, var, StateVector var, StateVector (StateVector var))
 fusion :: Fractional var => Measurement StateVector var -> Fusion var
-fusion v cov m state p = let (Singleton innov, Singleton (Singleton innovCov), state', p') = measurementUpdate state (Singleton (m, v)) (Singleton (Singleton cov)) p in (innov, innovCov, state', p')
+fusion v cov m state p = let (V1 innov, V1 (V1 innovCov), state', p') = measurementUpdate state (V1 (m, v)) (V1 (V1 cov)) p in (innov, innovCov, state', p')
 
 fuseVel :: Fractional var => NED (Fusion var)
-fuseVel = fusion <$> ned (Measurement $ vecX . getVel) (Measurement $ vecY . getVel) (Measurement $ vecZ . getVel)
+fuseVel = fusion <$> ned (Measurement $ (^._x) . getVel) (Measurement $ (^._y) . getVel) (Measurement $ (^._z) . getVel)
     where
     getVel = nedToVec3 . stateVel
 
 fusePos :: Fractional var => NED (Fusion var)
-fusePos = fusion <$> ned (Measurement $ vecX . getPos) (Measurement $ vecY . getPos) (Measurement $ vecZ . getPos)
+fusePos = fusion <$> ned (Measurement $ (^._x) . getPos) (Measurement $ (^._y) . getPos) (Measurement $ (^._z) . getPos)
     where
     getPos = nedToVec3 . statePos
 
 fusePressure :: Floating var => Fusion var
-fusePressure = fusion $ Measurement $ \ state -> heightToPressure $ negate $ vecZ $ nedToVec3 $ statePos state
+fusePressure = fusion $ Measurement $ \ state -> heightToPressure $ negate $ (^._z) $ nedToVec3 $ statePos state
 
 fuseTAS :: Floating var => Fusion var
-fuseTAS = fusion $ Measurement $ \ state -> vecMag $ stateVel state - stateWind state
+fuseTAS = fusion $ Measurement $ \ state -> distance (stateVel state) (stateWind state)
 
 fuseMag :: Fractional var => XYZ (Fusion var)
-fuseMag = fusion <$> xyz (Measurement $ vecX . getMag) (Measurement $ vecY . getMag) (Measurement $ vecZ . getMag)
+fuseMag = fusion <$> xyz (Measurement $ (^._x) . getMag) (Measurement $ (^._y) . getMag) (Measurement $ (^._z) . getMag)
     where
     getMag state = xyzToVec3 $ stateMagXYZ state + nav2body state (stateMagNED state)

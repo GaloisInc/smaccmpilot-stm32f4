@@ -14,15 +14,15 @@ cabal-version:       >=1.10
 library
   hs-source-dirs:      src
   exposed-modules:     SMACCM.INS.ExtendedKalmanFilter,
-                       SMACCM.INS.Matrix,
                        SMACCM.INS.Pressure,
-                       SMACCM.INS.Quat,
                        SMACCM.INS.SensorFusionModel,
-                       SMACCM.INS.Simulate,
-                       SMACCM.INS.Vec3
+                       SMACCM.INS.Simulate
+  other-modules:       SMACCM.INS.Matrix
   build-depends:       base >=4.6,
                        ad >=4.2,
                        distributive >=0.4,
+                       lens >=4.6,
+                       linear >=1.15,
                        monadLib >= 3.7,
                        reflection >=1.5
   default-language:    Haskell2010
@@ -32,6 +32,8 @@ executable inertialnav
   hs-source-dirs:      tests
   main-is:             InertialNav.hs
   build-depends:       base >=4.6,
+                       lens >=4.6,
+                       linear >=1.15,
                        monadLib >= 3.7,
                        smaccm-ins
   default-language:    Haskell2010
@@ -59,6 +61,7 @@ executable codegen
                        ivory >=0.1,
                        ivory-backend-c >=0.1,
                        ivory-stdlib >=0.1,
+                       linear >=1.15,
                        monadLib >= 3.7,
                        smaccm-ins
   default-language:    Haskell2010

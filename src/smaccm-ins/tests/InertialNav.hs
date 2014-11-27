@@ -2,13 +2,14 @@
 -- Riseborough's InertialNav project uses.
 
 import Control.Applicative
+import Control.Lens ((^.))
 import Control.Monad
 import Data.Foldable (toList)
 import Data.Monoid
+import Linear
 import MonadLib
 import SMACCM.INS.SensorFusionModel
 import SMACCM.INS.Simulate
-import SMACCM.INS.Vec3
 
 deg2rad :: Double -> Double
 deg2rad deg = deg * pi / 180
@@ -163,6 +164,6 @@ main = do
         void $ runFusePos posNoise $ calcPosNED gps
       ADSMsg ads -> do
         void $ runFuseTAS tasNoise $ adsVtas ads
-        void $ runFuseHeight (vecZ $ nedToVec3 posNoise) $ adsBaroHgt alignADS - adsBaroHgt ads
+        void $ runFuseHeight (nedToVec3 posNoise ^._z) $ adsBaroHgt alignADS - adsBaroHgt ads
     (lasttime, laststate, _) <- get
     lift $ putStrLn $ unwords $ map show $ lasttime : toList laststate
