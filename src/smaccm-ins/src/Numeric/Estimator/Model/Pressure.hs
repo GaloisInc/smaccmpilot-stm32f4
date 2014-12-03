@@ -1,4 +1,4 @@
-module SMACCM.INS.Pressure (pressureToHeight, heightToPressure) where
+module Numeric.Estimator.Model.Pressure (pressureToHeight, heightToPressure) where
 
 basePressure, baseTemperature, lapseRate, baseAltitude, airGasConstant, g_0, airMass :: Floating a => a
 basePressure = 101325 -- Pascals

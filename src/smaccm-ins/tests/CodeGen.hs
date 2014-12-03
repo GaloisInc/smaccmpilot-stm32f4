@@ -12,9 +12,12 @@ import Ivory.Stdlib
 import IvoryCSE
 import IvoryFilter.Types
 import Linear
+import Numeric.AD
+import Numeric.Estimator
+import Numeric.Estimator.Model.Pressure
+import Numeric.Estimator.Model.SensorFusion
 import Prelude hiding (mapM, sequence_, sum)
-import SMACCM.INS.Pressure
-import SMACCM.INS.SensorFusionModel
+import SMACCM.INS.Simulate
 
 instance HasAtan2 IDouble where
   arctan2 = atan2F
@@ -90,9 +93,6 @@ p = stateVectorFromStruct <$> (StateVector
 storeRow :: (Applicative f, Foldable f, IvoryStore a, IvoryExpr a) => f (Ref s (Stored a)) -> f a -> Ivory eff ()
 storeRow vars vals = sequence_ $ liftA2 store vars vals
 
-fixQuat :: Floating a => StateVector a -> StateVector a
-fixQuat state = state { stateOrient = signorm $ stateOrient state }
-
 kalman_init :: Def ('[IDouble, IDouble, IDouble, IDouble, IDouble, IDouble, IDouble] :-> ())
 kalman_init = cse $ proc "kalman_init" $ \ accX accY accZ magX magY magZ pressure -> body $ do
     let depth = negate $ pressureToHeight pressure
@@ -111,15 +111,15 @@ kalman_predict = cse $ proc "kalman_predict" $ \ dt dax day daz dvx dvy dvz -> b
   onGround <- assign $ speed <? 4
   let whenFlying v = onGround ? (v, 0)
   let noise = (pure id) { stateWind = pure whenFlying, stateMagNED = pure whenFlying, stateMagXYZ = pure whenFlying } <*> processNoise dt
-  let (stateVector', p') = updateProcess dt stateVectorTemp distVector pTemp noise distCovariance
+  let KalmanFilter stateVector' p' = augmentProcess (EKFProcess $ processModel $ auto dt) distVector (kronecker noise) (kronecker distCovariance) $ KalmanFilter stateVectorTemp pTemp
   storeRow stateVector $ fixQuat stateVector'
   sequence_ $ liftA2 storeRow p p'
 
-applyUpdate :: IDouble -> (StateVector IDouble -> StateVector (StateVector IDouble) -> (IDouble, IDouble, StateVector IDouble, StateVector (StateVector IDouble))) -> Ivory eff ()
+applyUpdate :: IDouble -> (KalmanFilter StateVector IDouble -> (IDouble, IDouble, KalmanFilter StateVector IDouble)) -> Ivory eff ()
 applyUpdate cov fusionStep = do
     stateVectorTemp <- mapM deref stateVector
     pTemp <- mapM (mapM deref) p
-    let (innov, innovCov, stateVectorPreCorrected, p') = fusionStep stateVectorTemp pTemp
+    let (innov, innovCov, KalmanFilter stateVectorPreCorrected p') = fusionStep $ KalmanFilter stateVectorTemp pTemp
     let stateVector' = fixQuat stateVectorPreCorrected
     let forceUpdate = true -- filter state is not yet right; muddle through anyway
     -- TODO: when innovCov < cov, add cov to the "right" elements of p

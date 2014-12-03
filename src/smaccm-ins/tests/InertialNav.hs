@@ -2,13 +2,15 @@
 -- Riseborough's InertialNav project uses.
 
 import Control.Applicative
+import Control.Arrow
 import Control.Lens ((^.))
 import Control.Monad
 import Data.Foldable (toList)
 import Data.Monoid
 import Linear
 import MonadLib
-import SMACCM.INS.SensorFusionModel
+import Numeric.Estimator
+import Numeric.Estimator.Model.SensorFusion
 import SMACCM.INS.Simulate
 
 deg2rad :: Double -> Double
@@ -153,11 +155,11 @@ main = do
   void $ runKalmanState (imuTime alignIMU) initialState $ do
     forM_ (takeWhile (notReached endTime) running) $ \ (_, msg) -> case msg of
       IMUMsg imu -> do
-        (lasttime, laststate, _) <- get
+        (lasttime, KalmanFilter laststate _) <- get
         lift $ putStrLn $ unwords $ map show $ lasttime : toList laststate
         let dt = imuTime imu - lasttime
         runProcessModel dt (processNoise dt) (distCovariance dt) $ DisturbanceVector { disturbanceGyro = imuAngRate imu, disturbanceAccel = imuAccel imu }
-        sets_ $ \ (_, state, p) -> (imuTime imu, state, p)
+        sets_ $ first $ const $ imuTime imu
       MAGMsg mag -> void $ runFuseMag magNoise $ magData mag
       GPSMsg gps -> do
         void $ runFuseVel velNoise $ calcVelNED gps
@@ -165,5 +167,5 @@ main = do
       ADSMsg ads -> do
         void $ runFuseTAS tasNoise $ adsVtas ads
         void $ runFuseHeight (nedToVec3 posNoise ^._z) $ adsBaroHgt alignADS - adsBaroHgt ads
-    (lasttime, laststate, _) <- get
+    (lasttime, KalmanFilter laststate _) <- get
     lift $ putStrLn $ unwords $ map show $ lasttime : toList laststate

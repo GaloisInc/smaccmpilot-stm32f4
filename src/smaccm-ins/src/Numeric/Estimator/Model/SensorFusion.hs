@@ -1,7 +1,7 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
-module SMACCM.INS.SensorFusionModel where
+module Numeric.Estimator.Model.SensorFusion where
 
 import Control.Applicative
 import Control.Lens
@@ -9,10 +9,9 @@ import Data.Distributive
 import Data.Foldable
 import Data.Traversable
 import Linear
-import Numeric.AD
+import Numeric.Estimator.Augment
+import Numeric.Estimator.Model.Pressure
 import Prelude hiding (foldl1, foldr, sum)
-import SMACCM.INS.ExtendedKalmanFilter
-import SMACCM.INS.Pressure
 
 -- For measurements/states in navigation frame
 newtype NED a = NED { nedToVec3 :: V3 a }
@@ -142,35 +141,6 @@ instance Distributive DisturbanceVector where
         , disturbanceAccel = distribute $ fmap disturbanceAccel f
         }
 
-data AugmentState a = AugmentState { getState :: StateVector a, getDisturbance :: DisturbanceVector a }
-
-instance Additive AugmentState where
-    zero = pure 0
-
-instance Applicative AugmentState where
-    pure v = AugmentState (pure v) (pure v)
-    v1 <*> v2 = AugmentState
-        { getState = getState v1 <*> getState v2
-        , getDisturbance = getDisturbance v1 <*> getDisturbance v2
-        }
-
-instance Functor AugmentState where
-    fmap = liftA
-
-instance Foldable AugmentState where
-    foldMap = foldMapDefault
-
-instance Traversable AugmentState where
-    sequenceA v = AugmentState
-        <$> sequenceA (getState v)
-        <*> sequenceA (getDisturbance v)
-
-instance Distributive AugmentState where
-    distribute f = AugmentState
-        { getState = distribute $ fmap getState f
-        , getDisturbance = distribute $ fmap getDisturbance f
-        }
-
 nStates :: Int
 nStates = length $ toList (pure () :: StateVector ())
 
@@ -230,7 +200,7 @@ body2nav = fst . convertFrames . stateOrient
 nav2body :: Num a => StateVector a -> NED a -> XYZ a
 nav2body = snd . convertFrames . stateOrient
 
-processModel :: Fractional a => a -> AugmentState a -> AugmentState a
+processModel :: Fractional a => a -> AugmentState StateVector DisturbanceVector a -> AugmentState StateVector DisturbanceVector a
 processModel dt (AugmentState state dist) = AugmentState state' $ pure 0
     where
     state' = state
@@ -266,44 +236,11 @@ approxAxisAngle order rotation = Quaternion c $ fmap (s *) rotation
     (c, s2) = foldr combine (1, 1) $ take (order - 1) $ go halfSigmaSq (2 :: Int)
     s = 0.5 * s2
 
-augment2D :: Num a => StateVector (StateVector a) -> DisturbanceVector (DisturbanceVector a) -> AugmentState (AugmentState a)
-augment2D ul lr = AugmentState (liftA2 AugmentState ul (pure (pure 0))) (liftA2 AugmentState (pure (pure 0)) lr)
+statePressure :: Floating a => StateVector a -> a
+statePressure = heightToPressure . negate . (^._z) . nedToVec3 . statePos
 
-updateProcess :: Fractional a => a -> StateVector a -> DisturbanceVector a -> StateVector (StateVector a) -> StateVector a -> DisturbanceVector a -> (StateVector a, StateVector (StateVector a))
-updateProcess dt state dist p noise distNoise = (getState state', fmap getState $ getState p')
-    where
-    augmentedCovariance = augment2D p $ kronecker distNoise
-    augmentedNoise = augment2D (kronecker noise) (pure (pure 0))
-    (state', p') = kalmanPredict (processModel (auto dt)) (AugmentState state dist) augmentedNoise augmentedCovariance
+stateTAS :: Floating a => StateVector a -> a
+stateTAS state = distance (stateVel state) (stateWind state)
 
--- A Fusion is a function from measurement covariance and measurement to
--- innovation, innovation covariance, new state, and new estimated state
--- covariance.
---
--- This version only supports scalar measurements. It's useful for sequential
--- fusion. It's also useful for partial measurements, such as measuring only
--- altitude when you've modeled 3D position.
-type Fusion var = var -> var -> StateVector var -> StateVector (StateVector var) -> (var, var, StateVector var, StateVector (StateVector var))
-fusion :: Fractional var => Measurement StateVector var -> Fusion var
-fusion v cov m state p = let (V1 innov, V1 (V1 innovCov), state', p') = measurementUpdate state (V1 (m, v)) (V1 (V1 cov)) p in (innov, innovCov, state', p')
-
-fuseVel :: Fractional var => NED (Fusion var)
-fuseVel = fusion <$> ned (Measurement $ (^._x) . getVel) (Measurement $ (^._y) . getVel) (Measurement $ (^._z) . getVel)
-    where
-    getVel = nedToVec3 . stateVel
-
-fusePos :: Fractional var => NED (Fusion var)
-fusePos = fusion <$> ned (Measurement $ (^._x) . getPos) (Measurement $ (^._y) . getPos) (Measurement $ (^._z) . getPos)
-    where
-    getPos = nedToVec3 . statePos
-
-fusePressure :: Floating var => Fusion var
-fusePressure = fusion $ Measurement $ \ state -> heightToPressure $ negate $ (^._z) $ nedToVec3 $ statePos state
-
-fuseTAS :: Floating var => Fusion var
-fuseTAS = fusion $ Measurement $ \ state -> distance (stateVel state) (stateWind state)
-
-fuseMag :: Fractional var => XYZ (Fusion var)
-fuseMag = fusion <$> xyz (Measurement $ (^._x) . getMag) (Measurement $ (^._y) . getMag) (Measurement $ (^._z) . getMag)
-    where
-    getMag state = xyzToVec3 $ stateMagXYZ state + nav2body state (stateMagNED state)
+stateMag :: Num a => StateVector a -> XYZ a
+stateMag state = stateMagXYZ state + nav2body state (stateMagNED state)

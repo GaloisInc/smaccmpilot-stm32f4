@@ -13,11 +13,14 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  exposed-modules:     SMACCM.INS.ExtendedKalmanFilter,
-                       SMACCM.INS.Pressure,
-                       SMACCM.INS.SensorFusionModel,
+  exposed-modules:     Numeric.Estimator,
+                       Numeric.Estimator.Augment,
+                       Numeric.Estimator.Class,
+                       Numeric.Estimator.KalmanFilter,
+                       Numeric.Estimator.Model.Pressure,
+                       Numeric.Estimator.Model.SensorFusion,
                        SMACCM.INS.Simulate
-  other-modules:       SMACCM.INS.Matrix
+  other-modules:       Numeric.Estimator.Matrix
   build-depends:       base >=4.6,
                        ad >=4.2,
                        distributive >=0.4,

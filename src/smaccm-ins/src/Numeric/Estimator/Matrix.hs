@@ -1,7 +1,7 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
-module SMACCM.INS.Matrix (matInvert) where
+module Numeric.Estimator.Matrix (matInvert) where
 
 import Control.Applicative
 import Data.Foldable

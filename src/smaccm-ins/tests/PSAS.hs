@@ -3,6 +3,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
 
+import Control.Arrow
 import Control.Applicative
 import Control.Monad (replicateM)
 import Data.Binary.Get
@@ -15,9 +16,10 @@ import Data.Monoid
 import Data.Traversable
 import Data.Word
 import MonadLib (lift, get, sets_)
+import Numeric.Estimator
+import Numeric.Estimator.Model.Pressure
+import Numeric.Estimator.Model.SensorFusion
 import Prelude hiding (sequence, sequence_)
-import SMACCM.INS.Pressure
-import SMACCM.INS.SensorFusionModel
 import SMACCM.INS.Simulate
 import System.Environment
 
@@ -107,7 +109,7 @@ getMessageType msg = do
             return $ MPL3 $ MPL3Message { mpl3Pressure = pressure }
         _ -> Nothing
     case pushEndOfInput $ runGetIncremental parser `pushChunk` psasData msg of
-        Done left _ v | S.null left -> return v
+        Done remainder _ v | S.null remainder -> return v
         Fail _ _ err -> error $ "failed on " ++ show (psasFourCC msg) ++ ": " ++ err
         _ -> error $ "leftovers after " ++ show (psasFourCC msg)
 
@@ -120,7 +122,7 @@ initialMeasurements prev = do
         Just (MPL3 v) -> (Last (Just $ psasTimestamp msg), mempty, Last (Just v))
         _ -> mempty
 
-runPSAS :: KalmanState Get Double a -> Get (a, (PSASTimestamp, StateVector Double, StateVector (StateVector Double)))
+runPSAS :: KalmanState Get Double a -> Get (a, (PSASTimestamp, KalmanFilter StateVector Double))
 runPSAS go = do
     (ts, adis, mpl3) <- initialMeasurements mempty
     let depth = negate $ pressureToHeight $ mpl3Pressure mpl3
@@ -130,13 +132,13 @@ runPSAS go = do
 psasFilter :: KalmanState Get Double (IO ())
 psasFilter = do
     msg <- lift getMessage
-    (lasttime, laststate, _) <- get
+    (lasttime, KalmanFilter laststate _) <- get
     case getMessageType msg of
         Just (ADIS v) -> do
             let dt = psasTimestamp msg - lasttime
             runProcessModel dt (processNoise dt) distCovariance $ DisturbanceVector { disturbanceGyro = adisGyro v, disturbanceAccel = adisAcc v }
             magStatus <- runFuseMag magNoise $ adisMagn v
-            sets_ $ \ (_, state, p) -> (psasTimestamp msg, state, p)
+            sets_ $ first $ const $ psasTimestamp msg
             return $ do
                 putStrLn $ unwords $ "pre-mag" : map show (lasttime : toList laststate)
                 putStrLn $ unwords $ "mag" : map show (toList (fmap fst magStatus) ++ toList (fmap snd magStatus))
@@ -153,6 +155,6 @@ main = do
     logfile <- case args of
         [] -> L.getContents
         fname : _ -> L.readFile fname
-    let (states, (finalTime, finalState, _)) = runGet (runPSAS $ replicateM (2048 * 3) psasFilter) logfile
+    let (states, (finalTime, KalmanFilter finalState _)) = runGet (runPSAS $ replicateM (2048 * 3) psasFilter) logfile
     sequence_ states
     putStrLn $ unwords $ "final" : map show (finalTime : toList finalState)
