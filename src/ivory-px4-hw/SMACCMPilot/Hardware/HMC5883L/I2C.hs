@@ -35,7 +35,7 @@ sensorSetup :: I2CDeviceAddr
             -> ChanOutput (Struct "i2c_transaction_result")
             -> StateLabel
             -> MachineM p StateLabel
-sensorSetup i2caddr failure req_emitter res_evt next = mdo
+sensorSetup i2caddr failure req_emitter res_chan next = mdo
   writeConfA <- writeReg ConfA confa writeConfB
   writeConfB <- writeReg ConfB confb writeMode
   writeMode  <- writeReg Mode  mode  next
@@ -48,12 +48,13 @@ sensorSetup i2caddr failure req_emitter res_evt next = mdo
   named n = "hmc8553l_" ++ n
 
   writeReg reg val nextstate = machineStateNamed (named ("write" ++ show reg)) $ do
-    entry $ liftIvory_ $ do
+    entry $ machineCallback $ \_ -> do
       req <- regWriteRequest i2caddr reg val
       emit req_emitter req
-    on res_evt $ \res -> do
-      liftIvory_ $ checki2csuccess res
-      goto nextstate
+    on res_chan $ do
+      machineControl $ \res -> do
+        checki2csuccess res
+        return $ goto nextstate
 
   checki2csuccess :: ConstRef s (Struct "i2c_transaction_result") -> Ivory eff ()
   checki2csuccess res = do
@@ -68,7 +69,7 @@ sensorRead :: I2CDeviceAddr
            -> MachineM p StateLabel
 sensorRead i2caddr s req_emitter res_evt next = mdo
   readSetup <- machineStateNamed (named "read_setup") $ do
-    entry $ liftIvory_ $ do
+    entry $ machineCallback $ \_ -> do
       store (s ~> samplefail) false
       -- send an i2c command to setup sensors read
       req <- fmap constRef $ local $ istruct
@@ -78,12 +79,13 @@ sensorRead i2caddr s req_emitter res_evt next = mdo
         , rx_len  .= ival 0
         ]
       emit req_emitter req
-    on res_evt $ \res -> do
-      liftIvory_ $ checki2csuccess res
-      goto readPerform
+    on res_evt $ do
+      machineControl $ \res -> do
+        checki2csuccess res
+        return $ goto readPerform
 
   readPerform <- machineStateNamed (named "read_perform") $ do
-    entry $ liftIvory_ $ do
+    entry $ machineCallback $ \_ -> do
       req <- fmap constRef $ local $ istruct
         [ tx_addr .= ival i2caddr
         , tx_buf  .= iarray []
@@ -91,8 +93,8 @@ sensorRead i2caddr s req_emitter res_evt next = mdo
         , rx_len  .= ival 6
         ]
       emit req_emitter req
-    on res_evt $ \res -> do
-      liftIvory_ $ do
+    on res_evt $ do
+      machineCallback $ \res -> do
         checki2csuccess res
         payloadu16 res 0 1 >>= store ((s ~> sample) ! 0) -- XH, XL
         payloadu16 res 2 3 >>= store ((s ~> sample) ! 2) -- ZH, ZL

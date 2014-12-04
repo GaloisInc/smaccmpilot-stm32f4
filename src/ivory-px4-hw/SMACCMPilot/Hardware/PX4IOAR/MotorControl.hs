@@ -83,7 +83,7 @@ motorControlTower decode motorChan = do
         flush = emitV flushemitter 0
         put :: (Scope cs ~ GetAlloc eff) => Uint8 -> Ivory eff ()
         put b = emitV ostream b
-        putbyte b = liftIvory_ (put b >> flush)
+        putbyte b = machineCallback $ const $ put b >> flush
         putPacket :: (ANat n)
                   => ConstRef s (Array n (Stored Uint8))
                   -> Ivory (AllocEffects cs) ()
@@ -99,46 +99,46 @@ motorControlTower decode motorChan = do
 
     sm <- stateMachine "ioar" $ mdo
       bootBegin <- machineStateNamed "bootBegin" $ do
-        timeout (Milliseconds 100) $ liftIvory $ do
+        timeout (Milliseconds 100) $ machineControl $ \_ -> do
           select_set_all false
           store motorInit 0
           return $ goto init1
       init1 <- machineStateNamed "init1" $ timeout (Milliseconds 10) $ do
-        liftIvory_ $ do
+        machineCallback $ \_ -> do
           m <- deref motorInit
           when (m <? 4) $ do
             select_set m true
         putbyte (initBytes !! 0)
         putbyte (initBytes !! 1)
-        goto init2
+        machineControl $ const $ return $ goto init2
       init2 <- machineStateNamed "init2" $ timeout (Milliseconds 7) $ do
         putbyte (initBytes !! 2)
-        liftIvory_ $ do
+        machineCallback $ \_ -> do
           m <- deref motorInit
           put (m + 1)
         putbyte (initBytes !! 3)
-        goto init3
+        machineControl $ const $ return $ goto init3
       init3 <- machineStateNamed "init3" $ timeout (Milliseconds 1) $ do
-        liftIvory_ $ do
+        machineControl $ \_ -> do
           m <- deref motorInit
           select_set m false
-        goto init4
+          return $ goto init4
       init4 <- machineStateNamed "init4" $ timeout (Milliseconds 200) $ do
-        liftIvory $ do
+        machineControl $ \_ -> do
           m <- deref motorInit
           store motorInit (m+1)
           return $ do
             branch (m >=? 3) initMulti
             goto init1
       initMulti <- machineStateNamed "initMulti" $ entry $ do
-        liftIvory_ $ do
+        machineControl $ \_ -> do
           select_set_all true
           -- Send it twice for good luck.
           sendMultiPacket
           sendMultiPacket
-        goto bootCheckComplete
+          return $ goto bootCheckComplete
       bootCheckComplete <- machineStateNamed "bootCheckComplete" $
-        timeout (Milliseconds 2) $ liftIvory $ do
+        timeout (Milliseconds 2) $ machineControl $ \_ -> do
           t <- deref bootAttempts
           store bootAttempts (t+1)
           -- Need to try booting a bunch of times for it to work reliably.
@@ -149,14 +149,14 @@ motorControlTower decode motorChan = do
             branch (t <? 8) bootBegin
             goto loop
       loop <- machineStateNamed "loop" $ do
-        entry $ liftIvory_ $ do
+        entry $ machineCallback $ \_ -> do
           arrayMap $ \i ->
             store (throttle ! i) 0.0
-        periodic (Milliseconds 5) $ liftIvory_ $ do
+        periodic (Milliseconds 5) $ machineCallback $ \_ -> do
           scaled   <- scale_motors (constRef throttle)
           packet   <- motor_packet scaled
           putPacket packet
-        on motorChan $ \encoded -> liftIvory_ $ do
+        on motorChan $ machineCallback $ \encoded -> do
           inputs <- decode encoded
           arrayMap $ \i -> do
             input <- deref (inputs ! i)
@@ -164,12 +164,10 @@ motorControlTower decode motorChan = do
       return bootBegin
 
     handler systemInit "init" $ do
-      b <- begin sm
       callback $ const $ do
         pins_init
         pinSet muxdir_pin
         store bootAttempts (0::Uint32)
-        unScopedIvory b
 
 -- change motor mixer [0.0f..1.0f] range to to [0..500]
 scale_period :: IFloat -> Uint16

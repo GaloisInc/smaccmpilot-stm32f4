@@ -93,16 +93,16 @@ initializerMachine :: forall e
                     . SPIDeviceHandle
                    -> ChanInput  (Struct "spi_transaction_request")
                    -> ChanOutput (Struct "spi_transaction_result")
-                   -> Monitor e (Runnable, Ref Global (Stored IBool))
+                   -> Monitor e (StateMachine e, Ref Global (Stored IBool))
 initializerMachine dev req_chan res_chan = do
   retries <- state "mpu6000InitRetries"
   failed <- state "mpu6000InitFailed"
 
   m <- stateMachine "mpu6000InitailizerMachine" $ mdo
     b <- machineStateNamed "begin" $ entry $ do
-      liftIvory_ $ do
+      machineControl $ \_ -> do
         store retries (0 :: Uint8)
-      goto disablei2c
+        return $ goto disablei2c
 
     -- Disable the I2C slave device sharing pins with the SPI interface
     disablei2c <- rpc "disablei2c" (writeRegReq dev UserControl 0x10)
@@ -131,7 +131,7 @@ initializerMachine dev req_chan res_chan = do
                                        (const (return ()))
                                        done
 
-    done <- machineStateNamed "done" $ entry $ liftIvory $ do
+    done <- machineStateNamed "done" $ entry $ machineControl $ \_ -> do
       fd <- deref failed
       rs <- deref retries
       store retries (rs + 1)
@@ -156,13 +156,14 @@ initializerMachine dev req_chan res_chan = do
       -> MachineM p StateLabel
   rpc name request resultk statek = mdo
     getter <- machineStateNamed ("get" ++ name) $ entry $ do
-      liftIvory_ $ do
+      machineControl $ \_ -> do
         r <- request
         emit req_emitter r
-      goto gotResult
-    gotResult <- machineStateNamed ("got" ++ name) $ on res_chan $ \res -> do
-      liftIvory_ $ resultk res
-      goto statek
+        return $ goto gotResult
+    gotResult <- machineStateNamed ("got" ++ name) $ on res_chan $ do
+      machineControl $ \res -> do
+        resultk res
+        return $ goto statek
     return getter
 
 
