@@ -10,6 +10,7 @@ import Data.Monoid
 import Linear
 import MonadLib
 import Numeric.Estimator
+import Numeric.Estimator.Model.Coordinate
 import Numeric.Estimator.Model.SensorFusion
 import SMACCM.INS.Simulate
 

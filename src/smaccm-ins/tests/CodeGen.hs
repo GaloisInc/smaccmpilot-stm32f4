@@ -14,6 +14,7 @@ import IvoryFilter.Types
 import Linear
 import Numeric.AD
 import Numeric.Estimator
+import Numeric.Estimator.Model.Coordinate
 import Numeric.Estimator.Model.Pressure
 import Numeric.Estimator.Model.SensorFusion
 import Prelude hiding (mapM, sequence_, sum)

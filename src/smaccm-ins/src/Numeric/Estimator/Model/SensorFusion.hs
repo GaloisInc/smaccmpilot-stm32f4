@@ -1,5 +1,4 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 module Numeric.Estimator.Model.SensorFusion where
 
@@ -10,22 +9,9 @@ import Data.Foldable
 import Data.Traversable
 import Linear
 import Numeric.Estimator.Augment
+import Numeric.Estimator.Model.Coordinate
 import Numeric.Estimator.Model.Pressure
 import Prelude hiding (foldl1, foldr, sum)
-
--- For measurements/states in navigation frame
-newtype NED a = NED { nedToVec3 :: V3 a }
-    deriving (Show, Additive, Applicative, Foldable, Functor, Metric, Traversable, Distributive, Num)
-
-ned :: a -> a -> a -> NED a
-ned n e d = NED $ V3 n e d
-
--- For measurements/states in body frame
-newtype XYZ a = XYZ { xyzToVec3 :: V3 a }
-    deriving (Show, Additive, Applicative, Foldable, Functor, Metric, Traversable, Distributive, Num)
-
-xyz :: a -> a -> a -> XYZ a
-xyz a b c = XYZ $ V3 a b c
 
 -- Linear's Num (Quaternion a) instance requires (RealFloat a) in order
 -- to implement signum, but we don't want to require RealFloat as it
@@ -34,14 +20,6 @@ xyz a b c = XYZ $ V3 a b c
 quatMul :: Num a => Quaternion a -> Quaternion a -> Quaternion a
 quatMul (Quaternion s1 v1) (Quaternion s2 v2)
     = Quaternion (s1 * s2 - (v1 `dot` v2)) $ (v1 `cross` v2) + s1 *^ v2 + s2 *^ v1
-
--- Rotate between coordinate frames through a given quaternion
-convertFrames :: Num a => Quaternion a -> (XYZ a -> NED a, NED a -> XYZ a)
-convertFrames q = (toNav, toBody)
-    where
-    rotate2nav = NED $ fmap XYZ $ fromQuaternion q
-    toNav = (rotate2nav !*)
-    toBody = (transpose rotate2nav !*)
 
 data StateVector a = StateVector
     { stateOrient :: !(Quaternion a) -- quaternions defining attitude of body axes relative to local NED

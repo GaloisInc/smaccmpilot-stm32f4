@@ -14,6 +14,7 @@ import MonadLib (runStateT, StateT, get, set)
 import Numeric.AD
 import Numeric.AD.Internal.Reverse
 import Numeric.Estimator
+import Numeric.Estimator.Model.Coordinate
 import Numeric.Estimator.Model.SensorFusion
 import Prelude hiding (mapM, sequence, sum)
 

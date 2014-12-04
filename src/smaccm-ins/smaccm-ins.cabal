@@ -17,6 +17,7 @@ library
                        Numeric.Estimator.Augment,
                        Numeric.Estimator.Class,
                        Numeric.Estimator.KalmanFilter,
+                       Numeric.Estimator.Model.Coordinate,
                        Numeric.Estimator.Model.Pressure,
                        Numeric.Estimator.Model.SensorFusion,
                        SMACCM.INS.Simulate

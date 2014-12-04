@@ -17,6 +17,7 @@ import Data.Traversable
 import Data.Word
 import MonadLib (lift, get, sets_)
 import Numeric.Estimator
+import Numeric.Estimator.Model.Coordinate
 import Numeric.Estimator.Model.Pressure
 import Numeric.Estimator.Model.SensorFusion
 import Prelude hiding (sequence, sequence_)
