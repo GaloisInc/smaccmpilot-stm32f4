@@ -25,6 +25,7 @@ create-sandbox:
 	cabal sandbox add-source $(BSP_REPO)/ivory-freertos-bindings
 	cabal sandbox add-source $(BSP_REPO)/tower-freertos-stm32
 	cabal sandbox add-source $(BSP_REPO)/ivory-bsp-stm32
+	cabal sandbox add-source $(BSP_REPO)/ivory-bsp-tests
 	cabal sandbox add-source ../hx-stream/ivory
 	cabal sandbox add-source ../ivory-px4-hw
 	cabal install --dependencies-only

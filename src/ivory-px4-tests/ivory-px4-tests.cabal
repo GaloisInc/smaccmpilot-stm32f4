@@ -26,9 +26,11 @@ library
                        ivory-opts,
                        ivory-hw,
                        tower              >= 0.9,
+                       tower-config,
                        tower-statemachine,
                        tower-freertos-stm32,
                        ivory-bsp-stm32,
+                       ivory-bsp-tests,
                        ivory-hxstream,
                        ivory-serialize,
                        ivory-px4-hw
