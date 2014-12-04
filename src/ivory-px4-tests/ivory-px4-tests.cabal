@@ -10,7 +10,7 @@ cabal-version:       >= 1.10
 
 library
   exposed-modules:     PX4.Tests.Platforms,
-                       PX4.Tests.CopterMotors,
+--                       PX4.Tests.CopterMotors,
                        PX4.Tests.Ublox,
                        PX4.Tests.MPU6000,
                        PX4.Tests.MS5611,
