@@ -9,17 +9,10 @@ import Data.Foldable
 import Data.Traversable
 import Linear
 import Numeric.Estimator.Augment
+import Numeric.Estimator.Quaternion
 import Numeric.Estimator.Model.Coordinate
 import Numeric.Estimator.Model.Pressure
-import Prelude hiding (foldl1, foldr, sum)
-
--- Linear's Num (Quaternion a) instance requires (RealFloat a) in order
--- to implement signum, but we don't want to require RealFloat as it
--- doesn't work for symbolic types. This is a copy of just the (*)
--- implementation, which only needed (Num a).
-quatMul :: Num a => Quaternion a -> Quaternion a -> Quaternion a
-quatMul (Quaternion s1 v1) (Quaternion s2 v2)
-    = Quaternion (s1 * s2 - (v1 `dot` v2)) $ (v1 `cross` v2) + s1 *^ v2 + s2 *^ v1
+import Prelude hiding (foldl1)
 
 data StateVector a = StateVector
     { stateOrient :: !(Quaternion a) -- quaternions defining attitude of body axes relative to local NED
@@ -199,20 +192,6 @@ processModel dt (AugmentState state dist) = AugmentState state' $ pure 0
     deltaQuat = approxAxisAngle 3 $ xyzToVec3 $ fmap (* dt) $ disturbanceGyro dist - stateGyroBias state
     deltaVel = fmap (* dt) $ body2nav state (disturbanceAccel dist) + g
     g = ned 0 0 9.80665 -- NED gravity vector - m/sec^2
-
--- The Taylor series expansion of the quaternion axis-angle formula never
--- divides by any quantity that might be zero. It also avoids computing fancy
--- floating-point functions like sin, cos, or sqrt. And since the ARM chip
--- we're running on doesn't have those fancy functions in hardware, this
--- implementation is as efficient as we're going to get anyway.
-approxAxisAngle :: Fractional a => Int -> V3 a -> Quaternion a
-approxAxisAngle order rotation = Quaternion c $ fmap (s *) rotation
-    where
-    halfSigmaSq = 0.25 * sum (fmap (^ (2 :: Int)) rotation)
-    go prev idx = let cosTerm = prev / fromIntegral (negate idx); sinTerm = cosTerm / fromIntegral (idx + 1) in cosTerm : sinTerm : go (sinTerm * halfSigmaSq) (idx + 2)
-    combine term (l, r) = (r + term, l)
-    (c, s2) = foldr combine (1, 1) $ take (order - 1) $ go halfSigmaSq (2 :: Int)
-    s = 0.5 * s2
 
 statePressure :: Floating a => StateVector a -> a
 statePressure = heightToPressure . negate . (^._z) . nedToVec3 . statePos

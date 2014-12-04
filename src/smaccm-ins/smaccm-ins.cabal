@@ -21,7 +21,8 @@ library
                        Numeric.Estimator.Model.Pressure,
                        Numeric.Estimator.Model.SensorFusion,
                        SMACCM.INS.Simulate
-  other-modules:       Numeric.Estimator.Matrix
+  other-modules:       Numeric.Estimator.Matrix,
+                       Numeric.Estimator.Quaternion
   build-depends:       base >=4.6,
                        ad >=4.2,
                        distributive >=0.4,
