@@ -14,8 +14,11 @@ install:
   - cabal install happy
 script:
   - arm-none-eabi-gcc --version
-  - IVORY_REPO=$IVORY_REPO TOWER_REPO=$TOWER_REPO BSP_REPO=$BSP_REPO make
+  - IVORY_REPO=$IVORY_REPO TOWER_REPO=$TOWER_REPO BSP_REPO=$BSP_REPO make $ENV_TEST_TARGET
 ghc:
   - 7.6.3
   - 7.8.3
-
+env:
+  - ENV_TEST_TARGET=ivory-hxstream
+  - ENV_TEST_TARGET=ivory-px4-hw
+  - ENV_TEST_TARGET=ivory-px4-tests
