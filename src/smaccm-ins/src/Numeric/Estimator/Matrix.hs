@@ -1,6 +1,14 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
+{- |
+Description: Matrix utilities
+
+These functions extend the facilities provided by the 'Linear' module.
+They should not be used by external code, but might be useful
+contributions to the linear package.
+-}
+
 module Numeric.Estimator.Matrix (matInvert) where
 
 import Control.Applicative
@@ -9,24 +17,21 @@ import Data.Traversable
 import Linear
 import Prelude hiding (foldr)
 
-instance Foldable ZipList where
-    foldr k z = foldr k z . getZipList
+instance Metric []
 
-instance Metric ZipList
-
-msplit :: [a] -> [ZipList a] -> (a, ZipList a, ZipList a, ZipList (ZipList a))
-msplit row rows = (first, ZipList top, ZipList left, ZipList $ map ZipList rest)
+msplit :: [a] -> [[a]] -> (a, [a], [a], [[a]])
+msplit row rows = (first, top, left, rest)
     where
     first : top = row
-    (left, rest) = unzip $ map (\ (ZipList (x:xs)) -> (x, xs)) rows
+    (left, rest) = unzip $ map (\ (x:xs) -> (x, xs)) rows
 
-mjoin :: (a, ZipList a, ZipList a, ZipList (ZipList a)) -> ZipList (ZipList a)
-mjoin (first, ZipList top, ZipList left, ZipList rest) = ZipList $ (ZipList $ first : top) : (zipWith (\ l (ZipList r) -> ZipList $ l : r) left rest)
+mjoin :: (a, [a], [a], [[a]]) -> [[a]]
+mjoin (first, top, left, rest) = (first : top) : (zipWith (\ l r -> l : r) left rest)
 
-matInvertList :: Fractional a => ZipList (ZipList a) -> ZipList (ZipList a)
-matInvertList (ZipList []) = ZipList []
-matInvertList (ZipList [ZipList [a]]) = ZipList [ZipList [recip a]]
-matInvertList (ZipList (ZipList row : rows)) = mjoin (a', b', c', d')
+matInvertList :: Fractional a => [[a]] -> [[a]]
+matInvertList [] = []
+matInvertList [[a]] = [[recip a]]
+matInvertList (row : rows) = mjoin (a', b', c', d')
     where
     (a, b, c, d) = msplit row rows
     aInv = recip a
@@ -37,12 +42,9 @@ matInvertList (ZipList (ZipList row : rows)) = mjoin (a', b', c', d')
     b' = negated $ aInvb *! d'
     a' = aInv + dot aInvb (d' !* caInv)
 
-copyInto :: Traversable f => f a -> ZipList a -> f a
-copyInto structure (ZipList contents) = result
-    where
-    ([], result) = mapAccumL (\ (x:xs) _ -> (xs, x)) contents structure
+copyInto :: Traversable f => f a -> [a] -> f a
+copyInto structure contents = snd $ mapAccumL (\ (x:xs) _ -> (xs, x)) contents structure
 
+-- | Compute the matrix inverse of a square matrix.
 matInvert :: (Traversable f, Fractional a) => f (f a) -> f (f a)
-matInvert m = copyInto m $ liftA2 copyInto (toL m) $ matInvertList $ fmap toL $ toL m
-    where
-    toL = ZipList . toList
+matInvert m = copyInto m $ liftA2 copyInto (toList m) $ matInvertList $ fmap toList $ toList m
