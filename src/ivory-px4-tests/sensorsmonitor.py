@@ -56,7 +56,7 @@ class Gyro(object):
     def __init__(self, binary):
         self.binary = binary
         try:
-            (valid, gx, gy, gz, ax, ay, az, temp, t) = struct.unpack("<BBfffffffQ", binary)
+            (ifail, sfail, gx, gy, gz, ax, ay, az, temp, t) = struct.unpack("<BBfffffffQ", binary)
             self.ifail = ifail
             self.sfail = sfail
             self.gx    = gx
@@ -68,13 +68,14 @@ class Gyro(object):
             self.temp  = temp
             self.t     = t
             self.errormsg = None
-        except Exception:
+        except Exception as e:
+            print e
             self.errormsg = ("Gyro: bad size %d" % (len(binary) if binary else 0))
     def display(self):
         if self.errormsg:
             return self.errormsg
-        return ("Gyro valid %d gx % 9.4f gy % 9.4f gz % 9.4f ax % 9.4f ay % 9.4f az % 9.4f temp % 9.4f micros %d" %
-            (self.valid, self.gx, self.gy, self.gz, self.ax, self.ay, self.az, self.temp, self.t))
+        return ("Gyro valid %d %d gx % 9.4f gy % 9.4f gz % 9.4f ax % 9.4f ay % 9.4f az % 9.4f temp % 9.4f micros %d" %
+            (self.ifail, self.sfail, self.gx, self.gy, self.gz, self.ax, self.ay, self.az, self.temp, self.t))
 
 class Position(object):
     def __init__(self, binary):
