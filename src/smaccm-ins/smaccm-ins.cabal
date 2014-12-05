@@ -20,6 +20,7 @@ library
                        Numeric.Estimator.Model.Coordinate,
                        Numeric.Estimator.Model.Pressure,
                        Numeric.Estimator.Model.SensorFusion,
+                       Numeric.Estimator.Model.Symbolic,
                        SMACCM.INS.Simulate
   other-modules:       Numeric.Estimator.Matrix,
                        Numeric.Estimator.Quaternion

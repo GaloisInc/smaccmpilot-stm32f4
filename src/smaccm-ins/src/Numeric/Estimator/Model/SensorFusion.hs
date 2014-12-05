@@ -1,5 +1,3 @@
-{-# OPTIONS_GHC -fno-warn-orphans #-}
-
 module Numeric.Estimator.Model.SensorFusion where
 
 import Control.Applicative
@@ -12,6 +10,7 @@ import Numeric.Estimator.Augment
 import Numeric.Estimator.Quaternion
 import Numeric.Estimator.Model.Coordinate
 import Numeric.Estimator.Model.Pressure
+import Numeric.Estimator.Model.Symbolic
 import Prelude hiding (foldl1)
 
 data StateVector a = StateVector
@@ -116,12 +115,6 @@ nStates :: Int
 nStates = length $ toList (pure () :: StateVector ())
 
 -- Model initialization
-
-class HasAtan2 a where
-    arctan2 :: a -> a -> a
-
-instance HasAtan2 Double where
-    arctan2 = atan2
 
 kalmanP :: Fractional a => StateVector (StateVector a)
 kalmanP = kronecker $ fmap (^ (2 :: Int)) $ StateVector
