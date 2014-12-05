@@ -6,8 +6,26 @@ BSP_REPO ?= ../../../ivory-tower-stm32
 default:
 	cabal build
 
-test:
-	echo "Tests currently unimplemented, but thanks for trying"
+test: ublox-gps-test px4-mpu6k-test px4-ms5611-test px4-hmc5883l-test
+.PHONY: ublox-gps-test
+ublox-gps-test:
+	cabal run ublox-gps-test-gen -- --src-dir=ublox-gps-test
+	make -C ublox-gps-test
+
+.PHONY: px4-mpu6k-test
+px4-mpu6k-test:
+	cabal run px4-mpu6k-test-gen -- --src-dir=px4-mpu6k-test
+	make -C px4-mpu6k-test
+
+.PHONY: px4-ms5611-test
+px4-ms5611-test:
+	cabal run px4-ms5611-test-gen -- --src-dir=px4-ms5611-test
+	make -C px4-ms5611-test
+
+.PHONY: px4-hmc5883l-test
+px4-hmc5883l-test:
+	cabal run px4-hmc5883l-test-gen -- --src-dir=px4-hmc5883l-test
+	make -C px4-hmc5883l-test
 
 create-sandbox:
 	cabal sandbox init

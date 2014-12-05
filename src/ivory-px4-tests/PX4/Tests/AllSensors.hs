@@ -59,6 +59,7 @@ app = do
 
   towerDepends serializeModule
   towerModule  serializeModule
+  mapM_ towerArtifact serializeArtifacts
   towerModule  G.mpu6000TypesModule
   towerDepends G.mpu6000TypesModule
   towerModule  M.ms5611TypesModule

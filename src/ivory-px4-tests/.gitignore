@@ -1,2 +1,8 @@
 *.pyc
+ublox-gps-test
+px4-mpu6k-test
+px4-ms5611-test
+px4-hmc5883l-test
+user.conf
 dist/
+.cabal-sandbox

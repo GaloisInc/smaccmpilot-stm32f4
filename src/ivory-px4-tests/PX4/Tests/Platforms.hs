@@ -7,7 +7,6 @@
 
 module PX4.Tests.Platforms where
 
-import Ivory.Tower
 import Tower.Config
 
 import Data.Char (toUpper)
@@ -24,6 +23,7 @@ import           Ivory.BSP.STM32.Peripheral.UART
 import           Ivory.BSP.STM32.Peripheral.SPI
 import           Ivory.BSP.STM32.Peripheral.I2C
 import           Ivory.BSP.STM32.Driver.I2C
+import           Ivory.OS.FreeRTOS.Tower.STM32.Config
 
 data PX4Platform s =
   PX4Platform
@@ -33,6 +33,9 @@ data PX4Platform s =
     , px4platform_ms5611_device  :: MS5611Device s
     , px4platform_testplatform   :: BSP.TestPlatform s
     }
+
+px4platform_stm32config :: PX4Platform s -> STM32Config
+px4platform_stm32config = BSP.testplatform_stm32 . px4platform_testplatform
 
 data HMC5883Device s =
   HMC5883Device

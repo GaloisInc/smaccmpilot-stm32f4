@@ -8,7 +8,7 @@
 module PX4.Tests.MPU6000
   ( mpu6000SensorManager
   , mpu6000Sender
-  , testApp
+  , app
   ) where
 
 import Ivory.Language
@@ -28,8 +28,8 @@ import qualified Ivory.BSP.STM32F405.Interrupt as F405
 import qualified BSP.Tests.Platforms as BSP
 import PX4.Tests.Platforms
 
-testApp :: (e -> PX4Platform F405.Interrupt) -> Tower e ()
-testApp topx4 = do
+app :: (e -> PX4Platform F405.Interrupt) -> Tower e ()
+app topx4 = do
   sample <- channel
   px4platform <- fmap topx4 getEnv
   let mpu6000 = px4platform_mpu6000_device px4platform
@@ -43,6 +43,7 @@ testApp topx4 = do
 
   towerDepends serializeModule
   towerModule  serializeModule
+  mapM_ towerArtifact serializeArtifacts
   towerModule  mpu6000TypesModule
   towerDepends mpu6000TypesModule
   where
