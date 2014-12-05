@@ -9,11 +9,7 @@ build-type:          Simple
 cabal-version:       >= 1.10
 
 library
-  exposed-modules:     SMACCMPilot.Hardware.PX4IOAR,
-                       SMACCMPilot.Hardware.PX4IOAR.MotorControl,
-                       SMACCMPilot.Hardware.PX4FMU17,
-                       SMACCMPilot.Hardware.PX4FMU17.MotorControl,
-                       SMACCMPilot.Hardware.GPS.Types,
+  exposed-modules:     SMACCMPilot.Hardware.GPS.Types,
                        SMACCMPilot.Hardware.GPS.Types.Position,
                        SMACCMPilot.Hardware.GPS.Types.GPSFix,
                        SMACCMPilot.Hardware.GPS.UBlox,
@@ -31,6 +27,12 @@ library
                        SMACCMPilot.Hardware.HMC5883L.Types,
                        SMACCMPilot.Hardware.HMC5883L.Regs,
                        SMACCMPilot.Hardware.HMC5883L.I2C
+
+                       --SMACCMPilot.Hardware.PX4IOAR,
+                       --SMACCMPilot.Hardware.PX4IOAR.MotorControl,
+                       --SMACCMPilot.Hardware.PX4FMU17,
+                       --SMACCMPilot.Hardware.PX4FMU17.MotorControl,
+
   build-depends:       base >= 4.6,
                        monadLib,
                        ivory,
