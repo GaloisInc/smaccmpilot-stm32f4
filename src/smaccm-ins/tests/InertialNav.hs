@@ -12,7 +12,7 @@ import MonadLib
 import Numeric.Estimator
 import Numeric.Estimator.Model.Coordinate
 import Numeric.Estimator.Model.SensorFusion
-import SMACCM.INS.Simulate
+import Simulate
 
 deg2rad :: Double -> Double
 deg2rad deg = deg * pi / 180

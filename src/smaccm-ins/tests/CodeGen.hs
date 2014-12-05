@@ -19,7 +19,7 @@ import Numeric.Estimator.Model.Pressure
 import Numeric.Estimator.Model.SensorFusion
 import Numeric.Estimator.Model.Symbolic
 import Prelude hiding (mapM, sequence_, sum)
-import SMACCM.INS.Simulate
+import Simulate
 
 instance HasAtan2 IDouble where
   arctan2 = atan2F

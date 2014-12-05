@@ -21,7 +21,7 @@ import Numeric.Estimator.Model.Coordinate
 import Numeric.Estimator.Model.Pressure
 import Numeric.Estimator.Model.SensorFusion
 import Prelude hiding (sequence, sequence_)
-import SMACCM.INS.Simulate
+import Simulate
 import System.Environment
 
 -- Model noise parameters

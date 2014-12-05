@@ -20,8 +20,7 @@ library
                        Numeric.Estimator.Model.Coordinate,
                        Numeric.Estimator.Model.Pressure,
                        Numeric.Estimator.Model.SensorFusion,
-                       Numeric.Estimator.Model.Symbolic,
-                       SMACCM.INS.Simulate
+                       Numeric.Estimator.Model.Symbolic
   other-modules:       Numeric.Estimator.Matrix,
                        Numeric.Estimator.Quaternion
   build-depends:       base >=4.6,
@@ -29,7 +28,6 @@ library
                        distributive >=0.4,
                        lens >=4.6,
                        linear >=1.15,
-                       monadLib >= 3.7,
                        reflection >=1.5
   default-language:    Haskell2010
   ghc-options:         -Wall -Werror
@@ -38,9 +36,11 @@ executable inertialnav
   hs-source-dirs:      tests
   main-is:             InertialNav.hs
   build-depends:       base >=4.6,
+                       ad >=4.2,
                        lens >=4.6,
                        linear >=1.15,
                        monadLib >= 3.7,
+                       reflection >=1.5,
                        smaccm-ins
   default-language:    Haskell2010
   ghc-options:         -Wall -Werror
@@ -49,9 +49,13 @@ executable psas
   hs-source-dirs:      tests
   main-is:             PSAS.hs
   build-depends:       base >=4.6,
+                       ad >=4.2,
                        binary >=0.7,
                        bytestring >=0.10,
+                       lens >=4.6,
+                       linear >=1.15,
                        monadLib >= 3.7,
+                       reflection >=1.5,
                        smaccm-ins
   default-language:    Haskell2010
   ghc-options:         -Wall -Werror
@@ -67,8 +71,10 @@ executable codegen
                        ivory >=0.1,
                        ivory-backend-c >=0.1,
                        ivory-stdlib >=0.1,
+                       lens >=4.6,
                        linear >=1.15,
                        monadLib >= 3.7,
+                       reflection >=1.5,
                        smaccm-ins
   default-language:    Haskell2010
   ghc-options:         -Wall -Werror
