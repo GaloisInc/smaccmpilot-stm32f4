@@ -21,7 +21,7 @@ import Prelude hiding (mapM, sequence, sum)
 type KalmanState m a = StateT (a, KalmanFilter StateVector a) m
 
 runKalmanState :: (Monad m, Fractional a) => a -> StateVector a -> KalmanState m a b -> m (b, (a, KalmanFilter StateVector a))
-runKalmanState ts state = runStateT (ts, KalmanFilter state kalmanP)
+runKalmanState ts state = runStateT (ts, KalmanFilter state initCovariance)
 
 fixQuat :: Floating a => StateVector a -> StateVector a
 fixQuat state = state { stateOrient = signorm $ stateOrient state }

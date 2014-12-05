@@ -102,7 +102,7 @@ kalman_init = cse $ proc "kalman_init" $ \ accX accY accZ magX magY magZ pressur
     let mag = xyz magX magY magZ
     let initialState = initDynamic acc mag (pure 0) 0 (pure 0) (ned 0 0 depth)
     storeRow stateVector initialState
-    sequence_ $ liftA2 storeRow p kalmanP
+    sequence_ $ liftA2 storeRow p initCovariance
 
 kalman_predict :: Def ('[IDouble, IDouble, IDouble, IDouble, IDouble, IDouble, IDouble] :-> ())
 kalman_predict = cse $ proc "kalman_predict" $ \ dt dax day daz dvx dvy dvz -> body $ do

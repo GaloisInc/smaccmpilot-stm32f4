@@ -1,3 +1,11 @@
+{- |
+Description: Simplified atmosphere model
+
+This module implements the
+<http://en.wikipedia.org/wiki/U.S._Standard_Atmosphere#1976_version 1976 U.S. Standard Atmosphere>,
+but is only valid for altitudes from sea level to 11km.
+-}
+
 module Numeric.Estimator.Model.Pressure (pressureToHeight, heightToPressure) where
 
 basePressure, baseTemperature, lapseRate, baseAltitude, airGasConstant, g_0, airMass :: Floating a => a

@@ -1,3 +1,51 @@
+{- |
+Description: Sample estimator model for sensor fusion
+
+Many kinds of vehicles have a collection of sensors for measuring where
+they are and where they're going, which may include these sensors and
+others:
+
+- accelerometers
+
+- gyroscopes
+
+- GPS receiver
+
+- pressure altimeter
+
+- 3D magnetometer
+
+Each of these sensors provides some useful information about the current
+physical state of the vehicle, but they all have two obnoxious problems:
+
+1. No one sensor provides all the information you want at the update
+rate you need. GPS gives you absolute position, but at best only ten
+times per second. Accelerometers can report measurements at high speeds,
+hundreds to thousands of times per second, but to get position you have
+to double-integrate the measurement samples.
+
+2. Every sensor is lying to you. They measure some aspect of the
+physical state, plus some random error. If you have to integrate these
+measurements, as with acceleration for instance, then the error
+accumulates over time. If you take the derivative, perhaps because you
+have position but you need velocity, the derivative amplifies the noise.
+
+This is an ideal case for a state-space estimation algorithm. Once
+you've specified the kinetic model of the physical system, and modeled
+each of your sensors, and identified the noise parameters for
+everything, the estimation algorithm is responsible for combining all
+the measurements. The estimator will decide how much to trust each
+sensor based on how much confidence it has in its current state
+estimate, and how well that state agrees with the current measurement.
+
+This module implements a system model for sensor fusion. With
+appropriate noise parameters, it should work for a wide variety of
+vehicle types and sensor platforms, whether on land, sea, air, or space.
+However, it has been implemented specifically for quad-copter
+autopilots. As a result the state vector may have components your system
+does not need, or be missing ones you do need.
+-}
+
 module Numeric.Estimator.Model.SensorFusion where
 
 import Control.Applicative
@@ -13,14 +61,15 @@ import Numeric.Estimator.Model.Pressure
 import Numeric.Estimator.Model.Symbolic
 import Prelude hiding (foldl1)
 
+-- | A collection of all the state variables needed for this model.
 data StateVector a = StateVector
-    { stateOrient :: !(Quaternion a) -- quaternions defining attitude of body axes relative to local NED
-    , stateVel :: !(NED a) -- NED velocity - m/sec
-    , statePos :: !(NED a) -- NED position - m
-    , stateGyroBias :: !(XYZ a) -- delta angle bias - rad
-    , stateWind :: !(NED a) -- NED wind velocity - m/sec
-    , stateMagNED :: !(NED a) -- NED earth fixed magnetic field components - milligauss
-    , stateMagXYZ :: !(XYZ a) -- XYZ body fixed magnetic field measurements - milligauss
+    { stateOrient :: !(Quaternion a) -- ^ quaternions defining attitude of body axes relative to local NED
+    , stateVel :: !(NED a) -- ^ NED velocity - m/sec
+    , statePos :: !(NED a) -- ^ NED position - m
+    , stateGyroBias :: !(XYZ a) -- ^ delta angle bias - rad
+    , stateWind :: !(NED a) -- ^ NED wind velocity - m/sec
+    , stateMagNED :: !(NED a) -- ^ NED earth fixed magnetic field components - milligauss
+    , stateMagXYZ :: !(XYZ a) -- ^ XYZ body fixed magnetic field measurements - milligauss
     }
     deriving Show
 
@@ -74,13 +123,13 @@ instance Distributive StateVector where
         , stateMagXYZ = distribute $ fmap stateMagXYZ f
         }
 
--- Define the control (disturbance) vector. Error growth in the inertial
+-- | Define the control (disturbance) vector. Error growth in the inertial
 -- solution is assumed to be driven by 'noise' in the delta angles and
 -- velocities, after bias effects have been removed. This is OK becasue we
 -- have sensor bias accounted for in the state equations.
 data DisturbanceVector a = DisturbanceVector
-    { disturbanceGyro :: !(XYZ a) -- XYZ body rotation rate in rad/second
-    , disturbanceAccel :: !(XYZ a) -- XYZ body acceleration in meters/second/second
+    { disturbanceGyro :: !(XYZ a) -- ^ XYZ body rotation rate in rad/second
+    , disturbanceAccel :: !(XYZ a) -- ^ XYZ body acceleration in meters\/second\/second
     }
     deriving Show
 
@@ -111,13 +160,11 @@ instance Distributive DisturbanceVector where
         , disturbanceAccel = distribute $ fmap disturbanceAccel f
         }
 
-nStates :: Int
-nStates = length $ toList (pure () :: StateVector ())
+-- * Model initialization
 
--- Model initialization
-
-kalmanP :: Fractional a => StateVector (StateVector a)
-kalmanP = kronecker $ fmap (^ (2 :: Int)) $ StateVector
+-- | Initial covariance for this model.
+initCovariance :: Fractional a => StateVector (StateVector a)
+initCovariance = kronecker $ fmap (^ (2 :: Int)) $ StateVector
     { stateOrient = pure 0.1
     , stateVel = pure 0.7
     , statePos = ned 15 15 5
@@ -129,7 +176,26 @@ kalmanP = kronecker $ fmap (^ (2 :: Int)) $ StateVector
     where
     deg2rad = realToFrac (pi :: Double) / 180
 
-initAttitude :: (Floating a, HasAtan2 a) => XYZ a -> XYZ a -> a -> Quaternion a
+-- | When the sensor platform is not moving, a three-axis accelerometer
+-- will sense an approximately 1g acceleration in the direction of
+-- gravity, which gives us the platform's orientation aside from not
+-- knowing the current rotation around the gravity vector.
+--
+-- At the same time, a 3D magnetometer will sense the platform's
+-- orientation with respect to the local magnetic field, aside from not
+-- knowing the current rotation around the magnetic field line.
+--
+-- Putting these two together gives the platform's complete orientation
+-- since the gravity vector and magnetic field line aren't collinear.
+initAttitude :: (Floating a, HasAtan2 a)
+             => XYZ a
+             -- ^ initial accelerometer reading
+             -> XYZ a
+             -- ^ initial magnetometer reading
+             -> a
+             -- ^ local magnetic declination from true North
+             -> Quaternion a
+             -- ^ computed initial attitude
 initAttitude (XYZ accel) (XYZ mag) declination = foldl1 quatMul $ map (uncurry rotateAround)
     [ (ez, initialHdg)
     , (ey, initialPitch)
@@ -143,7 +209,23 @@ initAttitude (XYZ accel) (XYZ mag) declination = foldl1 quatMul $ map (uncurry r
     initialHdg = arctan2 (negate magY) magX + declination
     rotateAround axis theta = Quaternion (cos half) $ pure 0 & el axis .~ (sin half) where half = theta / 2
 
-initDynamic :: (Floating a, HasAtan2 a) => XYZ a -> XYZ a -> XYZ a -> a -> NED a -> NED a -> StateVector a
+-- | Compute an initial filter state from an assortment of initial
+-- measurements.
+initDynamic :: (Floating a, HasAtan2 a)
+            => XYZ a
+             -- ^ initial accelerometer reading
+            -> XYZ a
+             -- ^ initial magnetometer reading
+            -> XYZ a
+             -- ^ initial magnetometer bias
+            -> a
+             -- ^ local magnetic declination from true North
+            -> NED a
+             -- ^ initial velocity
+            -> NED a
+             -- ^ initial position
+            -> StateVector a
+             -- ^ computed initial state
 initDynamic accel mag magBias declination vel pos = (pure 0)
     { stateOrient = initQuat
     , stateVel = vel
@@ -157,24 +239,28 @@ initDynamic accel mag magBias declination vel pos = (pure 0)
     initMagNED = fst (convertFrames initQuat) initMagXYZ
     -- TODO: re-implement InertialNav's calcEarthRateNED
 
--- Kalman equations
+-- * Model equations
 
-body2nav :: Num a => StateVector a -> XYZ a -> NED a
-body2nav = fst . convertFrames . stateOrient
-nav2body :: Num a => StateVector a -> NED a -> XYZ a
-nav2body = snd . convertFrames . stateOrient
-
-processModel :: Fractional a => a -> AugmentState StateVector DisturbanceVector a -> AugmentState StateVector DisturbanceVector a
+-- | This is the kinematic sensor fusion process model, driven by
+-- accelerometer and gyro measurements.
+processModel :: Fractional a
+             => a
+             -- ^ time since last process model update
+             -> AugmentState StateVector DisturbanceVector a
+             -- ^ prior (augmented) state
+             -> AugmentState StateVector DisturbanceVector a
+             -- ^ posterior (augmented) state
 processModel dt (AugmentState state dist) = AugmentState state' $ pure 0
     where
     state' = state
-        -- Discretization of `qdot = 0.5 * <0, deltaAngle> * q`.
-        -- * _Strapdown Inertial Navigation Technology, 2nd Ed_, section 11.2.5 (on
-        --   pages 319-320) gives qdot and its analytic discretization, without proof.
-        -- * http://en.wikipedia.org/wiki/Discretization derives the general form of
-        --   discretization.
-        -- * http://www.euclideanspace.com/physics/kinematics/angularvelocity/QuaternionDifferentiation2.pdf
-        --   derives qdot from angular momentum.
+        -- Discretization of @qdot = 0.5 * <0, deltaAngle> * q@.
+        --
+        --  * /Strapdown Inertial Navigation Technology, 2nd Ed/, section 11.2.5 (on
+        --    pages 319-320) gives qdot and its analytic discretization, without proof.
+        --  * http://en.wikipedia.org/wiki/Discretization derives the general form of
+        --    discretization.
+        --  * http://www.euclideanspace.com/physics/kinematics/angularvelocity/QuaternionDifferentiation2.pdf
+        --    derives qdot from angular momentum.
         { stateOrient = stateOrient state `quatMul` deltaQuat
         , stateVel = stateVel state + deltaVel
         , statePos = statePos state + fmap (* dt) (stateVel state + fmap (/ 2) deltaVel)
@@ -186,11 +272,31 @@ processModel dt (AugmentState state dist) = AugmentState state' $ pure 0
     deltaVel = fmap (* dt) $ body2nav state (disturbanceAccel dist) + g
     g = ned 0 0 9.80665 -- NED gravity vector - m/sec^2
 
+-- | Compute the local air pressure from the state vector. Useful as a
+-- measurement model for a pressure sensor.
 statePressure :: Floating a => StateVector a -> a
 statePressure = heightToPressure . negate . (^._z) . nedToVec3 . statePos
 
+-- | Compute the true air-speed of the sensor platform. Useful as a
+-- measurement model for a true air-speed sensor.
 stateTAS :: Floating a => StateVector a -> a
 stateTAS state = distance (stateVel state) (stateWind state)
 
+-- | Compute the expected body-frame magnetic field strength and
+-- direction, given the hard-iron correction and local
+-- declination-adjusted field from the state vector. Useful as a
+-- measurement model for a 3D magnetometer.
 stateMag :: Num a => StateVector a -> XYZ a
 stateMag state = stateMagXYZ state + nav2body state (stateMagNED state)
+
+-- * Helpers
+
+-- | Convert body-frame to navigation-frame given the orientation from
+-- this state vector.
+body2nav :: Num a => StateVector a -> XYZ a -> NED a
+body2nav = fst . convertFrames . stateOrient
+
+-- | Convert navigation-frame to body-frame given the orientation from
+-- this state vector.
+nav2body :: Num a => StateVector a -> NED a -> XYZ a
+nav2body = snd . convertFrames . stateOrient
