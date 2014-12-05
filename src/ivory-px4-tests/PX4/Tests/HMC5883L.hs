@@ -54,7 +54,7 @@ hmc5883lSender :: ChanOutput (Struct "hmc5883l_sample")
 hmc5883lSender samples ostream = do
   (buf :: Ref Global (Array 22 (Stored Uint8))) <- state "hmc5883l_ser_buf"
   handler samples "sample" $ do
-    e <- emitter ostream 48
+    e <- emitter ostream (2*18 + 3) -- twice buf size plus tag and two fbos
     callback $ \s -> noReturn $ do
       ifail <- deref (s ~> initfail)
       sfail <- deref (s ~> samplefail)
