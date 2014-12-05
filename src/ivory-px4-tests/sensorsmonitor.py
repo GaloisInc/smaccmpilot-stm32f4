@@ -68,8 +68,7 @@ class Gyro(object):
             self.temp  = temp
             self.t     = t
             self.errormsg = None
-        except Exception as e:
-            print e
+        except Exception:
             self.errormsg = ("Gyro: bad size %d" % (len(binary) if binary else 0))
     def display(self):
         if self.errormsg:
