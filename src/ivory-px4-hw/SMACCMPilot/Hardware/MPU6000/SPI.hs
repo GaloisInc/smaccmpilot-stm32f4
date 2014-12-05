@@ -145,8 +145,6 @@ initializerMachine dev req_chan res_chan = do
   return (m, failed)
 
   where
-  req_emitter :: Emitter (Struct "spi_transaction_request")
-  req_emitter = error "mpu6000.spi req_emitter is not defined" -- XXX
   rpc :: String
       -> (forall s1 . Ivory (AllocEffects s1)
                        (ConstRef (Stack s1) (Struct "spi_transaction_request")))
@@ -156,6 +154,7 @@ initializerMachine dev req_chan res_chan = do
       -> MachineM p StateLabel
   rpc name request resultk statek = mdo
     getter <- machineStateNamed ("get" ++ name) $ entry $ do
+      req_emitter <- machineEmitter req_chan 1
       machineControl $ \_ -> do
         r <- request
         emit req_emitter r
