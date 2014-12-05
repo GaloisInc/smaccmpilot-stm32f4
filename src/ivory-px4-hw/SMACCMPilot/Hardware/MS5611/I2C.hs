@@ -50,26 +50,30 @@ promRead :: I2CDeviceAddr
          -> PROM
          -> Ref Global (Stored IBool)
          -> Ref Global (Stored Uint16)
-         -> Emitter (Struct "i2c_transaction_request")
+         -> ChanInput (Struct "i2c_transaction_request")
          -> ChanOutput (Struct "i2c_transaction_result")
          -> StateLabel
          -> MachineM p StateLabel
-promRead i2caddr prom failure value req_emitter res_evt next = mdo
+promRead i2caddr prom failure value req_chan res_evt next = mdo
   cmdReq <- machineStateNamed (named "cmdReq") $ do
-    entry $ machineCallback $ \_ -> do
-      -- send an i2c command to setup prom read
-      req <- commandRequest i2caddr (PromRead prom)
-      emit req_emitter req
+    entry $ do
+      req_emitter <- machineEmitter req_chan 1
+      machineCallback $ \_ -> do
+        -- send an i2c command to setup prom read
+        req <- commandRequest i2caddr (PromRead prom)
+        emit req_emitter req
     on res_evt $ machineControl $ \res -> do
       checki2csuccess res
       -- continue to readreq state
       return $ goto readReq
 
   readReq <- machineStateNamed (named "readReq") $ do
-    entry $ machineCallback $ \_ -> do
-      -- Read prom field
-      req <- promFetchRequest i2caddr
-      emit req_emitter req
+    entry $ do
+      req_emitter <- machineEmitter req_chan 1
+      machineCallback $ \_ -> do
+        -- Read prom field
+        req <- promFetchRequest i2caddr
+        emit req_emitter req
     on res_evt $ machineControl $ \res -> do
       checki2csuccess res
       hi <- deref ((res ~> rx_buf) ! 0)
@@ -89,16 +93,18 @@ promRead i2caddr prom failure value req_emitter res_evt next = mdo
 sensorSetup :: I2CDeviceAddr
             -> Ref Global (Stored IBool)
             -> Ref Global (Struct "ms5611_calibration")
-            -> Emitter (Struct "i2c_transaction_request")
+            -> ChanInput (Struct "i2c_transaction_request")
             -> ChanOutput (Struct "i2c_transaction_result")
             -> StateLabel
             -> MachineM p StateLabel
-sensorSetup addr failure calibration req_emitter res_evt next = mdo
+sensorSetup addr failure calibration req_chan res_evt next = mdo
   b <- machineStateNamed "begin" $ do
-        entry $ machineCallback $ \_ -> do
-          store failure false
-          req <- commandRequest addr Reset
-          emit req_emitter req
+        entry $ do
+          req_emitter <- machineEmitter req_chan 1
+          machineCallback $ \_ -> do
+            store failure false
+            req <- commandRequest addr Reset
+            emit req_emitter req
         on res_evt $ machineControl $ \res -> do
           check_failure res
           return $ goto reset_wait
@@ -116,7 +122,7 @@ sensorSetup addr failure calibration req_emitter res_evt next = mdo
   return b
   where
 
-  pread coef ref nxt = promRead addr coef failure ref req_emitter res_evt nxt
+  pread coef ref nxt = promRead addr coef failure ref req_chan res_evt nxt
 
   check_failure :: ConstRef s (Struct "i2c_transaction_result") -> Ivory eff ()
   check_failure res = do
@@ -126,7 +132,7 @@ sensorSetup addr failure calibration req_emitter res_evt next = mdo
 sensorRead :: I2CDeviceAddr
            -> ConstRef Global (Struct "ms5611_calibration")
            -> Ref Global (Struct "ms5611_measurement")
-           -> Emitter (Struct "i2c_transaction_request")
+           -> ChanInput (Struct "i2c_transaction_request")
            -> ChanOutput (Struct "i2c_transaction_result")
            -> StateLabel
            -> MachineM p StateLabel
@@ -141,57 +147,69 @@ sensorRead addr cal meas req_emitter res_evt next = mdo
 sensorSample :: I2CDeviceAddr
              -> Ref Global (Stored IBool)
              -> Ref Global (Struct "ms5611_sample")
-             -> Emitter (Struct "i2c_transaction_request")
+             -> ChanInput (Struct "i2c_transaction_request")
              -> ChanOutput (Struct "i2c_transaction_result")
              -> StateLabel
              -> MachineM p StateLabel
-sensorSample addr failure sample req_emitter res_evt next = mdo
+sensorSample addr failure sample req_chan res_evt next = mdo
   convertP <- machineStateNamed "convertPressure" $ do
-    entry $ machineCallback $ \_ -> do
-      store failure false
-      req <- commandRequest addr (ConvertD1 OSR4096)
-      emit req_emitter req
+    entry $ do
+      req_emitter <- machineEmitter req_chan 1
+      machineCallback $ \_ -> do
+        store failure false
+        req <- commandRequest addr (ConvertD1 OSR4096)
+        emit req_emitter req
     on res_evt $ machineControl $ \res -> do
       check_sample_failure res
       return $ goto latchP
 
   latchP   <- machineStateNamed "latchPressure" $ do
-    timeout (Milliseconds 9) $ machineCallback $ \_ -> do
-      req <- commandRequest addr ADCRead
-      emit req_emitter req
+    timeout (Milliseconds 9) $ do
+      req_emitter <- machineEmitter req_chan 1
+      machineCallback $ \_ -> do
+        req <- commandRequest addr ADCRead
+        emit req_emitter req
     on res_evt $ machineControl $ \res -> do
       check_sample_failure res
       return $ goto readP
 
   readP    <- machineStateNamed "readPressure" $ do
-    entry $ machineCallback $ \_ -> do
-      req <- adcFetchRequest addr
-      emit req_emitter req
+    entry $ do
+      req_emitter <- machineEmitter req_chan 1
+      machineCallback $ \_ -> do
+        req <- adcFetchRequest addr
+        emit req_emitter req
     on res_evt $ machineControl $ \res -> do
       check_sample_failure res
       threebytesample res >>= store (sample ~> sample_pressure)
       return $ goto convertT
 
   convertT <- machineStateNamed "convertTemperature" $ do
-    entry $ machineCallback $ \_ -> do
-      req <- commandRequest addr (ConvertD2 OSR4096)
-      emit req_emitter req
+    entry $ do
+      req_emitter <- machineEmitter req_chan 1
+      machineCallback $ \_ -> do
+        req <- commandRequest addr (ConvertD2 OSR4096)
+        emit req_emitter req
     on res_evt $ machineControl $ \res -> do
       check_sample_failure res
       return $ goto latchT
 
   latchT   <- machineStateNamed "latchTemperature" $ do
-    timeout (Milliseconds 9) $ machineCallback $ \_ -> do
-      req <- commandRequest addr ADCRead
-      emit req_emitter req
+    timeout (Milliseconds 9) $ do
+      req_emitter <- machineEmitter req_chan 1
+      machineCallback $ \_ -> do
+        req <- commandRequest addr ADCRead
+        emit req_emitter req
     on res_evt $ machineControl $ \res -> do
       check_sample_failure res
       return $ goto readT
 
   readT    <- machineStateNamed "readTemperature" $ do
-    entry $ machineCallback $ \_ -> do
-      req <- adcFetchRequest addr
-      emit req_emitter req
+    entry $ do
+      req_emitter <- machineEmitter req_chan 1
+      machineCallback $ \_ -> do
+        req <- adcFetchRequest addr
+        emit req_emitter req
     on res_evt $ machineControl $ \res -> do
       check_sample_failure res
       threebytesample res >>= store (sample ~> sample_temperature)
