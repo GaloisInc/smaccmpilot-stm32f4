@@ -99,7 +99,7 @@ initializerMachine dev req_chan res_chan = do
   failed <- state "mpu6000InitFailed"
 
   m <- stateMachine "mpu6000InitailizerMachine" $ mdo
-    b <- machineStateNamed "begin" $ entry $ do
+    b <- machineStateNamed "begin" $ timeout (ms 1) $ do
       machineControl $ \_ -> do
         store retries (0 :: Uint8)
         return $ goto disablei2c
@@ -142,6 +142,7 @@ initializerMachine dev req_chan res_chan = do
 
     return b
 
+  stateMachine_onChan m res_chan
   return (m, failed)
 
   where
