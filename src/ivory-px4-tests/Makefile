@@ -7,25 +7,43 @@ default:
 	cabal build
 
 test: ublox-gps-test px4-mpu6k-test px4-ms5611-test px4-hmc5883l-test
+
 .PHONY: ublox-gps-test
 ublox-gps-test:
 	cabal run ublox-gps-test-gen -- --src-dir=ublox-gps-test
 	make -C ublox-gps-test
+
+.PHONY: ublox-gps-test-clean
+ublox-gps-test-clean:
+	-rm -rf ublox-gps-test
 
 .PHONY: px4-mpu6k-test
 px4-mpu6k-test:
 	cabal run px4-mpu6k-test-gen -- --src-dir=px4-mpu6k-test
 	make -C px4-mpu6k-test
 
+.PHONY: px4-mpu6k-test-clean
+px4-mpu6k-test-clean:
+	-rm -rf px4-mpu6k-test
+
 .PHONY: px4-ms5611-test
 px4-ms5611-test:
 	cabal run px4-ms5611-test-gen -- --src-dir=px4-ms5611-test
 	make -C px4-ms5611-test
 
+.PHONY: px4-ms5611-test-clean
+px4-ms5611-test-clean:
+	-rm -rf px4-ms5611-test
+
 .PHONY: px4-hmc5883l-test
 px4-hmc5883l-test:
 	cabal run px4-hmc5883l-test-gen -- --src-dir=px4-hmc5883l-test
 	make -C px4-hmc5883l-test
+
+
+.PHONY: px4-hmc5883l-test-clean
+px4-hmc5883l-test-clean:
+	-rm -rf px4-hmc5883l-test-clean
 
 create-sandbox:
 	cabal sandbox init
@@ -48,7 +66,7 @@ create-sandbox:
 	cabal sandbox add-source ../ivory-px4-hw
 	cabal install --dependencies-only
 
-clean:
+clean: ublox-gps-test-clean px4-mpu6k-test-clean px4-ms5611-test-clean px4-hmc5883l-test-clean
 	-rm -rf dist
 
 clean-sandbox: clean
