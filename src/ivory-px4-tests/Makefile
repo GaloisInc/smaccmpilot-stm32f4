@@ -43,7 +43,7 @@ px4-hmc5883l-test:
 
 .PHONY: px4-hmc5883l-test-clean
 px4-hmc5883l-test-clean:
-	-rm -rf px4-hmc5883l-test-clean
+	-rm -rf px4-hmc5883l-test
 
 create-sandbox:
 	cabal sandbox init
