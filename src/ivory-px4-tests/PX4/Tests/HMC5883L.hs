@@ -90,6 +90,8 @@ testDriverMachine :: I2CDeviceAddr
 testDriverMachine addr i2cRequest i2cResult sampleChan = do
   stateMachine "hmc5883lTestDriver" $ mdo
     s     <- machineLocal "sample_buffer"
+    postinit <- machineStateNamed "postinit" $ timeout (Milliseconds 1) $
+      machineControl $ \_ -> return (goto setup)
     setup <- sensorSetup addr (s ~> initfail) i2cRequest i2cResult read
     read  <- sensorRead  addr s               i2cRequest i2cResult waitRead
     waitRead <- machineStateNamed "waitRead" $ do
@@ -99,6 +101,6 @@ testDriverMachine addr i2cRequest i2cResult sampleChan = do
       timeout (Milliseconds 13) $ -- XXX 75hz?
         machineControl $ \_ -> return (goto read)
 
-    return setup
+    return postinit
 
 

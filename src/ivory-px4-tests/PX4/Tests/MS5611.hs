@@ -98,6 +98,8 @@ testDriverMachine :: I2CDeviceAddr
                   -> Monitor e (StateMachine e)
 testDriverMachine addr i2cRequest i2cResult calibration sample meas ifail sfail mchan =
   stateMachine "ms5611TestDriver" $ mdo
+    postinit <- machineStateNamed "postinit" $ timeout (Milliseconds 1) $
+      machineControl $ \_ -> return (goto setup)
     setup <- sensorSetup  addr ifail calibration i2cRequest i2cResult read
     read  <- sensorSample addr sfail sample      i2cRequest i2cResult m
     m     <- machineStateNamed "ms5611_measurement" $ entry $ do
@@ -106,6 +108,6 @@ testDriverMachine addr i2cRequest i2cResult calibration sample meas ifail sfail 
         measurement (constRef calibration) (constRef sample) meas
         emit e (constRef meas)
         return $ goto read
-    return setup
+    return postinit
 
 
