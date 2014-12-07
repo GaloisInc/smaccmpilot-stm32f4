@@ -22,3 +22,4 @@ env:
   - ENV_TEST_TARGET=ivory-hxstream
   - ENV_TEST_TARGET=ivory-px4-hw
   - ENV_TEST_TARGET=ivory-px4-tests
+  - ENV_TEST_TARGET=commsec-tests

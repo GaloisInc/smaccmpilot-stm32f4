@@ -17,3 +17,8 @@ ivory-px4-tests:
 	make -C src/ivory-px4-tests create-sandbox
 	make -C src/ivory-px4-tests
 	make -C src/ivory-px4-tests test
+
+.PHONY: commsec-tests
+commsec-tests:
+	make -C src/gcs/commsec-test create-sandbox
+	make -C src/gcs/commsec-test test
