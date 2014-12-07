@@ -78,5 +78,6 @@ clean:
 
 .PHONY: clean-sandbox
 clean-sandbox: clean
-	@rm -rf .cabal-sandbox
+	-@rm -rf .cabal-sandbox
+	-@rm -rf cabal.sandbox.config
 # vim: set ft=make noet ts=2:

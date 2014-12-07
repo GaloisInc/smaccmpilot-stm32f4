@@ -20,5 +20,5 @@ ivory-px4-tests:
 
 .PHONY: commsec-tests
 commsec-tests:
-	make -C src/gcs/commsec-test create-sandbox
-	make -C src/gcs/commsec-test test
+	make -C src/crypto/commsec-test create-sandbox
+	make -C src/crypto/commsec-test test
