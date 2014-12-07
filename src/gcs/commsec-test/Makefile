@@ -1,9 +1,17 @@
 # -*- Mode: makefile-gmake; indent-tabs-mode: t; tab-width: 2 -*-
 
+IVORY_REPO ?= ../../../../ivory
+
 CFLAGS        := -g -Wall
 CABAL         := cabal
 CABAL_INSTALL := $(CABAL) install
 CLIB          := aeslib
+
+test: example ivory-example
+	@echo "Running C Example:"
+	./example
+	@echo "Running Ivory Example:"
+	./ivory-example
 
 example: example.c $(CLIB)/commsec.a
 	gcc $(CFLAGS) example.c -o example $(CLIB)/commsec.a
@@ -29,17 +37,27 @@ $(CLIB)/commsec.a: $(CLIB)/aescrypt.o $(CLIB)/aescrypt.o $(CLIB)/aeskey.o \
 GEN := ivory-gen
 HS  := Main
 
-%.c %h:
-	../../../cabal-dev/bin/commsec-test
+.PHONY: create-sandbox
+create-sandbox:
+	cabal sandbox init
+	cabal sandbox add-source $(IVORY_REPO)/ivory
+	cabal sandbox add-source $(IVORY_REPO)/ivory-artifact
+	cabal sandbox add-source $(IVORY_REPO)/ivory-stdlib
+	cabal sandbox add-source $(IVORY_REPO)/ivory-opts
+	cabal sandbox add-source $(IVORY_REPO)/ivory-backend-c
+	cabal install --dependencies-only
 
+.PHONY: run-commsec-test-gen
+run-commsec-test-gen:
+	cabal run commsec-test-gen -- --src-dir=$(GEN)
+
+ivory-example: run-commsec-test-gen
 ivory-example: ivory-example.c
-ivory-example: $(GEN)/IvoryGCM.c
-ivory-example: $(GEN)/IvoryGCM.h
-ivory-example: $(GEN)/ivory.h
 ivory-example: ivory-commsec-shim.h
 ivory-example: $(CLIB)/commsec.a
 ivory-example:
-	gcc -std=c99 -Wall -o $@ -I. -Iivory-gen -Iaeslib \
+	gcc -std=c99 -Wall -o $@ -I. -I$(GEN) -Iaeslib \
+          -DIVORY_TEST \
           ivory-example.c \
           $(GEN)/IvoryGCM.c \
           $(CLIB)/commsec.a
@@ -47,7 +65,7 @@ ivory-example:
 .PHONY: clean
 clean:
 	@rm -f $(CLIB)/*.o
-	@rm -rf cabal-dev
+	@rm -rf dist
 	@rm -f interopTest.hs
 	@rm -f interopTest.chs.h
 	@rm -f interopTest.hi
@@ -58,4 +76,7 @@ clean:
 	@rm -f ivory-example
 	@rm -rf ivory-gen
 
+.PHONY: clean-sandbox
+clean-sandbox: clean
+	@rm -rf .cabal-sandbox
 # vim: set ft=make noet ts=2:

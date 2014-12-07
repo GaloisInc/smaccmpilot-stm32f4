@@ -4,6 +4,7 @@ interopTest.chs.hi
 interopTest.hi
 interopTest.hs
 example
+example.dSYM
 interopTest
 ivory-gen
 ivory-example

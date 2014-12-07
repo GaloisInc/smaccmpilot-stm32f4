@@ -19,7 +19,6 @@ module Main where
 
 --------------------------------------------------------------------------------
 
-import Control.Monad (void)
 import Ivory.Language
 -- XXX testing
 import Ivory.Compile.C.CmdlineFrontend
@@ -249,13 +248,4 @@ modulePkg = package "IvoryGCM" $ do
   incl test
 
 main :: IO ()
-main = build
--- runCompiler [modulePkg] initialOpts { stdOut = True }
-
-build :: IO ()
-build = void $ runCompiler [modulePkg]
-  initialOpts { stdOut     = False
-              , constFold  = True
-              , srcDir     = "ivory-gen"
-              , includeDir = "ivory-gen"
-              }
+main = compile [modulePkg] []
