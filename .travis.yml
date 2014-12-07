@@ -23,3 +23,4 @@ env:
   - ENV_TEST_TARGET=ivory-px4-hw
   - ENV_TEST_TARGET=ivory-px4-tests
   - ENV_TEST_TARGET=commsec-tests
+  - ENV_TEST_TARGET=smaccm-shared-comm

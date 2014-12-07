@@ -22,3 +22,8 @@ ivory-px4-tests:
 commsec-tests:
 	make -C src/crypto/commsec-test create-sandbox
 	make -C src/crypto/commsec-test test
+
+.PHONY: smaccm-shared-comm
+smaccm-shared-comm:
+	make -C src/smaccm-shared-comm create-sandbox
+	make -C src/smaccm-shared-comm
