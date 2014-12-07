@@ -74,7 +74,7 @@ create-sandbox:
 	cabal sandbox add-source ../ivory-px4-hw
 	cabal install --dependencies-only
 
-clean: ublox-gps-test-clean px4-mpu6k-test-clean px4-ms5611-test-clean px4-hmc5883l-test-clean
+clean: ublox-gps-test-clean px4-mpu6k-test-clean px4-ms5611-test-clean px4-hmc5883l-test-clean px4-all-sensors-test-clean
 	-rm -rf dist
 
 clean-sandbox: clean
