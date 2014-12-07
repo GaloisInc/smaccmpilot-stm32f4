@@ -5,7 +5,9 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleContexts #-}
 
-module PX4.Tests.AllSensors (app) where
+module PX4.Tests.AllSensors
+  ( app
+  ) where
 
 import Ivory.Language
 import Ivory.Serialize
@@ -22,40 +24,46 @@ import qualified SMACCMPilot.Hardware.MS5611         as M
 import qualified SMACCMPilot.Hardware.HMC5883L       as H
 import qualified SMACCMPilot.Hardware.GPS.UBlox      as U
 
-import           PX4.Tests.Platforms
 import           PX4.Tests.MPU6000  (mpu6000SensorManager, mpu6000Sender)
 import           PX4.Tests.MS5611   (ms5611Sender)
 import           PX4.Tests.HMC5883L (hmc5883lSender)
 import           PX4.Tests.Ublox    (positionSender)
 
-app :: forall p . (TestPlatform p) => Tower p ()
-app = do
-  boardInitializer
+import qualified Ivory.BSP.STM32F405.Interrupt as F405
+import qualified BSP.Tests.Platforms as BSP
+import PX4.Tests.Platforms
 
-  (gpsi, _gpso) <- uartTower (gpsUart (Proxy :: Proxy p))
+app :: (e -> PX4Platform F405.Interrupt) -> Tower e ()
+app topx4 = do
+  px4platform <- fmap topx4 getEnv
+  let gps = px4platform_gps_device px4platform
+  (gpsi, _gpso) <- uartTower tocc gps
                                 38400 (Proxy :: Proxy 128)
   position <- channel
-  U.ubloxGPSTower gpsi (src position)
+  U.ubloxGPSTower gpsi (fst position)
 
-  (ireq, ires) <- i2cTower (ms5611periph platform)
-                           (ms5611sda platform)
-                           (ms5611scl platform)
+  let hmc = px4platform_hmc5883_device px4platform
+  (ireq, ires) <- i2cTower tocc
+                         (hmc5883device_periph hmc)
+                         (hmc5883device_sda    hmc)
+                         (hmc5883device_scl    hmc)
   ms5611meas     <- channel
   hmc5883lsample <- channel
-  i2cSensorManager ireq ires (src ms5611meas) (src hmc5883lsample)
+  i2cSensorManager px4platform ireq ires (fst ms5611meas) (fst hmc5883lsample)
 
   mpu6000sample <- channel
-  (sreq, sres) <- spiTower [mpu6000Device platform]
-  mpu6000SensorManager sreq sres (src mpu6000sample) (SPIDeviceHandle 0)
+  let mpu6000 = px4platform_mpu6000_device px4platform
+  (sreq, sres) <- spiTower tocc [mpu6000]
+  mpu6000SensorManager sreq sres (fst mpu6000sample) (SPIDeviceHandle 0)
 
-  (_uarti,uarto) <- uartTower (consoleUart platform) 115200 (Proxy :: Proxy 128)
+  let u = BSP.testUART . BSP.testplatform_uart . px4platform_testplatform
+  (_uarti,uartout) <- uartTower tocc (u px4platform) 115200 (Proxy :: Proxy 128)
 
-  task "sensorsender" $ do
-    uartout <- withChannelEmitter uarto "uartout"
-    hmc5883lSender (snk hmc5883lsample) uartout
-    ms5611Sender   (snk ms5611meas)     uartout
-    mpu6000Sender  (snk mpu6000sample)  uartout
-    positionSender (snk position)       uartout
+  monitor "sensorsender" $ do
+    hmc5883lSender (snd hmc5883lsample) uartout
+    ms5611Sender   (snd ms5611meas)     uartout
+    mpu6000Sender  (snd mpu6000sample)  uartout
+    positionSender (snd position)       uartout
 
   towerDepends serializeModule
   towerModule  serializeModule
@@ -67,39 +75,34 @@ app = do
   towerModule  H.hmc5883lTypesModule
   towerDepends H.hmc5883lTypesModule
   where
-  platform = Proxy :: Proxy p
+  tocc = BSP.testplatform_clockconfig . px4platform_testplatform . topx4
 
-i2cSensorManager :: forall p . (TestPlatform p)
-              => ChannelSource (Struct "i2c_transaction_request")
-              -> ChannelSink   (Struct "i2c_transaction_result")
-              -> ChannelSource (Struct "ms5611_measurement")
-              -> ChannelSource (Struct "hmc5883l_sample")
-              -> Tower p ()
-i2cSensorManager toDriver fromDriver ms5611MeasSource hmc5883lSampleSource =
-  task "i2cSensorManager" $ do
-    i2cRequest      <- withChannelEmitter toDriver "i2cRequest"
-    i2cResult       <- withChannelEvent   fromDriver "i2cResult"
-    ms5611Emitter   <- withChannelEmitter ms5611MeasSource "ms5611Meas"
-    hmc5883lEmitter <- withChannelEmitter hmc5883lSampleSource "hmc5883lSample"
-
+i2cSensorManager :: PX4Platform i
+                 -> ChanInput  (Struct "i2c_transaction_request")
+                 -> ChanOutput (Struct "i2c_transaction_result")
+                 -> ChanInput  (Struct "ms5611_measurement")
+                 -> ChanInput  (Struct "hmc5883l_sample")
+                 -> Tower e ()
+i2cSensorManager p i2cRequest i2cResult ms5611Chan hmc5883Chan =
+  monitor "i2cSensorManager" $ do
     driver <- i2cSensorMachine i2cRequest i2cResult
-                ms5611Emitter hmc5883lEmitter
+                m_addr ms5611Chan h_addr hmc5883Chan
+    stateMachine_onChan driver i2cResult
+  where
+  m_addr = ms5611device_addr (px4platform_ms5611_device p)
+  h_addr = hmc5883device_addr (px4platform_hmc5883_device p)
 
-    taskStackSize 4096
-
-    taskInit $ do
-      begin driver
-
-i2cSensorMachine :: forall p . (TestPlatform p)
-                 => ChannelEmitter (Struct "i2c_transaction_request")
-                 -> Event          (Struct "i2c_transaction_result")
-                 -> ChannelEmitter (Struct "ms5611_measurement")
-                 -> ChannelEmitter (Struct "hmc5883l_sample")
-                 -> Task p Runnable
-i2cSensorMachine i2cRequest i2cResult ms5611MeasEmitter hmc5883lSampleEmitter = do
-  h     <- taskLocal "hmc5883l_sample"
-  m_cal <- taskLocal "ms5611_calibration"
-  m     <- taskLocal "ms5611_measurement"
+i2cSensorMachine :: ChanInput (Struct "i2c_transaction_request")
+                 -> ChanOutput (Struct "i2c_transaction_result")
+                 -> I2CDeviceAddr
+                 -> ChanInput (Struct "ms5611_measurement")
+                 -> I2CDeviceAddr
+                 -> ChanInput (Struct "hmc5883l_sample")
+                 -> Monitor e (StateMachine e)
+i2cSensorMachine i2cRequest i2cResult m_addr ms5611Chan h_addr hmc5883Chan = do
+  h     <- state "hmc5883l_sample"
+  m_cal <- state "ms5611_calibration"
+  m     <- state "ms5611_measurement"
   stateMachine "multiSensorDriver" $ mdo
     m_setup <- M.sensorSetup m_addr (m ~> M.initfail) m_cal i2cRequest i2cResult h_setup
     h_setup <- H.sensorSetup h_addr (h ~> H.initfail)       i2cRequest i2cResult m_read
@@ -107,17 +110,14 @@ i2cSensorMachine i2cRequest i2cResult ms5611MeasEmitter hmc5883lSampleEmitter = 
     m_read  <- M.sensorRead  m_addr (constRef m_cal) m i2cRequest i2cResult h_read
     h_read  <- H.sensorRead  h_addr h                  i2cRequest i2cResult waitRead
 
-    waitRead <- stateNamed "waitRead" $ do
-      entry $ liftIvory_ $ do
-        emit_ ms5611MeasEmitter     (constRef m)
-        emit_ hmc5883lSampleEmitter (constRef h)
+    waitRead <- machineStateNamed "waitRead" $ do
+      entry $ do
+        ms5611Emitter <- machineEmitter ms5611Chan 1
+        hmc5883Emitter <- machineEmitter hmc5883Chan 1
+        machineCallback $ \_ -> do
+          emit ms5611Emitter (constRef m)
+          emit hmc5883Emitter (constRef h)
       timeout (Milliseconds 13) $ -- XXX 75hz?
-        goto m_read
+        machineControl $ \_ -> return $ goto m_read
 
     return m_setup
-
-  where
-  platform = Proxy :: Proxy p
-  m_addr = ms5611addr platform
-  h_addr = hmc5883addr platform
-
