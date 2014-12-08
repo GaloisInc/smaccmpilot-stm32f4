@@ -17,17 +17,18 @@ library
   default-language:     Haskell2010
   ghc-options:          -Wall
 
-executable ivory-hxstream-test
-  main-is:              Main.hs
-  hs-source-dirs:       tests
-  build-depends:        base >= 4.6,
-                        ivory-hxstream,
-                        ivory,
-                        ivory-stdlib,
-                        ivory-artifact,
-                        ivory-backend-c,
-                        ivory-opts,
-                        ivory-quickcheck,
-                        QuickCheck
-  default-language:     Haskell2010
-  ghc-options:          -Wall
+-- FIXME: needs to be translated to use new quickcheck library
+--executable ivory-hxstream-test
+--  main-is:              Main.hs
+--  hs-source-dirs:       tests
+--  build-depends:        base >= 4.6,
+--                        ivory-hxstream,
+--                        ivory,
+--                        ivory-stdlib,
+--                        ivory-artifact,
+--                        ivory-backend-c,
+--                        ivory-opts,
+--                        ivory-quickcheck,
+--                        QuickCheck
+--  default-language:     Haskell2010
+--  ghc-options:          -Wall
