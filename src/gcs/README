@@ -1,6 +1,0 @@
-In this directory is just crypto testing, the shell script to run the GCS, and
-the mavlink submodule.
-
-See commsec-gcs-gateway at the top-level for the actual GCS implementation.
-
-gcs.sh.in is used by Make to generate gcs.sh.

@@ -20,92 +20,94 @@ import Ivory.BSP.STM32.Driver.UART
 import SMACCMPilot.Hardware.MS5611
 import SMACCMPilot.Hardware.MS5611.Calibration (measurement)
 
+import qualified Ivory.BSP.STM32F405.Interrupt as F405
+import qualified BSP.Tests.Platforms as BSP
 import PX4.Tests.Platforms
 
-app :: forall p . (TestPlatform p) => Tower p ()
-app = do
-  boardInitializer
+app :: (e -> PX4Platform F405.Interrupt) -> Tower e ()
+app topx4 = do
   towerModule  ms5611TypesModule
   towerDepends ms5611TypesModule
-  (req, res) <- i2cTower (ms5611periph platform)
-                         (ms5611sda platform)
-                         (ms5611scl platform)
-  measurements <- ms5611ctl req res (ms5611addr platform)
+  px4platform <- fmap topx4 getEnv
+  let ms5611 = px4platform_ms5611_device px4platform
+  (req, res) <- i2cTower tocc
+                         (ms5611device_periph ms5611)
+                         (ms5611device_sda ms5611)
+                         (ms5611device_scl ms5611)
+  measurements <- ms5611ctl req res (ms5611device_addr ms5611)
 
-  (_uarti, uarto) <- uartTower (consoleUart platform) 115200 (Proxy :: Proxy 128)
-  task "ms5611sender" $ do
-    uartout <- withChannelEmitter uarto "uartout"
-    ms5611Sender measurements uartout
+  let u = BSP.testUART . BSP.testplatform_uart . px4platform_testplatform
+  (_uarti, uarto) <- uartTower tocc (u px4platform) 115200 (Proxy :: Proxy 128)
+  monitor "ms5611sender" $ do
+    ms5611Sender measurements uarto
 
   towerDepends serializeModule
   towerModule  serializeModule
+  mapM_ towerArtifact serializeArtifacts
   where
-  platform = Proxy :: Proxy p
+  tocc = BSP.testplatform_clockconfig . px4platform_testplatform . topx4
 
-ms5611Sender :: ChannelSink (Struct "ms5611_measurement")
-             -> ChannelEmitter (Stored Uint8)
-             -> Task p ()
-ms5611Sender meassink out = do
-  meas <- withChannelEvent meassink "measurement"
-  (buf :: Ref Global (Array 18 (Stored Uint8))) <- taskLocal "ms5611_ser_buf"
-  handle meas "measurement" $ \s -> noReturn $ do
-    ifail <- deref (s ~> initfail)
-    sfail <- deref (s ~> sampfail)
-    stime <- deref (s ~> time)
-    packInto_ buf 0 $ do
-      mpackV (ifail ? ((1 :: Uint8), 0))
-      mpackV (sfail ? ((1 :: Uint8), 0))
-      mpack  (s ~> pressure)
-      mpack  (s ~> temperature)
-      mpackV (toIMicroseconds stime)
-    HX.encode tag (constRef buf) (emitV_ out)
+ms5611Sender :: ChanOutput (Struct "ms5611_measurement")
+             -> ChanInput (Stored Uint8)
+             -> Monitor e ()
+ms5611Sender meas out = do
+  (buf :: Ref Global (Array 18 (Stored Uint8))) <- state "ms5611_ser_buf"
+  handler meas "measurement" $ do
+    e <- emitter out (2*18 + 3) -- twice buf size plus tag and two fbos
+    callback $ \s -> noReturn $ do
+      ifail <- deref (s ~> initfail)
+      sfail <- deref (s ~> sampfail)
+      stime <- deref (s ~> time)
+      packInto_ buf 0 $ do
+        mpackV (ifail ? ((1 :: Uint8), 0))
+        mpackV (sfail ? ((1 :: Uint8), 0))
+        mpack  (s ~> pressure)
+        mpack  (s ~> temperature)
+        mpackV (toIMicroseconds stime)
+      HX.encode tag (constRef buf) (emitV e)
   where
   tag = 98 -- 'b' for barometer
 
-ms5611ctl :: ChannelSource (Struct "i2c_transaction_request")
-          -> ChannelSink   (Struct "i2c_transaction_result")
+ms5611ctl :: ChanInput  (Struct "i2c_transaction_request")
+          -> ChanOutput (Struct "i2c_transaction_result")
           -> I2CDeviceAddr
-          -> Tower p (ChannelSink (Struct "ms5611_measurement"))
+          -> Tower e (ChanOutput (Struct "ms5611_measurement"))
 ms5611ctl toDriver fromDriver addr = do
   measurements <- channel
-  task "ms5611ctl" $ do
-    i2cRequest <- withChannelEmitter toDriver "i2cRequest"
-    i2cResult <- withChannelEvent fromDriver "i2cResult"
-    measemitter <- withChannelEmitter (src measurements) "measurement"
+  monitor "ms5611ctl" $ do
 
-    calibration <- taskLocal "calibration"
-    sample      <- taskLocal "sample"
-    meas        <- taskLocal "meas"
+    calibration <- state "calibration"
+    sample      <- state "sample"
+    meas        <- state "meas"
 
-    driver <- testDriverMachine addr i2cRequest i2cResult
+    driver <- testDriverMachine addr toDriver fromDriver
                 calibration sample meas (meas ~> initfail)
-                (meas ~> sampfail) measemitter
-
-    taskStackSize 4096
-
-    taskInit $ do
-      begin driver
-  return (snk measurements)
+                (meas ~> sampfail) (fst measurements)
+    stateMachine_onChan driver fromDriver
+  return (snd measurements)
 
 testDriverMachine :: I2CDeviceAddr
-                  -> ChannelEmitter (Struct "i2c_transaction_request")
-                  -> Event          (Struct "i2c_transaction_result")
+                  -> ChanInput (Struct "i2c_transaction_request")
+                  -> ChanOutput (Struct "i2c_transaction_result")
                   -> Ref Global (Struct "ms5611_calibration")
                   -> Ref Global (Struct "ms5611_sample")
                   -> Ref Global (Struct "ms5611_measurement")
                   -> Ref Global (Stored IBool)
                   -> Ref Global (Stored IBool)
-                  -> ChannelEmitter (Struct "ms5611_measurement")
-                  -> Task p Runnable
-testDriverMachine addr i2cRequest i2cResult calibration sample meas ifail sfail e =
+                  -> ChanInput (Struct "ms5611_measurement")
+                  -> Monitor e (StateMachine e)
+testDriverMachine addr i2cRequest i2cResult calibration sample meas ifail sfail mchan =
   stateMachine "ms5611TestDriver" $ mdo
+    postinit <- machineStateNamed "postinit" $ timeout (Milliseconds 1) $
+      machineControl $ \_ -> return (goto setup)
     setup <- sensorSetup  addr ifail calibration i2cRequest i2cResult read
     read  <- sensorSample addr sfail sample      i2cRequest i2cResult m
-    m     <- stateNamed "ms5611_measurement" $ entry $ do
-      liftIvory_ $ do
+    m     <- machineStateNamed "ms5611_measurement" $ entry $ do
+      e <- machineEmitter mchan 1
+      machineControl $ \_ -> do
         measurement (constRef calibration) (constRef sample) meas
-        emit_ e (constRef meas)
-      goto read
-    return setup
+        emit e (constRef meas)
+        return $ goto read
+    return postinit
 
 

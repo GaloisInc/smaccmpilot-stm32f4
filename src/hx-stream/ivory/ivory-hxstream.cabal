@@ -10,29 +10,25 @@ cabal-version:       >= 1.10
 library
   hs-source-dirs:       src
   exposed-modules:      Ivory.HXStream,
-                        Ivory.HXStream.Types,
-                        Ivory.HXStream.Test
+                        Ivory.HXStream.Types
   build-depends:        base >= 4.6,
                         ivory,
-                        ivory-stdlib,
-                        ivory-backend-c,
-                        ivory-quickcheck,
-                        directory,
-                        QuickCheck
+                        ivory-stdlib
   default-language:     Haskell2010
   ghc-options:          -Wall
 
-executable ivory-hxstream-test
-  main-is:              Main.hs
-  build-depends:        base >= 4.6,
-                        ivory-hxstream,
-                        ivory,
-                        ivory-backend-c,
-                        ivory-opts,
-                        tower          >= 0.8,
-                        tower-frontend >= 0.8,
-                        directory,
-                        ivory-quickcheck,
-                        QuickCheck
-  default-language:     Haskell2010
-  ghc-options:          -Wall
+-- FIXME: needs to be translated to use new quickcheck library
+--executable ivory-hxstream-test
+--  main-is:              Main.hs
+--  hs-source-dirs:       tests
+--  build-depends:        base >= 4.6,
+--                        ivory-hxstream,
+--                        ivory,
+--                        ivory-stdlib,
+--                        ivory-artifact,
+--                        ivory-backend-c,
+--                        ivory-opts,
+--                        ivory-quickcheck,
+--                        QuickCheck
+--  default-language:     Haskell2010
+--  ghc-options:          -Wall

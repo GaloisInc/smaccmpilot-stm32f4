@@ -89,20 +89,20 @@ rawSensorFromResponse res r = do
   hiloUnsigned :: Uint8 -> Uint8 -> Uint16
   hiloUnsigned h l = (safeCast h `iShiftL` 8) .| safeCast l
 
-initializerMachine :: forall p
+initializerMachine :: forall e
                     . SPIDeviceHandle
-                   -> ChannelEmitter (Struct "spi_transaction_request")
-                   -> Event          (Struct "spi_transaction_result")
-                   -> Task p (Runnable, Ref Global (Stored IBool))
-initializerMachine dev req_emitter result_evt = do
-  retries <- taskLocal "mpu6000InitRetries"
-  failed <- taskLocal "mpu6000InitFailed"
+                   -> ChanInput  (Struct "spi_transaction_request")
+                   -> ChanOutput (Struct "spi_transaction_result")
+                   -> Monitor e (StateMachine e, Ref Global (Stored IBool))
+initializerMachine dev req_chan res_chan = do
+  retries <- state "mpu6000InitRetries"
+  failed <- state "mpu6000InitFailed"
 
   m <- stateMachine "mpu6000InitailizerMachine" $ mdo
-    b <- stateNamed "begin" $ entry $ do
-      liftIvory_ $ do
+    b <- machineStateNamed "begin" $ timeout (ms 1) $ do
+      machineControl $ \_ -> do
         store retries (0 :: Uint8)
-      goto disablei2c
+        return $ goto disablei2c
 
     -- Disable the I2C slave device sharing pins with the SPI interface
     disablei2c <- rpc "disablei2c" (writeRegReq dev UserControl 0x10)
@@ -131,7 +131,7 @@ initializerMachine dev req_emitter result_evt = do
                                        (const (return ()))
                                        done
 
-    done <- stateNamed "done" $ entry $ liftIvory $ do
+    done <- machineStateNamed "done" $ entry $ machineControl $ \_ -> do
       fd <- deref failed
       rs <- deref retries
       store retries (rs + 1)
@@ -142,6 +142,7 @@ initializerMachine dev req_emitter result_evt = do
 
     return b
 
+  stateMachine_onChan m res_chan
   return (m, failed)
 
   where
@@ -153,14 +154,16 @@ initializerMachine dev req_emitter result_evt = do
       -> StateLabel
       -> MachineM p StateLabel
   rpc name request resultk statek = mdo
-    getter <- stateNamed ("get" ++ name) $ entry $ do
-      liftIvory_ $ do
+    getter <- machineStateNamed ("get" ++ name) $ entry $ do
+      req_emitter <- machineEmitter req_chan 1
+      machineControl $ \_ -> do
         r <- request
-        emit_ req_emitter r
-      goto gotResult
-    gotResult <- stateNamed ("got" ++ name) $ on result_evt $ \res -> do
-      liftIvory_ $ resultk res
-      goto statek
+        emit req_emitter r
+        return $ goto gotResult
+    gotResult <- machineStateNamed ("got" ++ name) $ on res_chan $ do
+      machineControl $ \res -> do
+        resultk res
+        return $ goto statek
     return getter
 
 

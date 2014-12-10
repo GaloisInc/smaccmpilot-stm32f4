@@ -10,12 +10,11 @@ cabal-version:       >= 1.10
 
 library
   exposed-modules:     PX4.Tests.Platforms,
-                       PX4.Tests.CopterMotors,
+--                       PX4.Tests.CopterMotors,
                        PX4.Tests.Ublox,
                        PX4.Tests.MPU6000,
                        PX4.Tests.MS5611,
                        PX4.Tests.HMC5883L,
-
                        PX4.Tests.AllSensors
 
   build-depends:       base >= 4.6,
@@ -25,10 +24,12 @@ library
                        ivory-backend-c,
                        ivory-opts,
                        ivory-hw,
-                       tower              >= 0.8,
-                       tower-statemachine >= 0.8,
-                       tower-frontend     >= 0.8,
+                       tower              >= 0.9,
+                       tower-config,
+                       tower-statemachine,
+                       tower-freertos-stm32,
                        ivory-bsp-stm32,
+                       ivory-bsp-tests,
                        ivory-hxstream,
                        ivory-serialize,
                        ivory-px4-hw
@@ -36,27 +37,27 @@ library
   default-language:    Haskell2010
   ghc-options:         -Wall
 
-executable             copter-motor-test-gen
-  main-is:             CopterMotorTest.hs
-  hs-source-dirs:      tests
-  build-depends:       base >= 4.6,
-                       monadLib,
-                       ivory,
-                       ivory-stdlib,
-                       ivory-backend-c,
-                       ivory-opts,
-                       ivory-hw,
-                       tower              >= 0.8,
-                       tower-statemachine >= 0.8,
-                       tower-frontend     >= 0.8,
-                       ivory-bsp-stm32,
-                       ivory-px4-hw,
-                       ivory-hxstream,
-                       ivory-serialize,
-                       ivory-px4-tests
-
-  default-language:    Haskell2010
-  ghc-options:         -Wall
+--executable             copter-motor-test-gen
+--  main-is:             CopterMotorTest.hs
+--  hs-source-dirs:      tests
+--  build-depends:       base >= 4.6,
+--                       monadLib,
+--                       ivory,
+--                       ivory-stdlib,
+--                       ivory-backend-c,
+--                       ivory-opts,
+--                       ivory-hw,
+--                       tower              >= 0.9,
+--                       tower-statemachine,
+--                       tower-freertos-stm32,
+--                       ivory-bsp-stm32,
+--                       ivory-px4-hw,
+--                       ivory-hxstream,
+--                       ivory-serialize,
+--                       ivory-px4-tests
+--
+--  default-language:    Haskell2010
+--  ghc-options:         -Wall
 
 executable             ublox-gps-test-gen
   main-is:             UbloxGPSTest.hs
@@ -68,9 +69,10 @@ executable             ublox-gps-test-gen
                        ivory-backend-c,
                        ivory-opts,
                        ivory-hw,
-                       tower              >= 0.8,
-                       tower-statemachine >= 0.8,
-                       tower-frontend     >= 0.8,
+                       tower              >= 0.9,
+                       tower-config,
+                       tower-statemachine,
+                       tower-freertos-stm32,
                        ivory-bsp-stm32,
                        ivory-px4-hw,
                        ivory-hxstream,
@@ -90,9 +92,10 @@ executable             px4-mpu6k-test-gen
                        ivory-backend-c,
                        ivory-opts,
                        ivory-hw,
-                       tower              >= 0.8,
-                       tower-statemachine >= 0.8,
-                       tower-frontend     >= 0.8,
+                       tower              >= 0.9,
+                       tower-config,
+                       tower-statemachine,
+                       tower-freertos-stm32,
                        ivory-bsp-stm32,
                        ivory-px4-hw,
                        ivory-hxstream,
@@ -112,9 +115,10 @@ executable             px4-ms5611-test-gen
                        ivory-backend-c,
                        ivory-opts,
                        ivory-hw,
-                       tower              >= 0.8,
-                       tower-statemachine >= 0.8,
-                       tower-frontend     >= 0.8,
+                       tower              >= 0.9,
+                       tower-config,
+                       tower-statemachine,
+                       tower-freertos-stm32,
                        ivory-bsp-stm32,
                        ivory-px4-hw,
                        ivory-hxstream,
@@ -134,9 +138,10 @@ executable             px4-hmc5883l-test-gen
                        ivory-backend-c,
                        ivory-opts,
                        ivory-hw,
-                       tower              >= 0.8,
-                       tower-statemachine >= 0.8,
-                       tower-frontend     >= 0.8,
+                       tower              >= 0.9,
+                       tower-config,
+                       tower-statemachine,
+                       tower-freertos-stm32,
                        ivory-bsp-stm32,
                        ivory-px4-hw,
                        ivory-hxstream,
@@ -146,7 +151,7 @@ executable             px4-hmc5883l-test-gen
   default-language:    Haskell2010
   ghc-options:         -Wall
 
-executable             all-sensors-test-gen
+executable             px4-all-sensors-test-gen
   main-is:             AllSensorsTest.hs
   hs-source-dirs:      tests
   build-depends:       base >= 4.6,
@@ -156,9 +161,10 @@ executable             all-sensors-test-gen
                        ivory-backend-c,
                        ivory-opts,
                        ivory-hw,
-                       tower              >= 0.8,
-                       tower-statemachine >= 0.8,
-                       tower-frontend     >= 0.8,
+                       tower              >= 0.9,
+                       tower-config,
+                       tower-statemachine,
+                       tower-freertos-stm32,
                        ivory-bsp-stm32,
                        ivory-px4-hw,
                        ivory-hxstream,
