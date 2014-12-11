@@ -29,6 +29,8 @@ data-files: support/aes.h,
 library
   exposed-modules:     SMACCMPilot.Commsec,
                        SMACCMPilot.Commsec.Artifacts,
+                       SMACCMPilot.Commsec.Config,
+                       SMACCMPilot.Commsec.Commsec,
                        Paths_smaccm_commsec
   build-depends:       base >= 4.6,
                        ivory,

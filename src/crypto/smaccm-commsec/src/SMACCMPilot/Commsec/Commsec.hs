@@ -14,7 +14,7 @@ Author: Lee Pike <leepike@galois.com>
 
 -}
 
-module SMACCMPilot.Flight.Commsec.Commsec
+module SMACCMPilot.Commsec.Commsec
   ( encrypt
   , decrypt
   , uavCtx
@@ -28,8 +28,8 @@ import Ivory.Language
 import Ivory.Stdlib
 import Data.Word
 
-import qualified SMACCMPilot.Communications             as C
-import qualified SMACCMPilot.Flight.Commsec.CommsecOpts as O
+import qualified SMACCMPilot.Communications  as C
+import SMACCMPilot.Commsec.Config (Config(..))
 
 --------------------------------------------------------------------------------
 -- Types and constants
@@ -135,23 +135,23 @@ copyFromPkg pkg from =
 
 --------------------------------------------------------------------------------
 
-setupCommsec :: O.Options -> Ivory eff ()
-setupCommsec opts =
+setupCommsec :: Config -> Ivory eff ()
+setupCommsec conf =
   call_ securePkg_init (addrOf uavCtx)
-                       (fromIntegral $ O.sendID opts)
-                       (fromIntegral $ O.recvSalt opts)
-                       (addrOf $ baseToUavKey $ O.recvKey opts)
-                       (fromIntegral $ O.sendSalt opts)
-                       (addrOf $ uavToBaseKey $ O.sendKey opts)
+                       (fromIntegral (sendID conf))
+                       (fromIntegral (recvSalt conf))
+                       (addrOf (baseToUavKey (recvKey conf)))
+                       (fromIntegral (sendSalt conf))
+                       (addrOf (uavToBaseKey (sendKey conf)))
 
 --------------------------------------------------------------------------------
 -- Packaging
 
-commsecModule :: O.Options -> Module
-commsecModule opts = package "flight_commsec" $ do
+commsecModule :: Config -> Module
+commsecModule conf = package "flight_commsec" $ do
 
-  defConstMemArea (uavToBaseKey $ O.sendKey opts)
-  defConstMemArea (baseToUavKey $ O.recvKey opts)
+  defConstMemArea (uavToBaseKey (sendKey conf))
+  defConstMemArea (baseToUavKey (recvKey conf))
   defMemArea uavCtx
 
   inclHeader ivoryCommsec
