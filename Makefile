@@ -27,3 +27,7 @@ commsec-tests:
 smaccm-shared-comm:
 	make -C src/smaccm-shared-comm create-sandbox
 	make -C src/smaccm-shared-comm
+
+.PHONY: smaccm-ins
+smaccm-ins:
+	make -C src/smaccm-ins

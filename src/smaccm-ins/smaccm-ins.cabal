@@ -49,6 +49,7 @@ executable codegen
                        dlist >=0.7,
                        estimator == 1.0.*,
                        ivory >=0.1,
+                       ivory-artifact >=0.1,
                        ivory-backend-c >=0.1,
                        ivory-stdlib >=0.1,
                        lens >=4.6,

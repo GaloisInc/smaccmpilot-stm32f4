@@ -1,16 +1,25 @@
-CC = gcc
-CFLAGS = -Wall -Os -Igen
-FILTER_SOURCES = gen/smaccm_ins.c
+IVORY_REPO ?= ../../../ivory
 
-all: gen/psas
+.PHONY: psas
+psas: cabal.sandbox.config
+	cabal install --dependencies-only
+	cabal run --only codegen -- --src-dir=psas --const-fold
+	make -C psas
 
-$(FILTER_SOURCES):
-	cabal run --only codegen -- --src-dir=gen --const-fold
+create-sandbox: cabal.sandbox.config
 
-gen/%: tests/%.o $(addsuffix .o, $(basename $(FILTER_SOURCES)))
-	$(CC) -o $@ $^ -lm
+.PRECIOUS: cabal.sandbox.config
+cabal.sandbox.config:
+	cabal sandbox init
+	cabal sandbox add-source $(IVORY_REPO)/ivory
+	cabal sandbox add-source $(IVORY_REPO)/ivory-artifact
+	cabal sandbox add-source $(IVORY_REPO)/ivory-backend-c
+	cabal sandbox add-source $(IVORY_REPO)/ivory-opts
+	cabal sandbox add-source $(IVORY_REPO)/ivory-stdlib
 
 clean:
-	rm -rf gen
+	-rm -rf psas dist
 
-.PHONY: $(FILTER_SOURCES) clean
+clean-sandbox:
+	-rm -rf .cabal-sandbox
+	-rm cabal.sandbox.config
