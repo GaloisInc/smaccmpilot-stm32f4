@@ -104,6 +104,8 @@ i2cSensorMachine i2cRequest i2cResult m_addr ms5611Chan h_addr hmc5883Chan = do
   m_cal <- state "ms5611_calibration"
   m     <- state "ms5611_measurement"
   stateMachine "multiSensorDriver" $ mdo
+    postinit <- machineStateNamed "postinit" $ timeout (Milliseconds 1) $
+      machineControl $ \_ -> return (goto m_setup)
     m_setup <- M.sensorSetup m_addr (m ~> M.initfail) m_cal i2cRequest i2cResult h_setup
     h_setup <- H.sensorSetup h_addr (h ~> H.initfail)       i2cRequest i2cResult m_read
 
@@ -120,4 +122,4 @@ i2cSensorMachine i2cRequest i2cResult m_addr ms5611Chan h_addr hmc5883Chan = do
       timeout (Milliseconds 13) $ -- XXX 75hz?
         machineControl $ \_ -> return $ goto m_read
 
-    return m_setup
+    return postinit

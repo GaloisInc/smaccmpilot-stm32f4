@@ -44,7 +44,7 @@ px4-hmc5883l-test:
 px4-hmc5883l-test-clean:
 	-rm -rf px4-hmc5883l-test
 
-.PHONY: px4-hmc5883l-test
+.PHONY: px4-all-sensors-test
 px4-all-sensors-test:
 	cabal run px4-all-sensors-test-gen -- --src-dir=px4-all-sensors-test
 	make -C px4-all-sensors-test
