@@ -3,13 +3,11 @@
 
 ## NOTES:
 
-You are using the `features/tower-9` branch of this repository (or a
-derivative). The entire codebase is currently in a state of chaos as we port
-to the new Tower syntax & semantics, and the new build system provided by tower
-9. At the time of this writing, only a few smaller tests actually work - the
-main flight application is totally broken.  Unless you are actively following
-development, you probably want to use the stable version of this code, given by
-the `smaccmpilot-build` repository's `master` branch.
+This repository is still in a state of upheaval as the move to tower 9
+stabilizes. Code to actually fly a quadcopter will not build.
+Unless you are actively following development, you probably want to use the
+stable version of this code, given by the `smaccmpilot-build` repository's
+`master` branch.
 
 ## Overview
 
@@ -25,7 +23,7 @@ available at [smaccmpilot.org][].
 Developers are encouraged to [join our mailing list][list] for project
 updates.
 
-[galois]: http://corp.galois.com
+[galois]: http://galois.com
 [smaccmpilot.org]: http://smaccmpilot.org
 [list]: http://community.galois.com/mailman/listinfo/smaccmpilot
 
