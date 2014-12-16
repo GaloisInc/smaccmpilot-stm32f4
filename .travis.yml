@@ -5,7 +5,7 @@ before_install:
   - sudo apt-get install -y gcc-arm-none-eabi
   - git clone https://github.com/galoisinc/ivory
   - export IVORY_REPO=$PWD/ivory
-  - git clone --branch tower-9 https://github.com/galoisinc/tower
+  - git clone https://github.com/galoisinc/tower
   - export TOWER_REPO=$PWD/tower
   - git clone https://github.com/galoisinc/ivory-tower-stm32
   - export BSP_REPO=$PWD/ivory-tower-stm32
