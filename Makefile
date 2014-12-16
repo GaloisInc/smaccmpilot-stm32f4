@@ -1,5 +1,5 @@
 
-default: ivory-hxstream ivory-px4-hw
+default: ivory-px4-tests
 
 .PHONY: ivory-hxstream
 ivory-hxstream:
