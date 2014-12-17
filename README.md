@@ -1,5 +1,6 @@
 [smaccmpilot-stm32f4](http://github.com/galoisinc/smaccmpilot-stm32f4)
 ==============================
+[![Build Status](https://travis-ci.org/GaloisInc/smaccmpilot-stm32f4.svg?branch=master)](https://travis-ci.org/GaloisInc/smaccmpilot-stm32f4)
 
 ## NOTES:
 
