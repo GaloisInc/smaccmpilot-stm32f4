@@ -57,7 +57,8 @@ px4PlatformParser :: ConfigParser (PX4Platform F405.Interrupt)
 px4PlatformParser = do
   p <- subsection "args" $ subsection "platform" string
   case map toUpper p of
-    "PX4FMUV17" -> return px4fmuv17
+    "PX4FMUV17"      -> return px4fmuv17
+    "PX4FMUV17_IOAR" -> return px4fmuv17_ioar
     _ -> fail ("no such platform " ++ p)
 
 px4fmuv17 :: PX4Platform F405.Interrupt
@@ -95,3 +96,5 @@ px4fmuv17 = PX4Platform
     , ms5611device_addr   = I2CDeviceAddr 0x76
     }
 
+px4fmuv17_ioar :: PX4Platform F405.Interrupt
+px4fmuv17_ioar = px4fmuv17 { px4platform_testplatform = BSP.px4fmuv17_ioar }
