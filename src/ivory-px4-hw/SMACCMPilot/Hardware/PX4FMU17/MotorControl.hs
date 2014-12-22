@@ -23,22 +23,16 @@ minPWM, maxPWM :: Uint16
 minPWM = 1100
 maxPWM = 1900
 
-motorControlTower :: forall a e
-                   . (IvoryArea a, IvoryZero a)
-                  => (e -> ClockConfig)
-                  -> (forall s cs . ConstRef s a
-                       -> Ivory (AllocEffects cs)
-                            (ConstRef (Stack cs) (Array 4 (Stored IFloat))))
-                  -> ChanOutput a
+motorControlTower :: (e -> ClockConfig)
+                  -> ChanOutput (Array 4 (Stored IFloat))
                   -> Tower e ()
-motorControlTower tocc decode motorChan = do
+motorControlTower tocc ostream = do
   cc <- fmap tocc getEnv
   monitor "px4fmu17_pwm" $ do
     monitorModuleDef $ hw_moduledef
     handler systemInit "init" $ callback $ const $ hw_init cc
-    handler motorChan "encThrottle" $ do
-      callback $ \encThrottle -> noReturn $ do
-        throttle <- decode encThrottle
+    handler ostream "ostream" $ do
+      callback $ \throttle -> noReturn $ do
         pwm_output throttle
 
 hw_init :: (GetAlloc eff ~ Scope cs)
@@ -148,4 +142,3 @@ pwm_output :: (GetAlloc eff ~ Scope cs)
 pwm_output throttle = do
   scaled <- pwm_scale throttle
   pwm_set tim2 scaled
-

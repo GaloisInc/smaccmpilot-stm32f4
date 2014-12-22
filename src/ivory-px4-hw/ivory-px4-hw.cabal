@@ -30,8 +30,8 @@ library
 
                        --SMACCMPilot.Hardware.PX4IOAR,
                        --SMACCMPilot.Hardware.PX4IOAR.MotorControl,
-                       --SMACCMPilot.Hardware.PX4FMU17,
-                       --SMACCMPilot.Hardware.PX4FMU17.MotorControl,
+                       SMACCMPilot.Hardware.PX4FMU17,
+                       SMACCMPilot.Hardware.PX4FMU17.MotorControl
 
   build-depends:       base >= 4.6,
                        monadLib,
