@@ -7,11 +7,14 @@
 
 module PX4.Tests.Platforms where
 
+import Ivory.Language
+import Ivory.Tower
 import Tower.Config
 
 import Data.Char (toUpper)
 
 import qualified BSP.Tests.Platforms as BSP
+import qualified SMACCMPilot.Hardware.PX4FMU17 as FMUv17
 
 import qualified Ivory.BSP.STM32F405.UART           as F405
 import qualified Ivory.BSP.STM32F405.GPIO           as F405
@@ -23,6 +26,7 @@ import           Ivory.BSP.STM32.Peripheral.UART
 import           Ivory.BSP.STM32.Peripheral.SPI
 import           Ivory.BSP.STM32.Peripheral.I2C
 import           Ivory.BSP.STM32.Driver.I2C
+import           Ivory.BSP.STM32.ClockConfig
 import           Ivory.OS.FreeRTOS.Tower.STM32.Config
 
 data PX4Platform s =
@@ -31,6 +35,9 @@ data PX4Platform s =
     , px4platform_mpu6000_device :: SPIDevice s
     , px4platform_hmc5883_device :: HMC5883Device s
     , px4platform_ms5611_device  :: MS5611Device s
+    , px4platform_motorcontrol   :: forall e . (e -> ClockConfig)
+                                 -> ChanOutput (Array 4 (Stored IFloat))
+                                 -> Tower e ()
     , px4platform_testplatform   :: BSP.TestPlatform s
     }
 
@@ -67,6 +74,7 @@ px4fmuv17 = PX4Platform
   , px4platform_mpu6000_device = mpu6000
   , px4platform_hmc5883_device = hmc5883
   , px4platform_ms5611_device  = ms5611
+  , px4platform_motorcontrol   = FMUv17.motorControlTower
   , px4platform_testplatform   = BSP.px4fmuv17
   }
   where

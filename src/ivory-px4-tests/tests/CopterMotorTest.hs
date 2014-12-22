@@ -1,15 +1,16 @@
 
 module Main where
 
-import Ivory.Tower.Frontend
-import PX4.Tests.CopterMotors
-import PX4.Tests.Platforms
+import Tower.Config
+import Ivory.Tower.Compile
+import Ivory.OS.FreeRTOS.Tower.STM32
 
-import qualified Ivory.HW.SearchDir          as HW
-import qualified Ivory.BSP.STM32.SearchDir as BSP
-import qualified Ivory.Serialize.SearchDir as S
+import PX4.Tests.Platforms
+import PX4.Tests.CopterMotors (app)
 
 main :: IO ()
-main = compilePlatforms conf (motorPlatforms app)
+main = towerCompile p (app id)
   where
-  conf = searchPathConf [ HW.searchDir, BSP.searchDir, S.searchDir ]
+  p topts = do
+    cfg <- getConfig topts px4PlatformParser
+    return $ stm32FreeRTOS px4platform_stm32config cfg
