@@ -67,6 +67,15 @@ px4-copter-motor-test:
 px4-copter-motor-test-clean:
 	-rm -rf px4-copter-motor-test
 
+.PHONY: px4-sensors-monitor
+px4-sensors-monitor:
+	cabal run px4-sensors-monitor-gen -- --src-dir=px4-sensors-monitor --const-fold
+	make -C px4-sensors-monitor
+
+.PHONY: px4-sensors-monitor-clean
+px4-sensors-monitor-clean:
+	-rm -rf px4-sensors-monitor
+
 create-sandbox:
 	cabal sandbox init
 	cabal sandbox add-source $(IVORY_REPO)/ivory

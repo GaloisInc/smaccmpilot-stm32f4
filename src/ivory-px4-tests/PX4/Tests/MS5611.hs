@@ -55,15 +55,7 @@ ms5611Sender meas out = do
   handler meas "measurement" $ do
     e <- emitter out (2*18 + 3) -- twice buf size plus tag and two fbos
     callback $ \s -> noReturn $ do
-      ifail <- deref (s ~> initfail)
-      sfail <- deref (s ~> sampfail)
-      stime <- deref (s ~> time)
-      packInto_ buf 0 $ do
-        mpackV (ifail ? ((1 :: Uint8), 0))
-        mpackV (sfail ? ((1 :: Uint8), 0))
-        mpack  (s ~> pressure)
-        mpack  (s ~> temperature)
-        mpackV (toIMicroseconds stime)
+      packInto_ buf 0 $ mpack s
       HX.encode tag (constRef buf) (emitV e)
   where
   tag = 98 -- 'b' for barometer
