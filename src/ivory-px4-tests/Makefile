@@ -6,7 +6,7 @@ BSP_REPO ?= ../../../ivory-tower-stm32
 default:
 	cabal build
 
-test: ublox-gps-test px4-mpu6k-test px4-ms5611-test px4-hmc5883l-test
+test: ublox-gps-test px4-mpu6k-test px4-ms5611-test px4-hmc5883l-test px4-all-sensors-test px4-copter-motor-test px4-sensors-monitor
 
 .PHONY: ublox-gps-test
 ublox-gps-test:
@@ -61,6 +61,15 @@ px4-copter-motor-test:
 .PHONY: px4-copter-motor-test-clean
 px4-copter-motor-test-clean:
 	-rm -rf px4-copter-motor-test
+
+.PHONY: px4-sensors-monitor
+px4-sensors-monitor:
+	cabal run px4-sensors-monitor-gen -- --src-dir=px4-sensors-monitor --const-fold
+	make -C px4-sensors-monitor
+
+.PHONY: px4-sensors-monitor-clean
+px4-sensors-monitor-clean:
+	-rm -rf px4-sensors-monitor
 
 create-sandbox:
 	cabal sandbox init
