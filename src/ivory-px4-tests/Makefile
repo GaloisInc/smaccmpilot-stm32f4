@@ -6,7 +6,12 @@ BSP_REPO ?= ../../../ivory-tower-stm32
 default:
 	cabal build
 
-test: ublox-gps-test px4-mpu6k-test px4-ms5611-test px4-hmc5883l-test
+test: ublox-gps-test
+test: px4-mpu6k-test
+test: px4-ms5611-test
+test: px4-hmc5883l-test
+test: px4-all-sensors-test
+test: px4-copter-motors-test
 
 .PHONY: ublox-gps-test
 ublox-gps-test:
