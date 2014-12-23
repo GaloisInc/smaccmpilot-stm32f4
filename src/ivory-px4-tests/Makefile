@@ -11,7 +11,7 @@ test: px4-mpu6k-test
 test: px4-ms5611-test
 test: px4-hmc5883l-test
 test: px4-all-sensors-test
-test: px4-copter-motors-test
+test: px4-copter-motor-test
 
 .PHONY: ublox-gps-test
 ublox-gps-test:
