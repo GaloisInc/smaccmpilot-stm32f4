@@ -57,20 +57,7 @@ mpu6000Sender meas out = do
   handler meas "measurement" $ do
     e <- emitter out (38*2 + 3)
     callback $ \s -> noReturn $ do
-      ifail <- deref (s ~> initfail)
-      sfail <- deref (s ~> samplefail)
-      stime <- deref (s ~> time)
-      packInto_ buf 0 $ do
-        mpackV (ifail ? ((1 :: Uint8), 0))
-        mpackV (sfail ? ((1 :: Uint8), 0))
-        mpack  (s ~> gyro_x)
-        mpack  (s ~> gyro_y)
-        mpack  (s ~> gyro_z)
-        mpack  (s ~> accel_x)
-        mpack  (s ~> accel_y)
-        mpack  (s ~> accel_z)
-        mpack  (s ~> temp)
-        mpackV (toIMicroseconds stime)
+      packInto_ buf 0 $ mpack s
       HX.encode tag (constRef buf) (emitV e)
   where
   tag = 103 -- 'g' for gyro

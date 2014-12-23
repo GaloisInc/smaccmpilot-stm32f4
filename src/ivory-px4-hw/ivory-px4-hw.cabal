@@ -39,6 +39,7 @@ library
                        ivory-stdlib,
                        ivory-backend-c,
                        ivory-opts,
+                       ivory-serialize,
                        ivory-hw,
                        tower >= 0.9,
                        tower-statemachine >= 0.9,
