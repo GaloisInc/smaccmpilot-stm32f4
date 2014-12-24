@@ -4,6 +4,7 @@ px4-mpu6k-test
 px4-ms5611-test
 px4-hmc5883l-test
 px4-all-sensors-test
+px4-copter-motor-test
 px4-sensors-monitor
 user.conf
 dist/
