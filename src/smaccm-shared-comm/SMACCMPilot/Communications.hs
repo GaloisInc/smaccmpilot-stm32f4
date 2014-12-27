@@ -15,34 +15,34 @@ import Data.Word
 -- SMACCM-SiK restricts Commsec to 96 bytes, so MAVLink must be 16 bytes less
 -- than that.
 
-type MAVLinkIx = Ix 80
+type PlaintextIx = Ix 80
 
-type MAVLinkArray = Array 80 (Stored Uint8)
+type PlaintextArray = Array 80 (Stored Uint8)
 
-mavlinkSize :: Integer
-mavlinkSize = fromTypeNat (aNat :: NatType 80)
-
---------------------------------------------------------------------------------
--- Must be mavlinkSize + 16
-
-type CommsecIx = Ix 96
-
-type CommsecArray = Array 96 (Stored Uint8)
-
-commsecPkgSize :: Integer
-commsecPkgSize = fromTypeNat (aNat :: NatType 96)
+plaintextSize :: Integer
+plaintextSize = fromTypeNat (aNat :: NatType 80)
 
 --------------------------------------------------------------------------------
+-- Must be plaintextSize + 16
 
--- Must be 2*commsecSize+3.  Must be at greater than 3 (start,stop, and tag
--- bytes).
+type CyphertextIx = Ix 96
 
-type HxstreamIx = Ix 195
+type CyphertextArray = Array 96 (Stored Uint8)
 
-type HxstreamArray = Array 195 (Stored Uint8)
+cyphertextSize :: Integer
+cyphertextSize = fromTypeNat (aNat :: NatType 96)
 
-hxstreamPkgSize :: Integer
-hxstreamPkgSize = fromTypeNat (aNat :: NatType 195)
+--------------------------------------------------------------------------------
+
+-- Must be 2*cyphertextSize+3. Worst case encoding is 2 bytes per byte.
+-- Extra 3 are start,stop, and tag bytes.
+
+type HXFramedIx = Ix 195
+
+type HXFramedArray = Array 195 (Stored Uint8)
+
+hxframedSize :: Integer
+hxframedSize = fromTypeNat (aNat :: NatType 195)
 
 --------------------------------------------------------------------------------
 
