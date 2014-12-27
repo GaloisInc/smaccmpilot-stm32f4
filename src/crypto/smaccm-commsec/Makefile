@@ -5,6 +5,16 @@ TOWER_REPO ?= ../../../../tower
 default:
 	cabal build
 
+test: smaccm-commsec-test
+
+.PHONY: smaccm-commsec-test
+smaccm-commsec-test:
+	cabal run smaccm-commsec-test-gen -- --src-dir=smaccm-commsec-test
+	make -C smaccm-commsec-test
+
+.PHONY: smaccm-commsec-test-clean
+smaccm-commsec-test-clean:
+	-rm -rf smaccm-commsec-test
 
 create-sandbox:
 	cabal sandbox init
@@ -20,7 +30,7 @@ create-sandbox:
 	cabal sandbox add-source ../../smaccm-shared-comm
 	cabal install --dependencies-only
 
-clean:
+clean: smaccm-commsec-test-clean
 	-rm -rf dist
 
 clean-sandbox: clean
