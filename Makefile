@@ -23,6 +23,12 @@ commsec-tests:
 	make -C src/crypto/commsec-test create-sandbox
 	make -C src/crypto/commsec-test test
 
+.PHONY: smaccm-commsec
+smaccm-commsec:
+	make -C src/crypto/smaccm-commsec create-sandbox
+	make -C src/crypto/smaccm-commsec
+	make -C src/crypto/smaccm-commsec test
+
 .PHONY: smaccm-shared-comm
 smaccm-shared-comm:
 	make -C src/smaccm-shared-comm create-sandbox
