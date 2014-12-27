@@ -14,6 +14,7 @@ commsecArtifacts = map
   , "aeskey.c"
   , "aestab.c"
   , "aestab.h"
+  , "aesopt.h"
   , "brg_endian.h"
   , "brg_types.h"
   , "commsec.c"
