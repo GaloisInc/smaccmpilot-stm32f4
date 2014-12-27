@@ -31,25 +31,35 @@
 // This is tied to TAG_LEN - do not adjust unless you are GCM savy
 #define MAX_MESSAGE_LEN 512
 
-typedef struct {
+struct commsec_encode {
     gcm_ctx encCtx;
     uint32_t encSalt;
     uint32_t myId;
     uint32_t myCounter;
+};
 
+struct commsec_decode {
     gcm_ctx decCtx;
     uint32_t decSalt;
     uint32_t mostRecentCounter[MAX_BASE_STATIONS];
-} commsec_ctx;
+};
 
-uint32_t securePkg_init( commsec_ctx *ctx, uint32_t myID
-                       , uint32_t decSalt, const uint8_t *rawDecKey
+void securePkg_init_enc( struct commsec_encode *ctx, uint32_t myID
                        , uint32_t encSalt, const uint8_t *rawEncKey);
-uint32_t securePkg_enc_in_place(commsec_ctx *ctx, uint8_t *msg, uint32_t msgStartIdx, uint32_t msgLength);
-uint32_t securePkg_enc( commsec_ctx *ctx, uint8_t *msg, uint32_t msgLen
+
+void securePkg_init_dec( struct commsec_decode *ctx
+                       , uint32_t decSalt, const uint8_t *rawDecKey);
+
+uint32_t securePkg_enc_in_place( struct commsec_encode *ctx
+                               , uint8_t *msg, uint32_t msgStartIdx
+                               , uint32_t msgLength);
+uint32_t securePkg_enc( struct commsec_encode *ctx
+                      , uint8_t *msg, uint32_t msgLen
                       , uint8_t *ivStorage, uint8_t *tag); // Tag must be 64 bits
-uint32_t securePkg_dec(commsec_ctx *ctx, uint8_t *msg, uint32_t msgLen);
-void securePkg_zero(commsec_ctx *ctx);
+
+uint32_t securePkg_dec( struct commsec_decode *ctx, uint8_t *msg, uint32_t msgLen);
+void securePkg_zero_enc(struct commsec_encode *ctx);
+void securePkg_zero_dec(struct commsec_decode *ctx);
 
 int securePkg_size_of_message(int pkgLen);
 int securePkg_size_of_package(int msgLen);

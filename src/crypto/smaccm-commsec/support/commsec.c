@@ -3,23 +3,28 @@
 #include <string.h>
 
 // Initialize a commsec context.  Each raw key must be 16 bytes long (excess entropy is ignored).
-uint32_t securePkg_init( commsec_ctx *ctx, uint32_t myID
-                       , uint32_t decSalt, const uint8_t *rawDecKey
+void securePkg_init_enc( struct commsec_encode *ctx, uint32_t myID
                        , uint32_t encSalt, const uint8_t *rawEncKey)
+{
+    gcm_init_and_key((const unsigned char *)rawEncKey, 16, &ctx->encCtx);
+    ctx->encSalt = encSalt;
+    ctx->myCounter = 1;
+    ctx->myId      = myID;
+}
+
+void securePkg_init_dec( struct commsec_decode *ctx
+                       , uint32_t decSalt, const uint8_t *rawDecKey)
 {
     int i;
     gcm_init_and_key((const unsigned char *)rawDecKey, 16, &ctx->decCtx);
-    gcm_init_and_key((const unsigned char *)rawEncKey, 16, &ctx->encCtx);
-    ctx->encSalt = encSalt;
     ctx->decSalt = decSalt;
-    ctx->myCounter = 1;
-    ctx->myId      = myID;
-    for(i = 0; i < MAX_BASE_STATIONS ; i++)
+    for(i = 0; i < MAX_BASE_STATIONS ; i++) {
         ctx->mostRecentCounter[i] = 0;
-    return COMMSEC_SUCCEED;
+    }
 }
 
-uint32_t securePkg_enc_in_place(commsec_ctx *ctx, uint8_t *msg, uint32_t msgStartIdx, uint32_t msgLen)
+uint32_t securePkg_enc_in_place( struct commsec_encode *ctx
+                               , uint8_t *msg, uint32_t msgStartIdx, uint32_t msgLen)
 {
     uint32_t ret;
     if(msgStartIdx < 8) {
@@ -32,9 +37,9 @@ uint32_t securePkg_enc_in_place(commsec_ctx *ctx, uint8_t *msg, uint32_t msgStar
     return ret;
 }
 
-uint32_t securePkg_enc(commsec_ctx *ctx, uint8_t *msg, uint32_t msgLen
-                                       , uint8_t *ivStorage // ivStorage buffer must be at least HEADER_LEN bytes
-                                       , uint8_t *tag) // Tag buffer must TAG_LEN bytes
+uint32_t securePkg_enc( struct commsec_encode *ctx, uint8_t *msg, uint32_t msgLen
+                      , uint8_t *ivStorage // ivStorage buffer must be at least HEADER_LEN bytes
+                      , uint8_t *tag) // Tag buffer must TAG_LEN bytes
 {
     uint32_t ret=0;
     if(msgLen > MAX_MESSAGE_LEN) {
@@ -71,7 +76,7 @@ uint32_t securePkg_enc(commsec_ctx *ctx, uint8_t *msg, uint32_t msgLen
 }
 
 // Decrypt a package that is in the form [ StaID | Counter | CT | TAG ]
-uint32_t securePkg_dec(commsec_ctx *ctx, uint8_t *pkg, uint32_t pkgLen)
+uint32_t securePkg_dec( struct commsec_decode *ctx, uint8_t *pkg, uint32_t pkgLen)
 {
     uint8_t iv[IV_LEN];
     uint32_t theirCounter=0, theirID=0;
@@ -127,24 +132,32 @@ uint32_t securePkg_dec(commsec_ctx *ctx, uint8_t *pkg, uint32_t pkgLen)
 // Zero's the cryptographic data.  The raw key data used
 // for initialization must be cleared separately (should be done
 // immediately after initilization).
-void securePkg_zero(commsec_ctx *ctx)
+void securePkg_zero_enc( struct commsec_encode *ctx )
 {
     int i;
-    gcm_end(&ctx->decCtx);
     gcm_end(&ctx->encCtx);
     ctx->encSalt=0;
     ctx->myId=0;
     ctx->myCounter = UINT32_MAX;
+
+    // Plenty of time, let's re-clear
+    memset(&ctx->encCtx, 0xFF, sizeof(gcm_ctx));
+    memset(&ctx->encCtx, 0x00, sizeof(gcm_ctx));
+}
+
+void securePkg_zero_dec( struct commsec_decode *ctx )
+{
+    int i;
+    gcm_end(&ctx->decCtx);
     ctx->decSalt=0;
 
-    for(i=0; i < MAX_BASE_STATIONS; i++)
+    for(i=0; i < MAX_BASE_STATIONS; i++) {
         ctx->mostRecentCounter[i] = UINT32_MAX;
+    }
 
     // Plenty of time, let's re-clear
     memset(&ctx->decCtx, 0xFF, sizeof(gcm_ctx));
-    memset(&ctx->encCtx, 0xFF, sizeof(gcm_ctx));
     memset(&ctx->decCtx, 0x00, sizeof(gcm_ctx));
-    memset(&ctx->encCtx, 0x00, sizeof(gcm_ctx));
 }
 
 int securePkg_size_of_message(int pkgLen)
