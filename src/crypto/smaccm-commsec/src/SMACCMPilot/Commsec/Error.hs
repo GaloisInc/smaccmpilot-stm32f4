@@ -4,7 +4,7 @@
 
 module SMACCMPilot.Commsec.Error
   ( CommsecError
-  , succeed
+  , success
   , fail_bad_base_station
   , fail_dup_ctr
   , fail_ctr_rollover
@@ -29,8 +29,8 @@ instance Serializable CommsecError where
     raw <- unpack src offs
     return $ CommsecError $ (raw <=? 6) ? (raw, 0)
 
-succeed :: CommsecError
-succeed = CommsecError 0
+success :: CommsecError
+success = CommsecError 0
 fail_bad_base_station :: CommsecError
 fail_bad_base_station = CommsecError 1
 fail_dup_ctr :: CommsecError
