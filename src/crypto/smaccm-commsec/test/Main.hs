@@ -7,13 +7,15 @@ import qualified Data.List as L
 
 import Ivory.Language
 import Ivory.Artifact
+import Ivory.Stdlib
 import Ivory.Compile.C.CmdlineFrontend
 import SMACCMPilot.Commsec.Artifacts
 import SMACCMPilot.Commsec.Module
 import SMACCMPilot.Commsec.Config
+import SMACCMPilot.Commsec.Error
 
 main :: IO ()
-main = compile [ encmod, decmod ] as
+main = compile [ m ] as
   where
   as = commsecArtifacts
      ++ [ artifactString "Makefile" makefile ]
@@ -21,40 +23,36 @@ main = compile [ encmod, decmod ] as
 config :: Config
 config = Config
   { encode_id = 1
-  , encode_key = take 16 [1..]
-  , encode_salt = 0xdeadbeef
-  , decode_key  = take 16 [2..]
-  , decode_salt = 0xcafed00d
+  , encode_ks = trivial_key
+  , decode_ks = trivial_key
   }
-
-encmod :: Module
-encmod = package "test_encode" $ do
-  incl test_encode_proc
-  commsec_encode_moddef ce
   where
-  ce = commsecEncode config "etest"
-  test_encode_proc :: Def('[]:->())
-  test_encode_proc = proc "test_encode" $ body $ do
-    commsec_encode_init ce
-    ct <- local (iarray [])
-    pt <- local (iarray [])
-    _e <- commsec_encode_run ce (constRef pt) ct
-    return ()
+  trivial_key = KeySalt { ks_key = take 16 [1..], ks_salt = 0xdeadbeef }
 
-decmod :: Module
-decmod = package "test_decode" $ do
-  incl test_decode_proc
+m :: Module
+m = package "main" $ do
+  incl main_proc
+  commsec_encode_moddef ce
   commsec_decode_moddef cd
   where
-  cd = commsecDecode config "dtest"
-  test_decode_proc :: Def('[]:->())
-  test_decode_proc = proc "test_decode" $ body $ do
-    commsec_decode_init cd
+  ce = commsecEncode (encode_ks config) (encode_id config) "etest"
+  cd = commsecDecode (decode_ks config) "dtest"
+  main_proc :: Def('[Sint32, Ref s (Stored (Ref s (Stored IChar)))]:->Sint32)
+  main_proc = proc "main" $ \ _ _ -> body $ do
+    commsec_encode_init ce
+    pt <- local (iarray (map (ival . fromIntegral) [0::Int,1..]))
     ct <- local (iarray [])
-    pt <- local (iarray [])
-    _e <- commsec_decode_run cd (constRef ct) pt
-    return ()
-
+    e_err <- commsec_encode_run ce (constRef pt) ct
+    when (e_err /=? success) (ret 1)
+    commsec_decode_init cd
+    pt' <- local (iarray [])
+    d_err <- commsec_decode_run cd (constRef ct) pt'
+    when (d_err /=? success) (ret 2)
+    arrayMap $ \ix -> do
+      p <- deref (pt ! ix)
+      p' <- deref (pt' ! ix)
+      when (p /=? p') (ret 3)
+    ret 0
 
 objects :: [FilePath]
 objects =
@@ -65,12 +63,41 @@ objects =
   , "gcm.o"
   , "gf128mul.o"
   , "gf_convert.o"
-  , "test_encode.o"
-  , "test_decode.o"
+  , "main.o"
   ]
 
 makefile :: String
 makefile = unlines
+  [ "CFLAGS := \\"
+  , "  -g3 -Wall -Werror -O0 \\"
+  , "  -std=gnu99 \\"
+  , "  -Wno-parentheses \\"
+  , "  -Wno-unused-variable \\"
+  , "  -DIVORY_TEST"
+  , ""
+  , "OBJDIR := obj"
+  , "OBJS := $(addprefix $(OBJDIR)/," ++ (L.intercalate " " objects) ++ ")"
+  , ""
+  , "default: $(OBJDIR) $(OBJS) test"
+  , ""
+  , "test: $(OBJS)"
+  , "\t$(CC) $(CFLAGS) $(OBJS) -o test"
+  , ""
+  , "$(OBJDIR)/%.o : %.c"
+  , "\t$(CC) $(CFLAGS) -c -o $@ $<"
+  , ""
+  , "$(OBJDIR):"
+  , "\tmkdir -p $(OBJDIR)"
+  , ""
+  , "clean:"
+  , "\t-rm -rf obj"
+  , ""
+  , "veryclean: clean"
+  , "\t-rm *.c *.h"
+  ]
+
+xc_makefile :: String
+xc_makefile = unlines
   [ "CC := arm-none-eabi-gcc"
   , "CFLAGS := \\"
   , "  -g3 -Wall -Werror -O2 \\"

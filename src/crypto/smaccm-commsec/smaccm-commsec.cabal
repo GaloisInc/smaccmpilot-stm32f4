@@ -52,6 +52,7 @@ executable smaccm-commsec-test-gen
   hs-source-dirs:      test
   build-depends:       base,
                        ivory,
+                       ivory-stdlib,
                        ivory-artifact,
                        ivory-backend-c,
                        smaccm-commsec
