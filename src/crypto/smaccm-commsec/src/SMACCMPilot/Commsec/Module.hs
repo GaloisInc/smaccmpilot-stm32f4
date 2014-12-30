@@ -115,7 +115,7 @@ commsecDecode ks n = CommsecDecode
     r <- call securePkg_dec decode_ctx ct ctlen
     -- Copy decoded cyphertext into plaintext
     arrayMap $ \(ix :: C.CyphertextIx) ->
-      when (ix >=? hlen .&& ix <? arrayLen pt) $ do
+      when (ix >=? hlen .&& ix-hlen <? arrayLen pt) $ do
         v <- deref (ct ! ix)
         store (pt ! ptIx ix) v
     ret r
