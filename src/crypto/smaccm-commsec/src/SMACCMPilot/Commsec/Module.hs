@@ -68,7 +68,7 @@ commsecEncode ks eid n = CommsecEncode
     arrayCopy ct pt (fromIntegral headerLen) (arrayLen pt)
     -- Encode ct in place
     r <- call securePkg_enc_in_place encode_ctx ct
-              (fromIntegral headerLen) (fromIntegral C.cyphertextSize)
+              (fromIntegral headerLen) (arrayLen pt)
     -- Return error code
     ret r
 
