@@ -3,7 +3,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module SMACCMPilot.Commsec.Module
+module SMACCMPilot.Commsec.Ivory.Module
   ( commsecEncode
   , CommsecEncode
   , commsec_encode_init
@@ -19,10 +19,10 @@ module SMACCMPilot.Commsec.Module
 import Ivory.Language
 import Ivory.Stdlib (arrayCopy, when)
 import qualified SMACCMPilot.Communications  as C
-import SMACCMPilot.Commsec.Config
-import SMACCMPilot.Commsec.Import
-import SMACCMPilot.Commsec.Import.Types ()
-import SMACCMPilot.Commsec.Error
+import SMACCMPilot.Commsec.Ivory.Config
+import SMACCMPilot.Commsec.Ivory.Import
+import SMACCMPilot.Commsec.Ivory.Import.Types ()
+import SMACCMPilot.Commsec.Ivory.Error
 
 headerLen :: Integer
 headerLen = 8

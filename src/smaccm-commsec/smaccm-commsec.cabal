@@ -28,13 +28,13 @@ data-files: support/aes.h,
             support/mode_hdr.h
 
 library
-  exposed-modules:     SMACCMPilot.Commsec,
-                       SMACCMPilot.Commsec.Artifacts,
-                       SMACCMPilot.Commsec.Config,
-                       SMACCMPilot.Commsec.Import,
-                       SMACCMPilot.Commsec.Import.Types,
-                       SMACCMPilot.Commsec.Error,
-                       SMACCMPilot.Commsec.Module,
+  exposed-modules:     SMACCMPilot.Commsec.Ivory,
+                       SMACCMPilot.Commsec.Ivory.Artifacts,
+                       SMACCMPilot.Commsec.Ivory.Config,
+                       SMACCMPilot.Commsec.Ivory.Import,
+                       SMACCMPilot.Commsec.Ivory.Import.Types,
+                       SMACCMPilot.Commsec.Ivory.Error,
+                       SMACCMPilot.Commsec.Ivory.Module,
                        Paths_smaccm_commsec
   build-depends:       base >= 4.6,
                        ivory,
@@ -47,8 +47,8 @@ library
   default-language:    Haskell2010
   ghc-options:         -Wall
 
-executable smaccm-commsec-test-gen
-  main-is:             Main.hs
+executable smaccm-commsec-ivory-test-gen
+  main-is:             IvoryTest.hs
   hs-source-dirs:      test
   build-depends:       base,
                        ivory,

@@ -1,7 +1,7 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE DataKinds #-}
 
-module SMACCMPilot.Commsec.Import
+module SMACCMPilot.Commsec.Ivory.Import
   ( securePkg_init_enc
   , securePkg_init_dec
   , securePkg_enc_in_place
@@ -13,8 +13,8 @@ module SMACCMPilot.Commsec.Import
 
 import Ivory.Language
 import qualified SMACCMPilot.Communications  as C
-import SMACCMPilot.Commsec.Import.Types
-import qualified SMACCMPilot.Commsec.Error as E
+import SMACCMPilot.Commsec.Ivory.Import.Types
+import qualified SMACCMPilot.Commsec.Ivory.Error as E
 
 securePkg_header :: String
 securePkg_header = "commsec.h"

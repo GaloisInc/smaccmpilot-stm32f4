@@ -1,5 +1,5 @@
 
-module SMACCMPilot.Commsec.Artifacts
+module SMACCMPilot.Commsec.Ivory.Artifacts
   ( commsecArtifacts
   ) where
 

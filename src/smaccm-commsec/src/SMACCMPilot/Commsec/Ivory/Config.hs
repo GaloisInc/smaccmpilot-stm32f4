@@ -1,5 +1,5 @@
 
-module SMACCMPilot.Commsec.Config
+module SMACCMPilot.Commsec.Ivory.Config
   ( Config(..)
   , KeySalt(..)
   , commsecConfigParser

@@ -2,7 +2,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
-module SMACCMPilot.Commsec.Error
+module SMACCMPilot.Commsec.Ivory.Error
   ( CommsecError
   , success
   , fail_bad_base_station

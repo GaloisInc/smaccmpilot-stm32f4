@@ -4,7 +4,7 @@
 {-# LANGUAGE QuasiQuotes #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
-module SMACCMPilot.Commsec.Import.Types where
+module SMACCMPilot.Commsec.Ivory.Import.Types where
 
 import Ivory.Language
 

@@ -9,10 +9,7 @@ import Ivory.Language
 import Ivory.Artifact
 import Ivory.Stdlib
 import Ivory.Compile.C.CmdlineFrontend
-import SMACCMPilot.Commsec.Artifacts
-import SMACCMPilot.Commsec.Module
-import SMACCMPilot.Commsec.Config
-import SMACCMPilot.Commsec.Error
+import SMACCMPilot.Commsec.Ivory
 
 main :: IO ()
 main = compile [ m ] as
