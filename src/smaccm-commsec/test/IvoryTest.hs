@@ -65,7 +65,8 @@ objects =
 
 makefile :: String
 makefile = unlines
-  [ "CFLAGS := \\"
+  [ "CC := gcc"
+  , "CFLAGS := \\"
   , "  -g3 -Wall -Werror -O0 \\"
   , "  -std=gnu99 \\"
   , "  -Wno-parentheses \\"
