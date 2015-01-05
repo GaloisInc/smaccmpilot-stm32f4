@@ -25,9 +25,9 @@ commsec-tests:
 
 .PHONY: smaccm-commsec
 smaccm-commsec:
-	make -C src/crypto/smaccm-commsec create-sandbox
-	make -C src/crypto/smaccm-commsec
-	make -C src/crypto/smaccm-commsec test
+	make -C src/smaccm-commsec create-sandbox
+	make -C src/smaccm-commsec
+	make -C src/smaccm-commsec test
 
 .PHONY: smaccm-shared-comm
 smaccm-shared-comm:
