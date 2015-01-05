@@ -27,7 +27,7 @@ Issue Date: 20/12/2007
 /* Include files where endian defines and byteswap functions may reside */
 // TMD LP PH notice we need #if 1 for ardi hardward/compiler
 // For arm-none-eabi
-#ifdef ARM
+#ifdef __GNUC__
 #  include <machine/endian.h>
 #endif
 /* #elif defined( __sun ) */
