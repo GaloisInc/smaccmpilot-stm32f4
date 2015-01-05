@@ -30,11 +30,11 @@ data-files: support/aes.h,
 library
   exposed-modules:     SMACCMPilot.Commsec.Ivory,
                        SMACCMPilot.Commsec.Ivory.Artifacts,
-                       SMACCMPilot.Commsec.Ivory.Config,
                        SMACCMPilot.Commsec.Ivory.Import,
                        SMACCMPilot.Commsec.Ivory.Import.Types,
                        SMACCMPilot.Commsec.Ivory.Error,
                        SMACCMPilot.Commsec.Ivory.Module,
+                       SMACCMPilot.Commsec.Config,
                        Paths_smaccm_commsec
   build-depends:       base >= 4.6,
                        ivory,

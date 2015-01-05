@@ -19,7 +19,7 @@ module SMACCMPilot.Commsec.Ivory.Module
 import Ivory.Language
 import Ivory.Stdlib (arrayCopy, when)
 import qualified SMACCMPilot.Communications  as C
-import SMACCMPilot.Commsec.Ivory.Config
+import SMACCMPilot.Commsec.Config
 import SMACCMPilot.Commsec.Ivory.Import
 import SMACCMPilot.Commsec.Ivory.Import.Types ()
 import SMACCMPilot.Commsec.Ivory.Error
