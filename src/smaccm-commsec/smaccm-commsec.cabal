@@ -35,8 +35,15 @@ library
                        SMACCMPilot.Commsec.Ivory.Error,
                        SMACCMPilot.Commsec.Ivory.Module,
                        SMACCMPilot.Commsec.Config,
+                       SMACCMPilot.Commsec.Native,
+                       SMACCMPilot.Commsec.Native.Prim,
+                       SMACCMPilot.Commsec.Native.Rewrite,
                        Paths_smaccm_commsec
   build-depends:       base >= 4.6,
+                       bytestring,
+                       cereal,
+                       cipher-aes,
+                       crypto-cipher-types,
                        ivory,
                        ivory-serialize,
                        ivory-stdlib,
@@ -51,6 +58,18 @@ executable smaccm-commsec-ivory-test-gen
   main-is:             IvoryTest.hs
   hs-source-dirs:      test
   build-depends:       base,
+                       ivory,
+                       ivory-stdlib,
+                       ivory-artifact,
+                       ivory-backend-c,
+                       smaccm-commsec
+  ghc-options:         -Wall
+
+executable smaccm-commsec-native-loopback-test
+  main-is:             NativeLoopback.hs
+  hs-source-dirs:      test
+  build-depends:       base,
+                       bytestring,
                        ivory,
                        ivory-stdlib,
                        ivory-artifact,

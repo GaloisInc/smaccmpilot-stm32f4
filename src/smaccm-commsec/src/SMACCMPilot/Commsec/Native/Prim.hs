@@ -1,6 +1,6 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
-module SMACCMPilot.Commsec.Native
+module SMACCMPilot.Commsec.Native.Prim
   ( BaseId(..)
   , SecureContext_HS(..)
   , Context

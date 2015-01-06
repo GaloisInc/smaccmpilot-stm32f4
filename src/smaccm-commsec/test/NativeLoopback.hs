@@ -1,4 +1,4 @@
-module SMACCMPilot.GCS.Commsec.Test (main) where
+module Main where
 
 import Data.Word
 
@@ -6,14 +6,10 @@ import qualified Data.ByteString as B
 import qualified Data.ByteString.Char8 as BC
 import Data.ByteString (ByteString)
 
---import Crypto.Cipher.AES                -- Vincent's GCM routine
---import Crypto.Cipher.Types
---import Data.IORef
---import Data.Serialize
-import SMACCMPilot.GCS.Commsec
+import SMACCMPilot.Commsec.Native.Prim
 
 maxMsgLen :: Int
-maxMsgLen = 84
+maxMsgLen = 80
 
 uavID, base0ID  :: BaseId
 uavID   = 0
