@@ -17,15 +17,11 @@ module SMACCMPilot.Commsec.Ivory.Module
   ) where
 
 import Ivory.Language
-import Ivory.Stdlib (arrayCopy, when)
 import qualified SMACCMPilot.Communications  as C
 import SMACCMPilot.Commsec.Config
 import SMACCMPilot.Commsec.Ivory.Import
 import SMACCMPilot.Commsec.Ivory.Import.Types ()
 import SMACCMPilot.Commsec.Ivory.Error
-
-headerLen :: Integer
-headerLen = 8
 
 data CommsecEncode =
   CommsecEncode
@@ -62,15 +58,10 @@ commsecEncode ks eid n = CommsecEncode
   s = fromIntegral (ks_salt ks)
 
   run_proc :: Def('[ ConstRef s1 C.PlaintextArray , Ref s2 C.CyphertextArray
-                   ]:->CommsecError)
-  run_proc = proc (named "decode_run") $ \pt ct -> body $ do
-    -- Copy pt into ct, offset by headerLen
-    arrayCopy ct pt (fromIntegral headerLen) (arrayLen pt)
-    -- Encode ct in place
-    r <- call securePkg_enc_in_place encode_ctx ct
-              (fromIntegral headerLen) (arrayLen pt)
-    -- Return error code
-    ret r
+                   ] :-> CommsecError)
+  run_proc = proc (named "encode_run") $ \pt ct -> body $ do
+        r <- call securePkg_encode encode_ctx pt ct
+        ret r
 
 data CommsecDecode =
   CommsecDecode
@@ -107,20 +98,5 @@ commsecDecode ks n = CommsecDecode
   run_proc :: Def('[ ConstRef s1 C.CyphertextArray, Ref s2 C.PlaintextArray
                    ]:->CommsecError)
   run_proc = proc (named "decode_run") $ \const_ct pt -> body $ do
-    -- Make mutable copy of cyphertext
-    ct <- local (iarray [])
-    arrayMap $ \ix ->
-      deref (const_ct ! ix) >>= store (ct ! ix)
-    -- Decode cyphertext in place
-    r <- call securePkg_dec decode_ctx ct ctlen
-    -- Copy decoded cyphertext into plaintext
-    arrayMap $ \(ix :: C.CyphertextIx) ->
-      when (ix >=? hlen .&& ix-hlen <? arrayLen pt) $ do
-        v <- deref (ct ! ix)
-        store (pt ! ptIx ix) v
+    r <- call securePkg_decode decode_ctx const_ct pt
     ret r
-  ctlen = fromInteger C.cyphertextSize
-  hlen = fromInteger headerLen
-  ptIx :: C.CyphertextIx -> C.PlaintextIx
-  ptIx = toIx . (\x -> x - fromInteger headerLen) .  fromIx
-

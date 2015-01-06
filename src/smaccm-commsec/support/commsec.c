@@ -23,6 +23,13 @@ void securePkg_init_dec( struct commsec_decode *ctx
     }
 }
 
+// Ciphertext must be allocated 96 bytes while plaintext is assumed to be 80 bytes
+uint32_t securePkg_encode(struct commsec_encode *ctx, const uint8_t *plaintext, uint8_t *ciphertext)
+{
+    memcpy(ciphertext + HEADER_LEN, plaintext, 80);
+    return securePkg_enc_in_place(ctx, ciphertext, HEADER_LEN, 80);
+}
+
 uint32_t securePkg_enc_in_place( struct commsec_encode *ctx
                                , uint8_t *msg, uint32_t msgStartIdx, uint32_t msgLen)
 {
@@ -73,6 +80,21 @@ uint32_t securePkg_enc( struct commsec_encode *ctx, uint8_t *msg, uint32_t msgLe
         memset(iv,0,IV_LEN);
     }
     return ret;
+}
+
+// Ciphertext must be allocated 96 bytes while plaintext is assumed to be 80 bytes
+uint32_t securePkg_decode(struct commsec_decode *ctx, const uint8_t *ciphertext_immutable, uint8_t *plaintext)
+{
+    uint8_t *ciphertext = alloca(96);
+    if ( NULL == ciphertext) {
+        return COMMSEC_FAIL_ALLOCATION;
+    } else {
+        uint32_t ret;
+        memcpy(ciphertext, ciphertext_immutable, 96);
+        ret = securePkg_dec(ctx, ciphertext, 96);
+        memcpy(plaintext, ciphertext + HEADER_LEN, 80);
+        return ret;
+    }
 }
 
 // Decrypt a package that is in the form [ StaID | Counter | CT | TAG ]

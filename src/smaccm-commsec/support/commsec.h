@@ -8,6 +8,7 @@
 #define COMMSEC_FAIL_BAD_INPUT 4
 #define COMMSEC_FAIL_MSG_LENGTH_VIOLATES_ASSUMPTIONS 5
 #define COMMSEC_FAIL_GCM 6
+#define COMMSEC_FAIL_ALLOCATION 7
 
 #include <stdint.h>
 #include "gcm.h"
@@ -50,6 +51,8 @@ void securePkg_init_enc( struct commsec_encode *ctx, uint32_t myID
 void securePkg_init_dec( struct commsec_decode *ctx
                        , uint32_t decSalt, const uint8_t *rawDecKey);
 
+uint32_t securePkg_encode(struct commsec_encode *ctx, const uint8_t *plaintext, uint8_t *ciphertext);
+uint32_t securePkg_decode(struct commsec_decode *ctx, const uint8_t *ciphertext_immutable, uint8_t *plaintext);
 uint32_t securePkg_enc_in_place( struct commsec_encode *ctx
                                , uint8_t *msg, uint32_t msgStartIdx
                                , uint32_t msgLength);
