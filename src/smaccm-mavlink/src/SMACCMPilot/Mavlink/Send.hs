@@ -14,13 +14,17 @@ import           Ivory.Serialize
 import           Ivory.Stdlib
 
 import           SMACCMPilot.Mavlink.CRC
-import qualified SMACCMPilot.Communications as C
 
 --------------------------------------------------------------------------------
 
 [ivory|
 struct mavlinkPacket
-  { mav_array :: Array 80 (Stored Uint8) -- C. CommsecArray
+  -- IMPLICIT ASSUMPTION:
+  -- the mav_array will work out to be the same size as a
+  -- plaintext array in smaccm-commsec.
+  -- you may run into integration problems later if this is
+  -- not the case.
+  { mav_array :: Array 80 (Stored Uint8)
   ; mav_size  :: Stored Uint8
   }
 |]
@@ -31,7 +35,7 @@ mavlinkChecksum ::
      (GetAlloc eff ~ Scope cs)
   => Uint8
   -> Uint8
-  -> Ref s C.MAVLinkArray
+  -> Ref s (Array 80 (Stored Uint8))
   -> Ivory eff ()
 mavlinkChecksum sz crcextra arr = do
   ck <- local (ival crc_init_v)

@@ -47,8 +47,14 @@ create-sandbox:
 	cabal sandbox add-source $(IVORY_REPO)/ivory-artifact
 	cabal sandbox add-source $(IVORY_REPO)/ivory-stdlib
 	cabal sandbox add-source $(IVORY_REPO)/ivory-serialize
-	cabal sandbox add-source ../smaccm-shared-comm
 	cabal install --dependencies-only
 
+.PHONY: build
 build:
 	cabal build
+
+.PHONY: clean-sandbox
+clean-sandbox:
+	-rm -rf dist
+	-rm -rf cabal.sandbox.config
+	-rm -rf .cabal-sandbox
