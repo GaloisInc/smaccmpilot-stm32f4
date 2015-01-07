@@ -1,3 +1,0 @@
-This is test of the commsec-gcm in both C and Ivory.  We use a stand-alone
-library (aeslib/) here so we don't have to bother with issues of integrating
-with the overall SMACCMPilot build system.
