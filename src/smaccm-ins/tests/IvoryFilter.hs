@@ -10,7 +10,6 @@ import Data.Foldable
 import Data.Traversable
 import Ivory.Language
 import Ivory.Stdlib
-import IvoryCSE
 import IvoryFilter.Types
 import Linear
 import Numeric.AD
@@ -97,7 +96,7 @@ storeRow :: (Applicative f, Foldable f, IvoryStore a, IvoryExpr a) => f (Ref s (
 storeRow vars vals = sequence_ $ liftA2 store vars vals
 
 kalman_init :: Def ('[IDouble, IDouble, IDouble, IDouble, IDouble, IDouble, IDouble] :-> ())
-kalman_init = cse $ proc "kalman_init" $ \ accX accY accZ magX magY magZ pressure -> body $ do
+kalman_init = proc "kalman_init" $ \ accX accY accZ magX magY magZ pressure -> body $ do
     let depth = negate $ pressureToHeight pressure
     let acc = xyz accX accY accZ
     let mag = xyz magX magY magZ
@@ -106,7 +105,7 @@ kalman_init = cse $ proc "kalman_init" $ \ accX accY accZ magX magY magZ pressur
     sequence_ $ liftA2 storeRow p initCovariance
 
 kalman_predict :: Def ('[IDouble, IDouble, IDouble, IDouble, IDouble, IDouble, IDouble] :-> ())
-kalman_predict = cse $ proc "kalman_predict" $ \ dt dax day daz dvx dvy dvz -> body $ do
+kalman_predict = proc "kalman_predict" $ \ dt dax day daz dvx dvy dvz -> body $ do
   stateVectorTemp <- mapM deref stateVector
   pTemp <- mapM (mapM deref) p
   let distVector = DisturbanceVector { disturbanceGyro = xyz dax day daz, disturbanceAccel = xyz dvx dvy dvz }
@@ -143,19 +142,19 @@ applyUpdate cov fusionStep = do
           save stateMagXYZ
 
 vel_measure :: Def ('[IDouble, IDouble, IDouble] :-> ())
-vel_measure = cse $ proc "vel_measure" $ \ velN velE velD -> body $ sequence_ $ applyUpdate <$> velNoise <*> (fuseVel <*> velNoise <*> ned velN velE velD)
+vel_measure = proc "vel_measure" $ \ velN velE velD -> body $ sequence_ $ applyUpdate <$> velNoise <*> (fuseVel <*> velNoise <*> ned velN velE velD)
 
 pos_measure :: Def ('[IDouble, IDouble, IDouble] :-> ())
-pos_measure = cse $ proc "pos_measure" $ \ posN posE posD -> body $ sequence_ $ applyUpdate <$> posNoise <*> (fusePos <*> posNoise <*> ned posN posE posD)
+pos_measure = proc "pos_measure" $ \ posN posE posD -> body $ sequence_ $ applyUpdate <$> posNoise <*> (fusePos <*> posNoise <*> ned posN posE posD)
 
 pressure_measure :: Def ('[IDouble] :-> ())
-pressure_measure = cse $ proc "pressure_measure" $ \ pressure -> body $ applyUpdate pressureNoise $ fusePressure pressureNoise pressure
+pressure_measure = proc "pressure_measure" $ \ pressure -> body $ applyUpdate pressureNoise $ fusePressure pressureNoise pressure
 
 tas_measure :: Def ('[IDouble] :-> ())
-tas_measure = cse $ proc "tas_measure" $ \ tas -> body $ applyUpdate tasNoise $ fuseTAS tasNoise tas
+tas_measure = proc "tas_measure" $ \ tas -> body $ applyUpdate tasNoise $ fuseTAS tasNoise tas
 
 mag_measure :: Def ('[IDouble, IDouble, IDouble] :-> ())
-mag_measure = cse $ proc "mag_measure" $ \ magX magY magZ -> body $ sequence_ $ applyUpdate <$> magNoise <*> (fuseMag <*> magNoise <*> xyz magX magY magZ)
+mag_measure = proc "mag_measure" $ \ magX magY magZ -> body $ sequence_ $ applyUpdate <$> magNoise <*> (fuseMag <*> magNoise <*> xyz magX magY magZ)
 
 ins_module :: Module
 ins_module = package "smaccm_ins" $ do
