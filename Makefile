@@ -29,10 +29,17 @@ smaccm-commsec:
 	make -C src/smaccm-commsec
 	make -C src/smaccm-commsec test
 
-.PHONY: smaccm-shared-comm
-smaccm-shared-comm:
-	make -C src/smaccm-shared-comm create-sandbox
-	make -C src/smaccm-shared-comm
+.PHONY: smaccm-datalink
+smaccm-datalink:
+	make -C src/smaccm-datalink create-sandbox
+	make -C src/smaccm-datalink
+	make -C src/smaccm-datalink test
+
+.PHONY: smaccm-mavlink
+smaccm-mavlink:
+	make -C src/smaccm-mavlink create-sandbox
+	make -C src/smaccm-mavlink
+	make -C src/smaccm-mavlink test
 
 .PHONY: smaccm-ins
 smaccm-ins:
