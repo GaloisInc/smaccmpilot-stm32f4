@@ -15,7 +15,7 @@ module SMACCMPilot.Commsec.Ivory.Import
   ) where
 
 import Ivory.Language
-import qualified SMACCMPilot.Communications  as C
+import SMACCMPilot.Commsec.Sizes
 import SMACCMPilot.Commsec.Ivory.Import.Types
 import qualified SMACCMPilot.Commsec.Ivory.Error as E
 
@@ -36,26 +36,26 @@ securePkg_init_dec :: Def ('[ Ref s1 (Struct "commsec_decode")
 securePkg_init_dec = importProc "securePkg_init_dec" securePkg_header
 
 securePkg_encode :: Def ('[Ref s1 (Struct "commsec_encode")
-                          , ConstRef s2 C.PlaintextArray
-                          , Ref s3 C.CyphertextArray
+                          , ConstRef s2 PlaintextArray
+                          , Ref s3 CyphertextArray
                           ] :-> E.CommsecError)
 securePkg_encode = importProc "securePkg_encode" securePkg_header
 
 securePkg_decode :: Def ('[Ref s1 (Struct "commsec_decode")
-                          , ConstRef s2 C.CyphertextArray
-                          , Ref s3 C.PlaintextArray
+                          , ConstRef s2 CyphertextArray
+                          , Ref s3 PlaintextArray
                           ] :-> E.CommsecError)
 securePkg_decode = importProc "securePkg_decode" securePkg_header
 
 securePkg_enc_in_place :: Def ('[ Ref s1 (Struct "commsec_encode")
-                                , Ref s2 C.CyphertextArray
+                                , Ref s2 CyphertextArray
                                 , Uint32 -- Message start index (into cyphertext array)
                                 , Uint32 -- Message length
                                 ] :-> E.CommsecError)
 securePkg_enc_in_place = importProc "securePkg_enc_in_place" securePkg_header
 
 securePkg_dec :: Def ('[ Ref s1 (Struct "commsec_decode")
-                       , Ref s2 C.CyphertextArray
+                       , Ref s2 CyphertextArray
                        , Uint32 -- Message length
                        ] :-> E.CommsecError)
 securePkg_dec = importProc "securePkg_dec" securePkg_header

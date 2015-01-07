@@ -17,7 +17,7 @@ module SMACCMPilot.Commsec.Ivory.Module
   ) where
 
 import Ivory.Language
-import qualified SMACCMPilot.Communications  as C
+import SMACCMPilot.Commsec.Sizes
 import SMACCMPilot.Commsec.Config
 import SMACCMPilot.Commsec.Ivory.Import
 import SMACCMPilot.Commsec.Ivory.Import.Types ()
@@ -26,8 +26,8 @@ import SMACCMPilot.Commsec.Ivory.Error
 data CommsecEncode =
   CommsecEncode
     { commsec_encode_init   :: forall eff . Ivory eff ()
-    , commsec_encode_run    :: forall s1 s2 eff . ConstRef s1 C.PlaintextArray
-                                               -> Ref s2 C.CyphertextArray
+    , commsec_encode_run    :: forall s1 s2 eff . ConstRef s1 PlaintextArray
+                                               -> Ref      s2 CyphertextArray
                                                -> Ivory eff CommsecError
     , commsec_encode_moddef :: ModuleDef
     }
@@ -57,7 +57,7 @@ commsecEncode ks eid n = CommsecEncode
   k = iarray (map (ival . fromIntegral) (ks_key ks))
   s = fromIntegral (ks_salt ks)
 
-  run_proc :: Def('[ ConstRef s1 C.PlaintextArray , Ref s2 C.CyphertextArray
+  run_proc :: Def('[ ConstRef s1 PlaintextArray , Ref s2 CyphertextArray
                    ] :-> CommsecError)
   run_proc = proc (named "encode_run") $ \pt ct -> body $ do
         r <- call securePkg_encode encode_ctx pt ct
@@ -66,8 +66,8 @@ commsecEncode ks eid n = CommsecEncode
 data CommsecDecode =
   CommsecDecode
     { commsec_decode_init   :: forall eff . Ivory eff ()
-    , commsec_decode_run    :: forall s1 s2 eff . ConstRef s1 C.CyphertextArray
-                                               -> Ref s2 C.PlaintextArray
+    , commsec_decode_run    :: forall s1 s2 eff . ConstRef s1 CyphertextArray
+                                               -> Ref      s2 PlaintextArray
                                                -> Ivory eff CommsecError
     , commsec_decode_moddef :: ModuleDef
     }
@@ -95,7 +95,7 @@ commsecDecode ks n = CommsecDecode
   k = iarray (map (ival . fromIntegral) (ks_key ks))
   s = fromIntegral (ks_salt ks)
 
-  run_proc :: Def('[ ConstRef s1 C.CyphertextArray, Ref s2 C.PlaintextArray
+  run_proc :: Def('[ ConstRef s1 CyphertextArray, Ref s2 PlaintextArray
                    ]:->CommsecError)
   run_proc = proc (named "decode_run") $ \const_ct pt -> body $ do
     r <- call securePkg_decode decode_ctx const_ct pt

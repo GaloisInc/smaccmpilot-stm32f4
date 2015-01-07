@@ -34,7 +34,6 @@ create-sandbox:
 	cabal sandbox add-source $(IVORY_REPO)/ivory-serialize
 	cabal sandbox add-source $(TOWER_REPO)/tower-config
 	cabal sandbox add-source $(TOWER_REPO)/tower
-	cabal sandbox add-source ../smaccm-shared-comm
 	cabal install --dependencies-only
 
 clean: smaccm-commsec-ivory-test-clean

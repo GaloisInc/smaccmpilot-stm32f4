@@ -39,6 +39,7 @@ library
                        SMACCMPilot.Commsec.Native.Error,
                        SMACCMPilot.Commsec.Native.Encode,
                        SMACCMPilot.Commsec.Native.Decode,
+                       SMACCMPilot.Commsec.Sizes,
                        Paths_smaccm_commsec
   build-depends:       base >= 4.6,
                        bytestring,
@@ -50,8 +51,7 @@ library
                        ivory-serialize,
                        ivory-stdlib,
                        ivory-artifact,
-                       tower-config,
-                       smaccm-shared-comm
+                       tower-config
   hs-source-dirs:      src
   default-language:    Haskell2010
   ghc-options:         -Wall
