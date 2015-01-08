@@ -18,11 +18,6 @@ ivory-px4-tests:
 	make -C src/ivory-px4-tests
 	make -C src/ivory-px4-tests test
 
-.PHONY: commsec-tests
-commsec-tests:
-	make -C src/crypto/commsec-test create-sandbox
-	make -C src/crypto/commsec-test test
-
 .PHONY: smaccm-commsec
 smaccm-commsec:
 	make -C src/smaccm-commsec create-sandbox
@@ -39,7 +34,6 @@ smaccm-datalink:
 smaccm-mavlink:
 	make -C src/smaccm-mavlink create-sandbox
 	make -C src/smaccm-mavlink
-	make -C src/smaccm-mavlink test
 
 .PHONY: smaccm-ins
 smaccm-ins:
