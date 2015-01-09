@@ -14,18 +14,21 @@ cabal-version:       >=1.10
 library
   hs-source-dirs:      src
   exposed-modules:     SMACCMPilot.INS.Ivory,
-                       SMACCMPilot.INS.Simulate
+                       SMACCMPilot.INS.Simulate,
+                       SMACCMPilot.INS.Tower
   other-modules:       SMACCMPilot.INS.Parameters,
                        SMACCMPilot.INS.Types
   build-depends:       base >=4.6,
                        ad >=4.2,
                        estimator == 1.0.*,
                        ivory >=0.1,
+                       ivory-px4-hw >=0.1,
                        ivory-stdlib >=0.1,
                        lens >=4.6,
                        linear >=1.15,
                        monadLib >= 3.7,
-                       reflection >=1.5
+                       reflection >=1.5,
+                       tower >=0.9
   default-language:    Haskell2010
   ghc-options:         -Wall -Werror
 
