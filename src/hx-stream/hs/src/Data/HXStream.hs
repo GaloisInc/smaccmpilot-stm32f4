@@ -130,7 +130,7 @@ encode tag ws' = B.pack $ D.toList $ fbo .: tag .: go ws
   go (x:xs) | x == fbo  = ceo .: (escape x .: go xs)
             | x == ceo  = ceo .: (escape x .: go xs)
             | otherwise = x .: go xs
-  go [] = D.empty
+  go [] = D.singleton fbo
 
 -- Helpers
 

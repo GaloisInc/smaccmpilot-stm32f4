@@ -70,7 +70,7 @@ radiocmd s = Send radioCmdTag (map (fromIntegral . C.ord) (s ++ "\r"))
 
 runDebugger :: IORef DebuggerMode -> FilePath -> IO ()
 runDebugger sig port = do
-  serial <- openSerial port defaultSerialSettings { commSpeed = CS57600 }
+  serial <- openSerial port defaultSerialSettings { commSpeed = CS115200 }
   loop serial emptyStreamState
   where
   loop serial state = do
