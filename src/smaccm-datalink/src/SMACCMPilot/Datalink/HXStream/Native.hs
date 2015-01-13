@@ -4,7 +4,7 @@
 
 -- | Haskell implementation of the Hxstream protocol.
 
-module Data.HXStream
+module SMACCMPilot.Datalink.HXStream.Native
   ( FrameState(..)
   , StreamState(..)
   , fbo

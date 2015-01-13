@@ -19,29 +19,27 @@ import Ivory.BSP.STM32.Driver.RingBuffer
 
 import qualified Ivory.BSP.STM32F405.Interrupt as F405
 import qualified BSP.Tests.Platforms as BSP
-import PX4.Tests.Platforms
 
-import SMACCMPilot.Datalink.Ivory
 import SMACCMPilot.Commsec.Sizes
-import Ivory.HXStream (hxstreamModule)
+import SMACCMPilot.Datalink.HXStream.Tower
+import SMACCMPilot.Datalink.HXStream.Ivory (hxstreamModule)
 
 main :: IO ()
 main = towerCompile p (app id)
   where
   p topts = do
-    cfg <- getConfig topts px4PlatformParser
-    return $ stm32FreeRTOS px4platform_stm32config cfg
+    cfg <- getConfig topts BSP.testPlatformParser
+    return $ stm32FreeRTOS BSP.testplatform_stm32 cfg
 
-app :: (e -> PX4Platform F405.Interrupt)
+app :: (e -> BSP.TestPlatform F405.Interrupt)
     -> Tower e ()
-app topx4 = do
-  px4platform <- fmap topx4 getEnv
-  (o,i) <- uartTower tocc (console px4platform) 115200 (Proxy :: Proxy 128)
+app totp = do
+  tp <- fmap totp getEnv
+  (o,i) <- uartTower tocc (console tp) 115200 (Proxy :: Proxy 256)
   frame_loopback i o
-
   where
-  tocc = BSP.testplatform_clockconfig . px4platform_testplatform . topx4
-  console = BSP.testUART . BSP.testplatform_uart . px4platform_testplatform
+  tocc = BSP.testplatform_clockconfig . totp
+  console = BSP.testUART . BSP.testplatform_uart
 
 frame_loopback :: ChanInput (Stored Uint8)
                -> ChanOutput (Stored Uint8)
@@ -49,8 +47,8 @@ frame_loopback :: ChanInput (Stored Uint8)
 frame_loopback o i = do
   ctin <- channel
   ctout <- channel
-  decodeMonitor "test" i (fst ctin)
-  encodeMonitor "test" (snd ctout) o
+  decodeTower "test" i (fst ctin)
+  encodeTower "test" (snd ctout) o
 
   p <- period (Milliseconds 10)
 

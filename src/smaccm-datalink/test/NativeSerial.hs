@@ -12,7 +12,7 @@ import Data.Word
 import Numeric (showHex)
 
 import System.Hardware.Serialport
-import Data.HXStream
+import SMACCMPilot.Datalink.HXStream.Native
 
 
 main :: IO ()

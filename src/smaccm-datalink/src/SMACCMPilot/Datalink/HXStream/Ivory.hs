@@ -9,11 +9,11 @@
 
 -- Hx streaming library.
 
-module Ivory.HXStream where
+module SMACCMPilot.Datalink.HXStream.Ivory where
 
 import Ivory.Language
 import Ivory.Stdlib
-import Ivory.HXStream.Types
+import SMACCMPilot.Datalink.HXStream.Ivory.Types
 
 --------------------------------------------------------------------------------
 

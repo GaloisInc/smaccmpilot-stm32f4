@@ -2,7 +2,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE DataKinds #-}
 
-module Ivory.HXStream.Types
+module SMACCMPilot.Datalink.HXStream.Ivory.Types
   ( HXState
   , hxstate_tag
   , hxstate_progress
