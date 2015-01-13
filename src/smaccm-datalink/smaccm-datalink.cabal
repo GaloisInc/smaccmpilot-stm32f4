@@ -11,7 +11,7 @@ cabal-version:       >= 1.10
 
 
 library
-  exposed-modules:     SMACCMPilot.Datalink.Ivory.UART
+  exposed-modules:     SMACCMPilot.Datalink.Ivory
   build-depends:       base >= 4.6,
                        bytestring,
                        cereal,
@@ -25,13 +25,14 @@ library
                        ivory-artifact,
                        tower-config,
                        tower,
-                       ivory-bsp-stm32
+                       ivory-hxstream,
+                       smaccm-commsec
   hs-source-dirs:      src
   default-language:    Haskell2010
   ghc-options:         -Wall
 
-executable smaccm-datalink-ivory-test
-  main-is:             IvoryTest.hs
+executable smaccm-datalink-ivory-frameloopback-test
+  main-is:             IvoryFrameLoopback.hs
   hs-source-dirs:      test
   build-depends:       base,
                        ivory,
@@ -44,6 +45,8 @@ executable smaccm-datalink-ivory-test
                        ivory-bsp-stm32,
                        ivory-bsp-tests,
                        ivory-px4-tests,
-                       smaccm-commsec
+                       ivory-hxstream,
+                       smaccm-commsec,
+                       smaccm-datalink
   ghc-options:         -Wall
 
