@@ -1,7 +1,7 @@
 
 module Main where
 
-import Tower.Config
+import Ivory.Tower.Config
 import Ivory.Tower.Compile
 import Ivory.OS.FreeRTOS.Tower.STM32
 

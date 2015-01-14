@@ -9,7 +9,7 @@ module PX4.Tests.Platforms where
 
 import Ivory.Language
 import Ivory.Tower
-import Tower.Config
+import Ivory.Tower.Config
 
 import Data.Char (toUpper)
 
