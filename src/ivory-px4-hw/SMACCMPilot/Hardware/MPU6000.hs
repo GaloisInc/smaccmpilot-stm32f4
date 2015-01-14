@@ -1,9 +1,7 @@
 
 module SMACCMPilot.Hardware.MPU6000
-  ( initializerMachine
+  ( mpu6000SensorManager
   , module SMACCMPilot.Hardware.MPU6000.Types
-  , getSensorsReq
-  , rawSensorFromResponse
   ) where
 
 import SMACCMPilot.Hardware.MPU6000.SPI
