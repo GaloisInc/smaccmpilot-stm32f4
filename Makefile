@@ -1,12 +1,6 @@
 
 default: ivory-px4-tests
 
-.PHONY: ivory-hxstream
-ivory-hxstream:
-	make -C src/hx-stream/ivory create-sandbox
-	make -C src/hx-stream/ivory
-#	make -C src/hx-stream/ivory test
-
 .PHONY: ivory-px4-hw
 ivory-px4-hw:
 	make -C src/ivory-px4-hw create-sandbox
