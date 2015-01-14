@@ -1,9 +1,60 @@
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE TypeOperators #-}
+
 import Data.List
 import Ivory.Artifact
 import qualified Ivory.Compile.C.CmdlineFrontend as C (compile)
 import Ivory.Language
-import IvoryFilter
+import Numeric.Estimator.Model.Coordinate
+import Numeric.Estimator.Model.SensorFusion
 import qualified Paths_smaccm_ins as P
+import SMACCMPilot.INS.Ivory
+
+kalman_state :: MemArea (Struct "kalman_state")
+kalman_state = area "kalman_state" Nothing
+
+kalman_covariance :: MemArea (Struct "kalman_covariance")
+kalman_covariance = area "kalman_covariance" Nothing
+
+kalman_init :: Def ('[IDouble, IDouble, IDouble, IDouble, IDouble, IDouble, IDouble] :-> ())
+kalman_init = proc "kalman_init" $ \ accX accY accZ magX magY magZ pressure -> body $ do
+  let acc = xyz accX accY accZ
+  let mag = xyz magX magY magZ
+  kalmanInit (addrOf kalman_state) (addrOf kalman_covariance) acc mag pressure
+
+kalman_predict :: Def ('[IDouble, IDouble, IDouble, IDouble, IDouble, IDouble, IDouble] :-> ())
+kalman_predict = proc "kalman_predict" $ \ dt dax day daz dvx dvy dvz -> body $ do
+  let distVector = DisturbanceVector { disturbanceGyro = xyz dax day daz, disturbanceAccel = xyz dvx dvy dvz }
+  kalmanPredict (addrOf kalman_state) (addrOf kalman_covariance) dt distVector
+
+vel_measure :: Def ('[IDouble, IDouble, IDouble] :-> ())
+vel_measure = proc "vel_measure" $ \ velN velE velD -> body $ velMeasure (addrOf kalman_state) (addrOf kalman_covariance) $ ned velN velE velD
+
+pos_measure :: Def ('[IDouble, IDouble, IDouble] :-> ())
+pos_measure = proc "pos_measure" $ \ posN posE posD -> body $ posMeasure (addrOf kalman_state) (addrOf kalman_covariance) $ ned posN posE posD
+
+pressure_measure :: Def ('[IDouble] :-> ())
+pressure_measure = proc "pressure_measure" $ \ pressure -> body $ pressureMeasure (addrOf kalman_state) (addrOf kalman_covariance) pressure
+
+tas_measure :: Def ('[IDouble] :-> ())
+tas_measure = proc "tas_measure" $ \ tas -> body $ tasMeasure (addrOf kalman_state) (addrOf kalman_covariance) tas
+
+mag_measure :: Def ('[IDouble, IDouble, IDouble] :-> ())
+mag_measure = proc "mag_measure" $ \ magX magY magZ -> body $ magMeasure (addrOf kalman_state) (addrOf kalman_covariance) $ xyz magX magY magZ
+
+ins_module :: Module
+ins_module = package "smaccm_ins" $ do
+  defStruct (Proxy :: Proxy "kalman_state")
+  defStruct (Proxy :: Proxy "kalman_covariance")
+  defMemArea kalman_state
+  defMemArea kalman_covariance
+  incl kalman_init
+  incl kalman_predict
+  incl vel_measure
+  incl pos_measure
+  incl pressure_measure
+  incl tas_measure
+  incl mag_measure
 
 main :: IO ()
 main = C.compile modules artifacts

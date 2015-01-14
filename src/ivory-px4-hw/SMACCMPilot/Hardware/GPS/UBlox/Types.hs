@@ -17,7 +17,7 @@ module SMACCMPilot.Hardware.GPS.UBlox.Types
 import Ivory.Language
 
 newtype UBXState = UBXState Uint32
-  deriving (IvoryType, IvoryVar, IvoryExpr, IvoryEq, IvoryStore, IvoryInit)
+  deriving (IvoryType, IvoryVar, IvoryExpr, IvoryEq, IvoryStore, IvoryInit, IvoryZeroVal)
 
 instance IvorySizeOf (Stored UBXState) where
   sizeOfBytes _ = sizeOfBytes (Proxy :: Proxy (Stored Uint32))

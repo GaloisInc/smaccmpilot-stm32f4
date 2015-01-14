@@ -3,7 +3,7 @@
 {-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE TypeFamilies #-}
 
-module Simulate where
+module SMACCMPilot.INS.Simulate where
 
 import Control.Applicative
 import Control.Lens ((^.))

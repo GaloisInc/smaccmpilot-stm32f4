@@ -3,7 +3,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE QuasiQuotes #-}
 
-module IvoryFilter.Types where
+module SMACCMPilot.INS.Types where
 
 import Ivory.Language
 
