@@ -96,6 +96,7 @@ mpu6000SensorManager :: ChanInput  (Struct "spi_transaction_request")
                      -> Tower e ()
 mpu6000SensorManager req_chan res_chan sensorChan dev = do
   p <- period (Milliseconds 5) -- 200hz
+  (doStartChan, resetChan) <- channel
 
   monitor "mpu6kCtl" $ do
     retries <- state "retries"
@@ -103,7 +104,7 @@ mpu6000SensorManager req_chan res_chan sensorChan dev = do
     transactionPending <- state "transaction_pending"
     result <- state "result"
 
-    coroutineHandler res_chan $ do
+    coroutineHandler resetChan res_chan $ do
       reqEmitter <- emitter req_chan 1
       sensorEmitter <- emitter sensorChan 1
       return $ coroutine $ \ yield -> proc "mpu6000" $ body $ do
@@ -143,7 +144,10 @@ mpu6000SensorManager req_chan res_chan sensorChan dev = do
           rawSensorFromResponse (constRef res) result
           emit sensorEmitter $ constRef result
 
+    started <- state "started"
+
     handler p "period" $ do
+      doStart <- emitter doStartChan 1
       spiEmitter <- emitter req_chan 1
       sensorEmitter <- emitter sensorChan 1
       callback $ const $ do
@@ -154,6 +158,10 @@ mpu6000SensorManager req_chan res_chan sensorChan dev = do
               store (result ~> initfail) true
               invalidTransaction result
               emit sensorEmitter (constRef result)
+              alreadyStarted <- deref started
+              unless alreadyStarted $ do
+                emitV doStart true
+                store started true
           , isPending ==> do
               invalidTransaction result
               emit sensorEmitter (constRef result)
