@@ -14,7 +14,7 @@ module PX4.Tests.MPU6000
 import Ivory.Language
 import Ivory.Stdlib
 import Ivory.Serialize
-import qualified Ivory.HXStream as HX
+import qualified SMACCMPilot.Datalink.HXStream.Ivory as HX
 
 import Ivory.Tower
 import Ivory.Tower.StateMachine

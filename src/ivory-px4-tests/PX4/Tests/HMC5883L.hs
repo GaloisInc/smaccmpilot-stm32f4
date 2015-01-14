@@ -15,7 +15,7 @@ import Ivory.Tower.StateMachine
 
 import Ivory.BSP.STM32.Driver.I2C
 import Ivory.BSP.STM32.Driver.UART
-import qualified Ivory.HXStream as HX
+import qualified SMACCMPilot.Datalink.HXStream.Ivory as HX
 
 import SMACCMPilot.Hardware.HMC5883L
 

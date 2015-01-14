@@ -5,7 +5,7 @@
 import Data.List
 import Ivory.Artifact
 import qualified Ivory.Compile.C.CmdlineFrontend as C (compile)
-import Ivory.HXStream
+import SMACCMPilot.Datalink.HXStream.Ivory
 import Ivory.Language
 import Ivory.Serialize
 import Ivory.Stdlib

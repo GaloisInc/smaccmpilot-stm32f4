@@ -30,7 +30,7 @@ library
                        tower-freertos-stm32,
                        ivory-bsp-stm32,
                        ivory-bsp-tests,
-                       ivory-hxstream,
+                       smaccm-datalink,
                        ivory-serialize,
                        ivory-px4-hw
 
@@ -53,7 +53,7 @@ executable             copter-motor-test-gen
                        tower-freertos-stm32,
                        ivory-bsp-stm32,
                        ivory-px4-hw,
-                       ivory-hxstream,
+                       smaccm-datalink,
                        ivory-serialize,
                        ivory-px4-tests
 
@@ -76,7 +76,7 @@ executable             ublox-gps-test-gen
                        tower-freertos-stm32,
                        ivory-bsp-stm32,
                        ivory-px4-hw,
-                       ivory-hxstream,
+                       smaccm-datalink,
                        ivory-serialize,
                        ivory-px4-tests
 
@@ -99,7 +99,7 @@ executable             px4-mpu6k-test-gen
                        tower-freertos-stm32,
                        ivory-bsp-stm32,
                        ivory-px4-hw,
-                       ivory-hxstream,
+                       smaccm-datalink,
                        ivory-serialize,
                        ivory-px4-tests
 
@@ -122,7 +122,7 @@ executable             px4-ms5611-test-gen
                        tower-freertos-stm32,
                        ivory-bsp-stm32,
                        ivory-px4-hw,
-                       ivory-hxstream,
+                       smaccm-datalink,
                        ivory-serialize,
                        ivory-px4-tests
 
@@ -145,7 +145,7 @@ executable             px4-hmc5883l-test-gen
                        tower-freertos-stm32,
                        ivory-bsp-stm32,
                        ivory-px4-hw,
-                       ivory-hxstream,
+                       smaccm-datalink,
                        ivory-serialize,
                        ivory-px4-tests
 
@@ -168,7 +168,7 @@ executable             px4-all-sensors-test-gen
                        tower-freertos-stm32,
                        ivory-bsp-stm32,
                        ivory-px4-hw,
-                       ivory-hxstream,
+                       smaccm-datalink,
                        ivory-serialize,
                        ivory-px4-tests
 
@@ -182,7 +182,7 @@ executable             px4-sensors-monitor-gen
                        ivory,
                        ivory-artifact,
                        ivory-backend-c,
-                       ivory-hxstream,
+                       smaccm-datalink,
                        ivory-px4-hw,
                        ivory-serialize,
                        ivory-stdlib

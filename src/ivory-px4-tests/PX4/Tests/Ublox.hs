@@ -12,7 +12,7 @@ module PX4.Tests.Ublox
 
 import Ivory.Language
 import Ivory.Serialize
-import qualified Ivory.HXStream as HX
+import qualified SMACCMPilot.Datalink.HXStream.Ivory as HX
 
 import Ivory.Tower
 

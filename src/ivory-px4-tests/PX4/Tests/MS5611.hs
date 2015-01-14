@@ -9,7 +9,7 @@ module PX4.Tests.MS5611 (ms5611Sender, app) where
 
 import Ivory.Language
 import Ivory.Serialize
-import qualified Ivory.HXStream as HX
+import qualified SMACCMPilot.Datalink.HXStream.Ivory as HX
 
 import Ivory.Tower
 import Ivory.Tower.StateMachine
