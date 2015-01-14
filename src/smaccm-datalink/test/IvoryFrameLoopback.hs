@@ -10,7 +10,7 @@ import Ivory.Language
 import Ivory.Stdlib
 
 import Ivory.Tower
-import Tower.Config
+import Ivory.Tower.Config
 import Ivory.Tower.Compile
 import Ivory.OS.FreeRTOS.Tower.STM32
 

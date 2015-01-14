@@ -37,7 +37,7 @@ create-sandbox:
 	cabal sandbox add-source $(BSP_REPO)/ivory-bsp-tests
 	cabal sandbox add-source ../ivory-px4-hw
 	cabal sandbox add-source ../smaccm-commsec
-	cabal install --dependencies-only
+	cabal install --dependencies-only --max-backjumps=20000
 
 clean: smaccm-datalink-ivory-frameloopback-test-clean
 	-rm -rf dist

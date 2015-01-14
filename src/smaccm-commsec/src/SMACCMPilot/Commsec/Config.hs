@@ -6,7 +6,7 @@ module SMACCMPilot.Commsec.Config
   ) where
 
 import Data.Word
-import Tower.Config
+import Ivory.Tower.Config
 
 data Config = Config
   { encode_id :: Integer -- 0 - 15

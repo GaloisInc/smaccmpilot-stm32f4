@@ -3,6 +3,8 @@ IVORY_REPO ?= ../../../ivory
 TOWER_REPO ?= ../../../tower
 BSP_REPO ?= ../../../ivory-tower-stm32
 
+IVORY_FLAGS = --const-fold
+
 default:
 	cabal build
 
@@ -15,7 +17,7 @@ test: px4-copter-motor-test
 
 .PHONY: ublox-gps-test
 ublox-gps-test:
-	cabal run ublox-gps-test-gen -- --src-dir=ublox-gps-test
+	cabal run ublox-gps-test-gen -- --src-dir=ublox-gps-test $(IVORY_FLAGS)
 	make -C ublox-gps-test
 
 .PHONY: ublox-gps-test-clean
@@ -24,7 +26,7 @@ ublox-gps-test-clean:
 
 .PHONY: px4-mpu6k-test
 px4-mpu6k-test:
-	cabal run px4-mpu6k-test-gen -- --src-dir=px4-mpu6k-test
+	cabal run px4-mpu6k-test-gen -- --src-dir=px4-mpu6k-test $(IVORY_FLAGS)
 	make -C px4-mpu6k-test
 
 .PHONY: px4-mpu6k-test-clean
@@ -33,7 +35,7 @@ px4-mpu6k-test-clean:
 
 .PHONY: px4-ms5611-test
 px4-ms5611-test:
-	cabal run px4-ms5611-test-gen -- --src-dir=px4-ms5611-test
+	cabal run px4-ms5611-test-gen -- --src-dir=px4-ms5611-test $(IVORY_FLAGS)
 	make -C px4-ms5611-test
 
 .PHONY: px4-ms5611-test-clean
@@ -42,7 +44,7 @@ px4-ms5611-test-clean:
 
 .PHONY: px4-hmc5883l-test
 px4-hmc5883l-test:
-	cabal run px4-hmc5883l-test-gen -- --src-dir=px4-hmc5883l-test
+	cabal run px4-hmc5883l-test-gen -- --src-dir=px4-hmc5883l-test $(IVORY_FLAGS)
 	make -C px4-hmc5883l-test
 
 .PHONY: px4-hmc5883l-test-clean
@@ -51,7 +53,7 @@ px4-hmc5883l-test-clean:
 
 .PHONY: px4-all-sensors-test
 px4-all-sensors-test:
-	cabal run px4-all-sensors-test-gen -- --src-dir=px4-all-sensors-test
+	cabal run px4-all-sensors-test-gen -- --src-dir=px4-all-sensors-test $(IVORY_FLAGS)
 	make -C px4-all-sensors-test
 
 .PHONY: px4-all-sensors-test-clean
@@ -60,7 +62,7 @@ px4-all-sensors-test-clean:
 
 .PHONY: px4-copter-motor-test
 px4-copter-motor-test:
-	cabal run copter-motor-test-gen -- --src-dir=px4-copter-motor-test
+	cabal run copter-motor-test-gen -- --src-dir=px4-copter-motor-test $(IVORY_FLAGS)
 	make -C px4-copter-motor-test
 
 .PHONY: px4-copter-motor-test-clean
@@ -69,7 +71,7 @@ px4-copter-motor-test-clean:
 
 .PHONY: px4-sensors-monitor
 px4-sensors-monitor:
-	cabal run px4-sensors-monitor-gen -- --src-dir=px4-sensors-monitor --const-fold
+	cabal run px4-sensors-monitor-gen -- --src-dir=px4-sensors-monitor $(IVORY_FLAGS)
 	make -C px4-sensors-monitor
 
 .PHONY: px4-sensors-monitor-clean
