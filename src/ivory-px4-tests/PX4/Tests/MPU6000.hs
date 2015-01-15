@@ -31,8 +31,8 @@ app topx4 = do
   sample <- channel
   px4platform <- fmap topx4 getEnv
   let mpu6000 = px4platform_mpu6000_device px4platform
-  (req, res) <- spiTower tocc [mpu6000]
-  mpu6000SensorManager req res (fst sample) (SPIDeviceHandle 0)
+  (req, res, ready) <- spiTower tocc [mpu6000]
+  mpu6000SensorManager req res ready (fst sample) (SPIDeviceHandle 0)
 
   let u = BSP.testUART . BSP.testplatform_uart . px4platform_testplatform
   (_uarti, uarto) <- uartTower tocc (u px4platform) 115200 (Proxy :: Proxy 256)

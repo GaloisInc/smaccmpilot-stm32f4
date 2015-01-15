@@ -91,12 +91,12 @@ rawSensorFromResponse res r = do
 
 mpu6000SensorManager :: ChanInput  (Struct "spi_transaction_request")
                      -> ChanOutput (Struct "spi_transaction_result")
+                     -> ChanOutput (Stored ITime)
                      -> ChanInput  (Struct "mpu6000_sample")
                      -> SPIDeviceHandle
                      -> Tower e ()
-mpu6000SensorManager req_chan res_chan sensorChan dev = do
+mpu6000SensorManager req_chan res_chan resetChan sensorChan dev = do
   p <- period (Milliseconds 5) -- 200hz
-  (doStartChan, resetChan) <- channel
 
   monitor "mpu6kCtl" $ do
     retries <- state "retries"
@@ -144,10 +144,7 @@ mpu6000SensorManager req_chan res_chan sensorChan dev = do
           rawSensorFromResponse (constRef res) result
           emit sensorEmitter $ constRef result
 
-    started <- state "started"
-
     handler p "period" $ do
-      doStart <- emitter doStartChan 1
       spiEmitter <- emitter req_chan 1
       sensorEmitter <- emitter sensorChan 1
       callback $ const $ do
@@ -158,10 +155,6 @@ mpu6000SensorManager req_chan res_chan sensorChan dev = do
               store (result ~> initfail) true
               invalidTransaction result
               emit sensorEmitter (constRef result)
-              alreadyStarted <- deref started
-              unless alreadyStarted $ do
-                emitV doStart true
-                store started true
           , isPending ==> do
               invalidTransaction result
               emit sensorEmitter (constRef result)
