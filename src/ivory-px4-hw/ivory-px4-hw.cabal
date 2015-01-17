@@ -33,6 +33,8 @@ library
                        SMACCMPilot.Hardware.PX4FMU17,
                        SMACCMPilot.Hardware.PX4FMU17.MotorControl
 
+                       SMACCMPilot.Hardware.Sched
+
   build-depends:       base >= 4.6,
                        monadLib,
                        ivory,
