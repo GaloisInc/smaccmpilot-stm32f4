@@ -14,14 +14,31 @@ library
   exposed-modules:     SMACCMPilot.Datalink.HXStream.Ivory,
                        SMACCMPilot.Datalink.HXStream.Ivory.Types,
                        SMACCMPilot.Datalink.HXStream.Native,
-                       SMACCMPilot.Datalink.HXStream.Tower
+                       SMACCMPilot.Datalink.HXStream.Tower,
+                       SMACCMPilot.Datalink.Client,
+                       SMACCMPilot.Datalink.Client.Async,
+                       SMACCMPilot.Datalink.Client.ByteString,
+                       SMACCMPilot.Datalink.Client.Opts,
+                       SMACCMPilot.Datalink.Client.Console,
+                       SMACCMPilot.Datalink.Client.Monad,
+                       SMACCMPilot.Datalink.Client.Queue,
+                       SMACCMPilot.Datalink.Client.Serial
   build-depends:       base >= 4.6,
+                       async,
                        bytestring,
                        cereal,
                        cipher-aes,
                        crypto-cipher-types,
                        containers,
                        dlist,
+                       haskeline,
+                       monadLib,
+                       pipes,
+                       process,
+                       serial,
+                       stm,
+                       transformers,
+                       unix,
                        ivory,
                        ivory-hw,
                        ivory-serialize,
@@ -63,4 +80,13 @@ executable smaccm-datalink-native-serial-test
                         smaccm-datalink
   default-language:     Haskell2010
 
+
+executable smaccm-datalink-client
+
+  main-is:              Client.hs
+  hs-source-dirs:       test
+
+  build-depends:        base >= 4.6,
+                        smaccm-datalink
+  default-language:     Haskell2010
 
