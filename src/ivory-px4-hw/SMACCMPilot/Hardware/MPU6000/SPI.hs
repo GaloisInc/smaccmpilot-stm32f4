@@ -104,10 +104,10 @@ mpu6000SensorManager req_chan res_chan resetChan sensorChan dev = do
     transactionPending <- state "transaction_pending"
     result <- state "result"
 
-    coroutineHandler resetChan res_chan $ do
+    coroutineHandler resetChan res_chan "mpu6000" $ do
       reqEmitter <- emitter req_chan 1
       sensorEmitter <- emitter sensorChan 1
-      return $ coroutine $ \ yield -> proc "mpu6000" $ body $ do
+      return $ CoroutineBody $ \ yield -> do
         let rpc req = req >>= emit reqEmitter >> yield
 
         store retries (0 :: Uint8)

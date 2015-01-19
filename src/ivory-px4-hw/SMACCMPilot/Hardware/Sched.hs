@@ -90,12 +90,12 @@ schedule tasks ready reqChan resChan = do
     -- more pending tasks. Skip the ones we already checked this round to
     -- avoid starvation. Halt the coroutine when we don't find any more
     -- ready tasks, until a reset wakes us up again.
-    coroutineHandler resetChan resChan $ do
+    coroutineHandler resetChan resChan "round_robin" $ do
       sendReq <- emitter reqChan 1
       emitters <- forM states $ \ st -> do
         e <- emitter (taskRes $ taskBase st) 1
         return (st, e)
-      return $ coroutine $ \ yield -> proc "round_robin" $ body $ do
+      return $ CoroutineBody $ \ yield -> do
         forever $ do
           progress <- local $ ival false
           forM_ emitters $ \ (TaskState { .. }, e) -> do
