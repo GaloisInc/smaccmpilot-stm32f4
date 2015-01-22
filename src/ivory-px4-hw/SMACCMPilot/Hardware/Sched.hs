@@ -102,7 +102,8 @@ schedule tasks ready reqChan resChan = do
         cond_ $ do
           (TaskState { .. }, e) <- emitters
           return $ (current_task ==? taskId ==>) $ do
-            comment $ taskName taskBase ++ " result received"
+            was_pending <- deref taskPending
+            assert was_pending
             store taskPending false
             emit e res
         do_schedule sendReq
