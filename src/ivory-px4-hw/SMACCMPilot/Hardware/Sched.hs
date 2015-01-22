@@ -5,7 +5,7 @@ module SMACCMPilot.Hardware.Sched (
   Task, task, schedule
 ) where
 
-import Control.Monad (forM, forM_)
+import Control.Monad (forM)
 import Ivory.Language
 import Ivory.Stdlib
 import Ivory.Tower
@@ -27,6 +27,7 @@ task taskName = do
 
 data TaskState req res = TaskState
   { taskBase :: Task req res
+  , taskId :: Uint32
   , taskPending :: Ref Global (Stored IBool)
   , taskLastReq :: Ref Global req
   }
@@ -38,10 +39,8 @@ data TaskState req res = TaskState
 -- and the next waiting task's request is sent.
 --
 -- If multiple tasks have outstanding requests simultaneously, then this
--- component will round-robin between them to prevent starvation of any
--- task. It proceeds in the order that tasks are presented in the first
--- argument, so when coming out of idle, earlier tasks are higher
--- priority.
+-- component will choose the highest-priority task first. Earlier tasks
+-- in the list given to 'schedule' are given higher priority.
 schedule :: (IvoryArea req, IvoryZero req, IvoryArea res, IvoryZero res, IvoryArea ready, IvoryZero ready)
          => [Task req res]
          -> ChanOutput ready
@@ -49,67 +48,61 @@ schedule :: (IvoryArea req, IvoryZero req, IvoryArea res, IvoryZero res, IvoryAr
          -> ChanOutput res
          -> Tower e ()
 schedule tasks ready reqChan resChan = do
-  (doResetChan, resetChan) <- channel
-
   monitor "scheduler" $ do
-    -- The "running" state is used to suppress coroutine resets except
-    -- when the coroutine is idle. By initializing it to true, we prevent
-    -- the coroutine from forwarding any requests to the underlying bus
-    -- until we receive the "ready" signal. However, tasks can each queue
-    -- up a request beforehand if desired.
-    running <- stateInit "running" $ ival true
+    -- Task IDs are either an index into the list of tasks, or one of
+    -- two special values: 'no_task' or 'not_ready_task'.
+    let no_task = 0
+    let min_task = 1
+    let max_task = length tasks
+    let not_ready_task = maxBound
 
-    handler ready "ready" $ do
-      doReset <- emitter doResetChan 1
-      callback $ const $ emitV doReset true
+    response_task <- stateInit "response_task" $ ival not_ready_task
 
-    -- Queue up to 1 request per task, which can arrive in any order. Wake
-    -- up the coroutine if it's currently idle.
-    states <- forM tasks $ \ taskBase@Task { .. } -> do
+    -- Queue up to 1 request per task, which can arrive in any order.
+    states <- forM (zip (map fromIntegral [min_task..max_task]) tasks) $ \ (taskId, taskBase@Task { .. }) -> do
       taskPending <- state $ taskName ++ "_pending"
       taskLastReq <- state $ taskName ++ "_last_req"
 
       handler taskReq taskName $ do
-        doReset <- emitter doResetChan 1
+        sendReq <- emitter reqChan 1
         callback $ \ req -> do
           was_pending <- deref taskPending
           assert $ iNot was_pending
           refCopy taskLastReq req
           store taskPending true
 
-          was_running <- deref running
-          unless was_running $ do
-            store running true
-            emitV doReset true
+          current_task <- deref response_task
+          when (current_task ==? no_task) $ do
+            store response_task taskId
+            emit sendReq $ constRef taskLastReq
 
       return TaskState { .. }
 
-    -- Look for a task that's ready to send a request. Once we've picked
-    -- one, forward the request and wait for that response. Once the
-    -- response arrives, forward it to the same task and then check for
-    -- more pending tasks. Skip the ones we already checked this round to
-    -- avoid starvation. Halt the coroutine when we don't find any more
-    -- ready tasks, until a reset wakes us up again.
-    coroutineHandler resetChan resChan "round_robin" $ do
+    let do_schedule sendReq = do
+          conds <- forM states $ \ TaskState { .. } -> do
+            pend <- deref taskPending
+            return $ (pend ==>) $ do
+              emit sendReq $ constRef taskLastReq
+              store response_task taskId
+          cond_ (conds ++ [true ==> store response_task no_task])
+
+    handler ready "ready" $ do
+      sendReq <- emitter reqChan 1
+      callback $ const $ do_schedule sendReq
+
+    handler resChan "response" $ do
       sendReq <- emitter reqChan 1
       emitters <- forM states $ \ st -> do
         e <- emitter (taskRes $ taskBase st) 1
         return (st, e)
-      return $ CoroutineBody $ \ yield -> do
-        forever $ do
-          progress <- local $ ival false
-          forM_ emitters $ \ (TaskState { .. }, e) -> do
-            is_pending <- deref taskPending
-            when is_pending $ do
-              comment $ taskName taskBase ++ " sending request"
-              store progress true
-              emit sendReq $ constRef taskLastReq
-              res <- yield
-              comment $ taskName taskBase ++ " result received"
-              store taskPending false
-              emit e $ constRef res
-          comment "only keep looping as long as we sent at least one request in each iteration"
-          madeProgress <- deref progress
-          unless madeProgress breakOut
-        comment "nothing to do, so record that we need a reset on next request, and halt"
-        store running false
+      callback $ \ res -> do
+        current_task <- deref response_task
+        assert $ current_task >=? fromIntegral min_task
+        assert $ current_task <=? fromIntegral max_task
+        cond_ $ do
+          (TaskState { .. }, e) <- emitters
+          return $ (current_task ==? taskId ==>) $ do
+            comment $ taskName taskBase ++ " result received"
+            store taskPending false
+            emit e res
+        do_schedule sendReq
