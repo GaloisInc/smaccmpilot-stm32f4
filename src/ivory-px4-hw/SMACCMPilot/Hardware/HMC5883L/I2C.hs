@@ -28,6 +28,16 @@ regWriteRequest addr r v = fmap constRef $ local $ istruct
   , rx_len  .= ival 0
   ]
 
+hmc5883lctl :: ChanInput  (Struct "i2c_transaction_request")
+            -> ChanOutput (Struct "i2c_transaction_result")
+            -> I2CDeviceAddr
+            -> Tower e (ChanOutput (Struct "hmc5883l_sample"))
+hmc5883lctl toDriver fromDriver addr = do
+  samplechan <- channel
+  monitor "hmc5883lctl" $ do
+    driver <- testDriverMachine addr toDriver fromDriver (fst samplechan)
+    stateMachine_onChan driver fromDriver
+  return (snd samplechan)
 
 sensorSetup :: I2CDeviceAddr
             -> Ref Global (Stored IBool)
@@ -123,3 +133,23 @@ sensorRead i2caddr s req_chan res_evt next = mdo
     lo <- deref ((res ~> rx_buf) ! ixlo)
     assign $ safeCast (twosComplementCast ((safeCast hi `iShiftL` 8) .| safeCast lo) :: Sint16) / 1370.0
 
+testDriverMachine :: I2CDeviceAddr
+                  -> ChanInput  (Struct "i2c_transaction_request")
+                  -> ChanOutput (Struct "i2c_transaction_result")
+                  -> ChanInput  (Struct "hmc5883l_sample")
+                  -> Monitor e (StateMachine e)
+testDriverMachine addr i2cRequest i2cResult sampleChan = do
+  stateMachine "hmc5883lTestDriver" $ mdo
+    s     <- machineLocal "sample_buffer"
+    postinit <- machineStateNamed "postinit" $ timeout (Milliseconds 1) $
+      machineControl $ \_ -> return (goto setup)
+    setup <- sensorSetup addr (s ~> initfail) i2cRequest i2cResult read
+    read  <- sensorRead  addr s               i2cRequest i2cResult waitRead
+    waitRead <- machineStateNamed "waitRead" $ do
+      entry $ do
+        e <- machineEmitter sampleChan 1
+        machineCallback $ \_ -> (emit e (constRef s))
+      timeout (Milliseconds 13) $ -- XXX 75hz?
+        machineControl $ \_ -> return (goto read)
+
+    return postinit

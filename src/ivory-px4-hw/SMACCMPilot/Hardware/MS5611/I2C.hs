@@ -90,6 +90,24 @@ promRead i2caddr prom failure value req_chan res_evt next = mdo
     r <- deref (res ~> resultcode)
     when (r >? 0) (store failure true)
 
+ms5611ctl :: ChanInput  (Struct "i2c_transaction_request")
+          -> ChanOutput (Struct "i2c_transaction_result")
+          -> I2CDeviceAddr
+          -> Tower e (ChanOutput (Struct "ms5611_measurement"))
+ms5611ctl toDriver fromDriver addr = do
+  measurements <- channel
+  monitor "ms5611ctl" $ do
+
+    calibration <- state "calibration"
+    sample      <- state "sample"
+    meas        <- state "meas"
+
+    driver <- testDriverMachine addr toDriver fromDriver
+                calibration sample meas (meas ~> initfail)
+                (meas ~> sampfail) (fst measurements)
+    stateMachine_onChan driver fromDriver
+  return (snd measurements)
+
 sensorSetup :: I2CDeviceAddr
             -> Ref Global (Stored IBool)
             -> Ref Global (Struct "ms5611_calibration")
@@ -233,3 +251,26 @@ sensorSample addr failure sample req_chan res_evt next = mdo
     l <- deref ((resp ~> rx_buf) ! 2)
     assign ((safeCast h) * 65536 + (safeCast m) * 255 + (safeCast l))
 
+testDriverMachine :: I2CDeviceAddr
+                  -> ChanInput (Struct "i2c_transaction_request")
+                  -> ChanOutput (Struct "i2c_transaction_result")
+                  -> Ref Global (Struct "ms5611_calibration")
+                  -> Ref Global (Struct "ms5611_sample")
+                  -> Ref Global (Struct "ms5611_measurement")
+                  -> Ref Global (Stored IBool)
+                  -> Ref Global (Stored IBool)
+                  -> ChanInput (Struct "ms5611_measurement")
+                  -> Monitor e (StateMachine e)
+testDriverMachine addr i2cRequest i2cResult calibration sample meas ifail sfail mchan =
+  stateMachine "ms5611TestDriver" $ mdo
+    postinit <- machineStateNamed "postinit" $ timeout (Milliseconds 1) $
+      machineControl $ \_ -> return (goto setup)
+    setup <- sensorSetup  addr ifail calibration i2cRequest i2cResult read
+    read  <- sensorSample addr sfail sample      i2cRequest i2cResult m
+    m     <- machineStateNamed "ms5611_measurement" $ entry $ do
+      e <- machineEmitter mchan 1
+      machineControl $ \_ -> do
+        measurement (constRef calibration) (constRef sample) meas
+        emit e (constRef meas)
+        return $ goto read
+    return postinit
