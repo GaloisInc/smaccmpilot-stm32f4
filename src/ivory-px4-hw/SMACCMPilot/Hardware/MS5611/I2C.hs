@@ -164,7 +164,7 @@ sensorSample addr failure sample req_chan res_evt next = mdo
       return $ goto latchP
 
   latchP   <- machineStateNamed "latchPressure" $ do
-    timeout (Milliseconds 9) $ do
+    timeout (Milliseconds 10) $ do
       req_emitter <- machineEmitter req_chan 1
       machineCallback $ \_ -> do
         req <- commandRequest addr ADCRead
@@ -195,7 +195,7 @@ sensorSample addr failure sample req_chan res_evt next = mdo
       return $ goto latchT
 
   latchT   <- machineStateNamed "latchTemperature" $ do
-    timeout (Milliseconds 9) $ do
+    timeout (Milliseconds 10) $ do
       req_emitter <- machineEmitter req_chan 1
       machineCallback $ \_ -> do
         req <- commandRequest addr ADCRead
