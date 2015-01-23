@@ -15,6 +15,7 @@ module SMACCMPilot.Datalink.HXStream.Native
   , decodeByte
   , decode
   , encode
+  , Tag
   ) where
 
 import           Data.Bits
