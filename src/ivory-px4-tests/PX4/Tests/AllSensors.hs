@@ -18,16 +18,12 @@ import Ivory.BSP.STM32.Driver.SPI
 import Ivory.BSP.STM32.Driver.UART
 
 import SMACCMPilot.Hardware.Sched
+import SMACCMPilot.Hardware.GPS.UBlox
 
-import qualified SMACCMPilot.Hardware.MPU6000        as G
-import qualified SMACCMPilot.Hardware.MS5611         as M
-import qualified SMACCMPilot.Hardware.HMC5883L       as H
-import qualified SMACCMPilot.Hardware.GPS.UBlox      as U
-
-import           PX4.Tests.MPU6000  (mpu6000SensorManager, mpu6000Sender)
-import           PX4.Tests.MS5611   (ms5611Sender, ms5611ctl)
-import           PX4.Tests.HMC5883L (hmc5883lSender, hmc5883lctl)
-import           PX4.Tests.Ublox    (positionSender)
+import PX4.Tests.MPU6000  (mpu6000SensorManager, mpu6000Sender)
+import PX4.Tests.MS5611   (ms5611Sender, ms5611ctl)
+import PX4.Tests.HMC5883L (hmc5883lSender, hmc5883lctl)
+import PX4.Tests.Ublox    (positionSender)
 
 import qualified Ivory.BSP.STM32F405.Interrupt as F405
 import qualified BSP.Tests.Platforms as BSP
@@ -40,7 +36,7 @@ app topx4 = do
   (gpsi, _gpso) <- uartTower tocc gps
                                 38400 (Proxy :: Proxy 128)
   position <- channel
-  U.ubloxGPSTower gpsi (fst position)
+  ubloxGPSTower gpsi (fst position)
 
   let hmc = px4platform_hmc5883_device px4platform
   (ireq, ires, iready) <- i2cTower tocc
@@ -67,12 +63,6 @@ app topx4 = do
   towerDepends serializeModule
   towerModule  serializeModule
   mapM_ towerArtifact serializeArtifacts
-  towerModule  G.mpu6000TypesModule
-  towerDepends G.mpu6000TypesModule
-  towerModule  M.ms5611TypesModule
-  towerDepends M.ms5611TypesModule
-  towerModule  H.hmc5883lTypesModule
-  towerDepends H.hmc5883lTypesModule
   where
   tocc = BSP.testplatform_clockconfig . px4platform_testplatform . topx4
 

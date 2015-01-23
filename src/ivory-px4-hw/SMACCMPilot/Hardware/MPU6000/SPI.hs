@@ -96,6 +96,9 @@ mpu6000SensorManager :: ChanInput  (Struct "spi_transaction_request")
                      -> SPIDeviceHandle
                      -> Tower e ()
 mpu6000SensorManager req_chan res_chan resetChan sensorChan dev = do
+  towerModule  mpu6000TypesModule
+  towerDepends mpu6000TypesModule
+
   p <- period (Milliseconds 5) -- 200hz
 
   monitor "mpu6kCtl" $ do

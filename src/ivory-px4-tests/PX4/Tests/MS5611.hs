@@ -24,8 +24,6 @@ import PX4.Tests.Platforms
 
 app :: (e -> PX4Platform F405.Interrupt) -> Tower e ()
 app topx4 = do
-  towerModule  ms5611TypesModule
-  towerDepends ms5611TypesModule
   px4platform <- fmap topx4 getEnv
   let ms5611 = px4platform_ms5611_device px4platform
   (req, res, _ready) <- i2cTower tocc

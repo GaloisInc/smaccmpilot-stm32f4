@@ -25,8 +25,6 @@ import PX4.Tests.Platforms
 app :: (e -> PX4Platform F405.Interrupt) -> Tower e ()
 app topx4 = do
   px4platform <- fmap topx4 getEnv
-  towerModule  hmc5883lTypesModule
-  towerDepends hmc5883lTypesModule
 
   let hmc = px4platform_hmc5883_device px4platform
   (req, res, _ready) <- i2cTower tocc

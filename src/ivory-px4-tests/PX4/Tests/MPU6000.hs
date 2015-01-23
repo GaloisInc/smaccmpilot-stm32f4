@@ -42,8 +42,6 @@ app topx4 = do
   towerDepends serializeModule
   towerModule  serializeModule
   mapM_ towerArtifact serializeArtifacts
-  towerModule  mpu6000TypesModule
-  towerDepends mpu6000TypesModule
   where
   tocc = BSP.testplatform_clockconfig . px4platform_testplatform . topx4
 

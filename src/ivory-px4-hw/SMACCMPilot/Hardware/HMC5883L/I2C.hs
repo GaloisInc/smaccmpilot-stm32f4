@@ -33,6 +33,9 @@ hmc5883lctl :: ChanInput  (Struct "i2c_transaction_request")
             -> I2CDeviceAddr
             -> Tower e (ChanOutput (Struct "hmc5883l_sample"))
 hmc5883lctl toDriver fromDriver addr = do
+  towerModule  hmc5883lTypesModule
+  towerDepends hmc5883lTypesModule
+
   samplechan <- channel
   monitor "hmc5883lctl" $ do
     driver <- testDriverMachine addr toDriver fromDriver (fst samplechan)

@@ -95,6 +95,9 @@ ms5611ctl :: ChanInput  (Struct "i2c_transaction_request")
           -> I2CDeviceAddr
           -> Tower e (ChanOutput (Struct "ms5611_measurement"))
 ms5611ctl toDriver fromDriver addr = do
+  towerModule  ms5611TypesModule
+  towerDepends ms5611TypesModule
+
   measurements <- channel
   monitor "ms5611ctl" $ do
 
