@@ -5,13 +5,12 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleContexts #-}
 
-module PX4.Tests.HMC5883L (hmc5883lSender, app) where
+module PX4.Tests.HMC5883L (hmc5883lSender, hmc5883lctl, app) where
 
 import Ivory.Language
 import Ivory.Serialize
 
 import Ivory.Tower
-import Ivory.Tower.StateMachine
 
 import Ivory.BSP.STM32.Driver.I2C
 import Ivory.BSP.STM32.Driver.UART
@@ -30,7 +29,7 @@ app topx4 = do
   towerDepends hmc5883lTypesModule
 
   let hmc = px4platform_hmc5883_device px4platform
-  (req, res) <- i2cTower tocc
+  (req, res, _ready) <- i2cTower tocc
                          (hmc5883device_periph hmc)
                          (hmc5883device_sda    hmc)
                          (hmc5883device_scl    hmc)
@@ -61,37 +60,3 @@ hmc5883lSender samples ostream = do
       HX.encode tag (constRef buf) (emitV e)
   where
   tag = 99 -- 'c' for compass
-
-hmc5883lctl :: ChanInput  (Struct "i2c_transaction_request")
-            -> ChanOutput (Struct "i2c_transaction_result")
-            -> I2CDeviceAddr
-            -> Tower e (ChanOutput (Struct "hmc5883l_sample"))
-hmc5883lctl toDriver fromDriver addr = do
-  samplechan <- channel
-  monitor "hmc5883lctl" $ do
-    driver <- testDriverMachine addr toDriver fromDriver (fst samplechan)
-    stateMachine_onChan driver fromDriver
-  return (snd samplechan)
-
-testDriverMachine :: I2CDeviceAddr
-                  -> ChanInput  (Struct "i2c_transaction_request")
-                  -> ChanOutput (Struct "i2c_transaction_result")
-                  -> ChanInput  (Struct "hmc5883l_sample")
-                  -> Monitor e (StateMachine e)
-testDriverMachine addr i2cRequest i2cResult sampleChan = do
-  stateMachine "hmc5883lTestDriver" $ mdo
-    s     <- machineLocal "sample_buffer"
-    postinit <- machineStateNamed "postinit" $ timeout (Milliseconds 1) $
-      machineControl $ \_ -> return (goto setup)
-    setup <- sensorSetup addr (s ~> initfail) i2cRequest i2cResult read
-    read  <- sensorRead  addr s               i2cRequest i2cResult waitRead
-    waitRead <- machineStateNamed "waitRead" $ do
-      entry $ do
-        e <- machineEmitter sampleChan 1
-        machineCallback $ \_ -> (emit e (constRef s))
-      timeout (Milliseconds 13) $ -- XXX 75hz?
-        machineControl $ \_ -> return (goto read)
-
-    return postinit
-
-

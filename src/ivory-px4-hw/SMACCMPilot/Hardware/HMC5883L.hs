@@ -1,7 +1,6 @@
 
 module SMACCMPilot.Hardware.HMC5883L
-  ( sensorSetup
-  , sensorRead
+  ( hmc5883lctl
   , module SMACCMPilot.Hardware.HMC5883L.Types
   ) where
 
