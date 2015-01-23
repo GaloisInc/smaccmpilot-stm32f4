@@ -14,8 +14,6 @@ import MonadLib
 import Control.Applicative
 import Control.Monad.IO.Class
 
-import System.Console.Haskeline.MonadException
-
 import SMACCMPilot.Datalink.Client.Console
 
 --------------------------------------------------------------------------------

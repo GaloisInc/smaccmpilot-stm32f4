@@ -5,12 +5,12 @@ module SMACCMPilot.Datalink.Client.Console
   , consoleError
   , consoleDebug
   , newConsole
+  , getConsoleOutput
   , annotate
+  , consoleWithLogLevel
   ) where
 
-import System.IO
-import qualified Control.Concurrent            as C
-import           Control.Concurrent.STM.TQueue
+import           Control.Concurrent.STM.TVar
 import           Control.Monad
 import           Control.Monad.STM
 
@@ -20,8 +20,25 @@ data MsgTag = ErrorMsg
             | LogMsg
             | DebugMsg
 
-data Console = RealConsole (TQueue (MsgTag, String))
+type Impl = TVar [(MsgTag, String)]
+
+data Console = RealConsole Options Impl
              | AnnotatedConsole String Console
+
+consoleImpl :: Console -> Impl
+consoleImpl (RealConsole _ i) = i
+consoleImpl (AnnotatedConsole _ q) = consoleImpl q
+
+consoleOpts :: Console -> Options
+consoleOpts (RealConsole o _) = o
+consoleOpts (AnnotatedConsole _ q) = consoleOpts q
+
+consoleWithOpts :: Console -> Options -> Console
+consoleWithOpts (RealConsole _ i) o' = RealConsole o' i
+consoleWithOpts (AnnotatedConsole s c) o' = AnnotatedConsole s (consoleWithOpts c o')
+
+consoleWithLogLevel :: Console -> Integer -> Console
+consoleWithLogLevel c l = consoleWithOpts c (consoleOpts c) { logLevel = l }
 
 annotate :: Console -> String -> Console
 annotate c s = AnnotatedConsole (s ++ ": ") c
@@ -36,25 +53,31 @@ consoleDebug :: Console -> String -> IO ()
 consoleDebug console s = writeConsole console DebugMsg s
 
 writeConsole :: Console -> MsgTag -> String -> IO ()
-writeConsole (RealConsole q) t m = void $ atomically $ writeTQueue q (t,m)
+writeConsole (RealConsole _ q) t m = void $ atomically $ modifyTVar' q (\l -> (t,m):l)
 writeConsole (AnnotatedConsole s c) t m = writeConsole c t (s++m)
 
-newConsole :: Options -> Handle -> IO Console
-newConsole opts h = do
-  q <- newTQueueIO
-  _ <- C.forkIO $ printerThread q opts h
-  return $ RealConsole q
+newConsole :: Options -> IO Console
+newConsole opts = do
+  q <- newTVarIO []
+  return $ RealConsole opts q
 
-printerThread :: TQueue (MsgTag, String) -> Options -> Handle -> IO ()
-printerThread q opts h = forever $ do
-  (t, msg) <- atomically $ readTQueue q
-  case t of
-    ErrorMsg -> when (llevel > 0) $
-      hPutStrLn h ("ERR: " ++ msg)
-    LogMsg -> when (llevel > 1)   $
-      hPutStrLn h ("LOG: " ++ msg)
-    DebugMsg -> when (llevel > 2) $
-      hPutStrLn h ("DBG: " ++ msg)
+getConsoleOutput :: Console -> IO String
+getConsoleOutput c = do
+  ls <- atomically $ do
+          l <- readTVar q
+          writeTVar q []
+          return l
+  return (unlines (map showLog (filter p (reverse ls))))
   where
-  llevel = logLevel opts
+  q = consoleImpl c
+
+  llevel = logLevel (consoleOpts c)
+  p (ErrorMsg,_) = llevel > 0
+  p (LogMsg,_)   = llevel > 1
+  p (DebugMsg,_) = llevel > 2
+
+  showLog (t,msg) = case t of
+    ErrorMsg -> "ERR: " ++ msg
+    LogMsg ->  "LOG: " ++ msg
+    DebugMsg -> "DBG: " ++ msg
 

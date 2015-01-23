@@ -10,12 +10,10 @@ import SMACCMPilot.Datalink.Client.Console
 import SMACCMPilot.Datalink.Client.Monad
 
 asyncRun :: String -> IO () -> IO (A.Async ())
-asyncRun name act = A.async $ catch run c
+asyncRun name act = A.async $ catch act exit
   where
-  run = act >> exit "run complete"
-  exit msg = hPutStrLn stderr $ "asyncRun " ++ name ++ " exiting: " ++ msg
-  c :: SomeException -> IO ()
-  c x = exit ("exception: " ++ show x)
+  exit :: SomeException -> IO ()
+  exit x = hPutStrLn stderr $ "asyncRun " ++ name ++ " exception: " ++ (show x)
 
 asyncRunGW :: Console -> String -> GW () -> IO (A.Async ())
 asyncRunGW console name act = asyncRun name $ runGW (annotate console name) act

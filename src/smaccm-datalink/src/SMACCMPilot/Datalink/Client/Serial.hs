@@ -35,10 +35,12 @@ serialServer opts console fromser toser = case serPort opts of
   run port = void $ forkIO $ bracket (open port) hClose body
   open port = openSerial port (serBaud opts) 8 One NoParity NoFlowControl
   body h = do
+    hSetBuffering h NoBuffering
     i <- asyncRunGW console "serial input" $ liftIO $ forever $ do
       c <- hGetChar h
       queuePush fromser (c2w c)
-    o <- asyncRunGW console "serial output" $ liftIO $ forever $ do
+
+    _ <- asyncRunGW console "serial output" $ liftIO $ forever $ do
       bs <- queuePop toser
       B.hPutStr h bs
     wait i
