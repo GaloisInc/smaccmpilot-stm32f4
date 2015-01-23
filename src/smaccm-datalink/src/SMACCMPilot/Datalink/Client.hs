@@ -40,7 +40,7 @@ client opts = do
   serialServer opts console ser_in_push ser_out_pop
   _ <- asyncRunEffect console "serial in"
           $ popProducer ser_in_pop
-        >-> word8Log ""
+--        >-> word8Log ""
         >-> hxdecoder
         >-> frameLog
         >-> forever (await >> return ())
