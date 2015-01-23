@@ -18,33 +18,25 @@ import SMACCMPilot.Hardware.MS5611.Calibration (measurement)
 commandRequest :: (GetAlloc eff ~ Scope s)
            => I2CDeviceAddr
            -> Command
+           -> Ix 128
            -> Ivory eff (ConstRef (Stack s) (Struct "i2c_transaction_request"))
-commandRequest addr cmd = fmap constRef $ local $ istruct
+commandRequest addr cmd toRead = fmap constRef $ local $ istruct
   [ tx_addr .= ival addr
   , tx_buf  .= iarray [ ival (fromIntegral (commandVal cmd)) ]
   , tx_len  .= ival 1
-  , rx_len  .= ival 0
+  , rx_len  .= ival toRead
   ]
 
 promFetchRequest :: (GetAlloc eff ~ Scope s)
             => I2CDeviceAddr
+            -> PROM
             -> Ivory eff (ConstRef (Stack s) (Struct "i2c_transaction_request"))
-promFetchRequest addr = fmap constRef $ local $ istruct
-  [ tx_addr .= ival addr
-  , tx_buf  .= iarray []
-  , tx_len  .= ival 0
-  , rx_len  .= ival 2
-  ]
+promFetchRequest addr prom = commandRequest addr (PromRead prom) 2
 
 adcFetchRequest :: (GetAlloc eff ~ Scope s)
             => I2CDeviceAddr
             -> Ivory eff (ConstRef (Stack s) (Struct "i2c_transaction_request"))
-adcFetchRequest addr = fmap constRef $ local $ istruct
-  [ tx_addr .= ival addr
-  , tx_buf  .= iarray []
-  , tx_len  .= ival 0
-  , rx_len  .= ival 3
-  ]
+adcFetchRequest addr = commandRequest addr ADCRead 3
 
 promRead :: I2CDeviceAddr
          -> PROM
@@ -54,25 +46,13 @@ promRead :: I2CDeviceAddr
          -> ChanOutput (Struct "i2c_transaction_result")
          -> StateLabel
          -> MachineM p StateLabel
-promRead i2caddr prom failure value req_chan res_evt next = mdo
-  cmdReq <- machineStateNamed (named "cmdReq") $ do
-    entry $ do
-      req_emitter <- machineEmitter req_chan 1
-      machineCallback $ \_ -> do
-        -- send an i2c command to setup prom read
-        req <- commandRequest i2caddr (PromRead prom)
-        emit req_emitter req
-    on res_evt $ machineControl $ \res -> do
-      checki2csuccess res
-      -- continue to readreq state
-      return $ goto readReq
-
-  readReq <- machineStateNamed (named "readReq") $ do
+promRead i2caddr prom failure value req_chan res_evt next =
+  machineStateNamed (named "readReq") $ do
     entry $ do
       req_emitter <- machineEmitter req_chan 1
       machineCallback $ \_ -> do
         -- Read prom field
-        req <- promFetchRequest i2caddr
+        req <- promFetchRequest i2caddr prom
         emit req_emitter req
     on res_evt $ machineControl $ \res -> do
       checki2csuccess res
@@ -81,8 +61,6 @@ promRead i2caddr prom failure value req_chan res_evt next = mdo
       u16 <- assign $ ((safeCast hi) * 256) + safeCast lo
       store value u16
       return $ goto next
-
-  return cmdReq
   where
   named n = "prom" ++ show prom ++ n
   checki2csuccess :: ConstRef s (Struct "i2c_transaction_result") -> Ivory eff ()
@@ -121,7 +99,7 @@ sensorSetup addr failure calibration req_chan res_evt next = mdo
           req_emitter <- machineEmitter req_chan 1
           machineCallback $ \_ -> do
             store failure false
-            req <- commandRequest addr Reset
+            req <- commandRequest addr Reset 0
             emit req_emitter req
         on res_evt $ machineControl $ \res -> do
           check_failure res
@@ -175,24 +153,14 @@ sensorSample addr failure sample req_chan res_evt next = mdo
       req_emitter <- machineEmitter req_chan 1
       machineCallback $ \_ -> do
         store failure false
-        req <- commandRequest addr (ConvertD1 OSR4096)
-        emit req_emitter req
-    on res_evt $ machineControl $ \res -> do
-      check_sample_failure res
-      return $ goto latchP
-
-  latchP   <- machineStateNamed "latchPressure" $ do
-    timeout (Milliseconds 10) $ do
-      req_emitter <- machineEmitter req_chan 1
-      machineCallback $ \_ -> do
-        req <- commandRequest addr ADCRead
+        req <- commandRequest addr (ConvertD1 OSR4096) 0
         emit req_emitter req
     on res_evt $ machineControl $ \res -> do
       check_sample_failure res
       return $ goto readP
 
   readP    <- machineStateNamed "readPressure" $ do
-    entry $ do
+    timeout (Milliseconds 10) $ do
       req_emitter <- machineEmitter req_chan 1
       machineCallback $ \_ -> do
         req <- adcFetchRequest addr
@@ -206,24 +174,14 @@ sensorSample addr failure sample req_chan res_evt next = mdo
     entry $ do
       req_emitter <- machineEmitter req_chan 1
       machineCallback $ \_ -> do
-        req <- commandRequest addr (ConvertD2 OSR4096)
-        emit req_emitter req
-    on res_evt $ machineControl $ \res -> do
-      check_sample_failure res
-      return $ goto latchT
-
-  latchT   <- machineStateNamed "latchTemperature" $ do
-    timeout (Milliseconds 10) $ do
-      req_emitter <- machineEmitter req_chan 1
-      machineCallback $ \_ -> do
-        req <- commandRequest addr ADCRead
+        req <- commandRequest addr (ConvertD2 OSR4096) 0
         emit req_emitter req
     on res_evt $ machineControl $ \res -> do
       check_sample_failure res
       return $ goto readT
 
   readT    <- machineStateNamed "readTemperature" $ do
-    entry $ do
+    timeout (Milliseconds 10) $ do
       req_emitter <- machineEmitter req_chan 1
       machineCallback $ \_ -> do
         req <- adcFetchRequest addr
