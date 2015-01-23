@@ -90,6 +90,22 @@ sensorRead i2caddr s req_chan res_evt next = mdo
           [ tx_addr .= ival i2caddr
           , tx_buf  .= iarray [ ival (fromIntegral (regAddr OutXH)) ]
           , tx_len  .= ival 1
+          , rx_len  .= ival 0
+          ]
+        emit req_emitter req
+    on res_evt $ do
+      machineControl $ \res -> do
+        checki2csuccess res
+        return $ goto readPerform
+
+  readPerform <- machineStateNamed (named "read_perform") $ do
+    entry $ do
+      req_emitter <- machineEmitter req_chan 1
+      machineCallback $ \_ -> do
+        req <- fmap constRef $ local $ istruct
+          [ tx_addr .= ival i2caddr
+          , tx_buf  .= iarray []
+          , tx_len  .= ival 0
           , rx_len  .= ival 6
           ]
         emit req_emitter req
