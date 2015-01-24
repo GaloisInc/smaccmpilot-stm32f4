@@ -31,7 +31,7 @@ runProcessModel dt noise distNoise dist = do
     (ts, prior) <- get
     let speed = norm $ stateVel $ kalmanState prior
     let noise' = if speed < 4 then noise { stateWind = pure 0, stateMagNED = pure 0, stateMagXYZ = pure 0 } else noise
-    let KalmanFilter state' p' = augmentProcess (EKFProcess $ processModel $ auto dt) dist (kronecker noise') (kronecker distNoise) prior
+    let KalmanFilter state' p' = augmentProcess (EKFProcess $ processModel $ auto dt) dist (scaled noise') (scaled distNoise) prior
     set (ts, KalmanFilter (fixQuat state') p')
 
 runFusion :: (Monad m, Floating a, Ord a) => (a -> KalmanFilter StateVector a -> (a, a, KalmanFilter StateVector a)) -> a -> KalmanState m a (a, a)

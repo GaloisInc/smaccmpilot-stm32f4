@@ -76,7 +76,7 @@ kalmanPredict state_ptr cov_ptr dt distVector = do
   onGround <- assign $ speed <? 4
   let whenFlying v = onGround ? (v, 0)
   let noise = (pure id) { stateWind = pure whenFlying, stateMagNED = pure whenFlying, stateMagXYZ = pure whenFlying } <*> processNoise dt
-  let KalmanFilter stateVector' covariance' = augmentProcess (EKFProcess $ processModel $ auto dt) distVector (kronecker noise) (kronecker distCovariance) $ KalmanFilter stateVectorTemp pTemp
+  let KalmanFilter stateVector' covariance' = augmentProcess (EKFProcess $ processModel $ auto dt) distVector (scaled noise) (scaled distCovariance) $ KalmanFilter stateVectorTemp pTemp
   storeRow stateVector $ fixQuat stateVector'
   sequence_ $ liftA2 storeRow covariance covariance'
 
