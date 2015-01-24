@@ -13,6 +13,9 @@ defaults = {
     'rtscts': False,
     'xonxoff': False }
 
+def display_numeric_list(l):
+    return ' '.join('{0:9.4f}'.format(x) for x in l)
+
 class Barometer(object):
     def __init__(self, binary):
         self.binary = binary
@@ -51,6 +54,29 @@ class Compass(object):
             return self.errormsg
         return ("Compass ifail %d sfail %d x % 9.4f y % 9.4f z % 9.4f micros %d" %
             (self.ifail, self.sfail, self.x, self.y, self.z, self.t))
+
+class Fusion(object):
+    def __init__(self, binary):
+        self.binary = binary
+        try:
+            fields = struct.unpack("<22d", binary)
+            self.orient = fields[0:4]
+            self.vel = fields[4:7]
+            self.pos = fields[7:10]
+            self.gyro_bias = fields[10:13]
+            self.wind = fields[13:16]
+            self.mag_ned = fields[16:19]
+            self.mag_xyz = fields[19:22]
+            self.errormsg = None
+        except Exception:
+            self.errormsg = ("Fusion: bad size %d" % (len(binary)))
+    def display(self):
+        if self.errormsg:
+            return self.errormsg
+        return "Fusion " + ' '.join(
+            field + " " + display_numeric_list(getattr(self, field))
+            for field in ('orient', 'vel', 'pos', 'gyro_bias', 'wind', 'mag_ned', 'mag_xyz')
+        )
 
 class Gyro(object):
     def __init__(self, binary):
@@ -121,6 +147,8 @@ class SensorParser(object):
                 sensors.append(Barometer(payload))
             if t == 99: # 'c' compass
                 sensors.append(Compass(payload))
+            if t == 102: # 'f' fusion
+                sensors.append(Fusion(payload))
             if t == 103: # 'g' gyro
                 sensors.append(Gyro(payload))
             if t == 112: # 'p' position

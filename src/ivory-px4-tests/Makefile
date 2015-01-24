@@ -14,6 +14,7 @@ test: px4-ms5611-test
 test: px4-hmc5883l-test
 test: px4-all-sensors-test
 test: px4-copter-motor-test
+test: px4-sensor-fusion-test
 
 .PHONY: ublox-gps-test
 ublox-gps-test:
@@ -69,6 +70,15 @@ px4-copter-motor-test:
 px4-copter-motor-test-clean:
 	-rm -rf px4-copter-motor-test
 
+.PHONY: px4-sensor-fusion-test
+px4-sensor-fusion-test:
+	cabal run px4-sensor-fusion-test-gen -- --src-dir=px4-sensor-fusion-test $(IVORY_FLAGS)
+	make -C px4-sensor-fusion-test
+
+.PHONY: px4-sensor-fusion-test-clean
+px4-sensor-fusion-test-clean:
+	-rm -rf px4-sensor-fusion-test
+
 .PHONY: px4-sensors-monitor
 px4-sensors-monitor:
 	cabal run px4-sensors-monitor-gen -- --src-dir=px4-sensors-monitor $(IVORY_FLAGS)
@@ -97,6 +107,7 @@ create-sandbox:
 	cabal sandbox add-source $(BSP_REPO)/ivory-bsp-tests
 	cabal sandbox add-source ../smaccm-commsec
 	cabal sandbox add-source ../smaccm-datalink
+	cabal sandbox add-source ../smaccm-ins
 	cabal sandbox add-source ../ivory-px4-hw
 	cabal install --dependencies-only
 
