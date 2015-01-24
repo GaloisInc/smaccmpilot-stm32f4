@@ -23,6 +23,7 @@ library
                        estimator == 1.0.*,
                        ivory >=0.1,
                        ivory-px4-hw >=0.1,
+                       ivory-serialize >=0.1,
                        ivory-stdlib >=0.1,
                        lens >=4.6,
                        linear >=1.16 && <1.17,
