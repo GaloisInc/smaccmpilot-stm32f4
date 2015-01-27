@@ -3,6 +3,7 @@ module SMACCMPilot.Datalink.Client.Queue
   , Pushable
   , newQueue
   , queuePop
+  , queueTryPop
   , queuePush
   , forkPop
   , popProducer
@@ -32,6 +33,14 @@ forkPop q = do
 
 queuePop :: Poppable a -> IO a
 queuePop q = atomically (readTQueue (unPoppable q))
+
+queueTryPop :: Poppable a -> IO (Maybe a)
+queueTryPop q = atomically $ do
+  e <- isEmptyTQueue tq
+  case e of
+    True -> return Nothing
+    False -> fmap Just (readTQueue tq)
+  where tq = unPoppable q
 
 queuePush :: Pushable a -> a -> IO ()
 queuePush q v = void (atomically (writeTQueue (unPushable q) v))

@@ -22,7 +22,9 @@ library
                        SMACCMPilot.Datalink.Client.Console,
                        SMACCMPilot.Datalink.Client.Monad,
                        SMACCMPilot.Datalink.Client.Queue,
-                       SMACCMPilot.Datalink.Client.Serial
+                       SMACCMPilot.Datalink.Client.Pipes,
+                       SMACCMPilot.Datalink.Client.Serial,
+                       SMACCMPilot.Datalink.Client.Repl
   build-depends:       base >= 4.6,
                        async,
                        bytestring,
@@ -35,6 +37,7 @@ library
                        monadLib,
                        pipes,
                        process,
+                       random,
                        serial,
                        stm,
                        transformers,
@@ -81,9 +84,27 @@ executable smaccm-datalink-native-serial-test
   default-language:     Haskell2010
 
 
-executable smaccm-datalink-client
+executable smaccm-datalink-native-frameloopback-client
 
-  main-is:              Client.hs
+  main-is:              FrameLoopbackClient.hs
+  hs-source-dirs:       test
+
+  build-depends:        base >= 4.6,
+                        smaccm-datalink
+  default-language:     Haskell2010
+
+executable smaccm-datalink-native-commsecloopback-client
+
+  main-is:              CommsecLoopbackClient.hs
+  hs-source-dirs:       test
+
+  build-depends:        base >= 4.6,
+                        smaccm-datalink
+  default-language:     Haskell2010
+
+executable smaccm-datalink-repl
+
+  main-is:              Repl.hs
   hs-source-dirs:       test
 
   build-depends:        base >= 4.6,
