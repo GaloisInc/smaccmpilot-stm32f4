@@ -71,6 +71,23 @@ executable smaccm-datalink-ivory-frameloopback-test-gen
                        smaccm-datalink
   ghc-options:         -Wall
 
+executable smaccm-datalink-ivory-commsecloopback-test-gen
+  main-is:             IvoryCommsecLoopback.hs
+  hs-source-dirs:      test
+  build-depends:       base,
+                       ivory,
+                       ivory-stdlib,
+                       ivory-artifact,
+                       ivory-backend-c,
+                       tower,
+                       tower-config,
+                       tower-freertos-stm32,
+                       ivory-bsp-stm32,
+                       ivory-bsp-tests,
+                       smaccm-commsec,
+                       smaccm-datalink
+  ghc-options:         -Wall
+
 executable smaccm-datalink-native-serial-test
 
   main-is:              NativeSerial.hs

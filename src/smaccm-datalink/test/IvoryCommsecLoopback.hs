@@ -20,7 +20,9 @@ import Ivory.BSP.STM32.Driver.RingBuffer
 import qualified Ivory.BSP.STM32F405.Interrupt as F405
 import qualified BSP.Tests.Platforms as BSP
 
+import SMACCMPilot.Commsec.Config
 import SMACCMPilot.Commsec.Sizes
+import SMACCMPilot.Commsec.Tower
 import SMACCMPilot.Datalink.HXStream.Tower
 import SMACCMPilot.Datalink.HXStream.Ivory (hxstreamModule)
 
@@ -45,21 +47,23 @@ frame_loopback :: ChanInput (Stored Uint8)
                -> ChanOutput (Stored Uint8)
                -> Tower p ()
 frame_loopback o i = do
-  ctin <- channel
-  ctout <- channel
-  hxstreamDecodeTower "test" i (fst ctin)
-  hxstreamEncodeTower "test" (snd ctout) o
+  ct_buf_in <- channel
+  ct_buf_out <- channel
+  hxstreamDecodeTower "test" i (fst ct_buf_in)
+  pt_out <- commsecDecodeTower "test" trivial_key (snd ct_buf_out)
+  ct_out <- commsecEncodeTower "test" trivial_key 1 pt_out
+  hxstreamEncodeTower "test" ct_out o
 
   p <- period (Milliseconds 10)
 
   monitor "buffered_ctloopback" $ do
     (rb :: RingBuffer 4 CyphertextArray) <- monitorRingBuffer "loopback"
-    handler (snd ctin) "ct_in" $ do
+    handler (snd ct_buf_in) "ct_in" $ do
       callback $ \v -> do
         _ <- ringbuffer_push rb v
         return ()
     handler p "periodic_pop" $ do
-      e <- emitter (fst ctout) 1
+      e <- emitter (fst ct_buf_out) 1
       callback $ \_ -> do
         v <- local (iarray [])
         got <- ringbuffer_pop rb v
@@ -67,4 +71,7 @@ frame_loopback o i = do
           emit e (constRef v)
 
   towerModule $ hxstreamModule
+  commsecTowerDeps
 
+  where
+  trivial_key = KeySalt { ks_key = take 16 [1..], ks_salt = 0xdeadbeef }

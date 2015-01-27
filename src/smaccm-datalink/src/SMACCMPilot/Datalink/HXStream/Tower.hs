@@ -1,8 +1,8 @@
 {-# LANGUAGE DataKinds #-}
 
 module SMACCMPilot.Datalink.HXStream.Tower
-  ( encodeTower
-  , decodeTower
+  ( hxstreamEncodeTower
+  , hxstreamDecodeTower
   ) where
 
 import Ivory.Language
@@ -15,22 +15,22 @@ import SMACCMPilot.Commsec.Sizes
 airDataTag :: H.Tag
 airDataTag = 0
 
-encodeTower :: String
-            -> ChanOutput CyphertextArray
-            -> ChanInput  (Stored Uint8)
-            -> Tower e ()
-encodeTower n ct_chan serial_chan = monitor (n ++ "_datalink_encode") $ do
+hxstreamEncodeTower :: String
+                    -> ChanOutput CyphertextArray
+                    -> ChanInput  (Stored Uint8)
+                    -> Tower e ()
+hxstreamEncodeTower n ct_chan serial_chan = monitor (n ++ "_datalink_encode") $ do
   monitorModuleDef $ depend H.hxstreamModule
   handler ct_chan "encoder_ct_in" $ do
     e <- emitter serial_chan (2*cyphertextSize + 3)
     callback $ \ct -> do
       H.encode airDataTag ct (emitV e)
 
-decodeTower :: String
-              -> ChanOutput (Stored Uint8)
-              -> ChanInput  CyphertextArray
-              -> Tower e ()
-decodeTower n serial_chan ct_chan = monitor (n ++ "_datalink_decode") $ do
+hxstreamDecodeTower :: String
+                    -> ChanOutput (Stored Uint8)
+                    -> ChanInput  CyphertextArray
+                    -> Tower e ()
+hxstreamDecodeTower n serial_chan ct_chan = monitor (n ++ "_datalink_decode") $ do
   monitorModuleDef $ depend H.hxstreamModule
   hx <- stateInit "hx_decoder" H.initStreamState
   a <- airDataHandler
