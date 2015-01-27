@@ -24,7 +24,7 @@ accel sample = fmap (fmap safeCast) $ mapM deref $ fmap (sample ~>) $ xyz MPU600
 gyro :: SafeCast IFloat to => ConstRef s (Struct "mpu6000_sample") -> Ivory eff (XYZ to)
 gyro sample = fmap (fmap safeCast) $ mapM deref $ fmap (sample ~>) $ xyz MPU6000.gyro_x MPU6000.gyro_y MPU6000.gyro_z
 
-kalman_predict :: Def ('[Ref s1 (Struct "kalman_state"), Ref s2 (Struct "kalman_covariance"), IDouble, ConstRef s3 (Struct "mpu6000_sample")] :-> ())
+kalman_predict :: Def ('[Ref s1 (Struct "kalman_state"), Ref s2 (Struct "kalman_covariance"), IFloat, ConstRef s3 (Struct "mpu6000_sample")] :-> ())
 kalman_predict = proc "kalman_predict" $ \ state_vector covariance dt last_gyro -> body $ do
   distVector <- DisturbanceVector <$> gyro last_gyro <*> accel last_gyro
   kalmanPredict state_vector covariance dt distVector
@@ -100,7 +100,7 @@ sensorFusion gyroSource magSource baroSource _gpsSource = do
             (do
               last_time <- deref last_predict
               now <- deref $ last_gyro ~> MPU6000.time
-              let dt = safeCast (toIMicroseconds (now - last_time)) * 1.0e-6
+              let dt = safeCast (castDefault (toIMicroseconds (now - last_time)) :: Sint32) * 1.0e-6
               call_ kalman_predict state_vector covariance dt $ constRef last_gyro
               store last_predict now
               emit stateEmit $ constRef state_vector

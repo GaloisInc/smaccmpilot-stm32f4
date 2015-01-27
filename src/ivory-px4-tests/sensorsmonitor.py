@@ -59,7 +59,7 @@ class Fusion(object):
     def __init__(self, binary):
         self.binary = binary
         try:
-            fields = struct.unpack("<22d", binary)
+            fields = struct.unpack("<22f", binary)
             self.orient = fields[0:4]
             self.vel = fields[4:7]
             self.pos = fields[7:10]

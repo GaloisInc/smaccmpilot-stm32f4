@@ -58,9 +58,9 @@ app topx4 = do
     last_state <- state "last_state"
     handler states "buffer_state" $ callback $ refCopy last_state
 
-    (buf :: Ref Global (Array 176 (Stored Uint8))) <- state "state_ser_buf"
+    (buf :: Ref Global (Array 88 (Stored Uint8))) <- state "state_ser_buf"
     handler p "send_state" $ do
-      e <- emitter uartout (2 * 176 + 3) -- twice buf size plus tag and two fbos
+      e <- emitter uartout (2 * 88 + 3) -- twice buf size plus tag and two fbos
       callback $ const $ noReturn $ do
         packInto_ buf 0 $ mpack $ constRef last_state
         let tag = 102 -- 'f' for fusion

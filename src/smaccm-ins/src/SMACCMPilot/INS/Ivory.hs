@@ -26,13 +26,13 @@ import SMACCMPilot.INS.Parameters
 import SMACCMPilot.INS.Simulate
 import SMACCMPilot.INS.Types
 
-instance HasAtan2 IDouble where
+instance HasAtan2 IFloat where
   arctan2 = atan2F
 
 vec3FromArray :: IvoryArea v => V3 ((Ref s t -> Ref s (Array 3 v)) -> Ref s t -> Ref s v)
 vec3FromArray = V3 ((! 0) .) ((! 1) .) ((! 2) .)
 
-stateVectorFromStruct :: Ref s (Struct "kalman_state") -> StateVector (Ref s (Stored IDouble))
+stateVectorFromStruct :: Ref s (Struct "kalman_state") -> StateVector (Ref s (Stored IFloat))
 stateVectorFromStruct s = StateVector
   { stateOrient = Quaternion ((! 0) .) (V3 ((! 1) .) ((! 2) .) ((! 3) .)) <*> pure (~> orient)
   , stateVel = NED vec3FromArray <*> pure (~> vel)
@@ -43,7 +43,7 @@ stateVectorFromStruct s = StateVector
   , stateMagXYZ = XYZ vec3FromArray <*> pure (~> mag_xyz)
   } <*> pure s
 
-covarianceFromStruct :: Ref s (Struct "kalman_covariance") -> StateVector (StateVector (Ref s (Stored IDouble)))
+covarianceFromStruct :: Ref s (Struct "kalman_covariance") -> StateVector (StateVector (Ref s (Stored IFloat)))
 covarianceFromStruct s = stateVectorFromStruct <$> (StateVector
   { stateOrient = Quaternion ((! 0) .) (V3 ((! 1) .) ((! 2) .) ((! 3) .)) <*> pure (~> cov_orient)
   , stateVel = NED vec3FromArray <*> pure (~> cov_vel)
@@ -57,7 +57,7 @@ covarianceFromStruct s = stateVectorFromStruct <$> (StateVector
 storeRow :: (Applicative f, Foldable f, IvoryStore a, IvoryExpr a) => f (Ref s (Stored a)) -> f a -> Ivory eff ()
 storeRow vars vals = sequence_ $ liftA2 store vars vals
 
-kalmanInit :: Ref s1 (Struct "kalman_state") -> Ref s2 (Struct "kalman_covariance") -> XYZ IDouble -> XYZ IDouble -> IDouble -> Ivory eff ()
+kalmanInit :: Ref s1 (Struct "kalman_state") -> Ref s2 (Struct "kalman_covariance") -> XYZ IFloat -> XYZ IFloat -> IFloat -> Ivory eff ()
 kalmanInit state_ptr cov_ptr acc mag pressure = do
   let stateVector = stateVectorFromStruct state_ptr
   let covariance = covarianceFromStruct cov_ptr
@@ -66,7 +66,7 @@ kalmanInit state_ptr cov_ptr acc mag pressure = do
   storeRow stateVector initialState
   sequence_ $ liftA2 storeRow covariance initCovariance
 
-kalmanPredict :: Ref s1 (Struct "kalman_state") -> Ref s2 (Struct "kalman_covariance") -> IDouble -> DisturbanceVector IDouble -> Ivory eff ()
+kalmanPredict :: Ref s1 (Struct "kalman_state") -> Ref s2 (Struct "kalman_covariance") -> IFloat -> DisturbanceVector IFloat -> Ivory eff ()
 kalmanPredict state_ptr cov_ptr dt distVector = do
   let stateVector = stateVectorFromStruct state_ptr
   let covariance = covarianceFromStruct cov_ptr
@@ -80,7 +80,7 @@ kalmanPredict state_ptr cov_ptr dt distVector = do
   storeRow stateVector $ fixQuat stateVector'
   sequence_ $ liftA2 storeRow covariance covariance'
 
-applyUpdate :: Ref s1 (Struct "kalman_state") -> Ref s2 (Struct "kalman_covariance") -> IDouble -> (KalmanFilter StateVector IDouble -> (IDouble, IDouble, KalmanFilter StateVector IDouble)) -> Ivory eff ()
+applyUpdate :: Ref s1 (Struct "kalman_state") -> Ref s2 (Struct "kalman_covariance") -> IFloat -> (KalmanFilter StateVector IFloat -> (IFloat, IFloat, KalmanFilter StateVector IFloat)) -> Ivory eff ()
 applyUpdate state_ptr cov_ptr cov fusionStep = do
     let stateVector = stateVectorFromStruct state_ptr
     let covariance = covarianceFromStruct cov_ptr
@@ -106,17 +106,17 @@ applyUpdate state_ptr cov_ptr cov fusionStep = do
           save stateMagNED
           save stateMagXYZ
 
-velMeasure :: Ref s1 (Struct "kalman_state") -> Ref s2 (Struct "kalman_covariance") -> NED IDouble -> Ivory eff ()
+velMeasure :: Ref s1 (Struct "kalman_state") -> Ref s2 (Struct "kalman_covariance") -> NED IFloat -> Ivory eff ()
 velMeasure state_ptr cov_ptr velVec = sequence_ $ applyUpdate state_ptr cov_ptr <$> velNoise <*> (fuseVel <*> velNoise <*> velVec)
 
-posMeasure :: Ref s1 (Struct "kalman_state") -> Ref s2 (Struct "kalman_covariance") -> NED IDouble -> Ivory eff ()
+posMeasure :: Ref s1 (Struct "kalman_state") -> Ref s2 (Struct "kalman_covariance") -> NED IFloat -> Ivory eff ()
 posMeasure state_ptr cov_ptr posVec = sequence_ $ applyUpdate state_ptr cov_ptr <$> posNoise <*> (fusePos <*> posNoise <*> posVec)
 
-pressureMeasure :: Ref s1 (Struct "kalman_state") -> Ref s2 (Struct "kalman_covariance") -> IDouble -> Ivory eff ()
+pressureMeasure :: Ref s1 (Struct "kalman_state") -> Ref s2 (Struct "kalman_covariance") -> IFloat -> Ivory eff ()
 pressureMeasure state_ptr cov_ptr pressure = applyUpdate state_ptr cov_ptr pressureNoise $ fusePressure pressureNoise pressure
 
-tasMeasure :: Ref s1 (Struct "kalman_state") -> Ref s2 (Struct "kalman_covariance") -> IDouble -> Ivory eff ()
+tasMeasure :: Ref s1 (Struct "kalman_state") -> Ref s2 (Struct "kalman_covariance") -> IFloat -> Ivory eff ()
 tasMeasure state_ptr cov_ptr tas = applyUpdate state_ptr cov_ptr tasNoise $ fuseTAS tasNoise tas
 
-magMeasure :: Ref s1 (Struct "kalman_state") -> Ref s2 (Struct "kalman_covariance") -> XYZ IDouble -> Ivory eff ()
+magMeasure :: Ref s1 (Struct "kalman_state") -> Ref s2 (Struct "kalman_covariance") -> XYZ IFloat -> Ivory eff ()
 magMeasure state_ptr cov_ptr mag = sequence_ $ applyUpdate state_ptr cov_ptr <$> magNoise <*> (fuseMag <*> magNoise <*> mag)
