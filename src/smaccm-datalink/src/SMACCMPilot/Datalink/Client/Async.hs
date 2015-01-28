@@ -1,5 +1,10 @@
 
-module SMACCMPilot.Datalink.Client.Async where
+module SMACCMPilot.Datalink.Client.Async
+  ( asyncRun
+  , asyncRunGW
+  , asyncRunEffect
+  , A.wait
+  ) where
 
 import           Control.Exception
 import qualified Control.Concurrent.Async        as A

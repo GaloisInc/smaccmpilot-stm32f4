@@ -1,127 +1,142 @@
 
 module SMACCMPilot.Datalink.Client where
 
-import qualified Data.ByteString.Char8 as B
-import           Data.ByteString.Char8 (ByteString)
-import           Data.Word
-import           Text.Printf
-
-import           Control.Monad
-import           Control.Concurrent (threadDelay)
-import           Pipes
-
-import System.Console.Haskeline
+import Control.Monad
+import Control.Concurrent (threadDelay)
+import Text.Printf
+import Pipes
+import System.Random
+import System.IO
+import System.Exit
 
 import SMACCMPilot.Datalink.Client.Async
 import SMACCMPilot.Datalink.Client.Opts
 import SMACCMPilot.Datalink.Client.Console
 import SMACCMPilot.Datalink.Client.Queue
 import SMACCMPilot.Datalink.Client.Serial
-import SMACCMPilot.Datalink.Client.Monad
+import SMACCMPilot.Datalink.Client.Pipes
 import SMACCMPilot.Datalink.Client.ByteString
 
-import SMACCMPilot.Datalink.HXStream.Native
+import Data.ByteString.Char8 (ByteString)
+import qualified Data.ByteString.Char8 as B
 import SMACCMPilot.Commsec.Sizes
+import SMACCMPilot.Commsec.Config
 
-
-data ReplCmd
-  = SendRaw ByteString
-  | SendHXFrame  Word8 ByteString
-  | SendAirCyphertext ByteString
-
-client :: Options -> IO ()
-client opts = do
+frameLoopbackClient :: Options -> IO ()
+frameLoopbackClient opts = do
   console <- newConsole opts
 
   (ser_out_push, ser_out_pop) <- newQueue
   (ser_in_push, ser_in_pop)   <- newQueue
 
-
   serialServer opts console ser_in_push ser_out_pop
+
+  (out_frame_push, out_frame_pop) <- newQueue
+  (in_frame_push, in_frame_pop) <- newQueue
+
   _ <- asyncRunEffect console "serial in"
           $ popProducer ser_in_pop
---        >-> word8Log ""
-        >-> hxdecoder
+        >-> hxDecoder
         >-> frameLog
-        >-> forever (await >> return ())
+        >-> untagger 0
+        >-> pushConsumer in_frame_push
 
-  (repl_push, repl_pop) <- newQueue
-
-  _ <- asyncRunEffect console "serial out"
-           $ popProducer repl_pop
-         >-> replTranslator
-         >-> bytestringLog "raw"
+  a <- asyncRunEffect console "serial out"
+           $ popProducer out_frame_pop
+         >-> tagger 0
+         >-> frameLog
+         >-> hxEncoder
          >-> pushConsumer ser_out_push
 
-  runInputT defaultSettings $ runEffect $
-          repl console >-> pushConsumer repl_push
+  cts <- replicateM 20 (randomBytestring cyphertextSize)
+  r <- checkLoopback cts out_frame_push in_frame_pop 100
+  o <- getConsoleOutput console
+  putStrLn o
+  case r of
+    True -> putStrLn "Success!">> exitSuccess >> return ()
+    False -> exitFailure >> return ()
+  -- Unreachable - prevents exception that serial in and serial out
+  -- are blocked forever
+  wait a
+
+commsecLoopbackClient :: Options -> IO ()
+commsecLoopbackClient opts = do
+  console <- newConsole opts
+
+  (ser_out_push, ser_out_pop) <- newQueue
+  (ser_in_push, ser_in_pop)   <- newQueue
+
+  serialServer opts console ser_in_push ser_out_pop
+
+  (out_frame_push, out_frame_pop) <- newQueue
+  (in_frame_push, in_frame_pop) <- newQueue
+
+  _ <- asyncRunEffect console "serial in"
+          $ popProducer ser_in_pop
+        >-> hxDecoder
+        >-> frameLog
+        >-> untagger 0
+        >-> commsecDecoder ks
+        >-> pushConsumer in_frame_push
+
+  a <- asyncRunEffect console "serial out"
+           $ popProducer out_frame_pop
+         >-> commsecEncoder ks
+         >-> tagger 0
+         >-> frameLog
+         >-> hxEncoder
+         >-> pushConsumer ser_out_push
+
+  cts <- replicateM 20 (randomBytestring plaintextSize)
+  r <- checkLoopback cts out_frame_push in_frame_pop 100
+  o <- getConsoleOutput console
+  putStrLn o
+  case r of
+    True -> putStrLn "Success!">> exitSuccess >> return ()
+    False -> exitFailure >> return ()
+  -- Unreachable - prevents exception that serial in and serial out
+  -- are blocked forever
+  wait a
   where
-  repl :: Console -> Producer ReplCmd (InputT IO) ()
-  repl console = do
-    -- give concurrent threads time to print to console
-    lift $ lift $ threadDelay 100 
-    c <- lift $ lift $ getConsoleOutput console
-    lift $ outputStr c
-    minput <- lift (getInputLine "% ")
-    case minput of
-      Just ('c':'t':' ':ls) -> loop $ yield (SendAirCyphertext (B.pack ls))
-      Just ('r':'a':'w':' ':ls) -> loop $ yield (SendRaw (B.pack ls))
-      Just "help" -> loop $ lift $ outputStr $ unlines
-        [ "raw TEXT            : send arbitrary ascii over the serial port"
-        , "frame TEXT          : send hxframed ascii over the serial port"
-        , "log [quiet|verbose] : set logging level"
-        , "help                : show this message"
-        , "quit                : exit"
-        ]
+  -- FIXME: get separate upstream and downstream keys from a config file!
+  -- right now it just happens to correspond to the trivial keys we use
+  -- elsewhere
+  ks = KeySalt { ks_key = take 16 [1..], ks_salt = 0xdeadbeef }
 
-      Just "log verbose" -> repl (consoleWithLogLevel console 2)
-      Just "log"         -> repl (consoleWithLogLevel console 1)
-      Just "log quiet"   -> repl (consoleWithLogLevel console 0)
 
-      Just "quit" -> return ()
-      Just _    -> repl console
-      Nothing   -> repl console
-    where
-    loop k = k >> repl console
 
-word8Log :: String -> Pipe Word8 Word8 GW ()
-word8Log tag = do
-  w8 <- await
-  lift $ writeLog (printf "%s Word8 %d (0x%0.2x)" tag w8 w8)
-  word8Log tag
+checkLoopback :: [ByteString] -- Frames to send
+              -> Pushable ByteString
+              -> Poppable ByteString
+              -> Int -- delay between frames, in milliseconds
+              -> IO Bool
+checkLoopback inputs in_q out_q d = do
+  putStrLn (printf "Checking loopback: %d frames, %d ms betwen frames" (length inputs) d)
+  forM_ os $ \(_ix, fc) -> do
+    putStrLn ("sending: " ++ bytestringShowHex fc)
+    queuePush in_q fc
+    threadDelay (1000*d)
 
-frameLog :: Pipe (Tag, ByteString) (Tag, ByteString) GW ()
-frameLog = do
-  (t, bs) <- await
-  lift $ writeLog $ bytestringDebug (printf "frame (tag %d)" t) bs
-  yield (t, bs)
-  frameLog
-
-bytestringLog :: String -> Pipe ByteString ByteString GW ()
-bytestringLog tag = do
-  bs <- await
-  lift $ writeLog $ bytestringDebug tag bs
-  yield bs
-  bytestringLog tag
-
-replTranslator :: Pipe ReplCmd ByteString GW ()
-replTranslator = await >>= go >> replTranslator
+  rs <- forM os $ \(ix, fc) -> do
+    p <- queueTryPop out_q
+    case p of
+      Nothing -> hPutStrLn stderr (printf "no response for frame %d" ix)
+        >> return False
+      Just fc' -> case fc' == fc of
+        False -> hPutStrLn stderr
+          (printf ("incorrect response for frame %d:\n expected %s\ngot %s")
+                  ix
+                  (bytestringShowHex fc)
+                  (bytestringShowHex fc'))
+          >> return False
+        True -> return True
+  return (and rs)
   where
-  go (SendRaw bs) = yield bs
-  go (SendAirCyphertext bs) =
-    case bytestringPad cyphertextSize bs of
-      Left err -> lift (writeErr ("when padding to cyphertextSize: " ++ err))
-      Right padded -> go (SendHXFrame 0 padded)
-  go (SendHXFrame t bs) = go (SendRaw (encode t bs))
+  os :: [(Int, ByteString)]
+  os = zip [0..] inputs
 
-hxdecoder :: Monad m => Pipe Word8 (Tag, ByteString) m ()
-hxdecoder = aux emptyStreamState
-  where
-  aux ss = do
-     b <- await
-     let (mf, ss') = decodeByte b ss
-     case mf of
-       Just tbs -> yield tbs
-       Nothing -> return ()
-     aux ss'
+randomBytestring :: Integer -> IO ByteString
+randomBytestring len = do
+  bs <- replicateM (fromIntegral len) randomIO
+  return (B.pack bs)
 

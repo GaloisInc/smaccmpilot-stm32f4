@@ -8,6 +8,7 @@ default:
 
 .PHONY: test
 test: smaccm-datalink-ivory-frameloopback-test
+test: smaccm-datalink-ivory-commsecloopback-test
 
 .PHONY: smaccm-datalink-ivory-frameloopback-test
 smaccm-datalink-ivory-frameloopback-test:
@@ -17,6 +18,15 @@ smaccm-datalink-ivory-frameloopback-test:
 .PHONY: smaccm-datalink-ivory-frameloopback-test-clean
 smaccm-datalink-ivory-frameloopback-test-clean:
 	-rm -rf smaccm-datalink-ivory-frameloopback-test
+
+.PHONY: smaccm-datalink-ivory-commsecloopback-test
+smaccm-datalink-ivory-commsecloopback-test:
+	cabal run smaccm-datalink-ivory-commsecloopback-test-gen -- --src-dir=smaccm-datalink-ivory-commsecloopback-test
+	make -C smaccm-datalink-ivory-commsecloopback-test
+
+.PHONY: smaccm-datalink-ivory-commsecloopback-test-clean
+smaccm-datalink-ivory-commsecloopback-test-clean:
+	-rm -rf smaccm-datalink-ivory-commsecloopback-test
 
 
 create-sandbox:
@@ -40,6 +50,7 @@ create-sandbox:
 	cabal install --dependencies-only --max-backjumps=20000
 
 clean: smaccm-datalink-ivory-frameloopback-test-clean
+clean: smaccm-datalink-ivory-commsecloopback-test-clean
 	-rm -rf dist
 
 clean-sandbox: clean

@@ -1,7 +1,7 @@
 
 module Main where
 
-import SMACCMPilot.Datalink.Client
+import SMACCMPilot.Datalink.Client.Repl
 import SMACCMPilot.Datalink.Client.Opts
 
 import System.Environment (getArgs)
@@ -13,7 +13,7 @@ main :: IO ()
 main = do
   argv <- getArgs
   case getOpt' Permute options argv of
-    (opts, [], [], []) -> client (foldl (flip id) defaultOpts opts)
+    (opts, [], [], []) -> replClient (foldl (flip id) defaultOpts opts)
     (_, nonOpts, unOpts, errs) -> usage ("invalid arguments: "
                                         ++ unwords nonOpts
                                         ++ unwords unOpts
