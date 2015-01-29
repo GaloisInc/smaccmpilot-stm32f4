@@ -17,13 +17,12 @@ import SMACCMPilot.Commsec.Ivory.Artifacts
 
 commsecEncodeTower :: String
                    -> KeySalt
-                   -> Integer
                    -> ChanOutput PlaintextArray
                    -> Tower p (ChanOutput CyphertextArray)
-commsecEncodeTower n ks eid pt_chan = do
+commsecEncodeTower n ks pt_chan = do
   f <- freshname n
   let named t = t ++ "_" ++ showUnique f
-      ce = commsecEncode ks eid (named "ctx")
+      ce = commsecEncode ks (named "ctx")
   ct_chan <- channel
   monitor "commsecEncodeState" $ do
     monitorModuleDef $ commsec_encode_moddef ce

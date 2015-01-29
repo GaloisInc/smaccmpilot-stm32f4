@@ -17,14 +17,8 @@ main = compile [ m ] as
   as = commsecArtifacts
      ++ [ artifactString "Makefile" makefile ]
 
-config :: Config
-config = Config
-  { encode_id = 1
-  , encode_ks = trivial_key
-  , decode_ks = trivial_key
-  }
-  where
-  trivial_key = KeySalt { ks_key = take 16 [1..], ks_salt = 0xdeadbeef }
+trivial_key :: KeySalt
+trivial_key = KeySalt { ks_key = take 16 [1..], ks_salt = 0xdeadbeef }
 
 m :: Module
 m = package "main" $ do
@@ -32,8 +26,8 @@ m = package "main" $ do
   commsec_encode_moddef ce
   commsec_decode_moddef cd
   where
-  ce = commsecEncode (encode_ks config) (encode_id config) "etest"
-  cd = commsecDecode (decode_ks config) "dtest"
+  ce = commsecEncode trivial_key "etest"
+  cd = commsecDecode trivial_key "dtest"
   main_proc :: Def('[Sint32, Ref s (Stored (Ref s (Stored IChar)))]:->Sint32)
   main_proc = proc "main" $ \ _ _ -> body $ do
     commsec_encode_init ce

@@ -33,7 +33,6 @@ main = do
   shouldFail test_replay
   shouldFail test_keys_dont_match
   shouldFail test_salts_dont_match
-  shouldFail test_baseids_dont_match
   exitSuccess
 
 
@@ -52,8 +51,8 @@ test_encode_decode =
   where
   failure t = Left ("intended failure in test_encode_decode: " ++ t)
   m = mkPt "the quick brown fox jumped"
-  e = commsecEncode trivial_key 1
-  d = commsecDecode trivial_key 1
+  e = commsecEncode trivial_key
+  d = commsecDecode trivial_key
 
 test_keys_dont_match :: Either String String
 test_keys_dont_match =
@@ -70,8 +69,8 @@ test_keys_dont_match =
   where
   failure t = Left ("intended failure in test_keys_dont_match: " ++ t)
   m = mkPt "the quick brown fox jumped"
-  e = commsecEncode trivial_key 1
-  d = commsecDecode trivial_key { ks_key = take 16 [2..] } 1
+  e = commsecEncode trivial_key
+  d = commsecDecode trivial_key { ks_key = take 16 [2..] }
 
 test_salts_dont_match :: Either String String
 test_salts_dont_match =
@@ -88,33 +87,13 @@ test_salts_dont_match =
   where
   failure t = Left ("intended failure in test_salts_dont_match: " ++ t)
   m = mkPt "the quick brown fox jumped"
-  e = commsecEncode trivial_key 1
-  d = commsecDecode trivial_key { ks_salt = 0xcafecafe } 1
-
-
-test_baseids_dont_match :: Either String String
-test_baseids_dont_match =
-  let (_e', er) = commsec_encode_run e m in
-  case er of
-    Left err -> failure (show err)
-    Right ct ->
-      let (_d', dr) = commsec_decode_run d ct in
-      case dr of
-        Left err -> failure (show err)
-        Right m' -> case m == m' of
-          False -> failure "result message did not match input"
-          True -> Right "test_baseids_dont_match failed to fail"
-  where
-  failure t = Left ("intended failure in test_baseids_dont_match: " ++ t)
-  m = mkPt "the quick brown fox jumped"
-  e = commsecEncode trivial_key 2
-  d = commsecDecode trivial_key 1
-
+  e = commsecEncode trivial_key
+  d = commsecDecode trivial_key { ks_salt = 0xcafecafe }
 
 test_progression :: Either String String
 test_progression =
-  let e = commsecEncode trivial_key 1
-      d = commsecDecode trivial_key 1
+  let e = commsecEncode trivial_key
+      d = commsecDecode trivial_key
       in case aux e d of
         Left err -> Left (err ++ " in first round")
         Right (e', d') -> case aux e' d' of
@@ -139,8 +118,8 @@ test_progression =
 
 test_replay :: Either String String
 test_replay =
-  let e = commsecEncode trivial_key 1
-      d = commsecDecode trivial_key 1
+  let e = commsecEncode trivial_key
+      d = commsecDecode trivial_key
       in case aux e d of
         Left err -> Left (err ++ " in first round")
         Right (_e', d') -> case aux e d' of -- Use original encode context, not incremented one.

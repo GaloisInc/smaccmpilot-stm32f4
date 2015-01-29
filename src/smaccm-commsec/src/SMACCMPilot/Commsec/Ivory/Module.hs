@@ -32,8 +32,8 @@ data CommsecEncode =
     , commsec_encode_moddef :: ModuleDef
     }
 
-commsecEncode :: KeySalt -> Integer -> String -> CommsecEncode
-commsecEncode ks eid n = CommsecEncode
+commsecEncode :: KeySalt -> String -> CommsecEncode
+commsecEncode ks n = CommsecEncode
   { commsec_encode_init    = call_ init_proc
   , commsec_encode_run     = call  run_proc
   , commsec_encode_moddef  = do
@@ -50,10 +50,9 @@ commsecEncode ks eid n = CommsecEncode
   init_proc :: Def('[]:->())
   init_proc = proc (named "encode_init") $ body $ do
     kref <- local k
-    assert (i >=? 0 .&& i <? 16)
-    call_ securePkg_init_enc encode_ctx i s kref
+    call_ securePkg_init_enc encode_ctx eid s kref
 
-  i = fromIntegral eid
+  eid = 1 -- Magic number - deprecated multiple client ids
   k = iarray (map (ival . fromIntegral) (ks_key ks))
   s = fromIntegral (ks_salt ks)
 
