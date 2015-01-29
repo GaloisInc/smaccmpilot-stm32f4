@@ -36,7 +36,7 @@ data KeySalt = KeySalt
   } deriving (Eq, Show)
 
 symmetricKeyParser :: ConfigParser SymmetricKey
-symmetricKeyParser = do
+symmetricKeyParser = subsection "symmetric_key" $ do
   s2c_ks <- subsection "server_to_client" ks
   c2s_ks <- subsection "client_to_server" ks
   return SymmetricKey { .. }
