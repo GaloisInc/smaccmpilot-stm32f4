@@ -20,38 +20,46 @@ import Ivory.BSP.STM32.Driver.RingBuffer
 import qualified Ivory.BSP.STM32F405.Interrupt as F405
 import qualified BSP.Tests.Platforms as BSP
 
-import SMACCMPilot.Commsec.Config
+import SMACCMPilot.Commsec.Keys
 import SMACCMPilot.Commsec.Sizes
 import SMACCMPilot.Commsec.Tower
 import SMACCMPilot.Datalink.HXStream.Tower
 import SMACCMPilot.Datalink.HXStream.Ivory (hxstreamModule)
 
 main :: IO ()
-main = towerCompile p (app id)
+main = towerCompile p (app fst snd)
   where
   p topts = do
-    cfg <- getConfig topts BSP.testPlatformParser
-    return $ stm32FreeRTOS BSP.testplatform_stm32 cfg
+    cfg <- getConfig topts parser
+    return $ stm32FreeRTOS (BSP.testplatform_stm32 . fst) cfg
+
+  parser = do
+    f <- BSP.testPlatformParser
+    s <- symmetricKeyParser
+    return (f,s)
 
 app :: (e -> BSP.TestPlatform F405.Interrupt)
+    -> (e -> SymmetricKey)
     -> Tower e ()
-app totp = do
+app totp tosk = do
   tp <- fmap totp getEnv
   (o,i) <- uartTower tocc (console tp) 115200 (Proxy :: Proxy 256)
-  frame_loopback i o
+  sk <- fmap tosk getEnv
+  frame_loopback sk i o
   where
   tocc = BSP.testplatform_clockconfig . totp
   console = BSP.testUART . BSP.testplatform_uart
 
-frame_loopback :: ChanInput (Stored Uint8)
+frame_loopback :: SymmetricKey
+               -> ChanInput (Stored Uint8)
                -> ChanOutput (Stored Uint8)
-               -> Tower p ()
-frame_loopback o i = do
+               -> Tower e ()
+frame_loopback sk o i = do
   ct_buf_in <- channel
   ct_buf_out <- channel
   hxstreamDecodeTower "test" i (fst ct_buf_in)
-  pt_out <- commsecDecodeTower "test" trivial_key (snd ct_buf_out)
-  ct_out <- commsecEncodeTower "test" trivial_key 1 pt_out
+  pt_out <- commsecDecodeTower "test" (server_decode_ks sk) (snd ct_buf_out)
+  ct_out <- commsecEncodeTower "test" (server_encode_ks sk) pt_out
   hxstreamEncodeTower "test" ct_out o
 
   p <- period (Milliseconds 10)
@@ -73,5 +81,3 @@ frame_loopback o i = do
   towerModule $ hxstreamModule
   commsecTowerDeps
 
-  where
-  trivial_key = KeySalt { ks_key = take 16 [1..], ks_salt = 0xdeadbeef }

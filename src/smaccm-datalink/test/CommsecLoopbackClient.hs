@@ -3,17 +3,29 @@ module Main where
 
 import SMACCMPilot.Datalink.Client
 import SMACCMPilot.Datalink.Client.Opts
+import SMACCMPilot.Commsec.Keys
 
 import System.Environment (getArgs)
 import System.Console.GetOpt
 import System.Exit
 import System.IO
 
+import Ivory.Tower.Compile.Options
+import Ivory.Tower.Config
+
 main :: IO ()
 main = do
   argv <- getArgs
   case getOpt' Permute options argv of
-    (opts, [], [], []) -> commsecLoopbackClient (foldl (flip id) defaultOpts opts)
+    (opts, [], tos, []) -> do
+      let client_opts = foldl (flip id) defaultOpts opts
+          topts = TOpts
+            { topts_outdir = Nothing
+            , topts_args   = tos
+            , topts_error  = usage
+            }
+      sk <- getConfig topts symmetricKeyParser
+      commsecLoopbackClient client_opts sk
     (_, nonOpts, unOpts, errs) -> usage ("invalid arguments: "
                                         ++ unwords nonOpts
                                         ++ unwords unOpts

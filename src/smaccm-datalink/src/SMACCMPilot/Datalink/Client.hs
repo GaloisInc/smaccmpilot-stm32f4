@@ -20,7 +20,7 @@ import SMACCMPilot.Datalink.Client.ByteString
 import Data.ByteString.Char8 (ByteString)
 import qualified Data.ByteString.Char8 as B
 import SMACCMPilot.Commsec.Sizes
-import SMACCMPilot.Commsec.Config
+import SMACCMPilot.Commsec.Keys
 
 frameLoopbackClient :: Options -> IO ()
 frameLoopbackClient opts = do
@@ -59,8 +59,8 @@ frameLoopbackClient opts = do
   -- are blocked forever
   wait a
 
-commsecLoopbackClient :: Options -> IO ()
-commsecLoopbackClient opts = do
+commsecLoopbackClient :: Options -> SymmetricKey -> IO ()
+commsecLoopbackClient opts sk = do
   console <- newConsole opts
 
   (ser_out_push, ser_out_pop) <- newQueue
@@ -76,12 +76,12 @@ commsecLoopbackClient opts = do
         >-> hxDecoder
         >-> frameLog
         >-> untagger 0
-        >-> commsecDecoder ks
+        >-> commsecDecoder (s2c_ks sk)
         >-> pushConsumer in_frame_push
 
   a <- asyncRunEffect console "serial out"
            $ popProducer out_frame_pop
-         >-> commsecEncoder ks
+         >-> commsecEncoder (c2s_ks sk)
          >-> tagger 0
          >-> frameLog
          >-> hxEncoder
@@ -94,14 +94,10 @@ commsecLoopbackClient opts = do
   case r of
     True -> putStrLn "Success!">> exitSuccess >> return ()
     False -> exitFailure >> return ()
-  -- Unreachable - prevents exception that serial in and serial out
-  -- are blocked forever
+
+  -- Unreachable - keeps a reference alive in order to prevent exception that
+  -- serial in and serial out are STM blocked forever after serialserver closes.
   wait a
-  where
-  -- FIXME: get separate upstream and downstream keys from a config file!
-  -- right now it just happens to correspond to the trivial keys we use
-  -- elsewhere
-  ks = KeySalt { ks_key = take 16 [1..], ks_salt = 0xdeadbeef }
 
 
 
