@@ -15,7 +15,8 @@ library
                        PX4.Tests.MPU6000,
                        PX4.Tests.MS5611,
                        PX4.Tests.HMC5883L,
-                       PX4.Tests.AllSensors
+                       PX4.Tests.AllSensors,
+                       PX4.Tests.SensorFusion
 
   build-depends:       base >= 4.6,
                        monadLib,
@@ -31,6 +32,7 @@ library
                        ivory-bsp-stm32,
                        ivory-bsp-tests,
                        smaccm-datalink,
+                       smaccm-ins,
                        ivory-serialize,
                        ivory-px4-hw
 
@@ -171,6 +173,20 @@ executable             px4-all-sensors-test-gen
                        smaccm-datalink,
                        ivory-serialize,
                        ivory-px4-tests
+
+executable             px4-sensor-fusion-test-gen
+  main-is:             SensorFusionTest.hs
+  hs-source-dirs:      tests
+  build-depends:       base >= 4.6,
+                       ivory,
+                       ivory-bsp-stm32,
+                       ivory-px4-hw,
+                       ivory-px4-tests,
+                       ivory-serialize,
+                       smaccm-datalink,
+                       tower              >= 0.9,
+                       tower-config,
+                       tower-freertos-stm32
 
   default-language:    Haskell2010
   ghc-options:         -Wall
