@@ -35,7 +35,7 @@ library
                        SMACCMPilot.Commsec.Ivory.Error,
                        SMACCMPilot.Commsec.Ivory.Module,
                        SMACCMPilot.Commsec.Tower,
-                       SMACCMPilot.Commsec.Config,
+                       SMACCMPilot.Commsec.Keys,
                        SMACCMPilot.Commsec.Native,
                        SMACCMPilot.Commsec.Native.Error,
                        SMACCMPilot.Commsec.Native.Encode,

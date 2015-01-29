@@ -10,7 +10,7 @@ import Ivory.Tower
 import Ivory.Stdlib
 
 import SMACCMPilot.Commsec.Sizes
-import SMACCMPilot.Commsec.Config
+import SMACCMPilot.Commsec.Keys
 import SMACCMPilot.Commsec.Ivory.Module
 import SMACCMPilot.Commsec.Ivory.Error
 import SMACCMPilot.Commsec.Ivory.Artifacts

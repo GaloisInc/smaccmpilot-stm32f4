@@ -3,7 +3,7 @@ module Main where
 import System.Exit (exitFailure, exitSuccess)
 import qualified Data.ByteString.Char8 as BC
 
-import SMACCMPilot.Commsec.Config
+import SMACCMPilot.Commsec.Keys
 import SMACCMPilot.Commsec.Native.Encode
 import SMACCMPilot.Commsec.Native.Decode
 

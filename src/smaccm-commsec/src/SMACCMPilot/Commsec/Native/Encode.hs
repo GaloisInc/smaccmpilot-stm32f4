@@ -14,7 +14,7 @@ import Crypto.Cipher.AES                -- Vincent's GCM routine
 import Crypto.Cipher.Types
 import Data.Serialize
 
-import SMACCMPilot.Commsec.Config
+import SMACCMPilot.Commsec.Keys
 import SMACCMPilot.Commsec.Native.Error
 
 data CommsecEncode =

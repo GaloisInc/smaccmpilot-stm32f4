@@ -18,7 +18,7 @@ module SMACCMPilot.Commsec.Ivory.Module
 
 import Ivory.Language
 import SMACCMPilot.Commsec.Sizes
-import SMACCMPilot.Commsec.Config
+import SMACCMPilot.Commsec.Keys
 import SMACCMPilot.Commsec.Ivory.Import
 import SMACCMPilot.Commsec.Ivory.Import.Types ()
 import SMACCMPilot.Commsec.Ivory.Error
