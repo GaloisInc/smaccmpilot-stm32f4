@@ -18,26 +18,29 @@ import qualified SMACCMPilot.Hardware.MPU6000.Types as MPU6000
 import qualified SMACCMPilot.Hardware.MS5611.Types as MS5611
 import SMACCMPilot.INS.Ivory
 
+changeUnits :: (Functor f, Functor g) => (x -> y) -> f (g x) -> f (g y)
+changeUnits f = fmap (fmap f)
+
 accel :: SafeCast IFloat to => ConstRef s (Struct "mpu6000_sample") -> Ivory eff (XYZ to)
 accel sample = fmap (fmap safeCast) $ mapM deref $ fmap (sample ~>) $ xyz MPU6000.accel_x MPU6000.accel_y MPU6000.accel_z
 
-gyro :: SafeCast IFloat to => ConstRef s (Struct "mpu6000_sample") -> Ivory eff (XYZ to)
-gyro sample = fmap (fmap safeCast) $ mapM deref $ fmap (sample ~>) $ xyz MPU6000.gyro_x MPU6000.gyro_y MPU6000.gyro_z
+gyro :: (Floating to, SafeCast IFloat to) => ConstRef s (Struct "mpu6000_sample") -> Ivory eff (XYZ to)
+gyro sample = changeUnits (* (pi / 180)) $ fmap (fmap safeCast) $ mapM deref $ fmap (sample ~>) $ xyz MPU6000.gyro_x MPU6000.gyro_y MPU6000.gyro_z
 
 kalman_predict :: Def ('[Ref s1 (Struct "kalman_state"), Ref s2 (Struct "kalman_covariance"), IFloat, ConstRef s3 (Struct "mpu6000_sample")] :-> ())
 kalman_predict = proc "kalman_predict" $ \ state_vector covariance dt last_gyro -> body $ do
   distVector <- DisturbanceVector <$> gyro last_gyro <*> accel last_gyro
   kalmanPredict state_vector covariance dt distVector
 
-mag :: SafeCast IFloat to => ConstRef s (Struct "hmc5883l_sample") -> Ivory eff (XYZ to)
-mag sample = fmap (fmap safeCast) $ mapM deref $ fmap ((sample ~> HMC5883L.sample) !) $ xyz 0 1 2
+mag :: (Num to, SafeCast IFloat to) => ConstRef s (Struct "hmc5883l_sample") -> Ivory eff (XYZ to)
+mag sample = changeUnits (* 1000) $ fmap (fmap safeCast) $ mapM deref $ fmap ((sample ~> HMC5883L.sample) !) $ xyz 0 1 2
 
 mag_measure :: Def ('[Ref s1 (Struct "kalman_state"), Ref s2 (Struct "kalman_covariance"), ConstRef s3 (Struct "hmc5883l_sample")] :-> ())
 mag_measure = proc "mag_measure" $ \ state_vector covariance last_mag -> body $ do
   magMeasure state_vector covariance =<< mag last_mag
 
-pressure :: SafeCast IFloat to => ConstRef s (Struct "ms5611_measurement") -> Ivory eff to
-pressure sample = fmap safeCast $ deref $ sample ~> MS5611.pressure
+pressure :: (Num to, SafeCast IFloat to) => ConstRef s (Struct "ms5611_measurement") -> Ivory eff to
+pressure sample = fmap (* 100) $ fmap safeCast $ deref $ sample ~> MS5611.pressure
 
 pressure_measure :: Def ('[Ref s1 (Struct "kalman_state"), Ref s2 (Struct "kalman_covariance"), ConstRef s3 (Struct "ms5611_measurement")] :-> ())
 pressure_measure = proc "pressure_measure" $ \ state_vector covariance last_baro -> body $ do
