@@ -116,6 +116,9 @@ executable smaccm-datalink-native-commsecloopback-client
   hs-source-dirs:       test
 
   build-depends:        base >= 4.6,
+                        tower,
+                        tower-config,
+                        smaccm-commsec,
                         smaccm-datalink
   default-language:     Haskell2010
 

@@ -68,7 +68,9 @@ hxEncoder = do
   hxEncoder
 
 commsecEncoder :: KeySalt -> Pipe ByteString ByteString GW ()
-commsecEncoder ks = aux (commsecEncode ks 1)
+commsecEncoder ks = do
+  lift (writeLog ("created commsecEncoder with ks " ++ show ks))
+  aux (commsecEncode ks)
   where
   aux e = do
     pt <- await
@@ -79,7 +81,9 @@ commsecEncoder ks = aux (commsecEncode ks 1)
     aux e'
 
 commsecDecoder :: KeySalt -> Pipe ByteString ByteString GW ()
-commsecDecoder ks = aux (commsecDecode ks 1)
+commsecDecoder ks = do
+  lift (writeLog ("created commsecDecoder with ks " ++ show ks))
+  aux (commsecDecode ks)
   where
   aux d = do
     ct <- await
