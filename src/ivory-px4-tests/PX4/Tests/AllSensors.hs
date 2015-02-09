@@ -20,7 +20,7 @@ import Ivory.BSP.STM32.Driver.UART
 import SMACCMPilot.Hardware.Sched
 import SMACCMPilot.Hardware.GPS.UBlox
 
-import PX4.Tests.MPU6000  (mpu6000SensorManager, mpu6000Sender)
+import PX4.Tests.MPU6000  (mpu6000SensorManager)
 import PX4.Tests.MS5611   (ms5611Sender, ms5611ctl)
 import PX4.Tests.HMC5883L (hmc5883lSender, hmc5883lctl)
 import PX4.Tests.Ublox    (positionSender)
@@ -47,7 +47,8 @@ app topx4 = do
 
   mpu6000sample <- channel
   let mpu6000 = px4platform_mpu6000_device px4platform
-  (sreq, sres, sready) <- spiTower tocc [mpu6000]
+      pins    = px4platform_mpu6000_spi_pins px4platform
+  (sreq, sres, sready) <- spiTower tocc [mpu6000] pins
   mpu6000SensorManager sreq sres sready (fst mpu6000sample) (SPIDeviceHandle 0)
 
   let u = BSP.testUART . BSP.testplatform_uart . px4platform_testplatform

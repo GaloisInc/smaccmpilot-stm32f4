@@ -44,7 +44,8 @@ app topx4 = do
 
   mpu6000sample <- channel
   let mpu6000 = px4platform_mpu6000_device px4platform
-  (sreq, sres, sready) <- spiTower tocc [mpu6000]
+      spi_pins = px4platform_mpu6000_spi_pins px4platform
+  (sreq, sres, sready) <- spiTower tocc [mpu6000] spi_pins
   mpu6000SensorManager sreq sres sready (fst mpu6000sample) (SPIDeviceHandle 0)
 
   states <- sensorFusion (snd mpu6000sample) hmc5883lsample ms5611meas (snd position)

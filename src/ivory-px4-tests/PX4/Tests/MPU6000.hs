@@ -30,8 +30,9 @@ app :: (e -> PX4Platform F405.Interrupt) -> Tower e ()
 app topx4 = do
   sample <- channel
   px4platform <- fmap topx4 getEnv
-  let mpu6000 = px4platform_mpu6000_device px4platform
-  (req, res, ready) <- spiTower tocc [mpu6000]
+  let mpu6000  = px4platform_mpu6000_device px4platform
+      spi_pins = px4platform_mpu6000_spi_pins px4platform
+  (req, res, ready) <- spiTower tocc [mpu6000] spi_pins
   mpu6000SensorManager req res ready (fst sample) (SPIDeviceHandle 0)
 
   let u = BSP.testUART . BSP.testplatform_uart . px4platform_testplatform

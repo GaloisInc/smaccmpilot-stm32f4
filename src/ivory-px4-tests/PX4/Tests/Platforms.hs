@@ -18,6 +18,7 @@ import qualified SMACCMPilot.Hardware.PX4FMU17 as FMUv17
 
 import qualified Ivory.BSP.STM32F405.UART           as F405
 import qualified Ivory.BSP.STM32F405.GPIO           as F405
+import qualified Ivory.BSP.STM32F405.GPIO.AF        as F405
 import qualified Ivory.BSP.STM32F405.SPI            as F405
 import qualified Ivory.BSP.STM32F405.I2C            as F405
 import qualified Ivory.BSP.STM32F405.Interrupt      as F405
@@ -33,6 +34,7 @@ data PX4Platform s =
   PX4Platform
     { px4platform_gps_device     :: UART s
     , px4platform_mpu6000_device :: SPIDevice s
+    , px4platform_mpu6000_spi_pins :: SPIPins
     , px4platform_hmc5883_device :: HMC5883Device s
     , px4platform_ms5611_device  :: MS5611Device s
     , px4platform_motorcontrol   :: forall e . (e -> ClockConfig)
@@ -72,6 +74,7 @@ px4fmuv17 :: PX4Platform F405.Interrupt
 px4fmuv17 = PX4Platform
   { px4platform_gps_device     = F405.uart6
   , px4platform_mpu6000_device = mpu6000
+  , px4platform_mpu6000_spi_pins = spi1_pins
   , px4platform_hmc5883_device = hmc5883
   , px4platform_ms5611_device  = ms5611
   , px4platform_motorcontrol   = FMUv17.motorControlTower
@@ -88,6 +91,13 @@ px4fmuv17 = PX4Platform
     , spiDevClockPhase    = ClockPhase1
     , spiDevBitOrder      = MSBFirst
     , spiDevName          = "mpu6k"
+    }
+  spi1_pins :: SPIPins
+  spi1_pins = SPIPins
+    { spiPinMiso = F405.pinA7
+    , spiPinMosi = F405.pinA6
+    , spiPinSck  = F405.pinA5
+    , spiPinAF   = F405.gpio_af_spi1
     }
   hmc5883 :: HMC5883Device F405.Interrupt
   hmc5883 = HMC5883Device
