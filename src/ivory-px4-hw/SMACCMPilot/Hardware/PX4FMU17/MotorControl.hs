@@ -12,9 +12,11 @@ import Ivory.HW
 
 import Ivory.Tower
 
+import Ivory.BSP.STM32.Peripheral.GPIOF4
+-- Safe for now - fmu 1.7 always uses f405
 import Ivory.BSP.STM32F405.GTIM2345
-import Ivory.BSP.STM32F405.GPIO
 import Ivory.BSP.STM32F405.GPIO.AF
+import Ivory.BSP.STM32F405.GPIO
 
 import Ivory.BSP.STM32.ClockConfig
 
