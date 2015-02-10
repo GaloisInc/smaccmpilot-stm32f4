@@ -33,6 +33,7 @@ import           Ivory.OS.FreeRTOS.Tower.STM32.Config
 data PX4Platform s =
   PX4Platform
     { px4platform_gps_device     :: UART s
+    , px4platform_gps_pins       :: UARTPins
     , px4platform_mpu6000_device :: SPIDevice s
     , px4platform_mpu6000_spi_pins :: SPIPins
     , px4platform_hmc5883_device :: HMC5883Device s
@@ -73,6 +74,11 @@ px4PlatformParser = do
 px4fmuv17 :: PX4Platform F405.Interrupt
 px4fmuv17 = PX4Platform
   { px4platform_gps_device     = F405.uart6
+  , px4platform_gps_pins       = UARTPins
+      { uartPinTx = F405.pinC6
+      , uartPinRx = F405.pinC7
+      , uartPinAF = F405.gpio_af_uart6
+      }
   , px4platform_mpu6000_device = mpu6000
   , px4platform_mpu6000_spi_pins = spi1_pins
   , px4platform_hmc5883_device = hmc5883

@@ -35,8 +35,9 @@ app topx4 = do
   (req, res, ready) <- spiTower tocc [mpu6000] spi_pins
   mpu6000SensorManager req res ready (fst sample) (SPIDeviceHandle 0)
 
-  let u = BSP.testUART . BSP.testplatform_uart . px4platform_testplatform
-  (_uarti, uarto) <- uartTower tocc (u px4platform) 115200 (Proxy :: Proxy 256)
+  let u = BSP.testplatform_uart (px4platform_testplatform px4platform)
+  (_uarti, uarto) <- uartTower tocc (BSP.testUARTPeriph u) (BSP.testUARTPins u)
+                               115200 (Proxy :: Proxy 256)
   monitor "mpu6000sender" $ do
     mpu6000Sender (snd sample) uarto
 

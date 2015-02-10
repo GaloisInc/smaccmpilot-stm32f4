@@ -29,8 +29,9 @@ import SMACCMPilot.INS.Tower
 app :: (e -> PX4Platform F405.Interrupt) -> Tower e ()
 app topx4 = do
   px4platform <- fmap topx4 getEnv
-  let gps = px4platform_gps_device px4platform
-  (gpsi, _gpso) <- uartTower tocc gps
+  let gps_periph = px4platform_gps_device px4platform
+      gps_pins = px4platform_gps_pins px4platform
+  (gpsi, _gpso) <- uartTower tocc gps_periph gps_pins
                                 38400 (Proxy :: Proxy 128)
   position <- channel
   ubloxGPSTower gpsi (fst position)
@@ -50,8 +51,9 @@ app topx4 = do
 
   states <- sensorFusion (snd mpu6000sample) hmc5883lsample ms5611meas (snd position)
 
-  let u = BSP.testUART . BSP.testplatform_uart . px4platform_testplatform
-  (_uarti,uartout) <- uartTower tocc (u px4platform) 115200 (Proxy :: Proxy 256)
+  let u = BSP.testplatform_uart (px4platform_testplatform px4platform)
+  (_uarti, uartout) <- uartTower tocc (BSP.testUARTPeriph u) (BSP.testUARTPins u)
+                               115200 (Proxy :: Proxy 256)
 
   p <- period (Milliseconds 40) -- can't send states much faster than 25Hz at 115200bps
 

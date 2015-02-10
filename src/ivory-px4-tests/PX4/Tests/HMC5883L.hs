@@ -34,8 +34,10 @@ app topx4 = do
 
   samples <- hmc5883lctl req res (hmc5883device_addr hmc)
 
-  let u = BSP.testUART . BSP.testplatform_uart . px4platform_testplatform
-  (_uarti,uarto) <- uartTower tocc (u px4platform) 115200 (Proxy :: Proxy 128)
+  let u = BSP.testplatform_uart (px4platform_testplatform px4platform)
+  (_uarti,uarto) <- uartTower tocc (BSP.testUARTPeriph u)
+                                   (BSP.testUARTPins   u)
+                                   115200 (Proxy :: Proxy 128)
 
   monitor "hmc5883lsender" $ do
     hmc5883lSender samples uarto

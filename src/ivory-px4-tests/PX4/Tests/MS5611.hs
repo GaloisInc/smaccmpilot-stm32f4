@@ -32,8 +32,9 @@ app topx4 = do
                          (ms5611device_scl ms5611)
   measurements <- ms5611ctl req res (ms5611device_addr ms5611)
 
-  let u = BSP.testUART . BSP.testplatform_uart . px4platform_testplatform
-  (_uarti, uarto) <- uartTower tocc (u px4platform) 115200 (Proxy :: Proxy 128)
+  let u = BSP.testplatform_uart (px4platform_testplatform px4platform)
+  (_uarti, uarto) <- uartTower tocc (BSP.testUARTPeriph u) (BSP.testUARTPins u)
+                               115200 (Proxy :: Proxy 256)
   monitor "ms5611sender" $ do
     ms5611Sender measurements uarto
 
