@@ -95,7 +95,7 @@ mpu6000SensorManager :: ChanInput  (Struct "spi_transaction_request")
                      -> ChanInput  (Struct "mpu6000_sample")
                      -> SPIDeviceHandle
                      -> Tower e ()
-mpu6000SensorManager req_chan res_chan resetChan sensorChan dev = do
+mpu6000SensorManager req_chan res_chan init_chan sensorChan dev = do
   towerModule  mpu6000TypesModule
   towerDepends mpu6000TypesModule
 
@@ -107,7 +107,7 @@ mpu6000SensorManager req_chan res_chan resetChan sensorChan dev = do
     transactionPending <- state "transaction_pending"
     result <- state "result"
 
-    coroutineHandler resetChan res_chan "mpu6000" $ do
+    coroutineHandler init_chan res_chan "mpu6000" $ do
       reqEmitter <- emitter req_chan 1
       sensorEmitter <- emitter sensorChan 1
       return $ CoroutineBody $ \ yield -> do
