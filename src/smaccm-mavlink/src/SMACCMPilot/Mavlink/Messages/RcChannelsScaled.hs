@@ -28,8 +28,7 @@ rcChannelsScaledModule = package "mavlink_rc_channels_scaled_msg" $ do
   incl mkRcChannelsScaledSender
   incl rcChannelsScaledUnpack
   defStruct (Proxy :: Proxy "rc_channels_scaled_msg")
-  incl rcChannelsScaledPackRef
-  incl rcChannelsScaledUnpackRef
+  wrappedPackMod rcChannelsScaledWrapper
 
 [ivory|
 struct rc_channels_scaled_msg
@@ -60,42 +59,22 @@ instance MavlinkUnpackableMsg "rc_channels_scaled_msg" where
 rcChannelsScaledUnpack :: Def ('[ Ref s1 (Struct "rc_channels_scaled_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-rcChannelsScaledUnpack = proc "mavlink_rc_channels_scaled_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
+rcChannelsScaledUnpack = proc "mavlink_rc_channels_scaled_unpack" $ \ msg buf -> body $ packGet packRep buf 0 msg
 
-rcChannelsScaledPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
-                              , Uint32
-                              , ConstRef s2 (Struct "rc_channels_scaled_msg")
-                              ] :-> () )
-rcChannelsScaledPackRef = proc "mavlink_rc_channels_scaled_pack_ref" $ \ buf off msg -> body $ do
-  packRef buf (off + 0) (msg ~> time_boot_ms)
-  packRef buf (off + 4) (msg ~> chan1_scaled)
-  packRef buf (off + 6) (msg ~> chan2_scaled)
-  packRef buf (off + 8) (msg ~> chan3_scaled)
-  packRef buf (off + 10) (msg ~> chan4_scaled)
-  packRef buf (off + 12) (msg ~> chan5_scaled)
-  packRef buf (off + 14) (msg ~> chan6_scaled)
-  packRef buf (off + 16) (msg ~> chan7_scaled)
-  packRef buf (off + 18) (msg ~> chan8_scaled)
-  packRef buf (off + 20) (msg ~> port)
-  packRef buf (off + 21) (msg ~> rssi)
+rcChannelsScaledWrapper :: WrappedPackRep (Struct "rc_channels_scaled_msg")
+rcChannelsScaledWrapper = wrapPackRep "mavlink_rc_channels_scaled" $ packStruct
+  [ packLabel time_boot_ms
+  , packLabel chan1_scaled
+  , packLabel chan2_scaled
+  , packLabel chan3_scaled
+  , packLabel chan4_scaled
+  , packLabel chan5_scaled
+  , packLabel chan6_scaled
+  , packLabel chan7_scaled
+  , packLabel chan8_scaled
+  , packLabel port
+  , packLabel rssi
+  ]
 
-rcChannelsScaledUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
-                                , Uint32
-                                , Ref s2 (Struct "rc_channels_scaled_msg")
-                                ] :-> () )
-rcChannelsScaledUnpackRef = proc "mavlink_rc_channels_scaled_unpack_ref" $ \ buf off msg -> body $ do
-  unpackRef buf (off + 0) (msg ~> time_boot_ms)
-  unpackRef buf (off + 4) (msg ~> chan1_scaled)
-  unpackRef buf (off + 6) (msg ~> chan2_scaled)
-  unpackRef buf (off + 8) (msg ~> chan3_scaled)
-  unpackRef buf (off + 10) (msg ~> chan4_scaled)
-  unpackRef buf (off + 12) (msg ~> chan5_scaled)
-  unpackRef buf (off + 14) (msg ~> chan6_scaled)
-  unpackRef buf (off + 16) (msg ~> chan7_scaled)
-  unpackRef buf (off + 18) (msg ~> chan8_scaled)
-  unpackRef buf (off + 20) (msg ~> port)
-  unpackRef buf (off + 21) (msg ~> rssi)
-
-instance SerializableRef (Struct "rc_channels_scaled_msg") where
-  packRef = call_ rcChannelsScaledPackRef
-  unpackRef = call_ rcChannelsScaledUnpackRef
+instance Packable (Struct "rc_channels_scaled_msg") where
+  packRep = wrappedPackRep rcChannelsScaledWrapper

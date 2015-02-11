@@ -28,8 +28,7 @@ statustextModule = package "mavlink_statustext_msg" $ do
   incl mkStatustextSender
   incl statustextUnpack
   defStruct (Proxy :: Proxy "statustext_msg")
-  incl statustextPackRef
-  incl statustextUnpackRef
+  wrappedPackMod statustextWrapper
 
 [ivory|
 struct statustext_msg
@@ -51,24 +50,13 @@ instance MavlinkUnpackableMsg "statustext_msg" where
 statustextUnpack :: Def ('[ Ref s1 (Struct "statustext_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-statustextUnpack = proc "mavlink_statustext_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
+statustextUnpack = proc "mavlink_statustext_unpack" $ \ msg buf -> body $ packGet packRep buf 0 msg
 
-statustextPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
-                              , Uint32
-                              , ConstRef s2 (Struct "statustext_msg")
-                              ] :-> () )
-statustextPackRef = proc "mavlink_statustext_pack_ref" $ \ buf off msg -> body $ do
-  packRef buf (off + 0) (msg ~> severity)
-  packRef buf (off + 1) (msg ~> text)
+statustextWrapper :: WrappedPackRep (Struct "statustext_msg")
+statustextWrapper = wrapPackRep "mavlink_statustext" $ packStruct
+  [ packLabel severity
+  , packLabel text
+  ]
 
-statustextUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
-                                , Uint32
-                                , Ref s2 (Struct "statustext_msg")
-                                ] :-> () )
-statustextUnpackRef = proc "mavlink_statustext_unpack_ref" $ \ buf off msg -> body $ do
-  unpackRef buf (off + 0) (msg ~> severity)
-  unpackRef buf (off + 1) (msg ~> text)
-
-instance SerializableRef (Struct "statustext_msg") where
-  packRef = call_ statustextPackRef
-  unpackRef = call_ statustextUnpackRef
+instance Packable (Struct "statustext_msg") where
+  packRep = wrappedPackRep statustextWrapper

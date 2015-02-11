@@ -28,8 +28,7 @@ commandLongModule = package "mavlink_command_long_msg" $ do
   incl mkCommandLongSender
   incl commandLongUnpack
   defStruct (Proxy :: Proxy "command_long_msg")
-  incl commandLongPackRef
-  incl commandLongUnpackRef
+  wrappedPackMod commandLongWrapper
 
 [ivory|
 struct command_long_msg
@@ -60,42 +59,22 @@ instance MavlinkUnpackableMsg "command_long_msg" where
 commandLongUnpack :: Def ('[ Ref s1 (Struct "command_long_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-commandLongUnpack = proc "mavlink_command_long_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
+commandLongUnpack = proc "mavlink_command_long_unpack" $ \ msg buf -> body $ packGet packRep buf 0 msg
 
-commandLongPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
-                              , Uint32
-                              , ConstRef s2 (Struct "command_long_msg")
-                              ] :-> () )
-commandLongPackRef = proc "mavlink_command_long_pack_ref" $ \ buf off msg -> body $ do
-  packRef buf (off + 0) (msg ~> param1)
-  packRef buf (off + 4) (msg ~> param2)
-  packRef buf (off + 8) (msg ~> param3)
-  packRef buf (off + 12) (msg ~> param4)
-  packRef buf (off + 16) (msg ~> param5)
-  packRef buf (off + 20) (msg ~> param6)
-  packRef buf (off + 24) (msg ~> param7)
-  packRef buf (off + 28) (msg ~> command)
-  packRef buf (off + 30) (msg ~> target_system)
-  packRef buf (off + 31) (msg ~> target_component)
-  packRef buf (off + 32) (msg ~> confirmation)
+commandLongWrapper :: WrappedPackRep (Struct "command_long_msg")
+commandLongWrapper = wrapPackRep "mavlink_command_long" $ packStruct
+  [ packLabel param1
+  , packLabel param2
+  , packLabel param3
+  , packLabel param4
+  , packLabel param5
+  , packLabel param6
+  , packLabel param7
+  , packLabel command
+  , packLabel target_system
+  , packLabel target_component
+  , packLabel confirmation
+  ]
 
-commandLongUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
-                                , Uint32
-                                , Ref s2 (Struct "command_long_msg")
-                                ] :-> () )
-commandLongUnpackRef = proc "mavlink_command_long_unpack_ref" $ \ buf off msg -> body $ do
-  unpackRef buf (off + 0) (msg ~> param1)
-  unpackRef buf (off + 4) (msg ~> param2)
-  unpackRef buf (off + 8) (msg ~> param3)
-  unpackRef buf (off + 12) (msg ~> param4)
-  unpackRef buf (off + 16) (msg ~> param5)
-  unpackRef buf (off + 20) (msg ~> param6)
-  unpackRef buf (off + 24) (msg ~> param7)
-  unpackRef buf (off + 28) (msg ~> command)
-  unpackRef buf (off + 30) (msg ~> target_system)
-  unpackRef buf (off + 31) (msg ~> target_component)
-  unpackRef buf (off + 32) (msg ~> confirmation)
-
-instance SerializableRef (Struct "command_long_msg") where
-  packRef = call_ commandLongPackRef
-  unpackRef = call_ commandLongUnpackRef
+instance Packable (Struct "command_long_msg") where
+  packRep = wrappedPackRep commandLongWrapper

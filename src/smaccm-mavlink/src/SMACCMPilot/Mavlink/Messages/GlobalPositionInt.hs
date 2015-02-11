@@ -28,8 +28,7 @@ globalPositionIntModule = package "mavlink_global_position_int_msg" $ do
   incl mkGlobalPositionIntSender
   incl globalPositionIntUnpack
   defStruct (Proxy :: Proxy "global_position_int_msg")
-  incl globalPositionIntPackRef
-  incl globalPositionIntUnpackRef
+  wrappedPackMod globalPositionIntWrapper
 
 [ivory|
 struct global_position_int_msg
@@ -58,38 +57,20 @@ instance MavlinkUnpackableMsg "global_position_int_msg" where
 globalPositionIntUnpack :: Def ('[ Ref s1 (Struct "global_position_int_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-globalPositionIntUnpack = proc "mavlink_global_position_int_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
+globalPositionIntUnpack = proc "mavlink_global_position_int_unpack" $ \ msg buf -> body $ packGet packRep buf 0 msg
 
-globalPositionIntPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
-                              , Uint32
-                              , ConstRef s2 (Struct "global_position_int_msg")
-                              ] :-> () )
-globalPositionIntPackRef = proc "mavlink_global_position_int_pack_ref" $ \ buf off msg -> body $ do
-  packRef buf (off + 0) (msg ~> time_boot_ms)
-  packRef buf (off + 4) (msg ~> lat)
-  packRef buf (off + 8) (msg ~> lon)
-  packRef buf (off + 12) (msg ~> alt)
-  packRef buf (off + 16) (msg ~> relative_alt)
-  packRef buf (off + 20) (msg ~> vx)
-  packRef buf (off + 22) (msg ~> vy)
-  packRef buf (off + 24) (msg ~> vz)
-  packRef buf (off + 26) (msg ~> hdg)
+globalPositionIntWrapper :: WrappedPackRep (Struct "global_position_int_msg")
+globalPositionIntWrapper = wrapPackRep "mavlink_global_position_int" $ packStruct
+  [ packLabel time_boot_ms
+  , packLabel lat
+  , packLabel lon
+  , packLabel alt
+  , packLabel relative_alt
+  , packLabel vx
+  , packLabel vy
+  , packLabel vz
+  , packLabel hdg
+  ]
 
-globalPositionIntUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
-                                , Uint32
-                                , Ref s2 (Struct "global_position_int_msg")
-                                ] :-> () )
-globalPositionIntUnpackRef = proc "mavlink_global_position_int_unpack_ref" $ \ buf off msg -> body $ do
-  unpackRef buf (off + 0) (msg ~> time_boot_ms)
-  unpackRef buf (off + 4) (msg ~> lat)
-  unpackRef buf (off + 8) (msg ~> lon)
-  unpackRef buf (off + 12) (msg ~> alt)
-  unpackRef buf (off + 16) (msg ~> relative_alt)
-  unpackRef buf (off + 20) (msg ~> vx)
-  unpackRef buf (off + 22) (msg ~> vy)
-  unpackRef buf (off + 24) (msg ~> vz)
-  unpackRef buf (off + 26) (msg ~> hdg)
-
-instance SerializableRef (Struct "global_position_int_msg") where
-  packRef = call_ globalPositionIntPackRef
-  unpackRef = call_ globalPositionIntUnpackRef
+instance Packable (Struct "global_position_int_msg") where
+  packRep = wrappedPackRep globalPositionIntWrapper

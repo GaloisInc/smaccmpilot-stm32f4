@@ -28,8 +28,7 @@ dataStreamModule = package "mavlink_data_stream_msg" $ do
   incl mkDataStreamSender
   incl dataStreamUnpack
   defStruct (Proxy :: Proxy "data_stream_msg")
-  incl dataStreamPackRef
-  incl dataStreamUnpackRef
+  wrappedPackMod dataStreamWrapper
 
 [ivory|
 struct data_stream_msg
@@ -52,26 +51,14 @@ instance MavlinkUnpackableMsg "data_stream_msg" where
 dataStreamUnpack :: Def ('[ Ref s1 (Struct "data_stream_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-dataStreamUnpack = proc "mavlink_data_stream_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
+dataStreamUnpack = proc "mavlink_data_stream_unpack" $ \ msg buf -> body $ packGet packRep buf 0 msg
 
-dataStreamPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
-                              , Uint32
-                              , ConstRef s2 (Struct "data_stream_msg")
-                              ] :-> () )
-dataStreamPackRef = proc "mavlink_data_stream_pack_ref" $ \ buf off msg -> body $ do
-  packRef buf (off + 0) (msg ~> message_rate)
-  packRef buf (off + 2) (msg ~> stream_id)
-  packRef buf (off + 3) (msg ~> on_off)
+dataStreamWrapper :: WrappedPackRep (Struct "data_stream_msg")
+dataStreamWrapper = wrapPackRep "mavlink_data_stream" $ packStruct
+  [ packLabel message_rate
+  , packLabel stream_id
+  , packLabel on_off
+  ]
 
-dataStreamUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
-                                , Uint32
-                                , Ref s2 (Struct "data_stream_msg")
-                                ] :-> () )
-dataStreamUnpackRef = proc "mavlink_data_stream_unpack_ref" $ \ buf off msg -> body $ do
-  unpackRef buf (off + 0) (msg ~> message_rate)
-  unpackRef buf (off + 2) (msg ~> stream_id)
-  unpackRef buf (off + 3) (msg ~> on_off)
-
-instance SerializableRef (Struct "data_stream_msg") where
-  packRef = call_ dataStreamPackRef
-  unpackRef = call_ dataStreamUnpackRef
+instance Packable (Struct "data_stream_msg") where
+  packRep = wrappedPackRep dataStreamWrapper

@@ -28,8 +28,7 @@ missionWritePartialListModule = package "mavlink_mission_write_partial_list_msg"
   incl mkMissionWritePartialListSender
   incl missionWritePartialListUnpack
   defStruct (Proxy :: Proxy "mission_write_partial_list_msg")
-  incl missionWritePartialListPackRef
-  incl missionWritePartialListUnpackRef
+  wrappedPackMod missionWritePartialListWrapper
 
 [ivory|
 struct mission_write_partial_list_msg
@@ -53,28 +52,15 @@ instance MavlinkUnpackableMsg "mission_write_partial_list_msg" where
 missionWritePartialListUnpack :: Def ('[ Ref s1 (Struct "mission_write_partial_list_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-missionWritePartialListUnpack = proc "mavlink_mission_write_partial_list_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
+missionWritePartialListUnpack = proc "mavlink_mission_write_partial_list_unpack" $ \ msg buf -> body $ packGet packRep buf 0 msg
 
-missionWritePartialListPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
-                              , Uint32
-                              , ConstRef s2 (Struct "mission_write_partial_list_msg")
-                              ] :-> () )
-missionWritePartialListPackRef = proc "mavlink_mission_write_partial_list_pack_ref" $ \ buf off msg -> body $ do
-  packRef buf (off + 0) (msg ~> start_index)
-  packRef buf (off + 2) (msg ~> end_index)
-  packRef buf (off + 4) (msg ~> target_system)
-  packRef buf (off + 5) (msg ~> target_component)
+missionWritePartialListWrapper :: WrappedPackRep (Struct "mission_write_partial_list_msg")
+missionWritePartialListWrapper = wrapPackRep "mavlink_mission_write_partial_list" $ packStruct
+  [ packLabel start_index
+  , packLabel end_index
+  , packLabel target_system
+  , packLabel target_component
+  ]
 
-missionWritePartialListUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
-                                , Uint32
-                                , Ref s2 (Struct "mission_write_partial_list_msg")
-                                ] :-> () )
-missionWritePartialListUnpackRef = proc "mavlink_mission_write_partial_list_unpack_ref" $ \ buf off msg -> body $ do
-  unpackRef buf (off + 0) (msg ~> start_index)
-  unpackRef buf (off + 2) (msg ~> end_index)
-  unpackRef buf (off + 4) (msg ~> target_system)
-  unpackRef buf (off + 5) (msg ~> target_component)
-
-instance SerializableRef (Struct "mission_write_partial_list_msg") where
-  packRef = call_ missionWritePartialListPackRef
-  unpackRef = call_ missionWritePartialListUnpackRef
+instance Packable (Struct "mission_write_partial_list_msg") where
+  packRep = wrappedPackRep missionWritePartialListWrapper

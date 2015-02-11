@@ -28,8 +28,7 @@ pingModule = package "mavlink_ping_msg" $ do
   incl mkPingSender
   incl pingUnpack
   defStruct (Proxy :: Proxy "ping_msg")
-  incl pingPackRef
-  incl pingUnpackRef
+  wrappedPackMod pingWrapper
 
 [ivory|
 struct ping_msg
@@ -53,28 +52,15 @@ instance MavlinkUnpackableMsg "ping_msg" where
 pingUnpack :: Def ('[ Ref s1 (Struct "ping_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-pingUnpack = proc "mavlink_ping_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
+pingUnpack = proc "mavlink_ping_unpack" $ \ msg buf -> body $ packGet packRep buf 0 msg
 
-pingPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
-                              , Uint32
-                              , ConstRef s2 (Struct "ping_msg")
-                              ] :-> () )
-pingPackRef = proc "mavlink_ping_pack_ref" $ \ buf off msg -> body $ do
-  packRef buf (off + 0) (msg ~> time_usec)
-  packRef buf (off + 8) (msg ~> ping_seq)
-  packRef buf (off + 12) (msg ~> target_system)
-  packRef buf (off + 13) (msg ~> target_component)
+pingWrapper :: WrappedPackRep (Struct "ping_msg")
+pingWrapper = wrapPackRep "mavlink_ping" $ packStruct
+  [ packLabel time_usec
+  , packLabel ping_seq
+  , packLabel target_system
+  , packLabel target_component
+  ]
 
-pingUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
-                                , Uint32
-                                , Ref s2 (Struct "ping_msg")
-                                ] :-> () )
-pingUnpackRef = proc "mavlink_ping_unpack_ref" $ \ buf off msg -> body $ do
-  unpackRef buf (off + 0) (msg ~> time_usec)
-  unpackRef buf (off + 8) (msg ~> ping_seq)
-  unpackRef buf (off + 12) (msg ~> target_system)
-  unpackRef buf (off + 13) (msg ~> target_component)
-
-instance SerializableRef (Struct "ping_msg") where
-  packRef = call_ pingPackRef
-  unpackRef = call_ pingUnpackRef
+instance Packable (Struct "ping_msg") where
+  packRep = wrappedPackRep pingWrapper

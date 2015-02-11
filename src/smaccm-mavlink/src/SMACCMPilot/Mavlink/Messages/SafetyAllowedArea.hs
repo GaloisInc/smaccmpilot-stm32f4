@@ -28,8 +28,7 @@ safetyAllowedAreaModule = package "mavlink_safety_allowed_area_msg" $ do
   incl mkSafetyAllowedAreaSender
   incl safetyAllowedAreaUnpack
   defStruct (Proxy :: Proxy "safety_allowed_area_msg")
-  incl safetyAllowedAreaPackRef
-  incl safetyAllowedAreaUnpackRef
+  wrappedPackMod safetyAllowedAreaWrapper
 
 [ivory|
 struct safety_allowed_area_msg
@@ -56,34 +55,18 @@ instance MavlinkUnpackableMsg "safety_allowed_area_msg" where
 safetyAllowedAreaUnpack :: Def ('[ Ref s1 (Struct "safety_allowed_area_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-safetyAllowedAreaUnpack = proc "mavlink_safety_allowed_area_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
+safetyAllowedAreaUnpack = proc "mavlink_safety_allowed_area_unpack" $ \ msg buf -> body $ packGet packRep buf 0 msg
 
-safetyAllowedAreaPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
-                              , Uint32
-                              , ConstRef s2 (Struct "safety_allowed_area_msg")
-                              ] :-> () )
-safetyAllowedAreaPackRef = proc "mavlink_safety_allowed_area_pack_ref" $ \ buf off msg -> body $ do
-  packRef buf (off + 0) (msg ~> p1x)
-  packRef buf (off + 4) (msg ~> p1y)
-  packRef buf (off + 8) (msg ~> p1z)
-  packRef buf (off + 12) (msg ~> p2x)
-  packRef buf (off + 16) (msg ~> p2y)
-  packRef buf (off + 20) (msg ~> p2z)
-  packRef buf (off + 24) (msg ~> frame)
+safetyAllowedAreaWrapper :: WrappedPackRep (Struct "safety_allowed_area_msg")
+safetyAllowedAreaWrapper = wrapPackRep "mavlink_safety_allowed_area" $ packStruct
+  [ packLabel p1x
+  , packLabel p1y
+  , packLabel p1z
+  , packLabel p2x
+  , packLabel p2y
+  , packLabel p2z
+  , packLabel frame
+  ]
 
-safetyAllowedAreaUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
-                                , Uint32
-                                , Ref s2 (Struct "safety_allowed_area_msg")
-                                ] :-> () )
-safetyAllowedAreaUnpackRef = proc "mavlink_safety_allowed_area_unpack_ref" $ \ buf off msg -> body $ do
-  unpackRef buf (off + 0) (msg ~> p1x)
-  unpackRef buf (off + 4) (msg ~> p1y)
-  unpackRef buf (off + 8) (msg ~> p1z)
-  unpackRef buf (off + 12) (msg ~> p2x)
-  unpackRef buf (off + 16) (msg ~> p2y)
-  unpackRef buf (off + 20) (msg ~> p2z)
-  unpackRef buf (off + 24) (msg ~> frame)
-
-instance SerializableRef (Struct "safety_allowed_area_msg") where
-  packRef = call_ safetyAllowedAreaPackRef
-  unpackRef = call_ safetyAllowedAreaUnpackRef
+instance Packable (Struct "safety_allowed_area_msg") where
+  packRep = wrappedPackRep safetyAllowedAreaWrapper

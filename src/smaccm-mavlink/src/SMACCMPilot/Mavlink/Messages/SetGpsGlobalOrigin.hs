@@ -28,8 +28,7 @@ setGpsGlobalOriginModule = package "mavlink_set_gps_global_origin_msg" $ do
   incl mkSetGpsGlobalOriginSender
   incl setGpsGlobalOriginUnpack
   defStruct (Proxy :: Proxy "set_gps_global_origin_msg")
-  incl setGpsGlobalOriginPackRef
-  incl setGpsGlobalOriginUnpackRef
+  wrappedPackMod setGpsGlobalOriginWrapper
 
 [ivory|
 struct set_gps_global_origin_msg
@@ -53,28 +52,15 @@ instance MavlinkUnpackableMsg "set_gps_global_origin_msg" where
 setGpsGlobalOriginUnpack :: Def ('[ Ref s1 (Struct "set_gps_global_origin_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-setGpsGlobalOriginUnpack = proc "mavlink_set_gps_global_origin_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
+setGpsGlobalOriginUnpack = proc "mavlink_set_gps_global_origin_unpack" $ \ msg buf -> body $ packGet packRep buf 0 msg
 
-setGpsGlobalOriginPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
-                              , Uint32
-                              , ConstRef s2 (Struct "set_gps_global_origin_msg")
-                              ] :-> () )
-setGpsGlobalOriginPackRef = proc "mavlink_set_gps_global_origin_pack_ref" $ \ buf off msg -> body $ do
-  packRef buf (off + 0) (msg ~> latitude)
-  packRef buf (off + 4) (msg ~> longitude)
-  packRef buf (off + 8) (msg ~> altitude)
-  packRef buf (off + 12) (msg ~> target_system)
+setGpsGlobalOriginWrapper :: WrappedPackRep (Struct "set_gps_global_origin_msg")
+setGpsGlobalOriginWrapper = wrapPackRep "mavlink_set_gps_global_origin" $ packStruct
+  [ packLabel latitude
+  , packLabel longitude
+  , packLabel altitude
+  , packLabel target_system
+  ]
 
-setGpsGlobalOriginUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
-                                , Uint32
-                                , Ref s2 (Struct "set_gps_global_origin_msg")
-                                ] :-> () )
-setGpsGlobalOriginUnpackRef = proc "mavlink_set_gps_global_origin_unpack_ref" $ \ buf off msg -> body $ do
-  unpackRef buf (off + 0) (msg ~> latitude)
-  unpackRef buf (off + 4) (msg ~> longitude)
-  unpackRef buf (off + 8) (msg ~> altitude)
-  unpackRef buf (off + 12) (msg ~> target_system)
-
-instance SerializableRef (Struct "set_gps_global_origin_msg") where
-  packRef = call_ setGpsGlobalOriginPackRef
-  unpackRef = call_ setGpsGlobalOriginUnpackRef
+instance Packable (Struct "set_gps_global_origin_msg") where
+  packRep = wrappedPackRep setGpsGlobalOriginWrapper

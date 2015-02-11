@@ -28,8 +28,7 @@ debugVectModule = package "mavlink_debug_vect_msg" $ do
   incl mkDebugVectSender
   incl debugVectUnpack
   defStruct (Proxy :: Proxy "debug_vect_msg")
-  incl debugVectPackRef
-  incl debugVectUnpackRef
+  wrappedPackMod debugVectWrapper
 
 [ivory|
 struct debug_vect_msg
@@ -54,30 +53,16 @@ instance MavlinkUnpackableMsg "debug_vect_msg" where
 debugVectUnpack :: Def ('[ Ref s1 (Struct "debug_vect_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-debugVectUnpack = proc "mavlink_debug_vect_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
+debugVectUnpack = proc "mavlink_debug_vect_unpack" $ \ msg buf -> body $ packGet packRep buf 0 msg
 
-debugVectPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
-                              , Uint32
-                              , ConstRef s2 (Struct "debug_vect_msg")
-                              ] :-> () )
-debugVectPackRef = proc "mavlink_debug_vect_pack_ref" $ \ buf off msg -> body $ do
-  packRef buf (off + 0) (msg ~> time_usec)
-  packRef buf (off + 8) (msg ~> x)
-  packRef buf (off + 12) (msg ~> y)
-  packRef buf (off + 16) (msg ~> z)
-  packRef buf (off + 20) (msg ~> name)
+debugVectWrapper :: WrappedPackRep (Struct "debug_vect_msg")
+debugVectWrapper = wrapPackRep "mavlink_debug_vect" $ packStruct
+  [ packLabel time_usec
+  , packLabel x
+  , packLabel y
+  , packLabel z
+  , packLabel name
+  ]
 
-debugVectUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
-                                , Uint32
-                                , Ref s2 (Struct "debug_vect_msg")
-                                ] :-> () )
-debugVectUnpackRef = proc "mavlink_debug_vect_unpack_ref" $ \ buf off msg -> body $ do
-  unpackRef buf (off + 0) (msg ~> time_usec)
-  unpackRef buf (off + 8) (msg ~> x)
-  unpackRef buf (off + 12) (msg ~> y)
-  unpackRef buf (off + 16) (msg ~> z)
-  unpackRef buf (off + 20) (msg ~> name)
-
-instance SerializableRef (Struct "debug_vect_msg") where
-  packRef = call_ debugVectPackRef
-  unpackRef = call_ debugVectUnpackRef
+instance Packable (Struct "debug_vect_msg") where
+  packRep = wrappedPackRep debugVectWrapper

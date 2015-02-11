@@ -28,8 +28,7 @@ paramRequestListModule = package "mavlink_param_request_list_msg" $ do
   incl mkParamRequestListSender
   incl paramRequestListUnpack
   defStruct (Proxy :: Proxy "param_request_list_msg")
-  incl paramRequestListPackRef
-  incl paramRequestListUnpackRef
+  wrappedPackMod paramRequestListWrapper
 
 [ivory|
 struct param_request_list_msg
@@ -51,24 +50,13 @@ instance MavlinkUnpackableMsg "param_request_list_msg" where
 paramRequestListUnpack :: Def ('[ Ref s1 (Struct "param_request_list_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-paramRequestListUnpack = proc "mavlink_param_request_list_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
+paramRequestListUnpack = proc "mavlink_param_request_list_unpack" $ \ msg buf -> body $ packGet packRep buf 0 msg
 
-paramRequestListPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
-                              , Uint32
-                              , ConstRef s2 (Struct "param_request_list_msg")
-                              ] :-> () )
-paramRequestListPackRef = proc "mavlink_param_request_list_pack_ref" $ \ buf off msg -> body $ do
-  packRef buf (off + 0) (msg ~> target_system)
-  packRef buf (off + 1) (msg ~> target_component)
+paramRequestListWrapper :: WrappedPackRep (Struct "param_request_list_msg")
+paramRequestListWrapper = wrapPackRep "mavlink_param_request_list" $ packStruct
+  [ packLabel target_system
+  , packLabel target_component
+  ]
 
-paramRequestListUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
-                                , Uint32
-                                , Ref s2 (Struct "param_request_list_msg")
-                                ] :-> () )
-paramRequestListUnpackRef = proc "mavlink_param_request_list_unpack_ref" $ \ buf off msg -> body $ do
-  unpackRef buf (off + 0) (msg ~> target_system)
-  unpackRef buf (off + 1) (msg ~> target_component)
-
-instance SerializableRef (Struct "param_request_list_msg") where
-  packRef = call_ paramRequestListPackRef
-  unpackRef = call_ paramRequestListUnpackRef
+instance Packable (Struct "param_request_list_msg") where
+  packRep = wrappedPackRep paramRequestListWrapper

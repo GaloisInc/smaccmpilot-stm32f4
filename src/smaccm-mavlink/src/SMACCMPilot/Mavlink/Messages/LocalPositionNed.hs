@@ -28,8 +28,7 @@ localPositionNedModule = package "mavlink_local_position_ned_msg" $ do
   incl mkLocalPositionNedSender
   incl localPositionNedUnpack
   defStruct (Proxy :: Proxy "local_position_ned_msg")
-  incl localPositionNedPackRef
-  incl localPositionNedUnpackRef
+  wrappedPackMod localPositionNedWrapper
 
 [ivory|
 struct local_position_ned_msg
@@ -56,34 +55,18 @@ instance MavlinkUnpackableMsg "local_position_ned_msg" where
 localPositionNedUnpack :: Def ('[ Ref s1 (Struct "local_position_ned_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-localPositionNedUnpack = proc "mavlink_local_position_ned_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
+localPositionNedUnpack = proc "mavlink_local_position_ned_unpack" $ \ msg buf -> body $ packGet packRep buf 0 msg
 
-localPositionNedPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
-                              , Uint32
-                              , ConstRef s2 (Struct "local_position_ned_msg")
-                              ] :-> () )
-localPositionNedPackRef = proc "mavlink_local_position_ned_pack_ref" $ \ buf off msg -> body $ do
-  packRef buf (off + 0) (msg ~> time_boot_ms)
-  packRef buf (off + 4) (msg ~> x)
-  packRef buf (off + 8) (msg ~> y)
-  packRef buf (off + 12) (msg ~> z)
-  packRef buf (off + 16) (msg ~> vx)
-  packRef buf (off + 20) (msg ~> vy)
-  packRef buf (off + 24) (msg ~> vz)
+localPositionNedWrapper :: WrappedPackRep (Struct "local_position_ned_msg")
+localPositionNedWrapper = wrapPackRep "mavlink_local_position_ned" $ packStruct
+  [ packLabel time_boot_ms
+  , packLabel x
+  , packLabel y
+  , packLabel z
+  , packLabel vx
+  , packLabel vy
+  , packLabel vz
+  ]
 
-localPositionNedUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
-                                , Uint32
-                                , Ref s2 (Struct "local_position_ned_msg")
-                                ] :-> () )
-localPositionNedUnpackRef = proc "mavlink_local_position_ned_unpack_ref" $ \ buf off msg -> body $ do
-  unpackRef buf (off + 0) (msg ~> time_boot_ms)
-  unpackRef buf (off + 4) (msg ~> x)
-  unpackRef buf (off + 8) (msg ~> y)
-  unpackRef buf (off + 12) (msg ~> z)
-  unpackRef buf (off + 16) (msg ~> vx)
-  unpackRef buf (off + 20) (msg ~> vy)
-  unpackRef buf (off + 24) (msg ~> vz)
-
-instance SerializableRef (Struct "local_position_ned_msg") where
-  packRef = call_ localPositionNedPackRef
-  unpackRef = call_ localPositionNedUnpackRef
+instance Packable (Struct "local_position_ned_msg") where
+  packRep = wrappedPackRep localPositionNedWrapper

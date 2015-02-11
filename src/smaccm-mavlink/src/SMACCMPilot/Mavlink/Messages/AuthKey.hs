@@ -28,8 +28,7 @@ authKeyModule = package "mavlink_auth_key_msg" $ do
   incl mkAuthKeySender
   incl authKeyUnpack
   defStruct (Proxy :: Proxy "auth_key_msg")
-  incl authKeyPackRef
-  incl authKeyUnpackRef
+  wrappedPackMod authKeyWrapper
 
 [ivory|
 struct auth_key_msg
@@ -50,22 +49,12 @@ instance MavlinkUnpackableMsg "auth_key_msg" where
 authKeyUnpack :: Def ('[ Ref s1 (Struct "auth_key_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-authKeyUnpack = proc "mavlink_auth_key_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
+authKeyUnpack = proc "mavlink_auth_key_unpack" $ \ msg buf -> body $ packGet packRep buf 0 msg
 
-authKeyPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
-                              , Uint32
-                              , ConstRef s2 (Struct "auth_key_msg")
-                              ] :-> () )
-authKeyPackRef = proc "mavlink_auth_key_pack_ref" $ \ buf off msg -> body $ do
-  packRef buf (off + 0) (msg ~> key)
+authKeyWrapper :: WrappedPackRep (Struct "auth_key_msg")
+authKeyWrapper = wrapPackRep "mavlink_auth_key" $ packStruct
+  [ packLabel key
+  ]
 
-authKeyUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
-                                , Uint32
-                                , Ref s2 (Struct "auth_key_msg")
-                                ] :-> () )
-authKeyUnpackRef = proc "mavlink_auth_key_unpack_ref" $ \ buf off msg -> body $ do
-  unpackRef buf (off + 0) (msg ~> key)
-
-instance SerializableRef (Struct "auth_key_msg") where
-  packRef = call_ authKeyPackRef
-  unpackRef = call_ authKeyUnpackRef
+instance Packable (Struct "auth_key_msg") where
+  packRep = wrappedPackRep authKeyWrapper

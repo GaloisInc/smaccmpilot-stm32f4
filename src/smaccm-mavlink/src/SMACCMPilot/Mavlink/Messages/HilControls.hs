@@ -28,8 +28,7 @@ hilControlsModule = package "mavlink_hil_controls_msg" $ do
   incl mkHilControlsSender
   incl hilControlsUnpack
   defStruct (Proxy :: Proxy "hil_controls_msg")
-  incl hilControlsPackRef
-  incl hilControlsUnpackRef
+  wrappedPackMod hilControlsWrapper
 
 [ivory|
 struct hil_controls_msg
@@ -60,42 +59,22 @@ instance MavlinkUnpackableMsg "hil_controls_msg" where
 hilControlsUnpack :: Def ('[ Ref s1 (Struct "hil_controls_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-hilControlsUnpack = proc "mavlink_hil_controls_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
+hilControlsUnpack = proc "mavlink_hil_controls_unpack" $ \ msg buf -> body $ packGet packRep buf 0 msg
 
-hilControlsPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
-                              , Uint32
-                              , ConstRef s2 (Struct "hil_controls_msg")
-                              ] :-> () )
-hilControlsPackRef = proc "mavlink_hil_controls_pack_ref" $ \ buf off msg -> body $ do
-  packRef buf (off + 0) (msg ~> time_usec)
-  packRef buf (off + 8) (msg ~> roll_ailerons)
-  packRef buf (off + 12) (msg ~> pitch_elevator)
-  packRef buf (off + 16) (msg ~> yaw_rudder)
-  packRef buf (off + 20) (msg ~> throttle)
-  packRef buf (off + 24) (msg ~> aux1)
-  packRef buf (off + 28) (msg ~> aux2)
-  packRef buf (off + 32) (msg ~> aux3)
-  packRef buf (off + 36) (msg ~> aux4)
-  packRef buf (off + 40) (msg ~> mode)
-  packRef buf (off + 41) (msg ~> nav_mode)
+hilControlsWrapper :: WrappedPackRep (Struct "hil_controls_msg")
+hilControlsWrapper = wrapPackRep "mavlink_hil_controls" $ packStruct
+  [ packLabel time_usec
+  , packLabel roll_ailerons
+  , packLabel pitch_elevator
+  , packLabel yaw_rudder
+  , packLabel throttle
+  , packLabel aux1
+  , packLabel aux2
+  , packLabel aux3
+  , packLabel aux4
+  , packLabel mode
+  , packLabel nav_mode
+  ]
 
-hilControlsUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
-                                , Uint32
-                                , Ref s2 (Struct "hil_controls_msg")
-                                ] :-> () )
-hilControlsUnpackRef = proc "mavlink_hil_controls_unpack_ref" $ \ buf off msg -> body $ do
-  unpackRef buf (off + 0) (msg ~> time_usec)
-  unpackRef buf (off + 8) (msg ~> roll_ailerons)
-  unpackRef buf (off + 12) (msg ~> pitch_elevator)
-  unpackRef buf (off + 16) (msg ~> yaw_rudder)
-  unpackRef buf (off + 20) (msg ~> throttle)
-  unpackRef buf (off + 24) (msg ~> aux1)
-  unpackRef buf (off + 28) (msg ~> aux2)
-  unpackRef buf (off + 32) (msg ~> aux3)
-  unpackRef buf (off + 36) (msg ~> aux4)
-  unpackRef buf (off + 40) (msg ~> mode)
-  unpackRef buf (off + 41) (msg ~> nav_mode)
-
-instance SerializableRef (Struct "hil_controls_msg") where
-  packRef = call_ hilControlsPackRef
-  unpackRef = call_ hilControlsUnpackRef
+instance Packable (Struct "hil_controls_msg") where
+  packRep = wrappedPackRep hilControlsWrapper

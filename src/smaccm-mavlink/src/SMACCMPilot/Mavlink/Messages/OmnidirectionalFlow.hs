@@ -28,17 +28,16 @@ omnidirectionalFlowModule = package "mavlink_omnidirectional_flow_msg" $ do
   incl mkOmnidirectionalFlowSender
   incl omnidirectionalFlowUnpack
   defStruct (Proxy :: Proxy "omnidirectional_flow_msg")
-  incl omnidirectionalFlowPackRef
-  incl omnidirectionalFlowUnpackRef
+  wrappedPackMod omnidirectionalFlowWrapper
 
 [ivory|
 struct omnidirectional_flow_msg
   { time_usec :: Stored Uint64
   ; front_distance_m :: Stored IFloat
-  ; sensor_id :: Stored Uint8
-  ; quality :: Stored Uint8
   ; left :: Array 10 (Stored Sint16)
   ; right :: Array 10 (Stored Sint16)
+  ; sensor_id :: Stored Uint8
+  ; quality :: Stored Uint8
   }
 |]
 
@@ -55,32 +54,17 @@ instance MavlinkUnpackableMsg "omnidirectional_flow_msg" where
 omnidirectionalFlowUnpack :: Def ('[ Ref s1 (Struct "omnidirectional_flow_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-omnidirectionalFlowUnpack = proc "mavlink_omnidirectional_flow_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
+omnidirectionalFlowUnpack = proc "mavlink_omnidirectional_flow_unpack" $ \ msg buf -> body $ packGet packRep buf 0 msg
 
-omnidirectionalFlowPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
-                              , Uint32
-                              , ConstRef s2 (Struct "omnidirectional_flow_msg")
-                              ] :-> () )
-omnidirectionalFlowPackRef = proc "mavlink_omnidirectional_flow_pack_ref" $ \ buf off msg -> body $ do
-  packRef buf (off + 0) (msg ~> time_usec)
-  packRef buf (off + 8) (msg ~> front_distance_m)
-  packRef buf (off + 52) (msg ~> sensor_id)
-  packRef buf (off + 53) (msg ~> quality)
-  packRef buf (off + 12) (msg ~> left)
-  packRef buf (off + 32) (msg ~> right)
+omnidirectionalFlowWrapper :: WrappedPackRep (Struct "omnidirectional_flow_msg")
+omnidirectionalFlowWrapper = wrapPackRep "mavlink_omnidirectional_flow" $ packStruct
+  [ packLabel time_usec
+  , packLabel front_distance_m
+  , packLabel left
+  , packLabel right
+  , packLabel sensor_id
+  , packLabel quality
+  ]
 
-omnidirectionalFlowUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
-                                , Uint32
-                                , Ref s2 (Struct "omnidirectional_flow_msg")
-                                ] :-> () )
-omnidirectionalFlowUnpackRef = proc "mavlink_omnidirectional_flow_unpack_ref" $ \ buf off msg -> body $ do
-  unpackRef buf (off + 0) (msg ~> time_usec)
-  unpackRef buf (off + 8) (msg ~> front_distance_m)
-  unpackRef buf (off + 52) (msg ~> sensor_id)
-  unpackRef buf (off + 53) (msg ~> quality)
-  unpackRef buf (off + 12) (msg ~> left)
-  unpackRef buf (off + 32) (msg ~> right)
-
-instance SerializableRef (Struct "omnidirectional_flow_msg") where
-  packRef = call_ omnidirectionalFlowPackRef
-  unpackRef = call_ omnidirectionalFlowUnpackRef
+instance Packable (Struct "omnidirectional_flow_msg") where
+  packRep = wrappedPackRep omnidirectionalFlowWrapper

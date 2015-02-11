@@ -28,8 +28,7 @@ manualSetpointModule = package "mavlink_manual_setpoint_msg" $ do
   incl mkManualSetpointSender
   incl manualSetpointUnpack
   defStruct (Proxy :: Proxy "manual_setpoint_msg")
-  incl manualSetpointPackRef
-  incl manualSetpointUnpackRef
+  wrappedPackMod manualSetpointWrapper
 
 [ivory|
 struct manual_setpoint_msg
@@ -56,34 +55,18 @@ instance MavlinkUnpackableMsg "manual_setpoint_msg" where
 manualSetpointUnpack :: Def ('[ Ref s1 (Struct "manual_setpoint_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-manualSetpointUnpack = proc "mavlink_manual_setpoint_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
+manualSetpointUnpack = proc "mavlink_manual_setpoint_unpack" $ \ msg buf -> body $ packGet packRep buf 0 msg
 
-manualSetpointPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
-                              , Uint32
-                              , ConstRef s2 (Struct "manual_setpoint_msg")
-                              ] :-> () )
-manualSetpointPackRef = proc "mavlink_manual_setpoint_pack_ref" $ \ buf off msg -> body $ do
-  packRef buf (off + 0) (msg ~> time_boot_ms)
-  packRef buf (off + 4) (msg ~> roll)
-  packRef buf (off + 8) (msg ~> pitch)
-  packRef buf (off + 12) (msg ~> yaw)
-  packRef buf (off + 16) (msg ~> thrust)
-  packRef buf (off + 20) (msg ~> mode_switch)
-  packRef buf (off + 21) (msg ~> manual_override_switch)
+manualSetpointWrapper :: WrappedPackRep (Struct "manual_setpoint_msg")
+manualSetpointWrapper = wrapPackRep "mavlink_manual_setpoint" $ packStruct
+  [ packLabel time_boot_ms
+  , packLabel roll
+  , packLabel pitch
+  , packLabel yaw
+  , packLabel thrust
+  , packLabel mode_switch
+  , packLabel manual_override_switch
+  ]
 
-manualSetpointUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
-                                , Uint32
-                                , Ref s2 (Struct "manual_setpoint_msg")
-                                ] :-> () )
-manualSetpointUnpackRef = proc "mavlink_manual_setpoint_unpack_ref" $ \ buf off msg -> body $ do
-  unpackRef buf (off + 0) (msg ~> time_boot_ms)
-  unpackRef buf (off + 4) (msg ~> roll)
-  unpackRef buf (off + 8) (msg ~> pitch)
-  unpackRef buf (off + 12) (msg ~> yaw)
-  unpackRef buf (off + 16) (msg ~> thrust)
-  unpackRef buf (off + 20) (msg ~> mode_switch)
-  unpackRef buf (off + 21) (msg ~> manual_override_switch)
-
-instance SerializableRef (Struct "manual_setpoint_msg") where
-  packRef = call_ manualSetpointPackRef
-  unpackRef = call_ manualSetpointUnpackRef
+instance Packable (Struct "manual_setpoint_msg") where
+  packRep = wrappedPackRep manualSetpointWrapper

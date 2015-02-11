@@ -28,8 +28,7 @@ gpsRawIntModule = package "mavlink_gps_raw_int_msg" $ do
   incl mkGpsRawIntSender
   incl gpsRawIntUnpack
   defStruct (Proxy :: Proxy "gps_raw_int_msg")
-  incl gpsRawIntPackRef
-  incl gpsRawIntUnpackRef
+  wrappedPackMod gpsRawIntWrapper
 
 [ivory|
 struct gps_raw_int_msg
@@ -59,40 +58,21 @@ instance MavlinkUnpackableMsg "gps_raw_int_msg" where
 gpsRawIntUnpack :: Def ('[ Ref s1 (Struct "gps_raw_int_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-gpsRawIntUnpack = proc "mavlink_gps_raw_int_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
+gpsRawIntUnpack = proc "mavlink_gps_raw_int_unpack" $ \ msg buf -> body $ packGet packRep buf 0 msg
 
-gpsRawIntPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
-                              , Uint32
-                              , ConstRef s2 (Struct "gps_raw_int_msg")
-                              ] :-> () )
-gpsRawIntPackRef = proc "mavlink_gps_raw_int_pack_ref" $ \ buf off msg -> body $ do
-  packRef buf (off + 0) (msg ~> time_usec)
-  packRef buf (off + 8) (msg ~> lat)
-  packRef buf (off + 12) (msg ~> lon)
-  packRef buf (off + 16) (msg ~> alt)
-  packRef buf (off + 20) (msg ~> eph)
-  packRef buf (off + 22) (msg ~> epv)
-  packRef buf (off + 24) (msg ~> vel)
-  packRef buf (off + 26) (msg ~> cog)
-  packRef buf (off + 28) (msg ~> fix_type)
-  packRef buf (off + 29) (msg ~> satellites_visible)
+gpsRawIntWrapper :: WrappedPackRep (Struct "gps_raw_int_msg")
+gpsRawIntWrapper = wrapPackRep "mavlink_gps_raw_int" $ packStruct
+  [ packLabel time_usec
+  , packLabel lat
+  , packLabel lon
+  , packLabel alt
+  , packLabel eph
+  , packLabel epv
+  , packLabel vel
+  , packLabel cog
+  , packLabel fix_type
+  , packLabel satellites_visible
+  ]
 
-gpsRawIntUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
-                                , Uint32
-                                , Ref s2 (Struct "gps_raw_int_msg")
-                                ] :-> () )
-gpsRawIntUnpackRef = proc "mavlink_gps_raw_int_unpack_ref" $ \ buf off msg -> body $ do
-  unpackRef buf (off + 0) (msg ~> time_usec)
-  unpackRef buf (off + 8) (msg ~> lat)
-  unpackRef buf (off + 12) (msg ~> lon)
-  unpackRef buf (off + 16) (msg ~> alt)
-  unpackRef buf (off + 20) (msg ~> eph)
-  unpackRef buf (off + 22) (msg ~> epv)
-  unpackRef buf (off + 24) (msg ~> vel)
-  unpackRef buf (off + 26) (msg ~> cog)
-  unpackRef buf (off + 28) (msg ~> fix_type)
-  unpackRef buf (off + 29) (msg ~> satellites_visible)
-
-instance SerializableRef (Struct "gps_raw_int_msg") where
-  packRef = call_ gpsRawIntPackRef
-  unpackRef = call_ gpsRawIntUnpackRef
+instance Packable (Struct "gps_raw_int_msg") where
+  packRep = wrappedPackRep gpsRawIntWrapper

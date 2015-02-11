@@ -28,8 +28,7 @@ viconPositionEstimateModule = package "mavlink_vicon_position_estimate_msg" $ do
   incl mkViconPositionEstimateSender
   incl viconPositionEstimateUnpack
   defStruct (Proxy :: Proxy "vicon_position_estimate_msg")
-  incl viconPositionEstimatePackRef
-  incl viconPositionEstimateUnpackRef
+  wrappedPackMod viconPositionEstimateWrapper
 
 [ivory|
 struct vicon_position_estimate_msg
@@ -56,34 +55,18 @@ instance MavlinkUnpackableMsg "vicon_position_estimate_msg" where
 viconPositionEstimateUnpack :: Def ('[ Ref s1 (Struct "vicon_position_estimate_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-viconPositionEstimateUnpack = proc "mavlink_vicon_position_estimate_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
+viconPositionEstimateUnpack = proc "mavlink_vicon_position_estimate_unpack" $ \ msg buf -> body $ packGet packRep buf 0 msg
 
-viconPositionEstimatePackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
-                              , Uint32
-                              , ConstRef s2 (Struct "vicon_position_estimate_msg")
-                              ] :-> () )
-viconPositionEstimatePackRef = proc "mavlink_vicon_position_estimate_pack_ref" $ \ buf off msg -> body $ do
-  packRef buf (off + 0) (msg ~> usec)
-  packRef buf (off + 8) (msg ~> x)
-  packRef buf (off + 12) (msg ~> y)
-  packRef buf (off + 16) (msg ~> z)
-  packRef buf (off + 20) (msg ~> roll)
-  packRef buf (off + 24) (msg ~> pitch)
-  packRef buf (off + 28) (msg ~> yaw)
+viconPositionEstimateWrapper :: WrappedPackRep (Struct "vicon_position_estimate_msg")
+viconPositionEstimateWrapper = wrapPackRep "mavlink_vicon_position_estimate" $ packStruct
+  [ packLabel usec
+  , packLabel x
+  , packLabel y
+  , packLabel z
+  , packLabel roll
+  , packLabel pitch
+  , packLabel yaw
+  ]
 
-viconPositionEstimateUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
-                                , Uint32
-                                , Ref s2 (Struct "vicon_position_estimate_msg")
-                                ] :-> () )
-viconPositionEstimateUnpackRef = proc "mavlink_vicon_position_estimate_unpack_ref" $ \ buf off msg -> body $ do
-  unpackRef buf (off + 0) (msg ~> usec)
-  unpackRef buf (off + 8) (msg ~> x)
-  unpackRef buf (off + 12) (msg ~> y)
-  unpackRef buf (off + 16) (msg ~> z)
-  unpackRef buf (off + 20) (msg ~> roll)
-  unpackRef buf (off + 24) (msg ~> pitch)
-  unpackRef buf (off + 28) (msg ~> yaw)
-
-instance SerializableRef (Struct "vicon_position_estimate_msg") where
-  packRef = call_ viconPositionEstimatePackRef
-  unpackRef = call_ viconPositionEstimateUnpackRef
+instance Packable (Struct "vicon_position_estimate_msg") where
+  packRep = wrappedPackRep viconPositionEstimateWrapper

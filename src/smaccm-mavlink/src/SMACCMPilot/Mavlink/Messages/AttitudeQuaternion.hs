@@ -28,8 +28,7 @@ attitudeQuaternionModule = package "mavlink_attitude_quaternion_msg" $ do
   incl mkAttitudeQuaternionSender
   incl attitudeQuaternionUnpack
   defStruct (Proxy :: Proxy "attitude_quaternion_msg")
-  incl attitudeQuaternionPackRef
-  incl attitudeQuaternionUnpackRef
+  wrappedPackMod attitudeQuaternionWrapper
 
 [ivory|
 struct attitude_quaternion_msg
@@ -57,36 +56,19 @@ instance MavlinkUnpackableMsg "attitude_quaternion_msg" where
 attitudeQuaternionUnpack :: Def ('[ Ref s1 (Struct "attitude_quaternion_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-attitudeQuaternionUnpack = proc "mavlink_attitude_quaternion_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
+attitudeQuaternionUnpack = proc "mavlink_attitude_quaternion_unpack" $ \ msg buf -> body $ packGet packRep buf 0 msg
 
-attitudeQuaternionPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
-                              , Uint32
-                              , ConstRef s2 (Struct "attitude_quaternion_msg")
-                              ] :-> () )
-attitudeQuaternionPackRef = proc "mavlink_attitude_quaternion_pack_ref" $ \ buf off msg -> body $ do
-  packRef buf (off + 0) (msg ~> time_boot_ms)
-  packRef buf (off + 4) (msg ~> q1)
-  packRef buf (off + 8) (msg ~> q2)
-  packRef buf (off + 12) (msg ~> q3)
-  packRef buf (off + 16) (msg ~> q4)
-  packRef buf (off + 20) (msg ~> rollspeed)
-  packRef buf (off + 24) (msg ~> pitchspeed)
-  packRef buf (off + 28) (msg ~> yawspeed)
+attitudeQuaternionWrapper :: WrappedPackRep (Struct "attitude_quaternion_msg")
+attitudeQuaternionWrapper = wrapPackRep "mavlink_attitude_quaternion" $ packStruct
+  [ packLabel time_boot_ms
+  , packLabel q1
+  , packLabel q2
+  , packLabel q3
+  , packLabel q4
+  , packLabel rollspeed
+  , packLabel pitchspeed
+  , packLabel yawspeed
+  ]
 
-attitudeQuaternionUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
-                                , Uint32
-                                , Ref s2 (Struct "attitude_quaternion_msg")
-                                ] :-> () )
-attitudeQuaternionUnpackRef = proc "mavlink_attitude_quaternion_unpack_ref" $ \ buf off msg -> body $ do
-  unpackRef buf (off + 0) (msg ~> time_boot_ms)
-  unpackRef buf (off + 4) (msg ~> q1)
-  unpackRef buf (off + 8) (msg ~> q2)
-  unpackRef buf (off + 12) (msg ~> q3)
-  unpackRef buf (off + 16) (msg ~> q4)
-  unpackRef buf (off + 20) (msg ~> rollspeed)
-  unpackRef buf (off + 24) (msg ~> pitchspeed)
-  unpackRef buf (off + 28) (msg ~> yawspeed)
-
-instance SerializableRef (Struct "attitude_quaternion_msg") where
-  packRef = call_ attitudeQuaternionPackRef
-  unpackRef = call_ attitudeQuaternionUnpackRef
+instance Packable (Struct "attitude_quaternion_msg") where
+  packRep = wrappedPackRep attitudeQuaternionWrapper

@@ -28,8 +28,7 @@ commandAckModule = package "mavlink_command_ack_msg" $ do
   incl mkCommandAckSender
   incl commandAckUnpack
   defStruct (Proxy :: Proxy "command_ack_msg")
-  incl commandAckPackRef
-  incl commandAckUnpackRef
+  wrappedPackMod commandAckWrapper
 
 [ivory|
 struct command_ack_msg
@@ -51,24 +50,13 @@ instance MavlinkUnpackableMsg "command_ack_msg" where
 commandAckUnpack :: Def ('[ Ref s1 (Struct "command_ack_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-commandAckUnpack = proc "mavlink_command_ack_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
+commandAckUnpack = proc "mavlink_command_ack_unpack" $ \ msg buf -> body $ packGet packRep buf 0 msg
 
-commandAckPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
-                              , Uint32
-                              , ConstRef s2 (Struct "command_ack_msg")
-                              ] :-> () )
-commandAckPackRef = proc "mavlink_command_ack_pack_ref" $ \ buf off msg -> body $ do
-  packRef buf (off + 0) (msg ~> command)
-  packRef buf (off + 2) (msg ~> result)
+commandAckWrapper :: WrappedPackRep (Struct "command_ack_msg")
+commandAckWrapper = wrapPackRep "mavlink_command_ack" $ packStruct
+  [ packLabel command
+  , packLabel result
+  ]
 
-commandAckUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
-                                , Uint32
-                                , Ref s2 (Struct "command_ack_msg")
-                                ] :-> () )
-commandAckUnpackRef = proc "mavlink_command_ack_unpack_ref" $ \ buf off msg -> body $ do
-  unpackRef buf (off + 0) (msg ~> command)
-  unpackRef buf (off + 2) (msg ~> result)
-
-instance SerializableRef (Struct "command_ack_msg") where
-  packRef = call_ commandAckPackRef
-  unpackRef = call_ commandAckUnpackRef
+instance Packable (Struct "command_ack_msg") where
+  packRep = wrappedPackRep commandAckWrapper

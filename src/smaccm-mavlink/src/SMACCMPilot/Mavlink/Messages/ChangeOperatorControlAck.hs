@@ -28,8 +28,7 @@ changeOperatorControlAckModule = package "mavlink_change_operator_control_ack_ms
   incl mkChangeOperatorControlAckSender
   incl changeOperatorControlAckUnpack
   defStruct (Proxy :: Proxy "change_operator_control_ack_msg")
-  incl changeOperatorControlAckPackRef
-  incl changeOperatorControlAckUnpackRef
+  wrappedPackMod changeOperatorControlAckWrapper
 
 [ivory|
 struct change_operator_control_ack_msg
@@ -52,26 +51,14 @@ instance MavlinkUnpackableMsg "change_operator_control_ack_msg" where
 changeOperatorControlAckUnpack :: Def ('[ Ref s1 (Struct "change_operator_control_ack_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-changeOperatorControlAckUnpack = proc "mavlink_change_operator_control_ack_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
+changeOperatorControlAckUnpack = proc "mavlink_change_operator_control_ack_unpack" $ \ msg buf -> body $ packGet packRep buf 0 msg
 
-changeOperatorControlAckPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
-                              , Uint32
-                              , ConstRef s2 (Struct "change_operator_control_ack_msg")
-                              ] :-> () )
-changeOperatorControlAckPackRef = proc "mavlink_change_operator_control_ack_pack_ref" $ \ buf off msg -> body $ do
-  packRef buf (off + 0) (msg ~> gcs_system_id)
-  packRef buf (off + 1) (msg ~> control_request)
-  packRef buf (off + 2) (msg ~> ack)
+changeOperatorControlAckWrapper :: WrappedPackRep (Struct "change_operator_control_ack_msg")
+changeOperatorControlAckWrapper = wrapPackRep "mavlink_change_operator_control_ack" $ packStruct
+  [ packLabel gcs_system_id
+  , packLabel control_request
+  , packLabel ack
+  ]
 
-changeOperatorControlAckUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
-                                , Uint32
-                                , Ref s2 (Struct "change_operator_control_ack_msg")
-                                ] :-> () )
-changeOperatorControlAckUnpackRef = proc "mavlink_change_operator_control_ack_unpack_ref" $ \ buf off msg -> body $ do
-  unpackRef buf (off + 0) (msg ~> gcs_system_id)
-  unpackRef buf (off + 1) (msg ~> control_request)
-  unpackRef buf (off + 2) (msg ~> ack)
-
-instance SerializableRef (Struct "change_operator_control_ack_msg") where
-  packRef = call_ changeOperatorControlAckPackRef
-  unpackRef = call_ changeOperatorControlAckUnpackRef
+instance Packable (Struct "change_operator_control_ack_msg") where
+  packRep = wrappedPackRep changeOperatorControlAckWrapper

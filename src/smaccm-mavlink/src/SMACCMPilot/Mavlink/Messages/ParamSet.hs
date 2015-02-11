@@ -28,16 +28,15 @@ paramSetModule = package "mavlink_param_set_msg" $ do
   incl mkParamSetSender
   incl paramSetUnpack
   defStruct (Proxy :: Proxy "param_set_msg")
-  incl paramSetPackRef
-  incl paramSetUnpackRef
+  wrappedPackMod paramSetWrapper
 
 [ivory|
 struct param_set_msg
   { param_value :: Stored IFloat
   ; target_system :: Stored Uint8
   ; target_component :: Stored Uint8
-  ; param_type :: Stored Uint8
   ; param_id :: Array 16 (Stored Uint8)
+  ; param_type :: Stored Uint8
   }
 |]
 
@@ -54,30 +53,16 @@ instance MavlinkUnpackableMsg "param_set_msg" where
 paramSetUnpack :: Def ('[ Ref s1 (Struct "param_set_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-paramSetUnpack = proc "mavlink_param_set_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
+paramSetUnpack = proc "mavlink_param_set_unpack" $ \ msg buf -> body $ packGet packRep buf 0 msg
 
-paramSetPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
-                              , Uint32
-                              , ConstRef s2 (Struct "param_set_msg")
-                              ] :-> () )
-paramSetPackRef = proc "mavlink_param_set_pack_ref" $ \ buf off msg -> body $ do
-  packRef buf (off + 0) (msg ~> param_value)
-  packRef buf (off + 4) (msg ~> target_system)
-  packRef buf (off + 5) (msg ~> target_component)
-  packRef buf (off + 22) (msg ~> param_type)
-  packRef buf (off + 6) (msg ~> param_id)
+paramSetWrapper :: WrappedPackRep (Struct "param_set_msg")
+paramSetWrapper = wrapPackRep "mavlink_param_set" $ packStruct
+  [ packLabel param_value
+  , packLabel target_system
+  , packLabel target_component
+  , packLabel param_id
+  , packLabel param_type
+  ]
 
-paramSetUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
-                                , Uint32
-                                , Ref s2 (Struct "param_set_msg")
-                                ] :-> () )
-paramSetUnpackRef = proc "mavlink_param_set_unpack_ref" $ \ buf off msg -> body $ do
-  unpackRef buf (off + 0) (msg ~> param_value)
-  unpackRef buf (off + 4) (msg ~> target_system)
-  unpackRef buf (off + 5) (msg ~> target_component)
-  unpackRef buf (off + 22) (msg ~> param_type)
-  unpackRef buf (off + 6) (msg ~> param_id)
-
-instance SerializableRef (Struct "param_set_msg") where
-  packRef = call_ paramSetPackRef
-  unpackRef = call_ paramSetUnpackRef
+instance Packable (Struct "param_set_msg") where
+  packRep = wrappedPackRep paramSetWrapper

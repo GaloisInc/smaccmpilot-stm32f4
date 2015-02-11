@@ -28,16 +28,15 @@ paramValueModule = package "mavlink_param_value_msg" $ do
   incl mkParamValueSender
   incl paramValueUnpack
   defStruct (Proxy :: Proxy "param_value_msg")
-  incl paramValuePackRef
-  incl paramValueUnpackRef
+  wrappedPackMod paramValueWrapper
 
 [ivory|
 struct param_value_msg
   { param_value :: Stored IFloat
   ; param_count :: Stored Uint16
   ; param_index :: Stored Uint16
-  ; param_type :: Stored Uint8
   ; param_id :: Array 16 (Stored Uint8)
+  ; param_type :: Stored Uint8
   }
 |]
 
@@ -54,30 +53,16 @@ instance MavlinkUnpackableMsg "param_value_msg" where
 paramValueUnpack :: Def ('[ Ref s1 (Struct "param_value_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-paramValueUnpack = proc "mavlink_param_value_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
+paramValueUnpack = proc "mavlink_param_value_unpack" $ \ msg buf -> body $ packGet packRep buf 0 msg
 
-paramValuePackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
-                              , Uint32
-                              , ConstRef s2 (Struct "param_value_msg")
-                              ] :-> () )
-paramValuePackRef = proc "mavlink_param_value_pack_ref" $ \ buf off msg -> body $ do
-  packRef buf (off + 0) (msg ~> param_value)
-  packRef buf (off + 4) (msg ~> param_count)
-  packRef buf (off + 6) (msg ~> param_index)
-  packRef buf (off + 24) (msg ~> param_type)
-  packRef buf (off + 8) (msg ~> param_id)
+paramValueWrapper :: WrappedPackRep (Struct "param_value_msg")
+paramValueWrapper = wrapPackRep "mavlink_param_value" $ packStruct
+  [ packLabel param_value
+  , packLabel param_count
+  , packLabel param_index
+  , packLabel param_id
+  , packLabel param_type
+  ]
 
-paramValueUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
-                                , Uint32
-                                , Ref s2 (Struct "param_value_msg")
-                                ] :-> () )
-paramValueUnpackRef = proc "mavlink_param_value_unpack_ref" $ \ buf off msg -> body $ do
-  unpackRef buf (off + 0) (msg ~> param_value)
-  unpackRef buf (off + 4) (msg ~> param_count)
-  unpackRef buf (off + 6) (msg ~> param_index)
-  unpackRef buf (off + 24) (msg ~> param_type)
-  unpackRef buf (off + 8) (msg ~> param_id)
-
-instance SerializableRef (Struct "param_value_msg") where
-  packRef = call_ paramValuePackRef
-  unpackRef = call_ paramValueUnpackRef
+instance Packable (Struct "param_value_msg") where
+  packRep = wrappedPackRep paramValueWrapper

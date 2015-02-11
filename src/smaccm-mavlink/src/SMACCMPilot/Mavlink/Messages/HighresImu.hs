@@ -28,8 +28,7 @@ highresImuModule = package "mavlink_highres_imu_msg" $ do
   incl mkHighresImuSender
   incl highresImuUnpack
   defStruct (Proxy :: Proxy "highres_imu_msg")
-  incl highresImuPackRef
-  incl highresImuUnpackRef
+  wrappedPackMod highresImuWrapper
 
 [ivory|
 struct highres_imu_msg
@@ -64,50 +63,26 @@ instance MavlinkUnpackableMsg "highres_imu_msg" where
 highresImuUnpack :: Def ('[ Ref s1 (Struct "highres_imu_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-highresImuUnpack = proc "mavlink_highres_imu_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
+highresImuUnpack = proc "mavlink_highres_imu_unpack" $ \ msg buf -> body $ packGet packRep buf 0 msg
 
-highresImuPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
-                              , Uint32
-                              , ConstRef s2 (Struct "highres_imu_msg")
-                              ] :-> () )
-highresImuPackRef = proc "mavlink_highres_imu_pack_ref" $ \ buf off msg -> body $ do
-  packRef buf (off + 0) (msg ~> time_usec)
-  packRef buf (off + 8) (msg ~> xacc)
-  packRef buf (off + 12) (msg ~> yacc)
-  packRef buf (off + 16) (msg ~> zacc)
-  packRef buf (off + 20) (msg ~> xgyro)
-  packRef buf (off + 24) (msg ~> ygyro)
-  packRef buf (off + 28) (msg ~> zgyro)
-  packRef buf (off + 32) (msg ~> xmag)
-  packRef buf (off + 36) (msg ~> ymag)
-  packRef buf (off + 40) (msg ~> zmag)
-  packRef buf (off + 44) (msg ~> abs_pressure)
-  packRef buf (off + 48) (msg ~> diff_pressure)
-  packRef buf (off + 52) (msg ~> pressure_alt)
-  packRef buf (off + 56) (msg ~> temperature)
-  packRef buf (off + 60) (msg ~> fields_updated)
+highresImuWrapper :: WrappedPackRep (Struct "highres_imu_msg")
+highresImuWrapper = wrapPackRep "mavlink_highres_imu" $ packStruct
+  [ packLabel time_usec
+  , packLabel xacc
+  , packLabel yacc
+  , packLabel zacc
+  , packLabel xgyro
+  , packLabel ygyro
+  , packLabel zgyro
+  , packLabel xmag
+  , packLabel ymag
+  , packLabel zmag
+  , packLabel abs_pressure
+  , packLabel diff_pressure
+  , packLabel pressure_alt
+  , packLabel temperature
+  , packLabel fields_updated
+  ]
 
-highresImuUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
-                                , Uint32
-                                , Ref s2 (Struct "highres_imu_msg")
-                                ] :-> () )
-highresImuUnpackRef = proc "mavlink_highres_imu_unpack_ref" $ \ buf off msg -> body $ do
-  unpackRef buf (off + 0) (msg ~> time_usec)
-  unpackRef buf (off + 8) (msg ~> xacc)
-  unpackRef buf (off + 12) (msg ~> yacc)
-  unpackRef buf (off + 16) (msg ~> zacc)
-  unpackRef buf (off + 20) (msg ~> xgyro)
-  unpackRef buf (off + 24) (msg ~> ygyro)
-  unpackRef buf (off + 28) (msg ~> zgyro)
-  unpackRef buf (off + 32) (msg ~> xmag)
-  unpackRef buf (off + 36) (msg ~> ymag)
-  unpackRef buf (off + 40) (msg ~> zmag)
-  unpackRef buf (off + 44) (msg ~> abs_pressure)
-  unpackRef buf (off + 48) (msg ~> diff_pressure)
-  unpackRef buf (off + 52) (msg ~> pressure_alt)
-  unpackRef buf (off + 56) (msg ~> temperature)
-  unpackRef buf (off + 60) (msg ~> fields_updated)
-
-instance SerializableRef (Struct "highres_imu_msg") where
-  packRef = call_ highresImuPackRef
-  unpackRef = call_ highresImuUnpackRef
+instance Packable (Struct "highres_imu_msg") where
+  packRep = wrappedPackRep highresImuWrapper

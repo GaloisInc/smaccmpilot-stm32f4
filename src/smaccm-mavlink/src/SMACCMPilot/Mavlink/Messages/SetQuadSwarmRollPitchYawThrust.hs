@@ -28,17 +28,16 @@ setQuadSwarmRollPitchYawThrustModule = package "mavlink_set_quad_swarm_roll_pitc
   incl mkSetQuadSwarmRollPitchYawThrustSender
   incl setQuadSwarmRollPitchYawThrustUnpack
   defStruct (Proxy :: Proxy "set_quad_swarm_roll_pitch_yaw_thrust_msg")
-  incl setQuadSwarmRollPitchYawThrustPackRef
-  incl setQuadSwarmRollPitchYawThrustUnpackRef
+  wrappedPackMod setQuadSwarmRollPitchYawThrustWrapper
 
 [ivory|
 struct set_quad_swarm_roll_pitch_yaw_thrust_msg
-  { group :: Stored Uint8
-  ; mode :: Stored Uint8
-  ; roll :: Array 4 (Stored Sint16)
+  { roll :: Array 4 (Stored Sint16)
   ; pitch :: Array 4 (Stored Sint16)
   ; yaw :: Array 4 (Stored Sint16)
   ; thrust :: Array 4 (Stored Uint16)
+  ; group :: Stored Uint8
+  ; mode :: Stored Uint8
   }
 |]
 
@@ -55,32 +54,17 @@ instance MavlinkUnpackableMsg "set_quad_swarm_roll_pitch_yaw_thrust_msg" where
 setQuadSwarmRollPitchYawThrustUnpack :: Def ('[ Ref s1 (Struct "set_quad_swarm_roll_pitch_yaw_thrust_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-setQuadSwarmRollPitchYawThrustUnpack = proc "mavlink_set_quad_swarm_roll_pitch_yaw_thrust_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
+setQuadSwarmRollPitchYawThrustUnpack = proc "mavlink_set_quad_swarm_roll_pitch_yaw_thrust_unpack" $ \ msg buf -> body $ packGet packRep buf 0 msg
 
-setQuadSwarmRollPitchYawThrustPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
-                              , Uint32
-                              , ConstRef s2 (Struct "set_quad_swarm_roll_pitch_yaw_thrust_msg")
-                              ] :-> () )
-setQuadSwarmRollPitchYawThrustPackRef = proc "mavlink_set_quad_swarm_roll_pitch_yaw_thrust_pack_ref" $ \ buf off msg -> body $ do
-  packRef buf (off + 32) (msg ~> group)
-  packRef buf (off + 33) (msg ~> mode)
-  packRef buf (off + 0) (msg ~> roll)
-  packRef buf (off + 8) (msg ~> pitch)
-  packRef buf (off + 16) (msg ~> yaw)
-  packRef buf (off + 24) (msg ~> thrust)
+setQuadSwarmRollPitchYawThrustWrapper :: WrappedPackRep (Struct "set_quad_swarm_roll_pitch_yaw_thrust_msg")
+setQuadSwarmRollPitchYawThrustWrapper = wrapPackRep "mavlink_set_quad_swarm_roll_pitch_yaw_thrust" $ packStruct
+  [ packLabel roll
+  , packLabel pitch
+  , packLabel yaw
+  , packLabel thrust
+  , packLabel group
+  , packLabel mode
+  ]
 
-setQuadSwarmRollPitchYawThrustUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
-                                , Uint32
-                                , Ref s2 (Struct "set_quad_swarm_roll_pitch_yaw_thrust_msg")
-                                ] :-> () )
-setQuadSwarmRollPitchYawThrustUnpackRef = proc "mavlink_set_quad_swarm_roll_pitch_yaw_thrust_unpack_ref" $ \ buf off msg -> body $ do
-  unpackRef buf (off + 32) (msg ~> group)
-  unpackRef buf (off + 33) (msg ~> mode)
-  unpackRef buf (off + 0) (msg ~> roll)
-  unpackRef buf (off + 8) (msg ~> pitch)
-  unpackRef buf (off + 16) (msg ~> yaw)
-  unpackRef buf (off + 24) (msg ~> thrust)
-
-instance SerializableRef (Struct "set_quad_swarm_roll_pitch_yaw_thrust_msg") where
-  packRef = call_ setQuadSwarmRollPitchYawThrustPackRef
-  unpackRef = call_ setQuadSwarmRollPitchYawThrustUnpackRef
+instance Packable (Struct "set_quad_swarm_roll_pitch_yaw_thrust_msg") where
+  packRep = wrappedPackRep setQuadSwarmRollPitchYawThrustWrapper

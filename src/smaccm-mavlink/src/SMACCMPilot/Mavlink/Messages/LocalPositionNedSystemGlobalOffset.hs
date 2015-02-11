@@ -28,8 +28,7 @@ localPositionNedSystemGlobalOffsetModule = package "mavlink_local_position_ned_s
   incl mkLocalPositionNedSystemGlobalOffsetSender
   incl localPositionNedSystemGlobalOffsetUnpack
   defStruct (Proxy :: Proxy "local_position_ned_system_global_offset_msg")
-  incl localPositionNedSystemGlobalOffsetPackRef
-  incl localPositionNedSystemGlobalOffsetUnpackRef
+  wrappedPackMod localPositionNedSystemGlobalOffsetWrapper
 
 [ivory|
 struct local_position_ned_system_global_offset_msg
@@ -56,34 +55,18 @@ instance MavlinkUnpackableMsg "local_position_ned_system_global_offset_msg" wher
 localPositionNedSystemGlobalOffsetUnpack :: Def ('[ Ref s1 (Struct "local_position_ned_system_global_offset_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-localPositionNedSystemGlobalOffsetUnpack = proc "mavlink_local_position_ned_system_global_offset_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
+localPositionNedSystemGlobalOffsetUnpack = proc "mavlink_local_position_ned_system_global_offset_unpack" $ \ msg buf -> body $ packGet packRep buf 0 msg
 
-localPositionNedSystemGlobalOffsetPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
-                              , Uint32
-                              , ConstRef s2 (Struct "local_position_ned_system_global_offset_msg")
-                              ] :-> () )
-localPositionNedSystemGlobalOffsetPackRef = proc "mavlink_local_position_ned_system_global_offset_pack_ref" $ \ buf off msg -> body $ do
-  packRef buf (off + 0) (msg ~> time_boot_ms)
-  packRef buf (off + 4) (msg ~> x)
-  packRef buf (off + 8) (msg ~> y)
-  packRef buf (off + 12) (msg ~> z)
-  packRef buf (off + 16) (msg ~> roll)
-  packRef buf (off + 20) (msg ~> pitch)
-  packRef buf (off + 24) (msg ~> yaw)
+localPositionNedSystemGlobalOffsetWrapper :: WrappedPackRep (Struct "local_position_ned_system_global_offset_msg")
+localPositionNedSystemGlobalOffsetWrapper = wrapPackRep "mavlink_local_position_ned_system_global_offset" $ packStruct
+  [ packLabel time_boot_ms
+  , packLabel x
+  , packLabel y
+  , packLabel z
+  , packLabel roll
+  , packLabel pitch
+  , packLabel yaw
+  ]
 
-localPositionNedSystemGlobalOffsetUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
-                                , Uint32
-                                , Ref s2 (Struct "local_position_ned_system_global_offset_msg")
-                                ] :-> () )
-localPositionNedSystemGlobalOffsetUnpackRef = proc "mavlink_local_position_ned_system_global_offset_unpack_ref" $ \ buf off msg -> body $ do
-  unpackRef buf (off + 0) (msg ~> time_boot_ms)
-  unpackRef buf (off + 4) (msg ~> x)
-  unpackRef buf (off + 8) (msg ~> y)
-  unpackRef buf (off + 12) (msg ~> z)
-  unpackRef buf (off + 16) (msg ~> roll)
-  unpackRef buf (off + 20) (msg ~> pitch)
-  unpackRef buf (off + 24) (msg ~> yaw)
-
-instance SerializableRef (Struct "local_position_ned_system_global_offset_msg") where
-  packRef = call_ localPositionNedSystemGlobalOffsetPackRef
-  unpackRef = call_ localPositionNedSystemGlobalOffsetUnpackRef
+instance Packable (Struct "local_position_ned_system_global_offset_msg") where
+  packRep = wrappedPackRep localPositionNedSystemGlobalOffsetWrapper

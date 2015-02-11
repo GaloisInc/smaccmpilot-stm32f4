@@ -28,8 +28,7 @@ data64Module = package "mavlink_data64_msg" $ do
   incl mkData64Sender
   incl data64Unpack
   defStruct (Proxy :: Proxy "data64_msg")
-  incl data64PackRef
-  incl data64UnpackRef
+  wrappedPackMod data64Wrapper
 
 [ivory|
 struct data64_msg
@@ -52,26 +51,14 @@ instance MavlinkUnpackableMsg "data64_msg" where
 data64Unpack :: Def ('[ Ref s1 (Struct "data64_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-data64Unpack = proc "mavlink_data64_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
+data64Unpack = proc "mavlink_data64_unpack" $ \ msg buf -> body $ packGet packRep buf 0 msg
 
-data64PackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
-                              , Uint32
-                              , ConstRef s2 (Struct "data64_msg")
-                              ] :-> () )
-data64PackRef = proc "mavlink_data64_pack_ref" $ \ buf off msg -> body $ do
-  packRef buf (off + 0) (msg ~> data64_type)
-  packRef buf (off + 1) (msg ~> len)
-  packRef buf (off + 2) (msg ~> data64)
+data64Wrapper :: WrappedPackRep (Struct "data64_msg")
+data64Wrapper = wrapPackRep "mavlink_data64" $ packStruct
+  [ packLabel data64_type
+  , packLabel len
+  , packLabel data64
+  ]
 
-data64UnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
-                                , Uint32
-                                , Ref s2 (Struct "data64_msg")
-                                ] :-> () )
-data64UnpackRef = proc "mavlink_data64_unpack_ref" $ \ buf off msg -> body $ do
-  unpackRef buf (off + 0) (msg ~> data64_type)
-  unpackRef buf (off + 1) (msg ~> len)
-  unpackRef buf (off + 2) (msg ~> data64)
-
-instance SerializableRef (Struct "data64_msg") where
-  packRef = call_ data64PackRef
-  unpackRef = call_ data64UnpackRef
+instance Packable (Struct "data64_msg") where
+  packRep = wrappedPackRep data64Wrapper

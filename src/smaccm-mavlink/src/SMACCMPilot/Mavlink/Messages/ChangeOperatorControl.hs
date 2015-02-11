@@ -28,8 +28,7 @@ changeOperatorControlModule = package "mavlink_change_operator_control_msg" $ do
   incl mkChangeOperatorControlSender
   incl changeOperatorControlUnpack
   defStruct (Proxy :: Proxy "change_operator_control_msg")
-  incl changeOperatorControlPackRef
-  incl changeOperatorControlUnpackRef
+  wrappedPackMod changeOperatorControlWrapper
 
 [ivory|
 struct change_operator_control_msg
@@ -53,28 +52,15 @@ instance MavlinkUnpackableMsg "change_operator_control_msg" where
 changeOperatorControlUnpack :: Def ('[ Ref s1 (Struct "change_operator_control_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-changeOperatorControlUnpack = proc "mavlink_change_operator_control_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
+changeOperatorControlUnpack = proc "mavlink_change_operator_control_unpack" $ \ msg buf -> body $ packGet packRep buf 0 msg
 
-changeOperatorControlPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
-                              , Uint32
-                              , ConstRef s2 (Struct "change_operator_control_msg")
-                              ] :-> () )
-changeOperatorControlPackRef = proc "mavlink_change_operator_control_pack_ref" $ \ buf off msg -> body $ do
-  packRef buf (off + 0) (msg ~> target_system)
-  packRef buf (off + 1) (msg ~> control_request)
-  packRef buf (off + 2) (msg ~> version)
-  packRef buf (off + 3) (msg ~> passkey)
+changeOperatorControlWrapper :: WrappedPackRep (Struct "change_operator_control_msg")
+changeOperatorControlWrapper = wrapPackRep "mavlink_change_operator_control" $ packStruct
+  [ packLabel target_system
+  , packLabel control_request
+  , packLabel version
+  , packLabel passkey
+  ]
 
-changeOperatorControlUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
-                                , Uint32
-                                , Ref s2 (Struct "change_operator_control_msg")
-                                ] :-> () )
-changeOperatorControlUnpackRef = proc "mavlink_change_operator_control_unpack_ref" $ \ buf off msg -> body $ do
-  unpackRef buf (off + 0) (msg ~> target_system)
-  unpackRef buf (off + 1) (msg ~> control_request)
-  unpackRef buf (off + 2) (msg ~> version)
-  unpackRef buf (off + 3) (msg ~> passkey)
-
-instance SerializableRef (Struct "change_operator_control_msg") where
-  packRef = call_ changeOperatorControlPackRef
-  unpackRef = call_ changeOperatorControlUnpackRef
+instance Packable (Struct "change_operator_control_msg") where
+  packRep = wrappedPackRep changeOperatorControlWrapper

@@ -28,8 +28,7 @@ attCtlDebugModule = package "mavlink_att_ctl_debug_msg" $ do
   incl mkAttCtlDebugSender
   incl attCtlDebugUnpack
   defStruct (Proxy :: Proxy "att_ctl_debug_msg")
-  incl attCtlDebugPackRef
-  incl attCtlDebugUnpackRef
+  wrappedPackMod attCtlDebugWrapper
 
 [ivory|
 struct att_ctl_debug_msg
@@ -57,36 +56,19 @@ instance MavlinkUnpackableMsg "att_ctl_debug_msg" where
 attCtlDebugUnpack :: Def ('[ Ref s1 (Struct "att_ctl_debug_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-attCtlDebugUnpack = proc "mavlink_att_ctl_debug_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
+attCtlDebugUnpack = proc "mavlink_att_ctl_debug_unpack" $ \ msg buf -> body $ packGet packRep buf 0 msg
 
-attCtlDebugPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
-                              , Uint32
-                              , ConstRef s2 (Struct "att_ctl_debug_msg")
-                              ] :-> () )
-attCtlDebugPackRef = proc "mavlink_att_ctl_debug_pack_ref" $ \ buf off msg -> body $ do
-  packRef buf (off + 0) (msg ~> head_setpt)
-  packRef buf (off + 4) (msg ~> head_rate_setpt)
-  packRef buf (off + 8) (msg ~> head_ctl_p)
-  packRef buf (off + 12) (msg ~> head_ctl_d)
-  packRef buf (off + 16) (msg ~> pitch_setpt)
-  packRef buf (off + 20) (msg ~> pitch_rate_setpt)
-  packRef buf (off + 24) (msg ~> roll_setpt)
-  packRef buf (off + 28) (msg ~> roll_rate_setpt)
+attCtlDebugWrapper :: WrappedPackRep (Struct "att_ctl_debug_msg")
+attCtlDebugWrapper = wrapPackRep "mavlink_att_ctl_debug" $ packStruct
+  [ packLabel head_setpt
+  , packLabel head_rate_setpt
+  , packLabel head_ctl_p
+  , packLabel head_ctl_d
+  , packLabel pitch_setpt
+  , packLabel pitch_rate_setpt
+  , packLabel roll_setpt
+  , packLabel roll_rate_setpt
+  ]
 
-attCtlDebugUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
-                                , Uint32
-                                , Ref s2 (Struct "att_ctl_debug_msg")
-                                ] :-> () )
-attCtlDebugUnpackRef = proc "mavlink_att_ctl_debug_unpack_ref" $ \ buf off msg -> body $ do
-  unpackRef buf (off + 0) (msg ~> head_setpt)
-  unpackRef buf (off + 4) (msg ~> head_rate_setpt)
-  unpackRef buf (off + 8) (msg ~> head_ctl_p)
-  unpackRef buf (off + 12) (msg ~> head_ctl_d)
-  unpackRef buf (off + 16) (msg ~> pitch_setpt)
-  unpackRef buf (off + 20) (msg ~> pitch_rate_setpt)
-  unpackRef buf (off + 24) (msg ~> roll_setpt)
-  unpackRef buf (off + 28) (msg ~> roll_rate_setpt)
-
-instance SerializableRef (Struct "att_ctl_debug_msg") where
-  packRef = call_ attCtlDebugPackRef
-  unpackRef = call_ attCtlDebugUnpackRef
+instance Packable (Struct "att_ctl_debug_msg") where
+  packRep = wrappedPackRep attCtlDebugWrapper

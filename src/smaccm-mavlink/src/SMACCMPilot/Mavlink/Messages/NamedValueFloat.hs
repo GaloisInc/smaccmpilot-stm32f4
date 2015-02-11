@@ -28,8 +28,7 @@ namedValueFloatModule = package "mavlink_named_value_float_msg" $ do
   incl mkNamedValueFloatSender
   incl namedValueFloatUnpack
   defStruct (Proxy :: Proxy "named_value_float_msg")
-  incl namedValueFloatPackRef
-  incl namedValueFloatUnpackRef
+  wrappedPackMod namedValueFloatWrapper
 
 [ivory|
 struct named_value_float_msg
@@ -52,26 +51,14 @@ instance MavlinkUnpackableMsg "named_value_float_msg" where
 namedValueFloatUnpack :: Def ('[ Ref s1 (Struct "named_value_float_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-namedValueFloatUnpack = proc "mavlink_named_value_float_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
+namedValueFloatUnpack = proc "mavlink_named_value_float_unpack" $ \ msg buf -> body $ packGet packRep buf 0 msg
 
-namedValueFloatPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
-                              , Uint32
-                              , ConstRef s2 (Struct "named_value_float_msg")
-                              ] :-> () )
-namedValueFloatPackRef = proc "mavlink_named_value_float_pack_ref" $ \ buf off msg -> body $ do
-  packRef buf (off + 0) (msg ~> time_boot_ms)
-  packRef buf (off + 4) (msg ~> value)
-  packRef buf (off + 8) (msg ~> name)
+namedValueFloatWrapper :: WrappedPackRep (Struct "named_value_float_msg")
+namedValueFloatWrapper = wrapPackRep "mavlink_named_value_float" $ packStruct
+  [ packLabel time_boot_ms
+  , packLabel value
+  , packLabel name
+  ]
 
-namedValueFloatUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
-                                , Uint32
-                                , Ref s2 (Struct "named_value_float_msg")
-                                ] :-> () )
-namedValueFloatUnpackRef = proc "mavlink_named_value_float_unpack_ref" $ \ buf off msg -> body $ do
-  unpackRef buf (off + 0) (msg ~> time_boot_ms)
-  unpackRef buf (off + 4) (msg ~> value)
-  unpackRef buf (off + 8) (msg ~> name)
-
-instance SerializableRef (Struct "named_value_float_msg") where
-  packRef = call_ namedValueFloatPackRef
-  unpackRef = call_ namedValueFloatUnpackRef
+instance Packable (Struct "named_value_float_msg") where
+  packRep = wrappedPackRep namedValueFloatWrapper

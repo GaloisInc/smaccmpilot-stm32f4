@@ -28,8 +28,7 @@ hilRcInputsRawModule = package "mavlink_hil_rc_inputs_raw_msg" $ do
   incl mkHilRcInputsRawSender
   incl hilRcInputsRawUnpack
   defStruct (Proxy :: Proxy "hil_rc_inputs_raw_msg")
-  incl hilRcInputsRawPackRef
-  incl hilRcInputsRawUnpackRef
+  wrappedPackMod hilRcInputsRawWrapper
 
 [ivory|
 struct hil_rc_inputs_raw_msg
@@ -63,48 +62,25 @@ instance MavlinkUnpackableMsg "hil_rc_inputs_raw_msg" where
 hilRcInputsRawUnpack :: Def ('[ Ref s1 (Struct "hil_rc_inputs_raw_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-hilRcInputsRawUnpack = proc "mavlink_hil_rc_inputs_raw_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
+hilRcInputsRawUnpack = proc "mavlink_hil_rc_inputs_raw_unpack" $ \ msg buf -> body $ packGet packRep buf 0 msg
 
-hilRcInputsRawPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
-                              , Uint32
-                              , ConstRef s2 (Struct "hil_rc_inputs_raw_msg")
-                              ] :-> () )
-hilRcInputsRawPackRef = proc "mavlink_hil_rc_inputs_raw_pack_ref" $ \ buf off msg -> body $ do
-  packRef buf (off + 0) (msg ~> time_usec)
-  packRef buf (off + 8) (msg ~> chan1_raw)
-  packRef buf (off + 10) (msg ~> chan2_raw)
-  packRef buf (off + 12) (msg ~> chan3_raw)
-  packRef buf (off + 14) (msg ~> chan4_raw)
-  packRef buf (off + 16) (msg ~> chan5_raw)
-  packRef buf (off + 18) (msg ~> chan6_raw)
-  packRef buf (off + 20) (msg ~> chan7_raw)
-  packRef buf (off + 22) (msg ~> chan8_raw)
-  packRef buf (off + 24) (msg ~> chan9_raw)
-  packRef buf (off + 26) (msg ~> chan10_raw)
-  packRef buf (off + 28) (msg ~> chan11_raw)
-  packRef buf (off + 30) (msg ~> chan12_raw)
-  packRef buf (off + 32) (msg ~> rssi)
+hilRcInputsRawWrapper :: WrappedPackRep (Struct "hil_rc_inputs_raw_msg")
+hilRcInputsRawWrapper = wrapPackRep "mavlink_hil_rc_inputs_raw" $ packStruct
+  [ packLabel time_usec
+  , packLabel chan1_raw
+  , packLabel chan2_raw
+  , packLabel chan3_raw
+  , packLabel chan4_raw
+  , packLabel chan5_raw
+  , packLabel chan6_raw
+  , packLabel chan7_raw
+  , packLabel chan8_raw
+  , packLabel chan9_raw
+  , packLabel chan10_raw
+  , packLabel chan11_raw
+  , packLabel chan12_raw
+  , packLabel rssi
+  ]
 
-hilRcInputsRawUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
-                                , Uint32
-                                , Ref s2 (Struct "hil_rc_inputs_raw_msg")
-                                ] :-> () )
-hilRcInputsRawUnpackRef = proc "mavlink_hil_rc_inputs_raw_unpack_ref" $ \ buf off msg -> body $ do
-  unpackRef buf (off + 0) (msg ~> time_usec)
-  unpackRef buf (off + 8) (msg ~> chan1_raw)
-  unpackRef buf (off + 10) (msg ~> chan2_raw)
-  unpackRef buf (off + 12) (msg ~> chan3_raw)
-  unpackRef buf (off + 14) (msg ~> chan4_raw)
-  unpackRef buf (off + 16) (msg ~> chan5_raw)
-  unpackRef buf (off + 18) (msg ~> chan6_raw)
-  unpackRef buf (off + 20) (msg ~> chan7_raw)
-  unpackRef buf (off + 22) (msg ~> chan8_raw)
-  unpackRef buf (off + 24) (msg ~> chan9_raw)
-  unpackRef buf (off + 26) (msg ~> chan10_raw)
-  unpackRef buf (off + 28) (msg ~> chan11_raw)
-  unpackRef buf (off + 30) (msg ~> chan12_raw)
-  unpackRef buf (off + 32) (msg ~> rssi)
-
-instance SerializableRef (Struct "hil_rc_inputs_raw_msg") where
-  packRef = call_ hilRcInputsRawPackRef
-  unpackRef = call_ hilRcInputsRawUnpackRef
+instance Packable (Struct "hil_rc_inputs_raw_msg") where
+  packRep = wrappedPackRep hilRcInputsRawWrapper

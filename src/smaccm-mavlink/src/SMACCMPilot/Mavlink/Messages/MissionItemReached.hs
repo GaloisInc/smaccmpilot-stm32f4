@@ -28,8 +28,7 @@ missionItemReachedModule = package "mavlink_mission_item_reached_msg" $ do
   incl mkMissionItemReachedSender
   incl missionItemReachedUnpack
   defStruct (Proxy :: Proxy "mission_item_reached_msg")
-  incl missionItemReachedPackRef
-  incl missionItemReachedUnpackRef
+  wrappedPackMod missionItemReachedWrapper
 
 [ivory|
 struct mission_item_reached_msg
@@ -50,22 +49,12 @@ instance MavlinkUnpackableMsg "mission_item_reached_msg" where
 missionItemReachedUnpack :: Def ('[ Ref s1 (Struct "mission_item_reached_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-missionItemReachedUnpack = proc "mavlink_mission_item_reached_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
+missionItemReachedUnpack = proc "mavlink_mission_item_reached_unpack" $ \ msg buf -> body $ packGet packRep buf 0 msg
 
-missionItemReachedPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
-                              , Uint32
-                              , ConstRef s2 (Struct "mission_item_reached_msg")
-                              ] :-> () )
-missionItemReachedPackRef = proc "mavlink_mission_item_reached_pack_ref" $ \ buf off msg -> body $ do
-  packRef buf (off + 0) (msg ~> mission_item_reached_seq)
+missionItemReachedWrapper :: WrappedPackRep (Struct "mission_item_reached_msg")
+missionItemReachedWrapper = wrapPackRep "mavlink_mission_item_reached" $ packStruct
+  [ packLabel mission_item_reached_seq
+  ]
 
-missionItemReachedUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
-                                , Uint32
-                                , Ref s2 (Struct "mission_item_reached_msg")
-                                ] :-> () )
-missionItemReachedUnpackRef = proc "mavlink_mission_item_reached_unpack_ref" $ \ buf off msg -> body $ do
-  unpackRef buf (off + 0) (msg ~> mission_item_reached_seq)
-
-instance SerializableRef (Struct "mission_item_reached_msg") where
-  packRef = call_ missionItemReachedPackRef
-  unpackRef = call_ missionItemReachedUnpackRef
+instance Packable (Struct "mission_item_reached_msg") where
+  packRep = wrappedPackRep missionItemReachedWrapper

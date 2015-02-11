@@ -28,8 +28,7 @@ paramRequestReadModule = package "mavlink_param_request_read_msg" $ do
   incl mkParamRequestReadSender
   incl paramRequestReadUnpack
   defStruct (Proxy :: Proxy "param_request_read_msg")
-  incl paramRequestReadPackRef
-  incl paramRequestReadUnpackRef
+  wrappedPackMod paramRequestReadWrapper
 
 [ivory|
 struct param_request_read_msg
@@ -53,28 +52,15 @@ instance MavlinkUnpackableMsg "param_request_read_msg" where
 paramRequestReadUnpack :: Def ('[ Ref s1 (Struct "param_request_read_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-paramRequestReadUnpack = proc "mavlink_param_request_read_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
+paramRequestReadUnpack = proc "mavlink_param_request_read_unpack" $ \ msg buf -> body $ packGet packRep buf 0 msg
 
-paramRequestReadPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
-                              , Uint32
-                              , ConstRef s2 (Struct "param_request_read_msg")
-                              ] :-> () )
-paramRequestReadPackRef = proc "mavlink_param_request_read_pack_ref" $ \ buf off msg -> body $ do
-  packRef buf (off + 0) (msg ~> param_index)
-  packRef buf (off + 2) (msg ~> target_system)
-  packRef buf (off + 3) (msg ~> target_component)
-  packRef buf (off + 4) (msg ~> param_id)
+paramRequestReadWrapper :: WrappedPackRep (Struct "param_request_read_msg")
+paramRequestReadWrapper = wrapPackRep "mavlink_param_request_read" $ packStruct
+  [ packLabel param_index
+  , packLabel target_system
+  , packLabel target_component
+  , packLabel param_id
+  ]
 
-paramRequestReadUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
-                                , Uint32
-                                , Ref s2 (Struct "param_request_read_msg")
-                                ] :-> () )
-paramRequestReadUnpackRef = proc "mavlink_param_request_read_unpack_ref" $ \ buf off msg -> body $ do
-  unpackRef buf (off + 0) (msg ~> param_index)
-  unpackRef buf (off + 2) (msg ~> target_system)
-  unpackRef buf (off + 3) (msg ~> target_component)
-  unpackRef buf (off + 4) (msg ~> param_id)
-
-instance SerializableRef (Struct "param_request_read_msg") where
-  packRef = call_ paramRequestReadPackRef
-  unpackRef = call_ paramRequestReadUnpackRef
+instance Packable (Struct "param_request_read_msg") where
+  packRep = wrappedPackRep paramRequestReadWrapper

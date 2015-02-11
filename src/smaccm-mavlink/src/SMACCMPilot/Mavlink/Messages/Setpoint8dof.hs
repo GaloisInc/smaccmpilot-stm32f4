@@ -28,8 +28,7 @@ setpoint8dofModule = package "mavlink_setpoint_8dof_msg" $ do
   incl mkSetpoint8dofSender
   incl setpoint8dofUnpack
   defStruct (Proxy :: Proxy "setpoint_8dof_msg")
-  incl setpoint8dofPackRef
-  incl setpoint8dofUnpackRef
+  wrappedPackMod setpoint8dofWrapper
 
 [ivory|
 struct setpoint_8dof_msg
@@ -58,38 +57,20 @@ instance MavlinkUnpackableMsg "setpoint_8dof_msg" where
 setpoint8dofUnpack :: Def ('[ Ref s1 (Struct "setpoint_8dof_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-setpoint8dofUnpack = proc "mavlink_setpoint_8dof_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
+setpoint8dofUnpack = proc "mavlink_setpoint_8dof_unpack" $ \ msg buf -> body $ packGet packRep buf 0 msg
 
-setpoint8dofPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
-                              , Uint32
-                              , ConstRef s2 (Struct "setpoint_8dof_msg")
-                              ] :-> () )
-setpoint8dofPackRef = proc "mavlink_setpoint_8dof_pack_ref" $ \ buf off msg -> body $ do
-  packRef buf (off + 0) (msg ~> val1)
-  packRef buf (off + 4) (msg ~> val2)
-  packRef buf (off + 8) (msg ~> val3)
-  packRef buf (off + 12) (msg ~> val4)
-  packRef buf (off + 16) (msg ~> val5)
-  packRef buf (off + 20) (msg ~> val6)
-  packRef buf (off + 24) (msg ~> val7)
-  packRef buf (off + 28) (msg ~> val8)
-  packRef buf (off + 32) (msg ~> target_system)
+setpoint8dofWrapper :: WrappedPackRep (Struct "setpoint_8dof_msg")
+setpoint8dofWrapper = wrapPackRep "mavlink_setpoint_8dof" $ packStruct
+  [ packLabel val1
+  , packLabel val2
+  , packLabel val3
+  , packLabel val4
+  , packLabel val5
+  , packLabel val6
+  , packLabel val7
+  , packLabel val8
+  , packLabel target_system
+  ]
 
-setpoint8dofUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
-                                , Uint32
-                                , Ref s2 (Struct "setpoint_8dof_msg")
-                                ] :-> () )
-setpoint8dofUnpackRef = proc "mavlink_setpoint_8dof_unpack_ref" $ \ buf off msg -> body $ do
-  unpackRef buf (off + 0) (msg ~> val1)
-  unpackRef buf (off + 4) (msg ~> val2)
-  unpackRef buf (off + 8) (msg ~> val3)
-  unpackRef buf (off + 12) (msg ~> val4)
-  unpackRef buf (off + 16) (msg ~> val5)
-  unpackRef buf (off + 20) (msg ~> val6)
-  unpackRef buf (off + 24) (msg ~> val7)
-  unpackRef buf (off + 28) (msg ~> val8)
-  unpackRef buf (off + 32) (msg ~> target_system)
-
-instance SerializableRef (Struct "setpoint_8dof_msg") where
-  packRef = call_ setpoint8dofPackRef
-  unpackRef = call_ setpoint8dofUnpackRef
+instance Packable (Struct "setpoint_8dof_msg") where
+  packRep = wrappedPackRep setpoint8dofWrapper

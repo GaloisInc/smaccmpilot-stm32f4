@@ -89,39 +89,24 @@ ivory_type = {
         'uint32_t' : 'Uint32',
         'int64_t'  : 'Sint64',
         'uint64_t' : 'Uint64'}
-sizeof_type = {
-        'float'    : 4,
-        'double'   : 8,
-        'char'     : 1,
-        'int8_t'   : 1,
-        'uint8_t'  : 1,
-        'uint8_t_mavlink_version'  : 1,
-        'int16_t'  : 2,
-        'uint16_t' : 2,
-        'int32_t'  : 4,
-        'uint32_t' : 4,
-        'int64_t'  : 8,
-        'uint64_t' : 8,
-        }
 
+def ivory_type_full(s):
+    el = "Stored " + ivory_type[s.type]
+    if s.array_length == 0:
+        return el
+    return "Array %d (%s)" % (s.array_length, el)
 
 def generate_message_ivory(directory, m):
     '''generate haskell file containing ivory module'''
-    scalar_defs = [ ivory_name(s,m) + " :: Stored " + ivory_type[s.type]
-                    for s in m.scalar_fields ]
-    array_defs = [ ivory_name(s,m) + " :: Array %d (Stored %s)" %
-                    (s.array_length, ivory_type[s.type])
-                    for s in m.array_fields ]
-    pack_calls = [ "packRef buf (off + %d) (msg ~> %s)" %
-                   (s.wire_offset, ivory_name(s,m))
-                   for s in m.scalar_fields + m.array_fields]
-    unpack_calls = [ "unpackRef buf (off + %d) (msg ~> %s)" %
-                     (s.wire_offset, ivory_name(s, m))
-                     for s in m.scalar_fields + m.array_fields]
+    defs = [ ivory_name(s,m) + " :: " + ivory_type_full(s)
+             for s in m.ordered_fields ]
+    pack_calls = [ "packLabel " + ivory_name(s,m)
+                   for s in m.ordered_fields ]
     mdict = m.__dict__
-    mdict.update({'struct_fields': ("\n  ; ").join(scalar_defs + array_defs)
-                 ,'packing': ("\n  ").join(pack_calls)
-                 ,'unpacking': "\n  ".join(unpack_calls)})
+    mdict.update({
+      'struct_fields': ("\n  ; ").join(defs),
+      'packing': ("\n  , ").join(pack_calls),
+    })
     f = open(os.path.join(directory, 'Messages/%s.hs' % m.name_module), mode='w')
     t.write(f, '''
 {-# LANGUAGE DataKinds #-}
@@ -154,8 +139,7 @@ ${name_camel}Module = package "mavlink_${name_lower}_msg" $ do
   incl mk${name_module}Sender
   incl ${name_camel}Unpack
   defStruct (Proxy :: Proxy "${name_lower}_msg")
-  incl ${name_camel}PackRef
-  incl ${name_camel}UnpackRef
+  wrappedPackMod ${name_camel}Wrapper
 
 [ivory|
 struct ${name_lower}_msg
@@ -176,25 +160,15 @@ instance MavlinkUnpackableMsg "${name_lower}_msg" where
 ${name_camel}Unpack :: Def ('[ Ref s1 (Struct "${name_lower}_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-${name_camel}Unpack = proc "mavlink_${name_lower}_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
+${name_camel}Unpack = proc "mavlink_${name_lower}_unpack" $ \ msg buf -> body $ packGet packRep buf 0 msg
 
-${name_camel}PackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
-                              , Uint32
-                              , ConstRef s2 (Struct "${name_lower}_msg")
-                              ] :-> () )
-${name_camel}PackRef = proc "mavlink_${name_lower}_pack_ref" $ \ buf off msg -> body $ do
-  ${packing}
+${name_camel}Wrapper :: WrappedPackRep (Struct "${name_lower}_msg")
+${name_camel}Wrapper = wrapPackRep "mavlink_${name_lower}" $ packStruct
+  [ ${packing}
+  ]
 
-${name_camel}UnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
-                                , Uint32
-                                , Ref s2 (Struct "${name_lower}_msg")
-                                ] :-> () )
-${name_camel}UnpackRef = proc "mavlink_${name_lower}_unpack_ref" $ \ buf off msg -> body $ do
-  ${unpacking}
-
-instance SerializableRef (Struct "${name_lower}_msg") where
-  packRef = call_ ${name_camel}PackRef
-  unpackRef = call_ ${name_camel}UnpackRef
+instance Packable (Struct "${name_lower}_msg") where
+  packRep = wrappedPackRep ${name_camel}Wrapper
 ''', mdict)
     f.close()
 
@@ -305,13 +279,6 @@ def process_xml(basename, xml):
     # cope with uint8_t_mavlink_version
     for m in xml.message:
         m.arg_fields = []
-        m.array_fields = []
-        m.scalar_fields = []
-        for f in m.ordered_fields:
-            if f.array_length != 0:
-                m.array_fields.append(f)
-            else:
-                m.scalar_fields.append(f)
         for f in m.fields:
             if not f.omit_arg:
                 m.arg_fields.append(f)

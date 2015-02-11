@@ -28,8 +28,7 @@ globalVisionPositionEstimateModule = package "mavlink_global_vision_position_est
   incl mkGlobalVisionPositionEstimateSender
   incl globalVisionPositionEstimateUnpack
   defStruct (Proxy :: Proxy "global_vision_position_estimate_msg")
-  incl globalVisionPositionEstimatePackRef
-  incl globalVisionPositionEstimateUnpackRef
+  wrappedPackMod globalVisionPositionEstimateWrapper
 
 [ivory|
 struct global_vision_position_estimate_msg
@@ -56,34 +55,18 @@ instance MavlinkUnpackableMsg "global_vision_position_estimate_msg" where
 globalVisionPositionEstimateUnpack :: Def ('[ Ref s1 (Struct "global_vision_position_estimate_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-globalVisionPositionEstimateUnpack = proc "mavlink_global_vision_position_estimate_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
+globalVisionPositionEstimateUnpack = proc "mavlink_global_vision_position_estimate_unpack" $ \ msg buf -> body $ packGet packRep buf 0 msg
 
-globalVisionPositionEstimatePackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
-                              , Uint32
-                              , ConstRef s2 (Struct "global_vision_position_estimate_msg")
-                              ] :-> () )
-globalVisionPositionEstimatePackRef = proc "mavlink_global_vision_position_estimate_pack_ref" $ \ buf off msg -> body $ do
-  packRef buf (off + 0) (msg ~> usec)
-  packRef buf (off + 8) (msg ~> x)
-  packRef buf (off + 12) (msg ~> y)
-  packRef buf (off + 16) (msg ~> z)
-  packRef buf (off + 20) (msg ~> roll)
-  packRef buf (off + 24) (msg ~> pitch)
-  packRef buf (off + 28) (msg ~> yaw)
+globalVisionPositionEstimateWrapper :: WrappedPackRep (Struct "global_vision_position_estimate_msg")
+globalVisionPositionEstimateWrapper = wrapPackRep "mavlink_global_vision_position_estimate" $ packStruct
+  [ packLabel usec
+  , packLabel x
+  , packLabel y
+  , packLabel z
+  , packLabel roll
+  , packLabel pitch
+  , packLabel yaw
+  ]
 
-globalVisionPositionEstimateUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
-                                , Uint32
-                                , Ref s2 (Struct "global_vision_position_estimate_msg")
-                                ] :-> () )
-globalVisionPositionEstimateUnpackRef = proc "mavlink_global_vision_position_estimate_unpack_ref" $ \ buf off msg -> body $ do
-  unpackRef buf (off + 0) (msg ~> usec)
-  unpackRef buf (off + 8) (msg ~> x)
-  unpackRef buf (off + 12) (msg ~> y)
-  unpackRef buf (off + 16) (msg ~> z)
-  unpackRef buf (off + 20) (msg ~> roll)
-  unpackRef buf (off + 24) (msg ~> pitch)
-  unpackRef buf (off + 28) (msg ~> yaw)
-
-instance SerializableRef (Struct "global_vision_position_estimate_msg") where
-  packRef = call_ globalVisionPositionEstimatePackRef
-  unpackRef = call_ globalVisionPositionEstimateUnpackRef
+instance Packable (Struct "global_vision_position_estimate_msg") where
+  packRep = wrappedPackRep globalVisionPositionEstimateWrapper

@@ -28,8 +28,7 @@ systemTimeModule = package "mavlink_system_time_msg" $ do
   incl mkSystemTimeSender
   incl systemTimeUnpack
   defStruct (Proxy :: Proxy "system_time_msg")
-  incl systemTimePackRef
-  incl systemTimeUnpackRef
+  wrappedPackMod systemTimeWrapper
 
 [ivory|
 struct system_time_msg
@@ -51,24 +50,13 @@ instance MavlinkUnpackableMsg "system_time_msg" where
 systemTimeUnpack :: Def ('[ Ref s1 (Struct "system_time_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-systemTimeUnpack = proc "mavlink_system_time_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
+systemTimeUnpack = proc "mavlink_system_time_unpack" $ \ msg buf -> body $ packGet packRep buf 0 msg
 
-systemTimePackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
-                              , Uint32
-                              , ConstRef s2 (Struct "system_time_msg")
-                              ] :-> () )
-systemTimePackRef = proc "mavlink_system_time_pack_ref" $ \ buf off msg -> body $ do
-  packRef buf (off + 0) (msg ~> time_unix_usec)
-  packRef buf (off + 8) (msg ~> time_boot_ms)
+systemTimeWrapper :: WrappedPackRep (Struct "system_time_msg")
+systemTimeWrapper = wrapPackRep "mavlink_system_time" $ packStruct
+  [ packLabel time_unix_usec
+  , packLabel time_boot_ms
+  ]
 
-systemTimeUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
-                                , Uint32
-                                , Ref s2 (Struct "system_time_msg")
-                                ] :-> () )
-systemTimeUnpackRef = proc "mavlink_system_time_unpack_ref" $ \ buf off msg -> body $ do
-  unpackRef buf (off + 0) (msg ~> time_unix_usec)
-  unpackRef buf (off + 8) (msg ~> time_boot_ms)
-
-instance SerializableRef (Struct "system_time_msg") where
-  packRef = call_ systemTimePackRef
-  unpackRef = call_ systemTimeUnpackRef
+instance Packable (Struct "system_time_msg") where
+  packRep = wrappedPackRep systemTimeWrapper

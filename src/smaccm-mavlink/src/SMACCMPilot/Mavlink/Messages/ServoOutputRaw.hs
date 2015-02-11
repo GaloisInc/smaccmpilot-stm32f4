@@ -28,8 +28,7 @@ servoOutputRawModule = package "mavlink_servo_output_raw_msg" $ do
   incl mkServoOutputRawSender
   incl servoOutputRawUnpack
   defStruct (Proxy :: Proxy "servo_output_raw_msg")
-  incl servoOutputRawPackRef
-  incl servoOutputRawUnpackRef
+  wrappedPackMod servoOutputRawWrapper
 
 [ivory|
 struct servo_output_raw_msg
@@ -59,40 +58,21 @@ instance MavlinkUnpackableMsg "servo_output_raw_msg" where
 servoOutputRawUnpack :: Def ('[ Ref s1 (Struct "servo_output_raw_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-servoOutputRawUnpack = proc "mavlink_servo_output_raw_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
+servoOutputRawUnpack = proc "mavlink_servo_output_raw_unpack" $ \ msg buf -> body $ packGet packRep buf 0 msg
 
-servoOutputRawPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
-                              , Uint32
-                              , ConstRef s2 (Struct "servo_output_raw_msg")
-                              ] :-> () )
-servoOutputRawPackRef = proc "mavlink_servo_output_raw_pack_ref" $ \ buf off msg -> body $ do
-  packRef buf (off + 0) (msg ~> time_usec)
-  packRef buf (off + 4) (msg ~> servo1_raw)
-  packRef buf (off + 6) (msg ~> servo2_raw)
-  packRef buf (off + 8) (msg ~> servo3_raw)
-  packRef buf (off + 10) (msg ~> servo4_raw)
-  packRef buf (off + 12) (msg ~> servo5_raw)
-  packRef buf (off + 14) (msg ~> servo6_raw)
-  packRef buf (off + 16) (msg ~> servo7_raw)
-  packRef buf (off + 18) (msg ~> servo8_raw)
-  packRef buf (off + 20) (msg ~> port)
+servoOutputRawWrapper :: WrappedPackRep (Struct "servo_output_raw_msg")
+servoOutputRawWrapper = wrapPackRep "mavlink_servo_output_raw" $ packStruct
+  [ packLabel time_usec
+  , packLabel servo1_raw
+  , packLabel servo2_raw
+  , packLabel servo3_raw
+  , packLabel servo4_raw
+  , packLabel servo5_raw
+  , packLabel servo6_raw
+  , packLabel servo7_raw
+  , packLabel servo8_raw
+  , packLabel port
+  ]
 
-servoOutputRawUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
-                                , Uint32
-                                , Ref s2 (Struct "servo_output_raw_msg")
-                                ] :-> () )
-servoOutputRawUnpackRef = proc "mavlink_servo_output_raw_unpack_ref" $ \ buf off msg -> body $ do
-  unpackRef buf (off + 0) (msg ~> time_usec)
-  unpackRef buf (off + 4) (msg ~> servo1_raw)
-  unpackRef buf (off + 6) (msg ~> servo2_raw)
-  unpackRef buf (off + 8) (msg ~> servo3_raw)
-  unpackRef buf (off + 10) (msg ~> servo4_raw)
-  unpackRef buf (off + 12) (msg ~> servo5_raw)
-  unpackRef buf (off + 14) (msg ~> servo6_raw)
-  unpackRef buf (off + 16) (msg ~> servo7_raw)
-  unpackRef buf (off + 18) (msg ~> servo8_raw)
-  unpackRef buf (off + 20) (msg ~> port)
-
-instance SerializableRef (Struct "servo_output_raw_msg") where
-  packRef = call_ servoOutputRawPackRef
-  unpackRef = call_ servoOutputRawUnpackRef
+instance Packable (Struct "servo_output_raw_msg") where
+  packRep = wrappedPackRep servoOutputRawWrapper

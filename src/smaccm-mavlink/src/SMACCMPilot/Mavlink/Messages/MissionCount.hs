@@ -28,8 +28,7 @@ missionCountModule = package "mavlink_mission_count_msg" $ do
   incl mkMissionCountSender
   incl missionCountUnpack
   defStruct (Proxy :: Proxy "mission_count_msg")
-  incl missionCountPackRef
-  incl missionCountUnpackRef
+  wrappedPackMod missionCountWrapper
 
 [ivory|
 struct mission_count_msg
@@ -52,26 +51,14 @@ instance MavlinkUnpackableMsg "mission_count_msg" where
 missionCountUnpack :: Def ('[ Ref s1 (Struct "mission_count_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-missionCountUnpack = proc "mavlink_mission_count_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
+missionCountUnpack = proc "mavlink_mission_count_unpack" $ \ msg buf -> body $ packGet packRep buf 0 msg
 
-missionCountPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
-                              , Uint32
-                              , ConstRef s2 (Struct "mission_count_msg")
-                              ] :-> () )
-missionCountPackRef = proc "mavlink_mission_count_pack_ref" $ \ buf off msg -> body $ do
-  packRef buf (off + 0) (msg ~> count)
-  packRef buf (off + 2) (msg ~> target_system)
-  packRef buf (off + 3) (msg ~> target_component)
+missionCountWrapper :: WrappedPackRep (Struct "mission_count_msg")
+missionCountWrapper = wrapPackRep "mavlink_mission_count" $ packStruct
+  [ packLabel count
+  , packLabel target_system
+  , packLabel target_component
+  ]
 
-missionCountUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
-                                , Uint32
-                                , Ref s2 (Struct "mission_count_msg")
-                                ] :-> () )
-missionCountUnpackRef = proc "mavlink_mission_count_unpack_ref" $ \ buf off msg -> body $ do
-  unpackRef buf (off + 0) (msg ~> count)
-  unpackRef buf (off + 2) (msg ~> target_system)
-  unpackRef buf (off + 3) (msg ~> target_component)
-
-instance SerializableRef (Struct "mission_count_msg") where
-  packRef = call_ missionCountPackRef
-  unpackRef = call_ missionCountUnpackRef
+instance Packable (Struct "mission_count_msg") where
+  packRep = wrappedPackRep missionCountWrapper

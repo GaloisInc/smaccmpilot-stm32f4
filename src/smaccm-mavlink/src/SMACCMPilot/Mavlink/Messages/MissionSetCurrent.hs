@@ -28,8 +28,7 @@ missionSetCurrentModule = package "mavlink_mission_set_current_msg" $ do
   incl mkMissionSetCurrentSender
   incl missionSetCurrentUnpack
   defStruct (Proxy :: Proxy "mission_set_current_msg")
-  incl missionSetCurrentPackRef
-  incl missionSetCurrentUnpackRef
+  wrappedPackMod missionSetCurrentWrapper
 
 [ivory|
 struct mission_set_current_msg
@@ -52,26 +51,14 @@ instance MavlinkUnpackableMsg "mission_set_current_msg" where
 missionSetCurrentUnpack :: Def ('[ Ref s1 (Struct "mission_set_current_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-missionSetCurrentUnpack = proc "mavlink_mission_set_current_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
+missionSetCurrentUnpack = proc "mavlink_mission_set_current_unpack" $ \ msg buf -> body $ packGet packRep buf 0 msg
 
-missionSetCurrentPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
-                              , Uint32
-                              , ConstRef s2 (Struct "mission_set_current_msg")
-                              ] :-> () )
-missionSetCurrentPackRef = proc "mavlink_mission_set_current_pack_ref" $ \ buf off msg -> body $ do
-  packRef buf (off + 0) (msg ~> mission_set_current_seq)
-  packRef buf (off + 2) (msg ~> target_system)
-  packRef buf (off + 3) (msg ~> target_component)
+missionSetCurrentWrapper :: WrappedPackRep (Struct "mission_set_current_msg")
+missionSetCurrentWrapper = wrapPackRep "mavlink_mission_set_current" $ packStruct
+  [ packLabel mission_set_current_seq
+  , packLabel target_system
+  , packLabel target_component
+  ]
 
-missionSetCurrentUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
-                                , Uint32
-                                , Ref s2 (Struct "mission_set_current_msg")
-                                ] :-> () )
-missionSetCurrentUnpackRef = proc "mavlink_mission_set_current_unpack_ref" $ \ buf off msg -> body $ do
-  unpackRef buf (off + 0) (msg ~> mission_set_current_seq)
-  unpackRef buf (off + 2) (msg ~> target_system)
-  unpackRef buf (off + 3) (msg ~> target_component)
-
-instance SerializableRef (Struct "mission_set_current_msg") where
-  packRef = call_ missionSetCurrentPackRef
-  unpackRef = call_ missionSetCurrentUnpackRef
+instance Packable (Struct "mission_set_current_msg") where
+  packRep = wrappedPackRep missionSetCurrentWrapper

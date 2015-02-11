@@ -28,8 +28,7 @@ gpsGlobalOriginModule = package "mavlink_gps_global_origin_msg" $ do
   incl mkGpsGlobalOriginSender
   incl gpsGlobalOriginUnpack
   defStruct (Proxy :: Proxy "gps_global_origin_msg")
-  incl gpsGlobalOriginPackRef
-  incl gpsGlobalOriginUnpackRef
+  wrappedPackMod gpsGlobalOriginWrapper
 
 [ivory|
 struct gps_global_origin_msg
@@ -52,26 +51,14 @@ instance MavlinkUnpackableMsg "gps_global_origin_msg" where
 gpsGlobalOriginUnpack :: Def ('[ Ref s1 (Struct "gps_global_origin_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-gpsGlobalOriginUnpack = proc "mavlink_gps_global_origin_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
+gpsGlobalOriginUnpack = proc "mavlink_gps_global_origin_unpack" $ \ msg buf -> body $ packGet packRep buf 0 msg
 
-gpsGlobalOriginPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
-                              , Uint32
-                              , ConstRef s2 (Struct "gps_global_origin_msg")
-                              ] :-> () )
-gpsGlobalOriginPackRef = proc "mavlink_gps_global_origin_pack_ref" $ \ buf off msg -> body $ do
-  packRef buf (off + 0) (msg ~> latitude)
-  packRef buf (off + 4) (msg ~> longitude)
-  packRef buf (off + 8) (msg ~> altitude)
+gpsGlobalOriginWrapper :: WrappedPackRep (Struct "gps_global_origin_msg")
+gpsGlobalOriginWrapper = wrapPackRep "mavlink_gps_global_origin" $ packStruct
+  [ packLabel latitude
+  , packLabel longitude
+  , packLabel altitude
+  ]
 
-gpsGlobalOriginUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
-                                , Uint32
-                                , Ref s2 (Struct "gps_global_origin_msg")
-                                ] :-> () )
-gpsGlobalOriginUnpackRef = proc "mavlink_gps_global_origin_unpack_ref" $ \ buf off msg -> body $ do
-  unpackRef buf (off + 0) (msg ~> latitude)
-  unpackRef buf (off + 4) (msg ~> longitude)
-  unpackRef buf (off + 8) (msg ~> altitude)
-
-instance SerializableRef (Struct "gps_global_origin_msg") where
-  packRef = call_ gpsGlobalOriginPackRef
-  unpackRef = call_ gpsGlobalOriginUnpackRef
+instance Packable (Struct "gps_global_origin_msg") where
+  packRep = wrappedPackRep gpsGlobalOriginWrapper

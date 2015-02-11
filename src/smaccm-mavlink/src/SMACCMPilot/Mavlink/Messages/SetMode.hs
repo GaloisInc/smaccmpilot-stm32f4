@@ -28,8 +28,7 @@ setModeModule = package "mavlink_set_mode_msg" $ do
   incl mkSetModeSender
   incl setModeUnpack
   defStruct (Proxy :: Proxy "set_mode_msg")
-  incl setModePackRef
-  incl setModeUnpackRef
+  wrappedPackMod setModeWrapper
 
 [ivory|
 struct set_mode_msg
@@ -52,26 +51,14 @@ instance MavlinkUnpackableMsg "set_mode_msg" where
 setModeUnpack :: Def ('[ Ref s1 (Struct "set_mode_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-setModeUnpack = proc "mavlink_set_mode_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
+setModeUnpack = proc "mavlink_set_mode_unpack" $ \ msg buf -> body $ packGet packRep buf 0 msg
 
-setModePackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
-                              , Uint32
-                              , ConstRef s2 (Struct "set_mode_msg")
-                              ] :-> () )
-setModePackRef = proc "mavlink_set_mode_pack_ref" $ \ buf off msg -> body $ do
-  packRef buf (off + 0) (msg ~> custom_mode)
-  packRef buf (off + 4) (msg ~> target_system)
-  packRef buf (off + 5) (msg ~> base_mode)
+setModeWrapper :: WrappedPackRep (Struct "set_mode_msg")
+setModeWrapper = wrapPackRep "mavlink_set_mode" $ packStruct
+  [ packLabel custom_mode
+  , packLabel target_system
+  , packLabel base_mode
+  ]
 
-setModeUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
-                                , Uint32
-                                , Ref s2 (Struct "set_mode_msg")
-                                ] :-> () )
-setModeUnpackRef = proc "mavlink_set_mode_unpack_ref" $ \ buf off msg -> body $ do
-  unpackRef buf (off + 0) (msg ~> custom_mode)
-  unpackRef buf (off + 4) (msg ~> target_system)
-  unpackRef buf (off + 5) (msg ~> base_mode)
-
-instance SerializableRef (Struct "set_mode_msg") where
-  packRef = call_ setModePackRef
-  unpackRef = call_ setModeUnpackRef
+instance Packable (Struct "set_mode_msg") where
+  packRep = wrappedPackRep setModeWrapper

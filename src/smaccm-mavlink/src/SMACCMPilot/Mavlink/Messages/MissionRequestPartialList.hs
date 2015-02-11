@@ -28,8 +28,7 @@ missionRequestPartialListModule = package "mavlink_mission_request_partial_list_
   incl mkMissionRequestPartialListSender
   incl missionRequestPartialListUnpack
   defStruct (Proxy :: Proxy "mission_request_partial_list_msg")
-  incl missionRequestPartialListPackRef
-  incl missionRequestPartialListUnpackRef
+  wrappedPackMod missionRequestPartialListWrapper
 
 [ivory|
 struct mission_request_partial_list_msg
@@ -53,28 +52,15 @@ instance MavlinkUnpackableMsg "mission_request_partial_list_msg" where
 missionRequestPartialListUnpack :: Def ('[ Ref s1 (Struct "mission_request_partial_list_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-missionRequestPartialListUnpack = proc "mavlink_mission_request_partial_list_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
+missionRequestPartialListUnpack = proc "mavlink_mission_request_partial_list_unpack" $ \ msg buf -> body $ packGet packRep buf 0 msg
 
-missionRequestPartialListPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
-                              , Uint32
-                              , ConstRef s2 (Struct "mission_request_partial_list_msg")
-                              ] :-> () )
-missionRequestPartialListPackRef = proc "mavlink_mission_request_partial_list_pack_ref" $ \ buf off msg -> body $ do
-  packRef buf (off + 0) (msg ~> start_index)
-  packRef buf (off + 2) (msg ~> end_index)
-  packRef buf (off + 4) (msg ~> target_system)
-  packRef buf (off + 5) (msg ~> target_component)
+missionRequestPartialListWrapper :: WrappedPackRep (Struct "mission_request_partial_list_msg")
+missionRequestPartialListWrapper = wrapPackRep "mavlink_mission_request_partial_list" $ packStruct
+  [ packLabel start_index
+  , packLabel end_index
+  , packLabel target_system
+  , packLabel target_component
+  ]
 
-missionRequestPartialListUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
-                                , Uint32
-                                , Ref s2 (Struct "mission_request_partial_list_msg")
-                                ] :-> () )
-missionRequestPartialListUnpackRef = proc "mavlink_mission_request_partial_list_unpack_ref" $ \ buf off msg -> body $ do
-  unpackRef buf (off + 0) (msg ~> start_index)
-  unpackRef buf (off + 2) (msg ~> end_index)
-  unpackRef buf (off + 4) (msg ~> target_system)
-  unpackRef buf (off + 5) (msg ~> target_component)
-
-instance SerializableRef (Struct "mission_request_partial_list_msg") where
-  packRef = call_ missionRequestPartialListPackRef
-  unpackRef = call_ missionRequestPartialListUnpackRef
+instance Packable (Struct "mission_request_partial_list_msg") where
+  packRep = wrappedPackRep missionRequestPartialListWrapper

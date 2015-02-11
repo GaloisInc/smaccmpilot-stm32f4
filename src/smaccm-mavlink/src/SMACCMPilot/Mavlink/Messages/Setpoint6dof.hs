@@ -28,8 +28,7 @@ setpoint6dofModule = package "mavlink_setpoint_6dof_msg" $ do
   incl mkSetpoint6dofSender
   incl setpoint6dofUnpack
   defStruct (Proxy :: Proxy "setpoint_6dof_msg")
-  incl setpoint6dofPackRef
-  incl setpoint6dofUnpackRef
+  wrappedPackMod setpoint6dofWrapper
 
 [ivory|
 struct setpoint_6dof_msg
@@ -56,34 +55,18 @@ instance MavlinkUnpackableMsg "setpoint_6dof_msg" where
 setpoint6dofUnpack :: Def ('[ Ref s1 (Struct "setpoint_6dof_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-setpoint6dofUnpack = proc "mavlink_setpoint_6dof_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
+setpoint6dofUnpack = proc "mavlink_setpoint_6dof_unpack" $ \ msg buf -> body $ packGet packRep buf 0 msg
 
-setpoint6dofPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
-                              , Uint32
-                              , ConstRef s2 (Struct "setpoint_6dof_msg")
-                              ] :-> () )
-setpoint6dofPackRef = proc "mavlink_setpoint_6dof_pack_ref" $ \ buf off msg -> body $ do
-  packRef buf (off + 0) (msg ~> trans_x)
-  packRef buf (off + 4) (msg ~> trans_y)
-  packRef buf (off + 8) (msg ~> trans_z)
-  packRef buf (off + 12) (msg ~> rot_x)
-  packRef buf (off + 16) (msg ~> rot_y)
-  packRef buf (off + 20) (msg ~> rot_z)
-  packRef buf (off + 24) (msg ~> target_system)
+setpoint6dofWrapper :: WrappedPackRep (Struct "setpoint_6dof_msg")
+setpoint6dofWrapper = wrapPackRep "mavlink_setpoint_6dof" $ packStruct
+  [ packLabel trans_x
+  , packLabel trans_y
+  , packLabel trans_z
+  , packLabel rot_x
+  , packLabel rot_y
+  , packLabel rot_z
+  , packLabel target_system
+  ]
 
-setpoint6dofUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
-                                , Uint32
-                                , Ref s2 (Struct "setpoint_6dof_msg")
-                                ] :-> () )
-setpoint6dofUnpackRef = proc "mavlink_setpoint_6dof_unpack_ref" $ \ buf off msg -> body $ do
-  unpackRef buf (off + 0) (msg ~> trans_x)
-  unpackRef buf (off + 4) (msg ~> trans_y)
-  unpackRef buf (off + 8) (msg ~> trans_z)
-  unpackRef buf (off + 12) (msg ~> rot_x)
-  unpackRef buf (off + 16) (msg ~> rot_y)
-  unpackRef buf (off + 20) (msg ~> rot_z)
-  unpackRef buf (off + 24) (msg ~> target_system)
-
-instance SerializableRef (Struct "setpoint_6dof_msg") where
-  packRef = call_ setpoint6dofPackRef
-  unpackRef = call_ setpoint6dofUnpackRef
+instance Packable (Struct "setpoint_6dof_msg") where
+  packRep = wrappedPackRep setpoint6dofWrapper

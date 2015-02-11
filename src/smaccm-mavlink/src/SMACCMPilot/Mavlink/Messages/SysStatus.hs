@@ -28,8 +28,7 @@ sysStatusModule = package "mavlink_sys_status_msg" $ do
   incl mkSysStatusSender
   incl sysStatusUnpack
   defStruct (Proxy :: Proxy "sys_status_msg")
-  incl sysStatusPackRef
-  incl sysStatusUnpackRef
+  wrappedPackMod sysStatusWrapper
 
 [ivory|
 struct sys_status_msg
@@ -62,46 +61,24 @@ instance MavlinkUnpackableMsg "sys_status_msg" where
 sysStatusUnpack :: Def ('[ Ref s1 (Struct "sys_status_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-sysStatusUnpack = proc "mavlink_sys_status_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
+sysStatusUnpack = proc "mavlink_sys_status_unpack" $ \ msg buf -> body $ packGet packRep buf 0 msg
 
-sysStatusPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
-                              , Uint32
-                              , ConstRef s2 (Struct "sys_status_msg")
-                              ] :-> () )
-sysStatusPackRef = proc "mavlink_sys_status_pack_ref" $ \ buf off msg -> body $ do
-  packRef buf (off + 0) (msg ~> onboard_control_sensors_present)
-  packRef buf (off + 4) (msg ~> onboard_control_sensors_enabled)
-  packRef buf (off + 8) (msg ~> onboard_control_sensors_health)
-  packRef buf (off + 12) (msg ~> load)
-  packRef buf (off + 14) (msg ~> voltage_battery)
-  packRef buf (off + 16) (msg ~> current_battery)
-  packRef buf (off + 18) (msg ~> drop_rate_comm)
-  packRef buf (off + 20) (msg ~> errors_comm)
-  packRef buf (off + 22) (msg ~> errors_count1)
-  packRef buf (off + 24) (msg ~> errors_count2)
-  packRef buf (off + 26) (msg ~> errors_count3)
-  packRef buf (off + 28) (msg ~> errors_count4)
-  packRef buf (off + 30) (msg ~> battery_remaining)
+sysStatusWrapper :: WrappedPackRep (Struct "sys_status_msg")
+sysStatusWrapper = wrapPackRep "mavlink_sys_status" $ packStruct
+  [ packLabel onboard_control_sensors_present
+  , packLabel onboard_control_sensors_enabled
+  , packLabel onboard_control_sensors_health
+  , packLabel load
+  , packLabel voltage_battery
+  , packLabel current_battery
+  , packLabel drop_rate_comm
+  , packLabel errors_comm
+  , packLabel errors_count1
+  , packLabel errors_count2
+  , packLabel errors_count3
+  , packLabel errors_count4
+  , packLabel battery_remaining
+  ]
 
-sysStatusUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
-                                , Uint32
-                                , Ref s2 (Struct "sys_status_msg")
-                                ] :-> () )
-sysStatusUnpackRef = proc "mavlink_sys_status_unpack_ref" $ \ buf off msg -> body $ do
-  unpackRef buf (off + 0) (msg ~> onboard_control_sensors_present)
-  unpackRef buf (off + 4) (msg ~> onboard_control_sensors_enabled)
-  unpackRef buf (off + 8) (msg ~> onboard_control_sensors_health)
-  unpackRef buf (off + 12) (msg ~> load)
-  unpackRef buf (off + 14) (msg ~> voltage_battery)
-  unpackRef buf (off + 16) (msg ~> current_battery)
-  unpackRef buf (off + 18) (msg ~> drop_rate_comm)
-  unpackRef buf (off + 20) (msg ~> errors_comm)
-  unpackRef buf (off + 22) (msg ~> errors_count1)
-  unpackRef buf (off + 24) (msg ~> errors_count2)
-  unpackRef buf (off + 26) (msg ~> errors_count3)
-  unpackRef buf (off + 28) (msg ~> errors_count4)
-  unpackRef buf (off + 30) (msg ~> battery_remaining)
-
-instance SerializableRef (Struct "sys_status_msg") where
-  packRef = call_ sysStatusPackRef
-  unpackRef = call_ sysStatusUnpackRef
+instance Packable (Struct "sys_status_msg") where
+  packRep = wrappedPackRep sysStatusWrapper

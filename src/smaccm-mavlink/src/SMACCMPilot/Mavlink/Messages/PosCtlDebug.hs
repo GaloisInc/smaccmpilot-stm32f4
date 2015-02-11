@@ -28,8 +28,7 @@ posCtlDebugModule = package "mavlink_pos_ctl_debug_msg" $ do
   incl mkPosCtlDebugSender
   incl posCtlDebugUnpack
   defStruct (Proxy :: Proxy "pos_ctl_debug_msg")
-  incl posCtlDebugPackRef
-  incl posCtlDebugUnpackRef
+  wrappedPackMod posCtlDebugWrapper
 
 [ivory|
 struct pos_ctl_debug_msg
@@ -64,50 +63,26 @@ instance MavlinkUnpackableMsg "pos_ctl_debug_msg" where
 posCtlDebugUnpack :: Def ('[ Ref s1 (Struct "pos_ctl_debug_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-posCtlDebugUnpack = proc "mavlink_pos_ctl_debug_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
+posCtlDebugUnpack = proc "mavlink_pos_ctl_debug_unpack" $ \ msg buf -> body $ packGet packRep buf 0 msg
 
-posCtlDebugPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
-                              , Uint32
-                              , ConstRef s2 (Struct "pos_ctl_debug_msg")
-                              ] :-> () )
-posCtlDebugPackRef = proc "mavlink_pos_ctl_debug_pack_ref" $ \ buf off msg -> body $ do
-  packRef buf (off + 0) (msg ~> x_vel_setpt)
-  packRef buf (off + 4) (msg ~> y_vel_setpt)
-  packRef buf (off + 8) (msg ~> head_setpt)
-  packRef buf (off + 12) (msg ~> lat_setpt)
-  packRef buf (off + 16) (msg ~> lon_setpt)
-  packRef buf (off + 20) (msg ~> x_deviation)
-  packRef buf (off + 24) (msg ~> y_deviation)
-  packRef buf (off + 28) (msg ~> x_vel_est)
-  packRef buf (off + 32) (msg ~> x_vel_p)
-  packRef buf (off + 36) (msg ~> x_vel_i)
-  packRef buf (off + 40) (msg ~> x_vel_d)
-  packRef buf (off + 44) (msg ~> y_vel_est)
-  packRef buf (off + 48) (msg ~> y_vel_p)
-  packRef buf (off + 52) (msg ~> y_vel_i)
-  packRef buf (off + 56) (msg ~> y_vel_d)
+posCtlDebugWrapper :: WrappedPackRep (Struct "pos_ctl_debug_msg")
+posCtlDebugWrapper = wrapPackRep "mavlink_pos_ctl_debug" $ packStruct
+  [ packLabel x_vel_setpt
+  , packLabel y_vel_setpt
+  , packLabel head_setpt
+  , packLabel lat_setpt
+  , packLabel lon_setpt
+  , packLabel x_deviation
+  , packLabel y_deviation
+  , packLabel x_vel_est
+  , packLabel x_vel_p
+  , packLabel x_vel_i
+  , packLabel x_vel_d
+  , packLabel y_vel_est
+  , packLabel y_vel_p
+  , packLabel y_vel_i
+  , packLabel y_vel_d
+  ]
 
-posCtlDebugUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
-                                , Uint32
-                                , Ref s2 (Struct "pos_ctl_debug_msg")
-                                ] :-> () )
-posCtlDebugUnpackRef = proc "mavlink_pos_ctl_debug_unpack_ref" $ \ buf off msg -> body $ do
-  unpackRef buf (off + 0) (msg ~> x_vel_setpt)
-  unpackRef buf (off + 4) (msg ~> y_vel_setpt)
-  unpackRef buf (off + 8) (msg ~> head_setpt)
-  unpackRef buf (off + 12) (msg ~> lat_setpt)
-  unpackRef buf (off + 16) (msg ~> lon_setpt)
-  unpackRef buf (off + 20) (msg ~> x_deviation)
-  unpackRef buf (off + 24) (msg ~> y_deviation)
-  unpackRef buf (off + 28) (msg ~> x_vel_est)
-  unpackRef buf (off + 32) (msg ~> x_vel_p)
-  unpackRef buf (off + 36) (msg ~> x_vel_i)
-  unpackRef buf (off + 40) (msg ~> x_vel_d)
-  unpackRef buf (off + 44) (msg ~> y_vel_est)
-  unpackRef buf (off + 48) (msg ~> y_vel_p)
-  unpackRef buf (off + 52) (msg ~> y_vel_i)
-  unpackRef buf (off + 56) (msg ~> y_vel_d)
-
-instance SerializableRef (Struct "pos_ctl_debug_msg") where
-  packRef = call_ posCtlDebugPackRef
-  unpackRef = call_ posCtlDebugUnpackRef
+instance Packable (Struct "pos_ctl_debug_msg") where
+  packRep = wrappedPackRep posCtlDebugWrapper

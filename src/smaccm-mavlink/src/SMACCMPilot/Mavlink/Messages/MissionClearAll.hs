@@ -28,8 +28,7 @@ missionClearAllModule = package "mavlink_mission_clear_all_msg" $ do
   incl mkMissionClearAllSender
   incl missionClearAllUnpack
   defStruct (Proxy :: Proxy "mission_clear_all_msg")
-  incl missionClearAllPackRef
-  incl missionClearAllUnpackRef
+  wrappedPackMod missionClearAllWrapper
 
 [ivory|
 struct mission_clear_all_msg
@@ -51,24 +50,13 @@ instance MavlinkUnpackableMsg "mission_clear_all_msg" where
 missionClearAllUnpack :: Def ('[ Ref s1 (Struct "mission_clear_all_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-missionClearAllUnpack = proc "mavlink_mission_clear_all_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
+missionClearAllUnpack = proc "mavlink_mission_clear_all_unpack" $ \ msg buf -> body $ packGet packRep buf 0 msg
 
-missionClearAllPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
-                              , Uint32
-                              , ConstRef s2 (Struct "mission_clear_all_msg")
-                              ] :-> () )
-missionClearAllPackRef = proc "mavlink_mission_clear_all_pack_ref" $ \ buf off msg -> body $ do
-  packRef buf (off + 0) (msg ~> target_system)
-  packRef buf (off + 1) (msg ~> target_component)
+missionClearAllWrapper :: WrappedPackRep (Struct "mission_clear_all_msg")
+missionClearAllWrapper = wrapPackRep "mavlink_mission_clear_all" $ packStruct
+  [ packLabel target_system
+  , packLabel target_component
+  ]
 
-missionClearAllUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
-                                , Uint32
-                                , Ref s2 (Struct "mission_clear_all_msg")
-                                ] :-> () )
-missionClearAllUnpackRef = proc "mavlink_mission_clear_all_unpack_ref" $ \ buf off msg -> body $ do
-  unpackRef buf (off + 0) (msg ~> target_system)
-  unpackRef buf (off + 1) (msg ~> target_component)
-
-instance SerializableRef (Struct "mission_clear_all_msg") where
-  packRef = call_ missionClearAllPackRef
-  unpackRef = call_ missionClearAllUnpackRef
+instance Packable (Struct "mission_clear_all_msg") where
+  packRep = wrappedPackRep missionClearAllWrapper

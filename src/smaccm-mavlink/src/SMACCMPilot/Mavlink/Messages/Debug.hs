@@ -28,8 +28,7 @@ debugModule = package "mavlink_debug_msg" $ do
   incl mkDebugSender
   incl debugUnpack
   defStruct (Proxy :: Proxy "debug_msg")
-  incl debugPackRef
-  incl debugUnpackRef
+  wrappedPackMod debugWrapper
 
 [ivory|
 struct debug_msg
@@ -52,26 +51,14 @@ instance MavlinkUnpackableMsg "debug_msg" where
 debugUnpack :: Def ('[ Ref s1 (Struct "debug_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-debugUnpack = proc "mavlink_debug_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
+debugUnpack = proc "mavlink_debug_unpack" $ \ msg buf -> body $ packGet packRep buf 0 msg
 
-debugPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
-                              , Uint32
-                              , ConstRef s2 (Struct "debug_msg")
-                              ] :-> () )
-debugPackRef = proc "mavlink_debug_pack_ref" $ \ buf off msg -> body $ do
-  packRef buf (off + 0) (msg ~> time_boot_ms)
-  packRef buf (off + 4) (msg ~> value)
-  packRef buf (off + 8) (msg ~> ind)
+debugWrapper :: WrappedPackRep (Struct "debug_msg")
+debugWrapper = wrapPackRep "mavlink_debug" $ packStruct
+  [ packLabel time_boot_ms
+  , packLabel value
+  , packLabel ind
+  ]
 
-debugUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
-                                , Uint32
-                                , Ref s2 (Struct "debug_msg")
-                                ] :-> () )
-debugUnpackRef = proc "mavlink_debug_unpack_ref" $ \ buf off msg -> body $ do
-  unpackRef buf (off + 0) (msg ~> time_boot_ms)
-  unpackRef buf (off + 4) (msg ~> value)
-  unpackRef buf (off + 8) (msg ~> ind)
-
-instance SerializableRef (Struct "debug_msg") where
-  packRef = call_ debugPackRef
-  unpackRef = call_ debugUnpackRef
+instance Packable (Struct "debug_msg") where
+  packRep = wrappedPackRep debugWrapper

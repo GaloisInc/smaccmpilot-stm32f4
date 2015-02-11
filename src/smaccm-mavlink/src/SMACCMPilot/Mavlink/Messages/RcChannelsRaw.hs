@@ -28,8 +28,7 @@ rcChannelsRawModule = package "mavlink_rc_channels_raw_msg" $ do
   incl mkRcChannelsRawSender
   incl rcChannelsRawUnpack
   defStruct (Proxy :: Proxy "rc_channels_raw_msg")
-  incl rcChannelsRawPackRef
-  incl rcChannelsRawUnpackRef
+  wrappedPackMod rcChannelsRawWrapper
 
 [ivory|
 struct rc_channels_raw_msg
@@ -60,42 +59,22 @@ instance MavlinkUnpackableMsg "rc_channels_raw_msg" where
 rcChannelsRawUnpack :: Def ('[ Ref s1 (Struct "rc_channels_raw_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-rcChannelsRawUnpack = proc "mavlink_rc_channels_raw_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
+rcChannelsRawUnpack = proc "mavlink_rc_channels_raw_unpack" $ \ msg buf -> body $ packGet packRep buf 0 msg
 
-rcChannelsRawPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
-                              , Uint32
-                              , ConstRef s2 (Struct "rc_channels_raw_msg")
-                              ] :-> () )
-rcChannelsRawPackRef = proc "mavlink_rc_channels_raw_pack_ref" $ \ buf off msg -> body $ do
-  packRef buf (off + 0) (msg ~> time_boot_ms)
-  packRef buf (off + 4) (msg ~> chan1_raw)
-  packRef buf (off + 6) (msg ~> chan2_raw)
-  packRef buf (off + 8) (msg ~> chan3_raw)
-  packRef buf (off + 10) (msg ~> chan4_raw)
-  packRef buf (off + 12) (msg ~> chan5_raw)
-  packRef buf (off + 14) (msg ~> chan6_raw)
-  packRef buf (off + 16) (msg ~> chan7_raw)
-  packRef buf (off + 18) (msg ~> chan8_raw)
-  packRef buf (off + 20) (msg ~> port)
-  packRef buf (off + 21) (msg ~> rssi)
+rcChannelsRawWrapper :: WrappedPackRep (Struct "rc_channels_raw_msg")
+rcChannelsRawWrapper = wrapPackRep "mavlink_rc_channels_raw" $ packStruct
+  [ packLabel time_boot_ms
+  , packLabel chan1_raw
+  , packLabel chan2_raw
+  , packLabel chan3_raw
+  , packLabel chan4_raw
+  , packLabel chan5_raw
+  , packLabel chan6_raw
+  , packLabel chan7_raw
+  , packLabel chan8_raw
+  , packLabel port
+  , packLabel rssi
+  ]
 
-rcChannelsRawUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
-                                , Uint32
-                                , Ref s2 (Struct "rc_channels_raw_msg")
-                                ] :-> () )
-rcChannelsRawUnpackRef = proc "mavlink_rc_channels_raw_unpack_ref" $ \ buf off msg -> body $ do
-  unpackRef buf (off + 0) (msg ~> time_boot_ms)
-  unpackRef buf (off + 4) (msg ~> chan1_raw)
-  unpackRef buf (off + 6) (msg ~> chan2_raw)
-  unpackRef buf (off + 8) (msg ~> chan3_raw)
-  unpackRef buf (off + 10) (msg ~> chan4_raw)
-  unpackRef buf (off + 12) (msg ~> chan5_raw)
-  unpackRef buf (off + 14) (msg ~> chan6_raw)
-  unpackRef buf (off + 16) (msg ~> chan7_raw)
-  unpackRef buf (off + 18) (msg ~> chan8_raw)
-  unpackRef buf (off + 20) (msg ~> port)
-  unpackRef buf (off + 21) (msg ~> rssi)
-
-instance SerializableRef (Struct "rc_channels_raw_msg") where
-  packRef = call_ rcChannelsRawPackRef
-  unpackRef = call_ rcChannelsRawUnpackRef
+instance Packable (Struct "rc_channels_raw_msg") where
+  packRep = wrappedPackRep rcChannelsRawWrapper

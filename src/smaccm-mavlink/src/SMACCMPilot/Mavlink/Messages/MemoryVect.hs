@@ -28,8 +28,7 @@ memoryVectModule = package "mavlink_memory_vect_msg" $ do
   incl mkMemoryVectSender
   incl memoryVectUnpack
   defStruct (Proxy :: Proxy "memory_vect_msg")
-  incl memoryVectPackRef
-  incl memoryVectUnpackRef
+  wrappedPackMod memoryVectWrapper
 
 [ivory|
 struct memory_vect_msg
@@ -53,28 +52,15 @@ instance MavlinkUnpackableMsg "memory_vect_msg" where
 memoryVectUnpack :: Def ('[ Ref s1 (Struct "memory_vect_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-memoryVectUnpack = proc "mavlink_memory_vect_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
+memoryVectUnpack = proc "mavlink_memory_vect_unpack" $ \ msg buf -> body $ packGet packRep buf 0 msg
 
-memoryVectPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
-                              , Uint32
-                              , ConstRef s2 (Struct "memory_vect_msg")
-                              ] :-> () )
-memoryVectPackRef = proc "mavlink_memory_vect_pack_ref" $ \ buf off msg -> body $ do
-  packRef buf (off + 0) (msg ~> address)
-  packRef buf (off + 2) (msg ~> ver)
-  packRef buf (off + 3) (msg ~> memory_vect_type)
-  packRef buf (off + 4) (msg ~> value)
+memoryVectWrapper :: WrappedPackRep (Struct "memory_vect_msg")
+memoryVectWrapper = wrapPackRep "mavlink_memory_vect" $ packStruct
+  [ packLabel address
+  , packLabel ver
+  , packLabel memory_vect_type
+  , packLabel value
+  ]
 
-memoryVectUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
-                                , Uint32
-                                , Ref s2 (Struct "memory_vect_msg")
-                                ] :-> () )
-memoryVectUnpackRef = proc "mavlink_memory_vect_unpack_ref" $ \ buf off msg -> body $ do
-  unpackRef buf (off + 0) (msg ~> address)
-  unpackRef buf (off + 2) (msg ~> ver)
-  unpackRef buf (off + 3) (msg ~> memory_vect_type)
-  unpackRef buf (off + 4) (msg ~> value)
-
-instance SerializableRef (Struct "memory_vect_msg") where
-  packRef = call_ memoryVectPackRef
-  unpackRef = call_ memoryVectUnpackRef
+instance Packable (Struct "memory_vect_msg") where
+  packRep = wrappedPackRep memoryVectWrapper

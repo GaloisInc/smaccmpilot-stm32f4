@@ -28,8 +28,7 @@ hilStateModule = package "mavlink_hil_state_msg" $ do
   incl mkHilStateSender
   incl hilStateUnpack
   defStruct (Proxy :: Proxy "hil_state_msg")
-  incl hilStatePackRef
-  incl hilStateUnpackRef
+  wrappedPackMod hilStateWrapper
 
 [ivory|
 struct hil_state_msg
@@ -65,52 +64,27 @@ instance MavlinkUnpackableMsg "hil_state_msg" where
 hilStateUnpack :: Def ('[ Ref s1 (Struct "hil_state_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-hilStateUnpack = proc "mavlink_hil_state_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
+hilStateUnpack = proc "mavlink_hil_state_unpack" $ \ msg buf -> body $ packGet packRep buf 0 msg
 
-hilStatePackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
-                              , Uint32
-                              , ConstRef s2 (Struct "hil_state_msg")
-                              ] :-> () )
-hilStatePackRef = proc "mavlink_hil_state_pack_ref" $ \ buf off msg -> body $ do
-  packRef buf (off + 0) (msg ~> time_usec)
-  packRef buf (off + 8) (msg ~> roll)
-  packRef buf (off + 12) (msg ~> pitch)
-  packRef buf (off + 16) (msg ~> yaw)
-  packRef buf (off + 20) (msg ~> rollspeed)
-  packRef buf (off + 24) (msg ~> pitchspeed)
-  packRef buf (off + 28) (msg ~> yawspeed)
-  packRef buf (off + 32) (msg ~> lat)
-  packRef buf (off + 36) (msg ~> lon)
-  packRef buf (off + 40) (msg ~> alt)
-  packRef buf (off + 44) (msg ~> vx)
-  packRef buf (off + 46) (msg ~> vy)
-  packRef buf (off + 48) (msg ~> vz)
-  packRef buf (off + 50) (msg ~> xacc)
-  packRef buf (off + 52) (msg ~> yacc)
-  packRef buf (off + 54) (msg ~> zacc)
+hilStateWrapper :: WrappedPackRep (Struct "hil_state_msg")
+hilStateWrapper = wrapPackRep "mavlink_hil_state" $ packStruct
+  [ packLabel time_usec
+  , packLabel roll
+  , packLabel pitch
+  , packLabel yaw
+  , packLabel rollspeed
+  , packLabel pitchspeed
+  , packLabel yawspeed
+  , packLabel lat
+  , packLabel lon
+  , packLabel alt
+  , packLabel vx
+  , packLabel vy
+  , packLabel vz
+  , packLabel xacc
+  , packLabel yacc
+  , packLabel zacc
+  ]
 
-hilStateUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
-                                , Uint32
-                                , Ref s2 (Struct "hil_state_msg")
-                                ] :-> () )
-hilStateUnpackRef = proc "mavlink_hil_state_unpack_ref" $ \ buf off msg -> body $ do
-  unpackRef buf (off + 0) (msg ~> time_usec)
-  unpackRef buf (off + 8) (msg ~> roll)
-  unpackRef buf (off + 12) (msg ~> pitch)
-  unpackRef buf (off + 16) (msg ~> yaw)
-  unpackRef buf (off + 20) (msg ~> rollspeed)
-  unpackRef buf (off + 24) (msg ~> pitchspeed)
-  unpackRef buf (off + 28) (msg ~> yawspeed)
-  unpackRef buf (off + 32) (msg ~> lat)
-  unpackRef buf (off + 36) (msg ~> lon)
-  unpackRef buf (off + 40) (msg ~> alt)
-  unpackRef buf (off + 44) (msg ~> vx)
-  unpackRef buf (off + 46) (msg ~> vy)
-  unpackRef buf (off + 48) (msg ~> vz)
-  unpackRef buf (off + 50) (msg ~> xacc)
-  unpackRef buf (off + 52) (msg ~> yacc)
-  unpackRef buf (off + 54) (msg ~> zacc)
-
-instance SerializableRef (Struct "hil_state_msg") where
-  packRef = call_ hilStatePackRef
-  unpackRef = call_ hilStateUnpackRef
+instance Packable (Struct "hil_state_msg") where
+  packRep = wrappedPackRep hilStateWrapper

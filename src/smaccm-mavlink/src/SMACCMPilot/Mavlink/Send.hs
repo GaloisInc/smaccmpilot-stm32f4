@@ -2,7 +2,6 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE QuasiQuotes #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
@@ -104,7 +103,7 @@ mavlinkSendModule = package "mavlinkSendModule" $ do
 
 --------------------------------------------------------------------------------
 
-makeMavlinkSender :: forall s0 s1 a. (IvorySizeOf a, SerializableRef a)
+makeMavlinkSender :: (IvoryArea a, Packable a)
                   => String -- ^ type name
                   -> Uint8 -- ^ message ID
                   -> Uint8 -- ^ CRC extra byte
@@ -114,14 +113,16 @@ makeMavlinkSender :: forall s0 s1 a. (IvorySizeOf a, SerializableRef a)
                            ] :-> ())
 makeMavlinkSender name msgId crcExtra =
   proc ("mavlink_" ++ name ++ "_send") $ \ msg seqNum sendStruct -> body $ do
-  let bodyLen    = sizeOfBytes (Proxy :: Proxy a)
+  let rep        = packRep
+  let bodyLen    = packSize rep
   -- 6: header len, 2: CRC len
-  let usedLen    = 6 + bodyLen + 2
+  let headerLen  = 6
+  let usedLen    = headerLen + bodyLen + 2
   let sendArr    = sendStruct ~> mav_array
   if arrayLen sendArr < usedLen
     then error $ name ++ " payload of length " ++ show bodyLen ++ " is too large!"
     else do -- Copy, leaving room for the payload
-            packRef (toCArray sendArr) 6 msg
+            packInto' rep sendArr (fromInteger headerLen) msg
             call_ mavlinkSendWithWriter
                     msgId
                     crcExtra

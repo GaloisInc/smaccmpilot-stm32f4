@@ -28,8 +28,7 @@ rawImuModule = package "mavlink_raw_imu_msg" $ do
   incl mkRawImuSender
   incl rawImuUnpack
   defStruct (Proxy :: Proxy "raw_imu_msg")
-  incl rawImuPackRef
-  incl rawImuUnpackRef
+  wrappedPackMod rawImuWrapper
 
 [ivory|
 struct raw_imu_msg
@@ -59,40 +58,21 @@ instance MavlinkUnpackableMsg "raw_imu_msg" where
 rawImuUnpack :: Def ('[ Ref s1 (Struct "raw_imu_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-rawImuUnpack = proc "mavlink_raw_imu_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
+rawImuUnpack = proc "mavlink_raw_imu_unpack" $ \ msg buf -> body $ packGet packRep buf 0 msg
 
-rawImuPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
-                              , Uint32
-                              , ConstRef s2 (Struct "raw_imu_msg")
-                              ] :-> () )
-rawImuPackRef = proc "mavlink_raw_imu_pack_ref" $ \ buf off msg -> body $ do
-  packRef buf (off + 0) (msg ~> time_usec)
-  packRef buf (off + 8) (msg ~> xacc)
-  packRef buf (off + 10) (msg ~> yacc)
-  packRef buf (off + 12) (msg ~> zacc)
-  packRef buf (off + 14) (msg ~> xgyro)
-  packRef buf (off + 16) (msg ~> ygyro)
-  packRef buf (off + 18) (msg ~> zgyro)
-  packRef buf (off + 20) (msg ~> xmag)
-  packRef buf (off + 22) (msg ~> ymag)
-  packRef buf (off + 24) (msg ~> zmag)
+rawImuWrapper :: WrappedPackRep (Struct "raw_imu_msg")
+rawImuWrapper = wrapPackRep "mavlink_raw_imu" $ packStruct
+  [ packLabel time_usec
+  , packLabel xacc
+  , packLabel yacc
+  , packLabel zacc
+  , packLabel xgyro
+  , packLabel ygyro
+  , packLabel zgyro
+  , packLabel xmag
+  , packLabel ymag
+  , packLabel zmag
+  ]
 
-rawImuUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
-                                , Uint32
-                                , Ref s2 (Struct "raw_imu_msg")
-                                ] :-> () )
-rawImuUnpackRef = proc "mavlink_raw_imu_unpack_ref" $ \ buf off msg -> body $ do
-  unpackRef buf (off + 0) (msg ~> time_usec)
-  unpackRef buf (off + 8) (msg ~> xacc)
-  unpackRef buf (off + 10) (msg ~> yacc)
-  unpackRef buf (off + 12) (msg ~> zacc)
-  unpackRef buf (off + 14) (msg ~> xgyro)
-  unpackRef buf (off + 16) (msg ~> ygyro)
-  unpackRef buf (off + 18) (msg ~> zgyro)
-  unpackRef buf (off + 20) (msg ~> xmag)
-  unpackRef buf (off + 22) (msg ~> ymag)
-  unpackRef buf (off + 24) (msg ~> zmag)
-
-instance SerializableRef (Struct "raw_imu_msg") where
-  packRef = call_ rawImuPackRef
-  unpackRef = call_ rawImuUnpackRef
+instance Packable (Struct "raw_imu_msg") where
+  packRep = wrappedPackRep rawImuWrapper

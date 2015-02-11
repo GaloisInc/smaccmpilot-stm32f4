@@ -28,8 +28,7 @@ setRollPitchYawThrustModule = package "mavlink_set_roll_pitch_yaw_thrust_msg" $ 
   incl mkSetRollPitchYawThrustSender
   incl setRollPitchYawThrustUnpack
   defStruct (Proxy :: Proxy "set_roll_pitch_yaw_thrust_msg")
-  incl setRollPitchYawThrustPackRef
-  incl setRollPitchYawThrustUnpackRef
+  wrappedPackMod setRollPitchYawThrustWrapper
 
 [ivory|
 struct set_roll_pitch_yaw_thrust_msg
@@ -55,32 +54,17 @@ instance MavlinkUnpackableMsg "set_roll_pitch_yaw_thrust_msg" where
 setRollPitchYawThrustUnpack :: Def ('[ Ref s1 (Struct "set_roll_pitch_yaw_thrust_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-setRollPitchYawThrustUnpack = proc "mavlink_set_roll_pitch_yaw_thrust_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
+setRollPitchYawThrustUnpack = proc "mavlink_set_roll_pitch_yaw_thrust_unpack" $ \ msg buf -> body $ packGet packRep buf 0 msg
 
-setRollPitchYawThrustPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
-                              , Uint32
-                              , ConstRef s2 (Struct "set_roll_pitch_yaw_thrust_msg")
-                              ] :-> () )
-setRollPitchYawThrustPackRef = proc "mavlink_set_roll_pitch_yaw_thrust_pack_ref" $ \ buf off msg -> body $ do
-  packRef buf (off + 0) (msg ~> roll)
-  packRef buf (off + 4) (msg ~> pitch)
-  packRef buf (off + 8) (msg ~> yaw)
-  packRef buf (off + 12) (msg ~> thrust)
-  packRef buf (off + 16) (msg ~> target_system)
-  packRef buf (off + 17) (msg ~> target_component)
+setRollPitchYawThrustWrapper :: WrappedPackRep (Struct "set_roll_pitch_yaw_thrust_msg")
+setRollPitchYawThrustWrapper = wrapPackRep "mavlink_set_roll_pitch_yaw_thrust" $ packStruct
+  [ packLabel roll
+  , packLabel pitch
+  , packLabel yaw
+  , packLabel thrust
+  , packLabel target_system
+  , packLabel target_component
+  ]
 
-setRollPitchYawThrustUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
-                                , Uint32
-                                , Ref s2 (Struct "set_roll_pitch_yaw_thrust_msg")
-                                ] :-> () )
-setRollPitchYawThrustUnpackRef = proc "mavlink_set_roll_pitch_yaw_thrust_unpack_ref" $ \ buf off msg -> body $ do
-  unpackRef buf (off + 0) (msg ~> roll)
-  unpackRef buf (off + 4) (msg ~> pitch)
-  unpackRef buf (off + 8) (msg ~> yaw)
-  unpackRef buf (off + 12) (msg ~> thrust)
-  unpackRef buf (off + 16) (msg ~> target_system)
-  unpackRef buf (off + 17) (msg ~> target_component)
-
-instance SerializableRef (Struct "set_roll_pitch_yaw_thrust_msg") where
-  packRef = call_ setRollPitchYawThrustPackRef
-  unpackRef = call_ setRollPitchYawThrustUnpackRef
+instance Packable (Struct "set_roll_pitch_yaw_thrust_msg") where
+  packRep = wrappedPackRep setRollPitchYawThrustWrapper

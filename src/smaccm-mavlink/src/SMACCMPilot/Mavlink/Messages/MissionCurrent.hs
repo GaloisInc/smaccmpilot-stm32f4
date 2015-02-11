@@ -28,8 +28,7 @@ missionCurrentModule = package "mavlink_mission_current_msg" $ do
   incl mkMissionCurrentSender
   incl missionCurrentUnpack
   defStruct (Proxy :: Proxy "mission_current_msg")
-  incl missionCurrentPackRef
-  incl missionCurrentUnpackRef
+  wrappedPackMod missionCurrentWrapper
 
 [ivory|
 struct mission_current_msg
@@ -50,22 +49,12 @@ instance MavlinkUnpackableMsg "mission_current_msg" where
 missionCurrentUnpack :: Def ('[ Ref s1 (Struct "mission_current_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-missionCurrentUnpack = proc "mavlink_mission_current_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
+missionCurrentUnpack = proc "mavlink_mission_current_unpack" $ \ msg buf -> body $ packGet packRep buf 0 msg
 
-missionCurrentPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
-                              , Uint32
-                              , ConstRef s2 (Struct "mission_current_msg")
-                              ] :-> () )
-missionCurrentPackRef = proc "mavlink_mission_current_pack_ref" $ \ buf off msg -> body $ do
-  packRef buf (off + 0) (msg ~> mission_current_seq)
+missionCurrentWrapper :: WrappedPackRep (Struct "mission_current_msg")
+missionCurrentWrapper = wrapPackRep "mavlink_mission_current" $ packStruct
+  [ packLabel mission_current_seq
+  ]
 
-missionCurrentUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
-                                , Uint32
-                                , Ref s2 (Struct "mission_current_msg")
-                                ] :-> () )
-missionCurrentUnpackRef = proc "mavlink_mission_current_unpack_ref" $ \ buf off msg -> body $ do
-  unpackRef buf (off + 0) (msg ~> mission_current_seq)
-
-instance SerializableRef (Struct "mission_current_msg") where
-  packRef = call_ missionCurrentPackRef
-  unpackRef = call_ missionCurrentUnpackRef
+instance Packable (Struct "mission_current_msg") where
+  packRep = wrappedPackRep missionCurrentWrapper

@@ -28,8 +28,7 @@ namedValueIntModule = package "mavlink_named_value_int_msg" $ do
   incl mkNamedValueIntSender
   incl namedValueIntUnpack
   defStruct (Proxy :: Proxy "named_value_int_msg")
-  incl namedValueIntPackRef
-  incl namedValueIntUnpackRef
+  wrappedPackMod namedValueIntWrapper
 
 [ivory|
 struct named_value_int_msg
@@ -52,26 +51,14 @@ instance MavlinkUnpackableMsg "named_value_int_msg" where
 namedValueIntUnpack :: Def ('[ Ref s1 (Struct "named_value_int_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-namedValueIntUnpack = proc "mavlink_named_value_int_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
+namedValueIntUnpack = proc "mavlink_named_value_int_unpack" $ \ msg buf -> body $ packGet packRep buf 0 msg
 
-namedValueIntPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
-                              , Uint32
-                              , ConstRef s2 (Struct "named_value_int_msg")
-                              ] :-> () )
-namedValueIntPackRef = proc "mavlink_named_value_int_pack_ref" $ \ buf off msg -> body $ do
-  packRef buf (off + 0) (msg ~> time_boot_ms)
-  packRef buf (off + 4) (msg ~> value)
-  packRef buf (off + 8) (msg ~> name)
+namedValueIntWrapper :: WrappedPackRep (Struct "named_value_int_msg")
+namedValueIntWrapper = wrapPackRep "mavlink_named_value_int" $ packStruct
+  [ packLabel time_boot_ms
+  , packLabel value
+  , packLabel name
+  ]
 
-namedValueIntUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
-                                , Uint32
-                                , Ref s2 (Struct "named_value_int_msg")
-                                ] :-> () )
-namedValueIntUnpackRef = proc "mavlink_named_value_int_unpack_ref" $ \ buf off msg -> body $ do
-  unpackRef buf (off + 0) (msg ~> time_boot_ms)
-  unpackRef buf (off + 4) (msg ~> value)
-  unpackRef buf (off + 8) (msg ~> name)
-
-instance SerializableRef (Struct "named_value_int_msg") where
-  packRef = call_ namedValueIntPackRef
-  unpackRef = call_ namedValueIntUnpackRef
+instance Packable (Struct "named_value_int_msg") where
+  packRep = wrappedPackRep namedValueIntWrapper

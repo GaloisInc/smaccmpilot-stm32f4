@@ -28,8 +28,7 @@ opticalFlowModule = package "mavlink_optical_flow_msg" $ do
   incl mkOpticalFlowSender
   incl opticalFlowUnpack
   defStruct (Proxy :: Proxy "optical_flow_msg")
-  incl opticalFlowPackRef
-  incl opticalFlowUnpackRef
+  wrappedPackMod opticalFlowWrapper
 
 [ivory|
 struct optical_flow_msg
@@ -57,36 +56,19 @@ instance MavlinkUnpackableMsg "optical_flow_msg" where
 opticalFlowUnpack :: Def ('[ Ref s1 (Struct "optical_flow_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-opticalFlowUnpack = proc "mavlink_optical_flow_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
+opticalFlowUnpack = proc "mavlink_optical_flow_unpack" $ \ msg buf -> body $ packGet packRep buf 0 msg
 
-opticalFlowPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
-                              , Uint32
-                              , ConstRef s2 (Struct "optical_flow_msg")
-                              ] :-> () )
-opticalFlowPackRef = proc "mavlink_optical_flow_pack_ref" $ \ buf off msg -> body $ do
-  packRef buf (off + 0) (msg ~> time_usec)
-  packRef buf (off + 8) (msg ~> flow_comp_m_x)
-  packRef buf (off + 12) (msg ~> flow_comp_m_y)
-  packRef buf (off + 16) (msg ~> ground_distance)
-  packRef buf (off + 20) (msg ~> flow_x)
-  packRef buf (off + 22) (msg ~> flow_y)
-  packRef buf (off + 24) (msg ~> sensor_id)
-  packRef buf (off + 25) (msg ~> quality)
+opticalFlowWrapper :: WrappedPackRep (Struct "optical_flow_msg")
+opticalFlowWrapper = wrapPackRep "mavlink_optical_flow" $ packStruct
+  [ packLabel time_usec
+  , packLabel flow_comp_m_x
+  , packLabel flow_comp_m_y
+  , packLabel ground_distance
+  , packLabel flow_x
+  , packLabel flow_y
+  , packLabel sensor_id
+  , packLabel quality
+  ]
 
-opticalFlowUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
-                                , Uint32
-                                , Ref s2 (Struct "optical_flow_msg")
-                                ] :-> () )
-opticalFlowUnpackRef = proc "mavlink_optical_flow_unpack_ref" $ \ buf off msg -> body $ do
-  unpackRef buf (off + 0) (msg ~> time_usec)
-  unpackRef buf (off + 8) (msg ~> flow_comp_m_x)
-  unpackRef buf (off + 12) (msg ~> flow_comp_m_y)
-  unpackRef buf (off + 16) (msg ~> ground_distance)
-  unpackRef buf (off + 20) (msg ~> flow_x)
-  unpackRef buf (off + 22) (msg ~> flow_y)
-  unpackRef buf (off + 24) (msg ~> sensor_id)
-  unpackRef buf (off + 25) (msg ~> quality)
-
-instance SerializableRef (Struct "optical_flow_msg") where
-  packRef = call_ opticalFlowPackRef
-  unpackRef = call_ opticalFlowUnpackRef
+instance Packable (Struct "optical_flow_msg") where
+  packRep = wrappedPackRep opticalFlowWrapper

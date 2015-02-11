@@ -28,8 +28,7 @@ missionItemModule = package "mavlink_mission_item_msg" $ do
   incl mkMissionItemSender
   incl missionItemUnpack
   defStruct (Proxy :: Proxy "mission_item_msg")
-  incl missionItemPackRef
-  incl missionItemUnpackRef
+  wrappedPackMod missionItemWrapper
 
 [ivory|
 struct mission_item_msg
@@ -63,48 +62,25 @@ instance MavlinkUnpackableMsg "mission_item_msg" where
 missionItemUnpack :: Def ('[ Ref s1 (Struct "mission_item_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-missionItemUnpack = proc "mavlink_mission_item_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
+missionItemUnpack = proc "mavlink_mission_item_unpack" $ \ msg buf -> body $ packGet packRep buf 0 msg
 
-missionItemPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
-                              , Uint32
-                              , ConstRef s2 (Struct "mission_item_msg")
-                              ] :-> () )
-missionItemPackRef = proc "mavlink_mission_item_pack_ref" $ \ buf off msg -> body $ do
-  packRef buf (off + 0) (msg ~> param1)
-  packRef buf (off + 4) (msg ~> param2)
-  packRef buf (off + 8) (msg ~> param3)
-  packRef buf (off + 12) (msg ~> param4)
-  packRef buf (off + 16) (msg ~> x)
-  packRef buf (off + 20) (msg ~> y)
-  packRef buf (off + 24) (msg ~> z)
-  packRef buf (off + 28) (msg ~> mission_item_seq)
-  packRef buf (off + 30) (msg ~> command)
-  packRef buf (off + 32) (msg ~> target_system)
-  packRef buf (off + 33) (msg ~> target_component)
-  packRef buf (off + 34) (msg ~> frame)
-  packRef buf (off + 35) (msg ~> current)
-  packRef buf (off + 36) (msg ~> autocontinue)
+missionItemWrapper :: WrappedPackRep (Struct "mission_item_msg")
+missionItemWrapper = wrapPackRep "mavlink_mission_item" $ packStruct
+  [ packLabel param1
+  , packLabel param2
+  , packLabel param3
+  , packLabel param4
+  , packLabel x
+  , packLabel y
+  , packLabel z
+  , packLabel mission_item_seq
+  , packLabel command
+  , packLabel target_system
+  , packLabel target_component
+  , packLabel frame
+  , packLabel current
+  , packLabel autocontinue
+  ]
 
-missionItemUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
-                                , Uint32
-                                , Ref s2 (Struct "mission_item_msg")
-                                ] :-> () )
-missionItemUnpackRef = proc "mavlink_mission_item_unpack_ref" $ \ buf off msg -> body $ do
-  unpackRef buf (off + 0) (msg ~> param1)
-  unpackRef buf (off + 4) (msg ~> param2)
-  unpackRef buf (off + 8) (msg ~> param3)
-  unpackRef buf (off + 12) (msg ~> param4)
-  unpackRef buf (off + 16) (msg ~> x)
-  unpackRef buf (off + 20) (msg ~> y)
-  unpackRef buf (off + 24) (msg ~> z)
-  unpackRef buf (off + 28) (msg ~> mission_item_seq)
-  unpackRef buf (off + 30) (msg ~> command)
-  unpackRef buf (off + 32) (msg ~> target_system)
-  unpackRef buf (off + 33) (msg ~> target_component)
-  unpackRef buf (off + 34) (msg ~> frame)
-  unpackRef buf (off + 35) (msg ~> current)
-  unpackRef buf (off + 36) (msg ~> autocontinue)
-
-instance SerializableRef (Struct "mission_item_msg") where
-  packRef = call_ missionItemPackRef
-  unpackRef = call_ missionItemUnpackRef
+instance Packable (Struct "mission_item_msg") where
+  packRep = wrappedPackRep missionItemWrapper

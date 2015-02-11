@@ -28,8 +28,7 @@ visionSpeedEstimateModule = package "mavlink_vision_speed_estimate_msg" $ do
   incl mkVisionSpeedEstimateSender
   incl visionSpeedEstimateUnpack
   defStruct (Proxy :: Proxy "vision_speed_estimate_msg")
-  incl visionSpeedEstimatePackRef
-  incl visionSpeedEstimateUnpackRef
+  wrappedPackMod visionSpeedEstimateWrapper
 
 [ivory|
 struct vision_speed_estimate_msg
@@ -53,28 +52,15 @@ instance MavlinkUnpackableMsg "vision_speed_estimate_msg" where
 visionSpeedEstimateUnpack :: Def ('[ Ref s1 (Struct "vision_speed_estimate_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-visionSpeedEstimateUnpack = proc "mavlink_vision_speed_estimate_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
+visionSpeedEstimateUnpack = proc "mavlink_vision_speed_estimate_unpack" $ \ msg buf -> body $ packGet packRep buf 0 msg
 
-visionSpeedEstimatePackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
-                              , Uint32
-                              , ConstRef s2 (Struct "vision_speed_estimate_msg")
-                              ] :-> () )
-visionSpeedEstimatePackRef = proc "mavlink_vision_speed_estimate_pack_ref" $ \ buf off msg -> body $ do
-  packRef buf (off + 0) (msg ~> usec)
-  packRef buf (off + 8) (msg ~> x)
-  packRef buf (off + 12) (msg ~> y)
-  packRef buf (off + 16) (msg ~> z)
+visionSpeedEstimateWrapper :: WrappedPackRep (Struct "vision_speed_estimate_msg")
+visionSpeedEstimateWrapper = wrapPackRep "mavlink_vision_speed_estimate" $ packStruct
+  [ packLabel usec
+  , packLabel x
+  , packLabel y
+  , packLabel z
+  ]
 
-visionSpeedEstimateUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
-                                , Uint32
-                                , Ref s2 (Struct "vision_speed_estimate_msg")
-                                ] :-> () )
-visionSpeedEstimateUnpackRef = proc "mavlink_vision_speed_estimate_unpack_ref" $ \ buf off msg -> body $ do
-  unpackRef buf (off + 0) (msg ~> usec)
-  unpackRef buf (off + 8) (msg ~> x)
-  unpackRef buf (off + 12) (msg ~> y)
-  unpackRef buf (off + 16) (msg ~> z)
-
-instance SerializableRef (Struct "vision_speed_estimate_msg") where
-  packRef = call_ visionSpeedEstimatePackRef
-  unpackRef = call_ visionSpeedEstimateUnpackRef
+instance Packable (Struct "vision_speed_estimate_msg") where
+  packRep = wrappedPackRep visionSpeedEstimateWrapper

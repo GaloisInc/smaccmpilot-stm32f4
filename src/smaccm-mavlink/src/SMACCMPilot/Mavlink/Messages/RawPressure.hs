@@ -28,8 +28,7 @@ rawPressureModule = package "mavlink_raw_pressure_msg" $ do
   incl mkRawPressureSender
   incl rawPressureUnpack
   defStruct (Proxy :: Proxy "raw_pressure_msg")
-  incl rawPressurePackRef
-  incl rawPressureUnpackRef
+  wrappedPackMod rawPressureWrapper
 
 [ivory|
 struct raw_pressure_msg
@@ -54,30 +53,16 @@ instance MavlinkUnpackableMsg "raw_pressure_msg" where
 rawPressureUnpack :: Def ('[ Ref s1 (Struct "raw_pressure_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-rawPressureUnpack = proc "mavlink_raw_pressure_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
+rawPressureUnpack = proc "mavlink_raw_pressure_unpack" $ \ msg buf -> body $ packGet packRep buf 0 msg
 
-rawPressurePackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
-                              , Uint32
-                              , ConstRef s2 (Struct "raw_pressure_msg")
-                              ] :-> () )
-rawPressurePackRef = proc "mavlink_raw_pressure_pack_ref" $ \ buf off msg -> body $ do
-  packRef buf (off + 0) (msg ~> time_usec)
-  packRef buf (off + 8) (msg ~> press_abs)
-  packRef buf (off + 10) (msg ~> press_diff1)
-  packRef buf (off + 12) (msg ~> press_diff2)
-  packRef buf (off + 14) (msg ~> temperature)
+rawPressureWrapper :: WrappedPackRep (Struct "raw_pressure_msg")
+rawPressureWrapper = wrapPackRep "mavlink_raw_pressure" $ packStruct
+  [ packLabel time_usec
+  , packLabel press_abs
+  , packLabel press_diff1
+  , packLabel press_diff2
+  , packLabel temperature
+  ]
 
-rawPressureUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
-                                , Uint32
-                                , Ref s2 (Struct "raw_pressure_msg")
-                                ] :-> () )
-rawPressureUnpackRef = proc "mavlink_raw_pressure_unpack_ref" $ \ buf off msg -> body $ do
-  unpackRef buf (off + 0) (msg ~> time_usec)
-  unpackRef buf (off + 8) (msg ~> press_abs)
-  unpackRef buf (off + 10) (msg ~> press_diff1)
-  unpackRef buf (off + 12) (msg ~> press_diff2)
-  unpackRef buf (off + 14) (msg ~> temperature)
-
-instance SerializableRef (Struct "raw_pressure_msg") where
-  packRef = call_ rawPressurePackRef
-  unpackRef = call_ rawPressureUnpackRef
+instance Packable (Struct "raw_pressure_msg") where
+  packRep = wrappedPackRep rawPressureWrapper

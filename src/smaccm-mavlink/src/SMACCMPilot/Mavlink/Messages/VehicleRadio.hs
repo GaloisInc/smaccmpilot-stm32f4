@@ -28,8 +28,7 @@ vehicleRadioModule = package "mavlink_vehicle_radio_msg" $ do
   incl mkVehicleRadioSender
   incl vehicleRadioUnpack
   defStruct (Proxy :: Proxy "vehicle_radio_msg")
-  incl vehicleRadioPackRef
-  incl vehicleRadioUnpackRef
+  wrappedPackMod vehicleRadioWrapper
 
 [ivory|
 struct vehicle_radio_msg
@@ -56,34 +55,18 @@ instance MavlinkUnpackableMsg "vehicle_radio_msg" where
 vehicleRadioUnpack :: Def ('[ Ref s1 (Struct "vehicle_radio_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-vehicleRadioUnpack = proc "mavlink_vehicle_radio_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
+vehicleRadioUnpack = proc "mavlink_vehicle_radio_unpack" $ \ msg buf -> body $ packGet packRep buf 0 msg
 
-vehicleRadioPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
-                              , Uint32
-                              , ConstRef s2 (Struct "vehicle_radio_msg")
-                              ] :-> () )
-vehicleRadioPackRef = proc "mavlink_vehicle_radio_pack_ref" $ \ buf off msg -> body $ do
-  packRef buf (off + 0) (msg ~> rxerrors)
-  packRef buf (off + 2) (msg ~> fixed)
-  packRef buf (off + 4) (msg ~> rssi)
-  packRef buf (off + 5) (msg ~> remrssi)
-  packRef buf (off + 6) (msg ~> txbuf)
-  packRef buf (off + 7) (msg ~> noise)
-  packRef buf (off + 8) (msg ~> remnoise)
+vehicleRadioWrapper :: WrappedPackRep (Struct "vehicle_radio_msg")
+vehicleRadioWrapper = wrapPackRep "mavlink_vehicle_radio" $ packStruct
+  [ packLabel rxerrors
+  , packLabel fixed
+  , packLabel rssi
+  , packLabel remrssi
+  , packLabel txbuf
+  , packLabel noise
+  , packLabel remnoise
+  ]
 
-vehicleRadioUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
-                                , Uint32
-                                , Ref s2 (Struct "vehicle_radio_msg")
-                                ] :-> () )
-vehicleRadioUnpackRef = proc "mavlink_vehicle_radio_unpack_ref" $ \ buf off msg -> body $ do
-  unpackRef buf (off + 0) (msg ~> rxerrors)
-  unpackRef buf (off + 2) (msg ~> fixed)
-  unpackRef buf (off + 4) (msg ~> rssi)
-  unpackRef buf (off + 5) (msg ~> remrssi)
-  unpackRef buf (off + 6) (msg ~> txbuf)
-  unpackRef buf (off + 7) (msg ~> noise)
-  unpackRef buf (off + 8) (msg ~> remnoise)
-
-instance SerializableRef (Struct "vehicle_radio_msg") where
-  packRef = call_ vehicleRadioPackRef
-  unpackRef = call_ vehicleRadioUnpackRef
+instance Packable (Struct "vehicle_radio_msg") where
+  packRep = wrappedPackRep vehicleRadioWrapper

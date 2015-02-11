@@ -28,8 +28,7 @@ missionAckModule = package "mavlink_mission_ack_msg" $ do
   incl mkMissionAckSender
   incl missionAckUnpack
   defStruct (Proxy :: Proxy "mission_ack_msg")
-  incl missionAckPackRef
-  incl missionAckUnpackRef
+  wrappedPackMod missionAckWrapper
 
 [ivory|
 struct mission_ack_msg
@@ -52,26 +51,14 @@ instance MavlinkUnpackableMsg "mission_ack_msg" where
 missionAckUnpack :: Def ('[ Ref s1 (Struct "mission_ack_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-missionAckUnpack = proc "mavlink_mission_ack_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
+missionAckUnpack = proc "mavlink_mission_ack_unpack" $ \ msg buf -> body $ packGet packRep buf 0 msg
 
-missionAckPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
-                              , Uint32
-                              , ConstRef s2 (Struct "mission_ack_msg")
-                              ] :-> () )
-missionAckPackRef = proc "mavlink_mission_ack_pack_ref" $ \ buf off msg -> body $ do
-  packRef buf (off + 0) (msg ~> target_system)
-  packRef buf (off + 1) (msg ~> target_component)
-  packRef buf (off + 2) (msg ~> mission_ack_type)
+missionAckWrapper :: WrappedPackRep (Struct "mission_ack_msg")
+missionAckWrapper = wrapPackRep "mavlink_mission_ack" $ packStruct
+  [ packLabel target_system
+  , packLabel target_component
+  , packLabel mission_ack_type
+  ]
 
-missionAckUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
-                                , Uint32
-                                , Ref s2 (Struct "mission_ack_msg")
-                                ] :-> () )
-missionAckUnpackRef = proc "mavlink_mission_ack_unpack_ref" $ \ buf off msg -> body $ do
-  unpackRef buf (off + 0) (msg ~> target_system)
-  unpackRef buf (off + 1) (msg ~> target_component)
-  unpackRef buf (off + 2) (msg ~> mission_ack_type)
-
-instance SerializableRef (Struct "mission_ack_msg") where
-  packRef = call_ missionAckPackRef
-  unpackRef = call_ missionAckUnpackRef
+instance Packable (Struct "mission_ack_msg") where
+  packRep = wrappedPackRep missionAckWrapper

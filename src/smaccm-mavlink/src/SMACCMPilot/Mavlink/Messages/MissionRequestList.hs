@@ -28,8 +28,7 @@ missionRequestListModule = package "mavlink_mission_request_list_msg" $ do
   incl mkMissionRequestListSender
   incl missionRequestListUnpack
   defStruct (Proxy :: Proxy "mission_request_list_msg")
-  incl missionRequestListPackRef
-  incl missionRequestListUnpackRef
+  wrappedPackMod missionRequestListWrapper
 
 [ivory|
 struct mission_request_list_msg
@@ -51,24 +50,13 @@ instance MavlinkUnpackableMsg "mission_request_list_msg" where
 missionRequestListUnpack :: Def ('[ Ref s1 (Struct "mission_request_list_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-missionRequestListUnpack = proc "mavlink_mission_request_list_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
+missionRequestListUnpack = proc "mavlink_mission_request_list_unpack" $ \ msg buf -> body $ packGet packRep buf 0 msg
 
-missionRequestListPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
-                              , Uint32
-                              , ConstRef s2 (Struct "mission_request_list_msg")
-                              ] :-> () )
-missionRequestListPackRef = proc "mavlink_mission_request_list_pack_ref" $ \ buf off msg -> body $ do
-  packRef buf (off + 0) (msg ~> target_system)
-  packRef buf (off + 1) (msg ~> target_component)
+missionRequestListWrapper :: WrappedPackRep (Struct "mission_request_list_msg")
+missionRequestListWrapper = wrapPackRep "mavlink_mission_request_list" $ packStruct
+  [ packLabel target_system
+  , packLabel target_component
+  ]
 
-missionRequestListUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
-                                , Uint32
-                                , Ref s2 (Struct "mission_request_list_msg")
-                                ] :-> () )
-missionRequestListUnpackRef = proc "mavlink_mission_request_list_unpack_ref" $ \ buf off msg -> body $ do
-  unpackRef buf (off + 0) (msg ~> target_system)
-  unpackRef buf (off + 1) (msg ~> target_component)
-
-instance SerializableRef (Struct "mission_request_list_msg") where
-  packRef = call_ missionRequestListPackRef
-  unpackRef = call_ missionRequestListUnpackRef
+instance Packable (Struct "mission_request_list_msg") where
+  packRep = wrappedPackRep missionRequestListWrapper

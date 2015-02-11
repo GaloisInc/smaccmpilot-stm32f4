@@ -28,8 +28,7 @@ scaledImuModule = package "mavlink_scaled_imu_msg" $ do
   incl mkScaledImuSender
   incl scaledImuUnpack
   defStruct (Proxy :: Proxy "scaled_imu_msg")
-  incl scaledImuPackRef
-  incl scaledImuUnpackRef
+  wrappedPackMod scaledImuWrapper
 
 [ivory|
 struct scaled_imu_msg
@@ -59,40 +58,21 @@ instance MavlinkUnpackableMsg "scaled_imu_msg" where
 scaledImuUnpack :: Def ('[ Ref s1 (Struct "scaled_imu_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-scaledImuUnpack = proc "mavlink_scaled_imu_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
+scaledImuUnpack = proc "mavlink_scaled_imu_unpack" $ \ msg buf -> body $ packGet packRep buf 0 msg
 
-scaledImuPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
-                              , Uint32
-                              , ConstRef s2 (Struct "scaled_imu_msg")
-                              ] :-> () )
-scaledImuPackRef = proc "mavlink_scaled_imu_pack_ref" $ \ buf off msg -> body $ do
-  packRef buf (off + 0) (msg ~> time_boot_ms)
-  packRef buf (off + 4) (msg ~> xacc)
-  packRef buf (off + 6) (msg ~> yacc)
-  packRef buf (off + 8) (msg ~> zacc)
-  packRef buf (off + 10) (msg ~> xgyro)
-  packRef buf (off + 12) (msg ~> ygyro)
-  packRef buf (off + 14) (msg ~> zgyro)
-  packRef buf (off + 16) (msg ~> xmag)
-  packRef buf (off + 18) (msg ~> ymag)
-  packRef buf (off + 20) (msg ~> zmag)
+scaledImuWrapper :: WrappedPackRep (Struct "scaled_imu_msg")
+scaledImuWrapper = wrapPackRep "mavlink_scaled_imu" $ packStruct
+  [ packLabel time_boot_ms
+  , packLabel xacc
+  , packLabel yacc
+  , packLabel zacc
+  , packLabel xgyro
+  , packLabel ygyro
+  , packLabel zgyro
+  , packLabel xmag
+  , packLabel ymag
+  , packLabel zmag
+  ]
 
-scaledImuUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
-                                , Uint32
-                                , Ref s2 (Struct "scaled_imu_msg")
-                                ] :-> () )
-scaledImuUnpackRef = proc "mavlink_scaled_imu_unpack_ref" $ \ buf off msg -> body $ do
-  unpackRef buf (off + 0) (msg ~> time_boot_ms)
-  unpackRef buf (off + 4) (msg ~> xacc)
-  unpackRef buf (off + 6) (msg ~> yacc)
-  unpackRef buf (off + 8) (msg ~> zacc)
-  unpackRef buf (off + 10) (msg ~> xgyro)
-  unpackRef buf (off + 12) (msg ~> ygyro)
-  unpackRef buf (off + 14) (msg ~> zgyro)
-  unpackRef buf (off + 16) (msg ~> xmag)
-  unpackRef buf (off + 18) (msg ~> ymag)
-  unpackRef buf (off + 20) (msg ~> zmag)
-
-instance SerializableRef (Struct "scaled_imu_msg") where
-  packRef = call_ scaledImuPackRef
-  unpackRef = call_ scaledImuUnpackRef
+instance Packable (Struct "scaled_imu_msg") where
+  packRep = wrappedPackRep scaledImuWrapper

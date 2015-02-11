@@ -28,8 +28,7 @@ vehCommsecModule = package "mavlink_veh_commsec_msg" $ do
   incl mkVehCommsecSender
   incl vehCommsecUnpack
   defStruct (Proxy :: Proxy "veh_commsec_msg")
-  incl vehCommsecPackRef
-  incl vehCommsecUnpackRef
+  wrappedPackMod vehCommsecWrapper
 
 [ivory|
 struct veh_commsec_msg
@@ -53,28 +52,15 @@ instance MavlinkUnpackableMsg "veh_commsec_msg" where
 vehCommsecUnpack :: Def ('[ Ref s1 (Struct "veh_commsec_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-vehCommsecUnpack = proc "mavlink_veh_commsec_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
+vehCommsecUnpack = proc "mavlink_veh_commsec_unpack" $ \ msg buf -> body $ packGet packRep buf 0 msg
 
-vehCommsecPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
-                              , Uint32
-                              , ConstRef s2 (Struct "veh_commsec_msg")
-                              ] :-> () )
-vehCommsecPackRef = proc "mavlink_veh_commsec_pack_ref" $ \ buf off msg -> body $ do
-  packRef buf (off + 0) (msg ~> time)
-  packRef buf (off + 4) (msg ~> good_msgs)
-  packRef buf (off + 8) (msg ~> bad_msgs)
-  packRef buf (off + 12) (msg ~> commsec_err)
+vehCommsecWrapper :: WrappedPackRep (Struct "veh_commsec_msg")
+vehCommsecWrapper = wrapPackRep "mavlink_veh_commsec" $ packStruct
+  [ packLabel time
+  , packLabel good_msgs
+  , packLabel bad_msgs
+  , packLabel commsec_err
+  ]
 
-vehCommsecUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
-                                , Uint32
-                                , Ref s2 (Struct "veh_commsec_msg")
-                                ] :-> () )
-vehCommsecUnpackRef = proc "mavlink_veh_commsec_unpack_ref" $ \ buf off msg -> body $ do
-  unpackRef buf (off + 0) (msg ~> time)
-  unpackRef buf (off + 4) (msg ~> good_msgs)
-  unpackRef buf (off + 8) (msg ~> bad_msgs)
-  unpackRef buf (off + 12) (msg ~> commsec_err)
-
-instance SerializableRef (Struct "veh_commsec_msg") where
-  packRef = call_ vehCommsecPackRef
-  unpackRef = call_ vehCommsecUnpackRef
+instance Packable (Struct "veh_commsec_msg") where
+  packRep = wrappedPackRep vehCommsecWrapper

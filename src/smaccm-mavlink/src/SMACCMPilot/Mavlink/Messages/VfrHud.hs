@@ -28,8 +28,7 @@ vfrHudModule = package "mavlink_vfr_hud_msg" $ do
   incl mkVfrHudSender
   incl vfrHudUnpack
   defStruct (Proxy :: Proxy "vfr_hud_msg")
-  incl vfrHudPackRef
-  incl vfrHudUnpackRef
+  wrappedPackMod vfrHudWrapper
 
 [ivory|
 struct vfr_hud_msg
@@ -55,32 +54,17 @@ instance MavlinkUnpackableMsg "vfr_hud_msg" where
 vfrHudUnpack :: Def ('[ Ref s1 (Struct "vfr_hud_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-vfrHudUnpack = proc "mavlink_vfr_hud_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
+vfrHudUnpack = proc "mavlink_vfr_hud_unpack" $ \ msg buf -> body $ packGet packRep buf 0 msg
 
-vfrHudPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
-                              , Uint32
-                              , ConstRef s2 (Struct "vfr_hud_msg")
-                              ] :-> () )
-vfrHudPackRef = proc "mavlink_vfr_hud_pack_ref" $ \ buf off msg -> body $ do
-  packRef buf (off + 0) (msg ~> airspeed)
-  packRef buf (off + 4) (msg ~> groundspeed)
-  packRef buf (off + 8) (msg ~> alt)
-  packRef buf (off + 12) (msg ~> climb)
-  packRef buf (off + 16) (msg ~> heading)
-  packRef buf (off + 18) (msg ~> throttle)
+vfrHudWrapper :: WrappedPackRep (Struct "vfr_hud_msg")
+vfrHudWrapper = wrapPackRep "mavlink_vfr_hud" $ packStruct
+  [ packLabel airspeed
+  , packLabel groundspeed
+  , packLabel alt
+  , packLabel climb
+  , packLabel heading
+  , packLabel throttle
+  ]
 
-vfrHudUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
-                                , Uint32
-                                , Ref s2 (Struct "vfr_hud_msg")
-                                ] :-> () )
-vfrHudUnpackRef = proc "mavlink_vfr_hud_unpack_ref" $ \ buf off msg -> body $ do
-  unpackRef buf (off + 0) (msg ~> airspeed)
-  unpackRef buf (off + 4) (msg ~> groundspeed)
-  unpackRef buf (off + 8) (msg ~> alt)
-  unpackRef buf (off + 12) (msg ~> climb)
-  unpackRef buf (off + 16) (msg ~> heading)
-  unpackRef buf (off + 18) (msg ~> throttle)
-
-instance SerializableRef (Struct "vfr_hud_msg") where
-  packRef = call_ vfrHudPackRef
-  unpackRef = call_ vfrHudUnpackRef
+instance Packable (Struct "vfr_hud_msg") where
+  packRep = wrappedPackRep vfrHudWrapper

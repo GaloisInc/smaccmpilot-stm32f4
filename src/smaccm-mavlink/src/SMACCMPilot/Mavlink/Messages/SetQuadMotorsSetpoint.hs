@@ -28,8 +28,7 @@ setQuadMotorsSetpointModule = package "mavlink_set_quad_motors_setpoint_msg" $ d
   incl mkSetQuadMotorsSetpointSender
   incl setQuadMotorsSetpointUnpack
   defStruct (Proxy :: Proxy "set_quad_motors_setpoint_msg")
-  incl setQuadMotorsSetpointPackRef
-  incl setQuadMotorsSetpointUnpackRef
+  wrappedPackMod setQuadMotorsSetpointWrapper
 
 [ivory|
 struct set_quad_motors_setpoint_msg
@@ -54,30 +53,16 @@ instance MavlinkUnpackableMsg "set_quad_motors_setpoint_msg" where
 setQuadMotorsSetpointUnpack :: Def ('[ Ref s1 (Struct "set_quad_motors_setpoint_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-setQuadMotorsSetpointUnpack = proc "mavlink_set_quad_motors_setpoint_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
+setQuadMotorsSetpointUnpack = proc "mavlink_set_quad_motors_setpoint_unpack" $ \ msg buf -> body $ packGet packRep buf 0 msg
 
-setQuadMotorsSetpointPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
-                              , Uint32
-                              , ConstRef s2 (Struct "set_quad_motors_setpoint_msg")
-                              ] :-> () )
-setQuadMotorsSetpointPackRef = proc "mavlink_set_quad_motors_setpoint_pack_ref" $ \ buf off msg -> body $ do
-  packRef buf (off + 0) (msg ~> motor_front_nw)
-  packRef buf (off + 2) (msg ~> motor_right_ne)
-  packRef buf (off + 4) (msg ~> motor_back_se)
-  packRef buf (off + 6) (msg ~> motor_left_sw)
-  packRef buf (off + 8) (msg ~> target_system)
+setQuadMotorsSetpointWrapper :: WrappedPackRep (Struct "set_quad_motors_setpoint_msg")
+setQuadMotorsSetpointWrapper = wrapPackRep "mavlink_set_quad_motors_setpoint" $ packStruct
+  [ packLabel motor_front_nw
+  , packLabel motor_right_ne
+  , packLabel motor_back_se
+  , packLabel motor_left_sw
+  , packLabel target_system
+  ]
 
-setQuadMotorsSetpointUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
-                                , Uint32
-                                , Ref s2 (Struct "set_quad_motors_setpoint_msg")
-                                ] :-> () )
-setQuadMotorsSetpointUnpackRef = proc "mavlink_set_quad_motors_setpoint_unpack_ref" $ \ buf off msg -> body $ do
-  unpackRef buf (off + 0) (msg ~> motor_front_nw)
-  unpackRef buf (off + 2) (msg ~> motor_right_ne)
-  unpackRef buf (off + 4) (msg ~> motor_back_se)
-  unpackRef buf (off + 6) (msg ~> motor_left_sw)
-  unpackRef buf (off + 8) (msg ~> target_system)
-
-instance SerializableRef (Struct "set_quad_motors_setpoint_msg") where
-  packRef = call_ setQuadMotorsSetpointPackRef
-  unpackRef = call_ setQuadMotorsSetpointUnpackRef
+instance Packable (Struct "set_quad_motors_setpoint_msg") where
+  packRep = wrappedPackRep setQuadMotorsSetpointWrapper

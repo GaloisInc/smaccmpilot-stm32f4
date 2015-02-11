@@ -28,8 +28,7 @@ heartbeatModule = package "mavlink_heartbeat_msg" $ do
   incl mkHeartbeatSender
   incl heartbeatUnpack
   defStruct (Proxy :: Proxy "heartbeat_msg")
-  incl heartbeatPackRef
-  incl heartbeatUnpackRef
+  wrappedPackMod heartbeatWrapper
 
 [ivory|
 struct heartbeat_msg
@@ -55,32 +54,17 @@ instance MavlinkUnpackableMsg "heartbeat_msg" where
 heartbeatUnpack :: Def ('[ Ref s1 (Struct "heartbeat_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-heartbeatUnpack = proc "mavlink_heartbeat_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
+heartbeatUnpack = proc "mavlink_heartbeat_unpack" $ \ msg buf -> body $ packGet packRep buf 0 msg
 
-heartbeatPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
-                              , Uint32
-                              , ConstRef s2 (Struct "heartbeat_msg")
-                              ] :-> () )
-heartbeatPackRef = proc "mavlink_heartbeat_pack_ref" $ \ buf off msg -> body $ do
-  packRef buf (off + 0) (msg ~> custom_mode)
-  packRef buf (off + 4) (msg ~> mavtype)
-  packRef buf (off + 5) (msg ~> autopilot)
-  packRef buf (off + 6) (msg ~> base_mode)
-  packRef buf (off + 7) (msg ~> system_status)
-  packRef buf (off + 8) (msg ~> mavlink_version)
+heartbeatWrapper :: WrappedPackRep (Struct "heartbeat_msg")
+heartbeatWrapper = wrapPackRep "mavlink_heartbeat" $ packStruct
+  [ packLabel custom_mode
+  , packLabel mavtype
+  , packLabel autopilot
+  , packLabel base_mode
+  , packLabel system_status
+  , packLabel mavlink_version
+  ]
 
-heartbeatUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
-                                , Uint32
-                                , Ref s2 (Struct "heartbeat_msg")
-                                ] :-> () )
-heartbeatUnpackRef = proc "mavlink_heartbeat_unpack_ref" $ \ buf off msg -> body $ do
-  unpackRef buf (off + 0) (msg ~> custom_mode)
-  unpackRef buf (off + 4) (msg ~> mavtype)
-  unpackRef buf (off + 5) (msg ~> autopilot)
-  unpackRef buf (off + 6) (msg ~> base_mode)
-  unpackRef buf (off + 7) (msg ~> system_status)
-  unpackRef buf (off + 8) (msg ~> mavlink_version)
-
-instance SerializableRef (Struct "heartbeat_msg") where
-  packRef = call_ heartbeatPackRef
-  unpackRef = call_ heartbeatUnpackRef
+instance Packable (Struct "heartbeat_msg") where
+  packRep = wrappedPackRep heartbeatWrapper

@@ -28,8 +28,7 @@ manualControlModule = package "mavlink_manual_control_msg" $ do
   incl mkManualControlSender
   incl manualControlUnpack
   defStruct (Proxy :: Proxy "manual_control_msg")
-  incl manualControlPackRef
-  incl manualControlUnpackRef
+  wrappedPackMod manualControlWrapper
 
 [ivory|
 struct manual_control_msg
@@ -55,32 +54,17 @@ instance MavlinkUnpackableMsg "manual_control_msg" where
 manualControlUnpack :: Def ('[ Ref s1 (Struct "manual_control_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-manualControlUnpack = proc "mavlink_manual_control_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
+manualControlUnpack = proc "mavlink_manual_control_unpack" $ \ msg buf -> body $ packGet packRep buf 0 msg
 
-manualControlPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
-                              , Uint32
-                              , ConstRef s2 (Struct "manual_control_msg")
-                              ] :-> () )
-manualControlPackRef = proc "mavlink_manual_control_pack_ref" $ \ buf off msg -> body $ do
-  packRef buf (off + 0) (msg ~> x)
-  packRef buf (off + 2) (msg ~> y)
-  packRef buf (off + 4) (msg ~> z)
-  packRef buf (off + 6) (msg ~> r)
-  packRef buf (off + 8) (msg ~> buttons)
-  packRef buf (off + 10) (msg ~> target)
+manualControlWrapper :: WrappedPackRep (Struct "manual_control_msg")
+manualControlWrapper = wrapPackRep "mavlink_manual_control" $ packStruct
+  [ packLabel x
+  , packLabel y
+  , packLabel z
+  , packLabel r
+  , packLabel buttons
+  , packLabel target
+  ]
 
-manualControlUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
-                                , Uint32
-                                , Ref s2 (Struct "manual_control_msg")
-                                ] :-> () )
-manualControlUnpackRef = proc "mavlink_manual_control_unpack_ref" $ \ buf off msg -> body $ do
-  unpackRef buf (off + 0) (msg ~> x)
-  unpackRef buf (off + 2) (msg ~> y)
-  unpackRef buf (off + 4) (msg ~> z)
-  unpackRef buf (off + 6) (msg ~> r)
-  unpackRef buf (off + 8) (msg ~> buttons)
-  unpackRef buf (off + 10) (msg ~> target)
-
-instance SerializableRef (Struct "manual_control_msg") where
-  packRef = call_ manualControlPackRef
-  unpackRef = call_ manualControlUnpackRef
+instance Packable (Struct "manual_control_msg") where
+  packRep = wrappedPackRep manualControlWrapper

@@ -28,8 +28,7 @@ attitudeModule = package "mavlink_attitude_msg" $ do
   incl mkAttitudeSender
   incl attitudeUnpack
   defStruct (Proxy :: Proxy "attitude_msg")
-  incl attitudePackRef
-  incl attitudeUnpackRef
+  wrappedPackMod attitudeWrapper
 
 [ivory|
 struct attitude_msg
@@ -56,34 +55,18 @@ instance MavlinkUnpackableMsg "attitude_msg" where
 attitudeUnpack :: Def ('[ Ref s1 (Struct "attitude_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-attitudeUnpack = proc "mavlink_attitude_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
+attitudeUnpack = proc "mavlink_attitude_unpack" $ \ msg buf -> body $ packGet packRep buf 0 msg
 
-attitudePackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
-                              , Uint32
-                              , ConstRef s2 (Struct "attitude_msg")
-                              ] :-> () )
-attitudePackRef = proc "mavlink_attitude_pack_ref" $ \ buf off msg -> body $ do
-  packRef buf (off + 0) (msg ~> time_boot_ms)
-  packRef buf (off + 4) (msg ~> roll)
-  packRef buf (off + 8) (msg ~> pitch)
-  packRef buf (off + 12) (msg ~> yaw)
-  packRef buf (off + 16) (msg ~> rollspeed)
-  packRef buf (off + 20) (msg ~> pitchspeed)
-  packRef buf (off + 24) (msg ~> yawspeed)
+attitudeWrapper :: WrappedPackRep (Struct "attitude_msg")
+attitudeWrapper = wrapPackRep "mavlink_attitude" $ packStruct
+  [ packLabel time_boot_ms
+  , packLabel roll
+  , packLabel pitch
+  , packLabel yaw
+  , packLabel rollspeed
+  , packLabel pitchspeed
+  , packLabel yawspeed
+  ]
 
-attitudeUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
-                                , Uint32
-                                , Ref s2 (Struct "attitude_msg")
-                                ] :-> () )
-attitudeUnpackRef = proc "mavlink_attitude_unpack_ref" $ \ buf off msg -> body $ do
-  unpackRef buf (off + 0) (msg ~> time_boot_ms)
-  unpackRef buf (off + 4) (msg ~> roll)
-  unpackRef buf (off + 8) (msg ~> pitch)
-  unpackRef buf (off + 12) (msg ~> yaw)
-  unpackRef buf (off + 16) (msg ~> rollspeed)
-  unpackRef buf (off + 20) (msg ~> pitchspeed)
-  unpackRef buf (off + 24) (msg ~> yawspeed)
-
-instance SerializableRef (Struct "attitude_msg") where
-  packRef = call_ attitudePackRef
-  unpackRef = call_ attitudeUnpackRef
+instance Packable (Struct "attitude_msg") where
+  packRep = wrappedPackRep attitudeWrapper

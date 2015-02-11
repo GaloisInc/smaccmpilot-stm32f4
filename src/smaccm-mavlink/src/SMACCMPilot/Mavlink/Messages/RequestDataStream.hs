@@ -28,8 +28,7 @@ requestDataStreamModule = package "mavlink_request_data_stream_msg" $ do
   incl mkRequestDataStreamSender
   incl requestDataStreamUnpack
   defStruct (Proxy :: Proxy "request_data_stream_msg")
-  incl requestDataStreamPackRef
-  incl requestDataStreamUnpackRef
+  wrappedPackMod requestDataStreamWrapper
 
 [ivory|
 struct request_data_stream_msg
@@ -54,30 +53,16 @@ instance MavlinkUnpackableMsg "request_data_stream_msg" where
 requestDataStreamUnpack :: Def ('[ Ref s1 (Struct "request_data_stream_msg")
                              , ConstRef s2 (CArray (Stored Uint8))
                              ] :-> () )
-requestDataStreamUnpack = proc "mavlink_request_data_stream_unpack" $ \ msg buf -> body $ unpackRef buf 0 msg
+requestDataStreamUnpack = proc "mavlink_request_data_stream_unpack" $ \ msg buf -> body $ packGet packRep buf 0 msg
 
-requestDataStreamPackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
-                              , Uint32
-                              , ConstRef s2 (Struct "request_data_stream_msg")
-                              ] :-> () )
-requestDataStreamPackRef = proc "mavlink_request_data_stream_pack_ref" $ \ buf off msg -> body $ do
-  packRef buf (off + 0) (msg ~> req_message_rate)
-  packRef buf (off + 2) (msg ~> target_system)
-  packRef buf (off + 3) (msg ~> target_component)
-  packRef buf (off + 4) (msg ~> req_stream_id)
-  packRef buf (off + 5) (msg ~> start_stop)
+requestDataStreamWrapper :: WrappedPackRep (Struct "request_data_stream_msg")
+requestDataStreamWrapper = wrapPackRep "mavlink_request_data_stream" $ packStruct
+  [ packLabel req_message_rate
+  , packLabel target_system
+  , packLabel target_component
+  , packLabel req_stream_id
+  , packLabel start_stop
+  ]
 
-requestDataStreamUnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
-                                , Uint32
-                                , Ref s2 (Struct "request_data_stream_msg")
-                                ] :-> () )
-requestDataStreamUnpackRef = proc "mavlink_request_data_stream_unpack_ref" $ \ buf off msg -> body $ do
-  unpackRef buf (off + 0) (msg ~> req_message_rate)
-  unpackRef buf (off + 2) (msg ~> target_system)
-  unpackRef buf (off + 3) (msg ~> target_component)
-  unpackRef buf (off + 4) (msg ~> req_stream_id)
-  unpackRef buf (off + 5) (msg ~> start_stop)
-
-instance SerializableRef (Struct "request_data_stream_msg") where
-  packRef = call_ requestDataStreamPackRef
-  unpackRef = call_ requestDataStreamUnpackRef
+instance Packable (Struct "request_data_stream_msg") where
+  packRep = wrappedPackRep requestDataStreamWrapper
