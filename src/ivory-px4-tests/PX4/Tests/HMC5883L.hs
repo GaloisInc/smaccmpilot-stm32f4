@@ -17,6 +17,7 @@ import Ivory.BSP.STM32.Driver.UART
 import qualified SMACCMPilot.Datalink.HXStream.Ivory as HX
 
 import SMACCMPilot.Hardware.HMC5883L
+import SMACCMPilot.Hardware.HMC5883L.I2C
 
 import qualified Ivory.BSP.STM32F405.Interrupt as F405
 import qualified BSP.Tests.Platforms as BSP
@@ -27,12 +28,14 @@ app topx4 = do
   px4platform <- fmap topx4 getEnv
 
   let hmc = px4platform_hmc5883_device px4platform
-  (req, res, _ready) <- i2cTower tocc
+  (req, res, ready) <- i2cTower tocc
                          (hmc5883device_periph hmc)
                          (hmc5883device_sda    hmc)
                          (hmc5883device_scl    hmc)
 
-  samples <- hmc5883lctl req res (hmc5883device_addr hmc)
+  samples <- channel
+
+  hmc5883lSensorManager req res ready (fst samples) (hmc5883device_addr hmc)
 
   let u = BSP.testplatform_uart (px4platform_testplatform px4platform)
   (_uarti,uarto) <- uartTower tocc (BSP.testUARTPeriph u)
@@ -40,7 +43,7 @@ app topx4 = do
                                    115200 (Proxy :: Proxy 128)
 
   monitor "hmc5883lsender" $ do
-    hmc5883lSender samples uarto
+    hmc5883lSender (snd samples) uarto
 
   towerDepends serializeModule
   towerModule  serializeModule
