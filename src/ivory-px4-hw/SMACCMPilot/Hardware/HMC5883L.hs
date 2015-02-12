@@ -1,6 +1,6 @@
 
 module SMACCMPilot.Hardware.HMC5883L
-  ( hmc5883lctl
+  ( hmc5883lSensorManager
   , module SMACCMPilot.Hardware.HMC5883L.Types
   ) where
 

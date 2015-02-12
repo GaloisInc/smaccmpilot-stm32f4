@@ -26,7 +26,6 @@ hmc5883lSensorManager req_chan res_chan init_chan sensor_chan addr = do
   towerDepends hmc5883lTypesModule
   p <- period (Milliseconds 20) -- 50 hz. Can be faster if required.
   monitor "hmc5883lSensorManager" $ do
-    failure     <- stateInit "failure" (ival false)
     initialized <- stateInit "initialized" (ival false)
     s           <- state "sample"
     coroutineHandler init_chan res_chan "hmc5883l" $ do
