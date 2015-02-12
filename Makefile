@@ -1,5 +1,11 @@
 
 default: ivory-px4-tests
+all: ivory-px4-hw
+all: ivory-px4-tests
+all: smaccm-commsec
+all: smaccm-datalink
+all: smaccm-mavlink
+all: smaccm-ins
 
 .PHONY: ivory-px4-hw
 ivory-px4-hw:
