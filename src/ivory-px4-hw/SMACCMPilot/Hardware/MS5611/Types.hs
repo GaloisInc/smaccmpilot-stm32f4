@@ -42,37 +42,22 @@ ms5611TypesModule = package "ms5611_types" $ do
   defStruct (Proxy :: Proxy "ms5611_sample")
   defStruct (Proxy :: Proxy "ms5611_measurement")
   depend serializeModule
-  incl ms5611PackRef
-  incl ms5611UnpackRef
+  wrappedPackMod ms5611Wrapper
 
-ms5611PackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
-                       , Uint32
-                       , ConstRef s2 (Struct "ms5611_measurement")
-                       ] :-> () )
-ms5611PackRef = proc "ms5611_pack_ref" $ \ buf off msg -> body $ do
-  ifail <- deref (msg ~> initfail)
-  sfail <- deref (msg ~> sampfail)
-  stime <- deref (msg ~> time)
-  pack buf (off + 0) (ifail ? ((1 :: Uint8), 0))
-  pack buf (off + 1) (sfail ? ((1 :: Uint8), 0))
-  packRef buf (off + 2) (msg ~> pressure)
-  packRef buf (off + 6) (msg ~> temperature)
-  pack buf (off + 10) (toIMicroseconds stime :: Sint64)
+packIBool :: PackRep (Stored IBool)
+packIBool = repackV (/=? 0) (? (1, 0)) (packRep :: PackRep (Stored Uint8))
 
-ms5611UnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
-                         , Uint32
-                         , Ref s2 (Struct "ms5611_measurement")
-                         ] :-> () )
-ms5611UnpackRef = proc "ms5611_unpack_ref" $ \ buf off msg -> body $ do
-  ifail <- unpack buf (off + 0)
-  sfail <- unpack buf (off + 1)
-  unpackRef buf (off + 2) (msg ~> pressure)
-  unpackRef buf (off + 6) (msg ~> temperature)
-  stime <- unpack buf (off + 10)
-  store (msg ~> initfail) ((ifail :: Uint8) /=? 0)
-  store (msg ~> sampfail) ((sfail :: Uint8) /=? 0)
-  store (msg ~> time) (fromIMicroseconds (stime :: Sint64))
+packITime :: PackRep (Stored ITime)
+packITime = repackV fromIMicroseconds toIMicroseconds (packRep :: PackRep (Stored Sint64))
 
-instance SerializableRef (Struct "ms5611_measurement") where
-  packRef = call_ ms5611PackRef
-  unpackRef = call_ ms5611UnpackRef
+ms5611Wrapper :: WrappedPackRep (Struct "ms5611_measurement")
+ms5611Wrapper = wrapPackRep "ms5611_measurement" $ packStruct
+  [ packLabel' initfail packIBool
+  , packLabel' sampfail packIBool
+  , packLabel pressure
+  , packLabel temperature
+  , packLabel' time packITime
+  ]
+
+instance Packable (Struct "ms5611_measurement") where
+  packRep = wrappedPackRep ms5611Wrapper

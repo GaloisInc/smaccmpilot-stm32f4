@@ -14,7 +14,7 @@ import SMACCMPilot.Hardware.HMC5883L.Types
 import SMACCMPilot.Hardware.MPU6000.Types
 import SMACCMPilot.Hardware.MS5611.Types
 
-handler :: (ANat len, IvoryArea a, IvoryZero a, IvorySizeOf a, SerializableRef a)
+handler :: (ANat len, IvoryArea a, IvoryZero a, Packable a)
         => Ref s1 (Array len (Stored Uint8))
         -> Tag
         -> (forall s2. Def ('[ConstRef s2 a] :-> ()))
@@ -27,7 +27,7 @@ handler buf tag consumer = mkFrameHandler ScopedFrameHandler
       store (buf ! toIx off) b
   , fhEnd = do
       result <- local izero
-      unpackFrom_ (constRef buf) 0 $ munpack result
+      unpackFrom (constRef buf) 0 result
       call_ consumer $ constRef result
   }
 

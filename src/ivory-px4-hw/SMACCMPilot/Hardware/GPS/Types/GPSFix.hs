@@ -18,12 +18,11 @@ newtype GPSFix = GPSFix Uint8
 instance IvorySizeOf (Stored GPSFix) where
   sizeOfBytes _ = sizeOfBytes (Proxy :: Proxy (Stored Uint8))
 
-instance SerializableRef (Stored GPSFix)
-instance Serializable GPSFix where
-  pack dst offs (GPSFix src) = pack dst offs src
-  unpack src offs = do
-    raw <- unpack src offs
-    return $ GPSFix $ (raw ==? 2 .|| raw ==? 3) ? (raw, 0)
+instance Packable (Stored GPSFix) where
+  packRep = repackV wrap unwrap packRep
+    where
+    wrap raw = GPSFix $ (raw ==? 2 .|| raw ==? 3) ? (raw, 0)
+    unwrap (GPSFix src) = src
 
 fix_none, fix_2d, fix_3d :: GPSFix
 fix_none = GPSFix 0

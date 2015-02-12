@@ -14,8 +14,7 @@ mpu6000TypesModule :: Module
 mpu6000TypesModule = package "mpu6000_types" $ do
   defStruct (Proxy :: Proxy "mpu6000_sample")
   depend serializeModule
-  incl mpu6000PackRef
-  incl mpu6000UnpackRef
+  wrappedPackMod mpu6000Wrapper
 
 [ivory|
 struct mpu6000_sample
@@ -32,44 +31,25 @@ struct mpu6000_sample
   }
 |]
 
-mpu6000PackRef :: Def ('[ Ref s1 (CArray (Stored Uint8))
-                        , Uint32
-                        , ConstRef s2 (Struct "mpu6000_sample")
-                        ] :-> () )
-mpu6000PackRef = proc "mpu6000_pack_ref" $ \ buf off msg -> body $ do
-  ifail <- deref (msg ~> initfail)
-  sfail <- deref (msg ~> samplefail)
-  stime <- deref (msg ~> time)
-  pack buf (off + 0) (ifail ? ((1 :: Uint8), 0))
-  pack buf (off + 1) (sfail ? ((1 :: Uint8), 0))
-  packRef buf (off + 2) (msg ~> gyro_x)
-  packRef buf (off + 6) (msg ~> gyro_y)
-  packRef buf (off + 10) (msg ~> gyro_z)
-  packRef buf (off + 14) (msg ~> accel_x)
-  packRef buf (off + 18) (msg ~> accel_y)
-  packRef buf (off + 22) (msg ~> accel_z)
-  packRef buf (off + 26) (msg ~> temp)
-  pack buf (off + 30) (toIMicroseconds stime :: Sint64)
+packIBool :: PackRep (Stored IBool)
+packIBool = repackV (/=? 0) (? (1, 0)) (packRep :: PackRep (Stored Uint8))
 
-mpu6000UnpackRef :: Def ('[ ConstRef s1 (CArray (Stored Uint8))
-                          , Uint32
-                          , Ref s2 (Struct "mpu6000_sample")
-                          ] :-> () )
-mpu6000UnpackRef = proc "mpu6000_unpack_ref" $ \ buf off msg -> body $ do
-  ifail <- unpack buf (off + 0)
-  sfail <- unpack buf (off + 1)
-  unpackRef buf (off + 2) (msg ~> gyro_x)
-  unpackRef buf (off + 6) (msg ~> gyro_y)
-  unpackRef buf (off + 10) (msg ~> gyro_z)
-  unpackRef buf (off + 14) (msg ~> accel_x)
-  unpackRef buf (off + 18) (msg ~> accel_y)
-  unpackRef buf (off + 22) (msg ~> accel_z)
-  unpackRef buf (off + 26) (msg ~> temp)
-  stime <- unpack buf (off + 30)
-  store (msg ~> initfail) ((ifail :: Uint8) /=? 0)
-  store (msg ~> samplefail) ((sfail :: Uint8) /=? 0)
-  store (msg ~> time) (fromIMicroseconds (stime :: Sint64))
+packITime :: PackRep (Stored ITime)
+packITime = repackV fromIMicroseconds toIMicroseconds (packRep :: PackRep (Stored Sint64))
 
-instance SerializableRef (Struct "mpu6000_sample") where
-  packRef = call_ mpu6000PackRef
-  unpackRef = call_ mpu6000UnpackRef
+mpu6000Wrapper :: WrappedPackRep (Struct "mpu6000_sample")
+mpu6000Wrapper = wrapPackRep "mpu6000_sample" $ packStruct
+  [ packLabel' initfail packIBool
+  , packLabel' samplefail packIBool
+  , packLabel gyro_x
+  , packLabel gyro_y
+  , packLabel gyro_z
+  , packLabel accel_x
+  , packLabel accel_y
+  , packLabel accel_z
+  , packLabel temp
+  , packLabel' time packITime
+  ]
+
+instance Packable (Struct "mpu6000_sample") where
+  packRep = wrappedPackRep mpu6000Wrapper

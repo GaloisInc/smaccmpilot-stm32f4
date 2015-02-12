@@ -53,7 +53,7 @@ mpu6000Sender meas out = do
   handler meas "measurement" $ do
     e <- emitter out (38*2 + 3)
     callback $ \s -> noReturn $ do
-      packInto_ buf 0 $ mpack s
+      packInto buf 0 s
       HX.encode tag (constRef buf) (emitV e)
   where
   tag = 103 -- 'g' for gyro

@@ -53,7 +53,7 @@ positionSender pos out = do
   handler pos "position_serialize" $ do
     e <- emitter out (46*2+3)
     callback $ \p -> noReturn $ do
-      packInto_ buf 0 $ mpack p
+      packInto buf 0 p
       HX.encode tag (constRef buf) (emitV e)
   where
   tag = 112 -- 'p' for position

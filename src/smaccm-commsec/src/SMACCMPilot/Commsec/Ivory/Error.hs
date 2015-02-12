@@ -19,15 +19,11 @@ import Ivory.Serialize
 newtype CommsecError = CommsecError Uint32
   deriving (IvoryType, IvoryVar, IvoryExpr, IvoryEq, IvoryStore, IvoryInit)
 
-instance IvorySizeOf (Stored CommsecError) where
-  sizeOfBytes _ = sizeOfBytes (Proxy :: Proxy (Stored Uint32))
-
-instance SerializableRef (Stored CommsecError)
-instance Serializable CommsecError where
-  pack dst offs (CommsecError src) = pack dst offs src
-  unpack src offs = do
-    raw <- unpack src offs
-    return $ CommsecError $ (raw <=? 6) ? (raw, 0)
+instance Packable (Stored CommsecError) where
+  packRep = repackV wrap unwrap packRep
+    where
+    wrap raw = CommsecError $ (raw <=? 6) ? (raw, 0)
+    unwrap (CommsecError src) = src
 
 success :: CommsecError
 success = CommsecError 0
