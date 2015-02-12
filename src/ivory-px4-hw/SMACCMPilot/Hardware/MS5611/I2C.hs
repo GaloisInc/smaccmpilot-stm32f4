@@ -30,7 +30,7 @@ ms5611SensorManager req_chan res_chan init_chan meas_chan addr = do
     sample      <- state "sample"
     calibration <- state "calibration"
     meas        <- state "measurement"
-    phase       <- stateInit "phase" (ival (0 :: Uint32))
+    initialized <- state "initialized"
     coroutineHandler init_chan res_chan "ms5611" $ do
       req_e <- emitter req_chan 1
       meas_e <- emitter meas_chan 1
@@ -53,9 +53,34 @@ ms5611SensorManager req_chan res_chan init_chan meas_chan addr = do
             initi2csuccess res = do
               c <- deref (res ~> resultcode)
               when (c >? 0) (store (meas ~> initfail) true)
+
+            samplei2csuccess :: Ref s (Struct "i2c_transaction_result")
+                             -> Ivory eff ()
             samplei2csuccess res = do
               c <- deref (res ~> resultcode)
               when (c >? 0) (store (meas ~> sampfail) true)
+
+            spiTransaction :: (GetAlloc eff ~ Scope s)
+                           => Ivory eff (Ref s2 (Struct "i2c_transaction_result"))
+                           -> Ivory eff (ConstRef s1 (Struct "i2c_transaction_request"))
+                           -> Ivory eff (Ref s2 (Struct "i2c_transaction_result"))
+            spiTransaction y req = do
+              spiStartTransaction req
+              spiFinishTransaction y
+
+            spiStartTransaction :: (GetAlloc eff ~ Scope s)
+                           => Ivory eff (ConstRef s1 (Struct "i2c_transaction_request"))
+                           -> Ivory eff ()
+            spiStartTransaction req = do
+              r <- req
+              emit req_e r
+
+            spiFinishTransaction :: Ivory eff (Ref s (Struct "i2c_transaction_result"))
+                                 -> Ivory eff (Ref s (Struct "i2c_transaction_result"))
+            spiFinishTransaction y = do
+              res <- y
+              samplei2csuccess res
+              return res
 
         getPROM Coeff1 (calibration ~> coeff1)
         getPROM Coeff2 (calibration ~> coeff2)
@@ -66,40 +91,31 @@ ms5611SensorManager req_chan res_chan init_chan meas_chan addr = do
 
         forever $ do
           store (meas ~> sampfail) false
-          store phase 1
-          -- convert_d1_req is kicked off by periodic handler below
-          convert_d1_res <- yield
-          samplei2csuccess convert_d1_res
 
-          read_d1_req <- commandRequest addr ADCRead
-          emit req_e read_d1_req
-          read_d1_res <- yield
-          samplei2csuccess read_d1_res
+          _ <- spiTransaction yield $ commandRequest addr (ConvertD1 OSR4096)
 
-          adc_d1_req <- adcFetchRequest addr
-          emit req_e adc_d1_req
-          adc_d1_res <- yield
-          samplei2csuccess adc_d1_res
+          -- Yield until the periodic handler runs and starts an ADCRead
+          -- request.
+          -- Note that the first time after init, this may happen less than
+          -- ~10ms after the above transaction started, so the d1 value may be
+          -- hosed.  XXX fix that afterwards.
+          store initialized true
+          _ <- spiFinishTransaction yield
 
-          press <- threebytesample (constRef adc_d1_res)
+          adc_d1_read  <- spiTransaction yield $ adcFetchRequest addr
+
+          press <- threebytesample (constRef adc_d1_read)
           store (sample ~> sample_pressure) press
 
-          store phase 2
-          -- convert_d2_req is kicked off by periodic handler below
-          convert_d2_res <- yield
-          samplei2csuccess convert_d2_res
+          _ <- spiTransaction yield $ commandRequest addr (ConvertD2 OSR4096)
 
-          read_d2_req <- commandRequest addr ADCRead
-          emit req_e read_d2_req
-          read_d2_res <- yield
-          samplei2csuccess read_d2_res
+          -- Yield until the periodic handler runs and starts an ADCRead
+          -- request.
+          _ <- spiFinishTransaction yield
 
-          adc_d2_req <- adcFetchRequest addr
-          emit req_e adc_d2_req
-          adc_d2_res <- yield
-          samplei2csuccess adc_d2_res
+          adc_d2_read <- spiTransaction yield $ adcFetchRequest addr
 
-          temp <- threebytesample (constRef adc_d2_res)
+          temp <- threebytesample (constRef adc_d2_read)
           store (sample ~> sample_temperature) temp
           getTime >>= store (sample ~> sample_time)
 
@@ -110,15 +126,12 @@ ms5611SensorManager req_chan res_chan init_chan meas_chan addr = do
     handler p "periodic" $ do
       req_e <- emitter req_chan 1
       callback $ const $ do
-        ph <- deref phase
-        cond_
-          [ (ph ==? 1) ==> do
-              convert_d1_req <- commandRequest addr (ConvertD1 OSR4096)
-              emit req_e convert_d1_req
-          , (ph ==? 2) ==> do
-              convert_d2_req <- commandRequest addr (ConvertD2 OSR4096)
-              emit req_e convert_d2_req
-          ]
+        let spiStartTransaction req = do
+              r <- req
+              emit req_e r
+        i <- deref initialized
+        when i $
+          spiStartTransaction $ commandRequest addr ADCRead
 
 
 ----
