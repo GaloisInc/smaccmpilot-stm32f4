@@ -27,9 +27,14 @@ import PX4.Tests.Platforms
 app :: (e -> PX4Platform F405.Interrupt) -> Tower e ()
 app topx4 = do
   px4platform <- fmap topx4 getEnv
-  (_uarti,uarto) <- uartTower tocc (console px4platform)
-                                115200 (Proxy :: Proxy 128)
-  (gpsi, _gpso) <- uartTower tocc (gps px4platform)
+
+  let u = BSP.testplatform_uart (px4platform_testplatform px4platform)
+  (_uarti, uarto) <- uartTower tocc (BSP.testUARTPeriph u) (BSP.testUARTPins u)
+                               115200 (Proxy :: Proxy 256)
+
+  let gps_periph = px4platform_gps_device px4platform
+      gps_pins = px4platform_gps_pins px4platform
+  (gpsi, _gpso) <- uartTower tocc gps_periph gps_pins
                                 38400 (Proxy :: Proxy 128)
   position <- channel
   ubloxGPSTower gpsi (fst position)
@@ -41,8 +46,6 @@ app topx4 = do
   mapM_ towerArtifact serializeArtifacts
   where
   tocc = BSP.testplatform_clockconfig . px4platform_testplatform . topx4
-  console = BSP.testUART . BSP.testplatform_uart . px4platform_testplatform
-  gps = px4platform_gps_device
 
 
 positionSender :: ChanOutput (Struct "position")

@@ -1,7 +1,7 @@
 
 module SMACCMPilot.Hardware.MS5611
   ( module SMACCMPilot.Hardware.MS5611.Types
-  , ms5611ctl
+  , ms5611SensorManager
   ) where
 
 import SMACCMPilot.Hardware.MS5611.Types

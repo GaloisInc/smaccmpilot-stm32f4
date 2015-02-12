@@ -26,11 +26,13 @@ app topx4 = do
   px4platform <- fmap topx4 getEnv
   c <- channel
   px4platform_motorcontrol px4platform tocc (snd c)
-  (i,o) <- uartTower tocc (console px4platform) 115200 (Proxy :: Proxy 128)
+  let console = BSP.testplatform_uart (px4platform_testplatform px4platform)
+  (i,o) <- uartTower tocc (BSP.testUARTPeriph console)
+                          (BSP.testUARTPins   console)
+                          115200 (Proxy :: Proxy 128)
   shell "motor control shell. hard to use? blame pat" o i (fst c)
   where
   tocc = BSP.testplatform_clockconfig . px4platform_testplatform . topx4
-  console = BSP.testUART . BSP.testplatform_uart . px4platform_testplatform
 
 shell :: String
       -> ChanInput (Stored Uint8)

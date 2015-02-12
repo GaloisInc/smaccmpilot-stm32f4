@@ -19,12 +19,12 @@ script:
   - arm-none-eabi-gcc --version
   - IVORY_REPO=$IVORY_REPO TOWER_REPO=$TOWER_REPO BSP_REPO=$BSP_REPO make $ENV_TEST_TARGET
 ghc:
-  - 7.6.3
-  - 7.8.3
+  - 7.6
+  - 7.8
 env:
   - ENV_TEST_TARGET=ivory-px4-hw
   - ENV_TEST_TARGET=ivory-px4-tests
   - ENV_TEST_TARGET=smaccm-commsec
   - ENV_TEST_TARGET=smaccm-mavlink
   - ENV_TEST_TARGET=smaccm-datalink
- #  - ENV_TEST_TARGET=smaccm-ins
+  - ENV_TEST_TARGET=smaccm-ins

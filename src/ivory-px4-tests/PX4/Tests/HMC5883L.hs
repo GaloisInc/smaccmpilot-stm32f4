@@ -5,7 +5,7 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleContexts #-}
 
-module PX4.Tests.HMC5883L (hmc5883lSender, hmc5883lctl, app) where
+module PX4.Tests.HMC5883L (hmc5883lSender, hmc5883lSensorManager, app) where
 
 import Ivory.Language
 import Ivory.Serialize
@@ -27,18 +27,22 @@ app topx4 = do
   px4platform <- fmap topx4 getEnv
 
   let hmc = px4platform_hmc5883_device px4platform
-  (req, res, _ready) <- i2cTower tocc
+  (req, res, ready) <- i2cTower tocc
                          (hmc5883device_periph hmc)
                          (hmc5883device_sda    hmc)
                          (hmc5883device_scl    hmc)
 
-  samples <- hmc5883lctl req res (hmc5883device_addr hmc)
+  samples <- channel
 
-  let u = BSP.testUART . BSP.testplatform_uart . px4platform_testplatform
-  (_uarti,uarto) <- uartTower tocc (u px4platform) 115200 (Proxy :: Proxy 128)
+  hmc5883lSensorManager req res ready (fst samples) (hmc5883device_addr hmc)
+
+  let u = BSP.testplatform_uart (px4platform_testplatform px4platform)
+  (_uarti,uarto) <- uartTower tocc (BSP.testUARTPeriph u)
+                                   (BSP.testUARTPins   u)
+                                   115200 (Proxy :: Proxy 128)
 
   monitor "hmc5883lsender" $ do
-    hmc5883lSender samples uarto
+    hmc5883lSender (snd samples) uarto
 
   towerDepends serializeModule
   towerModule  serializeModule
