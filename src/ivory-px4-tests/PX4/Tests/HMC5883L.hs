@@ -5,7 +5,7 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleContexts #-}
 
-module PX4.Tests.HMC5883L (hmc5883lSender, hmc5883lctl, app) where
+module PX4.Tests.HMC5883L (hmc5883lSender, hmc5883lSensorManager, app) where
 
 import Ivory.Language
 import Ivory.Serialize
@@ -17,7 +17,6 @@ import Ivory.BSP.STM32.Driver.UART
 import qualified SMACCMPilot.Datalink.HXStream.Ivory as HX
 
 import SMACCMPilot.Hardware.HMC5883L
-import SMACCMPilot.Hardware.HMC5883L.I2C
 
 import qualified Ivory.BSP.STM32F405.Interrupt as F405
 import qualified BSP.Tests.Platforms as BSP

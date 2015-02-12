@@ -7,6 +7,7 @@
 
 module PX4.Tests.AllSensors
   ( app
+  , i2cSensorManager
   ) where
 
 import Ivory.Language
@@ -21,8 +22,8 @@ import SMACCMPilot.Hardware.Sched
 import SMACCMPilot.Hardware.GPS.UBlox
 
 import PX4.Tests.MPU6000  (mpu6000SensorManager)
-import PX4.Tests.MS5611   (ms5611Sender, ms5611ctl)
-import PX4.Tests.HMC5883L (hmc5883lSender, hmc5883lctl)
+import PX4.Tests.MS5611   (ms5611Sender, ms5611SensorManager)
+import PX4.Tests.HMC5883L (hmc5883lSender, hmc5883lSensorManager)
 import PX4.Tests.Ublox    (positionSender)
 
 import qualified Ivory.BSP.STM32F405.Interrupt as F405
@@ -79,14 +80,16 @@ i2cSensorManager :: PX4Platform i
                             , ChanOutput (Struct "hmc5883l_sample"))
 i2cSensorManager p i2cReady i2cRequest i2cResult = do
   (ms5611task, ms5611Req, ms5611Res) <- task "ms5611"
-  ms5611Chan <- ms5611ctl ms5611Req ms5611Res m_addr
+  ms5611Chan <- channel
+  ms5611SensorManager ms5611Req ms5611Res i2cReady (fst ms5611Chan) m_addr
 
   (hmc5883task, hmc5883Req, hmc5883Res) <- task "hmc5883"
-  hmc5883Chan <- hmc5883lctl hmc5883Req hmc5883Res h_addr
+  hmc5883Chan <-channel
+  hmc5883lSensorManager hmc5883Req hmc5883Res i2cReady (fst hmc5883Chan) h_addr
 
   schedule [ms5611task, hmc5883task] i2cReady i2cRequest i2cResult
 
-  return (ms5611Chan, hmc5883Chan)
+  return (snd ms5611Chan, snd hmc5883Chan)
   where
   m_addr = ms5611device_addr (px4platform_ms5611_device p)
   h_addr = hmc5883device_addr (px4platform_hmc5883_device p)

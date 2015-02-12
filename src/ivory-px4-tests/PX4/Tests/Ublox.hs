@@ -46,7 +46,6 @@ app topx4 = do
   mapM_ towerArtifact serializeArtifacts
   where
   tocc = BSP.testplatform_clockconfig . px4platform_testplatform . topx4
-  gps = px4platform_gps_device
 
 
 positionSender :: ChanOutput (Struct "position")

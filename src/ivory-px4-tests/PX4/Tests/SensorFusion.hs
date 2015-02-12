@@ -18,12 +18,10 @@ import Ivory.Language
 import Ivory.Serialize
 import Ivory.Tower
 import PX4.Tests.Platforms
+import PX4.Tests.AllSensors (i2cSensorManager)
 import qualified SMACCMPilot.Datalink.HXStream.Ivory as HX
 import SMACCMPilot.Hardware.GPS.UBlox
-import SMACCMPilot.Hardware.HMC5883L
 import SMACCMPilot.Hardware.MPU6000
-import SMACCMPilot.Hardware.MS5611
-import SMACCMPilot.Hardware.Sched
 import SMACCMPilot.INS.Tower
 
 app :: (e -> PX4Platform F405.Interrupt) -> Tower e ()
@@ -75,22 +73,3 @@ app topx4 = do
   where
   tocc = BSP.testplatform_clockconfig . px4platform_testplatform . topx4
 
-i2cSensorManager :: PX4Platform i
-                 -> ChanOutput (Stored ITime)
-                 -> ChanInput  (Struct "i2c_transaction_request")
-                 -> ChanOutput (Struct "i2c_transaction_result")
-                 -> Tower e ( ChanOutput (Struct "ms5611_measurement")
-                            , ChanOutput (Struct "hmc5883l_sample"))
-i2cSensorManager p i2cReady i2cRequest i2cResult = do
-  (ms5611task, ms5611Req, ms5611Res) <- task "ms5611"
-  ms5611Chan <- ms5611ctl ms5611Req ms5611Res m_addr
-
-  (hmc5883task, hmc5883Req, hmc5883Res) <- task "hmc5883"
-  hmc5883Chan <- hmc5883lctl hmc5883Req hmc5883Res h_addr
-
-  schedule [ms5611task, hmc5883task] i2cReady i2cRequest i2cResult
-
-  return (ms5611Chan, hmc5883Chan)
-  where
-  m_addr = ms5611device_addr (px4platform_ms5611_device p)
-  h_addr = hmc5883device_addr (px4platform_hmc5883_device p)

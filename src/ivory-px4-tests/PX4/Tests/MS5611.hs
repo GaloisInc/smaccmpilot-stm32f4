@@ -5,7 +5,7 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleContexts #-}
 
-module PX4.Tests.MS5611 (ms5611Sender, ms5611ctl, app) where
+module PX4.Tests.MS5611 (ms5611Sender, ms5611SensorManager, app) where
 
 import Ivory.Language
 import Ivory.Serialize
@@ -26,17 +26,18 @@ app :: (e -> PX4Platform F405.Interrupt) -> Tower e ()
 app topx4 = do
   px4platform <- fmap topx4 getEnv
   let ms5611 = px4platform_ms5611_device px4platform
-  (req, res, _ready) <- i2cTower tocc
+  (req, res, ready) <- i2cTower tocc
                          (ms5611device_periph ms5611)
                          (ms5611device_sda ms5611)
                          (ms5611device_scl ms5611)
-  measurements <- ms5611ctl req res (ms5611device_addr ms5611)
+  measurements <- channel
+  ms5611SensorManager req res ready (fst measurements) (ms5611device_addr ms5611)
 
   let u = BSP.testplatform_uart (px4platform_testplatform px4platform)
   (_uarti, uarto) <- uartTower tocc (BSP.testUARTPeriph u) (BSP.testUARTPins u)
                                115200 (Proxy :: Proxy 256)
   monitor "ms5611sender" $ do
-    ms5611Sender measurements uarto
+    ms5611Sender (snd measurements) uarto
 
   towerDepends serializeModule
   towerModule  serializeModule
