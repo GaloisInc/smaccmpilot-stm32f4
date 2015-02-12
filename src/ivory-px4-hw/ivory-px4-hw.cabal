@@ -42,7 +42,6 @@ library
                        ivory-serialize,
                        ivory-hw,
                        tower >= 0.9,
-                       tower-statemachine >= 0.9,
                        ivory-bsp-stm32
 
   default-language:    Haskell2010
