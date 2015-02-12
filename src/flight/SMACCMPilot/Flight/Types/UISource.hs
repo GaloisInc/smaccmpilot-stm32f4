@@ -14,9 +14,6 @@ newtype UISource = UISource Uint32
   deriving ( IvoryType, IvoryVar, IvoryExpr, IvoryEq
            , IvoryStore, IvoryInit, IvoryZeroVal )
 
-instance IvorySizeOf (Stored UISource) where
-  sizeOfBytes _ = sizeOfBytes (Proxy :: Proxy (Stored Uint32))
-
 ppm :: UISource
 ppm = UISource 0
 

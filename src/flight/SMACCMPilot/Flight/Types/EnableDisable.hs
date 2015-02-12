@@ -15,9 +15,6 @@ newtype EnableDisable = EnableDisable Uint8
   deriving ( IvoryType, IvoryVar, IvoryExpr, IvoryEq
            , IvoryStore, IvoryInit, IvoryZeroVal )
 
-instance IvorySizeOf (Stored EnableDisable) where
-  sizeOfBytes _ = sizeOfBytes (Proxy :: Proxy (Stored Uint8))
-
 none :: EnableDisable
 none = EnableDisable 0
 

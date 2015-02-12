@@ -17,9 +17,6 @@ import Ivory.Language
 newtype HXState = HXState Uint8
   deriving (IvoryType, IvoryVar, IvoryExpr, IvoryEq, IvoryStore, IvoryInit)
 
-instance IvorySizeOf (Stored HXState) where
-  sizeOfBytes _ = sizeOfBytes (Proxy :: Proxy (Stored Uint8))
-
 hxstate_tag, hxstate_progress, hxstate_esc  :: HXState
 hxstate_tag        = HXState 1
 hxstate_progress   = HXState 2

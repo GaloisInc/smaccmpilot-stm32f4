@@ -30,9 +30,6 @@ newtype DeadSwitch = DeadSwitch Uint8
   deriving ( IvoryType, IvoryVar, IvoryExpr, IvoryEq
            , IvoryStore, IvoryInit, IvoryZeroVal)
 
-instance IvorySizeOf (Stored DeadSwitch) where
-  sizeOfBytes _ = sizeOfBytes (Proxy :: Proxy (Stored Uint8))
-
 deadSafe :: DeadSwitch
 deadSafe = DeadSwitch 0
 deadArmable :: DeadSwitch
@@ -41,9 +38,6 @@ deadArmable = DeadSwitch 1
 newtype ArmingState = ArmingState Uint8
   deriving ( IvoryType, IvoryVar, IvoryExpr, IvoryEq
            , IvoryStore, IvoryInit, IvoryZeroVal)
-
-instance IvorySizeOf (Stored ArmingState) where
-  sizeOfBytes _ = sizeOfBytes (Proxy :: Proxy (Stored Uint8))
 
 armingIdle :: ArmingState
 armingIdle = ArmingState 0

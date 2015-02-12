@@ -15,9 +15,6 @@ import Ivory.Serialize
 newtype GPSFix = GPSFix Uint8
   deriving (IvoryType, IvoryVar, IvoryExpr, IvoryEq, IvoryStore, IvoryInit)
 
-instance IvorySizeOf (Stored GPSFix) where
-  sizeOfBytes _ = sizeOfBytes (Proxy :: Proxy (Stored Uint8))
-
 instance Packable (Stored GPSFix) where
   packRep = repackV wrap unwrap packRep
     where

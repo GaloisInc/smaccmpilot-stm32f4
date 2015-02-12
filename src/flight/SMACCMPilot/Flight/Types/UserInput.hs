@@ -36,9 +36,6 @@ newtype PPM = PPM Uint16
   deriving ( IvoryType, IvoryOrd, IvoryVar, IvoryExpr
            , IvoryEq, IvoryStore, IvoryInit, Num)
 
-instance IvorySizeOf (Stored PPM) where
-  sizeOfBytes _ = sizeOfBytes (Proxy :: Proxy (Stored Uint16))
-
 type PPMs = Array 8 (Stored PPM)
 
 instance SafeCast PPM IFloat

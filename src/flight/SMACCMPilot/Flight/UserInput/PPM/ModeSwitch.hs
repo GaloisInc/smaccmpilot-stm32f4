@@ -30,9 +30,6 @@ newtype ThreePositionSwitch = ThreePositionSwitch Uint8
   deriving ( IvoryType, IvoryVar, IvoryExpr, IvoryEq
            , IvoryStore, IvoryInit, IvoryZeroVal)
 
-instance IvorySizeOf (Stored ThreePositionSwitch) where
-  sizeOfBytes _ = sizeOfBytes (Proxy :: Proxy (Stored Uint8))
-
 posUp :: ThreePositionSwitch
 posUp = ThreePositionSwitch 0
 posCenter :: ThreePositionSwitch

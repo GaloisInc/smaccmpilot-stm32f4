@@ -14,9 +14,6 @@ newtype ThrottleMode = ThrottleMode Uint32
   deriving ( IvoryType, IvoryVar, IvoryExpr, IvoryEq
            , IvoryStore, IvoryInit, IvoryZeroVal)
 
-instance IvorySizeOf (Stored ThrottleMode) where
-  sizeOfBytes _ = sizeOfBytes (Proxy :: Proxy (Stored Uint32))
-
 direct :: ThrottleMode
 direct = ThrottleMode 0
 

@@ -19,9 +19,6 @@ import Ivory.Language
 newtype UBXState = UBXState Uint32
   deriving (IvoryType, IvoryVar, IvoryExpr, IvoryEq, IvoryStore, IvoryInit, IvoryZeroVal)
 
-instance IvorySizeOf (Stored UBXState) where
-  sizeOfBytes _ = sizeOfBytes (Proxy :: Proxy (Stored Uint32))
-
 ubx_idle    :: UBXState
 ubx_idle     = UBXState 0
 ubx_sync    :: UBXState

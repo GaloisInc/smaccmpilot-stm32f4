@@ -14,9 +14,6 @@ newtype ControlSource = ControlSource Uint32
   deriving ( IvoryType, IvoryVar, IvoryExpr, IvoryEq
            , IvoryStore, IvoryInit, IvoryZeroVal)
 
-instance IvorySizeOf (Stored ControlSource) where
-  sizeOfBytes _ = sizeOfBytes (Proxy :: Proxy (Stored Uint32))
-
 ui :: ControlSource
 ui = ControlSource 0
 
