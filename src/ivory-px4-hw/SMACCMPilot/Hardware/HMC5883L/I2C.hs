@@ -52,11 +52,12 @@ hmc5883lSensorManager req_chan res_chan init_chan sensor_chan addr = do
               code <- deref (res ~> resultcode)
               -- Set the initfail field if i2c failed
               when (code >? 0) (store (s ~> initfail) true)
-
+        comment "entry to hmc5883l coroutine"
         writeReg ConfA $ confAVal Average8 Rate75Hz NoBias
         writeReg ConfB $ confBVal LSBGauss1370
         writeReg Mode  $ modeVal  Continuous
         store initialized true
+        comment "finished initializing in hmc5883l coroutine"
 
         forever $ do
           -- Request originates from period below

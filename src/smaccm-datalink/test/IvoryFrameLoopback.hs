@@ -35,11 +35,12 @@ app :: (e -> BSP.TestPlatform F405.Interrupt)
     -> Tower e ()
 app totp = do
   tp <- fmap totp getEnv
-  (o,i) <- uartTower tocc (console tp) 115200 (Proxy :: Proxy 256)
+  let cu = BSP.testplatform_uart tp
+  (o,i) <- uartTower tocc (BSP.testUARTPeriph cu) (BSP.testUARTPins cu)
+                     115200 (Proxy :: Proxy 256)
   frame_loopback i o
   where
   tocc = BSP.testplatform_clockconfig . totp
-  console = BSP.testUART . BSP.testplatform_uart
 
 frame_loopback :: ChanInput (Stored Uint8)
                -> ChanOutput (Stored Uint8)
