@@ -33,7 +33,7 @@ motorControlTower tocc ostream = do
   monitor "px4fmu17_pwm" $ do
     monitorModuleDef $ hw_moduledef
     handler systemInit "init" $ callback $ const $ hw_init cc
-    handler ostream "ostream" $ do
+    handler ostream "pwm_output" $ do
       callback $ \throttle -> noReturn $ do
         pwm_output throttle
 
