@@ -79,6 +79,5 @@ frame_loopback sk o i = do
         when got $ do
           emit e (constRef v)
 
-  towerModule $ hxstreamModule
-  commsecTowerDeps
+  commsecTowerDeps -- XXX TODO PUSH INTO commsecDecodeTower, commsecEncodeTower
 
