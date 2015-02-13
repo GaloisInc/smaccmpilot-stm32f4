@@ -79,5 +79,3 @@ frame_loopback sk o i = do
         when got $ do
           emit e (constRef v)
 
-  commsecTowerDeps -- XXX TODO PUSH INTO commsecDecodeTower, commsecEncodeTower
-
