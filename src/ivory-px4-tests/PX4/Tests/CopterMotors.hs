@@ -30,7 +30,8 @@ app topx4 = do
   let console = BSP.testplatform_uart (px4platform_testplatform px4platform)
   (i,o) <- uartTower tocc (BSP.testUARTPeriph console)
                           (BSP.testUARTPins   console)
-                          115200 (Proxy :: Proxy 128)
+                          115200
+                          (Proxy :: Proxy 128)
   motorcontrol_input o i (fst c)
   where
   tocc = BSP.testplatform_clockconfig . px4platform_testplatform . topx4

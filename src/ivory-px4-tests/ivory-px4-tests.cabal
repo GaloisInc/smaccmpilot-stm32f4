@@ -60,6 +60,19 @@ executable             copter-motor-test-gen
   default-language:    Haskell2010
   ghc-options:         -Wall
 
+executable             copter-motor-test-client
+  main-is:             CopterMotorTestClient.hs
+  hs-source-dirs:      tests
+  build-depends:       base >= 4.6,
+                       bytestring,
+                       haskeline,
+                       pipes,
+                       parsec,
+                       transformers,
+                       smaccm-commsec,
+                       smaccm-datalink
+
+
 executable             ublox-gps-test-gen
   main-is:             UbloxGPSTest.hs
   hs-source-dirs:      tests
