@@ -24,7 +24,6 @@ import SMACCMPilot.Commsec.Keys
 import SMACCMPilot.Commsec.Sizes
 import SMACCMPilot.Commsec.Tower
 import SMACCMPilot.Datalink.HXStream.Tower
-import SMACCMPilot.Datalink.HXStream.Ivory (hxstreamModule)
 
 main :: IO ()
 main = towerCompile p (app fst snd)
