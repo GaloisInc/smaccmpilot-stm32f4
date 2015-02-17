@@ -26,7 +26,13 @@ library
                        SMACCMPilot.Hardware.HMC5883L,
                        SMACCMPilot.Hardware.HMC5883L.Types,
                        SMACCMPilot.Hardware.HMC5883L.Regs,
-                       SMACCMPilot.Hardware.HMC5883L.I2C
+                       SMACCMPilot.Hardware.HMC5883L.I2C,
+
+                       SMACCMPilot.Hardware.PPM,
+                       SMACCMPilot.Hardware.PPM.PulseCapture,
+                       SMACCMPilot.Hardware.PPM.PulseCapture.Types,
+                       SMACCMPilot.Hardware.PPM.Decode,
+                       SMACCMPilot.Hardware.PPM.Decode.Types,
 
                        SMACCMPilot.Hardware.PX4FMU17,
                        SMACCMPilot.Hardware.PX4FMU17.MotorControl

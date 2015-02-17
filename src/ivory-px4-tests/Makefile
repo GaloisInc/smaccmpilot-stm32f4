@@ -70,6 +70,15 @@ px4-copter-motor-test:
 px4-copter-motor-test-clean:
 	-rm -rf px4-copter-motor-test
 
+.PHONY: px4-ppm-in-test
+px4-ppm-in-test:
+	cabal run px4-ppm-in-test-gen -- --src-dir=px4-ppm-in-test $(IVORY_FLAGS)
+	make -C px4-ppm-in-test
+
+.PHONY: px4-ppm-in-test-clean
+px4-ppm-in-test-clean:
+	-rm -rf px4-ppm-in-test
+
 .PHONY: px4-sensor-fusion-test
 px4-sensor-fusion-test:
 	cabal run px4-sensor-fusion-test-gen -- --src-dir=px4-sensor-fusion-test $(IVORY_FLAGS)
@@ -116,7 +125,7 @@ clean: px4-ms5611-test-clean
 clean: px4-hmc5883l-test-clean
 clean: px4-copter-motor-test-clean
 clean: px4-all-sensors-test-clean
-clean: px4-sensors-fusion-test-clean
+clean: px4-sensor-fusion-test-clean
 clean: px4-sensors-monitor-clean
 	-rm -rf dist
 
