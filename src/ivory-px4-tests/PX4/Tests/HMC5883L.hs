@@ -56,7 +56,7 @@ hmc5883lSender :: ChanOutput (Struct "hmc5883l_sample")
 hmc5883lSender samples ostream = do
   (buf :: Ref Global (Array 22 (Stored Uint8))) <- state "hmc5883l_ser_buf"
   handler samples "sample" $ do
-    e <- emitter ostream (2*18 + 3) -- twice buf size plus tag and two fbos
+    e <- emitter ostream (2*22 + 3) -- twice buf size plus tag and two fbos
     callback $ \s -> noReturn $ do
       packInto buf 0 s
       HX.encode tag (constRef buf) (emitV e)
