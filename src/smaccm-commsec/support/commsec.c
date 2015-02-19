@@ -129,8 +129,6 @@ void securePkg_zero_enc( struct commsec_encode *ctx )
     ctx->encSalt=0;
     ctx->myCounter = UINT32_MAX;
 
-    // Plenty of time, let's re-clear
-    memset(&ctx->encCtx, 0xFF, sizeof(gcm_ctx));
     memset(&ctx->encCtx, 0x00, sizeof(gcm_ctx));
 }
 
@@ -143,8 +141,6 @@ void securePkg_zero_dec( struct commsec_decode *ctx )
 
     ctx->mostRecentCounter = UINT32_MAX;
 
-    // Plenty of time, let's re-clear
-    memset(&ctx->decCtx, 0xFF, sizeof(gcm_ctx));
     memset(&ctx->decCtx, 0x00, sizeof(gcm_ctx));
 }
 
