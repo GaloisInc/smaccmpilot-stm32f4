@@ -4,7 +4,7 @@ BSP_REPO ?= ../../../ivory-tower-stm32
 
 .PHONY: psas-test
 psas-test: cabal.sandbox.config
-	cabal run --only codegen -- --src-dir=psas-test --const-fold
+	cabal run --only codegen -- --src-dir=psas-test --const-fold --no-sanity-check
 	make -C psas-test
 
 create-sandbox: cabal.sandbox.config
