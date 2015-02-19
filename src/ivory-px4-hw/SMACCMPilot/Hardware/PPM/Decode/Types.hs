@@ -5,9 +5,8 @@
 module SMACCMPilot.Hardware.PPM.Decode.Types
   ( PPMState()
   , ppmSync
-  , ppmArming
-  , ppmActive
-  , ppmInactive
+  , ppmMark
+  , ppmSpace
   ) where
 
 import Ivory.Language
@@ -19,11 +18,9 @@ newtype PPMState = PPMState Uint32
 ppmSync :: PPMState
 ppmSync  = PPMState 0
 
-ppmArming :: PPMState
-ppmArming  = PPMState 1
+ppmMark :: PPMState
+ppmMark = PPMState 1
 
-ppmActive :: PPMState
-ppmActive  = PPMState 2
+ppmSpace :: PPMState
+ppmSpace = PPMState 2
 
-ppmInactive :: PPMState
-ppmInactive  = PPMState 3
