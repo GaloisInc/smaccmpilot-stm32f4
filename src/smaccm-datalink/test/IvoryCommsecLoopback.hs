@@ -24,7 +24,6 @@ import SMACCMPilot.Commsec.Keys
 import SMACCMPilot.Commsec.Sizes
 import SMACCMPilot.Commsec.Tower
 import SMACCMPilot.Datalink.HXStream.Tower
-import SMACCMPilot.Datalink.HXStream.Ivory (hxstreamModule)
 
 main :: IO ()
 main = towerCompile p (app fst snd)
@@ -78,7 +77,4 @@ frame_loopback sk o i = do
         got <- ringbuffer_pop rb v
         when got $ do
           emit e (constRef v)
-
-  towerModule $ hxstreamModule
-  commsecTowerDeps
 

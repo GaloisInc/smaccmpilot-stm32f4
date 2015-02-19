@@ -20,6 +20,7 @@ commsecEncodeTower :: String
                    -> ChanOutput PlaintextArray
                    -> Tower p (ChanOutput CyphertextArray)
 commsecEncodeTower n ks pt_chan = do
+  commsecTowerDeps
   f <- freshname n
   let named t = t ++ "_" ++ showUnique f
       ce = commsecEncode ks (named "ctx")
@@ -43,6 +44,7 @@ commsecDecodeTower :: String
                    -> ChanOutput CyphertextArray
                    -> Tower p (ChanOutput PlaintextArray)
 commsecDecodeTower n ks ct_chan = do
+  commsecTowerDeps
   f <- freshname n
   let named t = t ++ "_" ++ showUnique f
       cd = commsecDecode ks (named "ctx")

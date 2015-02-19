@@ -12,6 +12,7 @@ test: ublox-gps-test
 test: px4-mpu6k-test
 test: px4-ms5611-test
 test: px4-hmc5883l-test
+test: px4-ppm-in-test
 test: px4-all-sensors-test
 test: px4-copter-motor-test
 test: px4-sensor-fusion-test
@@ -70,6 +71,15 @@ px4-copter-motor-test:
 px4-copter-motor-test-clean:
 	-rm -rf px4-copter-motor-test
 
+.PHONY: px4-ppm-in-test
+px4-ppm-in-test:
+	cabal run px4-ppm-in-test-gen -- --src-dir=px4-ppm-in-test $(IVORY_FLAGS)
+	make -C px4-ppm-in-test
+
+.PHONY: px4-ppm-in-test-clean
+px4-ppm-in-test-clean:
+	-rm -rf px4-ppm-in-test
+
 .PHONY: px4-sensor-fusion-test
 px4-sensor-fusion-test:
 	cabal run px4-sensor-fusion-test-gen -- --src-dir=px4-sensor-fusion-test $(IVORY_FLAGS)
@@ -100,7 +110,6 @@ create-sandbox:
 	cabal sandbox add-source $(IVORY_REPO)/ivory-eval
 	cabal sandbox add-source $(TOWER_REPO)/tower-config
 	cabal sandbox add-source $(TOWER_REPO)/tower
-	cabal sandbox add-source $(TOWER_REPO)/tower-statemachine
 	cabal sandbox add-source $(BSP_REPO)/ivory-freertos-bindings
 	cabal sandbox add-source $(BSP_REPO)/tower-freertos-stm32
 	cabal sandbox add-source $(BSP_REPO)/ivory-bsp-stm32
@@ -111,7 +120,15 @@ create-sandbox:
 	cabal sandbox add-source ../ivory-px4-hw
 	cabal install --dependencies-only
 
-clean: ublox-gps-test-clean px4-mpu6k-test-clean px4-ms5611-test-clean px4-hmc5883l-test-clean px4-all-sensors-test-clean
+clean: ublox-gps-test-clean
+clean: px4-mpu6k-test-clean
+clean: px4-ms5611-test-clean
+clean: px4-hmc5883l-test-clean
+clean: px4-ppm-in-test-clean
+clean: px4-copter-motor-test-clean
+clean: px4-all-sensors-test-clean
+clean: px4-sensor-fusion-test-clean
+clean: px4-sensors-monitor-clean
 	-rm -rf dist
 
 clean-sandbox: clean

@@ -12,9 +12,10 @@ import Ivory.Language
 import Ivory.Stdlib
 
 import Ivory.Tower
-import Ivory.Tower.StateMachine
 
 import Ivory.BSP.STM32.Driver.UART
+
+import SMACCMPilot.Datalink.HXStream.Tower
 
 import qualified Ivory.BSP.STM32F405.Interrupt as F405
 import qualified BSP.Tests.Platforms as BSP
@@ -29,167 +30,50 @@ app topx4 = do
   let console = BSP.testplatform_uart (px4platform_testplatform px4platform)
   (i,o) <- uartTower tocc (BSP.testUARTPeriph console)
                           (BSP.testUARTPins   console)
-                          115200 (Proxy :: Proxy 128)
-  shell "motor control shell. hard to use? blame pat" o i (fst c)
+                          115200
+                          (Proxy :: Proxy 128)
+  motorcontrol_input o i (fst c)
   where
   tocc = BSP.testplatform_clockconfig . px4platform_testplatform . topx4
 
-shell :: String
-      -> ChanInput (Stored Uint8)
+motorcontrol_input ::
+         ChanInput (Stored Uint8)
       -> ChanOutput (Stored Uint8)
       -> ChanInput (Array 4 (Stored IFloat))
       -> Tower e ()
-shell greet ostream istream motorstream = monitor "shell" $ do
+motorcontrol_input _byte_ostream byte_istream motorstream = do
 
-  motorNum <- state "motorNum"
-  (throttle :: Ref Global (Array 4 (Stored Uint8))) <- state "throttle"
+  frame_istream <- channel
+  hxstreamDecodeTower "motorcontrol" byte_istream (fst frame_istream)
 
-  let puts :: (GetAlloc eff ~ Scope s) => Emitter (Stored Uint8) -> [Char] -> Ivory eff ()
-      puts e str = mapM_ (\c -> putc e (fromIntegral (ord c))) str
-      putc :: (GetAlloc eff ~ Scope s) => Emitter (Stored Uint8) -> Uint8 -> Ivory eff ()
-      putc e c = emitV e c
-  sm <- stateMachine "motor_shell" $ mdo
-    init <- machineStateNamed "init" $ timeout (Milliseconds 1) $ do
-      e <- machineEmitter ostream (fromIntegral ((length greet) + 1))
-      machineControl $ \_ -> do
-        puts e (greet ++ "\n")
-        return (goto prompt)
-    prompt <- machineStateNamed "prompt" $ do
-      entry $ do
-        e <- machineEmitter ostream 2
-        machineCallback $ const $ puts e "> "
-      on istream $ do
-        e <- machineEmitter ostream 1
-        machineControl $ \inref -> do
-          i <- deref inref
-          putc e i -- Echo
-          return $ do
-            branch (i `isChar` 'm')   motorset
-            branch (i `isChar` 'o')   off
-            branch (i `isChar` '?')   help
-            branch (i `isChar` '\n')  prompt
-            goto unknown
-    motorset <- machineStateNamed "motorset" $ do
-      on istream $ do
-        e <- machineEmitter ostream 1
-        machineControl $ \inref -> do
-          i <- deref inref
-          putc e i -- Echo
-          store motorNum ((atoi i) - 1)
-          return $ do
-            branch (i `isChar` '1')   motorval
-            branch (i `isChar` '2')   motorval
-            branch (i `isChar` '3')   motorval
-            branch (i `isChar` '4')   motorval
-            goto unknown
-    motorval <- machineStateNamed "motorval" $ do
-      on istream $ do
-        e <- machineEmitter ostream 1
-        machineControl $ \inref -> do
-          i <- deref inref
-          putc e i -- Echo
-          v <- assign (atoi i)
-          whitespace <- assign (i `isChar` ' ')
-          mNum <- deref motorNum
-          valid <- assign ((v >=? 0) .&& (v <=? 9))
-          when valid $ do
-            store (throttle ! (toIx mNum)) v
-          return $ do
-            branch valid commit
-            branch (iNot whitespace) unknown
+  monitor "motorcontrol_input" $ do
+    handler (snd frame_istream) "control_frame" $ do
+      e <- emitter motorstream 1
+      callback $ \f -> do
+        bs <- sequence $ zipWith ref_is_char
+                                [f ! i | i <- [0,1,2,3,4,5]]
+                                "motors"
+        when (iand bs) $ do
+          motors <- local (iarray [])
+          ref_to_motor (f ! 6) (motors ! 0)
+          ref_to_motor (f ! 7) (motors ! 1)
+          ref_to_motor (f ! 8) (motors ! 2)
+          ref_to_motor (f ! 9) (motors ! 3)
+          emit e (constRef motors)
 
-    commit <- machineStateNamed "commit" $ do
-      entry $ do
-        e <- machineEmitter ostream 48
-        machineCallback $ \_ -> do
-          puts e "\noutput throttle is: "
-          arrayMap $ \i -> do
-            t <- deref (throttle ! i)
-            putc e (itoa t)
-            puts e " "
-          puts e "\ncommit with 'Y'"
-      on istream $ machineControl $ \inref -> do
-        i <- deref inref
-        return $ do
-          branch (i `isChar` 'Y') send
-          goto prompt
+iand :: [IBool] -> IBool
+iand (b:bs) = b .&& (iand bs)
+iand [] = true
 
+ref_is_char :: ConstRef s (Stored Uint8) -> Char -> Ivory eff IBool
+ref_is_char r c = do
+  v <- deref r
+  return (v ==? fromIntegral (ord (c)))
 
-    off <- machineStateNamed "off" $ do
-      entry $ do
-        e <- machineEmitter ostream 48
-        machineControl $ \_ -> do
-          arrayMap $ \i -> store (throttle ! i) 0
-          puts e "\noutput throttle is: "
-          arrayMap $ \i -> do
-            t <- deref (throttle ! i)
-            putc e (itoa t)
-            puts e " "
-          puts e "\n"
-          return $ goto send
+ref_to_motor :: ConstRef s (Stored Uint8) -> Ref s2 (Stored IFloat) -> Ivory eff ()
+ref_to_motor r m = do
+  v <- deref r
+  ifte_ (v <=? 100)
+        (store m ((safeCast v) / 100.0))
+        (store m 0)
 
-    send <- machineStateNamed "send" $ do
-      entry $ do
-        let response = "motors set!\n"
-        e <- machineEmitter ostream (fromIntegral (length response))
-        motorctl <- machineEmitter motorstream 1
-        machineControl $ \_ -> do
-          fthr <- local (iarray [])
-          arrayMap $ \i -> do
-            t <- deref (throttle ! i)
-            store (fthr ! i) (mapThr t)
-          emit motorctl (constRef fthr)
-          puts e "motors set!\n"
-          return $ goto prompt
-
-    unknown <- machineStateNamed "unknown" $ do
-      entry $ do
-        let response = "\n\nunknown command"
-        e <- machineEmitter ostream (fromIntegral (length response))
-        machineControl $ \_ -> do
-          puts e response
-          return $ goto help
-
-    help <- machineStateNamed "help" $ do
-      entry $ do
-        e <- machineEmitter ostream (fromIntegral (length helpmsg))
-        machineControl $ \_ -> do
-          puts e helpmsg
-          return $ goto prompt
-
-    return init
-
-  stateMachine_onChan sm istream
-
-mapThr :: Uint8 -> IFloat
-mapThr t = foldr aux 0.0 tbl
- where
- aux (u,v) acc = (u ==? t) ? (v, acc)
- tbl = [(0,0.0)
-       ,(1,0.1)
-       ,(2,0.2)
-       ,(3,0.3)
-       ,(4,0.4)
-       ,(5,0.5)
-       ,(6,0.6)
-       ,(7,0.7)
-       ,(8,0.8)
-       ,(9,1.0)]
-
-helpmsg :: String
-helpmsg = unlines $
-  [ "\n\nHelp:"
-  , "mXY sets motor X in [1..4]  to throttle Y in [0..9]"
-  , "o turns motors off"
-  , "? for help"
-  ]
-
-isChar :: Uint8 -> Char -> IBool
-isChar b c = b ==? (fromIntegral (ord c))
-
-
--- Hacky and unsafe...
-itoa :: Uint8 -> Uint8
-itoa i = i + (fromIntegral (ord '0'))
-atoi :: Uint8 -> Uint8
-atoi a = a - (fromIntegral (ord '0'))

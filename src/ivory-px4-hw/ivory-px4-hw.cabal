@@ -26,10 +26,14 @@ library
                        SMACCMPilot.Hardware.HMC5883L,
                        SMACCMPilot.Hardware.HMC5883L.Types,
                        SMACCMPilot.Hardware.HMC5883L.Regs,
-                       SMACCMPilot.Hardware.HMC5883L.I2C
+                       SMACCMPilot.Hardware.HMC5883L.I2C,
 
-                       --SMACCMPilot.Hardware.PX4IOAR,
-                       --SMACCMPilot.Hardware.PX4IOAR.MotorControl,
+                       SMACCMPilot.Hardware.PPM,
+                       SMACCMPilot.Hardware.PPM.PulseCapture,
+                       SMACCMPilot.Hardware.PPM.PulseCapture.Types,
+                       SMACCMPilot.Hardware.PPM.Decode,
+                       SMACCMPilot.Hardware.PPM.Decode.Types,
+
                        SMACCMPilot.Hardware.PX4FMU17,
                        SMACCMPilot.Hardware.PX4FMU17.MotorControl
 
@@ -44,7 +48,6 @@ library
                        ivory-serialize,
                        ivory-hw,
                        tower >= 0.9,
-                       tower-statemachine >= 0.9,
                        ivory-bsp-stm32
 
   default-language:    Haskell2010

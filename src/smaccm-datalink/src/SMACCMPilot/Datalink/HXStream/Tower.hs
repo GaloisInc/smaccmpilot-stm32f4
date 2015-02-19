@@ -19,25 +19,29 @@ hxstreamEncodeTower :: String
                     -> ChanOutput CyphertextArray
                     -> ChanInput  (Stored Uint8)
                     -> Tower e ()
-hxstreamEncodeTower n ct_chan serial_chan = monitor (n ++ "_datalink_encode") $ do
-  monitorModuleDef $ depend H.hxstreamModule
-  handler ct_chan "encoder_ct_in" $ do
-    e <- emitter serial_chan (2*cyphertextSize + 3)
-    callback $ \ct -> do
-      H.encode airDataTag ct (emitV e)
+hxstreamEncodeTower n ct_chan serial_chan = do
+  towerModule $ H.hxstreamModule
+  monitor (n ++ "_datalink_encode") $ do
+    monitorModuleDef $ depend H.hxstreamModule
+    handler ct_chan "encoder_ct_in" $ do
+      e <- emitter serial_chan (2*cyphertextSize + 3)
+      callback $ \ct -> do
+        H.encode airDataTag ct (emitV e)
 
 hxstreamDecodeTower :: String
                     -> ChanOutput (Stored Uint8)
                     -> ChanInput  CyphertextArray
                     -> Tower e ()
-hxstreamDecodeTower n serial_chan ct_chan = monitor (n ++ "_datalink_decode") $ do
-  monitorModuleDef $ depend H.hxstreamModule
-  hx <- stateInit "hx_decoder" H.initStreamState
-  a <- airDataHandler
-  handler serial_chan "decoder_serial_in" $ do
-    e <- emitter ct_chan 1
-    callbackV $ \b -> do
-      H.decodes [a e] hx b
+hxstreamDecodeTower n serial_chan ct_chan = do
+  towerModule $ H.hxstreamModule
+  monitor (n ++ "_datalink_decode") $ do
+    monitorModuleDef $ depend H.hxstreamModule
+    hx <- stateInit "hx_decoder" H.initStreamState
+    a <- airDataHandler
+    handler serial_chan "decoder_serial_in" $ do
+      e <- emitter ct_chan 1
+      callbackV $ \b -> do
+        H.decodes [a e] hx b
 
 -- Note this is not strictly safe - it can only actually be used
 -- safely by the handler for which the emitter is provided.

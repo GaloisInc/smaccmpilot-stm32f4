@@ -7,6 +7,7 @@ px4-all-sensors-test
 px4-sensor-fusion-test
 px4-copter-motor-test
 px4-sensors-monitor
+px4-ppm-in-test
 user.conf
 dist/
 .cabal-sandbox

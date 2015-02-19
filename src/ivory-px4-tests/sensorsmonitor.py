@@ -123,12 +123,35 @@ class Position(object):
             self.t          = t
             self.errormsg = None
         except Exception:
-            self.errormsg = ("Compass: bad size %d" % (len(binary)))
+            self.errormsg = ("Position : bad size %d" % (len(binary)))
     def display(self):
         if self.errormsg:
             return self.errormsg
         return ("Position fix %d sats %d dop %f lat %d lon %d alt %d vnorth %d veast %d vdown %d vground %d heading %f millis %d" %
             (self.fix, self.num_sv, self.dop, self.lat, self.lon, self.alt, self.vnorth, self.veast, self.vdown, self.vground, self.heading, self.t))
+
+class PPM(object):
+    def __init__(self, binary):
+        self.binary = binary
+        try:
+            (c1, c2, c3, c4, c5, c6, c7, c8) = \
+                    struct.unpack("<HHHHHHHH", binary)
+            self.c1 = c1
+            self.c2 = c2
+            self.c3 = c3
+            self.c4 = c4
+            self.c5 = c5
+            self.c6 = c6
+            self.c7 = c7
+            self.c8 = c8
+            self.errormsg = None
+        except Exception:
+            self.errormsg = ("PPM: bad size %d" % (len(binary)))
+    def display(self):
+        if self.errormsg:
+            return self.errormsg
+        return ("PPM %d %d %d %d %d %d %d %d" %
+            (self.c1, self.c2, self.c3, self.c4, self.c5, self.c6, self.c7, self.c8))
 
 class SensorParser(object):
     def __init__(self,radio,opts):
@@ -153,6 +176,8 @@ class SensorParser(object):
                 sensors.append(Gyro(payload))
             if t == 112: # 'p' position
                 sensors.append(Position(payload))
+            if t == 80: # 'P' PPM
+                sensors.append(PPM(payload))
         return (statuses, sensors)
 
 class SerialPortProvider(object):
