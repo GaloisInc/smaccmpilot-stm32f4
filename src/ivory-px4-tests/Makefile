@@ -12,6 +12,7 @@ test: ublox-gps-test
 test: px4-mpu6k-test
 test: px4-ms5611-test
 test: px4-hmc5883l-test
+test: px4-ppm-in-test
 test: px4-all-sensors-test
 test: px4-copter-motor-test
 test: px4-sensor-fusion-test
@@ -123,6 +124,7 @@ clean: ublox-gps-test-clean
 clean: px4-mpu6k-test-clean
 clean: px4-ms5611-test-clean
 clean: px4-hmc5883l-test-clean
+clean: px4-ppm-in-test-clean
 clean: px4-copter-motor-test-clean
 clean: px4-all-sensors-test-clean
 clean: px4-sensor-fusion-test-clean
