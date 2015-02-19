@@ -23,12 +23,12 @@ plaintextSize :: Integer
 plaintextSize = fromTypeNat (aNat :: NatType 80)
 
 --------------------------------------------------------------------------------
--- Must be plaintextSize + 16
+-- Must be plaintextSize + HEADER_LEN + TAG_LEN == 80 + 4 + 16
 
-type CyphertextIx = Ix 96
+type CyphertextIx = Ix 100
 
-type CyphertextArray = Array 96 (Stored Uint8)
+type CyphertextArray = Array 100 (Stored Uint8)
 
 cyphertextSize :: Integer
-cyphertextSize = fromTypeNat (aNat :: NatType 96)
+cyphertextSize = fromTypeNat (aNat :: NatType 100)
 

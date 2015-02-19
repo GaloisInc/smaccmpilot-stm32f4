@@ -1,69 +1,50 @@
+#include <string.h>
 #include "commsec.h"
 #include "gcm.h"
-#include <string.h>
 
 // Initialize a commsec context.  Each raw key must be 16 bytes long (excess entropy is ignored).
-void securePkg_init_enc( struct commsec_encode *ctx, uint32_t myID
-                       , uint32_t encSalt, const uint8_t *rawEncKey)
+void securePkg_init_enc( struct commsec_encode *ctx
+                       , uint64_t encSalt, const uint8_t rawEncKey[16])
 {
     gcm_init_and_key((const unsigned char *)rawEncKey, 16, &ctx->encCtx);
     ctx->encSalt = encSalt;
     ctx->myCounter = 1;
-    ctx->myId      = myID;
 }
 
 void securePkg_init_dec( struct commsec_decode *ctx
-                       , uint32_t decSalt, const uint8_t *rawDecKey)
+                       , uint64_t decSalt, const uint8_t rawDecKey[16])
 {
-    int i;
     gcm_init_and_key((const unsigned char *)rawDecKey, 16, &ctx->decCtx);
     ctx->decSalt = decSalt;
-    for(i = 0; i < MAX_BASE_STATIONS ; i++) {
-        ctx->mostRecentCounter[i] = 0;
-    }
+    ctx->mostRecentCounter = 0;
 }
 
-// Ciphertext must be allocated 96 bytes while plaintext is assumed to be 80 bytes
-uint32_t securePkg_encode(struct commsec_encode *ctx, const uint8_t *plaintext, uint8_t *ciphertext)
+// Ciphertext must be allocated CIPHERTEXT_LEN bytes while plaintext is assumed to be PLAINTEXT_LEN bytes
+// Plaintext and ciphertext buffers must not overlap.
+uint32_t securePkg_encode(struct commsec_encode *ctx, const uint8_t plaintext[PLAINTEXT_LEN], uint8_t ciphertext[CIPHERTEXT_LEN])
 {
-    memcpy(ciphertext + HEADER_LEN, plaintext, 80);
-    return securePkg_enc_in_place(ctx, ciphertext, HEADER_LEN, 80);
-}
+    uint8_t *msg       = ciphertext + HEADER_LEN;
+    uint8_t *ivStorage = ciphertext;
+    uint8_t *tag       = ciphertext + sizeof(ciphertext) - TAG_LEN;
 
-uint32_t securePkg_enc_in_place( struct commsec_encode *ctx
-                               , uint8_t *msg, uint32_t msgStartIdx, uint32_t msgLen)
-{
-    uint32_t ret;
-    if(msgStartIdx < 8) {
-        ret = COMMSEC_FAIL_BAD_INPUT;
-    } else {
-        ret = securePkg_enc(ctx, msg+msgStartIdx, msgLen
-                           , msg+msgStartIdx-HEADER_LEN
-                           , msg+msgStartIdx+msgLen);
-    }
-    return ret;
-}
-
-uint32_t securePkg_enc( struct commsec_encode *ctx, uint8_t *msg, uint32_t msgLen
-                      , uint8_t *ivStorage // ivStorage buffer must be at least HEADER_LEN bytes
-                      , uint8_t *tag) // Tag buffer must TAG_LEN bytes
-{
     uint32_t ret=0;
-    if(msgLen > MAX_MESSAGE_LEN) {
-        ret = COMMSEC_FAIL_MSG_LENGTH_VIOLATES_ASSUMPTIONS;
-    } else if(ctx->myCounter == UINT32_MAX) {
+    if(ctx->myCounter == UINT32_MAX) {
         ret = COMMSEC_FAIL_CTR_ROLLOVER;
     } else {
         uint8_t iv[IV_LEN];
         ret_type gcmRet;
-        iv[0]  = (ctx->encSalt   >> 24) & 0xFF;
-        iv[1]  = (ctx->encSalt   >> 16) & 0xFF;
-        iv[2]  = (ctx->encSalt   >> 8 ) & 0xFF;
-        iv[3]  = (ctx->encSalt        ) & 0xFF;
-        iv[4]  = (ctx->myId      >> 24) & 0xFF;
-        iv[5]  = (ctx->myId      >> 16) & 0xFF;
-        iv[6]  = (ctx->myId      >> 8 ) & 0xFF;
-        iv[7]  = (ctx->myId           ) & 0xFF;
+
+        // The GCM encryption routine is in-place.  Copy the message over.
+        memcpy(msg, plaintext, sizeof(plaintext));
+
+        iv[0]  = (ctx->encSalt   >> 56) & 0xFF;
+        iv[1]  = (ctx->encSalt   >> 48) & 0xFF;
+        iv[2]  = (ctx->encSalt   >> 40) & 0xFF;
+        iv[3]  = (ctx->encSalt   >> 32) & 0xFF;
+        iv[4]  = (ctx->encSalt   >> 24) & 0xFF;
+        iv[5]  = (ctx->encSalt   >> 16) & 0xFF;
+        iv[6]  = (ctx->encSalt   >> 8 ) & 0xFF;
+        iv[7]  = (ctx->encSalt        ) & 0xFF;
         iv[8]  = (ctx->myCounter >> 24) & 0xFF;
         iv[9]  = (ctx->myCounter >> 16) & 0xFF;
         iv[10] = (ctx->myCounter >> 8 ) & 0xFF;
@@ -76,71 +57,58 @@ uint32_t securePkg_enc( struct commsec_encode *ctx, uint8_t *msg, uint32_t msgLe
                                     , &ctx->encCtx);
         if(RETURN_GOOD == gcmRet) ret = COMMSEC_SUCCEED;
         else ret = COMMSEC_FAIL_GCM;
-        memcpy(ivStorage, &iv[4], HEADER_LEN);
+        memcpy(ivStorage, &iv[8], HEADER_LEN);
         memset(iv,0,IV_LEN);
     }
     return ret;
 }
 
-// Ciphertext must be allocated 96 bytes while plaintext is assumed to be 80 bytes
-uint32_t securePkg_decode(struct commsec_decode *ctx, const uint8_t *ciphertext_immutable, uint8_t *plaintext)
+// Ciphertext must be allocated CIPHERTEXT_LEN bytes while plaintext is assumed to be PLAINTEXT_LEN bytes
+// Plaintext and ciphertext buffers must not overlap.
+//
+// Decrypts a package that is in the form [ Counter | CT | TAG ]
+uint32_t securePkg_decode( struct commsec_decode *ctx
+                         , const uint8_t ciphertext_immutable[CIPHERTEXT_LEN]
+                         , uint8_t plaintext[PLAINTEXT_LEN])
 {
-    uint8_t *ciphertext = alloca(96);
-    if ( NULL == ciphertext) {
-        return COMMSEC_FAIL_ALLOCATION;
-    } else {
-        uint32_t ret;
-        memcpy(ciphertext, ciphertext_immutable, 96);
-        ret = securePkg_dec(ctx, ciphertext, 96);
-        memcpy(plaintext, ciphertext + HEADER_LEN, 80);
-        return ret;
-    }
-}
-
-// Decrypt a package that is in the form [ StaID | Counter | CT | TAG ]
-uint32_t securePkg_dec( struct commsec_decode *ctx, uint8_t *pkg, uint32_t pkgLen)
-{
-    uint8_t iv[IV_LEN];
-    uint32_t theirCounter=0, theirID=0;
+    uint8_t  iv[IV_LEN];
+    uint32_t theirCounter = 0;
     uint32_t ret = 0;
+    uint8_t ciphertext[CIPHERTEXT_LEN];
+    uint8_t *transmitted_iv = ciphertext;
+    uint8_t *msg = ciphertext + HEADER_LEN;
+    uint8_t *tag = ciphertext + sizeof(ciphertext) - TAG_LEN;
+
+    memcpy(ciphertext, ciphertext_immutable, sizeof(ciphertext));
 
     // Extract the ID and counter
-    theirID      += ((uint32_t)pkg[0]) << 24;
-    theirID      += ((uint32_t)pkg[1]) << 16;
-    theirID      += ((uint32_t)pkg[2]) << 8;
-    theirID      += ((uint32_t)pkg[3]);
-    theirCounter += ((uint32_t)pkg[4]) << 24;
-    theirCounter += ((uint32_t)pkg[5]) << 16;
-    theirCounter += ((uint32_t)pkg[6]) << 8;
-    theirCounter += ((uint32_t)pkg[7]);
-    if(theirID >= MAX_BASE_STATIONS) {
-        // the ID is invalid
-        ret = COMMSEC_FAIL_BAD_BASE_STATION;
-    } else if(ctx->mostRecentCounter[theirID] >= theirCounter) {
+    theirCounter += ((uint32_t)transmitted_iv[0]) << 24;
+    theirCounter += ((uint32_t)transmitted_iv[1]) << 16;
+    theirCounter += ((uint32_t)transmitted_iv[2]) << 8;
+    theirCounter += ((uint32_t)transmitted_iv[3]);
+    if(ctx->mostRecentCounter[theirID] >= theirCounter) {
         // the counter is too old
         ret = COMMSEC_FAIL_DUP_CTR;
     } else {
         ret_type gcmRet;
         // Perform the decryption and update the recorded counter
-        iv[0]  = (ctx->decSalt   >> 24) & 0xFF;
-        iv[1]  = (ctx->decSalt   >> 16) & 0xFF;
-        iv[2]  = (ctx->decSalt   >> 8 ) & 0xFF;
-        iv[3]  = (ctx->decSalt        ) & 0xFF;
-        iv[4]  = (theirID        >> 24) & 0xFF;
-        iv[5]  = (theirID        >> 16) & 0xFF;
-        iv[6]  = (theirID        >> 8 ) & 0xFF;
-        iv[7]  = (theirID             ) & 0xFF;
+        iv[0]  = (ctx->decSalt   >> 56) & 0xFF;
+        iv[1]  = (ctx->decSalt   >> 48) & 0xFF;
+        iv[2]  = (ctx->decSalt   >> 40) & 0xFF;
+        iv[3]  = (ctx->decSalt   >> 32) & 0xFF;
+        iv[4]  = (ctx->decSalt   >> 24) & 0xFF;
+        iv[5]  = (ctx->decSalt   >> 16) & 0xFF;
+        iv[6]  = (ctx->decSalt   >> 8 ) & 0xFF;
+        iv[7]  = (ctx->decSalt        ) & 0xFF;
         iv[8]  = (theirCounter   >> 24) & 0xFF;
         iv[9]  = (theirCounter   >> 16) & 0xFF;
         iv[10] = (theirCounter   >> 8 ) & 0xFF;
         iv[11] = (theirCounter        ) & 0xFF;
 
         gcmRet = gcm_decrypt_message( (const unsigned char *)iv, IV_LEN
-                                    , NULL, 0
-                                    , pkg + HEADER_LEN // msg ptr
-                                    , pkgLen - HEADER_LEN - TAG_LEN // msg len
-                                    , pkg + pkgLen - TAG_LEN // Tag ptr
-                                    , TAG_LEN
+                                    , NULL, 0          // AAD
+                                    , msg , MSG_LEN
+                                    , tag , TAG_LEN
                                     , &ctx->decCtx);
         if(RETURN_GOOD == gcmRet) {
             ret = COMMSEC_SUCCEED;
@@ -159,7 +127,6 @@ void securePkg_zero_enc( struct commsec_encode *ctx )
     int i;
     gcm_end(&ctx->encCtx);
     ctx->encSalt=0;
-    ctx->myId=0;
     ctx->myCounter = UINT32_MAX;
 
     // Plenty of time, let's re-clear
@@ -167,26 +134,29 @@ void securePkg_zero_enc( struct commsec_encode *ctx )
     memset(&ctx->encCtx, 0x00, sizeof(gcm_ctx));
 }
 
+// Zero out a context.
 void securePkg_zero_dec( struct commsec_decode *ctx )
 {
     int i;
     gcm_end(&ctx->decCtx);
     ctx->decSalt=0;
 
-    for(i=0; i < MAX_BASE_STATIONS; i++) {
-        ctx->mostRecentCounter[i] = UINT32_MAX;
-    }
+    ctx->mostRecentCounter = UINT32_MAX;
 
     // Plenty of time, let's re-clear
     memset(&ctx->decCtx, 0xFF, sizeof(gcm_ctx));
     memset(&ctx->decCtx, 0x00, sizeof(gcm_ctx));
 }
 
+// In the event we decide to allow variable-size packages we can compute the
+// size of the plaintext for a given ciphertext using the below function.
 int securePkg_size_of_message(int pkgLen)
 {
     return (pkgLen - TAG_LEN - HEADER_LEN);
 }
 
+// In the event we decide to allow variable-size packages we can compute the
+// size of the ciphertext for a given plaintext using the below function.
 int securePkg_size_of_package(int msgLen)
 {
     return (msgLen + TAG_LEN + HEADER_LEN);
