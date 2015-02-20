@@ -13,7 +13,6 @@ import qualified BSP.Tests.Platforms as BSP
 import Ivory.BSP.STM32.Driver.I2C
 import Ivory.BSP.STM32.Driver.SPI
 import Ivory.BSP.STM32.Driver.UART
-import qualified Ivory.BSP.STM32F405.Interrupt as F405
 import Ivory.Language
 import Ivory.Serialize
 import Ivory.Tower
@@ -24,7 +23,7 @@ import SMACCMPilot.Hardware.GPS.UBlox
 import SMACCMPilot.Hardware.MPU6000
 import SMACCMPilot.INS.Tower
 
-app :: (e -> PX4Platform F405.Interrupt) -> Tower e ()
+app :: (e -> PX4Platform) -> Tower e ()
 app topx4 = do
   px4platform <- fmap topx4 getEnv
   let gps_periph = px4platform_gps_device px4platform

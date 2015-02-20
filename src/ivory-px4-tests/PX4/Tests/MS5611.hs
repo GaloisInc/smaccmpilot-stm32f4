@@ -18,11 +18,10 @@ import Ivory.BSP.STM32.Driver.UART
 
 import SMACCMPilot.Hardware.MS5611
 
-import qualified Ivory.BSP.STM32F405.Interrupt as F405
 import qualified BSP.Tests.Platforms as BSP
 import PX4.Tests.Platforms
 
-app :: (e -> PX4Platform F405.Interrupt) -> Tower e ()
+app :: (e -> PX4Platform) -> Tower e ()
 app topx4 = do
   px4platform <- fmap topx4 getEnv
   let ms5611 = px4platform_ms5611_device px4platform
