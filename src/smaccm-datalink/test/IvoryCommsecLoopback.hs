@@ -17,7 +17,6 @@ import Ivory.OS.FreeRTOS.Tower.STM32
 import Ivory.BSP.STM32.Driver.UART
 import Ivory.BSP.STM32.Driver.RingBuffer
 
-import qualified Ivory.BSP.STM32F405.Interrupt as F405
 import qualified BSP.Tests.Platforms as BSP
 
 import SMACCMPilot.Commsec.Keys
@@ -37,7 +36,7 @@ main = towerCompile p (app fst snd)
     s <- symmetricKeyParser
     return (f,s)
 
-app :: (e -> BSP.TestPlatform F405.Interrupt)
+app :: (e -> BSP.TestPlatform)
     -> (e -> SymmetricKey)
     -> Tower e ()
 app totp tosk = do
