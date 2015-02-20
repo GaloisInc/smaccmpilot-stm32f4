@@ -173,4 +173,4 @@ threebytesample resp = do
   h <- deref ((resp ~> rx_buf) ! 0)
   m <- deref ((resp ~> rx_buf) ! 1)
   l <- deref ((resp ~> rx_buf) ! 2)
-  assign ((safeCast h) * 65536 + (safeCast m) * 255 + (safeCast l))
+  assign ((safeCast h) `iShiftL` 16 + (safeCast m) `iShiftL` 8 + (safeCast l))
