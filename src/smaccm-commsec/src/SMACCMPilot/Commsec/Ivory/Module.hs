@@ -37,8 +37,9 @@ commsecEncode ks n = CommsecEncode
   { commsec_encode_init    = call_ init_proc
   , commsec_encode_run     = call  run_proc
   , commsec_encode_moddef  = do
-      inclHeader securePkg_header
       defMemArea encode_ctx_area
+      incl securePkg_init_enc
+      incl securePkg_encode
       incl init_proc
       incl run_proc
   }
@@ -76,8 +77,9 @@ commsecDecode ks n = CommsecDecode
   { commsec_decode_init    = call_ init_proc
   , commsec_decode_run     = call  run_proc
   , commsec_decode_moddef  = do
-      inclHeader securePkg_header
       defMemArea decode_ctx_area
+      incl securePkg_init_dec
+      incl securePkg_decode
       incl init_proc
       incl run_proc
   }
