@@ -21,6 +21,7 @@ main = do
       let client_opts = foldl (flip id) defaultOpts opts
           topts = TOpts
             { topts_outdir = Nothing
+            , topts_help   = False
             , topts_args   = tos
             , topts_error  = usage
             }
