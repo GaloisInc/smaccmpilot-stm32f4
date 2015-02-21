@@ -26,11 +26,10 @@ import PX4.Tests.MS5611   (ms5611Sender, ms5611SensorManager)
 import PX4.Tests.HMC5883L (hmc5883lSender, hmc5883lSensorManager)
 import PX4.Tests.Ublox    (positionSender)
 
-import qualified Ivory.BSP.STM32F405.Interrupt as F405
 import qualified BSP.Tests.Platforms as BSP
 import PX4.Tests.Platforms
 
-app :: (e -> PX4Platform F405.Interrupt) -> Tower e ()
+app :: (e -> PX4Platform) -> Tower e ()
 app topx4 = do
   px4platform <- fmap topx4 getEnv
   let gps_periph = px4platform_gps_device px4platform
@@ -72,7 +71,7 @@ app topx4 = do
   where
   tocc = BSP.testplatform_clockconfig . px4platform_testplatform . topx4
 
-i2cSensorManager :: PX4Platform i
+i2cSensorManager :: PX4Platform
                  -> ChanOutput (Stored ITime)
                  -> ChanInput  (Struct "i2c_transaction_request")
                  -> ChanOutput (Struct "i2c_transaction_result")

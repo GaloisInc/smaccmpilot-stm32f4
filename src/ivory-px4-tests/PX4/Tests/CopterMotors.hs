@@ -17,11 +17,10 @@ import Ivory.BSP.STM32.Driver.UART
 
 import SMACCMPilot.Datalink.HXStream.Tower
 
-import qualified Ivory.BSP.STM32F405.Interrupt as F405
 import qualified BSP.Tests.Platforms as BSP
 import PX4.Tests.Platforms
 
-app :: (e -> PX4Platform F405.Interrupt)
+app :: (e -> PX4Platform)
     -> Tower e ()
 app topx4 = do
   px4platform <- fmap topx4 getEnv

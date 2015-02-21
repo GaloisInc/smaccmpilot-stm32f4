@@ -23,7 +23,7 @@ import qualified Ivory.BSP.STM32F405.ATIM18    as F405
 import qualified BSP.Tests.Platforms as BSP
 import PX4.Tests.Platforms
 
-app :: (e -> PX4Platform F405.Interrupt)
+app :: (e -> PX4Platform)
     -> Tower e ()
 app topx4 = do
   px4platform <- fmap topx4 getEnv
@@ -34,6 +34,7 @@ app topx4 = do
                           (Proxy :: Proxy 128)
 
   pulse_capt <- channel
+  -- XXX FIXME: MOVE THESE PARAMS INTO THE PX4Platform CODE
   pulseCaptureTower F405.tim1 F405.pinA10 F405.gpio_af_tim1 F405.TIM1_CC (fst pulse_capt)
   output <- channel
   ppmDecodeTower (snd pulse_capt) (fst output)

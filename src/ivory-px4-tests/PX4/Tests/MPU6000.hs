@@ -22,11 +22,10 @@ import Ivory.BSP.STM32.Driver.UART
 
 import SMACCMPilot.Hardware.MPU6000
 
-import qualified Ivory.BSP.STM32F405.Interrupt as F405
 import qualified BSP.Tests.Platforms as BSP
 import PX4.Tests.Platforms
 
-app :: (e -> PX4Platform F405.Interrupt) -> Tower e ()
+app :: (e -> PX4Platform) -> Tower e ()
 app topx4 = do
   sample <- channel
   px4platform <- fmap topx4 getEnv
