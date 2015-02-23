@@ -14,35 +14,29 @@ import qualified SMACCMPilot.Datalink.HXStream.Ivory as HX
 import Ivory.Tower
 
 import Ivory.BSP.STM32.Driver.I2C
-import Ivory.BSP.STM32.Driver.UART
 
 import SMACCMPilot.Hardware.MS5611
 
-import qualified BSP.Tests.Platforms as BSP
 import PX4.Tests.Platforms
 
 app :: (e -> PX4Platform) -> Tower e ()
 app topx4 = do
   px4platform <- fmap topx4 getEnv
-  let ms5611 = px4platform_ms5611_device px4platform
-  (req, res, ready) <- i2cTower tocc
-                         (ms5611device_periph ms5611)
-                         (ms5611device_sda ms5611)
-                         (ms5611device_scl ms5611)
+  let ms5611 = px4platform_ms5611 px4platform
+  (req, res, ready) <- i2cTower (px4platform_clockconfig topx4)
+                         (ms5611_i2c_periph ms5611)
+                         (ms5611_i2c_sda ms5611)
+                         (ms5611_i2c_scl ms5611)
   measurements <- channel
-  ms5611SensorManager req res ready (fst measurements) (ms5611device_addr ms5611)
+  ms5611SensorManager req res ready (fst measurements) (ms5611_i2c_addr ms5611)
 
-  let u = BSP.testplatform_uart (px4platform_testplatform px4platform)
-  (_uarti, uarto) <- uartTower tocc (BSP.testUARTPeriph u) (BSP.testUARTPins u)
-                               115200 (Proxy :: Proxy 256)
+  (_uarti, uarto) <- px4ConsoleTower topx4
   monitor "ms5611sender" $ do
     ms5611Sender (snd measurements) uarto
 
   towerDepends serializeModule
   towerModule  serializeModule
   mapM_ towerArtifact serializeArtifacts
-  where
-  tocc = BSP.testplatform_clockconfig . px4platform_testplatform . topx4
 
 ms5611Sender :: ChanOutput (Struct "ms5611_measurement")
              -> ChanInput (Stored Uint8)

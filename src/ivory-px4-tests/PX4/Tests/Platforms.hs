@@ -13,7 +13,6 @@ import Ivory.Tower.Config
 
 import Data.Char (toUpper)
 
-import qualified BSP.Tests.Platforms as BSP
 import qualified SMACCMPilot.Hardware.PX4FMU17 as FMUv17
 
 import qualified Ivory.BSP.STM32F405.UART           as F405
@@ -21,45 +20,60 @@ import qualified Ivory.BSP.STM32F405.GPIO           as F405
 import qualified Ivory.BSP.STM32F405.GPIO.AF        as F405
 import qualified Ivory.BSP.STM32F405.SPI            as F405
 import qualified Ivory.BSP.STM32F405.I2C            as F405
+import qualified Ivory.BSP.STM32F427.UART           as F427
+import qualified Ivory.BSP.STM32F427.GPIO           as F427
+import qualified Ivory.BSP.STM32F427.GPIO.AF        as F427
 import           Ivory.BSP.STM32.Peripheral.GPIOF4
 import           Ivory.BSP.STM32.Peripheral.UART
 import           Ivory.BSP.STM32.Peripheral.SPI
 import           Ivory.BSP.STM32.Peripheral.I2C
 import           Ivory.BSP.STM32.Driver.I2C
+import           Ivory.BSP.STM32.Driver.UART
 import           Ivory.BSP.STM32.ClockConfig
 import           Ivory.OS.FreeRTOS.Tower.STM32.Config
 
 data PX4Platform =
   PX4Platform
-    { px4platform_gps_device     :: UART
-    , px4platform_gps_pins       :: UARTPins
-    , px4platform_mpu6000_device :: SPIDevice
-    , px4platform_mpu6000_spi_pins :: SPIPins
-    , px4platform_hmc5883_device :: HMC5883Device
-    , px4platform_ms5611_device  :: MS5611Device
+    { px4platform_gps            :: UART_Device
+    , px4platform_mpu6000        :: MPU6000_SPI
+    , px4platform_hmc5883l       :: HMC5883L_I2C
+    , px4platform_ms5611         :: MS5611_I2C
+
     , px4platform_motorcontrol   :: forall e . (e -> ClockConfig)
                                  -> ChanOutput (Array 4 (Stored IFloat))
                                  -> Tower e ()
-    , px4platform_testplatform   :: BSP.TestPlatform
+
+    , px4platform_console        :: UART_Device
+
+    , px4platform_stm32config    :: STM32Config
     }
 
-px4platform_stm32config :: PX4Platform -> STM32Config
-px4platform_stm32config = BSP.testplatform_stm32 . px4platform_testplatform
-
-data HMC5883Device =
-  HMC5883Device
-    { hmc5883device_periph :: I2CPeriph
-    , hmc5883device_sda    :: GPIOPin
-    , hmc5883device_scl    :: GPIOPin
-    , hmc5883device_addr   :: I2CDeviceAddr
+data UART_Device =
+  UART_Device
+    { uart_periph :: UART
+    , uart_pins   :: UARTPins
     }
 
-data MS5611Device =
-  MS5611Device
-    { ms5611device_periph :: I2CPeriph
-    , ms5611device_sda    :: GPIOPin
-    , ms5611device_scl    :: GPIOPin
-    , ms5611device_addr   :: I2CDeviceAddr
+data MPU6000_SPI =
+  MPU6000_SPI
+    { mpu6000_spi_device :: SPIDevice
+    , mpu6000_spi_pins   :: SPIPins
+    }
+
+data HMC5883L_I2C =
+  HMC5883L_I2C
+    { hmc5883l_i2c_periph :: I2CPeriph
+    , hmc5883l_i2c_sda    :: GPIOPin
+    , hmc5883l_i2c_scl    :: GPIOPin
+    , hmc5883l_i2c_addr   :: I2CDeviceAddr
+    }
+
+data MS5611_I2C =
+  MS5611_I2C
+    { ms5611_i2c_periph :: I2CPeriph
+    , ms5611_i2c_sda    :: GPIOPin
+    , ms5611_i2c_scl    :: GPIOPin
+    , ms5611_i2c_addr   :: I2CDeviceAddr
     }
 
 px4PlatformParser :: ConfigParser PX4Platform
@@ -68,34 +82,52 @@ px4PlatformParser = do
   case map toUpper p of
     "PX4FMUV17"      -> return px4fmuv17
     "PX4FMUV17_IOAR" -> return px4fmuv17_ioar
+    "PX4FMUV24"      -> return px4fmuv24
+    "PIXHAWK"        -> return px4fmuv24
     _ -> fail ("no such platform " ++ p)
 
 px4fmuv17 :: PX4Platform
 px4fmuv17 = PX4Platform
-  { px4platform_gps_device     = F405.uart6
-  , px4platform_gps_pins       = UARTPins
+  { px4platform_gps          = gps
+  , px4platform_mpu6000      = mpu6000
+  , px4platform_hmc5883l     = hmc5883
+  , px4platform_ms5611       = ms5611
+  , px4platform_motorcontrol = FMUv17.motorControlTower
+  , px4platform_console      = console
+  , px4platform_stm32config  = stm32f405Defaults 24
+  }
+  where
+  console :: UART_Device
+  console = UART_Device
+    { uart_periph = F405.uart5
+    , uart_pins = UARTPins
+        { uartPinTx = F405.pinC12
+        , uartPinRx = F405.pinD2
+        , uartPinAF = F405.gpio_af_uart5
+        }
+    }
+  gps :: UART_Device
+  gps = UART_Device
+    { uart_periph = F405.uart6
+    , uart_pins   = UARTPins
       { uartPinTx = F405.pinC6
       , uartPinRx = F405.pinC7
       , uartPinAF = F405.gpio_af_uart6
       }
-  , px4platform_mpu6000_device = mpu6000
-  , px4platform_mpu6000_spi_pins = spi1_pins
-  , px4platform_hmc5883_device = hmc5883
-  , px4platform_ms5611_device  = ms5611
-  , px4platform_motorcontrol   = FMUv17.motorControlTower
-  , px4platform_testplatform   = BSP.px4fmuv17
-  }
-  where
-  mpu6000 :: SPIDevice
-  mpu6000 = SPIDevice
-    { spiDevPeripheral    = F405.spi1
-    , spiDevCSPin         = F405.pinB0
-    , spiDevClockHz       = 500000
-    , spiDevCSActive      = ActiveLow
-    , spiDevClockPolarity = ClockPolarityLow
-    , spiDevClockPhase    = ClockPhase1
-    , spiDevBitOrder      = MSBFirst
-    , spiDevName          = "mpu6k"
+    }
+  mpu6000 :: MPU6000_SPI
+  mpu6000 = MPU6000_SPI
+    { mpu6000_spi_device = SPIDevice
+      { spiDevPeripheral    = F405.spi1
+      , spiDevCSPin         = F405.pinB0
+      , spiDevClockHz       = 500000
+      , spiDevCSActive      = ActiveLow
+      , spiDevClockPolarity = ClockPolarityLow
+      , spiDevClockPhase    = ClockPhase1
+      , spiDevBitOrder      = MSBFirst
+      , spiDevName          = "mpu6k"
+      }
+    , mpu6000_spi_pins = spi1_pins
     }
   spi1_pins :: SPIPins
   spi1_pins = SPIPins
@@ -104,20 +136,75 @@ px4fmuv17 = PX4Platform
     , spiPinSck  = F405.pinA5
     , spiPinAF   = F405.gpio_af_spi1
     }
-  hmc5883 :: HMC5883Device
-  hmc5883 = HMC5883Device
-    { hmc5883device_periph = F405.i2c2
-    , hmc5883device_sda    = F405.pinB10
-    , hmc5883device_scl    = F405.pinB11
-    , hmc5883device_addr   = I2CDeviceAddr 0x1e
+  hmc5883 :: HMC5883L_I2C
+  hmc5883 = HMC5883L_I2C
+    { hmc5883l_i2c_periph = F405.i2c2
+    , hmc5883l_i2c_sda    = F405.pinB10
+    , hmc5883l_i2c_scl    = F405.pinB11
+    , hmc5883l_i2c_addr   = I2CDeviceAddr 0x1e
     }
-  ms5611 :: MS5611Device
-  ms5611 = MS5611Device
-    { ms5611device_periph = F405.i2c2
-    , ms5611device_sda    = F405.pinB10
-    , ms5611device_scl    = F405.pinB11
-    , ms5611device_addr   = I2CDeviceAddr 0x76
+  ms5611 :: MS5611_I2C
+  ms5611 = MS5611_I2C
+    { ms5611_i2c_periph = F405.i2c2
+    , ms5611_i2c_sda    = F405.pinB10
+    , ms5611_i2c_scl    = F405.pinB11
+    , ms5611_i2c_addr   = I2CDeviceAddr 0x76
     }
 
 px4fmuv17_ioar :: PX4Platform
-px4fmuv17_ioar = px4fmuv17 { px4platform_testplatform = BSP.px4fmuv17_ioar }
+px4fmuv17_ioar = px4fmuv17 { px4platform_console = console }
+  where
+  console :: UART_Device
+  console = UART_Device
+    { uart_periph = F405.uart1
+    , uart_pins   = UARTPins
+        { uartPinTx = F405.pinB6
+        , uartPinRx = F405.pinB7
+        , uartPinAF = F405.gpio_af_uart1
+        }
+    }
+
+px4fmuv24 :: PX4Platform
+px4fmuv24 = PX4Platform
+  { px4platform_gps          = gps
+  , px4platform_mpu6000      = error "mpu6000 not defined for px4fmuv24"
+  , px4platform_hmc5883l     = error "hmc5883 not defined for px4fmuv24"
+  , px4platform_ms5611       = error "ms5611 not defined for px4fmuv24"
+  , px4platform_motorcontrol = error "motor control not defined for px4fmuv24"
+  , px4platform_console      = console
+  , px4platform_stm32config  = stm32f427Defaults 24
+  }
+  where
+  console = UART_Device -- Telem 1 Port
+    { uart_periph = F427.uart2
+    , uart_pins = UARTPins
+        { uartPinTx = F427.pinD5
+        , uartPinRx = F427.pinD6
+        , uartPinAF = F427.gpio_af_uart2
+        }
+    }
+  gps = UART_Device
+    { uart_periph = F427.uart4
+    , uart_pins = UARTPins
+        { uartPinTx = F427.pinA0
+        , uartPinRx = F427.pinA1
+        , uartPinAF = F427.gpio_af_uart4
+        }
+    }
+
+
+----
+
+px4ConsoleTower :: (e -> PX4Platform) -> Tower e ( ChanOutput (Stored Uint8)
+                                                 , ChanInput  (Stored Uint8))
+px4ConsoleTower topx4 = do
+  px4platform <- fmap topx4 getEnv
+  uartTower (px4platform_clockconfig topx4)
+            (uart_periph (px4platform_console px4platform))
+            (uart_pins   (px4platform_console px4platform))
+            115200
+            (Proxy :: Proxy 128)
+
+
+px4platform_clockconfig :: (e -> PX4Platform) -> (e -> ClockConfig)
+px4platform_clockconfig topx4 = stm32config_clock . px4platform_stm32config . topx4

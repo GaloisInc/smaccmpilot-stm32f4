@@ -20,21 +20,20 @@ import Ivory.BSP.STM32.Driver.UART
 
 import SMACCMPilot.Hardware.GPS.UBlox
 
-import qualified BSP.Tests.Platforms as BSP
 import PX4.Tests.Platforms
 
 app :: (e -> PX4Platform) -> Tower e ()
 app topx4 = do
   px4platform <- fmap topx4 getEnv
 
-  let u = BSP.testplatform_uart (px4platform_testplatform px4platform)
-  (_uarti, uarto) <- uartTower tocc (BSP.testUARTPeriph u) (BSP.testUARTPins u)
-                               115200 (Proxy :: Proxy 256)
+  (_uarti, uarto) <- px4ConsoleTower topx4
 
-  let gps_periph = px4platform_gps_device px4platform
-      gps_pins = px4platform_gps_pins px4platform
-  (gpsi, _gpso) <- uartTower tocc gps_periph gps_pins
-                                38400 (Proxy :: Proxy 128)
+  let gps = px4platform_gps px4platform
+  (gpsi, _gpso) <- uartTower (px4platform_clockconfig topx4)
+                             (uart_periph gps)
+                             (uart_pins gps)
+                             38400
+                             (Proxy :: Proxy 128)
   position <- channel
   ubloxGPSTower gpsi (fst position)
   monitor "positionSender" $ do
@@ -43,8 +42,6 @@ app topx4 = do
   towerDepends serializeModule
   towerModule  serializeModule
   mapM_ towerArtifact serializeArtifacts
-  where
-  tocc = BSP.testplatform_clockconfig . px4platform_testplatform . topx4
 
 
 positionSender :: ChanOutput (Struct "position")

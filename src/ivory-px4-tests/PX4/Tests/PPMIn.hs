@@ -10,7 +10,6 @@ import Ivory.Language
 import Ivory.Serialize
 import Ivory.Tower
 
-import Ivory.BSP.STM32.Driver.UART
 import SMACCMPilot.Hardware.PPM.PulseCapture
 import SMACCMPilot.Hardware.PPM.Decode
 
@@ -20,18 +19,12 @@ import qualified Ivory.BSP.STM32F405.Interrupt as F405
 import qualified Ivory.BSP.STM32F405.GPIO      as F405
 import qualified Ivory.BSP.STM32F405.GPIO.AF   as F405
 import qualified Ivory.BSP.STM32F405.ATIM18    as F405
-import qualified BSP.Tests.Platforms as BSP
 import PX4.Tests.Platforms
 
 app :: (e -> PX4Platform)
     -> Tower e ()
 app topx4 = do
-  px4platform <- fmap topx4 getEnv
-  let console = BSP.testplatform_uart (px4platform_testplatform px4platform)
-  (_i,uarto) <- uartTower tocc (BSP.testUARTPeriph console)
-                          (BSP.testUARTPins   console)
-                          115200
-                          (Proxy :: Proxy 128)
+  (_i,uarto) <- px4ConsoleTower topx4
 
   pulse_capt <- channel
   -- XXX FIXME: MOVE THESE PARAMS INTO THE PX4Platform CODE
@@ -45,8 +38,6 @@ app topx4 = do
   towerDepends serializeModule
   towerModule  serializeModule
   mapM_ towerArtifact serializeArtifacts
-  where
-  tocc = BSP.testplatform_clockconfig . px4platform_testplatform . topx4
 
 ppmSender :: ChanOutput (Array 8 (Stored Uint16))
                -> ChanInput  (Stored Uint8)

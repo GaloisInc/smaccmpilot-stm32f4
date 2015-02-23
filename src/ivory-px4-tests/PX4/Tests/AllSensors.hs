@@ -26,37 +26,36 @@ import PX4.Tests.MS5611   (ms5611Sender, ms5611SensorManager)
 import PX4.Tests.HMC5883L (hmc5883lSender, hmc5883lSensorManager)
 import PX4.Tests.Ublox    (positionSender)
 
-import qualified BSP.Tests.Platforms as BSP
 import PX4.Tests.Platforms
 
 app :: (e -> PX4Platform) -> Tower e ()
 app topx4 = do
   px4platform <- fmap topx4 getEnv
-  let gps_periph = px4platform_gps_device px4platform
-      gps_pins = px4platform_gps_pins px4platform
-  (gpsi, _gpso) <- uartTower tocc gps_periph gps_pins
-                                38400 (Proxy :: Proxy 128)
+  let gps = px4platform_gps px4platform
+  (gpsi, _gpso) <- uartTower (px4platform_clockconfig topx4)
+                             (uart_periph gps)
+                             (uart_pins gps)
+                             38400
+                             (Proxy :: Proxy 128)
   position <- channel
   ubloxGPSTower gpsi (fst position)
 
-  let hmc = px4platform_hmc5883_device px4platform
-  (ireq, ires, iready) <- i2cTower tocc
-                         (hmc5883device_periph hmc)
-                         (hmc5883device_sda    hmc)
-                         (hmc5883device_scl    hmc)
+  let hmc = px4platform_hmc5883l px4platform
+  (ireq, ires, iready) <- i2cTower (px4platform_clockconfig topx4)
+                         (hmc5883l_i2c_periph hmc)
+                         (hmc5883l_i2c_sda    hmc)
+                         (hmc5883l_i2c_scl    hmc)
   (ms5611meas, hmc5883lsample) <- i2cSensorManager px4platform iready ireq ires
 
   mpu6000sample <- channel
-  let mpu6000 = px4platform_mpu6000_device px4platform
-      pins    = px4platform_mpu6000_spi_pins px4platform
-  (sreq, sres, sready) <- spiTower tocc [mpu6000] pins
+  let mpu6000 = px4platform_mpu6000 px4platform
+  (sreq, sres, sready) <- spiTower (px4platform_clockconfig topx4)
+                                   [mpu6000_spi_device mpu6000]
+                                   (mpu6000_spi_pins mpu6000)
+
   mpu6000SensorManager sreq sres sready (fst mpu6000sample) (SPIDeviceHandle 0)
 
-  let u = BSP.testplatform_uart (px4platform_testplatform px4platform)
-  (_uarti,uartout) <- uartTower tocc
-                          (BSP.testUARTPeriph u)
-                          (BSP.testUARTPins   u)
-                          115200 (Proxy :: Proxy 128)
+  (_uarti,uartout) <- px4ConsoleTower topx4
 
   monitor "sensorsender" $ do
     hmc5883lSender hmc5883lsample       uartout
@@ -68,8 +67,6 @@ app topx4 = do
   towerDepends serializeModule
   towerModule  serializeModule
   mapM_ towerArtifact serializeArtifacts
-  where
-  tocc = BSP.testplatform_clockconfig . px4platform_testplatform . topx4
 
 i2cSensorManager :: PX4Platform
                  -> ChanOutput (Stored ITime)
@@ -90,5 +87,5 @@ i2cSensorManager p i2cReady i2cRequest i2cResult = do
 
   return (snd ms5611Chan, snd hmc5883Chan)
   where
-  m_addr = ms5611device_addr (px4platform_ms5611_device p)
-  h_addr = hmc5883device_addr (px4platform_hmc5883_device p)
+  m_addr = ms5611_i2c_addr (px4platform_ms5611 p)
+  h_addr = hmc5883l_i2c_addr (px4platform_hmc5883l p)
