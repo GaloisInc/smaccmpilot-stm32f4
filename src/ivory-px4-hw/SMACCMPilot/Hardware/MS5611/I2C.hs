@@ -82,12 +82,8 @@ ms5611SensorManager req_chan res_chan init_chan meas_chan addr = do
               samplei2csuccess res
               return res
 
-        getPROM Coeff1 (calibration ~> coeff1)
-        getPROM Coeff2 (calibration ~> coeff2)
-        getPROM Coeff3 (calibration ~> coeff3)
-        getPROM Coeff4 (calibration ~> coeff4)
-        getPROM Coeff5 (calibration ~> coeff5)
-        getPROM Coeff6 (calibration ~> coeff6)
+        arrayMap $ \ i ->
+          getPROM (Coeff i) (calibration ~> coeff ! i)
 
         forever $ do
           store (meas ~> sampfail) false
@@ -142,7 +138,7 @@ commandRequest :: (GetAlloc eff ~ Scope s)
            -> Ivory eff (ConstRef (Stack s) (Struct "i2c_transaction_request"))
 commandRequest addr cmd = fmap constRef $ local $ istruct
   [ tx_addr .= ival addr
-  , tx_buf  .= iarray [ ival (fromIntegral (commandVal cmd)) ]
+  , tx_buf  .= iarray [ ival (commandVal cmd) ]
   , tx_len  .= ival 1
   , rx_len  .= ival 0
   ]
@@ -173,4 +169,4 @@ threebytesample resp = do
   h <- deref ((resp ~> rx_buf) ! 0)
   m <- deref ((resp ~> rx_buf) ! 1)
   l <- deref ((resp ~> rx_buf) ! 2)
-  assign ((safeCast h) * 65536 + (safeCast m) * 255 + (safeCast l))
+  assign ((safeCast h) `iShiftL` 16 + (safeCast m) `iShiftL` 8 + (safeCast l))

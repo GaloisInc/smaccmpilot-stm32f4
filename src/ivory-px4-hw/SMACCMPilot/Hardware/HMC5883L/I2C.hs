@@ -5,6 +5,7 @@
 
 module SMACCMPilot.Hardware.HMC5883L.I2C where
 
+import Control.Applicative
 import Data.Word
 import Ivory.Language
 import Ivory.Stdlib
@@ -26,22 +27,29 @@ hmc5883lSensorManager req_chan res_chan init_chan sensor_chan addr = do
   towerDepends hmc5883lTypesModule
   p <- period (Milliseconds 20) -- 50 hz. Can be faster if required.
   monitor "hmc5883lSensorManager" $ do
+    init_requests_area <- do
+      let reqs = iarray
+            [ regWriteInit addr ConfA $ confAVal Average8 Rate75Hz NoBias
+            , regWriteInit addr ConfB $ confBVal LSBGauss1370
+            , regWriteInit addr Mode  $ modeVal  Continuous
+            ] :: Init (Array 3 (Struct "i2c_transaction_request"))
+      constArea <$> fmap showUnique (freshname "hmc5883l_init_requests") <*> pure reqs
+    monitorModuleDef $ defConstMemArea init_requests_area
+    let init_requests = addrOf init_requests_area
+
     initialized <- stateInit "initialized" (ival false)
     s           <- state "sample"
     coroutineHandler init_chan res_chan "hmc5883l" $ do
       req_e <- emitter req_chan 1
       sens_e <- emitter sensor_chan 1
       return $ CoroutineBody $ \yield -> do
-        let writeReg reg val = do
-              regWriteRequest addr reg val >>= emit req_e
-              res <- yield
-              code <- deref (res ~> resultcode)
-              -- Set the initfail field if i2c failed
-              when (code >? 0) (store (s ~> initfail) true)
         comment "entry to hmc5883l coroutine"
-        writeReg ConfA $ confAVal Average8 Rate75Hz NoBias
-        writeReg ConfB $ confBVal LSBGauss1370
-        writeReg Mode  $ modeVal  Continuous
+        arrayMap $ \ i -> do
+          emit req_e $ init_requests ! i
+          res <- yield
+          code <- deref (res ~> resultcode)
+          -- Set the initfail field if i2c failed
+          when (code >? 0) (store (s ~> initfail) true)
         store initialized true
         comment "finished initializing in hmc5883l coroutine"
 
@@ -92,12 +100,11 @@ hmc5883lSensorManager req_chan res_chan init_chan sensor_chan addr = do
     lo <- deref ((res ~> rx_buf) ! ixlo)
     assign $ safeCast (twosComplementCast ((safeCast hi `iShiftL` 8) .| safeCast lo) :: Sint16) / 1370.0
 
-regWriteRequest :: (GetAlloc eff ~ Scope s)
-           => I2CDeviceAddr
-           -> Reg
-           -> Word8
-           -> Ivory eff (ConstRef (Stack s) (Struct "i2c_transaction_request"))
-regWriteRequest addr r v = fmap constRef $ local $ istruct
+regWriteInit :: I2CDeviceAddr
+             -> Reg
+             -> Word8
+             -> Init (Struct "i2c_transaction_request")
+regWriteInit addr r v = istruct
   [ tx_addr .= ival addr
   , tx_buf  .= iarray [ ival (fromIntegral (regAddr r)), ival (fromIntegral v) ]
   , tx_len  .= ival 2

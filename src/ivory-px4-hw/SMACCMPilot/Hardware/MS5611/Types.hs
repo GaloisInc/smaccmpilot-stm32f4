@@ -13,12 +13,7 @@ import Ivory.Tower.Types.Time
 
 [ivory|
 struct ms5611_calibration
-  { coeff1  :: Stored Uint16
-  ; coeff2  :: Stored Uint16
-  ; coeff3  :: Stored Uint16
-  ; coeff4  :: Stored Uint16
-  ; coeff5  :: Stored Uint16
-  ; coeff6  :: Stored Uint16
+  { coeff :: Array 6 (Stored Uint16)
   }
 
 struct ms5611_sample
