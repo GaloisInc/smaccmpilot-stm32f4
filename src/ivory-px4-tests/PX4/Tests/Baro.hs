@@ -5,7 +5,7 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleContexts #-}
 
-module PX4.Tests.Baro (ms5611Sender, ms5611SensorManager, app) where
+module PX4.Tests.Baro (ms5611Sender, ms5611I2CSensorManager, app) where
 
 import Ivory.Language
 import Ivory.Serialize
@@ -47,7 +47,7 @@ ms5611_i2c_app topx4 ms5611 meas = do
                          (ms5611_i2c_periph ms5611)
                          (ms5611_i2c_sda ms5611)
                          (ms5611_i2c_scl ms5611)
-  ms5611SensorManager req res ready meas (ms5611_i2c_addr ms5611)
+  ms5611I2CSensorManager req res ready meas (ms5611_i2c_addr ms5611)
 
 
 

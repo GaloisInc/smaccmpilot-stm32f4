@@ -22,7 +22,7 @@ import SMACCMPilot.Hardware.Sched
 import SMACCMPilot.Hardware.GPS.UBlox
 
 import PX4.Tests.MPU6000      (mpu6000SensorManager)
-import PX4.Tests.Baro         (ms5611Sender, ms5611SensorManager)
+import PX4.Tests.Baro         (ms5611Sender, ms5611I2CSensorManager)
 import PX4.Tests.Magnetometer (hmc5883lSender, hmc5883lSensorManager)
 import PX4.Tests.Ublox        (positionSender)
 
@@ -92,8 +92,8 @@ fmu17_baromag topx4 hmc5883l ms5611 = do
 
   (ms5611task, ms5611Req, ms5611Res) <- task "ms5611"
   ms5611Chan <- channel
-  ms5611SensorManager ms5611Req ms5611Res i2cReady
-                      (fst ms5611Chan) (ms5611_i2c_addr ms5611)
+  ms5611I2CSensorManager ms5611Req ms5611Res i2cReady
+                         (fst ms5611Chan) (ms5611_i2c_addr ms5611)
 
   (hmc5883task, hmc5883Req, hmc5883Res) <- task "hmc5883"
   hmc5883Chan <-channel
