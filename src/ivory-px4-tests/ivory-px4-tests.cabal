@@ -13,7 +13,7 @@ library
                        PX4.Tests.CopterMotors,
                        PX4.Tests.Ublox,
                        PX4.Tests.MPU6000,
-                       PX4.Tests.MS5611,
+                       PX4.Tests.Baro,
                        PX4.Tests.HMC5883L,
                        PX4.Tests.PPMIn,
                        PX4.Tests.AllSensors,
@@ -118,8 +118,8 @@ executable             px4-mpu6k-test-gen
   default-language:    Haskell2010
   ghc-options:         -Wall
 
-executable             px4-ms5611-test-gen
-  main-is:             MS5611Test.hs
+executable             px4-baro-test-gen
+  main-is:             BaroTest.hs
   hs-source-dirs:      tests
   build-depends:       base >= 4.6,
                        monadLib,

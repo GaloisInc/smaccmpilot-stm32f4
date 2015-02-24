@@ -22,7 +22,7 @@ import SMACCMPilot.Hardware.Sched
 import SMACCMPilot.Hardware.GPS.UBlox
 
 import PX4.Tests.MPU6000  (mpu6000SensorManager)
-import PX4.Tests.MS5611   (ms5611Sender, ms5611SensorManager)
+import PX4.Tests.Baro     (ms5611Sender, ms5611SensorManager)
 import PX4.Tests.HMC5883L (hmc5883lSender, hmc5883lSensorManager)
 import PX4.Tests.Ublox    (positionSender)
 
