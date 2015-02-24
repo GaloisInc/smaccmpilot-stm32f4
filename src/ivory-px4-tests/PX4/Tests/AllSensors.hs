@@ -21,10 +21,10 @@ import Ivory.BSP.STM32.Driver.UART
 import SMACCMPilot.Hardware.Sched
 import SMACCMPilot.Hardware.GPS.UBlox
 
-import PX4.Tests.MPU6000  (mpu6000SensorManager)
-import PX4.Tests.Baro     (ms5611Sender, ms5611SensorManager)
-import PX4.Tests.HMC5883L (hmc5883lSender, hmc5883lSensorManager)
-import PX4.Tests.Ublox    (positionSender)
+import PX4.Tests.MPU6000      (mpu6000SensorManager)
+import PX4.Tests.Baro         (ms5611Sender, ms5611SensorManager)
+import PX4.Tests.Magnetometer (hmc5883lSender, hmc5883lSensorManager)
+import PX4.Tests.Ublox        (positionSender)
 
 import PX4.Tests.Platforms
 
@@ -73,7 +73,7 @@ baro_mag_manager topx4 = do
   case (px4platform_baro px4platform, px4platform_mag px4platform) of
     (Baro_MS5611_I2C ms5611_i2c, Mag_HMC5883L_I2C hmc5883l_i2c) ->
         fmu17_baromag topx4 hmc5883l_i2c ms5611_i2c
-    _ -> error ""
+    _ -> error "AllSensors baro mag manager: case not implemented"
 
 
 fmu17_baromag :: (e -> PX4Platform)

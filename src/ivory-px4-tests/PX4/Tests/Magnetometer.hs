@@ -5,7 +5,7 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleContexts #-}
 
-module PX4.Tests.HMC5883L (hmc5883lSender, hmc5883lSensorManager, app) where
+module PX4.Tests.Magnetometer (hmc5883lSender, hmc5883lSensorManager, app) where
 
 import Ivory.Language
 import Ivory.Serialize

@@ -11,7 +11,7 @@ default:
 test: ublox-gps-test
 test: px4-mpu6k-test
 test: px4-baro-test
-test: px4-hmc5883l-test
+test: px4-mag-test
 test: px4-ppm-in-test
 test: px4-all-sensors-test
 test: px4-copter-motor-test
@@ -44,14 +44,14 @@ px4-baro-test:
 px4-baro-test-clean:
 	-rm -rf px4-baro-test
 
-.PHONY: px4-hmc5883l-test
-px4-hmc5883l-test:
-	cabal run px4-hmc5883l-test-gen -- --src-dir=px4-hmc5883l-test $(IVORY_FLAGS)
-	make -C px4-hmc5883l-test
+.PHONY: px4-mag-test
+px4-mag-test:
+	cabal run px4-mag-test-gen -- --src-dir=px4-mag-test $(IVORY_FLAGS)
+	make -C px4-mag-test
 
-.PHONY: px4-hmc5883l-test-clean
-px4-hmc5883l-test-clean:
-	-rm -rf px4-hmc5883l-test
+.PHONY: px4-mag-test-clean
+px4-mag-test-clean:
+	-rm -rf px4-mag-test
 
 .PHONY: px4-all-sensors-test
 px4-all-sensors-test:
@@ -123,7 +123,7 @@ create-sandbox:
 clean: ublox-gps-test-clean
 clean: px4-mpu6k-test-clean
 clean: px4-baro-test-clean
-clean: px4-hmc5883l-test-clean
+clean: px4-mag-test-clean
 clean: px4-ppm-in-test-clean
 clean: px4-copter-motor-test-clean
 clean: px4-all-sensors-test-clean
