@@ -22,13 +22,12 @@ import PX4.Tests.Platforms
 app :: (e -> PX4Platform) -> Tower e ()
 app topx4 = do
   px4platform <- fmap topx4 getEnv
-  let ms5611 = px4platform_ms5611 px4platform
-  (req, res, ready) <- i2cTower (px4platform_clockconfig topx4)
-                         (ms5611_i2c_periph ms5611)
-                         (ms5611_i2c_sda ms5611)
-                         (ms5611_i2c_scl ms5611)
   measurements <- channel
-  ms5611SensorManager req res ready (fst measurements) (ms5611_i2c_addr ms5611)
+
+  case px4platform_baro px4platform of
+    Baro_MS5611_I2C m -> ms5611_i2c_app topx4 m (fst measurements)
+    _ -> error "baro app body case statement left partially implemented"
+
 
   (_uarti, uarto) <- px4ConsoleTower topx4
   monitor "ms5611sender" $ do
@@ -37,6 +36,20 @@ app topx4 = do
   towerDepends serializeModule
   towerModule  serializeModule
   mapM_ towerArtifact serializeArtifacts
+
+
+ms5611_i2c_app :: (e -> PX4Platform)
+               -> MS5611_I2C
+               -> ChanInput (Struct "ms5611_measurement")
+               -> Tower e ()
+ms5611_i2c_app topx4 ms5611 meas = do
+  (req, res, ready) <- i2cTower (px4platform_clockconfig topx4)
+                         (ms5611_i2c_periph ms5611)
+                         (ms5611_i2c_sda ms5611)
+                         (ms5611_i2c_scl ms5611)
+  ms5611SensorManager req res ready meas (ms5611_i2c_addr ms5611)
+
+
 
 ms5611Sender :: ChanOutput (Struct "ms5611_measurement")
              -> ChanInput (Stored Uint8)

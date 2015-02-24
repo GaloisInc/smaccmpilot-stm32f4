@@ -23,7 +23,21 @@ app :: (e -> PX4Platform) -> Tower e ()
 app topx4 = do
   px4platform <- fmap topx4 getEnv
 
-  let hmc = px4platform_hmc5883l px4platform
+  (_uarti,uarto) <- px4ConsoleTower topx4
+
+  case px4platform_mag px4platform of
+    Mag_HMC5883L_I2C h -> hmc5883l_i2c_app topx4 h uarto
+    _ -> error "magnetometer app case statement incomplete"
+
+  towerDepends serializeModule
+  towerModule  serializeModule
+  mapM_ towerArtifact serializeArtifacts
+
+hmc5883l_i2c_app :: (e -> PX4Platform)
+                 -> HMC5883L_I2C
+                 -> ChanInput (Stored Uint8)
+                 -> Tower e ()
+hmc5883l_i2c_app topx4 hmc uarto = do
   (req, res, ready) <- i2cTower (px4platform_clockconfig topx4)
                          (hmc5883l_i2c_periph hmc)
                          (hmc5883l_i2c_sda    hmc)
@@ -33,14 +47,9 @@ app topx4 = do
 
   hmc5883lSensorManager req res ready (fst samples) (hmc5883l_i2c_addr hmc)
 
-  (_uarti,uarto) <- px4ConsoleTower topx4
-
   monitor "hmc5883lsender" $ do
     hmc5883lSender (snd samples) uarto
 
-  towerDepends serializeModule
-  towerModule  serializeModule
-  mapM_ towerArtifact serializeArtifacts
 
 hmc5883lSender :: ChanOutput (Struct "hmc5883l_sample")
                -> ChanInput  (Stored Uint8)

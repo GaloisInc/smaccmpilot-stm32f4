@@ -9,14 +9,13 @@ module PX4.Tests.SensorFusion
   ( app
   ) where
 
-import Ivory.BSP.STM32.Driver.I2C
 import Ivory.BSP.STM32.Driver.SPI
 import Ivory.BSP.STM32.Driver.UART
 import Ivory.Language
 import Ivory.Serialize
 import Ivory.Tower
 import PX4.Tests.Platforms
-import PX4.Tests.AllSensors (i2cSensorManager)
+import PX4.Tests.AllSensors (baro_mag_manager)
 import qualified SMACCMPilot.Datalink.HXStream.Ivory as HX
 import SMACCMPilot.Hardware.GPS.UBlox
 import SMACCMPilot.Hardware.MPU6000
@@ -34,12 +33,7 @@ app topx4 = do
   position <- channel
   ubloxGPSTower gpsi (fst position)
 
-  let hmc = px4platform_hmc5883l px4platform
-  (ireq, ires, iready) <- i2cTower (px4platform_clockconfig topx4)
-                         (hmc5883l_i2c_periph hmc)
-                         (hmc5883l_i2c_sda    hmc)
-                         (hmc5883l_i2c_scl    hmc)
-  (ms5611meas, hmc5883lsample) <- i2cSensorManager px4platform iready ireq ires
+  (ms5611meas, hmc5883lsample) <- baro_mag_manager topx4
 
   mpu6000sample <- channel
   let mpu6000 = px4platform_mpu6000 px4platform

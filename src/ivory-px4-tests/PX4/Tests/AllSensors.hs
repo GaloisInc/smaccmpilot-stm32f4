@@ -7,7 +7,7 @@
 
 module PX4.Tests.AllSensors
   ( app
-  , i2cSensorManager
+  , baro_mag_manager
   ) where
 
 import Ivory.Language
@@ -40,12 +40,9 @@ app topx4 = do
   position <- channel
   ubloxGPSTower gpsi (fst position)
 
-  let hmc = px4platform_hmc5883l px4platform
-  (ireq, ires, iready) <- i2cTower (px4platform_clockconfig topx4)
-                         (hmc5883l_i2c_periph hmc)
-                         (hmc5883l_i2c_sda    hmc)
-                         (hmc5883l_i2c_scl    hmc)
-  (ms5611meas, hmc5883lsample) <- i2cSensorManager px4platform iready ireq ires
+
+  (baro_meas, mag_meas) <- baro_mag_manager topx4
+
 
   mpu6000sample <- channel
   let mpu6000 = px4platform_mpu6000 px4platform
@@ -58,8 +55,8 @@ app topx4 = do
   (_uarti,uartout) <- px4ConsoleTower topx4
 
   monitor "sensorsender" $ do
-    hmc5883lSender hmc5883lsample       uartout
-    ms5611Sender   ms5611meas           uartout
+    hmc5883lSender mag_meas             uartout
+    ms5611Sender   baro_meas            uartout
     -- XXX: mpu6000 produces too much output for a 115200 bps UART
     -- mpu6000Sender  (snd mpu6000sample)  uartout
     positionSender (snd position)       uartout
@@ -68,24 +65,41 @@ app topx4 = do
   towerModule  serializeModule
   mapM_ towerArtifact serializeArtifacts
 
-i2cSensorManager :: PX4Platform
-                 -> ChanOutput (Stored ITime)
-                 -> ChanInput  (Struct "i2c_transaction_request")
-                 -> ChanOutput (Struct "i2c_transaction_result")
+baro_mag_manager :: (e -> PX4Platform)
                  -> Tower e ( ChanOutput (Struct "ms5611_measurement")
                             , ChanOutput (Struct "hmc5883l_sample"))
-i2cSensorManager p i2cReady i2cRequest i2cResult = do
+baro_mag_manager topx4 = do
+  px4platform <- fmap topx4 getEnv
+  case (px4platform_baro px4platform, px4platform_mag px4platform) of
+    (Baro_MS5611_I2C ms5611_i2c, Mag_HMC5883L_I2C hmc5883l_i2c) ->
+        fmu17_baromag topx4 hmc5883l_i2c ms5611_i2c
+    _ -> error ""
+
+
+fmu17_baromag :: (e -> PX4Platform)
+              -> HMC5883L_I2C
+              -> MS5611_I2C
+              -> Tower e ( ChanOutput (Struct "ms5611_measurement")
+                         , ChanOutput (Struct "hmc5883l_sample"))
+fmu17_baromag topx4 hmc5883l ms5611 = do
+
+  (i2cRequest, i2cResult, i2cReady) <- i2cTower
+                                           (px4platform_clockconfig topx4)
+                                           (hmc5883l_i2c_periph hmc5883l)
+                                           (hmc5883l_i2c_sda    hmc5883l)
+                                           (hmc5883l_i2c_scl    hmc5883l)
+
+
   (ms5611task, ms5611Req, ms5611Res) <- task "ms5611"
   ms5611Chan <- channel
-  ms5611SensorManager ms5611Req ms5611Res i2cReady (fst ms5611Chan) m_addr
+  ms5611SensorManager ms5611Req ms5611Res i2cReady
+                      (fst ms5611Chan) (ms5611_i2c_addr ms5611)
 
   (hmc5883task, hmc5883Req, hmc5883Res) <- task "hmc5883"
   hmc5883Chan <-channel
-  hmc5883lSensorManager hmc5883Req hmc5883Res i2cReady (fst hmc5883Chan) h_addr
+  hmc5883lSensorManager hmc5883Req hmc5883Res i2cReady
+                        (fst hmc5883Chan) (hmc5883l_i2c_addr hmc5883l)
 
   schedule [ms5611task, hmc5883task] i2cReady i2cRequest i2cResult
 
   return (snd ms5611Chan, snd hmc5883Chan)
-  where
-  m_addr = ms5611_i2c_addr (px4platform_ms5611 p)
-  h_addr = hmc5883l_i2c_addr (px4platform_hmc5883l p)

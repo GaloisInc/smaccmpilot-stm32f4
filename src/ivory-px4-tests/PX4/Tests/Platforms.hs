@@ -36,8 +36,8 @@ data PX4Platform =
   PX4Platform
     { px4platform_gps            :: UART_Device
     , px4platform_mpu6000        :: MPU6000_SPI
-    , px4platform_hmc5883l       :: HMC5883L_I2C
-    , px4platform_ms5611         :: MS5611_I2C
+    , px4platform_baro           :: Baro
+    , px4platform_mag            :: Magnetometer
 
     , px4platform_motorcontrol   :: forall e . (e -> ClockConfig)
                                  -> ChanOutput (Array 4 (Stored IFloat))
@@ -60,6 +60,28 @@ data MPU6000_SPI =
     , mpu6000_spi_pins   :: SPIPins
     }
 
+data Baro
+  = Baro_MS5611_I2C MS5611_I2C
+  | Baro_MS5611_SPI MS5611_SPI
+
+data MS5611_I2C =
+  MS5611_I2C
+    { ms5611_i2c_periph :: I2CPeriph
+    , ms5611_i2c_sda    :: GPIOPin
+    , ms5611_i2c_scl    :: GPIOPin
+    , ms5611_i2c_addr   :: I2CDeviceAddr
+    }
+
+data MS5611_SPI =
+  MS5611_SPI
+    { ms5611_spi_device :: SPIDevice
+    -- Pins are the same as MPU6000, by fiat
+    }
+
+data Magnetometer
+  = Mag_HMC5883L_I2C HMC5883L_I2C
+  | Mag_LSM303D_SPI  LSM303D_SPI
+
 data HMC5883L_I2C =
   HMC5883L_I2C
     { hmc5883l_i2c_periph :: I2CPeriph
@@ -68,12 +90,10 @@ data HMC5883L_I2C =
     , hmc5883l_i2c_addr   :: I2CDeviceAddr
     }
 
-data MS5611_I2C =
-  MS5611_I2C
-    { ms5611_i2c_periph :: I2CPeriph
-    , ms5611_i2c_sda    :: GPIOPin
-    , ms5611_i2c_scl    :: GPIOPin
-    , ms5611_i2c_addr   :: I2CDeviceAddr
+data LSM303D_SPI =
+  LSM303D_SPI
+    { lsm303d_spi_device :: SPIDevice
+    -- Pins are the same as MPU6000, by fiat
     }
 
 px4PlatformParser :: ConfigParser PX4Platform
@@ -90,8 +110,8 @@ px4fmuv17 :: PX4Platform
 px4fmuv17 = PX4Platform
   { px4platform_gps          = gps
   , px4platform_mpu6000      = mpu6000
-  , px4platform_hmc5883l     = hmc5883
-  , px4platform_ms5611       = ms5611
+  , px4platform_mag          = Mag_HMC5883L_I2C hmc5883l
+  , px4platform_baro         = Baro_MS5611_I2C  ms5611
   , px4platform_motorcontrol = FMUv17.motorControlTower
   , px4platform_console      = console
   , px4platform_stm32config  = stm32f405Defaults 24
@@ -136,8 +156,8 @@ px4fmuv17 = PX4Platform
     , spiPinSck  = F405.pinA5
     , spiPinAF   = F405.gpio_af_spi1
     }
-  hmc5883 :: HMC5883L_I2C
-  hmc5883 = HMC5883L_I2C
+  hmc5883l :: HMC5883L_I2C
+  hmc5883l = HMC5883L_I2C
     { hmc5883l_i2c_periph = F405.i2c2
     , hmc5883l_i2c_sda    = F405.pinB10
     , hmc5883l_i2c_scl    = F405.pinB11
@@ -168,8 +188,8 @@ px4fmuv24 :: PX4Platform
 px4fmuv24 = PX4Platform
   { px4platform_gps          = gps
   , px4platform_mpu6000      = error "mpu6000 not defined for px4fmuv24"
-  , px4platform_hmc5883l     = error "hmc5883 not defined for px4fmuv24"
-  , px4platform_ms5611       = error "ms5611 not defined for px4fmuv24"
+  , px4platform_mag          = error "magnetometer not defined for px4fmuv24"
+  , px4platform_baro         = error "barometer not defined for px4fmuv24"
   , px4platform_motorcontrol = error "motor control not defined for px4fmuv24"
   , px4platform_console      = console
   , px4platform_stm32config  = stm32f427Defaults 24
