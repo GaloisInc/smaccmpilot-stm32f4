@@ -29,7 +29,7 @@ app topx4 = do
   (_uarti, uarto) <- px4ConsoleTower topx4
 
   let gps = px4platform_gps px4platform
-  (gpsi, _gpso) <- uartTower (px4platform_clockconfig topx4)
+  (gpsi, _gpso) <- uartTower (px4platform_clockconfig . topx4)
                              (uart_periph gps)
                              (uart_pins gps)
                              38400

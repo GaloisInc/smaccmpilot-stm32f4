@@ -28,7 +28,7 @@ app topx4 = do
   sample <- channel
   px4platform <- fmap topx4 getEnv
   let mpu6000  = px4platform_mpu6000 px4platform
-  (req, res, ready) <- spiTower (px4platform_clockconfig topx4)
+  (req, res, ready) <- spiTower (px4platform_clockconfig . topx4)
                                 [mpu6000_spi_device mpu6000]
                                 (mpu6000_spi_pins mpu6000)
   mpu6000SensorManager req res ready (fst sample) (SPIDeviceHandle 0)

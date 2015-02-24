@@ -43,7 +43,7 @@ ms5611_i2c_app :: (e -> PX4Platform)
                -> ChanInput (Struct "ms5611_measurement")
                -> Tower e ()
 ms5611_i2c_app topx4 ms5611 meas = do
-  (req, res, ready) <- i2cTower (px4platform_clockconfig topx4)
+  (req, res, ready) <- i2cTower (px4platform_clockconfig . topx4)
                          (ms5611_i2c_periph ms5611)
                          (ms5611_i2c_sda ms5611)
                          (ms5611_i2c_scl ms5611)

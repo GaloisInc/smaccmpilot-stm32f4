@@ -14,11 +14,6 @@ import SMACCMPilot.Hardware.PPM.PulseCapture
 import SMACCMPilot.Hardware.PPM.Decode
 
 import qualified SMACCMPilot.Datalink.HXStream.Ivory as HX
-
-import qualified Ivory.BSP.STM32F405.Interrupt as F405
-import qualified Ivory.BSP.STM32F405.GPIO      as F405
-import qualified Ivory.BSP.STM32F405.GPIO.AF   as F405
-import qualified Ivory.BSP.STM32F405.ATIM18    as F405
 import PX4.Tests.Platforms
 
 app :: (e -> PX4Platform)
@@ -27,8 +22,14 @@ app topx4 = do
   (_i,uarto) <- px4ConsoleTower topx4
 
   pulse_capt <- channel
-  -- XXX FIXME: MOVE THESE PARAMS INTO THE PX4Platform CODE
-  pulseCaptureTower F405.tim1 F405.pinA10 F405.gpio_af_tim1 F405.TIM1_CC (fst pulse_capt)
+
+  px4platform <- fmap topx4 getEnv
+  case px4platform_ppm px4platform of
+    PPM_Timer t p a i -> pulseCaptureTower (px4platform_clockconfig . topx4)
+                                           t p a i
+                                           (fst pulse_capt)
+    PPM_None -> error "PPMIn app: no PPM configured for this px4platform"
+
   output <- channel
   ppmDecodeTower (snd pulse_capt) (fst output)
 

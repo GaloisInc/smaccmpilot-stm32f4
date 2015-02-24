@@ -20,6 +20,8 @@ import qualified Ivory.BSP.STM32F405.GPIO           as F405
 import qualified Ivory.BSP.STM32F405.GPIO.AF        as F405
 import qualified Ivory.BSP.STM32F405.SPI            as F405
 import qualified Ivory.BSP.STM32F405.I2C            as F405
+import qualified Ivory.BSP.STM32F405.ATIM18         as F405
+import qualified Ivory.BSP.STM32F405.Interrupt      as F405
 import qualified Ivory.BSP.STM32F427.UART           as F427
 import qualified Ivory.BSP.STM32F427.GPIO           as F427
 import qualified Ivory.BSP.STM32F427.GPIO.AF        as F427
@@ -27,6 +29,8 @@ import           Ivory.BSP.STM32.Peripheral.GPIOF4
 import           Ivory.BSP.STM32.Peripheral.UART
 import           Ivory.BSP.STM32.Peripheral.SPI
 import           Ivory.BSP.STM32.Peripheral.I2C
+import           Ivory.BSP.STM32.Peripheral.ATIM18
+import           Ivory.BSP.STM32.Interrupt
 import           Ivory.BSP.STM32.Driver.I2C
 import           Ivory.BSP.STM32.Driver.UART
 import           Ivory.BSP.STM32.ClockConfig
@@ -42,6 +46,7 @@ data PX4Platform =
     , px4platform_motorcontrol   :: forall e . (e -> ClockConfig)
                                  -> ChanOutput (Array 4 (Stored IFloat))
                                  -> Tower e ()
+    , px4platform_ppm            :: PPM
 
     , px4platform_console        :: UART_Device
 
@@ -96,6 +101,16 @@ data LSM303D_SPI =
     -- Pins are the same as MPU6000, by fiat
     }
 
+data PPM
+  = PPM_Timer ATIM GPIOPin GPIO_AF HasSTM32Interrupt
+  | PPM_None
+
+
+
+
+-----------------
+
+
 px4PlatformParser :: ConfigParser PX4Platform
 px4PlatformParser = do
   p <- subsection "args" $ subsection "platform" string
@@ -113,6 +128,7 @@ px4fmuv17 = PX4Platform
   , px4platform_mag          = Mag_HMC5883L_I2C hmc5883l
   , px4platform_baro         = Baro_MS5611_I2C  ms5611
   , px4platform_motorcontrol = FMUv17.motorControlTower
+  , px4platform_ppm          = ppm_timer
   , px4platform_console      = console
   , px4platform_stm32config  = stm32f405Defaults 24
   }
@@ -170,6 +186,9 @@ px4fmuv17 = PX4Platform
     , ms5611_i2c_scl    = F405.pinB11
     , ms5611_i2c_addr   = I2CDeviceAddr 0x76
     }
+  ppm_timer :: PPM
+  ppm_timer = PPM_Timer F405.tim1 F405.pinA10 F405.gpio_af_tim1 ppm_int
+  ppm_int = HasSTM32Interrupt F405.TIM1_CC
 
 px4fmuv17_ioar :: PX4Platform
 px4fmuv17_ioar = px4fmuv17 { px4platform_console = console }
@@ -191,6 +210,7 @@ px4fmuv24 = PX4Platform
   , px4platform_mag          = error "magnetometer not defined for px4fmuv24"
   , px4platform_baro         = error "barometer not defined for px4fmuv24"
   , px4platform_motorcontrol = error "motor control not defined for px4fmuv24"
+  , px4platform_ppm          = PPM_None -- XXX need px4io driver.
   , px4platform_console      = console
   , px4platform_stm32config  = stm32f427Defaults 24
   }
@@ -219,12 +239,12 @@ px4ConsoleTower :: (e -> PX4Platform) -> Tower e ( ChanOutput (Stored Uint8)
                                                  , ChanInput  (Stored Uint8))
 px4ConsoleTower topx4 = do
   px4platform <- fmap topx4 getEnv
-  uartTower (px4platform_clockconfig topx4)
+  uartTower (px4platform_clockconfig . topx4)
             (uart_periph (px4platform_console px4platform))
             (uart_pins   (px4platform_console px4platform))
             115200
             (Proxy :: Proxy 128)
 
 
-px4platform_clockconfig :: (e -> PX4Platform) -> (e -> ClockConfig)
-px4platform_clockconfig topx4 = stm32config_clock . px4platform_stm32config . topx4
+px4platform_clockconfig :: (PX4Platform -> ClockConfig)
+px4platform_clockconfig = stm32config_clock . px4platform_stm32config

@@ -38,7 +38,7 @@ hmc5883l_i2c_app :: (e -> PX4Platform)
                  -> ChanInput (Stored Uint8)
                  -> Tower e ()
 hmc5883l_i2c_app topx4 hmc uarto = do
-  (req, res, ready) <- i2cTower (px4platform_clockconfig topx4)
+  (req, res, ready) <- i2cTower (px4platform_clockconfig . topx4)
                          (hmc5883l_i2c_periph hmc)
                          (hmc5883l_i2c_sda    hmc)
                          (hmc5883l_i2c_scl    hmc)

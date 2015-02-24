@@ -32,7 +32,7 @@ app :: (e -> PX4Platform) -> Tower e ()
 app topx4 = do
   px4platform <- fmap topx4 getEnv
   let gps = px4platform_gps px4platform
-  (gpsi, _gpso) <- uartTower (px4platform_clockconfig topx4)
+  (gpsi, _gpso) <- uartTower (px4platform_clockconfig . topx4)
                              (uart_periph gps)
                              (uart_pins gps)
                              38400
@@ -46,7 +46,7 @@ app topx4 = do
 
   mpu6000sample <- channel
   let mpu6000 = px4platform_mpu6000 px4platform
-  (sreq, sres, sready) <- spiTower (px4platform_clockconfig topx4)
+  (sreq, sres, sready) <- spiTower (px4platform_clockconfig . topx4)
                                    [mpu6000_spi_device mpu6000]
                                    (mpu6000_spi_pins mpu6000)
 
@@ -84,7 +84,7 @@ fmu17_baromag :: (e -> PX4Platform)
 fmu17_baromag topx4 hmc5883l ms5611 = do
 
   (i2cRequest, i2cResult, i2cReady) <- i2cTower
-                                           (px4platform_clockconfig topx4)
+                                           (px4platform_clockconfig . topx4)
                                            (hmc5883l_i2c_periph hmc5883l)
                                            (hmc5883l_i2c_sda    hmc5883l)
                                            (hmc5883l_i2c_scl    hmc5883l)
