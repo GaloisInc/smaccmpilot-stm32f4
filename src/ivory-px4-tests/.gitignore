@@ -1,8 +1,8 @@
 *.pyc
 ublox-gps-test
 px4-mpu6k-test
-px4-ms5611-test
-px4-hmc5883l-test
+px4-baro-test
+px4-mag-test
 px4-all-sensors-test
 px4-sensor-fusion-test
 px4-copter-motor-test

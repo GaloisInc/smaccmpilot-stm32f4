@@ -17,7 +17,6 @@ import Ivory.OS.FreeRTOS.Tower.STM32
 import Ivory.BSP.STM32.Driver.UART
 import Ivory.BSP.STM32.Driver.RingBuffer
 
-import qualified Ivory.BSP.STM32F405.Interrupt as F405
 import qualified BSP.Tests.Platforms as BSP
 
 import SMACCMPilot.Commsec.Sizes
@@ -31,7 +30,7 @@ main = towerCompile p (app id)
     cfg <- getConfig topts BSP.testPlatformParser
     return $ stm32FreeRTOS BSP.testplatform_stm32 cfg
 
-app :: (e -> BSP.TestPlatform F405.Interrupt)
+app :: (e -> BSP.TestPlatform)
     -> Tower e ()
 app totp = do
   tp <- fmap totp getEnv

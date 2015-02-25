@@ -1,8 +1,8 @@
+{-# LANGUAGE DataKinds #-}
 
 module SMACCMPilot.Hardware.MS5611.Regs where
 
-import Data.Bits
-import Data.Word
+import Ivory.Language
 
 data Command
   = Reset
@@ -10,7 +10,6 @@ data Command
   | ConvertD2 OSR
   | ADCRead
   | PromRead PROM
-  deriving (Eq, Show)
 
 data OSR
   = OSR256
@@ -20,33 +19,21 @@ data OSR
   | OSR4096
   deriving (Eq, Show)
 
-data PROM
-  = Coeff1
-  | Coeff2
-  | Coeff3
-  | Coeff4
-  | Coeff5
-  | Coeff6
-  deriving (Eq, Show)
+newtype PROM = Coeff (Ix 6)
 
-commandVal :: Command -> Word8
+commandVal :: Command -> Uint8
 commandVal Reset           = 0x1E
-commandVal (ConvertD1 osr) = 0x40 .|. osrBits osr
-commandVal (ConvertD2 osr) = 0x50 .|. osrBits osr
+commandVal (ConvertD1 osr) = 0x40 .| osrBits osr
+commandVal (ConvertD2 osr) = 0x50 .| osrBits osr
 commandVal ADCRead         = 0x00
-commandVal (PromRead prom) = 0xA0 .|. promBits prom
+commandVal (PromRead prom) = 0xA0 .| promBits prom
 
-osrBits :: OSR -> Word8
+osrBits :: OSR -> Uint8
 osrBits OSR256  = 0
 osrBits OSR512  = 2
 osrBits OSR1024 = 4
 osrBits OSR2048 = 6
 osrBits OSR4096 = 8
 
-promBits :: PROM -> Word8
-promBits Coeff1 = 2
-promBits Coeff2 = 4
-promBits Coeff3 = 6
-promBits Coeff4 = 8
-promBits Coeff5 = 10
-promBits Coeff6 = 12
+promBits :: PROM -> Uint8
+promBits (Coeff i) = castDefault (fromIx i + 1) * 2
