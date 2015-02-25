@@ -3,7 +3,7 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module SMACCMPilot.Hardware.MS5611.I2C where
+module SMACCMPilot.Hardware.MS5611.Manager where
 
 import Ivory.Language
 import Ivory.Stdlib
