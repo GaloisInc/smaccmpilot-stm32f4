@@ -19,7 +19,9 @@ data OSR
   | OSR4096
   deriving (Eq, Show)
 
-newtype PROM = Coeff (Ix 6)
+data PROM
+  = Reserved
+  | Coeff (Ix 6)
 
 commandVal :: Command -> Uint8
 commandVal Reset           = 0x1E
@@ -36,4 +38,5 @@ osrBits OSR2048 = 6
 osrBits OSR4096 = 8
 
 promBits :: PROM -> Uint8
+promBits Reserved  = 0
 promBits (Coeff i) = castDefault (fromIx i + 1) * 2
