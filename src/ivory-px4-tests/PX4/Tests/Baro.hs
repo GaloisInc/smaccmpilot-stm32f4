@@ -14,6 +14,7 @@ import qualified SMACCMPilot.Datalink.HXStream.Ivory as HX
 import Ivory.Tower
 
 import Ivory.BSP.STM32.Driver.I2C
+import Ivory.BSP.STM32.Driver.SPI
 
 import SMACCMPilot.Hardware.MS5611
 
@@ -26,7 +27,7 @@ app topx4 = do
 
   case px4platform_baro px4platform of
     Baro_MS5611_I2C m -> ms5611_i2c_app topx4 m (fst measurements)
-    _ -> error "baro app body case statement left partially implemented"
+    Baro_MS5611_SPI m -> ms5611_spi_app topx4 m (fst measurements)
 
 
   (_uarti, uarto) <- px4ConsoleTower topx4
@@ -47,7 +48,33 @@ ms5611_i2c_app topx4 ms5611 meas = do
                          (ms5611_i2c_periph ms5611)
                          (ms5611_i2c_sda ms5611)
                          (ms5611_i2c_scl ms5611)
-  ms5611I2CSensorManager req res ready meas (ms5611_i2c_addr ms5611)
+  after_ready <- channel
+  px4platform <- fmap topx4 getEnv
+  monitor "ready_poweron" $ do
+    handler ready "i2c_ready" $ do
+      e <- emitter (fst after_ready) 1
+      callback $ \t -> do
+        px4platform_sensorenable px4platform
+        emit e t
+  ms5611I2CSensorManager req res (snd after_ready) meas (ms5611_i2c_addr ms5611)
+
+ms5611_spi_app :: (e -> PX4Platform)
+               -> MS5611_SPI
+               -> ChanInput (Struct "ms5611_measurement")
+               -> Tower e ()
+ms5611_spi_app topx4 ms5611 meas = do
+  (req, res, ready) <- spiTower (px4platform_clockconfig . topx4)
+                         [ms5611_spi_device ms5611]
+                         (ms5611_spi_pins ms5611)
+  after_ready <- channel
+  px4platform <- fmap topx4 getEnv
+  monitor "ready_poweron" $ do
+    handler ready "spi_ready" $ do
+      e <- emitter (fst after_ready) 1
+      callback $ \t -> do
+        px4platform_sensorenable px4platform
+        emit e t
+  ms5611SPISensorManager req res (snd after_ready) meas (SPIDeviceHandle 0)
 
 
 
