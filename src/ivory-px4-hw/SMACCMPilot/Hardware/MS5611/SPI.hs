@@ -17,11 +17,20 @@ ms5611_SPI :: MS5611Impl (Struct "spi_transaction_request")
                          SPIDeviceHandle
 ms5611_SPI = MS5611Impl
   { ms5611_command_req = \h cmd -> fmap constRef $ local $ istruct
-      [] -- XXX FIXME
+      [ tx_device .= ival h
+      , tx_buf .= iarray [ ival (commandVal cmd) ]
+      , tx_len .= ival 1
+      ]
   , ms5611_prom_fetch_req = \h -> fmap constRef $ local $ istruct
-      [] -- XXX FIXME
+      [ tx_device .= ival h
+      , tx_buf    .= iarray (repeat (ival 0))
+      , tx_len    .= ival 2
+      ] -- XXX PROBABLY WRONG - PROM FETCHES SUPPOSED TO BE FUSED WITH CMD
   , ms5611_adc_fetch_req = \h -> fmap constRef $ local $ istruct
-      [] -- XXX FIXME
+      [ tx_device .= ival h
+      , tx_buf    .= iarray (repeat (ival 0))
+      , tx_len    .= ival 3
+      ] -- XXX PROBABLY WRONG - ADC FETCHES SUPPOSED TO BE FUSED WITH CMD
   , ms5611_res_code = \r -> deref (r ~> resultcode)
   , ms5611_res_prom = \r -> do
       h <- deref ((r ~> rx_buf) ! 0) -- XXX THESE INDEXES MIGHT BE WRONG
