@@ -1,35 +1,33 @@
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module SMACCMPilot.Hardware.MS5611.I2C where
+module SMACCMPilot.Hardware.MS5611.SPI where
 
 import SMACCMPilot.Hardware.MS5611.Regs
+import SMACCMPilot.Hardware.MS5611.Types
+import SMACCMPilot.Hardware.MS5611.Mode
+import SMACCMPilot.Hardware.MS5611.Calibration (measurement)
 
 import Ivory.Language
 import Ivory.Tower
 import Ivory.Stdlib
 
-import Ivory.BSP.STM32.Driver.I2C
+import Ivory.BSP.STM32.Driver.SPI
 
-import SMACCMPilot.Hardware.MS5611.Types
-import SMACCMPilot.Hardware.MS5611.Mode
-import SMACCMPilot.Hardware.MS5611.Calibration (measurement)
-
-
-ms5611I2CSensorManager :: ChanInput  (Struct "i2c_transaction_request")
-                       -> ChanOutput (Struct "i2c_transaction_result")
+ms5611SPISensorManager :: ChanInput  (Struct "spi_transaction_request")
+                       -> ChanOutput (Struct "spi_transaction_result")
                        -> ChanOutput (Stored ITime)
                        -> ChanInput  (Struct "ms5611_measurement")
-                       -> I2CDeviceAddr
+                       -> SPIDeviceHandle
                        -> Tower e ()
-ms5611I2CSensorManager req_chan res_chan init_chan meas_chan addr = do
+ms5611SPISensorManager req_chan res_chan init_chan meas_chan addr = do
   towerModule  ms5611TypesModule
   towerDepends ms5611TypesModule
 
   p <- period (Milliseconds 10) -- ADC conversion period.
-  monitor "ms5611I2CSensorManager" $ do
+  monitor "ms5611SPISensorManager" $ do
     sample      <- state "sample"
     calibration <- state "calibration"
     meas        <- state "measurement"
@@ -55,29 +53,29 @@ ms5611I2CSensorManager req_chan res_chan init_chan meas_chan addr = do
               c <- ms5611_res_code res
               when (c >? 0) (store (meas ~> initfail) true)
 
-            samplei2csuccess :: Ref s (Struct "i2c_transaction_result")
+            samplei2csuccess :: Ref s (Struct "spi_transaction_result")
                              -> Ivory eff ()
             samplei2csuccess res = do
               c <- ms5611_res_code res
               when (c >? 0) (store (meas ~> sampfail) true)
 
             transaction :: (GetAlloc eff ~ Scope s)
-                        => Ivory eff (Ref s2 (Struct "i2c_transaction_result"))
-                        -> Ivory eff (ConstRef s1 (Struct "i2c_transaction_request"))
-                        -> Ivory eff (Ref s2 (Struct "i2c_transaction_result"))
+                        => Ivory eff (Ref s2 (Struct "spi_transaction_result"))
+                        -> Ivory eff (ConstRef s1 (Struct "spi_transaction_request"))
+                        -> Ivory eff (Ref s2 (Struct "spi_transaction_result"))
             transaction y req = do
               startTransaction req
               finishTransaction y
 
             startTransaction :: (GetAlloc eff ~ Scope s)
-                             => Ivory eff (ConstRef s1 (Struct "i2c_transaction_request"))
+                             => Ivory eff (ConstRef s1 (Struct "spi_transaction_request"))
                              -> Ivory eff ()
             startTransaction req = do
               r <- req
               emit req_e r
 
-            finishTransaction :: Ivory eff (Ref s (Struct "i2c_transaction_result"))
-                              -> Ivory eff (Ref s (Struct "i2c_transaction_result"))
+            finishTransaction :: Ivory eff (Ref s (Struct "spi_transaction_result"))
+                              -> Ivory eff (Ref s (Struct "spi_transaction_result"))
             finishTransaction y = do
               res <- y
               samplei2csuccess res
@@ -105,7 +103,7 @@ ms5611I2CSensorManager req_chan res_chan init_chan meas_chan addr = do
         arrayMap $ \ ix ->
           getPROM (Coeff ix) (calibration ~> coeff ! ix)
 
-        -- Start the measurement sample cycle. requires us to convert and fetch
+        -- Start the measurement sample cycle. Requires us to convert and fetch
         -- both the temperature and pressure from the sensor.
         forever $ do
           store (meas ~> sampfail) false
@@ -185,61 +183,57 @@ ms5611I2CSensorManager req_chan res_chan init_chan meas_chan addr = do
 
 ms5611_command_req :: forall s eff
                     . (GetAlloc eff ~ Scope s)
-                   => I2CDeviceAddr
+                   => SPIDeviceHandle
                    -> Command
-                   -> Ivory eff (ConstRef (Stack s) (Struct "i2c_transaction_request"))
-ms5611_command_req addr cmd = fmap constRef $ local $ istruct
-  [ tx_addr .= ival addr
-  , tx_buf  .= iarray [ ival (commandVal cmd) ]
-  , tx_len  .= ival 1
-  , rx_len  .= ival 0
+                   -> Ivory eff (ConstRef (Stack s) (Struct "spi_transaction_request"))
+ms5611_command_req = \h cmd -> fmap constRef $ local $ istruct
+  [ tx_device .= ival h
+  , tx_buf .= iarray [ ival (commandVal cmd) ]
+  , tx_len .= ival 1
   ]
 
 ms5611_prom_fetch_req :: forall s eff
                        . (GetAlloc eff ~ Scope s)
-                      => I2CDeviceAddr
-                      -> Ivory eff (ConstRef (Stack s) (Struct "i2c_transaction_request"))
-ms5611_prom_fetch_req addr = fmap constRef $ local $ istruct
-  [ tx_addr .= ival addr
-  , tx_buf  .= iarray []
-  , tx_len  .= ival 0
-  , rx_len  .= ival 2
-  ]
+                      => SPIDeviceHandle
+                      -> Ivory eff (ConstRef (Stack s) (Struct "spi_transaction_request"))
+ms5611_prom_fetch_req = \h -> fmap constRef $ local $ istruct
+  [ tx_device .= ival h
+  , tx_buf    .= iarray (repeat (ival 0))
+  , tx_len    .= ival 2
+  ] -- XXX PROBABLY WRONG - PROM FETCHES SUPPOSED TO BE FUSED WITH CMD
 
 ms5611_adc_fetch_req :: forall s eff
                       . (GetAlloc eff ~ Scope s)
-                     => I2CDeviceAddr
-                     -> Ivory eff (ConstRef (Stack s) (Struct "i2c_transaction_request"))
-ms5611_adc_fetch_req addr = fmap constRef $ local $ istruct
-  [ tx_addr .= ival addr
-  , tx_buf  .= iarray []
-  , tx_len  .= ival 0
-  , rx_len  .= ival 3
-  ]
+                     => SPIDeviceHandle
+                     -> Ivory eff (ConstRef (Stack s) (Struct "spi_transaction_request"))
+ms5611_adc_fetch_req = \h -> fmap constRef $ local $ istruct
+  [ tx_device .= ival h
+  , tx_buf    .= iarray (repeat (ival 0))
+  , tx_len    .= ival 3
+  ] -- XXX PROBABLY WRONG - ADC FETCHES SUPPOSED TO BE FUSED WITH CMD
 
 ms5611_res_code :: forall s eff
-                 . Ref s (Struct "i2c_transaction_result")
+                 . Ref s (Struct "spi_transaction_result")
                 -> Ivory eff Uint8
-ms5611_res_code r = deref (r ~> resultcode)
-
+ms5611_res_code = \r -> deref (r ~> resultcode)
 
 ms5611_res_prom :: forall s eff
-                 . Ref s (Struct "i2c_transaction_result")
+                 . Ref s (Struct "spi_transaction_result")
                 -> Ivory eff Uint16
-ms5611_res_prom r = do
-  h <- deref ((r ~> rx_buf) ! 0)
+ms5611_res_prom = \r -> do
+  h <- deref ((r ~> rx_buf) ! 0) -- XXX THESE INDEXES MIGHT BE WRONG
   l <- deref ((r ~> rx_buf) ! 1)
   assign (u16_from_2_bytes h l)
 
 ms5611_res_sample :: forall s eff
-                   . ConstRef s (Struct "i2c_transaction_result")
+                   . ConstRef s (Struct "spi_transaction_result")
                   -> Ivory eff Uint32
-ms5611_res_sample r = do
-  h <- deref ((r ~> rx_buf) ! 0)
+ms5611_res_sample = \r -> do
+  h <- deref ((r ~> rx_buf) ! 0) -- XXX THESE INDEXES MIGHT BE WRONG
   m <- deref ((r ~> rx_buf) ! 1)
   l <- deref ((r ~> rx_buf) ! 2)
   assign (u32_from_3_bytes h m l)
-----
+
 
 u32_from_3_bytes :: Uint8 -> Uint8 -> Uint8 -> Uint32
 u32_from_3_bytes h m l = h' + m' + l'

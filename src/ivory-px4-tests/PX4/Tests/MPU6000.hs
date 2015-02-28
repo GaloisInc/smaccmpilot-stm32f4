@@ -18,33 +18,37 @@ import qualified SMACCMPilot.Datalink.HXStream.Ivory as HX
 import Ivory.Tower
 
 import Ivory.BSP.STM32.Driver.SPI
-import Ivory.BSP.STM32.Driver.UART
 
 import SMACCMPilot.Hardware.MPU6000
 
-import qualified BSP.Tests.Platforms as BSP
 import PX4.Tests.Platforms
 
 app :: (e -> PX4Platform) -> Tower e ()
 app topx4 = do
   sample <- channel
   px4platform <- fmap topx4 getEnv
-  let mpu6000  = px4platform_mpu6000_device px4platform
-      spi_pins = px4platform_mpu6000_spi_pins px4platform
-  (req, res, ready) <- spiTower tocc [mpu6000] spi_pins
-  mpu6000SensorManager req res ready (fst sample) (SPIDeviceHandle 0)
+  let mpu6000  = px4platform_mpu6000 px4platform
+  (req, res, ready) <- spiTower (px4platform_clockconfig . topx4)
+                                [mpu6000_spi_device mpu6000]
+                                (mpu6000_spi_pins mpu6000)
 
-  let u = BSP.testplatform_uart (px4platform_testplatform px4platform)
-  (_uarti, uarto) <- uartTower tocc (BSP.testUARTPeriph u) (BSP.testUARTPins u)
-                               115200 (Proxy :: Proxy 256)
+  pwr <- channel
+  monitor "ready_poweron" $ do
+    handler ready "spi_ready" $ do
+      e <- emitter (fst pwr) 1
+      callback $ \t -> do
+        px4platform_sensorenable px4platform
+        emit e t
+
+  mpu6000SensorManager req res (snd pwr) (fst sample) (SPIDeviceHandle 0)
+
+  (_uarti, uarto) <- px4ConsoleTower topx4
   monitor "mpu6000sender" $ do
     mpu6000Sender (snd sample) uarto
 
   towerDepends serializeModule
   towerModule  serializeModule
   mapM_ towerArtifact serializeArtifacts
-  where
-  tocc = BSP.testplatform_clockconfig . px4platform_testplatform . topx4
 
 mpu6000Sender :: ChanOutput (Struct "mpu6000_sample")
               -> ChanInput (Stored Uint8)

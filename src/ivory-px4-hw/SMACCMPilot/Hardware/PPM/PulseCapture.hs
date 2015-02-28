@@ -13,20 +13,22 @@ import Ivory.HW
 import Ivory.Stdlib
 
 import Ivory.BSP.STM32.Interrupt
+import Ivory.BSP.STM32.ClockConfig
 import Ivory.BSP.STM32.Peripheral.ATIM18
 import Ivory.BSP.STM32.Peripheral.GPIOF4
 
 import SMACCMPilot.Hardware.PPM.PulseCapture.Types
 
 pulseCaptureTower :: (STM32Interrupt i)
-                  => ATIM     -- atim1
+                  => (e -> ClockConfig)
+                  -> ATIM     -- atim1
                   -> GPIOPin  -- pinA10
                   -> GPIO_AF  -- af_tim1
                   -> i        -- TIM1_CC
                   -> ChanInput (Struct "pulse_capture")
                   -> Tower e ()
-pulseCaptureTower (ATIM {..}) pin af int pulse_capture_chan = do
-
+pulseCaptureTower tocc (ATIM {..}) pin af int pulse_capture_chan = do
+  cc <- fmap tocc getEnv
   -- time bound is just a guess (as pretty much always)
   isr <- signalUnsafe
             (Interrupt int)
@@ -49,8 +51,8 @@ pulseCaptureTower (ATIM {..}) pin af int pulse_capture_chan = do
                                       setBit atim_ccer_cc3np
       modifyReg atimRegCNT       $ setField atim_16_data (fromRep 0)
 
-      modifyReg atimRegPSC       $ setField atim_psc_psc (fromRep 167) -- XXX FIXME BASED ON SYSCLK
-      -- psc = (sysclk_hz / 1000000) - 1 -- resulting speed 1mhz
+      let psc = fromInteger (((clockSysClkHz cc) `div` 1000000) - 1)
+      modifyReg atimRegPSC       $ setField atim_psc_psc (fromRep psc)
 
       modifyReg atimRegARR       $ setField atim_16_data (fromRep 0xFFFF)
 

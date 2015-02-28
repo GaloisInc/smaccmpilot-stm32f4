@@ -6,7 +6,7 @@ import Ivory.Tower.Compile
 import Ivory.OS.FreeRTOS.Tower.STM32
 
 import PX4.Tests.Platforms
-import PX4.Tests.HMC5883L (app)
+import PX4.Tests.Baro (app)
 
 main :: IO ()
 main = towerCompile p (app id)

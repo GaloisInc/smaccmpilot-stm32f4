@@ -5,7 +5,7 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleContexts #-}
 
-module PX4.Tests.HMC5883L (hmc5883lSender, hmc5883lSensorManager, app) where
+module PX4.Tests.Magnetometer (hmc5883lSender, hmc5883lSensorManager, app) where
 
 import Ivory.Language
 import Ivory.Serialize
@@ -13,41 +13,43 @@ import Ivory.Serialize
 import Ivory.Tower
 
 import Ivory.BSP.STM32.Driver.I2C
-import Ivory.BSP.STM32.Driver.UART
 import qualified SMACCMPilot.Datalink.HXStream.Ivory as HX
 
 import SMACCMPilot.Hardware.HMC5883L
 
-import qualified BSP.Tests.Platforms as BSP
 import PX4.Tests.Platforms
 
 app :: (e -> PX4Platform) -> Tower e ()
 app topx4 = do
   px4platform <- fmap topx4 getEnv
 
-  let hmc = px4platform_hmc5883_device px4platform
-  (req, res, ready) <- i2cTower tocc
-                         (hmc5883device_periph hmc)
-                         (hmc5883device_sda    hmc)
-                         (hmc5883device_scl    hmc)
+  (_uarti,uarto) <- px4ConsoleTower topx4
 
-  samples <- channel
-
-  hmc5883lSensorManager req res ready (fst samples) (hmc5883device_addr hmc)
-
-  let u = BSP.testplatform_uart (px4platform_testplatform px4platform)
-  (_uarti,uarto) <- uartTower tocc (BSP.testUARTPeriph u)
-                                   (BSP.testUARTPins   u)
-                                   115200 (Proxy :: Proxy 128)
-
-  monitor "hmc5883lsender" $ do
-    hmc5883lSender (snd samples) uarto
+  case px4platform_mag px4platform of
+    Mag_HMC5883L_I2C h -> hmc5883l_i2c_app topx4 h uarto
+    _ -> error "magnetometer app case statement incomplete"
 
   towerDepends serializeModule
   towerModule  serializeModule
   mapM_ towerArtifact serializeArtifacts
-  where
-  tocc = BSP.testplatform_clockconfig . px4platform_testplatform . topx4
+
+hmc5883l_i2c_app :: (e -> PX4Platform)
+                 -> HMC5883L_I2C
+                 -> ChanInput (Stored Uint8)
+                 -> Tower e ()
+hmc5883l_i2c_app topx4 hmc uarto = do
+  (req, res, ready) <- i2cTower (px4platform_clockconfig . topx4)
+                         (hmc5883l_i2c_periph hmc)
+                         (hmc5883l_i2c_sda    hmc)
+                         (hmc5883l_i2c_scl    hmc)
+
+  samples <- channel
+
+  hmc5883lSensorManager req res ready (fst samples) (hmc5883l_i2c_addr hmc)
+
+  monitor "hmc5883lsender" $ do
+    hmc5883lSender (snd samples) uarto
+
 
 hmc5883lSender :: ChanOutput (Struct "hmc5883l_sample")
                -> ChanInput  (Stored Uint8)
