@@ -22,7 +22,7 @@ ms5611SPISensorManager :: ChanInput  (Struct "spi_transaction_request")
                        -> ChanInput  (Struct "ms5611_measurement")
                        -> SPIDeviceHandle
                        -> Tower e ()
-ms5611SPISensorManager req_chan res_chan init_chan meas_chan addr = do
+ms5611SPISensorManager req_chan res_chan init_chan meas_chan h = do
   towerModule  ms5611TypesModule
   towerDepends ms5611TypesModule
 
@@ -38,11 +38,7 @@ ms5611SPISensorManager req_chan res_chan init_chan meas_chan addr = do
       return $ CoroutineBody $ \yield -> do
 
         let getPROM prom ref = do
-              read_req <- ms5611_command_req addr (PromRead prom)
-              emit req_e read_req
-              read_res <- yield
-              initi2csuccess read_res
-              fetch_req <- ms5611_prom_fetch_req addr
+              fetch_req <- ms5611_prom_fetch_req h prom
               emit req_e fetch_req
               fetch_res <- yield
               initi2csuccess fetch_res
@@ -88,16 +84,13 @@ ms5611SPISensorManager req_chan res_chan init_chan meas_chan addr = do
         store continuationMode sendReset
         _ <- finishTransaction yield
         -- The periodic handler has sent the reset, we need to wait for the
-        -- periodic handler to fire once more before continuing
+        -- periodic handler to fire once more (starting a meaningless fetch
+        -- Reserved transaction) before continuing
         store continuationMode waitReset
         _ <- finishTransaction yield
         -- Reset sequence completed, signal to the periodic handler to not
         -- start any more transactions
         store continuationMode initializing
-        -- The periodic handler started a PROM Read of the Reserved PROM field.
-        -- We need to finish fetching this field or else the chip will nack the
-        -- next fetch.
-        _ <- transaction yield $ ms5611_prom_fetch_req addr
 
         -- Now we're ready to read the calibration coefficients from the PROM.
         arrayMap $ \ ix ->
@@ -110,7 +103,7 @@ ms5611SPISensorManager req_chan res_chan init_chan meas_chan addr = do
 
           -- Start an adc conversion. We must wait ~9ms for the conversion to
           -- complete before reading
-          _ <- transaction yield $ ms5611_command_req addr (ConvertD1 OSR4096)
+          _ <- transaction yield $ ms5611_command_req h (ConvertD1 OSR4096)
 
           -- Yield until the periodic handler starts an ADCRead
           -- request.
@@ -118,24 +111,18 @@ ms5611SPISensorManager req_chan res_chan init_chan meas_chan addr = do
           -- ~10ms after the above transaction started, so the d1 value may be
           -- hosed.  XXX fix that afterwards.
           store continuationMode running
-          _ <- finishTransaction yield
-
-          -- The converted value is now in the register: fetch it.
-          adc_d1_read  <- transaction yield $ ms5611_adc_fetch_req addr
+          adc_d1_read  <- finishTransaction yield
 
           press <- ms5611_res_sample (constRef adc_d1_read)
           store (sample ~> sample_pressure) press
 
           -- Start an adc conversion. We must wait ~9ms for the conversion to
           -- complete before reading
-          _ <- transaction yield $ ms5611_command_req addr (ConvertD2 OSR4096)
+          _ <- transaction yield $ ms5611_command_req h (ConvertD2 OSR4096)
 
           -- Yield until the periodic handler runs and starts an ADCRead
           -- request.
-          _ <- finishTransaction yield
-
-          -- The converted value is now in the register: fetch it.
-          adc_d2_read <- transaction yield $ ms5611_adc_fetch_req addr
+          adc_d2_read <- finishTransaction yield
 
           temp <- ms5611_res_sample (constRef adc_d2_read)
           store (sample ~> sample_temperature) temp
@@ -165,11 +152,11 @@ ms5611SPISensorManager req_chan res_chan init_chan meas_chan addr = do
           , (cm ==? sendReset) ==> do
               -- Send a reset request to the chip. Must wait a minimum of 3ms
               -- before starting any other transactions!
-              startTransaction $ ms5611_command_req addr Reset
+              startTransaction $ ms5611_command_req h Reset
           , (cm ==? waitReset) ==> do
               -- Send a (meaningless) PROM Read transaction, signaling to the
               -- coroutine handler that 10ms has passed since the chip was reset
-              startTransaction $ ms5611_command_req addr (PromRead Reserved)
+              startTransaction $ ms5611_prom_fetch_req h Reserved
           , (cm ==? initializing) ==> do
               -- Do Nothing!
               -- The coroutine handler is taking care of post-reset
@@ -178,7 +165,7 @@ ms5611SPISensorManager req_chan res_chan init_chan meas_chan addr = do
           , (cm ==? running) ==> do
               -- The coroutine is currently yielded, waiting for an ADCRead
               -- to be kicked off every 10ms.
-              startTransaction $ ms5611_command_req addr ADCRead
+              startTransaction $ ms5611_adc_fetch_req h
           ]
 
 ms5611_command_req :: forall s eff
@@ -186,7 +173,7 @@ ms5611_command_req :: forall s eff
                    => SPIDeviceHandle
                    -> Command
                    -> Ivory eff (ConstRef (Stack s) (Struct "spi_transaction_request"))
-ms5611_command_req = \h cmd -> fmap constRef $ local $ istruct
+ms5611_command_req h cmd = fmap constRef $ local $ istruct
   [ tx_device .= ival h
   , tx_buf .= iarray [ ival (commandVal cmd) ]
   , tx_len .= ival 1
@@ -195,22 +182,23 @@ ms5611_command_req = \h cmd -> fmap constRef $ local $ istruct
 ms5611_prom_fetch_req :: forall s eff
                        . (GetAlloc eff ~ Scope s)
                       => SPIDeviceHandle
+                      -> PROM
                       -> Ivory eff (ConstRef (Stack s) (Struct "spi_transaction_request"))
-ms5611_prom_fetch_req = \h -> fmap constRef $ local $ istruct
+ms5611_prom_fetch_req h p = fmap constRef $ local $ istruct
   [ tx_device .= ival h
-  , tx_buf    .= iarray (repeat (ival 0))
-  , tx_len    .= ival 2
-  ] -- XXX PROBABLY WRONG - PROM FETCHES SUPPOSED TO BE FUSED WITH CMD
+  , tx_buf    .= iarray [ ival (commandVal (PromRead p)), ival 0, ival 0 ]
+  , tx_len    .= ival 3
+  ]
 
 ms5611_adc_fetch_req :: forall s eff
                       . (GetAlloc eff ~ Scope s)
                      => SPIDeviceHandle
                      -> Ivory eff (ConstRef (Stack s) (Struct "spi_transaction_request"))
-ms5611_adc_fetch_req = \h -> fmap constRef $ local $ istruct
+ms5611_adc_fetch_req h = fmap constRef $ local $ istruct
   [ tx_device .= ival h
-  , tx_buf    .= iarray (repeat (ival 0))
-  , tx_len    .= ival 3
-  ] -- XXX PROBABLY WRONG - ADC FETCHES SUPPOSED TO BE FUSED WITH CMD
+  , tx_buf    .= iarray [ ival (commandVal ADCRead), ival 0, ival 0, ival 0 ]
+  , tx_len    .= ival 4
+  ] 
 
 ms5611_res_code :: forall s eff
                  . Ref s (Struct "spi_transaction_result")
@@ -221,17 +209,17 @@ ms5611_res_prom :: forall s eff
                  . Ref s (Struct "spi_transaction_result")
                 -> Ivory eff Uint16
 ms5611_res_prom = \r -> do
-  h <- deref ((r ~> rx_buf) ! 0) -- XXX THESE INDEXES MIGHT BE WRONG
-  l <- deref ((r ~> rx_buf) ! 1)
+  h <- deref ((r ~> rx_buf) ! 1)
+  l <- deref ((r ~> rx_buf) ! 2)
   assign (u16_from_2_bytes h l)
 
 ms5611_res_sample :: forall s eff
                    . ConstRef s (Struct "spi_transaction_result")
                   -> Ivory eff Uint32
 ms5611_res_sample = \r -> do
-  h <- deref ((r ~> rx_buf) ! 0) -- XXX THESE INDEXES MIGHT BE WRONG
-  m <- deref ((r ~> rx_buf) ! 1)
-  l <- deref ((r ~> rx_buf) ! 2)
+  h <- deref ((r ~> rx_buf) ! 1)
+  m <- deref ((r ~> rx_buf) ! 2)
+  l <- deref ((r ~> rx_buf) ! 3)
   assign (u32_from_3_bytes h m l)
 
 
