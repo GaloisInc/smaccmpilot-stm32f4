@@ -16,6 +16,7 @@ test: px4-ppm-in-test
 test: px4-all-sensors-test
 test: px4-copter-motor-test
 test: px4-sensor-fusion-test
+test: px4-fragment-test
 
 .PHONY: ublox-gps-test
 ublox-gps-test:
@@ -89,6 +90,15 @@ px4-sensor-fusion-test:
 px4-sensor-fusion-test-clean:
 	-rm -rf px4-sensor-fusion-test
 
+.PHONY: px4-fragment-test
+px4-fragment-test:
+	cabal run px4-fragment-test-gen -- --src-dir=px4-fragment-test --no-sanity-check $(IVORY_FLAGS)
+	make -C px4-fragment-test
+
+.PHONY: px4-fragment-test-clean
+px4-fragment-test-clean:
+	-rm -rf px4-fragment-test
+
 .PHONY: px4-sensors-monitor
 px4-sensors-monitor:
 	cabal run px4-sensors-monitor-gen -- --src-dir=px4-sensors-monitor $(IVORY_FLAGS)
@@ -116,7 +126,9 @@ create-sandbox:
 	cabal sandbox add-source $(BSP_REPO)/ivory-bsp-tests
 	cabal sandbox add-source ../smaccm-commsec
 	cabal sandbox add-source ../smaccm-datalink
+	cabal sandbox add-source ../smaccm-fragment
 	cabal sandbox add-source ../smaccm-ins
+	cabal sandbox add-source ../smaccm-mavlink
 	cabal sandbox add-source ../ivory-px4-hw
 	cabal install --dependencies-only
 
@@ -128,6 +140,7 @@ clean: px4-ppm-in-test-clean
 clean: px4-copter-motor-test-clean
 clean: px4-all-sensors-test-clean
 clean: px4-sensor-fusion-test-clean
+clean: px4-fragment-test-clean
 clean: px4-sensors-monitor-clean
 	-rm -rf dist
 
