@@ -142,8 +142,8 @@ clean: px4-all-sensors-test-clean
 clean: px4-sensor-fusion-test-clean
 clean: px4-fragment-test-clean
 clean: px4-sensors-monitor-clean
-	-rm -rf dist
 
 clean-sandbox: clean
+	-rm -rf dist
 	-rm -rf .cabal-sandbox
 	-rm cabal.sandbox.config
