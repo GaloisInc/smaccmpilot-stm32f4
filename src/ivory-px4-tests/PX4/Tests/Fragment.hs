@@ -43,29 +43,20 @@ app tocc tocan touart = do
                                   115200 (Proxy :: Proxy 256)
 
   monitor "decode" $ do
-    mavState <- stateInit "state" (istruct [ R.status .= ival R.status_IDLE ])
     msg <- stateInit "msg" (izero :: Init (Struct "smaccmpilot_nav_cmd_msg"))
     in_progress <- state "in_progress"
     abort_pending <- state "abort_pending"
 
-    handler istream "decode_uart" $ do
+    coroutineHandler systemInit istream "decode_uart" $ do
       toFrag <- emitter fragReq 1
       doAbort <- emitter fragAbort 1
-      callbackV $ \ b -> do
-        R.mavlinkReceiveByte mavState b
-        s <- deref (mavState ~> R.status)
-        cond_
-          [ (s ==? R.status_GOTMSG) ==> do
-            let (unpacker, msgid) = unpackMsg
-            rxid <- deref (mavState ~> R.msgid)
-            when (rxid ==? msgid) $ do
-              call_ unpacker msg $ toCArray $ constRef $ mavState ~> R.payload
-              was_in_progress <- deref in_progress
-              ifte_ was_in_progress (emitV doAbort true >> store abort_pending true) (emit toFrag (constRef msg) >> store in_progress true)
-            R.mavlinkReceiveReset mavState
-          , (s ==? R.status_FAIL)   ==>
-            store (mavState ~> R.status) R.status_IDLE
-          ]
+      return $ R.mavlinkReceiver (return ()) $ \ mavState -> do
+        let (unpacker, msgid) = unpackMsg
+        rxid <- deref (mavState ~> R.msgid)
+        when (rxid ==? msgid) $ do
+          call_ unpacker msg $ toCArray $ mavState ~> R.payload
+          was_in_progress <- deref in_progress
+          ifte_ was_in_progress (emitV doAbort true >> store abort_pending true) (emit toFrag (constRef msg) >> store in_progress true)
 
     handler fragDone "fragment_done" $ do
       toFrag <- emitter fragReq 1
