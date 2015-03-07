@@ -32,15 +32,8 @@ app topx4 = do
                                 [mpu6000_spi_device mpu6000]
                                 (mpu6000_spi_pins mpu6000)
 
-  pwr <- channel
-  monitor "ready_poweron" $ do
-    handler ready "spi_ready" $ do
-      e <- emitter (fst pwr) 1
-      callback $ \t -> do
-        px4platform_sensorenable px4platform
-        emit e t
-
-  mpu6000SensorManager req res (snd pwr) (fst sample) (SPIDeviceHandle 0)
+  sensors_ready <- px4platform_sensorenable_tower topx4 ready
+  mpu6000SensorManager req res sensors_ready (fst sample) (SPIDeviceHandle 0)
 
   (_uarti, uarto) <- px4ConsoleTower topx4
   monitor "mpu6000sender" $ do
