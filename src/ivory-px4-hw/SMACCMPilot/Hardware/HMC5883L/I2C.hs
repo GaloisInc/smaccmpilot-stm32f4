@@ -1,6 +1,5 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE RecursiveDo #-}
 {-# LANGUAGE RankNTypes #-}
 
 module SMACCMPilot.Hardware.HMC5883L.I2C where
