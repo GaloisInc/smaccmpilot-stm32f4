@@ -55,6 +55,30 @@ class Compass(object):
         return ("Compass ifail %d sfail %d x % 9.4f y % 9.4f z % 9.4f micros %d" %
             (self.ifail, self.sfail, self.x, self.y, self.z, self.t))
 
+
+class CompassAccel(object):
+    def __init__(self, binary):
+        self.binary = binary
+        try:
+            (ifail, sfail, ax, ay, az, mx, my, mz, t) = struct.unpack("<BBffffffQ", binary)
+            self.ifail = ifail
+            self.sfail = sfail
+            self.mx    = mx
+            self.my    = my
+            self.mz    = mz
+            self.ax    = ax
+            self.ay    = ay
+            self.az    = az
+            self.t     = t
+            self.errormsg = None
+        except Exception:
+            self.errormsg = ("CompassAccel: bad size %d" % (len(binary)))
+    def display(self):
+        if self.errormsg:
+            return self.errormsg
+        return ("CompassAccel ifail %d sfail %d mx % 9.4f my % 9.4f mz % 9.4f ax % 9.4f ay % 9.4f az % 9.4f micros %d" %
+            (self.ifail, self.sfail, self.mx, self.my, self.mz, self.ax, self.ay, self.az, self.t))
+
 class Fusion(object):
     def __init__(self, binary):
         self.binary = binary
@@ -174,6 +198,8 @@ class SensorParser(object):
                 sensors.append(Fusion(payload))
             if t == 103: # 'g' gyro
                 sensors.append(Gyro(payload))
+            if t == 108: # 'l' lsm303
+                sensors.append(CompassAccel(payload))
             if t == 112: # 'p' position
                 sensors.append(Position(payload))
             if t == 80: # 'P' PPM
