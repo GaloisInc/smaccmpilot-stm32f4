@@ -17,6 +17,7 @@ library
                        PX4.Tests.Magnetometer,
                        PX4.Tests.PPMIn,
                        PX4.Tests.AllSensors,
+                       PX4.Tests.Fragment,
                        PX4.Tests.SensorFusion
 
   build-depends:       base >= 4.6,
@@ -32,7 +33,9 @@ library
                        ivory-bsp-stm32,
                        ivory-bsp-tests,
                        smaccm-datalink,
+                       smaccm-fragment,
                        smaccm-ins,
+                       smaccm-mavlink,
                        ivory-serialize,
                        ivory-px4-hw
 
@@ -201,6 +204,18 @@ executable             px4-all-sensors-test-gen
                        ivory-px4-hw,
                        smaccm-datalink,
                        ivory-serialize,
+                       ivory-px4-tests
+  default-language:    Haskell2010
+  ghc-options:         -Wall
+
+executable             px4-fragment-test-gen
+  main-is:             FragmentTest.hs
+  hs-source-dirs:      tests
+  build-depends:       base >= 4.6,
+                       tower              >= 0.9,
+                       tower-config,
+                       tower-freertos-stm32,
+                       ivory-bsp-tests,
                        ivory-px4-tests
   default-language:    Haskell2010
   ghc-options:         -Wall
