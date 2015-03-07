@@ -29,6 +29,10 @@ library
                        SMACCMPilot.Hardware.HMC5883L.Types,
                        SMACCMPilot.Hardware.HMC5883L.Regs,
                        SMACCMPilot.Hardware.HMC5883L.I2C,
+                       SMACCMPilot.Hardware.LSM303D,
+                       SMACCMPilot.Hardware.LSM303D.Types,
+                       SMACCMPilot.Hardware.LSM303D.Regs,
+                       SMACCMPilot.Hardware.LSM303D.SPI,
 
                        SMACCMPilot.Hardware.PPM,
                        SMACCMPilot.Hardware.PPM.PulseCapture,
