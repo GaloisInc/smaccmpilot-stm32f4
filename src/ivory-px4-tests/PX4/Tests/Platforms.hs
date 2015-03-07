@@ -101,7 +101,8 @@ data HMC5883L_I2C =
 data LSM303D_SPI =
   LSM303D_SPI
     { lsm303d_spi_device :: SPIDevice
-    -- Pins are the same as MPU6000, by fiat
+    , lsm303d_spi_pins   :: SPIPins
+    -- Invariant: Pins are the same as MPU6000, by fiat
     }
 
 data PPM
@@ -212,7 +213,7 @@ px4fmuv24 :: PX4Platform
 px4fmuv24 = PX4Platform
   { px4platform_gps          = gps
   , px4platform_mpu6000      = mpu6000
-  , px4platform_mag          = error "magnetometer not defined for px4fmuv24"
+  , px4platform_mag          = Mag_LSM303D_SPI lsm303d
   , px4platform_baro         = Baro_MS5611_SPI ms5611
   , px4platform_sensorenable = sensor_enable
   , px4platform_motorcontrol = error "motor control not defined for px4fmuv24"
@@ -270,6 +271,20 @@ px4fmuv24 = PX4Platform
       , spiDevName          = "ms5611"
       }
     , ms5611_spi_pins = spi1_pins
+    }
+  lsm303d :: LSM303D_SPI
+  lsm303d = LSM303D_SPI
+    { lsm303d_spi_device = SPIDevice
+      { spiDevPeripheral    = F427.spi1
+      , spiDevCSPin         = F427.pinC15
+      , spiDevClockHz       = 500000
+      , spiDevCSActive      = ActiveLow
+      , spiDevClockPolarity = ClockPolarityLow
+      , spiDevClockPhase    = ClockPhase1
+      , spiDevBitOrder      = MSBFirst
+      , spiDevName          = "lsm303d"
+      }
+    , lsm303d_spi_pins = spi1_pins
     }
   sensor_enable = do
     -- Turn on sensor vdd regulator
@@ -382,3 +397,18 @@ px4ConsoleTower topx4 = do
 
 px4platform_clockconfig :: (PX4Platform -> ClockConfig)
 px4platform_clockconfig = stm32config_clock . px4platform_stm32config
+
+
+px4platform_sensorenable_tower :: (e -> PX4Platform)
+                               -> ChanOutput (Stored ITime)
+                               -> Tower e (ChanOutput (Stored ITime))
+px4platform_sensorenable_tower topx4 ready = do
+  after_ready <- channel
+  px4platform <- fmap topx4 getEnv
+  monitor "platform_sensor_enable" $ do
+    handler ready "platform_ready" $ do
+      e <- emitter (fst after_ready) 1
+      callback $ \t -> do
+        px4platform_sensorenable px4platform
+        emit e t
+  return (snd after_ready)
