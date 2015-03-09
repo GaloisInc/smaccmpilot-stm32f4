@@ -6,6 +6,7 @@ module SMACCM.Fragment where
 import Ivory.BSP.STM32.Driver.CAN
 import Ivory.Language
 import Ivory.Serialize
+import Ivory.Stdlib
 import Ivory.Tower
 import Numeric
 
@@ -79,3 +80,39 @@ fragmentSender baseID ide tx Proxy = do
         emitV txAbort true
 
   return (reqChan, abortChan, resChan)
+
+-- | Like fragmentSender, but provides no feedback about the success or
+-- failure of the transmission. Useful when the caller doesn't need to
+-- know whether the message made it onto the bus.
+fragmentSenderBlind :: (ANat len, IvoryArea a, IvoryZero a, Packable a)
+                    => ChanOutput a
+                    -> Int
+                    -> Bool
+                    -> CANTransmitAPI
+                    -> Proxy len
+                    -> Tower e ()
+fragmentSenderBlind src baseID ide tx len = do
+  (fragReq, fragAbort, fragDone) <- fragmentSender baseID ide tx len
+
+  let idstr = "0x" ++ showHex baseID ""
+  monitor ("fragment_blindly_" ++ idstr) $ do
+    msg <- state ("msg_" ++ idstr)
+    in_progress <- state ("in_progress_" ++ idstr)
+    abort_pending <- state ("abort_pending_" ++ idstr)
+
+    handler src "new_msg" $ do
+      toFrag <- emitter fragReq 1
+      doAbort <- emitter fragAbort 1
+      callback $ \ new_msg -> do
+        refCopy msg new_msg
+        was_in_progress <- deref in_progress
+        ifte_ was_in_progress (emitV doAbort true >> store abort_pending true) (emit toFrag (constRef msg) >> store in_progress true)
+
+    handler fragDone "fragment_done" $ do
+      toFrag <- emitter fragReq 1
+      callback $ const $ do
+        was_aborting <- deref abort_pending
+        when was_aborting $ do
+          emit toFrag $ constRef msg
+          store abort_pending false
+        store in_progress was_aborting
