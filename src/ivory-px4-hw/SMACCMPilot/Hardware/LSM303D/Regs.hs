@@ -37,10 +37,14 @@ data Reg
   | R_OutZHA
   deriving (Eq, Show)
 
-data Control0 =
-  Control0
-      { reboot :: Bool
-      }
+data Config =
+  Config
+    { conf_ctl1 :: Control1
+    , conf_ctl2 :: Control2
+    , conf_ctl5 :: Control5
+    , conf_ctl6 :: Control6
+    , conf_ctl7 :: Control7
+    }
 
 data Control1 =
   Control1
@@ -220,9 +224,6 @@ bField True n = bit n
 wField :: Word8 -> Int -> Word8
 wField v n = shiftL v n
 
-control0Val :: Control0 -> Word8
-control0Val (Control0{..}) = bField reboot 7
-
 control1Val :: Control1 -> Word8
 control1Val (Control1{..}) =
       wField (accelDatarateVal accel_datarate) 4
@@ -252,4 +253,13 @@ control7Val :: Control7 -> Word8
 control7Val (Control7{..}) =
       bField accel_filter_enable 5
   .|. wField (magPowerModeVal mag_power_mode) 0
+
+magPeakToPeakGauss :: Config -> Integer
+magPeakToPeakGauss = aux . mag_full_scale . conf_ctl6
+  where
+  -- really +/- 2 gauss, 4 gauss, etc
+  aux MFS_2gauss  = 4
+  aux MFS_4gauss  = 8
+  aux MFS_8gauss  = 16
+  aux MFS_12gauss = 24
 

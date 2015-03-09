@@ -81,7 +81,8 @@ lsm303d_spi_app topx4 lsm uarto = do
   samples <- channel
 
   sensors_ready <- px4platform_sensorenable_tower topx4 ready
-  lsm303dSPISensorManager req res sensors_ready (fst samples) (SPIDeviceHandle 0)
+  lsm303dSPISensorManager lsm303dDefaultConf req res sensors_ready
+                          (fst samples) (SPIDeviceHandle 0)
 
   monitor "lsm303dSender" $ do
     lsm303dSender (snd samples) uarto

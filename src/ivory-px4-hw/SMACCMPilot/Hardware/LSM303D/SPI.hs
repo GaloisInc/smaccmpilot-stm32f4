@@ -1,9 +1,11 @@
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE DataKinds #-}
 
 module SMACCMPilot.Hardware.LSM303D.SPI
   ( lsm303dSPISensorManager
+  , lsm303dDefaultConf
   ) where
 
 import Ivory.Language
@@ -17,13 +19,14 @@ import Ivory.BSP.STM32.Driver.SPI
 import SMACCMPilot.Hardware.LSM303D.Regs
 import SMACCMPilot.Hardware.LSM303D.Types
 
-lsm303dSPISensorManager :: ChanInput  (Struct "spi_transaction_request")
+lsm303dSPISensorManager :: Config
+                        -> ChanInput  (Struct "spi_transaction_request")
                         -> ChanOutput (Struct "spi_transaction_result")
                         -> ChanOutput (Stored ITime)
                         -> ChanInput  (Struct "lsm303d_sample")
                         -> SPIDeviceHandle
                         -> Tower e ()
-lsm303dSPISensorManager req_chan res_chan init_chan sensor_chan h = do
+lsm303dSPISensorManager conf req_chan res_chan init_chan sensor_chan h = do
   towerModule  lsm303dTypesModule
   towerDepends lsm303dTypesModule
   p <- period (Milliseconds 20) -- 50hz
@@ -34,15 +37,29 @@ lsm303dSPISensorManager req_chan res_chan init_chan sensor_chan h = do
       req_e <- emitter req_chan 1
       sens_e <- emitter sensor_chan 1
       return $ CoroutineBody $ \yield -> do
-        comment "entry to lsm303d coroutine"
-        let onresult res = do
-              rc <- deref (res ~> resultcode)
-              store (s ~> initfail) (rc >? 0)
-              return res
-        mapM_ (runAction h req_e (yield >>= onresult)) actions
+
+        let runA = runAction h req_e yield (s ~> initfail)
+            initActions :: Config -> [RegAction]
+            initActions c =
+              [ RegRead    R_WhoAmI $ \r -> do
+                  whoami <- deref ((r ~> rx_buf) ! 1)
+                  return (whoami ==? 0x49)
+              , RegModify R_Magic1 (\r -> r .| 0x10)
+              , RegModify R_Magic1 (\r -> r .& 0xf7)
+              , RegModify R_Magic2 (\r -> r .| 0x80)
+              , RegModify R_Magic1 (\r -> r .& 0xe7)
+              , RegWrite R_Control1 $ control1Val $ conf_ctl1 c
+              , RegWrite R_Control2 $ control2Val $ conf_ctl2 c
+              , RegWrite R_Control5 $ control5Val $ conf_ctl5 c
+              , RegWrite R_Control6 $ control6Val $ conf_ctl6 c
+              , RegWrite R_Control7 $ control7Val $ conf_ctl7 c
+              ]
+
+        comment "begin initialization in lsm303d coroutine"
+        mapM_ runA (initActions conf)
 
         store initialized true
-        comment "finished initializing in lsm303d coroutine"
+        comment "finished initialization in lsm303d coroutine"
 
         forever $ do
           -- Request originates from period below
@@ -50,23 +67,7 @@ lsm303dSPISensorManager req_chan res_chan init_chan sensor_chan h = do
           rc <- deref (mag_read_result ~> resultcode)
           -- Reset the samplefail field
           store (s ~> samplefail) (rc >? 0)
-
-          let m_samp loref hiref resref = do
-                lo <- deref loref
-                hi <- deref hiref
-                -- XXX endian might be wrong?
-                -- XXX units are definitely wrong.
-                store resref ((safeCast lo) + ((safeCast hi) * 256))
-
-          m_samp ((mag_read_result ~> rx_buf) ! 1)
-                 ((mag_read_result ~> rx_buf) ! 2)
-                 ((s ~> mag_sample) ! 0)
-          m_samp ((mag_read_result ~> rx_buf) ! 3)
-                 ((mag_read_result ~> rx_buf) ! 4)
-                 ((s ~> mag_sample) ! 1)
-          m_samp ((mag_read_result ~> rx_buf) ! 5)
-                 ((mag_read_result ~> rx_buf) ! 6)
-                 ((s ~> mag_sample) ! 2)
+          convert_mag_sample conf mag_read_result s
           -- XXX do another transaction to read the accelerometer registers
           getTime >>= store (s ~> time)
           -- Send the sample upstream.
@@ -86,85 +87,108 @@ lsm303dSPISensorManager req_chan res_chan init_chan sensor_chan h = do
             ]
           emit req_e do_read_req
 
+convert_mag_sample :: Config
+                   -> Ref s1 (Struct "spi_transaction_result")
+                   -> Ref s2 (Struct "lsm303d_sample")
+                   -> Ivory eff ()
+convert_mag_sample c res s = do
+  f ((res ~> rx_buf) ! 1)
+    ((res ~> rx_buf) ! 2)
+    ((s ~> mag_sample) ! 0)
+  f ((res ~> rx_buf) ! 3)
+    ((res ~> rx_buf) ! 4)
+    ((s ~> mag_sample) ! 1)
+  f ((res ~> rx_buf) ! 5)
+    ((res ~> rx_buf) ! 6)
+    ((s ~> mag_sample) ! 2)
+  where
+  scale :: IFloat -> IFloat
+  scale v = v * (fromInteger (magPeakToPeakGauss c))
+              / (fromInteger (2 ^ (16 :: Int)))
+  f loref hiref resref = do
+    lo <- deref loref
+    hi <- deref hiref
+    (u16 :: Uint16) <- assign ((safeCast lo) + ((safeCast hi) `iShiftL` 8))
+    (i16 :: Sint16) <- assign (twosComplementCast u16)
+    (r :: IFloat)   <- assign (scale (safeCast i16))
+    store resref r
 
-data RegAction
-  = RegWrite Reg Word8
-  | RegRead Reg (forall s eff . Ref s (Struct "spi_transaction_result") -> Ivory eff IBool)
-  | RegModify Reg (Uint8 -> Uint8)
-
-actions :: [RegAction]
-actions =
-  [ RegRead    R_WhoAmI $ \r -> do
-      comment "break here!"
-      whoami <- deref ((r ~> rx_buf) ! 1)
-      return (whoami ==? 0x49)
-
-  --, RegWrite   R_Control0 $ control0Val $ Control0
-  --    { reboot = True
-  --    }
-  , RegModify R_Magic1 (\r -> r .| 0x10)
-  , RegModify R_Magic1 (\r -> r .& 0xf7)
-  , RegModify R_Magic2 (\r -> r .| 0x80)
-  , RegModify R_Magic1 (\r -> r .& 0xe7)
-  , RegWrite   R_Control1 $ control1Val $ Control1
+lsm303dDefaultConf :: Config
+lsm303dDefaultConf = Config
+  { conf_ctl1 = Control1
       { accel_datarate = ADR_800hz
       , block_data_update = True
       , accel_x_enable = True
       , accel_y_enable = True
       , accel_z_enable = True
       }
-  , RegWrite   R_Control2 $ control2Val $ Control2
+  , conf_ctl2 = Control2
       { accel_anti_alias_bw = AABW_50hz
       , accel_full_scale = AAFS_8g
       , accel_self_test = False
       , spi_3wire_mode = False
       }
-  , RegWrite   R_Control5 $ control5Val $ Control5
+  , conf_ctl5 = Control5
       { temp_enable = False
       , mag_resolution = MR_High
       , mag_datarate = MDR_100hz
       }
-  , RegWrite   R_Control6 $ control6Val $ Control6
+  , conf_ctl6 = Control6
       { mag_full_scale = MFS_2gauss
       }
-  , RegWrite   R_Control7 $ control7Val $ Control7
+  , conf_ctl7 = Control7
       { accel_filter_enable = True
       , mag_power_mode = MPM_Continuous
       }
-  ]
+  }
+
+data RegAction
+  = RegWrite Reg Word8
+  | RegRead Reg (forall s eff . Ref s (Struct "spi_transaction_result")
+                  -> Ivory eff IBool) -- Test successful
+  | RegModify Reg (Uint8 -> Uint8)
 
 runAction :: (GetAlloc eff ~ Scope s)
           => SPIDeviceHandle
           -> Emitter (Struct "spi_transaction_request")
-          -> (Ivory eff (Ref s2 (Struct "spi_transaction_result")))
+          -> (Ivory eff (Ref s1 (Struct "spi_transaction_result")))
+          -> Ref s2 (Stored IBool)
           -> RegAction
           -> Ivory eff ()
-runAction h e y (RegModify r f) = do
+runAction h e y failed (RegModify r f) = do
   comment ("RegModify " ++ show r)
   read_req <- readTransaction h r
   emit e read_req
-  read_res <- y
+  read_res <- yieldCheckResultcode y failed
   read_val <- deref ((read_res ~> rx_buf) ! 1)
   write_req <- writeTransaction h r (f read_val)
   emit e write_req
-  _write_res <- y
+  _write_res <- yieldCheckResultcode y failed
   return ()
 
-runAction h e y (RegWrite  r v) = do
+runAction h e y failed (RegWrite  r v) = do
   comment ("RegWrite " ++ show r)
   write_req <- writeTransaction h r (fromIntegral v)
   emit e write_req
-  _write_res <- y
+  _write_res <- yieldCheckResultcode y failed
   return ()
 
-runAction h e y (RegRead  r f) = do
+runAction h e y failed (RegRead  r f) = do
   comment ("RegRead " ++ show r)
   read_req <- readTransaction h r
   emit e read_req
-  read_res <- y
-  _ <- f read_res
-  -- XXX do something with result of f here - set initfail if false!
-  return ()
+  read_res <- yieldCheckResultcode y failed
+  success <- f read_res
+  unless success (store failed true)
+
+yieldCheckResultcode :: Ivory eff (Ref s1 (Struct "spi_transaction_result"))
+          -> Ref s2 (Stored IBool)
+          -> Ivory eff (Ref s1 (Struct "spi_transaction_result"))
+yieldCheckResultcode y f = do
+  res <- y
+  rc <- deref (res ~> resultcode)
+  when (rc >? 0) (store f true)
+  return res
 
 
 readTransaction :: (GetAlloc eff ~ Scope s)
