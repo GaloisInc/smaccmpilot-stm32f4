@@ -21,41 +21,77 @@ import SMACCMPilot.INS.Ivory
 changeUnits :: (Functor f, Functor g) => (x -> y) -> f (g x) -> f (g y)
 changeUnits f = fmap (fmap f)
 
-accel :: SafeCast IFloat to => ConstRef s (Struct "mpu6000_sample") -> Ivory eff (XYZ to)
-accel sample = fmap (fmap safeCast) $ mapM deref $ fmap (sample ~>) $ xyz MPU6000.accel_x MPU6000.accel_y MPU6000.accel_z
+accel :: (SafeCast IFloat to)
+      => ConstRef s (Struct "mpu6000_sample")
+      -> Ivory eff (XYZ to)
+accel sample = fmap (fmap safeCast)
+             $ mapM deref
+             $ fmap (sample ~>)
+             $ xyz MPU6000.accel_x MPU6000.accel_y MPU6000.accel_z
 
-gyro :: (Floating to, SafeCast IFloat to) => ConstRef s (Struct "mpu6000_sample") -> Ivory eff (XYZ to)
-gyro sample = changeUnits (* (pi / 180)) $ fmap (fmap safeCast) $ mapM deref $ fmap (sample ~>) $ xyz MPU6000.gyro_x MPU6000.gyro_y MPU6000.gyro_z
+gyro :: (Floating to, SafeCast IFloat to)
+      => ConstRef s (Struct "mpu6000_sample")
+      -> Ivory eff (XYZ to)
+gyro sample = changeUnits (* (pi / 180))
+            $ fmap (fmap safeCast)
+            $ mapM deref
+            $ fmap (sample ~>)
+            $ xyz MPU6000.gyro_x MPU6000.gyro_y MPU6000.gyro_z
 
-kalman_predict :: Def ('[Ref s1 (Struct "kalman_state"), Ref s2 (Struct "kalman_covariance"), IFloat, ConstRef s3 (Struct "mpu6000_sample")] :-> ())
-kalman_predict = proc "kalman_predict" $ \ state_vector covariance dt last_gyro -> body $ do
-  distVector <- DisturbanceVector <$> gyro last_gyro <*> accel last_gyro
-  kalmanPredict state_vector covariance dt distVector
+kalman_predict :: Def ('[ Ref s1 (Struct "kalman_state")
+                        , Ref s2 (Struct "kalman_covariance")
+                        , IFloat
+                        , ConstRef s3 (Struct "mpu6000_sample")] :-> ())
+kalman_predict = proc "kalman_predict" $
+  \ state_vector covariance dt last_gyro -> body $ do
+      distVector <- DisturbanceVector <$> gyro last_gyro <*> accel last_gyro
+      kalmanPredict state_vector covariance dt distVector
 
-mag :: (Num to, SafeCast IFloat to) => ConstRef s (Struct "hmc5883l_sample") -> Ivory eff (XYZ to)
-mag sample = changeUnits (* 1000) $ fmap (fmap safeCast) $ mapM deref $ fmap ((sample ~> HMC5883L.sample) !) $ xyz 0 1 2
+mag :: (Num to, SafeCast IFloat to)
+    => ConstRef s (Struct "hmc5883l_sample")
+    -> Ivory eff (XYZ to)
+mag sample = changeUnits (* 1000)
+           $ fmap (fmap safeCast)
+           $ mapM deref
+           $ fmap ((sample ~> HMC5883L.sample) !)
+           $ xyz 0 1 2
 
-mag_measure :: Def ('[Ref s1 (Struct "kalman_state"), Ref s2 (Struct "kalman_covariance"), ConstRef s3 (Struct "hmc5883l_sample")] :-> ())
+mag_measure :: Def ('[ Ref s1 (Struct "kalman_state")
+                     , Ref s2 (Struct "kalman_covariance")
+                     , ConstRef s3 (Struct "hmc5883l_sample")] :-> ())
 mag_measure = proc "mag_measure" $ \ state_vector covariance last_mag -> body $ do
   magMeasure state_vector covariance =<< mag last_mag
 
-pressure :: (Num to, SafeCast IFloat to) => ConstRef s (Struct "ms5611_measurement") -> Ivory eff to
-pressure sample = fmap (* 100) $ fmap safeCast $ deref $ sample ~> MS5611.pressure
+pressure :: (Num to, SafeCast IFloat to)
+         => ConstRef s (Struct "ms5611_measurement")
+         -> Ivory eff to
+pressure sample = fmap (* 100)
+                $ fmap safeCast
+                $ deref
+                $ sample ~> MS5611.pressure
 
-pressure_measure :: Def ('[Ref s1 (Struct "kalman_state"), Ref s2 (Struct "kalman_covariance"), ConstRef s3 (Struct "ms5611_measurement")] :-> ())
-pressure_measure = proc "pressure_measure" $ \ state_vector covariance last_baro -> body $ do
-  pressureMeasure state_vector covariance =<< pressure last_baro
+pressure_measure :: Def ('[ Ref s1 (Struct "kalman_state")
+                          , Ref s2 (Struct "kalman_covariance")
+                          , ConstRef s3 (Struct "ms5611_measurement")] :-> ())
+pressure_measure = proc "pressure_measure" $
+  \ state_vector covariance last_baro -> body $ do
+      pressureMeasure state_vector covariance =<< pressure last_baro
 
-init_filter :: Def ('[Ref s1 (Struct "kalman_state"), Ref s2 (Struct "kalman_covariance"), ConstRef s3 (Struct "mpu6000_sample"), ConstRef s4 (Struct "hmc5883l_sample"), ConstRef s5 (Struct "ms5611_measurement")] :-> IBool)
-init_filter = proc "init_filter" $ \ state_vector covariance last_gyro last_mag last_baro -> body $ do
-  magFail <- deref $ last_mag ~> HMC5883L.samplefail
-  baroFail <- deref $ last_baro ~> MS5611.sampfail
-  when (iNot magFail .&& iNot baroFail) $ do
-    acc <- accel last_gyro
-    mag' <- mag last_mag
-    kalmanInit state_vector covariance acc mag' =<< pressure last_baro
-    ret true
-  ret false
+init_filter :: Def ('[ Ref s1 (Struct "kalman_state")
+                     , Ref s2 (Struct "kalman_covariance")
+                     , ConstRef s3 (Struct "mpu6000_sample")
+                     , ConstRef s4 (Struct "hmc5883l_sample")
+                     , ConstRef s5 (Struct "ms5611_measurement")] :-> IBool)
+init_filter = proc "init_filter" $
+  \ state_vector covariance last_gyro last_mag last_baro -> body $ do
+      magFail <- deref $ last_mag ~> HMC5883L.samplefail
+      baroFail <- deref $ last_baro ~> MS5611.sampfail
+      when (iNot magFail .&& iNot baroFail) $ do
+        acc <- accel last_gyro
+        mag' <- mag last_mag
+        kalmanInit state_vector covariance acc mag' =<< pressure last_baro
+        ret true
+      ret false
 
 sensorFusion :: ChanOutput (Struct "mpu6000_sample")
              -> ChanOutput (Struct "hmc5883l_sample")
@@ -108,7 +144,11 @@ sensorFusion gyroSource magSource baroSource _gpsSource = do
               store last_predict now
               emit stateEmit $ constRef state_vector
             ) (do
-              done <- call init_filter state_vector covariance (constRef last_gyro) (constRef last_mag) (constRef last_baro)
+              done <- call init_filter state_vector
+                                       covariance
+                                       (constRef last_gyro)
+                                       (constRef last_mag)
+                                       (constRef last_baro)
               when done $ do
                 store initialized true
                 refCopy last_predict $ last_gyro ~> MPU6000.time
