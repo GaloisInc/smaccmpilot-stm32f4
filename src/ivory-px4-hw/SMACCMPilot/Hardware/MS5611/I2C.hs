@@ -62,7 +62,7 @@ ms5611I2CSensorManager req_chan res_chan init_chan meas_chan addr = do
                              -> Ivory eff ()
             samplei2csuccess res = do
               c <- ms5611_res_code res
-              when (c >? 0) (store (meas ~> sampfail) true)
+              when (c >? 0) (store (meas ~> samplefail) true)
 
             transaction :: (GetAlloc eff ~ Scope s)
                         => Ivory eff (Ref s2 (Struct "i2c_transaction_result"))
@@ -111,7 +111,7 @@ ms5611I2CSensorManager req_chan res_chan init_chan meas_chan addr = do
         -- Start the measurement sample cycle. requires us to convert and fetch
         -- both the temperature and pressure from the sensor.
         forever $ do
-          store (meas ~> sampfail) false
+          store (meas ~> samplefail) false
 
           -- Start an adc conversion. We must wait ~9ms for the conversion to
           -- complete before reading

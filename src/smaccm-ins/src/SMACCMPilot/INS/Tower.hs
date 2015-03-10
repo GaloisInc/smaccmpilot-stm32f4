@@ -88,7 +88,7 @@ init_filter :: Def ('[ Ref s1 (Struct "kalman_state")
 init_filter = proc "init_filter" $
   \ state_vector covariance last_accel last_gyro last_mag last_baro -> body $ do
       magFail <- deref $ last_mag ~> M.samplefail
-      baroFail <- deref $ last_baro ~> B.sampfail
+      baroFail <- deref $ last_baro ~> B.samplefail
       when (iNot magFail .&& iNot baroFail) $ do
         acc <- accel last_accel
         mag' <- mag last_mag
@@ -133,7 +133,7 @@ sensorFusion accelSource gyroSource magSource baroSource _gpsSource = do
     last_gyro <- stateInit "last_gyro" $ istruct [ G.samplefail .= ival true ]
     last_acc  <- stateInit "last_acc" $ istruct [ A.samplefail .= ival true ]
     last_mag <- stateInit "last_mag" $ istruct [ M.samplefail .= ival true ]
-    last_baro <- stateInit "last_baro" $ istruct [ B.sampfail .= ival true ]
+    last_baro <- stateInit "last_baro" $ istruct [ B.samplefail .= ival true ]
 
     handler accelSource "accel" $ do
       callback $ \sample -> do
@@ -181,7 +181,7 @@ sensorFusion accelSource gyroSource magSource baroSource _gpsSource = do
         when ready $ call_ mag_measure state_vector covariance $ constRef last_mag
 
     handler baroSource "baro" $ callback $ \ sample -> do
-      failed <- deref $ sample ~> B.sampfail
+      failed <- deref $ sample ~> B.samplefail
       unless failed $ do
         refCopy last_baro sample
         ready <- deref initialized

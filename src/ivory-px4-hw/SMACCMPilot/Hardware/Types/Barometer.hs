@@ -15,7 +15,7 @@ import Ivory.Tower.Types.Time
 
 struct barometer_sample
   { initfail   :: Stored IBool
-  ; sampfail   :: Stored IBool
+  ; samplefail :: Stored IBool
   ; pressure    :: Stored IFloat -- mbar
   ; temperature :: Stored IFloat -- deg celsius
   ; time        :: Stored ITime
@@ -37,7 +37,7 @@ packITime = repackV fromIMicroseconds toIMicroseconds (packRep :: PackRep (Store
 barometerWrapper :: WrappedPackRep (Struct "barometer_sample")
 barometerWrapper = wrapPackRep "barometer_sample" $ packStruct
   [ packLabel' initfail packIBool
-  , packLabel' sampfail packIBool
+  , packLabel' samplefail packIBool
   , packLabel pressure
   , packLabel temperature
   , packLabel' time packITime
