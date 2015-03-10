@@ -34,33 +34,20 @@ app topx4 = do
   can <- maybe (fail "fragmentation test requires a CAN peripheral") return $ px4platform_can px4platform
   (_, canReq, _, _) <- canTower tocc (can_periph can) 500000 (can_RX can) (can_TX can)
 
-  (fragReq, fragAbort, fragDone) <- fragmentSender 0x001 False canReq (Proxy :: Proxy 32)
+  (fragSink, fragSource) <- channel
+  fragmentSenderBlind (fragSource :: ChanOutput (Struct "smaccmpilot_nav_cmd_msg")) 0x001 False canReq (Proxy :: Proxy 32)
 
   let uart = px4platform_console px4platform
   (istream, _) <- uartTower tocc (uart_periph uart) (uart_pins uart)
                                   115200 (Proxy :: Proxy 256)
 
   monitor "decode" $ do
-    msg <- stateInit "msg" (izero :: Init (Struct "smaccmpilot_nav_cmd_msg"))
-    in_progress <- state "in_progress"
-    abort_pending <- state "abort_pending"
-
     coroutineHandler systemInit istream "decode_uart" $ do
-      toFrag <- emitter fragReq 1
-      doAbort <- emitter fragAbort 1
+      toFrag <- emitter fragSink 1
       return $ R.mavlinkReceiver (return ()) $ \ mavState -> do
         let (unpacker, msgid) = unpackMsg
         rxid <- deref (mavState ~> R.msgid)
         when (rxid ==? msgid) $ do
+          msg <- local izero
           call_ unpacker msg $ toCArray $ mavState ~> R.payload
-          was_in_progress <- deref in_progress
-          ifte_ was_in_progress (emitV doAbort true >> store abort_pending true) (emit toFrag (constRef msg) >> store in_progress true)
-
-    handler fragDone "fragment_done" $ do
-      toFrag <- emitter fragReq 1
-      callback $ const $ do
-        was_aborting <- deref abort_pending
-        when was_aborting $ do
           emit toFrag $ constRef msg
-          store in_progress true
-          store abort_pending false
