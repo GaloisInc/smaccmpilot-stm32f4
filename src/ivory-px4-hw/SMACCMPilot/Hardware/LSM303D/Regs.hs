@@ -77,8 +77,7 @@ data Control6 =
 
 data Control7 =
   Control7
-      { accel_filter_enable :: Bool
-      , mag_power_mode      :: MagPowerMode
+      { mag_power_mode       :: MagPowerMode
       } -- remaining fields leave zero
 
 data AccelDatarate
@@ -251,8 +250,7 @@ control6Val (Control6{..}) =
 
 control7Val :: Control7 -> Word8
 control7Val (Control7{..}) =
-      bField accel_filter_enable 5
-  .|. wField (magPowerModeVal mag_power_mode) 0
+      wField (magPowerModeVal mag_power_mode) 0
 
 magPeakToPeakGauss :: Config -> Integer
 magPeakToPeakGauss = aux . mag_full_scale . conf_ctl6
@@ -262,4 +260,15 @@ magPeakToPeakGauss = aux . mag_full_scale . conf_ctl6
   aux MFS_4gauss  = 8
   aux MFS_8gauss  = 16
   aux MFS_12gauss = 24
+
+accPeakToPeakMSS :: Config -> Rational
+accPeakToPeakMSS = to_mss . aux . accel_full_scale . conf_ctl2
+  where
+  to_mss v = v * 9.81
+  -- really +/- 2 g, 4 g
+  aux AAFS_2g = 4
+  aux AAFS_4g = 8
+  aux AAFS_6g = 12
+  aux AAFS_8g = 16
+  aux AAFS_16g = 32
 

@@ -13,6 +13,7 @@ import Ivory.Stdlib
 import Ivory.Tower
 
 import Data.Word
+import Numeric (showHex)
 
 import Ivory.BSP.STM32.Driver.SPI
 
@@ -62,15 +63,38 @@ lsm303dSPISensorManager conf req_chan res_chan init_chan sensor_chan h = do
         comment "finished initialization in lsm303d coroutine"
 
         forever $ do
-          -- Request originates from period below
+          comment "Recieve mag read result."
+          comment "Request originates from periodic handler below."
           mag_read_result <- yield
-          rc <- deref (mag_read_result ~> resultcode)
-          -- Reset the samplefail field
-          store (s ~> samplefail) (rc >? 0)
+
+          comment "reset samplefail field"
+          mrc <- deref (mag_read_result ~> resultcode)
+          store (s ~> samplefail) (mrc >? 0)
+
+          comment "put results in mag_sample field"
           convert_mag_sample conf mag_read_result s
-          -- XXX do another transaction to read the accelerometer registers
+
+          comment "send accel read request"
+          acc_read_req <- fmap constRef $ local $ istruct
+            [ tx_device .= ival h
+            , tx_buf  .= iarray ((ival (fromIntegral (readSequentialRegs R_OutXLA))) :
+                                    repeat (ival 0))
+            , tx_len  .= ival 7
+            ]
+          emit req_e acc_read_req
+
+          comment "receive accel read result"
+          acc_read_result <- yield
+
+          comment "update samplefail field"
+          arc <- deref (acc_read_result ~> resultcode)
+          when (arc >? 0) $ store (s ~> samplefail) true
+
+          comment "put results in acc_sample field"
+          convert_acc_sample conf acc_read_result s
+
+          comment "record time and emit sample"
           getTime >>= store (s ~> time)
-          -- Send the sample upstream.
           emit sens_e (constRef s)
 
 
@@ -91,20 +115,37 @@ convert_mag_sample :: Config
                    -> Ref s1 (Struct "spi_transaction_result")
                    -> Ref s2 (Struct "lsm303d_sample")
                    -> Ivory eff ()
-convert_mag_sample c res s = do
-  f ((res ~> rx_buf) ! 1)
-    ((res ~> rx_buf) ! 2)
-    ((s ~> mag_sample) ! 0)
-  f ((res ~> rx_buf) ! 3)
-    ((res ~> rx_buf) ! 4)
-    ((s ~> mag_sample) ! 1)
-  f ((res ~> rx_buf) ! 5)
-    ((res ~> rx_buf) ! 6)
-    ((s ~> mag_sample) ! 2)
+convert_mag_sample c res s = convert_sample scale res (s ~> mag_sample)
   where
   scale :: IFloat -> IFloat
   scale v = v * (fromInteger (magPeakToPeakGauss c))
               / (fromInteger (2 ^ (16 :: Int)))
+
+convert_acc_sample :: Config
+                   -> Ref s1 (Struct "spi_transaction_result")
+                   -> Ref s2 (Struct "lsm303d_sample")
+                   -> Ivory eff ()
+convert_acc_sample c res s = convert_sample scale res (s ~> acc_sample)
+  where
+  scale :: IFloat -> IFloat
+  scale v = v * (fromRational (accPeakToPeakMSS c))
+              / (fromInteger (2 ^ (16 :: Int)))
+
+convert_sample :: (IFloat -> IFloat)
+               -> Ref s1 (Struct "spi_transaction_result")
+               -> Ref s2 (Array 3 (Stored IFloat))
+               -> Ivory eff ()
+convert_sample scale res s = do
+  f ((res ~> rx_buf) ! 1)
+    ((res ~> rx_buf) ! 2)
+    (s ! 0)
+  f ((res ~> rx_buf) ! 3)
+    ((res ~> rx_buf) ! 4)
+    (s ! 1)
+  f ((res ~> rx_buf) ! 5)
+    ((res ~> rx_buf) ! 6)
+    (s ! 2)
+  where
   f loref hiref resref = do
     lo <- deref loref
     hi <- deref hiref
@@ -112,6 +153,7 @@ convert_mag_sample c res s = do
     (i16 :: Sint16) <- assign (twosComplementCast u16)
     (r :: IFloat)   <- assign (scale (safeCast i16))
     store resref r
+
 
 lsm303dDefaultConf :: Config
 lsm303dDefaultConf = Config
@@ -137,8 +179,7 @@ lsm303dDefaultConf = Config
       { mag_full_scale = MFS_2gauss
       }
   , conf_ctl7 = Control7
-      { accel_filter_enable = True
-      , mag_power_mode = MPM_Continuous
+      { mag_power_mode = MPM_Continuous
       }
   }
 
@@ -167,7 +208,7 @@ runAction h e y failed (RegModify r f) = do
   return ()
 
 runAction h e y failed (RegWrite  r v) = do
-  comment ("RegWrite " ++ show r)
+  comment ("RegWrite " ++ show r ++ " 0x" ++ showHex (writeReg r) " 0x" ++ showHex v "")
   write_req <- writeTransaction h r (fromIntegral v)
   emit e write_req
   _write_res <- yieldCheckResultcode y failed
