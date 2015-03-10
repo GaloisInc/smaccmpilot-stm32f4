@@ -14,8 +14,13 @@ library
                        SMACCMPilot.Hardware.GPS.Types.GPSFix,
                        SMACCMPilot.Hardware.GPS.UBlox,
                        SMACCMPilot.Hardware.GPS.UBlox.Types,
+
+                       SMACCMPilot.Hardware.Types.Gyroscope,
+                       SMACCMPilot.Hardware.Types.Accelerometer,
+                       SMACCMPilot.Hardware.Types.Magnetometer,
+                       SMACCMPilot.Hardware.Types.Barometer,
+
                        SMACCMPilot.Hardware.MPU6000,
-                       SMACCMPilot.Hardware.MPU6000.Types,
                        SMACCMPilot.Hardware.MPU6000.Regs,
                        SMACCMPilot.Hardware.MPU6000.SPI,
                        SMACCMPilot.Hardware.MS5611,
@@ -26,11 +31,9 @@ library
                        SMACCMPilot.Hardware.MS5611.I2C,
                        SMACCMPilot.Hardware.MS5611.SPI,
                        SMACCMPilot.Hardware.HMC5883L,
-                       SMACCMPilot.Hardware.HMC5883L.Types,
                        SMACCMPilot.Hardware.HMC5883L.Regs,
                        SMACCMPilot.Hardware.HMC5883L.I2C,
                        SMACCMPilot.Hardware.LSM303D,
-                       SMACCMPilot.Hardware.LSM303D.Types,
                        SMACCMPilot.Hardware.LSM303D.Regs,
                        SMACCMPilot.Hardware.LSM303D.SPI,
 

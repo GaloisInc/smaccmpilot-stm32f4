@@ -13,6 +13,7 @@ import Ivory.Stdlib
 
 import Ivory.BSP.STM32.Driver.I2C
 
+import SMACCMPilot.Hardware.Types.Barometer
 import SMACCMPilot.Hardware.MS5611.Types
 import SMACCMPilot.Hardware.MS5611.Mode
 import SMACCMPilot.Hardware.MS5611.Calibration (measurement)
@@ -21,12 +22,14 @@ import SMACCMPilot.Hardware.MS5611.Calibration (measurement)
 ms5611I2CSensorManager :: ChanInput  (Struct "i2c_transaction_request")
                        -> ChanOutput (Struct "i2c_transaction_result")
                        -> ChanOutput (Stored ITime)
-                       -> ChanInput  (Struct "ms5611_measurement")
+                       -> ChanInput  (Struct "barometer_sample")
                        -> I2CDeviceAddr
                        -> Tower e ()
 ms5611I2CSensorManager req_chan res_chan init_chan meas_chan addr = do
   towerModule  ms5611TypesModule
   towerDepends ms5611TypesModule
+  towerModule  barometerTypesModule
+  towerDepends barometerTypesModule
 
   p <- period (Milliseconds 10) -- ADC conversion period.
   monitor "ms5611I2CSensorManager" $ do

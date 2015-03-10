@@ -5,6 +5,7 @@
 
 module SMACCMPilot.Hardware.MS5611.SPI where
 
+import SMACCMPilot.Hardware.Types.Barometer
 import SMACCMPilot.Hardware.MS5611.Regs
 import SMACCMPilot.Hardware.MS5611.Types
 import SMACCMPilot.Hardware.MS5611.Mode
@@ -19,7 +20,7 @@ import Ivory.BSP.STM32.Driver.SPI
 ms5611SPISensorManager :: ChanInput  (Struct "spi_transaction_request")
                        -> ChanOutput (Struct "spi_transaction_result")
                        -> ChanOutput (Stored ITime)
-                       -> ChanInput  (Struct "ms5611_measurement")
+                       -> ChanInput  (Struct "barometer_sample")
                        -> SPIDeviceHandle
                        -> Tower e ()
 ms5611SPISensorManager req_chan res_chan init_chan meas_chan h = do

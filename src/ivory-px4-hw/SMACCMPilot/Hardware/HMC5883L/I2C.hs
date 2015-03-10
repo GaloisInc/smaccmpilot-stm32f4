@@ -12,18 +12,18 @@ import Ivory.Tower
 
 import Ivory.BSP.STM32.Driver.I2C
 
+import SMACCMPilot.Hardware.Types.Magnetometer
 import SMACCMPilot.Hardware.HMC5883L.Regs
-import SMACCMPilot.Hardware.HMC5883L.Types
 
 hmc5883lSensorManager :: ChanInput  (Struct "i2c_transaction_request")
                       -> ChanOutput (Struct "i2c_transaction_result")
                       -> ChanOutput (Stored ITime)
-                      -> ChanInput  (Struct "hmc5883l_sample")
+                      -> ChanInput  (Struct "magnetometer_sample")
                       -> I2CDeviceAddr
                       -> Tower e ()
 hmc5883lSensorManager req_chan res_chan init_chan sensor_chan addr = do
-  towerModule  hmc5883lTypesModule
-  towerDepends hmc5883lTypesModule
+  towerModule magnetometerTypesModule
+  towerDepends magnetometerTypesModule
   p <- period (Milliseconds 20) -- 50 hz. Can be faster if required.
   monitor "hmc5883lSensorManager" $ do
     init_requests_area <- do

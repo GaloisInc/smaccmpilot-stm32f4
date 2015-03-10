@@ -17,29 +17,38 @@ import Numeric (showHex)
 
 import Ivory.BSP.STM32.Driver.SPI
 
+import qualified SMACCMPilot.Hardware.Types.Accelerometer as A
+import qualified SMACCMPilot.Hardware.Types.Magnetometer  as M
 import SMACCMPilot.Hardware.LSM303D.Regs
-import SMACCMPilot.Hardware.LSM303D.Types
 
 lsm303dSPISensorManager :: Config
                         -> ChanInput  (Struct "spi_transaction_request")
                         -> ChanOutput (Struct "spi_transaction_result")
                         -> ChanOutput (Stored ITime)
-                        -> ChanInput  (Struct "lsm303d_sample")
+                        -> ChanInput  (Struct "magnetometer_sample")
+                        -> ChanInput  (Struct "accelerometer_sample")
                         -> SPIDeviceHandle
                         -> Tower e ()
-lsm303dSPISensorManager conf req_chan res_chan init_chan sensor_chan h = do
-  towerModule  lsm303dTypesModule
-  towerDepends lsm303dTypesModule
+lsm303dSPISensorManager conf req_chan res_chan init_chan mag_chan accel_chan h = do
+  towerModule  M.magnetometerTypesModule
+  towerDepends M.magnetometerTypesModule
+  towerModule  A.accelerometerTypesModule
+  towerDepends A.accelerometerTypesModule
+
   p <- period (Milliseconds 20) -- 50hz
   monitor "lsm303dSensorManager" $ do
     initialized <- stateInit "initialized" (ival false)
-    s           <- state "sample"
+    mag_s       <- state "mag_s"
+    acc_s       <- state "accel_s"
     coroutineHandler init_chan res_chan "lsm303d_coroutine" $ do
       req_e <- emitter req_chan 1
-      sens_e <- emitter sensor_chan 1
+      mag_e <- emitter mag_chan 1
+      acc_e <- emitter accel_chan 1
       return $ CoroutineBody $ \yield -> do
 
-        let runA = runAction h req_e yield (s ~> initfail)
+        let runA = runAction h req_e yield onfail
+            onfail = do store (mag_s ~> M.initfail) true
+                        store (acc_s ~> A.initfail) true
             initActions :: Config -> [RegAction]
             initActions c =
               [ RegRead    R_WhoAmI $ \r -> do
@@ -69,10 +78,11 @@ lsm303dSPISensorManager conf req_chan res_chan init_chan sensor_chan h = do
 
           comment "reset samplefail field"
           mrc <- deref (mag_read_result ~> resultcode)
-          store (s ~> samplefail) (mrc >? 0)
+          store (mag_s ~> M.samplefail) (mrc >? 0)
+          store (acc_s ~> A.samplefail) (mrc >? 0)
 
           comment "put results in mag_sample field"
-          convert_mag_sample conf mag_read_result s
+          convert_mag_sample conf mag_read_result mag_s
 
           comment "send accel read request"
           acc_read_req <- fmap constRef $ local $ istruct
@@ -88,14 +98,19 @@ lsm303dSPISensorManager conf req_chan res_chan init_chan sensor_chan h = do
 
           comment "update samplefail field"
           arc <- deref (acc_read_result ~> resultcode)
-          when (arc >? 0) $ store (s ~> samplefail) true
+          when (arc >? 0) $ do
+            store (mag_s ~> M.samplefail) true
+            store (acc_s ~> A.samplefail) true
 
           comment "put results in acc_sample field"
-          convert_acc_sample conf acc_read_result s
+          convert_acc_sample conf acc_read_result acc_s
 
           comment "record time and emit sample"
-          getTime >>= store (s ~> time)
-          emit sens_e (constRef s)
+          r_time <- getTime
+          store (mag_s ~> M.time) r_time
+          store (acc_s ~> A.time) r_time
+          emit mag_e (constRef mag_s)
+          emit acc_e (constRef acc_s)
 
 
     handler p "periodic_read" $ do
@@ -113,9 +128,9 @@ lsm303dSPISensorManager conf req_chan res_chan init_chan sensor_chan h = do
 
 convert_mag_sample :: Config
                    -> Ref s1 (Struct "spi_transaction_result")
-                   -> Ref s2 (Struct "lsm303d_sample")
+                   -> Ref s2 (Struct "magnetometer_sample")
                    -> Ivory eff ()
-convert_mag_sample c res s = convert_sample scale res (s ~> mag_sample)
+convert_mag_sample c res s = convert_sample scale res (s ~> M.sample)
   where
   scale :: IFloat -> IFloat
   scale v = v * (fromInteger (magPeakToPeakGauss c))
@@ -123,9 +138,9 @@ convert_mag_sample c res s = convert_sample scale res (s ~> mag_sample)
 
 convert_acc_sample :: Config
                    -> Ref s1 (Struct "spi_transaction_result")
-                   -> Ref s2 (Struct "lsm303d_sample")
+                   -> Ref s2 (Struct "accelerometer_sample")
                    -> Ivory eff ()
-convert_acc_sample c res s = convert_sample scale res (s ~> acc_sample)
+convert_acc_sample c res s = convert_sample scale res (s ~> A.sample)
   where
   scale :: IFloat -> IFloat
   scale v = v * (fromRational (accPeakToPeakMSS c))
@@ -193,42 +208,42 @@ runAction :: (GetAlloc eff ~ Scope s)
           => SPIDeviceHandle
           -> Emitter (Struct "spi_transaction_request")
           -> (Ivory eff (Ref s1 (Struct "spi_transaction_result")))
-          -> Ref s2 (Stored IBool)
+          -> Ivory eff ()
           -> RegAction
           -> Ivory eff ()
-runAction h e y failed (RegModify r f) = do
+runAction h e y onfail (RegModify r f) = do
   comment ("RegModify " ++ show r)
   read_req <- readTransaction h r
   emit e read_req
-  read_res <- yieldCheckResultcode y failed
+  read_res <- yieldCheckResultcode y onfail
   read_val <- deref ((read_res ~> rx_buf) ! 1)
   write_req <- writeTransaction h r (f read_val)
   emit e write_req
-  _write_res <- yieldCheckResultcode y failed
+  _write_res <- yieldCheckResultcode y onfail
   return ()
 
-runAction h e y failed (RegWrite  r v) = do
+runAction h e y onfail (RegWrite  r v) = do
   comment ("RegWrite " ++ show r ++ " 0x" ++ showHex (writeReg r) " 0x" ++ showHex v "")
   write_req <- writeTransaction h r (fromIntegral v)
   emit e write_req
-  _write_res <- yieldCheckResultcode y failed
+  _write_res <- yieldCheckResultcode y onfail
   return ()
 
-runAction h e y failed (RegRead  r f) = do
+runAction h e y onfail (RegRead  r f) = do
   comment ("RegRead " ++ show r)
   read_req <- readTransaction h r
   emit e read_req
-  read_res <- yieldCheckResultcode y failed
+  read_res <- yieldCheckResultcode y onfail
   success <- f read_res
-  unless success (store failed true)
+  unless success onfail
 
 yieldCheckResultcode :: Ivory eff (Ref s1 (Struct "spi_transaction_result"))
-          -> Ref s2 (Stored IBool)
+          -> Ivory eff ()
           -> Ivory eff (Ref s1 (Struct "spi_transaction_result"))
-yieldCheckResultcode y f = do
+yieldCheckResultcode y onfail = do
   res <- y
   rc <- deref (res ~> resultcode)
-  when (rc >? 0) (store f true)
+  when (rc >? 0) onfail
   return res
 
 
