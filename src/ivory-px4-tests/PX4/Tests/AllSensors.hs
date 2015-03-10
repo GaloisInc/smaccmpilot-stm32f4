@@ -14,10 +14,12 @@ import Ivory.Language
 import Ivory.Serialize
 import Ivory.Tower
 
+import Ivory.BSP.STM32.Driver.CAN
 import Ivory.BSP.STM32.Driver.I2C
 import Ivory.BSP.STM32.Driver.SPI
 import Ivory.BSP.STM32.Driver.UART
 
+import SMACCM.Fragment
 import SMACCMPilot.Hardware.Sched
 import SMACCMPilot.Hardware.GPS.UBlox
 
@@ -31,8 +33,10 @@ import PX4.Tests.Platforms
 app :: (e -> PX4Platform) -> Tower e ()
 app topx4 = do
   px4platform <- fmap topx4 getEnv
+  let tocc = px4platform_clockconfig . topx4
+
   let gps = px4platform_gps px4platform
-  (gpsi, _gpso) <- uartTower (px4platform_clockconfig . topx4)
+  (gpsi, _gpso) <- uartTower tocc
                              (uart_periph gps)
                              (uart_pins gps)
                              38400
@@ -46,7 +50,7 @@ app topx4 = do
 
   mpu6000sample <- channel
   let mpu6000 = px4platform_mpu6000 px4platform
-  (sreq, sres, sready) <- spiTower (px4platform_clockconfig . topx4)
+  (sreq, sres, sready) <- spiTower tocc
                                    [mpu6000_spi_device mpu6000]
                                    (mpu6000_spi_pins mpu6000)
 
@@ -60,6 +64,15 @@ app topx4 = do
     -- XXX: mpu6000 produces too much output for a 115200 bps UART
     -- mpu6000Sender  (snd mpu6000sample)  uartout
     positionSender (snd position)       uartout
+
+  case px4platform_can px4platform of
+    Nothing -> return () -- don't send sensor readings to non-existent CAN busses
+    Just can -> do
+      (_, canReq, _, _) <- canTower tocc (can_periph can) 500000 (can_RX can) (can_TX can)
+      fragmentSenderBlind (snd mpu6000sample) 0x001 False canReq (Proxy :: Proxy 38) -- 200Hz, 5 fragments
+      fragmentSenderBlind mag_meas 0x006 False canReq (Proxy :: Proxy 22) -- 50Hz, 3 fragments
+      fragmentSenderBlind baro_meas 0x009 False canReq (Proxy :: Proxy 18) -- 50Hz, 3 fragments
+      fragmentSenderBlind (snd position) 0x00C False canReq (Proxy :: Proxy 46) -- 1Hz?, 6 fragments
 
   towerDepends serializeModule
   towerModule  serializeModule
