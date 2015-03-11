@@ -26,6 +26,8 @@ ms5611SPISensorManager :: ChanInput  (Struct "spi_transaction_request")
 ms5611SPISensorManager req_chan res_chan init_chan meas_chan h = do
   towerModule  ms5611TypesModule
   towerDepends ms5611TypesModule
+  towerModule  barometerTypesModule
+  towerDepends barometerTypesModule
 
   p <- period (Milliseconds 10) -- ADC conversion period.
   monitor "ms5611SPISensorManager" $ do
