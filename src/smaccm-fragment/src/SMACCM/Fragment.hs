@@ -25,11 +25,16 @@ fragmentSender baseID ide tx Proxy = do
   let idstr = "0x" ++ showHex baseID ""
   monitor ("fragment_" ++ idstr) $ do
     sent <- stateInit ("fragment_sent_" ++ idstr) (izero :: Init (Stored Uint8))
-    aborting <- state ("fragment_aborting_" ++ idstr)
     buf <- stateInit ("fragment_buf_" ++ idstr) (izero :: Init (Array len (Stored Uint8)))
 
+    -- Note: i am sorry we have to put this check on an unrelated state, but
+    -- haskell
     let rep = packRep
-    if packSize rep /= arrayLen buf then fail $ "wrong buffer size " ++ show (arrayLen buf) ++ " given for CAN ID " ++ idstr ++ ": should be " ++ show (packSize rep) else return ()
+    aborting <- if packSize rep /= arrayLen buf
+       then fail $ "wrong buffer size " ++ show (arrayLen buf)
+                 ++ " given for CAN ID " ++ idstr ++ ": should be "
+                 ++ show (packSize rep)
+       else state ("fragment_aborting_" ++ idstr)
 
     let sendFragment idx = do
           let remaining_len = arrayLen buf - 8 * idx
