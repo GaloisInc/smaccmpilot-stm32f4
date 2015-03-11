@@ -32,10 +32,10 @@ class Barometer(object):
     def display(self):
         if self.errormsg:
             return self.errormsg
-        return ("Baro ifail %d sfail %d mbar % 9.4f degc % 5.2f micros %d" %
+        return ("Baro  %d %d mbar % 9.4f degc % 5.2f micros %d" %
             (self.ifail, self.sfail, self.pres, self.temp, self.t))
 
-class Compass(object):
+class Mag(object):
     def __init__(self, binary):
         self.binary = binary
         try:
@@ -48,36 +48,34 @@ class Compass(object):
             self.t     = t
             self.errormsg = None
         except Exception:
-            self.errormsg = ("Compass: bad size %d" % (len(binary)))
+            self.errormsg = ("Mag: bad size %d" % (len(binary)))
     def display(self):
         if self.errormsg:
             return self.errormsg
-        return ("Compass ifail %d sfail %d x % 9.4f y % 9.4f z % 9.4f micros %d" %
+        return ("Mag   %d %d x % 9.4f y % 9.4f z % 9.4f                micros %d" %
             (self.ifail, self.sfail, self.x, self.y, self.z, self.t))
 
 
-class CompassAccel(object):
+class Accel(object):
     def __init__(self, binary):
         self.binary = binary
         try:
-            (ifail, sfail, ax, ay, az, mx, my, mz, t) = struct.unpack("<BBffffffQ", binary)
+            (ifail, sfail, x, y, z, temp, t) = struct.unpack("<BBffffQ", binary)
             self.ifail = ifail
             self.sfail = sfail
-            self.mx    = mx
-            self.my    = my
-            self.mz    = mz
-            self.ax    = ax
-            self.ay    = ay
-            self.az    = az
+            self.x     = x
+            self.y     = y
+            self.z     = z
             self.t     = t
+            self.temp  = temp
             self.errormsg = None
         except Exception:
-            self.errormsg = ("CompassAccel: bad size %d" % (len(binary)))
+            self.errormsg = ("Accel: bad size %d" % (len(binary)))
     def display(self):
         if self.errormsg:
             return self.errormsg
-        return ("CompassAccel ifail %d sfail %d mx % 9.4f my % 9.4f mz % 9.4f ax % 9.4f ay % 9.4f az % 9.4f micros %d" %
-            (self.ifail, self.sfail, self.mx, self.my, self.mz, self.ax, self.ay, self.az, self.t))
+        return ("Accel %d %d x % 9.4f y % 9.4f z % 9.4f temp % 9.4f micros %d" %
+            (self.ifail, self.sfail, self.x, self.y, self.z, self.temp, self.t))
 
 class Fusion(object):
     def __init__(self, binary):
@@ -106,15 +104,12 @@ class Gyro(object):
     def __init__(self, binary):
         self.binary = binary
         try:
-            (ifail, sfail, gx, gy, gz, ax, ay, az, temp, t) = struct.unpack("<BBfffffffQ", binary)
+            (ifail, sfail, x, y, z, temp, t) = struct.unpack("<BBffffQ", binary)
             self.ifail = ifail
             self.sfail = sfail
-            self.gx    = gx
-            self.gy    = gy
-            self.gz    = gz
-            self.ax    = ax
-            self.ay    = ay
-            self.az    = az
+            self.x     = x
+            self.y     = y
+            self.z     = z
             self.temp  = temp
             self.t     = t
             self.errormsg = None
@@ -123,8 +118,8 @@ class Gyro(object):
     def display(self):
         if self.errormsg:
             return self.errormsg
-        return ("Gyro valid %d %d gx % 9.4f gy % 9.4f gz % 9.4f ax % 9.4f ay % 9.4f az % 9.4f temp % 9.4f micros %d" %
-            (self.ifail, self.sfail, self.gx, self.gy, self.gz, self.ax, self.ay, self.az, self.temp, self.t))
+        return ("Gyro  %d %d x % 9.4f y % 9.4f z % 9.4f temp % 9.4f micros %d" %
+            (self.ifail, self.sfail, self.x, self.y, self.z, self.temp, self.t))
 
 class Position(object):
     def __init__(self, binary):
@@ -190,19 +185,19 @@ class SensorParser(object):
                 parsed = util.at_b_response(payload)
                 if parsed != None:
                     statuses.append(parsed)
-            if t == 98: # 'b' barometer
+            if t == ord('a'): # 'a' accel
+                sensors.append(Accel(payload))
+            if t == ord('b'): # 'b' barometer
                 sensors.append(Barometer(payload))
-            if t == 99: # 'c' compass
-                sensors.append(Compass(payload))
-            if t == 102: # 'f' fusion
+            if t == ord('m'): # 'm' magnetometer
+                sensors.append(Mag(payload))
+            if t == ord('f'): # 'f' fusion
                 sensors.append(Fusion(payload))
-            if t == 103: # 'g' gyro
+            if t == ord('g'): # 'g' gyro
                 sensors.append(Gyro(payload))
-            if t == 108: # 'l' lsm303
-                sensors.append(CompassAccel(payload))
-            if t == 112: # 'p' position
+            if t == ord('p'): # 'p' position
                 sensors.append(Position(payload))
-            if t == 80: # 'P' PPM
+            if t == ord('P'): # 'P' PPM
                 sensors.append(PPM(payload))
         return (statuses, sensors)
 

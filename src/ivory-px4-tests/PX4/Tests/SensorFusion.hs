@@ -35,14 +35,15 @@ app topx4 = do
 
   (ms5611meas, hmc5883lsample) <- baro_mag_manager topx4
 
-  mpu6000sample <- channel
   let mpu6000 = px4platform_mpu6000 px4platform
   (sreq, sres, sready) <- spiTower (px4platform_clockconfig . topx4)
                                    [mpu6000_spi_device mpu6000]
                                    (mpu6000_spi_pins mpu6000)
-  mpu6000SensorManager sreq sres sready (fst mpu6000sample) (SPIDeviceHandle 0)
+  g_sample <- channel
+  a_sample <- channel
+  mpu6000SensorManager sreq sres sready (fst g_sample) (fst a_sample) (SPIDeviceHandle 0)
 
-  states <- sensorFusion (snd mpu6000sample) hmc5883lsample ms5611meas (snd position)
+  states <- sensorFusion (snd a_sample) (snd g_sample) hmc5883lsample ms5611meas (snd position)
 
   (_uarti, uartout) <- px4ConsoleTower topx4
 

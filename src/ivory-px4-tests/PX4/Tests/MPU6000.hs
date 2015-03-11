@@ -1,5 +1,4 @@
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE RecursiveDo #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE TypeFamilies #-}
@@ -7,13 +6,8 @@
 
 module PX4.Tests.MPU6000
   ( mpu6000SensorManager
-  , mpu6000Sender
   , app
   ) where
-
-import Ivory.Language
-import Ivory.Serialize
-import qualified SMACCMPilot.Datalink.HXStream.Ivory as HX
 
 import Ivory.Tower
 
@@ -22,10 +16,12 @@ import Ivory.BSP.STM32.Driver.SPI
 import SMACCMPilot.Hardware.MPU6000
 
 import PX4.Tests.Platforms
+import PX4.Tests.Serialize
 
 app :: (e -> PX4Platform) -> Tower e ()
 app topx4 = do
-  sample <- channel
+  g_sample <- channel
+  a_sample <- channel
   px4platform <- fmap topx4 getEnv
   let mpu6000  = px4platform_mpu6000 px4platform
   (req, res, ready) <- spiTower (px4platform_clockconfig . topx4)
@@ -33,25 +29,13 @@ app topx4 = do
                                 (mpu6000_spi_pins mpu6000)
 
   sensors_ready <- px4platform_sensorenable_tower topx4 ready
-  mpu6000SensorManager req res sensors_ready (fst sample) (SPIDeviceHandle 0)
+  mpu6000SensorManager req res sensors_ready (fst g_sample) (fst a_sample) (SPIDeviceHandle 0)
 
   (_uarti, uarto) <- px4ConsoleTower topx4
+  half_g <- halfRate (snd g_sample)
+  half_a <- halfRate (snd a_sample)
   monitor "mpu6000sender" $ do
-    mpu6000Sender (snd sample) uarto
+    gyroSender half_g uarto
+    accelSender half_a uarto
+  serializeTowerDeps
 
-  towerDepends serializeModule
-  towerModule  serializeModule
-  mapM_ towerArtifact serializeArtifacts
-
-mpu6000Sender :: ChanOutput (Struct "mpu6000_sample")
-              -> ChanInput (Stored Uint8)
-              -> Monitor e ()
-mpu6000Sender meas out = do
-  (buf :: Ref Global (Array 38 (Stored Uint8))) <- state "mpu6000_ser_buf"
-  handler meas "measurement" $ do
-    e <- emitter out (38*2 + 3)
-    callback $ \s -> noReturn $ do
-      packInto buf 0 s
-      HX.encode tag (constRef buf) (emitV e)
-  where
-  tag = 103 -- 'g' for gyro

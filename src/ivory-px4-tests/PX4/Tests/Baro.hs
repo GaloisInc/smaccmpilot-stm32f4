@@ -5,11 +5,9 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleContexts #-}
 
-module PX4.Tests.Baro (ms5611Sender, ms5611I2CSensorManager, app) where
+module PX4.Tests.Baro (ms5611I2CSensorManager, app) where
 
 import Ivory.Language
-import Ivory.Serialize
-import qualified SMACCMPilot.Datalink.HXStream.Ivory as HX
 
 import Ivory.Tower
 
@@ -19,6 +17,7 @@ import Ivory.BSP.STM32.Driver.SPI
 import SMACCMPilot.Hardware.MS5611
 
 import PX4.Tests.Platforms
+import PX4.Tests.Serialize
 
 app :: (e -> PX4Platform) -> Tower e ()
 app topx4 = do
@@ -32,16 +31,13 @@ app topx4 = do
 
   (_uarti, uarto) <- px4ConsoleTower topx4
   monitor "ms5611sender" $ do
-    ms5611Sender (snd measurements) uarto
+    baroSender (snd measurements) uarto
 
-  towerDepends serializeModule
-  towerModule  serializeModule
-  mapM_ towerArtifact serializeArtifacts
-
+  serializeTowerDeps
 
 ms5611_i2c_app :: (e -> PX4Platform)
                -> MS5611_I2C
-               -> ChanInput (Struct "ms5611_measurement")
+               -> ChanInput (Struct "barometer_sample")
                -> Tower e ()
 ms5611_i2c_app topx4 ms5611 meas = do
   (req, res, ready) <- i2cTower (px4platform_clockconfig . topx4)
@@ -53,7 +49,7 @@ ms5611_i2c_app topx4 ms5611 meas = do
 
 ms5611_spi_app :: (e -> PX4Platform)
                -> MS5611_SPI
-               -> ChanInput (Struct "ms5611_measurement")
+               -> ChanInput (Struct "barometer_sample")
                -> Tower e ()
 ms5611_spi_app topx4 ms5611 meas = do
   (req, res, ready) <- spiTower (px4platform_clockconfig . topx4)
@@ -64,15 +60,3 @@ ms5611_spi_app topx4 ms5611 meas = do
 
 
 
-ms5611Sender :: ChanOutput (Struct "ms5611_measurement")
-             -> ChanInput (Stored Uint8)
-             -> Monitor e ()
-ms5611Sender meas out = do
-  (buf :: Ref Global (Array 18 (Stored Uint8))) <- state "ms5611_ser_buf"
-  handler meas "measurement" $ do
-    e <- emitter out (2*18 + 3) -- twice buf size plus tag and two fbos
-    callback $ \s -> noReturn $ do
-      packInto buf 0 s
-      HX.encode tag (constRef buf) (emitV e)
-  where
-  tag = 98 -- 'b' for barometer

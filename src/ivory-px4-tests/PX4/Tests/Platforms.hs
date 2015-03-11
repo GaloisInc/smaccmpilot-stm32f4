@@ -413,7 +413,7 @@ px4ConsoleTower topx4 = do
             (uart_periph (px4platform_console px4platform))
             (uart_pins   (px4platform_console px4platform))
             115200
-            (Proxy :: Proxy 128)
+            (Proxy :: Proxy 256)
 
 px4platform_clockconfig :: (PX4Platform -> ClockConfig)
 px4platform_clockconfig = stm32config_clock . px4platform_stm32config

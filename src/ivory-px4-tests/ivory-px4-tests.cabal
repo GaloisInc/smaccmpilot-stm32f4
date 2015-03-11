@@ -10,6 +10,7 @@ cabal-version:       >= 1.10
 
 library
   exposed-modules:     PX4.Tests.Platforms,
+                       PX4.Tests.Serialize,
                        PX4.Tests.CopterMotors,
                        PX4.Tests.Ublox,
                        PX4.Tests.MPU6000,
@@ -237,18 +238,18 @@ executable             px4-sensor-fusion-test-gen
   default-language:    Haskell2010
   ghc-options:         -Wall
 
-executable             px4-sensors-monitor-gen
-  main-is:             SensorsMonitor.hs
-  hs-source-dirs:      tests
-  build-depends:       base >= 4.6,
-                       ivory,
-                       ivory-artifact,
-                       ivory-backend-c,
-                       smaccm-datalink,
-                       ivory-px4-hw,
-                       ivory-serialize,
-                       ivory-stdlib
-
-  default-language:    Haskell2010
-  ghc-options:         -Wall
-
+--executable             px4-sensors-monitor-gen
+--  main-is:             SensorsMonitor.hs
+--  hs-source-dirs:      tests
+--  build-depends:       base >= 4.6,
+--                       ivory,
+--                       ivory-artifact,
+--                       ivory-backend-c,
+--                       smaccm-datalink,
+--                       ivory-px4-hw,
+--                       ivory-serialize,
+--                       ivory-stdlib
+--
+--  default-language:    Haskell2010
+--  ghc-options:         -Wall
+--
