@@ -8,7 +8,7 @@ module PX4.Tests.Serialize
   , baroSender
   , positionSender
   , serializeTowerDeps
-  , halfRate
+  , rateDivider
   ) where
 
 import Ivory.Language
@@ -31,20 +31,21 @@ serializeTowerDeps = do
   towerModule  serializeModule
   mapM_ towerArtifact serializeArtifacts
 
-halfRate :: (IvoryArea a, IvoryZero a)
-         => ChanOutput a
+rateDivider :: (IvoryArea a, IvoryZero a)
+         => Integer
+         -> ChanOutput a
          -> Tower e (ChanOutput a)
-halfRate c = do
+rateDivider r c = do
   c' <- channel
   monitor "halfRate" $ do
-    st <- state "s"
+    st <- stateInit "s" (ival (0 :: Uint32))
     handler c "halfRate" $ do
       e <- emitter (fst c') 1
       callback $ \v -> do
         s <- deref st
-        ifte_ s
-          (emit e v >> store st false)
-          (store st true)
+        ifte_ (s >=? fromIntegral (r - 1))
+          (emit e v >> store st 0)
+          (store st (s + 1))
   return (snd c')
 
 gyroSender :: ChanOutput (Struct "gyroscope_sample")

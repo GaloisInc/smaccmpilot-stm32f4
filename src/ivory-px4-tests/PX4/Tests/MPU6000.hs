@@ -32,8 +32,8 @@ app topx4 = do
   mpu6000SensorManager req res sensors_ready (fst g_sample) (fst a_sample) (SPIDeviceHandle 0)
 
   (_uarti, uarto) <- px4ConsoleTower topx4
-  half_g <- halfRate (snd g_sample)
-  half_a <- halfRate (snd a_sample)
+  half_g <- rateDivider 2 (snd g_sample)
+  half_a <- rateDivider 2 (snd a_sample)
   monitor "mpu6000sender" $ do
     gyroSender half_g uarto
     accelSender half_a uarto
