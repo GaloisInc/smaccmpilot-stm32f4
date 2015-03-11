@@ -23,6 +23,7 @@ import SMACCM.Fragment
 import SMACCMPilot.Hardware.Sched
 import SMACCMPilot.Hardware.GPS.UBlox
 import SMACCMPilot.Hardware.HMC5883L
+import SMACCMPilot.Hardware.LSM303D
 import SMACCMPilot.Hardware.MS5611
 import SMACCMPilot.Hardware.MPU6000
 
@@ -48,26 +49,28 @@ app topx4 = do
 
   (_uarti,uartout) <- px4ConsoleTower topx4
 
+  div_accel_meas <- rateDivider 4 accel_meas
+  div_gyro_meas <- rateDivider 4 gyro_meas
   monitor "sensorsender" $ do
     magSender  mag_meas    uartout
     baroSender baro_meas   uartout
     -- XXX: adding mpu6000 produces too much output for a 115200 bps UART
-    gyroSender gyro_meas   uartout
-    accelSender accel_meas uartout
+    gyroSender div_gyro_meas   uartout
+    accelSender div_accel_meas uartout
     positionSender (snd position) uartout
-
+{-
   case px4platform_can px4platform of
     Nothing -> return () -- don't send sensor readings to non-existent CAN busses
     Just can -> do
       (_, canReq, _, _) <- canTower tocc (can_periph can) 500000 (can_RX can) (can_TX can)
-      fragmentSenderBlind gyro_meas 0x001 False canReq (Proxy :: Proxy 24) -- 200Hz, 5 fragments
+      fragmentSenderBlind gyro_meas 0x001 False canReq (Proxy :: Proxy 26) -- 200Hz, 5 fragments
       -- XXX FIXME: these sizes are wrong, plus we need to put in the a_sample
       -- somewhere
       --fragmentSenderBlind (snd a_sample) 0x001 False canReq (Proxy :: Proxy 38) -- 200Hz, 5 fragments
       fragmentSenderBlind mag_meas 0x006 False canReq (Proxy :: Proxy 22) -- 50Hz, 3 fragments
       fragmentSenderBlind baro_meas 0x009 False canReq (Proxy :: Proxy 18) -- 50Hz, 3 fragments
       fragmentSenderBlind (snd position) 0x00C False canReq (Proxy :: Proxy 46) -- 1Hz?, 6 fragments
-
+-}
   serializeTowerDeps
 
 sensor_manager :: (e -> PX4Platform)
@@ -81,6 +84,9 @@ sensor_manager topx4 = do
     ( Baro_MS5611_I2C ms5611_i2c
      , Mag_HMC5883L_I2C hmc5883l_i2c) ->
         fmu17_sensor_manager topx4 px4platform_mpu6000 hmc5883l_i2c ms5611_i2c
+    ( Baro_MS5611_SPI ms5611_spi
+     , Mag_LSM303D_SPI lsm303d_spi) ->
+        fmu24_sensor_manager topx4 px4platform_mpu6000 lsm303d_spi ms5611_spi
     _ -> error "AllSensors baro mag manager: case not implemented"
 
 
@@ -124,6 +130,48 @@ fmu17_sensor_manager topx4 mpu6000 hmc5883l ms5611 = do
                        (fst gyro_s) (fst acc_s)
                        (SPIDeviceHandle 0)
 
+
+  return (snd acc_s, snd gyro_s, snd mag_s, snd baro_s)
+  where
+  tocc = px4platform_clockconfig . topx4
+
+fmu24_sensor_manager :: (e -> PX4Platform)
+              -> MPU6000_SPI
+              -> LSM303D_SPI
+              -> MS5611_SPI
+              -> Tower e ( ChanOutput (Struct "accelerometer_sample")
+                         , ChanOutput (Struct "gyroscope_sample")
+                         , ChanOutput (Struct "magnetometer_sample")
+                         , ChanOutput (Struct "barometer_sample"))
+fmu24_sensor_manager topx4 mpu6000 lsm303d ms5611 = do
+
+  acc_s <- channel
+  gyro_s <- channel
+
+  (sreq, sres, sready) <- spiTower tocc
+                                   [ mpu6000_spi_device mpu6000
+                                   , lsm303d_spi_device lsm303d
+                                   , ms5611_spi_device  ms5611
+                                   ]
+                                   (mpu6000_spi_pins mpu6000)
+
+  (mpu6000Task, mpu6000Req, mpu6000Res) <- task "mpu6000"
+  mpu6000SensorManager mpu6000Req mpu6000Res sready
+                       (fst gyro_s) (fst acc_s)
+                       (SPIDeviceHandle 0)
+
+  (lsm303dTask, lsm303dReq, lsm303dRes) <- task "lsm303d"
+  mag_s <- channel
+  lsm_acc_s <- channel -- output never used!
+  lsm303dSPISensorManager lsm303dDefaultConf lsm303dReq lsm303dRes sready
+                          (fst mag_s) (fst lsm_acc_s) (SPIDeviceHandle 1)
+
+  (ms5611Task, ms5611Req, ms5611Res) <- task "ms5611"
+  baro_s <- channel
+  ms5611SPISensorManager ms5611Req ms5611Res sready
+                         (fst baro_s) (SPIDeviceHandle 2)
+
+  schedule [mpu6000Task, lsm303dTask, ms5611Task] sready sreq sres
 
   return (snd acc_s, snd gyro_s, snd mag_s, snd baro_s)
   where
