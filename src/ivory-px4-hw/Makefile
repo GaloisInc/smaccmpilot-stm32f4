@@ -8,9 +8,7 @@ IVORY_FLAGS = --const-fold
 default:
 	cabal build
 
-test: test-fmu17
-test: test-fmu24
-
+.PHONY: test-fmu17
 test-fmu17: IVORY_FLAGS += --conf-file=fmu17.conf
 test-fmu17: SRC_PREFIX = platform-fmu17/
 test-fmu17: ublox-gps-test
@@ -20,9 +18,9 @@ test-fmu17: px4-mag-test
 test-fmu17: px4-all-sensors-test
 test-fmu17: px4-ppm-in-test
 
+.PHONY: test-fmu24
 test-fmu24: IVORY_FLAGS += --conf-file=fmu24.conf
 test-fmu24: SRC_PREFIX = platform-fmu24/
-test-fmu24: ublox-gps-test
 test-fmu24: ublox-gps-test
 test-fmu24: px4-mpu6k-test
 test-fmu24: px4-baro-test

@@ -8,7 +8,6 @@ default:
 	cabal build
 
 test: psas-recording-ivory-test
-test: test-fmu17
 test: test-fmu24
 
 test-fmu17: IVORY_FLAGS += --conf-file=fmu17.conf

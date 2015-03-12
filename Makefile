@@ -10,7 +10,8 @@ all: smaccm-ins
 ivory-px4-hw:
 	make -C src/ivory-px4-hw create-sandbox
 	make -C src/ivory-px4-hw
-	make -C src/ivory-px4-hw test
+	make -C src/ivory-px4-hw test-fmu17
+	make -C src/ivory-px4-hw test-fmu24
 
 .PHONY: smaccm-commsec
 smaccm-commsec:
