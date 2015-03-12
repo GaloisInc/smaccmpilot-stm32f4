@@ -5,7 +5,7 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleContexts #-}
 
-module PX4.Tests.SensorFusion
+module SMACCMPilot.INS.Tests.SensorFusion
   ( app
   ) where
 
@@ -13,8 +13,8 @@ import Ivory.BSP.STM32.Driver.UART
 import Ivory.Language
 import Ivory.Serialize
 import Ivory.Tower
-import PX4.Tests.Platforms
-import PX4.Tests.AllSensors (sensor_manager)
+import SMACCMPilot.Hardware.Tests.Platforms
+import SMACCMPilot.Hardware.Tests.AllSensors (sensor_manager)
 import qualified SMACCMPilot.Datalink.HXStream.Ivory as HX
 import SMACCMPilot.Hardware.GPS.UBlox
 import SMACCMPilot.INS.Tower

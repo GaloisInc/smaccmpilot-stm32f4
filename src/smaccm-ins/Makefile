@@ -8,6 +8,16 @@ default:
 	cabal build
 
 test: psas-recording-ivory-test
+test: test-fmu17
+test: test-fmu24
+
+test-fmu17: IVORY_FLAGS += --conf-file=fmu17.conf
+test-fmu17: SRC_PREFIX = platform-fmu17/
+test-fmu17: px4-sensor-fusion-test
+
+test-fmu24: IVORY_FLAGS += --conf-file=fmu24.conf
+test-fmu24: SRC_PREFIX = platform-fmu24/
+test-fmu24: px4-sensor-fusion-test
 
 .PHONY: psas-recording-ivory-test
 psas-recording-ivory-test: IVORY_FLAGS += --no-sanity-check
@@ -18,6 +28,15 @@ psas-recording-ivory-test:
 .PHONY: psas-recording-ivory-test-clean
 psas-recording-ivory-test-clean:
 	-rm -rf psas-recording-ivory-test
+
+.PHONY: px4-sensor-fusion-test
+px4-sensor-fusion-test:
+	cabal run px4-sensor-fusion-test-gen -- --src-dir=$(SRC_PREFIX)px4-sensor-fusion-test $(IVORY_FLAGS)
+	make -C $(SRC_PREFIX)px4-sensor-fusion-test
+
+.PHONY: px4-sensor-fusion-test-clean
+px4-sensor-fusion-test-clean:
+	-rm -rf px4-sensor-fusion-test
 
 .PHONY: create-sandbox
 create-sandbox:

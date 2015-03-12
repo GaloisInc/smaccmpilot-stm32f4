@@ -12,7 +12,8 @@ library
   hs-source-dirs:      src
   exposed-modules:     SMACCMPilot.INS.Ivory,
                        SMACCMPilot.INS.Simulate,
-                       SMACCMPilot.INS.Tower
+                       SMACCMPilot.INS.Tower,
+                       SMACCMPilot.INS.Tests.SensorFusion
   other-modules:       SMACCMPilot.INS.Parameters,
                        SMACCMPilot.INS.Types
   build-depends:       base >=4.6,
@@ -26,7 +27,9 @@ library
                        linear >=1.16 && <1.17,
                        monadLib >= 3.7,
                        reflection >=1.5,
-                       tower >=0.9
+                       tower >=0.9,
+                       ivory-bsp-stm32,
+                       smaccm-datalink
   default-language:    Haskell2010
   ghc-options:         -Wall -Werror
 
@@ -62,6 +65,23 @@ executable psas-recording-test-gen
                        ivory >=0.1,
                        ivory-artifact >=0.1,
                        ivory-backend-c >=0.1,
+                       smaccm-ins
+  default-language:    Haskell2010
+  ghc-options:         -Wall -Werror
+
+executable px4-sensor-fusion-test-gen
+  hs-source-dirs:      tests
+  main-is:             PX4SensorFusionTest.hs
+  build-depends:       base >=4.6,
+                       estimator == 1.1.*,
+                       ivory >=0.1,
+                       ivory-artifact >=0.1,
+                       ivory-backend-c >=0.1,
+                       tower,
+                       tower-config,
+                       tower-freertos-stm32,
+                       ivory-bsp-stm32,
+                       ivory-px4-hw,
                        smaccm-ins
   default-language:    Haskell2010
   ghc-options:         -Wall -Werror
