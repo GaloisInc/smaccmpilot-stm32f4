@@ -1,7 +1,6 @@
 
-default: ivory-px4-tests
+default: ivory-px4-hw
 all: ivory-px4-hw
-all: ivory-px4-tests
 all: smaccm-commsec
 all: smaccm-datalink
 all: smaccm-mavlink
@@ -11,12 +10,7 @@ all: smaccm-ins
 ivory-px4-hw:
 	make -C src/ivory-px4-hw create-sandbox
 	make -C src/ivory-px4-hw
-
-.PHONY: ivory-px4-tests
-ivory-px4-tests:
-	make -C src/ivory-px4-tests create-sandbox
-	make -C src/ivory-px4-tests
-	make -C src/ivory-px4-tests test
+	make -C src/ivory-px4-hw test
 
 .PHONY: smaccm-commsec
 smaccm-commsec:
@@ -37,4 +31,6 @@ smaccm-mavlink:
 
 .PHONY: smaccm-ins
 smaccm-ins:
+	make -C src/smaccm-ins create-sandbox
 	make -C src/smaccm-ins
+	make -C src/smaccm-ins test
