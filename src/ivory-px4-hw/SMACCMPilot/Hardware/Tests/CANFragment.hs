@@ -1,6 +1,8 @@
 {-# LANGUAGE DataKinds #-}
 
-module PX4.Tests.Fragment where
+module SMACCMPilot.Hardware.Tests.CANFragment
+  ( app
+  ) where
 
 import Ivory.BSP.STM32.Driver.CAN
 import Ivory.BSP.STM32.Driver.UART
@@ -8,7 +10,7 @@ import Ivory.Language
 import Ivory.Serialize (serializeModule, serializeArtifacts)
 import Ivory.Stdlib
 import Ivory.Tower
-import PX4.Tests.Platforms
+import SMACCMPilot.Hardware.Tests.Platforms
 import SMACCM.Fragment
 import SMACCMPilot.Mavlink.CRC (mavlinkCRCModule)
 import SMACCMPilot.Mavlink.Messages.SmaccmpilotNavCmd (smaccmpilotNavCmdModule)

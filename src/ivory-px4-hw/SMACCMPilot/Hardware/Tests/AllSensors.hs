@@ -17,10 +17,10 @@ import Ivory.Tower
 import Ivory.BSP.STM32.Driver.I2C
 import Ivory.BSP.STM32.Driver.SPI
 import Ivory.BSP.STM32.Driver.UART
-{-
 import Ivory.BSP.STM32.Driver.CAN
+
 import SMACCM.Fragment
--}
+
 import SMACCMPilot.Hardware.Sched
 import SMACCMPilot.Hardware.GPS.UBlox
 import SMACCMPilot.Hardware.HMC5883L
@@ -55,12 +55,10 @@ app topx4 = do
   monitor "sensorsender" $ do
     magSender  mag_meas    uartout
     baroSender baro_meas   uartout
-    -- XXX: adding mpu6000 produces too much output for a 115200 bps UART
     gyroSender div_gyro_meas   uartout
     accelSender div_accel_meas uartout
     positionSender (snd position) uartout
 
-      {-
   case px4platform_can px4platform of
     Nothing -> return () -- don't send sensor readings to non-existent CAN busses
     Just can -> do
@@ -69,6 +67,7 @@ app topx4 = do
       fragmentSenderBlind gyro_meas 0x001 False canReqMbox1 (Proxy :: Proxy 26) -- 200Hz, 5 fragments
       fragmentSenderBlind accel_meas 0x011 False canReqMbox2 (Proxy :: Proxy 26) -- 200Hz, 5 fragments
       fragmentSenderBlind mag_meas 0x021 False canReqMbox3 (Proxy :: Proxy 22) -- 50Hz, 3 fragments
+      {-
       -- leaving these commented out until we have mailbox managment.
       fragmentSenderBlind baro_meas 0x031 False canReq (Proxy :: Proxy 18) -- 50Hz, 3 fragments
       fragmentSenderBlind (snd position) 0x041 False canReq (Proxy :: Proxy 46) -- 1Hz?, 6 fragments
