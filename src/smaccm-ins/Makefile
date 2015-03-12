@@ -30,7 +30,7 @@ psas-recording-ivory-test-clean:
 
 .PHONY: px4-sensor-fusion-test
 px4-sensor-fusion-test:
-	cabal run px4-sensor-fusion-test-gen -- --src-dir=$(SRC_PREFIX)px4-sensor-fusion-test $(IVORY_FLAGS)
+	cabal run px4-sensor-fusion-test-gen -- --src-dir=$(SRC_PREFIX)px4-sensor-fusion-test --no-sanity-check $(IVORY_FLAGS)
 	make -C $(SRC_PREFIX)px4-sensor-fusion-test
 
 .PHONY: px4-sensor-fusion-test-clean
