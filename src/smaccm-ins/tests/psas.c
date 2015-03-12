@@ -133,7 +133,7 @@ static double initialize_filter(void)
 	die("could not find initial measurements");
 }
 
-static void print_double_array(double *arr, unsigned int count)
+static void print_float_array(float *arr, unsigned int count)
 {
 	unsigned int i;
 	for(i = 0; i < count; ++i)
@@ -143,13 +143,13 @@ static void print_double_array(double *arr, unsigned int count)
 static void print_state(double timestamp)
 {
 	printf("%f", timestamp);
-	print_double_array(kalman_state.orient, ARRAY_SIZE(kalman_state.orient));
-	print_double_array(kalman_state.vel, ARRAY_SIZE(kalman_state.vel));
-	print_double_array(kalman_state.pos, ARRAY_SIZE(kalman_state.pos));
-	print_double_array(kalman_state.gyro_bias, ARRAY_SIZE(kalman_state.gyro_bias));
-	print_double_array(kalman_state.wind, ARRAY_SIZE(kalman_state.wind));
-	print_double_array(kalman_state.mag_ned, ARRAY_SIZE(kalman_state.mag_ned));
-	print_double_array(kalman_state.mag_xyz, ARRAY_SIZE(kalman_state.mag_xyz));
+	print_float_array(kalman_state.orient, ARRAY_SIZE(kalman_state.orient));
+	print_float_array(kalman_state.vel, ARRAY_SIZE(kalman_state.vel));
+	print_float_array(kalman_state.pos, ARRAY_SIZE(kalman_state.pos));
+	print_float_array(kalman_state.gyro_bias, ARRAY_SIZE(kalman_state.gyro_bias));
+	print_float_array(kalman_state.wind, ARRAY_SIZE(kalman_state.wind));
+	print_float_array(kalman_state.mag_ned, ARRAY_SIZE(kalman_state.mag_ned));
+	print_float_array(kalman_state.mag_xyz, ARRAY_SIZE(kalman_state.mag_xyz));
 	printf("\n");
 }
 

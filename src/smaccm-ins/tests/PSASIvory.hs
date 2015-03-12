@@ -63,7 +63,7 @@ main = C.compile modules artifacts
   artifacts = makefile : map (artifactCabalFile P.getDataDir) ["tests/psas.c", "tests/psas-packet.h"]
   makefile = artifactString "Makefile" $ unlines [
       "CC = gcc",
-      "CFLAGS = -Wall -Os",
+      "CFLAGS = -Wall -Os -Wno-unused-variable",
       "LDLIBS = -lm",
       "OBJS = psas.o " ++ intercalate " " [ moduleName m ++ ".o" | m <- modules ],
       "psas: $(OBJS)",

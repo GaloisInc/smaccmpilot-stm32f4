@@ -1,12 +1,9 @@
 name:                smaccm-ins
 version:             0.2.0.0
--- synopsis:            
--- description:         
 license:             BSD3
 license-file:        LICENSE
 author:              Jamey Sharp
 maintainer:          jamey@galois.com
--- copyright:           
 category:            Math
 build-type:          Simple
 cabal-version:       >=1.10
@@ -33,9 +30,9 @@ library
   default-language:    Haskell2010
   ghc-options:         -Wall -Werror
 
-executable inertialnav
+executable riseborough-recording-test-native
   hs-source-dirs:      tests
-  main-is:             InertialNav.hs
+  main-is:             RiseboroughTest.hs
   build-depends:       base >=4.6,
                        estimator == 1.1.*,
                        lens >=4.6,
@@ -45,9 +42,9 @@ executable inertialnav
   default-language:    Haskell2010
   ghc-options:         -Wall -Werror
 
-executable psas
+executable psas-recording-test-native
   hs-source-dirs:      tests
-  main-is:             PSAS.hs
+  main-is:             PSASNative.hs
   build-depends:       base >=4.6,
                        binary >=0.7,
                        bytestring >=0.10,
@@ -57,9 +54,9 @@ executable psas
   default-language:    Haskell2010
   ghc-options:         -Wall -Werror
 
-executable codegen
+executable psas-recording-test-gen
   hs-source-dirs:      tests
-  main-is:             CodeGen.hs
+  main-is:             PSASIvory.hs
   build-depends:       base >=4.6,
                        estimator == 1.1.*,
                        ivory >=0.1,
