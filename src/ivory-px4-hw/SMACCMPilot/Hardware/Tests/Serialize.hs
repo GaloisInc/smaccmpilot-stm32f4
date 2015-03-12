@@ -1,7 +1,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE DataKinds #-}
 
-module PX4.Tests.Serialize
+module SMACCMPilot.Hardware.Tests.Serialize
   ( gyroSender
   , accelSender
   , magSender

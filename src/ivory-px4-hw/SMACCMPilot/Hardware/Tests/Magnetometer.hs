@@ -5,7 +5,7 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleContexts #-}
 
-module PX4.Tests.Magnetometer
+module SMACCMPilot.Hardware.Tests.Magnetometer
   ( app
   ) where
 
@@ -19,8 +19,8 @@ import Ivory.BSP.STM32.Driver.SPI
 import SMACCMPilot.Hardware.HMC5883L
 import SMACCMPilot.Hardware.LSM303D
 
-import PX4.Tests.Platforms
-import PX4.Tests.Serialize
+import SMACCMPilot.Hardware.Tests.Platforms
+import SMACCMPilot.Hardware.Tests.Serialize
 
 app :: (e -> PX4Platform) -> Tower e ()
 app topx4 = do

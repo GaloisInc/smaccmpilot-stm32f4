@@ -4,7 +4,7 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleContexts #-}
 
-module PX4.Tests.MPU6000
+module SMACCMPilot.Hardware.Tests.MPU6000
   ( mpu6000SensorManager
   , app
   ) where
@@ -15,8 +15,8 @@ import Ivory.BSP.STM32.Driver.SPI
 
 import SMACCMPilot.Hardware.MPU6000
 
-import PX4.Tests.Platforms
-import PX4.Tests.Serialize
+import SMACCMPilot.Hardware.Tests.Platforms
+import SMACCMPilot.Hardware.Tests.Serialize
 
 app :: (e -> PX4Platform) -> Tower e ()
 app topx4 = do

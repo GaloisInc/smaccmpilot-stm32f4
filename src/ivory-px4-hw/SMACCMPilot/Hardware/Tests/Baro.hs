@@ -5,7 +5,7 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleContexts #-}
 
-module PX4.Tests.Baro (ms5611I2CSensorManager, app) where
+module SMACCMPilot.Hardware.Tests.Baro (ms5611I2CSensorManager, app) where
 
 import Ivory.Language
 
@@ -16,8 +16,8 @@ import Ivory.BSP.STM32.Driver.SPI
 
 import SMACCMPilot.Hardware.MS5611
 
-import PX4.Tests.Platforms
-import PX4.Tests.Serialize
+import SMACCMPilot.Hardware.Tests.Platforms
+import SMACCMPilot.Hardware.Tests.Serialize
 
 app :: (e -> PX4Platform) -> Tower e ()
 app topx4 = do

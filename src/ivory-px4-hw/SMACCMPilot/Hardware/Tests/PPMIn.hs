@@ -4,7 +4,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE TypeFamilies #-}
 
-module PX4.Tests.PPMIn (app) where
+module SMACCMPilot.Hardware.Tests.PPMIn (app) where
 
 import Ivory.Language
 import Ivory.Serialize
@@ -14,7 +14,7 @@ import SMACCMPilot.Hardware.PPM.PulseCapture
 import SMACCMPilot.Hardware.PPM.Decode
 
 import qualified SMACCMPilot.Datalink.HXStream.Ivory as HX
-import PX4.Tests.Platforms
+import SMACCMPilot.Hardware.Tests.Platforms
 
 app :: (e -> PX4Platform)
     -> Tower e ()

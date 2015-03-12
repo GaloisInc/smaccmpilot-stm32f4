@@ -5,7 +5,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 
-module PX4.Tests.Platforms where
+module SMACCMPilot.Hardware.Tests.Platforms where
 
 import Ivory.Language
 import Ivory.Tower

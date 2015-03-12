@@ -5,7 +5,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE TypeFamilies #-}
 
-module PX4.Tests.Ublox
+module SMACCMPilot.Hardware.Tests.Ublox
   ( app
   ) where
 
@@ -17,8 +17,8 @@ import Ivory.BSP.STM32.Driver.UART
 
 import SMACCMPilot.Hardware.GPS.UBlox
 
-import PX4.Tests.Platforms
-import PX4.Tests.Serialize
+import SMACCMPilot.Hardware.Tests.Platforms
+import SMACCMPilot.Hardware.Tests.Serialize
 
 app :: (e -> PX4Platform) -> Tower e ()
 app topx4 = do

@@ -4,7 +4,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE TypeFamilies #-}
 
-module PX4.Tests.CopterMotors (app) where
+module SMACCMPilot.Hardware.Tests.CopterMotors (app) where
 
 import Data.Char (ord)
 
@@ -15,7 +15,7 @@ import Ivory.Tower
 
 import SMACCMPilot.Datalink.HXStream.Tower
 
-import PX4.Tests.Platforms
+import SMACCMPilot.Hardware.Tests.Platforms
 
 app :: (e -> PX4Platform)
     -> Tower e ()
