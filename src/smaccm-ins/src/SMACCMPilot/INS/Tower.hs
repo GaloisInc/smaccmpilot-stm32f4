@@ -41,13 +41,28 @@ gyro sample = changeUnits (* (pi / 180))
 
 kalman_predict :: Def ('[ Ref s1 (Struct "kalman_state")
                         , Ref s2 (Struct "kalman_covariance")
-                        , IFloat
-                        , ConstRef s3 (Struct "accelerometer_sample")
-                        , ConstRef s4 (Struct "gyroscope_sample")] :-> ())
+                        , Ref s3 (Stored ITime)
+                        , ITime
+                        , Ref s4 (Struct "accelerometer_sample")
+                        , Ref s5 (Struct "gyroscope_sample")] :-> ())
 kalman_predict = proc "kalman_predict" $
-  \ state_vector covariance dt last_accel last_gyro -> body $ do
-      distVector <- DisturbanceVector <$> gyro last_gyro <*> accel last_accel
+  \ state_vector covariance last_predict now last_accel last_gyro -> body $ do
+      acc_not_ready <- deref $ last_accel ~> A.samplefail
+      gyro_not_ready <- deref $ last_gyro ~> G.samplefail
+      when (acc_not_ready .|| gyro_not_ready) retVoid
+
+      last_time <- deref last_predict
+      let dt = safeCast (castDefault (toIMicroseconds (now - last_time)) :: Sint32) * 1.0e-6
+      distVector <- DisturbanceVector
+        <$> gyro (constRef last_gyro)
+        <*> accel (constRef last_accel)
       kalmanPredict state_vector covariance dt distVector
+      store last_predict now
+
+      reset_acc  <- local $ istruct [ A.samplefail .= ival true ]
+      refCopy last_accel reset_acc
+      reset_gyro <- local $ istruct [ G.samplefail .= ival true ]
+      refCopy last_gyro reset_gyro
 
 mag :: (Num to, SafeCast IFloat to)
     => ConstRef s (Struct "magnetometer_sample")
@@ -82,21 +97,24 @@ pressure_measure = proc "pressure_measure" $
 init_filter :: Def ('[ Ref s1 (Struct "kalman_state")
                      , Ref s2 (Struct "kalman_covariance")
                      , ConstRef s3 (Struct "accelerometer_sample")
-                     , ConstRef s4 (Struct "gyroscope_sample")
-                     , ConstRef s5 (Struct "magnetometer_sample")
-                     , ConstRef s6 (Struct "barometer_sample")] :-> IBool)
+                     , ConstRef s4 (Struct "magnetometer_sample")
+                     , ConstRef s5 (Struct "barometer_sample")] :-> IBool)
 init_filter = proc "init_filter" $
-  \ state_vector covariance last_accel _last_gyro last_mag last_baro -> body $ do
+  \ state_vector covariance last_accel last_mag last_baro -> body $ do
       magFail <- deref $ last_mag ~> M.samplefail
       baroFail <- deref $ last_baro ~> B.samplefail
       when (iNot magFail .&& iNot baroFail) $ do
         acc <- accel last_accel
         mag' <- mag last_mag
-        -- XXX do we need gyro for init? if not i guess we can remove it from
-        -- these arguments.
         kalmanInit state_vector covariance acc mag' =<< pressure last_baro
         ret true
       ret false
+
+storeSum :: (Num a, IvoryStore a) => Ref s1 (Stored a) -> ConstRef s2 (Stored a) -> Ivory eff ()
+storeSum dst src = do
+  old <- deref dst
+  new <- deref src
+  store dst $ old + new
 
 sensorFusion :: ChanOutput (Struct "accelerometer_sample")
              -> ChanOutput (Struct "gyroscope_sample")
@@ -136,42 +154,45 @@ sensorFusion accelSource gyroSource magSource baroSource _gpsSource = do
     last_baro <- stateInit "last_baro" $ istruct [ B.samplefail .= ival true ]
 
     handler accelSource "accel" $ do
-      callback $ \sample -> do
+      stateEmit <- emitter stateSink 1
+      callback $ \ sample -> do
         accelFail <- deref $ sample ~> A.samplefail
         unless accelFail $ do
-          refCopy last_acc sample
-      -- XXX if we're depending on accel for init, but not gyro,
-      -- should we move the init logic to inside the accel handler?
-      -- We aren't guaranteed anything about the order of delivery
-      -- of accel and gyro - they're no longer logically connected
+          store (last_acc ~> A.samplefail) false
+          arrayMap $ \ i -> storeSum (last_acc ~> A.sample ! i) (sample ~> A.sample ! i)
+          refCopy (last_acc ~> A.time) (sample ~> A.time)
+
+          ready <- deref initialized
+          ifte_ ready
+            (do
+              now <- deref $ last_acc ~> A.time
+              call_ kalman_predict state_vector covariance last_predict now last_acc last_gyro
+              emit stateEmit $ constRef state_vector
+            ) (do
+              done <- call init_filter state_vector
+                                       covariance
+                                       (constRef last_acc)
+                                       (constRef last_mag)
+                                       (constRef last_baro)
+              when done $ do
+                store initialized true
+                refCopy last_predict $ last_acc ~> A.time
+            )
 
     handler gyroSource "gyro" $ do
       stateEmit <- emitter stateSink 1
       callback $ \ sample -> do
         gyroFail <- deref $ sample ~> G.samplefail
         unless gyroFail $ do
-          refCopy last_gyro sample
+          store (last_gyro ~> G.samplefail) false
+          arrayMap $ \ i -> storeSum (last_gyro ~> G.sample ! i) (sample ~> G.sample ! i)
+          refCopy (last_gyro ~> G.time) (sample ~> G.time)
 
           ready <- deref initialized
-          ifte_ ready
-            (do
-              last_time <- deref last_predict
-              now <- deref $ last_gyro ~> G.time
-              let dt = safeCast (castDefault (toIMicroseconds (now - last_time)) :: Sint32) * 1.0e-6
-              call_ kalman_predict state_vector covariance dt (constRef last_acc) (constRef last_gyro)
-              store last_predict now
-              emit stateEmit $ constRef state_vector
-            ) (do
-              done <- call init_filter state_vector
-                                       covariance
-                                       (constRef last_acc)
-                                       (constRef last_gyro)
-                                       (constRef last_mag)
-                                       (constRef last_baro)
-              when done $ do
-                store initialized true
-                refCopy last_predict $ last_gyro ~> G.time
-            )
+          when ready $ do
+            now <- deref $ last_gyro ~> G.time
+            call_ kalman_predict state_vector covariance last_predict now last_acc last_gyro
+            emit stateEmit $ constRef state_vector
 
     handler magSource "mag" $ callback $ \ sample -> do
       failed <- deref $ sample ~> M.samplefail
