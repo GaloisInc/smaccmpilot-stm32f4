@@ -86,7 +86,7 @@ init_filter :: Def ('[ Ref s1 (Struct "kalman_state")
                      , ConstRef s5 (Struct "magnetometer_sample")
                      , ConstRef s6 (Struct "barometer_sample")] :-> IBool)
 init_filter = proc "init_filter" $
-  \ state_vector covariance last_accel last_gyro last_mag last_baro -> body $ do
+  \ state_vector covariance last_accel _last_gyro last_mag last_baro -> body $ do
       magFail <- deref $ last_mag ~> M.samplefail
       baroFail <- deref $ last_baro ~> B.samplefail
       when (iNot magFail .&& iNot baroFail) $ do
