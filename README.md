@@ -7,8 +7,6 @@
 *This repository is still in a state of upheaval as the move to tower 9
 stabilizes. At this time there is no application code for flying a quadcopter!*
 
-See `TODO.md` for a list of outstanding tasks.
-
 At this time, the provided master branch is only suitable for developers who are
 interested in the components of the SMACCMPilot project. If you wish to
 evaluate an old version of the code where flight controller application works,
