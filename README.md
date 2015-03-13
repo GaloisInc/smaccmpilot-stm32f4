@@ -4,9 +4,14 @@
 
 ## NOTES:
 
-This repository is still in a state of upheaval as the move to tower 9
-stabilizes. Code to actually fly a quadcopter will not build.
-Unless you are actively following development, you probably want to use the
+*This repository is still in a state of upheaval as the move to tower 9
+stabilizes. At this time there is no application code for flying a quadcopter!*
+
+See `TODO.md` for a list of outstanding tasks.
+
+At this time, the provided master branch is only suitable for developers who are
+interested in the components of the SMACCMPilot project. If you wish to
+evaluate an old version of the code where flight controller application works,
 stable version of this code, given by the `smaccmpilot-build` repository's
 `master` branch.
 
@@ -20,13 +25,22 @@ software methods.
 Complete documentation for this repository and related SMACCMPilot work is
 available at [smaccmpilot.org][].
 
-
 Developers are encouraged to [join our mailing list][list] for project
-updates.
+updates. You can also [file issues][issues] on Github.
 
 [galois]: http://galois.com
 [smaccmpilot.org]: http://smaccmpilot.org
 [list]: http://community.galois.com/mailman/listinfo/smaccmpilot
+[issues]: https://github.com/galoisinc/smaccmpilot-stm32f4/issues
+
+## Contents
+
+- The `src` directory contains a collection of Cabal packages for components
+  of the SMACCMPilot build. There is a `README` in each package directory
+  describing the libraries and executables provided.
+
+- The `boot` directory contains binaries and upload scripts for the PX4 Project
+  bootloader.
 
 ## Dependencies
 
@@ -51,7 +65,7 @@ repositories:
 ### Haskell Tools
 
 This project requires the [GHC Haskell Compiler][ghc] version 7.6.3 or
-7.8.3, and [Cabal][] 1.20 or higher.
+7.8.x, and [Cabal][] 1.20 or higher.
 
 [ghc]: https://www.haskell.org/ghc
 [Cabal]: https://www.haskell.org/cabal
