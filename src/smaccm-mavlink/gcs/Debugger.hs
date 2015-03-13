@@ -127,16 +127,3 @@ withCRCExtra s =
 mkQuietMsgs :: [Result] -> [String]
 mkQuietMsgs = const [] -- XXX
 
-{-
-data Tag = Start
-         | Len
-         | SeqNum
-         | SysId
-         | CompId
-         | PType
-         | Payload Word8
-         | CRC1
-         | CRC2
-         | Fail String
-         | Skip
--}
