@@ -23,6 +23,7 @@ ghc:
   - 7.8
 env:
   - ENV_TEST_TARGET=ivory-px4-hw
+  - ENV_TEST_TARGET=ivory-geo
   - ENV_TEST_TARGET=smaccm-commsec
   - ENV_TEST_TARGET=smaccm-mavlink
   - ENV_TEST_TARGET=smaccm-datalink
