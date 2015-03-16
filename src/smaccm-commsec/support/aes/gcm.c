@@ -96,8 +96,7 @@ extern "C"
     {   int i = BLOCK_SIZE; while(i-- > CTR_POS && !++(UI8_PTR(x)[i])) ; }
 
 ret_type gcm_init_and_key(                  /* initialise mode and set key  */
-            const unsigned char key[],      /* the key value                */
-            unsigned long key_len,          /* and its length in bytes      */
+            const unsigned char key[16],    /* the key value                */
             gcm_ctx ctx[1])                 /* the mode context             */
 {
     memset(ctx->ghash_h, 0, sizeof(ctx->ghash_h));
@@ -215,10 +214,10 @@ ret_type gcm_auth_header(                   /* authenticate the header      */
 
     if(!((hdr - (UI8_PTR(ctx->hdr_ghv) + b_pos)) & BUF_ADRMASK))
     {
-		while(cnt < hdr_len && (b_pos & BUF_ADRMASK))
-		    UI8_PTR(ctx->hdr_ghv)[b_pos++] ^= hdr[cnt++];
+                while(cnt < hdr_len && (b_pos & BUF_ADRMASK))
+                    UI8_PTR(ctx->hdr_ghv)[b_pos++] ^= hdr[cnt++];
 
-		while(cnt + BUF_INC <= hdr_len && b_pos <= BLOCK_SIZE - BUF_INC)
+                while(cnt + BUF_INC <= hdr_len && b_pos <= BLOCK_SIZE - BUF_INC)
         {
             *UNIT_PTR(UI8_PTR(ctx->hdr_ghv) + b_pos) ^= *UNIT_PTR(hdr + cnt);
             cnt += BUF_INC; b_pos += BUF_INC;
@@ -272,8 +271,8 @@ ret_type gcm_auth_data(                     /* authenticate ciphertext data */
 
     if(!((data - (UI8_PTR(ctx->txt_ghv) + b_pos)) & BUF_ADRMASK))
     {
-	    while(cnt < data_len && (b_pos & BUF_ADRMASK))
-		    UI8_PTR(ctx->txt_ghv)[b_pos++] ^= data[cnt++];
+            while(cnt < data_len && (b_pos & BUF_ADRMASK))
+                    UI8_PTR(ctx->txt_ghv)[b_pos++] ^= data[cnt++];
 
         while(cnt + BUF_INC <= data_len && b_pos <= BLOCK_SIZE - BUF_INC)
         {
@@ -328,8 +327,8 @@ ret_type gcm_crypt_data(                    /* encrypt or decrypt data      */
     {
         if(b_pos)
         {
-	        while(cnt < data_len && (b_pos & BUF_ADRMASK))
-		        data[cnt++] ^= UI8_PTR(ctx->enc_ctr)[b_pos++];
+                while(cnt < data_len && (b_pos & BUF_ADRMASK))
+                        data[cnt++] ^= UI8_PTR(ctx->enc_ctr)[b_pos++];
 
             while(cnt + BUF_INC <= data_len && b_pos <= BLOCK_SIZE - BUF_INC)
             {

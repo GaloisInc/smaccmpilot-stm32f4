@@ -127,8 +127,7 @@ typedef struct
 /* The following calls handle mode initialisation, keying and completion    */
 
 ret_type gcm_init_and_key(                  /* initialise mode and set key  */
-            const unsigned char key[],      /* the key value                */
-            unsigned long key_len,          /* and its length in bytes      */
+            const unsigned char key[16],    /* the key value                */
             gcm_ctx ctx[1]);                /* the mode context             */
 
 ret_type gcm_end(                           /* clean up and end operation   */
