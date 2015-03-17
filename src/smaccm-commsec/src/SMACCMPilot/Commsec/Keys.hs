@@ -32,7 +32,7 @@ server_decode_ks = c2s_ks
 
 data KeySalt = KeySalt
   { ks_key  :: [Word8]  -- 16 uint8s
-  , ks_salt :: Word32   -- word32
+  , ks_salt :: Word64   -- word64
   } deriving (Eq, Show)
 
 symmetricKeyParser :: ConfigParser SymmetricKey
