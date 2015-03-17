@@ -22,13 +22,35 @@ static inline void _write_word64_be(uint8_t buf[8], uint64_t ctr)
     }
 }
 
+static inline uint32_t _read_word32_be(const uint8_t buf[8])
+{
+    int i;
+    uint32_t ctr = 0;
+
+    for(i = 0; i < 4; i++) {
+        ctr |= buf[i];
+        ctr = ctr << 8;
+    }
+    return ctr;
+}
+
+static inline void _write_word32_be(uint8_t buf[8], uint32_t ctr)
+{
+    int i;
+    uint8_t b;
+    for(i = 3; i >= 0; i--) {
+        buf[i] = ctr & 0xFF;
+        ctr = ctr >> 8;
+    }
+}
+
 // Increment the counter buffer.
 void _gec_ctr_inc_func(uint8_t ctr_buf[16])
 {
-    uint64_t ctr;
-    ctr = _read_word64be(ctr_buf);
+    uint32_t ctr;
+    ctr = _read_word32be(ctr_buf);
     ctr++;
-    _write_word64be(ctr_buf,ctr);
+    _write_word32be(ctr_buf,ctr);
 }
 
 
@@ -56,22 +78,23 @@ int GEC_FN(gec_init_sym_key_conf)(struct gec_sym_key_conf *k, const uint8_t rawk
 //
 // After `gec_encrypt(ctx,pt,ct)` the format of `ct` is:
 //
-//    ct ~ [ CTR (64 bits) | E(pt) (length pt bits) | tag (128) ]
+//    ct ~ [ CTR (32 bits) | E(pt) (length pt bits) | tag (64) ]
 //
 //    where E is AES GCM with
 //    iv = [ CTR (64 bits) | Salt (64 bits) ]
 int GEC_FN(gec_encrypt)(const struct gec_sym_key *k, const uint8_t pt[GEC_PT_LEN], uint8_t ct[GEC_CT_LEN])
 {
+    const size_t nrBlks = (GEC_PT_LEN + AES_BLOCK_SIZE - 1) % AES_BLOCK_SIZE;
     uint8_t *tag = pt + GEC_CT_LEN - _TAG_LEN;
     uint8_t iv[_IV_LEN];
     int ret = GEC_ERROR_INVALID;
 
-    if(UINT64_MAX <= k->ctr) {
+    if(UINT32_MAX - nrBlks <= k->ctr) {
         ret = GEC_ERROR_COUNTER_ROLLOVER;
     } else {
         int gcm_ret;
         k->ctr++;
-        _write_word64be(iv, k->ctr);
+        _write_word32be(iv, k->ctr);
         memcpy(iv+_GEC_CNT_LEN, k->salt, _GEC_SALT_LEN);
 
         gmc_ret = gcm_encrypt_message(iv, _IV_LEN, NULL, 0, pt, GEC_PT_LEN, tag, _TAG_LEN, k->gctx);
@@ -93,7 +116,7 @@ int GEC_FN(gec_decrypt)(const struct gec_sym_key *k, const uint8_t ct[GEC_CT_LEN
     uint64_t their_counter;
     int ret = GEC_ERROR_INVALID;
 
-    their_counter = _read_word64be(ct);
+    their_counter = _read_word32be(ct);
     if(their_counter =< k->ctr) {
         ret = GEC_ERROR_DUPLICATE_COUNTER;
     } else {
@@ -123,18 +146,25 @@ int GEC_FN(gec_decrypt)(const struct gec_sym_key *k, const uint8_t ct[GEC_CT_LEN
 // Confidentiallity-only encryption and decryption mode over statically sized messages.
 int GEC_FN(gec_encrypt_conf)(const struct gec_sym_key *k, const uint8_t *pt, uint8_t *ct, size_t len)
 {
-    uint8_t ctr_buf[_GEC_CTR_LEN];
-    _write_word64be(ctr_buf,k->ctr);
-    aes_ctr_encrypt(pt, ct, len, NULL, ctr_buf, ctr_inc_func, k->cctx);
-    k->ctr = _read_word64be(ctr_buf);
+    int ret = GEC_ERROR_INVALID;
+    const size_t nrBlks = (len + AES_BLOCK_SIZE - 1) % AES_BLOCK_SIZE;
+    uint8_t ctr_buf[_IV_LEN];
+    memset(ctr_buf, 0, _IV_LEN);
+
+    if(k->ctr >= UINT32_MAX - nrBlks) {
+        ret = GEC_ERROR_COUNTER_ROLLOVER;
+    } else {
+        _write_word32be(ctr_buf,k->ctr);
+        aes_ctr_encrypt(pt, ct, len, ctr_buf, _gec_ctr_inc_func, k->cctx);
+        k->ctr = _read_word32be(ctr_buf);
+        ret = GEC_SUCCESS;
+    }
+    return ret;
 }
 
 int GEC_FN(gec_decrypt_conf)(const struct gec_sym_key *k, const uint8_t ct[GEC_CT_LEN], uint8_t pt[GEC_PT_LEN])
 {
-    uint8_t ctr_buf[_GEC_CTR_LEN];
-    _write_word64be(ctr_buf,k->ctr);
-    aes_ctr_decrypt(pt, ct, len, NULL, k->ctr, ctr_inc_func, k->cctx);
-    k->ctr = _read_word64be(ctr_buf);
+    return GEC_FN(gec_encrypt_conf)(k, ct, pt);
 }
 
 // Given random bytes in the privkey, construct a private and public key pair.

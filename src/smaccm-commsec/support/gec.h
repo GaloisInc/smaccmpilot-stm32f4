@@ -5,9 +5,9 @@
 #include "curve25519/curve25519.h"
 #include "ed25519/ed25519.h"
 
-#define _GEC_SALT_LEN 8
-#define _GEC_CTR_LEN 8
-#define _GEC_TAG_LEN 16            /* Tags are full GCM tags */
+#define _GEC_SALT_LEN 12
+#define _GEC_CTR_LEN 4
+#define _GEC_TAG_LEN 8             /* 8 byte GCM tags */
 #define _GEC_SYM_CIPHER_KEY_LEN 16 /* AES 128, hardcoded, should fix */
 #define _IV_LEN 16
 
