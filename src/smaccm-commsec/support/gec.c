@@ -140,7 +140,8 @@ int GEC_FN(gec_decrypt_conf)(const struct gec_sym_key *k, const uint8_t ct[GEC_C
 // Given random bytes in the privkey, construct a private and public key pair.
 void GEC_FN(gec_generate_sign_keypair)(const gec_privkey q, gec_pubkey p)
 {
-    ed25519_publickey(q,p);
+    ed25519_publickey(q->priv,p->pub);
+    memcpy(q->pub,p->pub, GEC_PUB_KEY_LEN);
 }
 
 // Given a private key and a message, create a signature.
@@ -157,7 +158,7 @@ int GEC_FN(gec_verify)(const struct gec_pubkey k, const uint8_t msg[GEC_MSG_LEN]
 }
 
 // Input random GEC_PRIV_KEY_LEN bytes and compute the matching public key.
-int GEC_FN(gec_generate_ephemeral_keypair)(uint8_t gec_ephemeral_priv[GEC_PRIV_EPHEMERAL_KEY_LEN], uint8_t gec_ephemeral_pub[GEC_PUB_EPHEMERAL_KEY_LEN])
+void GEC_FN(gec_generate_ephemeral_keypair)(uint8_t gec_ephemeral_priv[GEC_PRIV_EPHEMERAL_KEY_LEN], uint8_t gec_ephemeral_pub[GEC_PUB_EPHEMERAL_KEY_LEN])
 {
     static const uint8_t basepoint[32] = {9};
     curve25519_donna(gec_ephemeral_pub, gec_ephemeral_priv, basepoint);
@@ -170,8 +171,8 @@ int GEC_FN(gec_ecdh)(uint8_t secret_bytes[GEC_SECRET_BYTES_LEN], const uint8_t p
 }
 
 // Compute a hash of the input.
-int GEC_FN(gec_hash)(const uint8_t *input, size_t input_len, uint8_t
-        digest[GEC_HASH_LEN])
+int GEC_FN(gec_hash)(const uint8_t *input, size_t input_len
+                    , uint8_t digest[GEC_HASH_LEN])
 {
     // XXX comments within the borrowed ed25519 code suggest this is a
     // reference implementation and we should replace it for a performance win.

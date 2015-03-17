@@ -16,17 +16,18 @@
 #endif
 
 #define GEC_RAW_KEY_LEN (_GEC_SALT_LEN + _GEC_SYM_CIPHER_KEY_LEN)
-#define GEC_PT_LEN              /* FIXME this depends on HACMS needs */
-#define GEC_CT_LEN ((GEC_PTR_LEN) + _GEC_CTR_LEN + _GEC_TAG_LEN)
-
-#define GEC_PUB_KEY_LEN  32            /* from curve25519-donna */
-#define GEC_PRIV_KEY_LEN 32            /* from curve25519-donna*/
-#define GEC_SECRET_BYTES_LEN 32        /* from curve25519_donna */
+#define GEC_PT_LEN      80        /* size drivine by HACMS needs */
+#define GEC_CT_LEN (_GEC_CTR_LEN + GEC_PT_LEN + _GEC_TAG_LEN)
 
 #define GEC_SIG_LEN 64          /* XXX floodberry's code uses a constant, no other CPP to leverage */
-#define GEC_PUB_EPHEMERAL_KEY_LEN  32  /* from ed25519-donna */
-#define GEC_PRIV_EPHEMERAL_KEY_LEN 32  /* from ed25519-donna*/
-#define GEC_HASH_LEN HASH_DIGEST_SIZE  /* from ed25519-donna */
+#define GEC_PUB_KEY_LEN  32                     /* from ed25519-donna */
+#define GEC_PRIV_KEY_LEN 32                     /* from ed25519-donna*/
+#define GEC_HASH_LEN HASH_DIGEST_SIZE           /* from ed25519-donna */
+#define GEC_SIGNED_MSG_LEN (GEC_PUB_EPHEMERAL_KEY_LEN * 2) /* XXX Abstraction breakage.  We can either have static sizes or a good API, pick one */
+
+#define GEC_PUB_EPHEMERAL_KEY_LEN  32           /* from curve25519-donna */
+#define GEC_PRIV_EPHEMERAL_KEY_LEN 32           /* from curve25519-donna*/
+#define GEC_SECRET_BYTES_LEN 32                 /* from curve25519_donna */
 
 #define GEC_SUCCESS 0
 #define GEC_ERROR_INVALID (-1)
@@ -68,19 +69,19 @@ int GEC_FN(gec_init_sym_key_conf)(struct gec_sym_key_conf *k, const uint8_t rawk
 int GEC_FN(gec_encrypt)(const struct gec_sym_key *k, const uint8_t pt[GEC_PT_LEN], uint8_t ct[GEC_CT_LEN]);
 int GEC_FN(gec_decrypt)(const struct gec_sym_key *k, const uint8_t ct[GEC_CT_LEN], uint8_t pt[GEC_PT_LEN]);
 
-int GEC_FN(gec_encrypt_conf)(const struct gec_sym_key *k, const uint8_t *pt, uint8_t *ct, size_t len)
-int GEC_FN(gec_decrypt_conf)(const struct gec_sym_key *k, const uint8_t *ct, uint8_t *pt, size_t len)
+int GEC_FN(gec_encrypt_conf)(const struct gec_sym_key_conf *k, const uint8_t *pt, uint8_t *ct, size_t len)
+int GEC_FN(gec_decrypt_conf)(const struct gec_sym_key_conf *k, const uint8_t *ct, uint8_t *pt, size_t len)
 
 // Given random bytes in the privkey, construct a private and public key pair.
 void GEC_FN(gec_generate_sign_keypair)(const struct gec_privkey q, struct gec_pubkey p);
 
 // Given a private key and a message, create a signature.
-void GEC_FN(gec_sign)(const struct gec_private_sign_key *k, const uint8_t msg[GEC_MSG_LEN], uint8_t sig[GEC_SIG_LEN]);
+void GEC_FN(gec_sign)(const struct gec_privkey *k, const uint8_t msg[GEC_SIGNED_MSG_LEN], uint8_t sig[GEC_SIG_LEN]);
 // Given a public key, message and tag (signature) return 0 if the signature is correct, non-zero otherwize
-int GEC_FN(gec_verify)(const struct gec_public_sign_key *k, const uint8_t msg[GEC_MSG_LEN], const uint8_t sig[GEC_SIG_LEN]);
+int GEC_FN(gec_verify)(const struct gec_pubkey *k, const uint8_t msg[GEC_SIGNED_MSG_LEN], const uint8_t sig[GEC_SIG_LEN]);
 
 // Input random GEC_PRIV_KEY_LEN bytes and compute the matching public key.
-int GEC_FN(gec_generate_ephemeral_keypair)(uint8_t gec_ephemeral_priv[GEC_PRIV_EPHEMERAL_KEY_LEN], uint8_t gec_ephemeral_pub[GEC_PUB_EPHEMERAL_KEY_LEN]);
+void GEC_FN(gec_generate_ephemeral_keypair)(uint8_t gec_ephemeral_priv[GEC_PRIV_EPHEMERAL_KEY_LEN], uint8_t gec_ephemeral_pub[GEC_PUB_EPHEMERAL_KEY_LEN]);
 
 // Given a public and private ephemeral keys, compute a shared secret.  That is, `secret_bytes = Hash(dh(pub,priv))`
 int GEC_FN(gec_ecdh)(uint8_t secret_bytes[GEC_SECRET_BYTES_LEN], const uint8_t gec_ephemeral_priv[GEC_PRIV_EPHEMERAL_KEY_LEN], const uint8_t gec_ephemeral_pub[GEC_PUB_EPHEMERAL_KEY_LEN]);
