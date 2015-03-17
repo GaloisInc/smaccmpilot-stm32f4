@@ -14,19 +14,28 @@ library
                        SMACCMPilot.Hardware.GPS.Types.GPSFix,
                        SMACCMPilot.Hardware.GPS.UBlox,
                        SMACCMPilot.Hardware.GPS.UBlox.Types,
+
+                       SMACCMPilot.Hardware.Types.Gyroscope,
+                       SMACCMPilot.Hardware.Types.Accelerometer,
+                       SMACCMPilot.Hardware.Types.Magnetometer,
+                       SMACCMPilot.Hardware.Types.Barometer,
+
                        SMACCMPilot.Hardware.MPU6000,
-                       SMACCMPilot.Hardware.MPU6000.Types,
                        SMACCMPilot.Hardware.MPU6000.Regs,
                        SMACCMPilot.Hardware.MPU6000.SPI,
                        SMACCMPilot.Hardware.MS5611,
                        SMACCMPilot.Hardware.MS5611.Calibration,
                        SMACCMPilot.Hardware.MS5611.Types,
                        SMACCMPilot.Hardware.MS5611.Regs,
+                       SMACCMPilot.Hardware.MS5611.Mode,
                        SMACCMPilot.Hardware.MS5611.I2C,
+                       SMACCMPilot.Hardware.MS5611.SPI,
                        SMACCMPilot.Hardware.HMC5883L,
-                       SMACCMPilot.Hardware.HMC5883L.Types,
                        SMACCMPilot.Hardware.HMC5883L.Regs,
                        SMACCMPilot.Hardware.HMC5883L.I2C,
+                       SMACCMPilot.Hardware.LSM303D,
+                       SMACCMPilot.Hardware.LSM303D.Regs,
+                       SMACCMPilot.Hardware.LSM303D.SPI,
 
                        SMACCMPilot.Hardware.PPM,
                        SMACCMPilot.Hardware.PPM.PulseCapture,
@@ -37,7 +46,19 @@ library
                        SMACCMPilot.Hardware.PX4FMU17,
                        SMACCMPilot.Hardware.PX4FMU17.MotorControl
 
-                       SMACCMPilot.Hardware.Sched
+                       SMACCMPilot.Hardware.Sched,
+
+                       SMACCMPilot.Hardware.Tests.Platforms,
+                       SMACCMPilot.Hardware.Tests.Serialize,
+                       SMACCMPilot.Hardware.Tests.CopterMotors,
+                       SMACCMPilot.Hardware.Tests.Ublox,
+                       SMACCMPilot.Hardware.Tests.MPU6000,
+                       SMACCMPilot.Hardware.Tests.Baro,
+                       SMACCMPilot.Hardware.Tests.Magnetometer,
+                       SMACCMPilot.Hardware.Tests.PPMIn,
+                       SMACCMPilot.Hardware.Tests.CANFragment,
+                       SMACCMPilot.Hardware.Tests.AllSensors
+
 
   build-depends:       base >= 4.6,
                        monadLib,
@@ -48,8 +69,185 @@ library
                        ivory-serialize,
                        ivory-hw,
                        tower >= 0.9,
-                       ivory-bsp-stm32
+                       tower-config,
+                       tower-freertos-stm32,
+                       ivory-bsp-stm32,
+                       smaccm-datalink,
+                       smaccm-fragment,
+                       smaccm-mavlink
 
   default-language:    Haskell2010
   ghc-options:         -Wall
 
+executable             copter-motor-test-gen
+  main-is:             CopterMotorTest.hs
+  hs-source-dirs:      tests
+  build-depends:       base >= 4.6,
+                       monadLib,
+                       ivory,
+                       ivory-stdlib,
+                       ivory-backend-c,
+                       ivory-opts,
+                       ivory-hw,
+                       tower              >= 0.9,
+                       tower-config,
+                       tower-freertos-stm32,
+                       ivory-bsp-stm32,
+                       ivory-px4-hw,
+                       smaccm-datalink,
+                       ivory-serialize
+
+  default-language:    Haskell2010
+  ghc-options:         -Wall
+
+executable             copter-motor-test-client
+  main-is:             CopterMotorTestClient.hs
+  hs-source-dirs:      tests
+  build-depends:       base >= 4.6,
+                       bytestring,
+                       haskeline,
+                       pipes,
+                       parsec,
+                       transformers,
+                       smaccm-commsec,
+                       smaccm-datalink
+
+
+executable             ublox-gps-test-gen
+  main-is:             UbloxGPSTest.hs
+  hs-source-dirs:      tests
+  build-depends:       base >= 4.6,
+                       monadLib,
+                       ivory,
+                       ivory-stdlib,
+                       ivory-backend-c,
+                       ivory-opts,
+                       ivory-hw,
+                       tower              >= 0.9,
+                       tower-config,
+                       tower-freertos-stm32,
+                       ivory-bsp-stm32,
+                       ivory-px4-hw,
+                       smaccm-datalink,
+                       ivory-serialize
+
+  default-language:    Haskell2010
+  ghc-options:         -Wall
+
+executable             px4-mpu6k-test-gen
+  main-is:             MPU6000Test.hs
+  hs-source-dirs:      tests
+  build-depends:       base >= 4.6,
+                       monadLib,
+                       ivory,
+                       ivory-stdlib,
+                       ivory-backend-c,
+                       ivory-opts,
+                       ivory-hw,
+                       tower              >= 0.9,
+                       tower-config,
+                       tower-freertos-stm32,
+                       ivory-bsp-stm32,
+                       ivory-px4-hw,
+                       smaccm-datalink,
+                       ivory-serialize
+
+  default-language:    Haskell2010
+  ghc-options:         -Wall
+
+executable             px4-baro-test-gen
+  main-is:             BaroTest.hs
+  hs-source-dirs:      tests
+  build-depends:       base >= 4.6,
+                       monadLib,
+                       ivory,
+                       ivory-stdlib,
+                       ivory-backend-c,
+                       ivory-opts,
+                       ivory-hw,
+                       tower              >= 0.9,
+                       tower-config,
+                       tower-freertos-stm32,
+                       ivory-bsp-stm32,
+                       ivory-px4-hw,
+                       smaccm-datalink,
+                       ivory-serialize
+
+  default-language:    Haskell2010
+  ghc-options:         -Wall
+
+executable             px4-mag-test-gen
+  main-is:             MagTest.hs
+  hs-source-dirs:      tests
+  build-depends:       base >= 4.6,
+                       monadLib,
+                       ivory,
+                       ivory-stdlib,
+                       ivory-backend-c,
+                       ivory-opts,
+                       ivory-hw,
+                       tower              >= 0.9,
+                       tower-config,
+                       tower-freertos-stm32,
+                       ivory-bsp-stm32,
+                       ivory-px4-hw,
+                       smaccm-datalink,
+                       ivory-serialize
+
+  default-language:    Haskell2010
+  ghc-options:         -Wall
+
+executable             px4-ppm-in-test-gen
+  main-is:             PPMInTest.hs
+  hs-source-dirs:      tests
+  build-depends:       base >= 4.6,
+                       monadLib,
+                       ivory,
+                       ivory-stdlib,
+                       ivory-backend-c,
+                       ivory-opts,
+                       ivory-hw,
+                       tower              >= 0.9,
+                       tower-config,
+                       tower-freertos-stm32,
+                       ivory-bsp-stm32,
+                       ivory-px4-hw,
+                       smaccm-datalink,
+                       ivory-serialize
+
+  default-language:    Haskell2010
+  ghc-options:         -Wall
+
+executable             px4-can-fragment-test-gen
+  main-is:             CANFragmentTest.hs
+  hs-source-dirs:      tests
+  build-depends:       base >= 4.6,
+                       tower              >= 0.9,
+                       tower-config,
+                       tower-freertos-stm32,
+                       ivory-bsp-tests,
+                       ivory-px4-hw
+
+  default-language:    Haskell2010
+  ghc-options:         -Wall
+
+executable             px4-all-sensors-test-gen
+  main-is:             AllSensorsTest.hs
+  hs-source-dirs:      tests
+  build-depends:       base >= 4.6,
+                       monadLib,
+                       ivory,
+                       ivory-stdlib,
+                       ivory-backend-c,
+                       ivory-opts,
+                       ivory-hw,
+                       tower              >= 0.9,
+                       tower-config,
+                       tower-freertos-stm32,
+                       ivory-bsp-stm32,
+                       ivory-px4-hw,
+                       smaccm-datalink,
+                       ivory-serialize
+
+  default-language:    Haskell2010
+  ghc-options:         -Wall

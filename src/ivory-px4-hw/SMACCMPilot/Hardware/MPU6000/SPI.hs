@@ -12,7 +12,8 @@ import Ivory.Tower
 import Ivory.BSP.STM32.Driver.SPI
 
 import SMACCMPilot.Hardware.MPU6000.Regs
-import SMACCMPilot.Hardware.MPU6000.Types
+import qualified SMACCMPilot.Hardware.Types.Gyroscope as G
+import qualified SMACCMPilot.Hardware.Types.Accelerometer as A
 
 readRegAddr :: Reg -> Uint8
 readRegAddr reg = 0x80 .| (fromIntegral (regAddr reg))
@@ -50,12 +51,14 @@ getSensorsReq dev = fmap constRef $ local $ istruct
   , tx_len    .= ival 15 -- addr, 6 accel, 2 temp, 6 gyro
   ]
 
-rawSensorFromResponse :: (GetAlloc eff ~ Scope s)
+sensorSample :: (GetAlloc eff ~ Scope s)
                       => ConstRef s1 (Struct "spi_transaction_result")
-                      -> Ref s2 (Struct "mpu6000_sample")
+                      -> Ref s2 (Struct "gyroscope_sample")
+                      -> Ref s3 (Struct "accelerometer_sample")
                       -> Ivory eff ()
-rawSensorFromResponse res r = do
-  t <- getTime
+sensorSample res r_gyro r_accel = do
+  r_time <- getTime
+  rc <- deref (res ~> resultcode)
   ax_h <- deref ((res ~> rx_buf) ! 1)
   ax_l <- deref ((res ~> rx_buf) ! 2)
   ay_h <- deref ((res ~> rx_buf) ! 3)
@@ -70,18 +73,24 @@ rawSensorFromResponse res r = do
   gy_l <- deref ((res ~> rx_buf) ! 12)
   gz_h <- deref ((res ~> rx_buf) ! 13)
   gz_l <- deref ((res ~> rx_buf) ! 14)
-  store (r ~> samplefail)  false
+  comment "store sample failure"
+  store (r_gyro ~> G.samplefail) (rc >? 0)
+  store (r_accel ~> A.samplefail) (rc >? 0)
   comment "convert to degrees per second"
-  store (r ~> gyro_x)      (hilo gx_h gx_l / 16.4)
-  store (r ~> gyro_y)      (hilo gy_h gy_l / 16.4)
-  store (r ~> gyro_z)      (hilo gz_h gz_l / 16.4)
+  store ((r_gyro ~> G.sample) ! 0) (hilo gx_h gx_l / 16.4)
+  store ((r_gyro ~> G.sample) ! 1) (hilo gy_h gy_l / 16.4)
+  store ((r_gyro ~> G.sample) ! 2) (hilo gz_h gz_l / 16.4)
   comment "convert to m/s/s by way of g"
-  store (r ~> accel_x)     (hilo ax_h ax_l / 2048.0 * 9.80665)
-  store (r ~> accel_y)     (hilo ay_h ay_l / 2048.0 * 9.80665)
-  store (r ~> accel_z)     (hilo az_h az_l / 2048.0 * 9.80665)
+  store ((r_accel ~> A.sample) ! 0)  (hilo ax_h ax_l / 2048.0 * 9.80665)
+  store ((r_accel ~> A.sample) ! 1)  (hilo ay_h ay_l / 2048.0 * 9.80665)
+  store ((r_accel ~> A.sample) ! 2)  (hilo az_h az_l / 2048.0 * 9.80665)
   comment "convert to degrees Celsius"
-  store (r ~> temp)        (hilo te_h te_l / 340.0 + 36.53)
-  store (r ~> time)        t
+  r_temp <- assign (hilo te_h te_l / 340.0 + 36.53)
+  store (r_gyro  ~> G.temp) r_temp
+  store (r_accel ~> A.temp) r_temp
+  comment "store sample time"
+  store (r_gyro  ~> G.time) r_time
+  store (r_accel ~> A.time) r_time
   where
   hilo :: Uint8 -> Uint8 -> IFloat
   hilo h l = safeCast $ twosComplementCast $ hiloUnsigned h l
@@ -92,12 +101,15 @@ rawSensorFromResponse res r = do
 mpu6000SensorManager :: ChanInput  (Struct "spi_transaction_request")
                      -> ChanOutput (Struct "spi_transaction_result")
                      -> ChanOutput (Stored ITime)
-                     -> ChanInput  (Struct "mpu6000_sample")
+                     -> ChanInput  (Struct "gyroscope_sample")
+                     -> ChanInput  (Struct "accelerometer_sample")
                      -> SPIDeviceHandle
                      -> Tower e ()
-mpu6000SensorManager req_chan res_chan init_chan sensorChan dev = do
-  towerModule  mpu6000TypesModule
-  towerDepends mpu6000TypesModule
+mpu6000SensorManager req_chan res_chan init_chan gyro_chan accel_chan dev = do
+  towerModule G.gyroscopeTypesModule
+  towerDepends G.gyroscopeTypesModule
+  towerModule A.accelerometerTypesModule
+  towerDepends A.accelerometerTypesModule
 
   p <- period (Milliseconds 5) -- 200hz
 
@@ -105,13 +117,15 @@ mpu6000SensorManager req_chan res_chan init_chan sensorChan dev = do
     retries <- state "retries"
     ready <- state "ready"
     transactionPending <- state "transaction_pending"
-    result <- state "result"
+    gyro_s <- state "gyro"
+    accel_s <- state "accel"
 
     coroutineHandler init_chan res_chan "mpu6000" $ do
-      reqEmitter <- emitter req_chan 1
-      sensorEmitter <- emitter sensorChan 1
+      req_e   <- emitter req_chan 1
+      gyro_e  <- emitter gyro_chan 1
+      accel_e <- emitter accel_chan 1
       return $ CoroutineBody $ \ yield -> do
-        let rpc req = req >>= emit reqEmitter >> yield
+        let rpc req = req >>= emit req_e >> yield
 
         store retries (0 :: Uint8)
         forever $ do
@@ -144,41 +158,52 @@ mpu6000SensorManager req_chan res_chan init_chan sensorChan dev = do
           res <- yield
           comment "Got a response, sending it up the stack"
           store transactionPending false
-          rawSensorFromResponse (constRef res) result
-          emit sensorEmitter $ constRef result
+          sensorSample (constRef res) gyro_s accel_s
+          emit gyro_e (constRef gyro_s)
+          emit accel_e (constRef accel_s)
 
     handler p "period" $ do
-      spiEmitter <- emitter req_chan 1
-      sensorEmitter <- emitter sensorChan 1
+      req_e   <- emitter req_chan 1
+      gyro_e  <- emitter gyro_chan 1
+      accel_e <- emitter accel_chan 1
       callback $ const $ do
         isReady <- deref ready
         isPending <- deref transactionPending
         cond_
           [ iNot isReady ==> do
-              store (result ~> initfail) true
-              invalidTransaction result
-              emit sensorEmitter (constRef result)
+              store (gyro_s ~> G.initfail) true
+              store (accel_s ~> A.initfail) true
+              invalidTransaction gyro_s accel_s
+              emit gyro_e (constRef gyro_s)
+              emit accel_e (constRef accel_s)
           , isPending ==> do
-              invalidTransaction result
-              emit sensorEmitter (constRef result)
+              invalidTransaction gyro_s accel_s
+              emit gyro_e (constRef gyro_s)
+              emit accel_e (constRef accel_s)
           , true ==> do
-              store (result ~> initfail) false
+              store (gyro_s ~> G.initfail) false
+              store (accel_s ~> A.initfail) false
               store transactionPending true
               req <- getSensorsReq dev
-              emit spiEmitter req
+              emit req_e req
           ]
 
   where
   invalidTransaction :: (GetAlloc eff ~ Scope s)
-                => Ref s' (Struct "mpu6000_sample") -> Ivory eff ()
-  invalidTransaction r = do
+                => Ref s1 (Struct "gyroscope_sample")
+                -> Ref s2 (Struct "accelerometer_sample")
+                -> Ivory eff ()
+  invalidTransaction r_gyro r_accel = do
     t <- getTime
-    store (r ~> samplefail) true
-    store (r ~> gyro_x)     0
-    store (r ~> gyro_y)     0
-    store (r ~> gyro_z)     0
-    store (r ~> accel_x)    0
-    store (r ~> accel_y)    0
-    store (r ~> accel_z)    0
-    store (r ~> temp)       0
-    store (r ~> time)       t
+    store (r_gyro ~> G.samplefail)    true
+    store ((r_gyro ~> G.sample) ! 0)  0
+    store ((r_gyro ~> G.sample) ! 1)  0
+    store ((r_gyro ~> G.sample) ! 2)  0
+    store (r_gyro ~> G.temp)          0
+    store (r_gyro ~> G.time)          t
+    store (r_accel ~> A.samplefail)   true
+    store ((r_accel ~> A.sample) ! 0) 0
+    store ((r_accel ~> A.sample) ! 1) 0
+    store ((r_accel ~> A.sample) ! 2) 0
+    store (r_accel ~> A.temp)         0
+    store (r_accel ~> A.time)         t

@@ -1,12 +1,9 @@
 name:                smaccm-ins
 version:             0.2.0.0
--- synopsis:            
--- description:         
 license:             BSD3
 license-file:        LICENSE
 author:              Jamey Sharp
 maintainer:          jamey@galois.com
--- copyright:           
 category:            Math
 build-type:          Simple
 cabal-version:       >=1.10
@@ -15,7 +12,8 @@ library
   hs-source-dirs:      src
   exposed-modules:     SMACCMPilot.INS.Ivory,
                        SMACCMPilot.INS.Simulate,
-                       SMACCMPilot.INS.Tower
+                       SMACCMPilot.INS.Tower,
+                       SMACCMPilot.INS.Tests.SensorFusion
   other-modules:       SMACCMPilot.INS.Parameters,
                        SMACCMPilot.INS.Types
   build-depends:       base >=4.6,
@@ -29,13 +27,15 @@ library
                        linear >=1.16 && <1.17,
                        monadLib >= 3.7,
                        reflection >=1.5,
-                       tower >=0.9
+                       tower >=0.9,
+                       ivory-bsp-stm32,
+                       smaccm-datalink
   default-language:    Haskell2010
   ghc-options:         -Wall -Werror
 
-executable inertialnav
+executable riseborough-recording-test-native
   hs-source-dirs:      tests
-  main-is:             InertialNav.hs
+  main-is:             RiseboroughTest.hs
   build-depends:       base >=4.6,
                        estimator == 1.1.*,
                        lens >=4.6,
@@ -45,9 +45,9 @@ executable inertialnav
   default-language:    Haskell2010
   ghc-options:         -Wall -Werror
 
-executable psas
+executable psas-recording-test-native
   hs-source-dirs:      tests
-  main-is:             PSAS.hs
+  main-is:             PSASNative.hs
   build-depends:       base >=4.6,
                        binary >=0.7,
                        bytestring >=0.10,
@@ -57,14 +57,31 @@ executable psas
   default-language:    Haskell2010
   ghc-options:         -Wall -Werror
 
-executable codegen
+executable psas-recording-test-gen
   hs-source-dirs:      tests
-  main-is:             CodeGen.hs
+  main-is:             PSASIvory.hs
   build-depends:       base >=4.6,
                        estimator == 1.1.*,
                        ivory >=0.1,
                        ivory-artifact >=0.1,
                        ivory-backend-c >=0.1,
+                       smaccm-ins
+  default-language:    Haskell2010
+  ghc-options:         -Wall -Werror
+
+executable px4-sensor-fusion-test-gen
+  hs-source-dirs:      tests
+  main-is:             PX4SensorFusionTest.hs
+  build-depends:       base >=4.6,
+                       estimator == 1.1.*,
+                       ivory >=0.1,
+                       ivory-artifact >=0.1,
+                       ivory-backend-c >=0.1,
+                       tower,
+                       tower-config,
+                       tower-freertos-stm32,
+                       ivory-bsp-stm32,
+                       ivory-px4-hw,
                        smaccm-ins
   default-language:    Haskell2010
   ghc-options:         -Wall -Werror

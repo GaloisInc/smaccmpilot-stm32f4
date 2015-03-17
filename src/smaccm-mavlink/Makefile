@@ -6,7 +6,6 @@ MAVLINK_MESSAGE_DEFS := $(MAVLINK_REPO)/message_definitions/v1.0
 MAVLINK_PYTHON := $(MAVLINK_REPO)/pymavlink/mavlinkv10.py
 
 CABAL_FILE = smaccm-mavlink.cabal
-CABAL_TEMPLATE= $(CABAL_FILE).in
 
 COMMA := ,
 
