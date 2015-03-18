@@ -130,12 +130,16 @@ px4PlatformParser :: ConfigParser PX4Platform
 px4PlatformParser = do
   p <- subsection "args" $ subsection "platform" string
   case map toUpper p of
-    "PX4FMUV17"      -> return px4fmuv17
-    "PX4FMUV17_IOAR" -> return px4fmuv17_ioar
-    "PX4FMUV24"      -> return px4fmuv24
-    "PIXHAWK"        -> return px4fmuv24
-    "ESB_X1"         -> return esb_x1
+    "PX4FMUV17"      -> result px4fmuv17
+    "PX4FMUV17_IOAR" -> result px4fmuv17_ioar
+    "PX4FMUV24"      -> result px4fmuv24
+    "PIXHAWK"        -> result px4fmuv24
+    "ESB_X1"         -> result esb_x1
     _ -> fail ("no such platform " ++ p)
+  where
+  result platform = do
+    conf <- stm32ConfigParser (px4platform_stm32config platform)
+    return platform { px4platform_stm32config = conf }
 
 px4fmuv17 :: PX4Platform
 px4fmuv17 = PX4Platform
