@@ -1,5 +1,5 @@
 
-module SMACCMPilot.Mavlink.Enums.MavCmd where
+module SMACCMPilot.Mavlink.Ivory.Enums.MavCmd where
 
 -- MAV_CMD enum (entered by hand, only values used)
 

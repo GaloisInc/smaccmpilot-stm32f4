@@ -6,13 +6,13 @@
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
-module SMACCMPilot.Mavlink.Send where
+module SMACCMPilot.Mavlink.Ivory.Send where
 
 import           Ivory.Language
 import           Ivory.Serialize
 import           Ivory.Stdlib
 
-import           SMACCMPilot.Mavlink.CRC
+import           SMACCMPilot.Mavlink.Ivory.CRC
 
 --------------------------------------------------------------------------------
 

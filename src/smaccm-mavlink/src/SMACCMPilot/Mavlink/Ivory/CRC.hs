@@ -4,7 +4,7 @@
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module SMACCMPilot.Mavlink.CRC where
+module SMACCMPilot.Mavlink.Ivory.CRC where
 
 import Ivory.Language
 

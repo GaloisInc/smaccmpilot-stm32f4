@@ -9,9 +9,9 @@ CABAL_FILE = smaccm-mavlink.cabal
 
 COMMA := ,
 
-MAVLINK_MESSAGE_HS := $(wildcard ./src/SMACCMPilot/Mavlink/Messages/*.hs)
+MAVLINK_MESSAGE_HS := $(wildcard ./src/SMACCMPilot/Mavlink/Ivory/Messages/*.hs)
 MAVLINK_MESSAGE_MODULES := \
-    $(patsubst %.hs, SMACCMPilot.Mavlink.Messages.%$(COMMA), \
+    $(patsubst %.hs, SMACCMPilot.Mavlink.Ivory.Messages.%$(COMMA), \
         $(notdir $(MAVLINK_MESSAGE_HS)))
 
 default: build
@@ -22,7 +22,7 @@ generate: generate-message-code generate-cabal-file
 generate-message-code:
 	-rm ./src/SMACCMPilot/Mavlink/Messages/*.hs
 	python ./ivory-module-generator/pymavlink/generator/smavgen.py \
-		--output=./src/SMACCMPilot/Mavlink/ \
+		--output=./src/SMACCMPilot/Mavlink/Ivory/ \
 		$(MAVLINK_MESSAGE_DEFS)/smaccmpilot.xml
 	@echo "smaccm-mavlink Message modules regenerated. Be sure to remove"
 	@echo "deleted files from version control and add new files to version"

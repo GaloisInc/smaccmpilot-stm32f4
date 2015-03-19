@@ -2,7 +2,7 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE FlexibleInstances #-}
 
-module SMACCMPilot.Mavlink.Unpack where
+module SMACCMPilot.Mavlink.Ivory.Unpack where
 
 import Ivory.Language
 

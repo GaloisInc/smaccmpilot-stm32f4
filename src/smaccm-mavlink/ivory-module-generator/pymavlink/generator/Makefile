@@ -1,6 +1,6 @@
 
 all: smavgen_ivory.py smavgen.py
-	python smavgen.py -o ../../../src/SMACCMPilot/Mavlink/ \
+	python smavgen.py -o ../../../src/SMACCMPilot/Mavlink/Ivory/ \
 		../../../../../src/gcs/mavlink/message_definitions/v1.0/smaccmpilot.xml
 
 clean:

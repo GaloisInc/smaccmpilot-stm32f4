@@ -3,13 +3,13 @@
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE RankNTypes #-}
 
-module SMACCMPilot.Mavlink.Receive where
+module SMACCMPilot.Mavlink.Ivory.Receive where
 
 import Data.Maybe
 import Ivory.Language
 import Ivory.Stdlib
-import SMACCMPilot.Mavlink.CRC
-import SMACCMPilot.Mavlink.Messages (messageLensCRCs)
+import SMACCMPilot.Mavlink.Ivory.CRC
+import SMACCMPilot.Mavlink.Ivory.Messages (messageLensCRCs)
 
 [ivory|
 struct mavlink_receive_state

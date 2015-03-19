@@ -1,5 +1,5 @@
 
-module GCS.Mavlink.CRC
+module SMACCMPilot.Mavlink.Native.CRC
   ( crc_accumulate
   , crc_lo_hi
   , crc_init_v

@@ -86,8 +86,8 @@ if __name__=="__main__":
 
     parser = OptionParser("%prog [options] <XML files>")
 
-    parser.add_option("-o", "--output", dest="output", default="Mavlink",
-                    help="output directory for SMACCMPilot.Mavlink module")
+    parser.add_option("-o", "--output", dest="output", default=".",
+                    help="output directory for SMACCMPilot.Mavlink.Ivory module")
     parser.add_option("--error-limit", dest="error_limit", default=200,
                     help="maximum number of validation errors")
 

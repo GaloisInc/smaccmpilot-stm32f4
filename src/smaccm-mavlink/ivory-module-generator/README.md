@@ -11,6 +11,6 @@ Provides a tool to translate mavlink message xml specifications into Ivory
 modules.
 
 This tool will generate Ivory language modules in the haskell namespace
-`SMACCMPilot.Mavlink`, with each message defined in a separate haskell file
-`SMACCMPilot.Mavlink.Messages.<messagename>`.
+`SMACCMPilot.Mavlink.Ivory`, with each message defined in a separate haskell
+file `SMACCMPilot.Mavlink.Ivory.Messages.<messagename>`.
 
