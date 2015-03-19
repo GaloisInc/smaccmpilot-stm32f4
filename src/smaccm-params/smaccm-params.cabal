@@ -11,7 +11,10 @@ cabal-version:       >= 1.10
 
 
 library
-  exposed-modules:     SMACCMPilot.Param
+  exposed-modules:     SMACCMPilot.Param,
+                       SMACCMPilot.Param.Base,
+                       SMACCMPilot.Param.Tower,
+                       SMACCMPilot.Param.TowerTypes
   build-depends:       base >= 4.6,
                        monadLib,
                        ivory,
