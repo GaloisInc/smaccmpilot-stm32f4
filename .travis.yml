@@ -28,3 +28,4 @@ env:
   - ENV_TEST_TARGET=smaccm-mavlink
   - ENV_TEST_TARGET=smaccm-datalink
   - ENV_TEST_TARGET=smaccm-ins
+  - ENV_TEST_TARGET=smaccm-params
