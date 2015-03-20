@@ -15,6 +15,7 @@ sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), '..'))
 
 import mavparse
 import smavgen_ivory
+import smavgen_haskell
 
 sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'lib'))
 
@@ -70,7 +71,8 @@ def mavgen(opts, args) :
     print("Found %u MAVLink message types in %u XML files" % (
         mavparse.total_msgs(xml), len(xml)))
 
-    smavgen_ivory.generate_messages(opts.output, xml)
+    smavgen_ivory.generate_messages(opts.output + "/Ivory/", xml)
+    smavgen_haskell.generate_messages(opts.output + "/Native/", xml)
 
 def mavgen_validate(fname, schema, errorLimitNumber) :
     """Uses minixsv to validate an XML file with a given XSD schema file."""
@@ -87,7 +89,7 @@ if __name__=="__main__":
     parser = OptionParser("%prog [options] <XML files>")
 
     parser.add_option("-o", "--output", dest="output", default=".",
-                    help="output directory for SMACCMPilot.Mavlink.Ivory module")
+                    help="output directory for SMACCMPilot.Mavlink module")
     parser.add_option("--error-limit", dest="error_limit", default=200,
                     help="maximum number of validation errors")
 

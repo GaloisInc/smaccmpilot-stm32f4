@@ -22,7 +22,7 @@ generate: generate-message-code generate-cabal-file
 generate-message-code:
 	-rm ./src/SMACCMPilot/Mavlink/Messages/*.hs
 	python ./ivory-module-generator/pymavlink/generator/smavgen.py \
-		--output=./src/SMACCMPilot/Mavlink/Ivory/ \
+		--output=./src/SMACCMPilot/Mavlink \
 		$(MAVLINK_MESSAGE_DEFS)/smaccmpilot.xml
 	@echo "smaccm-mavlink Message modules regenerated. Be sure to remove"
 	@echo "deleted files from version control and add new files to version"
