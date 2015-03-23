@@ -26,7 +26,7 @@ files, and finally, some hand written Haskell files.
 
 ### Code Generator
 
-The code generator is found in the `ivory-module-generator` subdirectory. It is
+The code generator is found in the `generator` subdirectory. It is
 written in Python and derived from code provided by the MAVLink project -
 therefore, all code in that subdirectory is licensed under the GPL.
 
