@@ -12,11 +12,11 @@ import Ivory.Stdlib
 import Ivory.Tower
 import SMACCMPilot.Hardware.Tests.Platforms
 import SMACCM.Fragment
-import SMACCMPilot.Mavlink.CRC (mavlinkCRCModule)
-import SMACCMPilot.Mavlink.Messages.SmaccmpilotNavCmd (smaccmpilotNavCmdModule)
-import qualified SMACCMPilot.Mavlink.Receive as R
-import SMACCMPilot.Mavlink.Send (mavlinkSendModule)
-import SMACCMPilot.Mavlink.Unpack
+import SMACCMPilot.Mavlink.Ivory.CRC (mavlinkCRCModule)
+import SMACCMPilot.Mavlink.Ivory.Messages.SmaccmpilotNavCmd (smaccmpilotNavCmdModule)
+import qualified SMACCMPilot.Mavlink.Ivory.Receive as R
+import SMACCMPilot.Mavlink.Ivory.Send (mavlinkSendModule)
+import SMACCMPilot.Mavlink.Ivory.Unpack
 
 app :: (e -> PX4Platform)
     -> Tower e ()
