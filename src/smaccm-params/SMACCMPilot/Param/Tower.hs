@@ -29,7 +29,7 @@ import Ivory.Stdlib.String
 import SMACCMPilot.Param.Base
 import SMACCMPilot.Param.TowerTypes
 
-import qualified SMACCMPilot.Mavlink.Messages.ParamValue as PV
+import qualified SMACCMPilot.Mavlink.Ivory.Messages.ParamValue as PV
 
 ----------------------------------------------------------------------
 -- Tower Parameters
