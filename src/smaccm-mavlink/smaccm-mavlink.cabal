@@ -204,7 +204,8 @@ library
                         SMACCMPilot.Mavlink.Ivory.Messages.VisionSpeedEstimate,
          --END MESSAGE MODULES
                         SMACCMPilot.Mavlink.Native.CRC,
-                        SMACCMPilot.Mavlink.Native.Messages
+                        SMACCMPilot.Mavlink.Native.Messages,
+                        SMACCMPilot.Mavlink.Native.Serialize
 
   build-depends:        base >= 4.6,
                         array,
