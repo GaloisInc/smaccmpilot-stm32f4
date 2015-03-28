@@ -62,8 +62,9 @@ repositories:
 
 ### Haskell Tools
 
-This project requires the [GHC Haskell Compiler][ghc] version 7.6.3 or
-7.8.x, and [Cabal][] 1.20 or higher.
+This project requires the [GHC Haskell Compiler][ghc] version 7.8.x, and [Cabal][] 1.20 or higher.
+
+*Note: we have dropped support for GHC 7.6!*
 
 [ghc]: https://www.haskell.org/ghc
 [Cabal]: https://www.haskell.org/cabal
