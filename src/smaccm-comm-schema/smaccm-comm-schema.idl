@@ -1,0 +1,67 @@
+
+(def-newtype time_micros_t sint64_t)
+
+-- comments should be haskell style, because we're suing parsec's haskell lexer
+
+-- enums default to 32 bit width if you don't really care
+(def-enum mode_t
+ ((stabilize 0)
+  (auto 1)))
+
+-- or you can specify a width
+(def-enum armed_t 
+ 8
+ ((disarmed 0)
+  (armed 1)))
+
+(def-struct heartbeat_t
+ ((time time_micros_t)
+  (armed armed_t)))
+
+(def-newtype lat_t sint32_t)
+(def-newtype lon_t sint32_t)
+
+-- Todo: allow attaching unit annotations to newtypes. The code generator will
+-- provide the units as a human readable comment, and/or in some type/unit
+-- system supported by the host language.
+-- Todo: allow attaching predicates to newtypes. e.g., lon_t might have some
+-- type (degrees * 10e-6), some predicate
+-- (lambda (v) (and (gt v -180000000) (lte v 180000000)))
+
+(def-newtype meters_t float_t)
+
+(def-struct coordinate_t
+ ((lat lat_t)
+  (lon lon_t)
+  (alt meters_t)))
+
+(def-newtype waypoint_t coordinate_t)
+
+-- Todo: the following interface syntax and semantics are a strawman.
+-- Interfaces have methods that are either streams or attrs.
+-- attrs take a parameter for access control.
+-- streams take a parameter for their default period in hz (none should default
+-- to zero). they also implicitly define an attr $(steamname)-stream-rate,
+-- which permits changing the stream rate at runtime.
+
+(def-interface vehicle_i
+ ((heartbeat (stream 10 heartbeat_t))))
+
+-- Interfaces implement java-style inheritance. No shadowing of inherited method
+-- names permitted.
+
+(def-interface controllable_vehicle_i
+  ((current_waypoint (attr read      waypoint_t))
+   (next_waypoint    (attr readwrite waypoint_t)))
+  (vehicle_i)) -- Inherits from interface vehicle
+
+-- The idea here is that, when negotiating a gidl connection, the client can
+-- specify or negotiate what interface is supported.
+-- this may be communicated by just sending the string name, or potentially by
+-- sending the entire serialized schema. At very least, the client and server
+-- should check agreement of their type schemas, probably by having the client
+-- send a sha1-hash of the serialized type schema.
+-- This allows us to specify various kinds of vehicles might exist without
+-- repeating ourselves, and provides a way to
+-- manage new functionality without breaking legacy code.
+
