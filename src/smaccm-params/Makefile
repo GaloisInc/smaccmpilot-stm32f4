@@ -6,6 +6,9 @@ BSP_REPO ?= ../../../ivory-tower-stm32
 IVORY_FLAGS = --const-fold
 
 default:
+	@echo "!!! BUILD DISABLED: smaccm-params is broken !!!"
+
+reallybuild:
 	cabal build
 
 create-sandbox:
@@ -24,7 +27,6 @@ create-sandbox:
 	cabal sandbox add-source $(BSP_REPO)/tower-freertos-stm32
 	cabal sandbox add-source $(BSP_REPO)/ivory-bsp-stm32
 	cabal sandbox add-source $(BSP_REPO)/ivory-bsp-tests
-	cabal sandbox add-source ../smaccm-mavlink
 	cabal install --dependencies-only
 
 clean:

@@ -19,8 +19,8 @@ library
                        monadLib,
                        ivory,
                        ivory-stdlib,
-                       tower,
-                       smaccm-mavlink
+                       tower
+
   default-language:    Haskell2010
   ghc-options:         -Wall
 
