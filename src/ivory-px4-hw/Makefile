@@ -26,7 +26,7 @@ test-fmu24: px4-mpu6k-test
 test-fmu24: px4-baro-test
 test-fmu24: px4-mag-test
 test-fmu24: px4-all-sensors-test
-test-fmu24: px4-can-fragment-test
+# test-fmu24: px4-can-fragment-test
 
 .PHONY: ublox-gps-test
 ublox-gps-test:
@@ -119,7 +119,6 @@ create-sandbox:
 	cabal sandbox add-source ../smaccm-fragment
 	cabal sandbox add-source ../smaccm-commsec
 	cabal sandbox add-source ../smaccm-datalink
-	cabal sandbox add-source ../smaccm-mavlink
 	cabal install --dependencies-only
 
 clean: ublox-gps-test-clean
