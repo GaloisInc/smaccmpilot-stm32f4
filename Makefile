@@ -30,6 +30,12 @@ smaccm-datalink:
 	make -C src/smaccm-datalink
 	make -C src/smaccm-datalink test
 
+.PHONY: smaccm-comm-schema
+smaccm-comm-schema:
+	make -C src/smaccm-comm-schema create-sandbox
+	make -C src/smaccm-comm-schema
+	make -C src/smaccm-comm-schema test
+
 .PHONY: smaccm-ins
 smaccm-ins:
 	make -C src/smaccm-ins create-sandbox
