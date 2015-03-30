@@ -28,5 +28,6 @@ env:
   - ENV_TEST_TARGET=smaccm-commsec
   - ENV_TEST_TARGET=smaccm-datalink
   - ENV_TEST_TARGET=smaccm-comm-schema
+  - ENV_TEST_TARGET=smaccm-comm-client
   - ENV_TEST_TARGET=smaccm-ins
   - ENV_TEST_TARGET=smaccm-params

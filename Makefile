@@ -36,6 +36,11 @@ smaccm-comm-schema:
 	make -C src/smaccm-comm-schema
 	make -C src/smaccm-comm-schema test
 
+.PHONY: smaccm-comm-client
+smaccm-comm-client:
+	make -C src/smaccm-comm-client create-sandbox
+	make -C src/smaccm-comm-client
+
 .PHONY: smaccm-ins
 smaccm-ins:
 	make -C src/smaccm-ins create-sandbox
