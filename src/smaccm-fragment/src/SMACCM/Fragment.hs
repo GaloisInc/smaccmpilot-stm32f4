@@ -1,5 +1,4 @@
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE ScopedTypeVariables #-}
 
 module SMACCM.Fragment where
 
@@ -10,14 +9,13 @@ import Ivory.Stdlib
 import Ivory.Tower
 import Numeric
 
-fragmentSender :: forall len a e
-                . (ANat len, IvoryArea a, IvoryZero a, Packable a)
+fragmentSender :: (ANat len, IvoryArea a, IvoryZero a, Packable a)
                => Int
                -> Bool
                -> CANTransmitAPI
                -> Proxy len
                -> Tower e (ChanInput a, ChanInput (Stored IBool), ChanOutput (Stored IBool))
-fragmentSender baseID ide tx Proxy = do
+fragmentSender baseID ide tx bound = do
   (reqChan, reqSrc) <- channel
   (abortChan, abortSrc) <- channel
   (resDst, resChan) <- channel
@@ -25,16 +23,14 @@ fragmentSender baseID ide tx Proxy = do
   let idstr = "0x" ++ showHex baseID ""
   monitor ("fragment_" ++ idstr) $ do
     sent <- stateInit ("fragment_sent_" ++ idstr) (izero :: Init (Stored Uint8))
-    buf <- stateInit ("fragment_buf_" ++ idstr) (izero :: Init (Array len (Stored Uint8)))
+    aborting <- state ("fragment_aborting_" ++ idstr)
 
-    -- Note: i am sorry we have to put this check on an unrelated state, but
-    -- haskell
     let rep = packRep
-    aborting <- if packSize rep /= arrayLen buf
-       then fail $ "wrong buffer size " ++ show (arrayLen buf)
+    buf <- if packSize rep /= fromTypeNat bound
+       then fail $ "wrong buffer size " ++ show (fromTypeNat bound)
                  ++ " given for CAN ID " ++ idstr ++ ": should be "
                  ++ show (packSize rep)
-       else state ("fragment_aborting_" ++ idstr)
+       else stateInit ("fragment_buf_" ++ idstr) (izerolen bound)
 
     let sendFragment idx = do
           let remaining_len = arrayLen buf - 8 * idx
