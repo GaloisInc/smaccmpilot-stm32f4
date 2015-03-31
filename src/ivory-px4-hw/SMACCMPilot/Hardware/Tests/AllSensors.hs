@@ -21,6 +21,7 @@ import Ivory.BSP.STM32.Driver.CAN
 
 import SMACCM.Fragment
 
+import SMACCMPilot.Hardware.CANMessages
 import SMACCMPilot.Hardware.Sched
 import SMACCMPilot.Hardware.GPS.UBlox
 import SMACCMPilot.Hardware.HMC5883L
@@ -64,13 +65,13 @@ app topx4 = do
     Just can -> do
       (_, canReqMbox1, canReqMbox2, canReqMbox3) <- canTower tocc
             (can_periph can) 500000 (can_RX can) (can_TX can)
-      fragmentSenderBlind gyro_meas 0x001 False canReqMbox1 (Proxy :: Proxy 26) -- 200Hz, 5 fragments
-      fragmentSenderBlind accel_meas 0x011 False canReqMbox2 (Proxy :: Proxy 26) -- 200Hz, 5 fragments
-      fragmentSenderBlind mag_meas 0x021 False canReqMbox3 (Proxy :: Proxy 22) -- 50Hz, 3 fragments
+      fragmentSenderBlind gyro_meas gyroType canReqMbox1
+      fragmentSenderBlind accel_meas accelType canReqMbox2
+      fragmentSenderBlind mag_meas magType canReqMbox3
       {-
       -- leaving these commented out until we have mailbox managment.
-      fragmentSenderBlind baro_meas 0x031 False canReq (Proxy :: Proxy 18) -- 50Hz, 3 fragments
-      fragmentSenderBlind (snd position) 0x041 False canReq (Proxy :: Proxy 46) -- 1Hz?, 6 fragments
+      fragmentSenderBlind baro_meas baroType canReq
+      fragmentSenderBlind (snd position) gpsType canReq
       -}
   serializeTowerDeps
 
