@@ -41,3 +41,9 @@ smaccm-ins:
 	make -C src/smaccm-ins create-sandbox
 	make -C src/smaccm-ins
 	make -C src/smaccm-ins test
+
+.PHONY: smaccm-params
+smaccm-params:
+	make -C src/smaccm-params create-sandbox
+	make -C src/smaccm-params
+	# make -C src/smaccm-params test
