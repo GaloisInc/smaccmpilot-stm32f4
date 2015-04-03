@@ -4,20 +4,34 @@ IVORY_REPO ?= ../../../ivory
 GIDL_REPO ?= ../../../gidl
 
 default: smaccm-comm-schema-native
+default: smaccm-comm-schema-ivory
 
 test: smaccm-comm-schema-native-test
+test: smaccm-comm-schema-ivory-test
 
-smaccm-comm-schema-native: smaccm-comm-schema.idl
+smaccm-comm-schema-native:
 	cabal exec gidl -- -b haskell \
 		-i smaccm-comm-schema.idl \
 		-o smaccm-comm-schema-native \
 		-p smaccm-comm-schema-native \
 		-n SMACCMPilot.Comm.Native
 
+smaccm-comm-schema-ivory:
+	cabal exec gidl -- -b ivory \
+		-i smaccm-comm-schema.idl \
+		-o smaccm-comm-schema-ivory \
+		-p smaccm-comm-schema-ivory \
+		-n SMACCMPilot.Comm.Ivory
+
 smaccm-comm-schema-native-test: smaccm-comm-schema-native
 	make -C smaccm-comm-schema-native create-sandbox
 	make -C smaccm-comm-schema-native
 	make -C smaccm-comm-schema-native test
+
+smaccm-comm-schema-ivory-test: smaccm-comm-schema-ivory
+	IVORY_REPO=../$(IVORY_REPO) make -C smaccm-comm-schema-ivory create-sandbox
+	make -C smaccm-comm-schema-ivory
+	make -C smaccm-comm-schema-ivory test
 
 create-sandbox:
 	cabal sandbox init
@@ -28,8 +42,12 @@ create-sandbox:
 
 clean:
 	-rm -rf smaccm-comm-schema-native
+	-rm -rf smaccm-comm-schema-ivory
 
-clean-sandbox: clean
+distclean: clean
+	-rm -rf dist
+
+clean-sandbox: distclean
 	-rm -rf .cabal-sandbox
 	-rm -rf cabal.sandbox.config
 
