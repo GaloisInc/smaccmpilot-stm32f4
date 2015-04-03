@@ -1,8 +1,20 @@
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE RankNTypes #-}
 
-module SMACCM.Fragment where
+module SMACCM.Fragment
+  ( MessageType
+  , messageType, messageType'
+  , fragmentSender, fragmentSenderBlind
+  , FragmentReceiveHandler
+  , fragmentReceiveHandler
+  , fragmentReceiver
+  ) where
 
+import Control.Monad (forM)
+import Data.Either
+import Data.List
+import Data.Ord
 import Ivory.BSP.STM32.Driver.CAN
 import Ivory.Language
 import Ivory.Serialize
@@ -10,14 +22,43 @@ import Ivory.Stdlib
 import Ivory.Tower
 import Numeric
 
-fragmentSender :: forall len a e
-                . (ANat len, IvoryArea a, IvoryZero a, Packable a)
-               => Int
-               -> Bool
+data MessageType a = forall len. ANat len => MessageType
+  { fragmentBaseID :: Int
+  , fragmentIDExtended :: Bool
+  , fragmentLength :: Proxy len
+  , fragmentPackRep :: PackRep a
+  }
+
+messageType :: (ANat len, Packable a)
+            => Int
+            -> Bool
+            -> Proxy len
+            -> MessageType a
+messageType baseID ide bound = messageType' baseID ide bound packRep
+
+messageType' :: ANat len
+             => Int
+             -> Bool
+             -> Proxy len
+             -> PackRep a
+             -> MessageType a
+messageType' baseID ide bound rep
+  | packSize rep /= fromTypeNat bound = error $
+      "wrong buffer size " ++ show (fromTypeNat bound)
+      ++ " given for CAN ID 0x" ++ showHex baseID ": should be "
+      ++ show (packSize rep)
+  | otherwise = MessageType
+      { fragmentBaseID = baseID
+      , fragmentIDExtended = ide
+      , fragmentLength = bound
+      , fragmentPackRep = rep
+      }
+
+fragmentSender :: (IvoryArea a, IvoryZero a)
+               => MessageType a
                -> CANTransmitAPI
-               -> Proxy len
                -> Tower e (ChanInput a, ChanInput (Stored IBool), ChanOutput (Stored IBool))
-fragmentSender baseID ide tx Proxy = do
+fragmentSender (MessageType baseID ide bound rep) tx = do
   (reqChan, reqSrc) <- channel
   (abortChan, abortSrc) <- channel
   (resDst, resChan) <- channel
@@ -25,16 +66,8 @@ fragmentSender baseID ide tx Proxy = do
   let idstr = "0x" ++ showHex baseID ""
   monitor ("fragment_" ++ idstr) $ do
     sent <- stateInit ("fragment_sent_" ++ idstr) (izero :: Init (Stored Uint8))
-    buf <- stateInit ("fragment_buf_" ++ idstr) (izero :: Init (Array len (Stored Uint8)))
-
-    -- Note: i am sorry we have to put this check on an unrelated state, but
-    -- haskell
-    let rep = packRep
-    aborting <- if packSize rep /= arrayLen buf
-       then fail $ "wrong buffer size " ++ show (arrayLen buf)
-                 ++ " given for CAN ID " ++ idstr ++ ": should be "
-                 ++ show (packSize rep)
-       else state ("fragment_aborting_" ++ idstr)
+    buf <- stateInit ("fragment_buf_" ++ idstr) (izerolen bound)
+    aborting <- state ("fragment_aborting_" ++ idstr)
 
     let sendFragment idx = do
           let remaining_len = arrayLen buf - 8 * idx
@@ -89,17 +122,15 @@ fragmentSender baseID ide tx Proxy = do
 -- | Like fragmentSender, but provides no feedback about the success or
 -- failure of the transmission. Useful when the caller doesn't need to
 -- know whether the message made it onto the bus.
-fragmentSenderBlind :: (ANat len, IvoryArea a, IvoryZero a, Packable a)
+fragmentSenderBlind :: (IvoryArea a, IvoryZero a)
                     => ChanOutput a
-                    -> Int
-                    -> Bool
+                    -> MessageType a
                     -> CANTransmitAPI
-                    -> Proxy len
                     -> Tower e ()
-fragmentSenderBlind src baseID ide tx len = do
-  (fragReq, fragAbort, fragDone) <- fragmentSender baseID ide tx len
+fragmentSenderBlind src mt tx = do
+  (fragReq, fragAbort, fragDone) <- fragmentSender mt tx
 
-  let idstr = "0x" ++ showHex baseID ""
+  let idstr = "0x" ++ showHex (fragmentBaseID mt) ""
   monitor ("fragment_blindly_" ++ idstr) $ do
     msg <- state ("msg_" ++ idstr)
     in_progress <- state ("in_progress_" ++ idstr)
@@ -121,3 +152,72 @@ fragmentSenderBlind src baseID ide tx len = do
           emit toFrag $ constRef msg
           store abort_pending false
         store in_progress was_aborting
+
+data FragmentReceiveHandler = forall a. (IvoryArea a, IvoryZero a) => FragmentReceiveHandler
+  { fragmentReceiveChannel :: ChanInput a
+  , fragmentReceiveType :: MessageType a
+  }
+
+-- | Associate reassembled messages of the given type with the given
+-- channel.
+fragmentReceiveHandler :: (IvoryArea a, IvoryZero a)
+                       => ChanInput a
+                       -> MessageType a
+                       -> FragmentReceiveHandler
+fragmentReceiveHandler chan mt = FragmentReceiveHandler
+  { fragmentReceiveChannel = chan
+  , fragmentReceiveType = mt
+  }
+
+data GeneratedHandler = GeneratedHandler
+  { generatedBaseID :: Int
+  , generatedHandler :: forall s s'. Uint8 -> ConstRef s (Struct "can_receive_result") -> Ivory (AllocEffects s') ()
+  }
+
+-- | Attach all of the given 'FragmentReceiveHandler's to this stream
+-- of incoming CAN messages, reassembling fragments appropriately.
+fragmentReceiver :: ChanOutput (Struct "can_receive_result")
+                 -> [FragmentReceiveHandler]
+                 -> Tower e ()
+fragmentReceiver src handlers = do
+  monitor "fragment_reassembly" $ do
+    emitters <- forM handlers $ \ (FragmentReceiveHandler chan (MessageType baseID ide bound rep)) -> do
+      let idstr = "0x" ++ showHex baseID ""
+      next_idx <- stateInit ("reassembly_next_idx_" ++ idstr) (izero :: Init (Stored Uint8))
+      buf <- stateInit ("reassembly_buf_" ++ idstr) (izerolen bound)
+
+      let last_fragment_idx = fromInteger $ (arrayLen buf - 1) `div` 8
+      let last_fragment_length = fromInteger $ arrayLen buf `mod` 8
+
+      return $ do
+        e <- emitter chan 1
+        return $ (if ide then Left else Right) $ GeneratedHandler
+          { generatedBaseID = baseID
+          , generatedHandler = \ idx msg -> do
+              expected_idx <- deref next_idx
+              let is_retransmit = idx + 1 ==? expected_idx
+              let is_not_mine = idx >? last_fragment_idx
+              unless (is_retransmit .|| is_not_mine) $ do
+                len <- fmap fromIx $ deref $ msg ~> rx_len
+                let is_new_fragment = idx ==? 0
+                let is_expected_fragment = idx ==? expected_idx
+                let has_bad_idx = iNot (is_new_fragment .|| is_expected_fragment)
+                let expected_length = (idx ==? last_fragment_idx) ? (last_fragment_length, 8)
+                let has_bad_length = len /=? expected_length
+                let discard = store next_idx 0
+                ifte_ (has_bad_idx .|| has_bad_length) discard $ do
+                  arrayCopy buf (msg ~> rx_buf) (safeCast idx * 8) len
+                  ifte_ (idx <? last_fragment_idx) (store next_idx $ idx + 1) $ do
+                    assembled <- local izero
+                    unpackFrom' rep (constRef buf) 0 assembled
+                    emit e $ constRef assembled
+          }
+
+    handler src "receive_msg" $ do
+      (ext, std) <- fmap partitionEithers $ sequence emitters
+      callback $ \ msg -> do
+        msgID <- deref $ msg ~> rx_id
+        let one (GeneratedHandler baseID f) = (msgID >=? fromIntegral baseID) ==> f (castDefault $ msgID - fromIntegral baseID) msg
+        let handle = cond_ . map one . sortBy (flip $ comparing generatedBaseID)
+        ide <- deref $ msg ~> rx_ide
+        ifte_ ide (handle ext) (handle std)
