@@ -1,6 +1,10 @@
 
+# Need to use absolute paths so that the IVORY_REPO may be exported for a
+# recursive Makefile call
 
-IVORY_REPO ?= ../../../ivory
+CURRENT_DIR := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
+
+IVORY_REPO ?= $(CURRENT_DIR)/../../../ivory
 GIDL_REPO ?= ../../../gidl
 
 default: smaccm-comm-schema-native
@@ -29,7 +33,7 @@ smaccm-comm-schema-native-test: smaccm-comm-schema-native
 	make -C smaccm-comm-schema-native test
 
 smaccm-comm-schema-ivory-test: smaccm-comm-schema-ivory
-	IVORY_REPO=../$(IVORY_REPO) make -C smaccm-comm-schema-ivory create-sandbox
+	IVORY_REPO=$(IVORY_REPO) make -C smaccm-comm-schema-ivory create-sandbox
 	make -C smaccm-comm-schema-ivory
 	make -C smaccm-comm-schema-ivory test
 
