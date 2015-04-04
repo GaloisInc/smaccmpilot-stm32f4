@@ -16,9 +16,21 @@ library
                        bytestring,
                        cereal,
                        pipes,
+                       QuickCheck,
                        smaccm-commsec,
                        smaccm-datalink,
                        smaccm-comm-schema-native
   hs-source-dirs:      src
   default-language:    Haskell2010
   ghc-options:         -Wall
+
+executable             smaccm-comm-client-test
+  main-is:             CommClient.hs
+  hs-source-dirs:      tests
+  build-depends:       base >= 4.6,
+                       smaccm-datalink,
+                       smaccm-comm-client
+
+  default-language:    Haskell2010
+  ghc-options:         -Wall
+

@@ -1,3 +1,4 @@
+{-# LANGUAGE MultiWayIf #-}
 
 module SMACCMPilot.Comm.Native.Client where
 
@@ -7,6 +8,8 @@ import Data.Serialize
 import Pipes
 import Control.Monad
 import Control.Concurrent (threadDelay)
+
+import Test.QuickCheck
 
 import SMACCMPilot.Datalink.Client.Async
 import SMACCMPilot.Datalink.Client.Opts
@@ -37,24 +40,28 @@ commClient opts = do
         >-> frameLog
         >-> untagger 0
         >-> msgDeserialize
+        >-> showLog
         >-> pushConsumer in_msg_push
 
   a <- asyncRunEffect console "serial out"
            $ popProducer out_msg_pop
          >-> msgSerialize
-         >-> msgPackFrame
          >-> tagger 0
          >-> frameLog
          >-> hxEncoder
          >-> pushConsumer ser_out_push
 
-  -- XXX do something to produce output to out_msg_push
+  _ <- asyncRunEffect console "message generator"
+          $ randomMessage 1000
+        >-> showLog
+        >-> pushConsumer out_msg_push
+
   -- XXX do something to consume input from in_msg_pop
 
   void $ forever $ do
     threadDelay 10000
     o <- getConsoleOutput console
-    putStrLn o
+    when (o /= "") (putStrLn o)
   -- Unreachable - prevents exception that serial in and serial out
   -- are blocked forever
   wait a
@@ -66,27 +73,33 @@ msgDeserialize = forever $ do
   process ser
   where
   process ser = case runGetState get ser 0 of
-    Left e -> error "XXX if contents of ser were nonzero LOG TO THE CONSOLE"
-    Right (r, rest) -> do yield r
-                          unless (B.null rest) $ process rest
+    Left e -> lift $ writeLog ("deserialize error: " ++ e)
+    Right (r, rest) -> do
+      yield r
+      unless (B.null rest || B.all (== (toEnum 0)) rest) $ process rest
 
 msgSerialize :: Pipe ControllableVehicleProducer ByteString GW ()
 msgSerialize = forever $ do
   msg <- await
   yield (runPut (put msg))
 
+
+randomMessage :: (Arbitrary a) => Int -> Producer a GW ()
+randomMessage delay = forever $ do
+  m <- liftIO (generate arbitrary)
+  yield m
+  liftIO $ threadDelay (delay * 1000)
+
 msgPackFrame :: Pipe ByteString ByteString GW ()
-msgPackFrame = collect B.empty max_len
+msgPackFrame = aux B.empty max_len
   where
   max_len = fromIntegral plaintextSize
-  collect ms len_rem = do
+  aux ms len_rem = do
     m <- await
     let l = B.length m
-    if l < len_rem
-       then collect (B.append ms m) (len_rem - l)
-       else if l > max_len
-               then error "XXX HANDLE THIS CASE" >>
-                    collect ms len_rem
-               else yield ms >>
-                    collect m (len_rem - l)
-
+    if | l < len_rem -> aux (B.append ms m) (len_rem - l)
+       | l > max_len -> do lift (writeErr e)
+                           aux ms len_rem
+       | otherwise -> do yield ms
+                         aux m (len_rem - l)
+  e = "Discarded input to msgPackFrame which was larger than frame size"
