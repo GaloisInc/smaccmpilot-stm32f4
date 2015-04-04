@@ -13,6 +13,7 @@ default: smaccm-comm-schema-ivory
 test: smaccm-comm-schema-native-test
 test: smaccm-comm-schema-ivory-test
 
+.PHONY: smaccm-comm-schema-native
 smaccm-comm-schema-native:
 	cabal exec gidl -- -b haskell \
 		-i smaccm-comm-schema.idl \
@@ -20,6 +21,7 @@ smaccm-comm-schema-native:
 		-p smaccm-comm-schema-native \
 		-n SMACCMPilot.Comm.Native
 
+.PHONY: smaccm-comm-schema-ivory
 smaccm-comm-schema-ivory:
 	cabal exec gidl -- -b ivory \
 		-i smaccm-comm-schema.idl \
