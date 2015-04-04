@@ -9,6 +9,8 @@ before_install:
   - export TOWER_REPO=$PWD/tower
   - git clone https://github.com/galoisinc/ivory-tower-stm32
   - export BSP_REPO=$PWD/ivory-tower-stm32
+  - git clone https://github.com/galoisinc/gidl
+  - export GIDL_REPO=$PWD/gidl
 install:
   - cabal install cabal-install
   - cabal install alex
@@ -17,14 +19,16 @@ script:
   - ghc --version
   - cabal --version
   - arm-none-eabi-gcc --version
-  - IVORY_REPO=$IVORY_REPO TOWER_REPO=$TOWER_REPO BSP_REPO=$BSP_REPO make $ENV_TEST_TARGET
+  - IVORY_REPO=$IVORY_REPO TOWER_REPO=$TOWER_REPO BSP_REPO=$BSP_REPO GIDL_REPO=$GIDL_REPO make $ENV_TEST_TARGET
 ghc:
   - 7.8
 env:
   - ENV_TEST_TARGET=ivory-px4-hw
   - ENV_TEST_TARGET=ivory-geo
   - ENV_TEST_TARGET=smaccm-commsec
-  - ENV_TEST_TARGET=smaccm-mavlink
   - ENV_TEST_TARGET=smaccm-datalink
+  - ENV_TEST_TARGET=smaccm-comm-schema
+  - ENV_TEST_TARGET=smaccm-comm-client
+  - ENV_TEST_TARGET=smaccm-comm-server
   - ENV_TEST_TARGET=smaccm-ins
   - ENV_TEST_TARGET=smaccm-params

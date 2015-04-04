@@ -56,7 +56,6 @@ create-sandbox:
 	cabal sandbox add-source ../smaccm-fragment
 	cabal sandbox add-source ../smaccm-commsec
 	cabal sandbox add-source ../smaccm-datalink
-	cabal sandbox add-source ../smaccm-mavlink
 	cabal sandbox add-source ../ivory-px4-hw
 	cabal install --dependencies-only
 

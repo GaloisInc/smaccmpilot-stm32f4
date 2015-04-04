@@ -1,0 +1,33 @@
+
+(def-newtype time_micros_t sint64_t)
+
+(def-enum mode_t
+ ((stabilize 0)
+  (auto 1)))
+
+(def-enum armed_t 8
+ ((disarmed 0)
+  (armed 1)))
+
+(def-struct heartbeat_t
+ ((time time_micros_t)
+  (armed armed_t)))
+
+(def-newtype lat_t sint32_t)
+(def-newtype lon_t sint32_t)
+
+(def-newtype meters_t float_t)
+
+(def-struct waypoint_t
+ ((lat lat_t)
+  (lon lon_t)
+  (alt meters_t)))
+
+(def-interface vehicle_i
+ ((heartbeat (stream 10 heartbeat_t))))
+
+(def-interface controllable_vehicle_i
+  ((current_waypoint (attr read      waypoint_t))
+   (next_waypoint    (attr readwrite waypoint_t)))
+  (vehicle_i)) -- Inherits from interface vehicle
+

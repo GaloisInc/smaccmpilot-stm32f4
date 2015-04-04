@@ -20,7 +20,7 @@ class Barometer(object):
     def __init__(self, binary):
         self.binary = binary
         try:
-            (ifail, sfail, pres, temp, t) = struct.unpack("<BBffQ", binary)
+            (ifail, sfail, pres, temp, t) = struct.unpack("!BBffQ", binary)
             self.ifail = ifail
             self.sfail = sfail
             self.pres  = pres
@@ -39,7 +39,7 @@ class Mag(object):
     def __init__(self, binary):
         self.binary = binary
         try:
-            (ifail, sfail, x, y, z, t) = struct.unpack("<BBfffQ", binary)
+            (ifail, sfail, x, y, z, t) = struct.unpack("!BBfffQ", binary)
             self.ifail = ifail
             self.sfail = sfail
             self.x     = x
@@ -60,7 +60,7 @@ class Accel(object):
     def __init__(self, binary):
         self.binary = binary
         try:
-            (ifail, sfail, x, y, z, temp, t) = struct.unpack("<BBffffQ", binary)
+            (ifail, sfail, x, y, z, temp, t) = struct.unpack("!BBffffQ", binary)
             self.ifail = ifail
             self.sfail = sfail
             self.x     = x
@@ -81,7 +81,7 @@ class Fusion(object):
     def __init__(self, binary):
         self.binary = binary
         try:
-            fields = struct.unpack("<22f", binary)
+            fields = struct.unpack("!22f", binary)
             self.orient = fields[0:4]
             self.vel = fields[4:7]
             self.pos = fields[7:10]
@@ -104,7 +104,7 @@ class Gyro(object):
     def __init__(self, binary):
         self.binary = binary
         try:
-            (ifail, sfail, x, y, z, temp, t) = struct.unpack("<BBffffQ", binary)
+            (ifail, sfail, x, y, z, temp, t) = struct.unpack("!BBffffQ", binary)
             self.ifail = ifail
             self.sfail = sfail
             self.x     = x
@@ -125,9 +125,9 @@ class Position(object):
     def __init__(self, binary):
         self.binary = binary
         try:
-          ##  (ifail, sfail, x, y, z, t) = struct.unpack("<BBhhhQ", binary)
+          ##  (ifail, sfail, x, y, z, t) = struct.unpack("!BBhhhQ", binary)
             (fix, num_sv, dop, lat, lon, alt, vnorth, veast, vdown, vground, heading, t) = \
-                    struct.unpack("<BBfllllllLfQ", binary)
+                    struct.unpack("!BBfllllllLfQ", binary)
             self.fix        = fix
             self.num_sv     = num_sv
             self.dop        = dop
@@ -154,7 +154,7 @@ class PPM(object):
         self.binary = binary
         try:
             (c1, c2, c3, c4, c5, c6, c7, c8) = \
-                    struct.unpack("<HHHHHHHH", binary)
+                    struct.unpack("!HHHHHHHH", binary)
             self.c1 = c1
             self.c2 = c2
             self.c3 = c3

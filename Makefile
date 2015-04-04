@@ -4,7 +4,6 @@ all: ivory-px4-hw
 all: ivory-geo
 all: smaccm-commsec
 all: smaccm-datalink
-all: smaccm-mavlink
 all: smaccm-ins
 
 .PHONY: ivory-px4-hw
@@ -31,10 +30,22 @@ smaccm-datalink:
 	make -C src/smaccm-datalink
 	make -C src/smaccm-datalink test
 
-.PHONY: smaccm-mavlink
-smaccm-mavlink:
-	make -C src/smaccm-mavlink create-sandbox
-	make -C src/smaccm-mavlink
+.PHONY: smaccm-comm-schema
+smaccm-comm-schema:
+	make -C src/smaccm-comm-schema create-sandbox
+	make -C src/smaccm-comm-schema
+	make -C src/smaccm-comm-schema test
+
+.PHONY: smaccm-comm-client
+smaccm-comm-client:
+	make -C src/smaccm-comm-client create-sandbox
+	make -C src/smaccm-comm-client
+
+.PHONY: smaccm-comm-server
+smaccm-comm-server:
+	make -C src/smaccm-comm-server create-sandbox
+	make -C src/smaccm-comm-server
+	make -C src/smaccm-comm-server test
 
 .PHONY: smaccm-ins
 smaccm-ins:
