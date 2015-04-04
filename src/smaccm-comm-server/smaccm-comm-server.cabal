@@ -15,8 +15,10 @@ library
                        SMACCMPilot.Comm.Ivory.Server.TestApp
   build-depends:       base >= 4.6,
                        ivory,
+                       ivory-stdlib,
                        ivory-serialize,
                        tower,
+                       ivory-bsp-stm32,
                        ivory-px4-hw,
                        smaccm-commsec,
                        smaccm-datalink,
