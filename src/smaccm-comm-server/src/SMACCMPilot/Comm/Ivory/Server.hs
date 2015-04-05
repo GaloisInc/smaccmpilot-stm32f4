@@ -2,12 +2,13 @@
 
 module SMACCMPilot.Comm.Ivory.Server where
 
+import Control.Monad (void)
 import Ivory.Language
 import Ivory.Stdlib
 import Ivory.Tower
 import Ivory.Serialize
 import SMACCMPilot.Comm.Ivory.Types
-import SMACCMPilot.Comm.Ivory.Interface.ControllableVehicle
+import SMACCMPilot.Comm.Ivory.Interface.ControllableVehicle.Producer
 
 controllableVehicleProducerInput :: (ANat n)
                                  => ChanOutput (Array n (Stored Uint8))
@@ -26,11 +27,11 @@ controllableVehicleProducerInput frame_ch = do
       hb_e <- emitter (fst heartbeat)  1
       callback $ \f -> do
         offs <- local izero
-        controllableVehicleProducerParser
-          [ CurrentWaypointValProducerHandler (emit cw_e)
-          , NextWaypointValProducerHandler    (emit nw_e)
-          , HeartbeatProducerHandler          (emit hb_e)]
-          f offs
+        void $ controllableVehicleProducerParser f offs $ ControllableVehicleProducer
+          { currentWaypointValProducer = \v -> emit cw_e v >> return true
+          , nextWaypointValProducer    = \v -> emit nw_e v >> return true
+          , heartbeatProducer          = \v -> emit hb_e v >> return true
+          }
 
   return (snd curr_waypt, snd next_waypt, snd heartbeat)
 
@@ -51,7 +52,7 @@ controllableVehicleProducerOutput curr_waypt next_waypt heartbeat = do
         f    <- local izero
         offs <- local izero
         let sender = controllableVehicleProducerSender f offs
-        ok <- currentWaypointValProducerSender sender w
+        ok <- currentWaypointValProducer sender w
         when ok $ emit e (constRef f)
 
     handler next_waypt "next_waypt" $ do
@@ -60,7 +61,7 @@ controllableVehicleProducerOutput curr_waypt next_waypt heartbeat = do
         f    <- local izero
         offs <- local izero
         let sender = controllableVehicleProducerSender f offs
-        ok <- nextWaypointValProducerSender sender w
+        ok <- nextWaypointValProducer sender w
         when ok $ emit e (constRef f)
 
     handler heartbeat "heartbeat" $ do
@@ -69,7 +70,7 @@ controllableVehicleProducerOutput curr_waypt next_waypt heartbeat = do
         f    <- local izero
         offs <- local izero
         let sender = controllableVehicleProducerSender f offs
-        ok <- heartbeatProducerSender sender w
+        ok <- heartbeatProducer sender w
         when ok $ emit e (constRef f)
 
   return (snd frame_ch)
