@@ -18,6 +18,7 @@ import Ivory.BSP.STM32.Driver.I2C
 import Ivory.BSP.STM32.Driver.SPI
 import Ivory.BSP.STM32.Driver.UART
 import Ivory.BSP.STM32.Driver.CAN
+import Ivory.BSP.STM32.Driver.CAN.Sched
 
 import SMACCM.Fragment
 
@@ -65,14 +66,20 @@ app topx4 = do
     Just can -> do
       (_, canReqMbox1, canReqMbox2, canReqMbox3) <- canTower tocc
             (can_periph can) 500000 (can_RX can) (can_TX can)
-      fragmentSenderBlind gyro_meas gyroType canReqMbox1
-      fragmentSenderBlind accel_meas accelType canReqMbox2
-      fragmentSenderBlind mag_meas magType canReqMbox3
-      {-
-      -- leaving these commented out until we have mailbox managment.
-      fragmentSenderBlind baro_meas baroType canReq
-      fragmentSenderBlind (snd position) gpsType canReq
-      -}
+      tasks <- sequence
+        [ do
+            (t, tx) <- canTask
+            go tx
+            return t
+        | go <-
+            [ fragmentSenderBlind gyro_meas gyroType
+            , fragmentSenderBlind accel_meas accelType
+            , fragmentSenderBlind mag_meas magType
+            , fragmentSenderBlind baro_meas baroType
+            , fragmentSenderBlind (snd position) gpsType
+            ]
+        ]
+      canScheduler [canReqMbox1, canReqMbox2, canReqMbox3] tasks
   serializeTowerDeps
 
 sensor_manager :: (e -> PX4Platform)
