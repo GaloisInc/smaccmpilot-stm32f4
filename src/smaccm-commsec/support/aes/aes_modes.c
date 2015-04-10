@@ -28,6 +28,7 @@ Issue Date: 20/12/2007
 #include <string.h>
 #include <assert.h>
 #include <stdint.h>
+#include <stdlib.h>
 
 #include "aesopt.h"
 
@@ -905,5 +906,4 @@ AES_RETURN aes_ctr_crypt(const unsigned char *ibuf, unsigned char *obuf,
 
 #if defined(__cplusplus)
 }
-#endif
 #endif

@@ -32,3 +32,49 @@ type CyphertextArray = Array 96 (Stored Uint8)
 cyphertextSize :: Integer
 cyphertextSize = fromTypeNat (aNat :: NatType 96)
 
+
+--------------------------------------------------------------------------------
+-- Key Exchange Constants
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- Must match gec-key.h! 2*(12+16) = 2*28 = 56
+type KeyMaterialIx = Ix 48
+type KeyMaterial = Array 48 (Stored Uint8)
+keyMaterialSize :: Integer
+keyMaterialSize = fromTypeNat (aNat :: NatType 48)
+
+type KeyAndSaltIx = Ix 24
+type KeyAndSaltArray = Array 24 (Stored Uint8)
+keyAndSaltSize :: Integer
+keyAndSaltSize = fromTypeNat (aNat :: NatType 24)
+
+type GecKeMessage1Ix = Ix 32
+type GecKeMessage1 = Array 32 (Stored Uint8)
+gecKeMessage1Size :: Integer
+gecKeMessage1Size = fromTypeNat (aNat :: NatType 32)
+
+type GecKeMessage2Ix = Ix 160
+type GecKeMessage2 = Array 160 (Stored Uint8)
+gecKeMessage2Size :: Integer
+gecKeMessage2Size = fromTypeNat (aNat :: NatType 160)
+
+type GecKeMessage3Ix = Ix 128
+type GecKeMessage3 = Array 128 (Stored Uint8)
+gecKeMessage3Size :: Integer
+gecKeMessage3Size = fromTypeNat (aNat :: NatType 128)
+
+type GecKeRandomDataIx = Ix 32
+type GecKeRandomData   = Array 32 (Stored Uint8)
+gecKeRandomDataSize :: Integer
+gecKeRandomDataSize = fromTypeNat (aNat :: NatType 32)
+
+type PublicKeyIx = Ix 32
+type PublicKey = Array 32 (Stored Uint8)
+publicKeySize :: Integer
+publicKeySize = fromTypeNat (aNat :: NatType 32)
+
+type PrivateKeyIx = Ix 32
+type PrivateKey = Array 32 (Stored Uint8)
+privateKeySize :: Integer
+privateKeySize = fromTypeNat (aNat :: NatType 32)

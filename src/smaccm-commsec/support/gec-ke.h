@@ -54,10 +54,10 @@ typedef enum {
 // Intermediate data structure containing information relating to the stage of
 // the STS protocol.
 
-typedef struct {
-    gec_pubkey myPublicKey;
-    gec_privkey myPrivateKey;
-    gec_pubkey theirPublicKey;
+struct gec_sts_ctx {
+    struct gec_pubkey myPublicKey;
+    struct gec_privkey myPrivateKey;
+    struct gec_pubkey theirPublicKey;
     uint8_t myPublicKey_ephemeral[EPHEMERAL_PUBLICKEY_LEN];
     uint8_t myPrivateKey_ephemeral[EPHEMERAL_PRIVATEKEY_LEN];
     uint8_t theirPublicKey_ephemeral[EPHEMERAL_PUBLICKEY_LEN];
@@ -66,27 +66,29 @@ typedef struct {
     uint8_t client_key_material[KEY_MATERIAL_LEN];
     stage_t protocol_stage;
     party_t party;
-} commsec_sts_ctx_t;
+};
+
+typedef struct gec_sts_ctx gec_sts_ctx_t;
 
 // Generate private and public key pairs for future use.
-void generate(uint8_t pk[PUBLICKEY_LEN], uint8_t sk[PRIVATEKEY_LEN], const uint8_t random_data[32]);
+void generate(struct gec_pubkey *pk, struct gec_privkey *sk, const uint8_t random_data[RANDOM_DATA_LEN]);
 
 // Populate a context with long-term keys for the current system (public and
 // private) and the public key of a communication partner.
-void init_context( commsec_sts_ctx_t *ctx
-                 , const struct gec_pubkey myPublicKey
-                 , const struct gec_privkey myPrivateKey
-                 , const struct gec_pubkey theirPublicKey);
+void init_context( gec_sts_ctx_t *ctx
+                 , const struct gec_pubkey *myPublicKey
+                 , const struct gec_privkey *myPrivateKey
+                 , const struct gec_pubkey *theirPublicKey);
 
 // Re-purpose the context for a new public key and set to READY_STAGE.
-void reset_partner(commsec_sts_ctx_t *ctx, const struct gec_pubkey theirPublicKey);
+void reset_partner(gec_sts_ctx_t *ctx, const struct gec_pubkey *theirPublicKey);
 
 // Zero the protocol stage.  This is like reset_patner(), but the current
 // parnter public key is retained.
-void reset_ctx(commsec_sts_ctx_t * ctx);
+void reset_ctx(gec_sts_ctx_t * ctx);
 
 // Zero all fields, including the long term public and private keys.
-void clear_ctx(commsec_sts_ctx_t * ctx);
+void clear_ctx(gec_sts_ctx_t * ctx);
 
 /******************************************************************************/
 /************ Consume and produce messages 1-3 in the STS protocol ************/
@@ -94,7 +96,7 @@ void clear_ctx(commsec_sts_ctx_t * ctx);
 
 // Party A's step 1
 // 1) Generate a random ephemeral public and private key pair. (ctx ~ privA_e, msg1 ~ publicA_e)
-int initiate_sts(uint8_t msg1[MSG_1_LEN], commsec_sts_ctx_t *ctx, uint8_t random_data[GEC_PRIV_KEY_LEN]);
+int initiate_sts(uint8_t msg1[MSG_1_LEN], gec_sts_ctx_t *ctx, uint8_t random_data[GEC_PRIV_KEY_LEN]);
 
 // Party B's step 1
 // 2) Generate a random ephemeral public and private key pair.
@@ -102,7 +104,7 @@ int initiate_sts(uint8_t msg1[MSG_1_LEN], commsec_sts_ctx_t *ctx, uint8_t random
 //    Construct the response:      msg2 = E_k2( sign_privB(pubA_e, pubB_e) )
 int respond_sts( const uint8_t msg1[MSG_1_LEN]
                , uint8_t msg2[MSG_2_LEN]
-               , commsec_sts_ctx_t *ctx                               // Party 'B'
+               , gec_sts_ctx_t *ctx                               // Party 'B'
                , const uint8_t random_data[GEC_PRIV_KEY_LEN]);
 // Party A's step 2
 // 3) Compute the shared secrets.
@@ -111,19 +113,14 @@ int respond_sts( const uint8_t msg1[MSG_1_LEN]
 //    Set the key material:       key_material = k3
 int response_ack_sts( const uint8_t msg2[MSG_2_LEN]
                     , uint8_t msg3[MSG_3_LEN]
-                    , commsec_sts_ctx_t *ctx
+                    , gec_sts_ctx_t *ctx
                     , uint8_t key_material[KEY_MATERIAL_LEN]);         // Party 'A'
 
 // Party B's step 2
 // 4) Verify msg3:                verify_pubA(D_k1(msg3)) &&  open(D_k1(msg3)) == (pubB_e, pubA_e)
 //    Set the key material:       key_material = k3
 int finish_sts( const uint8_t msg3[MSG_3_LEN]                          // Party 'B'
-              , commsec_sts_ctx_t *ctx
+              , gec_sts_ctx_t *ctx
               , uint8_t key_material[KEY_MATERIAL_LEN]);
 
-void consume_key_material( const uint8_t material[KEY_MATERIAL_LEN]
-                         , uint8_t key1[COMMSEC_KEY_LEN]
-                         , uint8_t key2[COMMSEC_KEY_LEN]
-                         , uint8_t salt1[GEC_SALT_LEN]
-                         , uint8_t salt2[GEC_SALT_LEN]);
 #endif /* _COMMSECKE_H */

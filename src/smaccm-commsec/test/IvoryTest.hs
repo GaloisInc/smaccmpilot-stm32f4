@@ -18,26 +18,26 @@ main = compile [ m ] as
      ++ [ artifactString "Makefile" makefile ]
 
 trivial_key :: KeySalt
-trivial_key = KeySalt { ks_key = take 16 [1..], ks_salt = 0xdeadbeef }
+trivial_key = KeySalt { ks_keysalt = take 24 [1..] }
 
 m :: Module
 m = package "main" $ do
   incl main_proc
-  commsec_encode_moddef ce
-  commsec_decode_moddef cd
+  gec_encode_moddef ce
+  gec_decode_moddef cd
   where
-  ce = commsecEncode trivial_key "etest"
-  cd = commsecDecode trivial_key "dtest"
+  ce = gecEncode trivial_key "etest"
+  cd = gecDecode trivial_key "dtest"
   main_proc :: Def('[Sint32, Ref s (Stored (Ref s (Stored IChar)))]:->Sint32)
   main_proc = proc "main" $ \ _ _ -> body $ do
-    commsec_encode_init ce
+    gec_encode_init ce
     pt <- local (iarray (map (ival . fromIntegral) [0::Int,1..]))
     ct <- local (iarray [])
-    e_err <- commsec_encode_run ce (constRef pt) ct
+    e_err <- gec_encode_run ce (constRef pt) ct
     when (e_err /=? success) (ret 1)
-    commsec_decode_init cd
+    gec_decode_init cd
     pt' <- local (iarray [])
-    d_err <- commsec_decode_run cd (constRef ct) pt'
+    d_err <- gec_decode_run cd (constRef ct) pt'
     when (d_err /=? success) (ret 2)
     arrayMap $ \ix -> do
       p <- deref (pt ! ix)
@@ -50,7 +50,11 @@ objects =
   [ "aescrypt.o"
   , "aeskey.o"
   , "aestab.o"
-  , "commsec.o"
+  , "aes_modes.o"
+  , "gec.o"
+  , "gec-ke.o"
+  , "ed25519.o"
+  , "curve25519-donna.o"
   , "gcm.o"
   , "gf128mul.o"
   , "gf_convert.o"
@@ -65,6 +69,8 @@ makefile = unlines
   , "  -std=gnu99 \\"
   , "  -Wno-parentheses \\"
   , "  -Wno-unused-variable \\"
+  , "  -Wno-unused-function \\" -- XXX only because ed25519_hash, which should be switched out.
+  , "  -DED25519_REFHASH \\"
   , "  -DIVORY_TEST -I."
   , ""
   , "OBJDIR := obj"
@@ -96,6 +102,7 @@ xc_makefile = unlines
   , "  -std=gnu99 \\"
   , "  -Wno-parentheses \\"
   , "  -Wno-unused-variable \\"
+  , "  -Wno-unused-function \\" -- XXX only because ed25519_hash, which should be switched out.
   , "  -mlittle-endian \\"
   , "  -mthumb -mcpu=cortex-m4 \\"
   , "  -mfloat-abi=hard -mfpu=fpv4-sp-d16 \\"

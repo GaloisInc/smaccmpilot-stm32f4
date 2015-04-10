@@ -16,29 +16,29 @@
 #include "gec-ke.h"
 #include "gec.h"
 
-void clear_ctx(commsec_sts_ctx_t * ctx)
+void clear_ctx(gec_sts_ctx_t * ctx)
 {
-     memset(ctx->theirKCK, 0, GEC_RAW_KEY_LEN);
-     memset(ctx->myKCK, 0, GEC_RAW_KEY_LEN);
+     memset(&ctx->theirKCK, 0, GEC_RAW_KEY_LEN);
+     memset(&ctx->myKCK, 0, GEC_RAW_KEY_LEN);
      memset(ctx->client_key_material, 0, KEY_MATERIAL_LEN);
-     memset(ctx->myPrivateKey_ephemeral, 0, EPHEMERAL_PRIVATEKEY_LEN);
-     memset(ctx->myPublicKey_ephemeral, 0, EPHEMERAL_PUBLICKEY_LEN);
-     memset(ctx->theirPublicKey_ephemeral, 0, EPHEMERAL_PUBLICKEY_LEN);
-     memset(ctx->theirPublicKey, 0, PUBLICKEY_LEN);
-     memset(ctx->myPublicKey, 0, PUBLICKEY_LEN);
-     memset(ctx->myPrivateKey, 0, PRIVATEKEY_LEN);
+     memset(&ctx->myPrivateKey_ephemeral, 0, EPHEMERAL_PRIVATEKEY_LEN);
+     memset(&ctx->myPublicKey_ephemeral, 0, EPHEMERAL_PUBLICKEY_LEN);
+     memset(&ctx->theirPublicKey_ephemeral, 0, EPHEMERAL_PUBLICKEY_LEN);
+     memset(&ctx->theirPublicKey, 0, PUBLICKEY_LEN);
+     memset(&ctx->myPublicKey, 0, PUBLICKEY_LEN);
+     memset(&ctx->myPrivateKey, 0, PRIVATEKEY_LEN);
      ctx->protocol_stage = INVALID_STAGE;
      ctx->party = INVALID_PARTY;
 }
 
-void reset_ctx(commsec_sts_ctx_t * ctx)
+void reset_ctx(gec_sts_ctx_t * ctx)
 {
-     memset(ctx->theirKCK, 0, GEC_RAW_KEY_LEN);
-     memset(ctx->myKCK, 0, GEC_RAW_KEY_LEN);
+     memset(&ctx->theirKCK, 0, GEC_RAW_KEY_LEN);
+     memset(&ctx->myKCK, 0, GEC_RAW_KEY_LEN);
      memset(ctx->client_key_material, 0, KEY_MATERIAL_LEN);
-     memset(ctx->myPrivateKey_ephemeral, 0, EPHEMERAL_PRIVATEKEY_LEN);
-     memset(ctx->myPublicKey_ephemeral, 0, EPHEMERAL_PUBLICKEY_LEN);
-     memset(ctx->theirPublicKey_ephemeral, 0, EPHEMERAL_PUBLICKEY_LEN);
+     memset(&ctx->myPrivateKey_ephemeral, 0, EPHEMERAL_PRIVATEKEY_LEN);
+     memset(&ctx->myPublicKey_ephemeral, 0, EPHEMERAL_PUBLICKEY_LEN);
+     memset(&ctx->theirPublicKey_ephemeral, 0, EPHEMERAL_PUBLICKEY_LEN);
      ctx->protocol_stage = READY_STAGE;
      ctx->party = INVALID_PARTY;
 }
@@ -62,7 +62,7 @@ static void kdf( uint8_t *result
 {
     uint16_t count;
     uint32_t bytes_remaining = result_size;
-    const uint32_t HASH_INPUT_LEN = sizeof(count) + GEC_SECRET_BYTES_LEN + sizeof(party_byte)
+    const uint32_t HASH_INPUT_LEN = sizeof(count) + GEC_SECRET_BYTES_LEN + sizeof(party_byte);
     uint8_t hash_input[HASH_INPUT_LEN];
     uint32_t nrReps = (result_size + GEC_HASH_LEN - 1) / GEC_HASH_LEN;
 
@@ -81,30 +81,30 @@ static void kdf( uint8_t *result
     }
 }
 
-static void derive_key_materials(commsec_sts_ctx_t *ctx, uint8_t secret[GEC_SECRET_BYTES_LEN])
+static void derive_key_materials(gec_sts_ctx_t *ctx, uint8_t secret[GEC_SECRET_BYTES_LEN])
 {
     uint8_t tmp[GEC_RAW_KEY_LEN];
 
 
     kdf(tmp, GEC_RAW_KEY_LEN, secret, ctx->party);
-    gec_init_sym_key_conf(ctx->myKCK, tmp);
+    gec_init_sym_key_conf(&ctx->myKCK, tmp);
     memset(tmp, 0, GEC_RAW_KEY_LEN);
     kdf(tmp, GEC_RAW_KEY_LEN, secret, THEIR_PARTY(ctx));
-    gec_init_sym_key_conf(ctx->theirKCK, tmp);
+    gec_init_sym_key_conf(&ctx->theirKCK, tmp);
     memset(tmp, 0, GEC_RAW_KEY_LEN);
     kdf(ctx->client_key_material, KEY_MATERIAL_LEN, secret, CLIENT);
 }
 
-static int verify(const commsec_sts_ctx_t *ctx, const uint8_t msg[AUTH_DATA_LEN])
+static int verify(gec_sts_ctx_t *ctx, const uint8_t msg[AUTH_DATA_LEN])
 {
     uint8_t plaintext[AUTH_DATA_LEN];
     uint8_t *sig = plaintext;
     uint8_t *signed_contents = plaintext + GEC_SIG_LEN; // of length GEC_SIGNED_MSG_LEN
-    unsigned long long unsiglen=0;
+    unsigned long long unsiglen=AUTH_DATA_LEN - GEC_SIG_LEN;
     int sig_result=0, k_1_result=0, k_2_result=0;
 
-    gec_decrypt_conf(ctx->theirKCK, plaintext, msg, sizeof(plaintext));
-    sig_result = gec_verify(ctx->theirPublicKey, signed_contents, sig);
+    gec_decrypt_conf(&ctx->theirKCK, msg, plaintext, sizeof(plaintext));
+    sig_result = gec_verify(&ctx->theirPublicKey, signed_contents, unsiglen, sig);
     k_1_result = byte_compare(signed_contents, ctx->theirPublicKey_ephemeral, EPHEMERAL_PUBLICKEY_LEN);
     k_2_result = byte_compare(signed_contents + EPHEMERAL_PUBLICKEY_LEN, ctx->myPublicKey_ephemeral, EPHEMERAL_PUBLICKEY_LEN);
     return (unsiglen != (EPHEMERAL_PUBLICKEY_LEN*2) || sig_result || k_1_result || k_2_result);
@@ -112,31 +112,31 @@ static int verify(const commsec_sts_ctx_t *ctx, const uint8_t msg[AUTH_DATA_LEN]
 
 // Generate private and public key pairs for future use.
 // The first 32 bytes of 'sk' must be random values!
-void generate(struct gec_pubkey pk, struct gec_privkey sk, const uint8_t random_data[RANDOM_DATA_LEN])
+void generate(struct gec_pubkey *pk, struct gec_privkey *sk, const uint8_t random_data[RANDOM_DATA_LEN])
 {
     memcpy(sk->priv,random_data,RANDOM_DATA_LEN);
     gec_generate_sign_keypair(sk,pk);
 }
 
 // Contexts are populated with long-term keys for the current system (public and private).
-void init_context( commsec_sts_ctx_t *ctx
-                 , const struct gec_pubkey myPublicKey
-                 , const struct gec_privkey myPrivateKey
-                 , const struct gec_pubkey theirPublicKey)
+void init_context( gec_sts_ctx_t *ctx
+                 , const struct gec_pubkey *myPublicKey
+                 , const struct gec_privkey *myPrivateKey
+                 , const struct gec_pubkey *theirPublicKey)
 {
     ctx->protocol_stage = READY_STAGE;
     ctx->party = INVALID_PARTY;
-    memcpy(ctx->myPublicKey, myPublicKey, sizeof(struct gec_pubkey));
-    memcpy(ctx->myPrivateKey, myPrivateKey, sizeof(struct gec_privkey));
-    memcpy(ctx->theirPublicKey, theirPublicKey, sizeof(struct gec_pubkey));
+    memcpy(&ctx->myPublicKey, myPublicKey, sizeof(struct gec_pubkey));
+    memcpy(&ctx->myPrivateKey, myPrivateKey, sizeof(struct gec_privkey));
+    memcpy(&ctx->theirPublicKey, theirPublicKey, sizeof(struct gec_pubkey));
 }
 
 // Reset the context and set a new partner public key.
 //
 // Context is useful only when given the public keys for the ONE anticipated communication partner.
-void reset_partner(commsec_sts_ctx_t *ctx, const struct gec_pubkey theirPublicKey[PUBLICKEY_LEN])
+void reset_partner(gec_sts_ctx_t *ctx, const struct gec_pubkey *theirPublicKey)
 {
-    memcpy(ctx->theirPublicKey, theirPublicKey, sizeof(struct gec_pubkey));
+    memcpy(&ctx->theirPublicKey, theirPublicKey, sizeof(struct gec_pubkey));
     reset_ctx(ctx);
 }
 
@@ -146,7 +146,7 @@ void reset_partner(commsec_sts_ctx_t *ctx, const struct gec_pubkey theirPublicKe
 
 // Party A's step 1
 // 1) Generate a random ephemeral public and private key pair. (ctx ~ privA_e, msg1 ~ publicA_e)
-int initiate_sts(uint8_t msg1[MSG_1_LEN], commsec_sts_ctx_t *ctx, uint8_t random_data[RANDOM_DATA_LEN])      // Party 'A'
+int initiate_sts(uint8_t msg1[MSG_1_LEN], gec_sts_ctx_t *ctx, uint8_t random_data[RANDOM_DATA_LEN])      // Party 'A'
 {
     int ret = -1;
     if(READY_STAGE == ctx->protocol_stage) {
@@ -168,7 +168,7 @@ int initiate_sts(uint8_t msg1[MSG_1_LEN], commsec_sts_ctx_t *ctx, uint8_t random
 //    Construct the response:      msg2 = pubB_e || E_k1( sign_privB(pubA_e, pubB_e), pubA_e, pubB_e )
 int respond_sts( const uint8_t msg1[MSG_1_LEN]
                , uint8_t msg2[MSG_2_LEN]
-               , commsec_sts_ctx_t *ctx                               // Party 'B'
+               , gec_sts_ctx_t *ctx                               // Party 'B'
                , const uint8_t random_data[RANDOM_DATA_LEN])
 {
     uint8_t unsigned_data[2 * EPHEMERAL_PUBLICKEY_LEN];
@@ -179,12 +179,13 @@ int respond_sts( const uint8_t msg1[MSG_1_LEN]
     int ret = -1;
 
     if(READY_STAGE == ctx->protocol_stage) {
+        uint8_t sig[GEC_SIG_LEN];
         ctx->party = RESPONDER;
 
         // Generate ephemeral keys and populate CTX
         memcpy(ctx->myPrivateKey_ephemeral, random_data, RANDOM_DATA_LEN);
         gec_generate_ephemeral_keypair( ctx->myPrivateKey_ephemeral
-                                      , ctx->myPublicKey_ephemeral);l
+                                      , ctx->myPublicKey_ephemeral);
         memcpy(ctx->theirPublicKey_ephemeral, msg1, EPHEMERAL_PUBLICKEY_LEN);
 
         // Derive shared secret KDF( ECDH(Priv_B,PubA_E) )
@@ -194,14 +195,14 @@ int respond_sts( const uint8_t msg1[MSG_1_LEN]
         // Construct response [ PubB | E_k1 ( Sign_PubB ( PubB_E | PubA_E ), pubB_E, pubA_E ) ]
         memcpy(unsigned_data, ctx->myPublicKey_ephemeral, EPHEMERAL_PUBLICKEY_LEN);
         memcpy(unsigned_data + EPHEMERAL_PUBLICKEY_LEN, ctx->theirPublicKey_ephemeral, EPHEMERAL_PUBLICKEY_LEN);
-        gec_sign(ctx->myPrivateKey, unsigned_data, sig);
+        gec_sign(&ctx->myPrivateKey, unsigned_data, sizeof(unsigned_data), sig);
 
 
         memcpy(msg2, ctx->myPublicKey_ephemeral, EPHEMERAL_PUBLICKEY_LEN);
 
         memcpy(concatKeysSig, sig, GEC_SIG_LEN);
-        memcpy(concatKeysSig+GEC_SIG_LEN, unsigned_data, 2*EPHEMERAL_PUBKEY_LEN);
-        gec_encrypt_conf(ctx->myKCK, msg2 + EPHEMERAL_PUBLICKEY_LEN, concatKeysSig, 2*EPHEMERAL_PUBLICKEY_LEN + GEC_SIG_LEN);
+        memcpy(concatKeysSig+GEC_SIG_LEN, unsigned_data, 2*EPHEMERAL_PUBLICKEY_LEN);
+        gec_encrypt_conf(&ctx->myKCK, msg2 + EPHEMERAL_PUBLICKEY_LEN, concatKeysSig, 2*EPHEMERAL_PUBLICKEY_LEN + GEC_SIG_LEN);
 
         ctx->protocol_stage = MESSAGE_2_DONE;
         ret = 0;
@@ -216,7 +217,7 @@ int respond_sts( const uint8_t msg1[MSG_1_LEN]
 //    Set the key material:       key_material = some part of kdf
 int response_ack_sts( const uint8_t msg2[MSG_2_LEN]
                     , uint8_t msg3[MSG_3_LEN]
-                    , commsec_sts_ctx_t *ctx
+                    , gec_sts_ctx_t *ctx
                     , uint8_t key_material[KEY_MATERIAL_LEN])         // Party 'A'
 {
     uint8_t z[GEC_SECRET_BYTES_LEN];
@@ -244,11 +245,11 @@ int response_ack_sts( const uint8_t msg2[MSG_2_LEN]
 
             memcpy(unsigned_data, ctx->myPublicKey_ephemeral, EPHEMERAL_PUBLICKEY_LEN);
             memcpy(unsigned_data + EPHEMERAL_PUBLICKEY_LEN, ctx->theirPublicKey_ephemeral, EPHEMERAL_PUBLICKEY_LEN);
-            gec_sign(ctx->myPrivateKey, unsigned_data, sig);
+            gec_sign(&ctx->myPrivateKey, unsigned_data, sizeof(unsigned_data), sig);
 
             memcpy(concatKeysSig, sig, GEC_SIG_LEN);
-            memcpy(concatKeysSig+GEC_SIG_LEN, unsigned_data, 2*EPHEMERAL_PUBKEY_LEN);
-            gec_encrypt_conf(ctx->myKCK, signed_data, msg3, 2*EPHEMERAL_PUBKEY_LEN + GEC_SIG_LEN);
+            memcpy(concatKeysSig+GEC_SIG_LEN, unsigned_data, 2*EPHEMERAL_PUBLICKEY_LEN);
+            gec_encrypt_conf(&ctx->myKCK, signed_data, msg3, 2*EPHEMERAL_PUBLICKEY_LEN + GEC_SIG_LEN);
 
             memcpy(key_material, ctx->client_key_material, KEY_MATERIAL_LEN);
             reset_ctx(ctx);
@@ -262,7 +263,7 @@ int response_ack_sts( const uint8_t msg2[MSG_2_LEN]
 // 4) Verify msg3:                verify_pubA(D_k1(msg3)) &&  open(D_k1(msg3)) == (pubB_e, pubA_e)
 //    Set the key material:       key_material = k2
 int finish_sts( const uint8_t msg3[MSG_3_LEN]                          // Party 'B'
-              , commsec_sts_ctx_t *ctx
+              , gec_sts_ctx_t *ctx
               , uint8_t key_material[KEY_MATERIAL_LEN])
 {
     int ret=-1;

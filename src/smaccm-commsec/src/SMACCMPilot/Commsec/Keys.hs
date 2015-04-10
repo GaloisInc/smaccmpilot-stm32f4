@@ -6,11 +6,12 @@ module SMACCMPilot.Commsec.Keys
   , client_decode_ks
   , server_encode_ks
   , server_decode_ks
-  , KeySalt(..)
+  , KeySalt(..), ks_key, ks_salt
   , symmetricKeyParser
   ) where
 
-import Data.Word
+import Data.Word (Word64, Word8)
+import Data.Bits (shiftL)
 import Ivory.Tower.Config
 
 data SymmetricKey = SymmetricKey
@@ -31,9 +32,15 @@ server_decode_ks :: SymmetricKey -> KeySalt
 server_decode_ks = c2s_ks
 
 data KeySalt = KeySalt
-  { ks_key  :: [Word8]  -- 16 uint8s
-  , ks_salt :: Word64   -- word64
+  { ks_keysalt :: [Word8]  -- 28 uint8s, first 16 == key, next 12 == salt
   } deriving (Eq, Show)
+
+ks_key :: KeySalt -> [Word8]
+ks_key = take 16 . ks_keysalt
+
+-- Convert the last 12 bytes into a big-endian integer
+ks_salt :: KeySalt -> Word64
+ks_salt = foldl (\a b -> fromIntegral b + (a `shiftL` 8)) 0 . drop 16 . ks_keysalt
 
 symmetricKeyParser :: ConfigParser SymmetricKey
 symmetricKeyParser = subsection "symmetric_key" $ do
@@ -41,10 +48,7 @@ symmetricKeyParser = subsection "symmetric_key" $ do
   c2s_ks <- subsection "client_to_server" ks
   return SymmetricKey { .. }
   where
-  ks = do
-    k <- subsection "key" (arrayLen 16 (boundedInteger 0 255))
-    s <- subsection "salt" (boundedInteger 0 ((2 ^ (32::Integer)) - 1))
-    return KeySalt { ks_key = k, ks_salt = s }
+  ks = KeySalt `fmap` subsection "keysalt" (arrayLen 24 (boundedInteger 0 255))
   arrayLen l e = do
     a <- array e
     if length a == l then return a

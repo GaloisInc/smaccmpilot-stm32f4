@@ -8,9 +8,11 @@ module SMACCMPilot.Commsec.Ivory.Import.Types where
 
 import Ivory.Language
 
+-- XXX Also see the Sizes.hs module for related values.
+
 [ivory|
-abstract struct commsec_encode "commsec.h"
-abstract struct commsec_decode "commsec.h"
+abstract struct gec_sym_key "gec.h"
+abstract struct gec_sts_ctx "gec_ke.h"
 |]
 
 type KeyArray = Array 16 (Stored Uint8)

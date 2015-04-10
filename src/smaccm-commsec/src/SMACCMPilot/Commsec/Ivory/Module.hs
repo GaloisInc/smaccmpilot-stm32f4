@@ -4,16 +4,16 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module SMACCMPilot.Commsec.Ivory.Module
-  ( commsecEncode
-  , CommsecEncode
-  , commsec_encode_init
-  , commsec_encode_run
-  , commsec_encode_moddef
-  , commsecDecode
-  , CommsecDecode
-  , commsec_decode_init
-  , commsec_decode_run
-  , commsec_decode_moddef
+  ( gecEncode
+  , GecEncode
+  , gec_encode_init
+  , gec_encode_run
+  , gec_encode_moddef
+  , gecDecode
+  , GecDecode
+  , gec_decode_init
+  , gec_decode_run
+  , gec_decode_moddef
   ) where
 
 import Ivory.Language
@@ -21,83 +21,80 @@ import SMACCMPilot.Commsec.Sizes
 import SMACCMPilot.Commsec.Keys
 import SMACCMPilot.Commsec.Ivory.Import
 import SMACCMPilot.Commsec.Ivory.Import.Types ()
-import SMACCMPilot.Commsec.Ivory.Error
 
-data CommsecEncode =
-  CommsecEncode
-    { commsec_encode_init   :: forall eff . Ivory eff ()
-    , commsec_encode_run    :: forall s1 s2 eff . ConstRef s1 PlaintextArray
-                                               -> Ref      s2 CyphertextArray
-                                               -> Ivory eff CommsecError
-    , commsec_encode_moddef :: ModuleDef
+data GecEncode =
+   GecEncode
+    { gec_encode_init       :: -- XXX static keys still forall s1 eff . Ref s1 KeyAndSaltArray ->  Ivory eff ()
+                                             forall eff. Ivory eff ()
+    , gec_encode_run        :: forall s1 s2 eff  . ConstRef s1 PlaintextArray
+                                                -> Ref       s2 CyphertextArray
+                                                -> Ivory eff GecError
+    , gec_encode_moddef     :: ModuleDef
     }
 
-commsecEncode :: KeySalt -> String -> CommsecEncode
-commsecEncode ks n = CommsecEncode
-  { commsec_encode_init    = call_ init_proc
-  , commsec_encode_run     = call  run_proc
-  , commsec_encode_moddef  = do
-      defMemArea encode_ctx_area
-      incl securePkg_init_enc
-      incl securePkg_encode
+gecEncode :: KeySalt -> String -> GecEncode
+gecEncode ks n = GecEncode
+  { gec_encode_init    = call_ init_proc
+  , gec_encode_run     = call  run_proc
+  , gec_encode_moddef  = do
+      defMemArea sym_key_area
+      incl gec_init_key
+      incl gec_encrypt
       incl init_proc
       incl run_proc
   }
   where
   named nn = n ++ "_" ++ nn
-  encode_ctx_area = area (named "encode_ctx") Nothing
-  encode_ctx = addrOf encode_ctx_area
+  sym_key_area = area (named "global_gec_sym_key_enc") Nothing
+  sym_key = addrOf sym_key_area
 
   init_proc :: Def('[]:->())
   init_proc = proc (named "encode_init") $ body $ do
     kref <- local k
-    call_ securePkg_init_enc encode_ctx eid s kref
+    call_ gec_init_key sym_key (constRef kref) -- XXX GecError?
 
-  eid = 1 -- Magic number - deprecated multiple client ids
-  k = iarray (map (ival . fromIntegral) (ks_key ks))
-  s = fromIntegral (ks_salt ks)
+  k = iarray (map (ival . fromIntegral) (ks_keysalt ks)) :: Init KeyAndSaltArray -- Init ('Array 28 (Stored Uint8)) -- XXX TMD explicit signature now required?
 
   run_proc :: Def('[ ConstRef s1 PlaintextArray , Ref s2 CyphertextArray
-                   ] :-> CommsecError)
+                   ] :-> GecError)
   run_proc = proc (named "encode_run") $ \pt ct -> body $ do
-        r <- call securePkg_encode encode_ctx pt ct
+        r <- call gec_encrypt sym_key pt ct
         ret r
 
-data CommsecDecode =
-  CommsecDecode
-    { commsec_decode_init   :: forall eff . Ivory eff ()
-    , commsec_decode_run    :: forall s1 s2 eff . ConstRef s1 CyphertextArray
-                                               -> Ref      s2 PlaintextArray
-                                               -> Ivory eff CommsecError
-    , commsec_decode_moddef :: ModuleDef
+data GecDecode =
+  GecDecode
+    { gec_decode_init   :: forall eff . Ivory eff ()
+    , gec_decode_run    :: forall s1 s2 eff . ConstRef s1 CyphertextArray
+                                            -> Ref      s2 PlaintextArray
+                                            -> Ivory eff GecError
+    , gec_decode_moddef :: ModuleDef
     }
 
-commsecDecode :: KeySalt -> String -> CommsecDecode
-commsecDecode ks n = CommsecDecode
-  { commsec_decode_init    = call_ init_proc
-  , commsec_decode_run     = call  run_proc
-  , commsec_decode_moddef  = do
-      defMemArea decode_ctx_area
-      incl securePkg_init_dec
-      incl securePkg_decode
+gecDecode :: KeySalt -> String -> GecDecode
+gecDecode ks n = GecDecode
+  { gec_decode_init    = call_ init_proc
+  , gec_decode_run     = call  run_proc
+  , gec_decode_moddef  = do
+      defMemArea sym_key_area
+      incl gec_init_key
+      incl gec_decrypt
       incl init_proc
       incl run_proc
   }
   where
   named nn = n ++ "_" ++ nn
-  decode_ctx_area = area (named "decode_ctx") Nothing
-  decode_ctx = addrOf decode_ctx_area
+  sym_key_area = area (named "global_gec_sym_key_dec") Nothing
+  sym_key = addrOf sym_key_area
 
   init_proc :: Def('[]:->())
   init_proc = proc (named "decode_init") $ body $ do
     kref <- local k
-    call_ securePkg_init_dec decode_ctx s kref
+    call_ gec_init_key sym_key (constRef kref) -- XXX GecError
 
-  k = iarray (map (ival . fromIntegral) (ks_key ks))
-  s = fromIntegral (ks_salt ks)
+  k = iarray (map (ival . fromIntegral) (ks_keysalt ks)) :: Init KeyAndSaltArray -- ('Array 28 (Stored Uint8)) -- XXX TMD explicit signature now required?
 
   run_proc :: Def('[ ConstRef s1 CyphertextArray, Ref s2 PlaintextArray
-                   ]:->CommsecError)
+                   ]:->GecError)
   run_proc = proc (named "decode_run") $ \const_ct pt -> body $ do
-    r <- call securePkg_decode decode_ctx const_ct pt
+    r <- call gec_decrypt sym_key const_ct pt
     ret r
