@@ -8,7 +8,7 @@ import SMACCMPilot.Commsec.Native.Encode
 import SMACCMPilot.Commsec.Native.Decode
 
 trivial_key :: KeySalt
-trivial_key = KeySalt { ks_key = take 16 [1..], ks_salt = 0xdeadbeef }
+trivial_key = KeySalt { ks_keysalt = take 24 [1..] }
 
 mkPt :: String -> BC.ByteString
 mkPt m = BC.pack (m ++ replicate n ' ')
@@ -38,11 +38,11 @@ main = do
 
 test_encode_decode :: Either String String
 test_encode_decode =
-  let (_e', er) = commsec_encode_run e m in
+  let (_e', er) = gec_encode_run e m in
   case er of
     Left err -> failure (show err)
     Right ct ->
-      let (_d', dr) = commsec_decode_run d ct in
+      let (_d', dr) = gec_decode_run d ct in
       case dr of
         Left err -> failure (show err)
         Right m' -> case m == m' of
@@ -51,16 +51,16 @@ test_encode_decode =
   where
   failure t = Left ("intended failure in test_encode_decode: " ++ t)
   m = mkPt "the quick brown fox jumped"
-  e = commsecEncode trivial_key
-  d = commsecDecode trivial_key
+  e = gecEncode trivial_key
+  d = gecDecode trivial_key
 
 test_keys_dont_match :: Either String String
 test_keys_dont_match =
-  let (_e', er) = commsec_encode_run e m in
+  let (_e', er) = gec_encode_run e m in
   case er of
     Left err -> failure (show err)
     Right ct ->
-      let (_d', dr) = commsec_decode_run d ct in
+      let (_d', dr) = gec_decode_run d ct in
       case dr of
         Left err -> failure (show err)
         Right m' -> case m == m' of
@@ -69,16 +69,16 @@ test_keys_dont_match =
   where
   failure t = Left ("intended failure in test_keys_dont_match: " ++ t)
   m = mkPt "the quick brown fox jumped"
-  e = commsecEncode trivial_key
-  d = commsecDecode trivial_key { ks_key = take 16 [2..] }
+  e = gecEncode trivial_key
+  d = gecDecode trivial_key { ks_keysalt = take 16 [2..] ++ drop 16 (ks_keysalt trivial_key) }
 
 test_salts_dont_match :: Either String String
 test_salts_dont_match =
-  let (_e', er) = commsec_encode_run e m in
+  let (_e', er) = gec_encode_run e m in
   case er of
     Left err -> failure (show err)
     Right ct ->
-      let (_d', dr) = commsec_decode_run d ct in
+      let (_d', dr) = gec_decode_run d ct in
       case dr of
         Left err -> failure (show err)
         Right m' -> case m == m' of
@@ -87,13 +87,13 @@ test_salts_dont_match =
   where
   failure t = Left ("intended failure in test_salts_dont_match: " ++ t)
   m = mkPt "the quick brown fox jumped"
-  e = commsecEncode trivial_key
-  d = commsecDecode trivial_key { ks_salt = 0xcafecafe }
+  e = gecEncode trivial_key
+  d = gecDecode trivial_key { ks_keysalt = take 16 (ks_key trivial_key) ++ take 8 [2..] }
 
 test_progression :: Either String String
 test_progression =
-  let e = commsecEncode trivial_key
-      d = commsecDecode trivial_key
+  let e = gecEncode trivial_key
+      d = gecDecode trivial_key
       in case aux e d of
         Left err -> Left (err ++ " in first round")
         Right (e', d') -> case aux e' d' of
@@ -103,11 +103,11 @@ test_progression =
             Right _ -> Right "test_progression success"
   where
   aux e d =
-    let (e', er) = commsec_encode_run e m in
+    let (e', er) = gec_encode_run e m in
     case er of
       Left err -> failure (show err)
       Right ct ->
-        let (d', dr) = commsec_decode_run d ct in
+        let (d', dr) = gec_decode_run d ct in
         case dr of
           Left err -> failure (show err)
           Right m' -> case m == m' of
@@ -118,8 +118,8 @@ test_progression =
 
 test_replay :: Either String String
 test_replay =
-  let e = commsecEncode trivial_key
-      d = commsecDecode trivial_key
+  let e = gecEncode trivial_key
+      d = gecDecode trivial_key
       in case aux e d of
         Left err -> Left (err ++ " in first round")
         Right (_e', d') -> case aux e d' of -- Use original encode context, not incremented one.
@@ -127,11 +127,11 @@ test_replay =
           Right _ -> Right "test_replay failed to fail"
   where
   aux e d =
-    let (e', er) = commsec_encode_run e m in
+    let (e', er) = gec_encode_run e m in
     case er of
       Left err -> failure (show err)
       Right ct ->
-        let (d', dr) = commsec_decode_run d ct in
+        let (d', dr) = gec_decode_run d ct in
         case dr of
           Left err -> failure (show err)
           Right m' -> case m == m' of

@@ -1,11 +1,11 @@
 
 module SMACCMPilot.Commsec.Native.Error
-  ( CommsecError(..)
+  ( GecError(..)
   ) where
 
 import qualified Data.ByteString as B
 
-data CommsecError
+data GecError
   = CounterTooBig
   | CounterTooOld
   | UnknownID Int
