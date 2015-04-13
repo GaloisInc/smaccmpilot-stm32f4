@@ -5,13 +5,15 @@
 CURRENT_DIR := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 
 IVORY_REPO ?= $(CURRENT_DIR)/../../../ivory
+TOWER_REPO ?= $(CURRENT_DIR)/../../../tower
+BSP_REPO ?= $(CURRENT_DIR)/../../../ivory-tower-stm32
 GIDL_REPO ?= ../../../gidl
 
 default: smaccm-comm-schema-native
-default: smaccm-comm-schema-ivory
+default: smaccm-comm-schema-tower
 
 test: smaccm-comm-schema-native-test
-test: smaccm-comm-schema-ivory-test
+test: smaccm-comm-schema-tower-test
 
 .PHONY: smaccm-comm-schema-native
 smaccm-comm-schema-native:
@@ -21,23 +23,26 @@ smaccm-comm-schema-native:
 		-p smaccm-comm-schema-native \
 		-n SMACCMPilot.Comm.Native
 
-.PHONY: smaccm-comm-schema-ivory
-smaccm-comm-schema-ivory:
-	cabal exec gidl -- -b ivory \
+.PHONY: smaccm-comm-schema-tower
+smaccm-comm-schema-tower:
+	cabal exec gidl -- -b tower \
 		-i smaccm-comm-schema.idl \
-		-o smaccm-comm-schema-ivory \
-		-p smaccm-comm-schema-ivory \
-		-n SMACCMPilot.Comm.Ivory
+		-o smaccm-comm-schema-tower \
+		-p smaccm-comm-schema-tower \
+		-n SMACCMPilot.Comm
 
 smaccm-comm-schema-native-test: smaccm-comm-schema-native
 	make -C smaccm-comm-schema-native create-sandbox
 	make -C smaccm-comm-schema-native
 	make -C smaccm-comm-schema-native test
 
-smaccm-comm-schema-ivory-test: smaccm-comm-schema-ivory
-	IVORY_REPO=$(IVORY_REPO) make -C smaccm-comm-schema-ivory create-sandbox
-	make -C smaccm-comm-schema-ivory
-	make -C smaccm-comm-schema-ivory test
+smaccm-comm-schema-tower-test: smaccm-comm-schema-tower
+	IVORY_REPO=$(IVORY_REPO) \
+	TOWER_REPO=$(TOWER_REPO) \
+	BSP_REPO=$(BSP_REPO) \
+		make -C smaccm-comm-schema-tower create-sandbox
+	make -C smaccm-comm-schema-tower
+	make -C smaccm-comm-schema-tower test
 
 create-sandbox:
 	cabal sandbox init
@@ -48,7 +53,7 @@ create-sandbox:
 
 clean:
 	-rm -rf smaccm-comm-schema-native
-	-rm -rf smaccm-comm-schema-ivory
+	-rm -rf smaccm-comm-schema-tower
 
 distclean: clean
 	-rm -rf dist
