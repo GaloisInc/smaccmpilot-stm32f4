@@ -146,7 +146,7 @@ void reset_partner(gec_sts_ctx_t *ctx, const struct gec_pubkey *theirPublicKey)
 
 // Party A's step 1
 // 1) Generate a random ephemeral public and private key pair. (ctx ~ privA_e, msg1 ~ publicA_e)
-int initiate_sts(uint8_t msg1[MSG_1_LEN], gec_sts_ctx_t *ctx, uint8_t random_data[RANDOM_DATA_LEN])      // Party 'A'
+int initiate_sts(uint8_t msg1[MSG_1_LEN], gec_sts_ctx_t *ctx, const uint8_t random_data[RANDOM_DATA_LEN])      // Party 'A'
 {
     int ret = -1;
     if(READY_STAGE == ctx->protocol_stage) {

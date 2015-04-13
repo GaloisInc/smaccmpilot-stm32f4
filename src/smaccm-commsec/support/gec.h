@@ -59,7 +59,7 @@ struct gec_sym_key_conf {
 
 struct gec_privkey {
     ed25519_secret_key priv;
-    ed25519_public_key pub;
+    ed25519_public_key pub_; // XXX Ivory can't have field name collisions?
 };
 
 struct gec_pubkey {

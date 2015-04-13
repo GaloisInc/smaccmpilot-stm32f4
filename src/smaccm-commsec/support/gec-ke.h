@@ -96,7 +96,7 @@ void clear_ctx(gec_sts_ctx_t * ctx);
 
 // Party A's step 1
 // 1) Generate a random ephemeral public and private key pair. (ctx ~ privA_e, msg1 ~ publicA_e)
-int initiate_sts(uint8_t msg1[MSG_1_LEN], gec_sts_ctx_t *ctx, uint8_t random_data[GEC_PRIV_KEY_LEN]);
+int initiate_sts(uint8_t msg1[MSG_1_LEN], gec_sts_ctx_t *ctx, const uint8_t random_data[GEC_PRIV_KEY_LEN]);
 
 // Party B's step 1
 // 2) Generate a random ephemeral public and private key pair.

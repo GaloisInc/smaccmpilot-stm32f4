@@ -68,13 +68,3 @@ type GecKeRandomDataIx = Ix 32
 type GecKeRandomData   = Array 32 (Stored Uint8)
 gecKeRandomDataSize :: Integer
 gecKeRandomDataSize = fromTypeNat (aNat :: NatType 32)
-
-type PublicKeyIx = Ix 32
-type PublicKey = Array 32 (Stored Uint8)
-publicKeySize :: Integer
-publicKeySize = fromTypeNat (aNat :: NatType 32)
-
-type PrivateKeyIx = Ix 32
-type PrivateKey = Array 32 (Stored Uint8)
-privateKeySize :: Integer
-privateKeySize = fromTypeNat (aNat :: NatType 32)
