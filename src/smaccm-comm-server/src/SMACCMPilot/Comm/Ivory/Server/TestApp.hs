@@ -11,9 +11,10 @@ import Ivory.Stdlib
 import SMACCMPilot.Hardware.Tests.Platforms
 
 import SMACCMPilot.Commsec.Sizes
-import SMACCMPilot.Comm.Ivory.Server
 import SMACCMPilot.Datalink.HXStream.Tower
 import Ivory.BSP.STM32.Driver.RingBuffer
+
+import SMACCMPilot.Comm.Tower.Interface.ControllableVehicle.Producer
 
 app :: (e -> PX4Platform) -> Tower e ()
 app topx4 = do
@@ -41,10 +42,8 @@ app topx4 = do
         got <- ringbuffer_pop rb v
         when got $ emit e (constRef v)
 
-  (curr_waypt, next_waypt, heartbeat) <- controllableVehicleProducerInput (snd input_frames)
+  cvp <- controllableVehicleProducerInput (snd input_frames)
   (output_frames :: ChanOutput CyphertextArray) <-
-        controllableVehicleProducerOutput curr_waypt next_waypt heartbeat
+        controllableVehicleProducerOutput cvp
 
   hxstreamEncodeTower "frame" output_frames uarto
-
-  commTowerDependencies
