@@ -15,7 +15,6 @@ static inline uint64_t _read_word64_be(const uint8_t buf[8])
 static inline void _write_word64_be(uint8_t buf[8], uint64_t ctr)
 {
     int i;
-    uint8_t b;
     for(i = 7; i >= 0; i--) {
         buf[i] = ctr & 0xFF;
         ctr = ctr >> 8;
@@ -37,7 +36,6 @@ static inline uint32_t _read_word32_be(const uint8_t buf[8])
 static inline void _write_word32_be(uint8_t buf[8], uint32_t ctr)
 {
     int i;
-    uint8_t b;
     for(i = 3; i >= 0; i--) {
         buf[i] = ctr & 0xFF;
         ctr = ctr >> 8;
@@ -209,7 +207,7 @@ int GEC_FN(gec_verify)(const struct gec_pubkey *k, const uint8_t *msg, const siz
 }
 
 // Input random GEC_PRIV_KEY_LEN bytes and compute the matching public key.
-void GEC_FN(gec_generate_ephemeral_keypair)(uint8_t gec_ephemeral_priv[GEC_PRIV_EPHEMERAL_KEY_LEN], uint8_t gec_ephemeral_pub[GEC_PUB_EPHEMERAL_KEY_LEN])
+void GEC_FN(gec_generate_ephemeral_keypair)(const uint8_t gec_ephemeral_priv[GEC_PRIV_EPHEMERAL_KEY_LEN], uint8_t gec_ephemeral_pub[GEC_PUB_EPHEMERAL_KEY_LEN])
 {
     static const uint8_t basepoint[32] = {9};
     curve25519_donna(gec_ephemeral_pub, gec_ephemeral_priv, basepoint);

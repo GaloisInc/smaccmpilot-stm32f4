@@ -184,10 +184,7 @@ gkeInitiate n themP (meP, meQ) = GkeInitiate
   themP' = istruct [ pub  .= iarray (map (ival . fromIntegral) (B.unpack themP)) ]
 
 data GkeRespond =
-     GkeRespond { gke_respond_init :: forall eff -- forall s1 s2 s3 eff
-                                -- .  ConstRef s1 PublicKey
-                                -- -> ConstRef s3 PrivateKey
-                                -- -> ConstRef s3 PublicKey
+     GkeRespond { gke_respond_init :: forall eff
                                 . Ivory eff ()
                 , gke_respond :: forall s1 s2 s3 eff
                                 .  ConstRef s1 GecKeMessage1

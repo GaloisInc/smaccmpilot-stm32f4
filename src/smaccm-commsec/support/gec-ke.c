@@ -172,10 +172,8 @@ int respond_sts( const uint8_t msg1[MSG_1_LEN]
                , const uint8_t random_data[RANDOM_DATA_LEN])
 {
     uint8_t unsigned_data[2 * EPHEMERAL_PUBLICKEY_LEN];
-    uint8_t signature[GEC_SIG_LEN];
     uint8_t z[GEC_SECRET_BYTES_LEN];
     uint8_t concatKeysSig[2*EPHEMERAL_PUBLICKEY_LEN + GEC_SIG_LEN];
-    unsigned long long siglen;
     int ret = -1;
 
     if(READY_STAGE == ctx->protocol_stage) {
@@ -202,7 +200,7 @@ int respond_sts( const uint8_t msg1[MSG_1_LEN]
 
         memcpy(concatKeysSig, sig, GEC_SIG_LEN);
         memcpy(concatKeysSig+GEC_SIG_LEN, unsigned_data, 2*EPHEMERAL_PUBLICKEY_LEN);
-        gec_encrypt_conf(&ctx->myKCK, msg2 + EPHEMERAL_PUBLICKEY_LEN, concatKeysSig, 2*EPHEMERAL_PUBLICKEY_LEN + GEC_SIG_LEN);
+        gec_encrypt_conf(&ctx->myKCK, concatKeysSig, msg2 + EPHEMERAL_PUBLICKEY_LEN, 2*EPHEMERAL_PUBLICKEY_LEN + GEC_SIG_LEN);
 
         ctx->protocol_stage = MESSAGE_2_DONE;
         ret = 0;
@@ -239,9 +237,7 @@ int response_ack_sts( const uint8_t msg2[MSG_2_LEN]
             // Construct response [ E_k2 ( Sign_PubA ( PubA_E | PubB_E ) | PubA_E | PubB_E ) ]
             uint8_t unsigned_data[EPHEMERAL_PUBLICKEY_LEN * 2];
             uint8_t concatKeysSig[2*EPHEMERAL_PUBLICKEY_LEN + GEC_SIG_LEN];
-            uint8_t signed_data[AUTH_DATA_LEN];
             uint8_t sig[GEC_SIG_LEN];
-            unsigned long long siglen;
 
             memcpy(unsigned_data, ctx->myPublicKey_ephemeral, EPHEMERAL_PUBLICKEY_LEN);
             memcpy(unsigned_data + EPHEMERAL_PUBLICKEY_LEN, ctx->theirPublicKey_ephemeral, EPHEMERAL_PUBLICKEY_LEN);
@@ -249,7 +245,7 @@ int response_ack_sts( const uint8_t msg2[MSG_2_LEN]
 
             memcpy(concatKeysSig, sig, GEC_SIG_LEN);
             memcpy(concatKeysSig+GEC_SIG_LEN, unsigned_data, 2*EPHEMERAL_PUBLICKEY_LEN);
-            gec_encrypt_conf(&ctx->myKCK, signed_data, msg3, 2*EPHEMERAL_PUBLICKEY_LEN + GEC_SIG_LEN);
+            gec_encrypt_conf(&ctx->myKCK, concatKeysSig, msg3, 2*EPHEMERAL_PUBLICKEY_LEN + GEC_SIG_LEN);
 
             memcpy(key_material, ctx->client_key_material, KEY_MATERIAL_LEN);
             reset_ctx(ctx);

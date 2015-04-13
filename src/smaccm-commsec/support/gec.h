@@ -89,7 +89,7 @@ void GEC_FN(gec_sign)(const struct gec_privkey *k, const uint8_t *msg, const siz
 int GEC_FN(gec_verify)(const struct gec_pubkey *k, const uint8_t *msg, const size_t msg_len, const uint8_t sig[GEC_SIG_LEN]);
 
 // Input random GEC_PRIV_KEY_LEN bytes and compute the matching public key.
-void GEC_FN(gec_generate_ephemeral_keypair)(uint8_t gec_ephemeral_priv[GEC_PRIV_EPHEMERAL_KEY_LEN], uint8_t gec_ephemeral_pub[GEC_PUB_EPHEMERAL_KEY_LEN]);
+void GEC_FN(gec_generate_ephemeral_keypair)(const uint8_t gec_ephemeral_priv[GEC_PRIV_EPHEMERAL_KEY_LEN], uint8_t gec_ephemeral_pub[GEC_PUB_EPHEMERAL_KEY_LEN]);
 
 // Given a public and private ephemeral keys, compute a shared secret.  That is, `secret_bytes = Hash(dh(pub,priv))`
 void GEC_FN(gec_ecdh)(uint8_t secret_bytes[GEC_SECRET_BYTES_LEN], const uint8_t gec_ephemeral_priv[GEC_PRIV_EPHEMERAL_KEY_LEN], const uint8_t gec_ephemeral_pub[GEC_PUB_EPHEMERAL_KEY_LEN]);
