@@ -1,83 +1,78 @@
+{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE DataKinds #-}
 
 module SMACCMPilot.Comm.Ivory.Server where
+
 
 import Control.Monad (void)
 import Ivory.Language
 import Ivory.Stdlib
 import Ivory.Tower
 import Ivory.Serialize
+
+import SMACCMPilot.Comm.Ivory.Param
 import SMACCMPilot.Comm.Ivory.Types
-import SMACCMPilot.Comm.Ivory.Interface.ControllableVehicle.Producer
-
-controllableVehicleProducerInput :: (ANat n)
-                                 => ChanOutput (Array n (Stored Uint8))
-                                 -> Tower e ( ChanOutput (Struct "waypoint")
-                                            , ChanOutput (Struct "waypoint")
-                                            , ChanOutput (Struct "heartbeat"))
-controllableVehicleProducerInput frame_ch = do
-  curr_waypt <- channel
-  next_waypt <- channel
-  heartbeat  <- channel
-
-  monitor "controllableVehicleProducerInput" $ do
-    handler frame_ch "parse_frame" $ do
-      cw_e <- emitter (fst curr_waypt) 1
-      nw_e <- emitter (fst next_waypt) 1
-      hb_e <- emitter (fst heartbeat)  1
-      callback $ \f -> do
-        offs <- local izero
-        void $ controllableVehicleProducerParser f offs $ ControllableVehicleProducer
-          { currentWaypointValProducer = \v -> emit cw_e v >> return true
-          , nextWaypointValProducer    = \v -> emit nw_e v >> return true
-          , heartbeatProducer          = \v -> emit hb_e v >> return true
-          }
-
-  return (snd curr_waypt, snd next_waypt, snd heartbeat)
+import SMACCMPilot.Comm.Tower.Interface.ControllableVehicle.Producer
+import SMACCMPilot.Comm.Tower.Interface.ControllableVehicle.Consumer
 
 
 
-controllableVehicleProducerOutput :: (ANat n)
-                                  => ChanOutput (Struct "waypoint")
-                                  -> ChanOutput (Struct "waypoint")
-                                  -> ChanOutput (Struct "heartbeat")
-                                  -> Tower e (ChanOutput (Array n (Stored Uint8)))
-controllableVehicleProducerOutput curr_waypt next_waypt heartbeat = do
-  frame_ch <- channel
+data ControllableVehicleParams =
+  ControllableVehicleParams
+    { currentWaypoint :: Param (Struct "waypoint")
+    , nextWaypoint    :: Param (Struct "waypoint")
+    }
 
-  monitor "controllableVehicleProducerOutput" $ do
-    handler curr_waypt "curr_waypt" $ do
-      e <- emitter (fst frame_ch) 1
-      callback $ \w -> do
-        f    <- local izero
-        offs <- local izero
-        let sender = controllableVehicleProducerSender f offs
-        ok <- currentWaypointValProducer sender w
-        when ok $ emit e (constRef f)
+towerControllableVehicleParams :: Tower e ControllableVehicleParams
+towerControllableVehicleParams = do
+  currentWaypoint <- towerParam "current_waypoint" izero
+  nextWaypoint    <- towerParam "next_waypoint"    izero
+  return ControllableVehicleParams{..}
 
-    handler next_waypt "next_waypt" $ do
-      e <- emitter (fst frame_ch) 1
-      callback $ \w -> do
-        f    <- local izero
-        offs <- local izero
-        let sender = controllableVehicleProducerSender f offs
-        ok <- nextWaypointValProducer sender w
-        when ok $ emit e (constRef f)
+data ControllableVehicleStreams c =
+  ControllableVehicleStreams
+    { heartbeat :: c (Struct "heartbeat")
+    }
 
-    handler heartbeat "heartbeat" $ do
-      e <- emitter (fst frame_ch) 1
-      callback $ \w -> do
-        f    <- local izero
-        offs <- local izero
-        let sender = controllableVehicleProducerSender f offs
-        ok <- heartbeatProducer sender w
-        when ok $ emit e (constRef f)
+towerControllableVehicleStreams :: Tower e ( ControllableVehicleStreams ChanInput
+                                           , ControllableVehicleStreams ChanOutput)
+towerControllableVehicleStreams = do
+  c_heartbeat <- channel
+  return ( ControllableVehicleStreams
+            { heartbeat = fst c_heartbeat
+            }
+         , ControllableVehicleStreams
+            { heartbeat = snd c_heartbeat
+            }
+         )
 
-  return (snd frame_ch)
+controllableVehicleServer :: ControllableVehicleConsumer
+                          -> ControllableVehicleParams
+                          -> ControllableVehicleStreams ChanOutput
+                          -> Tower e ControllableVehicleProducer
+controllableVehicleServer cvc params streams = do
 
-commTowerDependencies :: Tower e ()
-commTowerDependencies = do
-  towerModule serializeModule
-  mapM_ towerArtifact serializeArtifacts
-  mapM_ towerModule typeModules
-  mapM_ towerDepends typeModules
+  currentWaypointVal <- channel
+  monitor "currentWaypointServer" $ do
+    s <- paramState (currentWaypoint params)
+    handler (currentWaypointGetConsumer cvc) "currentWaypointGet" $ do
+      e <- emitter (fst currentWaypointVal) 1
+      callback $ const $ emit e (constRef s)
+
+  nextWaypointVal <- channel
+  monitor "nextWaypointServer" $ do
+    s <- paramState (nextWaypoint params)
+    handler (nextWaypointGetConsumer cvc) "nextWaypointGet" $ do
+      e <- emitter (fst nextWaypointVal) 1
+      callback $ const $ emit e (constRef s)
+    handler (nextWaypointSetConsumer cvc) "nextWaypointSet" $ do
+      e <- paramEmitter (nextWaypoint params)
+      callback $ \v -> emit e v
+
+  let cvp :: ControllableVehicleProducer
+      cvp = ControllableVehicleProducer
+              { currentWaypointValProducer = snd currentWaypointVal
+              , nextWaypointValProducer    = snd nextWaypointVal
+              , heartbeatProducer          = heartbeat streams
+              }
+  return cvp

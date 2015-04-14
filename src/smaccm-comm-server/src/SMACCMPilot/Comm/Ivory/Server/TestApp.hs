@@ -15,6 +15,9 @@ import SMACCMPilot.Datalink.HXStream.Tower
 import Ivory.BSP.STM32.Driver.RingBuffer
 
 import SMACCMPilot.Comm.Tower.Interface.ControllableVehicle.Producer
+import SMACCMPilot.Comm.Tower.Interface.ControllableVehicle.Consumer
+
+import SMACCMPilot.Comm.Ivory.Server
 
 app :: (e -> PX4Platform) -> Tower e ()
 app topx4 = do
@@ -42,7 +45,15 @@ app topx4 = do
         got <- ringbuffer_pop rb v
         when got $ emit e (constRef v)
 
-  cvp <- controllableVehicleProducerInput (snd input_frames)
+  cvc <- controllableVehicleConsumerInput (snd input_frames)
+
+
+  (_stream_inputs, stream_outputs) <- towerControllableVehicleStreams
+
+  params <- towerControllableVehicleParams
+
+  cvp <- controllableVehicleServer cvc params stream_outputs
+
   (output_frames :: ChanOutput CyphertextArray) <-
         controllableVehicleProducerOutput cvp
 
