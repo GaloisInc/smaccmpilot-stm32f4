@@ -17,17 +17,27 @@ import SMACCMPilot.Comm.Tower.Interface.ControllableVehicle.Consumer
 
 
 
-data ControllableVehicleParams =
+data ControllableVehicleParams p =
   ControllableVehicleParams
-    { currentWaypoint :: Param (Struct "waypoint")
-    , nextWaypoint    :: Param (Struct "waypoint")
+    { currentWaypoint :: p (Struct "waypoint")
+    , nextWaypoint    :: p (Struct "waypoint")
     }
 
-towerControllableVehicleParams :: Tower e ControllableVehicleParams
-towerControllableVehicleParams = do
-  currentWaypoint <- towerParam "current_waypoint" izero
-  nextWaypoint    <- towerParam "next_waypoint"    izero
-  return ControllableVehicleParams{..}
+towerControllableVehicleParams :: ControllableVehicleParams Init
+                               -> Tower e (ControllableVehicleParams Param)
+towerControllableVehicleParams ivals = do
+  p_currentWaypoint <- towerParam "current_waypoint" (currentWaypoint ivals)
+  p_nextWaypoint    <- towerParam "next_waypoint"    (nextWaypoint ivals)
+  return ControllableVehicleParams
+    { currentWaypoint = p_currentWaypoint
+    , nextWaypoint = p_nextWaypoint
+    }
+
+initControllableVehicleParams :: ControllableVehicleParams Init
+initControllableVehicleParams = ControllableVehicleParams
+  { currentWaypoint = izero
+  , nextWaypoint = izero
+  }
 
 data ControllableVehicleStreams c =
   ControllableVehicleStreams
@@ -47,32 +57,16 @@ towerControllableVehicleStreams = do
          )
 
 controllableVehicleServer :: ControllableVehicleConsumer
-                          -> ControllableVehicleParams
+                          -> ControllableVehicleParams Param
                           -> ControllableVehicleStreams ChanOutput
                           -> Tower e ControllableVehicleProducer
-controllableVehicleServer cvc params streams = do
+controllableVehicleServer ControllableVehicleConsumer{..} params streams = do
 
-  currentWaypointVal <- channel
-  monitor "currentWaypointServer" $ do
-    s <- paramState (currentWaypoint params)
-    handler (currentWaypointGetConsumer cvc) "currentWaypointGet" $ do
-      e <- emitter (fst currentWaypointVal) 1
-      callback $ const $ emit e (constRef s)
+  currentWaypointValProducer <- readableParamServer (currentWaypoint params)
+                                            currentWaypointGetConsumer
+  nextWaypointValProducer <- readwritableParamServer (nextWaypoint params)
+                                             nextWaypointGetConsumer
+                                             nextWaypointSetConsumer
 
-  nextWaypointVal <- channel
-  monitor "nextWaypointServer" $ do
-    s <- paramState (nextWaypoint params)
-    handler (nextWaypointGetConsumer cvc) "nextWaypointGet" $ do
-      e <- emitter (fst nextWaypointVal) 1
-      callback $ const $ emit e (constRef s)
-    handler (nextWaypointSetConsumer cvc) "nextWaypointSet" $ do
-      e <- paramEmitter (nextWaypoint params)
-      callback $ \v -> emit e v
-
-  let cvp :: ControllableVehicleProducer
-      cvp = ControllableVehicleProducer
-              { currentWaypointValProducer = snd currentWaypointVal
-              , nextWaypointValProducer    = snd nextWaypointVal
-              , heartbeatProducer          = heartbeat streams
-              }
-  return cvp
+  let heartbeatProducer = heartbeat streams
+  return ControllableVehicleProducer{..}

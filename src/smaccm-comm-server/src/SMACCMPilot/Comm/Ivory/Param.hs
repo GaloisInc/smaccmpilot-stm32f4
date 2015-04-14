@@ -57,6 +57,17 @@ towerParam n i = do
       }
     }
 
+class ParamNamed p where
+  paramName :: (IvoryArea a) => p a -> String
+
+instance ParamNamed ParamReader where
+  paramName = pr_name
+
+instance ParamNamed ParamWriter where
+  paramName = pw_name
+
+instance ParamNamed Param where
+  paramName = paramName . param_reader
 
 class ParamReadable p where
   paramState   :: (IvoryArea a, IvoryZero a) => p a -> Monitor e (Ref Global a)
@@ -78,3 +89,51 @@ instance ParamWritable ParamWriter where
 
 instance ParamWritable Param where
   paramEmitter = paramWriterEmitter . param_writer
+
+-----
+
+readableParamServer :: (IvoryArea a, IvoryZero a)
+                    => Param a
+                    -> ChanOutput (Stored IBool)
+                    -> Tower e (ChanOutput a)
+readableParamServer p get = do
+  val <- channel
+  monitor (named "Server") $ do
+    s <- paramState p
+    handler get (named "Get") $ do
+      e <- emitter (fst val) 1
+      callback $ const $ emit e (constRef s)
+  return (snd val)
+  where
+  named n = paramName p ++ n
+
+writableParamServer :: (IvoryArea a, IvoryZero a)
+                    => Param a
+                    -> ChanOutput a
+                    -> Tower e ()
+writableParamServer p set = do
+  monitor (named "Server") $ do
+    handler set (named "Set") $ do
+      e <- paramEmitter p
+      callback $ \v -> emit e v
+  where
+  named n = paramName p ++ n
+
+readwritableParamServer :: (IvoryArea a, IvoryZero a)
+                        => Param a
+                        -> ChanOutput (Stored IBool)
+                        -> ChanOutput a
+                        -> Tower e (ChanOutput a)
+readwritableParamServer p get set = do
+  val <- channel
+  monitor (named "Server") $ do
+    s <- paramState p
+    handler set (named "Set") $ do
+      e <- paramEmitter p
+      callback $ \v -> emit e v
+    handler get (named "Get") $ do
+      e <- emitter (fst val) 1
+      callback $ const $ emit e (constRef s)
+  return (snd val)
+  where
+  named n = paramName p ++ n
