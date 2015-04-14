@@ -50,9 +50,9 @@ app topx4 = do
 
   (_stream_inputs, stream_outputs) <- towerControllableVehicleStreams
 
-  params <- towerControllableVehicleParams initControllableVehicleParams
+  attrs <- towerControllableVehicleAttrs initControllableVehicleAttrs
 
-  cvp <- controllableVehicleServer cvc params stream_outputs
+  cvp <- controllableVehicleServer cvc attrs stream_outputs
 
   (output_frames :: ChanOutput CyphertextArray) <-
         controllableVehicleProducerOutput cvp

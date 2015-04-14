@@ -12,7 +12,7 @@ cabal-version:       >= 1.10
 
 library
   exposed-modules:     SMACCMPilot.Comm.Ivory.Server,
-                       SMACCMPilot.Comm.Ivory.Param,
+                       SMACCMPilot.Comm.Ivory.Attr,
                        SMACCMPilot.Comm.Ivory.Server.TestApp
   build-depends:       base >= 4.6,
                        ivory,
