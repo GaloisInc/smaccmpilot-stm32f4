@@ -31,4 +31,3 @@ env:
   - ENV_TEST_TARGET=smaccm-comm-client
   - ENV_TEST_TARGET=smaccm-comm-server
   - ENV_TEST_TARGET=smaccm-ins
-  - ENV_TEST_TARGET=smaccm-params
