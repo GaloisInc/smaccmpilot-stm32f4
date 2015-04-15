@@ -187,7 +187,7 @@ int respond_sts( const uint8_t msg1[MSG_1_LEN]
         memcpy(ctx->theirPublicKey_ephemeral, msg1, EPHEMERAL_PUBLICKEY_LEN);
 
         // Derive shared secret KDF( ECDH(Priv_B,PubA_E) )
-        gec_ecdh(z, ctx->myPrivateKey_ephemeral, ctx->theirPublicKey_ephemeral);
+        gec_ecdh(z, ctx->theirPublicKey_ephemeral, ctx->myPrivateKey_ephemeral);
         derive_key_materials(ctx, z);
 
         // Construct response [ PubB | E_k1 ( Sign_PubB ( PubB_E | PubA_E ), pubB_E, pubA_E ) ]
@@ -226,7 +226,7 @@ int response_ack_sts( const uint8_t msg2[MSG_2_LEN]
         // Derive shared secret KDF( ECDH(Priv_B,PubA_E) )
         memcpy(ctx->theirPublicKey_ephemeral, msg2, EPHEMERAL_PUBLICKEY_LEN);
 
-        gec_ecdh(z, ctx->myPrivateKey_ephemeral, ctx->theirPublicKey_ephemeral);
+        gec_ecdh(z, ctx->theirPublicKey_ephemeral, ctx->myPrivateKey_ephemeral);
         derive_key_materials(ctx, z);
 
         // verify msg2
