@@ -117,7 +117,7 @@ objects =
   , "gf128mul.o"
   , "gf_convert.o"
   , "main.o"
-  , "gec_symmetric_key_types"
+  , "gec_symmetric_key_types.o"
   ]
 
 makefile :: String
