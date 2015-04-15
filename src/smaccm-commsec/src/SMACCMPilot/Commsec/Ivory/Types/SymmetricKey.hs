@@ -19,7 +19,16 @@ struct symmetric_key {
 deriveSymmetricKey :: Def ('[ ConstRef s1 KeyMaterial
                             , Ref s2 (Struct "symmetric_key")]:->())
 deriveSymmetricKey = proc "gec_derive_symmetric_key" $ \km sk -> body $ do
-    return () -- XXX TODO
+    arrayMap $ \ix -> do
+      v <- deref (km ! ix)
+      let sk_ix :: KeyMaterialIx -> SymKeySaltIx
+          sk_ix  = toIx . fromIx
+      ifte_ (ix <? sks)
+            (store ((sk ~> c2s_ks) ! (sk_ix ix)) v)
+            (store ((sk ~> s2c_ks) ! (sk_ix (ix - sks))) v)
+  where
+  sks :: KeyMaterialIx
+  sks = fromIntegral symKeySaltSize
 
 symmetricKeyTypesModule :: Module
 symmetricKeyTypesModule = package "gec_symmetric_key_types" $ do
