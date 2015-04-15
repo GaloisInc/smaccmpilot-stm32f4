@@ -12,18 +12,17 @@ import Ivory.Artifact
 import Ivory.Stdlib
 import Ivory.Compile.C.CmdlineFrontend
 import SMACCMPilot.Commsec.Ivory
+import SMACCMPilot.Commsec.Sizes
+import SMACCMPilot.Commsec.Ivory.Types.SymmetricKey
 import qualified SMACCMPilot.Commsec.Ivory.Error as E
 import Data.ByteString (ByteString)
 import Data.ByteString.Char8 ()
 
 main :: IO ()
-main = compile [ m ] as
+main = compile [ m, symmetricKeyTypesModule ] as
   where
   as = commsecArtifacts
      ++ [ artifactString "Makefile" makefile ]
-
-trivial_key :: KeySalt
-trivial_key = KeySalt { ks_keysalt = take 24 [1..] }
 
 pubA,pubB   :: ByteString -- PublicKey
 privA,privB :: ByteString -- PrivateKey
@@ -35,6 +34,7 @@ privB = "\139Y\227Ct6\EOT\167\209I\232\250y\242\255\158\&1\ETX`\204\210~\DC3\SI\
 m :: Module
 m = package "main" $ do
   incl main_proc
+  depend symmetricKeyTypesModule
   gec_encode_moddef ce
   gec_decode_moddef cd
   gke_initiate_moddef ki
@@ -42,21 +42,28 @@ m = package "main" $ do
   where
   ki = gkeInitiate "kei" pubB (pubA,privA)
   kr = gkeRespond  "ker" pubA (pubB,privB)
-  ce = gecEncode trivial_key "etest"
-  cd = gecDecode trivial_key "dtest"
+  ce = gecEncode "etest"
+  cd = gecDecode "dtest"
   main_proc :: Def('[Sint32, Ref s (Stored (Ref s (Stored IChar)))]:->Sint32)
   main_proc = proc "main" $ \ _ _ -> body $ do
-    encDecTest
-    keTest
+    (ks1,ks2) <- keTest
+    sk1 <- local izero
+    sk2 <- local izero
+    call_ deriveSymmetricKey (constRef ks1) sk1
+    call_ deriveSymmetricKey (constRef ks2) sk2
+    assertEq (sk1 ~> c2s_ks) (sk2 ~> s2c_ks) 201
+    assertEq (sk2 ~> c2s_ks) (sk1 ~> s2c_ks) 202
+    encDecTest (sk1 ~> c2s_ks)
+    encDecTest (sk1 ~> s2c_ks)
     ret 0
-  encDecTest :: Ivory (ProcEffects s Sint32) ()
-  encDecTest = do
-    gec_encode_init ce
+  encDecTest :: Ref s2 SymKeySaltArray -> Ivory (ProcEffects s Sint32) ()
+  encDecTest sk = do
+    gec_encode_init ce (constRef sk)
     pt <- local (iarray (map (ival . fromIntegral) [0::Int,1..]))
     ct <- local (iarray [])
     e_err <- gec_encode_run ce (constRef pt) ct
     when (e_err /=? success) (ret 1)
-    gec_decode_init cd
+    gec_decode_init cd (constRef sk)
     pt' <- local (iarray [])
     d_err <- gec_decode_run cd (constRef ct) pt'
     when (d_err /=? success) (ret 2)
@@ -64,15 +71,15 @@ m = package "main" $ do
       p <- deref (pt ! ix)
       p' <- deref (pt' ! ix)
       when (p /=? p') (ret 3)
-  keTest :: Ivory (ProcEffects s Sint32) ()
+  keTest :: Ivory (ProcEffects s Sint32) (Ref (Stack s) KeyMaterial, Ref (Stack s) KeyMaterial)
   keTest = do
-      m1    <- local (iarray (map (ival . fromIntegral) [(0::Int)..]))
-      m2    <- local (iarray (map (ival . fromIntegral) [(0::Int)..]))
-      m3    <- local (iarray (map (ival . fromIntegral) [(0::Int)..]))
+      m1    <- local izero
+      m2    <- local izero
+      m3    <- local izero
       rand1 <- local (iarray (map (ival . fromIntegral) [(0::Int)..]))
-      rand2 <- local (iarray (map (ival . fromIntegral) [(0::Int)..]))
-      km1   <- local (iarray (map (ival . fromIntegral) [(0::Int)..]))
-      km2   <- local (iarray (map (ival . fromIntegral) [(0::Int)..]))
+      rand2 <- local (iarray (map (ival . fromIntegral) [(20::Int)..]))
+      km1   <- local (iarray (map (ival . fromIntegral) [(30::Int)..]))
+      km2   <- local (iarray (map (ival . fromIntegral) [(80::Int)..]))
       gke_initiate_init ki
       gke_respond_init kr
       e3 <- gke_initiate ki m1 (constRef rand1)
@@ -87,7 +94,14 @@ m = package "main" $ do
           k  <- deref (km1 ! ix)
           k' <- deref (km2 ! ix)
           when (k /=? k') (ret 4)
+      return (km1,km2)
       -- XXX add expected failure cases
+  assertEq :: Ref s1 SymKeySaltArray -> Ref s2 SymKeySaltArray -> Int -> Ivory (ProcEffects s Sint32) ()
+  assertEq r1 r2 e = do
+      arrayMap $ \ix -> do
+          v1 <- deref (r1!ix)
+          v2 <- deref (r2!ix)
+          ifte_ (v1 ==? v2) (return ()) (ret (fromIntegral e))
 
 objects :: [FilePath]
 objects =
@@ -103,6 +117,7 @@ objects =
   , "gf128mul.o"
   , "gf_convert.o"
   , "main.o"
+  , "gec_symmetric_key_types"
   ]
 
 makefile :: String

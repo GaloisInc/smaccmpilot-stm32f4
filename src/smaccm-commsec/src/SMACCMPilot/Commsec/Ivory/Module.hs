@@ -25,9 +25,7 @@ module SMACCMPilot.Commsec.Ivory.Module
 import qualified Data.ByteString as B
 import Ivory.Language
 import SMACCMPilot.Commsec.Sizes
-import qualified SMACCMPilot.Commsec.Ivory.Types.SymmetricKey     as S
 import SMACCMPilot.Commsec.Ivory.Import
-import SMACCMPilot.Commsec.Ivory.Import.Types
 
 --------------------------------------------------------------------------------
 -- Begin Symmetric Encryption Modules
@@ -35,7 +33,7 @@ import SMACCMPilot.Commsec.Ivory.Import.Types
 
 data GecEncode =
    GecEncode
-    { gec_encode_init       :: forall s1 eff . ConstRef s1 SymmetricKeySalt
+    { gec_encode_init       :: forall s1 eff . ConstRef s1 SymKeySaltArray
                                              ->  Ivory eff ()
     , gec_encode_run        :: forall s1 s2 eff  . ConstRef s1 PlaintextArray
                                                 -> Ref       s2 CyphertextArray
@@ -59,9 +57,9 @@ gecEncode n = GecEncode
   sym_key_area = area (named "global_gec_sym_key_enc") Nothing
   sym_key = addrOf sym_key_area
 
-  init_proc :: Def('[ConstRef s1 SymmetricKeySalt]:->())
+  init_proc :: Def('[ConstRef s1 SymKeySaltArray]:->())
   init_proc = proc (named "encode_init") $ \kref -> body $ do
-    call_ gec_init_key sym_key kref -- XXX GecError?
+    call_ gec_init_key sym_key kref
 
   run_proc :: Def('[ ConstRef s1 PlaintextArray , Ref s2 CyphertextArray
                    ] :-> GecError)
@@ -71,7 +69,7 @@ gecEncode n = GecEncode
 
 data GecDecode =
   GecDecode
-    { gec_decode_init   :: forall s1 eff . ConstRef s1 SymmetricKeySalt
+    { gec_decode_init   :: forall s1 eff . ConstRef s1 SymKeySaltArray
                                          -> Ivory eff ()
     , gec_decode_run    :: forall s1 s2 eff . ConstRef s1 CyphertextArray
                                             -> Ref      s2 PlaintextArray
@@ -79,8 +77,8 @@ data GecDecode =
     , gec_decode_moddef :: ModuleDef
     }
 
-gecDecode :: KeySalt -> String -> GecDecode
-gecDecode ks n = GecDecode
+gecDecode :: String -> GecDecode
+gecDecode n = GecDecode
   { gec_decode_init    = call_ init_proc
   , gec_decode_run     = call  run_proc
   , gec_decode_moddef  = do
@@ -95,9 +93,9 @@ gecDecode ks n = GecDecode
   sym_key_area = area (named "global_gec_sym_key_dec") Nothing
   sym_key = addrOf sym_key_area
 
-  init_proc :: Def('[ConstRef s1 SymmetricKeySalt]:->())
+  init_proc :: Def('[ConstRef s1 SymKeySaltArray]:->())
   init_proc = proc (named "decode_init") $ \kref -> body $ do
-    call_ gec_init_key sym_key kref -- XXX GecError
+    call_ gec_init_key sym_key kref
 
   run_proc :: Def('[ ConstRef s1 CyphertextArray, Ref s2 PlaintextArray
                    ]:->GecError)
@@ -139,8 +137,8 @@ gkeInitiate n themP (meP, meQ) = GkeInitiate
       incl gke_response_ack_sts
       incl gke_clear_ctx
       incl gke_init
-      incl gke_mk_pubkey
-      incl gke_mk_privkey
+      incl gec_mk_pubkey
+      incl gec_mk_privkey
       incl init_proc
       incl run_gke_initiate
       incl run_gke_response_ack
@@ -156,9 +154,13 @@ gkeInitiate n themP (meP, meQ) = GkeInitiate
     meQRef   <- local meQ'
     mePRef   <- local meP'
     themPRef <- local themP'
-    -- XXX Pat look here  -- mePriv   <- local EmptyReferenceSomethingSomething
-    gke_mk_privkey r (constRef q) (constRef p)
-    call_ gke_init sts_ctx (constRef mePRef) (constRef meQRef) (constRef themPRef)
+    mePriv   <- local izero
+    mePub    <- local izero
+    themPub  <- local izero
+    call_ gec_mk_privkey mePriv  (constRef meQRef) (constRef mePRef)
+    call_ gec_mk_pubkey mePub    (constRef mePRef)
+    call_ gec_mk_pubkey themPub  (constRef themPRef)
+    call_ gke_init sts_ctx (constRef mePub) (constRef mePriv) (constRef themPub)
 
   run_gke_initiate :: Def('[ Ref s1 GecKeMessage1, ConstRef s2 GecKeRandomData
                    ]:->GecError)
@@ -209,8 +211,8 @@ gkeRespond n themP (meP, meQ) = GkeRespond
       incl gke_finish_sts
       incl gke_clear_ctx
       incl gke_init
-      incl gke_mk_pubkey
-      incl gke_mk_privkey
+      incl gec_mk_pubkey
+      incl gec_mk_privkey
       incl init_proc
       incl run_gke_panic
       incl run_gke_finish
@@ -226,7 +228,13 @@ gkeRespond n themP (meP, meQ) = GkeRespond
     meQRef   <- local meQ'
     mePRef   <- local meP'
     themPRef <- local themP'
-    call_ gke_init sts_ctx (constRef mePRef) (constRef meQRef) (constRef themPRef)
+    mePriv   <- local izero
+    mePub    <- local izero
+    themPub  <- local izero
+    call_ gec_mk_privkey mePriv  (constRef meQRef) (constRef mePRef)
+    call_ gec_mk_pubkey mePub    (constRef mePRef)
+    call_ gec_mk_pubkey themPub  (constRef themPRef)
+    call_ gke_init sts_ctx (constRef mePub) (constRef mePriv) (constRef themPub)
 
   run_gke_respond :: Def('[ConstRef s1 GecKeMessage1, Ref s2 GecKeMessage2, ConstRef s3 GecKeRandomData
                    ]:->GecError)
@@ -243,7 +251,6 @@ gkeRespond n themP (meP, meQ) = GkeRespond
   run_gke_panic :: Def('[]:->())
   run_gke_panic = proc (named "gke_clear") $ body $ call_ gke_clear_ctx sts_ctx
 
-  meQ'   = istruct [ Q.priv .= iarray (map (ival . fromIntegral) (B.unpack meQ))
-                   , Q.pub  .= iarray (map (ival . fromIntegral) (B.unpack meP))   ]
-  meP'   = istruct [ P.pub  .= iarray (map (ival . fromIntegral) (B.unpack meP))   ]
-  themP' = istruct [ P.pub  .= iarray (map (ival . fromIntegral) (B.unpack themP)) ]
+  meQ'   = iarray (map (ival . fromIntegral) (B.unpack meQ))
+  meP'   = iarray (map (ival . fromIntegral) (B.unpack meP))
+  themP' = iarray (map (ival . fromIntegral) (B.unpack themP))

@@ -9,7 +9,8 @@ module SMACCMPilot.Commsec.Ivory.Import
     -- * Symmetric 'steady-state' operation
     , gec_init_key, gec_init_keys, gec_encrypt, gec_decrypt, gec_zero_key
     -- * Types
-    , PublicKey, PrivateKey, E.GecError, GecStsCtx, GecSymKey
+    , GecPublicKey, GecPrivateKey, E.GecError, GecStsCtx, GecSymKey
+    , gec_mk_pubkey, gec_mk_privkey
   ) where
 
 import Ivory.Language
@@ -110,7 +111,7 @@ gke_finish_sts = importProc "finish_sts" gecKe_header
 --------------------------------------------------------------------------------
 
 gec_init_key :: Def ('[ Ref s1 GecSymKey
-                      , ConstRef s2 KeyAndSaltArray
+                      , ConstRef s2 SymKeySaltArray
                       ] :-> E.GecError)
 gec_init_key = importProc "gec_init_sym_key_conf_auth" gec_header
 

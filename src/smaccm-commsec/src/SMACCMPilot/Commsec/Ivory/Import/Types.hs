@@ -7,7 +7,6 @@
 module SMACCMPilot.Commsec.Ivory.Import.Types where
 
 import Ivory.Language
-import Ivory.Language.Proxy
 
 [ivory|
 abstract struct gec_sym_key "gec.h"

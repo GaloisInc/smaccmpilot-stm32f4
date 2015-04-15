@@ -200,13 +200,13 @@ void GEC_FN(gec_decrypt_conf)(struct gec_sym_key_conf *k, const uint8_t *ct, uin
 void GEC_FN(gec_generate_sign_keypair)(struct gec_privkey *q, struct gec_pubkey *p)
 {
     ed25519_publickey(q->priv,p->pub);
-    memcpy(q->pub_, p->pub, GEC_PUB_KEY_LEN);
+    memcpy(q->pub, p->pub, GEC_PUB_KEY_LEN);
 }
 
 // Given a private key and a message, create a signature.
 void GEC_FN(gec_sign)(const struct gec_privkey *k, const uint8_t *msg, const size_t msg_len, uint8_t sig[GEC_SIG_LEN])
 {
-    ed25519_sign(msg, msg_len, k->priv, k->pub_, sig);
+    ed25519_sign(msg, msg_len, k->priv, k->pub, sig);
 }
 
 // Given a public key, message and tag (signature) return 0 if the signature is correct, non-zero otherwize
