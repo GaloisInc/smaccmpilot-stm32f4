@@ -5,6 +5,8 @@
 
 module Main where
 
+import GHC.TypeLits
+
 import qualified Data.List as L
 
 import Ivory.Language
@@ -49,13 +51,20 @@ m = package "main" $ do
     (ks1,ks2) <- keTest
     sk1 <- local izero
     sk2 <- local izero
+    assertEq ks1 ks2 200
     call_ deriveSymmetricKey (constRef ks1) sk1
     call_ deriveSymmetricKey (constRef ks2) sk2
-    assertEq (sk1 ~> c2s_ks) (sk2 ~> s2c_ks) 201
-    assertEq (sk2 ~> c2s_ks) (sk1 ~> s2c_ks) 202
+    assertEq (sk1 ~> c2s_ks) (sk2 ~> c2s_ks) 201
+    assertEq (sk1 ~> s2c_ks) (sk2 ~> s2c_ks) 202
     encDecTest (sk1 ~> c2s_ks)
     encDecTest (sk1 ~> s2c_ks)
     ret 0
+  assertEq :: KnownNat n => Ref s1 (Array n (Stored Uint8)) -> Ref s2 (Array n (Stored Uint8)) -> Int -> Ivory (ProcEffects s Sint32) ()
+  assertEq r1 r2 e = do
+      arrayMap $ \ix -> do
+          v1 <- deref (r1!ix)
+          v2 <- deref (r2!ix)
+          ifte_ (v1 ==? v2) (return ()) (ret (fromIntegral e))
   encDecTest :: Ref s2 SymKeySaltArray -> Ivory (ProcEffects s Sint32) ()
   encDecTest sk = do
     gec_encode_init ce (constRef sk)
@@ -77,9 +86,9 @@ m = package "main" $ do
       m2    <- local izero
       m3    <- local izero
       rand1 <- local (iarray (map (ival . fromIntegral) [(0::Int)..]))
-      rand2 <- local (iarray (map (ival . fromIntegral) [(20::Int)..]))
-      km1   <- local (iarray (map (ival . fromIntegral) [(30::Int)..]))
-      km2   <- local (iarray (map (ival . fromIntegral) [(80::Int)..]))
+      rand2 <- local (iarray (map (ival . fromIntegral) [(10::Int)..]))
+      km1   <- local izero
+      km2   <- local izero
       gke_initiate_init ki
       gke_respond_init kr
       e3 <- gke_initiate ki m1 (constRef rand1)
@@ -96,12 +105,6 @@ m = package "main" $ do
           when (k /=? k') (ret 4)
       return (km1,km2)
       -- XXX add expected failure cases
-  assertEq :: Ref s1 SymKeySaltArray -> Ref s2 SymKeySaltArray -> Int -> Ivory (ProcEffects s Sint32) ()
-  assertEq r1 r2 e = do
-      arrayMap $ \ix -> do
-          v1 <- deref (r1!ix)
-          v2 <- deref (r2!ix)
-          ifte_ (v1 ==? v2) (return ()) (ret (fromIntegral e))
 
 objects :: [FilePath]
 objects =
