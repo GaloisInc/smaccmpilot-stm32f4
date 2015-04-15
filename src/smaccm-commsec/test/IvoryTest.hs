@@ -99,10 +99,8 @@ m = package "main" $ do
       when (e4 /=? E.success) (ret 104)
       when (e5 /=? E.success) (ret 105)
       when (e6 /=? E.success) (ret 106)
-      arrayMap $ \ix -> do
-          k  <- deref (km1 ! ix)
-          k' <- deref (km2 ! ix)
-          when (k /=? k') (ret 4)
+      assert
+      assertEq km1 km2 107
       return (km1,km2)
       -- XXX add expected failure cases
 
