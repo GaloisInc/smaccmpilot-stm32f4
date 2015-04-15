@@ -59,12 +59,15 @@ struct gec_sym_key_conf {
 
 struct gec_privkey {
     ed25519_secret_key priv;
-    ed25519_public_key pub_; // XXX Ivory can't have field name collisions?
+    ed25519_public_key pub;
 };
 
 struct gec_pubkey {
     ed25519_public_key pub;
 };
+
+void GEC_FN(gec_mk_privkey)(struct gec_privkey *k, const uint8_t privkey[GEC_PRIV_KEY_LEN], const uint8_t pubkey[GEC_PUB_KEY_LEN]);
+void GEC_FN(gec_mk_pubkey)(struct gec_pubkey *k, const uint8_t pubkey[GEC_PUB_KEY_LEN]);
 
 void GEC_FN(gec_init_sym_key_conf_auth)(struct gec_sym_key *k, const uint8_t rawkey[GEC_RAW_KEY_LEN]);
 void GEC_FN(gec_init_sym_key_conf)(struct gec_sym_key_conf *k, const uint8_t rawkey[GEC_RAW_KEY_LEN]);

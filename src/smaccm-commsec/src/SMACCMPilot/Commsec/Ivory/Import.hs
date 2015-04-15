@@ -24,8 +24,20 @@ gecKe_header = "gec-ke.h"
 gec_header :: String
 gec_header = "gec.h"
 
-type GecStsCtx = Struct "gec_sts_ctx"
-type GecSymKey = Struct "gec_sym_key"
+
+--------------------------------------------------------------------------------
+--  Public and Private Key Struct Initilization
+
+gec_mk_pubkey :: Def ('[ Ref s1 GecPublicKey
+                       , ConstRef s2 RawPublicKey
+                       ] :-> ())
+gec_mk_pubkey = importProc "gec_mk_pubkey" gec_header
+
+gec_mk_privkey :: Def ('[ Ref s1 GecPrivateKey
+                        , ConstRef s2 RawPrivateKey
+                        , ConstRef s3 RawPublicKey
+                        ] :-> ())
+gec_mk_privkey = importProc "gec_mk_privkey" gec_header
 
 --------------------------------------------------------------------------------
 -- Key Exchange Functions
@@ -34,16 +46,16 @@ type GecSymKey = Struct "gec_sym_key"
 -- @gek_init result meP meQ themP@  Constructs an initial state useful for key negotiation
 -- between two particular parties 
 gke_init :: Def ('[ Ref s4 GecStsCtx
-                  , ConstRef s1 PublicKey
-                  , ConstRef s2 PrivateKey
-                  , ConstRef s3 PublicKey
+                  , ConstRef s1 GecPublicKey
+                  , ConstRef s2 GecPrivateKey
+                  , ConstRef s3 GecPublicKey
                   ] :-> ())
 gke_init = importProc "init_context" gecKe_header
 
 -- | Using a previously initialized struct, reset the state and select a new
 -- remote party for key exchange.
 gke_new_partner :: Def ('[ Ref s4 (Struct "gec_sts_ctx")
-                           , ConstRef s1 PublicKey
+                           , ConstRef s1 GecPublicKey
                            ] :-> ())
 gke_new_partner = importProc "reset_partner" gecKe_header
 

@@ -44,6 +44,9 @@ type KeyMaterial = Array 48 (Stored Uint8)
 keyMaterialSize :: Integer
 keyMaterialSize = fromTypeNat (aNat :: NatType 48)
 
+-- Key and salt values for a unidirectional GEC connection.
+type SymmetricKeySalt = Array 24 (Stored Uint8)
+
 type KeyAndSaltIx = Ix 24
 type KeyAndSaltArray = Array 24 (Stored Uint8)
 keyAndSaltSize :: Integer
