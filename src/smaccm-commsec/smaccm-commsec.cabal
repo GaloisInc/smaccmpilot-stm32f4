@@ -35,10 +35,6 @@ library
                        SMACCMPilot.Commsec.Ivory.Error,
                        SMACCMPilot.Commsec.Ivory.Module,
                        SMACCMPilot.Commsec.Ivory.Types.SymmetricKey,
-                       -- SMACCMPilot.Commsec.Native,
-                       -- SMACCMPilot.Commsec.Native.Error,
-                       -- SMACCMPilot.Commsec.Native.Encode,
-                       -- SMACCMPilot.Commsec.Native.Decode,
                        SMACCMPilot.Commsec.Sizes,
                        Paths_smaccm_commsec
   build-depends:       base >= 4.6,
@@ -67,16 +63,4 @@ executable smaccm-commsec-ivory-test-gen
                        ivory-backend-c,
                        smaccm-commsec,
                        bytestring
-  ghc-options:         -Wall
-
-executable smaccm-commsec-native-test
-  main-is:             NativeTest.hs
-  hs-source-dirs:      test
-  build-depends:       base,
-                       bytestring,
-                       ivory,
-                       ivory-stdlib,
-                       ivory-artifact,
-                       ivory-backend-c,
-                       smaccm-commsec
   ghc-options:         -Wall
