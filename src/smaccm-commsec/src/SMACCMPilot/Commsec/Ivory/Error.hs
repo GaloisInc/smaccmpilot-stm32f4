@@ -5,10 +5,11 @@
 module SMACCMPilot.Commsec.Ivory.Error
   ( GecError
   , success
-  , fail_dup_ctr
-  , fail_ctr_rollover
   , fail_bad_input
-  , fail_gcm
+  , fail_dup_ctr
+  , fail_gcm_auth
+  , fail_ctr_rollover
+  , fail_encrypt_gcm
   ) where
 
 import Ivory.Language
@@ -23,16 +24,10 @@ instance Packable (Stored GecError) where
     wrap raw = GecError $ (raw <=? 6) ? (raw, 0)
     unwrap (GecError src) = src
 
--- XXX TMD review and verify the error codes
-success :: GecError
-success = GecError 0
-fail_dup_ctr :: GecError
-fail_dup_ctr = GecError 2
-fail_ctr_rollover :: GecError
+success, fail_bad_input, fail_dup_ctr, fail_ctr_rollover, fail_gcm_auth, fail_encrypt_gcm :: GecError
+success           = GecError 0
+fail_bad_input    = GecError 1
+fail_dup_ctr      = GecError 2
+fail_gcm_auth     = GecError 3
 fail_ctr_rollover = GecError 4
-fail_bad_input :: GecError
-fail_bad_input = GecError 1
-fail_gcm :: GecError
-fail_gcm = GecError 3
-fail_encrypt_gcm :: GecError
-fail_encrypt_gcm = GecError 5
+fail_encrypt_gcm  = GecError 5
