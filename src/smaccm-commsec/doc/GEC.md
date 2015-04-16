@@ -57,28 +57,25 @@ pairs (P~a~,Q~a~) and (P~b~,Q~b~) The protocol proceeds as:
    `kdf(z,0)` to compute K~a~ || S~a~, and `kdf(z,2)` to compute K~client~ ||
    S~client~.
 2. *B* computes the ed25519 signature: sig = sign~Qb~(P~be~ || P~ae~)
-2. *B* computes and sends the message P~be~ || E~key=Kb,IV=Sb||zero~(sig ||
-   P~be~ || P~ae~)
+2. *B* computes and sends the message P~be~ || E~key=Kb,IV=Sb||zero~(sig)
 3. *A* computes the shared secret: z = scalar\_multiplication(Q~be~, P~ae~)
 3. *A* uses the key derivation function kdf(z,1) to compute K~b~ || S~b~,
    `kdf(z,0)` to compute K~a~ || S~a~, and `kdf(z,2)` to compute K~client~ ||
    S~client~.
-3. *A* decrypts the remainder of the message, verifies the signature and that
-   the public keys match expected values.
+3. *A* decrypts the remainder of the message, verifies the signature.
 3. *A* computes the ed25519 signature: sig = sign~Qa~(P~ae~ || P~be~)
-3. *A* computes and sends the message E~key=Ka,IV=Sa||zero~(sig || P~ae~ ||
-   P~be~)
+3. *A* computes and sends the message E~key=Ka,IV=Sa||zero~(sig)
 3. *A* returns the values (K~client~,S~client~) to the callee as the resulting
    key material.
-4. *B* decrypts the message, verifies the signature and that the public keys
-   match expected values.  *B* then returns the tuple (K~client~,S~client~) to
+4. *B* decrypts the message and verifies the signature.
+   *B* then returns the tuple (K~client~,S~client~) to
    the callee as the resulting key material.
 
 The wire-format is unsurprisingly a reproduction of the messages in the above computations:
 
 * message1 = [ P~ae~ (32 bytes) ]
-* message2 = [ P~be~ (32 bytes) | Encrypted Signature (64 bytes) | Encrypted P~be~ (32 bytes) | Encrypted P~ae~ (32 bytes) ]
-* message3 = [ Encrypted Signature (64 bytes) | Encrypted P~ae~ (32 bytes) | Encrypted P~be~ (32 bytes) ]
+* message2 = [ P~be~ (32 bytes) | Encrypted Signature (64 bytes) ]
+* message3 = [ Encrypted Signature (64 bytes) ]
 
 #### Key Derivation
 
