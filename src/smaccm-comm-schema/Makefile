@@ -8,6 +8,7 @@ IVORY_REPO ?= $(CURRENT_DIR)/../../../ivory
 TOWER_REPO ?= $(CURRENT_DIR)/../../../tower
 BSP_REPO ?= $(CURRENT_DIR)/../../../ivory-tower-stm32
 GIDL_REPO ?= ../../../gidl
+SCARGOT_REPO ?= ../../../s-cargot
 
 default: smaccm-comm-schema-native
 default: smaccm-comm-schema-tower
@@ -47,6 +48,7 @@ smaccm-comm-schema-tower-test: smaccm-comm-schema-tower
 create-sandbox:
 	cabal sandbox init
 	cabal sandbox add-source $(IVORY_REPO)/ivory-artifact
+	cabal sandbox add-source $(SCARGOT_REPO)
 	cabal sandbox add-source $(GIDL_REPO)
 	cabal install gidl
 
