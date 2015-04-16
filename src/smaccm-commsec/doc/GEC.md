@@ -79,7 +79,7 @@ The wire-format is unsurprisingly a reproduction of the messages in the above co
 
 #### Key Derivation
 
-The key deriviation function is a SHA512 hash of the concatenation of a 16 bit
+The key derivation function is a SHA512 hash of the concatenation of a 16 bit
 big endian counter, the shared secret 'z', and a one byte party-specific
 identifier (0 for *A*, 1 for *B* and 2 for key material returned to the
 callee).  The requested sizes are all under the output size of SHA512 so the
@@ -92,6 +92,22 @@ kdf(z,partyIdent) = SHA512( 0 || z || partyIdent)
 
 N.B. This key derivation technique is a common one, appearing in NIST SP 800-56A
 and other standards.
+
+#### Costs
+
+For each party, key exchange costs 96 bytes of bandwidth (1 and 2 transmission
+depending on the role of the party), 32 bytes of random values, two scalar
+multiplications (to obtain the ephemeral public key and to compute the shared
+secret), one signature verification, one signature generation, 8 blocks of
+AES-CTR, and three SHA512 hashes over 34 bytes each (producing 96 bytes of key material).
+
+These operations are close to minimal for the protocol in question and are
+believed to be cheap enough for all targeted uses.  Some micro-optimizations
+could be made to (for example) run 2 SHA512 operations instead of 3, however a
+first glance suggests that any significant performance improvements would have
+to come from taking advantage of available hardware accelerations or selection
+of faster algorithms; these decisions usually involve a trade-off between the
+portability, engineering effort, or even security margin of the system.
 
 #### Analysis
 
@@ -181,16 +197,16 @@ of the three messages via four primary functions: `initiate_sts`,
 ## Conclusions
 
 I have presented GEC, an evolution of the previous SMACCM Secure MAVLink system
-that includes key exchange and a cleaner IV system.  The design is believed to
-be an easier solution in terms of key management while providing a stronger
-security posture by avoiding key sharing between numerous parties. The current
-system uses AES in order to leverage previous work, prior peer-review, and
-conform to reasonable standards; I acknowledge switching to ChaCha20 could be a
-sensible future step although it strongly depends on the importance of
-standards and availability of algorithm-specific hardware acceleration for the
-use case in question.  In the case of key exchange the recently developed
-algorithms curve25519 and ed25519 were chosen due to the clear benefits over
-NIST-standardized equivalents.
+that includes key exchange and cleaner IV construction. The design is believed
+to be a more user-friendly solution due to simpler key management while
+providing a stronger security posture by avoiding frequent key sharing between
+numerous parties. The current system uses AES in order to leverage previous
+work, prior peer-review, and conform to reasonable standards; I acknowledge
+switching to ChaCha20 could be a sensible future step although it strongly
+depends on the importance of standards and availability of algorithm-specific
+hardware acceleration for the use case in question.  In the case of key
+exchange the recently developed algorithms curve25519 and ed25519 were chosen
+due to the clear benefits over NIST-standardized equivalents.
 
 GEC exists to fill a particular point in the design space of communication
 security for resource constrained machines.  This space is not so small that
