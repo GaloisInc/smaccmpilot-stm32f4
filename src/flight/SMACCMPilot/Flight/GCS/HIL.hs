@@ -5,7 +5,6 @@ module SMACCMPilot.Flight.GCS.HIL where
 
 import Ivory.Language
 import Ivory.Tower
-import Ivory.Stdlib.Trig (iAtan2)
 
 import qualified SMACCMPilot.Mavlink.Messages.HilState as H
 import qualified SMACCMPilot.Flight.Types.Sensors  as S
@@ -54,7 +53,7 @@ hilTranslator hil sens pos = do
     (vxf :: IFloat) <- assign $ safeCast vx
     (vyf :: IFloat) <- assign $ safeCast vy
     vground <- assign $ sqrt ((vxf * vxf) + (vyf * vyf))
-    heading <- assign $ (iAtan2 (safeCast vx) (safeCast vy))*(180.0/pi)
+    heading <- assign $ (atan2F (safeCast vx) (safeCast vy))*(180.0/pi)
     p <- local $ istruct
       [ P.fix     .= ival P.fix_3d
       , P.num_sv  .= ival 7

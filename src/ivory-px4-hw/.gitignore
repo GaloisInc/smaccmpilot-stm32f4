@@ -13,3 +13,4 @@ px4-can-fragment-test
 user.conf
 platform-*
 .cabal-sandbox
+*.pyc

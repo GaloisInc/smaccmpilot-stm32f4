@@ -36,6 +36,13 @@ bytestringLog tag = do
   bytestringLog tag
 
 
+showLog :: Show a => Pipe a a GW ()
+showLog = do
+  a <- await
+  lift $ writeLog $ show a
+  yield a
+  showLog
+
 tagger :: Monad m => HX.Tag -> Pipe a (HX.Tag, a) m ()
 tagger t = do
   a <- await
