@@ -1,7 +1,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module SMACCMPilot.Comm.Ivory.Server.TestApp
+module SMACCMPilot.Comm.TestServer
   ( app
   ) where
 
@@ -14,10 +14,7 @@ import SMACCMPilot.Commsec.Sizes
 import SMACCMPilot.Datalink.HXStream.Tower
 import Ivory.BSP.STM32.Driver.RingBuffer
 
-import SMACCMPilot.Comm.Tower.Interface.ControllableVehicle.Producer
-import SMACCMPilot.Comm.Tower.Interface.ControllableVehicle.Consumer
-
-import SMACCMPilot.Comm.Ivory.Server
+import SMACCMPilot.Comm.Tower.Interface.ControllableVehicle
 
 app :: (e -> PX4Platform) -> Tower e ()
 app topx4 = do
@@ -52,7 +49,7 @@ app topx4 = do
 
   attrs <- towerControllableVehicleAttrs initControllableVehicleAttrs
 
-  cvp <- controllableVehicleServer cvc attrs stream_outputs
+  cvp <- towerControllableVehicleServer cvc attrs stream_outputs
 
   (output_frames :: ChanOutput CyphertextArray) <-
         controllableVehicleProducerOutput cvp
