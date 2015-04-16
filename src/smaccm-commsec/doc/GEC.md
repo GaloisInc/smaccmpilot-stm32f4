@@ -82,7 +82,19 @@ The wire-format is unsurprisingly a reproduction of the messages in the above co
 
 #### Key Derivation
 
-XXX TMD TODO
+The key deriviation function is a SHA512 hash of the concatenation of a 16 bit
+big endian counter, the shared secret 'z', and a one byte party-specific
+identifier (0 for *A*, 1 for *B* and 2 for key material returned to the
+callee).  The requested sizes are all under the output size of SHA512 so the
+counter is always zero and the return values are the first N bytes of the hash
+depending on the amount requested.
+
+```
+kdf(z,partyIdent) = SHA512( 0 || z || partyIdent)
+```
+
+N.B. This key derivation technique is a common one, appearing in NIST SP 800-56A
+and other standards.
 
 #### Analysis
 
