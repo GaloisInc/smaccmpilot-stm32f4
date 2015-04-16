@@ -54,15 +54,15 @@ type GecKeMessage1 = Array 32 (Stored Uint8)
 gecKeMessage1Size :: Integer
 gecKeMessage1Size = fromTypeNat (aNat :: NatType 32)
 
-type GecKeMessage2Ix = Ix 160
-type GecKeMessage2 = Array 160 (Stored Uint8)
+type GecKeMessage2Ix = Ix 96
+type GecKeMessage2 = Array 96 (Stored Uint8)
 gecKeMessage2Size :: Integer
-gecKeMessage2Size = fromTypeNat (aNat :: NatType 160)
+gecKeMessage2Size = fromTypeNat (aNat :: NatType 96)
 
-type GecKeMessage3Ix = Ix 128
-type GecKeMessage3 = Array 128 (Stored Uint8)
+type GecKeMessage3Ix = Ix 64
+type GecKeMessage3 = Array 64 (Stored Uint8)
 gecKeMessage3Size :: Integer
-gecKeMessage3Size = fromTypeNat (aNat :: NatType 128)
+gecKeMessage3Size = fromTypeNat (aNat :: NatType 64)
 
 type GecKeRandomDataIx = Ix 32
 type GecKeRandomData   = Array 32 (Stored Uint8)

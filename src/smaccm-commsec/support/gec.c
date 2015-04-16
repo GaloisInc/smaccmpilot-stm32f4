@@ -113,7 +113,7 @@ int GEC_FN(gec_encrypt)(struct gec_sym_key *k, const uint8_t pt[GEC_PT_LEN], uin
 {
     const size_t nrBlks = (GEC_PT_LEN + AES_BLOCK_SIZE - 1) % AES_BLOCK_SIZE;
     uint8_t *tag = ct + GEC_CT_LEN - _GEC_TAG_LEN;
-    uint8_t iv[_IV_LEN];
+    uint8_t iv[_GCM_IV_LEN];
     int ret = GEC_ERROR_INVALID;
 
     if(UINT32_MAX - nrBlks <= k->ctr) {
@@ -126,8 +126,8 @@ int GEC_FN(gec_encrypt)(struct gec_sym_key *k, const uint8_t pt[GEC_PT_LEN], uin
         memcpy(iv+sizeof(uint32_t), k->salt, _GEC_SALT_LEN);
         memcpy(ct + _GEC_CTR_LEN, pt, GEC_PT_LEN);
 
-        gcm_ret = gcm_encrypt_message(iv, _IV_LEN, NULL, 0, ct + _GEC_CTR_LEN, GEC_PT_LEN, tag, _GEC_TAG_LEN, &k->gctx);
-        memset(iv,0,_IV_LEN);
+        gcm_ret = gcm_encrypt_message(iv, _GCM_IV_LEN, NULL, 0, ct + _GEC_CTR_LEN, GEC_PT_LEN, tag, _GEC_TAG_LEN, &k->gctx);
+        memset(iv,0,_GCM_IV_LEN);
         if(RETURN_GOOD == gcm_ret) {
             ret = GEC_SUCCESS;
         } else {
@@ -141,7 +141,7 @@ int GEC_FN(gec_encrypt)(struct gec_sym_key *k, const uint8_t pt[GEC_PT_LEN], uin
 int GEC_FN(gec_decrypt)(struct gec_sym_key *k, const uint8_t ct[GEC_CT_LEN], uint8_t pt[GEC_PT_LEN])
 {
     const uint8_t *tag = ct + GEC_CT_LEN - _GEC_TAG_LEN;
-    unsigned char iv[_IV_LEN];
+    unsigned char iv[_GCM_IV_LEN];
     uint64_t their_counter;
     int ret = GEC_ERROR_INVALID;
 
@@ -154,12 +154,12 @@ int GEC_FN(gec_decrypt)(struct gec_sym_key *k, const uint8_t ct[GEC_CT_LEN], uin
         memcpy(iv + _GEC_CTR_LEN, k->salt, _GEC_SALT_LEN);
         memcpy(pt, ct+_GEC_CTR_LEN, GEC_PT_LEN);
 
-        gcm_ret = gcm_decrypt_message( iv, _IV_LEN
+        gcm_ret = gcm_decrypt_message( iv, _GCM_IV_LEN
                                      , NULL, 0 // AAD
                                      , pt, GEC_PT_LEN
                                      , tag, _GEC_TAG_LEN
                                      , &k->gctx);
-        memset(iv,0,_IV_LEN);
+        memset(iv,0,_GCM_IV_LEN);
 
         if(RETURN_GOOD == gcm_ret) {
             ret    = GEC_SUCCESS;
@@ -177,8 +177,8 @@ int GEC_FN(gec_encrypt_conf)(struct gec_sym_key_conf *k, const uint8_t *pt, uint
 {
     int ret = GEC_ERROR_INVALID;
     const size_t nrBlks = (len + AES_BLOCK_SIZE - 1) % AES_BLOCK_SIZE;
-    uint8_t ctr_buf[_IV_LEN];
-    memset(ctr_buf, 0, _IV_LEN);
+    uint8_t ctr_buf[_CTR_IV_LEN];
+    memset(ctr_buf, 0, _CTR_IV_LEN);
 
     if(k->ctr >= UINT32_MAX - nrBlks) {
         ret = GEC_ERROR_COUNTER_ROLLOVER;
@@ -191,9 +191,9 @@ int GEC_FN(gec_encrypt_conf)(struct gec_sym_key_conf *k, const uint8_t *pt, uint
     return ret;
 }
 
-void GEC_FN(gec_decrypt_conf)(struct gec_sym_key_conf *k, const uint8_t *ct, uint8_t *pt,size_t len)
+int GEC_FN(gec_decrypt_conf)(struct gec_sym_key_conf *k, const uint8_t *ct, uint8_t *pt,size_t len)
 {
-    GEC_FN(gec_encrypt_conf)(k, ct, pt, len);
+    return GEC_FN(gec_encrypt_conf)(k, ct, pt, len);
 }
 
 // Given random bytes in the privkey, construct a private and public key pair.

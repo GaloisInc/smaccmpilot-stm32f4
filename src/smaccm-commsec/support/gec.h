@@ -11,10 +11,11 @@
 #define _GEC_CTR_LEN 4
 #define _GEC_TAG_LEN 12            /* 8 byte GCM tags */
 #define _GEC_SYM_CIPHER_KEY_LEN 16 /* AES 128, hardcoded, should fix */
-#define _IV_LEN 12
+#define _CTR_IV_LEN 16
+#define _GCM_IV_LEN 12
 
-#if (_IV_LEN != _GEC_SALT_LEN + _GEC_CTR_LEN)
-#error "IV Len should be equal to salt plus counter."
+#if (_GCM_IV_LEN != _GEC_SALT_LEN + _GEC_CTR_LEN)
+#error "GCM IV Len should be equal to salt plus counter."
 #endif
 
 #define GEC_RAW_KEY_LEN (_GEC_SALT_LEN + _GEC_SYM_CIPHER_KEY_LEN)
@@ -81,7 +82,7 @@ int GEC_FN(gec_encrypt)(struct gec_sym_key *k, const uint8_t pt[GEC_PT_LEN], uin
 int GEC_FN(gec_decrypt)(struct gec_sym_key *k, const uint8_t ct[GEC_CT_LEN], uint8_t pt[GEC_PT_LEN]);
 
 int GEC_FN(gec_encrypt_conf)(struct gec_sym_key_conf *k, const uint8_t *pt, uint8_t *ct, size_t len);
-void GEC_FN(gec_decrypt_conf)(struct gec_sym_key_conf *k, const uint8_t *ct, uint8_t *pt, size_t len);
+int GEC_FN(gec_decrypt_conf)(struct gec_sym_key_conf *k, const uint8_t *ct, uint8_t *pt, size_t len);
 
 // Given random bytes in the privkey, construct a private and public key pair.
 void GEC_FN(gec_generate_sign_keypair)(struct gec_privkey *q, struct gec_pubkey *p);
