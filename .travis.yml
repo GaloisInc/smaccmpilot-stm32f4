@@ -11,6 +11,8 @@ before_install:
   - export BSP_REPO=$PWD/ivory-tower-stm32
   - git clone https://github.com/galoisinc/gidl
   - export GIDL_REPO=$PWD/gidl
+  - git clone https://github.com/asiamanra/s-cargot
+  - export SCARGOT_REPO=$PWD/s-cargot
 install:
   - cabal install cabal-install
   - cabal install alex
