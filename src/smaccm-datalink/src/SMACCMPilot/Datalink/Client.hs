@@ -20,7 +20,7 @@ import SMACCMPilot.Datalink.Client.ByteString
 import Data.ByteString.Char8 (ByteString)
 import qualified Data.ByteString.Char8 as B
 import SMACCMPilot.Commsec.Sizes
-import SMACCMPilot.Commsec.Keys
+import SMACCMPilot.Commsec.Ivory.Types.SymmetricKey
 
 frameLoopbackClient :: Options -> IO ()
 frameLoopbackClient opts = do
