@@ -142,7 +142,7 @@ concatenating the salt and 32 bit counter: S~c~ || counter. The counter is
 initially zero and incremented before processing each message. The ciphertext
 and tag are computed as ciphertext || tag = E~Key=Kc,IV=Sc||counter~(message)
 and sent as the datagram: counter (32 bit, bit endian) || ciphertext || tag
-(first 64 bits).
+(first 96 bits).
 
 #### Incoming Messages
 
@@ -155,12 +155,12 @@ plaintext.
 
 #### Analysis
 
-GEC uses an 8 byte authentication tag while GCM tags have a full length of 16
-bytes. This is because the motivating domain of GEC is bandwidth-constrained
-devices in which every payload of 80 bytes must be authenticated, meaning the 8
-bytes savings is significant.  NIST and independent recommendations are to remain
-under 2^32 messages when using 64 bit tags - micro air vehicles average 100 packets
-per second while mission lifetime is under a day, putting us well below this bound.
+GEC uses a 96 bit authentication tag while GCM tags have a full length of 128
+bits. The decision to use small tage size is motivated by the bandwidth
+constraints inherent in our domain; every message of 80 bytes must be placed in
+a 96 byte packet. NIST and independent recommendations are to remain under 2^32
+messages when using 64 bit tags - micro air vehicles average 100 packets per
+second while mission lifetime is under a day, putting us well below this bound.
 
 The counter is 32 bits which, when combined with the salt, results in the
 recommended GCM IV length of 96 bits.  A consequence of 32 bit counters is a
