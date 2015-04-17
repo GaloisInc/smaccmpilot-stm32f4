@@ -72,6 +72,7 @@ library
                        SMACCMPilot.Commsec.Ivory.Error,
                        SMACCMPilot.Commsec.Ivory.Module,
                        SMACCMPilot.Commsec.Ivory.Types.SymmetricKey,
+                       SMACCMPilot.Commsec.Tower,
                        SMACCMPilot.Commsec.Sizes,
                        Paths_smaccm_commsec
   build-depends:       base >= 4.6,
