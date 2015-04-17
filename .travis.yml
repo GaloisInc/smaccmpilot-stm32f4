@@ -32,3 +32,7 @@ env:
   - ENV_TEST_TARGET=smaccm-comm-server
   - ENV_TEST_TARGET=smaccm-ins
   - ENV_TEST_TARGET=smaccm-params
+matrix:
+  allow_failures:
+    - env: TRAVIS_BRANCH=crypto-clean
+
