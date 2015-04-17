@@ -47,7 +47,7 @@ GEC key exchange is accomplished by combining the Station-To-Station (STS)
 protocol with [curve25519] for key exchange, [ed25519] for authentication,
 SHA512 with a counter for key derivation, and finally AES128 (counter mode) for
 the key confirmation.  Assume parties *A* and *B* with ed25519 asymmetric key
-pairs (P~a~,Q~a~) and (P~b~,Q~b~) The protocol proceeds as:
+pairs (P~a~,Q~a~) and (P~b~,Q~b~).  The protocol proceeds as:
 
 1. *A* generates an ephemeral (random) curve25519 key pair (P~ae~, Q~ae~) and
    sends P~ae~.
@@ -58,7 +58,7 @@ pairs (P~a~,Q~a~) and (P~b~,Q~b~) The protocol proceeds as:
    S~client~.
 2. *B* computes the ed25519 signature: sig = sign~Qb~(P~be~ || P~ae~)
 2. *B* computes and sends the message P~be~ || E~key=Kb,IV=Sb||zero~(sig)
-3. *A* computes the shared secret: z = scalar\_multiplication(Q~be~, P~ae~)
+3. *A* computes the shared secret: z = scalar\_multiplication(Q~ae~, P~be~)
 3. *A* uses the key derivation function kdf(z,1) to compute K~b~ || S~b~,
    `kdf(z,0)` to compute K~a~ || S~a~, and `kdf(z,2)` to compute K~client~ ||
    S~client~.
@@ -156,15 +156,15 @@ plaintext.
 #### Analysis
 
 GEC uses a 96 bit authentication tag while GCM tags have a full length of 128
-bits. The decision to use small tage size is motivated by the bandwidth
+bits. The decision to use small tag size is motivated by the bandwidth
 constraints inherent in our domain; every message of 80 bytes must be placed in
-a 96 byte packet. NIST and independent recommendations are to remain under 2^32
+a 96 byte packet. NIST and independent recommendations are to remain under 2^32^
 messages when using 64 bit tags - micro air vehicles average 100 packets per
 second while mission lifetime is under a day, putting us well below this bound.
 
 The counter is 32 bits which, when combined with the salt, results in the
 recommended GCM IV length of 96 bits.  A consequence of 32 bit counters is a
-limit of 2^32 messages, which is in line with the GCM tag size.  Notice that
+limit of 2^32^ messages, which is in line with the GCM tag size.  Notice that
 these limits are somewhat misleading - if the useful life of a symmetric key is
 exhausted it is possible to renegotiate a new key using the key exchange
 protocol.
