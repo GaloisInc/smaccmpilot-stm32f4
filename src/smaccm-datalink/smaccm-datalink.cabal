@@ -42,6 +42,7 @@ library
                        stm,
                        transformers,
                        unix,
+                       gec,
                        ivory,
                        ivory-hw,
                        ivory-serialize,

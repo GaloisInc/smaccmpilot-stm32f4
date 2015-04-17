@@ -2,6 +2,7 @@
 IVORY_REPO ?= ../../../ivory
 TOWER_REPO ?= ../../../tower
 BSP_REPO ?= ../../../ivory-tower-stm32
+GEC_REPO ?= ../../../gec
 
 default:
 	cabal build
@@ -46,6 +47,7 @@ create-sandbox:
 	cabal sandbox add-source $(BSP_REPO)/ivory-bsp-tests
 	cabal sandbox add-source ../ivory-px4-hw
 	cabal sandbox add-source ../smaccm-commsec
+	cabal sandbox add-source $(GEC_REPO)
 	cabal install --dependencies-only --max-backjumps=20000
 
 clean: smaccm-datalink-ivory-frameloopback-test-clean
