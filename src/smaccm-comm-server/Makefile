@@ -40,7 +40,7 @@ create-sandbox:
 	cabal sandbox add-source ../smaccm-datalink
 	make -C ../smaccm-comm-schema create-sandbox
 	make -C ../smaccm-comm-schema
-	cabal sandbox add-source ../smaccm-comm-schema/smaccm-comm-schema-ivory
+	cabal sandbox add-source ../smaccm-comm-schema/smaccm-comm-schema-tower
 	cabal install --dependencies-only --max-backjumps=20000
 
 clean: smaccm-comm-server-test-clean

@@ -11,6 +11,8 @@ before_install:
   - export BSP_REPO=$PWD/ivory-tower-stm32
   - git clone https://github.com/galoisinc/gidl
   - export GIDL_REPO=$PWD/gidl
+  - git clone https://github.com/aisamanra/s-cargot
+  - export SCARGOT_REPO=$PWD/s-cargot
 install:
   - cabal install cabal-install
   - cabal install alex
@@ -19,7 +21,7 @@ script:
   - ghc --version
   - cabal --version
   - arm-none-eabi-gcc --version
-  - IVORY_REPO=$IVORY_REPO TOWER_REPO=$TOWER_REPO BSP_REPO=$BSP_REPO GIDL_REPO=$GIDL_REPO make $ENV_TEST_TARGET
+  - IVORY_REPO=$IVORY_REPO TOWER_REPO=$TOWER_REPO BSP_REPO=$BSP_REPO GIDL_REPO=$GIDL_REPO SCARGOT_REPO=$SCARGOT_REPO make $ENV_TEST_TARGET
 ghc:
   - 7.8
 env:
@@ -31,4 +33,3 @@ env:
   - ENV_TEST_TARGET=smaccm-comm-client
   - ENV_TEST_TARGET=smaccm-comm-server
   - ENV_TEST_TARGET=smaccm-ins
-  - ENV_TEST_TARGET=smaccm-params

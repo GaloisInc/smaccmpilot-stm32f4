@@ -11,8 +11,7 @@ cabal-version:       >= 1.10
 
 
 library
-  exposed-modules:     SMACCMPilot.Comm.Ivory.Server,
-                       SMACCMPilot.Comm.Ivory.Server.TestApp
+  exposed-modules:     SMACCMPilot.Comm.TestServer
   build-depends:       base >= 4.6,
                        ivory,
                        ivory-stdlib,
@@ -22,7 +21,7 @@ library
                        ivory-px4-hw,
                        smaccm-commsec,
                        smaccm-datalink,
-                       smaccm-comm-schema-ivory
+                       smaccm-comm-schema-tower
   hs-source-dirs:      src
   default-language:    Haskell2010
   ghc-options:         -Wall
