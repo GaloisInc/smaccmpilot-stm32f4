@@ -76,10 +76,6 @@ library
                        Paths_smaccm_commsec
   build-depends:       base >= 4.6,
                        bytestring,
-                       cereal,
-                       cipher-aes,
-                       crypto-cipher-types,
-                       containers,
                        ivory,
                        ivory-serialize,
                        ivory-stdlib,
