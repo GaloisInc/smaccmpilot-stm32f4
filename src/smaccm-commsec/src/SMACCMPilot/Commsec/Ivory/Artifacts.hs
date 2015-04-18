@@ -59,6 +59,7 @@ ed25519Files = map ("ed25519/" ++)
   , "curve25519-donna-32bit.h"
   , "curve25519-donna-64bit.h"
   , "curve25519-donna-helpers.h"
+  , "modm-donna-32bit.h"
   , "modm-donna-64bit.h"
   ]
 

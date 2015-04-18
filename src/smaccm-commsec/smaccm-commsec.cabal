@@ -10,6 +10,7 @@ build-type:          Simple
 cabal-version:       >= 1.10
 
 data-files: support/aes/aes.h,
+            support/aes/aes_modes.c
             support/aes/aescrypt.c,
             support/aes/aeskey.c,
             support/aes/aestab.c,
