@@ -3,7 +3,7 @@ module Main where
 
 import SMACCMPilot.Datalink.Client
 import SMACCMPilot.Datalink.Client.Opts
-import SMACCMPilot.Commsec.Keys
+import SMACCMPilot.Commsec.SymmetricKey
 
 import System.Environment (getArgs)
 import System.Console.GetOpt

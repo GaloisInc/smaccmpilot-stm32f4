@@ -19,8 +19,9 @@ import SMACCMPilot.Datalink.Client.ByteString
 
 import Data.ByteString.Char8 (ByteString)
 import qualified Data.ByteString.Char8 as B
+import qualified Data.ByteString.Internal as B (w2c)
 import SMACCMPilot.Commsec.Sizes
-import SMACCMPilot.Commsec.Ivory.Types.SymmetricKey
+import SMACCMPilot.Commsec.SymmetricKey
 
 frameLoopbackClient :: Options -> IO ()
 frameLoopbackClient opts = do
@@ -76,12 +77,12 @@ commsecLoopbackClient opts sk = do
         >-> hxDecoder
         >-> frameLog
         >-> untagger 0
-        >-> commsecDecoder (s2c_ks sk)
+        >-> commsecDecoder (keyToBS (sk_s2c sk))
         >-> pushConsumer in_frame_push
 
   a <- asyncRunEffect console "serial out"
            $ popProducer out_frame_pop
-         >-> commsecEncoder (c2s_ks sk)
+         >-> commsecEncoder (keyToBS (sk_s2c sk))
          >-> tagger 0
          >-> frameLog
          >-> hxEncoder
@@ -99,6 +100,9 @@ commsecLoopbackClient opts sk = do
   -- serial in and serial out are STM blocked forever after serialserver closes.
   wait a
 
+
+  where
+  keyToBS = B.pack . map B.w2c
 
 
 checkLoopback :: [ByteString] -- Frames to send

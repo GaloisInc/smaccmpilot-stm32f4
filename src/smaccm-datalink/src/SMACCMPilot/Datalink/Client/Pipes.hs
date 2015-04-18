@@ -13,7 +13,7 @@ import SMACCMPilot.Datalink.Client.ByteString
 
 import qualified SMACCMPilot.Datalink.HXStream.Native as HX
 import SMACCMPilot.Commsec.Sizes
-import SMACCMPilot.Commsec.Native
+import GEC.Datagram.Pure
 
 word8Log :: String -> Pipe Word8 Word8 GW ()
 word8Log tag = do
@@ -74,29 +74,33 @@ hxEncoder = do
     Right padded -> yield (HX.encode t padded)
   hxEncoder
 
+type KeySalt = ByteString
+
 commsecEncoder :: KeySalt -> Pipe ByteString ByteString GW ()
 commsecEncoder ks = do
-  lift (writeLog ("created commsecEncoder with ks " ++ show ks))
-  aux (commsecEncode ks)
+  case mkContextOut Small ks of
+    Just ctx -> do
+      lift (writeLog ("created commsecEncoder with ks " ++ show ks))
+      aux ctx
+    Nothing -> lift (writeErr "FATAL: Failed to create GEC encode context")
   where
-  aux e = do
+  aux ctx = do
     pt <- await
-    let (e', er) = commsec_encode_run e pt
-    case er of
-      Left err -> lift (writeErr (show err))
-      Right ct -> yield ct
-    aux e'
+    case encode ctx pt of
+      Just (ctx', ct) -> yield ct >> aux ctx'
+      Nothing -> lift (writeErr "GEC encode failed") >> aux ctx
 
 commsecDecoder :: KeySalt -> Pipe ByteString ByteString GW ()
 commsecDecoder ks = do
-  lift (writeLog ("created commsecDecoder with ks " ++ show ks))
-  aux (commsecDecode ks)
+  case mkContextIn Small ks of
+    Just ctx -> do
+      lift (writeLog ("created commsecDecoder with ks " ++ show ks))
+      aux ctx
+    Nothing -> lift (writeErr "FATAL: failed to create GEC decode context")
   where
-  aux d = do
+  aux ctx = do
     ct <- await
-    let (d', dr) = commsec_decode_run d ct
-    case dr of
-      Left err -> lift (writeErr (show err))
-      Right pt -> yield pt
-    aux d'
+    case decode ctx ct of
+      Just (ctx', pt) -> yield pt >> aux ctx'
+      Nothing -> lift (writeErr "GEC decode failed") >> aux ctx
 
