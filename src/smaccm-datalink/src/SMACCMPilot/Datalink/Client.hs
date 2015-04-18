@@ -6,7 +6,6 @@ import Control.Concurrent (threadDelay)
 import Text.Printf
 import Pipes
 import System.Random
-import System.IO
 import System.Exit
 
 import SMACCMPilot.Datalink.Client.Async
@@ -50,7 +49,7 @@ frameLoopbackClient opts = do
          >-> pushConsumer ser_out_push
 
   cts <- replicateM 20 (randomBytestring cyphertextSize)
-  r <- checkLoopback cts out_frame_push in_frame_pop 100
+  r <- checkLoopback console cts out_frame_push in_frame_pop 100
   o <- getConsoleOutput console
   putStrLn o
   case r of
@@ -72,7 +71,7 @@ commsecLoopbackClient opts sk = do
   (out_frame_push, out_frame_pop) <- newQueue
   (in_frame_push, in_frame_pop) <- newQueue
 
-  _ <- asyncRunEffect console "serial in"
+  b <- asyncRunEffect console "serial in"
           $ popProducer ser_in_pop
         >-> hxDecoder
         >-> frameLog
@@ -82,48 +81,50 @@ commsecLoopbackClient opts sk = do
 
   a <- asyncRunEffect console "serial out"
            $ popProducer out_frame_pop
-         >-> commsecEncoder (keyToBS (sk_s2c sk))
+         >-> commsecEncoder (keyToBS (sk_c2s sk))
          >-> tagger 0
          >-> frameLog
          >-> hxEncoder
          >-> pushConsumer ser_out_push
 
-  cts <- replicateM 20 (randomBytestring plaintextSize)
-  r <- checkLoopback cts out_frame_push in_frame_pop 100
+  cts <- replicateM 2 (randomBytestring plaintextSize)
+  r <- checkLoopback console cts out_frame_push in_frame_pop 100
   o <- getConsoleOutput console
   putStrLn o
   case r of
-    True -> putStrLn "Success!">> exitSuccess >> return ()
+    True -> putStrLn "Success!"
     False -> exitFailure >> return ()
 
   -- Unreachable - keeps a reference alive in order to prevent exception that
   -- serial in and serial out are STM blocked forever after serialserver closes.
   wait a
+  wait b
 
-
+  exitSuccess
   where
   keyToBS = B.pack . map B.w2c
 
 
-checkLoopback :: [ByteString] -- Frames to send
+checkLoopback :: Console
+              -> [ByteString] -- Frames to send
               -> Pushable ByteString
               -> Poppable ByteString
               -> Int -- delay between frames, in milliseconds
               -> IO Bool
-checkLoopback inputs in_q out_q d = do
-  putStrLn (printf "Checking loopback: %d frames, %d ms betwen frames" (length inputs) d)
+checkLoopback console inputs in_q out_q d = do
+  consoleLog console (printf "Checking loopback: %d frames, %d ms betwen frames" (length inputs) d)
   forM_ os $ \(_ix, fc) -> do
-    putStrLn ("sending: " ++ bytestringShowHex fc)
+    consoleLog console ("sending: " ++ bytestringShowHex fc)
     queuePush in_q fc
     threadDelay (1000*d)
 
   rs <- forM os $ \(ix, fc) -> do
     p <- queueTryPop out_q
     case p of
-      Nothing -> hPutStrLn stderr (printf "no response for frame %d" ix)
+      Nothing -> consoleLog console (printf "no response for frame %d" ix)
         >> return False
       Just fc' -> case fc' == fc of
-        False -> hPutStrLn stderr
+        False -> consoleLog console
           (printf ("incorrect response for frame %d:\n expected %s\ngot %s")
                   ix
                   (bytestringShowHex fc)
