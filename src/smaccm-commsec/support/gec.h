@@ -1,6 +1,12 @@
 #ifndef _GEC_H
 #define _GEC_H
 
+/* GEC specific config: use refhash. Defined here in the source because tower
+ * build system doesn't support adding -D cflags options. */
+#ifndef ED25519_REFHASH
+#define ED25519_REFHASH
+#endif
+
 #include "aes.h"
 #include "gcm.h"
 #include "curve25519-donna.h"

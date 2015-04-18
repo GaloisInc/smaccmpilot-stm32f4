@@ -4,6 +4,11 @@
 	Ed25519 reference implementation using Ed25519-donna
 */
 
+/* GEC specific config: use refhash. Defined here in the source because tower
+ * build system doesn't support adding -D cflags options. */
+#ifndef ED25519_REFHASH
+#define ED25519_REFHASH
+#endif
 
 /* define ED25519_SUFFIX to have it appended to the end of each public function */
 #if !defined(ED25519_SUFFIX)
