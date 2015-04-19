@@ -141,7 +141,7 @@ bytes) and S~c~ (8 bytes).  For each message a unique IV is constructed by
 concatenating the salt and 32 bit counter: S~c~ || counter. The counter is
 initially zero and incremented before processing each message. The ciphertext
 and tag are computed as ciphertext || tag = E~Key=Kc,IV=Sc||counter~(message)
-and sent as the datagram: counter (32 bit, bit endian) || ciphertext || tag
+and sent as the datagram: counter (32 bit, big endian) || ciphertext || tag
 (first 96 bits).
 
 #### Incoming Messages
