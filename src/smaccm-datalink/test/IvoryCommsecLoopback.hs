@@ -19,7 +19,8 @@ import Ivory.BSP.STM32.Driver.RingBuffer
 
 import qualified BSP.Tests.Platforms as BSP
 
-import SMACCMPilot.Commsec.Keys
+import SMACCMPilot.Commsec.SymmetricKey
+import SMACCMPilot.Commsec.Ivory.Types.SymmetricKey
 import SMACCMPilot.Commsec.Sizes
 import SMACCMPilot.Commsec.Tower
 import SMACCMPilot.Datalink.HXStream.Tower
@@ -57,8 +58,10 @@ frame_loopback sk o i = do
   ct_buf_in <- channel
   ct_buf_out <- channel
   hxstreamDecodeTower "test" i (fst ct_buf_in)
-  pt_out <- commsecDecodeTower "test" (server_decode_ks sk) (snd ct_buf_out)
-  ct_out <- commsecEncodeTower "test" (server_encode_ks sk) pt_out
+  pt_out <- commsecDecodeTower "test" (symKeySaltArrayIval (sk_c2s sk))
+                                      (snd ct_buf_out)
+  ct_out <- commsecEncodeTower "test" (symKeySaltArrayIval (sk_s2c sk))
+                                      pt_out
   hxstreamEncodeTower "test" ct_out o
 
   p <- period (Milliseconds 10)

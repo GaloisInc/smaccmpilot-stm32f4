@@ -9,9 +9,15 @@ module SMACCMPilot.Commsec.Ivory.Import.Types where
 import Ivory.Language
 
 [ivory|
-abstract struct commsec_encode "commsec.h"
-abstract struct commsec_decode "commsec.h"
+abstract struct gec_sym_key "gec.h"
+abstract struct gec_sts_ctx "gec_ke.h"
+abstract struct gec_pubkey  "gec.h"
+abstract struct gec_privkey "gec.h"
 |]
 
-type KeyArray = Array 16 (Stored Uint8)
-
+type RawPublicKey  = Array 32 (Stored Uint8)
+type RawPrivateKey = Array 32 (Stored Uint8)
+type GecPublicKey     = Struct "gec_pubkey"
+type GecPrivateKey    = Struct "gec_privkey"
+type GecStsCtx     = Struct "gec_sts_ctx"
+type GecSymKey     = Struct "gec_sym_key"

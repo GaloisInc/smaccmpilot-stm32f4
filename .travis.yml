@@ -13,6 +13,8 @@ before_install:
   - export GIDL_REPO=$PWD/gidl
   - git clone https://github.com/aisamanra/s-cargot
   - export SCARGOT_REPO=$PWD/s-cargot
+  - git clone https://github.com/galoisinc/gec
+  - export GEC_REPO=$PWD/ged
 install:
   - cabal install cabal-install
   - cabal install alex
@@ -21,7 +23,7 @@ script:
   - ghc --version
   - cabal --version
   - arm-none-eabi-gcc --version
-  - IVORY_REPO=$IVORY_REPO TOWER_REPO=$TOWER_REPO BSP_REPO=$BSP_REPO GIDL_REPO=$GIDL_REPO SCARGOT_REPO=$SCARGOT_REPO make $ENV_TEST_TARGET
+  - IVORY_REPO=$IVORY_REPO TOWER_REPO=$TOWER_REPO BSP_REPO=$BSP_REPO GIDL_REPO=$GIDL_REPO SCARGOT_REPO=$SCARGOT_REPO GEC_REPO=$GEC_REPO make $ENV_TEST_TARGET
 ghc:
   - 7.8
 env:

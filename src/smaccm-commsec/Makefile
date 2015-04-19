@@ -7,7 +7,6 @@ default:
 
 .PHONY: test
 test: smaccm-commsec-ivory-test
-test: smaccm-commsec-native-test
 
 .PHONY: smaccm-commsec-ivory-test
 smaccm-commsec-ivory-test:
