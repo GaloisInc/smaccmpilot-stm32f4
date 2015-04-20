@@ -14,7 +14,7 @@ before_install:
   - git clone https://github.com/aisamanra/s-cargot
   - export SCARGOT_REPO=$PWD/s-cargot
   - git clone https://github.com/galoisinc/gec
-  - export GEC_REPO=$PWD/ged
+  - export GEC_REPO=$PWD/gec
 install:
   - cabal install cabal-install
   - cabal install alex
