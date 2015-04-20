@@ -114,9 +114,9 @@ checkLoopback :: Console
 checkLoopback console inputs in_q out_q d = do
   consoleLog console (printf "Checking loopback: %d frames, %d ms betwen frames" (length inputs) d)
   forM_ os $ \(_ix, fc) -> do
+    threadDelay (1000*d)
     consoleLog console ("sending: " ++ bytestringShowHex fc)
     queuePush in_q fc
-    threadDelay (1000*d)
 
   rs <- forM os $ \(ix, fc) -> do
     p <- queueTryPop out_q
