@@ -18,7 +18,7 @@ test: smaccm-comm-schema-tower-test
 
 .PHONY: smaccm-comm-schema-native
 smaccm-comm-schema-native:
-	cabal exec gidl -- -b haskell \
+	cabal exec gidl -- -b haskell-rpc\
 		-i smaccm-comm-schema.idl \
 		-o smaccm-comm-schema-native \
 		-p smaccm-comm-schema-native \
