@@ -16,6 +16,7 @@ library
                        bytestring,
                        cereal,
                        pipes,
+                       stm,
                        QuickCheck,
                        smaccm-commsec,
                        smaccm-datalink,

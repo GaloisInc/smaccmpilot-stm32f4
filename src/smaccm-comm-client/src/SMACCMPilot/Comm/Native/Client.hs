@@ -8,6 +8,7 @@ import Data.Serialize
 import Pipes
 import Control.Monad
 import Control.Concurrent (threadDelay)
+import Control.Concurrent.STM (TQueue)
 
 import Test.QuickCheck
 
@@ -21,6 +22,7 @@ import SMACCMPilot.Datalink.Client.Pipes
 import SMACCMPilot.Commsec.Sizes
 
 import SMACCMPilot.Comm.Native.Interface.ControllableVehicle
+import qualified SMACCMPilot.Comm.Native.Rpc.ControllableVehicle as RPC
 
 commClient :: Options -> IO ()
 commClient opts = do
@@ -51,12 +53,8 @@ commClient opts = do
          >-> hxEncoder
          >-> pushConsumer ser_out_push
 
-  _ <- asyncRunEffect console "message generator"
-          $ randomMessage 1000
-        >-> showLog
-        >-> pushConsumer out_msg_push
-
-  -- XXX do something to consume input from in_msg_pop
+  _ <- asyncServer RPC.rpcServer in_msg_pop out_msg_push
+                   RPC.Config { RPC.cfgPort = 8080, RPC.cfgStaticDir = Nothing }
 
   void $ forever $ do
     threadDelay 10000
@@ -67,7 +65,13 @@ commClient opts = do
   wait a
 
 
-msgDeserialize :: Pipe ByteString ControllableVehicleProducer GW ()
+asyncServer :: (TQueue producer -> TQueue consumer -> RPC.Config -> IO ())
+            -> Poppable producer -> Pushable consumer -> RPC.Config -> IO ()
+asyncServer s producer consumer conf = void $ asyncRun "asyncServer" $
+  s (unPoppable producer) (unPushable consumer)  conf
+
+
+msgDeserialize :: (Serialize a) => Pipe ByteString a GW ()
 msgDeserialize = forever $ do
   ser <- await
   process ser
@@ -78,7 +82,7 @@ msgDeserialize = forever $ do
       yield r
       unless (B.null rest || B.all (== (toEnum 0)) rest) $ process rest
 
-msgSerialize :: Pipe ControllableVehicleProducer ByteString GW ()
+msgSerialize :: (Serialize a) => Pipe a ByteString GW ()
 msgSerialize = forever $ do
   msg <- await
   yield (runPut (put msg))
