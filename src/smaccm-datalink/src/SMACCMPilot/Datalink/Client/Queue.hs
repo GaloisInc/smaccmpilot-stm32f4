@@ -1,6 +1,8 @@
 module SMACCMPilot.Datalink.Client.Queue
   ( Poppable
+  , unPoppable
   , Pushable
+  , unPushable
   , newQueue
   , queuePop
   , queueTryPop
