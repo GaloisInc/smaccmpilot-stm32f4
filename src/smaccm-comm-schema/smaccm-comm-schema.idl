@@ -24,7 +24,7 @@
   (alt meters_t))
 
 (def-interface vehicle_i ()
-  (heartbeat (stream 10 heartbeat_t)))
+  (heartbeat (stream heartbeat_t)))
 
 (def-interface controllable_vehicle_i (vehicle_i) -- Inherits from interface vehicle
   (current_waypoint (attr read      waypoint_t))
