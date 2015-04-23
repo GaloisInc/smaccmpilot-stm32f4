@@ -1,6 +1,7 @@
 IVORY_REPO ?= ../../../ivory
 TOWER_REPO ?= ../../../tower
 BSP_REPO ?= ../../../ivory-tower-stm32
+GEC_REPO ?= ../../../gec
 
 IVORY_FLAGS ?= --const-fold
 
@@ -53,6 +54,7 @@ create-sandbox:
 	cabal sandbox add-source $(BSP_REPO)/ivory-bsp-tests
 	cabal sandbox add-source $(BSP_REPO)/ivory-freertos-bindings
 	cabal sandbox add-source $(BSP_REPO)/tower-freertos-stm32
+	cabal sandbox add-source $(GEC_REPO)
 	cabal sandbox add-source ../smaccm-fragment
 	cabal sandbox add-source ../smaccm-commsec
 	cabal sandbox add-source ../smaccm-datalink
