@@ -1,32 +1,51 @@
 
 (def-newtype time_micros_t sint64_t)
 
-(def-enum mode_t
-  (stabilize 0)
-  (auto 1))
+(def-enum arming_mode_t
+  (safe     0)
+  (disarmed 1)
+  (armed    2))
 
-(def-enum (armed_t 8)
-  (disarmed 0)
-  (armed 1))
+(def-enum control_source_t
+  (ppm 0)
+  (gcs 1)
+  (nav 2))
+
+(def-enum yaw_mode_t
+  (rate    0)
+  (heading 1))
+
+(def-enum throttle_mode_t
+  (direct 0)
+  (auto   1))
 
 (def-struct heartbeat_t
-  (time time_micros_t)
-  (armed armed_t))
+  (time        time_micros_t)
+  (arming_mode arming_mode_t))
 
-(def-newtype lat_t sint32_t)
-(def-newtype lon_t sint32_t)
+(def-struct control_law_t
+  (arming_mode arming_mode_t)
+  (ui_mode     control_source_t)
+  (yaw_mode    yaw_mode_t)
+  (thr_mode    throttle_mode_t))
 
-(def-newtype meters_t float_t)
+(def-struct user_input_t
+  (throttle    float_t) -- [0..1.0]
+  (roll        float_t) -- [-1.0..1.0]
+  (pitch       float_t) -- [-1.0..1.0]
+  (yaw         float_t)) -- [-1.0..1.0]
 
-(def-struct waypoint_t
-  (lat lat_t)
-  (lon lon_t)
-  (alt meters_t))
+(def-struct user_input_result_t
+  (ui          user_input_t)
+  (source      control_source_t)
+  (time        time_micros_t))
 
 (def-interface vehicle_i ()
-  (heartbeat (stream heartbeat_t)))
+  (heartbeat   (stream         heartbeat_t))
+  (control_law (attr read      control_law_t))
+  (user_input  (attr read      user_input_result_t)))
 
-(def-interface controllable_vehicle_i (vehicle_i) -- Inherits from interface vehicle
-  (current_waypoint (attr read      waypoint_t))
-  (next_waypoint    (attr readwrite waypoint_t)))
+(def-interface controllable_vehicle_i (vehicle_i)
+  (control_law_request (attr readwrite control_law_t))
+  (user_input_request  (attr readwrite user_input_t)))
 
