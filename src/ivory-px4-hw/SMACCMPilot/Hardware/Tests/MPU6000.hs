@@ -24,12 +24,12 @@ app topx4 = do
   a_sample <- channel
   px4platform <- fmap topx4 getEnv
   let mpu6000  = px4platform_mpu6000 px4platform
-  (req, res, ready) <- spiTower (px4platform_clockconfig . topx4)
+  (req, ready) <- spiTower (px4platform_clockconfig . topx4)
                                 [mpu6000_spi_device mpu6000]
                                 (mpu6000_spi_pins mpu6000)
 
   sensors_ready <- px4platform_sensorenable_tower topx4 ready
-  mpu6000SensorManager req res sensors_ready (fst g_sample) (fst a_sample) (SPIDeviceHandle 0)
+  mpu6000SensorManager req sensors_ready (fst g_sample) (fst a_sample) (SPIDeviceHandle 0)
 
   (_uarti, uarto) <- px4ConsoleTower topx4
   half_g <- rateDivider 2 (snd g_sample)

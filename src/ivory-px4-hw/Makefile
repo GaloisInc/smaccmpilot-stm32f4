@@ -112,13 +112,13 @@ create-sandbox:
 	cabal sandbox add-source $(IVORY_REPO)/ivory-serialize
 	cabal sandbox add-source $(IVORY_REPO)/ivory-eval
 	cabal sandbox add-source $(TOWER_REPO)/tower-config
+	cabal sandbox add-source $(TOWER_REPO)/tower-hal
 	cabal sandbox add-source $(TOWER_REPO)/tower
 	cabal sandbox add-source $(BSP_REPO)/ivory-freertos-bindings
 	cabal sandbox add-source $(BSP_REPO)/tower-freertos-stm32
 	cabal sandbox add-source $(BSP_REPO)/ivory-bsp-stm32
 	cabal sandbox add-source $(BSP_REPO)/ivory-bsp-tests
 	cabal sandbox add-source $(GEC_REPO)
-	cabal sandbox add-source ../smaccm-fragment
 	cabal sandbox add-source ../smaccm-commsec
 	cabal sandbox add-source ../smaccm-datalink
 	cabal install --dependencies-only

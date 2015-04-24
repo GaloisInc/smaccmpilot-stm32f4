@@ -13,10 +13,10 @@ import Numeric.Estimator.Model.Coordinate
 import Numeric.Estimator.Model.SensorFusion
 import Prelude hiding (mapM)
 import qualified SMACCMPilot.Hardware.GPS.Types as GPS
-import qualified SMACCMPilot.Hardware.Types.Magnetometer  as M
-import qualified SMACCMPilot.Hardware.Types.Accelerometer as A
-import qualified SMACCMPilot.Hardware.Types.Gyroscope     as G
-import qualified SMACCMPilot.Hardware.Types.Barometer     as B
+import qualified Ivory.Tower.HAL.Sensor.Magnetometer  as M
+import qualified Ivory.Tower.HAL.Sensor.Accelerometer as A
+import qualified Ivory.Tower.HAL.Sensor.Gyroscope     as G
+import qualified Ivory.Tower.HAL.Sensor.Barometer     as B
 import SMACCMPilot.INS.Ivory
 
 changeUnits :: (Functor f, Functor g) => (x -> y) -> f (g x) -> f (g y)

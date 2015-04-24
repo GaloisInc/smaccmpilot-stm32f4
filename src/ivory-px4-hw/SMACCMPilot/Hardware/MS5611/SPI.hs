@@ -5,25 +5,23 @@
 
 module SMACCMPilot.Hardware.MS5611.SPI where
 
-import SMACCMPilot.Hardware.Types.Barometer
+import Ivory.BSP.STM32.Driver.SPI
+import Ivory.Language
+import Ivory.Stdlib
+import Ivory.Tower
+import Ivory.Tower.HAL.Bus.Interface
+import Ivory.Tower.HAL.Sensor.Barometer
+import SMACCMPilot.Hardware.MS5611.Calibration (measurement)
+import SMACCMPilot.Hardware.MS5611.Mode
 import SMACCMPilot.Hardware.MS5611.Regs
 import SMACCMPilot.Hardware.MS5611.Types
-import SMACCMPilot.Hardware.MS5611.Mode
-import SMACCMPilot.Hardware.MS5611.Calibration (measurement)
 
-import Ivory.Language
-import Ivory.Tower
-import Ivory.Stdlib
-
-import Ivory.BSP.STM32.Driver.SPI
-
-ms5611SPISensorManager :: ChanInput  (Struct "spi_transaction_request")
-                       -> ChanOutput (Struct "spi_transaction_result")
+ms5611SPISensorManager :: BackpressureTransmit (Struct "spi_transaction_request") (Struct "spi_transaction_result")
                        -> ChanOutput (Stored ITime)
                        -> ChanInput  (Struct "barometer_sample")
                        -> SPIDeviceHandle
                        -> Tower e ()
-ms5611SPISensorManager req_chan res_chan init_chan meas_chan h = do
+ms5611SPISensorManager (BackpressureTransmit req_chan res_chan) init_chan meas_chan h = do
   towerModule  ms5611TypesModule
   towerDepends ms5611TypesModule
   towerModule  barometerTypesModule

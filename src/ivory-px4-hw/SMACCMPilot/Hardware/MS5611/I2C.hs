@@ -5,27 +5,23 @@
 
 module SMACCMPilot.Hardware.MS5611.I2C where
 
-import SMACCMPilot.Hardware.MS5611.Regs
-
-import Ivory.Language
-import Ivory.Tower
-import Ivory.Stdlib
-
 import Ivory.BSP.STM32.Driver.I2C
-
-import SMACCMPilot.Hardware.Types.Barometer
-import SMACCMPilot.Hardware.MS5611.Types
-import SMACCMPilot.Hardware.MS5611.Mode
+import Ivory.Language
+import Ivory.Stdlib
+import Ivory.Tower
+import Ivory.Tower.HAL.Bus.Interface
+import Ivory.Tower.HAL.Sensor.Barometer
 import SMACCMPilot.Hardware.MS5611.Calibration (measurement)
+import SMACCMPilot.Hardware.MS5611.Mode
+import SMACCMPilot.Hardware.MS5611.Regs
+import SMACCMPilot.Hardware.MS5611.Types
 
-
-ms5611I2CSensorManager :: ChanInput  (Struct "i2c_transaction_request")
-                       -> ChanOutput (Struct "i2c_transaction_result")
+ms5611I2CSensorManager :: BackpressureTransmit (Struct "i2c_transaction_request") (Struct "i2c_transaction_result")
                        -> ChanOutput (Stored ITime)
                        -> ChanInput  (Struct "barometer_sample")
                        -> I2CDeviceAddr
                        -> Tower e ()
-ms5611I2CSensorManager req_chan res_chan init_chan meas_chan addr = do
+ms5611I2CSensorManager (BackpressureTransmit req_chan res_chan) init_chan meas_chan addr = do
   towerModule  ms5611TypesModule
   towerDepends ms5611TypesModule
   towerModule  barometerTypesModule

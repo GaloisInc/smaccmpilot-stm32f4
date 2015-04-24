@@ -6,22 +6,20 @@ module SMACCMPilot.Hardware.HMC5883L.I2C where
 
 import Control.Applicative
 import Data.Word
+import Ivory.BSP.STM32.Driver.I2C
 import Ivory.Language
 import Ivory.Stdlib
 import Ivory.Tower
-
-import Ivory.BSP.STM32.Driver.I2C
-
-import SMACCMPilot.Hardware.Types.Magnetometer
+import Ivory.Tower.HAL.Bus.Interface
+import Ivory.Tower.HAL.Sensor.Magnetometer
 import SMACCMPilot.Hardware.HMC5883L.Regs
 
-hmc5883lSensorManager :: ChanInput  (Struct "i2c_transaction_request")
-                      -> ChanOutput (Struct "i2c_transaction_result")
+hmc5883lSensorManager :: BackpressureTransmit (Struct "i2c_transaction_request") (Struct "i2c_transaction_result")
                       -> ChanOutput (Stored ITime)
                       -> ChanInput  (Struct "magnetometer_sample")
                       -> I2CDeviceAddr
                       -> Tower e ()
-hmc5883lSensorManager req_chan res_chan init_chan sensor_chan addr = do
+hmc5883lSensorManager (BackpressureTransmit req_chan res_chan) init_chan sensor_chan addr = do
   towerModule magnetometerTypesModule
   towerDepends magnetometerTypesModule
   p <- period (Milliseconds 20) -- 50 hz. Can be faster if required.

@@ -5,8 +5,8 @@
 module SMACCMPilot.Hardware.MS5611.Calibration where
 
 import Ivory.Language
+import Ivory.Tower.HAL.Sensor.Barometer
 import SMACCMPilot.Hardware.MS5611.Types
-import SMACCMPilot.Hardware.Types.Barometer
 
 measurement :: ConstRef s1 (Struct "ms5611_calibration")
             -> ConstRef s2 (Struct "ms5611_sample")

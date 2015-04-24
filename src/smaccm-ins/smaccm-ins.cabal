@@ -28,6 +28,7 @@ library
                        monadLib >= 3.7,
                        reflection >=1.5,
                        tower >=0.9,
+                       tower-hal,
                        ivory-bsp-stm32,
                        smaccm-datalink
   default-language:    Haskell2010

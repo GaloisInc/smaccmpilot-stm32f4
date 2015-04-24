@@ -17,6 +17,7 @@ library
                        ivory-stdlib,
                        ivory-serialize,
                        tower,
+                       tower-hal,
                        ivory-bsp-stm32,
                        ivory-px4-hw,
                        smaccm-commsec,

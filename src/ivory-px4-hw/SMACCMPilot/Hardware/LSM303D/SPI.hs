@@ -8,28 +8,25 @@ module SMACCMPilot.Hardware.LSM303D.SPI
   , lsm303dDefaultConf
   ) where
 
+import Data.Word
+import Ivory.BSP.STM32.Driver.SPI
 import Ivory.Language
 import Ivory.Stdlib
 import Ivory.Tower
-
-import Data.Word
+import Ivory.Tower.HAL.Bus.Interface
+import qualified Ivory.Tower.HAL.Sensor.Accelerometer as A
+import qualified Ivory.Tower.HAL.Sensor.Magnetometer  as M
 import Numeric (showHex)
-
-import Ivory.BSP.STM32.Driver.SPI
-
-import qualified SMACCMPilot.Hardware.Types.Accelerometer as A
-import qualified SMACCMPilot.Hardware.Types.Magnetometer  as M
 import SMACCMPilot.Hardware.LSM303D.Regs
 
 lsm303dSPISensorManager :: Config
-                        -> ChanInput  (Struct "spi_transaction_request")
-                        -> ChanOutput (Struct "spi_transaction_result")
+                        -> BackpressureTransmit (Struct "spi_transaction_request") (Struct "spi_transaction_result")
                         -> ChanOutput (Stored ITime)
                         -> ChanInput  (Struct "magnetometer_sample")
                         -> ChanInput  (Struct "accelerometer_sample")
                         -> SPIDeviceHandle
                         -> Tower e ()
-lsm303dSPISensorManager conf req_chan res_chan init_chan mag_chan accel_chan h = do
+lsm303dSPISensorManager conf (BackpressureTransmit req_chan res_chan) init_chan mag_chan accel_chan h = do
   towerModule  M.magnetometerTypesModule
   towerDepends M.magnetometerTypesModule
   towerModule  A.accelerometerTypesModule

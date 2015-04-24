@@ -6,15 +6,13 @@ module SMACCMPilot.Comm.TestServer
   ) where
 
 import Ivory.Language
-import Ivory.Tower
 import Ivory.Stdlib
-import SMACCMPilot.Hardware.Tests.Platforms
-
+import Ivory.Tower
+import Ivory.Tower.HAL.RingBuffer
+import SMACCMPilot.Comm.Tower.Interface.ControllableVehicle
 import SMACCMPilot.Commsec.Sizes
 import SMACCMPilot.Datalink.HXStream.Tower
-import Ivory.BSP.STM32.Driver.RingBuffer
-
-import SMACCMPilot.Comm.Tower.Interface.ControllableVehicle
+import SMACCMPilot.Hardware.Tests.Platforms
 
 app :: (e -> PX4Platform) -> Tower e ()
 app topx4 = do

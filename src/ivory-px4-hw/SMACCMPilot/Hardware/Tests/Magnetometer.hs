@@ -39,7 +39,7 @@ hmc5883l_i2c_app :: (e -> PX4Platform)
                  -> ChanInput (Stored Uint8)
                  -> Tower e ()
 hmc5883l_i2c_app topx4 hmc uarto = do
-  (req, res, ready) <- i2cTower (px4platform_clockconfig . topx4)
+  (req, ready) <- i2cTower (px4platform_clockconfig . topx4)
                          (hmc5883l_i2c_periph hmc)
                          (hmc5883l_i2c_sda    hmc)
                          (hmc5883l_i2c_scl    hmc)
@@ -47,7 +47,7 @@ hmc5883l_i2c_app topx4 hmc uarto = do
   samples <- channel
 
   sensors_ready <- px4platform_sensorenable_tower topx4 ready
-  hmc5883lSensorManager req res sensors_ready (fst samples) (hmc5883l_i2c_addr hmc)
+  hmc5883lSensorManager req sensors_ready (fst samples) (hmc5883l_i2c_addr hmc)
 
   monitor "hmc5883lsender" $ do
     magSender (snd samples) uarto
@@ -60,7 +60,7 @@ lsm303d_spi_app :: (e -> PX4Platform)
                  -> ChanInput (Stored Uint8)
                  -> Tower e ()
 lsm303d_spi_app topx4 lsm uarto = do
-  (req, res, ready) <- spiTower (px4platform_clockconfig . topx4)
+  (req, ready) <- spiTower (px4platform_clockconfig . topx4)
                          [lsm303d_spi_device lsm]
                          (lsm303d_spi_pins lsm)
 
@@ -68,7 +68,7 @@ lsm303d_spi_app topx4 lsm uarto = do
   a_samples <- channel
 
   sensors_ready <- px4platform_sensorenable_tower topx4 ready
-  lsm303dSPISensorManager lsm303dDefaultConf req res sensors_ready
+  lsm303dSPISensorManager lsm303dDefaultConf req sensors_ready
                           (fst m_samples) (fst a_samples)
                           (SPIDeviceHandle 0)
 

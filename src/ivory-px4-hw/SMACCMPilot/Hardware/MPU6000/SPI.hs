@@ -9,11 +9,11 @@ module SMACCMPilot.Hardware.MPU6000.SPI where
 import Ivory.Language
 import Ivory.Stdlib
 import Ivory.Tower
+import Ivory.Tower.HAL.Bus.Interface
+import qualified Ivory.Tower.HAL.Sensor.Gyroscope as G
+import qualified Ivory.Tower.HAL.Sensor.Accelerometer as A
 import Ivory.BSP.STM32.Driver.SPI
-
 import SMACCMPilot.Hardware.MPU6000.Regs
-import qualified SMACCMPilot.Hardware.Types.Gyroscope as G
-import qualified SMACCMPilot.Hardware.Types.Accelerometer as A
 
 readRegAddr :: Reg -> Uint8
 readRegAddr reg = 0x80 .| (fromIntegral (regAddr reg))
@@ -98,14 +98,13 @@ sensorSample res r_gyro r_accel = do
   hiloUnsigned :: Uint8 -> Uint8 -> Uint16
   hiloUnsigned h l = (safeCast h `iShiftL` 8) .| safeCast l
 
-mpu6000SensorManager :: ChanInput  (Struct "spi_transaction_request")
-                     -> ChanOutput (Struct "spi_transaction_result")
+mpu6000SensorManager :: BackpressureTransmit (Struct "spi_transaction_request") (Struct "spi_transaction_result")
                      -> ChanOutput (Stored ITime)
                      -> ChanInput  (Struct "gyroscope_sample")
                      -> ChanInput  (Struct "accelerometer_sample")
                      -> SPIDeviceHandle
                      -> Tower e ()
-mpu6000SensorManager req_chan res_chan init_chan gyro_chan accel_chan dev = do
+mpu6000SensorManager (BackpressureTransmit req_chan res_chan) init_chan gyro_chan accel_chan dev = do
   towerModule G.gyroscopeTypesModule
   towerDepends G.gyroscopeTypesModule
   towerModule A.accelerometerTypesModule

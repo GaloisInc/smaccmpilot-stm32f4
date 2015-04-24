@@ -13,17 +13,16 @@ module SMACCMPilot.Hardware.Tests.AllSensors
 
 import Ivory.Language
 import Ivory.Tower
+import Ivory.Tower.HAL.Bus.CAN.Fragment
+import Ivory.Tower.HAL.Bus.CAN.Sched
+import Ivory.Tower.HAL.Bus.Sched
 
 import Ivory.BSP.STM32.Driver.I2C
 import Ivory.BSP.STM32.Driver.SPI
 import Ivory.BSP.STM32.Driver.UART
 import Ivory.BSP.STM32.Driver.CAN
-import Ivory.BSP.STM32.Driver.CAN.Sched
-
-import SMACCM.Fragment
 
 import SMACCMPilot.Hardware.CANMessages
-import SMACCMPilot.Hardware.Sched
 import SMACCMPilot.Hardware.GPS.UBlox
 import SMACCMPilot.Hardware.HMC5883L
 import SMACCMPilot.Hardware.LSM303D
@@ -109,33 +108,32 @@ fmu17_sensor_manager :: (e -> PX4Platform)
                          , ChanOutput (Struct "barometer_sample"))
 fmu17_sensor_manager topx4 mpu6000 hmc5883l ms5611 = do
 
-  (i2cRequest, i2cResult, i2cReady) <- i2cTower
-                                           (px4platform_clockconfig . topx4)
-                                           (hmc5883l_i2c_periph hmc5883l)
-                                           (hmc5883l_i2c_sda    hmc5883l)
-                                           (hmc5883l_i2c_scl    hmc5883l)
+  (i2cRequest, i2cReady) <- i2cTower
+    (px4platform_clockconfig . topx4)
+    (hmc5883l_i2c_periph hmc5883l)
+    (hmc5883l_i2c_sda    hmc5883l)
+    (hmc5883l_i2c_scl    hmc5883l)
 
-
-  (ms5611task, ms5611Req, ms5611Res) <- task "ms5611"
+  (ms5611task, ms5611Req) <- task "ms5611"
   baro_s <- channel
-  ms5611I2CSensorManager ms5611Req ms5611Res i2cReady
+  ms5611I2CSensorManager ms5611Req i2cReady
                          (fst baro_s) (ms5611_i2c_addr ms5611)
 
-  (hmc5883task, hmc5883Req, hmc5883Res) <- task "hmc5883"
+  (hmc5883task, hmc5883Req) <- task "hmc5883"
   mag_s <-channel
-  hmc5883lSensorManager hmc5883Req hmc5883Res i2cReady
+  hmc5883lSensorManager hmc5883Req i2cReady
                         (fst mag_s) (hmc5883l_i2c_addr hmc5883l)
 
-  schedule [ms5611task, hmc5883task] i2cReady i2cRequest i2cResult
+  schedule [ms5611task, hmc5883task] i2cReady i2cRequest
 
   acc_s <- channel
   gyro_s <- channel
 
-  (sreq, sres, sready) <- spiTower tocc
+  (sreq, sready) <- spiTower tocc
                                    [mpu6000_spi_device mpu6000]
                                    (mpu6000_spi_pins mpu6000)
 
-  mpu6000SensorManager sreq sres sready
+  mpu6000SensorManager sreq sready
                        (fst gyro_s) (fst acc_s)
                        (SPIDeviceHandle 0)
 
@@ -157,30 +155,30 @@ fmu24_sensor_manager topx4 mpu6000 lsm303d ms5611 = do
   acc_s <- channel
   gyro_s <- channel
 
-  (sreq, sres, sready) <- spiTower tocc
+  (sreq, sready) <- spiTower tocc
                                    [ mpu6000_spi_device mpu6000
                                    , lsm303d_spi_device lsm303d
                                    , ms5611_spi_device  ms5611
                                    ]
                                    (mpu6000_spi_pins mpu6000)
 
-  (mpu6000Task, mpu6000Req, mpu6000Res) <- task "mpu6000"
-  mpu6000SensorManager mpu6000Req mpu6000Res sready
+  (mpu6000Task, mpu6000Req) <- task "mpu6000"
+  mpu6000SensorManager mpu6000Req sready
                        (fst gyro_s) (fst acc_s)
                        (SPIDeviceHandle 0)
 
-  (lsm303dTask, lsm303dReq, lsm303dRes) <- task "lsm303d"
+  (lsm303dTask, lsm303dReq) <- task "lsm303d"
   mag_s <- channel
   lsm_acc_s <- channel -- output never used!
-  lsm303dSPISensorManager lsm303dDefaultConf lsm303dReq lsm303dRes sready
+  lsm303dSPISensorManager lsm303dDefaultConf lsm303dReq sready
                           (fst mag_s) (fst lsm_acc_s) (SPIDeviceHandle 1)
 
-  (ms5611Task, ms5611Req, ms5611Res) <- task "ms5611"
+  (ms5611Task, ms5611Req) <- task "ms5611"
   baro_s <- channel
-  ms5611SPISensorManager ms5611Req ms5611Res sready
+  ms5611SPISensorManager ms5611Req sready
                          (fst baro_s) (SPIDeviceHandle 2)
 
-  schedule [mpu6000Task, lsm303dTask, ms5611Task] sready sreq sres
+  schedule [mpu6000Task, lsm303dTask, ms5611Task] sready sreq
 
   return (snd acc_s, snd gyro_s, snd mag_s, snd baro_s)
   where

@@ -12,10 +12,10 @@ import Ivory.Stdlib
 import Ivory.Tower
 import Ivory.Tower.Config
 import Ivory.Tower.Compile
+import Ivory.Tower.HAL.RingBuffer
 import Ivory.OS.FreeRTOS.Tower.STM32
 
 import Ivory.BSP.STM32.Driver.UART
-import Ivory.BSP.STM32.Driver.RingBuffer
 
 import qualified BSP.Tests.Platforms as BSP
 

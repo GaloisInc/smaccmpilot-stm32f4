@@ -98,7 +98,7 @@ binary mode at 38400 baud. Connect to 5-pin GPS connector on PX4FMU v1.7, and to
 ### px4-can-fragment-test
 
 PX4FMU v2.4 only. Tests the CAN bus driver (provided by `ivory-bsp-stm32`
-package) with a the `smaccm-fragment` library fragmentation protocol, which
+package) with the `tower-hal` library fragmentation protocol, which
 breaks up long messages into multiple 8-bit CAN bus messages with sequential CAN
 bus ids.
 

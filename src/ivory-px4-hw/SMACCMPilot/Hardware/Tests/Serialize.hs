@@ -16,10 +16,10 @@ import Ivory.Tower
 
 import Data.Char (ord)
 
-import SMACCMPilot.Hardware.Types.Accelerometer ()
-import SMACCMPilot.Hardware.Types.Gyroscope ()
-import SMACCMPilot.Hardware.Types.Magnetometer ()
-import SMACCMPilot.Hardware.Types.Barometer ()
+import Ivory.Tower.HAL.Sensor.Accelerometer ()
+import Ivory.Tower.HAL.Sensor.Gyroscope ()
+import Ivory.Tower.HAL.Sensor.Magnetometer ()
+import Ivory.Tower.HAL.Sensor.Barometer ()
 import SMACCMPilot.Hardware.GPS.Types ()
 
 import qualified SMACCMPilot.Datalink.HXStream.Ivory as HX

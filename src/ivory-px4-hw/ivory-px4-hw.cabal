@@ -15,11 +15,6 @@ library
                        SMACCMPilot.Hardware.GPS.UBlox,
                        SMACCMPilot.Hardware.GPS.UBlox.Types,
 
-                       SMACCMPilot.Hardware.Types.Gyroscope,
-                       SMACCMPilot.Hardware.Types.Accelerometer,
-                       SMACCMPilot.Hardware.Types.Magnetometer,
-                       SMACCMPilot.Hardware.Types.Barometer,
-
                        SMACCMPilot.Hardware.MPU6000,
                        SMACCMPilot.Hardware.MPU6000.Regs,
                        SMACCMPilot.Hardware.MPU6000.SPI,
@@ -47,7 +42,6 @@ library
                        SMACCMPilot.Hardware.PX4FMU17.MotorControl
 
                        SMACCMPilot.Hardware.CANMessages,
-                       SMACCMPilot.Hardware.Sched,
 
                        SMACCMPilot.Hardware.Tests.Platforms,
                        SMACCMPilot.Hardware.Tests.Serialize,
@@ -74,7 +68,7 @@ library
                        tower-freertos-stm32,
                        ivory-bsp-stm32,
                        smaccm-datalink,
-                       smaccm-fragment
+                       tower-hal
 
   default-language:    Haskell2010
   ghc-options:         -Wall

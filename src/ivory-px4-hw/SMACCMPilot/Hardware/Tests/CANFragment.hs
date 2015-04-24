@@ -10,15 +10,15 @@ import Ivory.BSP.STM32.Peripheral.CAN.Filter
 import Ivory.Language
 import Ivory.Stdlib
 import Ivory.Tower
+import Ivory.Tower.HAL.Bus.CAN.Fragment
+import Ivory.Tower.HAL.Sensor.Accelerometer
+import Ivory.Tower.HAL.Sensor.Barometer
+import Ivory.Tower.HAL.Sensor.Gyroscope
+import Ivory.Tower.HAL.Sensor.Magnetometer
 import SMACCMPilot.Hardware.CANMessages
 import SMACCMPilot.Hardware.GPS.Types
 import SMACCMPilot.Hardware.Tests.Platforms
 import SMACCMPilot.Hardware.Tests.Serialize
-import SMACCMPilot.Hardware.Types.Accelerometer
-import SMACCMPilot.Hardware.Types.Barometer
-import SMACCMPilot.Hardware.Types.Gyroscope
-import SMACCMPilot.Hardware.Types.Magnetometer
-import SMACCM.Fragment
 import SMACCMPilot.Mavlink.Ivory.CRC (mavlinkCRCModule)
 import SMACCMPilot.Mavlink.Ivory.Messages.SmaccmpilotNavCmd (smaccmpilotNavCmdModule)
 import qualified SMACCMPilot.Mavlink.Ivory.Receive as R
