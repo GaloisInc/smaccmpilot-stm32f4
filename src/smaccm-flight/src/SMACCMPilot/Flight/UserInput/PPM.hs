@@ -10,42 +10,36 @@ module SMACCMPilot.Flight.UserInput.PPM
 import Ivory.Language
 import Ivory.Tower
 
-import qualified SMACCMPilot.Flight.Types.UserInput         as I
-import           SMACCMPilot.Flight.Types.ControlLawRequest ()
+import qualified SMACCMPilot.Comm.Ivory.Types.UserInput as I ()
+import qualified SMACCMPilot.Comm.Ivory.Types.ControlLaw as C ()
 
 import SMACCMPilot.Flight.UserInput.PPM.Decode
 
-ppmInputTower :: Tower p ( ChannelSink (Struct "userinput_result")
-                         , ChannelSink (Struct "control_law_request"))
+ppmInputTower :: Tower e ( ChanOutput (Struct "user_input")
+                         , ChanOutput (Struct "control_law"))
 ppmInputTower = do
   ui <- channel
-  cr <- channel
-  task "ppmInputTower" $ do
-    ui_emitter <- withChannelEmitter (src ui) "ui_emitter"
-    cr_emitter <- withChannelEmitter (src cr) "cr_emitter"
-    decoder    <- taskPPMDecoder
+  cl <- channel
+  p <- period (Milliseconds 50)
+  monitor "ppm_decode" $ do
+    decoder    <- monitorPPMDecoder
 
-    taskInit $ do
+    handler systemInit "userinput_init" $ callback $ const $
       ppmd_init decoder
 
-    onPeriod (Milliseconds 50) $ \now -> do
-      chs <- local izero
-      captured <- call userPPMInputCapture chs
-      ifte_ (captured >=? num_chans)
-            (ppmd_new_sample decoder chs now)
-            (ppmd_no_sample decoder now)
-      ppmd_get_ui     decoder >>= emit_ ui_emitter
-      ppmd_get_cl_req decoder >>= emit_ cr_emitter
+    handler p "periodic_userinput_decode" $ do
+      ui_emitter <- emitter (fst ui) 1
+      cl_emitter <- emitter (fst cl) 1
+      callbackV $ \now -> do
+        chs <- local izero
+        captured <- assign (0 :: Uint32) -- call userPPMInputCapture chs
+        ifte_ (captured >=? num_chans)
+              (ppmd_new_sample decoder chs now)
+              (ppmd_no_sample decoder now)
+        ppmd_get_ui     decoder >>= emit ui_emitter
+        ppmd_get_cl_req decoder >>= emit cl_emitter
 
-    taskModuleDef $ do
-      inclHeader "apwrapper/userinput_capture.h"
-      incl userPPMInputCapture
-
-  return (snk ui, snk cr)
+  return (snd ui, snd cl)
   where
   num_chans = 6
-
--- This talks to the AP_HAL via c++, so we have to extern it completely
-userPPMInputCapture :: Def ('[ Ref s I.PPMs ] :-> Uint8)
-userPPMInputCapture = externProc "userinput_capture"
 
