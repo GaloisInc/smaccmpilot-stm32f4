@@ -22,7 +22,7 @@ script:
   - ghc --version
   - cabal --version
   - arm-none-eabi-gcc --version
-  - IVORY_REPO=$IVORY_REPO TOWER_REPO=$TOWER_REPO BSP_REPO=$BSP_REPO GIDL_REPO=$GIDL_REPO SCARGOT_REPO=$SCARGOT_REPO GEC_REPO=$GEC_REPO make $ENV_TEST_TARGET
+  - make $ENV_TEST_TARGET
 ghc:
   - 7.8
 env:
