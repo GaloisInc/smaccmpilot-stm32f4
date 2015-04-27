@@ -10,8 +10,8 @@ cabal-version:       >=1.10
 library
   hs-source-dirs:      src
   exposed-modules:     SMACCMPilot.Flight.UserInput.PPM.ArmingMachine,
-                       SMACCMPilot.Flight.UserInput.PPM.ModeSwitch
-                       --SMACCMPilot.Flight.UserInput.PPM.Decode,
+                       SMACCMPilot.Flight.UserInput.PPM.ModeSwitch,
+                       SMACCMPilot.Flight.UserInput.PPM.Decode
                        --SMACCMPilot.Flight.UserInput.PPM
   build-depends:       base >=4.6,
                        ivory >=0.1,

@@ -5,14 +5,15 @@
 
 module SMACCMPilot.Flight.UserInput.PPM.Decode
   ( PPMDecoder(..)
-  , taskPPMDecoder
+  , monitorPPMDecoder
   ) where
 
 import Ivory.Language
 import Ivory.Tower
 import Ivory.Stdlib
 
-import qualified SMACCMPilot.Flight.Types.UserInput         as I
+import qualified SMACCMPilot.Comm.Ivory.Types.UserInput as I
+import qualified SMACCMPilot.Comm.Ivory.Types.ControlLaw as C
 
 import SMACCMPilot.Flight.UserInput.PPM.ModeSwitch
 import SMACCMPilot.Flight.UserInput.PPM.ArmingMachine
@@ -21,23 +22,24 @@ data PPMDecoder =
   PPMDecoder
     { ppmd_init       :: forall eff    . Ivory eff ()
     , ppmd_no_sample  :: forall eff    . ITime -> Ivory eff ()
-    , ppmd_new_sample :: forall eff s  . Ref s I.PPMs -> ITime -> Ivory eff ()
+    , ppmd_new_sample :: forall eff s  . Ref s (Array 8 (Stored Uint16))
+                                      -> ITime -> Ivory eff ()
     , ppmd_get_ui     :: forall eff cs . (GetAlloc eff ~ Scope cs)
-         => Ivory eff (ConstRef (Stack cs) (Struct "userinput_result"))
+         => Ivory eff (ConstRef (Stack cs) (Struct "user_input"))
     , ppmd_get_cl_req :: forall eff cs . (GetAlloc eff ~ Scope cs)
-         => Ivory eff (ConstRef (Stack cs) (Struct "control_law_request"))
+         => Ivory eff (ConstRef (Stack cs) (Struct "control_law"))
     }
 
-taskPPMDecoder :: Task p PPMDecoder
-taskPPMDecoder = do
+monitorPPMDecoder :: Monitor e PPMDecoder
+monitorPPMDecoder = do
   fr <- fresh
   let named n = "ppmdecoder_" ++ n ++ "_" ++ show fr
-  ppm_valid             <- taskLocal "ppm_valid"
-  ppm_last              <- taskLocal "ppm_last"
-  ppm_last_time         <- taskLocal "ppm_last_time"
+  ppm_valid             <- state "ppm_valid"
+  ppm_last              <- state "ppm_last"
+  ppm_last_time         <- state "ppm_last_time"
 
-  modeswitch <- taskModeSwitch
-  armingmachine <- taskArmingMachine
+  modeswitch    <- monitorModeSwitch
+  armingmachine <- monitorArmingMachine
 
   let init_proc :: Def('[]:->())
       init_proc = proc (named "init") $ body $ do
@@ -50,7 +52,7 @@ taskPPMDecoder = do
           ms_no_sample modeswitch
           am_no_sample armingmachine
 
-      new_sample_proc :: Def('[Ref s I.PPMs, ITime ]:->())
+      new_sample_proc :: Def('[Ref s (Array 8 (Stored Uint16)), ITime ]:->())
       new_sample_proc = proc (named "new_sample") $ \ppms time -> body $ do
         all_good <- local (ival true)
         arrayMap $ \ix -> when (ix <? useful_channels) $ do
@@ -73,7 +75,7 @@ taskPPMDecoder = do
         prev <- deref ppm_last_time
         when ((time - prev) >? timeout_limit) invalidate
 
-      get_ui_proc :: Def('[Ref s (Struct "userinput_result")]:->())
+      get_ui_proc :: Def('[Ref s (Struct "user_input")]:->())
       get_ui_proc = proc (named "get_ui") $ \ui -> body $ do
         valid <- deref ppm_valid
         time <- deref ppm_last_time
@@ -81,12 +83,12 @@ taskPPMDecoder = do
           (call_  ppm_decode_ui_proc ppm_last ui time)
           (failsafe ui)
 
-      get_cl_req_proc :: Def('[Ref s (Struct "control_law_request")]:->())
+      get_cl_req_proc :: Def('[Ref s (Struct "control_law")]:->())
       get_cl_req_proc = proc (named "get_cl_req") $ \cl_req -> body $ do
         ms_get_cl_req modeswitch cl_req
-        am_get_cl_req armingmachine cl_req
+        am_get_cl_req armingmachine (cl_req ~> C.arming_mode)
 
-  taskModuleDef $ do
+  monitorModuleDef $ do
     incl init_proc
     incl new_sample_proc
     incl no_sample_proc
@@ -112,17 +114,24 @@ taskPPMDecoder = do
   useful_channels = 6
   timeout_limit = fromIMilliseconds (150 :: Uint8)-- ms
 
-failsafe :: Ref s (Struct "userinput_result") -> Ivory eff ()
+failsafe :: Ref s (Struct "user_input") -> Ivory eff ()
 failsafe ui = do
   store (ui ~> I.roll)      0
   store (ui ~> I.pitch)     0
   store (ui ~> I.throttle) (-1)
   store (ui ~> I.yaw)       0
 
-scale_ppm_channel :: I.PPM -> Ivory eff IFloat
-scale_ppm_channel input = call scale_proc I.ppmCenter 500 (-1.0) 1.0 input
+scale_ppm_channel :: Uint16 -> Ivory eff IFloat
+scale_ppm_channel input = call scale_proc center range outmin outmax input
+  where
+  center = 1500
+  range = 500
+  outmin = -1.0
+  outmax = 1.0
 
-scale_proc :: Def ('[I.PPM, Uint16, IFloat, IFloat, I.PPM] :-> IFloat)
+
+
+scale_proc :: Def ('[Uint16, Uint16, IFloat, IFloat, Uint16] :-> IFloat)
 scale_proc = proc "ppm_scale_proc" $ \center range outmin outmax input ->
   requires (    (range /=? 0)
             .&& (input >=? minBound)
@@ -137,15 +146,15 @@ scale_proc = proc "ppm_scale_proc" $ \center range outmin outmax input ->
         (ret outmax)
         (ret ranged))
 
-ppm_decode_ui_proc :: Def ('[ Ref s0 (Array 8 (Stored I.PPM))
-                            , Ref s1 (Struct "userinput_result")
+ppm_decode_ui_proc :: Def ('[ Ref s0 (Array 8 (Stored Uint16))
+                            , Ref s1 (Struct "user_input")
                             , ITime
                             ] :-> ())
-ppm_decode_ui_proc = proc "ppm_decode_userinput" $ \ppms ui now ->
+ppm_decode_ui_proc = proc "ppm_decode_userinput" $ \ppms ui _now ->
   body $ do
   -- Scale 1000-2000 inputs to -1 to 1 inputs.
   let chtransform :: Ix 8
-                  -> Label "userinput_result" (Stored IFloat)
+                  -> Label "user_input" (Stored IFloat)
                   -> Ivory eff ()
       chtransform ix ofield = do
         ppm <- deref (ppms ! (ix :: Ix 8))
@@ -155,6 +164,5 @@ ppm_decode_ui_proc = proc "ppm_decode_userinput" $ \ppms ui now ->
   chtransform 1 I.pitch
   chtransform 2 I.throttle
   chtransform 3 I.yaw
-  store (ui ~> I.time) now
   retVoid
 
