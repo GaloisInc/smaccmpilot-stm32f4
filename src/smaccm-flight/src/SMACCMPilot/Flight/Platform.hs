@@ -1,7 +1,15 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE DataKinds #-}
 
-module SMACCMPilot.Flight.Platform where
+module SMACCMPilot.Flight.Platform
+  ( flightPlatformParser
+  , FlightPlatform(..)
+  , fp_clockconfig
+  , UART_Device(..)
+  , PPM(..)
+  , STM32Config
+  , ClockConfig
+  ) where
 
 import Ivory.Tower.Config
 
@@ -15,12 +23,11 @@ import qualified Ivory.BSP.STM32F405.Interrupt      as F405
 import qualified Ivory.BSP.STM32F427.UART           as F427
 import qualified Ivory.BSP.STM32F427.GPIO           as F427
 import qualified Ivory.BSP.STM32F427.GPIO.AF        as F427
-import           Ivory.BSP.STM32.Peripheral.GPIOF4
 import           Ivory.BSP.STM32.Peripheral.UART
-import           Ivory.BSP.STM32.Peripheral.ATIM18
 import           Ivory.BSP.STM32.Interrupt
 import           Ivory.BSP.STM32.ClockConfig
 import           Ivory.OS.FreeRTOS.Tower.STM32.Config
+import           SMACCMPilot.Hardware.Tests.Platforms (UART_Device(..), PPM(..))
 
 
 data FlightPlatform =
@@ -32,17 +39,6 @@ data FlightPlatform =
 
 fp_clockconfig :: (FlightPlatform -> ClockConfig)
 fp_clockconfig = stm32config_clock . fp_stm32config
-
-data UART_Device =
-  UART_Device
-    { uart_periph :: UART
-    , uart_pins   :: UARTPins
-    }
-
-data PPM
-  = PPM_Timer ATIM GPIOPin GPIO_AF HasSTM32Interrupt
-  | PPM_None
-
 
 flightPlatformParser :: ConfigParser FlightPlatform
 flightPlatformParser = do
