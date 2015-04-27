@@ -17,8 +17,7 @@ before_install:
   - export GEC_REPO=$PWD/gec
 install:
   - cabal install cabal-install
-  - cabal install alex
-  - cabal install happy
+  - cabal install alex happy
 script:
   - ghc --version
   - cabal --version
