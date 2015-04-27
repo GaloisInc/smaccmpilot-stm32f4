@@ -10,8 +10,7 @@ import Ivory.Language
 import Ivory.Serialize
 import Ivory.Tower
 
-import SMACCMPilot.Hardware.PPM.PulseCapture
-import SMACCMPilot.Hardware.PPM.Decode
+import SMACCMPilot.Hardware.PPM
 
 import qualified SMACCMPilot.Datalink.HXStream.Ivory as HX
 import SMACCMPilot.Hardware.Tests.Platforms
@@ -21,20 +20,11 @@ app :: (e -> PX4Platform)
 app topx4 = do
   (_i,uarto) <- px4ConsoleTower topx4
 
-  pulse_capt <- channel
-
-  px4platform <- fmap topx4 getEnv
-  case px4platform_ppm px4platform of
-    PPM_Timer t p a i -> pulseCaptureTower (px4platform_clockconfig . topx4)
-                                           t p a i
-                                           (fst pulse_capt)
-    PPM_None -> error "PPMIn app: no PPM configured for this px4platform"
-
-  output <- channel
-  ppmDecodeTower (snd pulse_capt) (fst output)
+  ppmOut <- ppmTower (px4platform_ppm . topx4)
+                     (px4platform_clockconfig . topx4)
 
   monitor "ppmsender" $ do
-    ppmSender (snd output) uarto
+    ppmSender ppmOut uarto
 
   towerDepends serializeModule
   towerModule  serializeModule
