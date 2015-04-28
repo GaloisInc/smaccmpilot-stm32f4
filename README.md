@@ -54,11 +54,17 @@ repositories:
 | [ivory][] | `IVORY_REPO` |
 | [tower][] | `TOWER_REPO` |
 | [ivory-tower-stm32][] | `BSP_REPO` |
+| [gidl][] | `GIDL_REPO` |
+| [gec][] | `GEC_REPO` |
+| [s-cargot][] | `SCARGOT_REPO` |
 
 [smaccmpilot-build]: https://github.com/galoisinc/smaccmpilot-build
 [ivory]: https://github.com/galoisinc/ivory
 [tower]: https://github.com/galoisinc/tower
 [ivory-tower-stm32]: https://github.com/galoisinc/ivory-tower-stm32
+[gec]: https://github.com/galoisinc/gec
+[gidl]: https://github.com/galoisinc/gidl
+[s-cargot]: https://github.com/aisamanra/s-cargot
 
 ### Haskell Tools
 
