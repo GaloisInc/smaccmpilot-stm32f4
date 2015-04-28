@@ -9,7 +9,9 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  exposed-modules:     SMACCMPilot.Flight.Platform,
+  exposed-modules:     SMACCMPilot.Flight.Datalink.ControllableVehicle,
+                       SMACCMPilot.Flight.Datalink.Plaintext,
+                       SMACCMPilot.Flight.Platform,
                        SMACCMPilot.Flight.UserInput.PPM,
                        SMACCMPilot.Flight.UserInput.PPM.ArmingMachine,
                        SMACCMPilot.Flight.UserInput.PPM.ModeSwitch,
@@ -20,9 +22,11 @@ library
                        ivory-serialize >=0.1,
                        ivory-stdlib >=0.1,
                        tower >=0.9,
+                       tower-hal,
                        tower-config,
                        tower-freertos-stm32,
                        ivory-bsp-stm32,
+                       smaccm-commsec,
                        smaccm-datalink,
                        smaccm-comm-schema-tower
   default-language:    Haskell2010
