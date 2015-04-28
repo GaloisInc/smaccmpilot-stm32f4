@@ -10,13 +10,22 @@ default:
 
 test-fmu17: IVORY_FLAGS += --conf-file=fmu17.conf
 test-fmu17: SRC_PREFIX = platform-fmu17/
-test-fmu17:
-	@echo "no fmu17 tests at this time"
+test-fmu17: comm-only-test
 
 test-fmu24: IVORY_FLAGS += --conf-file=fmu24.conf
 test-fmu24: SRC_PREFIX = platform-fmu24/
-test-fmu24:
-	@echo "no fmu17 tests at this time"
+test-fmu24: comm-only-test
+
+
+.PHONY: comm-only-test
+comm-only-test:
+	cabal run comm-only-test-gen -- --src-dir=$(SRC_PREFIX)comm-only-test $(IVORY_FLAGS)
+	make -C $(SRC_PREFIX)comm-only-test
+
+.PHONY: comm-only-test-clean
+comm-only-test-clean:
+	-rm -rf comm-only-test
+
 
 .PHONY: create-sandbox
 create-sandbox:

@@ -20,7 +20,7 @@ plaintextDatalink :: (e -> ClockConfig)
                   -> Integer
                   -> ( ChanOutput CyphertextArray
                       -> Tower e (a, ChanOutput CyphertextArray))
-                  -> Tower e (a)
+                  -> Tower e a
 plaintextDatalink tocc uart baud k = do
   (uarti, uarto) <- uartTower tocc
                               (uart_periph uart)

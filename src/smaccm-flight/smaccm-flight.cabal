@@ -11,6 +11,7 @@ library
   hs-source-dirs:      src
   exposed-modules:     SMACCMPilot.Flight.Datalink.ControllableVehicle,
                        SMACCMPilot.Flight.Datalink.Plaintext,
+                       SMACCMPilot.Flight.Datalink.TestApp,
                        SMACCMPilot.Flight.Platform,
                        SMACCMPilot.Flight.UserInput.PPM,
                        SMACCMPilot.Flight.UserInput.PPM.ArmingMachine,
@@ -32,3 +33,13 @@ library
   default-language:    Haskell2010
   ghc-options:         -Wall
 
+executable             comm-only-test-gen
+  main-is:             CommOnly.hs
+  hs-source-dirs:      tests
+  build-depends:       base >= 4.6,
+                       tower >= 0.9,
+                       tower-config,
+                       tower-freertos-stm32,
+                       smaccm-flight
+  default-language:    Haskell2010
+  ghc-options:         -Wall
