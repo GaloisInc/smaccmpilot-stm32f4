@@ -30,7 +30,7 @@
   (thr_mode    throttle_mode_t))
 
 (def-struct user_input_t
-  (throttle    float_t) -- [0..1.0]
+  (throttle    float_t) -- [-1.0..1.0]
   (roll        float_t) -- [-1.0..1.0]
   (pitch       float_t) -- [-1.0..1.0]
   (yaw         float_t)) -- [-1.0..1.0]
