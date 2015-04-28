@@ -1,5 +1,5 @@
-# SMACCMPilot Flight Application
+# LEGACY SMACCMPilot Flight Application
 
-*This code is unmaintained at this time, and will not build!*
+*This code is only kept in the current tree for legacy reasons*
 
-This package will be revived in the near future.
+flight code is being revived over in the `smaccm-flight` directory.
