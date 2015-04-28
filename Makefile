@@ -1,56 +1,20 @@
+SUBDIRS = ivory-px4-hw ivory-geo smaccm-commsec smaccm-datalink smaccm-comm-schema smaccm-comm-client smaccm-flight smaccm-ins
 
 default: ivory-px4-hw
-all: ivory-px4-hw
-all: ivory-geo
-all: smaccm-commsec
-all: smaccm-datalink
-all: smaccm-ins
 
-.PHONY: ivory-px4-hw
-ivory-px4-hw:
-	make -C src/ivory-px4-hw create-sandbox
-	make -C src/ivory-px4-hw
+all: $(SUBDIRS)
+
+$(SUBDIRS)::
+	make -C src/$@ create-sandbox
+	make -C src/$@
+	make -C src/$@ test
+
+ivory-px4-hw::
 	make -C src/ivory-px4-hw test-fmu17
 	make -C src/ivory-px4-hw test-fmu24
 
-.PHONY: ivory-geo
-ivory-geo:
-	make -C src/ivory-geo create-sandbox
-	make -C src/ivory-geo
-
-.PHONY: smaccm-commsec
-smaccm-commsec:
-	make -C src/smaccm-commsec create-sandbox
-	make -C src/smaccm-commsec
-	make -C src/smaccm-commsec test
-
-.PHONY: smaccm-datalink
-smaccm-datalink:
-	make -C src/smaccm-datalink create-sandbox
-	make -C src/smaccm-datalink
-	make -C src/smaccm-datalink test
-
-.PHONY: smaccm-comm-schema
-smaccm-comm-schema:
-	make -C src/smaccm-comm-schema create-sandbox
-	make -C src/smaccm-comm-schema
-	make -C src/smaccm-comm-schema test
-
-.PHONY: smaccm-comm-client
-smaccm-comm-client:
-	make -C src/smaccm-comm-client create-sandbox
-	make -C src/smaccm-comm-client
-
-.PHONY: smaccm-flight
-smaccm-flight:
-	make -C src/smaccm-flight create-sandbox
-	make -C src/smaccm-flight
+smaccm-flight::
 	make -C src/smaccm-flight test-fmu17
 	make -C src/smaccm-flight test-fmu24
 
-.PHONY: smaccm-ins
-smaccm-ins:
-	make -C src/smaccm-ins create-sandbox
-	make -C src/smaccm-ins
-	make -C src/smaccm-ins test
-
+.PHONY: $(SUBDIRS)

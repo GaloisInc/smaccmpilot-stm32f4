@@ -59,8 +59,6 @@ library
                        monadLib,
                        ivory,
                        ivory-stdlib,
-                       ivory-backend-c,
-                       ivory-opts,
                        ivory-serialize,
                        ivory-hw,
                        tower >= 0.9,
@@ -78,18 +76,10 @@ executable             copter-motor-test-gen
   hs-source-dirs:      tests
   build-depends:       base >= 4.6,
                        monadLib,
-                       ivory,
-                       ivory-stdlib,
-                       ivory-backend-c,
-                       ivory-opts,
-                       ivory-hw,
                        tower              >= 0.9,
                        tower-config,
                        tower-freertos-stm32,
-                       ivory-bsp-stm32,
-                       ivory-px4-hw,
-                       smaccm-datalink,
-                       ivory-serialize
+                       ivory-px4-hw
 
   default-language:    Haskell2010
   ghc-options:         -Wall
@@ -112,18 +102,10 @@ executable             ublox-gps-test-gen
   hs-source-dirs:      tests
   build-depends:       base >= 4.6,
                        monadLib,
-                       ivory,
-                       ivory-stdlib,
-                       ivory-backend-c,
-                       ivory-opts,
-                       ivory-hw,
                        tower              >= 0.9,
                        tower-config,
                        tower-freertos-stm32,
-                       ivory-bsp-stm32,
-                       ivory-px4-hw,
-                       smaccm-datalink,
-                       ivory-serialize
+                       ivory-px4-hw
 
   default-language:    Haskell2010
   ghc-options:         -Wall
@@ -133,18 +115,10 @@ executable             px4-mpu6k-test-gen
   hs-source-dirs:      tests
   build-depends:       base >= 4.6,
                        monadLib,
-                       ivory,
-                       ivory-stdlib,
-                       ivory-backend-c,
-                       ivory-opts,
-                       ivory-hw,
                        tower              >= 0.9,
                        tower-config,
                        tower-freertos-stm32,
-                       ivory-bsp-stm32,
-                       ivory-px4-hw,
-                       smaccm-datalink,
-                       ivory-serialize
+                       ivory-px4-hw
 
   default-language:    Haskell2010
   ghc-options:         -Wall
@@ -154,18 +128,10 @@ executable             px4-baro-test-gen
   hs-source-dirs:      tests
   build-depends:       base >= 4.6,
                        monadLib,
-                       ivory,
-                       ivory-stdlib,
-                       ivory-backend-c,
-                       ivory-opts,
-                       ivory-hw,
                        tower              >= 0.9,
                        tower-config,
                        tower-freertos-stm32,
-                       ivory-bsp-stm32,
-                       ivory-px4-hw,
-                       smaccm-datalink,
-                       ivory-serialize
+                       ivory-px4-hw
 
   default-language:    Haskell2010
   ghc-options:         -Wall
@@ -175,18 +141,10 @@ executable             px4-mag-test-gen
   hs-source-dirs:      tests
   build-depends:       base >= 4.6,
                        monadLib,
-                       ivory,
-                       ivory-stdlib,
-                       ivory-backend-c,
-                       ivory-opts,
-                       ivory-hw,
                        tower              >= 0.9,
                        tower-config,
                        tower-freertos-stm32,
-                       ivory-bsp-stm32,
-                       ivory-px4-hw,
-                       smaccm-datalink,
-                       ivory-serialize
+                       ivory-px4-hw
 
   default-language:    Haskell2010
   ghc-options:         -Wall
@@ -196,18 +154,10 @@ executable             px4-ppm-in-test-gen
   hs-source-dirs:      tests
   build-depends:       base >= 4.6,
                        monadLib,
-                       ivory,
-                       ivory-stdlib,
-                       ivory-backend-c,
-                       ivory-opts,
-                       ivory-hw,
                        tower              >= 0.9,
                        tower-config,
                        tower-freertos-stm32,
-                       ivory-bsp-stm32,
-                       ivory-px4-hw,
-                       smaccm-datalink,
-                       ivory-serialize
+                       ivory-px4-hw
 
   default-language:    Haskell2010
   ghc-options:         -Wall
@@ -219,7 +169,6 @@ executable             px4-ppm-in-test-gen
 --                       tower              >= 0.9,
 --                       tower-config,
 --                       tower-freertos-stm32,
---                       ivory-bsp-tests,
 --                       ivory-px4-hw
 --
 --  default-language:    Haskell2010
@@ -230,18 +179,10 @@ executable             px4-all-sensors-test-gen
   hs-source-dirs:      tests
   build-depends:       base >= 4.6,
                        monadLib,
-                       ivory,
-                       ivory-stdlib,
-                       ivory-backend-c,
-                       ivory-opts,
-                       ivory-hw,
                        tower              >= 0.9,
                        tower-config,
                        tower-freertos-stm32,
-                       ivory-bsp-stm32,
-                       ivory-px4-hw,
-                       smaccm-datalink,
-                       ivory-serialize
+                       ivory-px4-hw
 
   default-language:    Haskell2010
   ghc-options:         -Wall

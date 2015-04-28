@@ -1,0 +1,9 @@
+create-sandbox::
+	make -C $(SMACCMPILOT_REPO)/smaccm-comm-schema create-sandbox
+	make -C $(SMACCMPILOT_REPO)/smaccm-comm-schema
+
+$(call add-cabal-package-source, \
+  $(SMACCMPILOT_REPO)/smaccm-commsec \
+  $(SMACCMPILOT_REPO)/smaccm-datalink \
+  $(SMACCMPILOT_REPO)/smaccm-comm-schema/smaccm-comm-schema-native \
+)

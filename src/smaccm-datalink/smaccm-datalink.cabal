@@ -28,15 +28,10 @@ library
   build-depends:       base >= 4.6,
                        async,
                        bytestring,
-                       cereal,
-                       cipher-aes,
-                       crypto-cipher-types,
-                       containers,
                        dlist,
                        haskeline,
                        monadLib,
                        pipes,
-                       process,
                        random,
                        serial,
                        stm,
@@ -44,11 +39,7 @@ library
                        unix,
                        gec,
                        ivory,
-                       ivory-hw,
-                       ivory-serialize,
                        ivory-stdlib,
-                       ivory-artifact,
-                       tower-config,
                        tower,
                        smaccm-commsec
   hs-source-dirs:      src
@@ -61,8 +52,6 @@ executable smaccm-datalink-ivory-frameloopback-test-gen
   build-depends:       base,
                        ivory,
                        ivory-stdlib,
-                       ivory-artifact,
-                       ivory-backend-c,
                        tower,
                        tower-config,
                        tower-hal,
@@ -79,8 +68,6 @@ executable smaccm-datalink-ivory-commsecloopback-test-gen
   build-depends:       base,
                        ivory,
                        ivory-stdlib,
-                       ivory-artifact,
-                       ivory-backend-c,
                        tower,
                        tower-config,
                        tower-hal,
@@ -99,7 +86,6 @@ executable smaccm-datalink-native-serial-test
   build-depends:        base >= 4.6,
                         bytestring,
                         serialport,
-                        dlist,
                         smaccm-datalink
   default-language:     Haskell2010
 

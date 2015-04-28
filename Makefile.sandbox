@@ -1,0 +1,41 @@
+# Override this for a project that doesn't have a .cabal file to specify
+# a list of packages to install in the sandbox. By default we install
+# all packages needed by the current project's .cabal file.
+SANDBOX_INSTALL ?= --dependencies-only
+
+default:
+ifeq ($(SANDBOX_INSTALL),--dependencies-only)
+	cabal build
+endif
+
+test:
+
+define add-cabal-package-source-once
+ifeq ($(findstring $(1) ,$(CABAL_PACKAGE_SOURCES) ),)
+CABAL_PACKAGE_SOURCES += $(1)
+-include $(1)/Makefile.deps
+endif
+endef
+
+add-cabal-package-source = $(foreach package,$(1),$(eval $(call add-cabal-package-source-once,$(package))))
+
+include Makefile.deps
+
+create-sandbox::
+	cabal sandbox init
+	echo "tests: True" >> cabal.sandbox.config
+ifneq ($(strip $(CABAL_PACKAGE_SOURCES)),)
+	cabal sandbox add-source $(CABAL_PACKAGE_SOURCES)
+endif
+	cabal install $(SANDBOX_INSTALL)
+
+clean:
+
+distclean: clean
+	-rm -rf dist
+
+clean-sandbox: distclean
+	-rm -rf cabal.sandbox.config
+	-rm -rf .cabal-sandbox
+
+.PHONY: default test create-sandbox clean distclean clean-sandbox

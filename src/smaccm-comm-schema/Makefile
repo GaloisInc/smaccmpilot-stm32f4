@@ -1,4 +1,3 @@
-
 # Need to use absolute paths so that the IVORY_REPO may be exported for a
 # recursive Makefile call
 
@@ -7,8 +6,12 @@ CURRENT_DIR := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 IVORY_REPO ?= $(CURRENT_DIR)/../../../ivory
 TOWER_REPO ?= $(CURRENT_DIR)/../../../tower
 BSP_REPO ?= $(CURRENT_DIR)/../../../ivory-tower-stm32
-GIDL_REPO ?= ../../../gidl
-SCARGOT_REPO ?= ../../../s-cargot
+GIDL_REPO ?= $(CURRENT_DIR)/../../../gidl
+SCARGOT_REPO ?= $(CURRENT_DIR)/../../../s-cargot
+SMACCMPILOT_REPO ?= ..
+
+SANDBOX_INSTALL = gidl
+include ../../Makefile.sandbox
 
 default: smaccm-comm-schema-native
 default: smaccm-comm-schema-tower
@@ -45,22 +48,6 @@ smaccm-comm-schema-tower-test: smaccm-comm-schema-tower
 	make -C smaccm-comm-schema-tower
 	make -C smaccm-comm-schema-tower test
 
-create-sandbox:
-	cabal sandbox init
-	cabal sandbox add-source $(IVORY_REPO)/ivory-artifact
-	cabal sandbox add-source $(SCARGOT_REPO)
-	cabal sandbox add-source $(GIDL_REPO)
-	cabal install gidl
-
-
 clean:
 	-rm -rf smaccm-comm-schema-native
 	-rm -rf smaccm-comm-schema-tower
-
-distclean: clean
-	-rm -rf dist
-
-clean-sandbox: distclean
-	-rm -rf .cabal-sandbox
-	-rm -rf cabal.sandbox.config
-

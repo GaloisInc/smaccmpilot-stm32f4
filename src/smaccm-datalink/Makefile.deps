@@ -1,0 +1,12 @@
+$(call add-cabal-package-source, \
+  $(BSP_REPO)/ivory-bsp-stm32 \
+  $(BSP_REPO)/ivory-bsp-tests \
+  $(BSP_REPO)/tower-freertos-stm32 \
+  $(GEC_REPO) \
+  $(IVORY_REPO)/ivory \
+  $(IVORY_REPO)/ivory-stdlib \
+  $(SMACCMPILOT_REPO)/smaccm-commsec \
+  $(TOWER_REPO)/tower \
+  $(TOWER_REPO)/tower-config \
+  $(TOWER_REPO)/tower-hal \
+)

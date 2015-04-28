@@ -1,13 +1,11 @@
-
 IVORY_REPO ?= ../../../ivory
 TOWER_REPO ?= ../../../tower
 BSP_REPO ?= ../../../ivory-tower-stm32
 GEC_REPO ?= ../../../gec
+SMACCMPILOT_REPO ?= ..
+include ../../Makefile.sandbox
 
 IVORY_FLAGS = --const-fold
-
-default:
-	cabal build
 
 .PHONY: test-fmu17
 test-fmu17: IVORY_FLAGS += --conf-file=fmu17.conf
@@ -101,28 +99,6 @@ px4-can-fragment-test:
 px4-can-fragment-test-clean:
 	-rm -rf px4-can-fragment-test
 
-create-sandbox:
-	cabal sandbox init
-	cabal sandbox add-source $(IVORY_REPO)/ivory
-	cabal sandbox add-source $(IVORY_REPO)/ivory-artifact
-	cabal sandbox add-source $(IVORY_REPO)/ivory-hw
-	cabal sandbox add-source $(IVORY_REPO)/ivory-opts
-	cabal sandbox add-source $(IVORY_REPO)/ivory-stdlib
-	cabal sandbox add-source $(IVORY_REPO)/ivory-backend-c
-	cabal sandbox add-source $(IVORY_REPO)/ivory-serialize
-	cabal sandbox add-source $(IVORY_REPO)/ivory-eval
-	cabal sandbox add-source $(TOWER_REPO)/tower-config
-	cabal sandbox add-source $(TOWER_REPO)/tower-hal
-	cabal sandbox add-source $(TOWER_REPO)/tower
-	cabal sandbox add-source $(BSP_REPO)/ivory-freertos-bindings
-	cabal sandbox add-source $(BSP_REPO)/tower-freertos-stm32
-	cabal sandbox add-source $(BSP_REPO)/ivory-bsp-stm32
-	cabal sandbox add-source $(BSP_REPO)/ivory-bsp-tests
-	cabal sandbox add-source $(GEC_REPO)
-	cabal sandbox add-source ../smaccm-commsec
-	cabal sandbox add-source ../smaccm-datalink
-	cabal install --dependencies-only
-
 clean: ublox-gps-test-clean
 clean: px4-mpu6k-test-clean
 clean: px4-baro-test-clean
@@ -134,10 +110,3 @@ clean: px4-all-sensors-test-clean
 clean:
 	-rm -rf platform-fmu17
 	-rm -rf platform-fmu24
-
-distclean: clean
-	-rm -rf dist
-
-clean-sandbox: clean
-	-rm -rf .cabal-sandbox
-	-rm cabal.sandbox.config
