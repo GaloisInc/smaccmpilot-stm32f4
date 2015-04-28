@@ -7,106 +7,32 @@ include ../../Makefile.sandbox
 
 IVORY_FLAGS = --const-fold
 
+.PHONY: test
+test: test-fmu24 test-fmu17
+
 .PHONY: test-fmu17
-test-fmu17: IVORY_FLAGS += --conf-file=fmu17.conf
-test-fmu17: SRC_PREFIX = platform-fmu17/
-test-fmu17: ublox-gps-test
-test-fmu17: px4-mpu6k-test
-test-fmu17: px4-baro-test
-test-fmu17: px4-mag-test
-test-fmu17: px4-all-sensors-test
-test-fmu17: px4-ppm-in-test
+test-fmu17: platform-fmu17/ublox-gps-test-gen
+test-fmu17: platform-fmu17/px4-mpu6k-test-gen
+test-fmu17: platform-fmu17/px4-baro-test-gen
+test-fmu17: platform-fmu17/px4-mag-test-gen
+test-fmu17: platform-fmu17/px4-all-sensors-test-gen
+test-fmu17: platform-fmu17/px4-ppm-in-test-gen
 
 .PHONY: test-fmu24
-test-fmu24: IVORY_FLAGS += --conf-file=fmu24.conf
-test-fmu24: SRC_PREFIX = platform-fmu24/
-test-fmu24: ublox-gps-test
-test-fmu24: px4-mpu6k-test
-test-fmu24: px4-baro-test
-test-fmu24: px4-mag-test
-test-fmu24: px4-all-sensors-test
-# test-fmu24: px4-can-fragment-test
+test-fmu24: platform-fmu24/ublox-gps-test-gen
+test-fmu24: platform-fmu24/px4-mpu6k-test-gen
+test-fmu24: platform-fmu24/px4-baro-test-gen
+test-fmu24: platform-fmu24/px4-mag-test-gen
+test-fmu24: platform-fmu24/px4-all-sensors-test-gen
+# test-fmu24: platform-fmu24/px4-can-fragment-test-gen
 
-.PHONY: ublox-gps-test
-ublox-gps-test:
-	cabal run ublox-gps-test-gen -- --src-dir=$(SRC_PREFIX)ublox-gps-test $(IVORY_FLAGS)
-	make -C $(SRC_PREFIX)ublox-gps-test
+%-gen: default
+	cabal run $(@F) -- --src-dir=$* --conf-file=$(patsubst platform-%,%,$(*D)).conf $(IVORY_FLAGS)
+	make -C $*
 
-.PHONY: ublox-gps-test-clean
-ublox-gps-test-clean:
-	-rm -rf ublox-gps-test
+%-clean:
+	-rm -rf $*
 
-.PHONY: px4-mpu6k-test
-px4-mpu6k-test:
-	cabal run px4-mpu6k-test-gen -- --src-dir=$(SRC_PREFIX)px4-mpu6k-test $(IVORY_FLAGS)
-	make -C $(SRC_PREFIX)px4-mpu6k-test
-
-.PHONY: px4-mpu6k-test-clean
-px4-mpu6k-test-clean:
-	-rm -rf px4-mpu6k-test
-
-.PHONY: px4-baro-test
-px4-baro-test:
-	cabal run px4-baro-test-gen -- --src-dir=$(SRC_PREFIX)px4-baro-test $(IVORY_FLAGS)
-	make -C $(SRC_PREFIX)px4-baro-test
-
-.PHONY: px4-baro-test-clean
-px4-baro-test-clean:
-	-rm -rf px4-baro-test
-
-.PHONY: px4-mag-test
-px4-mag-test:
-	cabal run px4-mag-test-gen -- --src-dir=$(SRC_PREFIX)px4-mag-test $(IVORY_FLAGS)
-	make -C $(SRC_PREFIX)px4-mag-test
-
-.PHONY: px4-mag-test-clean
-px4-mag-test-clean:
-	-rm -rf px4-mag-test
-
-.PHONY: px4-all-sensors-test
-px4-all-sensors-test:
-	cabal run px4-all-sensors-test-gen -- --src-dir=$(SRC_PREFIX)px4-all-sensors-test $(IVORY_FLAGS)
-	make -C $(SRC_PREFIX)px4-all-sensors-test
-
-.PHONY: px4-all-sensors-test-clean
-px4-all-sensors-test-clean:
-	-rm -rf px4-all-sensors-test
-
-.PHONY: px4-copter-motor-test
-px4-copter-motor-test:
-	cabal run copter-motor-test-gen -- --src-dir=$(SRC_PREFIX)px4-copter-motor-test $(IVORY_FLAGS)
-	make -C $(SRC_PREFIX)px4-copter-motor-test
-
-.PHONY: px4-copter-motor-test-clean
-px4-copter-motor-test-clean:
-	-rm -rf px4-copter-motor-test
-
-.PHONY: px4-ppm-in-test
-px4-ppm-in-test:
-	cabal run px4-ppm-in-test-gen -- --src-dir=$(SRC_PREFIX)px4-ppm-in-test $(IVORY_FLAGS)
-	make -C $(SRC_PREFIX)px4-ppm-in-test
-
-.PHONY: px4-ppm-in-test-clean
-px4-ppm-in-test-clean:
-	-rm -rf px4-ppm-in-test
-
-.PHONY: px4-can-fragment-test
-px4-can-fragment-test:
-	cabal run px4-can-fragment-test-gen -- --src-dir=$(SRC_PREFIX)px4-can-fragment-test $(IVORY_FLAGS)
-	make -C $(SRC_PREFIX)px4-can-fragment-test
-
-.PHONY: px4-can-fragment-test-clean
-px4-can-fragment-test-clean:
-	-rm -rf px4-can-fragment-test
-
-clean: ublox-gps-test-clean
-clean: px4-mpu6k-test-clean
-clean: px4-baro-test-clean
-clean: px4-mag-test-clean
-clean: px4-ppm-in-test-clean
-clean: px4-copter-motor-test-clean
-clean: px4-can-fragment-test-clean
-clean: px4-all-sensors-test-clean
 clean:
 	-rm -rf platform-fmu17
 	-rm -rf platform-fmu24
