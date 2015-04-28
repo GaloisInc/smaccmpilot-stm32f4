@@ -41,11 +41,12 @@ smaccm-comm-client:
 	make -C src/smaccm-comm-client create-sandbox
 	make -C src/smaccm-comm-client
 
-.PHONY: smaccm-comm-server
-smaccm-comm-server:
-	make -C src/smaccm-comm-server create-sandbox
-	make -C src/smaccm-comm-server
-	make -C src/smaccm-comm-server test
+.PHONY: smaccm-flight
+smaccm-flight:
+	make -C src/smaccm-flight create-sandbox
+	make -C src/smaccm-flight
+	make -C src/smaccm-flight test-fmu17
+	make -C src/smaccm-flight test-fmu24
 
 .PHONY: smaccm-ins
 smaccm-ins:
