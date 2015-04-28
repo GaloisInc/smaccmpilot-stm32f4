@@ -2,6 +2,8 @@
 module SMACCMPilot.Datalink.Client.Pipes where
 
 import           Data.ByteString.Char8 (ByteString)
+import qualified Data.ByteString.Char8 as B
+import           Data.ByteString.Internal (c2w)
 import           Data.Word
 import           Text.Printf
 
@@ -55,8 +57,14 @@ untagger t = do
   when (t == t') $ yield a
   untagger t
 
-hxDecoder :: Monad m => Pipe Word8 (HX.Tag, ByteString) m ()
-hxDecoder = aux HX.emptyStreamState
+bytestringUnpack :: Monad m => Pipe ByteString Word8 m ()
+bytestringUnpack = do
+  bs <- await
+  mapM_ (yield . c2w) (B.unpack bs)
+  bytestringUnpack
+
+hxDecoder :: Monad m => Pipe ByteString (HX.Tag, ByteString) m ()
+hxDecoder = bytestringUnpack >-> aux HX.emptyStreamState
   where
   aux ss = do
      b <- await

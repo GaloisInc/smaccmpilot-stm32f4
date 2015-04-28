@@ -32,11 +32,8 @@ replClient :: Options -> IO ()
 replClient opts = do
   console <- newConsole opts
 
-  (ser_out_push, ser_out_pop) <- newQueue
-  (ser_in_push, ser_in_pop)   <- newQueue
+  (ser_in_pop, ser_out_push) <- serialServer opts console
 
-
-  serialServer opts console ser_in_push ser_out_pop
   _ <- asyncRunEffect console "serial in"
           $ popProducer ser_in_pop
         >-> hxDecoder

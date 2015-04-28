@@ -21,17 +21,14 @@ import SMACCMPilot.Datalink.Client.Monad
 import SMACCMPilot.Datalink.Client.Pipes
 import SMACCMPilot.Commsec.Sizes
 
-import SMACCMPilot.Comm.Native.Interface.ControllableVehicle
+import SMACCMPilot.Comm.Native.Interface.ControllableVehicle ()
 import qualified SMACCMPilot.Comm.Native.Rpc.ControllableVehicle as RPC
 
 commClient :: Options -> IO ()
 commClient opts = do
   console <- newConsole opts
 
-  (ser_out_push, ser_out_pop) <- newQueue
-  (ser_in_push, ser_in_pop)   <- newQueue
-
-  serialServer opts console ser_in_push ser_out_pop
+  (ser_in_pop, ser_out_push) <- serialServer opts console
 
   (out_msg_push, out_msg_pop) <- newQueue
   (in_msg_push, in_msg_pop) <- newQueue

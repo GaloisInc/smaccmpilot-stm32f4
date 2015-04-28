@@ -5,14 +5,19 @@ module SMACCMPilot.Datalink.Client.Console
   , consoleError
   , consoleDebug
   , newConsole
+  , newConsolePrinter
   , getConsoleOutput
   , annotate
   , consoleWithLogLevel
   ) where
 
+import qualified Control.Concurrent.Async        as A
+import           Control.Concurrent (threadDelay)
 import           Control.Concurrent.STM.TVar
+import           Control.Exception
 import           Control.Monad
 import           Control.Monad.STM
+import           System.IO
 
 import SMACCMPilot.Datalink.Client.Opts
 
@@ -60,6 +65,19 @@ newConsole :: Options -> IO Console
 newConsole opts = do
   q <- newTVarIO []
   return $ RealConsole opts q
+
+newConsolePrinter :: Options -> IO Console
+newConsolePrinter opts = do
+  c <- newConsole opts
+  let run = do
+        threadDelay 100
+        o <- getConsoleOutput c
+        putStrLn o
+  void $ A.async $ catch (forever run) exit
+  return c
+  where
+  exit :: SomeException -> IO ()
+  exit x = hPutStrLn stderr ("console printer exited with exception: " ++ show x)
 
 getConsoleOutput :: Console -> IO String
 getConsoleOutput c = do

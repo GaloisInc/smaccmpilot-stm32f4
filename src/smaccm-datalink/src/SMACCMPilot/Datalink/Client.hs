@@ -24,12 +24,9 @@ import SMACCMPilot.Commsec.SymmetricKey
 
 frameLoopbackClient :: Options -> IO ()
 frameLoopbackClient opts = do
-  console <- newConsole opts
+  console <- newConsolePrinter opts
 
-  (ser_out_push, ser_out_pop) <- newQueue
-  (ser_in_push, ser_in_pop)   <- newQueue
-
-  serialServer opts console ser_in_push ser_out_pop
+  (ser_in_pop, ser_out_push) <- serialServer opts console
 
   (out_frame_push, out_frame_pop) <- newQueue
   (in_frame_push, in_frame_pop) <- newQueue
@@ -50,8 +47,6 @@ frameLoopbackClient opts = do
 
   cts <- replicateM 20 (randomBytestring cyphertextSize)
   r <- checkLoopback console cts out_frame_push in_frame_pop 100
-  o <- getConsoleOutput console
-  putStrLn o
   case r of
     True -> putStrLn "Success!">> exitSuccess >> return ()
     False -> exitFailure >> return ()
@@ -61,12 +56,9 @@ frameLoopbackClient opts = do
 
 commsecLoopbackClient :: Options -> SymmetricKey -> IO ()
 commsecLoopbackClient opts sk = do
-  console <- newConsole opts
+  console <- newConsolePrinter opts
 
-  (ser_out_push, ser_out_pop) <- newQueue
-  (ser_in_push, ser_in_pop)   <- newQueue
-
-  serialServer opts console ser_in_push ser_out_pop
+  (ser_in_pop, ser_out_push) <- serialServer opts console
 
   (out_frame_push, out_frame_pop) <- newQueue
   (in_frame_push, in_frame_pop) <- newQueue
@@ -89,8 +81,6 @@ commsecLoopbackClient opts sk = do
 
   cts <- replicateM 2 (randomBytestring plaintextSize)
   r <- checkLoopback console cts out_frame_push in_frame_pop 100
-  o <- getConsoleOutput console
-  putStrLn o
   case r of
     True -> putStrLn "Success!"
     False -> exitFailure >> return ()
