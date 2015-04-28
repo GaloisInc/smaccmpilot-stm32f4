@@ -15,8 +15,9 @@ library
                        SMACCMPilot.Flight.Platform,
                        SMACCMPilot.Flight.UserInput.PPM,
                        SMACCMPilot.Flight.UserInput.PPM.ArmingMachine,
+                       SMACCMPilot.Flight.UserInput.PPM.Decode,
                        SMACCMPilot.Flight.UserInput.PPM.ModeSwitch,
-                       SMACCMPilot.Flight.UserInput.PPM.Decode
+                       SMACCMPilot.Flight.UserInput.PPM.TestApp
   build-depends:       base >=4.6,
                        ivory >=0.1,
                        ivory-px4-hw >=0.1,
@@ -35,6 +36,17 @@ library
 
 executable             comm-only-test-gen
   main-is:             CommOnly.hs
+  hs-source-dirs:      tests
+  build-depends:       base >= 4.6,
+                       tower >= 0.9,
+                       tower-config,
+                       tower-freertos-stm32,
+                       smaccm-flight
+  default-language:    Haskell2010
+  ghc-options:         -Wall
+
+executable             ppm-test-gen
+  main-is:             PPM.hs
   hs-source-dirs:      tests
   build-depends:       base >= 4.6,
                        tower >= 0.9,

@@ -4,3 +4,4 @@ dist/
 user.conf
 platform-*
 comm-only-test
+ppm-test
