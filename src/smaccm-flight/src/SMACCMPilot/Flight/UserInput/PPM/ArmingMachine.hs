@@ -50,6 +50,7 @@ monitorArmingMachine = do
   fr <- fresh
   arming_state      <- state "arming_state"
   arming_state_time <- state "arming_state_time"
+  armed_state       <- state "armed_state"
   dead_last_pos     <- state "dead_last_pos"
   let named n = "ppmdecoder_arming_" ++ n ++ "_" ++ show fr
 
@@ -57,6 +58,7 @@ monitorArmingMachine = do
       init_proc = proc (named "init") $ body $ do
         store arming_state armingIdle
         store arming_state_time 0
+        store armed_state false
         store dead_last_pos deadSafe
 
       new_sample_proc :: Def('[Ref s (Array 8 (Stored Uint16)), ITime]:->())
@@ -67,7 +69,7 @@ monitorArmingMachine = do
         dead_pos <- assign $ ((dead_chan >? 1600) ? (deadArmable,deadSafe))
         store dead_last_pos dead_pos
         ifte_ (dead_pos ==? deadSafe)
-              (arming_reset time)
+              (arming_reset time >> store armed_state false)
               (arming_sm throttle_chan rudder_chan time)
 
 
@@ -87,7 +89,9 @@ monitorArmingMachine = do
               store arming_state armingActive
               store arming_state_time time
           , s ==? armingActive .&& sticks_corner ==> do
-              when donewaiting $ store arming_state armingComplete
+              when donewaiting $ do
+                store arming_state armingComplete
+                store armed_state  true
           , true ==> do
               store arming_state armingIdle
           ]
@@ -101,10 +105,11 @@ monitorArmingMachine = do
       get_arming_mode_proc :: Def('[Ref s (Stored A.ArmingMode)]:->())
       get_arming_mode_proc = proc (named "get_arming_mode") $ \a -> body $ do
         d <- deref dead_last_pos
-        s <- deref arming_state
+        s <- deref armed_state
         cond_
           [(d ==? deadSafe) ==> store a A.safe
-          ,(s ==? armingComplete) ==> store a A.armed
+          ,(s ==? false)    ==> store a A.disarmed
+          ,(s ==? true)     ==> store a A.armed
           ]
 
 
