@@ -2,6 +2,5 @@
 cabal.sandbox.config
 dist/
 user.conf
-platform-*
-comm-only-test
-ppm-test
+platform-fmu17
+platform-fmu24
