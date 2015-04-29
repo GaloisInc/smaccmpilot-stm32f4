@@ -1,0 +1,81 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <title>SMACCMPilot UI Test</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="/bootstrap-3.3.4-dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap theme -->
+    <link href="/bootstrap-3.3.4-dist/css/bootstrap-theme.min.css" rel="stylesheet">
+
+  </head>
+
+  <body role="document">
+    <div class="container">
+    <div class="row">
+    <div class="col-md-6" role="main">
+
+    <h2>Control Law</h2>
+    <p>TODO</p>
+    <hr />
+    <h2>User Input</h2>
+    <p>Source: <span id="ui-source">?</span>
+       Time: <span id="ui-time">?</span>
+    </p>
+    <p>Throttle</p>
+    <div class="progress">
+      <div class="progress-bar" role="progressbar" aria-valuenow="0"
+           aria-valuemin="-1" aria-valuemax="1" style="width: 50%;"
+           id="ui-throttle-progbar">
+      <span id="ui-throttle-progbar-lbl">0%</span>
+      </div>
+    </div>
+    <p>Roll</p>
+    <div class="progress">
+      <div class="progress-bar" role="progressbar" aria-valuenow="0"
+           aria-valuemin="-1" aria-valuemax="1" style="width: 50%;"
+           id="ui-roll-progbar">
+      <span id="ui-roll-progbar-lbl">0%</span>
+      </div>
+    </div>
+    <p>Pitch</p>
+    <div class="progress">
+      <div class="progress-bar" role="progressbar" aria-valuenow="0"
+           aria-valuemin="-1" aria-valuemax="1" style="width: 50%;"
+           id="ui-pitch-progbar">
+      <span id="ui-pitch-progbar-lbl">0%</span>
+      </div>
+    </div>
+    <p>Yaw</p>
+    <div class="progress">
+      <div class="progress-bar" role="progressbar" aria-valuenow="0"
+           aria-valuemin="-1" aria-valuemax="1" style="width: 50%;"
+           id="ui-yaw-progbar">
+      <span id="ui-yaw-progbar-lbl">0%</span>
+      </div>
+    </div>
+
+    </div> <!-- end col-md-6 -->
+    <div class="col-md-6" role="complementary">
+    </div>
+    </div> <!-- end row -->
+    </div> <!-- end container -->
+    <!-- Bootstrap core JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="/underscore-1.8.3.js"></script>
+    <script src="/jquery-2.1.3.js"></script>
+    <script src="/backbone-1.1.2.js"></script>
+    <script src="/bootstrap-3.3.4-dist/js/bootstrap.min.js"></script>
+    <script src="/uitest.js"></script>
+  </body>
+</html>
+
