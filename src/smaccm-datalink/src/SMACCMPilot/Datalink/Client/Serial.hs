@@ -42,7 +42,8 @@ serialServer opts console = case serPort opts of
         c <- hGetChar h
         queuePush ser_in_push (B.pack [c2w c])
 
-      _ <- asyncRunGW console "serial output" $ liftIO $ forever $ do
+      o <- asyncRunGW console "serial output" $ liftIO $ forever $ do
         bs <- queuePop ser_out_pop
         B.hPutStr h bs
       wait i
+      wait o

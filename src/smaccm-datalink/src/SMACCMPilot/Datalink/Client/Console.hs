@@ -70,9 +70,11 @@ newConsolePrinter :: Options -> IO Console
 newConsolePrinter opts = do
   c <- newConsole opts
   let run = do
-        threadDelay 100
+        threadDelay 10000
         o <- getConsoleOutput c
-        putStrLn o
+        case o of
+          [] -> return ()
+          _ -> putStrLn o
   void $ A.async $ catch (forever run) exit
   return c
   where
