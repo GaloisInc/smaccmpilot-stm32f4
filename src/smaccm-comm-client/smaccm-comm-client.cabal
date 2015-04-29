@@ -35,3 +35,13 @@ executable             smaccm-comm-client-test
   default-language:    Haskell2010
   ghc-options:         -Wall
 
+executable             smaccm-comm-client-static-web
+  main-is:             StaticWeb.hs
+  hs-source-dirs:      tests
+  build-depends:       base >= 4.6,
+                       snap-core,
+                       snap-server
+
+  default-language:    Haskell2010
+  ghc-options:         -Wall
+

@@ -35,7 +35,7 @@ commClient opts = datalinkClient opts PlaintextMode $ \to fro console -> do
          >-> pushConsumer to
 
   asyncServer RPC.rpcServer in_msg_pop out_msg_push
-              RPC.Config { RPC.cfgPort = 8080, RPC.cfgStaticDir = Nothing }
+              RPC.Config { RPC.cfgPort = 8080, RPC.cfgStaticDir = Just "./web/" }
   wait a
   wait b
 
