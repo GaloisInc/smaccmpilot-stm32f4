@@ -9,8 +9,4 @@ $(SUBDIRS)::
 	make -C src/$@
 	make -C src/$@ test
 
-smaccm-flight::
-	make -C src/smaccm-flight test-fmu17
-	make -C src/smaccm-flight test-fmu24
-
 .PHONY: $(SUBDIRS)
