@@ -44,8 +44,11 @@ ppmInputTower toppm tocc = do
         store   valid true
 
     handler p "periodic_userinput_decode" $ do
-      ui_emitter <- emitter (fst ui) 1
+      -- Invariant: multiplexer depends on message cl being delivered before ui.
+      -- Tower should deliver messages in order of the emitter declarations.
+      -- cl and ui are emitted on every period tick.
       cl_emitter <- emitter (fst cl) 1
+      ui_emitter <- emitter (fst ui) 1
       callbackV $ \now -> do
         v <- deref valid
         ifte_ v
