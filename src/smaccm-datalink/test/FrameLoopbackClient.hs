@@ -1,7 +1,7 @@
 
 module Main where
 
-import SMACCMPilot.Datalink.Client
+import SMACCMPilot.Datalink.Client.Loopback
 import SMACCMPilot.Datalink.Client.Opts
 
 import System.Environment (getArgs)
