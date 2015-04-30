@@ -56,6 +56,71 @@ $(function() {
     }
   });
 
+  var ControlLaw = Backbone.Model.extend({
+    urlRoot: '/controllable_vehicle_i/control_law',
+    defaults: {
+      thr_mode: 'Direct',
+      arming_mode: 'Safe',
+      ui_mode: 'Ppm',
+      yaw_mode: 'Rate'
+    },
+    valid : {
+      thr_mode: [ 'Direct', 'Auto' ],
+      arming_mode: [ 'Safe', 'Disarmed', 'Armed' ],
+      ui_mode: [ 'Ppm', 'Gcs', 'Nav' ],
+      yaw_mode: [ 'Rate', 'Heading' ]
+    }
+  });
+
+  var ControlLawView = Backbone.View.extend({
+    initialize: function () {
+      this.$el.html(
+        '<p>Throttle Mode: '
+        + this.button_group('thr_mode', this.model.valid.thr_mode)
+        + '</p>'
+        + '<p>Arming Mode: '
+        + this.button_group('arming_mode', this.model.valid.arming_mode)
+        + '</p>'
+        + '<p>UI Mode: '
+        + this.button_group('ui_mode', this.model.valid.ui_mode)
+        + '</p>'
+        + '<p>Yaw Mode: '
+        + this.button_group('yaw_mode', this.model.valid.yaw_mode)
+        + '</p>'
+        );
+      this.model.on('change', this.render, this);
+      this.render();
+    },
+    render: function () {
+      var m = this.model.toJSON();
+      var valid = this.model.valid;
+      _.map(valid, function (vs,k) {
+        _.map(vs, function (v) {
+          if (m[k] == v) {
+            this.$('#btn-' + k + '-' + v)
+                .removeClass('btn-default')
+                .addClass('btn-success');
+          } else {
+            this.$('#btn-' + k + '-' + v)
+                .removeClass('btn-success')
+                .addClass('btn-default');
+          }
+        });
+      });
+    },
+    button_group: function (group, labels) {
+      var contents = _.map(labels, function(lbl) {
+        return ('<button type="button" class="btn btn-default" id="btn-'
+              + group + '-' + lbl +'">'
+              + lbl + '</button>');
+      });
+      return ('<div class="btn-group btn-group-sm" role="group">' 
+        + _.foldl(contents, function (a, b) { return a+b })
+        + "</div>");
+    }
+  });
+
+
   var UserInput = Backbone.Model.extend({
     urlRoot: '/controllable_vehicle_i/user_input',
     defaults: {
@@ -121,6 +186,16 @@ $(function() {
     new Scheduler({ period: false}, userInput);
   window.userInputSchedulerView =
     new SchedulerButtonView({ model: userInputScheduler, el: '#ui-sch-btn' });
+
+  window.controlLaw = new ControlLaw({});
+  window.controlLawView = new ControlLawView({
+    model: controlLaw,
+    el: '#control-law-view'
+  });
+  window.controlLawScheduler =
+    new Scheduler({ period: false}, controlLaw);
+  window.controlLawSchedulerView =
+    new SchedulerButtonView({ model: controlLawScheduler, el: '#cl-sch-btn' });
 
 });
 
