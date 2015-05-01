@@ -57,3 +57,14 @@ executable             ppm-test-gen
                        smaccm-flight
   default-language:    Haskell2010
   ghc-options:         -Wall
+
+executable             ui-test-gen
+  main-is:             UI.hs
+  hs-source-dirs:      tests
+  build-depends:       base >= 4.6,
+                       tower >= 0.9,
+                       tower-config,
+                       tower-freertos-stm32,
+                       smaccm-flight
+  default-language:    Haskell2010
+  ghc-options:         -Wall

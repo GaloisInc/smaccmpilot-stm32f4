@@ -13,6 +13,7 @@ test: test-fmu17 test-fmu24
 .PHONY: test-fmu17
 test-fmu17: platform-fmu17/comm-only-test-gen
 test-fmu17: platform-fmu17/ppm-test-gen
+test-fmu17: platform-fmu17/ui-test-gen
 
 .PHONY: test-fmu24
 test-fmu24: platform-fmu24/comm-only-test-gen

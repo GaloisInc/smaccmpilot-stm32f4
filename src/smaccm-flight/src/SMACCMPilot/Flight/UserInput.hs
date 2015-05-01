@@ -11,6 +11,7 @@ import Ivory.Stdlib
 import SMACCMPilot.Flight.Platform
 import SMACCMPilot.Flight.UserInput.PPM
 
+import qualified SMACCMPilot.Comm.Ivory.Types.ArmingMode      as A
 import qualified SMACCMPilot.Comm.Ivory.Types.ControlLaw      as CL
 import qualified SMACCMPilot.Comm.Ivory.Types.ControlSource   as CS
 import qualified SMACCMPilot.Comm.Ivory.Types.TimeMicros      as T
@@ -55,10 +56,11 @@ userInputTower tofp attrs = do
         cl_o <- local (istruct [])
 
         -- Select the control law:
-        ppm_allows_gcs <- fmap (==? CS.gcs) (deref (ppm_cl_s ~> CL.ui_mode))
+        ppm_not_safe    <- fmap (/=? A.safe) (deref (ppm_cl_s ~> CL.arming_mode))
+        ppm_allows_gcs  <- fmap (==? CS.gcs) (deref (ppm_cl_s ~> CL.ui_mode))
         telem_wants_gcs <- fmap (==? CS.gcs) (deref (telem_cl ~> CL.ui_mode))
         cond_
-          [ ppm_allows_gcs .&& telem_wants_gcs ==> do
+          [ ppm_not_safe .&& ppm_allows_gcs .&& telem_wants_gcs ==> do
               refCopy cl_o telem_cl
           , true ==> do
               refCopy cl_o ppm_cl_s
