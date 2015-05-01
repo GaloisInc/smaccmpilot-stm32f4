@@ -19,11 +19,9 @@ import Ivory.Tower.HAL.Bus.Sched
 
 import Ivory.BSP.STM32.Driver.I2C
 import Ivory.BSP.STM32.Driver.SPI
-import Ivory.BSP.STM32.Driver.UART
 import Ivory.BSP.STM32.Driver.CAN
 
 import SMACCMPilot.Hardware.CANMessages
-import SMACCMPilot.Hardware.GPS.UBlox
 import SMACCMPilot.Hardware.HMC5883L
 import SMACCMPilot.Hardware.LSM303D
 import SMACCMPilot.Hardware.MS5611
@@ -31,6 +29,7 @@ import SMACCMPilot.Hardware.MPU6000
 
 import SMACCMPilot.Hardware.Tests.Platforms
 import SMACCMPilot.Hardware.Tests.Serialize
+import SMACCMPilot.Hardware.Tests.Ublox (uartUbloxGPSTower)
 
 app :: (e -> PX4Platform) -> Tower e ()
 app topx4 = do
@@ -38,14 +37,8 @@ app topx4 = do
   let tocc = px4platform_clockconfig . topx4
 
   let gps = px4platform_gps px4platform
-  (gpsi, _gpso) <- uartTower tocc
-                             (uart_periph gps)
-                             (uart_pins gps)
-                             38400
-                             (Proxy :: Proxy 128)
   position <- channel
-  ubloxGPSTower gpsi (fst position)
-
+  uartUbloxGPSTower tocc gps (fst position)
 
   (accel_meas, gyro_meas, mag_meas, baro_meas) <- sensor_manager topx4
 

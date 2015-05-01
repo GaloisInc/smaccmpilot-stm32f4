@@ -5,7 +5,6 @@ module SMACCMPilot.Hardware.Tests.CANFragment
   ) where
 
 import Ivory.BSP.STM32.Driver.CAN
-import Ivory.BSP.STM32.Driver.UART
 import Ivory.BSP.STM32.Peripheral.CAN.Filter
 import Ivory.Language
 import Ivory.Stdlib
@@ -58,9 +57,7 @@ app topx4 = do
   (fragSink, fragSource) <- channel
   fragmentSenderBlind fragSource navCmdType canReq
 
-  let uart = px4platform_console px4platform
-  (istream, ostream) <- uartTower tocc (uart_periph uart) (uart_pins uart)
-                                  115200 (Proxy :: Proxy 256)
+  (istream, ostream) <- px4ConsoleTower topx4
 
   monitor "decode" $ do
     coroutineHandler systemInit istream "decode_uart" $ do

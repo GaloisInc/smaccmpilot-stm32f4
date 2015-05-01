@@ -21,15 +21,14 @@ app :: (e -> PX4Platform)
     -> Tower e ()
 app topx4 = do
   c <- channel
-  (i,o) <- px4ConsoleTower topx4
-  motorcontrol_input o i (fst c)
+  (i, _o) <- px4ConsoleTower topx4
+  motorcontrol_input i (fst c)
 
 motorcontrol_input ::
-         ChanInput (Stored Uint8)
-      -> ChanOutput (Stored Uint8)
+         ChanOutput (Stored Uint8)
       -> ChanInput (Array 4 (Stored IFloat))
       -> Tower e ()
-motorcontrol_input _byte_ostream byte_istream motorstream = do
+motorcontrol_input byte_istream motorstream = do
 
   frame_istream <- channel
   hxstreamDecodeTower "motorcontrol" byte_istream (fst frame_istream)

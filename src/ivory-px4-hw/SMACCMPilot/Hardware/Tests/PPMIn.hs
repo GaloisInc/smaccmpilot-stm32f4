@@ -9,11 +9,9 @@ module SMACCMPilot.Hardware.Tests.PPMIn (app) where
 import Ivory.Language
 import Ivory.Serialize
 import Ivory.Tower
-
 import SMACCMPilot.Hardware.PPM
-
-import qualified SMACCMPilot.Datalink.HXStream.Ivory as HX
 import SMACCMPilot.Hardware.Tests.Platforms
+import SMACCMPilot.Hardware.Tests.Serialize
 
 app :: (e -> PX4Platform)
     -> Tower e ()
@@ -30,15 +28,5 @@ app topx4 = do
   towerModule  serializeModule
   mapM_ towerArtifact serializeArtifacts
 
-ppmSender :: ChanOutput (Array 8 (Stored Uint16))
-               -> ChanInput  (Stored Uint8)
-               -> Monitor e ()
-ppmSender samples ostream = do
-  (buf :: Ref Global (Array 16 (Stored Uint8))) <- state "ppm_ser_buf"
-  handler samples "sample" $ do
-    e <- emitter ostream (2*16 + 3) -- twice buf size plus tag and two fbos
-    callback $ \s -> noReturn $ do
-      packInto buf 0 s
-      HX.encode tag (constRef buf) (emitV e)
-  where
-  tag = 80 -- 'P' for ppm. lowercase p is position.
+ppmSender :: Sender e (Array 8 (Stored Uint16))
+ppmSender = sampleSender 'P' (Proxy :: Proxy 16)

@@ -7,18 +7,30 @@
 
 module SMACCMPilot.Hardware.Tests.Ublox
   ( app
+  , uartUbloxGPSTower
   ) where
 
-import Ivory.Language
-
-import Ivory.Tower
-
+import Ivory.BSP.STM32.ClockConfig
 import Ivory.BSP.STM32.Driver.UART
+import Ivory.Language
+import Ivory.Tower
 
 import SMACCMPilot.Hardware.GPS.UBlox
 
 import SMACCMPilot.Hardware.Tests.Platforms
 import SMACCMPilot.Hardware.Tests.Serialize
+
+uartUbloxGPSTower :: (e -> ClockConfig)
+                  -> UART_Device
+                  -> ChanInput (Struct "position")
+                  -> Tower e ()
+uartUbloxGPSTower tocc uart ostream = do
+  (gpsi, _gpso) <- uartTower tocc
+                             (uart_periph uart)
+                             (uart_pins uart)
+                             38400
+                             (Proxy :: Proxy 128)
+  ubloxGPSTower gpsi ostream
 
 app :: (e -> PX4Platform) -> Tower e ()
 app topx4 = do
@@ -27,13 +39,8 @@ app topx4 = do
   (_uarti, uarto) <- px4ConsoleTower topx4
 
   let gps = px4platform_gps px4platform
-  (gpsi, _gpso) <- uartTower (px4platform_clockconfig . topx4)
-                             (uart_periph gps)
-                             (uart_pins gps)
-                             38400
-                             (Proxy :: Proxy 128)
   position <- channel
-  ubloxGPSTower gpsi (fst position)
+  uartUbloxGPSTower (px4platform_clockconfig . topx4) gps (fst position)
   monitor "positionSender" $ do
     positionSender (snd position) uarto
 
