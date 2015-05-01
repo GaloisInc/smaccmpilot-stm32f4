@@ -71,6 +71,9 @@ $(function() {
       yaw_mode: [ 'Rate', 'Heading' ]
     }
   });
+  var ControlLawRequest = ControlLaw.extend({
+    urlRoot: '/controllable_vehicle_i/control_law_request',
+  });
 
   var ControlLawView = Backbone.View.extend({
     initialize: function () {
@@ -90,18 +93,22 @@ $(function() {
         );
       this.model.on('change', this.render, this);
       this.render();
+      if (this.post_init) {
+        this.post_init();
+      }
     },
     render: function () {
       var m = this.model.toJSON();
       var valid = this.model.valid;
+      var self = this;
       _.map(valid, function (vs,k) {
         _.map(vs, function (v) {
           if (m[k] == v) {
-            this.$('#btn-' + k + '-' + v)
+            self.$('#btn-' + k + '-' + v)
                 .removeClass('btn-default')
                 .addClass('btn-success');
           } else {
-            this.$('#btn-' + k + '-' + v)
+            self.$('#btn-' + k + '-' + v)
                 .removeClass('btn-success')
                 .addClass('btn-default');
           }
@@ -120,6 +127,23 @@ $(function() {
     }
   });
 
+
+  var ControlLawRequestView = ControlLawView.extend({
+    post_init: function () {
+      var m = this.model.toJSON();
+      var valid = this.model.valid;
+      var self = this;
+      _.map(valid, function (vs,k) {
+        _.map(vs, function (v) {
+            self.$('#btn-' + k + '-' + v)
+                .click(function () {
+                  self.model.set(k,v);
+                  self.model.save();
+                });
+        });
+      });
+    }
+  });
 
   var UserInput = Backbone.Model.extend({
     urlRoot: '/controllable_vehicle_i/user_input',
@@ -197,6 +221,15 @@ $(function() {
   window.controlLawSchedulerView =
     new SchedulerButtonView({ model: controlLawScheduler, el: '#cl-sch-btn' });
 
+  window.controlLawRequest = new ControlLawRequest({});
+  window.controlLawRequestView = new ControlLawRequestView({
+    model: controlLawRequest,
+    el: '#control-law-request-view'
+  });
+  window.controlLawRequestScheduler =
+    new Scheduler({ period: false}, controlLawRequest);
+  window.controlLawRequestSchedulerView =
+    new SchedulerButtonView({ model: controlLawRequestScheduler, el: '#clr-sch-btn' });
 });
 
 
