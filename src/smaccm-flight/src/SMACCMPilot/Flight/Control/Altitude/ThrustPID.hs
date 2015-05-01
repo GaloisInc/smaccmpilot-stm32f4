@@ -6,13 +6,13 @@ module SMACCMPilot.Flight.Control.Altitude.ThrustPID where
 
 import Ivory.Language
 import Ivory.Tower
-import Ivory.Stdlib
 
-import qualified SMACCMPilot.Flight.Types.AltControlDebug as A
+import qualified SMACCMPilot.Comm.Ivory.Types.AltControlDebug as A
+import qualified SMACCMPilot.Comm.Ivory.Types.PidConfig       as C
+import qualified SMACCMPilot.Comm.Ivory.Types.PidState        as P
+import           SMACCMPilot.Comm.Tower.Attr
 import           SMACCMPilot.Flight.Control.Altitude.Estimator
 import           SMACCMPilot.Flight.Control.PID
-import           SMACCMPilot.Flight.Param
-import           SMACCMPilot.Param
 
 data ThrustPid =
   ThrustPid
@@ -22,39 +22,42 @@ data ThrustPid =
                                         -> IFloat -- dt, seconds
                                         -> Ivory eff IFloat
     , thrust_pid_write_debug :: forall eff s .
-          Ref s (Struct "alt_control_dbg") -> Ivory eff ()
+          Ref s (Struct "alt_control_debug") -> Ivory eff ()
     }
 
-taskThrustPid :: PIDParams ParamReader -> AltEstimator -> Task p ThrustPid
-taskThrustPid params alt_estimator = do
+monitorThrustPid :: (AttrReadable a)
+                 => a (Struct "pid_config")
+                 -> AltEstimator
+                 -> Monitor e ThrustPid
+monitorThrustPid config alt_estimator = do
   uniq <- fresh
-  tpid_state  <- taskLocal "thrustPidState"
-  tpid_params <- taskLocal "thrustPidParams"
+  tpid_state  <- state "thrustPidState"
+  tpid_config <- attrState config
   let proc_pid_calculate :: Def('[IFloat, IFloat] :-> IFloat)
       proc_pid_calculate = proc ("thrust_pid_calculate" ++ show uniq) $
         \vel_sp dt -> body $ do
-          getPIDParams params tpid_params
-          (tpid_params ~> pid_iGain) %= (* dt)
-          (tpid_params ~> pid_dGain) %= (/ dt)
-          store (tpid_params ~> pid_iMin) 0.2 -- Nonstandard imax/imin range
+          pgain <- deref (tpid_config ~> C.p_gain)
+          igain <- deref (tpid_config ~> C.i_gain)
+          dgain <- deref (tpid_config ~> C.d_gain)
+          tpid_params <- local (istruct [ C.i_gain .= ival (igain * dt)
+                                        , C.d_gain .= ival (dgain / dt)
+                                        , C.p_gain .= ival pgain
+                                        , C.i_min  .= ival 0.2 -- Nonstandard imax/imin range
+                                        , C.i_max  .= ival 1
+                                        ])
           (_, vel_est) <- ae_state alt_estimator
           err     <- assign (vel_sp - vel_est)
           pid_out <- call pid_update tpid_state (constRef tpid_params) err vel_est
           out     <- call fconstrain 0.1 1.0 pid_out
           ret out
-  taskModuleDef $ incl proc_pid_calculate
+  monitorModuleDef $ incl proc_pid_calculate
   return ThrustPid
     { thrust_pid_init = do
         call_ pid_reset tpid_state
     , thrust_pid_set_integral = \i ->
-        store (tpid_state ~> pid_iState) i
+        store (tpid_state ~> P.i_state) i
     , thrust_pid_calculate = call proc_pid_calculate
     , thrust_pid_write_debug = \r -> do
-        p <- deref (tpid_state ~> pid_pLast)
-        i <- deref (tpid_state ~> pid_iState)
-        d <- deref (tpid_state ~> pid_dLast)
-        store (r ~> A.thrust_p) p
-        store (r ~> A.thrust_i) i
-        store (r ~> A.thrust_d) d
+        refCopy (r ~> A.thrust) tpid_state
     }
 
