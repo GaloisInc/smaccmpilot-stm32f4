@@ -11,35 +11,40 @@ import Ivory.Stdlib
 
 import           SMACCMPilot.Flight.Control.Altitude.Estimator
 import           SMACCMPilot.Flight.Control.PID
-import qualified SMACCMPilot.Flight.Types.AltControlDebug as D
-import qualified SMACCMPilot.Flight.Types.UserInput       as UI
-import           SMACCMPilot.Flight.Param
-import           SMACCMPilot.Param
+
+import qualified SMACCMPilot.Comm.Ivory.Types.AltControlDebug as D
+import qualified SMACCMPilot.Comm.Ivory.Types.UserInput       as UI
+import qualified SMACCMPilot.Comm.Ivory.Types.ThrottleUi      as TUI
+import           SMACCMPilot.Comm.Tower.Attr
 
 data ThrottleUI =
   ThrottleUI
     { tui_update :: forall eff s
-                 . Ref s (Struct "userinput_result")
+                 . Ref s (Struct "user_input")
                 -> IFloat -- dt
                 -> Ivory eff ()
     , tui_reset  :: forall eff . Ivory eff ()
     , tui_setpoint :: forall eff . Ivory eff (IFloat, IFloat)
-    , tui_write_debug :: forall eff s . Ref s (Struct "alt_control_dbg")
+    , tui_write_debug :: forall eff s . Ref s (Struct "alt_control_debug")
                      -> Ivory eff ()
     }
 
-taskThrottleUI :: ThrUIParams ParamReader -> AltEstimator -> Task p ThrottleUI
-taskThrottleUI params estimator = do
+monitorThrottleUI :: (AttrReadable a)
+                  => a (Struct "throttle_ui")
+                  -> AltEstimator
+                  -> Monitor p ThrottleUI
+monitorThrottleUI attr estimator = do
   uniq <- fresh
-  alt_setpoint <- taskLocal "alt_setpoint"
-  vel_setpoint <- taskLocal "vel_setpoint"
-  active_state <- taskLocalInit "active_state" (ival false)
-  let proc_update :: Def('[ Ref s (Struct "userinput_result")
+  alt_setpoint <- state "alt_setpoint"
+  vel_setpoint <- state "vel_setpoint"
+  active_state <- stateInit "active_state" (ival false)
+  settings     <- attrState attr
+  let proc_update :: Def('[ Ref s (Struct "user_input")
                           , IFloat -- dt
                           ] :-> ())
       proc_update  = proc ("throttle_ui_update_" ++ show uniq) $
         \ui dt -> body $ do
-          sr <- stickrate params ui
+          sr <- stickrate settings ui
           store vel_setpoint sr
 
           active <- deref active_state
@@ -51,14 +56,14 @@ taskThrottleUI params estimator = do
             , active ==> do
                 current <- deref alt_setpoint
                 next <- assign (current + (sr * dt))
-                sens <- paramGet (thrUIsens params)
+                sens <- deref (settings ~> TUI.sens)
                 a <- call fconstrain (alt_est - 0.8*sens)
                                      (alt_est + 0.8*sens)
                                      next
                 store alt_setpoint a
             ]
 
-  taskModuleDef $ incl proc_update
+  monitorModuleDef $ incl proc_update
   return ThrottleUI
     { tui_update   = call_ proc_update
     , tui_reset    = store active_state false
@@ -75,12 +80,12 @@ taskThrottleUI params estimator = do
 
 
 stickrate :: (GetAlloc eff ~ Scope cs)
-          => ThrUIParams ParamReader
-          -> Ref s (Struct "userinput_result")
+          => Ref s1 (Struct "throttle_ui")
+          -> Ref s2 (Struct "user_input")
           -> Ivory eff IFloat
-stickrate params ui = do
-  sens       <- paramGet (thrUIsens params)
-  dead       <- paramGet (thrUIdead params)
+stickrate settings ui = do
+  sens       <- deref (settings ~> TUI.sens)
+  dead       <- deref (settings ~> TUI.dead)
   stick_thr  <- deref (ui ~> UI.throttle)
   offset     <- assign (signum stick_thr * dead)
   scale      <- assign (sens / (1.0 - dead))

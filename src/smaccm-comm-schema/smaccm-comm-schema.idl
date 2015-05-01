@@ -54,6 +54,10 @@
   (p_last  float_t)
   (d_last  float_t))
 
+(def-struct throttle_ui_t
+  (sens float_t)
+  (dead float_t))
+
 (def-struct alt_control_debug_t
   (alt_est       float_t)
   (alt_rate_est  float_t)
@@ -73,8 +77,8 @@
   (alt_control_debug (attr read    alt_control_debug_t)))
 
 (def-interface controllable_vehicle_i (vehicle_i)
-  -- placeholder, so i have pid_config_t type generated.
-  (some_pid_setting    (attr readwrite pid_config_t))
+  (throttle_position_pid   (attr readwrite pid_config_t))
+  (throttle_ui             (attr readwrite throttle_ui_t))
   -- Use to set control law, when safety input permits the GCS to set the
   -- control law:
   (control_law_request (attr readwrite control_law_t))
