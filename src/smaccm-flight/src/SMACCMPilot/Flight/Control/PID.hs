@@ -12,78 +12,58 @@ module SMACCMPilot.Flight.Control.PID where
 import Ivory.Language
 import Ivory.Stdlib
 
-import SMACCMPilot.Param
-import SMACCMPilot.Flight.Param
+import qualified SMACCMPilot.Comm.Ivory.Types.PidState as P
+import qualified SMACCMPilot.Comm.Ivory.Types.PidConfig as C
 
 controlPIDModule :: Module
 controlPIDModule = package "control_pid" $ do
-  defStruct (Proxy :: Proxy "PIDState")
-  defStruct (Proxy :: Proxy "PIDConfig")
+  depend C.pidConfigTypesModule
+  depend P.pidStateTypesModule
   incl fconstrain
   incl pid_update
   incl pid_reset
 
 ----------------------------------------------------------------------
--- Generic PID Controller
--- pLast and dLast members exist for debugging.
-
-[ivory|
-  struct PIDState
-    { pid_iState :: Stored IFloat
-    ; pid_dState :: Stored IFloat
-    ; pid_dReset :: Stored Uint8
-    ; pid_pLast  :: Stored IFloat
-    ; pid_dLast  :: Stored IFloat
-    }
-
-  struct PIDConfig
-    { pid_pGain  :: Stored IFloat
-    ; pid_iGain  :: Stored IFloat
-    ; pid_dGain  :: Stored IFloat
-    ; pid_iMin   :: Stored IFloat
-    ; pid_iMax   :: Stored IFloat
-    }
-|]
 
 notFloatNan :: IFloat -> IBool
 notFloatNan flt = (iNot $ isnan flt) .&& (iNot $ isinf flt)
 
 -- | Update a PID controller given an error value and measured value
 -- and return the output value.
-pid_update :: Def ('[ Ref      s1 (Struct "PIDState")
-                    , ConstRef s2 (Struct "PIDConfig")
+pid_update :: Def ('[ Ref      s1 (Struct "pid_state")
+                    , ConstRef s2 (Struct "pid_config")
                     , IFloat
                     , IFloat] :-> IFloat)
 pid_update = proc "pid_update" $ \pid cfg err pos ->
   requires (notFloatNan err) $ requires (notFloatNan pos)
   $ body $ do
-  p_term  <- fmap (* err) (cfg~>*pid_pGain)
-  store (pid~>pid_pLast) p_term
+  p_term  <- fmap (* err) (cfg~>*C.p_gain)
+  store (pid~>P.p_last) p_term
 
-  i_min   <- cfg~>*pid_iMin
-  i_max   <- cfg~>*pid_iMax
-  i_gain  <- cfg~>*pid_iGain
-  pid~>pid_iState %=! (call fconstrain i_min i_max . (+ (err * i_gain)))
-  i_term  <- pid~>*pid_iState
+  i_min   <- cfg~>*C.i_min
+  i_max   <- cfg~>*C.i_max
+  i_gain  <- cfg~>*C.i_gain
+  pid~>P.i_state %=! (call fconstrain i_min i_max . (+ (err * i_gain)))
+  i_term  <- pid~>*P.i_state
 
-  reset      <- pid~>*pid_dReset
+  reset      <- pid~>*P.d_reset
 
-  ifte_ (reset /=? 0)
-    (do store (pid~>pid_dReset) 0
-        store (pid~>pid_dLast)  0)
-    (do d_state <- pid~>*pid_dState
-        d_gain  <- cfg~>*pid_dGain
-        store (pid~>pid_dLast) (d_gain * (pos - d_state)))
-  store (pid~>pid_dState) pos
+  ifte_ reset
+    (do store (pid~>P.d_reset) false
+        store (pid~>P.d_last)  0)
+    (do d_state <- pid~>*P.d_state
+        d_gain  <- cfg~>*C.d_gain
+        store (pid~>P.d_last) (d_gain * (pos - d_state)))
+  store (pid~>P.d_state) pos
 
-  d_term <- deref (pid~>pid_dLast)
+  d_term <- deref (pid~>P.d_last)
   ret $ p_term + i_term - d_term
 
 -- | Reset the internal state of a PID.
-pid_reset :: Def ('[ Ref s1 (Struct "PIDState") ] :-> ())
+pid_reset :: Def ('[ Ref s1 (Struct "pid_state") ] :-> ())
 pid_reset = proc "pid_reset" $ \pid -> body $ do
-  store (pid ~> pid_dReset) 1
-  store (pid ~> pid_iState) 0.0
+  store (pid ~> P.d_reset) true
+  store (pid ~> P.i_state) 0.0
 
 -- | Constrain a floating point value to the range [xmin..xmax].
 fconstrain :: Def ('[IFloat, IFloat, IFloat] :-> IFloat)
@@ -93,29 +73,4 @@ fconstrain = proc "fconstrain" $ \xmin xmax x -> body $
     (ifte_ (x >? xmax)
       (ret xmax)
       (ret x)))
-
--- | Read a set of PID parameters into a PIDConfig structure.
-getPIDParams :: (GetAlloc eff ~ Scope s2)
-             => PIDParams ParamReader
-             -> Ref s1 (Struct "PIDConfig")
-             -> Ivory eff ()
-getPIDParams p ref = do
-  storeParam     pid_pGain pidP
-  storeParam     pid_iGain pidI
-  storeParam     pid_dGain pidD
-  storeParam     pid_iMax  pidImax
-  storeParamWith pid_iMin  pidImax negate
-  where
-    storeParamWith slot accessor f = do
-      x <- paramRead (accessor p)
-      store (ref ~> slot) (f (paramData x))
-    storeParam s a = storeParamWith s a id
-
-allocPIDParams :: (GetAlloc eff ~ Scope s)
-               => PIDParams ParamReader
-               -> Ivory eff (Ref (Stack s) (Struct "PIDConfig"))
-allocPIDParams p = do
-  cfg <- local izero
-  getPIDParams p cfg
-  return cfg
 
