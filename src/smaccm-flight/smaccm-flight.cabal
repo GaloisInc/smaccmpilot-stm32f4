@@ -11,6 +11,7 @@ library
   hs-source-dirs:      src
   exposed-modules:     SMACCMPilot.Flight.Control.Altitude.Estimator,
                        SMACCMPilot.Flight.Control.Altitude.Filter,
+                       SMACCMPilot.Flight.Control.Altitude.PositionPID,
                        SMACCMPilot.Flight.Control.Altitude.ThrottleTracker,
                        SMACCMPilot.Flight.Control.PID,
                        SMACCMPilot.Flight.Datalink.ControllableVehicle,
