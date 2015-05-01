@@ -9,7 +9,7 @@ import Ivory.Language
 import Ivory.Tower
 import Ivory.Stdlib
 
-import qualified SMACCMPilot.Flight.Types.AltControlDebug as A
+import qualified SMACCMPilot.Comm.Ivory.Types.AltControlDebug as A
 
 import SMACCMPilot.Flight.Control.Altitude.Filter
 
@@ -18,16 +18,16 @@ data AltEstimator =
     { ae_init        :: forall eff . Ivory eff ()
     , ae_measurement :: forall eff . IFloat -> ITime -> Ivory eff ()
     , ae_state       :: forall eff . Ivory eff (IFloat, IFloat)
-    , ae_write_debug :: forall eff s . Ref s (Struct "alt_control_dbg")
+    , ae_write_debug :: forall eff s . Ref s (Struct "alt_control_debug")
                                     -> Ivory eff ()
     }
 
-taskAltEstimator :: Task p AltEstimator
-taskAltEstimator = do
+monitorAltEstimator :: Monitor e AltEstimator
+monitorAltEstimator = do
   uniq          <- fresh
-  prevAlt       <- taskLocal "prev_alt"
-  prevAltTime   <- taskLocal "prev_alt_time"
-  prevClimbRate <- taskLocal "prev_climb_rate"
+  prevAlt       <- state "prev_alt"
+  prevAltTime   <- state "prev_alt_time"
+  prevClimbRate <- state "prev_climb_rate"
 
   let measDef :: Def ('[IFloat, ITime] :-> ())
       measDef = proc ("thrustEstimatorMeasure" ++ show uniq) $
@@ -42,7 +42,7 @@ taskAltEstimator = do
             _rate <- lowPassFilter' 0.25 dt (dalt / dt) prevClimbRate
             store prevAltTime meas_time
 
-  taskModuleDef $ incl measDef
+  monitorModuleDef $ incl measDef
   return AltEstimator
     { ae_init = do
         setNothing prevAlt
