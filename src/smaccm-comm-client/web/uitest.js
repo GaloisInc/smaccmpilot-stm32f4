@@ -77,12 +77,12 @@ $(function() {
 
   var ControlLawView = Backbone.View.extend({
     initialize: function () {
-      this.$el.html(
-        '<p>Throttle Mode: '
-        + this.button_group('thr_mode', this.model.valid.thr_mode)
-        + '</p>'
+      this.$el.html(''
         + '<p>Arming Mode: '
         + this.button_group('arming_mode', this.model.valid.arming_mode)
+        + '</p>'
+        + '<p>Throttle Mode: '
+        + this.button_group('thr_mode', this.model.valid.thr_mode)
         + '</p>'
         + '<p>UI Mode: '
         + this.button_group('ui_mode', this.model.valid.ui_mode)
