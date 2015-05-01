@@ -13,6 +13,7 @@ library
                        SMACCMPilot.Flight.Datalink.Plaintext,
                        SMACCMPilot.Flight.Datalink.TestApp,
                        SMACCMPilot.Flight.Platform,
+                       SMACCMPilot.Flight.Types.MaybeFloat,
                        SMACCMPilot.Flight.UserInput,
                        SMACCMPilot.Flight.UserInput.PPM,
                        SMACCMPilot.Flight.UserInput.PPM.ArmingMachine,
