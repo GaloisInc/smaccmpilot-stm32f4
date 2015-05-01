@@ -40,10 +40,30 @@
   (source      control_source_t)
   (time        time_micros_t))
 
+
+(def-struct pid_state_t
+  (p     float_t)
+  (i     float_t)
+  (d     float_t)
+  (reset bool_t))
+
+(def-struct alt_control_debug_t
+  (alt_est       float_t)
+  (alt_rate_est  float_t)
+  (thrust        pid_state_t)
+  (ui_setp       float_t)
+  (ui_rate_setp  float_t)
+  (pos           pid_state_t)
+  (pos_setp      float_t)
+  (pos_rate_setp float_t))
+
 (def-interface vehicle_i ()
   (heartbeat   (stream         heartbeat_t))
   (control_law (attr read      control_law_t))
-  (user_input  (attr read      user_input_result_t)))
+  (user_input  (attr read      user_input_result_t))
+
+  -- SMACCM specific debugging attributes:
+  (alt_control_debug (attr read    alt_control_debug_t)))
 
 (def-interface controllable_vehicle_i (vehicle_i)
   (control_law_request (attr readwrite control_law_t))
