@@ -29,7 +29,7 @@ app topx4 = do
     Baro_MS5611_SPI m -> ms5611_spi_app topx4 m (fst measurements)
 
 
-  (_uarti, uarto) <- px4ConsoleTower topx4
+  (uarto, _uarti) <- px4ConsoleTower topx4
   monitor "ms5611sender" $ do
     baroSender (snd measurements) uarto
 

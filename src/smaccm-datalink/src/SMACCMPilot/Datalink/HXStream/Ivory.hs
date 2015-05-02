@@ -198,9 +198,9 @@ decode fh = decodes [fh]
 encode ::   ANat n
          => Tag
          -> ConstRef s (Array n (Stored Uint8))
-         -> (Uint8 -> Ivory (AllocEffects cs) ())
-         -> Ivory (AllocEffects cs) ()
-encode tag arr put = do
+         -> (Uint8 -> Ivory ('Effects r NoBreak a) ())
+         -> Ivory ('Effects r b a) ()
+encode tag arr put = noBreak $ do
   put fbo
   put tag
   putencoded
@@ -211,6 +211,21 @@ encode tag arr put = do
     ifte_ ((v ==? fbo) .|| (v ==? ceo))
           (put ceo >> put (escape v))
           (put v)
+
+encodeString :: (ANat n, IvoryString str)
+             => Tag
+             -> ConstRef s1 (Array n (Stored Uint8))
+             -> Ref s2 str
+             -> Ivory ('Effects r b a) ()
+encodeString tag arr str = do
+  total <- deref $ str ~> stringLengthL
+  let strlen = arrayLen (str ~> stringDataL)
+  assert $ arrayLen arr * 2 + 3 <=? strlen .|| total * 2 + 3 <=? strlen
+  encode tag arr $ \ ch -> do
+    queued <- deref $ str ~> stringLengthL
+    assert $ queued <? arrayLen (str ~> stringDataL)
+    store (str ~> stringDataL ! toIx queued) ch
+    store (str ~> stringLengthL) (queued + 1)
 
 --------------------------------------------------------------------------------
 

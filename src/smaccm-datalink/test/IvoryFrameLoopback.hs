@@ -12,6 +12,7 @@ import Ivory.Stdlib
 import Ivory.Tower
 import Ivory.Tower.Config
 import Ivory.Tower.Compile
+import Ivory.Tower.HAL.Bus.Interface
 import Ivory.Tower.HAL.RingBuffer
 import Ivory.OS.FreeRTOS.Tower.STM32
 
@@ -35,13 +36,12 @@ app :: (e -> BSP.TestPlatform)
 app totp = do
   tp <- fmap totp getEnv
   let cu = BSP.testplatform_uart tp
-  (o,i) <- uartTower tocc (BSP.testUARTPeriph cu) (BSP.testUARTPins cu)
-                     115200 (Proxy :: Proxy 256)
-  frame_loopback i o
+  (o, i) <- uartTower tocc (BSP.testUARTPeriph cu) (BSP.testUARTPins cu) 115200
+  frame_loopback o i
   where
   tocc = BSP.testplatform_clockconfig . totp
 
-frame_loopback :: ChanInput (Stored Uint8)
+frame_loopback :: BackpressureTransmit HXCyphertext (Stored IBool)
                -> ChanOutput (Stored Uint8)
                -> Tower p ()
 frame_loopback o i = do

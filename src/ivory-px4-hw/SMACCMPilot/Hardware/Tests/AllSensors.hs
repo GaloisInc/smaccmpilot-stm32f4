@@ -42,16 +42,25 @@ app topx4 = do
 
   (accel_meas, gyro_meas, mag_meas, baro_meas) <- sensor_manager topx4
 
-  (_uarti,uartout) <- px4ConsoleTower topx4
+  (uartout, _uarti) <- px4ConsoleTower topx4
 
   div_accel_meas <- rateDivider 4 accel_meas
   div_gyro_meas <- rateDivider 4 gyro_meas
-  monitor "sensorsender" $ do
-    magSender  mag_meas    uartout
-    baroSender baro_meas   uartout
-    gyroSender div_gyro_meas   uartout
-    accelSender div_accel_meas uartout
-    positionSender (snd position) uartout
+
+  uartTasks <- sequence
+    [ do
+        (t, req) <- task name
+        monitor name $ f req
+        return t
+    | (name, f) <-
+      [ ("mag", magSender mag_meas)
+      , ("baro", baroSender baro_meas)
+      , ("gyro", gyroSender div_gyro_meas)
+      , ("accel", accelSender div_accel_meas)
+      , ("gps", positionSender (snd position))
+      ]
+    ]
+  schedule uartTasks systemInit uartout
 
   case px4platform_can px4platform of
     Nothing -> return () -- don't send sensor readings to non-existent CAN busses

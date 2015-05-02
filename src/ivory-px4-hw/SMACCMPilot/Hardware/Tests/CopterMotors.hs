@@ -21,7 +21,7 @@ app :: (e -> PX4Platform)
     -> Tower e ()
 app topx4 = do
   c <- channel
-  (i, _o) <- px4ConsoleTower topx4
+  (_o, i) <- px4ConsoleTower topx4
   motorcontrol_input i (fst c)
 
 motorcontrol_input ::

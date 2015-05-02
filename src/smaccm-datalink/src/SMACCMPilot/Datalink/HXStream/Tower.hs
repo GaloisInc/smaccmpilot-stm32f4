@@ -1,13 +1,19 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module SMACCMPilot.Datalink.HXStream.Tower
   ( hxstreamEncodeTower
   , hxstreamDecodeTower
+  , HXCyphertext
   ) where
 
 import Ivory.Language
-import Ivory.Tower
 import Ivory.Stdlib
+import Ivory.Tower
+import Ivory.Tower.HAL.Bus.Interface
 
 import qualified SMACCMPilot.Datalink.HXStream.Ivory as H
 import SMACCMPilot.Commsec.Sizes
@@ -15,18 +21,32 @@ import SMACCMPilot.Commsec.Sizes
 airDataTag :: H.Tag
 airDataTag = 0
 
+[ivory| string struct HXCyphertext 195 |] -- 96*2+3==195
+
 hxstreamEncodeTower :: String
                     -> ChanOutput CyphertextArray
-                    -> ChanInput  (Stored Uint8)
+                    -> BackpressureTransmit HXCyphertext (Stored IBool)
                     -> Tower e ()
-hxstreamEncodeTower n ct_chan serial_chan = do
+hxstreamEncodeTower n ct_chan (BackpressureTransmit serial_chan complete) = do
+  let bufmod = package "hx_cyphertext" $ defStringType (Proxy :: Proxy HXCyphertext)
+  towerModule bufmod
+  towerDepends bufmod
   towerModule $ H.hxstreamModule
   monitor (n ++ "_datalink_encode") $ do
     monitorModuleDef $ depend H.hxstreamModule
+    pending <- state "pending"
+
     handler ct_chan "encoder_ct_in" $ do
-      e <- emitter serial_chan (2*cyphertextSize + 3)
+      e <- emitter serial_chan 1
       callback $ \ct -> do
-        H.encode airDataTag ct (emitV e)
+        already_pending <- deref pending
+        unless already_pending $ do
+          buf <- local izero
+          H.encodeString airDataTag ct buf
+          emit e $ constRef buf
+          store pending true
+
+    handler complete "complete" $ callback $ const $ store pending false
 
 hxstreamDecodeTower :: String
                     -> ChanOutput (Stored Uint8)

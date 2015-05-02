@@ -10,6 +10,7 @@ module SMACCMPilot.Hardware.Tests.MPU6000
   ) where
 
 import Ivory.Tower
+import Ivory.Tower.HAL.Bus.Sched
 
 import Ivory.BSP.STM32.Driver.SPI
 
@@ -31,11 +32,21 @@ app topx4 = do
   sensors_ready <- px4platform_sensorenable_tower topx4 ready
   mpu6000SensorManager req sensors_ready (fst g_sample) (fst a_sample) (SPIDeviceHandle 0)
 
-  (_uarti, uarto) <- px4ConsoleTower topx4
+  (uarto, _uarti) <- px4ConsoleTower topx4
   half_g <- rateDivider 2 (snd g_sample)
   half_a <- rateDivider 2 (snd a_sample)
-  monitor "mpu6000sender" $ do
-    gyroSender half_g uarto
-    accelSender half_a uarto
+
+  uartTasks <- sequence
+    [ do
+        (t, chan) <- task name
+        monitor name $ f chan
+        return t
+    | (name, f) <-
+      [ ("gyro", gyroSender half_g)
+      , ("accel", accelSender half_a)
+      ]
+    ]
+  schedule uartTasks systemInit uarto
+
   serializeTowerDeps
 

@@ -19,11 +19,13 @@ import Ivory.Tower
 
 import Data.Char (ord)
 
+import Ivory.Tower.HAL.Bus.Interface
 import Ivory.Tower.HAL.Sensor.Accelerometer ()
 import Ivory.Tower.HAL.Sensor.Gyroscope ()
 import Ivory.Tower.HAL.Sensor.Magnetometer ()
 import Ivory.Tower.HAL.Sensor.Barometer ()
 import SMACCMPilot.Hardware.GPS.Types ()
+import SMACCMPilot.Hardware.Tests.Platforms
 
 import qualified SMACCMPilot.Datalink.HXStream.Ivory as HX
 import Ivory.Serialize
@@ -51,7 +53,7 @@ rateDivider r c = do
           (store st (s + 1))
   return (snd c')
 
-type Sender e a = ChanOutput a -> ChanInput (Stored Uint8) -> Monitor e ()
+type Sender e a = ChanOutput a -> BackpressureTransmit ConsoleBuffer (Stored IBool) -> Monitor e ()
 
 sampleSender :: (ANat len, IvoryArea a, IvoryZero a, Packable a)
              => Char
@@ -60,10 +62,12 @@ sampleSender :: (ANat len, IvoryArea a, IvoryZero a, Packable a)
 sampleSender tag len c out = do
   buf <- stateInit "buf" $ izerolen len
   handler c "sender" $ do
-    e <- emitter out (arrayLen buf * 2 + 3)
+    e <- emitter (backpressureTransmit out) 1
     callback $ \ sample -> do
       packInto buf 0 sample
-      HX.encode (fromIntegral $ ord tag) (constRef buf) (emitV e)
+      str <- local izero
+      HX.encodeString (fromIntegral $ ord tag) (constRef buf) str
+      emit e $ constRef str
 
 gyroSender :: Sender e (Struct "gyroscope_sample")
 gyroSender = sampleSender 'g' (Proxy :: Proxy 26)

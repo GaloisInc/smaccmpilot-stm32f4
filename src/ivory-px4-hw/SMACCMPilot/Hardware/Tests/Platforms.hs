@@ -1,14 +1,18 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module SMACCMPilot.Hardware.Tests.Platforms where
 
 import Ivory.Language
 import Ivory.Tower
+import Ivory.Tower.HAL.Bus.Interface
 import Ivory.Tower.Config
 
 import Data.Char (toUpper)
@@ -409,15 +413,22 @@ esb_x1 = PX4Platform
 
 ----
 
-px4ConsoleTower :: (e -> PX4Platform) -> Tower e ( ChanOutput (Stored Uint8)
-                                                 , ChanInput  (Stored Uint8))
+[ivory| string struct ConsoleBuffer 256 |]
+
+px4ConsoleTower :: (e -> PX4Platform)
+                -> Tower e
+                  ( BackpressureTransmit ConsoleBuffer (Stored IBool)
+                  , ChanOutput (Stored Uint8) )
 px4ConsoleTower topx4 = do
+  let consoleModule = package "px4_console" $ defStringType (Proxy :: Proxy ConsoleBuffer)
+  towerModule consoleModule
+  towerDepends consoleModule
+
   px4platform <- fmap topx4 getEnv
   uartTower (px4platform_clockconfig . topx4)
             (uart_periph (px4platform_console px4platform))
             (uart_pins   (px4platform_console px4platform))
             115200
-            (Proxy :: Proxy 256)
 
 px4platform_clockconfig :: (PX4Platform -> ClockConfig)
 px4platform_clockconfig = stm32config_clock . px4platform_stm32config

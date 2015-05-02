@@ -6,7 +6,6 @@ module SMACCMPilot.Flight.Datalink.Plaintext
   ( plaintextDatalink
   ) where
 
-import Ivory.Language
 import Ivory.Tower
 
 import Ivory.BSP.STM32.Driver.UART
@@ -22,11 +21,10 @@ plaintextDatalink :: (e -> ClockConfig)
                       -> Tower e (a, ChanOutput CyphertextArray))
                   -> Tower e a
 plaintextDatalink tocc uart baud k = do
-  (uarti, uarto) <- uartTower tocc
+  (uarto, uarti) <- uartTower tocc
                               (uart_periph uart)
                               (uart_pins   uart)
                               baud
-                              (Proxy :: Proxy 256)
   input_frames <- channel
 
   hxstreamDecodeTower "frame" uarti (fst input_frames)

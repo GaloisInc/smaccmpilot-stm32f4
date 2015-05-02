@@ -12,6 +12,7 @@ module SMACCMPilot.Hardware.Tests.Magnetometer
 import Ivory.Language
 
 import Ivory.Tower
+import Ivory.Tower.HAL.Bus.Interface
 
 import Ivory.BSP.STM32.Driver.I2C
 import Ivory.BSP.STM32.Driver.SPI
@@ -26,7 +27,7 @@ app :: (e -> PX4Platform) -> Tower e ()
 app topx4 = do
   px4platform <- fmap topx4 getEnv
 
-  (_uarti,uarto) <- px4ConsoleTower topx4
+  (uarto, _uarti) <- px4ConsoleTower topx4
 
   case px4platform_mag px4platform of
     Mag_HMC5883L_I2C h -> hmc5883l_i2c_app topx4 h uarto
@@ -36,7 +37,7 @@ app topx4 = do
 
 hmc5883l_i2c_app :: (e -> PX4Platform)
                  -> HMC5883L_I2C
-                 -> ChanInput (Stored Uint8)
+                 -> BackpressureTransmit ConsoleBuffer (Stored IBool)
                  -> Tower e ()
 hmc5883l_i2c_app topx4 hmc uarto = do
   (req, ready) <- i2cTower (px4platform_clockconfig . topx4)
@@ -57,7 +58,7 @@ hmc5883l_i2c_app topx4 hmc uarto = do
 
 lsm303d_spi_app :: (e -> PX4Platform)
                  -> LSM303D_SPI
-                 -> ChanInput (Stored Uint8)
+                 -> BackpressureTransmit ConsoleBuffer (Stored IBool)
                  -> Tower e ()
 lsm303d_spi_app topx4 lsm uarto = do
   (req, ready) <- spiTower (px4platform_clockconfig . topx4)

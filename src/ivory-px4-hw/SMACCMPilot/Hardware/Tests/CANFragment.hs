@@ -57,7 +57,7 @@ app topx4 = do
   (fragSink, fragSource) <- channel
   fragmentSenderBlind fragSource navCmdType canReq
 
-  (istream, ostream) <- px4ConsoleTower topx4
+  (ostream, istream) <- px4ConsoleTower topx4
 
   monitor "decode" $ do
     coroutineHandler systemInit istream "decode_uart" $ do
@@ -78,12 +78,21 @@ app topx4 = do
 
   div_accel_meas <- rateDivider 4 accel_meas
   div_gyro_meas <- rateDivider 4 gyro_meas
-  monitor "sensorsender" $ do
-    magSender  mag_meas    ostream
-    baroSender baro_meas   ostream
-    gyroSender div_gyro_meas   ostream
-    accelSender div_accel_meas ostream
-    positionSender gps_meas ostream
+
+  uartTasks <- sequence
+    [ do
+        (t, req) <- task name
+        monitor name $ f req
+        return t
+    | (name, f) <-
+      [ ("mag", magSender mag_meas)
+      , ("baro", baroSender baro_meas)
+      , ("gyro", gyroSender div_gyro_meas)
+      , ("accel", accelSender div_accel_meas)
+      , ("gps", positionSender gps_meas)
+      ]
+    ]
+  schedule uartTasks systemInit ostream
 
   fragmentReceiver canRx
     [ fragmentReceiveHandler gyroSrc gyroType

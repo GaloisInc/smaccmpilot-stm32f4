@@ -16,7 +16,7 @@ import SMACCMPilot.Hardware.Tests.Serialize
 app :: (e -> PX4Platform)
     -> Tower e ()
 app topx4 = do
-  (_i,uarto) <- px4ConsoleTower topx4
+  (uarto, _i) <- px4ConsoleTower topx4
 
   ppmOut <- ppmTower (px4platform_ppm . topx4)
                      (px4platform_clockconfig . topx4)
