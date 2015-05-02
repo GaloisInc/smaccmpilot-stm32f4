@@ -68,16 +68,50 @@
   (pos_setp      float_t)
   (pos_rate_setp float_t))
 
+(def-struct xyz_t
+  (x float_t)
+  (y float_t)
+  (z float_t))
+
+(def-struct sensors_result_t
+ (valid     bool_t)
+ (roll      float_t) -- Roll, pitch,  yaw, in Radians
+ (pitch     float_t)
+ (yaw       float_t)
+ (omega     xyz_t) -- Radians per second
+ (baro_alt  float_t) -- meters
+ (accel     xyz_t) -- g
+ (ahrs_time time_micros_t)
+ (baro_time time_micros_t))
+
+(def-struct control_setpoint_t
+  (altitude  float_t)
+  (alt_rate  float_t)
+  (roll      float_t)
+  (pitch     float_t)
+  (heading   float_t))
+
+(def-struct control_output_t
+  (armed     bool_t)
+  (throttle  float_t)
+  (roll      float_t)
+  (pitch     float_t)
+  (yaw       float_t))
+
 (def-interface vehicle_i ()
   (heartbeat   (stream         heartbeat_t))
   (control_law (attr read      control_law_t))
   (user_input  (attr read      user_input_result_t))
 
   -- SMACCM specific debugging attributes:
+  (sensors_output    (attr read    sensors_result_t))
+  (control_setpoint  (attr read    control_setpoint_t))
+  (control_output    (attr read    control_output_t))
   (alt_control_debug (attr read    alt_control_debug_t)))
 
 (def-interface controllable_vehicle_i (vehicle_i)
-  (throttle_position_pid   (attr readwrite pid_config_t))
+  (altitude_rate_pid       (attr readwrite pid_config_t))
+  (altitude_position_pid   (attr readwrite pid_config_t))
   (throttle_ui             (attr readwrite throttle_ui_t))
   -- Use to set control law, when safety input permits the GCS to set the
   -- control law:
