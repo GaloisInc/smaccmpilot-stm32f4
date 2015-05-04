@@ -5,18 +5,15 @@
 
 module SMACCMPilot.Flight.Control.Yaw
   ( YawControl(..)
-  , taskYawControl
+  , monitorYawControl
   ) where
 
 import Ivory.Language
 import Ivory.Tower
 
-import SMACCMPilot.Param
-import SMACCMPilot.Flight.Param
-
-import qualified SMACCMPilot.Flight.Types.Sensors         ()
-import qualified SMACCMPilot.Flight.Types.ControlOutput   as CO
-import qualified SMACCMPilot.Flight.Types.AttControlDebug ()
+import qualified SMACCMPilot.Comm.Ivory.Types.ControlOutput   as CO
+import           SMACCMPilot.Comm.Tower.Attr
+import           SMACCMPilot.Comm.Tower.Interface.ControllableVehicle
 
 import           SMACCMPilot.Flight.Control.Attitude.YawRate
 import           SMACCMPilot.Flight.Control.Attitude.HeadingControl
@@ -36,15 +33,16 @@ data YawControl =
                   -> IFloat -- dt
                   -> Ivory eff ()
     , yaw_reset  :: forall eff . Ivory eff ()
-    , yaw_output :: forall eff s . Ref s (Struct "controloutput") -> Ivory eff ()
+    , yaw_output :: forall eff s . Ref s (Struct "control_output") -> Ivory eff ()
     }
 
-taskYawControl :: FlightParams ParamReader
-               -> Task p YawControl
-taskYawControl param_reader = do
+monitorYawControl :: (AttrReadable a)
+                  => ControllableVehicleAttrs a
+                  -> Monitor e YawControl
+monitorYawControl attrs = do
   f <- fresh
-  yaw_ctl        <- taskYawRateControl (stabRate     (flightYaw param_reader))
-  hctl           <- taskHeadingControl (stabPosition (flightYaw param_reader))
+  yaw_ctl <- monitorYawRateControl (yawRatePid attrs)
+  hctl    <- monitorHeadingControl (yawPositionPid attrs)
 
 
   let named n = "yaw_ctl_" ++ n ++ "_" ++ show f
@@ -82,12 +80,12 @@ taskYawControl param_reader = do
 --        dbg <- local izero
 --        hctl_write_debug hctl dbg
 
-      output_proc :: Def ('[Ref s (Struct "controloutput")]:->())
+      output_proc :: Def ('[Ref s (Struct "control_output")]:->())
       output_proc = proc (named "output") $ \ctl-> body $ do
         y <- yc_state yaw_ctl
         store (ctl ~> CO.yaw) y
 
-  taskModuleDef $ do
+  monitorModuleDef $ do
     incl init_proc
     incl rate_proc
     incl heading_proc

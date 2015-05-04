@@ -25,6 +25,7 @@ library
                        SMACCMPilot.Flight.Control.PID,
                        SMACCMPilot.Flight.Control.StateDerivativePID,
                        SMACCMPilot.Flight.Control.StatePID,
+                       SMACCMPilot.Flight.Control.Yaw,
                        SMACCMPilot.Flight.Datalink.ControllableVehicle,
                        SMACCMPilot.Flight.Datalink.Plaintext,
                        SMACCMPilot.Flight.Datalink.TestApp,

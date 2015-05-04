@@ -34,8 +34,8 @@ data PitchRollControl =
     }
 
 monitorPitchRollControl :: (AttrReadable a)
-                     => ControllableVehicleAttrs a
-                     -> Monitor e PitchRollControl
+                        => ControllableVehicleAttrs a
+                        -> Monitor e PitchRollControl
 monitorPitchRollControl attrs = do
   f <- fresh
   pitch_ctl <- monitorAngleController (attitudePitchStab attrs)
