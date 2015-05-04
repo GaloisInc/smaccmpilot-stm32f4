@@ -68,6 +68,16 @@
   (pos_setp      float_t)
   (pos_rate_setp float_t))
 
+(def-struct att_control_debug_t
+ (head_setpt       float_t)
+ (head_rate_setpt  float_t)
+ (head_ctl_p       float_t)
+ (head_ctl_d       float_t)
+ (pitch_setpt      float_t)
+ (pitch_rate_setpt float_t)
+ (roll_setpt       float_t)
+ (roll_rate_setpt  float_t))
+
 (def-struct xyz_t
   (x float_t)
   (y float_t)
@@ -107,6 +117,7 @@
   (sensors_output    (attr read    sensors_result_t))
   (control_setpoint  (attr read    control_setpoint_t))
   (control_output    (attr read    control_output_t))
+  (att_control_debug (attr read    att_control_debug_t))
   (alt_control_debug (attr read    alt_control_debug_t)))
 
 (def-interface controllable_vehicle_i (vehicle_i)
