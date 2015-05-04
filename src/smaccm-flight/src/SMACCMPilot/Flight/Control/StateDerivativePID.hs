@@ -5,15 +5,15 @@
 
 module SMACCMPilot.Flight.Control.StateDerivativePID
   ( StateDerivativePID(..)
-  , taskStateDerivativePID
+  , monitorStateDerivativePID
   ) where
 
 import Ivory.Language
 import Ivory.Tower
 
-import SMACCMPilot.Param
-import SMACCMPilot.Flight.Control.PID
-import SMACCMPilot.Flight.Param
+import qualified SMACCMPilot.Comm.Ivory.Types.PidConfig as C
+import           SMACCMPilot.Comm.Tower.Attr
+import           SMACCMPilot.Flight.Control.PID
 
 data StateDerivativePID =
   StateDerivativePID
@@ -28,12 +28,16 @@ data StateDerivativePID =
     , sdpid_debug  :: forall eff . Ivory eff (IFloat, IFloat, IFloat)
     }
 
-taskStateDerivativePID :: PIDParams ParamReader -> String -> Task p StateDerivativePID
-taskStateDerivativePID params username = do
+monitorStateDerivativePID :: (AttrReadable a)
+                          => a (Struct "pid_config")
+                          -> String
+                          -> Monitor e StateDerivativePID
+monitorStateDerivativePID config_attr username = do
   f <- fresh
-  integral   <- taskLocal (username ++ "_integral")
-  p_out      <- taskLocal (username ++ "_p_out")
-  d_out      <- taskLocal (username ++ "_d_out")
+  integral   <- state (username ++ "_integral")
+  p_out      <- state (username ++ "_p_out")
+  d_out      <- state (username ++ "_d_out")
+  cfg        <- attrState config_attr
 
   let named n = "statepid_" ++ username ++ "_" ++ n ++ "_" ++ (show f)
 
@@ -44,11 +48,10 @@ taskStateDerivativePID params username = do
                            ] :-> ())
       update_proc = proc (named "update") $ \setpt state_est deriv_est dt -> body $ do
         assert (dt >? 0)
-        cfg <- allocPIDParams params
-        p_gain <-             (deref (cfg ~> pid_pGain))
-        i_gain <- fmap (* dt) (deref (cfg ~> pid_iGain))
-        d_gain <- fmap (/ dt) (deref (cfg ~> pid_dGain))
-        i_max  <- deref (cfg ~> pid_iMax)
+        p_gain <-             (deref (cfg ~> C.p_gain))
+        i_gain <- fmap (* dt) (deref (cfg ~> C.i_gain))
+        d_gain <- fmap (/ dt) (deref (cfg ~> C.d_gain))
+        i_max  <-             (deref (cfg ~> C.i_max))
 
         err <- assign (setpt - state_est)
 
@@ -70,7 +73,7 @@ taskStateDerivativePID params username = do
       reset_proc = proc (named "reset") $ body $ do
         store integral 0
 
-  taskModuleDef $ do
+  monitorModuleDef $ do
     incl update_proc
     incl output_proc
     incl reset_proc

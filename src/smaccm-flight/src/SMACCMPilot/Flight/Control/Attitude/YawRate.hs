@@ -5,20 +5,18 @@
 
 module SMACCMPilot.Flight.Control.Attitude.YawRate
   ( YawRateControl(..)
-  , taskYawRateControl
+  , monitorYawRateControl
   ) where
 
 import Ivory.Language
 import Ivory.Tower
-import Ivory.Stdlib
 
-import SMACCMPilot.Param
-import SMACCMPilot.Flight.Control.PID
-import SMACCMPilot.Flight.Control.Attitude.Stabilize
-import SMACCMPilot.Flight.Param
+import           SMACCMPilot.Flight.Control.PID
+import           SMACCMPilot.Flight.Control.Attitude.Stabilize
+import qualified SMACCMPilot.Comm.Ivory.Types.SensorsResult as SEN
+import qualified SMACCMPilot.Comm.Ivory.Types.Xyz           as XYZ
+import           SMACCMPilot.Comm.Tower.Attr
 
-import qualified SMACCMPilot.Flight.Types.Sensors       as SEN
--- import qualified SMACCMPilot.Flight.Types.ControlOutput as OUT
 
 data YawRateControl =
   YawRateControl
@@ -33,14 +31,16 @@ data YawRateControl =
 const_MAX_OUTPUT_YAW :: IFloat
 const_MAX_OUTPUT_YAW   = 45 -- deg/sec
 
-taskYawRateControl :: PIDParams ParamReader -> Task p YawRateControl
-taskYawRateControl params = do
+monitorYawRateControl :: (AttrReadable a)
+                      => a (Struct "pid_config")
+                      -> Monitor p YawRateControl
+monitorYawRateControl config_attr = do
   f <- fresh
-  yaw_rate  <- taskLocal "yaw_rate"
+  yaw_rate  <- state "yaw_rate"
 
-  valid     <- taskLocal "valid"
-  yaw_out   <- taskLocal "yaw_out"
-
+  valid     <- state "valid"
+  yaw_out   <- state "yaw_out"
+  yaw_rate_cfg <- attrState config_attr
   let named n = "yawctl_" ++ n ++ "_" ++ (show f)
 
       init_proc :: Def ('[]:->())
@@ -52,8 +52,7 @@ taskYawRateControl params = do
                         , ConstRef s (Struct "sensors_result")
                         ] :-> ())
       run_proc = proc (named "run") $ \yaw_rate_setpt sens -> body $ do
-        sen_omega_z <- (sens ~>* SEN.omega_z)
-        yaw_rate_cfg <- allocPIDParams params
+        sen_omega_z <- deref ((sens ~> SEN.omega) ~> XYZ.z)
         yaw_ctl <- call stabilize_from_rate
                             yaw_rate
                             (constRef yaw_rate_cfg)
@@ -76,7 +75,7 @@ taskYawRateControl params = do
         store valid false
         call_ pid_reset yaw_rate
 
-  taskModuleDef $ do
+  monitorModuleDef $ do
     incl init_proc
     incl run_proc
     incl state_proc

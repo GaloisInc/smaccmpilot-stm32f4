@@ -5,15 +5,15 @@
 
 module SMACCMPilot.Flight.Control.StatePID
   ( StatePID(..)
-  , taskStatePID
+  , monitorStatePID
   ) where
 
 import Ivory.Language
 import Ivory.Tower
 
-import SMACCMPilot.Param
-import SMACCMPilot.Flight.Control.PID
-import SMACCMPilot.Flight.Param
+import qualified SMACCMPilot.Comm.Ivory.Types.PidConfig as C
+import           SMACCMPilot.Comm.Tower.Attr
+import           SMACCMPilot.Flight.Control.PID
 
 data StatePID =
   StatePID
@@ -27,14 +27,18 @@ data StatePID =
     , spid_debug  :: forall eff . Ivory eff (IFloat, IFloat, IFloat)
     }
 
-taskStatePID :: PIDParams ParamReader -> String -> Task p StatePID
-taskStatePID params username = do
+monitorStatePID :: (AttrReadable a)
+                => a (Struct "pid_config")
+                -> String
+                -> Monitor e StatePID
+monitorStatePID config_attr username = do
   f <- fresh
-  valid      <- taskLocal (username ++ "_valid")
-  est_prev   <- taskLocal (username ++ "_est_prev")
-  integral   <- taskLocal (username ++ "_integral")
-  p_out      <- taskLocal (username ++ "_p_out")
-  d_out      <- taskLocal (username ++ "_d_out")
+  valid      <- state (username ++ "_valid")
+  est_prev   <- state (username ++ "_est_prev")
+  integral   <- state (username ++ "_integral")
+  p_out      <- state (username ++ "_p_out")
+  d_out      <- state (username ++ "_d_out")
+  cfg        <- attrState config_attr
 
   let named n = "statepid_" ++ username ++ "_" ++ n ++ "_" ++ (show f)
 
@@ -46,11 +50,10 @@ taskStatePID params username = do
         assert (dt >? 0)
         v <- deref valid
         store valid true
-        cfg <- allocPIDParams params
-        p_gain <-             (deref (cfg ~> pid_pGain))
-        i_gain <- fmap (* dt) (deref (cfg ~> pid_iGain))
-        d_gain <- fmap (/ dt) (deref (cfg ~> pid_dGain))
-        i_max  <- deref (cfg ~> pid_iMax)
+        p_gain <-             (deref (cfg ~> C.p_gain))
+        i_gain <- fmap (* dt) (deref (cfg ~> C.i_gain))
+        d_gain <- fmap (/ dt) (deref (cfg ~> C.d_gain))
+        i_max  <-             (deref (cfg ~> C.i_max))
 
         err <- assign (setpt - state_est)
 
@@ -77,7 +80,7 @@ taskStatePID params username = do
         store valid false
         store integral 0
 
-  taskModuleDef $ do
+  monitorModuleDef $ do
     incl update_proc
     incl output_proc
     incl reset_proc

@@ -11,7 +11,6 @@ module SMACCMPilot.Flight.Control.Attitude.Stabilize
 
 import Ivory.Language
 
-import SMACCMPilot.Param ()
 import SMACCMPilot.Flight.Control.PID
 
 attStabilizeModule :: Module
@@ -29,10 +28,10 @@ attStabilizeModule = package "attitude_stabilize" $ do
 --
 --   http://code.google.com/p/arducopter/wiki/AC2_Tweaks
 stabilize_from_angle :: Def (
- '[ Ref      s1 (Struct "PIDState")   -- angle_pid
-  , ConstRef s2 (Struct "PIDConfig")  -- angle_cfg
-  , Ref      s3 (Struct "PIDState")   -- rate_pid
-  , ConstRef s4 (Struct "PIDConfig")  -- rate_cfg
+ '[ Ref      s1 (Struct "pid_state")   -- angle_pid
+  , ConstRef s2 (Struct "pid_config")  -- angle_cfg
+  , Ref      s3 (Struct "pid_state")   -- rate_pid
+  , ConstRef s4 (Struct "pid_config")  -- rate_cfg
   , IFloat                            -- stick_angle_rad
   , IFloat                            -- sensor_angle_rad
   , IFloat                            -- sensor_rate_rad_s
@@ -62,8 +61,8 @@ stabilize_from_angle = proc "stabilize_from_angle" $
 -- | Return a normalized servo output given a normalized stick input
 -- representing the desired rate.  Only uses the rate PID controller.
 stabilize_from_rate :: Def (
- '[ Ref      s1 (Struct "PIDState")     -- rate_pid
-  , ConstRef s2 (Struct "PIDConfig")    -- rate_cfg
+ '[ Ref      s1 (Struct "pid_state")     -- rate_pid
+  , ConstRef s2 (Struct "pid_config")    -- rate_cfg
   , IFloat                              -- stick_rate_rad_s
   , IFloat                              -- sensor_rate_rad_s
   , IFloat                              -- max_servo_rate_deg_s
