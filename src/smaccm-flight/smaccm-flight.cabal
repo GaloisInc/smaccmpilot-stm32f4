@@ -17,6 +17,7 @@ library
                        SMACCMPilot.Flight.Control.Altitude.ThrottleUI,
                        SMACCMPilot.Flight.Control.Altitude.ThrustPID,
                        SMACCMPilot.Flight.Control.PID,
+                       SMACCMPilot.Flight.Control.StateDerivativePID,
                        SMACCMPilot.Flight.Datalink.ControllableVehicle,
                        SMACCMPilot.Flight.Datalink.Plaintext,
                        SMACCMPilot.Flight.Datalink.TestApp,
