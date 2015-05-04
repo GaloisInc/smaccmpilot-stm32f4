@@ -3,46 +3,53 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TypeFamilies #-}
 
-module SMACCMPilot.Flight.Control.Attitude.YawUI where
+module SMACCMPilot.Flight.Control.Attitude.YawUI
+  ( YawUI(..)
+  , monitorYawUI
+  ) where
 
 import Ivory.Language
 import Ivory.Tower
 import Ivory.Stdlib
 
-import           SMACCMPilot.Param
 import           SMACCMPilot.Flight.Control.PID (fconstrain)
-import qualified SMACCMPilot.Flight.Types.Sensors         as S
-import qualified SMACCMPilot.Flight.Types.UserInput       as UI
-import qualified SMACCMPilot.Flight.Types.AttControlDebug as D
+
+import qualified SMACCMPilot.Comm.Ivory.Types.SensorsResult    as S
+import qualified SMACCMPilot.Comm.Ivory.Types.UserInput        as UI
+import qualified SMACCMPilot.Comm.Ivory.Types.AttControlDebug  as D
+import           SMACCMPilot.Comm.Tower.Attr
 
 data YawUI =
   YawUI
     { yui_update :: forall eff s1 s2
                   . Ref s1 (Struct "sensors_result")
-                 -> Ref s2 (Struct "userinput_result")
+                 -> Ref s2 (Struct "user_input")
                  -> IFloat -- dt
                  -> Ivory eff ()
     , yui_reset :: forall eff . Ivory eff ()
     , yui_setpoint :: forall eff . Ivory eff (IFloat, IFloat)
-    , yui_write_debug :: forall eff s . Ref s (Struct "att_control_dbg")
+    , yui_write_debug :: forall eff s . Ref s (Struct "att_control_debug")
                      -> Ivory eff ()
     }
 
-taskYawUI :: Param ParamReader -> Task p YawUI
-taskYawUI sens_param_reader = do
+monitorYawUI :: (AttrReadable a)
+             => a (Stored IFloat)
+             -> Monitor e YawUI
+monitorYawUI sens_attr = do
   uniq <- fresh
   let named n = "yaw_ui_" ++ n ++ "_" ++ show uniq
-  head_setpoint <- taskLocal "head_setpoint"
-  rate_setpoint <- taskLocal "rate_setpoint"
-  active_state <- taskLocalInit "active_state" (ival false)
+  head_setpoint <- state "head_setpoint"
+  rate_setpoint <- state "rate_setpoint"
+  active_state <- stateInit "active_state" (ival false)
+  sens_state <- attrState sens_attr
   let proc_update :: Def('[ Ref s1 (Struct "sensors_result")
-                          , Ref s2 (Struct "userinput_result")
+                          , Ref s2 (Struct "user_input")
                           , IFloat -- dt
                           ] :-> ())
       proc_update  = proc (named "update") $
         \sens ui dt -> body $ do
           -- Parameter in degrees/second, convert to rad/sec
-          sensitivity <- (*(pi/180)) `fmap` paramGet sens_param_reader
+          sensitivity <- fmap (*(pi/180)) (deref sens_state)
           sr <- stickrate ui sensitivity
           store rate_setpoint sr
 
@@ -59,7 +66,7 @@ taskYawUI sens_param_reader = do
                                  next
             store head_setpoint (angledomain a)
 
-  taskModuleDef $ do
+  monitorModuleDef $ do
     incl proc_update
   return YawUI
     { yui_update   = call_ proc_update
@@ -76,7 +83,7 @@ taskYawUI sens_param_reader = do
     }
 
 stickrate :: (GetAlloc eff ~ Scope cs)
-          => Ref s (Struct "userinput_result")
+          => Ref s (Struct "user_input")
           -> IFloat
           -> Ivory eff IFloat
 stickrate ui sens = do
