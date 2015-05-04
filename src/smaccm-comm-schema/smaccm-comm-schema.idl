@@ -127,9 +127,20 @@
 (def-interface controllable_vehicle_i (vehicle_i)
   (altitude_rate_pid       (attr readwrite pid_config_t))
   (altitude_position_pid   (attr readwrite pid_config_t))
+  (throttle_ui             (attr readwrite throttle_ui_t))
+  -- You might reasonably ask: hey, why do we use a pair of rate/pos pid_configs
+  -- via stab_config in some places, and two separate attributes in other
+  -- places? The answer is: basically, just to reduce the amount of changes to
+  -- legacy (phase 1) smaccmpilot control code.
+  -- It sure would be cool if the types/attr hierarchy wasn't artificailly
+  -- heterogeneous, i.e. we could treat the entire tree of attrs as one giant
+  -- structure, and take create attr read/writers or types from the structure
+  -- arbitrarily.
   (attitude_roll_stab      (attr readwrite stab_config_t))
   (attitude_pitch_stab     (attr readwrite stab_config_t))
-  (throttle_ui             (attr readwrite throttle_ui_t))
+  (yaw_rate_pid            (attr readwrite pid_config_t))
+  (yaw_position_pid        (attr readwrite pid_config_t))
+
   -- Use to set control law, when safety input permits the GCS to set the
   -- control law:
   (control_law_request (attr readwrite control_law_t))
