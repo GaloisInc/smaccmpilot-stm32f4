@@ -5,20 +5,21 @@
 
 module SMACCMPilot.Flight.Control.Attitude.HeadingControl
   ( HeadingController(..)
-  , taskHeadingControl
+  , monitorHeadingControl
   ) where
 
 import Ivory.Language
 import Ivory.Tower
 import Ivory.Stdlib
 
-import           SMACCMPilot.Param
-import           SMACCMPilot.Flight.Param
-
 import           SMACCMPilot.Flight.Control.PID
 
-import qualified SMACCMPilot.Flight.Types.Sensors         as S
-import qualified SMACCMPilot.Flight.Types.AttControlDebug as ACD
+import qualified SMACCMPilot.Comm.Ivory.Types.PidConfig       as C
+import qualified SMACCMPilot.Comm.Ivory.Types.PidState        as P
+import qualified SMACCMPilot.Comm.Ivory.Types.Xyz             as XYZ
+import qualified SMACCMPilot.Comm.Ivory.Types.SensorsResult   as S
+import qualified SMACCMPilot.Comm.Ivory.Types.AttControlDebug as ACD
+import           SMACCMPilot.Comm.Tower.Attr
 
 data HeadingController =
   HeadingController
@@ -31,16 +32,19 @@ data HeadingController =
                   -> Ivory eff ()
     , hctl_reset :: forall eff . Ivory eff ()
     , hctl_setpoint :: forall eff . Ivory eff IFloat
-    , hctl_write_debug :: forall eff s . Ref s (Struct "att_control_dbg")
+    , hctl_write_debug :: forall eff s . Ref s (Struct "att_control_debug")
                      -> Ivory eff ()
     }
 
-taskHeadingControl :: PIDParams ParamReader -> Task p HeadingController
-taskHeadingControl params = do
+monitorHeadingControl :: (AttrReadable a)
+                      => a (Struct "pid_config")
+                      -> Monitor e HeadingController
+monitorHeadingControl cfg_attr = do
   uniq <- fresh
   let named n = "head_ctl_" ++ n ++ "_" ++ show uniq
-  pid_state  <- taskLocal "headingPIDState"
-  output     <- taskLocal "headingOutput"
+  pid_state  <- state "headingPIDState"
+  output     <- state "headingOutput"
+  cfg        <- attrState cfg_attr
   let proc_update :: Def('[ IFloat -- Heading setpoint
                           , IFloat -- Rate setpoint
                           , Ref s (Struct "sensors_result")
@@ -48,13 +52,12 @@ taskHeadingControl params = do
                           ] :-> ())
       proc_update  = proc (named "update") $
         \head_setpt rate_setpt sens dt -> body $ do
-          pid_params <- allocPIDParams params
-          p_gain <-             (pid_params~>*pid_pGain)
-          d_gain <- fmap (/ dt) (pid_params~>*pid_dGain)
+          p_gain <-             (cfg ~>* C.p_gain)
+          d_gain <- fmap (/ dt) (cfg ~>* C.d_gain)
 
           head_est <- deref (sens ~> S.yaw)
           -- XXX omega_z assumes body frame and world frame aligned
-          rate_est <- deref (sens ~> S.omega_z)
+          rate_est <- deref ((sens ~> S.omega) ~> XYZ.z)
           pos_err  <- assign (angledomain (head_setpt - head_est))
           vel_err  <- assign (rate_setpt - rate_est)
 
@@ -65,7 +68,7 @@ taskHeadingControl params = do
       proc_reset = proc (named "reset") $ body $ do
         call_ pid_reset pid_state
 
-  taskModuleDef $ do
+  monitorModuleDef $ do
     incl proc_update
     incl proc_reset
     depend controlPIDModule
@@ -75,8 +78,8 @@ taskHeadingControl params = do
     , hctl_reset    = call_ proc_reset
     , hctl_setpoint = deref output
     , hctl_write_debug = \acd -> do
-        p <- deref (pid_state ~> pid_pLast)
-        d <- deref (pid_state ~> pid_dLast)
+        p <- deref (pid_state ~> P.p_last)
+        d <- deref (pid_state ~> P.d_last)
         store (acd ~> ACD.head_ctl_p) p
         store (acd ~> ACD.head_ctl_d) d
     }

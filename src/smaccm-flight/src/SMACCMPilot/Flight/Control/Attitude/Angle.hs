@@ -5,14 +5,15 @@
 
 module SMACCMPilot.Flight.Control.Attitude.Angle
   ( AngleControl(..)
-  , taskAngleController
+  , monitorAngleController
   ) where
 
 import Ivory.Language
 import Ivory.Tower
 
-import SMACCMPilot.Param
-import SMACCMPilot.Flight.Param
+import qualified SMACCMPilot.Comm.Ivory.Types.StabConfig as S
+import           SMACCMPilot.Comm.Tower.Attr
+
 import SMACCMPilot.Flight.Control.PID
 import SMACCMPilot.Flight.Control.Attitude.Stabilize
 
@@ -27,18 +28,20 @@ data AngleControl =
     , ac_reset :: forall eff . Ivory eff ()
     }
 
-taskAngleController :: StabilizerParams ParamReader
+monitorAngleController :: (AttrReadable a)
+                    => a (Struct "stab_config")
                     -> IFloat -- output range (absolute value)
                     -> String                -- name
-                    -> Task p AngleControl
-taskAngleController stab_params output_range name = do
+                    -> Monitor e AngleControl
+monitorAngleController stab_config_attr output_range name = do
   f <- fresh
   let named n = name ++ "_anglectl_" ++ n ++ "_" ++ (show f)
 
-  valid    <- taskLocal "valid"
-  out      <- taskLocal "out"
-  pos_pid  <- taskLocal "pos_pid"
-  rate_pid <- taskLocal "rate_pid"
+  valid    <- state "valid"
+  out      <- state "out"
+  pos_pid  <- state "pos_pid"
+  rate_pid <- state "rate_pid"
+  stab_config <- attrState stab_config_attr
 
   let init_proc :: Def ('[]:->())
       init_proc = proc (named "init") $ body $ do
@@ -47,13 +50,11 @@ taskAngleController stab_params output_range name = do
 
       run_proc :: Def ('[IFloat, IFloat, IFloat] :-> ())
       run_proc = proc (named "run") $ \setpt est deriv_est -> body $ do
-        pos_cfg  <- allocPIDParams (stabPosition stab_params)
-        rate_cfg <- allocPIDParams (stabRate     stab_params)
         ctl <- call stabilize_from_angle
                       pos_pid
-                      (constRef pos_cfg)
+                      (constRef (stab_config ~> S.pos))
                       rate_pid
-                      (constRef rate_cfg)
+                      (constRef (stab_config ~> S.rate))
                       setpt
                       est
                       deriv_est
@@ -74,7 +75,7 @@ taskAngleController stab_params output_range name = do
         call_ pid_reset pos_pid
         call_ pid_reset rate_pid
 
-  taskModuleDef $ do
+  monitorModuleDef $ do
     incl init_proc
     incl run_proc
     incl out_proc
