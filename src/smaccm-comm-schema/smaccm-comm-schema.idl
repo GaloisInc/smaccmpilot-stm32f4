@@ -58,6 +58,10 @@
   (sens float_t)
   (dead float_t))
 
+(def-struct stab_config_t
+  (pos  pid_config_t)
+  (rate pid_config_t))
+
 (def-struct alt_control_debug_t
   (alt_est       float_t)
   (alt_rate_est  float_t)
@@ -123,6 +127,8 @@
 (def-interface controllable_vehicle_i (vehicle_i)
   (altitude_rate_pid       (attr readwrite pid_config_t))
   (altitude_position_pid   (attr readwrite pid_config_t))
+  (attitude_roll_stab      (attr readwrite stab_config_t))
+  (attitude_pitch_stab     (attr readwrite stab_config_t))
   (throttle_ui             (attr readwrite throttle_ui_t))
   -- Use to set control law, when safety input permits the GCS to set the
   -- control law:
