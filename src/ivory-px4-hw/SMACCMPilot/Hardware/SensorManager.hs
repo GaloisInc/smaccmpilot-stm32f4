@@ -47,7 +47,7 @@ fmu17SensorManager FMU17Sensors{..} tocc = do
                               tocc
                               fmu17sens_i2c_periph
                               (i2cpins_sda fmu17sens_i2c_pins)
-                              (i2cpins_sda fmu17sens_i2c_pins)
+                              (i2cpins_scl fmu17sens_i2c_pins)
 
   (ms5611task, ms5611Req) <- task "ms5611"
   baro_s <- channel
