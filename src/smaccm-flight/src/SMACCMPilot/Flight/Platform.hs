@@ -27,13 +27,15 @@ import           Ivory.BSP.STM32.Peripheral.UART
 import           Ivory.BSP.STM32.Interrupt
 import           Ivory.BSP.STM32.ClockConfig
 import           Ivory.OS.FreeRTOS.Tower.STM32.Config
-import           SMACCMPilot.Hardware.Tests.Platforms (UART_Device(..), PPM(..))
+import           SMACCMPilot.Hardware.Types
+import           SMACCMPilot.Hardware.Tests.Platforms (PPM(..))
 
 
 data FlightPlatform =
   FlightPlatform
     { fp_telem        :: UART_Device
     , fp_ppm          :: PPM
+    , fp_sensors      :: Sensors
     , fp_stm32config  :: STM32Config
     }
 
@@ -57,6 +59,7 @@ px4fmuv17 :: FlightPlatform
 px4fmuv17 = FlightPlatform
   { fp_telem       = telem
   , fp_ppm         = ppm
+  , fp_sensors     = fmu17_sensors
   , fp_stm32config = stm32f405Defaults 24
   }
   where
@@ -76,6 +79,7 @@ px4fmuv24 :: FlightPlatform
 px4fmuv24 = FlightPlatform
   { fp_telem       = telem
   , fp_ppm         = PPM_None
+  , fp_sensors     = fmu24_sensors
   , fp_stm32config = stm32f427Defaults 24
   }
   where
