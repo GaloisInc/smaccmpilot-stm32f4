@@ -12,7 +12,7 @@ module SMACCMPilot.INS.Tests.SensorFusion
 import Ivory.Language
 import Ivory.Serialize
 import Ivory.Tower
-import SMACCMPilot.Hardware.Tests.AllSensors (sensor_manager)
+import SMACCMPilot.Hardware.SensorManager
 import SMACCMPilot.Hardware.Tests.Platforms
 import SMACCMPilot.Hardware.Tests.Serialize
 import SMACCMPilot.Hardware.Tests.Ublox (uartUbloxGPSTower)
@@ -25,7 +25,7 @@ app topx4 = do
   position <- channel
   uartUbloxGPSTower (px4platform_clockconfig . topx4) gps (fst position)
 
-  (accel_s, gyro_s, mag_s, baro_s) <- sensor_manager topx4
+  (accel_s, gyro_s, mag_s, baro_s) <- sensorManager tosens tocc
 
   states <- sensorFusion accel_s gyro_s mag_s baro_s (snd position)
 
@@ -47,4 +47,6 @@ app topx4 = do
   towerDepends serializeModule
   towerModule  serializeModule
   mapM_ towerArtifact serializeArtifacts
-
+  where
+  tosens = px4platform_sensors . topx4
+  tocc   = px4platform_clockconfig . topx4
