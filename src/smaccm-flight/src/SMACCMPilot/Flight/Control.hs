@@ -1,119 +1,82 @@
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE QuasiQuotes #-}
-{-# LANGUAGE TypeFamilies #-}
 
 module SMACCMPilot.Flight.Control
   ( controlTower
-  , ControlInputs(..)
-  , ControlOutputs(..)
   ) where
 
 import Ivory.Language
 import Ivory.Tower
 import Ivory.Stdlib
 
-import qualified SMACCMPilot.Flight.Types.AttControlDebug ()
-import qualified SMACCMPilot.Flight.Types.AltControlDebug ()
+import qualified SMACCMPilot.Comm.Ivory.Types.ArmingMode      as A
+import qualified SMACCMPilot.Comm.Ivory.Types.ControlLaw      as CL
+import qualified SMACCMPilot.Comm.Ivory.Types.ControlOutput   as CO
+import qualified SMACCMPilot.Comm.Ivory.Types.ControlSource   as CS
+import qualified SMACCMPilot.Comm.Ivory.Types.ControlSetpoint as SP
+import qualified SMACCMPilot.Comm.Ivory.Types.UserInput       as UI
+import qualified SMACCMPilot.Comm.Ivory.Types.UserInputResult as UIR
+import qualified SMACCMPilot.Comm.Ivory.Types.YawMode         as Y
+import           SMACCMPilot.Comm.Tower.Attr
+import           SMACCMPilot.Comm.Tower.Interface.ControllableVehicle
+
 
 import           SMACCMPilot.Flight.Control.Attitude.Stabilize (attStabilizeModule)
-import           SMACCMPilot.Param
-import           SMACCMPilot.Flight.Param
-
 import           SMACCMPilot.Flight.Control.PID
-import qualified SMACCMPilot.Flight.Types.ArmedMode       as A
-import qualified SMACCMPilot.Flight.Types.ControlLaw      as CL
-import qualified SMACCMPilot.Flight.Types.ControlOutput   as CO
-import qualified SMACCMPilot.Flight.Types.ControlSource   as CS
-import qualified SMACCMPilot.Flight.Types.ControlSetpoint as SP
-import qualified SMACCMPilot.Flight.Types.UserInput       as UI
-import qualified SMACCMPilot.Flight.Types.YawMode         as Y
-
-
 import           SMACCMPilot.Flight.Control.Altitude
 import           SMACCMPilot.Flight.Control.Attitude.PitchRoll
 import           SMACCMPilot.Flight.Control.Yaw
 import           SMACCMPilot.Flight.Control.Attitude.YawUI
 
-data ControlInputs =
-  ControlInputs
-    { ci_law   :: ChannelSink (Struct "control_law")
-    , ci_ui    :: ChannelSink (Struct "userinput_result")
-    , ci_setpt :: ChannelSink (Struct "control_setpoint")
-    , ci_sens  :: ChannelSink (Struct "sensors_result")
-    }
+controlTower :: ControllableVehicleAttrs Attr
+             -> Tower e ()
+controlTower attrs = do
+  p <- period dt
+  monitor "control" $ do
+    cl     <- attrState (controlLaw attrs)
+    ui_res <- attrState (userInput attrs)
+    sens   <- attrState (sensorsOutput attrs)
+    setpt  <- attrState (controlSetpoint attrs)
 
-data ControlOutputs =
-  ControlOutputs
-    { co_ctl     :: ChannelSink (Struct "controloutput")
-    , co_alt_dbg :: ChannelSink (Struct "alt_control_dbg")
-    , co_att_dbg :: ChannelSink (Struct "att_control_dbg")
-    }
+    alt_control    <- monitorAltitudeControl  attrs
+    prc_control    <- monitorPitchRollControl attrs
+    yaw_control    <- monitorYawControl       attrs
+    yui            <- monitorYawUI
 
-controlTower :: FlightParams ParamSink
-            -> ControlInputs
-            -> Tower p ControlOutputs
-controlTower params inputs = do
-  ctlout  <- channel
-  alt_dbg <- channel
-  att_dbg <- channel
-  task "control" $ do
-    clReader      <- withChannelReader (ci_law   inputs) "control_law"
-    uiReader      <- withChannelReader (ci_ui    inputs) "userinput"
-    sensReader    <- withChannelReader (ci_sens  inputs) "sensors"
-    navSpReader   <- withChannelReader (ci_setpt inputs) "nav_setpt"
-
-    ctlEmitter    <- withChannelEmitter (src ctlout) "control"
-
-    param_reader  <- paramReader params
-
-    alt_control    <- taskAltitudeControl (flightAltitude param_reader)
-                                          (src alt_dbg)
-    prc_control    <- taskPitchRollControl param_reader
-    yaw_control    <- taskYawControl       param_reader
-    yui            <- taskYawUI (flightYawUISens param_reader)
-
-    taskInit $ do
+    handler systemInit "control_init" $ callback $ const $ do
       alt_init alt_control
       prc_init prc_control
       yaw_init yaw_control
 
-    onPeriod (Milliseconds 5) $ \_now -> do
-        dt   <- assign 0.005 -- XXX calc from _now ?
-        cl   <- local izero
-        ui   <- local izero
-        sens <- local izero
-        nav_sp <- local izero
-        _ <- chanRead sensReader  sens
-        _ <- chanRead clReader    cl
-        _ <- chanRead uiReader    ui
-        _ <- chanRead navSpReader nav_sp
-
+    handler p "control_periodic" $ do
+      e <- attrEmitter (controlOutput attrs)
+      callback $ const $ do
+        let ui = (ui_res ~> UIR.ui)
         -- Run altitude and attitude controllers
-        alt_update alt_control sens ui nav_sp cl dt
+        alt_update alt_control sens ui setpt cl idt
 
-        armed <- deref (cl ~> CL.armed_mode)
-        stab_source <- deref (cl ~> CL.stab_source)
+        armed   <- deref (cl ~> CL.arming_mode)
+        ui_mode <- deref (cl ~> CL.ui_mode)
+
         cond_
           [ armed /=? A.armed ==>
               prc_reset prc_control
-          , stab_source ==? CS.ui ==> do
+          , ui_mode /=? CS.nav ==> do
               pit_ui <- deref (ui ~> UI.pitch)
               rll_ui <- deref (ui ~> UI.roll)
-              ui_sens_dps <- paramGet (flightPRUISens param_reader)
-              ui_sens_rads <- assign (ui_sens_dps * pi / 180)
+              let pitchroll_ui_sens_dps = 45.0
+              ui_sens_rads <- assign (pitchroll_ui_sens_dps * pi / 180)
               prc_run prc_control (pit_ui * ui_sens_rads)
                                   (rll_ui * ui_sens_rads)
                                   (constRef sens)
-          , stab_source ==? CS.nav ==> do
-              pit_sp <- deref (nav_sp ~> SP.pitch)
-              rll_sp <- deref (nav_sp ~> SP.roll)
+          , ui_mode ==? CS.nav ==> do
+              pit_sp <- deref (setpt ~> SP.pitch)
+              rll_sp <- deref (setpt ~> SP.roll)
               prc_run prc_control pit_sp rll_sp (constRef sens)
           ]
 
         yaw_mode <- deref (cl ~> CL.yaw_mode)
-        head_source <- deref (cl ~> CL.head_source)
         cond_
           [ armed /=? A.armed ==> do
               yui_reset yui
@@ -121,17 +84,17 @@ controlTower params inputs = do
           , yaw_mode ==? Y.rate ==> do
               yui_reset yui
               rate_sp <- deref (ui ~> UI.yaw)
-              ui_sens_dps <- paramGet (flightYawUISens param_reader)
-              ui_sens_rads <- assign (ui_sens_dps * pi / 180)
-              yaw_rate yaw_control sens (ui_sens_rads * rate_sp) dt
-          , yaw_mode ==? Y.heading .&& head_source ==? CS.ui ==> do
-              yui_update yui sens ui dt
+              let yaw_ui_sens_dps = 180.0
+              ui_sens_rads <- assign (yaw_ui_sens_dps * pi / 180)
+              yaw_rate yaw_control sens (ui_sens_rads * rate_sp) idt
+          , yaw_mode ==? Y.heading .&& ui_mode /=? CS.nav ==> do
+              yui_update yui sens ui idt
               (head_sp, head_rate_sp) <- yui_setpoint yui
-              yaw_heading yaw_control sens head_sp head_rate_sp dt
-          , yaw_mode ==? Y.heading .&& head_source ==? CS.nav ==> do
+              yaw_heading yaw_control sens head_sp head_rate_sp idt
+          , yaw_mode ==? Y.heading .&& ui_mode ==? CS.nav ==> do
               yui_reset yui
-              head_sp <- deref (nav_sp ~> SP.heading)
-              yaw_heading yaw_control sens head_sp 0 dt
+              head_sp <- deref (setpt ~> SP.heading)
+              yaw_heading yaw_control sens head_sp 0 idt
           ]
 
 
@@ -148,15 +111,20 @@ controlTower params inputs = do
           prc_state  prc_control ctl
           yaw_output yaw_control ctl
 
-        emit_ ctlEmitter (constRef ctl)
+        emit e (constRef ctl)
 
   mapM_ towerModule controlModules
 
-  return ControlOutputs
-    { co_ctl     = snk ctlout
-    , co_alt_dbg = snk alt_dbg
-    , co_att_dbg = snk att_dbg
-    }
+  where
+  dt = Milliseconds 5
+  idt :: IFloat
+  idt = (safeCast s16_ms) / 1000.0
+    where
+    -- We need to cast to a smaller integer type to be able to safely
+    -- convert to a float. toIMilliseconds gives sint64 but really we are
+    -- using very few of those bits of precision
+    s16_ms :: Sint16
+    s16_ms = castWith 0 (toIMilliseconds (toITime dt))
 
 controlModules :: [Module]
 controlModules = [ controlPIDModule, attStabilizeModule ]
