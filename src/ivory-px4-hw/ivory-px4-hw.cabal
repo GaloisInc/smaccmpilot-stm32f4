@@ -43,6 +43,9 @@ library
 
                        SMACCMPilot.Hardware.CANMessages,
 
+                       SMACCMPilot.Hardware.Types,
+                       SMACCMPilot.Hardware.SensorManager,
+
                        SMACCMPilot.Hardware.Tests.Platforms,
                        SMACCMPilot.Hardware.Tests.Serialize,
                        SMACCMPilot.Hardware.Tests.CopterMotors,

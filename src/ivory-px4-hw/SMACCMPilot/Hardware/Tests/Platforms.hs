@@ -1,3 +1,4 @@
+{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
@@ -18,38 +19,35 @@ import Ivory.Tower.Config
 import Data.Char (toUpper)
 
 import qualified SMACCMPilot.Hardware.PX4FMU17 as FMUv17
+import           SMACCMPilot.Hardware.Types
 
 import qualified Ivory.BSP.STM32F405.UART           as F405
 import qualified Ivory.BSP.STM32F405.GPIO           as F405
 import qualified Ivory.BSP.STM32F405.GPIO.AF        as F405
-import qualified Ivory.BSP.STM32F405.SPI            as F405
-import qualified Ivory.BSP.STM32F405.I2C            as F405
 import qualified Ivory.BSP.STM32F405.ATIM18         as F405
 import qualified Ivory.BSP.STM32F405.Interrupt      as F405
 import qualified Ivory.BSP.STM32F427.UART           as F427
 import qualified Ivory.BSP.STM32F427.GPIO           as F427
 import qualified Ivory.BSP.STM32F427.GPIO.AF        as F427
-import qualified Ivory.BSP.STM32F427.SPI            as F427
 import qualified Ivory.BSP.STM32F427.CAN            as F427
-import           Ivory.BSP.STM32.Peripheral.CAN
 import           Ivory.BSP.STM32.Peripheral.GPIOF4
 import           Ivory.BSP.STM32.Peripheral.UART
 import           Ivory.BSP.STM32.Peripheral.SPI
 import           Ivory.BSP.STM32.Peripheral.I2C
 import           Ivory.BSP.STM32.Peripheral.ATIM18
+import           Ivory.BSP.STM32.Peripheral.CAN
 import           Ivory.BSP.STM32.Interrupt
 import           Ivory.BSP.STM32.Driver.I2C
 import           Ivory.BSP.STM32.Driver.UART
 import           Ivory.BSP.STM32.ClockConfig
 import           Ivory.OS.FreeRTOS.Tower.STM32.Config
 
+
 data PX4Platform =
   PX4Platform
     { px4platform_gps            :: UART_Device
-    , px4platform_mpu6000        :: MPU6000_SPI
-    , px4platform_baro           :: Baro
-    , px4platform_mag            :: Magnetometer
-    , px4platform_sensorenable   :: forall eff . Ivory eff ()
+
+    , px4platform_sensors        :: Sensors
 
     , px4platform_motorcontrol   :: forall e . (e -> ClockConfig)
                                  -> ChanOutput (Array 4 (Stored IFloat))
@@ -60,12 +58,6 @@ data PX4Platform =
     , px4platform_can            :: Maybe CAN_Device
 
     , px4platform_stm32config    :: STM32Config
-    }
-
-data UART_Device =
-  UART_Device
-    { uart_periph :: UART
-    , uart_pins   :: UARTPins
     }
 
 data CAN_Device =
@@ -124,9 +116,49 @@ data PPM
   = PPM_Timer ATIM GPIOPin GPIO_AF HasSTM32Interrupt
   | PPM_None
 
+------
 
+px4platform_mpu6000 :: PX4Platform -> MPU6000_SPI
+px4platform_mpu6000 PX4Platform{..} = case px4platform_sensors of
+  FMU17Sensors{..} -> MPU6000_SPI
+    { mpu6000_spi_device = fmu17sens_mpu6000
+    , mpu6000_spi_pins   = fmu17sens_spi_pins
+    }
+  FMU24Sensors{..} -> MPU6000_SPI
+    { mpu6000_spi_device = fmu24sens_mpu6000
+    , mpu6000_spi_pins   = fmu24sens_spi_pins
+    }
 
+px4platform_baro :: PX4Platform -> Baro
+px4platform_baro PX4Platform{..} = case px4platform_sensors of
+  FMU17Sensors{..} -> Baro_MS5611_I2C $ MS5611_I2C
+    { ms5611_i2c_periph = fmu17sens_i2c_periph
+    , ms5611_i2c_sda    = i2cpins_sda fmu17sens_i2c_pins
+    , ms5611_i2c_scl    = i2cpins_scl fmu17sens_i2c_pins
+    , ms5611_i2c_addr   = fmu17sens_ms5611
+    }
+  FMU24Sensors{..} -> Baro_MS5611_SPI $ MS5611_SPI
+    { ms5611_spi_device = fmu24sens_ms5611
+    , ms5611_spi_pins   = fmu24sens_spi_pins
+    }
 
+px4platform_mag :: PX4Platform -> Magnetometer
+px4platform_mag PX4Platform{..} = case px4platform_sensors of
+  FMU17Sensors{..} -> Mag_HMC5883L_I2C $ HMC5883L_I2C
+    { hmc5883l_i2c_periph = fmu17sens_i2c_periph
+    , hmc5883l_i2c_sda    = i2cpins_sda fmu17sens_i2c_pins
+    , hmc5883l_i2c_scl    = i2cpins_scl fmu17sens_i2c_pins
+    , hmc5883l_i2c_addr   = fmu17sens_hmc5883l
+    }
+  FMU24Sensors{..} -> Mag_LSM303D_SPI $ LSM303D_SPI
+    { lsm303d_spi_device  = fmu24sens_lsm303d
+    , lsm303d_spi_pins    = fmu24sens_spi_pins
+    }
+
+px4platform_sensorenable :: PX4Platform -> Ivory eff ()
+px4platform_sensorenable PX4Platform{..} = case px4platform_sensors of
+  FMU17Sensors{..} -> fmu17sens_enable
+  FMU24Sensors{..} -> fmu24sens_enable
 -----------------
 
 
@@ -138,7 +170,6 @@ px4PlatformParser = do
     "PX4FMUV17_IOAR" -> result px4fmuv17_ioar
     "PX4FMUV24"      -> result px4fmuv24
     "PIXHAWK"        -> result px4fmuv24
-    "ESB_X1"         -> result esb_x1
     _ -> fail ("no such platform " ++ p)
   where
   result platform = do
@@ -148,10 +179,7 @@ px4PlatformParser = do
 px4fmuv17 :: PX4Platform
 px4fmuv17 = PX4Platform
   { px4platform_gps          = gps
-  , px4platform_mpu6000      = mpu6000
-  , px4platform_mag          = Mag_HMC5883L_I2C hmc5883l
-  , px4platform_baro         = Baro_MS5611_I2C  ms5611
-  , px4platform_sensorenable = return ()
+  , px4platform_sensors      = fmu17_sensors
   , px4platform_motorcontrol = FMUv17.motorControlTower
   , px4platform_ppm          = ppm_timer
   , px4platform_console      = console
@@ -177,41 +205,6 @@ px4fmuv17 = PX4Platform
       , uartPinAF = F405.gpio_af_uart6
       }
     }
-  mpu6000 :: MPU6000_SPI
-  mpu6000 = MPU6000_SPI
-    { mpu6000_spi_device = SPIDevice
-      { spiDevPeripheral    = F405.spi1
-      , spiDevCSPin         = F405.pinB0
-      , spiDevClockHz       = 500000
-      , spiDevCSActive      = ActiveLow
-      , spiDevClockPolarity = ClockPolarityLow
-      , spiDevClockPhase    = ClockPhase1
-      , spiDevBitOrder      = MSBFirst
-      , spiDevName          = "mpu6k"
-      }
-    , mpu6000_spi_pins = spi1_pins
-    }
-  spi1_pins :: SPIPins
-  spi1_pins = SPIPins
-    { spiPinMiso = F405.pinA7
-    , spiPinMosi = F405.pinA6
-    , spiPinSck  = F405.pinA5
-    , spiPinAF   = F405.gpio_af_spi1
-    }
-  hmc5883l :: HMC5883L_I2C
-  hmc5883l = HMC5883L_I2C
-    { hmc5883l_i2c_periph = F405.i2c2
-    , hmc5883l_i2c_sda    = F405.pinB10
-    , hmc5883l_i2c_scl    = F405.pinB11
-    , hmc5883l_i2c_addr   = I2CDeviceAddr 0x1e
-    }
-  ms5611 :: MS5611_I2C
-  ms5611 = MS5611_I2C
-    { ms5611_i2c_periph = F405.i2c2
-    , ms5611_i2c_sda    = F405.pinB10
-    , ms5611_i2c_scl    = F405.pinB11
-    , ms5611_i2c_addr   = I2CDeviceAddr 0x76
-    }
   ppm_timer :: PPM
   ppm_timer = PPM_Timer F405.tim1 F405.pinA10 F405.gpio_af_tim1 ppm_int
   ppm_int = HasSTM32Interrupt F405.TIM1_CC
@@ -232,10 +225,7 @@ px4fmuv17_ioar = px4fmuv17 { px4platform_console = console }
 px4fmuv24 :: PX4Platform
 px4fmuv24 = PX4Platform
   { px4platform_gps          = gps
-  , px4platform_mpu6000      = mpu6000
-  , px4platform_mag          = Mag_LSM303D_SPI lsm303d
-  , px4platform_baro         = Baro_MS5611_SPI ms5611
-  , px4platform_sensorenable = sensor_enable
+  , px4platform_sensors      = fmu24_sensors
   , px4platform_motorcontrol = error "motor control not defined for px4fmuv24"
   , px4platform_ppm          = PPM_None -- XXX need px4io driver.
   , px4platform_console      = console
@@ -265,151 +255,7 @@ px4fmuv24 = PX4Platform
         , uartPinAF = F427.gpio_af_uart4
         }
     }
-  mpu6000 = MPU6000_SPI
-    { mpu6000_spi_device = SPIDevice
-      { spiDevPeripheral    = F427.spi1
-      , spiDevCSPin         = F427.pinC2
-      , spiDevClockHz       = 500000
-      , spiDevCSActive      = ActiveLow
-      , spiDevClockPolarity = ClockPolarityLow
-      , spiDevClockPhase    = ClockPhase1
-      , spiDevBitOrder      = MSBFirst
-      , spiDevName          = "mpu6k"
-      }
-    , mpu6000_spi_pins = spi1_pins
-    }
-  spi1_pins :: SPIPins
-  spi1_pins = SPIPins
-    { spiPinMiso = F427.pinA6
-    , spiPinMosi = F427.pinA7
-    , spiPinSck  = F427.pinA5
-    , spiPinAF   = F427.gpio_af_spi1
-    }
-  ms5611 :: MS5611_SPI
-  ms5611 = MS5611_SPI
-    { ms5611_spi_device = SPIDevice
-      { spiDevPeripheral    = F427.spi1
-      , spiDevCSPin         = F427.pinD7
-      , spiDevClockHz       = 500000
-      , spiDevCSActive      = ActiveLow
-      , spiDevClockPolarity = ClockPolarityLow
-      , spiDevClockPhase    = ClockPhase1
-      , spiDevBitOrder      = MSBFirst
-      , spiDevName          = "ms5611"
-      }
-    , ms5611_spi_pins = spi1_pins
-    }
-  lsm303d :: LSM303D_SPI
-  lsm303d = LSM303D_SPI
-    { lsm303d_spi_device = SPIDevice
-      { spiDevPeripheral    = F427.spi1
-      , spiDevCSPin         = F427.pinC15
-      , spiDevClockHz       = 500000
-      , spiDevCSActive      = ActiveLow
-      , spiDevClockPolarity = ClockPolarityLow
-      , spiDevClockPhase    = ClockPhase1
-      , spiDevBitOrder      = MSBFirst
-      , spiDevName          = "lsm303d"
-      }
-    , lsm303d_spi_pins = spi1_pins
-    }
-  sensor_enable = do
-    -- Turn on sensor vdd regulator
-    assert_gpio F427.pinE3 -- VDD Enable
-    -- Ensure all CS pins are deselected, so that MISO lines are all High-Z
-    assert_gpio F427.pinC13 -- Gyro CS
-    assert_gpio F427.pinC15 -- Accel Mag CS
-    assert_gpio F427.pinC2  -- MPU6k CS
-    assert_gpio F427.pinD7  -- Baro CS
 
-  assert_gpio :: GPIOPin -> Ivory eff ()
-  assert_gpio p = do
-    pinEnable        p
-    pinSetMode       p gpio_mode_output
-    pinSetOutputType p gpio_outputtype_pushpull
-    pinSetSpeed      p gpio_speed_50mhz
-    pinSet           p
-
-
-----
-
-esb_x1 :: PX4Platform
-esb_x1 = PX4Platform
-  { px4platform_gps          = gps
-  , px4platform_mpu6000      = mpu6000
-  , px4platform_mag          = error "magnetometer not defined for esb_x1"
-  , px4platform_baro         = Baro_MS5611_SPI ms5611
-  , px4platform_sensorenable = sensor_enable
-  , px4platform_motorcontrol = error "motor control not defined for esb_x1"
-  , px4platform_ppm          = PPM_None -- XXX need px4io driver.
-  , px4platform_console      = console
-  , px4platform_can          = Nothing
-  , px4platform_stm32config  = stm32f427Defaults 24
-  }
-  where
-  console = UART_Device -- Telem 1 Port
-    { uart_periph = F427.uart2
-    , uart_pins = UARTPins
-        { uartPinTx = F427.pinD5
-        , uartPinRx = F427.pinD6
-        , uartPinAF = F427.gpio_af_uart2
-        }
-    }
-  gps = UART_Device
-    { uart_periph = F427.uart3 -- Telem 2 port
-    , uart_pins = UARTPins
-        { uartPinTx = F427.pinD8
-        , uartPinRx = F427.pinD9
-        , uartPinAF = F427.gpio_af_uart3
-        }
-    }
-  mpu6000 = MPU6000_SPI
-    { mpu6000_spi_device = SPIDevice
-      { spiDevPeripheral    = F427.spi3
-      , spiDevCSPin         = F427.pinC2
-      , spiDevClockHz       = 500000
-      , spiDevCSActive      = ActiveLow
-      , spiDevClockPolarity = ClockPolarityLow
-      , spiDevClockPhase    = ClockPhase1
-      , spiDevBitOrder      = MSBFirst
-      , spiDevName          = "mpu6k"
-      }
-    , mpu6000_spi_pins = spi3_pins
-    }
-  spi3_pins :: SPIPins
-  spi3_pins = SPIPins
-    { spiPinMiso = F427.pinC11
-    , spiPinMosi = F427.pinC12
-    , spiPinSck  = F427.pinC10
-    , spiPinAF   = gpio_af6
-    }
-  ms5611 :: MS5611_SPI
-  ms5611 = MS5611_SPI
-    { ms5611_spi_device = SPIDevice
-      { spiDevPeripheral    = F427.spi3
-      , spiDevCSPin         = F427.pinC1
-      , spiDevClockHz       = 500000
-      , spiDevCSActive      = ActiveLow
-      , spiDevClockPolarity = ClockPolarityLow
-      , spiDevClockPhase    = ClockPhase1
-      , spiDevBitOrder      = MSBFirst
-      , spiDevName          = "ms5611"
-      }
-    , ms5611_spi_pins = spi3_pins
-    }
-  sensor_enable = do
-    -- Make sure all CS pins are deselected, so that MISO lines are all High-Z
-    assert_gpio F427.pinC1 -- baro cs
-    assert_gpio F427.pinC2 -- mpu6k cs
-    assert_gpio F427.pinC3 -- thermo cs
-
-  assert_gpio :: GPIOPin -> Ivory eff ()
-  assert_gpio p = do
-    pinEnable        p
-    pinSetMode       p gpio_mode_output
-    pinSetOutputType p gpio_outputtype_pushpull
-    pinSetSpeed      p gpio_speed_50mhz
-    pinSet           p
 
 ----
 
