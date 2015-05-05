@@ -17,7 +17,6 @@ import           SMACCMPilot.Flight.Control.PID (fconstrain)
 import qualified SMACCMPilot.Comm.Ivory.Types.SensorsResult    as S
 import qualified SMACCMPilot.Comm.Ivory.Types.UserInput        as UI
 import qualified SMACCMPilot.Comm.Ivory.Types.AttControlDebug  as D
-import           SMACCMPilot.Comm.Tower.Attr
 
 data YawUI =
   YawUI
@@ -32,16 +31,13 @@ data YawUI =
                      -> Ivory eff ()
     }
 
-monitorYawUI :: (AttrReadable a)
-             => a (Stored IFloat)
-             -> Monitor e YawUI
-monitorYawUI sens_attr = do
+monitorYawUI :: Monitor e YawUI
+monitorYawUI = do
   uniq <- fresh
   let named n = "yaw_ui_" ++ n ++ "_" ++ show uniq
   head_setpoint <- state "head_setpoint"
   rate_setpoint <- state "rate_setpoint"
   active_state <- stateInit "active_state" (ival false)
-  sens_state <- attrState sens_attr
   let proc_update :: Def('[ Ref s1 (Struct "sensors_result")
                           , Ref s2 (Struct "user_input")
                           , IFloat -- dt
@@ -49,7 +45,7 @@ monitorYawUI sens_attr = do
       proc_update  = proc (named "update") $
         \sens ui dt -> body $ do
           -- Parameter in degrees/second, convert to rad/sec
-          sensitivity <- fmap (*(pi/180)) (deref sens_state)
+          sensitivity <- assign (sens_dps *(pi/180))
           sr <- stickrate ui sensitivity
           store rate_setpoint sr
 
@@ -81,6 +77,8 @@ monitorYawUI sens_attr = do
         store (d ~> D.head_setpt) h
         store (d ~> D.head_rate_setpt) r
     }
+  where
+  sens_dps = 180.0
 
 stickrate :: (GetAlloc eff ~ Scope cs)
           => Ref s (Struct "user_input")
