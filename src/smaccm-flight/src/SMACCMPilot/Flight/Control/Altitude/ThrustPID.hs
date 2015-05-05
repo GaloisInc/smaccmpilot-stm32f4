@@ -30,11 +30,11 @@ monitorThrustPid :: (AttrReadable a)
                  -> AltEstimator
                  -> Monitor e ThrustPid
 monitorThrustPid config alt_estimator = do
-  uniq <- fresh
   tpid_state  <- state "thrustPidState"
   tpid_config <- attrState config
+  name_pid_calculate <- fmap showUnique $ freshname "thrust_pid_calculate"
   let proc_pid_calculate :: Def('[IFloat, IFloat] :-> IFloat)
-      proc_pid_calculate = proc ("thrust_pid_calculate" ++ show uniq) $
+      proc_pid_calculate = proc name_pid_calculate $
         \vel_sp dt -> body $ do
           pgain <- deref (tpid_config ~> C.p_gain)
           igain <- deref (tpid_config ~> C.i_gain)

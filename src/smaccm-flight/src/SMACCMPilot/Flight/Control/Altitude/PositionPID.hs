@@ -32,11 +32,11 @@ monitorPositionPid :: AttrReadable a
                    -> AltEstimator
                    -> Monitor e PositionPid
 monitorPositionPid pid_config alt_estimator = do
-  uniq <- fresh
   ppid_state  <- state "posPidState"
   ppid_config <- attrState pid_config
+  name_pid_calculate <- fmap showUnique $ freshname "pos_pid_calculate"
   let proc_pid_calculate :: Def('[IFloat, IFloat, IFloat] :-> IFloat)
-      proc_pid_calculate = proc ("pos_pid_calculate" ++ show uniq) $
+      proc_pid_calculate = proc name_pid_calculate $
         \pos_sp vel_sp dt -> body $ do
           p_gain <-             (ppid_config~>*C.p_gain)
           d_gain <- fmap (/ dt) (ppid_config~>*C.d_gain)

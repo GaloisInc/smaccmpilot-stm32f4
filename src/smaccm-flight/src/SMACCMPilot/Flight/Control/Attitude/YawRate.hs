@@ -35,23 +35,27 @@ monitorYawRateControl :: (AttrReadable a)
                       => a (Struct "pid_config")
                       -> Monitor p YawRateControl
 monitorYawRateControl config_attr = do
-  f <- fresh
   yaw_rate  <- state "yaw_rate"
 
   valid     <- state "valid"
   yaw_out   <- state "yaw_out"
   yaw_rate_cfg <- attrState config_attr
-  let named n = "yawctl_" ++ n ++ "_" ++ (show f)
+  let named n = fmap showUnique $ freshname $ "yawctl_" ++ n
 
-      init_proc :: Def ('[]:->())
-      init_proc = proc (named "init") $ body $ do
+  init_name <- named "init"
+  run_name <- named "run"
+  state_name <- named "state"
+  reset_name <- named "reset"
+
+  let init_proc :: Def ('[]:->())
+      init_proc = proc init_name $ body $ do
         store valid false
         call_ reset_proc
 
       run_proc :: Def ('[ IFloat
                         , ConstRef s (Struct "sensors_result")
                         ] :-> ())
-      run_proc = proc (named "run") $ \yaw_rate_setpt sens -> body $ do
+      run_proc = proc run_name $ \yaw_rate_setpt sens -> body $ do
         sen_omega_z <- deref ((sens ~> SEN.omega) ~> XYZ.z)
         yaw_ctl <- call stabilize_from_rate
                             yaw_rate
@@ -64,14 +68,14 @@ monitorYawRateControl config_attr = do
         store yaw_out yaw_ctl
 
       state_proc :: Def ('[] :-> IFloat)
-      state_proc = proc (named "state") $ body $ do
+      state_proc = proc state_name $ body $ do
         v <- deref valid
         ifte_ v
           (deref yaw_out >>= ret)
           (ret 0)
 
       reset_proc :: Def ('[]:->())
-      reset_proc = proc (named "reset") $ body $ do
+      reset_proc = proc reset_name $ body $ do
         store valid false
         call_ pid_reset yaw_rate
 

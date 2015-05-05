@@ -47,22 +47,26 @@ armingComplete = ArmingState 2
 
 monitorArmingMachine :: Monitor p ArmingMachine
 monitorArmingMachine = do
-  fr <- fresh
   arming_state      <- state "arming_state"
   arming_state_time <- state "arming_state_time"
   armed_state       <- state "armed_state"
   dead_last_pos     <- state "dead_last_pos"
-  let named n = "ppmdecoder_arming_" ++ n ++ "_" ++ show fr
+  let named n = fmap showUnique $ freshname $ "ppmdecoder_arming_" ++ n
 
-      init_proc :: Def('[]:->())
-      init_proc = proc (named "init") $ body $ do
+  init_name <- named "init"
+  new_sample_name <- named "new_sample"
+  no_sample_name <- named "no_sample"
+  get_arming_mode_name <- named "get_arming_mode"
+
+  let init_proc :: Def('[]:->())
+      init_proc = proc init_name $ body $ do
         store arming_state armingIdle
         store arming_state_time 0
         store armed_state false
         store dead_last_pos deadSafe
 
       new_sample_proc :: Def('[Ref s (Array 8 (Stored Uint16)), ITime]:->())
-      new_sample_proc = proc (named "new_sample") $ \ppms time -> body $ do
+      new_sample_proc = proc new_sample_name $ \ppms time -> body $ do
         throttle_chan   <- deref (ppms ! (2 :: Ix 8))
         rudder_chan     <- deref (ppms ! (3 :: Ix 8))
         dead_chan       <- deref (ppms ! (5 :: Ix 8))
@@ -99,11 +103,11 @@ monitorArmingMachine = do
         hystresis = 750
 
       no_sample_proc :: Def('[] :-> ())
-      no_sample_proc = proc (named "no_sample") $ body $
+      no_sample_proc = proc no_sample_name $ body $
         store dead_last_pos deadSafe
 
       get_arming_mode_proc :: Def('[Ref s (Stored A.ArmingMode)]:->())
-      get_arming_mode_proc = proc (named "get_arming_mode") $ \a -> body $ do
+      get_arming_mode_proc = proc get_arming_mode_name $ \a -> body $ do
         d <- deref dead_last_pos
         s <- deref armed_state
         cond_

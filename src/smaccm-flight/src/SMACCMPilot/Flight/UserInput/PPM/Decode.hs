@@ -32,8 +32,7 @@ data PPMDecoder =
 
 monitorPPMDecoder :: Monitor e PPMDecoder
 monitorPPMDecoder = do
-  fr <- fresh
-  let named n = "ppmdecoder_" ++ n ++ "_" ++ show fr
+  let named n = fmap showUnique $ freshname $ "ppmdecoder_" ++ n
   ppm_valid             <- state "ppm_valid"
   ppm_last              <- state "ppm_last"
   ppm_last_time         <- state "ppm_last_time"
@@ -41,8 +40,14 @@ monitorPPMDecoder = do
   modeswitch    <- monitorModeSwitch
   armingmachine <- monitorArmingMachine
 
+  init_name <- named "init"
+  new_sample_name <- named "new_sample"
+  no_sample_name <- named "no_sample"
+  get_ui_name <- named "get_ui"
+  get_cl_req_name <- named "gel_cl_req"
+
   let init_proc :: Def('[]:->())
-      init_proc = proc (named "init") $ body $ do
+      init_proc = proc init_name $ body $ do
         ms_init modeswitch
 
 
@@ -53,7 +58,7 @@ monitorPPMDecoder = do
           am_no_sample armingmachine
 
       new_sample_proc :: Def('[Ref s (Array 8 (Stored Uint16)), ITime ]:->())
-      new_sample_proc = proc (named "new_sample") $ \ppms time -> body $ do
+      new_sample_proc = proc new_sample_name $ \ppms time -> body $ do
         all_good <- local (ival true)
         arrayMap $ \ix -> when (ix <? useful_channels) $ do
           ch <- deref (ppms ! ix)
@@ -71,12 +76,12 @@ monitorPPMDecoder = do
           am_new_sample armingmachine ppms time
 
       no_sample_proc :: Def('[ITime]:->())
-      no_sample_proc = proc (named "no_sample") $ \time -> body $ do
+      no_sample_proc = proc no_sample_name $ \time -> body $ do
         prev <- deref ppm_last_time
         when ((time - prev) >? timeout_limit) invalidate
 
       get_ui_proc :: Def('[Ref s (Struct "user_input")]:->())
-      get_ui_proc = proc (named "get_ui") $ \ui -> body $ do
+      get_ui_proc = proc get_ui_name $ \ui -> body $ do
         valid <- deref ppm_valid
         time <- deref ppm_last_time
         ifte_ valid
@@ -84,7 +89,7 @@ monitorPPMDecoder = do
           (failsafe ui)
 
       get_cl_req_proc :: Def('[Ref s (Struct "control_law")]:->())
-      get_cl_req_proc = proc (named "get_cl_req") $ \cl_req -> body $ do
+      get_cl_req_proc = proc get_cl_req_name $ \cl_req -> body $ do
         ms_get_cl_req modeswitch cl_req
         am_get_cl_req armingmachine (cl_req ~> C.arming_mode)
 

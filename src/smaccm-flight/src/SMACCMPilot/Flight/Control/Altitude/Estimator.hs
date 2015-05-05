@@ -24,13 +24,13 @@ data AltEstimator =
 
 monitorAltEstimator :: Monitor e AltEstimator
 monitorAltEstimator = do
-  uniq          <- fresh
   prevAlt       <- state "prev_alt"
   prevAltTime   <- state "prev_alt_time"
   prevClimbRate <- state "prev_climb_rate"
 
+  measName <- fmap showUnique $ freshname "thrustEstimatorMeasure"
   let measDef :: Def ('[IFloat, ITime] :-> ())
-      measDef = proc ("thrustEstimatorMeasure" ++ show uniq) $
+      measDef = proc measName $
         \alt_meas meas_time -> body $ do
           prev_time   <- deref prevAltTime
           when (meas_time /=? prev_time) $ do

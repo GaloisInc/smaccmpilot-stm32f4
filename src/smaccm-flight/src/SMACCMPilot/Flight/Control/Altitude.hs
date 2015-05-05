@@ -55,7 +55,6 @@ monitorAltitudeControl :: (AttrReadable a)
                        => ControllableVehicleAttrs a
                        -> Monitor e AltitudeControl
 monitorAltitudeControl attrs = do
-  uniq <- fresh
   -- Alt estimator filters noisy sensor into altitude & its derivative
   alt_estimator    <- monitorAltEstimator
   -- Throttle tracker keeps track of steady-state throttle for transitioning
@@ -78,14 +77,18 @@ monitorAltitudeControl attrs = do
     depend controlPIDModule -- for fconstrain
   -- state is saved in a struct, to be marshalled into a mavlink message
   state_dbg        <- state "state_debug"
-  let named n = "alt_ctl_" ++ n ++ "_" ++ show uniq
-      proc_alt_update :: Def('[ Ref s1 (Struct "sensors_result")
+  let named n = fmap showUnique $ freshname $ "alt_ctl_" ++ n
+  name_alt_update <- named "update"
+  name_alt_debug <- named "debug"
+  name_alt_output <- named "output"
+
+  let proc_alt_update :: Def('[ Ref s1 (Struct "sensors_result")
                               , Ref s2 (Struct "user_input")
                               , Ref s3 (Struct "control_setpoint")
                               , Ref s4 (Struct "control_law")
                               , IFloat
                               ]:->())
-      proc_alt_update = proc (named "update") $ \sens ui ctl_sp cl dt -> body $ do
+      proc_alt_update = proc name_alt_update $ \sens ui ctl_sp cl dt -> body $ do
 
           thr_mode <- deref (cl ~> CL.thr_mode)
           armed_mode <- deref (cl ~> CL.arming_mode)
@@ -143,14 +146,14 @@ monitorAltitudeControl attrs = do
             thrust_pid_init thrust_pid
 
       proc_alt_debug :: Def('[Ref s (Struct "alt_control_debug")]:->())
-      proc_alt_debug = proc (named "debug") $ \out -> body $ do
+      proc_alt_debug = proc name_alt_debug $ \out -> body $ do
         tui_write_debug ui_control state_dbg
         ae_write_debug alt_estimator state_dbg
         thrust_pid_write_debug thrust_pid state_dbg
         refCopy out (constRef state_dbg)
 
       proc_alt_output :: Def('[Ref s (Struct "control_output")]:->())
-      proc_alt_output = proc (named "output") $ \out -> body $ do
+      proc_alt_output = proc name_alt_output $ \out -> body $ do
         at <- deref at_setpt
         en <- deref at_enabled
         ui <- deref ui_setpt

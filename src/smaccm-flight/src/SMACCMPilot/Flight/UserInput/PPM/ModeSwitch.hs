@@ -42,18 +42,22 @@ posDown = ThreePositionSwitch 2
 
 monitorModeSwitch :: Monitor p ModeSwitch
 monitorModeSwitch = do
-  fr <- fresh
   md_last_position      <- state "md_last_position"
   md_last_position_time <- state "md_last_position_time"
-  let named n = "ppmdecoder_modeswitch_" ++ n ++ "_" ++ show fr
+  let named n = fmap showUnique $ freshname $ "ppmdecoder_modeswitch_" ++ n
 
-      init_proc :: Def('[]:->())
-      init_proc = proc (named "init") $ body $ do
+  init_name <- named "init"
+  new_sample_name <- named "new_sample"
+  no_sample_name <- named "no_sample"
+  get_cl_req_name <- named "cl_req_proc"
+
+  let init_proc :: Def('[]:->())
+      init_proc = proc init_name $ body $ do
         store md_last_position posDown
         store md_last_position_time 0
 
       new_sample_proc :: Def('[Ref s (Array 8 (Stored Uint16)), ITime]:->())
-      new_sample_proc = proc (named "new_sample") $ \ppms time -> body $ do
+      new_sample_proc = proc new_sample_name $ \ppms time -> body $ do
         switch <- deref (ppms ! (4 :: Ix 8))
         position <- assign $ modeswitchpos_from_ppm switch
         -- XXX debouncing
@@ -62,10 +66,10 @@ monitorModeSwitch = do
 
       -- No failure logic--handled in arming state machine.
       no_sample_proc :: Def('[] :-> ())
-      no_sample_proc = proc (named "no_sample") $ body $ return ()
+      no_sample_proc = proc no_sample_name $ body $ return ()
 
       get_cl_req_proc :: Def('[Ref s (Struct "control_law")]:->())
-      get_cl_req_proc = proc (named "cl_req_proc") $ \cl -> body $ do
+      get_cl_req_proc = proc get_cl_req_name $ \cl -> body $ do
         p <- deref md_last_position
         cond_
           [ p ==? posUp ==> do

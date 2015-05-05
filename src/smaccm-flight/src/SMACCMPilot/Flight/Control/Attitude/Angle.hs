@@ -34,8 +34,7 @@ monitorAngleController :: (AttrReadable a)
                     -> String                -- name
                     -> Monitor e AngleControl
 monitorAngleController stab_config_attr output_range name = do
-  f <- fresh
-  let named n = name ++ "_anglectl_" ++ n ++ "_" ++ (show f)
+  let named n = fmap showUnique $ freshname $ name ++ "_anglectl_" ++ n
 
   valid    <- state "valid"
   out      <- state "out"
@@ -43,13 +42,18 @@ monitorAngleController stab_config_attr output_range name = do
   rate_pid <- state "rate_pid"
   stab_config <- attrState stab_config_attr
 
+  init_name <- named "init"
+  run_name <- named "run"
+  out_name <- named "out"
+  reset_name <- named "reset"
+
   let init_proc :: Def ('[]:->())
-      init_proc = proc (named "init") $ body $ do
+      init_proc = proc init_name $ body $ do
         store valid false
         call_ reset_proc
 
       run_proc :: Def ('[IFloat, IFloat, IFloat] :-> ())
-      run_proc = proc (named "run") $ \setpt est deriv_est -> body $ do
+      run_proc = proc run_name $ \setpt est deriv_est -> body $ do
         ctl <- call stabilize_from_angle
                       pos_pid
                       (constRef (stab_config ~> S.pos))
@@ -63,14 +67,14 @@ monitorAngleController stab_config_attr output_range name = do
         store out ctl
 
       out_proc :: Def ('[] :-> IFloat)
-      out_proc = proc (named "out") $ body $ do
+      out_proc = proc out_name $ body $ do
         v <- deref valid
         ifte_ v
           (deref out >>= ret)
           (ret 0)
 
       reset_proc :: Def ('[]:->())
-      reset_proc = proc (named "reset") $ body $ do
+      reset_proc = proc reset_name $ body $ do
         store valid false
         call_ pid_reset pos_pid
         call_ pid_reset rate_pid

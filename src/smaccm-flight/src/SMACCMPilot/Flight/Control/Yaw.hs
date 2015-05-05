@@ -40,15 +40,20 @@ monitorYawControl :: (AttrReadable a)
                   => ControllableVehicleAttrs a
                   -> Monitor e YawControl
 monitorYawControl attrs = do
-  f <- fresh
   yaw_ctl <- monitorYawRateControl (yawRatePid attrs)
   hctl    <- monitorHeadingControl (yawPositionPid attrs)
 
+  let named n = fmap showUnique $ freshname $ "yaw_ctl_" ++ n
 
-  let named n = "yaw_ctl_" ++ n ++ "_" ++ show f
+  init_name <- named "init"
+  rate_name <- named "rate"
+  heading_name <- named "heading"
+  reset_name <- named "reset"
+  -- debug_name <- named "debug"
+  output_name <- named "output"
 
-      init_proc :: Def ('[]:->())
-      init_proc = proc (named "init") $ body $ do
+  let init_proc :: Def ('[]:->())
+      init_proc = proc init_name $ body $ do
         yc_init   yaw_ctl
         hctl_init hctl
 
@@ -56,7 +61,7 @@ monitorYawControl attrs = do
                            , IFloat
                            , IFloat
                            ]:->())
-      rate_proc = proc (named "rate") $ \sens yaw_rate_setpt _dt -> body $ do
+      rate_proc = proc rate_name $ \sens yaw_rate_setpt _dt -> body $ do
          yc_run yaw_ctl yaw_rate_setpt (constRef sens)
 
       heading_proc :: Def ('[ Ref s1 (Struct "sensors_result")
@@ -64,24 +69,24 @@ monitorYawControl attrs = do
                            , IFloat
                            , IFloat
                            ]:->())
-      heading_proc = proc (named "heading") $ \sens heading heading_rate dt -> body $ do
+      heading_proc = proc heading_name $ \sens heading heading_rate dt -> body $ do
          hctl_update   hctl heading heading_rate sens dt
          yaw_rate_setpt <- hctl_setpoint hctl
          yc_run yaw_ctl yaw_rate_setpt (constRef sens)
 
       reset_proc  :: Def ('[]:->())
-      reset_proc = proc (named "reset") $ body $ do
+      reset_proc = proc reset_name $ body $ do
         hctl_reset hctl
         yc_reset  yaw_ctl
 
 -- XXX FIX DEBUGGING
 --      debug_proc :: Def ('[]:->())
---      debug_proc = proc (named "debug") $ body $ do
+--      debug_proc = proc debug_name $ body $ do
 --        dbg <- local izero
 --        hctl_write_debug hctl dbg
 
       output_proc :: Def ('[Ref s (Struct "control_output")]:->())
-      output_proc = proc (named "output") $ \ctl-> body $ do
+      output_proc = proc output_name $ \ctl-> body $ do
         y <- yc_state yaw_ctl
         store (ctl ~> CO.yaw) y
 

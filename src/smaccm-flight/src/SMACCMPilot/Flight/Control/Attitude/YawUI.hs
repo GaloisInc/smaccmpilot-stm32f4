@@ -33,16 +33,16 @@ data YawUI =
 
 monitorYawUI :: Monitor e YawUI
 monitorYawUI = do
-  uniq <- fresh
-  let named n = "yaw_ui_" ++ n ++ "_" ++ show uniq
+  let named n = fmap showUnique $ freshname $ "yaw_ui_" ++ n
   head_setpoint <- state "head_setpoint"
   rate_setpoint <- state "rate_setpoint"
   active_state <- stateInit "active_state" (ival false)
+  name_update <- named "update"
   let proc_update :: Def('[ Ref s1 (Struct "sensors_result")
                           , Ref s2 (Struct "user_input")
                           , IFloat -- dt
                           ] :-> ())
-      proc_update  = proc (named "update") $
+      proc_update  = proc name_update $
         \sens ui dt -> body $ do
           -- Parameter in degrees/second, convert to rad/sec
           sensitivity <- assign (sens_dps *(pi/180))

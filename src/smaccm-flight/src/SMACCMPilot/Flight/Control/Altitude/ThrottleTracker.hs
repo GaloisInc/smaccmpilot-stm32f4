@@ -22,14 +22,14 @@ data ThrottleTracker =
 
 monitorThrottleTracker :: Monitor p ThrottleTracker
 monitorThrottleTracker = do
-  uniq <- fresh
   last_en        <- state "last_en"
   last_throttle  <- state "last_throttle"
   reset_required <- state "reset_required"
+  name_update <- fmap showUnique $ freshname "throttle_tracker_update"
   let proc_update :: Def('[ Ref s  (Struct "user_input")
                           , IBool
                           ] :->())
-      proc_update = proc ("throttle_tracker_update_" ++ show uniq) $
+      proc_update = proc name_update $
         \ui enabled -> body $ do
           prev_enabled <- deref last_en
           store last_en enabled

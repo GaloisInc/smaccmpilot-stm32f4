@@ -40,17 +40,20 @@ monitorHeadingControl :: (AttrReadable a)
                       => a (Struct "pid_config")
                       -> Monitor e HeadingController
 monitorHeadingControl cfg_attr = do
-  uniq <- fresh
-  let named n = "head_ctl_" ++ n ++ "_" ++ show uniq
+  let named n = fmap showUnique $ freshname $ "head_ctl_" ++ n
   pid_state  <- state "headingPIDState"
   output     <- state "headingOutput"
   cfg        <- attrState cfg_attr
+
+  name_update <- named "update"
+  name_reset <- named "reset"
+
   let proc_update :: Def('[ IFloat -- Heading setpoint
                           , IFloat -- Rate setpoint
                           , Ref s (Struct "sensors_result")
                           , IFloat -- dt
                           ] :-> ())
-      proc_update  = proc (named "update") $
+      proc_update  = proc name_update $
         \head_setpt rate_setpt sens dt -> body $ do
           p_gain <-             (cfg ~>* C.p_gain)
           d_gain <- fmap (/ dt) (cfg ~>* C.d_gain)
@@ -65,7 +68,7 @@ monitorHeadingControl cfg_attr = do
           store output (pid_result + rate_setpt)
 
       proc_reset :: Def('[]:->())
-      proc_reset = proc (named "reset") $ body $ do
+      proc_reset = proc name_reset $ body $ do
         call_ pid_reset pid_state
 
   monitorModuleDef $ do

@@ -37,17 +37,21 @@ monitorPitchRollControl :: (AttrReadable a)
                         => ControllableVehicleAttrs a
                         -> Monitor e PitchRollControl
 monitorPitchRollControl attrs = do
-  f <- fresh
   pitch_ctl <- monitorAngleController (attitudePitchStab attrs)
                                        const_MAX_OUTPUT_ROLL
                                        "pitch"
   roll_ctl  <- monitorAngleController (attitudeRollStab attrs)
                                        const_MAX_OUTPUT_ROLL
                                        "roll"
-  let named n = "pitchrollctl_" ++ n ++ "_" ++ (show f)
+  let named n = fmap showUnique $ freshname $ "pitchrollctl_" ++ n
 
-      init_proc :: Def ('[]:->())
-      init_proc = proc (named "init") $ body $ do
+  init_name <- named "init"
+  run_name <- named "run"
+  state_name <- named "state"
+  reset_name <- named "reset"
+
+  let init_proc :: Def ('[]:->())
+      init_proc = proc init_name $ body $ do
         ac_reset pitch_ctl
         ac_reset roll_ctl
 
@@ -55,7 +59,7 @@ monitorPitchRollControl attrs = do
                         , IFloat
                         , ConstRef s2 (Struct "sensors_result")
                         ] :-> ())
-      run_proc = proc (named "run") $ \pitch_setpt roll_setpt sens -> body $ do
+      run_proc = proc run_name $ \pitch_setpt roll_setpt sens -> body $ do
         sen_roll    <- deref  (sens ~> S.roll)
         sen_pitch   <- deref  (sens ~> S.pitch)
         sen_omega_x <- deref ((sens ~> S.omega) ~> XYZ.x)
@@ -65,12 +69,12 @@ monitorPitchRollControl attrs = do
 
       state_proc :: Def ('[ Ref s1 (Struct "control_output")
                           ] :-> ())
-      state_proc = proc (named "state") $ \out -> body $ do
+      state_proc = proc state_name $ \out -> body $ do
           ac_out pitch_ctl >>= store (out ~> OUT.pitch)
           ac_out roll_ctl  >>= store (out ~> OUT.roll)
 
       reset_proc :: Def ('[]:->())
-      reset_proc = proc (named "reset") $ body $ do
+      reset_proc = proc reset_name $ body $ do
         ac_reset pitch_ctl
         ac_reset roll_ctl
 

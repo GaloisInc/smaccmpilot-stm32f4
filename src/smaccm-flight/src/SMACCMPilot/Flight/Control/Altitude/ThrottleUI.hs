@@ -34,15 +34,15 @@ monitorThrottleUI :: (AttrReadable a)
                   -> AltEstimator
                   -> Monitor p ThrottleUI
 monitorThrottleUI attr estimator = do
-  uniq <- fresh
   alt_setpoint <- state "alt_setpoint"
   vel_setpoint <- state "vel_setpoint"
   active_state <- stateInit "active_state" (ival false)
   settings     <- attrState attr
+  name_update <- fmap showUnique $ freshname "throttle_ui_update"
   let proc_update :: Def('[ Ref s (Struct "user_input")
                           , IFloat -- dt
                           ] :-> ())
-      proc_update  = proc ("throttle_ui_update_" ++ show uniq) $
+      proc_update  = proc name_update $
         \ui dt -> body $ do
           sr <- stickrate settings ui
           store vel_setpoint sr
