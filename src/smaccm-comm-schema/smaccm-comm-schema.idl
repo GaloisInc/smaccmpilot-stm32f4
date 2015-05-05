@@ -112,6 +112,12 @@
   (pitch     float_t)
   (yaw       float_t))
 
+(def-struct quadcopter_motors_t
+  (frontleft  float_t)
+  (frontright float_t)
+  (backleft   float_t)
+  (backright  float_t))
+
 (def-interface vehicle_i ()
   (heartbeat   (stream         heartbeat_t))
   (control_law (attr read      control_law_t))
@@ -121,6 +127,7 @@
   (sensors_output    (attr read    sensors_result_t))
   (control_setpoint  (attr read    control_setpoint_t))
   (control_output    (attr read    control_output_t))
+  (motor_output      (attr read    quadcopter_motors_t))
   (att_control_debug (attr read    att_control_debug_t))
   (alt_control_debug (attr read    alt_control_debug_t)))
 
