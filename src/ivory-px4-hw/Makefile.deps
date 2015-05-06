@@ -5,6 +5,7 @@ $(call add-cabal-package-source, \
   $(IVORY_REPO)/ivory-hw \
   $(IVORY_REPO)/ivory-serialize \
   $(IVORY_REPO)/ivory-stdlib \
+  $(SMACCMPILOT_REPO)/smaccm-comm-schema/smaccm-comm-schema-tower \
   $(SMACCMPILOT_REPO)/smaccm-commsec \
   $(SMACCMPILOT_REPO)/smaccm-datalink \
   $(TOWER_REPO)/tower \

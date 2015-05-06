@@ -68,6 +68,7 @@ library
                        tower-config,
                        tower-freertos-stm32,
                        ivory-bsp-stm32,
+                       smaccm-comm-schema-tower,
                        smaccm-datalink,
                        tower-hal
 
