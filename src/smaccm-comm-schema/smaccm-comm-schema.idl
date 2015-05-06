@@ -73,14 +73,14 @@
   (pos_rate_setp float_t))
 
 (def-struct att_control_debug_t
- (head_setpt       float_t)
- (head_rate_setpt  float_t)
- (head_ctl_p       float_t)
- (head_ctl_d       float_t)
- (pitch_setpt      float_t)
- (pitch_rate_setpt float_t)
- (roll_setpt       float_t)
- (roll_rate_setpt  float_t))
+  (head_setpt       float_t)
+  (head_rate_setpt  float_t)
+  (head_ctl_p       float_t)
+  (head_ctl_d       float_t)
+  (pitch_setpt      float_t)
+  (pitch_rate_setpt float_t)
+  (roll_setpt       float_t)
+  (roll_rate_setpt  float_t))
 
 (def-struct xyz_t
   (x float_t)
@@ -88,15 +88,15 @@
   (z float_t))
 
 (def-struct sensors_result_t
- (valid     bool_t)
- (roll      float_t) -- Roll, pitch,  yaw, in Radians
- (pitch     float_t)
- (yaw       float_t)
- (omega     xyz_t) -- Radians per second
- (baro_alt  float_t) -- meters
- (accel     xyz_t) -- g
- (ahrs_time time_micros_t)
- (baro_time time_micros_t))
+  (valid     bool_t)
+  (roll      float_t) -- Roll, pitch,  yaw, in Radians
+  (pitch     float_t)
+  (yaw       float_t)
+  (omega     xyz_t) -- Radians per second
+  (baro_alt  float_t) -- meters
+  (accel     xyz_t) -- g
+  (ahrs_time time_micros_t)
+  (baro_time time_micros_t))
 
 (def-struct control_setpoint_t
   (altitude  float_t)
