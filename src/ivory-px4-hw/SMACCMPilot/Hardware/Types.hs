@@ -45,12 +45,6 @@ data UART_Device =
     , uart_pins   :: UARTPins
     }
 
-data I2CPins =
-  I2CPins
-    { i2cpins_sda :: GPIOPin
-    , i2cpins_scl :: GPIOPin
-    }
-
 -----
 
 fmu17_sensors :: Sensors

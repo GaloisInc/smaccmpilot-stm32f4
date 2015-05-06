@@ -81,8 +81,7 @@ data Baro
 data MS5611_I2C =
   MS5611_I2C
     { ms5611_i2c_periph :: I2CPeriph
-    , ms5611_i2c_sda    :: GPIOPin
-    , ms5611_i2c_scl    :: GPIOPin
+    , ms5611_i2c_pins   :: I2CPins
     , ms5611_i2c_addr   :: I2CDeviceAddr
     }
 
@@ -100,8 +99,7 @@ data Magnetometer
 data HMC5883L_I2C =
   HMC5883L_I2C
     { hmc5883l_i2c_periph :: I2CPeriph
-    , hmc5883l_i2c_sda    :: GPIOPin
-    , hmc5883l_i2c_scl    :: GPIOPin
+    , hmc5883l_i2c_pins   :: I2CPins
     , hmc5883l_i2c_addr   :: I2CDeviceAddr
     }
 
@@ -133,8 +131,7 @@ px4platform_baro :: PX4Platform -> Baro
 px4platform_baro PX4Platform{..} = case px4platform_sensors of
   FMU17Sensors{..} -> Baro_MS5611_I2C $ MS5611_I2C
     { ms5611_i2c_periph = fmu17sens_i2c_periph
-    , ms5611_i2c_sda    = i2cpins_sda fmu17sens_i2c_pins
-    , ms5611_i2c_scl    = i2cpins_scl fmu17sens_i2c_pins
+    , ms5611_i2c_pins   = fmu17sens_i2c_pins
     , ms5611_i2c_addr   = fmu17sens_ms5611
     }
   FMU24Sensors{..} -> Baro_MS5611_SPI $ MS5611_SPI
@@ -146,8 +143,7 @@ px4platform_mag :: PX4Platform -> Magnetometer
 px4platform_mag PX4Platform{..} = case px4platform_sensors of
   FMU17Sensors{..} -> Mag_HMC5883L_I2C $ HMC5883L_I2C
     { hmc5883l_i2c_periph = fmu17sens_i2c_periph
-    , hmc5883l_i2c_sda    = i2cpins_sda fmu17sens_i2c_pins
-    , hmc5883l_i2c_scl    = i2cpins_scl fmu17sens_i2c_pins
+    , hmc5883l_i2c_pins   = fmu17sens_i2c_pins
     , hmc5883l_i2c_addr   = fmu17sens_hmc5883l
     }
   FMU24Sensors{..} -> Mag_LSM303D_SPI $ LSM303D_SPI

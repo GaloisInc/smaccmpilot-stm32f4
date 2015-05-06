@@ -42,8 +42,7 @@ ms5611_i2c_app :: (e -> PX4Platform)
 ms5611_i2c_app topx4 ms5611 meas = do
   (req, ready) <- i2cTower (px4platform_clockconfig . topx4)
                          (ms5611_i2c_periph ms5611)
-                         (ms5611_i2c_sda ms5611)
-                         (ms5611_i2c_scl ms5611)
+                         (ms5611_i2c_pins ms5611)
   sensors_ready <- px4platform_sensorenable_tower topx4 ready
   ms5611I2CSensorManager req sensors_ready meas (ms5611_i2c_addr ms5611)
 
