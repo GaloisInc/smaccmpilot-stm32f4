@@ -87,6 +87,33 @@
   (y float_t)
   (z float_t))
 
+(def-struct magnetometer_sample_t
+  (initfail   bool_t)
+  (samplefail bool_t)
+  (sample     xyz_t) -- Gauss
+  (time       time_micros_t))
+
+(def-struct gyroscope_sample_t
+  (initfail    bool_t)
+  (samplefail  bool_t)
+  (sample      xyz_t) -- degrees/second
+  (temperature float_t) -- degrees Celsius
+  (time        time_micros_t))
+
+(def-struct barometer_sample_t
+  (initfail    bool_t)
+  (samplefail  bool_t)
+  (pressure    float_t) -- mbar
+  (temperature float_t) -- degrees Celsius
+  (time        time_micros_t))
+
+(def-struct accelerometer_sample_t
+  (initfail    bool_t)
+  (samplefail  bool_t)
+  (sample      xyz_t) -- m/s/s
+  (temperature float_t) -- degrees Celsius
+  (time        time_micros_t))
+
 (def-struct sensors_result_t
   (valid     bool_t)
   (roll      float_t) -- Roll, pitch,  yaw, in Radians
@@ -125,6 +152,10 @@
 
   -- SMACCM specific debugging attributes:
   (sensors_output    (attr read    sensors_result_t))
+  (gyro_output       (attr read    gyroscope_sample_t))
+  (accel_output      (attr read    accelerometer_sample_t))
+  (baro_output       (attr read    barometer_sample_t))
+  (mag_output        (attr read    magnetometer_sample_t))
   (control_setpoint  (attr read    control_setpoint_t))
   (control_output    (attr read    control_output_t))
   (motor_output      (attr read    quadcopter_motors_t))
