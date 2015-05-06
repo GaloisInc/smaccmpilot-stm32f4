@@ -167,10 +167,12 @@ ms5611I2CSensorManager (BackpressureTransmit req_chan res_chan) init_chan meas_c
               -- Send a reset request to the chip. Must wait a minimum of 3ms
               -- before starting any other transactions!
               startTransaction $ ms5611_command_req addr Reset
+              store continuationMode resetSent
           , (cm ==? waitReset) ==> do
               -- Send a (meaningless) PROM Read transaction, signaling to the
               -- coroutine handler that 10ms has passed since the chip was reset
               startTransaction $ ms5611_command_req addr (PromRead Reserved)
+              store continuationMode waitSent
           , (cm ==? initializing) ==> do
               -- Do Nothing!
               -- The coroutine handler is taking care of post-reset

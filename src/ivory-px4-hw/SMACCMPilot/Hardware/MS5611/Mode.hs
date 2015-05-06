@@ -6,7 +6,9 @@ module SMACCMPilot.Hardware.MS5611.Mode
   ( ContinuationMode()
   , idle
   , sendReset
+  , resetSent
   , waitReset
+  , waitSent
   , initializing
   , running
   ) where
@@ -23,12 +25,19 @@ idle = ContinuationMode 0
 sendReset :: ContinuationMode
 sendReset = ContinuationMode 1
 
+resetSent :: ContinuationMode
+resetSent = ContinuationMode 2
+
 waitReset :: ContinuationMode
-waitReset = ContinuationMode 2
+waitReset = ContinuationMode 3
+
+waitSent :: ContinuationMode
+waitSent = ContinuationMode 4
 
 initializing :: ContinuationMode
-initializing = ContinuationMode 3
+initializing = ContinuationMode 5
 
 running :: ContinuationMode
-running = ContinuationMode 4
+running = ContinuationMode 6
+
 
