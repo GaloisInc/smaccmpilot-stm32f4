@@ -34,6 +34,7 @@ library
                        SMACCMPilot.Flight.Motors.Decoder,
                        SMACCMPilot.Flight.Motors.Mixing,
                        SMACCMPilot.Flight.Platform,
+                       SMACCMPilot.Flight.Sensors,
                        SMACCMPilot.Flight.Types.MaybeFloat,
                        SMACCMPilot.Flight.UserInput,
                        SMACCMPilot.Flight.UserInput.PPM,
