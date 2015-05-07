@@ -16,7 +16,6 @@ data Options = Options
   { logLevel   :: Integer  -- Logging verbosity
   , serPort    :: Maybe FilePath -- Serial Port Filename
   , serBaud    :: BaudRate -- Serial Baud Rate
-  , srvPort    :: Integer  -- Server TCP Port
   } deriving (Show)
 
 defaultOpts :: Options
@@ -25,7 +24,6 @@ defaultOpts = Options
   , serPort  = Nothing
   -- If you change default serBaud, also change integer num in options msg
   , serBaud  = B57600
-  , srvPort  = 6000
   }
 
 options :: [OptDescr (Options -> Options)]
@@ -45,14 +43,7 @@ options =
   , Option [] ["baud"]
       (ReqArg (\arg opts -> opts { serBaud = mkSerBaud arg }) "baudrate")
       ("Serial port baud rate (default:57600")
-  , Option [] ["port"]
-      (ReqArg (\arg opts -> opts { srvPort = mkSrvPort arg }) "portnumber")
-      ("Server TCP port (default:" ++ (show (srvPort defaultOpts)) ++ ")")
   ]
-
-mkSrvPort :: String -> Integer
-mkSrvPort opt =
-  maybe (error "Could not parse server port") id (readMaybe opt)
 
 mkSerBaud :: String -> BaudRate
 mkSerBaud opt = maybe (error "invalid serial baud rate") id (baudMaybe csint)
