@@ -25,7 +25,8 @@ library
                        SMACCMPilot.Datalink.Client.Pipes,
                        SMACCMPilot.Datalink.Client.Serial,
                        SMACCMPilot.Datalink.Client.Repl,
-                       SMACCMPilot.Datalink.Client.Loopback
+                       SMACCMPilot.Datalink.Client.Loopback,
+                       SMACCMPilot.Datalink.Loopback
   build-depends:       base >= 4.6,
                        async,
                        bytestring,
@@ -43,13 +44,19 @@ library
                        ivory-stdlib,
                        tower,
                        tower-hal,
+                       -- XXXX testing
+                       tower-config,
+                       tower-freertos-stm32,
+                       ivory-bsp-stm32,
+                       ivory-bsp-tests,
+                       -- XXX
                        smaccm-commsec
   hs-source-dirs:      src
   default-language:    Haskell2010
   ghc-options:         -Wall
 
-executable smaccm-datalink-ivory-frameloopback-test-gen
-  main-is:             IvoryFrameLoopback.hs
+executable smaccm-datalink-ivory-commsecloopback-test-gen-stm32
+  main-is:             IvoryCommsecLoopbackSTM32.hs
   hs-source-dirs:      test
   build-depends:       base,
                        ivory,
@@ -64,21 +71,18 @@ executable smaccm-datalink-ivory-frameloopback-test-gen
                        smaccm-datalink
   ghc-options:         -Wall
 
-executable smaccm-datalink-ivory-commsecloopback-test-gen
-  main-is:             IvoryCommsecLoopback.hs
-  hs-source-dirs:      test
-  build-depends:       base,
-                       ivory,
-                       ivory-stdlib,
-                       tower,
-                       tower-config,
-                       tower-hal,
-                       tower-freertos-stm32,
-                       ivory-bsp-stm32,
-                       ivory-bsp-tests,
-                       smaccm-commsec,
-                       smaccm-datalink
-  ghc-options:         -Wall
+-- executable smaccm-datalink-ivory-commsecloopback-test-gen-odroid
+--   main-is:             IvoryCommsecLoopbackODROID.hs
+--   hs-source-dirs:      test/IvoryCommsecLoopback
+--   build-depends:       base,
+--                        ivory,
+--                        ivory-stdlib,
+--                        tower,
+--                        tower-config,
+--                        tower-hal,
+--                        smaccm-commsec,
+--                        smaccm-datalink
+--   ghc-options:         -Wall
 
 executable smaccm-datalink-native-serial-test
 
