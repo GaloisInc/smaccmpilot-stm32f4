@@ -10,10 +10,12 @@ import Ivory.Language
 import Ivory.Stdlib
 import Ivory.Tower
 import Ivory.Tower.HAL.Bus.Interface
-import qualified Ivory.Tower.HAL.Sensor.Gyroscope as G
-import qualified Ivory.Tower.HAL.Sensor.Accelerometer as A
+import qualified SMACCMPilot.Comm.Ivory.Types.GyroscopeSample as G
+import qualified SMACCMPilot.Comm.Ivory.Types.AccelerometerSample as A
+import qualified SMACCMPilot.Comm.Ivory.Types.Xyz as XYZ
 import Ivory.BSP.STM32.Driver.SPI
 import SMACCMPilot.Hardware.MPU6000.Regs
+import SMACCMPilot.Time
 
 readRegAddr :: Reg -> Uint8
 readRegAddr reg = 0x80 .| (fromIntegral (regAddr reg))
@@ -77,20 +79,20 @@ sensorSample res r_gyro r_accel = do
   store (r_gyro ~> G.samplefail) (rc >? 0)
   store (r_accel ~> A.samplefail) (rc >? 0)
   comment "convert to degrees per second"
-  store ((r_gyro ~> G.sample) ! 0) (hilo gx_h gx_l / 16.4)
-  store ((r_gyro ~> G.sample) ! 1) (hilo gy_h gy_l / 16.4)
-  store ((r_gyro ~> G.sample) ! 2) (hilo gz_h gz_l / 16.4)
+  store ((r_gyro ~> G.sample) ~> XYZ.x) (hilo gx_h gx_l / 16.4)
+  store ((r_gyro ~> G.sample) ~> XYZ.y) (hilo gy_h gy_l / 16.4)
+  store ((r_gyro ~> G.sample) ~> XYZ.z) (hilo gz_h gz_l / 16.4)
   comment "convert to m/s/s by way of g"
-  store ((r_accel ~> A.sample) ! 0)  (hilo ax_h ax_l / 2048.0 * 9.80665)
-  store ((r_accel ~> A.sample) ! 1)  (hilo ay_h ay_l / 2048.0 * 9.80665)
-  store ((r_accel ~> A.sample) ! 2)  (hilo az_h az_l / 2048.0 * 9.80665)
+  store ((r_accel ~> A.sample) ~> XYZ.x)  (hilo ax_h ax_l / 2048.0 * 9.80665)
+  store ((r_accel ~> A.sample) ~> XYZ.y)  (hilo ay_h ay_l / 2048.0 * 9.80665)
+  store ((r_accel ~> A.sample) ~> XYZ.z)  (hilo az_h az_l / 2048.0 * 9.80665)
   comment "convert to degrees Celsius"
   r_temp <- assign (hilo te_h te_l / 340.0 + 36.53)
-  store (r_gyro  ~> G.temp) r_temp
-  store (r_accel ~> A.temp) r_temp
+  store (r_gyro  ~> G.temperature) r_temp
+  store (r_accel ~> A.temperature) r_temp
   comment "store sample time"
-  store (r_gyro  ~> G.time) r_time
-  store (r_accel ~> A.time) r_time
+  store (r_gyro  ~> G.time) (timeMicrosFromITime r_time)
+  store (r_accel ~> A.time) (timeMicrosFromITime r_time)
   where
   hilo :: Uint8 -> Uint8 -> IFloat
   hilo h l = safeCast $ twosComplementCast $ hiloUnsigned h l
@@ -105,10 +107,10 @@ mpu6000SensorManager :: BackpressureTransmit (Struct "spi_transaction_request") 
                      -> SPIDeviceHandle
                      -> Tower e ()
 mpu6000SensorManager (BackpressureTransmit req_chan res_chan) init_chan gyro_chan accel_chan dev = do
-  towerModule G.gyroscopeTypesModule
-  towerDepends G.gyroscopeTypesModule
-  towerModule A.accelerometerTypesModule
-  towerDepends A.accelerometerTypesModule
+  towerModule G.gyroscopeSampleTypesModule
+  towerDepends G.gyroscopeSampleTypesModule
+  towerModule A.accelerometerSampleTypesModule
+  towerDepends A.accelerometerSampleTypesModule
 
   p <- period (Milliseconds 5) -- 200hz
 
@@ -194,15 +196,15 @@ mpu6000SensorManager (BackpressureTransmit req_chan res_chan) init_chan gyro_cha
                 -> Ivory eff ()
   invalidTransaction r_gyro r_accel = do
     t <- getTime
-    store (r_gyro ~> G.samplefail)    true
-    store ((r_gyro ~> G.sample) ! 0)  0
-    store ((r_gyro ~> G.sample) ! 1)  0
-    store ((r_gyro ~> G.sample) ! 2)  0
-    store (r_gyro ~> G.temp)          0
-    store (r_gyro ~> G.time)          t
-    store (r_accel ~> A.samplefail)   true
-    store ((r_accel ~> A.sample) ! 0) 0
-    store ((r_accel ~> A.sample) ! 1) 0
-    store ((r_accel ~> A.sample) ! 2) 0
-    store (r_accel ~> A.temp)         0
-    store (r_accel ~> A.time)         t
+    store (r_gyro ~> G.samplefail)         true
+    store ((r_gyro ~> G.sample) ~> XYZ.x)  0
+    store ((r_gyro ~> G.sample) ~> XYZ.y)  0
+    store ((r_gyro ~> G.sample) ~> XYZ.z)  0
+    store (r_gyro ~> G.temperature)        0
+    store (r_gyro ~> G.time)               (timeMicrosFromITime t)
+    store (r_accel ~> A.samplefail)        true
+    store ((r_accel ~> A.sample) ~> XYZ.x) 0
+    store ((r_accel ~> A.sample) ~> XYZ.y) 0
+    store ((r_accel ~> A.sample) ~> XYZ.z) 0
+    store (r_accel ~> A.temperature)       0
+    store (r_accel ~> A.time)              (timeMicrosFromITime t)

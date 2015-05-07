@@ -5,8 +5,9 @@
 module SMACCMPilot.Hardware.MS5611.Calibration where
 
 import Ivory.Language
-import Ivory.Tower.HAL.Sensor.Barometer
+import SMACCMPilot.Comm.Ivory.Types.BarometerSample
 import SMACCMPilot.Hardware.MS5611.Types
+import SMACCMPilot.Time
 
 measurement :: ConstRef s1 (Struct "ms5611_calibration")
             -> ConstRef s2 (Struct "ms5611_sample")
@@ -75,5 +76,5 @@ measurement cal sample meas = do
 
   store (meas ~> pressure)    ((safeCast pres) / 100)
   store (meas ~> temperature) ((safeCast temp) / 100)
-  store (meas ~> time)        t
+  store (meas ~> time)        (timeMicrosFromITime t)
 

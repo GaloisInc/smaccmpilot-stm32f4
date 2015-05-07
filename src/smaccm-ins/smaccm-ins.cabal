@@ -30,7 +30,8 @@ library
                        tower >=0.9,
                        tower-hal,
                        ivory-bsp-stm32,
-                       smaccm-datalink
+                       smaccm-datalink,
+                       smaccm-comm-schema-tower
   default-language:    Haskell2010
   ghc-options:         -Wall -Werror
 

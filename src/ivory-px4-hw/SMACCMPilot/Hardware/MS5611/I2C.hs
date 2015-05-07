@@ -10,7 +10,7 @@ import Ivory.Language
 import Ivory.Stdlib
 import Ivory.Tower
 import Ivory.Tower.HAL.Bus.Interface
-import Ivory.Tower.HAL.Sensor.Barometer
+import SMACCMPilot.Comm.Ivory.Types.BarometerSample
 import SMACCMPilot.Hardware.MS5611.Calibration (measurement)
 import SMACCMPilot.Hardware.MS5611.Mode
 import SMACCMPilot.Hardware.MS5611.Regs
@@ -24,8 +24,8 @@ ms5611I2CSensorManager :: BackpressureTransmit (Struct "i2c_transaction_request"
 ms5611I2CSensorManager (BackpressureTransmit req_chan res_chan) init_chan meas_chan addr = do
   towerModule  ms5611TypesModule
   towerDepends ms5611TypesModule
-  towerModule  barometerTypesModule
-  towerDepends barometerTypesModule
+  towerModule  barometerSampleTypesModule
+  towerDepends barometerSampleTypesModule
 
   p <- period (Milliseconds 10) -- ADC conversion period.
   monitor "ms5611I2CSensorManager" $ do

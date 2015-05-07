@@ -20,10 +20,10 @@ import Ivory.Tower
 import Data.Char (ord)
 
 import Ivory.Tower.HAL.Bus.Interface
-import Ivory.Tower.HAL.Sensor.Accelerometer ()
-import Ivory.Tower.HAL.Sensor.Gyroscope ()
-import Ivory.Tower.HAL.Sensor.Magnetometer ()
-import Ivory.Tower.HAL.Sensor.Barometer ()
+import SMACCMPilot.Comm.Ivory.Types.AccelerometerSample ()
+import SMACCMPilot.Comm.Ivory.Types.GyroscopeSample ()
+import SMACCMPilot.Comm.Ivory.Types.MagnetometerSample ()
+import SMACCMPilot.Comm.Ivory.Types.BarometerSample ()
 import SMACCMPilot.Hardware.GPS.Types ()
 import SMACCMPilot.Hardware.Tests.Platforms
 

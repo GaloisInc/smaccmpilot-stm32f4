@@ -11,8 +11,10 @@ import Ivory.Language
 import Ivory.Stdlib
 import Ivory.Tower
 import Ivory.Tower.HAL.Bus.Interface
-import Ivory.Tower.HAL.Sensor.Magnetometer
+import SMACCMPilot.Comm.Ivory.Types.MagnetometerSample
+import SMACCMPilot.Comm.Ivory.Types.Xyz
 import SMACCMPilot.Hardware.HMC5883L.Regs
+import SMACCMPilot.Time
 
 hmc5883lSensorManager :: BackpressureTransmit (Struct "i2c_transaction_request") (Struct "i2c_transaction_result")
                       -> ChanOutput (Stored ITime)
@@ -20,8 +22,10 @@ hmc5883lSensorManager :: BackpressureTransmit (Struct "i2c_transaction_request")
                       -> I2CDeviceAddr
                       -> Tower e ()
 hmc5883lSensorManager (BackpressureTransmit req_chan res_chan) init_chan sensor_chan addr = do
-  towerModule magnetometerTypesModule
-  towerDepends magnetometerTypesModule
+  towerModule magnetometerSampleTypesModule
+  towerDepends magnetometerSampleTypesModule
+  towerModule xyzTypesModule
+  towerDepends xyzTypesModule
   p <- period (Milliseconds 20) -- 50 hz. Can be faster if required.
   monitor "hmc5883lSensorManager" $ do
     init_requests_area <- do
@@ -68,10 +72,10 @@ hmc5883lSensorManager (BackpressureTransmit req_chan res_chan) init_chan sensor_
           -- Unpack read, updating samplefail if failed.
           rc2 <- deref (res ~> resultcode)
           when (rc2 >? 0) (store (s ~> samplefail) true)
-          payloadu16 res 0 1 >>= store ((s ~> sample) ! 0) -- xh, xl
-          payloadu16 res 2 3 >>= store ((s ~> sample) ! 2) -- zh, zl
-          payloadu16 res 4 5 >>= store ((s ~> sample) ! 1) -- yh, yl
-          getTime >>= store (s ~> time)
+          payloadu16 res 0 1 >>= store ((s ~> sample) ~> x) -- xh, xl
+          payloadu16 res 2 3 >>= store ((s ~> sample) ~> z) -- zh, zl
+          payloadu16 res 4 5 >>= store ((s ~> sample) ~> y) -- yh, yl
+          fmap timeMicrosFromITime getTime >>= store (s ~> time)
           -- Send the sample upstream.
           emit sens_e (constRef s)
 

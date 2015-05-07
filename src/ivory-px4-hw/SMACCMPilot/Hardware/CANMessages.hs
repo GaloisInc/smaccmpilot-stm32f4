@@ -4,10 +4,10 @@ module SMACCMPilot.Hardware.CANMessages where
 
 import Ivory.Language
 import Ivory.Tower.HAL.Bus.CAN.Fragment
-import Ivory.Tower.HAL.Sensor.Accelerometer ()
-import Ivory.Tower.HAL.Sensor.Barometer ()
-import Ivory.Tower.HAL.Sensor.Gyroscope ()
-import Ivory.Tower.HAL.Sensor.Magnetometer ()
+import SMACCMPilot.Comm.Ivory.Types.AccelerometerSample ()
+import SMACCMPilot.Comm.Ivory.Types.BarometerSample ()
+import SMACCMPilot.Comm.Ivory.Types.GyroscopeSample ()
+import SMACCMPilot.Comm.Ivory.Types.MagnetometerSample ()
 import SMACCMPilot.Hardware.GPS.Types ()
 
 gyroType :: MessageType (Struct "gyroscope_sample")

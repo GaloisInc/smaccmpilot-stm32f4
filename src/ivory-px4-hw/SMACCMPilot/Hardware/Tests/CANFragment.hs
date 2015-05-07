@@ -10,10 +10,10 @@ import Ivory.Language
 import Ivory.Stdlib
 import Ivory.Tower
 import Ivory.Tower.HAL.Bus.CAN.Fragment
-import Ivory.Tower.HAL.Sensor.Accelerometer
-import Ivory.Tower.HAL.Sensor.Barometer
-import Ivory.Tower.HAL.Sensor.Gyroscope
-import Ivory.Tower.HAL.Sensor.Magnetometer
+import SMACCMPilot.Comm.Ivory.Types.AccelerometerSample
+import SMACCMPilot.Comm.Ivory.Types.BarometerSample
+import SMACCMPilot.Comm.Ivory.Types.GyroscopeSample
+import SMACCMPilot.Comm.Ivory.Types.MagnetometerSample
 import SMACCMPilot.Hardware.CANMessages
 import SMACCMPilot.Hardware.GPS.Types
 import SMACCMPilot.Hardware.Tests.Platforms

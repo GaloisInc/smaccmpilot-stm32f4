@@ -55,7 +55,9 @@ library
                        SMACCMPilot.Hardware.Tests.Magnetometer,
                        SMACCMPilot.Hardware.Tests.PPMIn,
 --                       SMACCMPilot.Hardware.Tests.CANFragment,
-                       SMACCMPilot.Hardware.Tests.AllSensors
+                       SMACCMPilot.Hardware.Tests.AllSensors,
+
+                       SMACCMPilot.Time
 
 
   build-depends:       base >= 4.6,
