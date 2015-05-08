@@ -13,13 +13,13 @@ import SMACCMPilot.Datalink.Client
 import SMACCMPilot.Datalink.Client.Monad
 import SMACCMPilot.Datalink.Client.Async
 import SMACCMPilot.Datalink.Client.Queue
-import SMACCMPilot.Datalink.Client.Mode
+import SMACCMPilot.Datalink.Mode
 import SMACCMPilot.Comm.Native.Client.Opts
 
 import SMACCMPilot.Comm.Native.Interface.ControllableVehicle ()
 import qualified SMACCMPilot.Comm.Native.Rpc.ControllableVehicle as RPC
 
-commClient :: ClientOptions -> ClientMode -> IO ()
+commClient :: ClientOptions -> DatalinkMode -> IO ()
 commClient clientopts mode = datalinkClient opts mode $ \to fro console -> do
 
   (out_msg_push, out_msg_pop) <- newQueue

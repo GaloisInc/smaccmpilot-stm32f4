@@ -5,7 +5,7 @@ import Ivory.Tower.Compile.Options
 import Ivory.Tower.Config
 import SMACCMPilot.Comm.Native.Client
 import SMACCMPilot.Comm.Native.Client.Opts
-import SMACCMPilot.Datalink.Client.Mode
+import SMACCMPilot.Datalink.Mode
 
 import System.Environment (getArgs)
 import System.Console.GetOpt
@@ -24,7 +24,7 @@ main = do
             , topts_args   = tos
             , topts_error  = usage
             }
-      cmode <- getConfig topts datalinkClientModeParser
+      cmode <- getConfig topts datalinkModeParser
       commClient client_opts cmode
     (_, nonOpts, unOpts, errs) -> usage ("invalid arguments: "
                                         ++ unwords nonOpts
