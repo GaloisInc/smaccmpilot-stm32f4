@@ -1,8 +1,11 @@
 
 module Main where
 
+import Ivory.Tower.Compile.Options
+import Ivory.Tower.Config
 import SMACCMPilot.Comm.Native.Client
-import SMACCMPilot.Datalink.Client.Opts
+import SMACCMPilot.Comm.Native.Client.Opts
+import SMACCMPilot.Datalink.Client.Mode
 
 import System.Environment (getArgs)
 import System.Console.GetOpt
@@ -12,8 +15,17 @@ import System.IO
 main :: IO ()
 main = do
   argv <- getArgs
-  case getOpt' Permute options argv of
-    (opts, [], [], []) -> commClient (foldl (flip id) defaultOpts opts)
+  case getOpt' Permute clientoptions argv of
+    (opts, [], tos, []) -> do
+      let client_opts = foldl (flip id) defaultClientOpts opts
+          topts = TOpts
+            { topts_outdir = Nothing
+            , topts_help   = False
+            , topts_args   = tos
+            , topts_error  = usage
+            }
+      cmode <- getConfig topts datalinkClientModeParser
+      commClient client_opts cmode
     (_, nonOpts, unOpts, errs) -> usage ("invalid arguments: "
                                         ++ unwords nonOpts
                                         ++ unwords unOpts
@@ -21,5 +33,5 @@ main = do
 
 usage :: String -> IO a
 usage errs = do
-  hPutStr stderr (usageInfo errs options)
+  hPutStr stderr (usageInfo errs clientoptions)
   exitFailure

@@ -10,16 +10,17 @@ import Control.Monad
 import Control.Concurrent.STM (TQueue)
 
 import SMACCMPilot.Datalink.Client
-import SMACCMPilot.Datalink.Client.Opts
 import SMACCMPilot.Datalink.Client.Monad
 import SMACCMPilot.Datalink.Client.Async
 import SMACCMPilot.Datalink.Client.Queue
+import SMACCMPilot.Datalink.Client.Mode
+import SMACCMPilot.Comm.Native.Client.Opts
 
 import SMACCMPilot.Comm.Native.Interface.ControllableVehicle ()
 import qualified SMACCMPilot.Comm.Native.Rpc.ControllableVehicle as RPC
 
-commClient :: Options -> IO ()
-commClient opts = datalinkClient opts PlaintextMode $ \to fro console -> do
+commClient :: ClientOptions -> ClientMode -> IO ()
+commClient clientopts mode = datalinkClient opts mode $ \to fro console -> do
 
   (out_msg_push, out_msg_pop) <- newQueue
   (in_msg_push, in_msg_pop) <- newQueue
@@ -34,11 +35,15 @@ commClient opts = datalinkClient opts PlaintextMode $ \to fro console -> do
          >-> msgSerialize
          >-> pushConsumer to
 
-  asyncServer RPC.rpcServer in_msg_pop out_msg_push
-              RPC.Config { RPC.cfgPort = 8080, RPC.cfgStaticDir = Just "./web/" }
+  asyncServer RPC.rpcServer in_msg_pop out_msg_push rpccfg
   wait a
   wait b
-
+  where
+  opts = dlOpts clientopts
+  rpccfg = RPC.Config
+    { RPC.cfgPort = srvPort clientopts
+    , RPC.cfgStaticDir = Just "./web/"
+    }
 
 asyncServer :: (TQueue producer -> TQueue consumer -> RPC.Config -> IO ())
             -> Poppable producer -> Pushable consumer -> RPC.Config -> IO ()

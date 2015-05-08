@@ -11,13 +11,13 @@ cabal-version:       >= 1.10
 
 
 library
-  exposed-modules:     SMACCMPilot.Comm.Native.Client
+  exposed-modules:     SMACCMPilot.Comm.Native.Client,
+                       SMACCMPilot.Comm.Native.Client.Opts
   build-depends:       base >= 4.6,
                        bytestring,
                        cereal,
                        pipes,
                        stm,
-                       QuickCheck,
                        smaccm-commsec,
                        smaccm-datalink,
                        smaccm-comm-schema-native
@@ -25,10 +25,12 @@ library
   default-language:    Haskell2010
   ghc-options:         -Wall
 
-executable             smaccm-comm-client-test
+executable             smaccm-comm-client
   main-is:             CommClient.hs
   hs-source-dirs:      tests
   build-depends:       base >= 4.6,
+                       tower,
+                       tower-config,
                        smaccm-datalink,
                        smaccm-comm-client
 
