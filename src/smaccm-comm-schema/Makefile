@@ -22,7 +22,7 @@ test: smaccm-comm-schema-tower-test
 .PHONY: smaccm-comm-schema-native
 smaccm-comm-schema-native:
 	cabal exec gidl -- -b haskell-rpc\
-		-i smaccm-comm-schema.idl \
+		-i smaccm-comm-schema.gidl \
 		-o smaccm-comm-schema-native \
 		-p smaccm-comm-schema-native \
 		-n SMACCMPilot.Comm.Native
@@ -30,7 +30,7 @@ smaccm-comm-schema-native:
 .PHONY: smaccm-comm-schema-tower
 smaccm-comm-schema-tower:
 	cabal exec gidl -- -b tower \
-		-i smaccm-comm-schema.idl \
+		-i smaccm-comm-schema.gidl \
 		-o smaccm-comm-schema-tower \
 		-p smaccm-comm-schema-tower \
 		-n SMACCMPilot.Comm
