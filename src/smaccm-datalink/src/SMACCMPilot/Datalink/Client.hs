@@ -10,7 +10,7 @@ import SMACCMPilot.Datalink.Client.Console
 import SMACCMPilot.Datalink.Client.Queue
 import SMACCMPilot.Datalink.Client.Serial
 import SMACCMPilot.Datalink.Client.Pipes
-import SMACCMPilot.Datalink.Client.Mode
+import SMACCMPilot.Datalink.Mode
 
 import           Data.ByteString.Char8 (ByteString)
 import qualified Data.ByteString.Char8 as B
@@ -19,10 +19,10 @@ import SMACCMPilot.Commsec.SymmetricKey
 
 
 datalinkClient :: Options
-               -> ClientMode
+               -> DatalinkMode
                -> (Pushable ByteString -> Poppable ByteString -> Console -> IO ())
                -> IO ()
-datalinkClient opts cmode client = do
+datalinkClient opts dmode client = do
   putStrLn ("Datalink client starting in " ++ mode)
   console <- newConsolePrinter opts
 
@@ -36,14 +36,14 @@ datalinkClient opts cmode client = do
         >-> hxDecoder
         >-> frameLog
         >-> untagger 0
-        >-> case cmode of
+        >-> case dmode of
               PlaintextMode -> cat
               SymmetricCommsecMode sk -> commsecDecoder (keyToBS (sk_s2c sk))
         >-> pushConsumer in_frame_push
 
   a <- asyncRunEffect console "serial out"
            $ popProducer out_frame_pop
-         >-> case cmode of
+         >-> case dmode of
               PlaintextMode -> cat
               SymmetricCommsecMode sk -> commsecEncoder (keyToBS (sk_c2s sk))
          >-> tagger 0
@@ -57,7 +57,7 @@ datalinkClient opts cmode client = do
   exitSuccess
   where
   keyToBS = B.pack . map B.w2c
-  mode = case cmode of
+  mode = case dmode of
     PlaintextMode -> "plaintext mode"
     SymmetricCommsecMode _ -> "symmetric commsec mode"
 

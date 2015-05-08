@@ -1,15 +1,15 @@
 
-module SMACCMPilot.Datalink.Client.Mode where
+module SMACCMPilot.Datalink.Mode where
 
 import Ivory.Tower.Config
 import SMACCMPilot.Commsec.SymmetricKey
 
-data ClientMode
+data DatalinkMode
   = PlaintextMode
   | SymmetricCommsecMode SymmetricKey
 
-datalinkClientModeParser :: ConfigParser ClientMode
-datalinkClientModeParser = do
+datalinkModeParser :: ConfigParser DatalinkMode
+datalinkModeParser = do
   ptmode <- subsection "args" $ subsection "plaintext_mode" $ bool
   case ptmode of
     True -> return PlaintextMode

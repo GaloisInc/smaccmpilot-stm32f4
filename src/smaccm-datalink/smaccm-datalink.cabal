@@ -25,8 +25,8 @@ library
                        SMACCMPilot.Datalink.Client.Pipes,
                        SMACCMPilot.Datalink.Client.Serial,
                        SMACCMPilot.Datalink.Client.Repl,
-                       SMACCMPilot.Datalink.Client.Mode,
-                       SMACCMPilot.Datalink.Client.Loopback
+                       SMACCMPilot.Datalink.Client.Loopback,
+                       SMACCMPilot.Datalink.Mode
   build-depends:       base >= 4.6,
                        async,
                        bytestring,
