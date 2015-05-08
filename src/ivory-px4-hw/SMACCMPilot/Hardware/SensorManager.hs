@@ -18,7 +18,7 @@ import SMACCMPilot.Hardware.LSM303D
 import SMACCMPilot.Hardware.MS5611
 import SMACCMPilot.Hardware.MPU6000
 
-import SMACCMPilot.Hardware.Types
+import SMACCMPilot.Hardware.Sensors
 
 import Ivory.BSP.STM32.ClockConfig
 

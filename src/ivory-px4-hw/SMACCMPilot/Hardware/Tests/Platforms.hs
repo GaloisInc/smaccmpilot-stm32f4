@@ -19,7 +19,7 @@ import Ivory.Tower.Config
 import Data.Char (toUpper)
 
 import qualified SMACCMPilot.Hardware.PX4FMU17 as FMUv17
-import           SMACCMPilot.Hardware.Types
+import           SMACCMPilot.Hardware.Sensors
 
 import qualified Ivory.BSP.STM32F405.UART           as F405
 import qualified Ivory.BSP.STM32F405.GPIO           as F405

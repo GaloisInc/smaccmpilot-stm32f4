@@ -43,7 +43,7 @@ library
 
                        SMACCMPilot.Hardware.CANMessages,
 
-                       SMACCMPilot.Hardware.Types,
+                       SMACCMPilot.Hardware.Sensors,
                        SMACCMPilot.Hardware.SensorManager,
 
                        SMACCMPilot.Hardware.Tests.Platforms,

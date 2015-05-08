@@ -1,6 +1,6 @@
 {-# LANGUAGE RankNTypes #-}
 
-module SMACCMPilot.Hardware.Types where
+module SMACCMPilot.Hardware.Sensors where
 
 import Ivory.Language
 
