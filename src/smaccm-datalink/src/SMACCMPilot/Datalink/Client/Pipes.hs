@@ -112,3 +112,10 @@ commsecDecoder ks = do
       Just (ctx', pt) -> yield pt >> aux ctx'
       Nothing -> lift (writeErr "GEC decode failed") >> aux ctx
 
+padder :: Integer -> Pipe ByteString ByteString GW ()
+padder l = do
+  b <- await
+  case bytestringPad l b of
+    Left err -> lift (writeErr err)
+    Right padded -> yield padded
+  padder l

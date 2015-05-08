@@ -16,6 +16,7 @@ import           Data.ByteString.Char8 (ByteString)
 import qualified Data.ByteString.Char8 as B
 import qualified Data.ByteString.Internal as B (w2c)
 import SMACCMPilot.Commsec.SymmetricKey
+import SMACCMPilot.Commsec.Sizes
 
 
 datalinkClient :: Options
@@ -37,14 +38,15 @@ datalinkClient opts dmode client = do
         >-> frameLog
         >-> untagger 0
         >-> case dmode of
-              PlaintextMode -> cat
+              PlaintextMode -> cat -- XXX unpad?
               SymmetricCommsecMode sk -> commsecDecoder (keyToBS (sk_s2c sk))
         >-> pushConsumer in_frame_push
 
   a <- asyncRunEffect console "serial out"
            $ popProducer out_frame_pop
+         >-> padder plaintextSize
          >-> case dmode of
-              PlaintextMode -> cat
+              PlaintextMode -> padder cyphertextSize
               SymmetricCommsecMode sk -> commsecEncoder (keyToBS (sk_c2s sk))
          >-> tagger 0
          >-> frameLog
