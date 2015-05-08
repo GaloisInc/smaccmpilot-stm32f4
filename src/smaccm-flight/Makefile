@@ -17,6 +17,7 @@ test-fmu17: platform-fmu17/ui-test-gen
 test-fmu17: platform-fmu17/sensors-test-gen
 
 .PHONY: test-fmu24
+test-fmu24: platform-fmu24/can-test-gen
 test-fmu24: platform-fmu24/comm-only-test-gen
 test-fmu24: platform-fmu24/sensors-test-gen
 

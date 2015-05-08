@@ -28,6 +28,7 @@ import           Ivory.BSP.STM32.Interrupt
 import           Ivory.BSP.STM32.ClockConfig
 import           Ivory.OS.FreeRTOS.Tower.STM32.Config
 import           SMACCMPilot.Datalink.Mode
+import           SMACCMPilot.Hardware.CAN
 import           SMACCMPilot.Hardware.Sensors
 import           SMACCMPilot.Hardware.Tests.Platforms (PPM(..))
 
@@ -37,6 +38,7 @@ data FlightPlatform =
     { fp_telem        :: UART_Device
     , fp_ppm          :: PPM
     , fp_sensors      :: Sensors
+    , fp_can          :: Maybe CAN_Device
     , fp_datalink     :: DatalinkMode
     , fp_stm32config  :: STM32Config
     }
@@ -64,6 +66,7 @@ px4fmuv17 dmode = FlightPlatform
   { fp_telem       = telem
   , fp_ppm         = ppm
   , fp_sensors     = fmu17_sensors
+  , fp_can         = Nothing
   , fp_datalink    = dmode
   , fp_stm32config = stm32f405Defaults 24
   }
@@ -85,6 +88,7 @@ px4fmuv24 dmode = FlightPlatform
   { fp_telem       = telem
   , fp_ppm         = PPM_None
   , fp_sensors     = fmu24_sensors
+  , fp_can         = Just fmu24_can
   , fp_datalink    = dmode
   , fp_stm32config = stm32f427Defaults 24
   }
