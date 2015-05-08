@@ -18,6 +18,7 @@ import Ivory.Tower.Config
 
 import Data.Char (toUpper)
 
+import           SMACCMPilot.Hardware.CAN
 import qualified SMACCMPilot.Hardware.PX4FMU17 as FMUv17
 import           SMACCMPilot.Hardware.Sensors
 
@@ -29,13 +30,11 @@ import qualified Ivory.BSP.STM32F405.Interrupt      as F405
 import qualified Ivory.BSP.STM32F427.UART           as F427
 import qualified Ivory.BSP.STM32F427.GPIO           as F427
 import qualified Ivory.BSP.STM32F427.GPIO.AF        as F427
-import qualified Ivory.BSP.STM32F427.CAN            as F427
 import           Ivory.BSP.STM32.Peripheral.GPIOF4
 import           Ivory.BSP.STM32.Peripheral.UART
 import           Ivory.BSP.STM32.Peripheral.SPI
 import           Ivory.BSP.STM32.Peripheral.I2C
 import           Ivory.BSP.STM32.Peripheral.ATIM18
-import           Ivory.BSP.STM32.Peripheral.CAN
 import           Ivory.BSP.STM32.Interrupt
 import           Ivory.BSP.STM32.Driver.I2C
 import           Ivory.BSP.STM32.Driver.UART
@@ -58,14 +57,6 @@ data PX4Platform =
     , px4platform_can            :: Maybe CAN_Device
 
     , px4platform_stm32config    :: STM32Config
-    }
-
-data CAN_Device =
-  CAN_Device
-    { can_periph  :: CANPeriph
-    , can_RX      :: GPIOPin
-    , can_TX      :: GPIOPin
-    , can_filters :: CANPeriphFilters
     }
 
 data MPU6000_SPI =
@@ -225,7 +216,7 @@ px4fmuv24 = PX4Platform
   , px4platform_motorcontrol = error "motor control not defined for px4fmuv24"
   , px4platform_ppm          = PPM_None -- XXX need px4io driver.
   , px4platform_console      = console
-  , px4platform_can          = Just can
+  , px4platform_can          = Just fmu24_can
   , px4platform_stm32config  = stm32f427Defaults 24
   }
   where
@@ -236,12 +227,6 @@ px4fmuv24 = PX4Platform
         , uartPinRx = F427.pinD6
         , uartPinAF = F427.gpio_af_uart2
         }
-    }
-  can = CAN_Device
-    { can_periph = F427.can1
-    , can_RX = F427.pinD0
-    , can_TX = F427.pinD1
-    , can_filters = F427.canFilters
     }
   gps = UART_Device
     { uart_periph = F427.uart4

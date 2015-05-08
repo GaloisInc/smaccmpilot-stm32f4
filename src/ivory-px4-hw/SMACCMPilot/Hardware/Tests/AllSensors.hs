@@ -17,6 +17,7 @@ import Ivory.Tower.HAL.Bus.Sched
 
 import Ivory.BSP.STM32.Driver.CAN
 
+import SMACCMPilot.Hardware.CAN
 import SMACCMPilot.Hardware.CANMessages
 
 import SMACCMPilot.Hardware.SensorManager

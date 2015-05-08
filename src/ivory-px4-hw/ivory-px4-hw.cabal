@@ -41,6 +41,7 @@ library
                        SMACCMPilot.Hardware.PX4FMU17,
                        SMACCMPilot.Hardware.PX4FMU17.MotorControl
 
+                       SMACCMPilot.Hardware.CAN,
                        SMACCMPilot.Hardware.CANMessages,
 
                        SMACCMPilot.Hardware.Sensors,
