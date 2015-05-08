@@ -28,7 +28,7 @@ import           Ivory.BSP.STM32.Interrupt
 import           Ivory.BSP.STM32.ClockConfig
 import           Ivory.OS.FreeRTOS.Tower.STM32.Config
 import           SMACCMPilot.Datalink.Mode
-import           SMACCMPilot.Hardware.Types
+import           SMACCMPilot.Hardware.Sensors
 import           SMACCMPilot.Hardware.Tests.Platforms (PPM(..))
 
 
