@@ -5,6 +5,8 @@ module SMACCMPilot.Datalink.Client.Opts
   ( Options(..)
   , options
   , defaultOpts
+  , mkSerBaud
+  , readMaybe
   ) where
 
 import           System.Console.GetOpt

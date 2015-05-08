@@ -10,22 +10,20 @@ import SMACCMPilot.Datalink.Client.Console
 import SMACCMPilot.Datalink.Client.Queue
 import SMACCMPilot.Datalink.Client.Serial
 import SMACCMPilot.Datalink.Client.Pipes
+import SMACCMPilot.Datalink.Client.Mode
 
 import           Data.ByteString.Char8 (ByteString)
 import qualified Data.ByteString.Char8 as B
 import qualified Data.ByteString.Internal as B (w2c)
 import SMACCMPilot.Commsec.SymmetricKey
 
-data ClientMode
-  = PlaintextMode
-  | SymmetricCommsecMode SymmetricKey
 
 datalinkClient :: Options
                -> ClientMode
                -> (Pushable ByteString -> Poppable ByteString -> Console -> IO ())
                -> IO ()
 datalinkClient opts cmode client = do
-
+  putStrLn ("Datalink client starting in " ++ mode)
   console <- newConsolePrinter opts
 
   (ser_in_pop, ser_out_push) <- serialServer opts console
@@ -59,4 +57,7 @@ datalinkClient opts cmode client = do
   exitSuccess
   where
   keyToBS = B.pack . map B.w2c
+  mode = case cmode of
+    PlaintextMode -> "plaintext mode"
+    SymmetricCommsecMode _ -> "symmetric commsec mode"
 

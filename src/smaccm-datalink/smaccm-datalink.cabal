@@ -25,6 +25,7 @@ library
                        SMACCMPilot.Datalink.Client.Pipes,
                        SMACCMPilot.Datalink.Client.Serial,
                        SMACCMPilot.Datalink.Client.Repl,
+                       SMACCMPilot.Datalink.Client.Mode,
                        SMACCMPilot.Datalink.Client.Loopback
   build-depends:       base >= 4.6,
                        async,
@@ -42,6 +43,7 @@ library
                        ivory,
                        ivory-stdlib,
                        tower,
+                       tower-config,
                        tower-hal,
                        smaccm-commsec
   hs-source-dirs:      src

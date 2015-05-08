@@ -11,6 +11,7 @@ import SMACCMPilot.Datalink.Client.Opts
 import SMACCMPilot.Datalink.Client.Console
 import SMACCMPilot.Datalink.Client.Queue
 import SMACCMPilot.Datalink.Client.ByteString
+import SMACCMPilot.Datalink.Client.Mode
 import SMACCMPilot.Datalink.Client
 
 import SMACCMPilot.Commsec.Sizes
