@@ -1,3 +1,4 @@
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE DataKinds #-}
 
 module SMACCMPilot.Flight.Datalink.Commsec
@@ -6,7 +7,9 @@ module SMACCMPilot.Flight.Datalink.Commsec
   , commsecDatalink
   ) where
 
+import Ivory.Language
 import Ivory.Tower
+import Ivory.Stdlib
 
 import SMACCMPilot.Datalink.Mode
 import SMACCMPilot.Commsec.Sizes
@@ -36,9 +39,28 @@ plaintextCommsecDatalink k pt_in = do
   return (a, pt_out)
   where
   unpadTower :: ChanOutput CyphertextArray -> Tower e (ChanOutput PlaintextArray)
-  unpadTower = undefined -- XXX FIXME
+  unpadTower unpad_in = do
+    out <- channel
+    monitor "unpad" $ do
+      handler unpad_in "unpad_in" $ do
+        e <- emitter (fst out) 1
+        callback $ \in_buf -> do
+          o <- local izero
+          arrayCopy o in_buf 0 (fromIntegral plaintextSize)
+          emit e (constRef o)
+    return (snd out)
+
   padTower :: ChanOutput PlaintextArray -> Tower e (ChanOutput CyphertextArray)
-  padTower = undefined -- XXX FIXME
+  padTower pad_in = do
+    out <- channel
+    monitor "pad" $ do
+      handler pad_in "pad_in" $ do
+        e <- emitter (fst out) 1
+        callback $ \in_buf -> do
+          o <- local izero
+          arrayCopy o in_buf 0 (fromIntegral plaintextSize)
+          emit e (constRef o)
+    return (snd out)
 
 commsecDatalink :: (e -> DatalinkMode)
                 -> ( ChanOutput PlaintextArray
