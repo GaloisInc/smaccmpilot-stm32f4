@@ -27,6 +27,7 @@ import           Ivory.BSP.STM32.Peripheral.UART
 import           Ivory.BSP.STM32.Interrupt
 import           Ivory.BSP.STM32.ClockConfig
 import           Ivory.OS.FreeRTOS.Tower.STM32.Config
+import           SMACCMPilot.Datalink.Mode
 import           SMACCMPilot.Hardware.Types
 import           SMACCMPilot.Hardware.Tests.Platforms (PPM(..))
 
@@ -36,6 +37,7 @@ data FlightPlatform =
     { fp_telem        :: UART_Device
     , fp_ppm          :: PPM
     , fp_sensors      :: Sensors
+    , fp_datalink     :: DatalinkMode
     , fp_stm32config  :: STM32Config
     }
 
@@ -51,15 +53,18 @@ flightPlatformParser = do
     "PIXHAWK"   -> result px4fmuv24
     _ -> fail ("no such platform " ++ p)
   where
-  result platform = do
+  result mkPlatform = do
+    datalink <- datalinkModeParser
+    let platform = mkPlatform datalink
     conf <- stm32ConfigParser (fp_stm32config platform)
     return platform { fp_stm32config = conf }
 
-px4fmuv17 :: FlightPlatform
-px4fmuv17 = FlightPlatform
+px4fmuv17 :: DatalinkMode -> FlightPlatform
+px4fmuv17 dmode = FlightPlatform
   { fp_telem       = telem
   , fp_ppm         = ppm
   , fp_sensors     = fmu17_sensors
+  , fp_datalink    = dmode
   , fp_stm32config = stm32f405Defaults 24
   }
   where
@@ -75,11 +80,12 @@ px4fmuv17 = FlightPlatform
   ppm_int = HasSTM32Interrupt F405.TIM1_CC
 
 
-px4fmuv24 :: FlightPlatform
-px4fmuv24 = FlightPlatform
+px4fmuv24 :: DatalinkMode -> FlightPlatform
+px4fmuv24 dmode = FlightPlatform
   { fp_telem       = telem
   , fp_ppm         = PPM_None
   , fp_sensors     = fmu24_sensors
+  , fp_datalink    = dmode
   , fp_stm32config = stm32f427Defaults 24
   }
   where

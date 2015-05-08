@@ -1,9 +1,7 @@
-
-{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE DataKinds #-}
 
-module SMACCMPilot.Flight.Datalink.Plaintext
-  ( plaintextDatalink
+module SMACCMPilot.Flight.Datalink.UART
+  ( uartDatalink
   ) where
 
 import Ivory.Tower
@@ -13,14 +11,13 @@ import SMACCMPilot.Commsec.Sizes
 import SMACCMPilot.Datalink.HXStream.Tower
 import SMACCMPilot.Flight.Platform (UART_Device(..), ClockConfig)
 
-
-plaintextDatalink :: (e -> ClockConfig)
-                  -> UART_Device
-                  -> Integer
-                  -> ( ChanOutput CyphertextArray
-                      -> Tower e (a, ChanOutput CyphertextArray))
-                  -> Tower e a
-plaintextDatalink tocc uart baud k = do
+uartDatalink :: (e -> ClockConfig)
+             -> UART_Device
+             -> Integer
+             -> ( ChanOutput CyphertextArray
+                 -> Tower e (a, ChanOutput CyphertextArray))
+             -> Tower e a
+uartDatalink tocc uart baud k = do
   (uarto, uarti) <- uartTower tocc
                               (uart_periph uart)
                               (uart_pins   uart)
@@ -28,6 +25,7 @@ plaintextDatalink tocc uart baud k = do
   input_frames <- channel
 
   hxstreamDecodeTower "frame" uarti (fst input_frames)
+  -- TODO XXX FIXME: buffer input frames.
 
   (a, output_frames) <- k (snd input_frames)
 

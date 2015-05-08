@@ -6,18 +6,11 @@ module SMACCMPilot.Flight.Datalink.TestApp
 import Ivory.Tower
 
 import SMACCMPilot.Flight.Platform
-import SMACCMPilot.Flight.Datalink.ControllableVehicle
-import SMACCMPilot.Flight.Datalink.Plaintext
+import SMACCMPilot.Flight.Datalink
 
 
 app :: (e -> FlightPlatform)
     -> Tower e ()
 app tofp = do
-  fp <- fmap tofp getEnv
-  let telem_uart = fp_telem fp
-
-  _ <- plaintextDatalink tocc telem_uart 115200 controllableVehicle
-
+  _ <- datalinkTower tofp
   return ()
-  where
-  tocc = fp_clockconfig . tofp

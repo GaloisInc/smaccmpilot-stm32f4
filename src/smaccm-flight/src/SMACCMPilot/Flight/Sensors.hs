@@ -5,7 +5,6 @@ module SMACCMPilot.Flight.Sensors
   ( sensorTower
   ) where
 
-import Ivory.Language
 import Ivory.Tower
 
 import           SMACCMPilot.Comm.Tower.Attr

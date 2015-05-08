@@ -8,8 +8,7 @@ import Ivory.Language
 import Ivory.Tower
 
 import SMACCMPilot.Flight.Platform
-import SMACCMPilot.Flight.Datalink.ControllableVehicle
-import SMACCMPilot.Flight.Datalink.Plaintext
+import SMACCMPilot.Flight.Datalink
 import SMACCMPilot.Flight.UserInput.PPM
 
 import qualified SMACCMPilot.Comm.Ivory.Types.ControlLaw      as CL ()
@@ -24,10 +23,8 @@ import SMACCMPilot.Comm.Tower.Interface.ControllableVehicle
 app :: (e -> FlightPlatform)
     -> Tower e ()
 app tofp = do
-  fp <- fmap tofp getEnv
-  let telem_uart = fp_telem fp
 
-  (attrs, _streams) <- plaintextDatalink tocc telem_uart 115200 controllableVehicle
+  (attrs, _streams) <- datalinkTower tofp
 
   (ui, cl) <- ppmInputTower toppm tocc
 
