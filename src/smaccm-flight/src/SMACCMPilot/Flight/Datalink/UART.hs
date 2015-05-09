@@ -3,6 +3,8 @@
 
 module SMACCMPilot.Flight.Datalink.UART
   ( uartDatalink
+  , frameBuffer
+  , frameBuffer'
   ) where
 
 import Ivory.Language
@@ -54,6 +56,18 @@ frameBuffer :: forall a t n e
             -> Tower e (ChanOutput a)
 frameBuffer input pop_period _buf_size = do
   out <- channel
+  frameBuffer' input pop_period _buf_size (fst out)
+  return (snd out)
+
+frameBuffer' :: forall a t n e
+             . (IvoryArea a, IvoryZero a, Time t, ANat n)
+            => ChanOutput a
+            -> t
+            -> Proxy n
+            -> ChanInput a
+            -> Tower e ()
+frameBuffer' input pop_period _buf_size out = do
+
   p <- period pop_period
   monitor "frameBuffer" $ do
     (rb :: RingBuffer n a) <- monitorRingBuffer "frameBuffer"
@@ -62,9 +76,8 @@ frameBuffer input pop_period _buf_size = do
         _ <- ringbuffer_push rb v
         return ()
     handler p "periodic_pop" $ do
-      e <- emitter (fst out) 1
+      e <- emitter out 1
       callback $ const $ do
         v <- local izero
         got <- ringbuffer_pop rb v
         ifte_ got (emit e (constRef v)) (return ())
-  return (snd out)
