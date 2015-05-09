@@ -2,6 +2,8 @@
 
 module SMACCMPilot.Flight.Datalink.CAN
   ( canDatalink
+  , s2cType
+  , c2sType
   ) where
 
 import Ivory.Language
@@ -10,8 +12,11 @@ import Ivory.Tower.HAL.Bus.CAN.Fragment
 import Ivory.Tower.HAL.Bus.Interface
 import SMACCMPilot.Commsec.Sizes
 
-gidlType :: MessageType PlaintextArray
-gidlType = messageType 0x100 False (Proxy :: Proxy 80)
+s2cType :: MessageType PlaintextArray
+s2cType = messageType 0x100 False (Proxy :: Proxy 80)
+
+c2sType :: MessageType PlaintextArray
+c2sType = messageType 0x200 False (Proxy :: Proxy 80)
 
 canDatalink :: AbortableTransmit (Struct "can_message") (Stored IBool)
             -> ChanOutput (Struct "can_message")
@@ -19,7 +24,7 @@ canDatalink :: AbortableTransmit (Struct "can_message") (Stored IBool)
             -> Tower e a
 canDatalink tx rx k = do
   (assembled, fromFrag) <- channel
-  fragmentReceiver rx [fragmentReceiveHandler assembled gidlType]
+  fragmentReceiver rx [fragmentReceiveHandler assembled c2sType]
   (a, toFrag) <- k fromFrag
-  fragmentSenderBlind toFrag gidlType tx
+  fragmentSenderBlind toFrag s2cType tx
   return a
