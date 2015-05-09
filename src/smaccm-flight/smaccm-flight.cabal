@@ -29,7 +29,8 @@ library
                        SMACCMPilot.Flight.Control.Yaw,
                        SMACCMPilot.Flight.Datalink,
                        SMACCMPilot.Flight.Datalink.CAN,
-                       SMACCMPilot.Flight.Datalink.CAN.TestApp,
+                       SMACCMPilot.Flight.Datalink.CAN.TestServer,
+                       SMACCMPilot.Flight.Datalink.CAN.TestProxy,
                        SMACCMPilot.Flight.Datalink.ControllableVehicle,
                        SMACCMPilot.Flight.Datalink.Commsec,
                        SMACCMPilot.Flight.Datalink.UART,
@@ -64,8 +65,19 @@ library
   default-language:    Haskell2010
   ghc-options:         -Wall
 
-executable             can-test-gen
-  main-is:             CAN.hs
+executable             can-server-test-gen
+  main-is:             CANServer.hs
+  hs-source-dirs:      tests
+  build-depends:       base >= 4.6,
+                       tower >= 0.9,
+                       tower-config,
+                       tower-freertos-stm32,
+                       smaccm-flight
+  default-language:    Haskell2010
+  ghc-options:         -Wall
+
+executable             can-proxy-test-gen
+  main-is:             CANProxy.hs
   hs-source-dirs:      tests
   build-depends:       base >= 4.6,
                        tower >= 0.9,

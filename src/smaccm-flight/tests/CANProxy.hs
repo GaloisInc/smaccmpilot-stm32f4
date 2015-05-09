@@ -5,7 +5,7 @@ import Ivory.Tower.Compile
 import Ivory.OS.FreeRTOS.Tower.STM32
 
 import SMACCMPilot.Flight.Platform
-import SMACCMPilot.Flight.Datalink.CAN.TestApp (app)
+import SMACCMPilot.Flight.Datalink.CAN.TestProxy (app)
 
 main :: IO ()
 main = towerCompile p (app id)
