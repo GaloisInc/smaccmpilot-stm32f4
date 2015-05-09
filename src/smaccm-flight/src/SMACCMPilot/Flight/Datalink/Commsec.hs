@@ -5,6 +5,10 @@ module SMACCMPilot.Flight.Datalink.Commsec
   ( symmetricCommsecDatalink
   , plaintextCommsecDatalink
   , commsecDatalink
+  , padTower
+  , padTower'
+  , unpadTower
+  , unpadTower'
   ) where
 
 import Ivory.Language
@@ -38,29 +42,38 @@ plaintextCommsecDatalink k pt_in = do
   pt_out <- padTower unpadded_pt_out
   return (a, pt_out)
   where
-  unpadTower :: ChanOutput CyphertextArray -> Tower e (ChanOutput PlaintextArray)
-  unpadTower unpad_in = do
-    out <- channel
-    monitor "unpad" $ do
-      handler unpad_in "unpad_in" $ do
-        e <- emitter (fst out) 1
-        callback $ \in_buf -> do
-          o <- local izero
-          arrayCopy o in_buf 0 (fromIntegral plaintextSize)
-          emit e (constRef o)
-    return (snd out)
 
-  padTower :: ChanOutput PlaintextArray -> Tower e (ChanOutput CyphertextArray)
-  padTower pad_in = do
-    out <- channel
-    monitor "pad" $ do
-      handler pad_in "pad_in" $ do
-        e <- emitter (fst out) 1
-        callback $ \in_buf -> do
-          o <- local izero
-          arrayCopy o in_buf 0 (fromIntegral plaintextSize)
-          emit e (constRef o)
-    return (snd out)
+unpadTower :: ChanOutput CyphertextArray -> Tower e (ChanOutput PlaintextArray)
+unpadTower unpad_in = do
+  out <- channel
+  unpadTower' unpad_in (fst out)
+  return (snd out)
+
+unpadTower' :: ChanOutput CyphertextArray -> ChanInput PlaintextArray -> Tower e ()
+unpadTower' unpad_in unpad_out = do
+  monitor "unpad" $ do
+    handler unpad_in "unpad_in" $ do
+      e <- emitter unpad_out 1
+      callback $ \in_buf -> do
+        o <- local izero
+        arrayCopy o in_buf 0 (fromIntegral plaintextSize)
+        emit e (constRef o)
+
+padTower :: ChanOutput PlaintextArray -> Tower e (ChanOutput CyphertextArray)
+padTower pad_in = do
+  out <- channel
+  padTower' pad_in (fst out)
+  return (snd out)
+
+padTower' :: ChanOutput PlaintextArray -> ChanInput CyphertextArray -> Tower e ()
+padTower' pad_in pad_out = do
+  monitor "pad" $ do
+    handler pad_in "pad_in" $ do
+      e <- emitter pad_out 1
+      callback $ \in_buf -> do
+        o <- local izero
+        arrayCopy o in_buf 0 (fromIntegral plaintextSize)
+        emit e (constRef o)
 
 commsecDatalink :: (e -> DatalinkMode)
                 -> ( ChanOutput PlaintextArray
