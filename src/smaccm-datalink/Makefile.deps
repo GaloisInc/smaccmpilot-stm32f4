@@ -9,4 +9,5 @@ $(call add-cabal-package-source, \
   $(TOWER_REPO)/tower \
   $(TOWER_REPO)/tower-config \
   $(TOWER_REPO)/tower-hal \
+  $(ODROID_BSP_REPO) \
 )

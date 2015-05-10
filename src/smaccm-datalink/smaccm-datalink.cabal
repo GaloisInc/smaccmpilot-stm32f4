@@ -47,8 +47,10 @@ library
                        -- XXXX testing
                        tower-config,
                        tower-freertos-stm32,
+                       tower-aadl,
                        ivory-bsp-stm32,
                        ivory-bsp-tests,
+                       tower-camkes-odroid,
                        -- XXX
                        smaccm-commsec
   hs-source-dirs:      src
@@ -71,18 +73,20 @@ executable smaccm-datalink-ivory-commsecloopback-test-gen-stm32
                        smaccm-datalink
   ghc-options:         -Wall
 
--- executable smaccm-datalink-ivory-commsecloopback-test-gen-odroid
---   main-is:             IvoryCommsecLoopbackODROID.hs
---   hs-source-dirs:      test/IvoryCommsecLoopback
---   build-depends:       base,
---                        ivory,
---                        ivory-stdlib,
---                        tower,
---                        tower-config,
---                        tower-hal,
---                        smaccm-commsec,
---                        smaccm-datalink
---   ghc-options:         -Wall
+executable smaccm-datalink-ivory-commsecloopback-test-gen-odroid
+  main-is:             IvoryCommsecLoopbackODROID.hs
+  hs-source-dirs:      test
+  build-depends:       base,
+                       ivory,
+                       ivory-stdlib,
+                       tower,
+                       tower-config,
+                       tower-hal,
+                       tower-aadl,
+                       tower-camkes-odroid,
+                       smaccm-commsec,
+                       smaccm-datalink
+  ghc-options:         -Wall
 
 executable smaccm-datalink-native-serial-test
 
