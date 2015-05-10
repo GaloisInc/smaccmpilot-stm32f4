@@ -32,7 +32,7 @@ main = do
   key  <- getConfig topts symmetricKeyParser
   runCompileAADL opts c (app key)
   where
-  c = addAadlArtifacts map (commsecArtifacts uartConfig
+  c = addAadlArtifacts commsecArtifacts uartConfig
   topts = TOpts Nothing False [] error
 
 app :: SymmetricKey
