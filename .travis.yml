@@ -9,6 +9,8 @@ before_install:
   - export TOWER_REPO=$PWD/tower
   - git clone https://github.com/galoisinc/ivory-tower-stm32
   - export BSP_REPO=$PWD/ivory-tower-stm32
+  - git clone https://github.com/galoisinc/tower-camkes-odroid
+  - export ODROID_BSP_REPO=$PWD/tower-camkes-odroid
   - git clone https://github.com/galoisinc/gidl
   - export GIDL_REPO=$PWD/gidl
   - git clone https://github.com/aisamanra/s-cargot
