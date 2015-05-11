@@ -24,6 +24,7 @@ import SMACCMPilot.Comm.Ivory.Types.AccelerometerSample ()
 import SMACCMPilot.Comm.Ivory.Types.GyroscopeSample ()
 import SMACCMPilot.Comm.Ivory.Types.MagnetometerSample ()
 import SMACCMPilot.Comm.Ivory.Types.BarometerSample ()
+import SMACCMPilot.Comm.Ivory.Types (typeModules)
 import SMACCMPilot.Hardware.GPS.Types ()
 import SMACCMPilot.Hardware.Tests.Platforms
 
@@ -32,6 +33,8 @@ import Ivory.Serialize
 
 serializeTowerDeps :: Tower e ()
 serializeTowerDeps = do
+  mapM_ towerDepends typeModules
+  mapM_ towerModule typeModules
   towerDepends serializeModule
   towerModule  serializeModule
   mapM_ towerArtifact serializeArtifacts

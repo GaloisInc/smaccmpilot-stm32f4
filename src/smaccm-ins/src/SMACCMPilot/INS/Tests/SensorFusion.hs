@@ -16,6 +16,7 @@ import SMACCMPilot.Hardware.SensorManager
 import SMACCMPilot.Hardware.Tests.Platforms
 import SMACCMPilot.Hardware.Tests.Serialize
 import SMACCMPilot.Hardware.Tests.Ublox (uartUbloxGPSTower)
+import SMACCMPilot.Comm.Ivory.Types (typeModules)
 import SMACCMPilot.INS.Tower
 
 app :: (e -> PX4Platform) -> Tower e ()
@@ -46,6 +47,8 @@ app topx4 = do
 
   towerDepends serializeModule
   towerModule  serializeModule
+  mapM_ towerDepends typeModules
+  mapM_ towerModule typeModules
   mapM_ towerArtifact serializeArtifacts
   where
   tosens = px4platform_sensors . topx4
