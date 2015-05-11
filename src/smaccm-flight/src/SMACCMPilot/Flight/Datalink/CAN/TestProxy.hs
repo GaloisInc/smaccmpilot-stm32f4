@@ -15,6 +15,7 @@ import SMACCMPilot.Flight.Platform
 import SMACCMPilot.Flight.Datalink.UART (frameBuffer')
 import SMACCMPilot.Flight.Datalink.Commsec (padTower, unpadTower')
 import SMACCMPilot.Flight.Datalink.CAN (s2cType, c2sType)
+import SMACCMPilot.Comm.Tower.Interface.ControllableVehicle
 import SMACCMPilot.Hardware.CAN
 
 import Ivory.BSP.STM32.Driver.UART
@@ -26,7 +27,8 @@ app :: (e -> FlightPlatform)
 app tofp = do
   fp <- fmap tofp getEnv
 
-  can <- maybe (fail "fragmentation test requires a CAN peripheral") return $ fp_can fp
+  can <- maybe (fail "CAN test proxy test requires a CAN peripheral") return $
+               fp_can fp
   (canRx, canTx, _, _) <- canTower tocc (can_periph can) 125000 (can_RX can) (can_TX can)
 
   monitor "can_init" $ handler systemInit "can_init" $ do
@@ -34,12 +36,18 @@ app tofp = do
       let emptyID = CANFilterID32 (fromRep 0) (fromRep 0) False False
       canFilterInit (can_filters can)
         [CANFilterBank CANFIFO0 CANFilterMask $ CANFilter32 emptyID emptyID] []
-  cv_in <- channel
-  cv_out <- channel
 
-  uartDatalink tocc (fp_telem fp) 115200 (fst cv_out) (snd cv_in)
 
-  canDatalink canTx canRx (fst cv_in) (snd cv_out)
+  s2c_from_uart <- channel
+  c2s_from_can <- channel
+
+  cv_producer <- controllableVehicleProducerInput (snd c2s_from_can)
+  c2s_to_uart <- controllableVehicleProducerOutput cv_producer
+  cv_consumer <- controllableVehicleConsumerInput (snd s2c_from_uart)
+  s2c_to_can <- controllableVehicleConsumerOutput cv_consumer
+
+  uartDatalink tocc (fp_telem fp) 115200 (fst s2c_from_uart) c2s_to_uart
+  canDatalink canTx canRx (fst c2s_from_can) s2c_to_can
 
   return ()
   where
