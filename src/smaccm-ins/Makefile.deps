@@ -1,3 +1,7 @@
+create-sandbox::
+	make -C $(SMACCMPILOT_REPO)/smaccm-comm-schema create-sandbox
+	make -C $(SMACCMPILOT_REPO)/smaccm-comm-schema
+
 $(call add-cabal-package-source, \
   $(BSP_REPO)/ivory-bsp-stm32 \
   $(BSP_REPO)/tower-freertos-stm32 \
