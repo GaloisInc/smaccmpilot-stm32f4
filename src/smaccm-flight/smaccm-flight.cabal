@@ -98,6 +98,7 @@ executable             can-proxy-odroid-test-gen
                        tower-camkes-odroid,
                        tower-config,
                        smaccm-commsec,
+                       smaccm-datalink,
                        smaccm-flight
   default-language:    Haskell2010
   ghc-options:         -Wall

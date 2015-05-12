@@ -27,8 +27,9 @@ import Tower.Odroid.CAN
 import Tower.Odroid.UART
 
 
-app :: Tower e ()
-app = do
+app :: (e -> DatalinkMode)
+    -> Tower e ()
+app todl = do
   (canRx, canTx) <- canTower
 
   s2c_pt_from_uart <- channel
@@ -47,9 +48,6 @@ app = do
 
   uartDatalink (fst s2c_ct_from_uart) (snd c2s_ct_to_uart)
   canDatalink canTx canRx (fst c2s_from_can) s2c_to_can
-
-  where
-  todl _ = PlaintextMode
 
 canDatalink :: AbortableTransmit (Struct "can_message") (Stored IBool)
             -> ChanOutput (Struct "can_message")

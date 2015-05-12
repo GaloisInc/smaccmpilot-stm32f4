@@ -1,16 +1,15 @@
 module Main where
 
-import SMACCMPilot.Commsec.Ivory.Artifacts
-import SMACCMPilot.Flight.Datalink.CAN.TestProxyODROID (app)
-import System.Environment
+import Ivory.Tower.Config
 import Tower.AADL
-import Tower.Odroid.UART
-import Tower.Odroid.CAN (canArtifacts)
+
+import SMACCMPilot.Datalink.Mode
+import SMACCMPilot.Flight.Datalink.CAN.TestProxyODROID (app)
 
 main :: IO ()
-main = do
-  args <- getArgs
-  opts <- parseOpts args
-  runCompileAADL opts c app
+main = compileTowerAADL fst p (app snd)
   where
-  c = addAadlArtifacts (commsecArtifacts ++ canArtifacts) uartConfig
+  p topts = getConfig topts $ do
+    c <- aadlConfigParser defaultAADLConfig
+    k <- datalinkModeParser
+    return (c,k)
