@@ -5,6 +5,7 @@ import SMACCMPilot.Flight.Datalink.CAN.TestProxyODROID (app)
 import System.Environment
 import Tower.AADL
 import Tower.Odroid.UART
+import Tower.Odroid.CAN (canArtifacts)
 
 main :: IO ()
 main = do
@@ -12,4 +13,4 @@ main = do
   opts <- parseOpts args
   runCompileAADL opts c app
   where
-  c = addAadlArtifacts commsecArtifacts uartConfig
+  c = addAadlArtifacts (commsecArtifacts ++ canArtifacts) uartConfig
