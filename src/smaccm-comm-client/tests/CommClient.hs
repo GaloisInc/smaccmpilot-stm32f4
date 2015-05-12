@@ -1,7 +1,7 @@
 
 module Main where
 
-import Ivory.Tower.Compile.Options
+import Ivory.Tower.Options
 import Ivory.Tower.Config
 import SMACCMPilot.Comm.Native.Client
 import SMACCMPilot.Comm.Native.Client.Opts
