@@ -1,7 +1,6 @@
 module Main where
 
 import Ivory.Tower.Config
-import Ivory.Tower.Compile
 import Ivory.OS.FreeRTOS.Tower.STM32
 
 import SMACCMPilot.Flight.Platform
