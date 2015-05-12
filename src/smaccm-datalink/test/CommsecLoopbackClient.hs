@@ -10,7 +10,7 @@ import System.Console.GetOpt
 import System.Exit
 import System.IO
 
-import Ivory.Tower.Compile.Options
+import Ivory.Tower.Options
 import Ivory.Tower.Config
 
 main :: IO ()

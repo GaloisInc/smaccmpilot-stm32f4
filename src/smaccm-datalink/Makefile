@@ -26,7 +26,7 @@ smaccm-datalink-ivory-commsecloopback-test-stm32:
 
 .PHONY: smaccm-datalink-ivory-commsecloopback-test-odroid
 smaccm-datalink-ivory-commsecloopback-test-odroid:
-	cabal run smaccm-datalink-ivory-commsecloopback-test-gen-odroid -- --out-dir=datalink_aadl_out
+	cabal run smaccm-datalink-ivory-commsecloopback-test-gen-odroid -- --src-dir=datalink_aadl_out
 
 .PHONY: smaccm-datalink-ivory-commsecloopback-test-clean
 smaccm-datalink-ivory-commsecloopback-test-clean:

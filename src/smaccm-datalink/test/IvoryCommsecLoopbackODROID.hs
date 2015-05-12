@@ -1,43 +1,33 @@
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE RecursiveDo #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE TypeFamilies #-}
 
 module Main where
 
 import Ivory.Language
 import Ivory.Stdlib
 import Ivory.Tower
-import Ivory.Tower.Config
-import Ivory.Tower.Compile.Options (TOpts(..))
 import Tower.AADL
+import Ivory.Tower.Config
 
 import           Tower.Odroid.UART
 import qualified Ivory.Tower.HAL.Bus.Interface as I
 
 import SMACCMPilot.Commsec.SymmetricKey
-import SMACCMPilot.Commsec.Ivory.Artifacts
 
 import SMACCMPilot.Datalink.Loopback
-
-import System.Environment
 
 --------------------------------------------------------------------------------
 
 main :: IO ()
-main = do
-  args <- getArgs
-  opts <- parseOpts args
-  key  <- getConfig topts symmetricKeyParser
-  runCompileAADL opts c (app key)
+main = compileTowerAADL fst p (app snd)
   where
-  c = addAadlArtifacts commsecArtifacts uartConfig
-  topts = TOpts Nothing False [] error
+  p topts = getConfig topts $ do
+    c <- aadlConfigParser defaultAADLConfig
+    k <- symmetricKeyParser
+    return (c,k)
 
-app :: SymmetricKey
+
+app :: (e -> SymmetricKey)
     -> Tower e ()
-app key = do
+app tosk = do
 
   (o, i)    <- uartTower
   valueChan <- channel
@@ -55,6 +45,6 @@ app key = do
 
   let o' = o { I.backpressureTransmit = fst valueChan }
 
---  sk <- fmap tosk getEnv
-  frame_loopback key o' i
+  sk <- fmap tosk getEnv
+  frame_loopback sk o' i
 
