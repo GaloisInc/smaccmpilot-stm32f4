@@ -43,7 +43,7 @@ app key = do
   valueChan <- channel
 
   monitor "uartTyMon" $ do
-    packet <- state "uartPacket"
+    packet <- stateInit "uartPacket" (izero :: Init UartPacket)
 
     -- Handles commsec input, emitting to driver
     handler (snd valueChan) "uartTyHan" $ do
