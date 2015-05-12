@@ -11,7 +11,6 @@ import Ivory.Stdlib
 
 import Ivory.Tower
 import Ivory.Tower.Config
-import Ivory.Tower.Compile
 import Ivory.Tower.HAL.Bus.Interface
 import Ivory.Tower.HAL.RingBuffer
 import Ivory.OS.FreeRTOS.Tower.STM32
@@ -25,11 +24,8 @@ import SMACCMPilot.Datalink.HXStream.Tower
 import SMACCMPilot.Datalink.HXStream.Ivory (hxstreamModule)
 
 main :: IO ()
-main = towerCompile p (app id)
-  where
-  p topts = do
-    cfg <- getConfig topts BSP.testPlatformParser
-    return $ stm32FreeRTOS BSP.testplatform_stm32 cfg
+main = compileTowerSTM32FreeRTOS BSP.testplatform_stm32 p (app id)
+  where p topts = getConfig topts BSP.testPlatformParser
 
 app :: (e -> BSP.TestPlatform)
     -> Tower e ()

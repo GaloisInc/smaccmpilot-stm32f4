@@ -9,8 +9,5 @@ import SMACCMPilot.Hardware.Tests.Platforms
 import SMACCMPilot.Hardware.Tests.Ublox (app)
 
 main :: IO ()
-main = towerCompile p (app id)
-  where
-  p topts = do
-    cfg <- getConfig topts px4PlatformParser
-    return $ stm32FreeRTOS px4platform_stm32config cfg
+main = compileTowerSTM32FreeRTOS px4platform_stm32config p (app id)
+  where p topts = getConfig topts px4PlatformParser

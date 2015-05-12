@@ -8,8 +8,5 @@ import SMACCMPilot.Flight.Platform
 import SMACCMPilot.Flight.Datalink.CAN.TestProxy (app)
 
 main :: IO ()
-main = towerCompile p (app id)
-  where
-  p topts = do
-    cfg <- getConfig topts flightPlatformParser
-    return $ stm32FreeRTOS fp_stm32config cfg
+main = compileTowerSTM32FreeRTOS fp_stm32config p (app id)
+  where p topts = getConfig topts flightPlatformParser
