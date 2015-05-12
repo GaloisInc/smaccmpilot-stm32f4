@@ -9,7 +9,7 @@ include ../../Makefile.sandbox
 IVORY_FLAGS = --const-fold
 
 .PHONY: test
-test: test-fmu17 test-fmu24
+test: test-fmu24 test-odroid test-fmu17
 
 .PHONY: test-fmu17
 test-fmu17: platform-fmu17/comm-only-test-gen
@@ -22,6 +22,10 @@ test-fmu24: platform-fmu24/can-server-test-gen
 test-fmu24: platform-fmu24/can-proxy-test-gen
 test-fmu24: platform-fmu24/comm-only-test-gen
 test-fmu24: platform-fmu24/sensors-test-gen
+
+.PHONY: test-odroid
+test-odroid: default
+	cabal run can-proxy-odroid-test-gen -- --out-dir=can_proxy_odroid_test
 
 %-gen: default
 	cabal run $(@F) -- --src-dir=$* --conf-file=$(patsubst platform-%,%,$(*D)).conf $(IVORY_FLAGS)

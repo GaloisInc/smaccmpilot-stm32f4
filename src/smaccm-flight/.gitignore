@@ -2,5 +2,6 @@
 cabal.sandbox.config
 dist/
 user.conf
-platform-fmu17
-platform-fmu24
+can_proxy_odroid_test/
+platform-fmu17/
+platform-fmu24/

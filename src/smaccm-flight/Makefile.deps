@@ -8,6 +8,7 @@ $(call add-cabal-package-source, \
   $(IVORY_REPO)/ivory \
   $(IVORY_REPO)/ivory-serialize \
   $(IVORY_REPO)/ivory-stdlib \
+  $(ODROID_BSP_REPO) \
   $(SMACCMPILOT_REPO)/ivory-px4-hw \
   $(SMACCMPILOT_REPO)/smaccm-comm-schema/smaccm-comm-schema-tower \
   $(SMACCMPILOT_REPO)/smaccm-commsec \
