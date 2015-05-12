@@ -25,7 +25,8 @@ test-fmu24: platform-fmu24/sensors-test-gen
 
 .PHONY: test-odroid
 test-odroid: default
-	cabal run can-proxy-odroid-test-gen -- --out-dir=can_proxy_odroid_test
+	cabal run can-proxy-odroid-test-gen -- --src-dir=can_proxy_odroid_test \
+		--conf-file=odroid.conf $(IVORY_FLAGS)
 
 %-gen: default
 	cabal run $(@F) -- --src-dir=$* --conf-file=$(patsubst platform-%,%,$(*D)).conf $(IVORY_FLAGS)
