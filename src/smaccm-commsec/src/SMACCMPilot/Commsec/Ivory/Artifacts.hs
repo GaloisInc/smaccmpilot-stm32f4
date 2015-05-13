@@ -4,7 +4,6 @@ module SMACCMPilot.Commsec.Ivory.Artifacts
   ) where
 
 import Ivory.Artifact
-import Ivory.Artifact.Location
 import qualified Paths_smaccm_commsec
 import System.FilePath
 

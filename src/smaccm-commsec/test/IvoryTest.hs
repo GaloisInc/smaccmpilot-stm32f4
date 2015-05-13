@@ -11,7 +11,6 @@ import qualified Data.List as L
 
 import Ivory.Language
 import Ivory.Artifact
-import Ivory.Artifact.Location
 import Ivory.Stdlib
 import Ivory.Compile.C.CmdlineFrontend
 import SMACCMPilot.Commsec.Ivory
