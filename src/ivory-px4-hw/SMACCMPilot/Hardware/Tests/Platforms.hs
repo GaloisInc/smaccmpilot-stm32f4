@@ -27,6 +27,7 @@ import qualified Ivory.BSP.STM32F405.GPIO           as F405
 import qualified Ivory.BSP.STM32F405.GPIO.AF        as F405
 import qualified Ivory.BSP.STM32F405.ATIM18         as F405
 import qualified Ivory.BSP.STM32F405.Interrupt      as F405
+import qualified Ivory.BSP.STM32F427.I2C            as F427
 import qualified Ivory.BSP.STM32F427.UART           as F427
 import qualified Ivory.BSP.STM32F427.GPIO           as F427
 import qualified Ivory.BSP.STM32F427.GPIO.AF        as F427
@@ -55,6 +56,7 @@ data PX4Platform =
 
     , px4platform_console        :: UART_Device
     , px4platform_can            :: Maybe CAN_Device
+    , px4platform_rgbled         :: Maybe RGBLED_I2C
 
     , px4platform_stm32config    :: STM32Config
     }
@@ -105,6 +107,13 @@ data PPM
   = PPM_Timer ATIM GPIOPin GPIO_AF HasSTM32Interrupt
   | PPM_None
 
+
+data RGBLED_I2C =
+  RGBLED_I2C
+    { rgbled_i2c_periph :: I2CPeriph
+    , rgbled_i2c_pins   :: I2CPins
+    , rgbled_i2c_addr   :: I2CDeviceAddr
+    }
 ------
 
 px4platform_mpu6000 :: PX4Platform -> MPU6000_SPI
@@ -171,6 +180,7 @@ px4fmuv17 = PX4Platform
   , px4platform_ppm          = ppm_timer
   , px4platform_console      = console
   , px4platform_can          = Nothing
+  , px4platform_rgbled       = Nothing
   , px4platform_stm32config  = stm32f405Defaults 24
   }
   where
@@ -217,6 +227,7 @@ px4fmuv24 = PX4Platform
   , px4platform_ppm          = PPM_None -- XXX need px4io driver.
   , px4platform_console      = console
   , px4platform_can          = Just fmu24_can
+  , px4platform_rgbled       = Just rgbled
   , px4platform_stm32config  = stm32f427Defaults 24
   }
   where
@@ -236,7 +247,14 @@ px4fmuv24 = PX4Platform
         , uartPinAF = F427.gpio_af_uart4
         }
     }
-
+  rgbled = RGBLED_I2C
+    { rgbled_i2c_periph = F427.i2c2
+    , rgbled_i2c_pins = I2CPins
+        { i2cpins_sda = F427.pinB11
+        , i2cpins_scl = F427.pinB10
+        }
+    , rgbled_i2c_addr = I2CDeviceAddr 0x55
+    }
 
 ----
 

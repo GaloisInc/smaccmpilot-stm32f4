@@ -47,6 +47,8 @@ library
                        SMACCMPilot.Hardware.Sensors,
                        SMACCMPilot.Hardware.SensorManager,
 
+                       SMACCMPilot.Hardware.RGBLED,
+
                        SMACCMPilot.Hardware.Tests.Platforms,
                        SMACCMPilot.Hardware.Tests.Serialize,
                        SMACCMPilot.Hardware.Tests.CopterMotors,
@@ -55,6 +57,7 @@ library
                        SMACCMPilot.Hardware.Tests.Baro,
                        SMACCMPilot.Hardware.Tests.Magnetometer,
                        SMACCMPilot.Hardware.Tests.PPMIn,
+                       SMACCMPilot.Hardware.Tests.RGBLED,
 --                       SMACCMPilot.Hardware.Tests.CANFragment,
                        SMACCMPilot.Hardware.Tests.AllSensors,
 
@@ -158,6 +161,19 @@ executable             px4-mag-test-gen
 
 executable             px4-ppm-in-test-gen
   main-is:             PPMInTest.hs
+  hs-source-dirs:      tests
+  build-depends:       base >= 4.6,
+                       monadLib,
+                       tower              >= 0.9,
+                       tower-config,
+                       tower-freertos-stm32,
+                       ivory-px4-hw
+
+  default-language:    Haskell2010
+  ghc-options:         -Wall
+
+executable             px4-rgbled-test-gen
+  main-is:             RGBLEDTest.hs
   hs-source-dirs:      tests
   build-depends:       base >= 4.6,
                        monadLib,
