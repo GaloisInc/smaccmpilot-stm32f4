@@ -60,7 +60,10 @@ main :: IO ()
 main = C.compile modules artifacts
   where
   modules = [ins_module]
-  artifacts = makefile : map (artifactCabalFile P.getDataDir) ["tests/psas.c", "tests/psas-packet.h"]
+  artifacts = [ Root $ makefile
+              , Src  $ artifactCabalFile P.getDataDir "tests/psas.c"
+              , Incl $ artifactCabalFile P.getDataDir "tests/psas-packet.h"
+              ]
   makefile = artifactString "Makefile" $ unlines [
       "CC = gcc",
       "CFLAGS = -Wall -Os -Wno-unused-variable",
