@@ -33,7 +33,7 @@ frameLog = do
 bytestringLog :: String -> Pipe ByteString ByteString GW ()
 bytestringLog tag = do
   bs <- await
-  lift $ writeLog $ bytestringDebug tag bs
+  lift $ writeDbg $ bytestringDebug tag bs
   yield bs
   bytestringLog tag
 

@@ -34,6 +34,7 @@ datalinkClient opts dmode client = do
 
   b <- asyncRunEffect console "serial in"
           $ popProducer ser_in_pop
+        >-> bytestringLog "raw"
         >-> hxDecoder
         >-> frameLog
         >-> untagger 0
@@ -51,6 +52,7 @@ datalinkClient opts dmode client = do
          >-> tagger 0
          >-> frameLog
          >-> hxEncoder
+         >-> bytestringLog "raw"
          >-> pushConsumer ser_out_push
 
   client out_frame_push in_frame_pop console
