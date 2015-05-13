@@ -79,6 +79,7 @@ library
                        Paths_smaccm_commsec
   build-depends:       base >= 4.6,
                        bytestring,
+                       filepath,
                        ivory,
                        ivory-serialize,
                        ivory-stdlib,

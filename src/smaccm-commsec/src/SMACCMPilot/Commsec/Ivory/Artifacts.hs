@@ -3,13 +3,20 @@ module SMACCMPilot.Commsec.Ivory.Artifacts
   ( commsecArtifacts
   ) where
 
-import qualified Paths_smaccm_commsec
 import Ivory.Artifact
+import Ivory.Artifact.Location
+import qualified Paths_smaccm_commsec
+import System.FilePath
 
-commsecArtifacts :: [Artifact]
-commsecArtifacts = map
-  (\p -> artifactCabalFile Paths_smaccm_commsec.getDataDir ("support/" ++ p))
+commsecArtifacts :: [Located Artifact]
+commsecArtifacts = map (\ p -> loc p $ src p)
   (aesFiles ++ curve25519Files ++ ed25519Files ++ apiFiles)
+  where
+  loc f = case takeExtension f of
+    ".h" -> Incl
+    ".c" -> Src
+    _ -> Root
+  src f = artifactCabalFile Paths_smaccm_commsec.getDataDir ("support" </> f)
 
 
 apiFiles, aesFiles, curve25519Files, ed25519Files :: [FilePath]
@@ -21,7 +28,7 @@ apiFiles =
   , "gec-ke.h"
   ]
 
-aesFiles = map ("aes/" ++)
+aesFiles = map ("aes" </>)
   [ "aes.h"
   , "aescrypt.c"
   , "aeskey.c"
@@ -40,7 +47,7 @@ aesFiles = map ("aes/" ++)
   , "mode_hdr.h"
   ]
 
-ed25519Files = map ("ed25519/" ++)
+ed25519Files = map ("ed25519" </>)
   [ "ed25519.c"
   , "ed25519.h"
   , "ed25519-hash.h"
@@ -63,7 +70,7 @@ ed25519Files = map ("ed25519/" ++)
   , "modm-donna-64bit.h"
   ]
 
-curve25519Files = map ("curve25519/" ++)
+curve25519Files = map ("curve25519" </>)
   [ "curve25519-donna.c"
   , "curve25519-donna.h"
   ]
