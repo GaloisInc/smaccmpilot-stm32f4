@@ -36,6 +36,7 @@ library
                        SMACCMPilot.Flight.Datalink.Commsec,
                        SMACCMPilot.Flight.Datalink.UART,
                        SMACCMPilot.Flight.Datalink.TestApp,
+                       SMACCMPilot.Flight.Light,
                        SMACCMPilot.Flight.Motors,
                        SMACCMPilot.Flight.Motors.Decoder,
                        SMACCMPilot.Flight.Motors.Mixing,

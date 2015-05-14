@@ -7,10 +7,11 @@ import Ivory.Tower
 
 import SMACCMPilot.Flight.Platform
 import SMACCMPilot.Flight.Datalink
+import SMACCMPilot.Flight.Light
 
 
 app :: (e -> FlightPlatform)
     -> Tower e ()
 app tofp = do
-  _ <- datalinkTower tofp
-  return ()
+  (attrs, _streams) <- datalinkTower tofp
+  lightTower tofp attrs
