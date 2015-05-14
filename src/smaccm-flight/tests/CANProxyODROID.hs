@@ -10,6 +10,6 @@ main :: IO ()
 main = compileTowerAADL fst p (app snd)
   where
   p topts = getConfig topts $ do
-    c <- aadlConfigParser defaultAADLConfig
+    c <- aadlConfigParser $ defaultAADLConfig { configSystemHW = ODROID }
     k <- datalinkModeParser
     return (c,k)

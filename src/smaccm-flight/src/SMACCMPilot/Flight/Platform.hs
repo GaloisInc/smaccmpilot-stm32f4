@@ -7,6 +7,7 @@ module SMACCMPilot.Flight.Platform
   , fp_clockconfig
   , UART_Device(..)
   , PPM(..)
+  , RGBLED_I2C(..)
   , STM32Config
   , ClockConfig
   ) where
@@ -21,16 +22,19 @@ import qualified Ivory.BSP.STM32F405.GPIO.AF        as F405
 import qualified Ivory.BSP.STM32F405.ATIM18         as F405
 import qualified Ivory.BSP.STM32F405.Interrupt      as F405
 import qualified Ivory.BSP.STM32F427.UART           as F427
+import qualified Ivory.BSP.STM32F427.I2C            as F427
 import qualified Ivory.BSP.STM32F427.GPIO           as F427
 import qualified Ivory.BSP.STM32F427.GPIO.AF        as F427
 import           Ivory.BSP.STM32.Peripheral.UART
+import           Ivory.BSP.STM32.Peripheral.I2C
+import           Ivory.BSP.STM32.Driver.I2C
 import           Ivory.BSP.STM32.Interrupt
 import           Ivory.BSP.STM32.ClockConfig
 import           Ivory.OS.FreeRTOS.Tower.STM32.Config
 import           SMACCMPilot.Datalink.Mode
 import           SMACCMPilot.Hardware.CAN
 import           SMACCMPilot.Hardware.Sensors
-import           SMACCMPilot.Hardware.Tests.Platforms (PPM(..))
+import           SMACCMPilot.Hardware.Tests.Platforms (PPM(..), RGBLED_I2C(..))
 
 
 data FlightPlatform =
@@ -40,6 +44,7 @@ data FlightPlatform =
     , fp_sensors      :: Sensors
     , fp_can          :: Maybe CAN_Device
     , fp_datalink     :: DatalinkMode
+    , fp_rgbled       :: Maybe RGBLED_I2C
     , fp_stm32config  :: STM32Config
     }
 
@@ -68,6 +73,7 @@ px4fmuv17 dmode = FlightPlatform
   , fp_sensors     = fmu17_sensors
   , fp_can         = Nothing
   , fp_datalink    = dmode
+  , fp_rgbled      = Nothing
   , fp_stm32config = stm32f405Defaults 24
   }
   where
@@ -90,6 +96,7 @@ px4fmuv24 dmode = FlightPlatform
   , fp_sensors     = fmu24_sensors
   , fp_can         = Just fmu24_can
   , fp_datalink    = dmode
+  , fp_rgbled      = Just rgbled
   , fp_stm32config = stm32f427Defaults 24
   }
   where
@@ -101,3 +108,13 @@ px4fmuv24 dmode = FlightPlatform
         , uartPinAF = F427.gpio_af_uart2
         }
     }
+  -- invariant: rgbled is only device attached to given i2c periph.
+  rgbled = RGBLED_I2C
+    { rgbled_i2c_periph = F427.i2c2
+    , rgbled_i2c_pins = I2CPins
+        { i2cpins_sda = F427.pinB11
+        , i2cpins_scl = F427.pinB10
+        }
+    , rgbled_i2c_addr = I2CDeviceAddr 0x55
+    }
+

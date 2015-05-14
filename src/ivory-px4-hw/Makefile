@@ -24,6 +24,7 @@ test-fmu24: platform-fmu24/ublox-gps-test-gen
 test-fmu24: platform-fmu24/px4-mpu6k-test-gen
 test-fmu24: platform-fmu24/px4-baro-test-gen
 test-fmu24: platform-fmu24/px4-mag-test-gen
+test-fmu24: platform-fmu24/px4-rgbled-test-gen
 test-fmu24: platform-fmu24/px4-all-sensors-test-gen
 # test-fmu24: platform-fmu24/px4-can-fragment-test-gen
 

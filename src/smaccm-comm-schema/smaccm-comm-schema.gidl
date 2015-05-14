@@ -145,6 +145,11 @@
   (backleft   float_t)
   (backright  float_t))
 
+(def-struct rgb_led_setting_t
+  (red        uint8_t)
+  (green      uint8_t)
+  (blue       uint8_t))
+
 (def-interface vehicle_i ()
   (heartbeat               (stream         heartbeat_t))
   (control_law             (attr read      control_law_t))
@@ -182,5 +187,8 @@
   (control_law_request (attr readwrite control_law_t))
   -- Use to set user input, when safety input permits the GCS to set the
   -- user input:
-  (user_input_request  (attr readwrite user_input_t)))
+  (user_input_request  (attr readwrite user_input_t))
+
+  -- Control rgb led:
+  (rgb_led             (attr readwrite rgb_led_setting_t)))
 

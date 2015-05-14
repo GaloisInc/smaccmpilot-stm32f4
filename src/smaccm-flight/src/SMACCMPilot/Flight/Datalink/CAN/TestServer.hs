@@ -10,6 +10,7 @@ import SMACCMPilot.Flight.Platform
 import SMACCMPilot.Flight.Datalink.ControllableVehicle
 import SMACCMPilot.Flight.Datalink.CAN
 import SMACCMPilot.Flight.Sensors
+import SMACCMPilot.Flight.Light
 import SMACCMPilot.Hardware.CAN
 
 
@@ -29,7 +30,7 @@ app tofp = do
   (attrs, _streams) <- canDatalink canTx canRx controllableVehicle
 
   sensorTower tofp attrs
+  lightTower  tofp attrs
 
-  return ()
   where
   tocc = fp_clockconfig . tofp
