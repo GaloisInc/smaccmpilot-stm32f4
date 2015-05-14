@@ -52,11 +52,11 @@ rgbLedManager bp_i2c init_chan attr addr = do
             [ tx_addr .= ival addr
             , tx_buf  .= iarray
                 [ ival 0x81
-                , ival (limit r)
+                , ival (limit b)
                 , ival 0x82
                 , ival (limit g)
                 , ival 0x83
-                , ival (limit b)
+                , ival (limit r)
                 ]
             , tx_len  .= ival 6
             , rx_len  .= ival 0
