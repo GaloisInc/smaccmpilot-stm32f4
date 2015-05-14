@@ -63,7 +63,7 @@ frameLoopbackClient :: Options -> IO ()
 frameLoopbackClient opts = datalinkClient opts PlaintextMode run
   where
   run to fro console = do
-    cts <- replicateM 20 (randomBytestring cyphertextSize)
+    cts <- replicateM 20 (randomBytestring plaintextSize)
     checkLoopback console cts to fro 100
 
 commsecLoopbackClient :: Options -> SymmetricKey -> IO ()

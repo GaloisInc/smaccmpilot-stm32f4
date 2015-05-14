@@ -39,7 +39,7 @@ datalinkClient opts dmode client = do
         >-> frameLog
         >-> untagger 0
         >-> case dmode of
-              PlaintextMode -> cat -- XXX unpad?
+              PlaintextMode -> unpadder plaintextSize
               SymmetricCommsecMode sk -> commsecDecoder (keyToBS (sk_s2c sk))
         >-> pushConsumer in_frame_push
 

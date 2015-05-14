@@ -119,3 +119,12 @@ padder l = do
     Left err -> lift (writeErr err)
     Right padded -> yield padded
   padder l
+
+unpadder :: Integer -> Pipe ByteString ByteString GW ()
+unpadder l = do
+  a <- await
+  let (s,e) = B.splitAt (fromInteger l) a
+  case B.all (== '\0') e of
+    True -> yield s
+    False -> lift (writeErr "unpadder error: tail contained nonzeroes")
+  unpadder l
