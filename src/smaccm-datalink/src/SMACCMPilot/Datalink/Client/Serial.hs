@@ -14,7 +14,8 @@ import           Control.Exception (bracket)
 
 import           System.Exit
 import           System.IO
-import           System.Serial
+import           System.Posix.IO
+import           System.Posix.Terminal
 
 import SMACCMPilot.Datalink.Client.Opts
 import SMACCMPilot.Datalink.Client.Queue
@@ -35,7 +36,7 @@ serialServer opts console = case serPort opts of
   where
   run port ser_in_push ser_out_pop = void $ forkIO $ bracket open hClose body
     where
-    open = openSerial port (serBaud opts) 8 One NoParity NoFlowControl
+    open = openSerial port (serBaud opts)
     body h = do
       hSetBuffering h NoBuffering
       i <- asyncRunGW console "serial input" $ liftIO $ forever $ do
@@ -47,3 +48,39 @@ serialServer opts console = case serPort opts of
         B.hPutStr h bs
       wait i
       wait o
+
+openSerial :: FilePath -> BaudRate -> IO Handle
+openSerial port baud = do
+  fd <- openFd port ReadWrite Nothing $
+          defaultFileFlags { noctty = True }
+  old <- getTerminalAttributes fd
+  let new = foldl withoutMode old rawFlags
+              `withBits` 8
+              `withInputSpeed` baud
+              `withOutputSpeed` baud
+  setTerminalAttributes fd new Immediately
+  h <- fdToHandle fd
+  hSetBuffering h NoBuffering
+  return h
+  where
+  rawFlags =
+    -- settings to clear to match cfmakeraw()
+    [ IgnoreBreak
+    , InterruptOnBreak
+    , MarkParityErrors
+    , StripHighBit
+    , MapLFtoCR
+    , IgnoreCR
+    , MapCRtoLF
+    , StartStopOutput
+    , ProcessOutput
+    , EnableEcho
+    , EchoLF
+    , ProcessInput
+    , KeyboardInterrupts
+    , ExtendedFunctions
+    , EnableParity
+    -- additional settings we want to clear
+    , TwoStopBits
+    , StartStopInput
+    ]

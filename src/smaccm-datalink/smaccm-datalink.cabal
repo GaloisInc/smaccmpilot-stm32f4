@@ -36,7 +36,6 @@ library
                        monadLib,
                        pipes,
                        random,
-                       serial,
                        stm,
                        transformers,
                        unix,
