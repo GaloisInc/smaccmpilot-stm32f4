@@ -12,51 +12,35 @@ $(function() {
 
   var RgbLedView = Backbone.View.extend({
     initialize: function () {
-      this.$el.html(''
-        + this.button('red', 'Red')
-        + this.button('blue', 'Blue')
-        + this.button('green', 'Green')
-        );
+      var self = this;
+      this.$el.spectrum({
+        flat: true,
+        color: '#000',
+        change: function (color) {
+          var rgb = color.toRgb();
+          self.model.set({
+            red:   rgb.r / 16,
+            green: rgb.g / 16,
+            blue:  rgb.b / 16
+          });
+          self.model.save();
+        }
+      })
       this.model.on('change', this.render, this);
 
-      var self = this;
-      _.map(['red', 'blue', 'green'], function (color) {
-        self.$('#btn-' + color).click(function () { self.click(color) })
-      });
     },
 
     render: function () {
       var mdl = this.model.toJSON();
-      var self = this;
-      _.map(['red', 'blue', 'green'], function (color) {
-        var c = mdl[color];
-        var el = self.$('#btn-' + color);
-        if (c > 0) {
-          el.removeClass('btn-default')
-            .addClass('btn-success');
-        } else {
-          el.removeClass('btn-success')
-            .addClass('btn-default');
-        }
-      });
+      this.$el.spectrum('set', tinycolor({
+          r : mdl.red * 16,
+          g : mdl.green * 16,
+          b : mdl.blue * 16,
+          a : 1
+      }));
+
     },
 
-    click : function (color) {
-      var mdl = this.model.toJSON();
-      if (mdl[color] > 0) {
-        mdl[color] = 0;
-      } else {
-        mdl[color] = 8;
-      }
-      this.model.set(mdl);
-      this.model.save();
-    },
-
-    button: function (id, text) {
-        return ('<button type="button" class="btn btn-default" id="btn-'
-              + id +'">'
-              + text + '</button>');
-    }
   });
 
   window.rgbLed =
