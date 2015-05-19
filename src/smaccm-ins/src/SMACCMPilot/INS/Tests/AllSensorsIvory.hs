@@ -1,7 +1,9 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
 
-module Main where
+module SMACCMPilot.INS.Tests.AllSensorsIvory
+  ( app
+  ) where
 
 import Data.List (intercalate)
 
@@ -16,6 +18,12 @@ import Numeric.Estimator.Model.SensorFusion
 
 import SMACCMPilot.INS.Ivory
 import SMACCMPilot.Hardware.SensorMonitor
+import qualified SMACCMPilot.Comm.Ivory.Types.AccelerometerSample as A
+import qualified SMACCMPilot.Comm.Ivory.Types.GyroscopeSample     as G
+import qualified SMACCMPilot.Comm.Ivory.Types.MagnetometerSample  as M
+import qualified SMACCMPilot.Comm.Ivory.Types.BarometerSample     as M
+import qualified SMACCMPilot.Comm.Ivory.Types.Xyz                 as XYZ
+import qualified SMACCMPilot.Comm.Ivory.Types.TimeMicros          as T
 
 kalman_state :: MemArea (Struct "kalman_state")
 kalman_state = area "kalman_state" Nothing
@@ -85,7 +93,14 @@ sensorMonitor = decoder $ SensorHandlers
   , sh_accel = \accel_sample -> do
       refCopy accel_buf accel_sample
       check_init init_accel $ do
-        call_ kalman_predict 1.0 2.2 3.3 4.4 5.5 6.6 7.7
+        now <- deref (accel_buf ~> A.time)
+        prev <- deref timestamp_ref
+        let dt_micros :: Sint32
+            dt_micros = castDefault $ (T.unTimeMicros now) - (T.unTimeMicros prev)
+            dt_seconds = (safeCast dt_micros) / 1000000.0
+
+        call_ kalman_predict dt_seconds 2.2 3.3 4.4 5.5 6.6 7.7
+        store timestamp_ref now
   , sh_gps = \_gps_sample -> do
       check_init 0 $ do
         call_ pos_measure 1.1 2.2 3.3
@@ -96,6 +111,7 @@ sensorMonitor = decoder $ SensorHandlers
       defMemArea accel_area
       defMemArea baro_area
       defMemArea init_area
+      defMemArea timestamp_area
       depend ins_module
   }
 
@@ -118,6 +134,9 @@ sensorMonitor = decoder $ SensorHandlers
     when (i ==? 8) ow
 
 
+  timestamp_area = area "timestamp_previous" Nothing
+  timestamp_ref = addrOf timestamp_area
+
   gyro_area = area "gyro_latest" Nothing
   gyro_buf = addrOf gyro_area
 
@@ -130,8 +149,8 @@ sensorMonitor = decoder $ SensorHandlers
   baro_area = area "baro_latest" Nothing
   baro_buf = addrOf baro_area
 
-main :: IO ()
-main = C.compile modules artifacts
+app :: IO ()
+app = C.compile modules artifacts
   where
   modules = [ins_module] ++ sensorMonitor
   artifacts = [Root makefile] ++ serializeArtifacts
