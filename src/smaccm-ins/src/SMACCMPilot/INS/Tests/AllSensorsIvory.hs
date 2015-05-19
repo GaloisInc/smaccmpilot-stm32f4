@@ -55,7 +55,7 @@ kalman_output = proc "kalman_output" $ body $ do
     deref (a ! ix) >>= print_float
 
   print_float :: IFloat -> Ivory eff ()
-  print_float v = call_ printf_float "%d" v
+  print_float v = call_ printf_float "%f " v
 
   endl :: Ivory eff ()
   endl = call_ puts ""
@@ -218,7 +218,7 @@ app = C.compile modules artifacts
 
   makefile = artifactString "Makefile" $ unlines [
       "CC = gcc",
-      "CFLAGS = -Wall -Os -Wno-unused-variable -I.",
+      "CFLAGS = -Wall -Os -std=c99 -Wno-unused-variable -I.",
       "LDLIBS = -lm",
       "OBJS = " ++ intercalate " " [ moduleName m ++ ".o" | m <- modules ],
       "test: $(OBJS)",
