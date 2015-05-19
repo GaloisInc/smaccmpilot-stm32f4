@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module SMACCMPilot.INS.Tests.AllSensorsIvory
   ( app
@@ -21,7 +22,7 @@ import SMACCMPilot.Hardware.SensorMonitor
 import qualified SMACCMPilot.Comm.Ivory.Types.AccelerometerSample as A
 import qualified SMACCMPilot.Comm.Ivory.Types.GyroscopeSample     as G
 import qualified SMACCMPilot.Comm.Ivory.Types.MagnetometerSample  as M
-import qualified SMACCMPilot.Comm.Ivory.Types.BarometerSample     as M
+import qualified SMACCMPilot.Comm.Ivory.Types.BarometerSample     as B
 import qualified SMACCMPilot.Comm.Ivory.Types.Xyz                 as XYZ
 import qualified SMACCMPilot.Comm.Ivory.Types.TimeMicros          as T
 
@@ -39,9 +40,25 @@ kalman_init = proc "kalman_init" $ \ accX accY accZ magX magY magZ pressure -> b
 
 kalman_predict :: Def ('[IFloat, IFloat, IFloat, IFloat, IFloat, IFloat, IFloat] :-> ())
 kalman_predict = proc "kalman_predict" $ \ dt dax day daz dvx dvy dvz -> body $ do
-  let distVector = DisturbanceVector { disturbanceGyro = xyz dax day daz
-                                     , disturbanceAccel = xyz dvx dvy dvz }
+  let distVector = DisturbanceVector { disturbanceGyro = xyz dax day daz -- delta angle
+                                     , disturbanceAccel = xyz dvx dvy dvz } -- delta velocity
   kalmanPredict (addrOf kalman_state) (addrOf kalman_covariance) dt distVector
+
+kalman_output :: Def ('[]:->())
+kalman_output = proc "kalman_output" $ body $ do
+  print_array (addrOf kalman_state ~> orient)
+  print_array (addrOf kalman_state ~> vel)
+  print_array (addrOf kalman_state ~> pos)
+  endl
+  where
+  print_array a = arrayMap $ \ix ->
+    deref (a ! ix) >>= print_float
+
+  print_float :: IFloat -> Ivory eff ()
+  print_float v = call_ printf_float "%d" v
+
+  endl :: Ivory eff ()
+  endl = call_ puts ""
 
 vel_measure :: Def ('[IFloat, IFloat, IFloat] :-> ())
 vel_measure = proc "vel_measure" $ \ velN velE velD -> body $ do
@@ -72,24 +89,38 @@ ins_module = package "smaccm_ins" $ do
   defMemArea kalman_covariance
   incl kalman_init
   incl kalman_predict
+  incl kalman_output
   incl vel_measure
   incl pos_measure
   incl pressure_measure
   incl tas_measure
   incl mag_measure
+  incl printf_float
+  incl puts
+
+printf_float :: Def('[IString, IFloat] :-> ())
+printf_float = importProc "printf" "stdio.h"
+
+puts :: Def('[IString] :-> ())
+puts = importProc "puts" "stdio.h"
 
 sensorMonitor :: [Module]
 sensorMonitor = decoder $ SensorHandlers
   { sh_baro = \baro_sample -> do
       refCopy baro_buf baro_sample
       check_init init_baro $ do
-        call_ pressure_measure 0.0 -- XXX FIXME
+        p <- baro_get_sample baro_buf
+        call_ pressure_measure p
+
   , sh_mag = \mag_sample -> do
       refCopy mag_buf mag_sample
       check_init init_mag $ do
-        call_ mag_measure 1.2 2.3 3.4 -- XXX FIXME
+        (mx, my, mz) <- mag_get_sample mag_buf
+        call_ mag_measure mx my mz
+
   , sh_gyro = \gyro_sample -> do
       refCopy gyro_buf gyro_sample
+
   , sh_accel = \accel_sample -> do
       refCopy accel_buf accel_sample
       check_init init_accel $ do
@@ -99,10 +130,14 @@ sensorMonitor = decoder $ SensorHandlers
             dt_micros = castDefault $ (T.unTimeMicros now) - (T.unTimeMicros prev)
             dt_seconds = (safeCast dt_micros) / 1000000.0
 
-        call_ kalman_predict dt_seconds 2.2 3.3 4.4 5.5 6.6 7.7
+        (ax, ay, az) <- accel_get_sample accel_buf
+        (gx, gy, gz) <- gyro_get_sample gyro_buf
+        call_ kalman_predict dt_seconds gx gy gz ax ay az
+        call_ kalman_output
         store timestamp_ref now
   , sh_gps = \_gps_sample -> do
       check_init 0 $ do
+        -- XXX this is nonsense:
         call_ pos_measure 1.1 2.2 3.3
         call_ vel_measure 4.4 5.5 6.6
   , sh_moddef = do
@@ -129,10 +164,36 @@ sensorMonitor = decoder $ SensorHandlers
       store init_ref (i .| field)
     when (i ==? 7) $ do
       store init_ref init_done
-      -- XXX get stuff out of accel_buf, mag_buf, baro_buf
-      call_ kalman_init 1.0 2.0 3.3 4.4 5.5 6.6 7.7
+      (ax, ay, az) <- accel_get_sample accel_buf
+      (mx, my, mz) <- mag_get_sample mag_buf
+      p <- baro_get_sample baro_buf
+      call_ kalman_init ax ay az mx my mz p
     when (i ==? 8) ow
 
+  accel_get_sample buf = do
+    ax <- deref ((buf ~> A.sample) ~> XYZ.x)
+    ay <- deref ((buf ~> A.sample) ~> XYZ.y)
+    az <- deref ((buf ~> A.sample) ~> XYZ.z)
+    return (ax, ay, az)
+
+  gyro_get_sample buf = do
+    let toRads deg = deg * pi / 180.0
+    gx <- fmap toRads $ deref ((buf ~> G.sample) ~> XYZ.x)
+    gy <- fmap toRads $ deref ((buf ~> G.sample) ~> XYZ.y)
+    gz <- fmap toRads $ deref ((buf ~> G.sample) ~> XYZ.z)
+    return (gx, gy, gz)
+
+
+  mag_get_sample buf = do
+    let toMilligauss gauss = gauss * 1000
+    mx <- fmap toMilligauss $ deref ((buf ~> M.sample) ~> XYZ.x)
+    my <- fmap toMilligauss $ deref ((buf ~> M.sample) ~> XYZ.y)
+    mz <- fmap toMilligauss $ deref ((buf ~> M.sample) ~> XYZ.z)
+    return (mx, my, mz)
+
+  baro_get_sample buf = do
+    let toPascals mbar = mbar * 100
+    fmap toPascals $ deref (buf ~> B.pressure)
 
   timestamp_area = area "timestamp_previous" Nothing
   timestamp_ref = addrOf timestamp_area
