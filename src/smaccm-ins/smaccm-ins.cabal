@@ -81,6 +81,7 @@ executable all-sensors-ins-test-gen
                        ivory-artifact >=0.1,
                        ivory-backend-c >=0.1,
                        ivory-serialize,
+                       ivory-stdlib,
                        ivory-px4-hw,
                        smaccm-ins
   default-language:    Haskell2010

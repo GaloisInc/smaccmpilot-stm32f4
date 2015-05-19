@@ -3,9 +3,10 @@
 
 module Main where
 
-import Data.List
+import Data.List (intercalate)
 
 import Ivory.Language
+import Ivory.Stdlib
 import Ivory.Serialize
 import Ivory.Artifact
 import qualified Ivory.Compile.C.CmdlineFrontend as C (compile)
@@ -71,26 +72,63 @@ ins_module = package "smaccm_ins" $ do
 
 sensorMonitor :: [Module]
 sensorMonitor = decoder $ SensorHandlers
-  { sh_baro = \_baro_sample -> do
-      call_ pressure_measure 0.0 -- XXX FIXME
-  , sh_mag = \_mag_sample -> do
-      call_ mag_measure 1.2 2.3 3.4 -- XXX FIXME
+  { sh_baro = \baro_sample -> do
+      refCopy baro_buf baro_sample
+      check_init init_baro $ do
+        call_ pressure_measure 0.0 -- XXX FIXME
+  , sh_mag = \mag_sample -> do
+      refCopy mag_buf mag_sample
+      check_init init_mag $ do
+        call_ mag_measure 1.2 2.3 3.4 -- XXX FIXME
   , sh_gyro = \gyro_sample -> do
       refCopy gyro_buf gyro_sample
-  , sh_accel = \_accel_sample -> do
-      -- XXX get gyro_buf
-      call_ kalman_predict 1.0 2.2 3.3 4.4 5.5 6.6 7.7
+  , sh_accel = \accel_sample -> do
+      refCopy accel_buf accel_sample
+      check_init init_accel $ do
+        call_ kalman_predict 1.0 2.2 3.3 4.4 5.5 6.6 7.7
   , sh_gps = \_gps_sample -> do
-      call_ pos_measure 1.1 2.2 3.3
-      call_ vel_measure 4.4 5.5 6.6
+      check_init 0 $ do
+        call_ pos_measure 1.1 2.2 3.3
+        call_ vel_measure 4.4 5.5 6.6
   , sh_moddef = do
       defMemArea gyro_area
+      defMemArea mag_area
+      defMemArea accel_area
+      defMemArea baro_area
+      defMemArea init_area
       depend ins_module
   }
 
   where
-  gyro_area = area "gyro" Nothing
+  init_area = area "init_state" Nothing
+  init_ref :: Ref Global (Stored Uint32)
+  init_ref = addrOf init_area
+  init_mag = 1
+  init_accel = 2
+  init_baro = 4
+  init_done = 8
+  check_init field ow = do
+    i <- deref init_ref
+    when (i <? 7) $ do
+      store init_ref (i .| field)
+    when (i ==? 7) $ do
+      store init_ref init_done
+      -- XXX get stuff out of accel_buf, mag_buf, baro_buf
+      call_ kalman_init 1.0 2.0 3.3 4.4 5.5 6.6 7.7
+    when (i ==? 8) ow
+
+
+  gyro_area = area "gyro_latest" Nothing
   gyro_buf = addrOf gyro_area
+
+  accel_area = area "accel_latest" Nothing
+  accel_buf = addrOf accel_area
+
+  mag_area = area "mag_latest" Nothing
+  mag_buf = addrOf mag_area
+
+  baro_area = area "baro_latest" Nothing
+  baro_buf = addrOf baro_area
 
 main :: IO ()
 main = C.compile modules artifacts
