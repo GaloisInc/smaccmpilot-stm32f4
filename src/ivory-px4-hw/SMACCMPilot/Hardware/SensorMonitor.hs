@@ -50,14 +50,15 @@ decoder SensorHandlers{..} = decoderModule : dependencies
   decoderModule :: Module
   decoderModule = package "decoder" $ do
     mapM_ depend dependencies
-    incl baro_proc
-    incl mag_proc
-    incl gyro_proc
-    incl accel_proc
-    incl gps_proc
-    incl getchar
     incl decoder_proc
-    sh_moddef
+    private $ do
+      incl baro_proc
+      incl mag_proc
+      incl gyro_proc
+      incl accel_proc
+      incl gps_proc
+      incl getchar
+      sh_moddef
 
   dependencies =
     [ gpsTypesModule
@@ -66,23 +67,23 @@ decoder SensorHandlers{..} = decoderModule : dependencies
     ] ++ typeModules
 
   baro_proc :: Def ('[ConstRef s (Struct "barometer_sample")] :-> ())
-  baro_proc = proc "baro" $ \ v -> body $ do
+  baro_proc = proc "baro_sample_handler" $ \ v -> body $ do
     sh_baro v
 
   mag_proc :: Def ('[ConstRef s (Struct "magnetometer_sample")] :-> ())
-  mag_proc = proc "mag" $ \ v -> body $ do
+  mag_proc = proc "mag_sample_handler" $ \ v -> body $ do
     sh_mag v
 
   gyro_proc :: Def ('[ConstRef s (Struct "gyroscope_sample")] :-> ())
-  gyro_proc = proc "gyro" $ \ v -> body $ do
+  gyro_proc = proc "gyro_sample_handler" $ \ v -> body $ do
     sh_gyro v
 
   accel_proc :: Def ('[ConstRef s (Struct "accelerometer_sample")] :-> ())
-  accel_proc = proc "accel" $ \ v -> body $ do
+  accel_proc = proc "accel_sample_handler" $ \ v -> body $ do
     sh_accel v
 
   gps_proc :: Def ('[ConstRef s (Struct "position")] :-> ())
-  gps_proc = proc "gps" $ \ v -> body $ do
+  gps_proc = proc "gps_sample_handler" $ \ v -> body $ do
     sh_gps v
 
 handler :: (ANat len, IvoryArea a, IvoryZero a, Packable a)
