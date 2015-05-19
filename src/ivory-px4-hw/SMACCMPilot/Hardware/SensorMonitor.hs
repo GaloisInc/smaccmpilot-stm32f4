@@ -14,10 +14,7 @@ import Ivory.Language
 import Ivory.Serialize
 import Ivory.Stdlib
 import SMACCMPilot.Hardware.GPS.Types
-import SMACCMPilot.Comm.Ivory.Types.AccelerometerSample
-import SMACCMPilot.Comm.Ivory.Types.GyroscopeSample
-import SMACCMPilot.Comm.Ivory.Types.BarometerSample
-import SMACCMPilot.Comm.Ivory.Types.MagnetometerSample
+import SMACCMPilot.Comm.Ivory.Types
 
 data SensorHandlers =
   SensorHandlers
@@ -66,11 +63,7 @@ decoder SensorHandlers{..} = decoderModule : dependencies
     [ gpsTypesModule
     , serializeModule
     , hxstreamModule
-    , accelerometerSampleTypesModule
-    , gyroscopeSampleTypesModule
-    , magnetometerSampleTypesModule
-    , barometerSampleTypesModule
-    ]
+    ] ++ typeModules
 
   baro_proc :: Def ('[ConstRef s (Struct "barometer_sample")] :-> ())
   baro_proc = proc "baro" $ \ v -> body $ do
