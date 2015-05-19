@@ -39,5 +39,15 @@ px4-sensor-fusion-test:
 px4-sensor-fusion-test-clean:
 	-rm -rf px4-sensor-fusion-test
 
+.PHONY: all-sensors-ins-test
+all-sensors-ins-test:
+	cabal run all-sensors-ins-test-gen -- --src-dir=$@ --no-sanity-check $(IVORY_FLAGS)
+	make -C $@
+
+.PHONY: all-sensors-ins-test-clean
+all-sensors-ins-test-clean:
+	-rm -rf all-sensors-ins-test
+
 clean: psas-recording-ivory-test-clean
 clean: px4-sensor-fusion-test-clean
+clean: all-sensors-ins-test-clean

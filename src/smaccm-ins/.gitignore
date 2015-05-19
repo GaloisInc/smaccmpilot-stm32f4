@@ -5,3 +5,4 @@ user.conf
 psas-recording-ivory-test/
 platform-*
 px4-sensor-fusion-test
+all-sensors-ins-test

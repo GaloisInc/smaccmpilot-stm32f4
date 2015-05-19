@@ -80,6 +80,8 @@ executable all-sensors-ins-test-gen
                        ivory >=0.1,
                        ivory-artifact >=0.1,
                        ivory-backend-c >=0.1,
+                       ivory-serialize,
+                       ivory-px4-hw,
                        smaccm-ins
   default-language:    Haskell2010
   ghc-options:         -Wall -Werror
