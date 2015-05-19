@@ -1,8 +1,10 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 import Data.List
+import Data.Char (ord)
 import Ivory.Artifact
 import qualified Ivory.Compile.C.CmdlineFrontend as C (compile)
 import SMACCMPilot.Datalink.HXStream.Ivory
@@ -10,17 +12,19 @@ import Ivory.Language
 import Ivory.Serialize
 import Ivory.Stdlib
 import SMACCMPilot.Hardware.GPS.Types
-import SMACCMPilot.Hardware.HMC5883L.Types
-import SMACCMPilot.Hardware.MPU6000.Types
-import SMACCMPilot.Hardware.MS5611.Types
+import SMACCMPilot.Comm.Ivory.Types (typeModules)
+import SMACCMPilot.Comm.Ivory.Types.AccelerometerSample
+import SMACCMPilot.Comm.Ivory.Types.GyroscopeSample
+import SMACCMPilot.Comm.Ivory.Types.BarometerSample
+import SMACCMPilot.Comm.Ivory.Types.MagnetometerSample
 
 handler :: (ANat len, IvoryArea a, IvoryZero a, Packable a)
         => Ref s1 (Array len (Stored Uint8))
-        -> Tag
+        -> Char
         -> (forall s2. Def ('[ConstRef s2 a] :-> ()))
         -> FrameHandler
 handler buf tag consumer = mkFrameHandler ScopedFrameHandler
-  { fhTag = tag
+  { fhTag = fromIntegral $ ord tag
   , fhBegin = return ()
   , fhData = \ b off -> do
       assert $ off <? arrayLen buf
@@ -31,54 +35,78 @@ handler buf tag consumer = mkFrameHandler ScopedFrameHandler
       call_ consumer $ constRef result
   }
 
-baro :: Def ('[ConstRef s (Struct "ms5611_measurement")] :-> ())
-baro = proc "baro" $ \ _ -> body $ return ()
+baro :: Def ('[ConstRef s (Struct "barometer_sample")] :-> ())
+baro = proc "baro" $ \ _ -> body $ do
+  call_ puts "baro"
 
-compass :: Def ('[ConstRef s (Struct "hmc5883l_sample")] :-> ())
-compass = proc "compass" $ \ _ -> body $ return ()
+mag :: Def ('[ConstRef s (Struct "magnetometer_sample")] :-> ())
+mag = proc "mag" $ \ _ -> body $ do
+  call_ puts "mag"
 
-gyro :: Def ('[ConstRef s (Struct "mpu6000_sample")] :-> ())
-gyro = proc "gyro" $ \ _ -> body $ return ()
+gyro :: Def ('[ConstRef s (Struct "gyroscope_sample")] :-> ())
+gyro = proc "gyro" $ \ _ -> body $ do
+  call_ puts "gyro"
+
+accel :: Def ('[ConstRef s (Struct "accelerometer_sample")] :-> ())
+accel = proc "accel" $ \ _ -> body $ do
+  call_ puts "accel"
 
 gps :: Def ('[ConstRef s (Struct "position")] :-> ())
-gps = proc "gps" $ \ _ -> body $ return ()
+gps = proc "gps" $ \ _ -> body $ do
+  call_ puts "gps"
 
 getchar :: Def ('[] :-> Sint32)
 getchar = importProc "getchar" "stdio.h"
 
+puts :: Def('[IString]:-> Sint32)
+puts = importProc "puts" "stdio.h"
+
+
 decoder :: Def ('[] :-> Sint32)
 decoder = proc "main" $ body $ do
   hxstate <- local initStreamState
-  buf <- local (izero :: Init (Array 46 (Stored Uint8)))
+  buf <- local (izero :: Init (Array 256 (Stored Uint8)))
   forever $ do
     nextchar <- call getchar
     when (nextchar <? 0) breakOut
-    noReturn $ noBreak $ decodes [ handler buf 98 baro, handler buf 99 compass, handler buf 103 gyro, handler buf 112 gps ] hxstate $ castDefault nextchar
+    noReturn $ noBreak $ decodes
+      [ handler buf 'b' baro
+      , handler buf 'm' mag
+      , handler buf 'g' gyro
+      , handler buf 'a' accel
+      , handler buf 'p' gps
+      ]
+      hxstate
+      (castDefault nextchar)
   ret 0
 
 decoderModule :: Module
 decoderModule = package "decoder" $ do
   depend gpsTypesModule
-  depend hmc5883lTypesModule
-  depend mpu6000TypesModule
-  depend ms5611TypesModule
+  depend accelerometerSampleTypesModule
+  depend gyroscopeSampleTypesModule
+  depend magnetometerSampleTypesModule
+  depend barometerSampleTypesModule
   depend serializeModule
   depend hxstreamModule
   incl baro
-  incl compass
+  incl mag
   incl gyro
+  incl accel
   incl gps
   incl getchar
+  incl puts
   incl decoder
 
 main :: IO ()
 main = C.compile modules artifacts
   where
-  modules = [decoderModule, gpsTypesModule, hmc5883lTypesModule, mpu6000TypesModule, ms5611TypesModule, serializeModule, hxstreamModule]
+  modules = [decoderModule, gpsTypesModule, serializeModule, hxstreamModule]
+         ++ typeModules
   artifacts = makefile : serializeArtifacts
-  makefile = artifactString "Makefile" $ unlines [
+  makefile = Root $ artifactString "Makefile" $ unlines [
       "CC = gcc",
-      "CFLAGS = -Wall -Og -g -I. -DIVORY_TEST",
+      "CFLAGS = -Wall -O0 -g -I. -DIVORY_TEST",
       "LDLIBS = -lm",
       "OBJS = " ++ intercalate " " [ moduleName m ++ ".o" | m <- modules ],
       "decoder: $(OBJS)",

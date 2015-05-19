@@ -9,7 +9,7 @@ include ../../Makefile.sandbox
 IVORY_FLAGS = --const-fold
 
 .PHONY: test
-test: test-fmu24 test-fmu17
+test: test-fmu24 test-fmu17 px4-sensors-monitor
 
 .PHONY: test-fmu17
 test-fmu17: platform-fmu17/ublox-gps-test-gen
@@ -26,6 +26,10 @@ test-fmu24: platform-fmu24/px4-baro-test-gen
 test-fmu24: platform-fmu24/px4-mag-test-gen
 test-fmu24: platform-fmu24/px4-rgbled-test-gen
 test-fmu24: platform-fmu24/px4-all-sensors-test-gen
+
+px4-sensors-monitor: default
+	cabal run $@-gen -- --src-dir=$@ $(IVORY_FLAGS)
+	make -C $@
 
 %-gen: default
 	cabal run $(@F) -- --src-dir=$* --conf-file=$(patsubst platform-%,%,$(*D)).conf $(IVORY_FLAGS)
