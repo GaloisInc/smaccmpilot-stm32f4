@@ -103,7 +103,7 @@ main = C.compile modules artifacts
   where
   modules = [decoderModule, gpsTypesModule, serializeModule, hxstreamModule]
          ++ typeModules
-  artifacts = makefile : serializeArtifacts
+  artifacts = makefile : runscript : serializeArtifacts
   makefile = Root $ artifactString "Makefile" $ unlines [
       "CC = gcc",
       "CFLAGS = -Wall -O0 -g -I. -DIVORY_TEST",
@@ -113,4 +113,9 @@ main = C.compile modules artifacts
       "clean:",
       "\t-rm -f $(OBJS)",
       ".PHONY: clean"
+    ]
+  runscript = Root $ artifactString "run.sh" $ unlines
+    [ "#!/bin/sh"
+    , "stty raw 115200 < $1"
+    , "$(dirname $0)/decoder < $1"
     ]
