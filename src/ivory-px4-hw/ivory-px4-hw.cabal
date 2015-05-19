@@ -58,7 +58,6 @@ library
                        SMACCMPilot.Hardware.Tests.Magnetometer,
                        SMACCMPilot.Hardware.Tests.PPMIn,
                        SMACCMPilot.Hardware.Tests.RGBLED,
---                       SMACCMPilot.Hardware.Tests.CANFragment,
                        SMACCMPilot.Hardware.Tests.AllSensors,
 
                        SMACCMPilot.Time
@@ -184,18 +183,6 @@ executable             px4-rgbled-test-gen
 
   default-language:    Haskell2010
   ghc-options:         -Wall
-
---executable             px4-can-fragment-test-gen
---  main-is:             CANFragmentTest.hs
---  hs-source-dirs:      tests
---  build-depends:       base >= 4.6,
---                       tower              >= 0.9,
---                       tower-config,
---                       tower-freertos-stm32,
---                       ivory-px4-hw
---
---  default-language:    Haskell2010
---  ghc-options:         -Wall
 
 executable             px4-all-sensors-test-gen
   main-is:             AllSensorsTest.hs
