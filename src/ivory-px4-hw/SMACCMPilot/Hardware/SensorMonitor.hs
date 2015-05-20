@@ -1,7 +1,10 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE Rank2Types #-}
-{-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE TypeOperators #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module SMACCMPilot.Hardware.SensorMonitor
   ( SensorHandlers(..)
@@ -16,8 +19,6 @@ import Ivory.Serialize
 import Ivory.Stdlib
 import SMACCMPilot.Hardware.GPS.Types
 import SMACCMPilot.Comm.Ivory.Types
-
-import Paths_ivory_px4_hw
 
 data SensorHandlers =
   SensorHandlers
@@ -34,7 +35,13 @@ decoder SensorHandlers{..} = (decoderModule : dependencies, artifacts)
   where
   decoder_proc :: Def ('[] :-> Sint32)
   decoder_proc = proc "main" $ body $ do
-    call_ termios_helper_setraw 0 115200
+    termset <- local izero
+    call_ tcgetattr stdinFd termset
+    call_ cfmakeraw termset
+    call_ cfsetispeed termset b115200
+    call_ cfsetospeed termset b115200
+    call_ tcsetattr stdinFd tcsaNow $ constRef termset
+
     hxstate <- local initStreamState
     buf <- local (izero :: Init (Array 256 (Stored Uint8)))
     forever $ do
@@ -56,20 +63,31 @@ decoder SensorHandlers{..} = (decoderModule : dependencies, artifacts)
     mapM_ depend dependencies
     incl decoder_proc
     private $ do
-      incl termios_helper_setraw
       incl baro_proc
       incl mag_proc
       incl gyro_proc
       incl accel_proc
       incl gps_proc
-      incl getchar
       sh_moddef
+
+      incl cfmakeraw
+      incl cfsetispeed
+      incl cfsetospeed
+      incl tcsetattr
+      incl tcgetattr
+      incl getchar
+
+      inclSym b115200
+      inclSym tcsaNow
+      inclSym stdinFd
 
   dependencies =
     [ gpsTypesModule
     , serializeModule
     , hxstreamModule
     ] ++ typeModules
+
+  artifacts = serializeArtifacts
 
   baro_proc :: Def ('[ConstRef s (Struct "barometer_sample")] :-> ())
   baro_proc = proc "baro_sample_handler" $ \ v -> body $ do
@@ -91,15 +109,6 @@ decoder SensorHandlers{..} = (decoderModule : dependencies, artifacts)
   gps_proc = proc "gps_sample_handler" $ \ v -> body $ do
     sh_gps v
 
-  termios_helper_setraw :: Def ('[Sint32, Sint32] :-> ())
-  termios_helper_setraw = importProc "termios_helper_setraw" "termios_helpers.h"
-
-  cabalArtifact f = artifactCabalFile Paths_ivory_px4_hw.getDataDir ("support/" ++ f)
-
-  artifacts = [ Incl $ cabalArtifact "termios_helpers.h"
-              , Src  $ cabalArtifact "termios_helpers.c"
-              ] ++ serializeArtifacts
-
 handler :: (ANat len, IvoryArea a, IvoryZero a, Packable a)
         => Ref s1 (Array len (Stored Uint8))
         -> Char
@@ -117,6 +126,36 @@ handler buf tag consumer = mkFrameHandler ScopedFrameHandler
       call_ consumer $ constRef result
   }
 
+
+[ivory| abstract struct termios "termios.h" |]
+
+cfmakeraw :: Def ('[Ref s (Struct "termios")] :-> ())
+cfmakeraw = importProc "cfmakeraw" "termios.h"
+
+type BaudRate = Uint32
+
+cfsetispeed :: Def ('[Ref s (Struct "termios"), BaudRate] :-> ())
+cfsetispeed = importProc "cfsetispeed" "termios.h"
+
+cfsetospeed :: Def ('[Ref s (Struct "termios"), BaudRate] :-> ())
+cfsetospeed = importProc "cfsetospeed" "termios.h"
+
+b115200 :: BaudRate
+b115200 = extern "B115200" "termios.h"
+
+tcsaNow :: Sint32
+tcsaNow = extern "TCSANOW" "termios.h"
+
+type Fd = Sint32
+
+tcgetattr :: Def ('[Fd, Ref s (Struct "termios")] :-> ())
+tcgetattr = importProc "tcgetattr" "termios.h"
+
+tcsetattr :: Def ('[Fd, Sint32, ConstRef s (Struct "termios")] :-> ())
+tcsetattr = importProc "tcsetattr" "termios.h"
+
+stdinFd :: Sint32
+stdinFd = extern "STDIN_FILENO" "unistd.h"
 
 getchar :: Def ('[] :-> Sint32)
 getchar = importProc "getchar" "stdio.h"
