@@ -208,6 +208,7 @@ executable             px4-sensors-monitor-gen
   main-is:             SensorsMonitor.hs
   hs-source-dirs:      tests
   build-depends:       base >= 4.6,
+                       filepath,
                        ivory,
                        ivory-artifact,
                        ivory-stdlib,

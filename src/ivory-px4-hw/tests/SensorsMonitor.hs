@@ -7,6 +7,7 @@ import Data.List
 import Ivory.Artifact
 import qualified Ivory.Compile.C.CmdlineFrontend as C (compile)
 import Ivory.Language
+import System.FilePath
 
 import SMACCMPilot.Hardware.SensorMonitor
 
@@ -25,15 +26,18 @@ main = C.compile modules artifacts'
     , sh_moddef = incl puts
     }
 
-  artifacts' = makefile : artifacts
+  objects = [ moduleName m <.> "o" | m <- modules ] ++
+    [ replaceExtension (artifactFileName a) "o" | Src a <- artifacts ]
 
+  exename = moduleName $ head modules
+
+  artifacts' = makefile : artifacts
   makefile = Root $ artifactString "Makefile" $ unlines [
       "CC = gcc",
       "CFLAGS = -Wall -O0 -g -I. -DIVORY_TEST",
-      "LDLIBS = -lm",
-      "OBJS = termios_helpers.o " ++ intercalate " " [ moduleName m ++ ".o" | m <- modules ], 
-      "decoder: $(OBJS)",
+      "OBJS = " ++ intercalate " " objects,
+      exename ++ ": $(OBJS)",
       "clean:",
-      "\t-rm -f $(OBJS)",
+      "\t-rm -f $(OBJS) " ++ exename,
       ".PHONY: clean"
     ]
