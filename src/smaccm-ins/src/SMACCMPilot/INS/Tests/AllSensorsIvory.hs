@@ -214,15 +214,22 @@ app :: IO ()
 app = C.compile modules artifacts
   where
   modules = [ins_module] ++ sensorMonitor
-  artifacts = [Root makefile] ++ serializeArtifacts
+  artifacts = [makefile, runscript] ++ serializeArtifacts
 
-  makefile = artifactString "Makefile" $ unlines [
+  makefile = Root $ artifactString "Makefile" $ unlines [
       "CC = gcc",
       "CFLAGS = -Wall -Os -std=c99 -Wno-unused-variable -I.",
       "LDLIBS = -lm",
       "OBJS = " ++ intercalate " " [ moduleName m ++ ".o" | m <- modules ],
+      "default: test",
+      "\tchmod +x run.sh",
       "test: $(OBJS)",
       "clean:",
       "\t-rm -f $(OBJS)",
       ".PHONY: clean"
+    ]
+  runscript = Root $ artifactString "run.sh" $ unlines
+    [ "#!/bin/sh"
+    , "stty raw 115200 < $1"
+    , "$(dirname $0)/test < $1"
     ]
