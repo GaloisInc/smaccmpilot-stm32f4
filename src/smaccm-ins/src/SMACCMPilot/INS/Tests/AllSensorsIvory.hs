@@ -216,14 +216,15 @@ app = C.compile modules artifacts
   modules = [ins_module] ++ sensorMonitor
   artifacts = [makefile, runscript] ++ serializeArtifacts
 
+  exename = moduleName ins_module
   makefile = Root $ artifactString "Makefile" $ unlines [
       "CC = gcc",
       "CFLAGS = -Wall -Os -std=c99 -Wno-unused-variable -I.",
       "LDLIBS = -lm",
       "OBJS = " ++ intercalate " " [ moduleName m ++ ".o" | m <- modules ],
-      "default: test",
+      "default: " ++ exename,
       "\tchmod +x run.sh",
-      "test: $(OBJS)",
+      exename ++ ": $(OBJS)",
       "clean:",
       "\t-rm -f $(OBJS)",
       ".PHONY: clean"
@@ -231,5 +232,5 @@ app = C.compile modules artifacts
   runscript = Root $ artifactString "run.sh" $ unlines
     [ "#!/bin/sh"
     , "stty raw 115200 < $1"
-    , "$(dirname $0)/test < $1"
+    , "$(dirname $0)/ " ++ exename ++ " < $1"
     ]
