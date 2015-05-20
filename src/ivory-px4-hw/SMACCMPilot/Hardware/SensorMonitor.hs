@@ -11,10 +11,13 @@ module SMACCMPilot.Hardware.SensorMonitor
 import Data.Char (ord)
 import SMACCMPilot.Datalink.HXStream.Ivory
 import Ivory.Language
+import Ivory.Artifact
 import Ivory.Serialize
 import Ivory.Stdlib
 import SMACCMPilot.Hardware.GPS.Types
 import SMACCMPilot.Comm.Ivory.Types
+
+import Paths_ivory_px4_hw
 
 data SensorHandlers =
   SensorHandlers
@@ -26,11 +29,12 @@ data SensorHandlers =
     , sh_moddef :: ModuleDef
     }
 
-decoder :: SensorHandlers -> [Module]
-decoder SensorHandlers{..} = decoderModule : dependencies
+decoder :: SensorHandlers -> ([Module], [Located Artifact])
+decoder SensorHandlers{..} = (decoderModule : dependencies, artifacts)
   where
   decoder_proc :: Def ('[] :-> Sint32)
   decoder_proc = proc "main" $ body $ do
+    call_ termios_helper_setraw 0 115200
     hxstate <- local initStreamState
     buf <- local (izero :: Init (Array 256 (Stored Uint8)))
     forever $ do
@@ -52,6 +56,7 @@ decoder SensorHandlers{..} = decoderModule : dependencies
     mapM_ depend dependencies
     incl decoder_proc
     private $ do
+      incl termios_helper_setraw
       incl baro_proc
       incl mag_proc
       incl gyro_proc
@@ -85,6 +90,15 @@ decoder SensorHandlers{..} = decoderModule : dependencies
   gps_proc :: Def ('[ConstRef s (Struct "position")] :-> ())
   gps_proc = proc "gps_sample_handler" $ \ v -> body $ do
     sh_gps v
+
+  termios_helper_setraw :: Def ('[Sint32, Sint32] :-> ())
+  termios_helper_setraw = importProc "termios_helper_setraw" "termios_helpers.h"
+
+  cabalArtifact f = artifactCabalFile Paths_ivory_px4_hw.getDataDir ("support/" ++ f)
+
+  artifacts = [ Incl $ cabalArtifact "termios_helpers.h"
+              , Src  $ cabalArtifact "termios_helpers.c"
+              ] ++ serializeArtifacts
 
 handler :: (ANat len, IvoryArea a, IvoryZero a, Packable a)
         => Ref s1 (Array len (Stored Uint8))

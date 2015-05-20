@@ -8,6 +8,9 @@ category:            System
 build-type:          Simple
 cabal-version:       >= 1.10
 
+data-files: support/termios_helper.h,
+            support/termios_helper.c
+
 library
   exposed-modules:     SMACCMPilot.Hardware.GPS.Types,
                        SMACCMPilot.Hardware.GPS.Types.Position,
@@ -61,12 +64,15 @@ library
                        SMACCMPilot.Hardware.Tests.RGBLED,
                        SMACCMPilot.Hardware.Tests.AllSensors,
 
-                       SMACCMPilot.Time
+                       SMACCMPilot.Time,
+
+                       Paths_ivory_px4_hw
 
 
   build-depends:       base >= 4.6,
                        monadLib,
                        ivory,
+                       ivory-artifact,
                        ivory-stdlib,
                        ivory-serialize,
                        ivory-hw,
