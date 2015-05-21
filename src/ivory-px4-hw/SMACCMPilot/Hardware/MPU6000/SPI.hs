@@ -63,7 +63,7 @@ sensorSample res r_gyro r_accel = do
   r_time <- getTime
   rc <- deref (res ~> resultcode)
   mpu6000_r <- local (istruct [])
-  packGetLE packRep (toCArray (res ~> rx_buf)) 1 mpu6000_r
+  packGetBE packRep (toCArray (res ~> rx_buf)) 1 mpu6000_r
   comment "store sample failure"
   store (r_gyro ~> G.samplefail) (rc >? 0)
   store (r_accel ~> A.samplefail) (rc >? 0)
