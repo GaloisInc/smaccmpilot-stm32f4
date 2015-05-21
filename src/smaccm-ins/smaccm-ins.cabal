@@ -20,6 +20,7 @@ library
   build-depends:       base >=4.6,
                        ad >=4.2,
                        estimator == 1.1.*,
+                       filepath,
                        ivory >=0.1,
                        ivory-artifact >=0.1,
                        ivory-px4-hw >=0.1,

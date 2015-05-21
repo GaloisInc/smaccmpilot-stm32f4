@@ -7,6 +7,7 @@ module SMACCMPilot.INS.Tests.AllSensorsIvory
   ) where
 
 import Data.List (intercalate)
+import System.FilePath
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -231,16 +232,18 @@ app = C.compile modules artifacts
   modules = sens_modules
   artifacts = makefile : sens_artifacts
 
-  exename = "decoder"
+  objects = [ moduleName m <.> "o" | m <- modules ] ++
+    [ replaceExtension (artifactFileName a) "o" | Src a <- sens_artifacts ]
+
+  exename = moduleName $ head modules
 
   makefile = Root $ artifactString "Makefile" $ unlines
     [ "CC = gcc"
-    , "CFLAGS = -Wall -Os -std=c99 -Wno-unused-variable -I."
+    , "CFLAGS = -Wall -Os -std=c99 -D_BSD_SOURCE -Wno-unused-variable -I."
     , "LDLIBS = -lm"
-    , "OBJS = " ++ intercalate " " [ moduleName m ++ ".o" | m <- modules ]
-      ++ " termios_helpers.o"
+    , "OBJS = " ++ intercalate " " objects
     , exename ++ ": $(OBJS)"
     , "clean:"
-    , "\t-rm -f $(OBJS)"
+    , "\t-rm -f $(OBJS) " ++ exename
     , ".PHONY: clean"
     ]
