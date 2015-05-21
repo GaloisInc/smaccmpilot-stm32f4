@@ -10,9 +10,11 @@ import Ivory.Language
 import Ivory.Stdlib
 import Ivory.Tower
 import Ivory.Tower.HAL.Bus.Interface
+import Ivory.Serialize
 import qualified SMACCMPilot.Comm.Ivory.Types.GyroscopeSample as G
 import qualified SMACCMPilot.Comm.Ivory.Types.AccelerometerSample as A
 import qualified SMACCMPilot.Comm.Ivory.Types.Xyz as XYZ
+import qualified SMACCMPilot.Hardware.MPU6000.Types as M
 import Ivory.BSP.STM32.Driver.SPI
 import SMACCMPilot.Hardware.MPU6000.Regs
 import SMACCMPilot.Time
@@ -53,52 +55,41 @@ getSensorsReq dev = fmap constRef $ local $ istruct
   , tx_len    .= ival 15 -- addr, 6 accel, 2 temp, 6 gyro
   ]
 
-sensorSample :: (GetAlloc eff ~ Scope s)
-                      => ConstRef s1 (Struct "spi_transaction_result")
-                      -> Ref s2 (Struct "gyroscope_sample")
-                      -> Ref s3 (Struct "accelerometer_sample")
-                      -> Ivory eff ()
+sensorSample :: ConstRef s1 (Struct "spi_transaction_result")
+             -> Ref s2 (Struct "gyroscope_sample")
+             -> Ref s3 (Struct "accelerometer_sample")
+             -> Ivory ('Effects r b (Scope s)) ()
 sensorSample res r_gyro r_accel = do
   r_time <- getTime
   rc <- deref (res ~> resultcode)
-  ax_h <- deref ((res ~> rx_buf) ! 1)
-  ax_l <- deref ((res ~> rx_buf) ! 2)
-  ay_h <- deref ((res ~> rx_buf) ! 3)
-  ay_l <- deref ((res ~> rx_buf) ! 4)
-  az_h <- deref ((res ~> rx_buf) ! 5)
-  az_l <- deref ((res ~> rx_buf) ! 6)
-  te_h <- deref ((res ~> rx_buf) ! 7)
-  te_l <- deref ((res ~> rx_buf) ! 8)
-  gx_h <- deref ((res ~> rx_buf) ! 9)
-  gx_l <- deref ((res ~> rx_buf) ! 10)
-  gy_h <- deref ((res ~> rx_buf) ! 11)
-  gy_l <- deref ((res ~> rx_buf) ! 12)
-  gz_h <- deref ((res ~> rx_buf) ! 13)
-  gz_l <- deref ((res ~> rx_buf) ! 14)
+  mpu6000_r <- local (istruct [])
+  packGetLE packRep (toCArray (res ~> rx_buf)) 1 mpu6000_r
   comment "store sample failure"
   store (r_gyro ~> G.samplefail) (rc >? 0)
   store (r_accel ~> A.samplefail) (rc >? 0)
   comment "convert to degrees per second"
-  store ((r_gyro ~> G.sample) ~> XYZ.x) (hilo gx_h gx_l / 16.4)
-  store ((r_gyro ~> G.sample) ~> XYZ.y) (hilo gy_h gy_l / 16.4)
-  store ((r_gyro ~> G.sample) ~> XYZ.z) (hilo gz_h gz_l / 16.4)
+  let to_dps x = safeCast x / 16.4
+  convert ((r_gyro ~> G.sample) ~> XYZ.x) (mpu6000_r ~> M.gx) to_dps
+  convert ((r_gyro ~> G.sample) ~> XYZ.y) (mpu6000_r ~> M.gy) to_dps
+  convert ((r_gyro ~> G.sample) ~> XYZ.z) (mpu6000_r ~> M.gz) to_dps
   comment "convert to m/s/s by way of g"
-  store ((r_accel ~> A.sample) ~> XYZ.x)  (hilo ax_h ax_l / 2048.0 * 9.80665)
-  store ((r_accel ~> A.sample) ~> XYZ.y)  (hilo ay_h ay_l / 2048.0 * 9.80665)
-  store ((r_accel ~> A.sample) ~> XYZ.z)  (hilo az_h az_l / 2048.0 * 9.80665)
+  let to_g x = safeCast x / 2048.0 * 9.80665
+  convert ((r_accel ~> A.sample) ~> XYZ.x)  (mpu6000_r ~> M.ax) to_g
+  convert ((r_accel ~> A.sample) ~> XYZ.y)  (mpu6000_r ~> M.ay) to_g
+  convert ((r_accel ~> A.sample) ~> XYZ.z)  (mpu6000_r ~> M.az) to_g
   comment "convert to degrees Celsius"
-  r_temp <- assign (hilo te_h te_l / 340.0 + 36.53)
+  t <- deref (mpu6000_r ~> M.temp)
+  r_temp <- assign (safeCast t / 340.0 + 36.53)
   store (r_gyro  ~> G.temperature) r_temp
   store (r_accel ~> A.temperature) r_temp
   comment "store sample time"
   store (r_gyro  ~> G.time) (timeMicrosFromITime r_time)
   store (r_accel ~> A.time) (timeMicrosFromITime r_time)
   where
-  hilo :: Uint8 -> Uint8 -> IFloat
-  hilo h l = safeCast $ twosComplementCast $ hiloUnsigned h l
 
-  hiloUnsigned :: Uint8 -> Uint8 -> Uint16
-  hiloUnsigned h l = (safeCast h `iShiftL` 8) .| safeCast l
+  convert to fro f = do
+    v <- deref fro
+    store to (f v)
 
 mpu6000SensorManager :: BackpressureTransmit (Struct "spi_transaction_request") (Struct "spi_transaction_result")
                      -> ChanOutput (Stored ITime)
@@ -111,6 +102,8 @@ mpu6000SensorManager (BackpressureTransmit req_chan res_chan) init_chan gyro_cha
   towerDepends G.gyroscopeSampleTypesModule
   towerModule A.accelerometerSampleTypesModule
   towerDepends A.accelerometerSampleTypesModule
+  towerModule M.mpu6000ResponseTypesModule
+  towerDepends M.mpu6000ResponseTypesModule
 
   p <- period (Milliseconds 5) -- 200hz
 

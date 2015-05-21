@@ -32,12 +32,14 @@ mpu6000ResponseWrapper = wrapPackRep "mpu6000_response" $ packStruct
   , packLabel gz
   ]
 
-mpu6000TypesModule :: Module
-mpu6000TypesModule = package "mpu6000_types" $ do
+mpu6000ResponseTypesModule :: Module
+mpu6000ResponseTypesModule = package "mpu6000_response_types" $ do
   defStruct (Proxy :: Proxy "mpu6000_response")
   depend serializeModule
   wrappedPackMod mpu6000ResponseWrapper
 
 instance Packable (Struct "mpu6000_response") where
   packRep = wrappedPackRep mpu6000ResponseWrapper
+
+
 
