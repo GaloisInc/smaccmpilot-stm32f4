@@ -23,45 +23,68 @@ datalinkClient :: Options
                -> DatalinkMode
                -> (Pushable ByteString -> Poppable ByteString -> Console -> IO ())
                -> IO ()
-datalinkClient opts dmode client = do
-  putStrLn ("Datalink client starting in " ++ mode)
-  console <- newConsolePrinter opts
-
-  (ser_in_pop, ser_out_push) <- serialServer opts console
-
-  (out_frame_push, out_frame_pop) <- newQueue
-  (in_frame_push, in_frame_pop) <- newQueue
-
-  b <- asyncRunEffect console "serial in"
-          $ popProducer ser_in_pop
-        >-> bytestringLog "raw"
-        >-> hxDecoder
-        >-> frameLog
-        >-> untagger 0
-        >-> case dmode of
-              PlaintextMode -> unpadder plaintextSize
-              SymmetricCommsecMode sk -> commsecDecoder (keyToBS (sk_s2c sk))
-        >-> pushConsumer in_frame_push
-
-  a <- asyncRunEffect console "serial out"
-           $ popProducer out_frame_pop
-         >-> padder plaintextSize
-         >-> case dmode of
-              PlaintextMode -> padder cyphertextSize
-              SymmetricCommsecMode sk -> commsecEncoder (keyToBS (sk_c2s sk))
-         >-> tagger 0
-         >-> frameLog
-         >-> hxEncoder
-         >-> bytestringLog "raw"
-         >-> pushConsumer ser_out_push
-
-  client out_frame_push in_frame_pop console
-  wait a
-  wait b
-  exitSuccess
+datalinkClient opts dmode client = case dmode of
+  PlaintextMode ->
+    aux (aRunPipe "unpadder" (unpadder plaintextSize))
+        (aRunPipe "padder" (padder cyphertextSize))
+  SymmetricCommsecMode DatalinkClient sk ->
+    aux (aRunPipe "sym decoder" (commsecDecoder (keyToBS (sk_s2c sk))))
+        (aRunPipe "sym encoder" (commsecEncoder (keyToBS (sk_c2s sk))))
+  SymmetricCommsecMode _ _ -> error "not implementing symmetric commsec datalink server right now"
+  KeyExchangeMode _ _ _ _ -> error "key exchange mode unsupported"
   where
+  aux decoder encoder = do
+    putStrLn ("Datalink client starting in " ++ mode)
+    console <- newConsolePrinter opts
+
+    (ser_in_pop, ser_out_push) <- serialServer opts console
+
+    (ct_out_frame_push, ct_out_frame_pop) <- newQueue
+    (pt_unpad_out_frame_push, pt_unpad_out_frame_pop) <- newQueue
+    (pt_out_frame_push, pt_out_frame_pop) <- newQueue
+    (ct_in_frame_push, ct_in_frame_pop) <- newQueue
+    (pt_in_frame_push, pt_in_frame_pop) <- newQueue
+
+    i <- aRunPipe "serial in" ser_in_pipe console
+          ser_in_pop ct_in_frame_push
+
+    d <- decoder console ct_in_frame_pop pt_in_frame_push
+
+    p <- aRunPipe "pt padder" (padder plaintextSize) console
+          pt_unpad_out_frame_pop pt_out_frame_push
+
+    e <- encoder console pt_out_frame_pop ct_out_frame_push
+
+    o <- aRunPipe "serial out" ser_out_pipe console
+          ct_out_frame_pop ser_out_push
+
+    client pt_unpad_out_frame_push pt_in_frame_pop console
+    mapM_ wait [i, d, p, e, o]
+    exitSuccess
+
+  aRunPipe name p console pop_chan push_chan =
+    asyncRunEffect console name $
+      popProducer pop_chan >-> p >-> pushConsumer push_chan
+
+  ser_out_pipe = tagger 0
+             >-> frameLog
+             >-> hxEncoder
+             >-> bytestringLog "raw"
+
+  ser_in_pipe = bytestringLog "raw"
+            >-> hxDecoder
+            >-> frameLog
+            >-> untagger 0
+
   keyToBS = B.pack . map B.w2c
   mode = case dmode of
     PlaintextMode -> "plaintext mode"
-    SymmetricCommsecMode _ -> "symmetric commsec mode"
+    SymmetricCommsecMode DatalinkClient _ ->
+      "symmetric commsec client mode"
+    SymmetricCommsecMode DatalinkServer _ ->
+      "symmetric commsec server mode"
+    KeyExchangeMode DatalinkClient _ _ _ ->
+      "key exchange commsec client mode"
+    KeyExchangeMode DatalinkServer _ _ _ ->
+      "key exchange commsec server mode"
 
