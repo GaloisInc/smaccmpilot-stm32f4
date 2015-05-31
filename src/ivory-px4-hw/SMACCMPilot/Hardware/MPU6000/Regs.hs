@@ -1,6 +1,8 @@
 
 module SMACCMPilot.Hardware.MPU6000.Regs where
 
+import Ivory.Language
+
 data Reg
   = SelfTestGX
   | SelfTestGY
@@ -170,3 +172,50 @@ regAddr FifoCountL = 0x73
 regAddr FifoReadWrite = 0x74
 regAddr WhoAmI = 0x75
 
+data DLPFConfig
+  = DLPF260Hz
+  | DLPF184Hz
+  | DLPF94Hz
+  | DLPF44Hz
+  | DLPF21Hz
+  | DLPF10Hz
+  | DLPF5Hz
+
+configRegVal :: DLPFConfig -> Uint8
+configRegVal DLPF260Hz = 0
+configRegVal DLPF184Hz = 1
+configRegVal DLPF94Hz  = 2
+configRegVal DLPF44Hz  = 3
+configRegVal DLPF21Hz  = 4
+configRegVal DLPF10Hz  = 5
+configRegVal DLPF5Hz   = 6
+
+accelBandwidth :: Num a => DLPFConfig -> a
+accelBandwidth DLPF260Hz = 260
+accelBandwidth DLPF184Hz = 184
+accelBandwidth DLPF94Hz  = 94
+accelBandwidth DLPF44Hz  = 44
+accelBandwidth DLPF21Hz  = 21
+accelBandwidth DLPF10Hz  = 10
+accelBandwidth DLPF5Hz   = 5
+
+accelNoiseRMS :: Floating a => DLPFConfig -> a
+accelNoiseRMS lpf = (400.0e-6 * 9.80665) * sqrt (accelBandwidth lpf)
+
+gyroBandwidth :: Num a => DLPFConfig -> a
+gyroBandwidth DLPF260Hz = 256
+gyroBandwidth DLPF184Hz = 188
+gyroBandwidth DLPF94Hz  = 98
+gyroBandwidth DLPF44Hz  = 42
+gyroBandwidth DLPF21Hz  = 20
+gyroBandwidth DLPF10Hz  = 10
+gyroBandwidth DLPF5Hz   = 5
+
+gyroNoiseRMS :: (Floating a, Ord a) => DLPFConfig -> a
+gyroNoiseRMS lpf = case gyroBandwidth lpf of
+  bw | bw <= 10 -> 0.033 * sqrt (bw / 10)
+  bw -> 0.033 + 0.005 * sqrt (bw - 10) / 2
+
+gyroSampleRate :: Num a => DLPFConfig -> a
+gyroSampleRate DLPF260Hz = 8000
+gyroSampleRate _ = 1000

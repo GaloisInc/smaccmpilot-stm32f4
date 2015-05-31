@@ -105,7 +105,17 @@ mpu6000SensorManager (BackpressureTransmit req_chan res_chan) init_chan gyro_cha
   towerModule M.mpu6000ResponseTypesModule
   towerDepends M.mpu6000ResponseTypesModule
 
-  p <- period (Milliseconds 5) -- 200hz
+  -- TODO: let caller choose the bandwidth
+  let lpfConfig = DLPF94Hz
+
+  -- TODO: let caller request oversampling by an integer multiple
+  let targetSampleRate = 2 * max (accelBandwidth lpfConfig) (gyroBandwidth lpfConfig)
+
+  let (gyroSamplesPerMS, 0) = gyroSampleRate lpfConfig `divMod` 1000
+  let samplePeriodMS = 1000 `div` targetSampleRate
+  let divisor = samplePeriodMS * gyroSamplesPerMS
+
+  p <- period (Milliseconds samplePeriodMS)
 
   monitor "mpu6kCtl" $ do
     retries <- state "retries"
@@ -139,6 +149,14 @@ mpu6000SensorManager (BackpressureTransmit req_chan res_chan) init_chan gyro_cha
 
         comment "Wake the sensor device, use internal oscillator"
         _ <- rpc (writeRegReq dev PowerManagment1 0x00)
+
+        comment $ "accel bandwidth: " ++ show (accelBandwidth lpfConfig :: Int) ++ "Hz, "
+               ++ "gyro bandwidth: " ++ show (gyroBandwidth lpfConfig :: Int) ++ "Hz, "
+               ++ "gyro sample rate: " ++ show (gyroSampleRate lpfConfig :: Int) ++ "Hz"
+        _ <- rpc $ writeRegReq dev Config $ configRegVal lpfConfig
+
+        comment $ "sample rate: " ++ show (1000 / fromInteger samplePeriodMS :: Double) ++ "Hz"
+        _ <- rpc $ writeRegReq dev SampleRateDivider $ fromInteger divisor
 
         comment "Set accelerometer scale to +/- 16g"
         _ <- rpc (writeRegReq dev AccelConfig 0x18)
