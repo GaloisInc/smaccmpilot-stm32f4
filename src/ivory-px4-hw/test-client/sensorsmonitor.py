@@ -11,7 +11,9 @@ defaults = {
     'baudrate': 115200,
     'dsrdtr': False,
     'rtscts': False,
-    'xonxoff': False }
+    'xonxoff': False,
+    'rawlog': None
+    }
 
 def display_numeric_list(l):
     return ' '.join('{0:9.4f}'.format(x) for x in l)
@@ -212,6 +214,11 @@ class SerialPortProvider(object):
         self.port = None
         self.exception = ""
 
+        if opts['rawlog']:
+            self.log = open(opts['rawlog'], 'w')
+        else:
+            self.log = None
+
         self.launch_opener()
 
     def alive(self):
@@ -262,7 +269,10 @@ class SerialPortProvider(object):
     def read(self, count):
         if self.alive():
             try:
-                return self.port.read(count)
+                b = self.port.read(count)
+                if self.log:
+                    self.log.write(b)
+                return b
             except serial.SerialException:
                 self.launch_opener()
         return []
@@ -322,6 +332,7 @@ if __name__ == "__main__":
     parser.add_option("--dsrdtr", action='store_true', default=defaults['dsrdtr'], help='enable dsrdtr')
     parser.add_option("--xonxoff", action='store_true', default=defaults['xonxoff'], help='enable xonxoff')
     parser.add_option("--debug", action='store_true', default=defaults['debug'], help='enable debug text')
+    parser.add_option("--rawlog", action='store', default=defaults['rawlog'], help='log output')
 
     opts, args = parser.parse_args()
 

@@ -2,7 +2,7 @@
 
 import sys
 import pylab
-
+import math
 
 columns =   [ "time"
             , "ax"
@@ -15,10 +15,10 @@ columns =   [ "time"
             , "my"
             , "mz"
             , "baro"
-            , "orient_0"
-            , "orient_1"
-            , "orient_2"
-            , "orient_3"
+            , "q0" # 11
+            , "q1" # 12
+            , "q2" # 13
+            , "q3" # 14
             , "vx"
             , "vy"
             , "vz"
@@ -39,9 +39,27 @@ columns =   [ "time"
             , "magz"
             ]
 
+def euler_angle(q):
+    q0 = q[0]
+    q1 = q[1]
+    q2 = q[2]
+    q3 = q[3]
+    return [ math.atan2( 2 * (q0 * q1 + q2 * q3), 1 - 2 * (q1 * q1 + q2 * q2))
+           , math.asin(2 * (q0 * q2 - q3 * q1))
+           , math.atan2(2 * (q0 * q3 + q1 * q2), 1 - 2 * (q2 * q2 + q3 * q3))
+           ]
+
+calculated_columns = dict(
+    { "roll": lambda (row) : euler_angle(row[11:15])[0]
+    , "pitch": lambda (row) : euler_angle(row[11:15])[1]
+    , "yaw": lambda (row) : euler_angle(row[11:15])[2]
+    })
+
 def parse(f, cs):
     rows = dict({})
     for c in cs:
+        rows[c] = []
+    for c in calculated_columns:
         rows[c] = []
     for line in f:
         elems = line.split(' ')
@@ -54,6 +72,8 @@ def parse(f, cs):
         if len(row) == len(cs):
             for i in range(0,len(row)):
                 rows[cs[i]].append(row[i])
+            for c in calculated_columns:
+                rows[c].append(calculated_columns[c](row))
     return rows
 
 if __name__ == "__main__":
@@ -69,4 +89,4 @@ if __name__ == "__main__":
     else:
         print "must provide columns as arguments"
         print "valid columns:"
-        print columns
+        print (columns + calculated_columns.keys())
