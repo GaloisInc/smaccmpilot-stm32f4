@@ -14,12 +14,12 @@ import Ivory.Tower.Config
 data PubKey =
   PubKey
     { ke_pubkey :: [Word8] -- Vector of 32 word8s
-    }
+    } deriving (Eq, Show)
 
 data PrivKey =
   PrivKey
     { ke_privkey :: [Word8] -- Vector of 32 word8s
-    }
+    } deriving (Eq, Show)
 
 pubKeyParser :: ConfigParser PubKey
 pubKeyParser = subsection "pub" $ fmap PubKey $ keyParser

@@ -9,10 +9,12 @@ data DatalinkMode
   = PlaintextMode
   | SymmetricCommsecMode DatalinkRole SymmetricKey
   | KeyExchangeMode      DatalinkRole PubKey PrivKey PubKey
+  deriving (Eq, Show)
 
 data DatalinkRole
   = DatalinkClient
   | DatalinkServer
+  deriving (Eq, Show)
 
 datalinkModeParser :: DatalinkRole -> ConfigParser DatalinkMode
 datalinkModeParser role = do
