@@ -160,14 +160,34 @@ sensorMonitor = decoder $ SensorHandlers
 
   kalman_output :: Def ('[]:->())
   kalman_output = proc "kalman_output" $ body $ do
+    -- column 1
+    ts_micros <- fmap T.unTimeMicros (deref timestamp_ref)
+    let ts_seconds = safeCast (castDefault ts_micros :: Sint32) / 1.0e6
+    print_float ts_seconds
+
+    -- columns 2-4
     accel_get_sample accel_buf >>= print_three_floats
+    -- columns 5-7
     gyro_get_sample  gyro_buf  >>= print_three_floats
+    -- columns 8-10
     mag_get_sample   mag_buf   >>= print_three_floats
+    -- column 11
     baro_get_sample  baro_buf  >>= print_float
 
+    -- columns 12-15
     print_array (addrOf kalman_state ~> orient)
+    -- columns 16-18
     print_array (addrOf kalman_state ~> vel)
+    -- columns 19-21
     print_array (addrOf kalman_state ~> pos)
+    -- columns 22-24
+    print_array (addrOf kalman_state ~> gyro_bias)
+    -- columns 25-27
+    print_array (addrOf kalman_state ~> wind)
+    -- columns 28-30
+    print_array (addrOf kalman_state ~> mag_ned)
+    -- columns 31-33
+    print_array (addrOf kalman_state ~> mag_xyz)
     endl
     where
     print_array a = arrayMap $ \ix ->
@@ -179,7 +199,7 @@ sensorMonitor = decoder $ SensorHandlers
 
 
     print_float :: IFloat -> Ivory eff ()
-    print_float v = call_ printf_float "%f " v
+    print_float v = call_ printf_float "% f " v
 
     endl :: Ivory eff ()
     endl = call_ puts ""

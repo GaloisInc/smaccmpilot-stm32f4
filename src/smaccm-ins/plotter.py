@@ -4,7 +4,8 @@ import sys
 import pylab
 
 
-columns =   [ "ax"
+columns =   [ "time"
+            , "ax"
             , "ay"
             , "az"
             , "gx"
@@ -24,6 +25,18 @@ columns =   [ "ax"
             , "px"
             , "py"
             , "pz"
+            , "gbiasx"
+            , "gbiasy"
+            , "gbiasz"
+            , "windn"
+            , "winde"
+            , "windd"
+            , "magn"
+            , "mage"
+            , "magd"
+            , "magx"
+            , "magy"
+            , "magz"
             ]
 
 def parse(f, cs):
@@ -48,7 +61,7 @@ if __name__ == "__main__":
         rows = parse(sys.stdin, columns);
         for arg in sys.argv[1:]:
             if arg in rows:
-                pylab.plot(rows[arg], label=arg)
+                pylab.plot(rows["time"], rows[arg], label=arg)
             else:
                 print "no column named " + arg
         pylab.legend()
