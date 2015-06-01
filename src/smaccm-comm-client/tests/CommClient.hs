@@ -24,7 +24,7 @@ main = do
             , topts_args   = tos
             , topts_error  = usage
             }
-      cmode <- getConfig topts datalinkModeParser
+      cmode <- getConfig topts $ datalinkModeParser DatalinkClient
       commClient client_opts cmode
     (_, nonOpts, unOpts, errs) -> usage ("invalid arguments: "
                                         ++ unwords nonOpts

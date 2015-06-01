@@ -9,7 +9,7 @@ data SymmetricKey =
   SymmetricKey
     { sk_c2s :: [Word8] -- Vector of 24 word8s
     , sk_s2c :: [Word8] -- Vector of 24 word8s
-    }
+    } deriving (Eq, Show)
 
 symmetricKeyParser :: ConfigParser SymmetricKey
 symmetricKeyParser = subsection "symmetric_key" $ do

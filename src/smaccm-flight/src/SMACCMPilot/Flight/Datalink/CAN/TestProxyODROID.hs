@@ -67,8 +67,10 @@ datalinkEncode todm pt ct = do
   datalinkMode <- fmap todm getEnv
   case datalinkMode of
     PlaintextMode -> padTower' pt ct
-    SymmetricCommsecMode sk ->
+    SymmetricCommsecMode DatalinkServer sk ->
       commsecEncodeTower' "dl" (symKeySaltArrayIval (sk_s2c sk)) pt ct
+    _ -> error ("SMACCMPilot.Flight.Datalink.CAN.TestProxyODROID.datalinkEncode: "
+                  ++ "unsupported datalink mode " ++ show datalinkMode )
 
 datalinkDecode :: (e -> DatalinkMode)
                -> ChanOutput CyphertextArray
@@ -78,8 +80,10 @@ datalinkDecode todm ct pt = do
   datalinkMode <- fmap todm getEnv
   case datalinkMode of
     PlaintextMode -> unpadTower' ct pt
-    SymmetricCommsecMode sk ->
+    SymmetricCommsecMode DatalinkServer sk ->
       commsecDecodeTower' "dl" (symKeySaltArrayIval (sk_c2s sk)) ct pt
+    _ -> error ("SMACCMPilot.Flight.Datalink.CAN.TestProxyODROID.datalinkDecode: "
+                  ++ "unsupported datalink mode " ++ show datalinkMode )
 
 uartDatalink :: ChanInput CyphertextArray
              -> ChanOutput CyphertextArray

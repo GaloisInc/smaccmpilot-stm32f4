@@ -61,7 +61,7 @@ flightPlatformParser = do
     _ -> fail ("no such platform " ++ p)
   where
   result mkPlatform = do
-    datalink <- datalinkModeParser
+    datalink <- datalinkModeParser DatalinkServer
     let platform = mkPlatform datalink
     conf <- stm32ConfigParser (fp_stm32config platform)
     return platform { fp_stm32config = conf }

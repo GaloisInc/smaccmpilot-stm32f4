@@ -84,4 +84,6 @@ commsecDatalink todm k ctin = do
   datalinkMode <- fmap todm getEnv
   case datalinkMode of
     PlaintextMode -> plaintextCommsecDatalink k ctin
-    SymmetricCommsecMode sk -> symmetricCommsecDatalink sk k ctin
+    SymmetricCommsecMode DatalinkServer sk -> symmetricCommsecDatalink sk k ctin
+    _ -> error ("SMACCMPilot.Flight.Datalink.Commsec: Unsupported Datalink mode " ++ show datalinkMode)
+

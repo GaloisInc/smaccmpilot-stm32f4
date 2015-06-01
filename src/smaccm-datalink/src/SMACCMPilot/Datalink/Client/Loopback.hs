@@ -67,7 +67,7 @@ frameLoopbackClient opts = datalinkClient opts PlaintextMode run
     checkLoopback console cts to fro 100
 
 commsecLoopbackClient :: Options -> SymmetricKey -> IO ()
-commsecLoopbackClient opts sk = datalinkClient opts (SymmetricCommsecMode sk) run
+commsecLoopbackClient opts sk = datalinkClient opts (SymmetricCommsecMode DatalinkClient sk) run
   where
   run to fro console = do
     cts <- replicateM 20 (randomBytestring plaintextSize)
