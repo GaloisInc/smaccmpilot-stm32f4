@@ -97,6 +97,8 @@ sensorMonitor = decoder $ SensorHandlers
       (mx, my, mz) <- mag_get_sample mag_buf
       p <- baro_get_sample baro_buf
       call_ kalman_init ax ay az mx my mz p
+      refCopy timestamp_ref (accel_buf ~> A.time)
+      call_ kalman_output
     when (i ==? 8) ow
 
   accel_get_sample buf = do
