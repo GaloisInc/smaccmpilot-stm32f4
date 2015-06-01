@@ -33,6 +33,9 @@ import Prelude hiding (mapM, mapM_)
 printf_float :: Def('[IString, IFloat] :-> ())
 printf_float = importProc "printf" "stdio.h"
 
+printf_double :: Def('[IString, IDouble] :-> ())
+printf_double = importProc "printf" "stdio.h"
+
 puts :: Def('[IString] :-> ())
 puts = importProc "puts" "stdio.h"
 
@@ -157,9 +160,8 @@ sensorMonitor = decoder $ SensorHandlers
   kalman_output :: Def ('[]:->())
   kalman_output = proc "kalman_output" $ body $ do
     -- column 1
-    ts_micros <- fmap T.unTimeMicros (deref timestamp_ref)
-    let ts_seconds = safeCast (castDefault ts_micros :: Sint32) / 1.0e6
-    print_float ts_seconds
+    timestamp <- deref timestamp_ref
+    call_ printf_double "%12.6f" $ safeCast (T.unTimeMicros timestamp) / 1.0e6
 
     -- columns 2-4
     accel_get_sample >>= mapM_ print_float
@@ -190,7 +192,7 @@ sensorMonitor = decoder $ SensorHandlers
       deref (a ! ix) >>= print_float
 
     print_float :: IFloat -> Ivory eff ()
-    print_float v = call_ printf_float "% f " v
+    print_float v = call_ printf_float " % f" v
 
     endl :: Ivory eff ()
     endl = call_ puts ""
@@ -252,7 +254,7 @@ app = C.compile modules artifacts
 
   makefile = Root $ artifactString "Makefile" $ unlines
     [ "CC = gcc"
-    , "CFLAGS = -Wall -Os -std=c99 -D_BSD_SOURCE -Wno-unused-variable -I."
+    , "CFLAGS = -Wall -g -Os -std=c99 -D_BSD_SOURCE -Wno-unused-variable -I."
     , "LDLIBS = -lm"
     , "OBJS = " ++ intercalate " " objects
     , exename ++ ": $(OBJS)"
