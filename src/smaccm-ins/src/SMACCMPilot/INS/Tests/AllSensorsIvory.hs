@@ -6,7 +6,9 @@ module SMACCMPilot.INS.Tests.AllSensorsIvory
   ( app
   ) where
 
+import Data.Foldable
 import Data.List (intercalate)
+import Data.Traversable
 import System.FilePath
 
 import Ivory.Language
@@ -26,6 +28,7 @@ import qualified SMACCMPilot.Comm.Ivory.Types.BarometerSample     as B
 import qualified SMACCMPilot.Comm.Ivory.Types.Xyz                 as XYZ
 import qualified SMACCMPilot.Comm.Ivory.Types.TimeMicros          as T
 
+import Prelude hiding (mapM, mapM_)
 
 printf_float :: Def('[IString, IFloat] :-> ())
 printf_float = importProc "printf" "stdio.h"
@@ -38,14 +41,12 @@ sensorMonitor = decoder $ SensorHandlers
   { sh_baro = \baro_sample -> do
       refCopy baro_buf baro_sample
       check_init init_baro $ do
-        p <- baro_get_sample baro_buf
-        call_ pressure_measure p
+        call_ pressure_measure
 
   , sh_mag = \mag_sample -> do
       refCopy mag_buf mag_sample
       check_init init_mag $ do
-        (mx, my, mz) <- mag_get_sample mag_buf
-        call_ mag_measure mx my mz
+        call_ mag_measure
 
   , sh_gyro = \gyro_sample -> do
       refCopy gyro_buf gyro_sample
@@ -59,11 +60,10 @@ sensorMonitor = decoder $ SensorHandlers
             dt_micros = castDefault $ (T.unTimeMicros now) - (T.unTimeMicros prev)
             dt_seconds = (safeCast dt_micros) / 1000000.0
 
-        (ax, ay, az) <- accel_get_sample accel_buf
-        (gx, gy, gz) <- gyro_get_sample gyro_buf
-        call_ kalman_predict dt_seconds gx gy gz ax ay az
-        call_ kalman_output
+        call_ kalman_predict dt_seconds
         store timestamp_ref now
+        call_ kalman_output
+
   , sh_gps = \_gps_sample -> do
       check_init 0 $ do
         -- XXX this is nonsense:
@@ -93,38 +93,29 @@ sensorMonitor = decoder $ SensorHandlers
       store init_ref (i .| field)
     when (i ==? 7) $ do
       store init_ref init_done
-      (ax, ay, az) <- accel_get_sample accel_buf
-      (mx, my, mz) <- mag_get_sample mag_buf
-      p <- baro_get_sample baro_buf
-      call_ kalman_init ax ay az mx my mz p
+      call_ kalman_init
       refCopy timestamp_ref (accel_buf ~> A.time)
       call_ kalman_output
     when (i ==? 8) ow
 
-  accel_get_sample buf = do
-    ax <- deref ((buf ~> A.sample) ~> XYZ.x)
-    ay <- deref ((buf ~> A.sample) ~> XYZ.y)
-    az <- deref ((buf ~> A.sample) ~> XYZ.z)
-    return (ax, ay, az)
+  xyzRefs s = fmap (s ~>) $ xyz XYZ.x XYZ.y XYZ.z
 
-  gyro_get_sample buf = do
+  accel_get_sample = do
+    mapM deref $ xyzRefs $ accel_buf ~> A.sample
+
+  gyro_get_sample = do
+    raw <- mapM deref $ xyzRefs $ gyro_buf ~> G.sample
     let toRads deg = deg * pi / 180.0
-    gx <- fmap toRads $ deref ((buf ~> G.sample) ~> XYZ.x)
-    gy <- fmap toRads $ deref ((buf ~> G.sample) ~> XYZ.y)
-    gz <- fmap toRads $ deref ((buf ~> G.sample) ~> XYZ.z)
-    return (gx, gy, gz)
+    return $ fmap toRads raw
 
-
-  mag_get_sample buf = do
+  mag_get_sample = do
+    raw <- mapM deref $ xyzRefs $ mag_buf ~> M.sample
     let toMilligauss gauss = gauss * 1000
-    mx <- fmap toMilligauss $ deref ((buf ~> M.sample) ~> XYZ.x)
-    my <- fmap toMilligauss $ deref ((buf ~> M.sample) ~> XYZ.y)
-    mz <- fmap toMilligauss $ deref ((buf ~> M.sample) ~> XYZ.z)
-    return (mx, my, mz)
+    return $ fmap toMilligauss raw
 
-  baro_get_sample buf = do
+  baro_get_sample = do
     let toPascals mbar = mbar * 100
-    fmap toPascals $ deref (buf ~> B.pressure)
+    fmap toPascals $ deref (baro_buf ~> B.pressure)
 
   timestamp_area = area "timestamp_previous" Nothing
   timestamp_ref = addrOf timestamp_area
@@ -148,16 +139,19 @@ sensorMonitor = decoder $ SensorHandlers
   kalman_covariance :: MemArea (Struct "kalman_covariance")
   kalman_covariance = area "kalman_covariance" Nothing
 
-  kalman_init :: Def ('[IFloat, IFloat, IFloat, IFloat, IFloat, IFloat, IFloat] :-> ())
-  kalman_init = proc "kalman_init" $ \ accX accY accZ magX magY magZ pressure -> body $ do
-    let acc = xyz accX accY accZ
-    let mag = xyz magX magY magZ
+  kalman_init :: Def ('[] :-> ())
+  kalman_init = proc "kalman_init" $ body $ do
+    acc <- accel_get_sample
+    mag <- mag_get_sample
+    pressure <- baro_get_sample
     kalmanInit (addrOf kalman_state) (addrOf kalman_covariance) acc mag pressure
 
-  kalman_predict :: Def ('[IFloat, IFloat, IFloat, IFloat, IFloat, IFloat, IFloat] :-> ())
-  kalman_predict = proc "kalman_predict" $ \ dt dax day daz dvx dvy dvz -> body $ do
-    let distVector = DisturbanceVector { disturbanceGyro = xyz dax day daz -- delta angle
-                                       , disturbanceAccel = xyz dvx dvy dvz } -- delta velocity
+  kalman_predict :: Def ('[IFloat] :-> ())
+  kalman_predict = proc "kalman_predict" $ \ dt -> body $ do
+    accel <- accel_get_sample
+    gyro <- gyro_get_sample
+    let distVector = DisturbanceVector { disturbanceGyro = gyro
+                                       , disturbanceAccel = accel }
     kalmanPredict (addrOf kalman_state) (addrOf kalman_covariance) dt distVector
 
   kalman_output :: Def ('[]:->())
@@ -168,13 +162,13 @@ sensorMonitor = decoder $ SensorHandlers
     print_float ts_seconds
 
     -- columns 2-4
-    accel_get_sample accel_buf >>= print_three_floats
+    accel_get_sample >>= mapM_ print_float
     -- columns 5-7
-    gyro_get_sample  gyro_buf  >>= print_three_floats
+    gyro_get_sample  >>= mapM_ print_float
     -- columns 8-10
-    mag_get_sample   mag_buf   >>= print_three_floats
+    mag_get_sample   >>= mapM_ print_float
     -- column 11
-    baro_get_sample  baro_buf  >>= print_float
+    baro_get_sample  >>= print_float
 
     -- columns 12-15
     print_array (addrOf kalman_state ~> orient)
@@ -194,11 +188,6 @@ sensorMonitor = decoder $ SensorHandlers
     where
     print_array a = arrayMap $ \ix ->
       deref (a ! ix) >>= print_float
-    print_three_floats (x,y,z) = do
-      print_float x
-      print_float y
-      print_float z
-
 
     print_float :: IFloat -> Ivory eff ()
     print_float v = call_ printf_float "% f " v
@@ -214,17 +203,19 @@ sensorMonitor = decoder $ SensorHandlers
   pos_measure = proc "pos_measure" $ \ posN posE posD -> body $ do
     posMeasure (addrOf kalman_state) (addrOf kalman_covariance) $ ned posN posE posD
 
-  pressure_measure :: Def ('[IFloat] :-> ())
-  pressure_measure = proc "pressure_measure" $ \ pressure -> body $ do
+  pressure_measure :: Def ('[] :-> ())
+  pressure_measure = proc "pressure_measure" $ body $ do
+    pressure <- baro_get_sample
     pressureMeasure (addrOf kalman_state) (addrOf kalman_covariance) pressure
 
   tas_measure :: Def ('[IFloat] :-> ())
   tas_measure = proc "tas_measure" $ \ tas -> body $ do
     tasMeasure (addrOf kalman_state) (addrOf kalman_covariance) tas
 
-  mag_measure :: Def ('[IFloat, IFloat, IFloat] :-> ())
-  mag_measure = proc "mag_measure" $ \ magX magY magZ -> body $ do
-    magMeasure (addrOf kalman_state) (addrOf kalman_covariance) $ xyz magX magY magZ
+  mag_measure :: Def ('[] :-> ())
+  mag_measure = proc "mag_measure" $ body $ do
+    mag <- mag_get_sample
+    magMeasure (addrOf kalman_state) (addrOf kalman_covariance) mag
 
 
   ins_moddef :: ModuleDef
