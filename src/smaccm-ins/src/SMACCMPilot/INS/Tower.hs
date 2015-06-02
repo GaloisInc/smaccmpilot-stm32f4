@@ -10,7 +10,6 @@ import Ivory.Language
 import Ivory.Stdlib
 import Ivory.Tower
 import Numeric.Estimator.Model.Coordinate
-import Numeric.Estimator.Model.SensorFusion
 import Prelude hiding (mapM)
 import qualified SMACCMPilot.Hardware.GPS.Types as GPS
 import qualified SMACCMPilot.Comm.Ivory.Types.MagnetometerSample  as M
@@ -19,6 +18,7 @@ import qualified SMACCMPilot.Comm.Ivory.Types.GyroscopeSample     as G
 import qualified SMACCMPilot.Comm.Ivory.Types.BarometerSample     as B
 import qualified SMACCMPilot.Comm.Ivory.Types.Xyz as XYZ
 import SMACCMPilot.INS.Ivory
+import SMACCMPilot.INS.SensorFusion
 import SMACCMPilot.Time
 
 changeUnits :: (Functor f, Functor g) => (x -> y) -> f (g x) -> f (g y)

@@ -8,7 +8,7 @@ include ../../Makefile.sandbox
 
 IVORY_FLAGS ?= --const-fold
 
-test: psas-recording-ivory-test
+# test: psas-recording-ivory-test
 test: all-sensors-ins-test
 test: test-fmu24
 

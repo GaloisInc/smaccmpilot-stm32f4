@@ -15,8 +15,8 @@ import Numeric.AD
 import Numeric.AD.Internal.Reverse
 import Numeric.Estimator
 import Numeric.Estimator.Model.Coordinate
-import Numeric.Estimator.Model.SensorFusion
 import Prelude hiding (mapM, sequence, sum)
+import SMACCMPilot.INS.SensorFusion
 
 type KalmanState m a = StateT (a, KalmanFilter StateVector a) m
 

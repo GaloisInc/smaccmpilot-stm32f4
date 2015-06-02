@@ -17,9 +17,9 @@ import Ivory.Artifact
 import qualified Ivory.Compile.C.CmdlineFrontend as C (compile)
 
 import Numeric.Estimator.Model.Coordinate
-import Numeric.Estimator.Model.SensorFusion
 
 import SMACCMPilot.INS.Ivory
+import SMACCMPilot.INS.SensorFusion
 import SMACCMPilot.Hardware.SensorMonitor
 import qualified SMACCMPilot.Comm.Ivory.Types.AccelerometerSample as A
 import qualified SMACCMPilot.Comm.Ivory.Types.GyroscopeSample     as G

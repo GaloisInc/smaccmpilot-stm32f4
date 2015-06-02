@@ -11,14 +11,17 @@ cabal-version:       >=1.10
 library
   hs-source-dirs:      src
   exposed-modules:     SMACCMPilot.INS.Ivory,
+                       SMACCMPilot.INS.SensorFusion,
                        SMACCMPilot.INS.Simulate,
                        SMACCMPilot.INS.Tower,
                        SMACCMPilot.INS.Tests.SensorFusion,
                        SMACCMPilot.INS.Tests.AllSensorsIvory
   other-modules:       SMACCMPilot.INS.Parameters,
+                       SMACCMPilot.INS.Quaternion,
                        SMACCMPilot.INS.Types
   build-depends:       base >=4.6,
                        ad >=4.2,
+                       distributive >=0.4,
                        estimator == 1.1.*,
                        filepath,
                        ivory >=0.1,
@@ -40,41 +43,41 @@ library
   default-language:    Haskell2010
   ghc-options:         -Wall
 
-executable riseborough-recording-test-native
-  hs-source-dirs:      tests
-  main-is:             RiseboroughTest.hs
-  build-depends:       base >=4.6,
-                       estimator == 1.1.*,
-                       lens >=4.6,
-                       linear >=1.15,
-                       monadLib >= 3.7,
-                       smaccm-ins
-  default-language:    Haskell2010
-  ghc-options:         -Wall -Werror
-
-executable psas-recording-test-native
-  hs-source-dirs:      tests
-  main-is:             PSASNative.hs
-  build-depends:       base >=4.6,
-                       binary >=0.7,
-                       bytestring >=0.10,
-                       estimator == 1.1.*,
-                       monadLib >= 3.7,
-                       smaccm-ins
-  default-language:    Haskell2010
-  ghc-options:         -Wall -Werror
-
-executable psas-recording-test-gen
-  hs-source-dirs:      tests
-  main-is:             PSASIvory.hs
-  build-depends:       base >=4.6,
-                       estimator == 1.1.*,
-                       ivory >=0.1,
-                       ivory-artifact >=0.1,
-                       ivory-backend-c >=0.1,
-                       smaccm-ins
-  default-language:    Haskell2010
-  ghc-options:         -Wall -Werror
+-- executable riseborough-recording-test-native
+--   hs-source-dirs:      tests
+--   main-is:             RiseboroughTest.hs
+--   build-depends:       base >=4.6,
+--                        estimator == 1.1.*,
+--                        lens >=4.6,
+--                        linear >=1.15,
+--                        monadLib >= 3.7,
+--                        smaccm-ins
+--   default-language:    Haskell2010
+--   ghc-options:         -Wall -Werror
+--
+-- executable psas-recording-test-native
+--   hs-source-dirs:      tests
+--   main-is:             PSASNative.hs
+--   build-depends:       base >=4.6,
+--                        binary >=0.7,
+--                        bytestring >=0.10,
+--                        estimator == 1.1.*,
+--                        monadLib >= 3.7,
+--                        smaccm-ins
+--   default-language:    Haskell2010
+--   ghc-options:         -Wall -Werror
+--
+-- executable psas-recording-test-gen
+--   hs-source-dirs:      tests
+--   main-is:             PSASIvory.hs
+--   build-depends:       base >=4.6,
+--                        estimator == 1.1.*,
+--                        ivory >=0.1,
+--                        ivory-artifact >=0.1,
+--                        ivory-backend-c >=0.1,
+--                        smaccm-ins
+--   default-language:    Haskell2010
+--   ghc-options:         -Wall -Werror
 
 
 executable all-sensors-ins-test-gen

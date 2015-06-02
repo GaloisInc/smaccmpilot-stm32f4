@@ -4,7 +4,7 @@ module SMACCMPilot.INS.Parameters where
 
 import Control.Applicative
 import Numeric.Estimator.Model.Coordinate
-import Numeric.Estimator.Model.SensorFusion
+import SMACCMPilot.INS.SensorFusion
 
 processNoise :: Fractional a => a -> StateVector a
 processNoise dt = fmap (^ (2 :: Int)) $ fmap (dt *) $ StateVector
