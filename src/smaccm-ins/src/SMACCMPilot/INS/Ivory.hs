@@ -4,7 +4,7 @@
 
 module SMACCMPilot.INS.Ivory (
   kalmanInit, kalmanPredict,
-  magMeasure,
+  magMeasure, accelMeasure,
 
   module SMACCMPilot.INS.Types
 ) where
@@ -85,3 +85,6 @@ applyUpdate state_ptr cov_ptr cov fusionStep = do
 
 magMeasure :: Ref s1 (Struct "kalman_state") -> Ref s2 (Struct "kalman_covariance") -> XYZ IFloat -> Ivory eff ()
 magMeasure state_ptr cov_ptr mag = sequence_ $ applyUpdate state_ptr cov_ptr <$> magNoise <*> (fuseMag <*> magNoise <*> mag)
+
+accelMeasure :: Ref s1 (Struct "kalman_state") -> Ref s2 (Struct "kalman_covariance") -> XYZ IFloat -> Ivory eff ()
+accelMeasure state_ptr cov_ptr accel = sequence_ $ applyUpdate state_ptr cov_ptr <$> accelNoise <*> (fuseAccel <*> accelNoise <*> accel)

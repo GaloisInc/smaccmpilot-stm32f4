@@ -22,3 +22,6 @@ distCovariance = fmap (^ (2 :: Int)) $ DisturbanceVector
 
 magNoise :: Fractional a => XYZ a
 magNoise = pure 1.4826
+
+accelNoise :: Fractional a => XYZ a
+accelNoise = pure 0.02

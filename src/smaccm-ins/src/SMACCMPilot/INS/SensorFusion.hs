@@ -250,6 +250,9 @@ processModel dt (AugmentState state dist) = AugmentState state' $ pure 0
 stateMag :: Num a => StateVector a -> XYZ a
 stateMag state = stateMagXYZ state + nav2body state (stateMagNED state)
 
+stateAccel :: Fractional a => StateVector a -> XYZ a
+stateAccel state = nav2body state (ned 0 0 9.80665)
+
 -- * Helpers
 
 -- | Convert body-frame to navigation-frame given the orientation from

@@ -56,5 +56,8 @@ fuseV3 getV = fusion <$> V3 (EKFMeasurement $ (^._x) . getV) (EKFMeasurement $ (
 fuseMag :: Fractional var => XYZ (Fusion (EKFMeasurement StateVector var))
 fuseMag = XYZ $ fuseV3 $ xyzToVec3 . stateMag
 
+fuseAccel :: Fractional var => XYZ (Fusion (EKFMeasurement StateVector var))
+fuseAccel = XYZ $ fuseV3 $ xyzToVec3 . stateAccel
+
 runFuseMag :: (Monad m, Floating a, Real a) => XYZ a -> XYZ a -> KalmanState m a (XYZ (a, a))
 runFuseMag noise measurement = sequence $ runFusion <$> (fuseMag <*> noise) <*> measurement

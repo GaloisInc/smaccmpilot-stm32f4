@@ -49,11 +49,8 @@ sensorMonitor = decoder $ SensorHandlers
 
   , sh_gyro = \gyro_sample -> do
       refCopy gyro_buf gyro_sample
-
-  , sh_accel = \accel_sample -> do
-      refCopy accel_buf accel_sample
-      check_init init_accel $ do
-        now <- deref (accel_buf ~> A.time)
+      check_init init_gyro $ do
+        now <- deref (gyro_buf ~> G.time)
         prev <- deref timestamp_ref
         let dt_micros :: Sint32
             dt_micros = castDefault $ (T.unTimeMicros now) - (T.unTimeMicros prev)
@@ -62,6 +59,11 @@ sensorMonitor = decoder $ SensorHandlers
         call_ kalman_predict dt_seconds
         store timestamp_ref now
         call_ kalman_output
+
+  , sh_accel = \accel_sample -> do
+      refCopy accel_buf accel_sample
+      check_init 0 $ do
+        call_ accel_measure
 
   , sh_gps = const $ return ()
   , sh_moddef = do
@@ -78,7 +80,7 @@ sensorMonitor = decoder $ SensorHandlers
   init_ref :: Ref Global (Stored Uint32)
   init_ref = addrOf init_area
   init_mag = 1
-  init_accel = 2
+  init_gyro = 2
   init_done = 4
   check_init field ow = do
     i <- deref init_ref
@@ -176,6 +178,11 @@ sensorMonitor = decoder $ SensorHandlers
     mag <- mag_get_sample
     magMeasure (addrOf kalman_state) (addrOf kalman_covariance) mag
 
+  accel_measure :: Def ('[] :-> ())
+  accel_measure = proc "accel_measure" $ body $ do
+    accel <- accel_get_sample
+    accelMeasure (addrOf kalman_state) (addrOf kalman_covariance) accel
+
 
   ins_moddef :: ModuleDef
   ins_moddef = do
@@ -187,6 +194,7 @@ sensorMonitor = decoder $ SensorHandlers
     incl kalman_predict
     incl kalman_output
     incl mag_measure
+    incl accel_measure
     incl printf_float
     incl puts
 
