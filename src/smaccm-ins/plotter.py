@@ -39,10 +39,16 @@ def euler_angle(q):
            , math.atan2(2 * (q0 * q3 + q1 * q2), 1 - 2 * (q2 * q2 + q3 * q3))
            ]
 
+def raw_gyro(rad):
+    return rad / math.pi * 180 * 16.4
+
 calculated_columns = dict(
     { "roll": lambda (row) : euler_angle(row[10:14])[0]
     , "pitch": lambda (row) : euler_angle(row[10:14])[1]
     , "yaw": lambda (row) : euler_angle(row[10:14])[2]
+    , "rgx": lambda (row) : raw_gyro(row[4])
+    , "rgy": lambda (row) : raw_gyro(row[5])
+    , "rgz": lambda (row) : raw_gyro(row[6])
     })
 
 def parse(f, cs):
