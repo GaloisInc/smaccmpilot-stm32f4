@@ -12,20 +12,14 @@ import Ivory.Serialize
 [ivory|
 struct kalman_state
   { orient :: Array 4 (Stored IFloat)
-  ; vel :: Array 3 (Stored IFloat)
-  ; pos :: Array 3 (Stored IFloat)
   ; gyro_bias :: Array 3 (Stored IFloat)
-  ; wind :: Array 3 (Stored IFloat)
   ; mag_ned :: Array 3 (Stored IFloat)
   ; mag_xyz :: Array 3 (Stored IFloat)
   }
 
 struct kalman_covariance
   { cov_orient :: Array 4 (Struct kalman_state)
-  ; cov_vel :: Array 3 (Struct kalman_state)
-  ; cov_pos :: Array 3 (Struct kalman_state)
   ; cov_gyro_bias :: Array 3 (Struct kalman_state)
-  ; cov_wind :: Array 3 (Struct kalman_state)
   ; cov_mag_ned :: Array 3 (Struct kalman_state)
   ; cov_mag_xyz :: Array 3 (Struct kalman_state)
   }
@@ -41,10 +35,7 @@ insTypesModule = package "ins_types" $ do
 kalmanStateWrapper :: WrappedPackRep (Struct "kalman_state")
 kalmanStateWrapper = wrapPackRep "kalman_state" $ packStruct
   [ packLabel orient
-  , packLabel vel
-  , packLabel pos
   , packLabel gyro_bias
-  , packLabel wind
   , packLabel mag_ned
   , packLabel mag_xyz
   ]

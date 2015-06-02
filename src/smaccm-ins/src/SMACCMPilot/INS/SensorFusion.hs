@@ -56,7 +56,6 @@ import Data.Traversable
 import Linear
 import Numeric.Estimator.Augment
 import Numeric.Estimator.Model.Coordinate
-import Numeric.Estimator.Model.Pressure
 import Numeric.Estimator.Model.Symbolic
 import Prelude hiding (foldl1)
 import SMACCMPilot.INS.Quaternion
@@ -64,10 +63,7 @@ import SMACCMPilot.INS.Quaternion
 -- | A collection of all the state variables needed for this model.
 data StateVector a = StateVector
     { stateOrient :: !(Quaternion a) -- ^ quaternions defining attitude of body axes relative to local NED
-    , stateVel :: !(NED a) -- ^ NED velocity - m/sec
-    , statePos :: !(NED a) -- ^ NED position - m
     , stateGyroBias :: !(XYZ a) -- ^ delta angle bias - rad
-    , stateWind :: !(NED a) -- ^ NED wind velocity - m/sec
     , stateMagNED :: !(NED a) -- ^ NED earth fixed magnetic field components - milligauss
     , stateMagXYZ :: !(XYZ a) -- ^ XYZ body fixed magnetic field measurements - milligauss
     }
@@ -79,19 +75,13 @@ instance Additive StateVector where
 instance Applicative StateVector where
     pure v = StateVector
         { stateOrient = pure v
-        , stateVel = pure v
-        , statePos = pure v
         , stateGyroBias = pure v
-        , stateWind = pure v
         , stateMagNED = pure v
         , stateMagXYZ = pure v
         }
     v1 <*> v2 = StateVector
         { stateOrient = stateOrient v1 <*> stateOrient v2
-        , stateVel = stateVel v1 <*> stateVel v2
-        , statePos = statePos v1 <*> statePos v2
         , stateGyroBias = stateGyroBias v1 <*> stateGyroBias v2
-        , stateWind = stateWind v1 <*> stateWind v2
         , stateMagNED = stateMagNED v1 <*> stateMagNED v2
         , stateMagXYZ = stateMagXYZ v1 <*> stateMagXYZ v2
         }
@@ -105,20 +95,14 @@ instance Foldable StateVector where
 instance Traversable StateVector where
     sequenceA v = StateVector
         <$> sequenceA (stateOrient v)
-        <*> sequenceA (stateVel v)
-        <*> sequenceA (statePos v)
         <*> sequenceA (stateGyroBias v)
-        <*> sequenceA (stateWind v)
         <*> sequenceA (stateMagNED v)
         <*> sequenceA (stateMagXYZ v)
 
 instance Distributive StateVector where
     distribute f = StateVector
         { stateOrient = distribute $ fmap stateOrient f
-        , stateVel = distribute $ fmap stateVel f
-        , statePos = distribute $ fmap statePos f
         , stateGyroBias = distribute $ fmap stateGyroBias f
-        , stateWind = distribute $ fmap stateWind f
         , stateMagNED = distribute $ fmap stateMagNED f
         , stateMagXYZ = distribute $ fmap stateMagXYZ f
         }
@@ -166,10 +150,7 @@ instance Distributive DisturbanceVector where
 initCovariance :: Fractional a => StateVector (StateVector a)
 initCovariance = scaled $ fmap (^ (2 :: Int)) $ StateVector
     { stateOrient = pure 0.1
-    , stateVel = pure 0.7
-    , statePos = ned 15 15 5
     , stateGyroBias = pure $ 1 * deg2rad
-    , stateWind = pure 8
     , stateMagNED = pure 0.02
     , stateMagXYZ = pure 0.02
     }
@@ -220,16 +201,10 @@ initDynamic :: (Floating a, HasAtan2 a)
              -- ^ initial magnetometer bias
             -> a
              -- ^ local magnetic declination from true North
-            -> NED a
-             -- ^ initial velocity
-            -> NED a
-             -- ^ initial position
             -> StateVector a
              -- ^ computed initial state
-initDynamic accel mag magBias declination vel pos = (pure 0)
+initDynamic accel mag magBias declination = (pure 0)
     { stateOrient = initQuat
-    , stateVel = vel
-    , statePos = pos
     , stateMagNED = initMagNED
     , stateMagXYZ = magBias
     }
@@ -262,25 +237,11 @@ processModel dt (AugmentState state dist) = AugmentState state' $ pure 0
         --  * http://www.euclideanspace.com/physics/kinematics/angularvelocity/QuaternionDifferentiation2.pdf
         --    derives qdot from angular momentum.
         { stateOrient = stateOrient state `quatMul` deltaQuat
-        , stateVel = stateVel state + deltaVel
-        , statePos = statePos state + fmap (* dt) (stateVel state + fmap (/ 2) deltaVel)
         -- remaining state vector elements are unchanged by the process model
         }
     -- Even fairly low-order approximations introduce error small enough
     -- that it's swamped by other filter errors.
     deltaQuat = approxAxisAngle 3 $ xyzToVec3 $ fmap (* dt) $ disturbanceGyro dist - stateGyroBias state
-    deltaVel = fmap (* dt) $ body2nav state (disturbanceAccel dist) + g
-    g = ned 0 0 9.80665 -- NED gravity vector - m/sec^2
-
--- | Compute the local air pressure from the state vector. Useful as a
--- measurement model for a pressure sensor.
-statePressure :: Floating a => StateVector a -> a
-statePressure = heightToPressure . negate . (^._z) . nedToVec3 . statePos
-
--- | Compute the true air-speed of the sensor platform. Useful as a
--- measurement model for a true air-speed sensor.
-stateTAS :: Floating a => StateVector a -> a
-stateTAS state = distance (stateVel state) (stateWind state)
 
 -- | Compute the expected body-frame magnetic field strength and
 -- direction, given the hard-iron correction and local

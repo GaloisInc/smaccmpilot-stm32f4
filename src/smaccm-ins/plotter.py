@@ -14,23 +14,13 @@ columns =   [ "time"
             , "mx"
             , "my"
             , "mz"
-            , "baro"
-            , "q0" # 11
-            , "q1" # 12
-            , "q2" # 13
-            , "q3" # 14
-            , "vx"
-            , "vy"
-            , "vz"
-            , "px"
-            , "py"
-            , "pz"
+            , "q0" # 10
+            , "q1" # 11
+            , "q2" # 12
+            , "q3" # 13
             , "gbiasx"
             , "gbiasy"
             , "gbiasz"
-            , "windn"
-            , "winde"
-            , "windd"
             , "magn"
             , "mage"
             , "magd"
@@ -50,9 +40,9 @@ def euler_angle(q):
            ]
 
 calculated_columns = dict(
-    { "roll": lambda (row) : euler_angle(row[11:15])[0]
-    , "pitch": lambda (row) : euler_angle(row[11:15])[1]
-    , "yaw": lambda (row) : euler_angle(row[11:15])[2]
+    { "roll": lambda (row) : euler_angle(row[10:14])[0]
+    , "pitch": lambda (row) : euler_angle(row[10:14])[1]
+    , "yaw": lambda (row) : euler_angle(row[10:14])[2]
     })
 
 def parse(f, cs):

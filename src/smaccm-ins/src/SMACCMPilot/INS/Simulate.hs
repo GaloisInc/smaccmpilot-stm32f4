@@ -29,20 +29,14 @@ fixQuat state = state { stateOrient = signorm $ stateOrient state }
 runProcessModel :: (Monad m, Floating a, Ord a) => a -> StateVector a -> DisturbanceVector a -> DisturbanceVector a -> KalmanState m a ()
 runProcessModel dt noise distNoise dist = do
     (ts, prior) <- get
-    let speed = norm $ stateVel $ kalmanState prior
-    let noise' = if speed < 4 then noise { stateWind = pure 0, stateMagNED = pure 0, stateMagXYZ = pure 0 } else noise
-    let KalmanFilter state' p' = augmentProcess (EKFProcess $ processModel $ auto dt) dist (scaled noise') (scaled distNoise) prior
+    let KalmanFilter state' p' = augmentProcess (EKFProcess $ processModel $ auto dt) dist (scaled noise) (scaled distNoise) prior
     set (ts, KalmanFilter (fixQuat state') p')
 
 runFusion :: (Monad m, Floating a, Ord a) => (a -> KalmanFilter StateVector a -> (a, a, KalmanFilter StateVector a)) -> a -> KalmanState m a (a, a)
 runFusion fuse measurement = do
     (ts, prior) <- get
     let (innov, innovCov, KalmanFilter state' p') = fuse measurement prior
-    let speed = norm $ stateVel $ kalmanState prior
-    let whenFlying :: v -> v -> v
-        whenFlying = if speed < 4 then \ _new old -> old else \ new _old -> new
-    let observable = (pure const) { stateWind = pure whenFlying, stateMagNED = pure whenFlying, stateMagXYZ = pure whenFlying }
-    set (ts, KalmanFilter (observable <*> fixQuat state' <*> kalmanState prior) (observable <*> p' <*> kalmanCovariance prior))
+    set (ts, KalmanFilter (fixQuat state') p')
     return (innov, innovCov)
 
 -- A Fusion is a function from measurement covariance and measurement to
@@ -59,35 +53,8 @@ fusion v cov m prior = let (KalmanInnovation (V1 innov) (V1 (V1 innovCov)), post
 fuseV3 :: Fractional a => (forall s. Reifies s Tape => StateVector (Reverse s a) -> V3 (Reverse s a)) -> V3 (Fusion (EKFMeasurement StateVector a))
 fuseV3 getV = fusion <$> V3 (EKFMeasurement $ (^._x) . getV) (EKFMeasurement $ (^._y) . getV) (EKFMeasurement $ (^._z) . getV)
 
-fuseVel :: Fractional var => NED (Fusion (EKFMeasurement StateVector var))
-fuseVel = NED $ fuseV3 $ nedToVec3 . stateVel
-
-fusePos :: Fractional var => NED (Fusion (EKFMeasurement StateVector var))
-fusePos = NED $ fuseV3 $ nedToVec3 . statePos
-
-fusePressure :: Floating var => Fusion (EKFMeasurement StateVector var)
-fusePressure = fusion $ EKFMeasurement statePressure
-
-fuseTAS :: Floating var => Fusion (EKFMeasurement StateVector var)
-fuseTAS = fusion $ EKFMeasurement stateTAS
-
 fuseMag :: Fractional var => XYZ (Fusion (EKFMeasurement StateVector var))
 fuseMag = XYZ $ fuseV3 $ xyzToVec3 . stateMag
-
-runFuseVel :: (Monad m, Floating a, Real a) => NED a -> NED a -> KalmanState m a (NED (a, a))
-runFuseVel noise measurement = sequence $ runFusion <$> (fuseVel <*> noise) <*> measurement
-
-runFusePos :: (Monad m, Floating a, Real a) => NED a -> NED a -> KalmanState m a (NED (a, a))
-runFusePos noise measurement = sequence $ runFusion <$> (fusePos <*> noise) <*> measurement
-
-runFuseHeight :: (Monad m, Floating a, Real a) => a -> a -> KalmanState m a (a, a)
-runFuseHeight noise = runFusion $ (nedToVec3 fusePos ^._z) noise
-
-runFusePressure :: (Monad m, Floating a, Real a) => a -> a -> KalmanState m a (a, a)
-runFusePressure noise = runFusion $ fusePressure noise
-
-runFuseTAS :: (Monad m, Floating a, Real a) => a -> a -> KalmanState m a (a, a)
-runFuseTAS noise = runFusion $ fuseTAS noise
 
 runFuseMag :: (Monad m, Floating a, Real a) => XYZ a -> XYZ a -> KalmanState m a (XYZ (a, a))
 runFuseMag noise measurement = sequence $ runFusion <$> (fuseMag <*> noise) <*> measurement
