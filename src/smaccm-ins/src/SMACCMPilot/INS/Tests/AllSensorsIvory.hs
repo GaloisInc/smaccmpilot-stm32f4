@@ -8,6 +8,7 @@ module SMACCMPilot.INS.Tests.AllSensorsIvory
 
 import Data.Foldable
 import Data.List (intercalate)
+import Data.String
 import Data.Traversable
 import System.FilePath
 
@@ -90,6 +91,7 @@ sensorMonitor = decoder $ SensorHandlers
       store init_ref init_done
       call_ kalman_init
       refCopy timestamp_ref (accel_buf ~> A.time)
+      call_ puts $ fromString $ unwords columnnames
       call_ kalman_output
     when (i ==? 4) ow
 
@@ -140,6 +142,32 @@ sensorMonitor = decoder $ SensorHandlers
     let distVector = DisturbanceVector { disturbanceGyro = gyro
                                        , disturbanceAccel = accel }
     kalmanPredict (addrOf kalman_state) (addrOf kalman_covariance) dt distVector
+
+  columnnames =
+    [ "time"
+    , "ax"
+    , "ay"
+    , "az"
+    , "gx"
+    , "gy"
+    , "gz"
+    , "mx"
+    , "my"
+    , "mz"
+    , "q0"
+    , "q1"
+    , "q2"
+    , "q3"
+    , "gbiasx"
+    , "gbiasy"
+    , "gbiasz"
+    , "magn"
+    , "mage"
+    , "magd"
+    , "magx"
+    , "magy"
+    , "magz"
+    ]
 
   kalman_output :: Def ('[]:->())
   kalman_output = proc "kalman_output" $ body $ do

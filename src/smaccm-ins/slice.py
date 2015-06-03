@@ -3,31 +3,6 @@
 import math
 import sys
 
-columns = [ "time"
-          , "ax"
-          , "ay"
-          , "az"
-          , "gx"
-          , "gy"
-          , "gz"
-          , "mx"
-          , "my"
-          , "mz"
-          , "q0"
-          , "q1"
-          , "q2"
-          , "q3"
-          , "gbiasx"
-          , "gbiasy"
-          , "gbiasz"
-          , "magn"
-          , "mage"
-          , "magd"
-          , "magx"
-          , "magy"
-          , "magz"
-          ]
-
 def raw_gyro(rad):
     return rad / math.pi * 180 * 16.4
 
@@ -43,25 +18,26 @@ calculated_columns = dict(
     , "rgbiasz": (("gbiasz",), raw_gyro)
     })
 
-def columngetter(name):
+def columngetter(columns, name):
     calculator = calculated_columns.get(name)
     if calculator is not None:
-        getters = columnsgetter(calculator[0])
+        getters = columnsgetter(columns, calculator[0])
         return lambda row: calculator[1](*getters(row))
 
     idx = columns.index(name)
     return lambda row: float(row[idx])
 
-def columnsgetter(names):
+def columnsgetter(columns, names):
     if not names:
         raise ValueError("must specify at least one column")
-    getters = map(columngetter, names)
+    getters = tuple(columngetter(columns, name) for name in names)
     return lambda row: tuple(getter(row) for getter in getters)
 
 if __name__ == "__main__":
+    columns = sys.stdin.readline().strip().split()
     selected_columns = sys.argv[1:]
     try:
-        get_columns = columnsgetter(selected_columns)
+        get_columns = columnsgetter(columns, selected_columns)
     except ValueError, e:
         print >>sys.stderr, e.message
         print >>sys.stderr, "usage: {0} columns...".format(sys.argv[0])
