@@ -33,6 +33,8 @@ library
                        SMACCMPilot.Hardware.LSM303D.Regs,
                        SMACCMPilot.Hardware.LSM303D.SPI,
 
+                       SMACCMPilot.Hardware.L3GD20.SPI,
+
                        SMACCMPilot.Hardware.PPM,
                        SMACCMPilot.Hardware.PPM.PulseCapture,
                        SMACCMPilot.Hardware.PPM.PulseCapture.Types,
