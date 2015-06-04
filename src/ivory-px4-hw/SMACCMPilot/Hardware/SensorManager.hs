@@ -17,6 +17,7 @@ import SMACCMPilot.Hardware.HMC5883L
 import SMACCMPilot.Hardware.LSM303D
 import SMACCMPilot.Hardware.MS5611
 import SMACCMPilot.Hardware.MPU6000
+import SMACCMPilot.Hardware.L3GD20.SPI
 
 import SMACCMPilot.Hardware.Sensors
 
@@ -85,26 +86,44 @@ fmu24SensorManager FMU24Sensors{..} tocc = do
   let devices = [ fmu24sens_mpu6000
                 , fmu24sens_lsm303d
                 , fmu24sens_ms5611
+                , fmu24sens_l3gd20
                 ]
   (sreq, sready) <- spiTower tocc devices fmu24sens_spi_pins
 
+  initdone_sready <- channel
+  monitor "sensor_enable" $ do
+    handler sready "init" $ do
+      e <- emitter (fst initdone_sready) 1
+      callback $ \t -> do
+        fmu24sens_enable
+        emit e t
+
+  l3gd20_rdy <- channel
+  l3gd20_panic <- channel
+  (l3gd20Task, l3gd20Req) <- task "l3gd20"
+  l3gd20Disabler l3gd20Req
+                 (snd initdone_sready)
+                 (fst l3gd20_rdy)
+                 (fst l3gd20_panic)
+                 (SPIDeviceHandle 3)
+
   (mpu6000Task, mpu6000Req) <- task "mpu6000"
-  mpu6000SensorManager mpu6000Req sready
+  mpu6000SensorManager mpu6000Req (snd l3gd20_rdy)
                        (fst gyro_s) (fst acc_s)
                        (SPIDeviceHandle 0)
 
   (lsm303dTask, lsm303dReq) <- task "lsm303d"
   mag_s <- channel
   lsm_acc_s <- channel -- output never used!
-  lsm303dSPISensorManager lsm303dDefaultConf lsm303dReq sready
+  lsm303dSPISensorManager lsm303dDefaultConf lsm303dReq (snd l3gd20_rdy)
                           (fst mag_s) (fst lsm_acc_s) (SPIDeviceHandle 1)
 
   (ms5611Task, ms5611Req) <- task "ms5611"
   baro_s <- channel
-  ms5611SPISensorManager ms5611Req sready
+  ms5611SPISensorManager ms5611Req (snd l3gd20_rdy)
                          (fst baro_s) (SPIDeviceHandle 2)
 
-  schedule [mpu6000Task, lsm303dTask, ms5611Task] sready sreq
+  schedule [mpu6000Task, lsm303dTask, ms5611Task, l3gd20Task] sready sreq
 
   return (snd acc_s, snd gyro_s, snd mag_s, snd baro_s)
 
