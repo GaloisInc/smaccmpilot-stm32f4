@@ -41,8 +41,7 @@ writeRegReq dev reg v = fmap constRef $ local $ istruct
   ]
 
 regContents :: Ref s (Struct "spi_transaction_result") -> Ivory eff Uint8
-regContents = undefined
-
+regContents res = deref ((res ~> rx_buf) ! 1)
 
 -- | We are not using the L3GD20 sensor found on the Pixhawk at this time.
 -- However, we need to sends requests to disable the L3GD20's I2C bus mode,
