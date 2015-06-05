@@ -101,8 +101,8 @@ fmu24_sensors = FMU24Sensors
     , spiDevCSPin         = F427.pinC2
     , spiDevClockHz       = 500000
     , spiDevCSActive      = ActiveLow
-    , spiDevClockPolarity = ClockPolarityLow
-    , spiDevClockPhase    = ClockPhase1
+    , spiDevClockPolarity = ClockPolarityHigh
+    , spiDevClockPhase    = ClockPhase2
     , spiDevBitOrder      = MSBFirst
     , spiDevName          = "mpu6k"
     }
@@ -112,8 +112,8 @@ fmu24_sensors = FMU24Sensors
     , spiDevCSPin         = F427.pinD7
     , spiDevClockHz       = 500000
     , spiDevCSActive      = ActiveLow
-    , spiDevClockPolarity = ClockPolarityLow
-    , spiDevClockPhase    = ClockPhase1
+    , spiDevClockPolarity = ClockPolarityHigh
+    , spiDevClockPhase    = ClockPhase2
     , spiDevBitOrder      = MSBFirst
     , spiDevName          = "ms5611"
     }
@@ -123,8 +123,8 @@ fmu24_sensors = FMU24Sensors
     , spiDevCSPin         = F427.pinC15
     , spiDevClockHz       = 500000
     , spiDevCSActive      = ActiveLow
-    , spiDevClockPolarity = ClockPolarityLow
-    , spiDevClockPhase    = ClockPhase1
+    , spiDevClockPolarity = ClockPolarityHigh
+    , spiDevClockPhase    = ClockPhase2
     , spiDevBitOrder      = MSBFirst
     , spiDevName          = "lsm303d"
     }
@@ -134,8 +134,8 @@ fmu24_sensors = FMU24Sensors
     , spiDevCSPin         = F427.pinC13
     , spiDevClockHz       = 500000
     , spiDevCSActive      = ActiveLow
-    , spiDevClockPolarity = ClockPolarityLow
-    , spiDevClockPhase    = ClockPhase1
+    , spiDevClockPolarity = ClockPolarityHigh
+    , spiDevClockPhase    = ClockPhase2
     , spiDevBitOrder      = MSBFirst
     , spiDevName          = "l3gd20"
     }
