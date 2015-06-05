@@ -152,17 +152,37 @@ fmu24_sensors = FMU24Sensors
   sensor_enable :: Ivory eff ()
   sensor_enable = do
     -- Turn on sensor vdd regulator
-    assert_gpio F427.pinE3 -- VDD Enable
-    -- Ensure all CS pins are deselected, so that MISO lines are all High-Z
+    comment "Pixhawk VDD 3V3 Sensors Enable"
+    assert_gpio F427.pinE3 -- VDD 3V3 Sensors Enable
+    comment "Pixhawk VDD 5V Periph Enable"
+    clear_gpio F427.pinA8 -- VDD 5 Periph Enable
+    -- Ensure all CS pins are deselected, so that each device MISO lines are High-Z
+    comment "assert Gyro CS"
     assert_gpio F427.pinC13 -- Gyro CS
+    comment "assert Accel Mag CS"
     assert_gpio F427.pinC15 -- Accel Mag CS
+    comment "assert MPU6000 CS"
     assert_gpio F427.pinC2  -- MPU6k CS
+    comment "assert Baro CS"
     assert_gpio F427.pinD7  -- Baro CS
+    comment "assert FRAM CS"
+    assert_gpio F427.pinD10 -- FRAM CS
 
-  assert_gpio :: GPIOPin -> Ivory eff ()
-  assert_gpio p = do
+  output_gpio :: GPIOPin -> Ivory eff ()
+  output_gpio p = do
     pinEnable        p
     pinSetMode       p gpio_mode_output
     pinSetOutputType p gpio_outputtype_pushpull
     pinSetSpeed      p gpio_speed_50mhz
+
+  assert_gpio :: GPIOPin -> Ivory eff ()
+  assert_gpio p = do
+    comment ("Set " ++ pinName p ++ " to assert output")
+    output_gpio      p
     pinSet           p
+
+  clear_gpio :: GPIOPin -> Ivory eff ()
+  clear_gpio p = do
+    comment ("Set " ++ pinName p ++ " to clear output")
+    output_gpio      p
+    pinClear         p
