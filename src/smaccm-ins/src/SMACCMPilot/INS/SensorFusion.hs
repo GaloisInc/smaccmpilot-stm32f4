@@ -167,6 +167,8 @@ initCovariance = scaled $ fmap (^ (2 :: Int)) $ StateVector
 --
 -- Putting these two together gives the platform's complete orientation
 -- since the gravity vector and magnetic field line aren't collinear.
+--
+-- http://cache.freescale.com/files/sensors/doc/app_note/AN4248.pdf
 initAttitude :: (Floating a, HasAtan2 a)
              => XYZ a
              -- ^ initial accelerometer reading
@@ -178,11 +180,11 @@ initAttitude :: (Floating a, HasAtan2 a)
              -- ^ computed initial attitude
 initAttitude (XYZ accel) (XYZ mag) declination = fromEuler initialRoll initialPitch initialHdg
     where
-    initialRoll = arctan2 (negate (accel ^._y)) (negate (accel ^._z))
-    initialPitch = arctan2 (accel ^._x) (negate (accel ^._z))
-    magX = (mag ^._x) * cos initialPitch + (mag ^._y) * sin initialRoll * sin initialPitch + (mag ^._z) * cos initialRoll * sin initialPitch
-    magY = (mag ^._y) * cos initialRoll - (mag ^._z) * sin initialRoll
-    initialHdg = arctan2 (negate magY) magX + declination
+    initialRoll = arctan2 (accel ^._y) (accel ^._z)
+    initialPitch = atan (negate (accel ^._x) / (accel ^._y * sin initialRoll + accel ^._z * cos initialRoll))
+    magX = (mag ^._x) * cos initialPitch + (mag ^._y) * sin initialPitch * sin initialRoll + (mag ^._z) * sin initialPitch * cos initialRoll
+    magY = (mag ^._z) * sin initialRoll - (mag ^._y) * cos initialRoll
+    initialHdg = arctan2 magY magX + declination
 
 -- | Compute an initial filter state from an assortment of initial
 -- measurements.
