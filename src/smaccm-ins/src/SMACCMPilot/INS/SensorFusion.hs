@@ -57,7 +57,6 @@ import Linear
 import Numeric.Estimator.Augment
 import Numeric.Estimator.Model.Coordinate
 import Numeric.Estimator.Model.Symbolic
-import Prelude hiding (foldl1)
 import SMACCMPilot.INS.Quaternion
 
 -- | A collection of all the state variables needed for this model.
@@ -177,18 +176,13 @@ initAttitude :: (Floating a, HasAtan2 a)
              -- ^ local magnetic declination from true North
              -> Quaternion a
              -- ^ computed initial attitude
-initAttitude (XYZ accel) (XYZ mag) declination = foldl1 quatMul $ map (uncurry rotateAround)
-    [ (ez, initialHdg)
-    , (ey, initialPitch)
-    , (ex, initialRoll)
-    ]
+initAttitude (XYZ accel) (XYZ mag) declination = fromEuler initialRoll initialPitch initialHdg
     where
     initialRoll = arctan2 (negate (accel ^._y)) (negate (accel ^._z))
     initialPitch = arctan2 (accel ^._x) (negate (accel ^._z))
     magX = (mag ^._x) * cos initialPitch + (mag ^._y) * sin initialRoll * sin initialPitch + (mag ^._z) * cos initialRoll * sin initialPitch
     magY = (mag ^._y) * cos initialRoll - (mag ^._z) * sin initialRoll
     initialHdg = arctan2 (negate magY) magX + declination
-    rotateAround axis theta = Quaternion (cos half) $ pure 0 & el axis .~ (sin half) where half = theta / 2
 
 -- | Compute an initial filter state from an assortment of initial
 -- measurements.

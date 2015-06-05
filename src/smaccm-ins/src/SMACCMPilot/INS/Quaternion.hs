@@ -8,9 +8,11 @@ contributions to the linear package.
 
 module SMACCMPilot.INS.Quaternion where
 
+import Control.Applicative
+import Control.Lens
 import Data.Foldable
 import Linear
-import Prelude hiding (foldr, sum)
+import Prelude hiding (foldl1, foldr, sum)
 
 {- |
 The Taylor series expansion of the quaternion axis-angle formula never
@@ -39,3 +41,12 @@ implementation, which only needed 'Num'.
 quatMul :: Num a => Quaternion a -> Quaternion a -> Quaternion a
 quatMul (Quaternion s1 v1) (Quaternion s2 v2)
     = Quaternion (s1 * s2 - (v1 `dot` v2)) $ (v1 `cross` v2) + s1 *^ v2 + s2 *^ v1
+
+fromEuler :: Floating a => a -> a -> a -> Quaternion a
+fromEuler roll pitch yaw = foldl1 quatMul $ map (uncurry rotateAround)
+    [ (ez, yaw)
+    , (ey, pitch)
+    , (ex, roll)
+    ]
+    where
+    rotateAround axis theta = Quaternion (cos half) $ pure 0 & el axis .~ (sin half) where half = theta / 2
