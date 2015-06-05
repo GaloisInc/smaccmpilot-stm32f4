@@ -3,13 +3,16 @@
 import math
 import sys
 
+def to_deg(rad):
+    return rad / math.pi * 180
+
 def raw_gyro(rad):
-    return rad / math.pi * 180 * 16.4
+    return to_deg(rad) * 16.4
 
 calculated_columns = dict(
-    { "roll":    (("q0", "q1", "q2", "q3"), lambda q0, q1, q2, q3: math.atan2(2 * (q0 * q1 + q2 * q3), 1 - 2 * (q1 * q1 + q2 * q2)))
-    , "pitch":   (("q0", "q1", "q2", "q3"), lambda q0, q1, q2, q3: math.asin(2 * (q0 * q2 - q3 * q1)))
-    , "yaw":     (("q0", "q1", "q2", "q3"), lambda q0, q1, q2, q3: math.atan2(2 * (q0 * q3 + q1 * q2), 1 - 2 * (q2 * q2 + q3 * q3)))
+    { "roll":    (("q0", "q1", "q2", "q3"), lambda q0, q1, q2, q3: to_deg(math.atan2(2 * (q0 * q1 + q2 * q3), 1 - 2 * (q1 * q1 + q2 * q2))))
+    , "pitch":   (("q0", "q1", "q2", "q3"), lambda q0, q1, q2, q3: to_deg(math.asin(2 * (q0 * q2 - q3 * q1))))
+    , "yaw":     (("q0", "q1", "q2", "q3"), lambda q0, q1, q2, q3: to_deg(math.atan2(2 * (q0 * q3 + q1 * q2), 1 - 2 * (q2 * q2 + q3 * q3))))
     , "rgx":     (("gx",), raw_gyro)
     , "rgy":     (("gy",), raw_gyro)
     , "rgz":     (("gz",), raw_gyro)
