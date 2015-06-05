@@ -79,12 +79,40 @@ l3gd20Disabler (BackpressureTransmit req_chan res_chan) init_chan init_done pani
           readback_0x05 <- noBreak $ rpc (readRegReq dev 0x05)
           readback_val <- regContents readback_0x05
           when (readback_val ==? (val .| 0x20)) $ do
-            t <- getTime
-            emitV done_e t
-            retVoid
+            breakOut
           rs <- deref retries
           store retries (rs + 1)
           when (rs >? 10) $ do
             store panicked true
             emitV panic_e true
             retVoid
+
+        _ <- rpc $ writeRegReq dev ctl_1 ctl1_val
+        _ <- rpc $ writeRegReq dev ctl_2 0
+        _ <- rpc $ writeRegReq dev ctl_3 ctl3_drdy_enable
+        _ <- rpc $ writeRegReq dev ctl_4 ctl4_bdu
+        _ <- rpc $ writeRegReq dev ctl_5 0
+        _ <- rpc $ writeRegReq dev ctl_5 ctl5_fifo_enable
+        t <- getTime
+        emitV done_e t
+        retVoid
+
+        where
+        ctl_1 = 0x20
+        ctl_2 = 0x21
+        ctl_3 = 0x22
+        ctl_4 = 0x23
+        ctl_5 = 0x24
+
+        ctl1_power_normal = 0x08
+        ctl1_x_enable     = 0x04
+        ctl1_y_enable     = 0x02
+        ctl1_z_enable     = 0x01
+        ctl1_val = ctl1_power_normal .| ctl1_z_enable .| ctl1_y_enable .| ctl1_x_enable
+
+        ctl3_drdy_enable = 0x08
+
+        ctl4_bdu = 0x80
+
+        ctl5_fifo_enable = 0x40
+
