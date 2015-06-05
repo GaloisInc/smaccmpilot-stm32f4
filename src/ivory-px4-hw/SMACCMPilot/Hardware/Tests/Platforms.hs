@@ -151,9 +151,14 @@ px4platform_mag PX4Platform{..} = case px4platform_sensors of
     , lsm303d_spi_pins    = fmu24sens_spi_pins
     }
 
+px4platform_l3gd20 :: PX4Platform -> Maybe SPIDevice
+px4platform_l3gd20 PX4Platform{..} = case px4platform_sensors of
+  FMU17Sensors{..} -> Nothing
+  FMU24Sensors{..} -> Just fmu24sens_l3gd20
+
 px4platform_sensorenable :: PX4Platform -> Ivory eff ()
 px4platform_sensorenable PX4Platform{..} = case px4platform_sensors of
-  FMU17Sensors{..} -> fmu17sens_enable
+  FMU17Sensors{..} -> return ()
   FMU24Sensors{..} -> fmu24sens_enable
 -----------------
 
