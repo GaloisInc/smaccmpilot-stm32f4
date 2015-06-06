@@ -27,13 +27,13 @@ Issue Date: 20/12/2007
 /* Include files where endian defines and byteswap functions may reside */
 #if __APPLE__
   #include <machine/endian.h>
+#elif defined( ODROID )
+  #include <endian.h>
 #elif defined (__GNUC__) && !defined (__linux__)
   // For unknown reasons, the arm-none-eabi-gcc compiler uses a weird location
   // for endian.h
   #include <machine/endian.h>
 #elif defined(__GNUC__)
-  #include <endian.h>
-#elif defined( ODROID )
   #include <endian.h>
 #else
   #error Cound not detect correct endianness header to include.
