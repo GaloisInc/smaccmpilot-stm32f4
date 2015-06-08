@@ -9,10 +9,21 @@ def to_deg(rad):
 def raw_gyro(rad):
     return to_deg(rad) * 16.4
 
+def smooth_angle(f):
+    def smoothed(*args):
+        raw = f(*args)
+        last_value = getattr(smoothed, 'last_value', None)
+        if last_value is not None:
+            while abs(raw - last_value) > 180:
+                raw += math.copysign(360, last_value)
+        setattr(smoothed, 'last_value', raw)
+        return raw
+    return smoothed
+
 calculated_columns = dict(
-    { "roll":    (("q0", "q1", "q2", "q3"), lambda q0, q1, q2, q3: to_deg(math.atan2(2 * (q0 * q1 + q2 * q3), 1 - 2 * (q1 * q1 + q2 * q2))))
-    , "pitch":   (("q0", "q1", "q2", "q3"), lambda q0, q1, q2, q3: to_deg(math.asin(2 * (q0 * q2 - q3 * q1))))
-    , "yaw":     (("q0", "q1", "q2", "q3"), lambda q0, q1, q2, q3: to_deg(math.atan2(2 * (q0 * q3 + q1 * q2), 1 - 2 * (q2 * q2 + q3 * q3))))
+    { "roll":    (("q0", "q1", "q2", "q3"), smooth_angle(lambda q0, q1, q2, q3: to_deg(math.atan2(2 * (q0 * q1 + q2 * q3), 1 - 2 * (q1 * q1 + q2 * q2)))))
+    , "pitch":   (("q0", "q1", "q2", "q3"), smooth_angle(lambda q0, q1, q2, q3: to_deg(math.asin(2 * (q0 * q2 - q3 * q1)))))
+    , "yaw":     (("q0", "q1", "q2", "q3"), smooth_angle(lambda q0, q1, q2, q3: to_deg(math.atan2(2 * (q0 * q3 + q1 * q2), 1 - 2 * (q2 * q2 + q3 * q3)))))
     , "rgx":     (("gx",), raw_gyro)
     , "rgy":     (("gy",), raw_gyro)
     , "rgz":     (("gz",), raw_gyro)
