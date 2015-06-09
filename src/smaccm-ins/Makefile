@@ -48,6 +48,16 @@ all-sensors-ins-test:
 all-sensors-ins-test-clean:
 	-rm -rf all-sensors-ins-test
 
+.PHONY: ins-filter-test
+ins-filter-test:
+	cabal run ins-filter-test-gen -- --src-dir=$@ $(IVORY_FLAGS)
+	make -C $@
+	./$@/filter_test | python plotter.py
+
+.PHONY: ins-filter-test-clean
+ins-filter-test-clean:
+	-rm -rf ins-filter-test
+
 clean: psas-recording-ivory-test-clean
 clean: px4-sensor-fusion-test-clean
 clean: all-sensors-ins-test-clean

@@ -15,7 +15,13 @@ library
                        SMACCMPilot.INS.Simulate,
                        SMACCMPilot.INS.Tower,
                        SMACCMPilot.INS.Tests.SensorFusion,
-                       SMACCMPilot.INS.Tests.AllSensorsIvory
+                       SMACCMPilot.INS.Tests.AllSensorsIvory,
+                       SMACCMPilot.INS.Bias.Gyro,
+                       SMACCMPilot.INS.Filter,
+                       SMACCMPilot.INS.Filter.Filter,
+                       SMACCMPilot.INS.Filter.Butterworth,
+                       SMACCMPilot.INS.Filter.RunningAverage,
+                       SMACCMPilot.INS.Filter.Test
   other-modules:       SMACCMPilot.INS.Parameters,
                        SMACCMPilot.INS.Quaternion,
                        SMACCMPilot.INS.Types
@@ -100,3 +106,12 @@ executable px4-sensor-fusion-test-gen
                        smaccm-ins
   default-language:    Haskell2010
   ghc-options:         -Wall -Werror
+
+executable ins-filter-test-gen
+  hs-source-dirs:      tests
+  main-is:             Filter.hs
+  build-depends:       base >=4.6,
+                       smaccm-ins
+  default-language:    Haskell2010
+  ghc-options:         -Wall
+
