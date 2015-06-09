@@ -129,23 +129,15 @@ convert_mag_sample :: Config
                    -> Ref s1 (Struct "spi_transaction_result")
                    -> Ref s2 (Struct "magnetometer_sample")
                    -> Ivory eff ()
-convert_mag_sample c res s = convert_sample scale res (s ~> M.sample)
-  where
-  scale :: IFloat -> IFloat
-  scale v = v * (fromInteger (magPeakToPeakGauss c))
-              / (fromInteger (2 ^ (16 :: Int)))
+convert_mag_sample c res s = convert_sample (magSensitivityGauss c) res (s ~> M.sample)
 
 convert_acc_sample :: Config
                    -> Ref s1 (Struct "spi_transaction_result")
                    -> Ref s2 (Struct "accelerometer_sample")
                    -> Ivory eff ()
-convert_acc_sample c res s = convert_sample scale res (s ~> A.sample)
-  where
-  scale :: IFloat -> IFloat
-  scale v = v * (fromRational (accPeakToPeakMSS c))
-              / (fromInteger (2 ^ (16 :: Int)))
+convert_acc_sample c res s = convert_sample (accelSensitivityMSS c) res (s ~> A.sample)
 
-convert_sample :: (IFloat -> IFloat)
+convert_sample :: IFloat
                -> Ref s1 (Struct "spi_transaction_result")
                -> Ref s2 (Struct "xyz")
                -> Ivory eff ()
@@ -165,7 +157,7 @@ convert_sample scale res s = do
     hi <- deref hiref
     (u16 :: Uint16) <- assign ((safeCast lo) + ((safeCast hi) `iShiftL` 8))
     (i16 :: Sint16) <- assign (twosComplementCast u16)
-    (r :: IFloat)   <- assign (scale (safeCast i16))
+    (r :: IFloat)   <- assign (scale * safeCast i16)
     store resref r
 
 

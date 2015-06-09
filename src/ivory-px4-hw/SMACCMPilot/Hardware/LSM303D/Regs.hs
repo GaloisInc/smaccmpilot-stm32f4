@@ -252,23 +252,20 @@ control7Val :: Control7 -> Word8
 control7Val (Control7{..}) =
       wField (magPowerModeVal mag_power_mode) 0
 
-magPeakToPeakGauss :: Config -> Integer
-magPeakToPeakGauss = aux . mag_full_scale . conf_ctl6
-  where
-  -- really +/- 2 gauss, 4 gauss, etc
-  aux MFS_2gauss  = 4
-  aux MFS_4gauss  = 8
-  aux MFS_8gauss  = 16
-  aux MFS_12gauss = 24
+magSensitivityGauss :: Fractional a => Config -> a
+magSensitivityGauss c = 1.0e-3 * case mag_full_scale (conf_ctl6 c) of
+  -- milli-gauss/LSB
+  MFS_2gauss  -> 0.080
+  MFS_4gauss  -> 0.160
+  MFS_8gauss  -> 0.320
+  MFS_12gauss -> 0.479
 
-accPeakToPeakMSS :: Config -> Rational
-accPeakToPeakMSS = to_mss . aux . accel_full_scale . conf_ctl2
-  where
-  to_mss v = v * 9.81
-  -- really +/- 2 g, 4 g
-  aux AAFS_2g = 4
-  aux AAFS_4g = 8
-  aux AAFS_6g = 12
-  aux AAFS_8g = 16
-  aux AAFS_16g = 32
+accelSensitivityMSS :: Fractional a => Config -> a
+accelSensitivityMSS c = 9.80665e-3 * case accel_full_scale (conf_ctl2 c) of
+  -- milli-g/LSB
+  AAFS_2g  -> 0.061
+  AAFS_4g  -> 0.122
+  AAFS_6g  -> 0.183
+  AAFS_8g  -> 0.244
+  AAFS_16g -> 0.732
 
