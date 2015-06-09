@@ -17,6 +17,8 @@ library
                        SMACCMPilot.INS.Tests.SensorFusion,
                        SMACCMPilot.INS.Tests.AllSensorsIvory,
                        SMACCMPilot.INS.Bias.Gyro,
+                       SMACCMPilot.INS.Bias.Magnetometer,
+                       SMACCMPilot.INS.Bias.Magnetometer.Types,
                        SMACCMPilot.INS.Filter,
                        SMACCMPilot.INS.Filter.Filter,
                        SMACCMPilot.INS.Filter.Butterworth,
