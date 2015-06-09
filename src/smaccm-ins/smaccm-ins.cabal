@@ -16,6 +16,7 @@ library
                        SMACCMPilot.INS.Tower,
                        SMACCMPilot.INS.Tests.SensorFusion,
                        SMACCMPilot.INS.Tests.AllSensorsIvory,
+                       SMACCMPilot.INS.Bias.Gyro,
                        SMACCMPilot.INS.Filter,
                        SMACCMPilot.INS.Filter.Filter,
                        SMACCMPilot.INS.Filter.LowPass,

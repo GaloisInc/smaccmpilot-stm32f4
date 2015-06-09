@@ -6,6 +6,8 @@ module SMACCMPilot.INS.Tests.AllSensorsIvory
   ( app
   ) where
 
+import Control.Lens hiding ((<.>), ix)
+import Linear
 import Data.Foldable
 import Data.List (intercalate)
 import Data.String
@@ -21,6 +23,7 @@ import Numeric.Estimator.Model.Coordinate
 
 import SMACCMPilot.INS.Ivory
 import SMACCMPilot.INS.SensorFusion
+import SMACCMPilot.INS.Bias.Gyro
 import SMACCMPilot.Hardware.SensorMonitor
 import qualified SMACCMPilot.Comm.Ivory.Types.AccelerometerSample as A
 import qualified SMACCMPilot.Comm.Ivory.Types.GyroscopeSample     as G
@@ -74,6 +77,7 @@ sensorMonitor = decoder $ SensorHandlers
       defMemArea init_area
       defMemArea timestamp_area
       ins_moddef
+      gbe_moddef
   }
 
   where
@@ -134,6 +138,7 @@ sensorMonitor = decoder $ SensorHandlers
     acc <- accel_get_sample
     mag <- mag_get_sample
     kalmanInit (addrOf kalman_state) (addrOf kalman_covariance) acc mag
+    gbe_init gbe
 
   kalman_predict :: Def ('[IFloat] :-> ())
   kalman_predict = proc "kalman_predict" $ \ dt -> body $ do
@@ -142,6 +147,14 @@ sensorMonitor = decoder $ SensorHandlers
     let distVector = DisturbanceVector { disturbanceGyro = gyro
                                        , disturbanceAccel = accel }
     kalmanPredict (addrOf kalman_state) (addrOf kalman_covariance) dt distVector
+
+    gyro_array <- local (xyzArr gyro)
+    gbe_gyro_sample gbe (constRef gyro_array)
+
+  xyzArr :: XYZ IFloat -> Init (Array 3 (Stored IFloat))
+  xyzArr (XYZ v) = iarray [ ival (v ^._x), ival (v ^._y), ival (v ^._z) ]
+
+  (gbe, gbe_moddef) = ivoryGyroBiasEstimator "test"
 
   columnnames =
     [ "time"
@@ -167,6 +180,11 @@ sensorMonitor = decoder $ SensorHandlers
     , "magx"
     , "magy"
     , "magz"
+    -- Non EKF states - gyro bias estimator
+    , "gbe_x"
+    , "gbe_y"
+    , "gbe_z"
+    , "gbe_good"
     ]
 
   kalman_output :: Def ('[]:->())
@@ -190,8 +208,18 @@ sensorMonitor = decoder $ SensorHandlers
     print_array (addrOf kalman_state ~> mag_ned)
     -- columns 21-23
     print_array (addrOf kalman_state ~> mag_xyz)
+    -- columns 24-27
+    gbe_bias <- local izero
+    gbe_good <- gbe_output gbe gbe_bias
+    print_gbe gbe_bias gbe_good
     endl
     where
+    print_gbe bias good = do
+      deref (bias ! 0) >>= print_float
+      deref (bias ! 1) >>= print_float
+      deref (bias ! 2) >>= print_float
+      print_float (good ? (1.0, 0.0))
+
     print_array a = arrayMap $ \ix ->
       deref (a ! ix) >>= print_float
 
@@ -210,6 +238,8 @@ sensorMonitor = decoder $ SensorHandlers
   accel_measure = proc "accel_measure" $ body $ do
     accel <- accel_get_sample
     accelMeasure (addrOf kalman_state) (addrOf kalman_covariance) accel
+    accel_array <- local (xyzArr accel)
+    gbe_accel_sample gbe (constRef accel_array)
 
 
   ins_moddef :: ModuleDef
