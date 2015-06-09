@@ -91,15 +91,19 @@ ivoryGyroBiasEstimator n = (f, moddef)
         g_t <- deref gyro_threshold_ctr
         return (a_t >? 100 .&& g_t >? 100)
     }
-  (lpf_gx, lpf_gx_moddef) = ivoryLowPass (named "gx")
-  (lpf_gy, lpf_gy_moddef) = ivoryLowPass (named "gy")
-  (lpf_gz, lpf_gz_moddef) = ivoryLowPass (named "gz")
-  (hpf_gx, hpf_gx_moddef) = ivoryHighPass (named "gx")
-  (hpf_gy, hpf_gy_moddef) = ivoryHighPass (named "gy")
-  (hpf_gz, hpf_gz_moddef) = ivoryHighPass (named "gz")
-  (hpf_ax, hpf_ax_moddef) = ivoryHighPass (named "ax")
-  (hpf_ay, hpf_ay_moddef) = ivoryHighPass (named "ay")
-  (hpf_az, hpf_az_moddef) = ivoryHighPass (named "az")
+
+  lowpass fn = ivoryRunningAverageFilter fn (Proxy :: Proxy 64)
+  highpass fn = ivory2ndOrderFilter fn highPassButterworth
+
+  (lpf_gx, lpf_gx_moddef) = lowpass (named "gx")
+  (lpf_gy, lpf_gy_moddef) = lowpass (named "gy")
+  (lpf_gz, lpf_gz_moddef) = lowpass (named "gz")
+  (hpf_gx, hpf_gx_moddef) = highpass (named "gx")
+  (hpf_gy, hpf_gy_moddef) = highpass (named "gy")
+  (hpf_gz, hpf_gz_moddef) = highpass (named "gz")
+  (hpf_ax, hpf_ax_moddef) = highpass (named "ax")
+  (hpf_ay, hpf_ay_moddef) = highpass (named "ay")
+  (hpf_az, hpf_az_moddef) = highpass (named "az")
 
   accel_threshold_ctr_area  :: MemArea (Stored Uint32)
   accel_threshold_ctr_area   = area (named "accel_threshold_counter") Nothing

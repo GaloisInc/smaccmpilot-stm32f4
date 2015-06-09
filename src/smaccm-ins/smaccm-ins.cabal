@@ -19,8 +19,8 @@ library
                        SMACCMPilot.INS.Bias.Gyro,
                        SMACCMPilot.INS.Filter,
                        SMACCMPilot.INS.Filter.Filter,
-                       SMACCMPilot.INS.Filter.LowPass,
-                       SMACCMPilot.INS.Filter.HighPass,
+                       SMACCMPilot.INS.Filter.Butterworth,
+                       SMACCMPilot.INS.Filter.RunningAverage,
                        SMACCMPilot.INS.Filter.Test
   other-modules:       SMACCMPilot.INS.Parameters,
                        SMACCMPilot.INS.Quaternion,

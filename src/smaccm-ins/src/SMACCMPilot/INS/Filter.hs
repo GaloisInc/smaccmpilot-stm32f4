@@ -1,10 +1,11 @@
 
 module SMACCMPilot.INS.Filter
   ( module SMACCMPilot.INS.Filter.Filter
-  , module SMACCMPilot.INS.Filter.LowPass
-  , module SMACCMPilot.INS.Filter.HighPass
+  , module SMACCMPilot.INS.Filter.Butterworth
+  , module SMACCMPilot.INS.Filter.RunningAverage
   ) where
 
 import SMACCMPilot.INS.Filter.Filter
-import SMACCMPilot.INS.Filter.LowPass
-import SMACCMPilot.INS.Filter.HighPass
+import SMACCMPilot.INS.Filter.Butterworth
+import SMACCMPilot.INS.Filter.RunningAverage
+

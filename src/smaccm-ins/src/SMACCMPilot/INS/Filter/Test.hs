@@ -45,12 +45,14 @@ filter_test_pkg = package "filter_test" $ do
   incl main_proc
   lpf_moddef
   hpf_moddef
+  avg_moddef
   incl printf_float
   incl puts
   incl sin_proc
   where
-  (lpf, lpf_moddef) = ivoryLowPass "test"
-  (hpf, hpf_moddef) = ivoryHighPass "test"
+  (lpf, lpf_moddef) = ivory2ndOrderFilter "lpf" lowPassButterworth
+  (hpf, hpf_moddef) = ivory2ndOrderFilter "hpf" highPassButterworth
+  (avg, avg_moddef) = ivoryRunningAverageFilter "avg" (Proxy :: Proxy 64)
 
   put_float :: IFloat -> Ivory eff ()
   put_float = call_ printf_float "%f\t"
@@ -61,6 +63,7 @@ filter_test_pkg = package "filter_test" $ do
   test f = do
     filter_init lpf
     filter_init hpf
+    filter_init avg
     arrayMap $ \ (ix :: Ix 100) -> do
       input <- f ix
       put_float input
@@ -68,11 +71,13 @@ filter_test_pkg = package "filter_test" $ do
       filter_out lpf >>= put_float
       filter_sample hpf input
       filter_out hpf >>= put_float
+      filter_sample avg input
+      filter_out avg >>= put_float
       endl
 
   main_proc :: Def('[]:->Sint32)
   main_proc = proc "main" $ body $ do
-    call_ puts "input lpf hpf"
+    call_ puts "input lpf hpf avg"
     -- Impulse function
     test (\ix -> return ((ix ==? 0) ? (1, 0)))
     -- Step function
