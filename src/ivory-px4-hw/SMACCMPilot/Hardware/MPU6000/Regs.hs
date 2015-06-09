@@ -214,7 +214,7 @@ gyroBandwidth DLPF5Hz   = 5
 gyroNoiseRMS :: (Floating a, Ord a) => DLPFConfig -> a
 gyroNoiseRMS lpf = case gyroBandwidth lpf of
   bw | bw <= 10 -> 0.033 * sqrt (bw / 10)
-  bw -> 0.033 + 0.005 * sqrt (bw - 10) / 2
+  bw -> 0.033 + 0.005 * sqrt (bw - 10)
 
 gyroSampleRate :: Num a => DLPFConfig -> a
 gyroSampleRate DLPF260Hz = 8000
