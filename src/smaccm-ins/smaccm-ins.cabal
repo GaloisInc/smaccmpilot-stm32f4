@@ -19,6 +19,7 @@ library
                        SMACCMPilot.INS.Bias.Gyro,
                        SMACCMPilot.INS.Bias.Magnetometer,
                        SMACCMPilot.INS.Bias.Magnetometer.Types,
+                       SMACCMPilot.INS.Bias.Magnetometer.Test,
                        SMACCMPilot.INS.Filter,
                        SMACCMPilot.INS.Filter.Filter,
                        SMACCMPilot.INS.Filter.Butterworth,
@@ -112,6 +113,14 @@ executable px4-sensor-fusion-test-gen
 executable ins-filter-test-gen
   hs-source-dirs:      tests
   main-is:             Filter.hs
+  build-depends:       base >=4.6,
+                       smaccm-ins
+  default-language:    Haskell2010
+  ghc-options:         -Wall
+
+executable ins-mag-bias-test-gen
+  hs-source-dirs:      tests
+  main-is:             MagBias.hs
   build-depends:       base >=4.6,
                        smaccm-ins
   default-language:    Haskell2010

@@ -78,12 +78,16 @@ ivoryMagBiasEstimator n = (f, moddef)
         xtx <- xtx_matrix s
         xty <- xty_vec s
         let (xtx_inv, failed) = inv44 xtx
-            (V4 b0 b1 b2 _b3) = xtx_inv !* xty
-        store (out ! 0) (b0 / 2)
-        store (out ! 1) (b1 / 2)
-        store (out ! 2) (b2 / 2)
+            (V4 b0 b1 b2 b3) = xtx_inv !* xty
+        x <- assign (b0 / 2)
+        y <- assign (b1 / 2)
+        z <- assign (b2 / 2)
+        store (out ! 0) x
+        store (out ! 1) y
+        store (out ! 2) z
+        store (out ! 3) (sqrt (b3 + x*x + y*y + z*z))
         m <- deref (s ~> S.m)
-        return (failed ? (m , 0))
+        return (failed ? (0 , m))
     }
 
   moddef = do

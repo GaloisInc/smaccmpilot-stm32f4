@@ -58,6 +58,16 @@ ins-filter-test:
 ins-filter-test-clean:
 	-rm -rf ins-filter-test
 
+.PHONY: ins-mag-bias-test
+ins-mag-bias-test:
+	cabal run ins-mag-bias-test-gen -- --src-dir=$@ $(IVORY_FLAGS)
+	make -C $@
+	./$@/mag_bias_test
+
+.PHONY: ins-mag-bias-test-clean
+ins-mag-bias-test-clean:
+	-rm -rf ins-mag-bias-test
+
 clean: psas-recording-ivory-test-clean
 clean: px4-sensor-fusion-test-clean
 clean: all-sensors-ins-test-clean
