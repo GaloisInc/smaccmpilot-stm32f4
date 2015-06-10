@@ -287,7 +287,7 @@ app :: IO ()
 app = C.compile modules artifacts
   where
   (sens_modules, sens_artifacts) = sensorMonitor
-  modules = sens_modules ++ [magnetometerBiasTypesModule]
+  modules = sens_modules ++ [magnetometerBiasTypesModule, magDiversityHelpersModule]
   artifacts = makefile : sens_artifacts
 
   objects = [ moduleName m <.> "o" | m <- modules ] ++
