@@ -24,6 +24,8 @@ import Numeric.Estimator.Model.Coordinate
 import SMACCMPilot.INS.Ivory
 import SMACCMPilot.INS.SensorFusion
 import SMACCMPilot.INS.Bias.Gyro
+import SMACCMPilot.INS.Bias.Magnetometer.Diversity
+import SMACCMPilot.INS.Bias.Magnetometer.Types (magnetometerBiasTypesModule)
 import SMACCMPilot.Hardware.SensorMonitor
 import qualified SMACCMPilot.Comm.Ivory.Types.AccelerometerSample as A
 import qualified SMACCMPilot.Comm.Ivory.Types.GyroscopeSample     as G
@@ -78,6 +80,7 @@ sensorMonitor = decoder $ SensorHandlers
       defMemArea timestamp_area
       ins_moddef
       gbe_moddef
+      mbe_moddef
   }
 
   where
@@ -139,6 +142,7 @@ sensorMonitor = decoder $ SensorHandlers
     mag <- mag_get_sample
     kalmanInit (addrOf kalman_state) (addrOf kalman_covariance) acc mag
     gbe_init gbe
+    mbe_init mbe
 
   kalman_predict :: Def ('[IFloat] :-> ())
   kalman_predict = proc "kalman_predict" $ \ dt -> body $ do
@@ -154,7 +158,8 @@ sensorMonitor = decoder $ SensorHandlers
   xyzArr :: XYZ IFloat -> Init (Array 3 (Stored IFloat))
   xyzArr (XYZ v) = iarray [ ival (v ^._x), ival (v ^._y), ival (v ^._z) ]
 
-  (gbe, gbe_moddef) = ivoryGyroBiasEstimator "test"
+  (gbe, gbe_moddef) = ivoryGyroBiasEstimator "test_gbe"
+  (mbe, mbe_moddef) = ivoryDiverseMagBiasEstimator "test_mbe"
 
   columnnames =
     [ "time"
@@ -185,6 +190,12 @@ sensorMonitor = decoder $ SensorHandlers
     , "gbe_y"
     , "gbe_z"
     , "gbe_good"
+    -- Non EKF states - mag bias estimator
+    , "mbe_x"
+    , "mbe_y"
+    , "mbe_z"
+    , "mbe_f"
+    , "mbe_good"
     ]
 
   kalman_output :: Def ('[]:->())
@@ -212,6 +223,10 @@ sensorMonitor = decoder $ SensorHandlers
     gbe_bias <- local izero
     gbe_good <- gbe_output gbe gbe_bias
     print_gbe gbe_bias gbe_good
+    -- columns 28-32
+    mbe_bias <- local izero
+    mbe_samps <- mbe_output mbe mbe_bias
+    print_mbe mbe_bias mbe_samps
     endl
     where
     print_gbe bias good = do
@@ -219,6 +234,13 @@ sensorMonitor = decoder $ SensorHandlers
       deref (bias ! 1) >>= print_float
       deref (bias ! 2) >>= print_float
       print_float (good ? (1.0, 0.0))
+
+    print_mbe bias samps = do
+      deref (bias ! 0) >>= print_float
+      deref (bias ! 1) >>= print_float
+      deref (bias ! 2) >>= print_float
+      deref (bias ! 3) >>= print_float
+      print_float (safeCast samps)
 
     print_array a = arrayMap $ \ix ->
       deref (a ! ix) >>= print_float
@@ -233,6 +255,8 @@ sensorMonitor = decoder $ SensorHandlers
   mag_measure = proc "mag_measure" $ body $ do
     mag <- mag_get_sample
     magMeasure (addrOf kalman_state) (addrOf kalman_covariance) mag
+    mag_array <- local (xyzArr mag)
+    mbe_sample mbe (constRef mag_array)
 
   accel_measure :: Def ('[] :-> ())
   accel_measure = proc "accel_measure" $ body $ do
@@ -263,7 +287,7 @@ app :: IO ()
 app = C.compile modules artifacts
   where
   (sens_modules, sens_artifacts) = sensorMonitor
-  modules = sens_modules
+  modules = sens_modules ++ [magnetometerBiasTypesModule]
   artifacts = makefile : sens_artifacts
 
   objects = [ moduleName m <.> "o" | m <- modules ] ++

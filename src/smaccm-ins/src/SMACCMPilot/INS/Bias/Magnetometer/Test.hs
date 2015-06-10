@@ -17,13 +17,13 @@ import Ivory.Artifact
 import qualified Ivory.Compile.C.CmdlineFrontend as C (compile)
 
 import SMACCMPilot.INS.Bias.Magnetometer
-import SMACCMPilot.INS.Bias.Magnetometer.Types
+import qualified SMACCMPilot.INS.Bias.Magnetometer.Types as S
 
 app :: IO ()
 app = C.compile modules artifacts
   where
 
-  modules = [mag_bias_test_pkg, magnetometerBiasTypesModule]
+  modules = [mag_bias_test_pkg, S.magnetometerBiasTypesModule]
   artifacts = [makefile]
 
   objects = [ moduleName m <.> "o" | m <- modules ]
