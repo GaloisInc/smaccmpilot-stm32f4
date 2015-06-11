@@ -30,7 +30,7 @@ data GyroBiasEstimator =
 
 monitorGyroBiasEstimator :: Monitor e GyroBiasEstimator
 monitorGyroBiasEstimator = do
-  n <- freshname ""
+  n <- freshname "gbe"
   let (f, moddef) = ivoryGyroBiasEstimator (showUnique n)
   monitorModuleDef moddef
   return f
