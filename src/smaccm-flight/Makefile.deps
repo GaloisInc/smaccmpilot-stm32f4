@@ -13,6 +13,7 @@ $(call add-cabal-package-source, \
   $(SMACCMPILOT_REPO)/smaccm-comm-schema/smaccm-comm-schema-tower \
   $(SMACCMPILOT_REPO)/smaccm-commsec \
   $(SMACCMPILOT_REPO)/smaccm-datalink \
+  $(SMACCMPILOT_REPO)/smaccm-ins \
   $(TOWER_REPO)/tower \
   $(TOWER_REPO)/tower-aadl \
   $(TOWER_REPO)/tower-config \
