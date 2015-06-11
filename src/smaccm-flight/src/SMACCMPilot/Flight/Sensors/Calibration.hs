@@ -14,6 +14,7 @@ import Ivory.Stdlib
 import Ivory.Tower
 import qualified SMACCMPilot.Comm.Ivory.Types.ControlLaw          as L
 import qualified SMACCMPilot.Comm.Ivory.Types.ArmingMode          as A
+import           SMACCMPilot.Comm.Ivory.Types.XyzCalibration ()
 
 newtype Calibrate a =
   Calibrate ( forall eff s1 s2 s3

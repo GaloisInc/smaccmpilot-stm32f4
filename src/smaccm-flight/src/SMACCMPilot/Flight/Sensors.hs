@@ -13,6 +13,7 @@ import           SMACCMPilot.Comm.Tower.Interface.ControllableVehicle
 import           SMACCMPilot.Flight.Platform
 import           SMACCMPilot.Hardware.SensorManager
 import           SMACCMPilot.Flight.Sensors.GyroBias
+import           SMACCMPilot.Flight.Sensors.MagBias
 import           SMACCMPilot.Flight.Sensors.Calibration
 
 sensorTower :: (e -> FlightPlatform)
@@ -46,10 +47,6 @@ sensorTower tofp attrs = do
   attrProxy (gyroOutput            attrs) gyro_out
   attrProxy (gyroOutputCalibration attrs) gyro_out_bias
 
-
-  -- Mag: structured in the same way as gyro.
-  let calcMagBiasTower = undefined
-      magCalibrate = undefined
 
   attrProxy (magRawOutput attrs) m
 

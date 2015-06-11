@@ -44,6 +44,7 @@ library
                        SMACCMPilot.Flight.Sensors,
                        SMACCMPilot.Flight.Sensors.Calibration,
                        SMACCMPilot.Flight.Sensors.GyroBias,
+                       SMACCMPilot.Flight.Sensors.MagBias,
                        SMACCMPilot.Flight.Sensors.TestApp,
                        SMACCMPilot.Flight.Types.MaybeFloat,
                        SMACCMPilot.Flight.UserInput,
