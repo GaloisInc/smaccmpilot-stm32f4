@@ -25,12 +25,12 @@ sensorTower tofp attrs = do
       e <- attrEmitter (accelOutput attrs)
       callback $ \v -> emit e v
 
-    handler g "gyro_attr_proxy" $ do
-      e <- attrEmitter (gyroOutput attrs)
+    handler g "gyro_raw_attr_proxy" $ do
+      e <- attrEmitter (gyroRawOutput attrs)
       callback $ \v -> emit e v
 
-    handler m "mag_attr_proxy" $ do
-      e <- attrEmitter (magOutput attrs)
+    handler m "mag_raw_attr_proxy" $ do
+      e <- attrEmitter (magRawOutput attrs)
       callback $ \v -> emit e v
 
     handler b "baro_attr_proxy" $ do
