@@ -114,6 +114,12 @@
   (temperature float_t) -- degrees Celsius
   (time        time_micros_t))
 
+(def-struct xyz_calibration_t
+  (valid       bool_t)
+  (progress    float_t) -- 0.0 to 1.0
+  (bias        xyz_t)
+  (time        time_micros_t))
+
 (def-struct sensors_result_t
   (valid     bool_t)
   (roll      float_t) -- Roll, pitch,  yaw, in Radians
@@ -155,9 +161,13 @@
   (control_law             (attr read      control_law_t))
   (user_input              (attr read      user_input_result_t))
   (sensors_output          (attr read      sensors_result_t))
+  (gyro_raw_output         (attr read      gyroscope_sample_t))
+  (gyro_calibration        (attr read      xyz_calibration_t))
   (gyro_output             (attr read      gyroscope_sample_t))
   (accel_output            (attr read      accelerometer_sample_t))
   (baro_output             (attr read      barometer_sample_t))
+  (mag_raw_output          (attr read      magnetometer_sample_t))
+  (mag_calibration         (attr read      xyz_calibration_t))
   (mag_output              (attr read      magnetometer_sample_t))
   (control_setpoint        (attr read      control_setpoint_t))
   (control_output          (attr read      control_output_t))
