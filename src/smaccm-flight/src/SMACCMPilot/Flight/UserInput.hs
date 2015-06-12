@@ -14,6 +14,7 @@ import SMACCMPilot.Flight.UserInput.PPM
 import qualified SMACCMPilot.Comm.Ivory.Types.ArmingMode      as A
 import qualified SMACCMPilot.Comm.Ivory.Types.ControlLaw      as CL
 import qualified SMACCMPilot.Comm.Ivory.Types.ControlSource   as CS
+import qualified SMACCMPilot.Comm.Ivory.Types.SensorsResult   as S
 import qualified SMACCMPilot.Comm.Ivory.Types.TimeMicros      as T
 import qualified SMACCMPilot.Comm.Ivory.Types.UserInput       as UI ()
 import qualified SMACCMPilot.Comm.Ivory.Types.UserInputResult as UIR
@@ -35,11 +36,21 @@ userInputTower tofp attrs = do
 
     telem_ui      <- state "telem_ui"
     telem_ui_time <- state "telem_ui_time"
+
+    imu_valid     <- state "imu_valid"
     attrHandler (userInputRequest attrs) $ do
       callback $ \v -> do
         refCopy telem_ui v
         now <- getTime
         store telem_ui_time now
+
+    -- Only set imu_valid once we have a valid sensor output solution.
+    -- Don't ever set imu_valid from true to false- would cause us to fall
+    -- out of the sky.
+    attrHandler (sensorsOutput attrs) $ do
+      callback $ \o -> do
+        v <- deref (o ~> S.valid)
+        when v $ store imu_valid true
 
     -- Invariant: ppm_cl and ppm_ui are emitted on every tick of the same period
     -- thread. ppm_cl is delivered before ppm_ui.
@@ -79,6 +90,13 @@ userInputTower tofp attrs = do
               refCopy (ui_o ~> UIR.ui)     ppm_ui_s
               store   (ui_o ~> UIR.source) CS.ppm
           ]
+
+        -- Guard arming on imu_valid
+        a_desired <- deref (cl_o ~> CL.arming_mode)
+        i_valid <- deref imu_valid
+        when (a_desired ==? A.armed .&& iNot i_valid) $ do
+            store (cl_o ~> CL.arming_mode) A.disarmed
+
         emit e_ui (constRef ui_o)
         emit e_cl (constRef cl_o)
 
