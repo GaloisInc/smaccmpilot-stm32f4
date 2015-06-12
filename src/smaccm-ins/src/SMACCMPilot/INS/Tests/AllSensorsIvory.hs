@@ -1,6 +1,7 @@
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeOperators #-}
 
 module SMACCMPilot.INS.Tests.AllSensorsIvory
   ( app
@@ -64,8 +65,11 @@ sensorMonitor = decoder $ SensorHandlers
       mag <- mapM deref $ xyzRefs (mag_sample ~> M.sample)
       mag_array <- local $ xyzArr $ fmap (* 1000) mag
       mbe_sample mbe (constRef mag_array)
-      check_init init_mag $ do
-        call_ mag_measure
+      mbe_bias <- local izero
+      mbe_ready <- mbe_output mbe mbe_bias
+      when (mbe_ready >=? 1) $ do
+        check_init init_mag $ do
+          call_ mag_measure
 
   , sh_gyro = \gyro_sample -> do
       refCopy gyro_buf gyro_sample
@@ -132,11 +136,15 @@ sensorMonitor = decoder $ SensorHandlers
     let toRads deg = deg * pi / 180.0
     return $ fmap toRads raw
 
-  mag_get_sample :: Ivory eff (XYZ IFloat)
+  mag_get_sample :: GetAlloc eff ~ Scope s => Ivory eff (XYZ IFloat)
   mag_get_sample = do
     raw <- mapM deref $ xyzRefs $ mag_buf ~> M.sample
     let toMilligauss gauss = gauss * 1000
-    return $ fmap toMilligauss raw
+    mbe_bias <- local izero
+    mbe_ready <- mbe_output mbe mbe_bias
+    assert mbe_ready
+    bias <- mapM deref $ xyz (mbe_bias ! 0) (mbe_bias ! 1) (mbe_bias ! 2)
+    return $ fmap toMilligauss $ raw - bias
 
   timestamp_area = area "timestamp_previous" Nothing
   timestamp_ref = addrOf timestamp_area
