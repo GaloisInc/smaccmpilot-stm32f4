@@ -44,6 +44,17 @@ printf_double = importProc "printf" "stdio.h"
 puts :: Def('[IString] :-> ())
 puts = importProc "puts" "stdio.h"
 
+linebuf :: Def('[] :-> ())
+linebuf = importProc "setlinebuf_stdout" "stdio.h"
+
+imports :: ModuleDef
+imports = do
+  incl printf_float
+  incl printf_double
+  incl puts
+  incl linebuf
+
+
 sensorMonitor :: ([Module], [Located Artifact])
 sensorMonitor = decoder $ SensorHandlers
   { sh_baro = const $ return ()
@@ -78,6 +89,7 @@ sensorMonitor = decoder $ SensorHandlers
       defMemArea accel_area
       defMemArea init_area
       defMemArea timestamp_area
+      imports
       ins_moddef
       gbe_moddef
       mbe_moddef
@@ -99,6 +111,7 @@ sensorMonitor = decoder $ SensorHandlers
       call_ kalman_init
       refCopy timestamp_ref (accel_buf ~> A.time)
       call_ puts $ fromString $ unwords columnnames
+      call_ linebuf
       call_ kalman_output
     when (i ==? 4) ow
 
@@ -277,10 +290,6 @@ sensorMonitor = decoder $ SensorHandlers
     incl kalman_output
     incl mag_measure
     incl accel_measure
-    incl printf_float
-    incl puts
-
-
 
 
 app :: IO ()
@@ -297,7 +306,7 @@ app = C.compile modules artifacts
 
   makefile = Root $ artifactString "Makefile" $ unlines
     [ "CC = gcc"
-    , "CFLAGS = -Wall -g -Os -std=c99 -D_BSD_SOURCE -Wno-unused-variable -I."
+    , "CFLAGS = -Wall -g -Os -std=c99 -D_BSD_SOURCE '-Dsetlinebuf_stdout()=setlinebuf(stdout)' -Wno-unused-variable -I."
     , "LDLIBS = -lm"
     , "OBJS = " ++ intercalate " " objects
     , exename ++ ": $(OBJS)"
