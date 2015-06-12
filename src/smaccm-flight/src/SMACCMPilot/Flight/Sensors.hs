@@ -48,6 +48,8 @@ sensorTower tofp attrs = do
   attrProxy (gyroOutputCalibration attrs) gyro_out_bias
 
 
+  -- Mag: same basic idea as Gyro. We calculate calibration differently, of
+  -- course.
   attrProxy (magRawOutput attrs) m
 
   mag_bias <- calcMagBiasTower m
