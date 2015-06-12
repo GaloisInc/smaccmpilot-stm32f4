@@ -1,0 +1,64 @@
+<html>
+<head>
+	<title>Cube</title>
+</head>
+<body>
+
+<script src="three.min.js"></script>
+<script src="stats.min.js"></script>
+<script>
+var scene = new THREE.Scene();
+var camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 5);
+var renderer = new THREE.WebGLRenderer();
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
+
+camera.position.z = 3;
+scene.add(new THREE.AmbientLight(0x404040));
+
+var light = new THREE.DirectionalLight(0xffffff);
+light.position.set(0, 2, 2);
+scene.add(light);
+
+var geometry = new THREE.BoxGeometry(1, 1, 1);
+var material = new THREE.MeshLambertMaterial({ color: 0x10df78 });
+var cube = new THREE.Mesh(geometry, material);
+scene.add(cube);
+
+var axis = new THREE.AxisHelper(1);
+scene.add(axis);
+
+var stats = new Stats();
+stats.setMode(0); // 0: fps, 1: ms, 2: mb
+
+// align top-left
+stats.domElement.style.position = 'absolute';
+stats.domElement.style.left = '0px';
+stats.domElement.style.top = '0px';
+
+document.body.appendChild(stats.domElement);
+
+var is_queued = false;
+
+function render() {
+	is_queued = false;
+	stats.begin();
+	renderer.render(scene, camera);
+	stats.end();
+}
+
+var s = new WebSocket("ws://" + document.location.host + "/echo");
+s.onmessage = function(evt) {
+	var msg = JSON.parse(evt.data);
+	var q = new THREE.Quaternion(msg.q1, msg.q2, msg.q3, msg.q0);
+	cube.quaternion.copy(q);
+	axis.quaternion.copy(q);
+	if(!is_queued) {
+		requestAnimationFrame(render);
+		is_queued = true;
+	}
+};
+</script>
+
+</body>
+</html>

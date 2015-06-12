@@ -1,0 +1,59 @@
+#!/usr/bin/env python
+
+# run like so:
+# all-sensors-ins-test/decoder < /dev/ttyUSB0 | scripts/server
+
+from gevent.monkey import patch_sys
+patch_sys()
+
+from flask import Flask, redirect, url_for
+from flask_sockets import Sockets
+import gevent
+from gevent.event import AsyncResult
+from geventwebsocket import WebSocketError
+import json
+import sys
+
+app = Flask(__name__)
+sockets = Sockets(app)
+
+next_value = AsyncResult()
+
+def read_stdin():
+    global next_value
+
+    columns = sys.stdin.readline().strip().split()
+    for line in sys.stdin:
+        # capture the current listeners
+        current_value = next_value
+        # ensure that any listeners that show up now wait for the next event
+        next_value = AsyncResult()
+
+        # broadcast this event
+        msg = json.dumps(dict(zip(columns, map(float, line.split()))))
+        current_value.set(msg)
+
+    # no more data, close all connections
+    next_value.set_exception(gevent.GreenletExit)
+    sys.exit(0)
+
+gevent.spawn(read_stdin)
+
+@sockets.route('/echo')
+def echo_socket(ws):
+    while True:
+        v = next_value.get()
+        try:
+            ws.send(v)
+        except WebSocketError:
+            break
+
+@app.route('/')
+def root():
+    return redirect(url_for('static', filename='index.html'))
+
+if __name__ == "__main__":
+    from gevent import pywsgi
+    from geventwebsocket.handler import WebSocketHandler
+    server = pywsgi.WSGIServer(("", 8000), app, handler_class=WebSocketHandler)
+    server.serve_forever()
