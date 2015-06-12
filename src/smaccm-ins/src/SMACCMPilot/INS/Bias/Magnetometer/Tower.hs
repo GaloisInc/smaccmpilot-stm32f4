@@ -2,7 +2,7 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE DataKinds #-}
 
-module SMACCMPilot.Flight.Sensors.MagBias
+module SMACCMPilot.INS.Bias.Magnetometer.Tower
   ( calcMagBiasTower
   , calcMagBiasTower'
   , magCalibrate
@@ -11,10 +11,10 @@ module SMACCMPilot.Flight.Sensors.MagBias
 import Ivory.Language
 import Ivory.Stdlib
 import Ivory.Tower
-import SMACCMPilot.INS.Bias.Magnetometer
+import SMACCMPilot.INS.Bias.Calibration
+import SMACCMPilot.INS.Bias.Magnetometer.Estimator
 import SMACCMPilot.INS.Bias.Magnetometer.Types (magnetometerBiasTypesModule)
 import SMACCMPilot.Time
-import SMACCMPilot.Flight.Sensors.Calibration
 import qualified SMACCMPilot.Comm.Ivory.Types.MagnetometerSample  as M
 import qualified SMACCMPilot.Comm.Ivory.Types.XyzCalibration      as C
 import qualified SMACCMPilot.Comm.Ivory.Types.Xyz                 as XYZ

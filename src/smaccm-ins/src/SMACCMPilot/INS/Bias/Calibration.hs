@@ -3,7 +3,7 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE DataKinds #-}
 
-module SMACCMPilot.Flight.Sensors.Calibration
+module SMACCMPilot.INS.Bias.Calibration
   ( Calibrate(..)
   , applyCalibrationTower
   , applyCalibrationTower'

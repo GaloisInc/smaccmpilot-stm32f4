@@ -11,7 +11,7 @@ module SMACCMPilot.INS.Bias.Magnetometer.Diversity
 import Ivory.Language
 import Ivory.Tower
 import Ivory.Stdlib
-import SMACCMPilot.INS.Bias.Magnetometer
+import SMACCMPilot.INS.Bias.Magnetometer.Estimator
 
 
 monitorDiverseMagBiasEstimator :: Monitor e MagBiasEstimator

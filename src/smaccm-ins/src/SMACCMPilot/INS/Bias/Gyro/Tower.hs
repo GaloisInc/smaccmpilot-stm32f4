@@ -2,7 +2,7 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE DataKinds #-}
 
-module SMACCMPilot.Flight.Sensors.GyroBias
+module SMACCMPilot.INS.Bias.Gyro.Tower
   ( calcGyroBiasTower
   , calcGyroBiasTower'
   , gyroCalibrate
@@ -11,9 +11,9 @@ module SMACCMPilot.Flight.Sensors.GyroBias
 import Ivory.Language
 import Ivory.Stdlib
 import Ivory.Tower
-import SMACCMPilot.INS.Bias.Gyro
+import SMACCMPilot.INS.Bias.Calibration
+import SMACCMPilot.INS.Bias.Gyro.Estimator
 import SMACCMPilot.Time
-import SMACCMPilot.Flight.Sensors.Calibration
 import qualified SMACCMPilot.Comm.Ivory.Types.GyroscopeSample     as G
 import qualified SMACCMPilot.Comm.Ivory.Types.AccelerometerSample as A
 import qualified SMACCMPilot.Comm.Ivory.Types.XyzCalibration      as C
