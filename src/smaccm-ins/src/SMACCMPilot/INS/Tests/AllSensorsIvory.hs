@@ -102,6 +102,8 @@ sensorMonitor = decoder $ SensorHandlers
   init_mag = 1
   init_gyro = 2
   init_done = 4
+
+  check_init :: Uint32 -> Ivory eff () -> Ivory eff ()
   check_init field ow = do
     i <- deref init_ref
     when (i <? 3) $ do
@@ -117,14 +119,17 @@ sensorMonitor = decoder $ SensorHandlers
 
   xyzRefs s = fmap (s ~>) $ xyz XYZ.x XYZ.y XYZ.z
 
+  accel_get_sample :: Ivory eff (XYZ IFloat)
   accel_get_sample = do
     mapM deref $ xyzRefs $ accel_buf ~> A.sample
 
+  gyro_get_sample :: Ivory eff (XYZ IFloat)
   gyro_get_sample = do
     raw <- mapM deref $ xyzRefs $ gyro_buf ~> G.sample
     let toRads deg = deg * pi / 180.0
     return $ fmap toRads raw
 
+  mag_get_sample :: Ivory eff (XYZ IFloat)
   mag_get_sample = do
     raw <- mapM deref $ xyzRefs $ mag_buf ~> M.sample
     let toMilligauss gauss = gauss * 1000
