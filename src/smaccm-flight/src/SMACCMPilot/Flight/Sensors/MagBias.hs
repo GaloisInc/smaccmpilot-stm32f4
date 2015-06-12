@@ -46,8 +46,7 @@ calcMagBiasTower' m c newoutput = do
       e <- emitter c 1
       callbackV $ \t -> do
         biases <- local izero
-        done <- mbe_output mbe biases
-        let progress = safeCast done / 64.0
+        progress <- mbe_output mbe biases
         cal <- mkCalibration (constRef biases) progress t
         emit e cal
 

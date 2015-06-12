@@ -24,7 +24,7 @@ data MagBiasEstimator =
                    -> Ivory eff ()
     , mbe_output   :: forall eff s
                     . Ref s (Array 4 (Stored IFloat))
-                   -> Ivory eff Uint32
+                   -> Ivory eff IFloat
     }
 
 monitorMagBiasEstimator :: Monitor e MagBiasEstimator
@@ -86,8 +86,7 @@ ivoryMagBiasEstimator n = (f, moddef)
         store (out ! 1) y
         store (out ! 2) z
         store (out ! 3) (sqrt (b3 + x*x + y*y + z*z))
-        m <- deref (s ~> S.m)
-        return (failed ? (0 , m))
+        return $ failed ? (0, 1)
     }
 
   moddef = do

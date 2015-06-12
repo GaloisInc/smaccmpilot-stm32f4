@@ -44,7 +44,11 @@ ivoryDiverseMagBiasEstimator n = (f, moddef)
           call_ insert_proc s mbe_buf mbe_ix mbe_vx
           -- TODO: only use sample if sufficiently far from existing samples
           mbe_sample mbe s
-    , mbe_output = \o -> mbe_output mbe o
+    , mbe_output = \o -> do
+        -- underlying MBE returns 0 or 1
+        success <- mbe_output mbe o
+        vx <- deref mbe_vx
+        return $ success * safeCast vx / arrayLen mbe_buf
     }
 
   moddef = do

@@ -48,16 +48,12 @@ mag_bias_test_pkg = package "mag_bias_test" $ do
   mbe_moddef
   incl main_proc
   incl printf_float
-  incl printf_uint32
   incl puts
   where
   (mbe, mbe_moddef) = ivoryMagBiasEstimator "mbe"
 
   put_float :: IFloat -> Ivory eff ()
   put_float = call_ printf_float "%f\t"
-
-  put_uint32 :: Uint32 -> Ivory eff ()
-  put_uint32 = call_ printf_uint32 "%d\t"
 
   put_array :: (ANat n) => Ref s (Array n (Stored IFloat)) -> Ivory eff ()
   put_array a = arrayMap $ \ix -> deref (a ! ix) >>= put_float
@@ -79,9 +75,9 @@ mag_bias_test_pkg = package "mag_bias_test" $ do
       put_array s
       mbe_sample mbe (constRef s)
       o <- local izero
-      n <- mbe_output mbe o
+      progress <- mbe_output mbe o
       put_array o
-      put_uint32 n
+      put_float progress
       endl
 
 
@@ -102,9 +98,6 @@ mag_bias_test_pkg = package "mag_bias_test" $ do
 
 printf_float :: Def('[IString, IFloat] :-> ())
 printf_float = importProc "printf" "stdio.h"
-
-printf_uint32 :: Def('[IString, Uint32] :-> ())
-printf_uint32  = importProc "printf" "stdio.h"
 
 puts :: Def('[IString] :-> ())
 puts = importProc "puts" "stdio.h"

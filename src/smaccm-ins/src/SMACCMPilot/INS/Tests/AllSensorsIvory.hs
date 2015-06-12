@@ -246,8 +246,8 @@ sensorMonitor = decoder $ SensorHandlers
     print_gbe gbe_bias gbe_good
     -- columns 28-32
     mbe_bias <- local izero
-    mbe_samps <- mbe_output mbe mbe_bias
-    print_mbe mbe_bias mbe_samps
+    mbe_progress <- mbe_output mbe mbe_bias
+    print_mbe mbe_bias mbe_progress
     endl
     where
     print_gbe bias good = do
@@ -256,12 +256,12 @@ sensorMonitor = decoder $ SensorHandlers
       deref (bias ! 2) >>= print_float
       print_float (good ? (1.0, 0.0))
 
-    print_mbe bias samps = do
+    print_mbe bias progress = do
       deref (bias ! 0) >>= print_float
       deref (bias ! 1) >>= print_float
       deref (bias ! 2) >>= print_float
       deref (bias ! 3) >>= print_float
-      print_float (safeCast samps)
+      print_float progress
 
     print_array a = arrayMap $ \ix ->
       deref (a ! ix) >>= print_float
