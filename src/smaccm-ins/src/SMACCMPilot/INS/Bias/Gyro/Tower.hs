@@ -89,6 +89,11 @@ mkCalibration cal done time = do
         , XYZ.y  .= ival y
         , XYZ.z  .= ival z
         ]
+    , C.scale    .= istruct
+        [ XYZ.x  .= ival 1
+        , XYZ.y  .= ival 1
+        , XYZ.z  .= ival 1
+        ]
     , C.time     .= ival (timeMicrosFromITime time)
     ]
 
@@ -106,4 +111,5 @@ gyroCalibrate = Calibrate aux
       ((out ~> G.sample) ~> XYZ.x) %= subtract bx
       ((out ~> G.sample) ~> XYZ.y) %= subtract by
       ((out ~> G.sample) ~> XYZ.z) %= subtract bz
+      store (out ~> G.calibrated) true
     return (constRef out)
