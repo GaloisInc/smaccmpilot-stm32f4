@@ -61,6 +61,9 @@ sensorMonitor = decoder $ SensorHandlers
 
   , sh_mag = \mag_sample -> do
       refCopy mag_buf mag_sample
+      mag <- mapM deref $ xyzRefs (mag_sample ~> M.sample)
+      mag_array <- local $ xyzArr $ fmap (* 1000) mag
+      mbe_sample mbe (constRef mag_array)
       check_init init_mag $ do
         call_ mag_measure
 
@@ -273,8 +276,6 @@ sensorMonitor = decoder $ SensorHandlers
   mag_measure = proc "mag_measure" $ body $ do
     mag <- mag_get_sample
     magMeasure (addrOf kalman_state) (addrOf kalman_covariance) mag
-    mag_array <- local (xyzArr mag)
-    mbe_sample mbe (constRef mag_array)
 
   accel_measure :: Def ('[] :-> ())
   accel_measure = proc "accel_measure" $ body $ do
