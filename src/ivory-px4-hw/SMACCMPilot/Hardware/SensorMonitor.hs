@@ -22,11 +22,11 @@ import SMACCMPilot.Comm.Ivory.Types
 
 data SensorHandlers =
   SensorHandlers
-    { sh_baro  :: forall s eff . ConstRef s (Struct "barometer_sample") -> Ivory eff ()
-    , sh_mag   :: forall s eff . ConstRef s (Struct "magnetometer_sample") -> Ivory eff ()
-    , sh_gyro  :: forall s eff . ConstRef s (Struct "gyroscope_sample") -> Ivory eff ()
-    , sh_accel :: forall s eff . ConstRef s (Struct "accelerometer_sample") -> Ivory eff ()
-    , sh_gps   :: forall s eff . ConstRef s (Struct "position") -> Ivory eff ()
+    { sh_baro  :: forall s s' . ConstRef s (Struct "barometer_sample") -> Ivory (AllocEffects s') ()
+    , sh_mag   :: forall s s' . ConstRef s (Struct "magnetometer_sample") -> Ivory (AllocEffects s') ()
+    , sh_gyro  :: forall s s' . ConstRef s (Struct "gyroscope_sample") -> Ivory (AllocEffects s') ()
+    , sh_accel :: forall s s' . ConstRef s (Struct "accelerometer_sample") -> Ivory (AllocEffects s') ()
+    , sh_gps   :: forall s s' . ConstRef s (Struct "position") -> Ivory (AllocEffects s') ()
     , sh_moddef :: ModuleDef
     }
 
@@ -91,23 +91,23 @@ decoder SensorHandlers{..} = (decoderModule : dependencies, artifacts)
 
   baro_proc :: Def ('[ConstRef s (Struct "barometer_sample")] :-> ())
   baro_proc = proc "baro_sample_handler" $ \ v -> body $ do
-    sh_baro v
+    noReturn $ sh_baro v
 
   mag_proc :: Def ('[ConstRef s (Struct "magnetometer_sample")] :-> ())
   mag_proc = proc "mag_sample_handler" $ \ v -> body $ do
-    sh_mag v
+    noReturn $ sh_mag v
 
   gyro_proc :: Def ('[ConstRef s (Struct "gyroscope_sample")] :-> ())
   gyro_proc = proc "gyro_sample_handler" $ \ v -> body $ do
-    sh_gyro v
+    noReturn $ sh_gyro v
 
   accel_proc :: Def ('[ConstRef s (Struct "accelerometer_sample")] :-> ())
   accel_proc = proc "accel_sample_handler" $ \ v -> body $ do
-    sh_accel v
+    noReturn $ sh_accel v
 
   gps_proc :: Def ('[ConstRef s (Struct "position")] :-> ())
   gps_proc = proc "gps_sample_handler" $ \ v -> body $ do
-    sh_gps v
+    noReturn $ sh_gps v
 
 handler :: (ANat len, IvoryArea a, IvoryZero a, Packable a)
         => Ref s1 (Array len (Stored Uint8))
