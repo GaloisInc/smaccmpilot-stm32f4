@@ -12,7 +12,7 @@ import Ivory.Language
 import Ivory.Stdlib
 import Ivory.Tower
 import SMACCMPilot.INS.Bias.Calibration
-import SMACCMPilot.INS.Bias.Magnetometer.Estimator
+import SMACCMPilot.INS.Bias.Magnetometer.Diversity
 import SMACCMPilot.INS.Bias.Magnetometer.Types (magnetometerBiasTypesModule)
 import SMACCMPilot.Time
 import qualified SMACCMPilot.Comm.Ivory.Types.MagnetometerSample  as M
@@ -33,8 +33,9 @@ calcMagBiasTower' :: ChanOutput (Struct "magnetometer_sample")
                    -> Tower e ()
 calcMagBiasTower' m c newoutput = do
   towerModule magnetometerBiasTypesModule
+  towerModule magDiversityHelpersModule
   monitor "calcMagBias" $ do
-    mbe <- monitorMagBiasEstimator
+    mbe <- monitorDiverseMagBiasEstimator
     handler systemInit "init" $ callback $ const $ do
       mbe_init mbe
 
