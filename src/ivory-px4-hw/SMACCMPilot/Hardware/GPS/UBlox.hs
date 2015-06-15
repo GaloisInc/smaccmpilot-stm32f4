@@ -27,7 +27,7 @@ ubloxGPSTower istream ostream = do
     (pktLen   :: Ref Global (Stored Uint16)) <- state "pktLen"
     (payOffs  :: Ref Global (Stored Uint16)) <- state "payOffs"
     (payload  :: Ref Global (Array 52 (Stored Uint8))) <- state "payload"
-    (position :: Ref Global (Struct "position")) <- state "position"
+    (position :: Ref Global (Struct "position")) <- state "position_1"
     (dstate   :: Ref Global (Stored Uint8)) <- state "decode_state"
 
     monitorModuleDef $ do
