@@ -38,7 +38,7 @@ monitorGyroBiasEstimator = do
 ivoryGyroBiasEstimator :: String -> (GyroBiasEstimator, ModuleDef)
 ivoryGyroBiasEstimator n = (f, moddef)
   where
-  gyro_threshold = 0.75
+  gyro_threshold  = 25
   accel_threshold = 0.75
 
   f = GyroBiasEstimator
