@@ -5,8 +5,8 @@ $(function() {
     defaults: {
       period: false
     },
-    initialize: function (attrs, model) {
-      this.model = model;
+    initialize: function (attrs, models) {
+      this.models = [].concat(models); // creates list from single object or list of objects
       this.interval = null;
       this.on('change', this.update, this);
       this.set(attrs);
@@ -18,8 +18,9 @@ $(function() {
         clearInterval(this.interval);
       }
       if (attrs.period > 0) {
-        this.interval = setInterval(function () { self.model.fetch() },
-                                    attrs.period);
+        this.interval = setInterval(function () {
+          _.each(self.models, function (m) { m.fetch(); });
+        }, attrs.period);
       } else {
         this.interval = null;
       }
