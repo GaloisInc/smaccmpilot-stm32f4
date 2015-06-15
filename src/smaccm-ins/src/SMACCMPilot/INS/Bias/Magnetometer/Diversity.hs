@@ -28,7 +28,7 @@ type MBEBufDepth = 64
 ivoryDiverseMagBiasEstimator :: String -> (MagBiasEstimator, ModuleDef)
 ivoryDiverseMagBiasEstimator n = (f, moddef)
   where
-  distance_threshold = 40.0
+  distance_threshold = 0.04
 
   (mbe, mbe_moddef) = ivoryMagBiasEstimator n
   f = MagBiasEstimator
