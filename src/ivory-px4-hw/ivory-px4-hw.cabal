@@ -53,6 +53,10 @@ library
 
                        SMACCMPilot.Hardware.RGBLED,
 
+                       SMACCMPilot.Hardware.PX4IO.Types.Request,
+                       SMACCMPilot.Hardware.PX4IO.Types.RequestCode,
+                       SMACCMPilot.Hardware.PX4IO.CRC,
+
                        SMACCMPilot.Hardware.Tests.Platforms,
                        SMACCMPilot.Hardware.Tests.Serialize,
                        SMACCMPilot.Hardware.Tests.CopterMotors,
