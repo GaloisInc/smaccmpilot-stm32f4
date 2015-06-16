@@ -48,7 +48,7 @@ applyCalibrationTower' :: (IvoryArea a, IvoryZero a)
 applyCalibrationTower' calibrate biased_g cal_latest claw unbiased_g cal_active = do
   monitor "applyCalibration" $ do
     got_law <- state "got_control_law"
-    law <- state "control_law"
+    law <- state "control_law_"
 
     pending_cal_ready <- state "pending_cal_ready"
     pending_cal <- state "pending_cal"
