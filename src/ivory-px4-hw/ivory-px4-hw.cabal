@@ -55,7 +55,9 @@ library
 
                        SMACCMPilot.Hardware.PX4IO.Types.Request,
                        SMACCMPilot.Hardware.PX4IO.Types.RequestCode,
+                       SMACCMPilot.Hardware.PX4IO.Types.Buffer,
                        SMACCMPilot.Hardware.PX4IO.CRC,
+                       SMACCMPilot.Hardware.PX4IO.Pack,
 
                        SMACCMPilot.Hardware.Tests.Platforms,
                        SMACCMPilot.Hardware.Tests.Serialize,

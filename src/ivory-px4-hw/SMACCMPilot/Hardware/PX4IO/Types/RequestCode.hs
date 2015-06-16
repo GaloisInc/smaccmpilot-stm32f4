@@ -4,6 +4,7 @@
 
 module SMACCMPilot.Hardware.PX4IO.Types.RequestCode
   ( RequestCode
+  , unRequestCode
   , request_read
   , request_write
   , request_corrupt
@@ -13,7 +14,7 @@ module SMACCMPilot.Hardware.PX4IO.Types.RequestCode
 import Ivory.Language
 import Ivory.Serialize
 
-newtype RequestCode = RequestCode Uint8
+newtype RequestCode = RequestCode { unRequestCode :: Uint8 }
   deriving (IvoryType, IvoryVar, IvoryExpr, IvoryEq, IvoryStore, IvoryInit)
 
 instance Packable (Stored RequestCode) where
