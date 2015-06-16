@@ -73,13 +73,13 @@ sampleSender tag len c out = do
       emit e $ constRef str
 
 gyroSender :: Sender e (Struct "gyroscope_sample")
-gyroSender = sampleSender 'g' (Proxy :: Proxy 26)
+gyroSender = sampleSender 'g' (Proxy :: Proxy 27)
 
 accelSender :: Sender e (Struct "accelerometer_sample")
 accelSender = sampleSender 'a' (Proxy :: Proxy 26)
 
 magSender :: Sender e (Struct "magnetometer_sample")
-magSender = sampleSender 'm' (Proxy :: Proxy 22)
+magSender = sampleSender 'm' (Proxy :: Proxy 23)
 
 baroSender :: Sender e (Struct "barometer_sample")
 baroSender = sampleSender 'b' (Proxy :: Proxy 18)

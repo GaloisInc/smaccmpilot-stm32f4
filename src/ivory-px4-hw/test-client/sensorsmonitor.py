@@ -41,9 +41,10 @@ class Mag(object):
     def __init__(self, binary):
         self.binary = binary
         try:
-            (ifail, sfail, x, y, z, t) = struct.unpack("!BBfffQ", binary)
+            (ifail, sfail, cal, x, y, z, t) = struct.unpack("!BBBfffQ", binary)
             self.ifail = ifail
             self.sfail = sfail
+            self.cal   = cal
             self.x     = x
             self.y     = y
             self.z     = z
@@ -54,8 +55,8 @@ class Mag(object):
     def display(self):
         if self.errormsg:
             return self.errormsg
-        return ("Mag   %d %d x % 9.4f y % 9.4f z % 9.4f                micros %d" %
-            (self.ifail, self.sfail, self.x, self.y, self.z, self.t))
+        return ("Mag   %d %d x % 9.4f y % 9.4f z % 9.4f                cal %d micros %d" %
+            (self.ifail, self.sfail, self.x, self.y, self.z, self.cal, self.t))
 
 
 class Accel(object):
@@ -106,9 +107,10 @@ class Gyro(object):
     def __init__(self, binary):
         self.binary = binary
         try:
-            (ifail, sfail, x, y, z, temp, t) = struct.unpack("!BBffffQ", binary)
+            (ifail, sfail, cal, x, y, z, temp, t) = struct.unpack("!BBBffffQ", binary)
             self.ifail = ifail
             self.sfail = sfail
+            self.cal   = cal
             self.x     = x
             self.y     = y
             self.z     = z
@@ -120,8 +122,8 @@ class Gyro(object):
     def display(self):
         if self.errormsg:
             return self.errormsg
-        return ("Gyro  %d %d x % 9.4f y % 9.4f z % 9.4f temp % 9.4f micros %d" %
-            (self.ifail, self.sfail, self.x, self.y, self.z, self.temp, self.t))
+        return ("Gyro  %d %d x % 9.4f y % 9.4f z % 9.4f temp % 9.4f cal %d micros %d" %
+            (self.ifail, self.sfail, self.x, self.y, self.z, self.temp, self.cal, self.t))
 
 class Position(object):
     def __init__(self, binary):
