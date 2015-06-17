@@ -3,8 +3,7 @@
 {-# LANGUAGE DataKinds #-}
 
 module SMACCMPilot.Hardware.PX4IO.Types.RequestCode
-  ( RequestCode
-  , unRequestCode
+  ( RequestCode(..)
   , request_read
   , request_write
   , request_corrupt

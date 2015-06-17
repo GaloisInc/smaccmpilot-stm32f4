@@ -61,19 +61,3 @@ crc8_update = proc "px4io_crc8_update" $ \ref input -> body $ do
   c' <- deref (addrOf crc8_tab_area ! ix)
   store ref c'
 
-{-
-static uint8_t crc_packet(struct IOPacket *pkt) __attribute__((unused));
-static uint8_t
-crc_packet(struct IOPacket *pkt)
-{
-	uint8_t *end = (uint8_t *)(&pkt->regs[PKT_COUNT(*pkt)]);
-	uint8_t *p = (uint8_t *)pkt;
-	uint8_t c = 0;
-
-	while (p < end)
-		c = crc8_tab[c ^ *(p++)];
-
-	return c;
-}
-
--}
