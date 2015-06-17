@@ -43,8 +43,8 @@ frame_loopback :: BackpressureTransmit HXCyphertext (Stored IBool)
 frame_loopback o i = do
   ctin <- channel
   ctout <- channel
-  hxstreamDecodeTower "test" i (fst ctin)
-  hxstreamEncodeTower "test" (snd ctout) o
+  airDataDecodeTower "test" i (fst ctin)
+  airDataEncodeTower "test" (snd ctout) o
 
   p <- period (Milliseconds 10)
 

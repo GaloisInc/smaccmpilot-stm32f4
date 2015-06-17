@@ -31,7 +31,7 @@ motorcontrol_input ::
 motorcontrol_input byte_istream motorstream = do
 
   frame_istream <- channel
-  hxstreamDecodeTower "motorcontrol" byte_istream (fst frame_istream)
+  airDataDecodeTower "motorcontrol" byte_istream (fst frame_istream)
 
   monitor "motorcontrol_input" $ do
     handler (snd frame_istream) "control_frame" $ do

@@ -117,7 +117,7 @@ uartDatalink tocc uart baud input output = do
 
   input_frames <- channel
 
-  hxstreamDecodeTower "frame" uarti (fst input_frames)
+  airDataDecodeTower "frame" uarti (fst input_frames)
 
   frameBuffer' (snd input_frames)
   -- Buffering timing analysis:
@@ -130,5 +130,5 @@ uartDatalink tocc uart baud input output = do
                                        (Proxy :: Proxy 4)
                                        input
 
-  hxstreamEncodeTower "frame" output uarto
+  airDataEncodeTower "frame" output uarto
 

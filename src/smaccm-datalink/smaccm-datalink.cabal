@@ -41,6 +41,7 @@ library
                        unix,
                        gec,
                        ivory,
+                       ivory-serialize,
                        ivory-stdlib,
                        tower,
                        tower-config,
