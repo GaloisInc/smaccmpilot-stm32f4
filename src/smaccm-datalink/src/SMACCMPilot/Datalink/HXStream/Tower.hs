@@ -8,8 +8,10 @@
 
 module SMACCMPilot.Datalink.HXStream.Tower
   ( hxstreamEncodeTower
+  , hxstreamEncodeTower'
   , HXStreamHandler()
   , hxstreamHandler
+  , hxstreamHandler'
   , hxstreamDecodeTower
   , HXCyphertext
   , airDataEncodeTower
@@ -33,7 +35,17 @@ hxstreamEncodeTower :: (IvoryString str, Packable msg, IvoryArea msg, IvoryZero 
                     -> H.Tag
                     -> BackpressureTransmit str (Stored IBool)
                     -> Tower e ()
-hxstreamEncodeTower n ct_chan buflen tag (BackpressureTransmit serial_chan complete) = do
+hxstreamEncodeTower n = hxstreamEncodeTower' n packRep
+
+hxstreamEncodeTower' :: (IvoryString str, IvoryArea msg, IvoryZero msg, ANat len)
+                     => String
+                     -> PackRep msg
+                     -> ChanOutput msg
+                     -> Proxy len
+                     -> H.Tag
+                     -> BackpressureTransmit str (Stored IBool)
+                     -> Tower e ()
+hxstreamEncodeTower' n rep ct_chan buflen tag (BackpressureTransmit serial_chan complete) = do
   let deps = [H.hxstreamModule, serializeModule]
   mapM_ towerModule deps
 
@@ -48,7 +60,7 @@ hxstreamEncodeTower n ct_chan buflen tag (BackpressureTransmit serial_chan compl
         already_pending <- deref pending
         unless already_pending $ do
           ct <- local (izerolen buflen)
-          packInto ct 0 msg
+          packInto' rep ct 0 msg
           buf <- local izero
           H.encodeString tag (constRef ct) buf
           emit e $ constRef buf
@@ -63,7 +75,10 @@ data HXStreamHandler = forall msg. (IvoryArea msg, IvoryZero msg) => HXStreamHan
   }
 
 hxstreamHandler :: (Packable msg, IvoryArea msg, IvoryZero msg) => H.Tag -> ChanInput msg -> HXStreamHandler
-hxstreamHandler t c = HXStreamHandler t packRep c
+hxstreamHandler t c = hxstreamHandler' t packRep c
+
+hxstreamHandler' :: (IvoryArea msg, IvoryZero msg) => H.Tag -> PackRep msg -> ChanInput msg -> HXStreamHandler
+hxstreamHandler' = HXStreamHandler
 
 hxstreamDecodeTower :: ANat len
                     => String
