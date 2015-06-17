@@ -79,6 +79,7 @@ library
                        tower-config,
                        tower-freertos-stm32,
                        ivory-bsp-stm32,
+                       ivory-tower-posix,
                        smaccm-comm-schema-tower,
                        smaccm-datalink,
                        tower-hal
@@ -210,10 +211,13 @@ executable             px4-sensors-monitor-gen
                        filepath,
                        ivory,
                        ivory-artifact,
-                       ivory-stdlib,
-                       ivory-serialize,
                        ivory-backend-c,
+                       ivory-serialize,
+                       ivory-stdlib,
+                       ivory-tower-posix,
                        smaccm-datalink,
+                       tower,
+                       tower-hal,
                        ivory-px4-hw,
                        smaccm-comm-schema-tower
 

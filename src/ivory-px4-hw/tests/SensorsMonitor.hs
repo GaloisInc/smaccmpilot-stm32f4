@@ -1,43 +1,64 @@
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE Rank2Types #-}
-{-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 
-import Data.List
-import Ivory.Artifact
-import qualified Ivory.Compile.C.CmdlineFrontend as C (compile)
+import Data.Char (ord)
 import Ivory.Language
-import System.FilePath
+import Ivory.Serialize
+import Ivory.Stdlib
+import Ivory.Tower
+import Ivory.Tower.HAL.Bus.Interface
+import Ivory.OS.Posix.Tower
+import Ivory.OS.Posix.Tower.Serial
+import SMACCMPilot.Comm.Ivory.Types
+import SMACCMPilot.Datalink.HXStream.Tower
+import SMACCMPilot.Hardware.GPS.Types
 
-import SMACCMPilot.Hardware.SensorMonitor
+[ivory| string struct Result 8 |]
 
-puts :: Def('[IString]:-> Sint32)
-puts = importProc "puts" "stdio.h"
+app :: Tower e ()
+app = do
+  let resultModule = package "result" $ defStringType (Proxy :: Proxy Result)
+  let dependencies =
+        [ gpsTypesModule
+        , serializeModule
+        , resultModule
+        ] ++ typeModules
+
+  mapM_ towerModule dependencies
+  mapM_ towerDepends dependencies
+  mapM_ towerArtifact serializeArtifacts
+
+  (tx, rx) <- serialIO
+
+  (hxs, hs) <- fmap unzip $ sequence
+    [ decl tx 'b' "baro" (packRep :: PackRep (Struct "barometer_sample"))
+    , decl tx 'm' "mag" (packRep :: PackRep (Struct "magnetometer_sample"))
+    , decl tx 'g' "gyro" (packRep :: PackRep (Struct "gyroscope_sample"))
+    , decl tx 'a' "accel" (packRep :: PackRep (Struct "accelerometer_sample"))
+    , decl tx 'p' "gps" (packRep :: PackRep (Struct "position"))
+    ]
+
+  hxstreamDecodeTower "decoder" rx (Proxy :: Proxy 256) hxs
+
+  monitor "decoder" $ sequence_ hs
+
+decl :: (IvoryArea msg, IvoryZero msg)
+     => BackpressureTransmit Result (Stored IBool)
+     -> Char
+     -> String
+     -> PackRep msg
+     -> Tower e (HXStreamHandler, Monitor e ())
+decl tx tag label rep = do
+  (to, from) <- channel
+  return $ (,) (hxstreamHandler' (fromIntegral (ord tag)) rep to) $ do
+    labelString <- fmap constRef $ stateInit label $ stringInit label
+    handler from label $ do
+      e <- emitter (backpressureTransmit tx) 1
+      callback $ const $ do
+        emit e labelString
 
 main :: IO ()
-main = C.compile modules artifacts'
-  where
-  (modules, artifacts) = decoder $ SensorHandlers
-    { sh_baro   = const $ call_ puts "baro"
-    , sh_mag    = const $ call_ puts "mag"
-    , sh_gyro   = const $ call_ puts "gyro"
-    , sh_accel  = const $ call_ puts "accel"
-    , sh_gps    = const $ call_ puts "gps"
-    , sh_moddef = incl puts
-    }
-
-  objects = [ moduleName m <.> "o" | m <- modules ] ++
-    [ replaceExtension (artifactFileName a) "o" | Src a <- artifacts ]
-
-  exename = moduleName $ head modules
-
-  artifacts' = makefile : artifacts
-  makefile = Root $ artifactString "Makefile" $ unlines [
-      "CC = gcc",
-      "CFLAGS = -Wall -O0 -g -I. -DIVORY_TEST",
-      "OBJS = " ++ intercalate " " objects,
-      exename ++ ": $(OBJS)",
-      "clean:",
-      "\t-rm -f $(OBJS) " ++ exename,
-      ".PHONY: clean"
-    ]
+main = compileTowerPosix (const $ return ()) app

@@ -1,6 +1,7 @@
 IVORY_REPO ?= ../../../ivory
 TOWER_REPO ?= ../../../tower
 BSP_REPO ?= ../../../ivory-tower-stm32
+POSIX_REPO ?= ../../../ivory-tower-posix
 GEC_REPO ?= ../../../gec
 ODROID_BSP_REPO ?= ../../../tower-camkes-odroid
 SMACCMPILOT_REPO ?= ..
