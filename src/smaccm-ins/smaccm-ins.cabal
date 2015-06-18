@@ -41,7 +41,7 @@ library
                        ivory-stdlib >=0.1,
                        ivory-backend-c >=0.1,
                        lens >=4.6,
-                       linear >=1.16 && <1.17,
+                       linear >=1.16 && <1.19,
                        monadLib >= 3.7,
                        reflection >=1.5,
                        tower >=0.9,
