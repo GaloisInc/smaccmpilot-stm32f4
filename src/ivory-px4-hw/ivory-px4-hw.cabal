@@ -210,8 +210,6 @@ executable             px4-sensors-monitor-gen
   build-depends:       base >= 4.6,
                        filepath,
                        ivory,
-                       ivory-artifact,
-                       ivory-backend-c,
                        ivory-serialize,
                        ivory-stdlib,
                        ivory-tower-posix,
