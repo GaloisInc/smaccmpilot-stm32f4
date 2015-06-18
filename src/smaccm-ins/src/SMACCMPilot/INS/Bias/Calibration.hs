@@ -3,7 +3,7 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE DataKinds #-}
 
-module SMACCMPilot.Flight.Sensors.Calibration
+module SMACCMPilot.INS.Bias.Calibration
   ( Calibrate(..)
   , applyCalibrationTower
   , applyCalibrationTower'
@@ -47,7 +47,6 @@ applyCalibrationTower' :: (IvoryArea a, IvoryZero a)
                     -> Tower e ()
 applyCalibrationTower' calibrate biased_g cal_latest claw unbiased_g cal_active = do
   monitor "applyCalibration" $ do
-    got_law <- state "got_control_law"
     law <- state "control_law_"
 
     pending_cal_ready <- state "pending_cal_ready"
@@ -57,7 +56,6 @@ applyCalibrationTower' calibrate biased_g cal_latest claw unbiased_g cal_active 
 
     handler claw "control_law" $ callback $ \l -> do
       refCopy law l
-      store got_law true
 
     handler cal_latest "cal_latest" $ callback $ \c -> do
       refCopy pending_cal c
@@ -67,10 +65,9 @@ applyCalibrationTower' calibrate biased_g cal_latest claw unbiased_g cal_active 
       g_emitter <- emitter unbiased_g 1
       c_emitter <- emitter cal_active 1
       callback $ \b -> do
-        gl <- deref got_law
         a <- deref (law ~> L.arming_mode)
         p <- deref pending_cal_ready
-        when (gl .&& a /=? A.armed .&& p) $ do
+        when (a /=? A.armed .&& p) $ do
           refCopy cal pending_cal
           emit c_emitter (constRef cal)
           store pending_cal_ready false

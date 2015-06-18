@@ -2,7 +2,7 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE DataKinds #-}
 
-module SMACCMPilot.Flight.Sensors.GyroBias
+module SMACCMPilot.INS.Bias.Gyro.Tower
   ( calcGyroBiasTower
   , calcGyroBiasTower'
   , gyroCalibrate
@@ -11,9 +11,9 @@ module SMACCMPilot.Flight.Sensors.GyroBias
 import Ivory.Language
 import Ivory.Stdlib
 import Ivory.Tower
-import SMACCMPilot.INS.Bias.Gyro
+import SMACCMPilot.INS.Bias.Calibration
+import SMACCMPilot.INS.Bias.Gyro.Estimator
 import SMACCMPilot.Time
-import SMACCMPilot.Flight.Sensors.Calibration
 import qualified SMACCMPilot.Comm.Ivory.Types.GyroscopeSample     as G
 import qualified SMACCMPilot.Comm.Ivory.Types.AccelerometerSample as A
 import qualified SMACCMPilot.Comm.Ivory.Types.XyzCalibration      as C
@@ -89,6 +89,11 @@ mkCalibration cal done time = do
         , XYZ.y  .= ival y
         , XYZ.z  .= ival z
         ]
+    , C.scale    .= istruct
+        [ XYZ.x  .= ival 1
+        , XYZ.y  .= ival 1
+        , XYZ.z  .= ival 1
+        ]
     , C.time     .= ival (timeMicrosFromITime time)
     ]
 
@@ -106,4 +111,5 @@ gyroCalibrate = Calibrate aux
       ((out ~> G.sample) ~> XYZ.x) %= subtract bx
       ((out ~> G.sample) ~> XYZ.y) %= subtract by
       ((out ~> G.sample) ~> XYZ.z) %= subtract bz
+      store (out ~> G.calibrated) true
     return (constRef out)
