@@ -48,6 +48,7 @@ hxstreamEncodeTower' :: (IvoryString str, IvoryArea msg, IvoryZero msg, ANat len
 hxstreamEncodeTower' n rep ct_chan buflen tag (BackpressureTransmit serial_chan complete) = do
   let deps = [H.hxstreamModule, serializeModule]
   mapM_ towerModule deps
+  mapM_ towerArtifact serializeArtifacts
 
   monitor (n ++ "_datalink_encode") $ do
     monitorModuleDef $ mapM_ depend deps
@@ -87,7 +88,10 @@ hxstreamDecodeTower :: ANat len
                     -> [HXStreamHandler]
                     -> Tower e ()
 hxstreamDecodeTower n serial_chan buflen handlers = do
-  towerModule $ H.hxstreamModule
+  let deps = [H.hxstreamModule, serializeModule]
+  mapM_ towerModule deps
+  mapM_ towerArtifact serializeArtifacts
+
   monitor (n ++ "_datalink_decode") $ do
     monitorModuleDef $ depend H.hxstreamModule
     hx <- stateInit "hx_decoder" H.initStreamState

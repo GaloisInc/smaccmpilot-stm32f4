@@ -23,13 +23,11 @@ app = do
   let resultModule = package "result" $ defStringType (Proxy :: Proxy Result)
   let dependencies =
         [ gpsTypesModule
-        , serializeModule
         , resultModule
         ] ++ typeModules
 
   mapM_ towerModule dependencies
   mapM_ towerDepends dependencies
-  mapM_ towerArtifact serializeArtifacts
 
   (tx, rx) <- serialIO
 
