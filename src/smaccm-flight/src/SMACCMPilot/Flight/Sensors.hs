@@ -12,9 +12,9 @@ import           SMACCMPilot.Comm.Tower.Attr
 import           SMACCMPilot.Comm.Tower.Interface.ControllableVehicle
 import           SMACCMPilot.Flight.Platform
 import           SMACCMPilot.Hardware.SensorManager
-import           SMACCMPilot.Flight.Sensors.GyroBias
-import           SMACCMPilot.Flight.Sensors.MagBias
-import           SMACCMPilot.Flight.Sensors.Calibration
+import           SMACCMPilot.INS.Bias.Gyro.Tower
+import           SMACCMPilot.INS.Bias.Magnetometer.Tower
+import           SMACCMPilot.INS.Bias.Calibration
 
 sensorTower :: (e -> FlightPlatform)
             -> ControllableVehicleAttrs Attr

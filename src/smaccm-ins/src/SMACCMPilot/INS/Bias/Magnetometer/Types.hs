@@ -24,9 +24,18 @@ struct mag_bias_sums
   ; z_sumsq :: Stored IFloat
   ; m       :: Stored Uint32
   }
+
+struct mag_diversity_buf
+  { buf :: Array 64 (Array 3 (Stored IFloat))
+  }
 |]
+
+-- MBE Buf Depth and distance_threshold (see below) are decided fairly
+-- arbitrarily. These numbers *seem to work* for a small number of tests.
+type MBEBufDepth = 64
 
 magnetometerBiasTypesModule :: Module
 magnetometerBiasTypesModule = package "magnetometer_bias_types" $ do
   defStruct (Proxy :: Proxy "mag_bias_sums")
+  defStruct (Proxy :: Proxy "mag_diversity_buf")
 

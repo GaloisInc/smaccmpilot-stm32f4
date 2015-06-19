@@ -2,7 +2,7 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE DataKinds #-}
 
-module SMACCMPilot.Flight.Sensors.MagBias
+module SMACCMPilot.INS.Bias.Magnetometer.Tower
   ( calcMagBiasTower
   , calcMagBiasTower'
   , magCalibrate
@@ -11,10 +11,10 @@ module SMACCMPilot.Flight.Sensors.MagBias
 import Ivory.Language
 import Ivory.Stdlib
 import Ivory.Tower
-import SMACCMPilot.INS.Bias.Magnetometer
+import SMACCMPilot.INS.Bias.Calibration
+import SMACCMPilot.INS.Bias.Magnetometer.Diversity
 import SMACCMPilot.INS.Bias.Magnetometer.Types (magnetometerBiasTypesModule)
 import SMACCMPilot.Time
-import SMACCMPilot.Flight.Sensors.Calibration
 import qualified SMACCMPilot.Comm.Ivory.Types.MagnetometerSample  as M
 import qualified SMACCMPilot.Comm.Ivory.Types.XyzCalibration      as C
 import qualified SMACCMPilot.Comm.Ivory.Types.Xyz                 as XYZ
@@ -33,8 +33,9 @@ calcMagBiasTower' :: ChanOutput (Struct "magnetometer_sample")
                    -> Tower e ()
 calcMagBiasTower' m c newoutput = do
   towerModule magnetometerBiasTypesModule
+  towerModule magDiversityHelpersModule
   monitor "calcMagBias" $ do
-    mbe <- monitorMagBiasEstimator
+    mbe <- monitorDiverseMagBiasEstimator
     handler systemInit "init" $ callback $ const $ do
       mbe_init mbe
 
@@ -68,6 +69,8 @@ mkCalibration cal progress time = do
   x <- deref (cal ! 0)
   y <- deref (cal ! 1)
   z <- deref (cal ! 2)
+  fullscale <- deref (cal ! 3)
+  scalefactor <- assign ((fullscale ==? 0) ? (1, (1 / fullscale)))
   fmap constRef $ local $ istruct
     [ C.valid    .= ival (progress >=? 1.0)
     , C.progress .= ival progress
@@ -75,6 +78,11 @@ mkCalibration cal progress time = do
         [ XYZ.x  .= ival x
         , XYZ.y  .= ival y
         , XYZ.z  .= ival z
+        ]
+    , C.scale    .= istruct
+        [ XYZ.x  .= ival scalefactor
+        , XYZ.y  .= ival scalefactor
+        , XYZ.z  .= ival scalefactor
         ]
     , C.time     .= ival (timeMicrosFromITime time)
     ]
@@ -90,7 +98,12 @@ magCalibrate = Calibrate aux
       bx <- deref ((cal ~> C.bias) ~> XYZ.x)
       by <- deref ((cal ~> C.bias) ~> XYZ.y)
       bz <- deref ((cal ~> C.bias) ~> XYZ.z)
-      ((out ~> M.sample) ~> XYZ.x) %= subtract bx
-      ((out ~> M.sample) ~> XYZ.y) %= subtract by
-      ((out ~> M.sample) ~> XYZ.z) %= subtract bz
+      sx <- deref ((cal ~> C.scale) ~> XYZ.x)
+      sy <- deref ((cal ~> C.scale) ~> XYZ.y)
+      sz <- deref ((cal ~> C.scale) ~> XYZ.z)
+      let c bias scale uncal = (uncal - bias) * scale
+      ((out ~> M.sample) ~> XYZ.x) %= c bx sx
+      ((out ~> M.sample) ~> XYZ.y) %= c by sy
+      ((out ~> M.sample) ~> XYZ.z) %= c bz sz
+      store (out ~> M.calibrated) true
     return (constRef out)

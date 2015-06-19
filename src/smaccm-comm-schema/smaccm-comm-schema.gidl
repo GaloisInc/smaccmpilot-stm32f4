@@ -90,12 +90,14 @@
 (def-struct magnetometer_sample_t
   (initfail   bool_t)
   (samplefail bool_t)
+  (calibrated bool_t)
   (sample     xyz_t) -- Gauss
   (time       time_micros_t))
 
 (def-struct gyroscope_sample_t
   (initfail    bool_t)
   (samplefail  bool_t)
+  (calibrated  bool_t)
   (sample      xyz_t) -- degrees/second
   (temperature float_t) -- degrees Celsius
   (time        time_micros_t))
@@ -118,6 +120,7 @@
   (valid       bool_t)
   (progress    float_t) -- 0.0 to 1.0
   (bias        xyz_t)
+  (scale       xyz_t)
   (time        time_micros_t))
 
 (def-struct sensors_result_t
@@ -155,6 +158,11 @@
   (red        uint8_t)
   (green      uint8_t)
   (blue       uint8_t))
+
+(def-struct guide_2d_t
+  (enable     bool_t)
+  (x          float_t)
+  (y          float_t))
 
 (def-interface vehicle_i ()
   (heartbeat               (stream         heartbeat_t))
@@ -202,5 +210,7 @@
   (user_input_request  (attr readwrite user_input_t))
 
   -- Control rgb led:
-  (rgb_led             (attr readwrite rgb_led_setting_t)))
+  (rgb_led             (attr readwrite rgb_led_setting_t))
+  -- Guide 2D input:
+  (guide_2d_input      (attr readwrite guide_2d_t)))
 
