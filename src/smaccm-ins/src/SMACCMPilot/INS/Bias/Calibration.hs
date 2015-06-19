@@ -12,6 +12,7 @@ module SMACCMPilot.INS.Bias.Calibration
 import Ivory.Language
 import Ivory.Stdlib
 import Ivory.Tower
+import SMACCMPilot.Comm.Ivory.Types
 import qualified SMACCMPilot.Comm.Ivory.Types.ControlLaw          as L
 import qualified SMACCMPilot.Comm.Ivory.Types.ArmingMode          as A
 import           SMACCMPilot.Comm.Ivory.Types.XyzCalibration ()
@@ -46,6 +47,9 @@ applyCalibrationTower' :: (IvoryArea a, IvoryZero a)
                     -> ChanInput  (Struct "xyz_calibration")
                     -> Tower e ()
 applyCalibrationTower' calibrate biased_g cal_latest claw unbiased_g cal_active = do
+  mapM_ towerDepends typeModules
+  mapM_ towerModule typeModules
+
   monitor "applyCalibration" $ do
     law <- state "control_law_"
 

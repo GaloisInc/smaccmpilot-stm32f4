@@ -12,10 +12,10 @@ import Ivory.Tower
 import Numeric.Estimator.Model.Coordinate
 import Prelude hiding (mapM)
 import qualified SMACCMPilot.Hardware.GPS.Types as GPS
+import SMACCMPilot.Comm.Ivory.Types
 import qualified SMACCMPilot.Comm.Ivory.Types.MagnetometerSample  as M
 import qualified SMACCMPilot.Comm.Ivory.Types.AccelerometerSample as A
 import qualified SMACCMPilot.Comm.Ivory.Types.GyroscopeSample     as G
-import qualified SMACCMPilot.Comm.Ivory.Types.BarometerSample     as B
 import qualified SMACCMPilot.Comm.Ivory.Types.Xyz as XYZ
 import SMACCMPilot.INS.Ivory
 import SMACCMPilot.INS.SensorFusion
@@ -111,16 +111,9 @@ sensorFusion :: ChanOutput (Struct "accelerometer_sample")
 sensorFusion accelSource gyroSource magSource _baroSource _gpsSource = do
   (stateSink, stateSource) <- channel
 
-  mapM_ towerDepends
-    [ GPS.gpsTypesModule
-    , A.accelerometerSampleTypesModule
-    , G.gyroscopeSampleTypesModule
-    , M.magnetometerSampleTypesModule
-    , B.barometerSampleTypesModule
-    ]
-
-  towerDepends insTypesModule
-  towerModule  insTypesModule
+  let deps = [insTypesModule, GPS.gpsTypesModule] ++ typeModules
+  mapM_ towerDepends deps
+  mapM_ towerModule deps
 
   monitor "fuse" $ do
     monitorModuleDef $ do
