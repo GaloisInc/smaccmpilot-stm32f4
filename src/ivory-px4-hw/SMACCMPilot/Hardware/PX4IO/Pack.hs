@@ -15,6 +15,8 @@ import SMACCMPilot.Hardware.PX4IO.Types.Buffer
 px4ioPackModule :: Module
 px4ioPackModule = package "px4io_pack" $ do
   depend px4ioCRCModule
+  depend px4ioBufferTypesModule
+  depend px4ioRequestTypesModule
   incl px4io_pack
   incl px4io_unpack
 

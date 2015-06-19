@@ -69,6 +69,7 @@ library
                        SMACCMPilot.Hardware.Tests.PPMIn,
                        SMACCMPilot.Hardware.Tests.RGBLED,
                        SMACCMPilot.Hardware.Tests.AllSensors,
+                       SMACCMPilot.Hardware.Tests.PX4IOPacking,
 
                        SMACCMPilot.Time
 
@@ -221,6 +222,23 @@ executable             px4-sensors-monitor-gen
                        smaccm-datalink,
                        tower,
                        tower-hal,
+                       ivory-px4-hw,
+                       smaccm-comm-schema-tower
+
+  default-language:    Haskell2010
+  ghc-options:         -Wall
+
+executable             px4-px4io-packing-test-gen
+  main-is:             PX4IOPackingTest.hs
+  hs-source-dirs:      tests
+  build-depends:       base >= 4.6,
+                       filepath,
+                       ivory,
+                       ivory-artifact,
+                       ivory-stdlib,
+                       ivory-serialize,
+                       ivory-backend-c,
+                       smaccm-datalink,
                        ivory-px4-hw,
                        smaccm-comm-schema-tower
 

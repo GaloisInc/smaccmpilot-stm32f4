@@ -32,6 +32,10 @@ px4-sensors-monitor: default
 	cabal run $@-gen -- --src-dir=$@ $(IVORY_FLAGS)
 	make -C $@
 
+px4io-packing-test: default
+	cabal run px4-$@-gen -- --src-dir=$@ $(IVORY_FLAGS)
+	make -C $@
+
 %-gen: default
 	cabal run $(@F) -- --src-dir=$* --conf-file=$(patsubst platform-%,%,$(*D)).conf $(IVORY_FLAGS)
 	make -C $*
@@ -42,3 +46,5 @@ px4-sensors-monitor: default
 clean:
 	-rm -rf platform-fmu17
 	-rm -rf platform-fmu24
+	-rm -rf px4-sensors-monitor
+	-rm -rf px4io-packing-test
