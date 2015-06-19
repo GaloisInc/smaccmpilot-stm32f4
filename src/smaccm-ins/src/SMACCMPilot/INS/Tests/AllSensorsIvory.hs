@@ -1,7 +1,10 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module SMACCMPilot.INS.Tests.AllSensorsIvory
   ( app
@@ -9,9 +12,9 @@ module SMACCMPilot.INS.Tests.AllSensorsIvory
 
 import Control.Lens hiding ((<.>), ix)
 import Linear
+import Data.Char
 import Data.Foldable
 import Data.List (intercalate)
-import Data.String
 import Data.Traversable
 import System.FilePath
 
@@ -36,25 +39,61 @@ import qualified SMACCMPilot.Comm.Ivory.Types.TimeMicros          as T
 
 import Prelude hiding (mapM, mapM_)
 
-printf_float :: Def('[IString, IFloat] :-> ())
-printf_float = importProc "printf" "stdio.h"
+imin :: IvoryOrd t => t -> t -> t
+imin a b = (a <? b) ? (a, b)
 
-printf_double :: Def('[IString, IDouble] :-> ())
-printf_double = importProc "printf" "stdio.h"
+snprintf_float :: Def('[Ref s (CArray (Stored Uint8)), Uint32, IString, IFloat] :-> Sint32)
+snprintf_float = importProc "snprintf" "stdio.h"
 
-puts :: Def('[IString] :-> ())
-puts = importProc "puts" "stdio.h"
+snprintf_double :: Def('[Ref s (CArray (Stored Uint8)), Uint32, IString, IDouble] :-> Sint32)
+snprintf_double = importProc "snprintf" "stdio.h"
 
-linebuf :: Def('[] :-> ())
-linebuf = importProc "setlinebuf_stdout" "stdio.h"
+stdout :: Sint32
+stdout = extern "STDOUT_FILENO" "unistd.h"
+
+unix_write :: Def ('[Sint32, ConstRef s (CArray (Stored Uint8)), Uint32] :-> Sint32)
+unix_write = importProc "write" "unistd.h"
+
+[ivory| string struct Buffer 1024 |]
+
+sprintf_append :: (ANat len, IvoryString str)
+               => Ref s' str
+               -> Proxy len
+               -> (Ref (Stack s) (CArray (Stored Uint8)) -> Uint32 -> Ivory (AllocEffects s) Sint32)
+               -> Ivory (AllocEffects s) ()
+sprintf_append str bound f = do
+  buf <- local (izerolen bound)
+
+  len <- noReturn $ f (toCArray buf) (arrayLen buf)
+  comment "Format errors are programmer errors and shouldn't happen."
+  assert (len >=? 0)
+  comment "Attempting to write past the end of the buffer is a programmer error."
+  comment "snprintf appends a '\\0' so we can't use the last element of the buffer either."
+  assert (len <? arrayLen buf)
+
+  comment "Now append the formatted buffer to the destination string."
+  destLen <- str ~>* stringLengthL
+  arrayCopy (str ~> stringDataL) (constRef buf) destLen len
+  let maxLen = arrayLen (str ~> stringDataL)
+  store (str ~> stringLengthL) (imin (destLen + len) maxLen)
+
+sprintf_float :: Def ('[Ref s Buffer, IString, IFloat] :-> ())
+sprintf_float = proc "sprintf_float" $ \ buf fmt arg -> body $ noReturn $
+  sprintf_append buf (Proxy :: Proxy 64) (\ tmp len -> call snprintf_float tmp len fmt arg)
+
+sprintf_double :: Def ('[Ref s Buffer, IString, IDouble] :-> ())
+sprintf_double = proc "sprintf_double" $ \ buf fmt arg -> body $ noReturn $
+  sprintf_append buf (Proxy :: Proxy 64) (\ tmp len -> call snprintf_double tmp len fmt arg)
 
 imports :: ModuleDef
 imports = do
-  incl printf_float
-  incl printf_double
-  incl puts
-  incl linebuf
-
+  incl snprintf_float
+  incl snprintf_double
+  inclSym stdout
+  incl unix_write
+  defStringType (Proxy :: Proxy Buffer)
+  incl sprintf_float
+  incl sprintf_double
 
 sensorMonitor :: ([Module], [Located Artifact])
 sensorMonitor = decoder $ SensorHandlers
@@ -119,8 +158,6 @@ sensorMonitor = decoder $ SensorHandlers
       store init_ref init_done
       call_ kalman_init
       refCopy timestamp_ref (accel_buf ~> A.time)
-      call_ puts $ fromString $ unwords columnnames
-      call_ linebuf
       call_ kalman_output
     when (i ==? 4) ow
 
@@ -172,6 +209,10 @@ sensorMonitor = decoder $ SensorHandlers
     kalmanInit (addrOf kalman_state) (addrOf kalman_covariance) acc mag
     gbe_init gbe
     mbe_init mbe
+
+    cols <- local (stringInit (unwords columnnames ++ "\n") :: Init Buffer)
+    collen <- cols ~>* stringLengthL
+    call_ unix_write stdout (constRef $ toCArray $ cols ~> stringDataL) (signCast collen)
 
   kalman_predict :: Def ('[IFloat] :-> ())
   kalman_predict = proc "kalman_predict" $ \ dt -> body $ do
@@ -229,9 +270,16 @@ sensorMonitor = decoder $ SensorHandlers
 
   kalman_output :: Def ('[]:->())
   kalman_output = proc "kalman_output" $ body $ do
+    buf <- local izero
+
     -- column 1
     timestamp <- deref timestamp_ref
-    call_ printf_double "%12.6f" $ safeCast (T.unTimeMicros timestamp) / 1.0e6
+    call_ sprintf_double buf "%12.6f" $ safeCast (T.unTimeMicros timestamp) / 1.0e6
+
+    let print_float :: IFloat -> Ivory eff ()
+        print_float = call_ sprintf_float buf " % f"
+    let print_array :: ANat n => Ref s (Array n (Stored IFloat)) -> Ivory eff ()
+        print_array a = arrayMap $ \ ix -> noBreak $ deref (a ! ix) >>= print_float
 
     -- columns 2-4
     accel_get_sample >>= mapM_ print_float
@@ -251,34 +299,19 @@ sensorMonitor = decoder $ SensorHandlers
     -- columns 24-27
     gbe_bias <- local izero
     gbe_good <- gbe_output gbe gbe_bias
-    print_gbe gbe_bias gbe_good
+    print_array gbe_bias
+    print_float (gbe_good ? (1.0, 0.0))
     -- columns 28-32
     mbe_bias <- local izero
     mbe_progress <- mbe_output mbe mbe_bias
-    print_mbe mbe_bias mbe_progress
-    endl
-    where
-    print_gbe bias good = do
-      deref (bias ! 0) >>= print_float
-      deref (bias ! 1) >>= print_float
-      deref (bias ! 2) >>= print_float
-      print_float (good ? (1.0, 0.0))
+    print_array mbe_bias
+    print_float mbe_progress
 
-    print_mbe bias progress = do
-      deref (bias ! 0) >>= print_float
-      deref (bias ! 1) >>= print_float
-      deref (bias ! 2) >>= print_float
-      deref (bias ! 3) >>= print_float
-      print_float progress
+    len <- buf ~>* stringLengthL
+    let finalLen = imin (len + 1) (arrayLen (buf ~> stringDataL))
+    store (buf ~> stringDataL ! toIx (finalLen - 1)) (fromIntegral (ord '\n'))
 
-    print_array a = arrayMap $ \ix ->
-      deref (a ! ix) >>= print_float
-
-    print_float :: IFloat -> Ivory eff ()
-    print_float v = call_ printf_float " % f" v
-
-    endl :: Ivory eff ()
-    endl = call_ puts ""
+    call_ unix_write stdout (constRef $ toCArray $ buf ~> stringDataL) (signCast finalLen)
 
   mag_measure :: Def ('[] :-> ())
   mag_measure = proc "mag_measure" $ body $ do
@@ -320,7 +353,7 @@ app = C.compile modules artifacts
 
   makefile = Root $ artifactString "Makefile" $ unlines
     [ "CC = gcc"
-    , "CFLAGS = -Wall -g -Os -std=c99 -D_BSD_SOURCE '-Dsetlinebuf_stdout()=setlinebuf(stdout)' -Wno-unused-variable -I."
+    , "CFLAGS = -Wall -g -O3 -std=gnu99 -Wno-unused-variable -I."
     , "LDLIBS = -lm"
     , "OBJS = " ++ intercalate " " objects
     , exename ++ ": $(OBJS)"
