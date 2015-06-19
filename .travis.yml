@@ -1,4 +1,8 @@
 language: haskell
+addons:
+  apt:
+    packages:
+    - libev-dev
 before_install:
 - sudo add-apt-repository -y ppa:terry.guo/gcc-arm-embedded
 - sudo apt-get update -qq
