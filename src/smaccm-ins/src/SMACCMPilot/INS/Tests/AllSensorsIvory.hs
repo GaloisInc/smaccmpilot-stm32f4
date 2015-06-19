@@ -160,10 +160,10 @@ sensorMonitor = decoder $ SensorHandlers
 
 
   kalman_state :: MemArea (Struct "kalman_state")
-  kalman_state = area "kalman_state" Nothing
+  kalman_state = area "state_vector" Nothing
 
   kalman_covariance :: MemArea (Struct "kalman_covariance")
-  kalman_covariance = area "kalman_covariance" Nothing
+  kalman_covariance = area "covariance" Nothing
 
   kalman_init :: Def ('[] :-> ())
   kalman_init = proc "kalman_init" $ body $ do
