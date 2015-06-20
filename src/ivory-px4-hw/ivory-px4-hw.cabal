@@ -50,7 +50,6 @@ library
 
                        SMACCMPilot.Hardware.Sensors,
                        SMACCMPilot.Hardware.SensorManager,
-                       SMACCMPilot.Hardware.SensorMonitor,
 
                        SMACCMPilot.Hardware.RGBLED,
 
