@@ -159,10 +159,10 @@
   (green      uint8_t)
   (blue       uint8_t))
 
-(def-struct guide_2d_t
-  (enable     bool_t)
-  (x          float_t)
-  (y          float_t))
+(def-struct camera_target_t
+  (valid       bool_t)
+  (angle_up    float_t)
+  (angle_right float_t))
 
 (def-interface vehicle_i ()
   (heartbeat               (stream         heartbeat_t))
@@ -211,6 +211,6 @@
 
   -- Control rgb led:
   (rgb_led             (attr readwrite rgb_led_setting_t))
-  -- Guide 2D input:
-  (guide_2d_input      (attr readwrite guide_2d_t)))
+  -- Camera target input:
+  (camera_target_input (attr readwrite camera_target_t)))
 

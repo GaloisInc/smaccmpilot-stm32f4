@@ -36,12 +36,12 @@ app todl = do
   s2c_ct_from_uart <- channel
   c2s_from_can <- channel
 
-  guide2d_set_req <- channel
+  camera_tgt_req <- channel
 
   cv_producer <- controllableVehicleProducerInput (snd c2s_from_can)
   c2s_pt_to_uart <- controllableVehicleProducerOutput cv_producer
   cv_consumer <- controllableVehicleConsumerInput (snd s2c_pt_from_uart)
-  let cv_consumer' = cv_consumer { guide2dInputSetReqConsumer = snd guide2d_set_req
+  let cv_consumer' = cv_consumer { cameraTargetInputSetReqConsumer = snd camera_tgt_req
                                  }
   s2c_to_can <- controllableVehicleConsumerOutput cv_consumer'
 
@@ -55,17 +55,17 @@ app todl = do
 
   p <- period (Milliseconds 1000)
 
-  monitor "guide2d_injector" $ do
+  monitor "camera_target_injector" $ do
     handler p "periodic_send" $ do
-      e_set <- emitter (fst guide2d_set_req) 1
+      e_set <- emitter (fst camera_tgt_req) 1
       callback $ const $ do
         set_req <- local izero
         comment "XXX fill in the actual set val to send here"
         emit e_set (constRef set_req)
 
-    handler (guide2dInputSetRespProducer cv_producer) "set_response"$ do
+    handler (cameraTargetInputSetRespProducer cv_producer) "set_response"$ do
       callback $ const $ do
-        comment "guide 2d val setting has been acknowledged"
+        comment "camera target setting has been acknowledged"
 
 canDatalink :: AbortableTransmit (Struct "can_message") (Stored IBool)
             -> ChanOutput (Struct "can_message")
