@@ -36,17 +36,19 @@ px4io_pack = proc "px4io_pack" $ \buf req -> body $ do
   c  <- deref (req ~> count)
   when (c >? 32) (ret false)
 
-  push (unRequestCode rc .| c)
+  push (request_code_bitfield rc .| c)
   push 0
   push =<< deref (req ~> page)
   push =<< deref (req ~> offs)
 
-  arrayMap $ \(reg_ix :: Ix 32) -> when (fromIx reg_ix <? safeCast c) $ do
-    r <- deref ((req ~> regs) ! reg_ix)
-    let (lsb, rest) = extractByte r
-        (msb, _)    = extractByte rest
-    push msb
-    push lsb
+  arrayMap $ \(reg_ix :: Ix 32) ->
+    when ( rc ==? request_write
+       .&& fromIx reg_ix <? safeCast c) $ do
+      r <- deref ((req ~> regs) ! reg_ix)
+      let (lsb, rest) = extractByte r
+          (msb, _)    = extractByte rest
+      push msb
+      push lsb
 
   deref crc >>= store ((buf ~> stringDataL) ! 1)
   final_ix <- deref ixref
@@ -54,9 +56,14 @@ px4io_pack = proc "px4io_pack" $ \buf req -> body $ do
 
   ret true
 
+  where
+  request_code_bitfield rc = (rc ==? request_read) ? ( 0
+                           , (rc ==? request_write) ? ( 0x40
+                           , {- default -} 0))
+
 px4io_unpack :: Def('[ ConstRef s1 PX4IOBuffer
                      , Ref      s2 (Struct "px4io_request")
-                     ] :-> IBool)
+                     ] :-> Uint8)
 px4io_unpack = proc "px4io_unpack" $ \buf req -> body $ do
   crc <- local izero
   ixref <- local izero
@@ -74,12 +81,13 @@ px4io_unpack = proc "px4io_unpack" $ \buf req -> body $ do
 
   count_code <- pop
   cnt <- assign (count_code .& 0x3F)
-  when (cnt >? 32) (ret false)
+  when (cnt >? 32) (ret 1)
   store (req ~> count) cnt
 
-  cde <- assign (count_code .| 0xC0)
-  unless (cde ==? 0 .|| cde ==? 0x40 .|| cde ==? 80) (ret false)
-  store (req ~> req_code) (RequestCode cde)
+  cde <- assign (count_code .& 0xC0)
+  let (rc, rcvalid) = parseRequestCode cde
+  unless rcvalid (ret 2)
+  store (req ~> req_code) rc
 
   crc_pkt <- pop_nocrc
   update_crc 0
@@ -90,15 +98,25 @@ px4io_unpack = proc "px4io_unpack" $ \buf req -> body $ do
   arrayMap $ \(reg_ix :: Ix 32) -> when (fromIx reg_ix <? safeCast cnt) $ do
     msb <- pop
     lsb <- pop
-    v <- assign (safeCast lsb .| (safeCast msb `iShiftR` 8))
+    v <- assign ((safeCast lsb) .| ((safeCast msb) `iShiftL` 8))
     store ((req ~> regs) ! reg_ix) v
 
   crc_calc <- deref crc
-  when (crc_pkt /=? crc_calc) (ret false)
+  when (crc_pkt /=? crc_calc) (ret 3)
   final_ix <- deref ixref
 
   slen <- deref (buf ~> stringLengthL)
-  when (fromIx final_ix /=? slen) (ret false) -- XXX not sure if this is correct or off by one
+  when (fromIx final_ix /=? slen) (ret 4) -- XXX not sure if this is correct or off by one
 
-  ret true
+  ret 0
+  where
+  parseRequestCode c = (rc, rcvalid)
+    where
+    rc = (c ==? 0x00) ? (request_ok
+       , (c ==? 0x40) ? (request_corrupt
+       , (c ==? 0x80) ? (request_error
+       , {- default -}   request_error
+       )))
+    rcvalid = (c ==? 0x00 .|| c ==? 0x40 .|| c ==? 0x80)
+
 

@@ -40,6 +40,7 @@ print_request = proc "print_request" $ \req -> body $ do
   cond_
     [ rcode ==? request_read    ==> p "read"
     , rcode ==? request_write   ==> p "write"
+    , rcode ==? request_ok      ==> p "ok"
     , rcode ==? request_corrupt ==> p "corrupt"
     , rcode ==? request_error   ==> p "error"
     ]
@@ -94,6 +95,7 @@ app = (modules, artifacts)
   test_mod = package "test" $ do
     incl main_proc
     incl test_encode_proc
+    incl test_decode_proc
     incl print_request
     incl print_buf
     incl puts
@@ -107,44 +109,80 @@ app = (modules, artifacts)
     depend px4ioRequestTypesModule
 
   test_encode_proc :: Def('[ IString, ConstRef s (Struct "px4io_request")
-                    ] :-> ())
+                           ] :-> ())
   test_encode_proc = proc "test_encode" $ \tname t_req -> body $ do
-    call_ printf_none "test "
+    call_ printf_none "\n----\ntest "
     call_ printf_none tname
-    call_ printf_none ":\ninitial value:\n"
+    call_ printf_none "\ninput request:\n"
     call_ print_request t_req
 
     buf <- local izero
     r <- call px4io_pack buf t_req
     ifte_ (iNot r) (do call_ printf_none "encode failed\n") $ do
+      call_ printf_none "encoded buf:\n"
       call_ print_buf (constRef buf)
-      {-
-      result <- local izero
-      r2 <- call px4io_unpack (constRef buf) result
-      ifte_ (iNot r2) (do call_ printf_none "decode_failed\n") $ do
-        call_ printf_none "final value:\n"
-        call_ print_request (constRef result)
-      -}
-    return ()
 
-  run_test :: (GetAlloc eff ~ Scope s)
+
+  test_decode_proc :: Def('[ IString, ConstRef s PX4IOBuffer ] :-> ())
+  test_decode_proc = proc "test_decode" $ \tname buf -> body $ do
+    call_ printf_none "\n----\ntest "
+    call_ printf_none tname
+    call_ printf_none ":\ninput buf:\n"
+    call_ print_buf  buf
+    result <- local izero
+    r <- call px4io_unpack buf result
+    ifte_ (r /=? 0) (do call_ printf_uint8 "decode_failed with error %d \n" r) $ do
+      call_ printf_none "decoded request:\n"
+      call_ print_request (constRef result)
+
+  run_encode_test :: (GetAlloc eff ~ Scope s)
            => IString
            -> Init (Struct "px4io_request")
            -> Ivory eff ()
-  run_test n i = do
+  run_encode_test n i = do
     v <- local i
     call_ test_encode_proc n (constRef v)
 
+  run_decode_test :: (GetAlloc eff ~ Scope s)
+           => IString
+           -> [Uint8]
+           -> Ivory eff ()
+  run_decode_test n i8s = do
+    v <- local (istruct [ stringDataL .= iarray (map ival i8s)
+                        , stringLengthL .= ival (fromIntegral (length i8s))
+                        ])
+    call_ test_decode_proc n (constRef v)
+
   main_proc :: Def('[]:->Sint32)
   main_proc = proc "main" $ body $ do
-    run_test "izero" izero
-    run_test "one" $ istruct
+    run_encode_test "izero" izero
+    run_encode_test "read one" $ istruct
       [ req_code .= ival request_read
       , count .= ival 1
       , page .= ival 1
       , offs .= ival 1
+      -- there should be no payload (just count_code, crc, page, offs)
       , regs .= iarray [ ival 0x3344, ival 0x5566 ]
       ]
+    run_encode_test "write one" $ istruct
+      [ req_code .= ival request_write
+      , count .= ival 1
+      , page .= ival 2
+      , offs .= ival 2
+      -- only 0x3344 should be written.
+      , regs .= iarray [ ival 0x3344, ival 0x5566 ]
+      ]
+    run_encode_test "write two" $ istruct
+      [ req_code .= ival request_write
+      , count .= ival 2
+      , page .= ival 3
+      , offs .= ival 3
+      -- both should be written.
+      , regs .= iarray [ ival 0x3344, ival 0x5566 ]
+      ]
+
+    run_decode_test "read_two_res"
+      [ 0x42, 0xe1, 0x03, 0x03, 0x33, 0x44, 0x55, 0x66 ]
 
 
     ret 0
