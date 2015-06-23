@@ -17,6 +17,9 @@ import SMACCMPilot.Hardware.Tests.Platforms
 import SMACCMPilot.Hardware.Tests.Serialize
 import SMACCMPilot.Hardware.Tests.Ublox (uartUbloxGPSTower)
 import SMACCMPilot.Comm.Ivory.Types (typeModules)
+import SMACCMPilot.INS.Bias.Calibration
+import SMACCMPilot.INS.Bias.Gyro
+import SMACCMPilot.INS.Bias.Magnetometer
 import SMACCMPilot.INS.Tower
 
 app :: (e -> PX4Platform) -> Tower e ()
@@ -28,7 +31,15 @@ app topx4 = do
 
   (accel_s, gyro_s, mag_s, baro_s) <- sensorManager tosens tocc
 
-  states <- sensorFusion accel_s gyro_s mag_s baro_s (snd position)
+  (_, controlLaw) <- channel
+
+  currentGyroBias <- calcGyroBiasTower gyro_s accel_s
+  (gyro_cal, _gyroBias) <- applyCalibrationTower gyroCalibrate gyro_s currentGyroBias controlLaw
+
+  currentMagBias <- calcMagBiasTower mag_s
+  (mag_cal, _magBias) <- applyCalibrationTower magCalibrate mag_s currentMagBias controlLaw
+
+  states <- sensorFusion accel_s gyro_cal mag_cal baro_s (snd position)
 
   (uartout, _uarti) <- px4ConsoleTower topx4
 
