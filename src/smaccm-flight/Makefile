@@ -29,6 +29,11 @@ test-odroid: default
 	cabal run can-proxy-odroid-test-gen -- --src-dir=can_proxy_odroid_test \
 		--conf-file=odroid.conf $(IVORY_FLAGS)
 
+.PHONY: smaccmpilot-odroid
+smaccmpilot-odroid: default
+	cabal run smaccmpilot-odroid-gen -- --src-dir=smaccmpilot \
+		--conf-file=odroid.conf $(IVORY_FLAGS)
+
 %-gen: default
 	cabal run $(@F) -- --src-dir=$* --conf-file=$(patsubst platform-%,%,$(*D)).conf $(IVORY_FLAGS)
 	make -C $*

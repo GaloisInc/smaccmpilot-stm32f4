@@ -105,6 +105,20 @@ executable             can-proxy-odroid-test-gen
   default-language:    Haskell2010
   ghc-options:         -Wall
 
+executable             smaccmpilot-odroid-gen
+  main-is:             SMACCMPilotODROID.hs
+  hs-source-dirs:      tests
+  build-depends:       base >= 4.6,
+                       tower >= 0.9,
+                       tower-aadl,
+                       tower-camkes-odroid,
+                       tower-config,
+                       smaccm-commsec,
+                       smaccm-datalink,
+                       smaccm-flight
+  default-language:    Haskell2010
+  ghc-options:         -Wall
+
 executable             comm-only-test-gen
   main-is:             CommOnly.hs
   hs-source-dirs:      tests
