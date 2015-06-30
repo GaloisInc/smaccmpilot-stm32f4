@@ -7,7 +7,7 @@ import SMACCMPilot.Datalink.Mode
 import SMACCMPilot.Flight.Datalink.CAN.TestProxyODROID (app)
 
 main :: IO ()
-main = compileTowerAADL fst p (app snd)
+main = compileTowerAADL fst p (app snd Nothing)
   where
   p topts = getConfig topts $ do
     c <- aadlConfigParser $ defaultAADLConfig { configSystemHW = ODROID }

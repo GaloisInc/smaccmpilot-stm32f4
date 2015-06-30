@@ -1,10 +1,13 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module SMACCMPilot.Flight.Datalink.CAN.TestProxyODROID
   ( app
   ) where
 
 import Ivory.Language
+import Ivory.Stdlib
 import Ivory.Tower
 
 import Ivory.Tower.HAL.Bus.CAN.Fragment
@@ -14,6 +17,9 @@ import SMACCMPilot.Flight.Datalink.UART (frameBuffer')
 import SMACCMPilot.Flight.Datalink.Commsec (padTower', unpadTower')
 import SMACCMPilot.Flight.Datalink.CAN (s2cType, c2sType)
 
+import SMACCMPilot.Comm.Ivory.Types.SequenceNumberedCameraTarget
+import SMACCMPilot.Comm.Ivory.Types.CameraTarget
+import SMACCMPilot.Comm.Ivory.Types.SequenceNum
 import SMACCMPilot.Comm.Tower.Interface.ControllableVehicle
 import SMACCMPilot.Commsec.Sizes
 import SMACCMPilot.Commsec.SymmetricKey
@@ -25,27 +31,31 @@ import SMACCMPilot.Datalink.HXStream.Tower
 
 import Tower.Odroid.CAN
 import Tower.Odroid.UART
-
+import Tower.Odroid.CameraVM
 
 app :: (e -> DatalinkMode)
+    -> Maybe (ChanOutput (Struct "bbox"))
     -> Tower e ()
-app todl = do
+app todl mbboxRx = do
+  towerDepends stdIOModule
+  towerModule  stdIOModule
+
   (canRx, canTx) <- canTower
 
   s2c_pt_from_uart <- channel
   s2c_ct_from_uart <- channel
-  c2s_from_can <- channel
+  c2s_from_can     <- channel
 
-  camera_tgt_req <- channel
+  camera_tgt_req   <- channel
 
-  cv_producer <- controllableVehicleProducerInput (snd c2s_from_can)
-  c2s_pt_to_uart <- controllableVehicleProducerOutput cv_producer
-  cv_consumer <- controllableVehicleConsumerInput (snd s2c_pt_from_uart)
+  cv_producer      <- controllableVehicleProducerInput (snd c2s_from_can)
+  c2s_pt_to_uart   <- controllableVehicleProducerOutput cv_producer
+  cv_consumer      <- controllableVehicleConsumerInput (snd s2c_pt_from_uart)
   let cv_consumer' = cv_consumer { cameraTargetInputSetReqConsumer = snd camera_tgt_req
                                  }
-  s2c_to_can <- controllableVehicleConsumerOutput cv_consumer'
+  s2c_to_can      <- controllableVehicleConsumerOutput cv_consumer'
 
-  c2s_ct_to_uart <- channel
+  c2s_ct_to_uart  <- channel
 
   datalinkEncode todl c2s_pt_to_uart (fst c2s_ct_to_uart)
   datalinkDecode todl (snd s2c_ct_from_uart) (fst s2c_pt_from_uart)
@@ -53,19 +63,30 @@ app todl = do
   uartDatalink (fst s2c_ct_from_uart) (snd c2s_ct_to_uart)
   canDatalink canTx canRx (fst c2s_from_can) s2c_to_can
 
-  p <- period (Milliseconds 1000)
+  case mbboxRx of
+    Nothing
+      -> return ()
+    Just bboxRx
+      -> monitor "camera_target_injector" $ do
+           handler bboxRx "bboxRx" $ do
+             e_set <- emitter (fst camera_tgt_req) 1
+             callback $ \bbox -> do
+               comment "Made up for now"
+               set_req <- local izero
+               l <- deref (bbox ~> left)
+               r <- deref (bbox ~> right)
+               (set_req ~> seqnum) += 1
+               let ct = set_req ~> val
+               store (ct ~> valid)       true
+               store (ct ~> angle_up)    (safeCast l)
+               store (ct ~> angle_right) (safeCast r)
+               emit e_set (constRef set_req)
 
-  monitor "camera_target_injector" $ do
-    handler p "periodic_send" $ do
-      e_set <- emitter (fst camera_tgt_req) 1
-      callback $ const $ do
-        set_req <- local izero
-        comment "XXX fill in the actual set val to send here"
-        emit e_set (constRef set_req)
-
-    handler (cameraTargetInputSetRespProducer cv_producer) "set_response"$ do
-      callback $ const $ do
-        comment "camera target setting has been acknowledged"
+           handler (cameraTargetInputSetRespProducer cv_producer) "set_response"$ do
+             callback $ \seqNum -> do
+               comment "camera target setting has been acknowledged"
+               s <- deref seqNum
+               call_ printfuint32 "SeqNum ack: %u\n" (unSequenceNum s)
 
 canDatalink :: AbortableTransmit (Struct "can_message") (Stored IBool)
             -> ChanOutput (Struct "can_message")
@@ -126,3 +147,15 @@ uartDatalink input output = do
 
   airDataEncodeTower "frame" output uarto
 
+
+----------------------------------------
+--- XXX should be put into a separate lib at some point.
+
+[ivory|
+import (stdio.h, printf) void printfuint32(string x, uint32_t y)
+|]
+
+
+stdIOModule :: Module
+stdIOModule = package "stdIOModule" $ do
+  incl printfuint32
