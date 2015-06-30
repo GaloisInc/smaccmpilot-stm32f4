@@ -21,7 +21,7 @@ import qualified Ivory.BSP.STM32F405.GPIO           as F405
 import qualified Ivory.BSP.STM32F405.GPIO.AF        as F405
 import qualified Ivory.BSP.STM32F405.ATIM18         as F405
 import qualified Ivory.BSP.STM32F405.Interrupt      as F405
-import qualified Ivory.BSP.STM32F427.UART           as F427
+import qualified Ivory.BSP.STM32F427.UART.DMA       as F427
 import qualified Ivory.BSP.STM32F427.I2C            as F427
 import qualified Ivory.BSP.STM32F427.GPIO           as F427
 import qualified Ivory.BSP.STM32F427.GPIO.AF        as F427
@@ -78,7 +78,7 @@ px4fmuv17 dmode = FlightPlatform
   }
   where
   telem = UART_Device
-    { uart_periph = F405.uart5
+    { uart_periph = Left F405.uart5
     , uart_pins = UARTPins
         { uartPinTx = F405.pinC12
         , uartPinRx = F405.pinD2
@@ -101,7 +101,7 @@ px4fmuv24 dmode = FlightPlatform
   }
   where
   telem = UART_Device
-    { uart_periph = F427.uart2
+    { uart_periph = Right F427.dmaUART2
     , uart_pins = UARTPins
         { uartPinTx = F427.pinD5
         , uartPinRx = F427.pinD6

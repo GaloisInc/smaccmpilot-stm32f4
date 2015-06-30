@@ -27,6 +27,7 @@ import SMACCMPilot.Datalink.Mode
 
 
 import Ivory.BSP.STM32.Driver.UART
+import Ivory.BSP.STM32.Driver.UART.DMA
 import SMACCMPilot.Datalink.HXStream.Tower
 
 
@@ -110,10 +111,10 @@ uartDatalink :: (e -> ClockConfig)
              -> ChanOutput CyphertextArray
              -> Tower e ()
 uartDatalink tocc uart baud input output = do
-  (uarto, uarti) <- uartTower tocc
-                              (uart_periph uart)
-                              (uart_pins   uart)
-                              baud
+  let ps = uart_pins uart
+  (uarto, uarti) <- case uart_periph uart of
+    Left u -> uartTower tocc u ps baud
+    Right u -> dmaUARTTower tocc u ps baud (Proxy :: Proxy HXCyphertext)
 
   input_frames <- channel
 

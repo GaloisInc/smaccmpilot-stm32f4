@@ -12,6 +12,7 @@ import Ivory.Tower
 import Ivory.Tower.HAL.RingBuffer
 
 import Ivory.BSP.STM32.Driver.UART
+import Ivory.BSP.STM32.Driver.UART.DMA
 import SMACCMPilot.Commsec.Sizes
 import SMACCMPilot.Datalink.HXStream.Tower
 import SMACCMPilot.Flight.Platform (UART_Device(..), ClockConfig)
@@ -23,10 +24,10 @@ uartDatalink :: (e -> ClockConfig)
                  -> Tower e (a, ChanOutput CyphertextArray))
              -> Tower e a
 uartDatalink tocc uart baud k = do
-  (uarto, uarti) <- uartTower tocc
-                              (uart_periph uart)
-                              (uart_pins   uart)
-                              baud
+  let ps = uart_pins uart
+  (uarto, uarti) <- case uart_periph uart of
+    Left u -> uartTower tocc u ps baud
+    Right dmauart -> dmaUARTTower tocc dmauart ps baud (Proxy :: Proxy HXCyphertext)
   input_frames <- channel
 
   airDataDecodeTower "frame" uarti (fst input_frames)
