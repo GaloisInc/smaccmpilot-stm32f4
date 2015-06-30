@@ -28,6 +28,7 @@ import qualified Ivory.BSP.STM32F405.GPIO.AF        as F405
 import qualified Ivory.BSP.STM32F405.ATIM18         as F405
 import qualified Ivory.BSP.STM32F405.Interrupt      as F405
 import qualified Ivory.BSP.STM32F427.I2C            as F427
+import qualified Ivory.BSP.STM32F427.UART.DMA       as F427
 import qualified Ivory.BSP.STM32F427.UART           as F427
 import qualified Ivory.BSP.STM32F427.GPIO           as F427
 import qualified Ivory.BSP.STM32F427.GPIO.AF        as F427
@@ -39,6 +40,7 @@ import           Ivory.BSP.STM32.Peripheral.ATIM18
 import           Ivory.BSP.STM32.Interrupt
 import           Ivory.BSP.STM32.Driver.I2C
 import           Ivory.BSP.STM32.Driver.UART
+import           Ivory.BSP.STM32.Driver.UART.DMA
 import           Ivory.BSP.STM32.ClockConfig
 import           Ivory.OS.FreeRTOS.Tower.STM32.Config
 
@@ -191,7 +193,7 @@ px4fmuv17 = PX4Platform
   where
   console :: UART_Device
   console = UART_Device
-    { uart_periph = F405.uart5
+    { uart_periph = Left F405.uart5
     , uart_pins = UARTPins
         { uartPinTx = F405.pinC12
         , uartPinRx = F405.pinD2
@@ -200,7 +202,7 @@ px4fmuv17 = PX4Platform
     }
   gps :: UART_Device
   gps = UART_Device
-    { uart_periph = F405.uart6
+    { uart_periph = Left F405.uart6
     , uart_pins   = UARTPins
       { uartPinTx = F405.pinC6
       , uartPinRx = F405.pinC7
@@ -216,7 +218,7 @@ px4fmuv17_ioar = px4fmuv17 { px4platform_console = console }
   where
   console :: UART_Device
   console = UART_Device
-    { uart_periph = F405.uart1
+    { uart_periph = Left F405.uart1
     , uart_pins   = UARTPins
         { uartPinTx = F405.pinB6
         , uartPinRx = F405.pinB7
@@ -237,7 +239,7 @@ px4fmuv24 = PX4Platform
   }
   where
   console = UART_Device -- Telem 1 Port
-    { uart_periph = F427.uart2
+    { uart_periph = Right F427.dmaUART2
     , uart_pins = UARTPins
         { uartPinTx = F427.pinD5
         , uartPinRx = F427.pinD6
@@ -245,7 +247,7 @@ px4fmuv24 = PX4Platform
         }
     }
   gps = UART_Device
-    { uart_periph = F427.uart4
+    { uart_periph = Left F427.uart4
     , uart_pins = UARTPins
         { uartPinTx = F427.pinA0
         , uartPinRx = F427.pinA1
@@ -275,10 +277,15 @@ px4ConsoleTower topx4 = do
   towerDepends consoleModule
 
   px4platform <- fmap topx4 getEnv
-  uartTower (px4platform_clockconfig . topx4)
-            (uart_periph (px4platform_console px4platform))
-            (uart_pins   (px4platform_console px4platform))
-            115200
+  case uart_periph (px4platform_console px4platform) of
+    Left uart ->
+      uartTower (px4platform_clockconfig . topx4)  uart
+              (uart_pins   (px4platform_console px4platform))
+              115200
+    Right dmauart ->
+      dmaUARTTower (px4platform_clockconfig . topx4) dmauart
+              (uart_pins   (px4platform_console px4platform))
+              115200 (Proxy :: Proxy ConsoleBuffer)
 
 px4platform_clockconfig :: (PX4Platform -> ClockConfig)
 px4platform_clockconfig = stm32config_clock . px4platform_stm32config

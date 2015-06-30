@@ -5,6 +5,7 @@ module SMACCMPilot.Hardware.Sensors where
 import Ivory.Language
 
 import           Ivory.BSP.STM32.Peripheral.UART
+import           Ivory.BSP.STM32.Peripheral.UART.DMA
 import           Ivory.BSP.STM32.Peripheral.GPIOF4
 import           Ivory.BSP.STM32.Peripheral.SPI
 import           Ivory.BSP.STM32.Peripheral.I2C
@@ -39,9 +40,10 @@ data Sensors
     , fmu24sens_enable     :: forall eff . Ivory eff ()
     }
 
+
 data UART_Device =
   UART_Device
-    { uart_periph :: UART
+    { uart_periph :: Either UART DMAUART
     , uart_pins   :: UARTPins
     }
 

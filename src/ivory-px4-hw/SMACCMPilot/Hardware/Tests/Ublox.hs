@@ -15,6 +15,7 @@ module SMACCMPilot.Hardware.Tests.Ublox
 
 import Ivory.BSP.STM32.ClockConfig
 import Ivory.BSP.STM32.Driver.UART
+import Ivory.BSP.STM32.Driver.UART.DMA
 import Ivory.Language
 import Ivory.Tower
 import Ivory.Tower.HAL.Bus.Interface
@@ -26,6 +27,7 @@ import SMACCMPilot.Hardware.Tests.Platforms
 import SMACCMPilot.Hardware.Tests.Serialize
 
 [ivory| string struct UnusedString 1 |]
+[ivory| string struct GPSString 128 |]
 
 uartUbloxGPSTower :: (e -> ClockConfig)
                   -> UART_Device
@@ -33,10 +35,15 @@ uartUbloxGPSTower :: (e -> ClockConfig)
                   -> Tower e ()
 uartUbloxGPSTower tocc uart ostream = do
   let unusedmod = package "unused_string" $ defStringType (Proxy :: Proxy UnusedString)
+  let gpsstringmod = package "gps_string" $ defStringType (Proxy :: Proxy GPSString)
   towerModule unusedmod
   towerDepends unusedmod
-  (_gpso :: BackpressureTransmit UnusedString (Stored IBool), gpsi)
-    <- uartTower tocc (uart_periph uart) (uart_pins uart) 38400
+  towerModule gpsstringmod
+  towerDepends gpsstringmod
+  (_gpso :: BackpressureTransmit UnusedString (Stored IBool), gpsi) <-
+    case uart_periph uart of
+      Left u -> uartTower tocc u (uart_pins uart) 38400
+      Right dmauart -> dmaUARTTower tocc dmauart (uart_pins uart) 38400 (Proxy :: Proxy GPSString)
   ubloxGPSTower gpsi ostream
 
 app :: (e -> PX4Platform) -> Tower e ()
