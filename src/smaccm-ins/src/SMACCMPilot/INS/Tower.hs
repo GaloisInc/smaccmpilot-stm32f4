@@ -160,7 +160,8 @@ sensorFusion accelSource gyroSource magSource _baroSource _gpsSource = do
       stateEmit <- emitter stateSink 1
       callback $ \ sample -> do
         gyroFail <- deref $ sample ~> G.samplefail
-        unless gyroFail $ do
+        gyroCal <- deref $ sample ~> G.calibrated
+        unless (gyroFail .|| iNot gyroCal) $ do
           store (last_gyro ~> G.samplefail) false
           xyzMap $ \ i -> storeSum (last_gyro ~> G.sample ~> i) (sample ~> G.sample ~> i)
           refCopy (last_gyro ~> G.time) (sample ~> G.time)
@@ -173,7 +174,8 @@ sensorFusion accelSource gyroSource magSource _baroSource _gpsSource = do
 
     handler magSource "mag" $ callback $ \ sample -> do
       failed <- deref $ sample ~> M.samplefail
-      unless failed $ do
+      cal <- deref $ sample ~> M.calibrated
+      unless (failed .|| iNot cal) $ do
         refCopy last_mag sample
         ready <- deref initialized
         when ready $ call_ mag_measure state_vector covariance $ constRef last_mag
