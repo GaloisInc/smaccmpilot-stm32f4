@@ -62,9 +62,7 @@ import SMACCMPilot.INS.Quaternion
 -- | A collection of all the state variables needed for this model.
 data StateVector a = StateVector
     { stateOrient :: !(Quaternion a) -- ^ quaternions defining attitude of body axes relative to local NED
-    , stateGyroBias :: !(XYZ a) -- ^ delta angle bias - rad
     , stateMagNED :: !(NED a) -- ^ NED earth fixed magnetic field components - milligauss
-    , stateMagXYZ :: !(XYZ a) -- ^ XYZ body fixed magnetic field measurements - milligauss
     }
     deriving Show
 
@@ -74,15 +72,11 @@ instance Additive StateVector where
 instance Applicative StateVector where
     pure v = StateVector
         { stateOrient = pure v
-        , stateGyroBias = pure v
         , stateMagNED = pure v
-        , stateMagXYZ = pure v
         }
     v1 <*> v2 = StateVector
         { stateOrient = stateOrient v1 <*> stateOrient v2
-        , stateGyroBias = stateGyroBias v1 <*> stateGyroBias v2
         , stateMagNED = stateMagNED v1 <*> stateMagNED v2
-        , stateMagXYZ = stateMagXYZ v1 <*> stateMagXYZ v2
         }
 
 instance Functor StateVector where
@@ -94,16 +88,12 @@ instance Foldable StateVector where
 instance Traversable StateVector where
     sequenceA v = StateVector
         <$> sequenceA (stateOrient v)
-        <*> sequenceA (stateGyroBias v)
         <*> sequenceA (stateMagNED v)
-        <*> sequenceA (stateMagXYZ v)
 
 instance Distributive StateVector where
     distribute f = StateVector
         { stateOrient = distribute $ fmap stateOrient f
-        , stateGyroBias = distribute $ fmap stateGyroBias f
         , stateMagNED = distribute $ fmap stateMagNED f
-        , stateMagXYZ = distribute $ fmap stateMagXYZ f
         }
 
 -- | Define the control (disturbance) vector. Error growth in the inertial
@@ -149,12 +139,8 @@ instance Distributive DisturbanceVector where
 initCovariance :: Fractional a => StateVector (StateVector a)
 initCovariance = scaled $ fmap (^ (2 :: Int)) $ StateVector
     { stateOrient = pure 0.1
-    , stateGyroBias = pure $ 1 * deg2rad
     , stateMagNED = pure 0.02
-    , stateMagXYZ = pure 0.02
     }
-    where
-    deg2rad = realToFrac (pi :: Double) / 180
 
 -- | When the sensor platform is not moving, a three-axis accelerometer
 -- will sense an approximately 1g acceleration in the direction of
@@ -193,21 +179,17 @@ initDynamic :: (Floating a, HasAtan2 a)
              -- ^ initial accelerometer reading
             -> XYZ a
              -- ^ initial magnetometer reading
-            -> XYZ a
-             -- ^ initial magnetometer bias
             -> a
              -- ^ local magnetic declination from true North
             -> StateVector a
              -- ^ computed initial state
-initDynamic accel mag magBias declination = (pure 0)
+initDynamic accel mag declination = StateVector
     { stateOrient = initQuat
     , stateMagNED = initMagNED
-    , stateMagXYZ = magBias
     }
     where
-    initMagXYZ = mag - magBias
-    initQuat = initAttitude accel initMagXYZ declination
-    initMagNED = fst (convertFrames initQuat) initMagXYZ
+    initQuat = initAttitude accel mag declination
+    initMagNED = fst (convertFrames initQuat) mag
     -- TODO: re-implement InertialNav's calcEarthRateNED
 
 -- * Model equations
@@ -237,14 +219,14 @@ processModel dt (AugmentState state dist) = AugmentState state' $ pure 0
         }
     -- Even fairly low-order approximations introduce error small enough
     -- that it's swamped by other filter errors.
-    deltaQuat = approxAxisAngle 3 $ xyzToVec3 $ fmap (* dt) $ disturbanceGyro dist - stateGyroBias state
+    deltaQuat = approxAxisAngle 3 $ xyzToVec3 $ fmap (* dt) $ disturbanceGyro dist
 
 -- | Compute the expected body-frame magnetic field strength and
 -- direction, given the hard-iron correction and local
 -- declination-adjusted field from the state vector. Useful as a
 -- measurement model for a 3D magnetometer.
 stateMag :: Num a => StateVector a -> XYZ a
-stateMag state = stateMagXYZ state + nav2body state (stateMagNED state)
+stateMag state = nav2body state (stateMagNED state)
 
 stateAccel :: Fractional a => StateVector a -> XYZ a
 stateAccel state = nav2body state (ned 0 0 9.80665)

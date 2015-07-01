@@ -152,15 +152,9 @@ app = compileTowerPosix (const $ return ()) $ do
               , "q1"
               , "q2"
               , "q3"
-              , "gbiasx"
-              , "gbiasy"
-              , "gbiasz"
               , "magn"
               , "mage"
               , "magd"
-              , "magx"
-              , "magy"
-              , "magz"
               -- Non EKF states - gyro bias estimator
               , "gbe_x"
               , "gbe_y"
@@ -203,9 +197,7 @@ app = compileTowerPosix (const $ return ()) $ do
             -- EKF states
 
             print_array (kalman_state ~> orient)
-            print_array (kalman_state ~> gyro_bias)
             print_array (kalman_state ~> mag_ned)
-            print_array (kalman_state ~> mag_xyz)
 
             -- Non EKF states
 

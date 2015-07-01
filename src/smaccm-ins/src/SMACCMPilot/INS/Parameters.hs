@@ -9,9 +9,7 @@ import SMACCMPilot.INS.SensorFusion
 processNoise :: Fractional a => a -> StateVector a
 processNoise dt = fmap (^ (2 :: Int)) $ fmap (dt *) $ StateVector
     { stateOrient = pure 1.0e-9
-    , stateGyroBias = pure 0
     , stateMagNED = pure 3.0e-4
-    , stateMagXYZ = pure 3.0e-4
     }
 
 distCovariance :: Fractional a => DisturbanceVector a

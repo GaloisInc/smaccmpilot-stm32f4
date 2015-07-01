@@ -34,17 +34,13 @@ vec3FromArray = V3 ((! 0) .) ((! 1) .) ((! 2) .)
 stateVectorFromStruct :: Ref s (Struct "kalman_state") -> StateVector (Ref s (Stored IFloat))
 stateVectorFromStruct s = StateVector
   { stateOrient = Quaternion ((! 0) .) (V3 ((! 1) .) ((! 2) .) ((! 3) .)) <*> pure (~> orient)
-  , stateGyroBias = XYZ vec3FromArray <*> pure (~> gyro_bias)
   , stateMagNED = NED vec3FromArray <*> pure (~> mag_ned)
-  , stateMagXYZ = XYZ vec3FromArray <*> pure (~> mag_xyz)
   } <*> pure s
 
 covarianceFromStruct :: Ref s (Struct "kalman_covariance") -> StateVector (StateVector (Ref s (Stored IFloat)))
 covarianceFromStruct s = stateVectorFromStruct <$> (StateVector
   { stateOrient = Quaternion ((! 0) .) (V3 ((! 1) .) ((! 2) .) ((! 3) .)) <*> pure (~> cov_orient)
-  , stateGyroBias = XYZ vec3FromArray <*> pure (~> cov_gyro_bias)
   , stateMagNED = NED vec3FromArray <*> pure (~> cov_mag_ned)
-  , stateMagXYZ = XYZ vec3FromArray <*> pure (~> cov_mag_xyz)
   } <*> pure s)
 
 storeRow :: (Applicative f, Foldable f, IvoryStore a, IvoryExpr a) => f (Ref s (Stored a)) -> f a -> Ivory eff ()
@@ -54,7 +50,7 @@ kalmanInit :: Ref s1 (Struct "kalman_state") -> Ref s2 (Struct "kalman_covarianc
 kalmanInit state_ptr cov_ptr acc mag = do
   let stateVector = stateVectorFromStruct state_ptr
   let covariance = covarianceFromStruct cov_ptr
-  let initialState = initDynamic acc mag (pure 0) 0
+  let initialState = initDynamic acc mag 0
   storeRow stateVector initialState
   sequence_ $ liftA2 storeRow covariance initCovariance
 
