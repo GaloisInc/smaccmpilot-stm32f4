@@ -207,6 +207,7 @@ app = compileTowerPosix (const $ return ()) $ do
 
             magBiases <- mapM deref $ xyzRefs $ lastMagBias ~> C.bias
             mapM_ print_float magBiases
+            print_float =<< lastMagBias ~> C.scale ~>* XYZ.x
             print_float =<< lastMagBias ~>* C.progress
 
             len <- buf ~>* stringLengthL
