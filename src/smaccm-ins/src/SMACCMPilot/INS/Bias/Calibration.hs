@@ -15,7 +15,7 @@ import Ivory.Tower
 import SMACCMPilot.Comm.Ivory.Types
 import qualified SMACCMPilot.Comm.Ivory.Types.ControlLaw          as L
 import qualified SMACCMPilot.Comm.Ivory.Types.ArmingMode          as A
-import           SMACCMPilot.Comm.Ivory.Types.XyzCalibration ()
+import qualified SMACCMPilot.Comm.Ivory.Types.XyzCalibration      as C
 
 newtype Calibrate a =
   Calibrate ( forall eff s1 s2 s3
@@ -46,7 +46,7 @@ applyCalibrationTower' :: (IvoryArea a, IvoryZero a)
                     -> ChanInput  a
                     -> ChanInput  (Struct "xyz_calibration")
                     -> Tower e ()
-applyCalibrationTower' calibrate biased_g cal_latest claw unbiased_g cal_active = do
+applyCalibrationTower' calibrate biased cal_latest claw unbiased cal_active = do
   mapM_ towerDepends typeModules
   mapM_ towerModule typeModules
 
@@ -65,17 +65,18 @@ applyCalibrationTower' calibrate biased_g cal_latest claw unbiased_g cal_active 
       refCopy pending_cal c
       store pending_cal_ready true
 
-    handler biased_g "biased_gyro" $ do
-      g_emitter <- emitter unbiased_g 1
+    handler biased "biased_input" $ do
+      u_emitter <- emitter unbiased 1
       c_emitter <- emitter cal_active 1
       callback $ \b -> do
         a <- deref (law ~> L.arming_mode)
         p <- deref pending_cal_ready
-        when (a /=? A.armed .&& p) $ do
+        v <- deref (pending_cal ~> C.valid)
+        when (a /=? A.armed .&& p .&& v) $ do
           refCopy cal pending_cal
           emit c_emitter (constRef cal)
           store pending_cal_ready false
         let (Calibrate c) = calibrate
-        unbiased <- c b (constRef cal)
-        emit g_emitter unbiased
+        unb <- c b (constRef cal)
+        emit u_emitter unb
 
