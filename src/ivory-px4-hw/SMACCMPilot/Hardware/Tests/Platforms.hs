@@ -34,6 +34,7 @@ import qualified Ivory.BSP.STM32F427.GPIO           as F427
 import qualified Ivory.BSP.STM32F427.GPIO.AF        as F427
 import           Ivory.BSP.STM32.Peripheral.GPIOF4
 import           Ivory.BSP.STM32.Peripheral.UART
+import           Ivory.BSP.STM32.Peripheral.UART.DMA
 import           Ivory.BSP.STM32.Peripheral.SPI
 import           Ivory.BSP.STM32.Peripheral.I2C
 import           Ivory.BSP.STM32.Peripheral.ATIM18
@@ -55,6 +56,7 @@ data PX4Platform =
                                  -> ChanOutput (Array 4 (Stored IFloat))
                                  -> Tower e ()
     , px4platform_ppm            :: PPM
+    , px4platform_px4io          :: PX4IO
 
     , px4platform_console        :: UART_Device
     , px4platform_can            :: Maybe CAN_Device
@@ -109,6 +111,9 @@ data PPM
   = PPM_Timer ATIM GPIOPin GPIO_AF HasSTM32Interrupt
   | PPM_None
 
+data PX4IO
+  = PX4IO_Serial DMAUART UARTPins
+  | PX4IO_None
 
 data RGBLED_I2C =
   RGBLED_I2C
@@ -185,6 +190,7 @@ px4fmuv17 = PX4Platform
   , px4platform_sensors      = fmu17_sensors
   , px4platform_motorcontrol = FMUv17.motorControlTower
   , px4platform_ppm          = ppm_timer
+  , px4platform_px4io        = PX4IO_None
   , px4platform_console      = console
   , px4platform_can          = Nothing
   , px4platform_rgbled       = Nothing
@@ -231,7 +237,8 @@ px4fmuv24 = PX4Platform
   { px4platform_gps          = gps
   , px4platform_sensors      = fmu24_sensors
   , px4platform_motorcontrol = error "motor control not defined for px4fmuv24"
-  , px4platform_ppm          = PPM_None -- XXX need px4io driver.
+  , px4platform_ppm          = PPM_None
+  , px4platform_px4io        = px4io
   , px4platform_console      = console
   , px4platform_can          = Just fmu24_can
   , px4platform_rgbled       = Just rgbled
@@ -262,6 +269,13 @@ px4fmuv24 = PX4Platform
         }
     , rgbled_i2c_addr = I2CDeviceAddr 0x55
     }
+  px4io = PX4IO_Serial F427.dmaUART6 px4io_pins
+  px4io_pins = UARTPins
+    { uartPinTx = F427.pinC6
+    , uartPinRx = F427.pinC7
+    , uartPinAF = F427.gpio_af_uart6
+    }
+
 
 ----
 
