@@ -30,9 +30,8 @@
 <script src="stats.min.js"></script>
 <script>
 var scene = new THREE.Scene();
-var camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 5);
+var camera = new THREE.PerspectiveCamera(75, 1, 0.1, 5);
 var renderer = new THREE.WebGLRenderer();
-renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.domElement.id = 'draw';
 document.body.appendChild(renderer.domElement);
 
@@ -111,6 +110,24 @@ s.onmessage = function(evt) {
 		requestAnimationFrame(render);
 	queued_msg = msg;
 };
+
+var queued_resize;
+
+function handle_resize() {
+	camera.aspect = window.innerWidth / window.innerHeight;
+	camera.updateProjectionMatrix();
+	renderer.setSize(window.innerWidth, window.innerHeight, false);
+	renderer.render(scene, camera);
+	queued_resize = false;
+}
+handle_resize();
+
+window.addEventListener('resize', function() {
+	if(!queued_resize) {
+		queued_resize = true;
+		requestAnimationFrame(handle_resize);
+	}
+});
 </script>
 
 </body>
