@@ -6,6 +6,7 @@
 from gevent.monkey import patch_sys
 patch_sys()
 
+from collections import OrderedDict
 from flask import Flask, redirect, url_for
 from flask_sockets import Sockets
 import gevent
@@ -30,7 +31,7 @@ def read_stdin():
         next_value = AsyncResult()
 
         # broadcast this event
-        msg = json.dumps(dict(zip(columns, map(float, line.split()))))
+        msg = json.dumps(OrderedDict(zip(columns, map(float, line.split()))))
         current_value.set(msg)
 
     # no more data, close all connections
