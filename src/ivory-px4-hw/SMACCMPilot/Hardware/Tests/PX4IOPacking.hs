@@ -185,6 +185,30 @@ app = (modules, artifacts)
       [ 0x42, 0xe1, 0x03, 0x03, 0x33, 0x44, 0x55, 0x66 ]
 
 
+    run_encode_test "expect [ 0x01 0x29 0x00 0x00 0x00 0x00 ]" $ istruct
+      [ req_code .= ival request_read
+      , count    .= ival 1
+      , page     .= ival 0
+      , offs     .= ival 0
+      , regs     .= iarray [ ival 0 ]
+      ]
+
+
+    run_encode_test "expect [ 0x01 0x16 0x00 0x01 0x04 0x00 ]" $ istruct
+      [ req_code .= ival request_read
+      , count    .= ival 1
+      , page     .= ival 0
+      , offs     .= ival 1
+      , regs     .= iarray [ ival 0x0400 ]
+      ]
+
+    run_encode_test "expect [ 0x41 0xB1 0x32 0x01 0x00 0x00 ]" $ istruct
+      [ req_code .= ival request_write
+      , count    .= ival 1
+      , page     .= ival 0x32
+      , offs     .= ival 1
+      , regs     .= iarray [ ival 0 ]
+      ]
     ret 0
 
 
