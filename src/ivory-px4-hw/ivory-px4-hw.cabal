@@ -53,6 +53,13 @@ library
 
                        SMACCMPilot.Hardware.RGBLED,
 
+                       SMACCMPilot.Hardware.PX4IO.Types,
+                       SMACCMPilot.Hardware.PX4IO.Types.Request,
+                       SMACCMPilot.Hardware.PX4IO.Types.RequestCode,
+                       SMACCMPilot.Hardware.PX4IO.Types.Buffer,
+                       SMACCMPilot.Hardware.PX4IO.CRC,
+                       SMACCMPilot.Hardware.PX4IO.Pack,
+
                        SMACCMPilot.Hardware.Tests.Platforms,
                        SMACCMPilot.Hardware.Tests.Serialize,
                        SMACCMPilot.Hardware.Tests.CopterMotors,
@@ -63,6 +70,8 @@ library
                        SMACCMPilot.Hardware.Tests.PPMIn,
                        SMACCMPilot.Hardware.Tests.RGBLED,
                        SMACCMPilot.Hardware.Tests.AllSensors,
+                       SMACCMPilot.Hardware.Tests.PX4IOPacking,
+                       SMACCMPilot.Hardware.Tests.PX4IO,
 
                        SMACCMPilot.Time
 
@@ -220,3 +229,34 @@ executable             px4-sensors-monitor-gen
 
   default-language:    Haskell2010
   ghc-options:         -Wall
+
+executable             px4-px4io-packing-test-gen
+  main-is:             PX4IOPackingTest.hs
+  hs-source-dirs:      tests
+  build-depends:       base >= 4.6,
+                       filepath,
+                       ivory,
+                       ivory-artifact,
+                       ivory-stdlib,
+                       ivory-serialize,
+                       ivory-backend-c,
+                       smaccm-datalink,
+                       ivory-px4-hw,
+                       smaccm-comm-schema-tower
+
+  default-language:    Haskell2010
+  ghc-options:         -Wall
+
+executable             px4-px4io-test-gen
+  main-is:             PX4IOTest.hs
+  hs-source-dirs:      tests
+  build-depends:       base >= 4.6,
+                       monadLib,
+                       tower              >= 0.9,
+                       tower-config,
+                       tower-freertos-stm32,
+                       ivory-px4-hw
+
+  default-language:    Haskell2010
+  ghc-options:         -Wall
+

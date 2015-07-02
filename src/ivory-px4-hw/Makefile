@@ -27,9 +27,14 @@ test-fmu24: platform-fmu24/px4-baro-test-gen
 test-fmu24: platform-fmu24/px4-mag-test-gen
 test-fmu24: platform-fmu24/px4-rgbled-test-gen
 test-fmu24: platform-fmu24/px4-all-sensors-test-gen
+test-fmu24: platform-fmu24/px4-px4io-test-gen
 
 px4-sensors-monitor: default
 	cabal run $@-gen -- --src-dir=$@ $(IVORY_FLAGS)
+	make -C $@
+
+px4io-packing-test: default
+	cabal run px4-$@-gen -- --src-dir=$@ $(IVORY_FLAGS)
 	make -C $@
 
 %-gen: default
@@ -42,3 +47,5 @@ px4-sensors-monitor: default
 clean:
 	-rm -rf platform-fmu17
 	-rm -rf platform-fmu24
+	-rm -rf px4-sensors-monitor
+	-rm -rf px4io-packing-test
