@@ -26,6 +26,7 @@ test-fmu24: platform-fmu24/sensors-test-gen
 
 .PHONY: can_proxy_odroid_test
 can_proxy_odroid_test: default
+	-rm -rf $@
 	-mkdir $@
 	cp -r $(ODROID_BSP_REPO)/data/can/* ./$@/
 	cp -r tests/odroid-tests/can-proxy-odroid-test-artifacts/* ./$@/
@@ -34,6 +35,7 @@ can_proxy_odroid_test: default
 
 .PHONY: smaccmpilot-odroid
 smaccmpilot-odroid: default
+	-rm -rf smaccmpilot
 	-mkdir smaccmpilot
 	cp -r $(ODROID_BSP_REPO)/data/can/* ./smaccmpilot/
 	cp -r $(ODROID_BSP_REPO)/data/camera_vm/* ./smaccmpilot/
