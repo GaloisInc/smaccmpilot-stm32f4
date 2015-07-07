@@ -30,16 +30,19 @@
 <script src="stats.min.js"></script>
 <script>
 var scene = new THREE.Scene();
-var camera = new THREE.PerspectiveCamera(75, 1, 0.1, 5);
+var camera = new THREE.PerspectiveCamera(75, 1, 0.1, 30);
 var renderer = new THREE.WebGLRenderer();
 renderer.domElement.id = 'draw';
 document.body.appendChild(renderer.domElement);
 
-camera.position.z = 3;
+camera.position.x = 10;
+camera.up.set(0, 0, -1);
+camera.lookAt(new THREE.Vector3(0, 0, 0));
+
 scene.add(new THREE.AmbientLight(0x404040));
 
 var light = new THREE.DirectionalLight(0xffffff);
-light.position.set(0, 2, 2);
+light.position.set(2, 0, -2);
 scene.add(light);
 
 var group = new THREE.Group();
