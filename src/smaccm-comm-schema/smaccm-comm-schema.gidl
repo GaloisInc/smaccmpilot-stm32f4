@@ -164,6 +164,38 @@
   (angle_up    float_t)
   (angle_right float_t))
 
+
+(def-struct px4io_status_t
+  (safety_off    bool_t)
+  (failsafe      bool_t)
+  (init_ok       bool_t)
+  (arm_sync      bool_t)
+  (mixer_ok      bool_t)
+  (raw_pwm       bool_t)
+  (fmu_ok        bool_t)
+  (rc_sbus       bool_t)
+  (rc_dsm        bool_t)
+  (rc_ppm        bool_t)
+  (rc_ok         bool_t)
+  (outputs_armed bool_t)
+  (override      bool_t)
+  (time          time_micros_t))
+
+(def-struct px4io_alarms_t
+  (vservo_fault  bool_t)
+  (pwm_error     bool_t)
+  (rc_lost       bool_t)
+  (fmu_lost      bool_t)
+  (acc_current   bool_t)
+  (servo_current bool_t)
+  (temperature   bool_t)
+  (vbatt_low     bool_t)
+  (time          time_micros_t))
+
+(def-struct px4io_state_t
+  (status px4io_status_t)
+  (alarms px4io_alarms_t))
+
 (def-interface vehicle_i ()
   (heartbeat               (stream         heartbeat_t))
   (control_law             (attr read      control_law_t))
@@ -183,7 +215,8 @@
   (control_output          (attr read      control_output_t))
   (motor_output            (attr read      quadcopter_motors_t))
   (att_control_debug       (attr read      att_control_debug_t))
-  (alt_control_debug       (attr read      alt_control_debug_t)))
+  (alt_control_debug       (attr read      alt_control_debug_t))
+  (px4io_state             (attr read      px4io_state_t)))
 
 (def-interface controllable_vehicle_i (vehicle_i)
   (altitude_rate_pid       (attr readwrite pid_config_t))
