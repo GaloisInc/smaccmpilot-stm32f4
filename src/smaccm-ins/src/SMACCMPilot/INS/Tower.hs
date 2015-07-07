@@ -45,8 +45,8 @@ kalman_predict :: Def ('[ Ref s1 (Struct "kalman_state")
                         , Ref s2 (Struct "kalman_covariance")
                         , Ref s3 (Stored ITime)
                         , ITime
-                        , Ref s4 (Struct "accelerometer_sample")
-                        , Ref s5 (Struct "gyroscope_sample")] :-> ())
+                        , ConstRef s4 (Struct "accelerometer_sample")
+                        , ConstRef s5 (Struct "gyroscope_sample")] :-> ())
 kalman_predict = proc "kalman_predict" $
   \ state_vector covariance last_predict now last_accel last_gyro -> body $ do
       acc_not_ready <- deref $ last_accel ~> A.samplefail
@@ -55,16 +55,9 @@ kalman_predict = proc "kalman_predict" $
 
       last_time <- deref last_predict
       let dt = safeCast (castDefault (toIMicroseconds (now - last_time)) :: Sint32) * 1.0e-6
-      distVector <- DisturbanceVector
-        <$> gyro (constRef last_gyro)
-        <*> accel (constRef last_accel)
+      distVector <- DisturbanceVector <$> gyro last_gyro <*> accel last_accel
       kalmanPredict state_vector covariance dt distVector
       store last_predict now
-
-      reset_acc  <- local $ istruct [ A.samplefail .= ival true ]
-      refCopy last_accel reset_acc
-      reset_gyro <- local $ istruct [ G.samplefail .= ival true ]
-      refCopy last_gyro reset_gyro
 
 accel_measure :: Def ('[ Ref s1 (Struct "kalman_state")
                        , Ref s2 (Struct "kalman_covariance")
@@ -103,12 +96,6 @@ init_filter = proc "init_filter" $
         ret true
       ret false
 
-storeSum :: (Num a, IvoryStore a) => Ref s1 (Stored a) -> ConstRef s2 (Stored a) -> Ivory eff ()
-storeSum dst src = do
-  old <- deref dst
-  new <- deref src
-  store dst $ old + new
-
 sensorFusion :: ChanOutput (Struct "accelerometer_sample")
              -> ChanOutput (Struct "gyroscope_sample")
              -> ChanOutput (Struct "magnetometer_sample")
@@ -143,15 +130,13 @@ sensorFusion accelSource gyroSource magSource _baroSource _gpsSource = do
       callback $ \ sample -> do
         accelFail <- deref $ sample ~> A.samplefail
         unless accelFail $ do
-          store (last_acc ~> A.samplefail) false
-          xyzMap $ \ i -> storeSum (last_acc ~> A.sample ~> i) (sample ~> A.sample ~> i)
-          refCopy (last_acc ~> A.time) (sample ~> A.time)
+          refCopy last_acc sample
 
           ready <- deref initialized
           ifte_ ready
             (do
               now <- fmap iTimeFromTimeMicros $ deref $ last_acc ~> A.time
-              call_ kalman_predict state_vector covariance last_predict now last_acc last_gyro
+              call_ kalman_predict state_vector covariance last_predict now (constRef last_acc) (constRef last_gyro)
               call_ accel_measure state_vector covariance (constRef last_acc)
               emit stateEmit $ constRef state_vector
             ) (do
@@ -171,14 +156,12 @@ sensorFusion accelSource gyroSource magSource _baroSource _gpsSource = do
         gyroFail <- deref $ sample ~> G.samplefail
         gyroCal <- deref $ sample ~> G.calibrated
         unless (gyroFail .|| iNot gyroCal) $ do
-          store (last_gyro ~> G.samplefail) false
-          xyzMap $ \ i -> storeSum (last_gyro ~> G.sample ~> i) (sample ~> G.sample ~> i)
-          refCopy (last_gyro ~> G.time) (sample ~> G.time)
+          refCopy last_gyro sample
 
           ready <- deref initialized
           when ready $ do
             now <- fmap iTimeFromTimeMicros $ deref $ last_gyro ~> G.time
-            call_ kalman_predict state_vector covariance last_predict now last_acc last_gyro
+            call_ kalman_predict state_vector covariance last_predict now (constRef last_acc) (constRef last_gyro)
             emit stateEmit $ constRef state_vector
 
     handler magSource "mag" $ callback $ \ sample -> do
@@ -190,11 +173,3 @@ sensorFusion accelSource gyroSource magSource _baroSource _gpsSource = do
         when ready $ call_ mag_measure state_vector covariance $ constRef last_mag
 
   return stateSource
-
-  where
-  xyzMap :: (Label "xyz" (Stored IFloat) -> Ivory eff ()) -> Ivory eff ()
-  xyzMap f = do
-    f XYZ.x
-    f XYZ.y
-    f XYZ.z
-
