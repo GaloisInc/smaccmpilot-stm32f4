@@ -66,6 +66,13 @@ kalman_predict = proc "kalman_predict" $
       reset_gyro <- local $ istruct [ G.samplefail .= ival true ]
       refCopy last_gyro reset_gyro
 
+accel_measure :: Def ('[ Ref s1 (Struct "kalman_state")
+                       , Ref s2 (Struct "kalman_covariance")
+                       , ConstRef s3 (Struct "accelerometer_sample")
+                       ] :-> ())
+accel_measure = proc "accel_measure" $ \ state_vector covariance last_accel -> body $ do
+  accelMeasure state_vector covariance =<< accel last_accel
+
 mag :: (Num to, SafeCast IFloat to)
     => ConstRef s (Struct "magnetometer_sample")
     -> Ivory eff (XYZ to)
@@ -118,6 +125,7 @@ sensorFusion accelSource gyroSource magSource _baroSource _gpsSource = do
   monitor "fuse" $ do
     monitorModuleDef $ do
       incl kalman_predict
+      incl accel_measure
       incl mag_measure
       incl init_filter
 
@@ -144,6 +152,7 @@ sensorFusion accelSource gyroSource magSource _baroSource _gpsSource = do
             (do
               now <- fmap iTimeFromTimeMicros $ deref $ last_acc ~> A.time
               call_ kalman_predict state_vector covariance last_predict now last_acc last_gyro
+              call_ accel_measure state_vector covariance (constRef last_acc)
               emit stateEmit $ constRef state_vector
             ) (do
               done <- call init_filter state_vector
