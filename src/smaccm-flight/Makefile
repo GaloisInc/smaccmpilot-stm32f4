@@ -28,6 +28,7 @@ test-fmu24: platform-fmu24/sensors-test-gen
 can_proxy_odroid_test: default
 	-rm -rf $@
 	-mkdir $@
+	cp -r $(ODROID_BSP_REPO)/data/uart/* ./$@/
 	cp -r $(ODROID_BSP_REPO)/data/can/* ./$@/
 	cp -r tests/odroid-tests/can-proxy-odroid-test-artifacts/* ./$@/
 	cabal run can-proxy-odroid-test-gen -- --src-dir=$@ --lib-dir=$@\
@@ -37,6 +38,7 @@ can_proxy_odroid_test: default
 smaccmpilot-odroid: default
 	-rm -rf smaccmpilot
 	-mkdir smaccmpilot
+	cp -r $(ODROID_BSP_REPO)/data/uart/* ./smaccmpilot/
 	cp -r $(ODROID_BSP_REPO)/data/can/* ./smaccmpilot/
 	cp -r $(ODROID_BSP_REPO)/data/camera_vm/* ./smaccmpilot/
 	cp -r tests/odroid-tests/smaccmpilot-odroid-artifacts/* ./smaccmpilot/
