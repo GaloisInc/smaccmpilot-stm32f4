@@ -55,6 +55,12 @@ group.add(cube);
 var axis = new THREE.AxisHelper(1);
 group.add(axis);
 
+var accel = new THREE.ArrowHelper(new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 0, 0), 10, 0xFF8C00);
+group.add(accel);
+
+var mag = new THREE.ArrowHelper(new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 0, 0), 10, 0xDA70D6);
+group.add(mag);
+
 scene.add(group);
 
 var stats = new Stats();
@@ -67,12 +73,22 @@ stats.domElement.style.top = '0px';
 
 document.body.appendChild(stats.domElement);
 
+function setArrow(arrow, x, y, z) {
+	var v = new THREE.Vector3(x, y, z);
+	var l = v.length();
+	arrow.setLength(l);
+	arrow.setDirection(v.divideScalar(l));
+}
+
 var raw_headers;
 var queued_msg;
 
 function render() {
 	var q = new THREE.Quaternion(queued_msg.q1, queued_msg.q2, queued_msg.q3, queued_msg.q0);
 	group.quaternion.copy(q);
+
+	setArrow(accel, queued_msg.ax / 5, queued_msg.ay / 5, queued_msg.az / 5);
+	setArrow(mag, queued_msg.mx / 200, queued_msg.my / 200, queued_msg.mz / 200);
 
 	for(var key in raw_headers)
 		if(raw_headers.hasOwnProperty(key)) {
