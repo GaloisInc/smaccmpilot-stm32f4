@@ -66,15 +66,16 @@ sensorSample res r_gyro r_accel = do
   comment "store sample failure"
   store (r_gyro ~> G.samplefail) (rc >? 0)
   store (r_accel ~> A.samplefail) (rc >? 0)
+  comment "we rotate the X/Y plane 90 degrees to match Pixhawk's silk-screened orientation"
   comment "convert to degrees per second"
   let to_dps x = safeCast x / 16.4
-  convert ((r_gyro ~> G.sample) ~> XYZ.x) (mpu6000_r ~> M.gx) to_dps
-  convert ((r_gyro ~> G.sample) ~> XYZ.y) (mpu6000_r ~> M.gy) to_dps
+  convert ((r_gyro ~> G.sample) ~> XYZ.x) (mpu6000_r ~> M.gy) to_dps
+  convert ((r_gyro ~> G.sample) ~> XYZ.y) (mpu6000_r ~> M.gx) (negate . to_dps)
   convert ((r_gyro ~> G.sample) ~> XYZ.z) (mpu6000_r ~> M.gz) to_dps
   comment "convert to m/s/s by way of g"
   let to_g x = safeCast x / 2048.0 * 9.80665
-  convert ((r_accel ~> A.sample) ~> XYZ.x)  (mpu6000_r ~> M.ax) to_g
-  convert ((r_accel ~> A.sample) ~> XYZ.y)  (mpu6000_r ~> M.ay) to_g
+  convert ((r_accel ~> A.sample) ~> XYZ.x)  (mpu6000_r ~> M.ay) to_g
+  convert ((r_accel ~> A.sample) ~> XYZ.y)  (mpu6000_r ~> M.ax) (negate . to_g)
   convert ((r_accel ~> A.sample) ~> XYZ.z)  (mpu6000_r ~> M.az) to_g
   comment "convert to degrees Celsius"
   t <- deref (mpu6000_r ~> M.temp)
