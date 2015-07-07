@@ -42,13 +42,17 @@ var light = new THREE.DirectionalLight(0xffffff);
 light.position.set(0, 2, 2);
 scene.add(light);
 
+var group = new THREE.Group();
+
 var geometry = new THREE.BoxGeometry(1, 1, 1);
 var material = new THREE.MeshLambertMaterial({ color: 0x10df78 });
 var cube = new THREE.Mesh(geometry, material);
-scene.add(cube);
+group.add(cube);
 
 var axis = new THREE.AxisHelper(1);
-scene.add(axis);
+group.add(axis);
+
+scene.add(group);
 
 var stats = new Stats();
 stats.setMode(0); // 0: fps, 1: ms, 2: mb
@@ -65,8 +69,7 @@ var queued_msg;
 
 function render() {
 	var q = new THREE.Quaternion(queued_msg.q1, queued_msg.q2, queued_msg.q3, queued_msg.q0);
-	cube.quaternion.copy(q);
-	axis.quaternion.copy(q);
+	group.quaternion.copy(q);
 
 	for(var key in raw_headers)
 		if(raw_headers.hasOwnProperty(key)) {
