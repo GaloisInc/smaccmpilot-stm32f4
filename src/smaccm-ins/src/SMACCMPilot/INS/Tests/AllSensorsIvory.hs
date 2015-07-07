@@ -135,6 +135,8 @@ app = compileTowerPosix (const $ return ()) $ do
         lastMag <- save "mag" mag
         lastMagBias <- save "magBias" magBias
 
+        pending <- state "write_pending"
+
         let columnnames =
               [ "time"
               -- raw sensor values
@@ -171,57 +173,65 @@ app = compileTowerPosix (const $ return ()) $ do
         handler states "print_row" $ do
           e <- emitter (backpressureTransmit tx) 1
           callback $ \ kalman_state -> do
-            buf <- local izero
+            was_pending <- deref pending
+            unless was_pending $ do
+              buf <- local izero
 
-            timestamp <- lastAccel ~>* A.time
-            call_ sprintf_double buf "%12.6f" $ safeCast (T.unTimeMicros timestamp) / 1.0e6
+              timestamp <- lastAccel ~>* A.time
+              call_ sprintf_double buf "%12.6f" $ safeCast (T.unTimeMicros timestamp) / 1.0e6
 
-            let print_float :: IFloat -> Ivory eff ()
-                print_float = call_ sprintf_float buf " % f"
-            let print_array :: ANat n => ConstRef s (Array n (Stored IFloat)) -> Ivory eff ()
-                print_array a = arrayMap $ \ ix -> noBreak $ deref (a ! ix) >>= print_float
+              let print_float :: IFloat -> Ivory eff ()
+                  print_float = call_ sprintf_float buf " % f"
+              let print_array :: ANat n => ConstRef s (Array n (Stored IFloat)) -> Ivory eff ()
+                  print_array a = arrayMap $ \ ix -> noBreak $ deref (a ! ix) >>= print_float
 
-            -- raw sensor values
+              -- raw sensor values
 
-            accelMSS <- mapM deref $ xyzRefs $ lastAccel ~> A.sample
-            mapM_ print_float accelMSS
+              accelMSS <- mapM deref $ xyzRefs $ lastAccel ~> A.sample
+              mapM_ print_float accelMSS
 
-            gyroDegs <- mapM deref $ xyzRefs $ lastGyro ~> G.sample
-            let toRads deg = deg * pi / 180.0
-            mapM_ print_float $ fmap toRads gyroDegs
+              gyroDegs <- mapM deref $ xyzRefs $ lastGyro ~> G.sample
+              let toRads deg = deg * pi / 180.0
+              mapM_ print_float $ fmap toRads gyroDegs
 
-            magGauss <- mapM deref $ xyzRefs $ lastMag ~> M.sample
-            let toMilligauss gauss = gauss * 1000
-            mapM_ print_float $ fmap toMilligauss magGauss
+              magGauss <- mapM deref $ xyzRefs $ lastMag ~> M.sample
+              let toMilligauss gauss = gauss * 1000
+              mapM_ print_float $ fmap toMilligauss magGauss
 
-            -- EKF states
+              -- EKF states
 
-            print_array (kalman_state ~> orient)
-            print_array (kalman_state ~> mag_ned)
+              print_array (kalman_state ~> orient)
+              print_array (kalman_state ~> mag_ned)
 
-            -- Non EKF states
+              -- Non EKF states
 
-            gyroBiases <- mapM deref $ xyzRefs $ lastGyroBias ~> C.bias
-            mapM_ print_float gyroBiases
-            print_float =<< lastGyroBias ~>* C.progress
+              gyroBiases <- mapM deref $ xyzRefs $ lastGyroBias ~> C.bias
+              mapM_ print_float gyroBiases
+              print_float =<< lastGyroBias ~>* C.progress
 
-            magBiases <- mapM deref $ xyzRefs $ lastMagBias ~> C.bias
-            mapM_ print_float magBiases
-            print_float =<< lastMagBias ~> C.scale ~>* XYZ.x
-            print_float =<< lastMagBias ~>* C.progress
+              magBiases <- mapM deref $ xyzRefs $ lastMagBias ~> C.bias
+              mapM_ print_float magBiases
+              print_float =<< lastMagBias ~> C.scale ~>* XYZ.x
+              print_float =<< lastMagBias ~>* C.progress
 
-            len <- buf ~>* stringLengthL
-            let finalLen = imin (len + 1) (arrayLen (buf ~> stringDataL))
-            store (buf ~> stringDataL ! toIx (finalLen - 1)) (fromIntegral (ord '\n'))
-            store (buf ~> stringLengthL) finalLen
+              len <- buf ~>* stringLengthL
+              let finalLen = imin (len + 1) (arrayLen (buf ~> stringDataL))
+              store (buf ~> stringDataL ! toIx (finalLen - 1)) (fromIntegral (ord '\n'))
+              store (buf ~> stringLengthL) finalLen
 
-            emit e $ constRef buf
+              emit e $ constRef buf
+
+              store pending true
+
+        handler (backpressureComplete tx) "write_complete" $ do
+          callback $ const $ store pending false
 
         handler systemInit "print_header" $ do
           e <- emitter (backpressureTransmit tx) 1
           callback $ const $ do
             cols <- local $ stringInit $ unwords columnnames ++ "\n"
             emit e $ constRef cols
+            store pending true
 
   hxstreamDecodeTower "decoder" rx (Proxy :: Proxy 256) hxs
 
