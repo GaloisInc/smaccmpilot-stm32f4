@@ -10,11 +10,12 @@ import Ivory.Language
 import Ivory.Tower
 
 import Ivory.Tower.HAL.Bus.Interface
-import Ivory.BSP.STM32.Driver.UART.DMA
+import Ivory.BSP.STM32.Driver.UART.DMA.Synchronous
 
 import SMACCMPilot.Hardware.Tests.Platforms
 import SMACCMPilot.Hardware.PX4IO.CRC
 import SMACCMPilot.Hardware.PX4IO.Types
+import SMACCMPilot.Hardware.PX4IO.Types.Regs
 import SMACCMPilot.Hardware.PX4IO.Pack
 
 app :: (e -> PX4Platform)
@@ -24,13 +25,13 @@ app topx4 = do
   case px4platform_px4io (topx4 e) of
     PX4IO_None -> fail "this platform does not support PX4IO"
     PX4IO_Serial dmauart pins -> do
-      (BackpressureTransmit ser_tx_req ser_tx_res, (ser_rx :: ChanOutput PX4IOBuffer))
-        <- dmaUARTTower' tocc dmauart pins 1500000
+      (BackpressureTransmit ser_tx_req ser_rx)
+        <- syncDMAUARTTower tocc dmauart pins 1500000
 
       p <- period (Milliseconds 1000)
-      monitor "tx_control" $ do
+      monitor "px4io_driver" $ do
         monitorModuleDef $ depend px4ioPackModule
-        handler p "tx_per" $ do
+        handler p "px4io_request" $ do
           (tx_e :: Emitter PX4IOBuffer) <- emitter ser_tx_req 1
           callback $ const $ do
             req <- local $ istruct
@@ -45,16 +46,24 @@ app topx4 = do
             assert v
             emit tx_e (constRef packed)
 
-        handler ser_tx_res "tx_result" $ do
-          callback $ \_r -> do
-            comment "placeholder"
+        px4io_success <- state "px4io_success"
+        px4io_fail    <- state "px4io_fail"
+        let incr r = do
+              v <- deref r
+              store r (v + (1 :: Uint32))
 
-      monitor "rx_stub" $ do
-        handler ser_rx "ser_rx" $ do
+        handler ser_rx "px4io_response" $ do
           callback $ \r -> do
             unpacked <- local izero
             v <- call px4io_unpack r unpacked
-            assert (v ==? 0)
+
+            r0 <- deref (unpacked ~> regs ! 0)
+            init_ok <- assign $ bitToBool (fromRep r0 #. px4io_status_init_ok)
+
+            ifte_ (v ==? 0 .&& init_ok)
+              (incr px4io_success)
+              (incr px4io_fail)
+            comment "placeholder"
 
   mapM_ towerModule mods
   mapM_ towerDepends mods
@@ -68,17 +77,3 @@ app topx4 = do
     , px4ioRequestTypesModule
     ]
 
-{-
-  ppmOut <- ppmTower (px4platform_ppm . topx4)
-                     (px4platform_clockconfig . topx4)
-
-  monitor "ppmsender" $ do
-    ppmSender ppmOut uarto
-
-  towerDepends serializeModule
-  towerModule  serializeModule
-  mapM_ towerArtifact serializeArtifacts
-
-ppmSender :: Sender e (Array 8 (Stored Uint16))
-ppmSender = sampleSender 'P' (Proxy :: Proxy 16)
--}

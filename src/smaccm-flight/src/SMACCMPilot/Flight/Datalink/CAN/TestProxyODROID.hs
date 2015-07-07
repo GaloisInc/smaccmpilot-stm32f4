@@ -80,7 +80,8 @@ app todl mbboxRx = do
                store (ct ~> valid)       true
                store (ct ~> angle_up)    (safeCast l)
                store (ct ~> angle_right) (safeCast r)
-               emit e_set (constRef set_req)
+               -- XXX comment out for now until we have a rate limiting story.
+               -- emit e_set (constRef set_req)
 
            handler (cameraTargetInputSetRespProducer cv_producer) "set_response"$ do
              callback $ \seqNum -> do

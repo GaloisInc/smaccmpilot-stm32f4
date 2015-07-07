@@ -57,6 +57,7 @@ library
                        ivory-serialize >=0.1,
                        ivory-stdlib >=0.1,
                        tower >=0.9,
+                       tower-aadl,
                        tower-hal,
                        tower-config,
                        tower-camkes-odroid,
@@ -93,7 +94,7 @@ executable             can-proxy-test-gen
 
 executable             can-proxy-odroid-test-gen
   main-is:             CANProxyODROID.hs
-  hs-source-dirs:      tests
+  hs-source-dirs:      tests/odroid-tests
   build-depends:       base >= 4.6,
                        tower >= 0.9,
                        tower-aadl,
@@ -107,7 +108,7 @@ executable             can-proxy-odroid-test-gen
 
 executable             smaccmpilot-odroid-gen
   main-is:             SMACCMPilotODROID.hs
-  hs-source-dirs:      tests
+  hs-source-dirs:      tests/odroid-tests
   build-depends:       base >= 4.6,
                        tower >= 0.9,
                        tower-aadl,

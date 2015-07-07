@@ -4,12 +4,14 @@ import Ivory.Tower.Config
 import Tower.AADL
 
 import SMACCMPilot.Datalink.Mode
+import Tower.Odroid.CameraVM
 import SMACCMPilot.Flight.Datalink.CAN.TestProxyODROID (app)
 
 main :: IO ()
-main = compileTowerAADL fst p (app snd Nothing)
+main = do
+  compileTowerAADL fst p (do rx <- cameraVMTower
+                             app snd (Just rx))
   where
-  p topts = getConfig topts $ do
-    c <- aadlConfigParser $ defaultAADLConfig { configSystemHW = ODROID }
+  p topts = fmap fst $ getConfig' topts $ do
     k <- datalinkModeParser DatalinkServer
-    return (c,k)
+    return (cameraVMConfig,k)
