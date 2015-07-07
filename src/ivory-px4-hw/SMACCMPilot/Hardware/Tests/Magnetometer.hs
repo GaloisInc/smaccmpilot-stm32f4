@@ -13,6 +13,7 @@ import Ivory.Language
 
 import Ivory.Tower
 import Ivory.Tower.HAL.Bus.Interface
+import Ivory.Tower.HAL.Bus.Sched
 
 import Ivory.BSP.STM32.Driver.I2C
 import Ivory.BSP.STM32.Driver.SPI
@@ -72,7 +73,11 @@ lsm303d_spi_app topx4 lsm uarto = do
                           (fst m_samples) (fst a_samples)
                           (SPIDeviceHandle 0)
 
-  monitor "lsm303dSender" $ do
-    magSender (snd m_samples) uarto
-    accelSender (snd a_samples) uarto
+  (magTask, magReq) <- task "mag"
+  (accTask, accReq) <- task "acc"
 
+  monitor "lsm303dSender" $ do
+    magSender (snd m_samples) magReq
+    accelSender (snd a_samples) accReq
+
+  schedule [magTask, accTask] systemInit uarto
