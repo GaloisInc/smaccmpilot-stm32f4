@@ -178,8 +178,7 @@
   (rc_ppm        bool_t)
   (rc_ok         bool_t)
   (outputs_armed bool_t)
-  (override      bool_t)
-  (time          time_micros_t))
+  (override      bool_t))
 
 (def-struct px4io_alarms_t
   (vservo_fault  bool_t)
@@ -189,12 +188,22 @@
   (acc_current   bool_t)
   (servo_current bool_t)
   (temperature   bool_t)
-  (vbatt_low     bool_t)
-  (time          time_micros_t))
+  (vbatt_low     bool_t))
+
+(def-struct px4io_rc_input_t
+  (valid bool_t)
+  (ch0   uint16_t)
+  (ch1   uint16_t)
+  (ch2   uint16_t)
+  (ch3   uint16_t)
+  (ch4   uint16_t)
+  (ch5   uint16_t))
 
 (def-struct px4io_state_t
   (status px4io_status_t)
-  (alarms px4io_alarms_t))
+  (alarms px4io_alarms_t)
+  (rc_in  px4io_rc_input_t)
+  (time   time_micros_t))
 
 (def-interface vehicle_i ()
   (heartbeat               (stream         heartbeat_t))
