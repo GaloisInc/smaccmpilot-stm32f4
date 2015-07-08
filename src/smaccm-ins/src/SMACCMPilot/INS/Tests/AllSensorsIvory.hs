@@ -126,7 +126,7 @@ app = compileTowerPosix (const $ return ()) $ do
       currentMagBias <- calcMagBiasTower rawMag
       (mag, magBias) <- applyCalibrationTower magCalibrate rawMag currentMagBias controlLaw
 
-      states <- sensorFusion accel gyro mag baro position
+      states <- sensorFusion accel gyro mag baro position currentGyroBias
 
       monitor "output" $ do
         lastAccel <- save "accel" accel

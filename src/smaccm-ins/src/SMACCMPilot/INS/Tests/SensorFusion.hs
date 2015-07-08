@@ -39,7 +39,7 @@ app topx4 = do
   currentMagBias <- calcMagBiasTower mag_s
   (mag_cal, _magBias) <- applyCalibrationTower magCalibrate mag_s currentMagBias controlLaw
 
-  states <- sensorFusion accel_s gyro_cal mag_cal baro_s (snd position)
+  states <- sensorFusion accel_s gyro_cal mag_cal baro_s (snd position) currentGyroBias
 
   (uartout, _uarti) <- px4ConsoleTower topx4
 

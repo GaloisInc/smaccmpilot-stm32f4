@@ -16,6 +16,7 @@ import qualified SMACCMPilot.Comm.Ivory.Types.MagnetometerSample  as M
 import qualified SMACCMPilot.Comm.Ivory.Types.AccelerometerSample as A
 import qualified SMACCMPilot.Comm.Ivory.Types.GyroscopeSample     as G
 import qualified SMACCMPilot.Comm.Ivory.Types.Xyz as XYZ
+import qualified SMACCMPilot.Comm.Ivory.Types.XyzCalibration      as C
 import SMACCMPilot.INS.Ivory
 import SMACCMPilot.Time
 
@@ -96,8 +97,9 @@ sensorFusion :: ChanOutput (Struct "accelerometer_sample")
              -> ChanOutput (Struct "magnetometer_sample")
              -> ChanOutput (Struct "barometer_sample")
              -> ChanOutput (Struct "position")
+             -> ChanOutput (Struct "xyz_calibration")
              -> Tower e (ChanOutput (Struct "kalman_state"))
-sensorFusion accelSource gyroSource magSource _baroSource _gpsSource = do
+sensorFusion accelSource gyroSource magSource _baroSource _gpsSource gyroCalStatus = do
   (stateSink, stateSource) <- channel
 
   let deps = [insTypesModule, GPS.gpsTypesModule] ++ typeModules
@@ -120,6 +122,8 @@ sensorFusion accelSource gyroSource magSource _baroSource _gpsSource = do
     last_acc  <- stateInit "last_acc" $ istruct [ A.samplefail .= ival true ]
     last_mag <- stateInit "last_mag" $ istruct [ M.samplefail .= ival true ]
 
+    zero_motion <- state "zero_motion"
+
     handler accelSource "accel" $ do
       callback $ \ sample -> do
         accelFail <- deref $ sample ~> A.samplefail
@@ -133,8 +137,7 @@ sensorFusion accelSource gyroSource magSource _baroSource _gpsSource = do
       callback $ \ sample -> do
         gyroFail <- deref $ sample ~> G.samplefail
         gyroCal <- deref $ sample ~> G.calibrated
-        magCal <- deref $ last_mag ~> M.calibrated
-        unless (gyroFail .|| iNot gyroCal .|| iNot magCal) $ do
+        unless (gyroFail .|| iNot gyroCal) $ do
           refCopy last_gyro sample
 
           ready <- deref initialized
@@ -142,17 +145,22 @@ sensorFusion accelSource gyroSource magSource _baroSource _gpsSource = do
             (do
               now <- fmap iTimeFromTimeMicros $ deref $ last_gyro ~> G.time
               call_ kalman_predict state_vector covariance last_predict now (constRef last_gyro)
-              emit stateEmit $ constRef state_vector
             ) (do
-              done <- call init_filter state_vector
-                                       covariance
-                                       (constRef last_acc)
-                                       (constRef last_mag)
-              when done $ do
-                store initialized true
-                t <- deref $ last_acc ~> A.time
-                store last_predict (iTimeFromTimeMicros t)
+              magCal <- deref $ last_mag ~> M.calibrated
+              wasStill <- deref zero_motion
+
+              when (magCal .&& wasStill) $ do
+                done <- call init_filter state_vector
+                                         covariance
+                                         (constRef last_acc)
+                                         (constRef last_mag)
+                when done $ do
+                  store initialized true
+                  t <- deref $ last_acc ~> A.time
+                  store last_predict (iTimeFromTimeMicros t)
             )
+
+        emit stateEmit $ constRef state_vector
 
     handler magSource "mag" $ callback $ \ sample -> do
       failed <- deref $ sample ~> M.samplefail
@@ -161,5 +169,8 @@ sensorFusion accelSource gyroSource magSource _baroSource _gpsSource = do
         refCopy last_mag sample
         ready <- deref initialized
         when ready $ call_ mag_measure state_vector covariance $ constRef last_mag
+
+    handler gyroCalStatus "calibration_status" $ callback $ \ cal -> do
+      refCopy zero_motion $ cal ~> C.valid
 
   return stateSource
