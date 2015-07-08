@@ -191,8 +191,7 @@ app = compileTowerPosix (const $ return ()) $ do
               mapM_ print_float accelMSS
 
               gyroDegs <- mapM deref $ xyzRefs $ lastGyro ~> G.sample
-              let toRads deg = deg * pi / 180.0
-              mapM_ print_float $ fmap toRads gyroDegs
+              mapM_ print_float gyroDegs
 
               magGauss <- mapM deref $ xyzRefs $ lastMag ~> M.sample
               let toMilligauss gauss = gauss * 1000
@@ -210,7 +209,7 @@ app = compileTowerPosix (const $ return ()) $ do
               print_float =<< lastGyroBias ~>* C.progress
 
               magBiases <- mapM deref $ xyzRefs $ lastMagBias ~> C.bias
-              mapM_ print_float magBiases
+              mapM_ print_float $ fmap toMilligauss magBiases
               print_float =<< lastMagBias ~> C.scale ~>* XYZ.x
               print_float =<< lastMagBias ~>* C.progress
 

@@ -6,8 +6,8 @@ import sys
 def to_deg(rad):
     return rad / math.pi * 180
 
-def raw_gyro(rad):
-    return to_deg(rad) * 16.4
+def raw_gyro(deg):
+    return deg * 16.4
 
 def smooth_angle(f):
     def smoothed(*args):
@@ -27,9 +27,9 @@ calculated_columns = dict(
     , "rgx":     (("gx",), raw_gyro)
     , "rgy":     (("gy",), raw_gyro)
     , "rgz":     (("gz",), raw_gyro)
-    , "rgbiasx": (("gbiasx",), raw_gyro)
-    , "rgbiasy": (("gbiasy",), raw_gyro)
-    , "rgbiasz": (("gbiasz",), raw_gyro)
+    , "rgbiasx": (("gbe_x",), raw_gyro)
+    , "rgbiasy": (("gbe_y",), raw_gyro)
+    , "rgbiasz": (("gbe_z",), raw_gyro)
     })
 
 def columngetter(columns, name):
