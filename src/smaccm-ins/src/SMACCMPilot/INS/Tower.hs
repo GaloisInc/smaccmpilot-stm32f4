@@ -121,20 +121,27 @@ sensorFusion accelSource gyroSource magSource _baroSource _gpsSource = do
     last_mag <- stateInit "last_mag" $ istruct [ M.samplefail .= ival true ]
 
     handler accelSource "accel" $ do
-      stateEmit <- emitter stateSink 1
       callback $ \ sample -> do
         accelFail <- deref $ sample ~> A.samplefail
-        gyroCal <- deref $ last_gyro ~> G.calibrated
-        magCal <- deref $ last_mag ~> M.calibrated
-        unless (accelFail .|| iNot gyroCal .|| iNot magCal) $ do
+        unless accelFail $ do
           refCopy last_acc sample
+          ready <- deref initialized
+          when ready $ call_ accel_measure state_vector covariance (constRef last_acc)
+
+    handler gyroSource "gyro" $ do
+      stateEmit <- emitter stateSink 1
+      callback $ \ sample -> do
+        gyroFail <- deref $ sample ~> G.samplefail
+        gyroCal <- deref $ sample ~> G.calibrated
+        magCal <- deref $ last_mag ~> M.calibrated
+        unless (gyroFail .|| iNot gyroCal .|| iNot magCal) $ do
+          refCopy last_gyro sample
 
           ready <- deref initialized
           ifte_ ready
             (do
-              now <- fmap iTimeFromTimeMicros $ deref $ last_acc ~> A.time
+              now <- fmap iTimeFromTimeMicros $ deref $ last_gyro ~> G.time
               call_ kalman_predict state_vector covariance last_predict now (constRef last_gyro)
-              call_ accel_measure state_vector covariance (constRef last_acc)
               emit stateEmit $ constRef state_vector
             ) (do
               done <- call init_filter state_vector
@@ -146,20 +153,6 @@ sensorFusion accelSource gyroSource magSource _baroSource _gpsSource = do
                 t <- deref $ last_acc ~> A.time
                 store last_predict (iTimeFromTimeMicros t)
             )
-
-    handler gyroSource "gyro" $ do
-      stateEmit <- emitter stateSink 1
-      callback $ \ sample -> do
-        gyroFail <- deref $ sample ~> G.samplefail
-        gyroCal <- deref $ sample ~> G.calibrated
-        unless (gyroFail .|| iNot gyroCal) $ do
-          refCopy last_gyro sample
-
-          ready <- deref initialized
-          when ready $ do
-            now <- fmap iTimeFromTimeMicros $ deref $ last_gyro ~> G.time
-            call_ kalman_predict state_vector covariance last_predict now (constRef last_gyro)
-            emit stateEmit $ constRef state_vector
 
     handler magSource "mag" $ callback $ \ sample -> do
       failed <- deref $ sample ~> M.samplefail
