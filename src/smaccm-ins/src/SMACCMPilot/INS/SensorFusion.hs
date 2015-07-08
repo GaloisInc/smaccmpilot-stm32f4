@@ -129,8 +129,10 @@ initAttitude :: (Floating a, HasAtan2 a)
              -- ^ computed initial attitude
 initAttitude (XYZ accel) (XYZ mag) declination = fromEuler initialRoll initialPitch initialHdg
     where
-    initialRoll = arctan2 (accel ^._y) (accel ^._z)
-    initialPitch = atan (negate (accel ^._x) / (accel ^._y * sin initialRoll + accel ^._z * cos initialRoll))
+    -- rotate acceleration 180° in the Y-Z plane to make it point to the
+    -- positive-Down axis, then compute roll and pitch.
+    initialRoll = arctan2 (negate $ accel ^._y) (negate $ accel ^._z)
+    initialPitch = atan ((accel ^._x) / (accel ^._y * sin initialRoll + accel ^._z * cos initialRoll))
     magX = (mag ^._x) * cos initialPitch + (mag ^._y) * sin initialPitch * sin initialRoll + (mag ^._z) * sin initialPitch * cos initialRoll
     magY = (mag ^._z) * sin initialRoll - (mag ^._y) * cos initialRoll
     initialHdg = arctan2 magY magX + declination
@@ -192,7 +194,7 @@ stateMag :: Num a => StateVector a -> XYZ a
 stateMag state = nav2body state (stateMagNED state)
 
 stateAccel :: Fractional a => StateVector a -> XYZ a
-stateAccel state = nav2body state (ned 0 0 9.80665)
+stateAccel state = nav2body state (ned 0 0 (-9.80665))
 
 -- * Helpers
 
