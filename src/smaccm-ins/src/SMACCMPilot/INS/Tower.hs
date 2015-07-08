@@ -129,7 +129,9 @@ sensorFusion accelSource gyroSource magSource _baroSource _gpsSource = do
       stateEmit <- emitter stateSink 1
       callback $ \ sample -> do
         accelFail <- deref $ sample ~> A.samplefail
-        unless accelFail $ do
+        gyroCal <- deref $ last_gyro ~> G.calibrated
+        magCal <- deref $ last_mag ~> M.calibrated
+        unless (accelFail .|| iNot gyroCal .|| iNot magCal) $ do
           refCopy last_acc sample
 
           ready <- deref initialized
