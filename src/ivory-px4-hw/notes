@@ -11,8 +11,8 @@ output:
           and SETUP_ARMING_FMU_ARMED
 
 input:
-  - status flags in P_SETUP:
+  - status flags in P_STATUS(1):
     - STATUS_FLAGS_RC_OK must be true
     - STATUS_FLAGS_RC_PPM must be true
-  - read PAGE_RAW_RC_INPUT reg 0 for count of channels
+  - read PAGE_RAW_RC_INPUT(4) reg 0 for count of channels
   - read PAGE_RAW_RC_INPUT reg 6 and up for inputs

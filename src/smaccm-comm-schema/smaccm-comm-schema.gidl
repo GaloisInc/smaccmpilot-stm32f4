@@ -200,6 +200,7 @@
   (ch5   uint16_t))
 
 (def-struct px4io_state_t
+  (comm_ok bool_t)
   (status px4io_status_t)
   (alarms px4io_alarms_t)
   (rc_in  px4io_rc_input_t)

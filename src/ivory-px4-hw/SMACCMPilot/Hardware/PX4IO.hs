@@ -12,6 +12,7 @@ import Ivory.Serialize
 import Ivory.Tower.HAL.Bus.Interface
 import Ivory.BSP.STM32.Driver.UART.DMA.Synchronous
 
+import SMACCMPilot.Time
 import SMACCMPilot.Hardware.PX4IO.CRC
 import SMACCMPilot.Hardware.PX4IO.Types
 import SMACCMPilot.Hardware.PX4IO.Types.Regs
@@ -41,39 +42,62 @@ px4ioTower tocc dmauart pins = do
           v <- deref r
           store r (v + (1 :: Uint32))
 
+    px4io_state <- state "px4io_state"
+
     coroutineHandler p ser_rx "px4io" $ do
       req_e <- emitter ser_tx_req 1
       res_e <- emitter (fst state_chan) 1
       return $ CoroutineBody $ \ yield -> do
-        let rpc req = emit req_e req >> yield
-        comment ""
+        let rpc req_ival = do
+              req <- local req_ival
+              packed <- local izero
+              packing_valid <- call px4io_pack packed (constRef req)
+              emit req_e (constRef packed)
+              res_packed <- yield
+              res <- local izero
+              unpacking_valid <- call px4io_unpack (constRef res_packed) res
+              return (res, packing_valid .&& (unpacking_valid ==? 0))
 
-        status_req <- local $ istruct
+
+        (status_regs, status_ok) <- rpc $ istruct
           [ req_code .= ival request_read
-          , count    .= ival 2
-          , page     .= ival 1 -- status page
-          , offs     .= ival 0
+          , page     .= ival 1 -- Status page
+          , count    .= ival 2 -- First two registers
+          , offs     .= ival 0 -- Starting at reg 0
           , regs     .= iarray [ ival 0, ival 0 ]
           ]
+        status_r0 <- deref (status_regs ~> regs ! 0)
+        status_r1 <- deref (status_regs ~> regs ! 1)
 
-        status_packed <- local izero
-        v <- call px4io_pack status_packed (constRef status_req)
-        assert v
+        px4ioStatusFromReg status_r0 (px4io_state ~> status)
+        px4ioAlarmsFromReg status_r1 (px4io_state ~> alarms)
 
-        status_result <- rpc (constRef status_packed)
+        (rc_count_reg, rc_count_ok) <- rpc $ istruct
+          [ req_code .= ival request_read
+          , page     .= ival 4 -- RAW_RC_INPUT page
+          , count    .= ival 1 -- 1 register
+          , offs     .= ival 0 -- Starting at reg 0
+          , regs     .= iarray [ ival 0 ]
+          ]
 
-        status_unpacked <- local izero
-        v2 <- call px4io_unpack (constRef status_result) status_unpacked
+        (rc_input_reg, rc_input_ok) <- rpc $ istruct
+          [ req_code .= ival request_read
+          , page     .= ival 4 -- RAW_RC_INPUT page
+          , count    .= ival 6 -- 6 registers
+          , offs     .= ival 6 -- Starting at RAW_RC_BASE
+          , regs     .= iarray (repeat (ival 0))
+          ]
 
-        r0 <- deref (status_unpacked ~> regs ! 0)
-        r1 <- deref (status_unpacked ~> regs ! 1)
-        s <- local $ istruct [ status .= px4ioStatusIval r0
-                             , alarms .= px4ioAlarmsIval r1
-                             ]
+        px4ioRCInputFromRegs rc_count_reg rc_input_reg (px4io_state ~> rc_in)
 
-        ifte_ (v2 ==? 0)
-          (emit res_e (constRef s) >> incr px4io_success)
-          (incr px4io_fail)
+        t <- getTime
+        store (px4io_state ~> time) (timeMicrosFromITime t)
+
+        ifte_ (status_ok .&& rc_count_ok .&& rc_input_ok)
+          (store (px4io_state ~> comm_ok) true  >> incr px4io_success)
+          (store (px4io_state ~> comm_ok) false >> incr px4io_fail)
+
+        emit res_e (constRef px4io_state)
 
   mapM_ towerModule mods
   mapM_ towerDepends mods
