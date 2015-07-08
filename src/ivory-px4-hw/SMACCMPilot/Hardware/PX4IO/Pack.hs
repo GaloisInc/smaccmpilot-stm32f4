@@ -45,10 +45,10 @@ px4io_pack = proc "px4io_pack" $ \buf req -> body $ do
     -- Yes, we send registers even when we do a read. Yes, I know.
     when ( fromIx reg_ix <? safeCast c) $ do
       r <- deref ((req ~> regs) ! reg_ix)
-      let (lsb, rest) = extractByte r
-          (msb, _)    = extractByte rest
-      push msb
+      let (msb, rest) = extractByte r
+          (lsb, _)    = extractByte rest
       push lsb
+      push msb
 
   deref crc >>= store ((buf ~> stringDataL) ! 1)
   final_ix <- deref ixref
@@ -96,8 +96,8 @@ px4io_unpack = proc "px4io_unpack" $ \buf req -> body $ do
   pop >>= store (req ~> offs)
 
   arrayMap $ \(reg_ix :: Ix 32) -> when (fromIx reg_ix <? safeCast cnt) $ do
-    msb <- pop
     lsb <- pop
+    msb <- pop
     v <- assign ((safeCast lsb) .| ((safeCast msb) `iShiftL` 8))
     store ((req ~> regs) ! reg_ix) v
 

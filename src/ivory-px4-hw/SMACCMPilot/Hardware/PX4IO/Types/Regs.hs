@@ -60,5 +60,16 @@ px4ioStatusIval v = istruct
   r = fromRep v
 
 px4ioAlarmsIval :: Uint16 -> Init (Struct "px4io_alarms")
-px4ioAlarmsIval = undefined -- XXX FIXME
+px4ioAlarmsIval v = istruct
+  [ vservo_fault  .= ival (bitToBool (r #. px4io_alarms_vservo_fault))
+  , pwm_error     .= ival (bitToBool (r #. px4io_alarms_pwm_error))
+  , rc_lost       .= ival (bitToBool (r #. px4io_alarms_rc_lost))
+  , fmu_lost      .= ival (bitToBool (r #. px4io_alarms_fmu_lost))
+  , acc_current   .= ival (bitToBool (r #. px4io_alarms_acc_current))
+  , servo_current .= ival (bitToBool (r #. px4io_alarms_servo_current))
+  , temperature   .= ival (bitToBool (r #. px4io_alarms_temperature))
+  , vbatt_low     .= ival (bitToBool (r #. px4io_alarms_vbatt_low))
+  ]
+  where
+  r = fromRep v
 
