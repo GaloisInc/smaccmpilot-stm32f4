@@ -127,7 +127,7 @@ initAttitude :: (Floating a, HasAtan2 a)
              -- ^ local magnetic declination from true North
              -> Quaternion a
              -- ^ computed initial attitude
-initAttitude (XYZ accel) (XYZ mag) declination = fromEuler initialRoll initialPitch initialHdg
+initAttitude (XYZ accel) (XYZ mag) _declination = fromEuler initialRoll initialPitch initialHdg
     where
     -- rotate acceleration 180° in the Y-Z plane to make it point to the
     -- positive-Down axis, then compute roll and pitch.
@@ -135,7 +135,7 @@ initAttitude (XYZ accel) (XYZ mag) declination = fromEuler initialRoll initialPi
     initialPitch = atan ((accel ^._x) / (accel ^._y * sin initialRoll + accel ^._z * cos initialRoll))
     magX = (mag ^._x) * cos initialPitch + (mag ^._y) * sin initialPitch * sin initialRoll + (mag ^._z) * sin initialPitch * cos initialRoll
     magY = (mag ^._z) * sin initialRoll - (mag ^._y) * cos initialRoll
-    initialHdg = arctan2 magY magX + declination
+    initialHdg = arctan2 magY magX
 
 -- | Compute an initial filter state from an assortment of initial
 -- measurements.
@@ -191,7 +191,9 @@ processModel dt (AugmentState state gyro) = AugmentState state' $ pure 0
 -- declination-adjusted field from the state vector. Useful as a
 -- measurement model for a 3D magnetometer.
 stateMag :: Num a => StateVector a -> XYZ a
-stateMag state = nav2body state (stateMagNED state)
+stateMag state = nav2body state (ignoreE $ stateMagNED state)
+  where
+  ignoreE (NED v) = NED (v & _y .~ 0)
 
 stateAccel :: Fractional a => StateVector a -> XYZ a
 stateAccel state = nav2body state (ned 0 0 (-9.80665))
