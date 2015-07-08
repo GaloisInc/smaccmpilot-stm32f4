@@ -54,14 +54,14 @@ kalmanInit state_ptr cov_ptr acc mag = do
   storeRow stateVector initialState
   sequence_ $ liftA2 storeRow covariance initCovariance
 
-kalmanPredict :: Ref s1 (Struct "kalman_state") -> Ref s2 (Struct "kalman_covariance") -> IFloat -> DisturbanceVector IFloat -> Ivory eff ()
-kalmanPredict state_ptr cov_ptr dt distVector = do
+kalmanPredict :: Ref s1 (Struct "kalman_state") -> Ref s2 (Struct "kalman_covariance") -> IFloat -> XYZ IFloat -> Ivory eff ()
+kalmanPredict state_ptr cov_ptr dt gyro = do
   let stateVector = stateVectorFromStruct state_ptr
   let covariance = covarianceFromStruct cov_ptr
   stateVectorTemp <- mapM deref stateVector
   pTemp <- mapM (mapM deref) covariance
   let noise = processNoise dt
-  let KalmanFilter stateVector' covariance' = augmentProcess (EKFProcess $ processModel $ auto dt) distVector (scaled noise) (scaled distCovariance) $ KalmanFilter stateVectorTemp pTemp
+  let KalmanFilter stateVector' covariance' = augmentProcess (EKFProcess $ processModel $ auto dt) gyro (scaled noise) (scaled gyroNoise) $ KalmanFilter stateVectorTemp pTemp
   storeRow stateVector $ fixQuat stateVector'
   sequence_ $ liftA2 storeRow covariance covariance'
 

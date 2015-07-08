@@ -4,7 +4,6 @@
 
 module SMACCMPilot.INS.Tower (sensorFusion) where
 
-import Control.Applicative
 import Data.Traversable
 import Ivory.Language
 import Ivory.Stdlib
@@ -18,7 +17,6 @@ import qualified SMACCMPilot.Comm.Ivory.Types.AccelerometerSample as A
 import qualified SMACCMPilot.Comm.Ivory.Types.GyroscopeSample     as G
 import qualified SMACCMPilot.Comm.Ivory.Types.Xyz as XYZ
 import SMACCMPilot.INS.Ivory
-import SMACCMPilot.INS.SensorFusion
 import SMACCMPilot.Time
 
 changeUnits :: (Functor f, Functor g) => (x -> y) -> f (g x) -> f (g y)
@@ -45,18 +43,15 @@ kalman_predict :: Def ('[ Ref s1 (Struct "kalman_state")
                         , Ref s2 (Struct "kalman_covariance")
                         , Ref s3 (Stored ITime)
                         , ITime
-                        , ConstRef s4 (Struct "accelerometer_sample")
-                        , ConstRef s5 (Struct "gyroscope_sample")] :-> ())
+                        , ConstRef s4 (Struct "gyroscope_sample")] :-> ())
 kalman_predict = proc "kalman_predict" $
-  \ state_vector covariance last_predict now last_accel last_gyro -> body $ do
-      acc_not_ready <- deref $ last_accel ~> A.samplefail
+  \ state_vector covariance last_predict now last_gyro -> body $ do
       gyro_not_ready <- deref $ last_gyro ~> G.samplefail
-      when (acc_not_ready .|| gyro_not_ready) retVoid
+      when gyro_not_ready retVoid
 
       last_time <- deref last_predict
       let dt = safeCast (castDefault (toIMicroseconds (now - last_time)) :: Sint32) * 1.0e-6
-      distVector <- DisturbanceVector <$> gyro last_gyro <*> accel last_accel
-      kalmanPredict state_vector covariance dt distVector
+      kalmanPredict state_vector covariance dt =<< gyro last_gyro
       store last_predict now
 
 accel_measure :: Def ('[ Ref s1 (Struct "kalman_state")
@@ -138,7 +133,7 @@ sensorFusion accelSource gyroSource magSource _baroSource _gpsSource = do
           ifte_ ready
             (do
               now <- fmap iTimeFromTimeMicros $ deref $ last_acc ~> A.time
-              call_ kalman_predict state_vector covariance last_predict now (constRef last_acc) (constRef last_gyro)
+              call_ kalman_predict state_vector covariance last_predict now (constRef last_gyro)
               call_ accel_measure state_vector covariance (constRef last_acc)
               emit stateEmit $ constRef state_vector
             ) (do
@@ -163,7 +158,7 @@ sensorFusion accelSource gyroSource magSource _baroSource _gpsSource = do
           ready <- deref initialized
           when ready $ do
             now <- fmap iTimeFromTimeMicros $ deref $ last_gyro ~> G.time
-            call_ kalman_predict state_vector covariance last_predict now (constRef last_acc) (constRef last_gyro)
+            call_ kalman_predict state_vector covariance last_predict now (constRef last_gyro)
             emit stateEmit $ constRef state_vector
 
     handler magSource "mag" $ callback $ \ sample -> do

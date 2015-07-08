@@ -26,10 +26,10 @@ runKalmanState ts state = runStateT (ts, KalmanFilter state initCovariance)
 fixQuat :: Floating a => StateVector a -> StateVector a
 fixQuat state = state { stateOrient = signorm $ stateOrient state }
 
-runProcessModel :: (Monad m, Floating a, Ord a) => a -> StateVector a -> DisturbanceVector a -> DisturbanceVector a -> KalmanState m a ()
-runProcessModel dt noise distNoise dist = do
+runProcessModel :: (Monad m, Floating a, Ord a) => a -> StateVector a -> XYZ a -> XYZ a -> KalmanState m a ()
+runProcessModel dt noise gyroNoise gyro = do
     (ts, prior) <- get
-    let KalmanFilter state' p' = augmentProcess (EKFProcess $ processModel $ auto dt) dist (scaled noise) (scaled distNoise) prior
+    let KalmanFilter state' p' = augmentProcess (EKFProcess $ processModel $ auto dt) gyro (scaled noise) (scaled gyroNoise) prior
     set (ts, KalmanFilter (fixQuat state') p')
 
 runFusion :: (Monad m, Floating a, Ord a) => (a -> KalmanFilter StateVector a -> (a, a, KalmanFilter StateVector a)) -> a -> KalmanState m a (a, a)

@@ -96,43 +96,6 @@ instance Distributive StateVector where
         , stateMagNED = distribute $ fmap stateMagNED f
         }
 
--- | Define the control (disturbance) vector. Error growth in the inertial
--- solution is assumed to be driven by 'noise' in the delta angles and
--- velocities, after bias effects have been removed. This is OK becasue we
--- have sensor bias accounted for in the state equations.
-data DisturbanceVector a = DisturbanceVector
-    { disturbanceGyro :: !(XYZ a) -- ^ XYZ body rotation rate in rad/second
-    , disturbanceAccel :: !(XYZ a) -- ^ XYZ body acceleration in meters\/second\/second
-    }
-    deriving Show
-
-instance Applicative DisturbanceVector where
-    pure v = DisturbanceVector
-        { disturbanceGyro = pure v
-        , disturbanceAccel = pure v
-        }
-    v1 <*> v2 = DisturbanceVector
-        { disturbanceGyro = disturbanceGyro v1 <*> disturbanceGyro v2
-        , disturbanceAccel = disturbanceAccel v1 <*> disturbanceAccel v2
-        }
-
-instance Functor DisturbanceVector where
-    fmap = liftA
-
-instance Foldable DisturbanceVector where
-    foldMap = foldMapDefault
-
-instance Traversable DisturbanceVector where
-    sequenceA v = DisturbanceVector
-        <$> sequenceA (disturbanceGyro v)
-        <*> sequenceA (disturbanceAccel v)
-
-instance Distributive DisturbanceVector where
-    distribute f = DisturbanceVector
-        { disturbanceGyro = distribute $ fmap disturbanceGyro f
-        , disturbanceAccel = distribute $ fmap disturbanceAccel f
-        }
-
 -- * Model initialization
 
 -- | Initial covariance for this model.
@@ -199,11 +162,11 @@ initDynamic accel mag declination = StateVector
 processModel :: Fractional a
              => a
              -- ^ time since last process model update
-             -> AugmentState StateVector DisturbanceVector a
+             -> AugmentState StateVector XYZ a
              -- ^ prior (augmented) state
-             -> AugmentState StateVector DisturbanceVector a
+             -> AugmentState StateVector XYZ a
              -- ^ posterior (augmented) state
-processModel dt (AugmentState state dist) = AugmentState state' $ pure 0
+processModel dt (AugmentState state gyro) = AugmentState state' $ pure 0
     where
     state' = state
         -- Discretization of @qdot = 0.5 * <0, deltaAngle> * q@.
@@ -219,7 +182,7 @@ processModel dt (AugmentState state dist) = AugmentState state' $ pure 0
         }
     -- Even fairly low-order approximations introduce error small enough
     -- that it's swamped by other filter errors.
-    deltaQuat = approxAxisAngle 3 $ xyzToVec3 $ fmap (* dt) $ disturbanceGyro dist
+    deltaQuat = approxAxisAngle 3 $ xyzToVec3 $ fmap (* dt) gyro
 
 -- | Compute the expected body-frame magnetic field strength and
 -- direction, given the hard-iron correction and local
