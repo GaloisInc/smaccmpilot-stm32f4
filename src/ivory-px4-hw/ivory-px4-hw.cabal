@@ -53,6 +53,7 @@ library
 
                        SMACCMPilot.Hardware.RGBLED,
 
+                       SMACCMPilot.Hardware.PX4IO,
                        SMACCMPilot.Hardware.PX4IO.Types,
                        SMACCMPilot.Hardware.PX4IO.Types.Regs,
                        SMACCMPilot.Hardware.PX4IO.Types.Request,
