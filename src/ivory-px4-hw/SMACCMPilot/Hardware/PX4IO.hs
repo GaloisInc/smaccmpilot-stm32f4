@@ -30,7 +30,8 @@ px4ioTower :: (e -> ClockConfig)
            -> Tower e (ChanOutput (Struct "px4io_state"))
 px4ioTower tocc dmauart pins = do
   state_chan <- channel
-  (BackpressureTransmit ser_tx_req ser_rx) <- syncDMAUARTTower tocc dmauart pins 1500000
+  (BackpressureTransmit ser_tx_req ser_rx, driver_ready)
+    <- syncDMAUARTTower tocc dmauart pins 1500000
 
   p <- period (Milliseconds 10)
 
@@ -42,9 +43,9 @@ px4ioTower tocc dmauart pins = do
           v <- deref r
           store r (v + (1 :: Uint32))
 
-    px4io_state <- state "px4io_state"
+    px4io_state <- state "px4io_state_"
 
-    coroutineHandler p ser_rx "px4io" $ do
+    coroutineHandler driver_ready ser_rx "px4io" $ do
       req_e <- emitter ser_tx_req 1
       res_e <- emitter (fst state_chan) 1
       return $ CoroutineBody $ \ yield -> do
