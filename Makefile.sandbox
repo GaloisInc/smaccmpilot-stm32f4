@@ -1,7 +1,7 @@
 # Override this for a project that doesn't have a .cabal file to specify
 # a list of packages to install in the sandbox. By default we install
 # all packages needed by the current project's .cabal file.
-SANDBOX_INSTALL ?= --dependencies-only --max-backjumps=10000
+SANDBOX_INSTALL ?= --dependencies-only
 
 default:
 ifeq ($(SANDBOX_INSTALL),--dependencies-only)
