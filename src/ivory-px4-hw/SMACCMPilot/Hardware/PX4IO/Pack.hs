@@ -47,8 +47,8 @@ px4io_pack = proc "px4io_pack" $ \buf req -> body $ do
       r <- deref ((req ~> regs) ! reg_ix)
       let (msb, rest) = extractByte r
           (lsb, _)    = extractByte rest
-      push lsb
       push msb
+      push lsb
 
   deref crc >>= store ((buf ~> stringDataL) ! 1)
   final_ix <- deref ixref
