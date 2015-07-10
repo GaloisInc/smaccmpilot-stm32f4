@@ -60,45 +60,57 @@ px4ioTower tocc dmauart pins = do
               return (res, packing_valid .&& (unpacking_valid ==? 0))
 
 
-        (status_regs, status_ok) <- rpc $ istruct
-          [ req_code .= ival request_read
-          , page     .= ival 1 -- Status page
-          , count    .= ival 2 -- First two registers
-          , offs     .= ival 0 -- Starting at reg 0
-          , regs     .= iarray [ ival 0, ival 0 ]
-          ]
-        status_r0 <- deref (status_regs ~> regs ! 0)
-        status_r1 <- deref (status_regs ~> regs ! 1)
-
-        px4ioStatusFromReg status_r0 (px4io_state ~> status)
-        px4ioAlarmsFromReg status_r1 (px4io_state ~> alarms)
-
-        (rc_count_reg, rc_count_ok) <- rpc $ istruct
-          [ req_code .= ival request_read
-          , page     .= ival 4 -- RAW_RC_INPUT page
-          , count    .= ival 1 -- 1 register
-          , offs     .= ival 0 -- Starting at reg 0
-          , regs     .= iarray [ ival 0 ]
+        (_, setup_ok) <- rpc $ istruct
+          [ req_code .= ival request_write
+          , page     .= ival 50 -- Setup page
+          , count    .= ival 1 -- One reg
+          , offs     .= ival 1 -- Starting at reg 1, SETUP_ARMING
+          , regs     .= iarray [ ival 1 ] -- IO Arming OK, FMU Already Armed
           ]
 
-        (rc_input_reg, rc_input_ok) <- rpc $ istruct
-          [ req_code .= ival request_read
-          , page     .= ival 4 -- RAW_RC_INPUT page
-          , count    .= ival 6 -- 6 registers
-          , offs     .= ival 6 -- Starting at RAW_RC_BASE
-          , regs     .= iarray (repeat (ival 0))
-          ]
+        assert setup_ok
 
-        px4ioRCInputFromRegs rc_count_reg rc_input_reg (px4io_state ~> rc_in)
+        forever $ noBreak $ do
 
-        t <- getTime
-        store (px4io_state ~> time) (timeMicrosFromITime t)
+          (status_regs, status_ok) <- rpc $ istruct
+            [ req_code .= ival request_read
+            , page     .= ival 1 -- Status page
+            , count    .= ival 2 -- First two registers
+            , offs     .= ival 0 -- Starting at reg 0
+            , regs     .= iarray [ ival 0, ival 0 ]
+            ]
+          status_r0 <- deref (status_regs ~> regs ! 0)
+          status_r1 <- deref (status_regs ~> regs ! 1)
 
-        ifte_ (status_ok .&& rc_count_ok .&& rc_input_ok)
-          (store (px4io_state ~> comm_ok) true  >> incr px4io_success)
-          (store (px4io_state ~> comm_ok) false >> incr px4io_fail)
+          px4ioStatusFromReg status_r0 (px4io_state ~> status)
+          px4ioAlarmsFromReg status_r1 (px4io_state ~> alarms)
 
-        emit res_e (constRef px4io_state)
+          (rc_count_reg, rc_count_ok) <- rpc $ istruct
+            [ req_code .= ival request_read
+            , page     .= ival 4 -- RAW_RC_INPUT page
+            , count    .= ival 1 -- 1 register
+            , offs     .= ival 0 -- Starting at reg 0
+            , regs     .= iarray [ ival 0 ]
+            ]
+
+          (rc_input_reg, rc_input_ok) <- rpc $ istruct
+            [ req_code .= ival request_read
+            , page     .= ival 4 -- RAW_RC_INPUT page
+            , count    .= ival 6 -- 6 registers
+            , offs     .= ival 6 -- Starting at RAW_RC_BASE
+            , regs     .= iarray (repeat (ival 0))
+            ]
+
+          px4ioRCInputFromRegs rc_count_reg rc_input_reg (px4io_state ~> rc_in)
+
+          t <- getTime
+          store (px4io_state ~> time) (timeMicrosFromITime t)
+
+          ifte_ (status_ok .&& rc_count_ok .&& rc_input_ok)
+            (store (px4io_state ~> comm_ok) true  >> incr px4io_success)
+            (store (px4io_state ~> comm_ok) false >> incr px4io_fail)
+
+          emit res_e (constRef px4io_state)
 
   mapM_ towerModule mods
   mapM_ towerDepends mods
