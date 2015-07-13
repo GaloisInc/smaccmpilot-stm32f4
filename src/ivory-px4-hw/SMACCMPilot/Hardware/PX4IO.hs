@@ -7,6 +7,7 @@ module SMACCMPilot.Hardware.PX4IO where
 
 import Ivory.Language
 import Ivory.Tower
+import Ivory.Stdlib
 import Ivory.Serialize
 
 import Ivory.Tower.HAL.Bus.Interface
@@ -17,8 +18,12 @@ import SMACCMPilot.Hardware.PX4IO.CRC
 import SMACCMPilot.Hardware.PX4IO.Types
 import SMACCMPilot.Hardware.PX4IO.Types.Regs
 import SMACCMPilot.Hardware.PX4IO.Pack
-import SMACCMPilot.Comm.Ivory.Types.Px4ioState
-import SMACCMPilot.Comm.Ivory.Types
+
+import qualified SMACCMPilot.Comm.Ivory.Types.ControlLaw as CL
+import qualified SMACCMPilot.Comm.Ivory.Types.QuadcopterMotors as M
+import qualified SMACCMPilot.Comm.Ivory.Types.ArmingMode as A
+import           SMACCMPilot.Comm.Ivory.Types.Px4ioState
+import           SMACCMPilot.Comm.Ivory.Types
 
 import           Ivory.BSP.STM32.ClockConfig
 import           Ivory.BSP.STM32.Peripheral.UART
@@ -27,13 +32,15 @@ import           Ivory.BSP.STM32.Peripheral.UART.DMA
 px4ioTower :: (e -> ClockConfig)
            -> DMAUART
            -> UARTPins
+           -> ChanOutput (Struct "control_law")
+           -> ChanOutput (Struct "quadcopter_motors")
            -> Tower e (ChanOutput (Struct "px4io_state"))
-px4ioTower tocc dmauart pins = do
+px4ioTower tocc dmauart pins control_law motors = do
   state_chan <- channel
   (BackpressureTransmit ser_tx_req ser_rx, driver_ready)
     <- syncDMAUARTTower tocc dmauart pins 1500000
 
-  p <- period (Milliseconds 10)
+  p <- period (Milliseconds 20)
 
   monitor "px4io_driver" $ do
     monitorModuleDef $ depend px4ioPackModule
@@ -45,7 +52,30 @@ px4ioTower tocc dmauart pins = do
 
     px4io_state <- state "px4io_state_"
 
-    coroutineHandler driver_ready ser_rx "px4io" $ do
+    arming_mode  <- stateInit "arming_mode" (ival A.safe)
+    motor_output <- stateInit "motor_output" (istruct [ M.frontleft  .= ival 0
+                                                      , M.frontright .= ival 0
+                                                      , M.backleft   .= ival 0
+                                                      , M.backright  .= ival 0
+                                                      ])
+
+    driver_initialized <- state "dmauart_driver_initialized"
+    handler driver_ready "driver_ready" $ callback $ const $ do
+      store driver_initialized true
+
+    handler control_law "control_law" $ do
+      callback $ \cl -> refCopy arming_mode (cl ~> CL.arming_mode)
+
+    handler motors "motor_output" $ do
+      callback $ \o -> refCopy motor_output o
+
+    coroutineHandler p ser_rx "px4io" $ do
+      -- INVARIANT:
+      -- coroutine body must terminate in a shorter duration than the period
+      -- provided as the first argument to this handler.
+      -- ASSUMPTIONS:
+      -- dmauart driver sends responses (ser_rx) on 1ms period thread. So,
+      -- worst case execution time is 2ms * number of rpcs (10ms)
       req_e <- emitter ser_tx_req 1
       res_e <- emitter (fst state_chan) 1
       return $ CoroutineBody $ \ yield -> do
@@ -59,31 +89,40 @@ px4ioTower tocc dmauart pins = do
               unpacking_valid <- call px4io_unpack (constRef res_packed) res
               return (res, packing_valid .&& (unpacking_valid ==? 0))
 
+        rdy <- deref driver_initialized
+        when rdy $ do
+          am <- deref arming_mode
+          (_, setup_ok) <- rpc $ istruct
+            [ req_code .= ival request_write
+            , page     .= ival 50 -- Setup page
+            , count    .= ival 1 -- One reg
+            , offs     .= ival 1 -- Starting at reg 1, SETUP_ARMING
+            , regs     .= iarray [ ival ((am ==? A.armed) ? (3, 1)) ]
+                                 -- LSBit: IO Arming permitted
+                                 -- second LSBit: FMU Armed
+            ]
 
-        (_, setup_ok) <- rpc $ istruct
-          [ req_code .= ival request_write
-          , page     .= ival 50 -- Setup page
-          , count    .= ival 1 -- One reg
-          , offs     .= ival 1 -- Starting at reg 1, SETUP_ARMING
-          , regs     .= iarray [ ival 1 ] -- IO Arming OK, FMU Already Armed
-          ]
-
-        assert setup_ok
-
-        forever $ noBreak $ do
+          output_regs <- outRegIval (constRef motor_output)
+          (_, output_ok) <- rpc $ istruct
+            [ req_code .= ival request_write
+            , page     .= ival 54 -- Direct PWM Page
+            , count    .= ival 4 -- First four registers
+            , offs     .= ival 0 -- Starting at reg 0
+            , regs     .= output_regs
+            ]
 
           (status_regs, status_ok) <- rpc $ istruct
             [ req_code .= ival request_read
             , page     .= ival 1 -- Status page
-            , count    .= ival 2 -- First two registers
-            , offs     .= ival 0 -- Starting at reg 0
+            , count    .= ival 2 -- two registers
+            , offs     .= ival 2 -- Starting at reg 2
             , regs     .= iarray [ ival 0, ival 0 ]
             ]
-          status_r0 <- deref (status_regs ~> regs ! 0)
-          status_r1 <- deref (status_regs ~> regs ! 1)
+          status_flags <- deref (status_regs ~> regs ! 0)
+          status_alarms <- deref (status_regs ~> regs ! 1)
 
-          px4ioStatusFromReg status_r0 (px4io_state ~> status)
-          px4ioAlarmsFromReg status_r1 (px4io_state ~> alarms)
+          px4ioStatusFromReg status_flags (px4io_state ~> status)
+          px4ioAlarmsFromReg status_alarms (px4io_state ~> alarms)
 
           (rc_count_reg, rc_count_ok) <- rpc $ istruct
             [ req_code .= ival request_read
@@ -106,7 +145,8 @@ px4ioTower tocc dmauart pins = do
           t <- getTime
           store (px4io_state ~> time) (timeMicrosFromITime t)
 
-          ifte_ (status_ok .&& rc_count_ok .&& rc_input_ok)
+          ifte_ ( setup_ok .&& output_ok .&& status_ok
+                 .&& rc_count_ok .&& rc_input_ok)
             (store (px4io_state ~> comm_ok) true  >> incr px4io_success)
             (store (px4io_state ~> comm_ok) false >> incr px4io_fail)
 
@@ -126,4 +166,10 @@ px4ioTower tocc dmauart pins = do
     , px4ioRequestTypesModule
     , serializeModule
     ] ++ typeModules
+
+
+outRegIval :: ConstRef s (Struct "quadcopter_motors")
+           -> Ivory eff (Init (Array 32 (Stored Uint16)))
+outRegIval _motors = do
+  return (iarray [ ival 1500, ival 1200, ival 1700, ival 1500]) -- XXX OBVIOUSLY WRONG
 

@@ -45,7 +45,7 @@ import SMACCMPilot.Comm.Ivory.Types.Px4ioRcInput
 px4ioStatusFromReg :: Uint16 -> Ref s (Struct "px4io_status") -> Ivory eff ()
 px4ioStatusFromReg v r = do
   p safety_off     px4io_status_safety_off
-  p failsafe       px4io_status_safety_off
+  p failsafe       px4io_status_failsafe
   p init_ok        px4io_status_init_ok
   p arm_sync       px4io_status_arm_sync
   p mixer_ok       px4io_status_mixer_ok
