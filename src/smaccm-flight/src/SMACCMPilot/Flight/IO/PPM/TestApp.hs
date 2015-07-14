@@ -1,6 +1,6 @@
 
 
-module SMACCMPilot.Flight.UserInput.PPM.TestApp
+module SMACCMPilot.Flight.IO.PPM.TestApp
   ( app
   ) where
 
@@ -9,7 +9,6 @@ import Ivory.Tower
 
 import SMACCMPilot.Flight.Platform
 import SMACCMPilot.Flight.Datalink
-import SMACCMPilot.Flight.UserInput.PPM
 
 import qualified SMACCMPilot.Comm.Ivory.Types.ControlLaw      as CL ()
 import qualified SMACCMPilot.Comm.Ivory.Types.ControlSource   as CS
@@ -25,8 +24,11 @@ app :: (e -> FlightPlatform)
 app tofp = do
 
   (attrs, _streams) <- datalinkTower tofp
-
-  (ui, cl) <- ppmInputTower toppm tocc
+  -- XXX FIXME
+  -- (ui, cl) <- ppmInputTower toppm tocc
+  -- STANDIN FOR NOW:
+  (_, ui) <- channel
+  (_, cl) <- channel
 
   monitor "forward_ppmInputTower" $ do
     handler ui "ui" $ do
@@ -41,6 +43,3 @@ app tofp = do
       e <- attrEmitter (controlLaw attrs)
       callback $ \v -> do
         emit e v
-  where
-  tocc = fp_clockconfig . tofp
-  toppm = fp_ppm . tofp

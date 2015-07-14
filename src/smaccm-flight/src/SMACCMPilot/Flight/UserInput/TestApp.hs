@@ -19,7 +19,12 @@ app :: (e -> FlightPlatform)
     -> Tower e ()
 app tofp = do
   (attrs, _streams) <- datalinkTower tofp
-  userInputTower tofp attrs
+
+  -- XXX need to fill in tower component that creates ppm_ui and ppm_cl
+  ppm_ui <- channel
+  ppm_cl <- channel
+
+  userInputTower (snd ppm_ui) (snd ppm_cl) attrs
   -- Just for testing, lets pretend there is a valid IMU.
   monitor "fake_sensor_output_valid" $ do
     handler systemInit "init" $ do

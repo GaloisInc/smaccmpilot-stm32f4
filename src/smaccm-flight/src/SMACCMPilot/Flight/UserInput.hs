@@ -1,4 +1,4 @@
-
+{-# LANGUAGE DataKinds #-}
 
 module SMACCMPilot.Flight.UserInput
   ( userInputTower
@@ -7,9 +7,6 @@ module SMACCMPilot.Flight.UserInput
 import Ivory.Language
 import Ivory.Tower
 import Ivory.Stdlib
-
-import SMACCMPilot.Flight.Platform
-import SMACCMPilot.Flight.UserInput.PPM
 
 import qualified SMACCMPilot.Comm.Ivory.Types.ArmingMode      as A
 import qualified SMACCMPilot.Comm.Ivory.Types.ControlLaw      as CL
@@ -22,12 +19,11 @@ import qualified SMACCMPilot.Comm.Ivory.Types.UserInputResult as UIR
 import SMACCMPilot.Comm.Tower.Attr
 import SMACCMPilot.Comm.Tower.Interface.ControllableVehicle
 
-userInputTower :: (e -> FlightPlatform)
+userInputTower :: ChanOutput (Struct "user_input")
+               -> ChanOutput (Struct "control_law")
                -> ControllableVehicleAttrs Attr
                -> Tower e ()
-userInputTower tofp attrs = do
-
-  (ppm_ui, ppm_cl) <- ppmInputTower toppm tocc
+userInputTower ppm_ui ppm_cl attrs = do
 
   monitor "user_input_multiplexer" $ do
     ppm_cl_s      <- state "ppm_cl"
@@ -101,9 +97,6 @@ userInputTower tofp attrs = do
         emit e_cl (constRef cl_o)
 
   where
-  tocc = fp_clockconfig . tofp
-  toppm = fp_ppm . tofp
-
   timeout :: ITime
   timeout = fromIMilliseconds (500 :: Sint16)
 

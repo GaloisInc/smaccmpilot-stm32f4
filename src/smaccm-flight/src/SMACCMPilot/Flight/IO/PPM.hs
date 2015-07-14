@@ -3,7 +3,7 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TypeFamilies #-}
 
-module SMACCMPilot.Flight.UserInput.PPM
+module SMACCMPilot.Flight.IO.PPM
   ( ppmInputTower
   ) where
 
@@ -14,7 +14,7 @@ import qualified SMACCMPilot.Comm.Ivory.Types.UserInput as I ()
 import qualified SMACCMPilot.Comm.Ivory.Types.ControlLaw as C ()
 
 import SMACCMPilot.Flight.Platform
-import SMACCMPilot.Flight.UserInput.PPM.Decode
+import SMACCMPilot.Flight.IO.PPM.Decode
 
 import SMACCMPilot.Hardware.PPM
 

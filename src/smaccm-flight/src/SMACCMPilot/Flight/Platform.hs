@@ -7,6 +7,7 @@ module SMACCMPilot.Flight.Platform
   , fp_clockconfig
   , UART_Device(..)
   , PPM(..)
+  , FlightIO(..)
   , RGBLED_I2C(..)
   , STM32Config
   , ClockConfig
@@ -25,6 +26,7 @@ import qualified Ivory.BSP.STM32F427.UART.DMA       as F427
 import qualified Ivory.BSP.STM32F427.I2C            as F427
 import qualified Ivory.BSP.STM32F427.GPIO           as F427
 import qualified Ivory.BSP.STM32F427.GPIO.AF        as F427
+import           Ivory.BSP.STM32.Peripheral.UART.DMA
 import           Ivory.BSP.STM32.Peripheral.UART
 import           Ivory.BSP.STM32.Peripheral.I2C
 import           Ivory.BSP.STM32.Driver.I2C
@@ -40,13 +42,18 @@ import           SMACCMPilot.Hardware.Tests.Platforms (PPM(..), RGBLED_I2C(..))
 data FlightPlatform =
   FlightPlatform
     { fp_telem        :: UART_Device
-    , fp_ppm          :: PPM
+    , fp_io           :: FlightIO
     , fp_sensors      :: Sensors
     , fp_can          :: Maybe CAN_Device
     , fp_datalink     :: DatalinkMode
     , fp_rgbled       :: Maybe RGBLED_I2C
     , fp_stm32config  :: STM32Config
     }
+
+
+data FlightIO
+  = PX4IO DMAUART UARTPins
+  | NativeIO PPM -- No outputs supported with nativeIO right now
 
 fp_clockconfig :: (FlightPlatform -> ClockConfig)
 fp_clockconfig = stm32config_clock . fp_stm32config
@@ -69,7 +76,7 @@ flightPlatformParser = do
 px4fmuv17 :: DatalinkMode -> FlightPlatform
 px4fmuv17 dmode = FlightPlatform
   { fp_telem       = telem
-  , fp_ppm         = ppm
+  , fp_io          = NativeIO ppm
   , fp_sensors     = fmu17_sensors
   , fp_can         = Nothing
   , fp_datalink    = dmode
@@ -92,7 +99,7 @@ px4fmuv17 dmode = FlightPlatform
 px4fmuv24 :: DatalinkMode -> FlightPlatform
 px4fmuv24 dmode = FlightPlatform
   { fp_telem       = telem
-  , fp_ppm         = PPM_None
+  , fp_io          = px4io
   , fp_sensors     = fmu24_sensors
   , fp_can         = Just fmu24_can
   , fp_datalink    = dmode
@@ -117,4 +124,9 @@ px4fmuv24 dmode = FlightPlatform
         }
     , rgbled_i2c_addr = I2CDeviceAddr 0x55
     }
-
+  px4io = PX4IO F427.dmaUART6 px4io_pins
+  px4io_pins = UARTPins
+    { uartPinTx = F427.pinC6
+    , uartPinRx = F427.pinC7
+    , uartPinAF = F427.gpio_af_uart6
+    }
