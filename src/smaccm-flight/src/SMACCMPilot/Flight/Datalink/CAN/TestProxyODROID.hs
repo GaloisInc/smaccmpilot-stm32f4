@@ -69,7 +69,7 @@ app todl mbboxRx = do
     Just bboxRx
       -> monitor "camera_target_injector" $ do
            handler bboxRx "bboxRx" $ do
-             e_set <- emitter (fst camera_tgt_req) 1
+             _e_set <- emitter (fst camera_tgt_req) 1
              callback $ \bbox -> do
                comment "Made up for now"
                set_req <- local izero
