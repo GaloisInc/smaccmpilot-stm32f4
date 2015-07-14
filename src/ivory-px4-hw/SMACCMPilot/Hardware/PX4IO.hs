@@ -6,8 +6,8 @@
 module SMACCMPilot.Hardware.PX4IO where
 
 import Ivory.Language
-import Ivory.Tower
 import Ivory.Stdlib
+import Ivory.Tower
 import Ivory.Serialize
 
 import Ivory.Tower.HAL.Bus.Interface
@@ -59,38 +59,65 @@ px4ioTower tocc dmauart pins control_law motors = do
                                                       , M.backright  .= ival 0
                                                       ])
 
-    driver_initialized <- state "dmauart_driver_initialized"
-    handler driver_ready "driver_ready" $ callback $ const $ do
-      store driver_initialized true
-
     handler control_law "control_law" $ do
       callback $ \cl -> refCopy arming_mode (cl ~> CL.arming_mode)
 
     handler motors "motor_output" $ do
       callback $ \o -> refCopy motor_output o
 
-    coroutineHandler p ser_rx "px4io" $ do
-      -- INVARIANT:
-      -- coroutine body must terminate in a shorter duration than the period
-      -- provided as the first argument to this handler.
-      -- ASSUMPTIONS:
-      -- dmauart driver sends responses (ser_rx) on 1ms period thread. So,
-      -- worst case execution time is 2ms * number of rpcs (10ms)
+    let rpc_send req_ival req_e = do
+          req <- local req_ival
+          packed <- local izero
+          packing_valid <- call px4io_pack packed (constRef req)
+          emit req_e (constRef packed)
+          return packing_valid
+
+    coroutineHandler driver_ready ser_rx "px4io" $ do
       req_e <- emitter ser_tx_req 1
       res_e <- emitter (fst state_chan) 1
       return $ CoroutineBody $ \ yield -> do
         let rpc req_ival = do
-              req <- local req_ival
-              packed <- local izero
-              packing_valid <- call px4io_pack packed (constRef req)
-              emit req_e (constRef packed)
+              pack_valid <- rpc_send req_ival req_e
+              (response, unpack_valid) <- rpc_receive
+              return (response, pack_valid .&& unpack_valid)
+            rpc_receive = do
               res_packed <- yield
               res <- local izero
               unpacking_valid <- call px4io_unpack (constRef res_packed) res
-              return (res, packing_valid .&& (unpacking_valid ==? 0))
+              return (res, unpacking_valid ==? 0)
 
-        rdy <- deref driver_initialized
-        when rdy $ do
+        -- Begin initializing:
+        (_, init_setup_ok) <- rpc $ istruct
+          [ req_code .= ival request_write
+          , page     .= ival 50 -- Setup page
+          , count    .= ival 1 -- One reg
+          , offs     .= ival 1 -- Starting at reg 1, SETUP_ARMING
+          , regs     .= iarray [ ival 0 ] -- IO and FMU disarmed.
+          ]
+
+
+        init_ok_r <- local (ival init_setup_ok)
+        arrayMap $ \(ix :: Ix 4) -> noBreak $ do
+          chan_num <- assign (castDefault (fromIx ix))
+          (_, rc_conf_ok) <- rpc $ istruct
+            [ req_code .= ival request_write
+            , page     .= ival 53 -- RC Config page
+            , count    .= ival 1 -- One reg
+            , offs     .= ival ((chan_num * 6) + 5) -- channel * stride + rc_config_options
+            , regs     .= iarray [ ival 1 ] -- 1 : channel enabled
+            ]
+          unless rc_conf_ok (store init_ok_r false)
+
+        -- Done initializing. If we had any failures in here, we're screwed.
+        init_ok <- deref init_ok_r
+
+        forever $ noBreak $ do
+          -- INVARIANT:
+          -- forever body must terminate in a shorter duration than the period
+          -- used to trigger the first transaction in the body.
+          -- ASSUMPTIONS:
+          -- dmauart driver sends responses (ser_rx) on 1ms period thread. So,
+          -- worst case execution time is 2ms * number of rpcs (10ms)
           am <- deref arming_mode
           (_, setup_ok) <- rpc $ istruct
             [ req_code .= ival request_write
@@ -145,7 +172,7 @@ px4ioTower tocc dmauart pins control_law motors = do
           t <- getTime
           store (px4io_state ~> time) (timeMicrosFromITime t)
 
-          ifte_ ( setup_ok .&& output_ok .&& status_ok
+          ifte_ (init_ok .&& setup_ok .&& output_ok .&& status_ok
                  .&& rc_count_ok .&& rc_input_ok)
             (store (px4io_state ~> comm_ok) true  >> incr px4io_success)
             (store (px4io_state ~> comm_ok) false >> incr px4io_fail)
