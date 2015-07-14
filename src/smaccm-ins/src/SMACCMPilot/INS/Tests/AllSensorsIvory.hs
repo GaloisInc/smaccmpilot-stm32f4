@@ -114,8 +114,6 @@ app = compileTowerPosix (const $ return ()) $ do
     accel <- fromHX 'a'
     rawGyro <- fromHX 'g'
     rawMag <- fromHX 'm'
-    baro <- fromHX 'b'
-    position <- fromHX 'p'
 
     MonadLib.lift $ do
       (_, controlLaw) <- channel
@@ -126,7 +124,7 @@ app = compileTowerPosix (const $ return ()) $ do
       currentMagBias <- calcMagBiasTower rawMag
       (mag, magBias) <- applyCalibrationTower magCalibrate rawMag currentMagBias controlLaw
 
-      states <- sensorFusion accel gyro mag baro position currentGyroBias
+      states <- sensorFusion accel gyro mag currentGyroBias
 
       monitor "output" $ do
         lastAccel <- save "accel" accel

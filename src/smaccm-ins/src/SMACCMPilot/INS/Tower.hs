@@ -95,11 +95,9 @@ init_filter = proc "init_filter" $
 sensorFusion :: ChanOutput (Struct "accelerometer_sample")
              -> ChanOutput (Struct "gyroscope_sample")
              -> ChanOutput (Struct "magnetometer_sample")
-             -> ChanOutput (Struct "barometer_sample")
-             -> ChanOutput (Struct "position")
              -> ChanOutput (Struct "xyz_calibration")
              -> Tower e (ChanOutput (Struct "kalman_state"))
-sensorFusion accelSource gyroSource magSource _baroSource _gpsSource gyroCalStatus = do
+sensorFusion accelSource gyroSource magSource gyroCalStatus = do
   (stateSink, stateSource) <- channel
 
   let deps = [insTypesModule, GPS.gpsTypesModule] ++ typeModules
