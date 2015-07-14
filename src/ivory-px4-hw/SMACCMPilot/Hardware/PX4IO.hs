@@ -87,6 +87,7 @@ px4ioTower tocc dmauart pins control_law motors = do
               return (res, unpacking_valid ==? 0)
 
         -- Begin initializing:
+        -- To initialize the RC outputs, IO must be disarmed.
         (_, init_setup_ok) <- rpc $ istruct
           [ req_code .= ival request_write
           , page     .= ival 50 -- Setup page
@@ -95,7 +96,8 @@ px4ioTower tocc dmauart pins control_law motors = do
           , regs     .= iarray [ ival 0 ] -- IO and FMU disarmed.
           ]
 
-
+        -- Initialize the RC Outputs. We are only using four channels, hence
+        -- the loop bounded by Ix 4.
         init_ok_r <- local (ival init_setup_ok)
         arrayMap $ \(ix :: Ix 4) -> noBreak $ do
           chan_num <- assign (castDefault (fromIx ix))
@@ -118,6 +120,10 @@ px4ioTower tocc dmauart pins control_law motors = do
           -- ASSUMPTIONS:
           -- dmauart driver sends responses (ser_rx) on 1ms period thread. So,
           -- worst case execution time is 2ms * number of rpcs (10ms)
+          -- XXX
+          -- XXX we aren't actually using a period to trigger the first
+          -- XXX transaction rn.
+          -- XXX
           am <- deref arming_mode
           (_, setup_ok) <- rpc $ istruct
             [ req_code .= ival request_write
@@ -151,29 +157,25 @@ px4ioTower tocc dmauart pins control_law motors = do
           px4ioStatusFromReg status_flags (px4io_state ~> status)
           px4ioAlarmsFromReg status_alarms (px4io_state ~> alarms)
 
-          (rc_count_reg, rc_count_ok) <- rpc $ istruct
+          -- DESPITE WHAT YOU MAY BE LED TO BELIEVE BY THE PX4IO 'protocol.h'
+          -- At least in PPM Mode, input channel count is at offset 0
+          -- (as expected) but then channels are laid out in the
+          -- RAW_RC_INPUT page starting at offset 1.
+          (rc_input_reg, rc_input_ok) <- rpc $ istruct
             [ req_code .= ival request_read
             , page     .= ival 4 -- RAW_RC_INPUT page
-            , count    .= ival 1 -- 1 register
+            , count    .= ival 7 -- 7 Registers
             , offs     .= ival 0 -- Starting at reg 0
             , regs     .= iarray [ ival 0 ]
             ]
 
-          (rc_input_reg, rc_input_ok) <- rpc $ istruct
-            [ req_code .= ival request_read
-            , page     .= ival 4 -- RAW_RC_INPUT page
-            , count    .= ival 6 -- 6 registers
-            , offs     .= ival 6 -- Starting at RAW_RC_BASE
-            , regs     .= iarray (repeat (ival 0))
-            ]
-
-          px4ioRCInputFromRegs rc_count_reg rc_input_reg (px4io_state ~> rc_in)
+          px4ioRCInputFromRegs rc_input_reg (px4io_state ~> rc_in)
 
           t <- getTime
           store (px4io_state ~> time) (timeMicrosFromITime t)
 
           ifte_ (init_ok .&& setup_ok .&& output_ok .&& status_ok
-                 .&& rc_count_ok .&& rc_input_ok)
+                .&& rc_input_ok)
             (store (px4io_state ~> comm_ok) true  >> incr px4io_success)
             (store (px4io_state ~> comm_ok) false >> incr px4io_fail)
 
