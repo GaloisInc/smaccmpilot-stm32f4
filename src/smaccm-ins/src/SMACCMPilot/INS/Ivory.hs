@@ -5,6 +5,7 @@
 module SMACCMPilot.INS.Ivory (
   kalmanInit, kalmanPredict,
   magMeasure, accelMeasure,
+  stateVectorFromStruct, covarianceFromStruct,
 
   module SMACCMPilot.INS.Types
 ) where
@@ -28,16 +29,35 @@ import SMACCMPilot.INS.Types
 instance HasAtan2 IFloat where
   arctan2 = atan2F
 
-vec3FromArray :: IvoryArea v => V3 ((Ref s t -> Ref s (Array 3 v)) -> Ref s t -> Ref s v)
+vec3FromArray :: ( IvoryRef ref
+                 , IvoryExpr (ref s v)
+                 , IvoryExpr (ref s (Array 3 v))
+                 , IvoryArea v)
+              => V3 ((ref s t -> ref s (Array 3 v)) -> ref s t -> ref s v)
 vec3FromArray = V3 ((! 0) .) ((! 1) .) ((! 2) .)
 
-stateVectorFromStruct :: Ref s (Struct "kalman_state") -> StateVector (Ref s (Stored IFloat))
+stateVectorFromStruct :: ( IvoryRef ref
+                         , IvoryExpr (ref s (Stored IFloat))
+                         , IvoryExpr (ref s (Array 3 (Stored IFloat)))
+                         , IvoryExpr (ref s (Array 4 (Stored IFloat)))
+                         , IvoryExpr (ref s (Struct "kalman_state")))
+                      => ref s (Struct "kalman_state")
+                      -> StateVector (ref s (Stored IFloat))
 stateVectorFromStruct s = StateVector
   { stateOrient = Quaternion ((! 0) .) (V3 ((! 1) .) ((! 2) .) ((! 3) .)) <*> pure (~> orient)
   , stateMagNED = NED vec3FromArray <*> pure (~> mag_ned)
   } <*> pure s
 
-covarianceFromStruct :: Ref s (Struct "kalman_covariance") -> StateVector (StateVector (Ref s (Stored IFloat)))
+covarianceFromStruct :: ( IvoryRef ref
+                        , IvoryExpr (ref s (Stored IFloat))
+                        , IvoryExpr (ref s (Array 3 (Stored IFloat)))
+                        , IvoryExpr (ref s (Array 4 (Stored IFloat)))
+                        , IvoryExpr (ref s (Struct "kalman_state"))
+                        , IvoryExpr (ref s (Array 3 (Struct "kalman_state")))
+                        , IvoryExpr (ref s (Array 4 (Struct "kalman_state")))
+                        , IvoryExpr (ref s (Struct "kalman_covariance")))
+                     => ref s (Struct "kalman_covariance")
+                     -> StateVector (StateVector (ref s (Stored IFloat)))
 covarianceFromStruct s = stateVectorFromStruct <$> (StateVector
   { stateOrient = Quaternion ((! 0) .) (V3 ((! 1) .) ((! 2) .) ((! 3) .)) <*> pure (~> cov_orient)
   , stateMagNED = NED vec3FromArray <*> pure (~> cov_mag_ned)
