@@ -1,6 +1,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE PostfixOperators #-}
 
 module SMACCMPilot.Flight.Datalink.CAN.TestProxyODROID
   ( app
@@ -57,6 +58,8 @@ app todl mbboxRx = do
 
   c2s_ct_to_uart  <- channel
 
+  clk             <- period (1000`ms`)
+
   datalinkEncode todl c2s_pt_to_uart (fst c2s_ct_to_uart)
   datalinkDecode todl (snd s2c_ct_from_uart) (fst s2c_pt_from_uart)
 
@@ -67,20 +70,29 @@ app todl mbboxRx = do
     Nothing
       -> return ()
     Just bboxRx
-      -> monitor "camera_target_injector" $ do
-           handler bboxRx "bboxRx" $ do
-             _e_set <- emitter (fst camera_tgt_req) 1
-             callback $ \bbox -> do
+      -> do
+        monitor "periodic_camera_injector" $ do
+           bbox_st <- stateInit "camera_toggle" izero
+
+           handler clk "camera_clk" $ do
+             e_set <- emitter (fst camera_tgt_req) 1
+             callback $ const $ do
+               call_ printf "**** SENDING BBOX\n"
                comment "Made up for now"
                set_req <- local izero
-               l <- deref (bbox ~> left)
-               r <- deref (bbox ~> right)
+               l <- deref (bbox_st ~> left)
+               r <- deref (bbox_st ~> right)
                (set_req ~> seqnum) += 1
                let ct = set_req ~> val
                store (ct ~> valid)       true
                store (ct ~> angle_up)    (safeCast l)
                store (ct ~> angle_right) (safeCast r)
                emit e_set (constRef set_req)
+
+           handler bboxRx "bboxRx" $ do
+             callback $ \bbox -> do
+               call_ printf "******** STORING BBOX\n"
+               refCopy bbox_st bbox
 
            handler (cameraTargetInputSetRespProducer cv_producer) "set_response"$ do
              callback $ \seqNum -> do
@@ -153,9 +165,11 @@ uartDatalink input output = do
 
 [ivory|
 import (stdio.h, printf) void printfuint32(string x, uint32_t y)
+import (stdio.h, printf) void printf(string x)
 |]
 
 
 stdIOModule :: Module
 stdIOModule = package "stdIOModule" $ do
   incl printfuint32
+  incl printf
