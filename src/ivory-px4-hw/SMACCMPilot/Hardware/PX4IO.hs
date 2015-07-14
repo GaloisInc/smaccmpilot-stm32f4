@@ -213,6 +213,24 @@ px4ioTower tocc dmauart pins control_law motors = do
 
 outRegIval :: ConstRef s (Struct "quadcopter_motors")
            -> Ivory eff (Init (Array 32 (Stored Uint16)))
-outRegIval _motors = do
-  return (iarray [ ival 1500, ival 1200, ival 1700, ival 1500]) -- XXX OBVIOUSLY WRONG
+outRegIval motors = do
+  fl <- deref (motors ~> M.frontleft)
+  fr <- deref (motors ~> M.frontright)
+  bl <- deref (motors ~> M.backleft)
+  br <- deref (motors ~> M.backright)
+  return (iarray [ ival (scale fr)
+                 , ival (scale bl)
+                 , ival (scale fl)
+                 , ival (scale br)
+                 ])
+  where
+  scale :: IFloat -> Uint16
+  scale t = (t <? idle) ? (minPWM, castWith 0 ((t * range) + (safeCast minPWM)))
+
+  minPWM = 1100 -- for Iris and many others
+  maxPWM = 1900
+  range :: IFloat
+  range = safeCast (maxPWM - minPWM)
+  idle = 0.07
+
 
