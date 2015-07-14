@@ -72,6 +72,26 @@ px4ioTower tocc dmauart pins control_law motors = do
           emit req_e (constRef packed)
           return packing_valid
 
+    loop_ready <- state "coroutine_loop_ready"
+
+    handler p "periodic_coroutine_loop_begin" $ do
+      e <- emitter ser_tx_req 1
+      callback $ const $ do
+        rdy <- deref loop_ready
+        when rdy $ do
+          am <- deref arming_mode
+          let req = istruct
+                [ req_code .= ival request_write
+                , page     .= ival 50 -- Setup page
+                , count    .= ival 1 -- One reg
+                , offs     .= ival 1 -- Starting at reg 1, SETUP_ARMING
+                , regs     .= iarray [ ival ((am ==? A.armed) ? (3, 1)) ]
+                                     -- LSBit: IO Arming permitted
+                                     -- second LSBit: FMU Armed
+                ]
+          _ <- rpc_send req e -- Packing will always succeed.
+          store loop_ready false
+
     coroutineHandler driver_ready ser_rx "px4io" $ do
       req_e <- emitter ser_tx_req 1
       res_e <- emitter (fst state_chan) 1
@@ -120,20 +140,14 @@ px4ioTower tocc dmauart pins control_law motors = do
           -- ASSUMPTIONS:
           -- dmauart driver sends responses (ser_rx) on 1ms period thread. So,
           -- worst case execution time is 2ms * number of rpcs (10ms)
-          -- XXX
-          -- XXX we aren't actually using a period to trigger the first
-          -- XXX transaction rn.
-          -- XXX
-          am <- deref arming_mode
-          (_, setup_ok) <- rpc $ istruct
-            [ req_code .= ival request_write
-            , page     .= ival 50 -- Setup page
-            , count    .= ival 1 -- One reg
-            , offs     .= ival 1 -- Starting at reg 1, SETUP_ARMING
-            , regs     .= iarray [ ival ((am ==? A.armed) ? (3, 1)) ]
-                                 -- LSBit: IO Arming permitted
-                                 -- second LSBit: FMU Armed
-            ]
+
+          -- NOTE: this rpc_recieve is for a transaction kicked off by the
+          -- periodic handler above. It must be surrounded by modifying the
+          -- `loop_ready` state in order to ensure the backpressure transmit
+          -- protocol is always followed.
+          store loop_ready true
+          -- Periodic handler sets loop_ready back to false.
+          (_, setup_ok) <- rpc_receive
 
           output_regs <- outRegIval (constRef motor_output)
           (_, output_ok) <- rpc $ istruct
