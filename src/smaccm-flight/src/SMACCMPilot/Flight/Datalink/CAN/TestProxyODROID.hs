@@ -72,33 +72,40 @@ app todl mbboxRx = do
     Just bboxRx
       -> do
         monitor "periodic_camera_injector" $ do
-           bbox_st <- stateInit "camera_toggle" izero
+           bbox_st   <- stateInit "camera_toggle" izero
+           bbox_prev <- stateInit "camera_toggle" izero
+           set_req   <- stateInit "camera_req"    izero
 
            handler clk "camera_clk" $ do
              e_set <- emitter (fst camera_tgt_req) 1
              callback $ const $ do
-               call_ printf "**** SENDING BBOX\n"
                comment "Made up for now"
-               set_req <- local izero
-               l <- deref (bbox_st ~> left)
-               r <- deref (bbox_st ~> right)
-               (set_req ~> seqnum) += 1
-               let ct = set_req ~> val
-               store (ct ~> valid)       true
-               store (ct ~> angle_up)    (safeCast l)
-               store (ct ~> angle_right) (safeCast r)
-               emit e_set (constRef set_req)
+               l  <- deref (bbox_st ~> left)
+               r  <- deref (bbox_st ~> right)
+
+               l' <- deref (bbox_prev ~> left)
+               r' <- deref (bbox_prev ~> right)
+
+               unless (l ==? l' .&& r ==? r') $ do
+                 refCopy bbox_prev bbox_st
+                 (set_req ~> seqnum) += 1
+                 snum <- deref (set_req~>seqnum)
+                 call_ printfuint32 "**** SENDING BBOX with seq %u\n" (unSequenceNum snum)
+                 let ct = set_req ~> val
+                 store (ct ~> valid)       true
+                 store (ct ~> angle_up)    (safeCast l)
+                 store (ct ~> angle_right) (safeCast r)
+                 emit e_set (constRef set_req)
 
            handler bboxRx "bboxRx" $ do
              callback $ \bbox -> do
-               call_ printf "******** STORING BBOX\n"
                refCopy bbox_st bbox
 
-           handler (cameraTargetInputSetRespProducer cv_producer) "set_response"$ do
+           handler (cameraTargetInputSetRespProducer cv_producer) "set_response" $ do
              callback $ \seqNum -> do
                comment "camera target setting has been acknowledged"
                s <- deref seqNum
-               call_ printfuint32 "SeqNum ack: %u\n" (unSequenceNum s)
+               call_ printfuint32 "**** SeqNum ack: %u\n" (unSequenceNum s)
 
 canDatalink :: AbortableTransmit (Struct "can_message") (Stored IBool)
             -> ChanOutput (Struct "can_message")
