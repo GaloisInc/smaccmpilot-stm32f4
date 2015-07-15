@@ -21,14 +21,15 @@ app topx4 = do
 
   control_law <- channel
   motor_output <- channel
+  px4io_state <- channel
 
   env <- getEnv
-  px4io_state <- case px4platform_px4io (topx4 env) of
-    PX4IO_Serial dmauart pins -> px4ioTower tocc dmauart pins (snd control_law) (snd motor_output)
+  case px4platform_px4io (topx4 env) of
+    PX4IO_Serial dmauart pins -> px4ioTower tocc dmauart pins (snd control_law) (snd motor_output) (fst px4io_state)
     PX4IO_None -> error "Cannot build PX4IO Test: not supported on this platform"
 
   monitor "stub" $ do
-    handler px4io_state "new_px4io_state" $
+    handler (snd px4io_state) "new_px4io_state" $
       callback $ const $ return () -- I need a place to put the breakpoint...
 
 

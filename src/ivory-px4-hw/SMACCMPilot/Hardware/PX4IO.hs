@@ -34,9 +34,9 @@ px4ioTower :: (e -> ClockConfig)
            -> UARTPins
            -> ChanOutput (Struct "control_law")
            -> ChanOutput (Struct "quadcopter_motors")
-           -> Tower e (ChanOutput (Struct "px4io_state"))
-px4ioTower tocc dmauart pins control_law motors = do
-  state_chan <- channel
+           -> ChanInput  (Struct "px4io_state")
+           -> Tower e ()
+px4ioTower tocc dmauart pins control_law motors state_chan = do
   (BackpressureTransmit ser_tx_req ser_rx, driver_ready)
     <- syncDMAUARTTower tocc dmauart pins 1500000
 
@@ -94,7 +94,7 @@ px4ioTower tocc dmauart pins control_law motors = do
 
     coroutineHandler driver_ready ser_rx "px4io" $ do
       req_e <- emitter ser_tx_req 1
-      res_e <- emitter (fst state_chan) 1
+      res_e <- emitter state_chan 1
       return $ CoroutineBody $ \ yield -> do
         let rpc req_ival = do
               pack_valid <- rpc_send req_ival req_e
@@ -199,7 +199,6 @@ px4ioTower tocc dmauart pins control_law motors = do
   mapM_ towerDepends mods
   mapM_ towerArtifact serializeArtifacts
 
-  return (snd state_chan)
   where
 
   mods =

@@ -18,11 +18,13 @@ app :: (e -> PX4Platform)
 app topx4 = do
   (uarto, _i) <- px4ConsoleTower topx4
 
-  ppmOut <- ppmTower (px4platform_ppm . topx4)
-                     (px4platform_clockconfig . topx4)
+  ppmOut <- channel
+  ppmTower (px4platform_ppm . topx4)
+           (px4platform_clockconfig . topx4)
+           (fst ppmOut)
 
   monitor "ppmsender" $ do
-    ppmSender ppmOut uarto
+    ppmSender (snd ppmOut) uarto
 
   towerDepends serializeModule
   towerModule  serializeModule

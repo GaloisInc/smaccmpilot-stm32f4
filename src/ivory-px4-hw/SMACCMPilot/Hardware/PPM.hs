@@ -15,15 +15,14 @@ import SMACCMPilot.Hardware.Tests.Platforms (PPM(..))
 
 ppmTower :: (e -> PPM)
          -> (e -> ClockConfig)
-         -> Tower e (ChanOutput (Array 8 (Stored Uint16)))
-ppmTower toppm tocc = do
+         -> ChanInput (Array 8 (Stored Uint16))
+         -> Tower e ()
+ppmTower toppm tocc output = do
   ppm <- fmap toppm getEnv
   pulse_capt <- channel
   case ppm of
     PPM_Timer t p a i -> pulseCaptureTower tocc t p a i (fst pulse_capt)
     PPM_None -> error "cannot create SMACCMPilot.Hardware.PPM.ppmTower with PPM_None"
 
-  output <- channel
-  ppmDecodeTower (snd pulse_capt) (fst output)
-  return (snd output)
+  ppmDecodeTower (snd pulse_capt) output
 
