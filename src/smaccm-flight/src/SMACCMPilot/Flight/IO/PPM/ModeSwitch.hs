@@ -5,7 +5,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
-module SMACCMPilot.Flight.UserInput.PPM.ModeSwitch
+module SMACCMPilot.Flight.IO.PPM.ModeSwitch
   ( ModeSwitch(..)
   , monitorModeSwitch
   ) where

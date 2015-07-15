@@ -3,7 +3,7 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TypeFamilies #-}
 
-module SMACCMPilot.Flight.UserInput.PPM.Decode
+module SMACCMPilot.Flight.IO.PPM.Decode
   ( PPMDecoder(..)
   , monitorPPMDecoder
   ) where
@@ -15,8 +15,8 @@ import Ivory.Stdlib
 import qualified SMACCMPilot.Comm.Ivory.Types.UserInput as I
 import qualified SMACCMPilot.Comm.Ivory.Types.ControlLaw as C
 
-import SMACCMPilot.Flight.UserInput.PPM.ModeSwitch
-import SMACCMPilot.Flight.UserInput.PPM.ArmingMachine
+import SMACCMPilot.Flight.IO.PPM.ModeSwitch
+import SMACCMPilot.Flight.IO.PPM.ArmingMachine
 
 data PPMDecoder =
   PPMDecoder

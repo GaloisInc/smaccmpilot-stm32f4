@@ -1,6 +1,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE PostfixOperators #-}
 
 module SMACCMPilot.Flight.Datalink.CAN.TestProxyODROID
   ( app
@@ -57,6 +58,8 @@ app todl mbboxRx = do
 
   c2s_ct_to_uart  <- channel
 
+  clk             <- period (1000`ms`)
+
   datalinkEncode todl c2s_pt_to_uart (fst c2s_ct_to_uart)
   datalinkDecode todl (snd s2c_ct_from_uart) (fst s2c_pt_from_uart)
 
@@ -67,27 +70,42 @@ app todl mbboxRx = do
     Nothing
       -> return ()
     Just bboxRx
-      -> monitor "camera_target_injector" $ do
-           handler bboxRx "bboxRx" $ do
-             e_set <- emitter (fst camera_tgt_req) 1
-             callback $ \bbox -> do
-               comment "Made up for now"
-               set_req <- local izero
-               l <- deref (bbox ~> left)
-               r <- deref (bbox ~> right)
-               (set_req ~> seqnum) += 1
-               let ct = set_req ~> val
-               store (ct ~> valid)       true
-               store (ct ~> angle_up)    (safeCast l)
-               store (ct ~> angle_right) (safeCast r)
-               -- XXX comment out for now until we have a rate limiting story.
-               -- emit e_set (constRef set_req)
+      -> do
+        monitor "periodic_camera_injector" $ do
+           bbox_st   <- stateInit "camera_toggle" izero
+           bbox_prev <- stateInit "camera_toggle" izero
+           set_req   <- stateInit "camera_req"    izero
 
-           handler (cameraTargetInputSetRespProducer cv_producer) "set_response"$ do
+           handler clk "camera_clk" $ do
+             e_set <- emitter (fst camera_tgt_req) 1
+             callback $ const $ do
+               comment "Made up for now"
+               l  <- deref (bbox_st ~> left)
+               r  <- deref (bbox_st ~> right)
+
+               l' <- deref (bbox_prev ~> left)
+               r' <- deref (bbox_prev ~> right)
+
+               unless (l ==? l' .&& r ==? r') $ do
+                 refCopy bbox_prev bbox_st
+                 (set_req ~> seqnum) += 1
+                 snum <- deref (set_req~>seqnum)
+                 call_ printfuint32 "**** SENDING BBOX with seq %u\n" (unSequenceNum snum)
+                 let ct = set_req ~> val
+                 store (ct ~> valid)       true
+                 store (ct ~> angle_up)    (safeCast l)
+                 store (ct ~> angle_right) (safeCast r)
+                 emit e_set (constRef set_req)
+
+           handler bboxRx "bboxRx" $ do
+             callback $ \bbox -> do
+               refCopy bbox_st bbox
+
+           handler (cameraTargetInputSetRespProducer cv_producer) "set_response" $ do
              callback $ \seqNum -> do
                comment "camera target setting has been acknowledged"
                s <- deref seqNum
-               call_ printfuint32 "SeqNum ack: %u\n" (unSequenceNum s)
+               call_ printfuint32 "**** SeqNum ack: %u\n" (unSequenceNum s)
 
 canDatalink :: AbortableTransmit (Struct "can_message") (Stored IBool)
             -> ChanOutput (Struct "can_message")
@@ -154,9 +172,11 @@ uartDatalink input output = do
 
 [ivory|
 import (stdio.h, printf) void printfuint32(string x, uint32_t y)
+import (stdio.h, printf) void printf(string x)
 |]
 
 
 stdIOModule :: Module
 stdIOModule = package "stdIOModule" $ do
   incl printfuint32
+  incl printf

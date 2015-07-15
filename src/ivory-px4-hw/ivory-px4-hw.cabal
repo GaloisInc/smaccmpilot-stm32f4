@@ -89,6 +89,7 @@ library
                        tower-config,
                        tower-freertos-stm32,
                        ivory-bsp-stm32,
+                       ivory-bsp-tests,
                        ivory-tower-posix,
                        smaccm-comm-schema-tower,
                        smaccm-datalink,

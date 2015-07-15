@@ -5,7 +5,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
-module SMACCMPilot.Flight.UserInput.PPM.ArmingMachine
+module SMACCMPilot.Flight.IO.PPM.ArmingMachine
   ( ArmingMachine(..)
   , monitorArmingMachine
   ) where

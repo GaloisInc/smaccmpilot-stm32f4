@@ -45,7 +45,7 @@ import SMACCMPilot.Comm.Ivory.Types.Px4ioRcInput
 px4ioStatusFromReg :: Uint16 -> Ref s (Struct "px4io_status") -> Ivory eff ()
 px4ioStatusFromReg v r = do
   p safety_off     px4io_status_safety_off
-  p failsafe       px4io_status_safety_off
+  p failsafe       px4io_status_failsafe
   p init_ok        px4io_status_init_ok
   p arm_sync       px4io_status_arm_sync
   p mixer_ok       px4io_status_mixer_ok
@@ -74,17 +74,16 @@ px4ioAlarmsFromReg v r = do
   p lbl field = store (r ~> lbl) (bitToBool (fromRep v #. field))
 
 px4ioRCInputFromRegs :: Ref s1 (Struct "px4io_request")
-                     -> Ref s2 (Struct "px4io_request")
                      -> Ref s3 (Struct "px4io_rc_input")
                      -> Ivory eff ()
-px4ioRCInputFromRegs count_req input_req rc_input = do
-  cnt <- deref (count_req ~> regs ! 0)
-  i0  <- deref (input_req ~> regs ! 0)
-  i1  <- deref (input_req ~> regs ! 1)
-  i2  <- deref (input_req ~> regs ! 2)
-  i3  <- deref (input_req ~> regs ! 3)
-  i4  <- deref (input_req ~> regs ! 4)
-  i5  <- deref (input_req ~> regs ! 5)
+px4ioRCInputFromRegs input_req rc_input = do
+  cnt <- deref (input_req ~> regs ! 0)
+  i0  <- deref (input_req ~> regs ! 1)
+  i1  <- deref (input_req ~> regs ! 2)
+  i2  <- deref (input_req ~> regs ! 3)
+  i3  <- deref (input_req ~> regs ! 4)
+  i4  <- deref (input_req ~> regs ! 5)
+  i5  <- deref (input_req ~> regs ! 6)
   store (rc_input ~> valid) (cnt >=? 6)
   store (rc_input ~> ch0)   i0
   store (rc_input ~> ch1)   i1

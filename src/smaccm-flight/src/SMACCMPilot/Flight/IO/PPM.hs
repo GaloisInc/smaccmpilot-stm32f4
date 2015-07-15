@@ -3,7 +3,7 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TypeFamilies #-}
 
-module SMACCMPilot.Flight.UserInput.PPM
+module SMACCMPilot.Flight.IO.PPM
   ( ppmInputTower
   ) where
 
@@ -13,21 +13,14 @@ import Ivory.Tower
 import qualified SMACCMPilot.Comm.Ivory.Types.UserInput as I ()
 import qualified SMACCMPilot.Comm.Ivory.Types.ControlLaw as C ()
 
-import SMACCMPilot.Flight.Platform
-import SMACCMPilot.Flight.UserInput.PPM.Decode
+import SMACCMPilot.Flight.IO.PPM.Decode
 
-import SMACCMPilot.Hardware.PPM
-
-ppmInputTower :: (e -> PPM)
-              -> (e -> ClockConfig)
-              -> Tower e ( ChanOutput (Struct "user_input")
-                         , ChanOutput (Struct "control_law"))
-ppmInputTower toppm tocc = do
-  ui <- channel
-  cl <- channel
+ppmInputTower :: ChanOutput (Array 8 (Stored Uint16))
+              -> ChanInput (Struct "user_input")
+              -> ChanInput (Struct "control_law")
+              -> Tower e ()
+ppmInputTower ppm ui cl = do
   p <- period (Milliseconds 50)
-
-  ppm <- ppmTower toppm tocc
 
   monitor "ppm_userinput_decode" $ do
     ppms       <- state "ppms"
@@ -47,8 +40,8 @@ ppmInputTower toppm tocc = do
       -- Invariant: multiplexer depends on message cl being delivered before ui.
       -- Tower should deliver messages in order of the emitter declarations.
       -- cl and ui are emitted on every period tick.
-      cl_emitter <- emitter (fst cl) 1
-      ui_emitter <- emitter (fst ui) 1
+      cl_emitter <- emitter cl 1
+      ui_emitter <- emitter ui 1
       callbackV $ \now -> do
         v <- deref valid
         ifte_ v
@@ -57,6 +50,4 @@ ppmInputTower toppm tocc = do
         ppmd_get_ui     decoder >>= emit ui_emitter
         ppmd_get_cl_req decoder >>= emit cl_emitter
         store valid false
-
-  return (snd ui, snd cl)
 
