@@ -56,6 +56,8 @@ library
                        ivory-px4-hw >=0.1,
                        ivory-serialize >=0.1,
                        ivory-stdlib >=0.1,
+                       estimator,
+                       linear,
                        tower >=0.9,
                        tower-aadl,
                        tower-hal,

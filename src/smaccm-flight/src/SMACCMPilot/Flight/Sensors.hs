@@ -5,9 +5,19 @@ module SMACCMPilot.Flight.Sensors
   ( sensorTower
   ) where
 
+import Data.Foldable
+import Data.Traversable
 import Ivory.Language
 import Ivory.Tower
+import Linear
+import Prelude hiding (foldr1, mapM)
 
+import           Numeric.Estimator.Model.Pressure
+import qualified SMACCMPilot.Comm.Ivory.Types.AccelerometerSample as A
+import qualified SMACCMPilot.Comm.Ivory.Types.BarometerSample as B
+import qualified SMACCMPilot.Comm.Ivory.Types.GyroscopeSample as G
+import qualified SMACCMPilot.Comm.Ivory.Types.SensorsResult as R
+import qualified SMACCMPilot.Comm.Ivory.Types.Xyz as XYZ
 import           SMACCMPilot.Comm.Tower.Attr
 import           SMACCMPilot.Comm.Tower.Interface.ControllableVehicle
 import           SMACCMPilot.Flight.Platform
@@ -15,6 +25,9 @@ import           SMACCMPilot.Hardware.SensorManager
 import           SMACCMPilot.INS.Bias.Gyro.Tower
 import           SMACCMPilot.INS.Bias.Magnetometer.Tower
 import           SMACCMPilot.INS.Bias.Calibration
+import           SMACCMPilot.INS.Ivory
+import           SMACCMPilot.INS.SensorFusion
+import           SMACCMPilot.INS.Tower
 
 sensorTower :: (e -> FlightPlatform)
             -> ControllableVehicleAttrs Attr
@@ -60,6 +73,44 @@ sensorTower tofp attrs = do
   attrProxy (magOutputCalibration attrs) mag_out_bias
 
 
+  -- Sensor fusion: estimate vehicle attitude with respect to a N/E/D
+  -- navigation frame. Report (1) attitude; (2) sensor measurements in the
+  -- navigation frame.
+  states <- sensorFusion a gyro_out mag_out gyro_bias
+  monitor "sensor_fusion_proxy" $ do
+    last_accel <- save "last_accel" a
+    last_baro <- save "last_baro" b
+    last_gyro <- save "last_gyro" gyro_out
+
+    handler states "new_state" $ do
+      e <- attrEmitter $ sensorsOutput attrs
+      callback $ \ stateVector -> do
+        attitude <- mapM deref $ stateOrient $ stateVectorFromStruct stateVector
+        let toNavFrame vec = fromQuaternion attitude !* vec
+        let (Quaternion q0 (V3 q1 q2 q3)) = attitude
+
+        accel <- xyzRef $ last_accel ~> A.sample
+
+        baro_time <- deref $ last_baro ~> B.time
+        pressure <- deref $ last_baro ~> B.pressure
+
+        gyro_time <- deref $ last_gyro ~> G.time
+        gyro <- xyzRef $ last_gyro ~> G.sample
+
+        result <- local $ istruct
+          [ R.valid .= ival (foldr1 (.||) $ fmap (/=? 0) attitude)
+          , R.roll .= ival (atan2F (2 * (q0 * q1 + q2 * q3)) (1 - 2 * (q1 * q1 + q2 * q2)))
+          , R.pitch .= ival (asin (2 * (q0 * q2 - q3 * q1)))
+          , R.yaw .= ival (atan2F (2 * (q0 * q3 + q1 * q2)) (1 - 2 * (q2 * q2 + q3 * q3)))
+          , R.omega .= xyzInitStruct (toNavFrame gyro)
+          , R.baro_alt .= ival (pressureToHeight $ pressure * 100) -- convert mbar to Pascals
+          , R.accel .= xyzInitStruct (toNavFrame accel + V3 0 0 9.80665)
+          , R.ahrs_time .= ival gyro_time
+          , R.baro_time .= ival baro_time
+          ]
+        emit e $ constRef result
+
+
 attrProxy :: (AttrWritable w, AttrNamed w, IvoryArea a, IvoryZero a)
           => w a
           -> ChanOutput a
@@ -70,3 +121,18 @@ attrProxy attr chan = do
       e <- attrEmitter attr
       callback $ \v -> emit e v
 
+save :: (IvoryArea a, IvoryZero a)
+     => String
+     -> ChanOutput a
+     -> Monitor e (ConstRef Global a)
+save name src = do
+  copy <- state name
+  handler src ("save_" ++ name) $ do
+    callback $ refCopy copy
+  return $ constRef copy
+
+xyzRef :: ConstRef s (Struct "xyz") -> Ivory eff (V3 IFloat)
+xyzRef r = mapM deref $ fmap (r ~>) (V3 XYZ.x XYZ.y XYZ.z)
+
+xyzInitStruct :: V3 IFloat -> Init (Struct "xyz")
+xyzInitStruct (V3 x y z) = istruct [ XYZ.x .= ival x, XYZ.y .= ival y, XYZ.z .= ival z ]
