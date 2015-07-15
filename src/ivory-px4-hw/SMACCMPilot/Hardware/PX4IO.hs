@@ -182,11 +182,11 @@ px4ioTower tocc dmauart pins control_law motors state_chan = do
             , offs     .= ival 0 -- Starting at reg 0
             , regs     .= iarray [ ival 0 ]
             ]
+          t <- fmap timeMicrosFromITime getTime
 
-          px4ioRCInputFromRegs rc_input_reg (px4io_state ~> rc_in)
+          rcInputFromRegs t rc_input_reg (px4io_state ~> rc_in)
 
-          t <- getTime
-          store (px4io_state ~> time) (timeMicrosFromITime t)
+          store (px4io_state ~> time) t
 
           ifte_ (init_ok .&& setup_ok .&& output_ok .&& status_ok
                 .&& rc_input_ok)

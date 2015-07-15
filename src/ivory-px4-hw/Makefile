@@ -28,6 +28,7 @@ test-fmu24: platform-fmu24/px4-mag-test-gen
 test-fmu24: platform-fmu24/px4-rgbled-test-gen
 test-fmu24: platform-fmu24/px4-all-sensors-test-gen
 test-fmu24: platform-fmu24/px4-px4io-test-gen
+test-fmu24: platform-fmu24/px4-ppm-in-test-gen
 
 px4-sensors-monitor: default
 	cabal run $@-gen -- --src-dir=$@ $(IVORY_FLAGS)
