@@ -9,6 +9,7 @@ import Ivory.Tower
 
 import           SMACCMPilot.Flight.Platform
 import           SMACCMPilot.Flight.Datalink
+import           SMACCMPilot.Flight.IO
 import           SMACCMPilot.Flight.UserInput
 
 import qualified SMACCMPilot.Comm.Ivory.Types.SensorsResult as S
@@ -20,9 +21,15 @@ app :: (e -> FlightPlatform)
 app tofp = do
   (attrs, _streams) <- datalinkTower tofp
 
-  -- XXX need to fill in tower component that creates ppm_ui and ppm_cl
   ppm_ui <- channel
   ppm_cl <- channel
+
+  -- Never write to motor output.
+  (_, motor_output) <- channel
+
+  flightIOTower tofp (fst ppm_ui) (fst ppm_cl)
+                     (attrReaderChan (controlLaw attrs))
+                     motor_output
 
   userInputTower (snd ppm_ui) (snd ppm_cl) attrs
   -- Just for testing, lets pretend there is a valid IMU.
