@@ -13,14 +13,17 @@ import Ivory.Tower
 import qualified SMACCMPilot.Comm.Ivory.Types.UserInput as I ()
 import qualified SMACCMPilot.Comm.Ivory.Types.ControlLaw as C ()
 import qualified SMACCMPilot.Comm.Ivory.Types.RcInput as RC
+import           SMACCMPilot.Comm.Tower.Attr
+import           SMACCMPilot.Comm.Tower.Interface.ControllableVehicle
 
 import SMACCMPilot.Flight.IO.RCInput.Decode
 
-rcInputTower :: ChanOutput (Struct "rc_input")
-              -> ChanInput (Struct "user_input")
-              -> ChanInput (Struct "control_law")
-              -> Tower e ()
-rcInputTower rc ui cl = do
+rcInputTower :: ControllableVehicleAttrs Attr
+             -> ChanOutput (Struct "rc_input")
+             -> ChanInput (Struct "user_input")
+             -> ChanInput (Struct "control_law")
+             -> Tower e ()
+rcInputTower attrs rc ui cl = do
   p <- period (Milliseconds 50)
 
   monitor "rcin_userinput_translator" $ do
@@ -33,9 +36,11 @@ rcInputTower rc ui cl = do
       store valid false
 
     handler rc "rcin_userinput_capt" $ do
+      e <- attrEmitter (rcInput attrs)
       callback $ \rc_in -> do
         refCopy rcin rc_in
         refCopy valid (rc_in ~> RC.valid)
+        emit e rc_in
 
     handler p "periodic_userinput_decode" $ do
       -- Invariant: multiplexer depends on message cl being delivered before ui.
