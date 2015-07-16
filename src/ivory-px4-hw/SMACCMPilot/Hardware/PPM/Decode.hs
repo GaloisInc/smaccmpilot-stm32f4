@@ -9,6 +9,7 @@ import Ivory.Language
 import Ivory.Tower
 import Ivory.Stdlib
 
+import SMACCMPilot.Time
 import SMACCMPilot.Hardware.PPM.Decode.Types
 import SMACCMPilot.Hardware.PPM.PulseCapture.Types
 import qualified SMACCMPilot.Comm.Ivory.Types.RcInput as RC
@@ -39,6 +40,8 @@ ppmDecodeTower pulse_chan out_chan = monitor "ppmDecode" $ do
                 (frameToRCInput (constRef f) rcin
                 >> store (rcin ~> RC.valid) true)
                 (store (rcin ~> RC.valid) false)
+              t <- getTime
+              store (rcin ~> time) (timeMicrosFromITime t)
               emit e (constRef rcin)
               arrayMap (\x -> store (f ! x) 0)
         , (st ==? ppmMark)  ==> do
