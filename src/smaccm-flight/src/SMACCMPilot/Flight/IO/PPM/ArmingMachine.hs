@@ -14,12 +14,14 @@ import Ivory.Language
 import Ivory.Tower
 import Ivory.Stdlib
 
+import           SMACCMPilot.Time
 import qualified SMACCMPilot.Comm.Ivory.Types.ArmingMode  as A
+import qualified SMACCMPilot.Comm.Ivory.Types.RcInput     as RC
 
 data ArmingMachine =
   ArmingMachine
     { am_init       :: forall eff   . Ivory eff ()
-    , am_new_sample :: forall eff s . Ref s (Array 8 (Stored Uint16)) -> ITime -> Ivory eff ()
+    , am_new_sample :: forall eff s . ConstRef s (Struct "rc_input") -> Ivory eff ()
     , am_no_sample  :: forall eff   . Ivory eff ()
     , am_get_cl_req :: forall eff s . Ref s (Stored A.ArmingMode)
                                    -> Ivory eff ()
@@ -65,11 +67,12 @@ monitorArmingMachine = do
         store armed_state false
         store dead_last_pos deadSafe
 
-      new_sample_proc :: Def('[Ref s (Array 8 (Stored Uint16)), ITime]:->())
-      new_sample_proc = proc new_sample_name $ \ppms time -> body $ do
-        throttle_chan   <- deref (ppms ! (2 :: Ix 8))
-        rudder_chan     <- deref (ppms ! (3 :: Ix 8))
-        dead_chan       <- deref (ppms ! (5 :: Ix 8))
+      new_sample_proc :: Def('[ConstRef s (Struct "rc_input")] :-> ())
+      new_sample_proc = proc new_sample_name $ \rcin -> body $ do
+        throttle_chan   <- deref (rcin ~> RC.throttle)
+        rudder_chan     <- deref (rcin ~> RC.yaw)
+        dead_chan       <- deref (rcin ~> RC.switch2)
+        time            <- fmap iTimeFromTimeMicros (deref (rcin ~> RC.time))
         dead_pos <- assign $ ((dead_chan >? 1600) ? (deadArmable,deadSafe))
         store dead_last_pos dead_pos
         ifte_ (dead_pos ==? deadSafe)

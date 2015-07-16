@@ -12,18 +12,19 @@ import Ivory.Tower
 
 import qualified SMACCMPilot.Comm.Ivory.Types.UserInput as I ()
 import qualified SMACCMPilot.Comm.Ivory.Types.ControlLaw as C ()
+import qualified SMACCMPilot.Comm.Ivory.Types.RcInput as RC
 
 import SMACCMPilot.Flight.IO.PPM.Decode
 
-ppmInputTower :: ChanOutput (Array 8 (Stored Uint16))
+ppmInputTower :: ChanOutput (Struct "rc_input")
               -> ChanInput (Struct "user_input")
               -> ChanInput (Struct "control_law")
               -> Tower e ()
-ppmInputTower ppm ui cl = do
+ppmInputTower rc ui cl = do
   p <- period (Milliseconds 50)
 
-  monitor "ppm_userinput_decode" $ do
-    ppms       <- state "ppms"
+  monitor "rcin_userinput_decode" $ do
+    rcin       <- state "rcin"
     valid      <- state "valid"
     decoder    <- monitorPPMDecoder
 
@@ -31,10 +32,10 @@ ppmInputTower ppm ui cl = do
       ppmd_init decoder
       store valid false
 
-    handler ppm "ppm_userinput_capt" $ do
-      callback $ \ppms' -> do
-        refCopy ppms ppms'
-        store   valid true
+    handler rc "ppm_userinput_capt" $ do
+      callback $ \rc_in -> do
+        refCopy rcin rc_in
+        refCopy valid (rc_in ~> RC.valid)
 
     handler p "periodic_userinput_decode" $ do
       -- Invariant: multiplexer depends on message cl being delivered before ui.
@@ -45,7 +46,7 @@ ppmInputTower ppm ui cl = do
       callbackV $ \now -> do
         v <- deref valid
         ifte_ v
-              (ppmd_new_sample decoder ppms now)
+              (ppmd_new_sample decoder (constRef rcin))
               (ppmd_no_sample decoder now)
         ppmd_get_ui     decoder >>= emit ui_emitter
         ppmd_get_cl_req decoder >>= emit cl_emitter
