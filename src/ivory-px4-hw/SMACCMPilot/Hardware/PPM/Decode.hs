@@ -41,7 +41,7 @@ ppmDecodeTower pulse_chan out_chan = monitor "ppmDecode" $ do
                 >> store (rcin ~> RC.valid) true)
                 (store (rcin ~> RC.valid) false)
               t <- getTime
-              store (rcin ~> time) (timeMicrosFromITime t)
+              store (rcin ~> RC.time) (timeMicrosFromITime t)
               emit e (constRef rcin)
               arrayMap (\x -> store (f ! x) 0)
         , (st ==? ppmMark)  ==> do
