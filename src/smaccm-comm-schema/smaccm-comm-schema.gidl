@@ -211,6 +211,7 @@
 (def-interface vehicle_i ()
   (heartbeat               (stream         heartbeat_t))
   (control_law             (attr read      control_law_t))
+  (rc_input                (attr read      rc_input_t))
   (user_input              (attr read      user_input_result_t))
   (sensors_output          (attr read      sensors_result_t))
   (gyro_raw_output         (attr read      gyroscope_sample_t))
