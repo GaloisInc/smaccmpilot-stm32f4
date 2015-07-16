@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Cube</title>
+	<style>
+	#draw {
+		position: absolute;
+		left: 0px;
+		top: 0px;
+		width: 100%;
+		height: 100%;
+	}
+	#raw-data {
+		position: absolute;
+		right: 0px;
+		bottom: 0px;
+		width: 100%;
+		color: white;
+		font-size: small;
+		text-align: right;
+		table-layout: fixed;
+	}
+	th, td {
+		overflow: hidden;
+	}
+	</style>
+</head>
+<body>
+
+<script src="/three.min.js"></script>
+<script src="/stats.min.js"></script>
+<script>
+var scene = new THREE.Scene();
+var camera = new THREE.PerspectiveCamera(75, 1, 0.1, 15);
+var renderer = new THREE.WebGLRenderer();
+renderer.domElement.id = 'draw';
+document.body.appendChild(renderer.domElement);
+
+camera.position.y = -5;
+camera.up.set(0, 0, -1);
+camera.lookAt(new THREE.Vector3(0, 0, 0));
+
+scene.add(new THREE.AmbientLight(0x404040));
+
+var light = new THREE.DirectionalLight(0xffffff);
+light.position.set(0, -2, -2);
+scene.add(light);
+
+var group = new THREE.Group();
+
+var geometry = new THREE.BoxGeometry(1, 1, 1);
+var material = new THREE.MeshLambertMaterial({ color: 0x10df78 });
+var cube = new THREE.Mesh(geometry, material);
+group.add(cube);
+
+var axis = new THREE.AxisHelper(1);
+group.add(axis);
+
+scene.add(group);
+
+var accel = new THREE.ArrowHelper(new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 0, 0), 10, 0xFF8C00);
+scene.add(accel);
+
+var mag = new THREE.ArrowHelper(new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 0, 0), 10, 0xDA70D6);
+scene.add(mag);
+
+var stats = new Stats();
+stats.setMode(0); // 0: fps, 1: ms, 2: mb
+
+// align top-left
+stats.domElement.style.position = 'absolute';
+stats.domElement.style.left = '0px';
+stats.domElement.style.top = '0px';
+
+document.body.appendChild(stats.domElement);
+
+function setArrow(arrow, o, scale) {
+	var v = new THREE.Vector3(o.x / scale, o.y / scale, o.z / scale);
+	var l = v.length();
+	arrow.setLength(l);
+	arrow.setDirection(v.divideScalar(l));
+}
+
+var raw_headers = {};
+var queued_msg;
+
+function render() {
+	var e = new THREE.Euler(queued_msg.roll, queued_msg.pitch, queued_msg.yaw, "ZYX");
+	group.quaternion.setFromEuler(e);
+
+	setArrow(accel, queued_msg.accel, 1);
+	//setArrow(mag, queued_msg.mag, 200);
+
+	for(var key in raw_headers)
+		if(raw_headers.hasOwnProperty(key)) {
+			var td = raw_headers[key];
+			while(td.firstChild)
+				td.removeChild(td.firstChild);
+			td.appendChild(document.createTextNode(queued_msg[key].toFixed(2)));
+		}
+
+	stats.begin();
+	renderer.render(scene, camera);
+	stats.end();
+	queued_msg = undefined;
+	send_request();
+}
+
+function send_request() {
+	var request = new XMLHttpRequest();
+	request.open('GET', '/controllable_vehicle_i/sensors_output', true);
+	request.onload = handle_response;
+	request.onerror = function() {
+		setTimeout(send_request, 200);
+	};
+	request.send();
+}
+
+function handle_response() {
+	if(this.status < 200 || this.status >= 300) {
+		this.onerror();
+		return;
+	}
+
+	var msg = JSON.parse(this.response);
+
+	/*
+	if(!raw_headers) {
+		var raw = document.createElement('table');
+		raw.id = 'raw-data';
+		var row1 = document.createElement('tr');
+		var row2 = document.createElement('tr');
+		raw_headers = {};
+		for(var key in msg)
+			if(msg.hasOwnProperty(key)) {
+				var th = document.createElement('th');
+				th.appendChild(document.createTextNode(key));
+				row1.appendChild(th);
+				var td = document.createElement('td');
+				raw_headers[key] = td;
+				row2.appendChild(td);
+			}
+		raw.appendChild(row1);
+		raw.appendChild(row2);
+		document.body.appendChild(raw);
+	}
+	*/
+
+	if(!queued_msg)
+		requestAnimationFrame(render);
+	queued_msg = msg;
+};
+send_request();
+
+var queued_resize;
+
+function handle_resize() {
+	camera.aspect = window.innerWidth / window.innerHeight;
+	camera.updateProjectionMatrix();
+	renderer.setSize(window.innerWidth, window.innerHeight, false);
+	renderer.render(scene, camera);
+	queued_resize = false;
+}
+handle_resize();
+
+window.addEventListener('resize', function() {
+	if(!queued_resize) {
+		queued_resize = true;
+		requestAnimationFrame(handle_resize);
+	}
+});
+</script>
+
+</body>
+</html>
