@@ -3,39 +3,40 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TypeFamilies #-}
 
-module SMACCMPilot.Flight.IO.PPM.Decode
-  ( PPMDecoder(..)
-  , monitorPPMDecoder
+module SMACCMPilot.Flight.IO.RCInput.Decode
+  ( RCInputDecoder(..)
+  , monitorRCInputDecoder
   ) where
 
 import Ivory.Language
 import Ivory.Tower
 import Ivory.Stdlib
+import Control.Monad (forM_)
 
+import qualified SMACCMPilot.Comm.Ivory.Types.RcInput   as RC
 import qualified SMACCMPilot.Comm.Ivory.Types.UserInput as I
 import qualified SMACCMPilot.Comm.Ivory.Types.ControlLaw as C
 
-import SMACCMPilot.Flight.IO.PPM.ModeSwitch
-import SMACCMPilot.Flight.IO.PPM.ArmingMachine
+import SMACCMPilot.Time
+import SMACCMPilot.Flight.IO.RCInput.ModeSwitch
+import SMACCMPilot.Flight.IO.RCInput.ArmingMachine
 
-data PPMDecoder =
-  PPMDecoder
-    { ppmd_init       :: forall eff    . Ivory eff ()
-    , ppmd_no_sample  :: forall eff    . ITime -> Ivory eff ()
-    , ppmd_new_sample :: forall eff s  . Ref s (Array 8 (Stored Uint16))
-                                      -> ITime -> Ivory eff ()
-    , ppmd_get_ui     :: forall eff cs . (GetAlloc eff ~ Scope cs)
+data RCInputDecoder =
+  RCInputDecoder
+    { rcind_init       :: forall eff    . Ivory eff ()
+    , rcind_no_sample  :: forall eff    . ITime -> Ivory eff ()
+    , rcind_new_sample :: forall eff s  . ConstRef s (Struct "rc_input")
+                                      -> Ivory eff ()
+    , rcind_get_ui     :: forall eff cs . (GetAlloc eff ~ Scope cs)
          => Ivory eff (ConstRef (Stack cs) (Struct "user_input"))
-    , ppmd_get_cl_req :: forall eff cs . (GetAlloc eff ~ Scope cs)
+    , rcind_get_cl_req :: forall eff cs . (GetAlloc eff ~ Scope cs)
          => Ivory eff (ConstRef (Stack cs) (Struct "control_law"))
     }
 
-monitorPPMDecoder :: Monitor e PPMDecoder
-monitorPPMDecoder = do
-  let named n = fmap showUnique $ freshname $ "ppmdecoder_" ++ n
-  ppm_valid             <- state "ppm_valid"
-  ppm_last              <- state "ppm_last"
-  ppm_last_time         <- state "ppm_last_time"
+monitorRCInputDecoder :: Monitor e RCInputDecoder
+monitorRCInputDecoder = do
+  let named n = fmap showUnique $ freshname $ "rcindecoder_" ++ n
+  rcin_last             <- state "rcin_last"
 
   modeswitch    <- monitorModeSwitch
   armingmachine <- monitorArmingMachine
@@ -53,39 +54,41 @@ monitorPPMDecoder = do
 
       invalidate :: Ivory eff ()
       invalidate = do
-          store ppm_valid false
+          store (rcin_last ~> RC.valid) false
           ms_no_sample modeswitch
           am_no_sample armingmachine
 
-      new_sample_proc :: Def('[Ref s (Array 8 (Stored Uint16)), ITime ]:->())
-      new_sample_proc = proc new_sample_name $ \ppms time -> body $ do
+      new_sample_proc :: Def('[ConstRef s (Struct "rc_input") ]:->())
+      new_sample_proc = proc new_sample_name $ \rc_in -> body $ do
+        time <- deref (rc_in ~> RC.time)
         all_good <- local (ival true)
-        arrayMap $ \ix -> when (ix <? useful_channels) $ do
-          ch <- deref (ppms ! ix)
+
+        forM_ chan_labels $ \lbl -> do
+          ch <- deref (rc_in ~> lbl)
           unless (ch >=? minBound .&& ch <=? maxBound)
                  (store all_good false)
 
         s <- deref all_good
         unless s $ invalidate
         when   s $ do
-          arrayMap $ \ix -> when (ix <? useful_channels)
-            (deref (ppms ! ix) >>= store (ppm_last ! ix))
-          store ppm_last_time time
-          store ppm_valid true
-          ms_new_sample modeswitch ppms time
-          am_new_sample armingmachine ppms time
+          forM_ chan_labels $ \lbl -> do
+            (deref (rc_in ~> lbl) >>= store (rcin_last ~> lbl))
+          store (rcin_last ~> RC.time) time
+          store (rcin_last ~> RC.valid) true
+          ms_new_sample modeswitch    rc_in
+          am_new_sample armingmachine rc_in
 
       no_sample_proc :: Def('[ITime]:->())
       no_sample_proc = proc no_sample_name $ \time -> body $ do
-        prev <- deref ppm_last_time
+        prev <- fmap iTimeFromTimeMicros (deref (rcin_last ~> RC.time))
         when ((time - prev) >? timeout_limit) invalidate
 
       get_ui_proc :: Def('[Ref s (Struct "user_input")]:->())
       get_ui_proc = proc get_ui_name $ \ui -> body $ do
-        valid <- deref ppm_valid
-        time <- deref ppm_last_time
+        valid <- deref (rcin_last ~> RC.valid)
+        time <- fmap iTimeFromTimeMicros (deref (rcin_last ~> RC.time))
         ifte_ valid
-          (call_  ppm_decode_ui_proc ppm_last ui time)
+          (call_  ppm_decode_ui_proc (constRef rcin_last) ui time)
           (failsafe ui)
 
       get_cl_req_proc :: Def('[Ref s (Struct "control_law")]:->())
@@ -102,22 +105,22 @@ monitorPPMDecoder = do
     incl scale_proc
     incl ppm_decode_ui_proc
 
-  return PPMDecoder
-    { ppmd_init       = call_ init_proc
-    , ppmd_new_sample = call_ new_sample_proc
-    , ppmd_no_sample  = call_ no_sample_proc
-    , ppmd_get_ui     = do
+  return RCInputDecoder
+    { rcind_init       = call_ init_proc
+    , rcind_new_sample = call_ new_sample_proc
+    , rcind_no_sample  = call_ no_sample_proc
+    , rcind_get_ui     = do
         l <- local (istruct [])
         call_ get_ui_proc l
         return (constRef l)
-    , ppmd_get_cl_req = do
+    , rcind_get_cl_req = do
         l <- local (istruct [])
         call_ get_cl_req_proc l
         return (constRef l)
     }
   where
-  useful_channels = 6
   timeout_limit = fromIMilliseconds (150 :: Uint8)-- ms
+  chan_labels = [ RC.roll, RC.pitch, RC.throttle, RC.yaw, RC.switch1, RC.switch2 ]
 
 failsafe :: Ref s (Struct "user_input") -> Ivory eff ()
 failsafe ui = do
@@ -151,23 +154,23 @@ scale_proc = proc "ppm_scale_proc" $ \center range outmin outmax input ->
         (ret outmax)
         (ret ranged))
 
-ppm_decode_ui_proc :: Def ('[ Ref s0 (Array 8 (Stored Uint16))
+ppm_decode_ui_proc :: Def ('[ ConstRef s0 (Struct "rc_input")
                             , Ref s1 (Struct "user_input")
                             , ITime
                             ] :-> ())
-ppm_decode_ui_proc = proc "ppm_decode_userinput" $ \ppms ui _now ->
+ppm_decode_ui_proc = proc "ppm_decode_userinput" $ \rcin ui _now ->
   body $ do
   -- Scale 1000-2000 inputs to -1 to 1 inputs.
-  let chtransform :: Ix 8
+  let chtransform :: Label "rc_input" (Stored Uint16)
                   -> Label "user_input" (Stored IFloat)
                   -> Ivory eff ()
-      chtransform ix ofield = do
-        ppm <- deref (ppms ! (ix :: Ix 8))
+      chtransform rcfield ofield = do
+        ppm <- deref (rcin ~> rcfield)
         v   <- scale_ppm_channel ppm
         store (ui ~> ofield) v
-  chtransform 0 I.roll
-  chtransform 1 I.pitch
-  chtransform 2 I.throttle
-  chtransform 3 I.yaw
+  chtransform RC.roll     I.roll
+  chtransform RC.pitch    I.pitch
+  chtransform RC.throttle I.throttle
+  chtransform RC.yaw      I.yaw
   retVoid
 

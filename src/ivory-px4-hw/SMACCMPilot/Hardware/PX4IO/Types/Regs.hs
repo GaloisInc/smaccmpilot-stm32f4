@@ -9,7 +9,8 @@ import Ivory.Language
 import SMACCMPilot.Hardware.PX4IO.Types.Request
 import SMACCMPilot.Comm.Ivory.Types.Px4ioStatus
 import SMACCMPilot.Comm.Ivory.Types.Px4ioAlarms
-import SMACCMPilot.Comm.Ivory.Types.Px4ioRcInput
+import SMACCMPilot.Comm.Ivory.Types.RcInput
+import SMACCMPilot.Comm.Ivory.Types.TimeMicros
 
 [ivory|
  bitdata PX4IO_STATUS :: Bits 16 = px4io_status
@@ -73,10 +74,11 @@ px4ioAlarmsFromReg v r = do
   where
   p lbl field = store (r ~> lbl) (bitToBool (fromRep v #. field))
 
-px4ioRCInputFromRegs :: Ref s1 (Struct "px4io_request")
-                     -> Ref s3 (Struct "px4io_rc_input")
-                     -> Ivory eff ()
-px4ioRCInputFromRegs input_req rc_input = do
+rcInputFromRegs :: TimeMicros
+                -> Ref s1 (Struct "px4io_request")
+                -> Ref s3 (Struct "rc_input")
+                -> Ivory eff ()
+rcInputFromRegs t input_req rc_input = do
   cnt <- deref (input_req ~> regs ! 0)
   i0  <- deref (input_req ~> regs ! 1)
   i1  <- deref (input_req ~> regs ! 2)
@@ -85,10 +87,10 @@ px4ioRCInputFromRegs input_req rc_input = do
   i4  <- deref (input_req ~> regs ! 5)
   i5  <- deref (input_req ~> regs ! 6)
   store (rc_input ~> valid) (cnt >=? 6)
-  store (rc_input ~> ch0)   i0
-  store (rc_input ~> ch1)   i1
-  store (rc_input ~> ch2)   i2
-  store (rc_input ~> ch3)   i3
-  store (rc_input ~> ch4)   i4
-  store (rc_input ~> ch5)   i5
-
+  store (rc_input ~> roll)     i0
+  store (rc_input ~> pitch)    i1
+  store (rc_input ~> throttle) i2
+  store (rc_input ~> yaw)      i3
+  store (rc_input ~> switch1)  i4
+  store (rc_input ~> switch2)  i5
+  store (rc_input ~> time)     t

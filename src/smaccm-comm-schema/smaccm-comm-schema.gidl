@@ -165,6 +165,16 @@
   (angle_right float_t))
 
 
+(def-struct rc_input_t
+  (valid       bool_t)
+  (roll        uint16_t) -- Each channel is [1000..2000] microseconds
+  (pitch       uint16_t)
+  (throttle    uint16_t)
+  (yaw         uint16_t)
+  (switch1     uint16_t)
+  (switch2     uint16_t)
+  (time        time_micros_t))
+
 (def-struct px4io_status_t
   (safety_off    bool_t)
   (failsafe      bool_t)
@@ -190,25 +200,18 @@
   (temperature   bool_t)
   (vbatt_low     bool_t))
 
-(def-struct px4io_rc_input_t
-  (valid bool_t)
-  (ch0   uint16_t)
-  (ch1   uint16_t)
-  (ch2   uint16_t)
-  (ch3   uint16_t)
-  (ch4   uint16_t)
-  (ch5   uint16_t))
 
 (def-struct px4io_state_t
   (comm_ok bool_t)
-  (status px4io_status_t)
-  (alarms px4io_alarms_t)
-  (rc_in  px4io_rc_input_t)
-  (time   time_micros_t))
+  (status  px4io_status_t)
+  (alarms  px4io_alarms_t)
+  (rc_in   rc_input_t)
+  (time    time_micros_t))
 
 (def-interface vehicle_i ()
   (heartbeat               (stream         heartbeat_t))
   (control_law             (attr read      control_law_t))
+  (rc_input                (attr read      rc_input_t))
   (user_input              (attr read      user_input_result_t))
   (sensors_output          (attr read      sensors_result_t))
   (gyro_raw_output         (attr read      gyroscope_sample_t))

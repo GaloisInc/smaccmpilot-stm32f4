@@ -23,6 +23,12 @@ test-fmu24: platform-fmu24/can-server-test-gen
 test-fmu24: platform-fmu24/can-proxy-test-gen
 test-fmu24: platform-fmu24/comm-only-test-gen
 test-fmu24: platform-fmu24/sensors-test-gen
+test-fmu24: platform-fmu24/ppm-test-gen
+test-fmu24: platform-fmu24/ui-test-gen
+test-fmu24: platform-fmu24/standalone-flight-gen
+
+.PHONY: flight
+flight: platform-fmu24/standalone-flight-gen
 
 .PHONY: can_proxy_odroid_test
 can_proxy_odroid_test: default

@@ -5,7 +5,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
-module SMACCMPilot.Flight.IO.PPM.ModeSwitch
+module SMACCMPilot.Flight.IO.RCInput.ModeSwitch
   ( ModeSwitch(..)
   , monitorModeSwitch
   ) where
@@ -14,6 +14,8 @@ import Ivory.Language
 import Ivory.Tower
 import Ivory.Stdlib
 
+import           SMACCMPilot.Time
+import qualified SMACCMPilot.Comm.Ivory.Types.RcInput as RC
 import qualified SMACCMPilot.Comm.Ivory.Types.ControlLaw as CL
 import qualified SMACCMPilot.Comm.Ivory.Types.ControlSource as CS
 import qualified SMACCMPilot.Comm.Ivory.Types.YawMode as Y
@@ -22,8 +24,8 @@ import qualified SMACCMPilot.Comm.Ivory.Types.ThrottleMode as T
 data ModeSwitch =
   ModeSwitch
     { ms_init       :: forall eff   . Ivory eff ()
-    , ms_new_sample :: forall eff s . Ref s (Array 8 (Stored Uint16))
-                                   -> ITime -> Ivory eff ()
+    , ms_new_sample :: forall eff s . ConstRef s (Struct "rc_input")
+                                   -> Ivory eff ()
     , ms_no_sample  :: forall eff   . Ivory eff ()
     , ms_get_cl_req :: forall eff s . Ref s (Struct "control_law")
                                    -> Ivory eff ()
@@ -56,9 +58,10 @@ monitorModeSwitch = do
         store md_last_position posDown
         store md_last_position_time 0
 
-      new_sample_proc :: Def('[Ref s (Array 8 (Stored Uint16)), ITime]:->())
-      new_sample_proc = proc new_sample_name $ \ppms time -> body $ do
-        switch <- deref (ppms ! (4 :: Ix 8))
+      new_sample_proc :: Def('[ConstRef s (Struct "rc_input")]:->())
+      new_sample_proc = proc new_sample_name $ \rc_in -> body $ do
+        switch <- deref (rc_in ~> RC.switch1)
+        time   <- fmap iTimeFromTimeMicros (deref (rc_in ~> RC.time))
         position <- assign $ modeswitchpos_from_ppm switch
         -- XXX debouncing
         store md_last_position position

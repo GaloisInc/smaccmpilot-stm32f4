@@ -37,10 +37,10 @@ library
                        SMACCMPilot.Flight.Datalink.UART,
                        SMACCMPilot.Flight.Datalink.TestApp,
                        SMACCMPilot.Flight.IO,
-                       SMACCMPilot.Flight.IO.PPM,
-                       SMACCMPilot.Flight.IO.PPM.ArmingMachine,
-                       SMACCMPilot.Flight.IO.PPM.Decode,
-                       SMACCMPilot.Flight.IO.PPM.ModeSwitch,
+                       SMACCMPilot.Flight.IO.RCInput,
+                       SMACCMPilot.Flight.IO.RCInput.ArmingMachine,
+                       SMACCMPilot.Flight.IO.RCInput.Decode,
+                       SMACCMPilot.Flight.IO.RCInput.ModeSwitch,
                        SMACCMPilot.Flight.IO.TestApp,
                        SMACCMPilot.Flight.Light,
                        SMACCMPilot.Flight.Motors,
@@ -49,6 +49,7 @@ library
                        SMACCMPilot.Flight.Platform,
                        SMACCMPilot.Flight.Sensors,
                        SMACCMPilot.Flight.Sensors.TestApp,
+                       SMACCMPilot.Flight.Standalone,
                        SMACCMPilot.Flight.Types.MaybeFloat,
                        SMACCMPilot.Flight.UserInput,
                        SMACCMPilot.Flight.UserInput.TestApp
@@ -158,6 +159,18 @@ executable             ui-test-gen
 
 executable             sensors-test-gen
   main-is:             Sensors.hs
+  hs-source-dirs:      tests
+  build-depends:       base >= 4.6,
+                       tower >= 0.9,
+                       tower-config,
+                       tower-freertos-stm32,
+                       smaccm-flight
+  default-language:    Haskell2010
+  ghc-options:         -Wall
+
+
+executable             standalone-flight-gen
+  main-is:             Standalone.hs
   hs-source-dirs:      tests
   build-depends:       base >= 4.6,
                        tower >= 0.9,

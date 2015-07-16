@@ -157,24 +157,24 @@ class PPM(object):
     def __init__(self, binary):
         self.binary = binary
         try:
-            (c1, c2, c3, c4, c5, c6, c7, c8) = \
-                    struct.unpack("!HHHHHHHH", binary)
+            (v, c1, c2, c3, c4, c5, c6, t) = \
+                    struct.unpack("!BHHHHHHQ", binary)
+            self.v  = v
             self.c1 = c1
             self.c2 = c2
             self.c3 = c3
             self.c4 = c4
             self.c5 = c5
             self.c6 = c6
-            self.c7 = c7
-            self.c8 = c8
+            self.t  = t
             self.errormsg = None
         except Exception:
             self.errormsg = ("PPM: bad size %d" % (len(binary)))
     def display(self):
         if self.errormsg:
             return self.errormsg
-        return ("PPM %d %d %d %d %d %d %d %d" %
-            (self.c1, self.c2, self.c3, self.c4, self.c5, self.c6, self.c7, self.c8))
+        return ("PPM ok %d chans %d %d %d %d %d %d micros %d" %
+            (self.v, self.c1, self.c2, self.c3, self.c4, self.c5, self.c6, self.t))
 
 class SensorParser(object):
     def __init__(self,radio,opts):
