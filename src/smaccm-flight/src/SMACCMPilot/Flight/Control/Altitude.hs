@@ -22,6 +22,7 @@ import           SMACCMPilot.Flight.Control.Altitude.ThrottleTracker
 import           SMACCMPilot.Flight.Control.Altitude.ThrustPID
 import           SMACCMPilot.Flight.Control.Altitude.PositionPID
 import           SMACCMPilot.Flight.Control.Altitude.ThrottleUI
+import           SMACCMPilot.Flight.Types.MaybeFloat
 
 import qualified SMACCMPilot.Comm.Ivory.Types.AltControlDebug as A
 import qualified SMACCMPilot.Comm.Ivory.Types.ControlLaw      as CL
@@ -75,6 +76,7 @@ monitorAltitudeControl attrs = do
 
   monitorModuleDef $ do
     depend controlPIDModule -- for fconstrain
+    depend maybeFloatModule
   -- state is saved in a struct, to be marshalled into a mavlink message
   state_dbg        <- state "state_debug"
   let named n = fmap showUnique $ freshname $ "alt_ctl_" ++ n

@@ -28,6 +28,7 @@ import           SMACCMPilot.Flight.Control.Altitude
 import           SMACCMPilot.Flight.Control.Attitude.PitchRoll
 import           SMACCMPilot.Flight.Control.Yaw
 import           SMACCMPilot.Flight.Control.Attitude.YawUI
+import           SMACCMPilot.Flight.Types.MaybeFloat
 
 controlTower :: ControllableVehicleAttrs Attr
              -> Tower e ()
@@ -127,5 +128,5 @@ controlTower attrs = do
     s16_ms = castWith 0 (toIMilliseconds (toITime dt))
 
 controlModules :: [Module]
-controlModules = [ controlPIDModule, attStabilizeModule ]
+controlModules = [ controlPIDModule, attStabilizeModule, maybeFloatModule ]
 

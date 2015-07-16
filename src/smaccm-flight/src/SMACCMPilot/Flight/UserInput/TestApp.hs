@@ -21,17 +21,19 @@ app :: (e -> FlightPlatform)
 app tofp = do
   (attrs, _streams) <- datalinkTower tofp
 
-  ppm_ui <- channel
-  ppm_cl <- channel
+  rcin_ui <- channel
+  rcin_cl <- channel
 
   -- Never write to motor output.
   (_, motor_output) <- channel
 
-  flightIOTower tofp (fst ppm_ui) (fst ppm_cl)
-                     (attrReaderChan (controlLaw attrs))
-                     motor_output
+  flightIOTower tofp attrs
+                (fst rcin_ui) (fst rcin_cl)
+                (attrReaderChan (controlLaw attrs))
+                motor_output
 
-  userInputTower (snd ppm_ui) (snd ppm_cl) attrs
+  userInputTower (snd rcin_ui) (snd rcin_cl) attrs
+
   -- Just for testing, lets pretend there is a valid IMU.
   monitor "fake_sensor_output_valid" $ do
     handler systemInit "init" $ do
