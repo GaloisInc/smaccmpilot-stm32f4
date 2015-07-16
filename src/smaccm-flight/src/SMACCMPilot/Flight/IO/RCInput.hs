@@ -3,8 +3,8 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TypeFamilies #-}
 
-module SMACCMPilot.Flight.IO.PPM
-  ( ppmInputTower
+module SMACCMPilot.Flight.IO.RCInput
+  ( rcInputTower
   ) where
 
 import Ivory.Language
@@ -14,25 +14,25 @@ import qualified SMACCMPilot.Comm.Ivory.Types.UserInput as I ()
 import qualified SMACCMPilot.Comm.Ivory.Types.ControlLaw as C ()
 import qualified SMACCMPilot.Comm.Ivory.Types.RcInput as RC
 
-import SMACCMPilot.Flight.IO.PPM.Decode
+import SMACCMPilot.Flight.IO.RCInput.Decode
 
-ppmInputTower :: ChanOutput (Struct "rc_input")
+rcInputTower :: ChanOutput (Struct "rc_input")
               -> ChanInput (Struct "user_input")
               -> ChanInput (Struct "control_law")
               -> Tower e ()
-ppmInputTower rc ui cl = do
+rcInputTower rc ui cl = do
   p <- period (Milliseconds 50)
 
-  monitor "rcin_userinput_decode" $ do
+  monitor "rcin_userinput_translator" $ do
     rcin       <- state "rcin"
     valid      <- state "valid"
-    decoder    <- monitorPPMDecoder
+    decoder    <- monitorRCInputDecoder
 
     handler systemInit "userinput_init" $ callback $ const $ do
-      ppmd_init decoder
+      rcind_init decoder
       store valid false
 
-    handler rc "ppm_userinput_capt" $ do
+    handler rc "rcin_userinput_capt" $ do
       callback $ \rc_in -> do
         refCopy rcin rc_in
         refCopy valid (rc_in ~> RC.valid)
@@ -46,9 +46,9 @@ ppmInputTower rc ui cl = do
       callbackV $ \now -> do
         v <- deref valid
         ifte_ v
-              (ppmd_new_sample decoder (constRef rcin))
-              (ppmd_no_sample decoder now)
-        ppmd_get_ui     decoder >>= emit ui_emitter
-        ppmd_get_cl_req decoder >>= emit cl_emitter
+              (rcind_new_sample decoder (constRef rcin))
+              (rcind_no_sample decoder now)
+        rcind_get_ui     decoder >>= emit ui_emitter
+        rcind_get_cl_req decoder >>= emit cl_emitter
         store valid false
 

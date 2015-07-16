@@ -3,9 +3,9 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TypeFamilies #-}
 
-module SMACCMPilot.Flight.IO.PPM.Decode
-  ( PPMDecoder(..)
-  , monitorPPMDecoder
+module SMACCMPilot.Flight.IO.RCInput.Decode
+  ( RCInputDecoder(..)
+  , monitorRCInputDecoder
   ) where
 
 import Ivory.Language
@@ -18,28 +18,25 @@ import qualified SMACCMPilot.Comm.Ivory.Types.UserInput as I
 import qualified SMACCMPilot.Comm.Ivory.Types.ControlLaw as C
 
 import SMACCMPilot.Time
-import SMACCMPilot.Flight.IO.PPM.ModeSwitch
-import SMACCMPilot.Flight.IO.PPM.ArmingMachine
+import SMACCMPilot.Flight.IO.RCInput.ModeSwitch
+import SMACCMPilot.Flight.IO.RCInput.ArmingMachine
 
-data PPMDecoder =
-  PPMDecoder
-    { ppmd_init       :: forall eff    . Ivory eff ()
-    , ppmd_no_sample  :: forall eff    . ITime -> Ivory eff ()
-    , ppmd_new_sample :: forall eff s  . ConstRef s (Struct "rc_input")
+data RCInputDecoder =
+  RCInputDecoder
+    { rcind_init       :: forall eff    . Ivory eff ()
+    , rcind_no_sample  :: forall eff    . ITime -> Ivory eff ()
+    , rcind_new_sample :: forall eff s  . ConstRef s (Struct "rc_input")
                                       -> Ivory eff ()
-    , ppmd_get_ui     :: forall eff cs . (GetAlloc eff ~ Scope cs)
+    , rcind_get_ui     :: forall eff cs . (GetAlloc eff ~ Scope cs)
          => Ivory eff (ConstRef (Stack cs) (Struct "user_input"))
-    , ppmd_get_cl_req :: forall eff cs . (GetAlloc eff ~ Scope cs)
+    , rcind_get_cl_req :: forall eff cs . (GetAlloc eff ~ Scope cs)
          => Ivory eff (ConstRef (Stack cs) (Struct "control_law"))
     }
 
-monitorPPMDecoder :: Monitor e PPMDecoder
-monitorPPMDecoder = do
-  let named n = fmap showUnique $ freshname $ "ppmdecoder_" ++ n
+monitorRCInputDecoder :: Monitor e RCInputDecoder
+monitorRCInputDecoder = do
+  let named n = fmap showUnique $ freshname $ "rcindecoder_" ++ n
   rcin_last             <- state "rcin_last"
-  let ppm_valid = rcin_last ~> RC.valid
-      ppm_last  = rcin_last
-      ppm_last_time = rcin_last ~> RC.time
 
   modeswitch    <- monitorModeSwitch
   armingmachine <- monitorArmingMachine
@@ -57,7 +54,7 @@ monitorPPMDecoder = do
 
       invalidate :: Ivory eff ()
       invalidate = do
-          store ppm_valid false
+          store (rcin_last ~> RC.valid) false
           ms_no_sample modeswitch
           am_no_sample armingmachine
 
@@ -76,22 +73,22 @@ monitorPPMDecoder = do
         when   s $ do
           forM_ chan_labels $ \lbl -> do
             (deref (rc_in ~> lbl) >>= store (rcin_last ~> lbl))
-          store ppm_last_time time
-          store ppm_valid true
+          store (rcin_last ~> RC.time) time
+          store (rcin_last ~> RC.valid) true
           ms_new_sample modeswitch    rc_in
           am_new_sample armingmachine rc_in
 
       no_sample_proc :: Def('[ITime]:->())
       no_sample_proc = proc no_sample_name $ \time -> body $ do
-        prev <- fmap iTimeFromTimeMicros (deref ppm_last_time)
+        prev <- fmap iTimeFromTimeMicros (deref (rcin_last ~> RC.time))
         when ((time - prev) >? timeout_limit) invalidate
 
       get_ui_proc :: Def('[Ref s (Struct "user_input")]:->())
       get_ui_proc = proc get_ui_name $ \ui -> body $ do
-        valid <- deref ppm_valid
-        time <- fmap iTimeFromTimeMicros (deref ppm_last_time)
+        valid <- deref (rcin_last ~> RC.valid)
+        time <- fmap iTimeFromTimeMicros (deref (rcin_last ~> RC.time))
         ifte_ valid
-          (call_  ppm_decode_ui_proc (constRef ppm_last) ui time)
+          (call_  ppm_decode_ui_proc (constRef rcin_last) ui time)
           (failsafe ui)
 
       get_cl_req_proc :: Def('[Ref s (Struct "control_law")]:->())
@@ -108,15 +105,15 @@ monitorPPMDecoder = do
     incl scale_proc
     incl ppm_decode_ui_proc
 
-  return PPMDecoder
-    { ppmd_init       = call_ init_proc
-    , ppmd_new_sample = call_ new_sample_proc
-    , ppmd_no_sample  = call_ no_sample_proc
-    , ppmd_get_ui     = do
+  return RCInputDecoder
+    { rcind_init       = call_ init_proc
+    , rcind_new_sample = call_ new_sample_proc
+    , rcind_no_sample  = call_ no_sample_proc
+    , rcind_get_ui     = do
         l <- local (istruct [])
         call_ get_ui_proc l
         return (constRef l)
-    , ppmd_get_cl_req = do
+    , rcind_get_cl_req = do
         l <- local (istruct [])
         call_ get_cl_req_proc l
         return (constRef l)
