@@ -40,7 +40,10 @@ px4ioTower tocc dmauart pins control_law motors state_chan = do
   (BackpressureTransmit ser_tx_req ser_rx, driver_ready)
     <- syncDMAUARTTower tocc dmauart pins 1500000
 
-  p <- period (Milliseconds 20)
+  loop_p <- period (Milliseconds 20)
+  init_p <- period init_wait
+
+  init_chan <- channel
 
   monitor "px4io_driver" $ do
     monitorModuleDef $ depend px4ioPackModule
@@ -65,6 +68,22 @@ px4ioTower tocc dmauart pins control_law motors state_chan = do
     handler motors "motor_output" $ do
       callback $ \o -> refCopy motor_output o
 
+    init_ready    <- state "init_deadline"
+    init_deadline <- state "init_deadline"
+    handler driver_ready "driver_ready" $ callbackV $ \t -> do
+      store init_deadline (t + toITime init_wait)
+      store init_ready    true
+
+    handler init_p "initialize_period" $ do
+      e <- emitter (fst init_chan) 1
+      callbackV $ \t -> do
+        ready <- deref init_ready
+        when ready $ do
+          deadline <- deref init_deadline
+          when (t >=? deadline) $ do
+            emitV e t
+            store init_ready false
+
     let rpc_send req_ival req_e = do
           req <- local req_ival
           packed <- local izero
@@ -74,7 +93,7 @@ px4ioTower tocc dmauart pins control_law motors state_chan = do
 
     loop_ready <- state "coroutine_loop_ready"
 
-    handler p "periodic_coroutine_loop_begin" $ do
+    handler loop_p "periodic_coroutine_loop_begin" $ do
       e <- emitter ser_tx_req 1
       callback $ const $ do
         rdy <- deref loop_ready
@@ -92,7 +111,7 @@ px4ioTower tocc dmauart pins control_law motors state_chan = do
           _ <- rpc_send req e -- Packing will always succeed.
           store loop_ready false
 
-    coroutineHandler driver_ready ser_rx "px4io" $ do
+    coroutineHandler (snd init_chan) ser_rx "px4io" $ do
       req_e <- emitter ser_tx_req 1
       res_e <- emitter state_chan 1
       return $ CoroutineBody $ \ yield -> do
@@ -208,6 +227,8 @@ px4ioTower tocc dmauart pins control_law motors state_chan = do
     , px4ioRequestTypesModule
     , serializeModule
     ] ++ typeModules
+
+  init_wait = Milliseconds 1000
 
 
 outRegIval :: ConstRef s (Struct "quadcopter_motors")
