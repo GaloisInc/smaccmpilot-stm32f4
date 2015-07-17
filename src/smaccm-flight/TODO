@@ -1,0 +1,14 @@
+BUGS:
+
+- datalink baud rate must be configurable depending on whether you're using
+  radios or serial cable. (or maybe we should just change the radios to 115200
+baud?)
+- roll/pitch/yaw angle's don't seem right for a pixhawk in the iris. see if
+  there is some obvious orthogonal rotation to get them right
+- accel is not calibrated
+- throttle control of motors seems to work, roll/pitch/yaw input and
+  angles do not seem to change motor outputs at all
+- if you attempt to arm before doing a full imu calibration, and do not put the
+  system back to Safe, the arming will take effect as soon as the cal is done
+(you could lose a finger)
+  
