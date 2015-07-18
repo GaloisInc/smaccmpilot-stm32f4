@@ -1,8 +1,5 @@
 BUGS:
 
-- datalink baud rate must be configurable depending on whether you're using
-  radios or serial cable. (or maybe we should just change the radios to 115200
-baud?)
 - roll/pitch/yaw angle's don't seem right for a pixhawk in the iris. see if
   there is some obvious orthogonal rotation to get them right
 - accel is not calibrated

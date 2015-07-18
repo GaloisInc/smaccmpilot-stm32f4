@@ -20,7 +20,7 @@ import           SMACCMPilot.Comm.Tower.Interface.ControllableVehicle
 app :: (e -> FlightPlatform)
     -> Tower e ()
 app tofp = do
-  (attrs, _streams) <- datalinkTower tofp
+  (attrs, _streams) <- datalinkTower tofp 57600
 
   rcin_ui <- channel
   rcin_cl <- channel

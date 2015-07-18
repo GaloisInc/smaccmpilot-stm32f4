@@ -14,12 +14,13 @@ import SMACCMPilot.Comm.Tower.Attr
 
 
 datalinkTower :: (e -> FlightPlatform)
+              -> Integer
               -> Tower e (ControllableVehicleAttrs Attr, ControllableVehicleStreams ChanInput)
-datalinkTower tofp = do
+datalinkTower tofp baud = do
   fp <- fmap tofp getEnv
   let telem_uart = fp_telem fp
 
-  uartDatalink tocc telem_uart 115200
+  uartDatalink tocc telem_uart baud
     $ commsecDatalink todatalink
     $ controllableVehicle
 
