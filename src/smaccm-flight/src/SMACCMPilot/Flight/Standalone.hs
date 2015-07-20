@@ -13,6 +13,7 @@ import           SMACCMPilot.Flight.UserInput
 import           SMACCMPilot.Flight.Sensors
 import           SMACCMPilot.Flight.Control
 import           SMACCMPilot.Flight.Motors
+import           SMACCMPilot.Flight.Tuning
 
 import           SMACCMPilot.Comm.Tower.Attr
 import           SMACCMPilot.Comm.Tower.Interface.ControllableVehicle
@@ -21,6 +22,8 @@ app :: (e -> FlightPlatform)
     -> Tower e ()
 app tofp = do
   (attrs, _streams) <- datalinkTower tofp 57600
+
+  flightTuningTower (fp_tuning . tofp) attrs
 
   rcin_ui <- channel
   rcin_cl <- channel

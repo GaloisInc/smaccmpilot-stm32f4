@@ -50,6 +50,8 @@ library
                        SMACCMPilot.Flight.Sensors,
                        SMACCMPilot.Flight.Sensors.TestApp,
                        SMACCMPilot.Flight.Standalone,
+                       SMACCMPilot.Flight.Tuning,
+                       SMACCMPilot.Flight.Tuning.TypeParsers,
                        SMACCMPilot.Flight.Types.MaybeFloat,
                        SMACCMPilot.Flight.UserInput,
                        SMACCMPilot.Flight.UserInput.TestApp
