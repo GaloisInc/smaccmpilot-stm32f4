@@ -37,13 +37,13 @@ flightIOTower tofp attrs rc_ui rc_cl cl_output motors_output = do
 
       px4ioTower tocc dmauart pins cl_output motors_output (fst px4io_state)
 
+      attrProxy (px4ioState attrs) (snd px4io_state)
+
       monitor "px4io_rcinput_translator" $ do
         handler (snd px4io_state) "new_px4iostate" $ do
           e <- emitter (fst rc_input) 1
-          e_s <- attrEmitter (px4ioState attrs)
           callback $ \s -> do
             emit e (s ~> PX4.rc_in)
-            emit e_s s
 
     NativeIO ppm_hw ->
       ppmTower (const ppm_hw) tocc (fst rc_input)
