@@ -1,10 +1,12 @@
 BUGS:
 
-- roll/pitch/yaw angle's don't seem right for a pixhawk in the iris. see if
-  there is some obvious orthogonal rotation to get them right
+- roll and pitch are swapped, not sure if their directions are right
 - accel is not calibrated
-- throttle control of motors seems to work, roll/pitch/yaw input and
-  angles do not seem to change motor outputs at all
+
+- if you arm the fmu before you arm the io, escs wont calibrate
+  until you disarm the fmu.
+  require io armed first.
+
 - if you attempt to arm before doing a full imu calibration, and do not put the
   system back to Safe, the arming will take effect as soon as the cal is done
 (you could lose a finger)
