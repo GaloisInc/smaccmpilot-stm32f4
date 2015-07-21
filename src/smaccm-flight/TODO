@@ -1,6 +1,5 @@
 BUGS:
 
-- roll and pitch are swapped, not sure if their directions are right
 - accel is not calibrated
 
 - if you arm the fmu before you arm the io, escs wont calibrate
