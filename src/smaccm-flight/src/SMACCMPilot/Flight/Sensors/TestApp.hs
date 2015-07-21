@@ -13,5 +13,5 @@ import SMACCMPilot.Flight.Sensors
 app :: (e -> FlightPlatform)
     -> Tower e ()
 app tofp = do
-  (attrs, _streams) <- datalinkTower tofp
+  (attrs, _streams) <- datalinkTower tofp 115200
   sensorTower tofp attrs

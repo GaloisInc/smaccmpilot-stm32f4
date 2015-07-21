@@ -37,6 +37,7 @@ import           SMACCMPilot.Datalink.Mode
 import           SMACCMPilot.Hardware.CAN
 import           SMACCMPilot.Hardware.Sensors
 import           SMACCMPilot.Hardware.Tests.Platforms (PPM(..), RGBLED_I2C(..))
+import           SMACCMPilot.Flight.Tuning
 
 
 data FlightPlatform =
@@ -47,6 +48,7 @@ data FlightPlatform =
     , fp_can          :: Maybe CAN_Device
     , fp_datalink     :: DatalinkMode
     , fp_rgbled       :: Maybe RGBLED_I2C
+    , fp_tuning       :: FlightTuning
     , fp_stm32config  :: STM32Config
     }
 
@@ -60,11 +62,13 @@ fp_clockconfig = stm32config_clock . fp_stm32config
 
 flightPlatformParser :: ConfigParser FlightPlatform
 flightPlatformParser = do
+  v <- subsection "args" $ subsection "vehicle" string
+  t <- subsection "tuning" $ subsection v flightTuningParser
   p <- subsection "args" $ subsection "platform" string
   case map toUpper p of
-    "PX4FMUV17" -> result px4fmuv17
-    "PX4FMUV24" -> result px4fmuv24
-    "PIXHAWK"   -> result px4fmuv24
+    "PX4FMUV17" -> result (px4fmuv17 t)
+    "PX4FMUV24" -> result (px4fmuv24 t)
+    "PIXHAWK"   -> result (px4fmuv24 t)
     _ -> fail ("no such platform " ++ p)
   where
   result mkPlatform = do
@@ -73,14 +77,15 @@ flightPlatformParser = do
     conf <- stm32ConfigParser (fp_stm32config platform)
     return platform { fp_stm32config = conf }
 
-px4fmuv17 :: DatalinkMode -> FlightPlatform
-px4fmuv17 dmode = FlightPlatform
+px4fmuv17 :: FlightTuning -> DatalinkMode -> FlightPlatform
+px4fmuv17 tuning dmode = FlightPlatform
   { fp_telem       = telem
   , fp_io          = NativeIO ppm
   , fp_sensors     = fmu17_sensors
   , fp_can         = Nothing
   , fp_datalink    = dmode
   , fp_rgbled      = Nothing
+  , fp_tuning      = tuning
   , fp_stm32config = stm32f405Defaults 24
   }
   where
@@ -96,14 +101,15 @@ px4fmuv17 dmode = FlightPlatform
   ppm_int = HasSTM32Interrupt F405.TIM1_CC
 
 
-px4fmuv24 :: DatalinkMode -> FlightPlatform
-px4fmuv24 dmode = FlightPlatform
+px4fmuv24 :: FlightTuning -> DatalinkMode -> FlightPlatform
+px4fmuv24 tuning dmode = FlightPlatform
   { fp_telem       = telem
   , fp_io          = px4io
   , fp_sensors     = fmu24_sensors
   , fp_can         = Just fmu24_can
   , fp_datalink    = dmode
   , fp_rgbled      = Just rgbled
+  , fp_tuning      = tuning
   , fp_stm32config = stm32f427Defaults 24
   }
   where

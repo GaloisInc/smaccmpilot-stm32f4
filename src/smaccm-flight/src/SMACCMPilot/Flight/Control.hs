@@ -105,12 +105,14 @@ controlTower attrs = do
           , CO.roll     .= ival 0
           , CO.pitch    .= ival 0
           , CO.yaw      .= ival 0
+          , CO.armed    .= ival false
           ]
 
         when (armed ==? A.armed) $ do
           alt_output alt_control ctl
           prc_state  prc_control ctl
           yaw_output yaw_control ctl
+          store (ctl ~> CO.armed) true
 
         emit e (constRef ctl)
 
