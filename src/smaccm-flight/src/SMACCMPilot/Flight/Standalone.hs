@@ -9,7 +9,6 @@ import           Ivory.Tower
 import           SMACCMPilot.Flight.Platform
 import           SMACCMPilot.Flight.Datalink
 import           SMACCMPilot.Flight.IO
-import           SMACCMPilot.Flight.UserInput
 import           SMACCMPilot.Flight.Sensors
 import           SMACCMPilot.Flight.Control
 import           SMACCMPilot.Flight.Motors
@@ -26,14 +25,17 @@ app tofp = do
   flightTuningTower (fp_tuning . tofp) attrs
 
   rcin_ui <- channel
-  rcin_cl <- channel
+  rcin_cm <- channel
+  rcin_am <- channel
 
   flightIOTower tofp attrs
-                (fst rcin_ui) (fst rcin_cl)
+                (fst rcin_ui)
+                (fst rcin_cm)
+                (fst rcin_am)
                 (attrReaderChan (controlLaw attrs))
                 (attrReaderChan (motorOutput attrs))
 
-  userInputTower (snd rcin_ui) (snd rcin_cl) attrs
+  --userInputTower (snd rcin_ui) (snd rcin_cl) attrs
 
   sensorTower tofp attrs
 

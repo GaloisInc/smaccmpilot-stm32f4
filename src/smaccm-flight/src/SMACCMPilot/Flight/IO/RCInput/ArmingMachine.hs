@@ -15,7 +15,7 @@ import Ivory.Tower
 import Ivory.Stdlib
 
 import           SMACCMPilot.Time
-import qualified SMACCMPilot.Comm.Ivory.Types.ArmingMode  as A
+import qualified SMACCMPilot.Comm.Ivory.Types.Tristate    as T
 import qualified SMACCMPilot.Comm.Ivory.Types.RcInput     as RC
 
 data ArmingMachine =
@@ -23,7 +23,7 @@ data ArmingMachine =
     { am_init       :: forall eff   . Ivory eff ()
     , am_new_sample :: forall eff s . ConstRef s (Struct "rc_input") -> Ivory eff ()
     , am_no_sample  :: forall eff   . Ivory eff ()
-    , am_get_cl_req :: forall eff s . Ref s (Stored A.ArmingMode)
+    , am_get_req    :: forall eff s . Ref s (Stored T.Tristate)
                                    -> Ivory eff ()
     }
 
@@ -109,14 +109,14 @@ monitorArmingMachine = do
       no_sample_proc = proc no_sample_name $ body $
         store dead_last_pos deadSafe
 
-      get_arming_mode_proc :: Def('[Ref s (Stored A.ArmingMode)]:->())
+      get_arming_mode_proc :: Def('[Ref s (Stored T.Tristate)]:->())
       get_arming_mode_proc = proc get_arming_mode_name $ \a -> body $ do
         d <- deref dead_last_pos
         s <- deref armed_state
         cond_
-          [(d ==? deadSafe) ==> store a A.safe
-          ,(s ==? false)    ==> store a A.disarmed
-          ,(s ==? true)     ==> store a A.armed
+          [(d ==? deadSafe) ==> store a T.negative
+          ,(s ==? false)    ==> store a T.neutral
+          ,(s ==? true)     ==> store a T.positive
           ]
 
 
@@ -130,5 +130,5 @@ monitorArmingMachine = do
     { am_init       = call_ init_proc
     , am_new_sample = call_ new_sample_proc
     , am_no_sample  = call_ no_sample_proc
-    , am_get_cl_req = call_ get_arming_mode_proc
+    , am_get_req = call_ get_arming_mode_proc
     }

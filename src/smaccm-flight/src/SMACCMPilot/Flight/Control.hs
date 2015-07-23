@@ -12,6 +12,7 @@ import Ivory.Stdlib
 
 import qualified SMACCMPilot.Comm.Ivory.Types.ArmingMode      as A
 import qualified SMACCMPilot.Comm.Ivory.Types.ControlLaw      as CL
+import qualified SMACCMPilot.Comm.Ivory.Types.ControlModes    as CM
 import qualified SMACCMPilot.Comm.Ivory.Types.ControlOutput   as CO
 import qualified SMACCMPilot.Comm.Ivory.Types.ControlSource   as CS
 import qualified SMACCMPilot.Comm.Ivory.Types.ControlSetpoint as SP
@@ -58,7 +59,7 @@ controlTower attrs = do
         alt_update alt_control sens ui setpt cl idt
 
         armed   <- deref (cl ~> CL.arming_mode)
-        ui_mode <- deref (cl ~> CL.ui_mode)
+        ui_mode <- deref (cl ~> CL.control_modes ~> CM.ui_mode)
 
         cond_
           [ armed /=? A.armed ==>
@@ -77,7 +78,7 @@ controlTower attrs = do
               prc_run prc_control pit_sp rll_sp (constRef sens)
           ]
 
-        yaw_mode <- deref (cl ~> CL.yaw_mode)
+        yaw_mode <- deref (cl ~> CL.control_modes ~> CM.yaw_mode)
         cond_
           [ armed /=? A.armed ==> do
               yui_reset yui

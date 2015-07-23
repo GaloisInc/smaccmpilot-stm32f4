@@ -18,7 +18,7 @@ test: test-fmu24 test-fmu17 can_proxy_odroid_test smaccmpilot-odroid
 .PHONY: test-fmu17
 test-fmu17: platform-fmu17/comm-only-test-gen
 test-fmu17: platform-fmu17/ppm-test-gen
-test-fmu17: platform-fmu17/ui-test-gen
+test-fmu17: platform-fmu17/law-test-gen
 test-fmu17: platform-fmu17/sensors-test-gen
 
 .PHONY: test-fmu24
@@ -27,7 +27,7 @@ test-fmu24: platform-fmu24/can-proxy-test-gen
 test-fmu24: platform-fmu24/comm-only-test-gen
 test-fmu24: platform-fmu24/sensors-test-gen
 test-fmu24: platform-fmu24/ppm-test-gen
-test-fmu24: platform-fmu24/ui-test-gen
+test-fmu24: platform-fmu24/law-test-gen
 test-fmu24: platform-fmu24/standalone-flight-gen
 
 .PHONY: flight

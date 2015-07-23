@@ -26,6 +26,7 @@ import           SMACCMPilot.Flight.Types.MaybeFloat
 
 import qualified SMACCMPilot.Comm.Ivory.Types.AltControlDebug as A
 import qualified SMACCMPilot.Comm.Ivory.Types.ControlLaw      as CL
+import qualified SMACCMPilot.Comm.Ivory.Types.ControlModes    as CM
 import qualified SMACCMPilot.Comm.Ivory.Types.ThrottleMode    as TM
 import qualified SMACCMPilot.Comm.Ivory.Types.ArmingMode      as A
 import qualified SMACCMPilot.Comm.Ivory.Types.SensorsResult   as S
@@ -92,7 +93,7 @@ monitorAltitudeControl attrs = do
                               ]:->())
       proc_alt_update = proc name_alt_update $ \sens ui ctl_sp cl dt -> body $ do
 
-          thr_mode <- deref (cl ~> CL.thr_mode)
+          thr_mode <- deref (cl ~> CL.control_modes ~> CM.thr_mode)
           armed_mode <- deref (cl ~> CL.arming_mode)
           enabled <- assign ((thr_mode ==? TM.auto)
                          .&& (armed_mode ==? A.armed))
