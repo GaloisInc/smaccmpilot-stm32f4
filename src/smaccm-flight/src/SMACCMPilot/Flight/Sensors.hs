@@ -22,7 +22,7 @@ import           SMACCMPilot.Comm.Tower.Attr
 import           SMACCMPilot.Comm.Tower.Interface.ControllableVehicle
 import           SMACCMPilot.Flight.Platform
 import           SMACCMPilot.Hardware.SensorManager
-import           SMACCMPilot.INS.Bias.Gyro.Tower
+import           SMACCMPilot.INS.Bias.Gyro
 import           SMACCMPilot.INS.Bias.Magnetometer.Tower
 import           SMACCMPilot.INS.Bias.Calibration
 import           SMACCMPilot.INS.Ivory

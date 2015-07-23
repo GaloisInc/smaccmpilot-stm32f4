@@ -18,8 +18,6 @@ library
                        SMACCMPilot.INS.Tests.AllSensorsIvory,
                        SMACCMPilot.INS.Bias.Calibration,
                        SMACCMPilot.INS.Bias.Gyro,
-                       SMACCMPilot.INS.Bias.Gyro.Estimator,
-                       SMACCMPilot.INS.Bias.Gyro.Tower,
                        SMACCMPilot.INS.Bias.Magnetometer,
                        SMACCMPilot.INS.Bias.Magnetometer.Diversity,
                        SMACCMPilot.INS.Bias.Magnetometer.Estimator,
