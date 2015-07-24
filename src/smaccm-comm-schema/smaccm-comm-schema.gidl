@@ -4,7 +4,7 @@
 
 (def-enum arming_mode_t
   (safe     0)
-  (armed    2))
+  (armed    1))
 
 (def-enum tristate_t
   (negative 0)
