@@ -32,6 +32,7 @@ import SMACCMPilot.Datalink.HXStream.Tower
 import SMACCMPilot.INS.Bias.Calibration
 import SMACCMPilot.INS.Bias.Gyro
 import SMACCMPilot.INS.Bias.Magnetometer
+import SMACCMPilot.INS.DetectMotion
 import SMACCMPilot.INS.Ivory
 import SMACCMPilot.INS.Tower
 
@@ -118,13 +119,16 @@ app = compileTowerPosix (const $ return ()) $ do
     MonadLib.lift $ do
       (_, controlLaw) <- channel
 
-      currentGyroBias <- calcGyroBiasTower rawGyro accel
+      motion <- channel
+      detectMotion rawGyro accel (fst motion)
+
+      currentGyroBias <- calcGyroBiasTower rawGyro (snd motion)
       (gyro, gyroBias) <- applyCalibrationTower gyroCalibrate rawGyro currentGyroBias controlLaw
 
       currentMagBias <- calcMagBiasTower rawMag
       (mag, magBias) <- applyCalibrationTower magCalibrate rawMag currentMagBias controlLaw
 
-      states <- sensorFusion accel gyro mag currentGyroBias
+      states <- sensorFusion accel gyro mag (snd motion)
 
       monitor "output" $ do
         lastAccel <- save "accel" accel

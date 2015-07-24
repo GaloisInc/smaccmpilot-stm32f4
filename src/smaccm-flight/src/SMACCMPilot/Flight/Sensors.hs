@@ -25,6 +25,7 @@ import           SMACCMPilot.Hardware.SensorManager
 import           SMACCMPilot.INS.Bias.Gyro
 import           SMACCMPilot.INS.Bias.Magnetometer.Tower
 import           SMACCMPilot.INS.Bias.Calibration
+import           SMACCMPilot.INS.DetectMotion
 import           SMACCMPilot.INS.Ivory
 import           SMACCMPilot.INS.SensorFusion
 import           SMACCMPilot.INS.Tower
@@ -35,6 +36,9 @@ sensorTower :: (e -> FlightPlatform)
 sensorTower tofp attrs = do
 
   (a,g,m,b) <- sensorManager (fp_sensors . tofp) (fp_clockconfig . tofp)
+
+  motion <- channel
+  detectMotion g a (fst motion)
 
   -- Accel: no calibration at this time.
   attrProxy (accelOutput attrs) a
@@ -52,7 +56,7 @@ sensorTower tofp attrs = do
 
   attrProxy (gyroRawOutput attrs) g
 
-  gyro_bias <- calcGyroBiasTower g a
+  gyro_bias <- calcGyroBiasTower g (snd motion)
   attrProxy (gyroCalibration attrs) gyro_bias
 
   let cl_chan = attrReaderChan (controlLaw attrs)
@@ -76,7 +80,7 @@ sensorTower tofp attrs = do
   -- Sensor fusion: estimate vehicle attitude with respect to a N/E/D
   -- navigation frame. Report (1) attitude; (2) sensor measurements in the
   -- navigation frame.
-  states <- sensorFusion a gyro_out mag_out gyro_bias
+  states <- sensorFusion a gyro_out mag_out (snd motion)
   monitor "sensor_fusion_proxy" $ do
     last_accel <- save "last_accel" a
     last_baro <- save "last_baro" b

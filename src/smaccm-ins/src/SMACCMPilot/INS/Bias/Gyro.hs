@@ -14,19 +14,16 @@ import qualified SMACCMPilot.Comm.Ivory.Types.GyroscopeSample     as G
 import qualified SMACCMPilot.Comm.Ivory.Types.Xyz                 as XYZ
 import qualified SMACCMPilot.Comm.Ivory.Types.XyzCalibration      as C
 import SMACCMPilot.INS.Bias.Calibration
-import SMACCMPilot.INS.DetectMotion
 import SMACCMPilot.INS.Filter
 import SMACCMPilot.Time
 
 calcGyroBiasTower :: ChanOutput (Struct "gyroscope_sample")
-                  -> ChanOutput (Struct "accelerometer_sample")
+                  -> ChanOutput (Stored IBool)
                   -> Tower e (ChanOutput (Struct "xyz_calibration"))
-calcGyroBiasTower g a = do
+calcGyroBiasTower g motion = do
   cal <- channel
-  motion <- channel
   p <- period (Milliseconds 1000)
-  detectMotion g a (fst motion)
-  calcGyroBiasTower' g (snd motion) (fst cal) p
+  calcGyroBiasTower' g motion (fst cal) p
   return (snd cal)
 
 calcGyroBiasTower' :: ChanOutput (Struct "gyroscope_sample")

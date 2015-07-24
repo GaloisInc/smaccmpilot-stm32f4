@@ -19,6 +19,7 @@ import SMACCMPilot.Comm.Ivory.Types (typeModules)
 import SMACCMPilot.INS.Bias.Calibration
 import SMACCMPilot.INS.Bias.Gyro
 import SMACCMPilot.INS.Bias.Magnetometer
+import SMACCMPilot.INS.DetectMotion
 import SMACCMPilot.INS.Tower
 
 app :: (e -> PX4Platform) -> Tower e ()
@@ -27,13 +28,16 @@ app topx4 = do
 
   (_, controlLaw) <- channel
 
-  currentGyroBias <- calcGyroBiasTower gyro_s accel_s
+  motion <- channel
+  detectMotion gyro_s accel_s (fst motion)
+
+  currentGyroBias <- calcGyroBiasTower gyro_s (snd motion)
   (gyro_cal, _gyroBias) <- applyCalibrationTower gyroCalibrate gyro_s currentGyroBias controlLaw
 
   currentMagBias <- calcMagBiasTower mag_s
   (mag_cal, _magBias) <- applyCalibrationTower magCalibrate mag_s currentMagBias controlLaw
 
-  states <- sensorFusion accel_s gyro_cal mag_cal currentGyroBias
+  states <- sensorFusion accel_s gyro_cal mag_cal (snd motion)
 
   (uartout, _uarti) <- px4ConsoleTower topx4
 

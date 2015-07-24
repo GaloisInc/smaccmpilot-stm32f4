@@ -16,7 +16,6 @@ import qualified SMACCMPilot.Comm.Ivory.Types.MagnetometerSample  as M
 import qualified SMACCMPilot.Comm.Ivory.Types.AccelerometerSample as A
 import qualified SMACCMPilot.Comm.Ivory.Types.GyroscopeSample     as G
 import qualified SMACCMPilot.Comm.Ivory.Types.Xyz as XYZ
-import qualified SMACCMPilot.Comm.Ivory.Types.XyzCalibration      as C
 import SMACCMPilot.INS.Ivory
 import SMACCMPilot.Time
 
@@ -95,9 +94,9 @@ init_filter = proc "init_filter" $
 sensorFusion :: ChanOutput (Struct "accelerometer_sample")
              -> ChanOutput (Struct "gyroscope_sample")
              -> ChanOutput (Struct "magnetometer_sample")
-             -> ChanOutput (Struct "xyz_calibration")
+             -> ChanOutput (Stored IBool)
              -> Tower e (ChanOutput (Struct "kalman_state"))
-sensorFusion accelSource gyroSource magSource gyroCalStatus = do
+sensorFusion accelSource gyroSource magSource motion = do
   (stateSink, stateSource) <- channel
 
   let deps = [insTypesModule, GPS.gpsTypesModule] ++ typeModules
@@ -120,7 +119,7 @@ sensorFusion accelSource gyroSource magSource gyroCalStatus = do
     last_acc  <- stateInit "last_acc" $ istruct [ A.samplefail .= ival true ]
     last_mag <- stateInit "last_mag" $ istruct [ M.samplefail .= ival true ]
 
-    zero_motion <- state "zero_motion"
+    in_motion <- state "in_motion"
 
     handler accelSource "accel" $ do
       callback $ \ sample -> do
@@ -145,9 +144,9 @@ sensorFusion accelSource gyroSource magSource gyroCalStatus = do
               call_ kalman_predict state_vector covariance last_predict now (constRef last_gyro)
             ) (do
               magCal <- deref $ last_mag ~> M.calibrated
-              wasStill <- deref zero_motion
+              wasMoving <- deref in_motion
 
-              when (magCal .&& wasStill) $ do
+              when (magCal .&& iNot wasMoving) $ do
                 done <- call init_filter state_vector
                                          covariance
                                          (constRef last_acc)
@@ -168,7 +167,6 @@ sensorFusion accelSource gyroSource magSource gyroCalStatus = do
         ready <- deref initialized
         when ready $ call_ mag_measure state_vector covariance $ constRef last_mag
 
-    handler gyroCalStatus "calibration_status" $ callback $ \ cal -> do
-      refCopy zero_motion $ cal ~> C.valid
+    handler motion "calibration_status" $ callback $ refCopy in_motion
 
   return stateSource
