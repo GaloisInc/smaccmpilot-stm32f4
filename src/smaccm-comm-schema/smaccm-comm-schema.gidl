@@ -112,6 +112,7 @@
 (def-struct accelerometer_sample_t
   (initfail    bool_t)
   (samplefail  bool_t)
+  (calibrated  bool_t)
   (sample      xyz_t) -- m/s/s
   (temperature float_t) -- degrees Celsius
   (time        time_micros_t))
