@@ -56,8 +56,10 @@ app tofp = do
 
   control_law <- channel
   user_input_result <- channel
-  lawTower lawInputs (fst control_law) (fst user_input_result)
+  arming_status <- channel
+  lawTower lawInputs (fst arming_status) (fst control_law) (fst user_input_result)
 
+  attrProxy (armingStatus attrs) (snd arming_status)
   attrProxy (controlLaw attrs) (snd control_law)
   attrProxy (userInput attrs) (snd user_input_result)
 
