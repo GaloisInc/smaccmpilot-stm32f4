@@ -99,6 +99,8 @@ monitorArmingMachine = do
               when donewaiting $ do
                 store arming_state armingComplete
                 store armed_state  true
+          , s ==? armingComplete ==>
+             store arming_state armingIdle
           , true ==> do
               store arming_state armingIdle
           ]

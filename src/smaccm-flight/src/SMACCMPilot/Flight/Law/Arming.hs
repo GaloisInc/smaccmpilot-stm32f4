@@ -40,7 +40,6 @@ armingTower (SomeArmingInput ai_clk) ai_rest a_mode = monitor "arming_law" $ do
 
 
   where
-
   calcArmingState :: Ref s (Stored A.ArmingMode)
                   -> [ConstRef Global (Stored T.Tristate)]
                   -> Ivory eff ()
@@ -53,11 +52,9 @@ armingTower (SomeArmingInput ai_clk) ai_rest a_mode = monitor "arming_law" $ do
       , ts_high ==> store a A.armed
       ]
 
-
-
   someAIState :: SomeArmingInput -> Monitor e (Ref Global (Stored T.Tristate))
   someAIState (SomeArmingInput ai) = do
-    s <- state ("arming_input_state_" ++ ai_name ai)
+    s <- stateInit ("arming_input_state_" ++ ai_name ai) (ival T.neutral)
     handler (ai_chan ai) ("arming_input_new_" ++ ai_name ai) $ do
       callback $ \v -> do
         t <- ai_get ai v
