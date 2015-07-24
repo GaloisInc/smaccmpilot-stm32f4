@@ -38,8 +38,6 @@ app :: (e -> DatalinkMode)
     -> Maybe (ChanOutput (Struct "bbox"))
     -> Tower e ()
 app todl mbboxRx = do
-  towerDepends stdIOModule
-  towerModule  stdIOModule
 
   (canRx, canTx) <- canTower
 
@@ -90,7 +88,6 @@ app todl mbboxRx = do
                  refCopy bbox_prev bbox_st
                  (set_req ~> seqnum) += 1
                  snum <- deref (set_req~>seqnum)
-                 call_ printfuint32 "**** SENDING BBOX with seq %u\n" (unSequenceNum snum)
                  let ct = set_req ~> val
                  store (ct ~> valid)       true
                  store (ct ~> angle_up)    (safeCast l)
@@ -105,7 +102,6 @@ app todl mbboxRx = do
              callback $ \seqNum -> do
                comment "camera target setting has been acknowledged"
                s <- deref seqNum
-               call_ printfuint32 "**** SeqNum ack: %u\n" (unSequenceNum s)
 
 canDatalink :: AbortableTransmit (Struct "can_message") (Stored IBool)
             -> ChanOutput (Struct "can_message")
@@ -165,18 +161,3 @@ uartDatalink input output = do
                                        input
 
   airDataEncodeTower "frame" output uarto
-
-
-----------------------------------------
---- XXX should be put into a separate lib at some point.
-
-[ivory|
-import (stdio.h, printf) void printfuint32(string x, uint32_t y)
-import (stdio.h, printf) void printf(string x)
-|]
-
-
-stdIOModule :: Module
-stdIOModule = package "stdIOModule" $ do
-  incl printfuint32
-  incl printf
