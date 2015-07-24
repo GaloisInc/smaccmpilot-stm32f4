@@ -10,7 +10,8 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  exposed-modules:     SMACCMPilot.INS.Ivory,
+  exposed-modules:     SMACCMPilot.INS.DetectMotion,
+                       SMACCMPilot.INS.Ivory,
                        SMACCMPilot.INS.SensorFusion,
                        SMACCMPilot.INS.Simulate,
                        SMACCMPilot.INS.Tower,
