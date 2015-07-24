@@ -17,6 +17,7 @@ import qualified SMACCMPilot.Comm.Ivory.Types.SensorsResult  as S
 
 import           SMACCMPilot.Flight.Law.Arming
 import           SMACCMPilot.Flight.Law.ControlModes
+import           SMACCMPilot.Flight.Law.UserInput
 
 data LawInputs =
   LawInputs
@@ -38,13 +39,20 @@ lawTower :: LawInputs
          -> ChanInput (Struct "control_law")
          -> ChanInput (Struct "user_input_result")
          -> Tower e ()
-lawTower lis@LawInputs{..} as_output law_output _ui_output = do
+lawTower lis@LawInputs{..} as_output law_output ui_output = do
   arming_mode <- channel
   control_modes <- channel
 
   armingLawTower lis (fst arming_mode) as_output
 
-  controlModesTower lawinput_rcinput_modes lawinput_telem_modes (fst control_modes)
+  controlModesTower lawinput_rcinput_modes
+                    lawinput_telem_modes
+                    (fst control_modes)
+
+  userInputMuxTower (snd control_modes)
+                    lawinput_rcinput_ui
+                    lawinput_telem_ui
+                    ui_output
 
   monitor "control_law" $ do
     am <- state "arming_mode_"
