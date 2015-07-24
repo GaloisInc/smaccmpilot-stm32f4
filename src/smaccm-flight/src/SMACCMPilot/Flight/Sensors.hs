@@ -23,6 +23,7 @@ import           SMACCMPilot.Comm.Tower.Interface.ControllableVehicle
 import           SMACCMPilot.Flight.Platform
 import           SMACCMPilot.Hardware.SensorManager
 import           SMACCMPilot.INS.Bias.Gyro
+import           SMACCMPilot.INS.Bias.Accel
 import           SMACCMPilot.INS.Bias.Magnetometer.Tower
 import           SMACCMPilot.INS.Bias.Calibration
 import           SMACCMPilot.INS.DetectMotion
@@ -40,8 +41,25 @@ sensorTower tofp attrs = do
   motion <- channel
   detectMotion g a (fst motion)
 
-  -- Accel: no calibration at this time.
-  attrProxy (accelOutput attrs) a
+  -- Need control law to ensure we only apply new calibrations when the system
+  -- is disarmed.
+  let cl_chan = attrReaderChan (controlLaw attrs)
+
+  -- Accel: same basic calibration scheme as Gyro, below, except that we only
+  -- trigger the calcAccelBiasTower under special conditions.
+  attrProxy (accelRawOutput attrs) a
+
+  accel_bias_trigger <- channel
+  -- XXX calculate accel_bias_trigger when no-motion and px4io button.
+
+  accel_bias <- calcAccelBiasTower a (snd accel_bias_trigger)
+  attrProxy (accelCalibration attrs) accel_bias
+
+  (accel_out, accel_out_bias) <- applyCalibrationTower accelCalibrate a accel_bias cl_chan
+
+  attrProxy (accelOutputCalibration attrs) accel_out_bias
+  attrProxy (accelOutput attrs) accel_out
+
   -- Baro: no calibration at this time.
   attrProxy (baroOutput attrs) b
 
@@ -59,7 +77,6 @@ sensorTower tofp attrs = do
   gyro_bias <- calcGyroBiasTower g (snd motion)
   attrProxy (gyroCalibration attrs) gyro_bias
 
-  let cl_chan = attrReaderChan (controlLaw attrs)
   (gyro_out, gyro_out_bias) <- applyCalibrationTower gyroCalibrate g gyro_bias cl_chan
   attrProxy (gyroOutput            attrs) gyro_out
   attrProxy (gyroOutputCalibration attrs) gyro_out_bias
@@ -80,9 +97,9 @@ sensorTower tofp attrs = do
   -- Sensor fusion: estimate vehicle attitude with respect to a N/E/D
   -- navigation frame. Report (1) attitude; (2) sensor measurements in the
   -- navigation frame.
-  states <- sensorFusion a gyro_out mag_out (snd motion)
+  states <- sensorFusion accel_out gyro_out mag_out (snd motion)
   monitor "sensor_fusion_proxy" $ do
-    last_accel <- save "last_accel" a
+    last_accel <- save "last_accel" accel_out
     last_baro <- save "last_baro" b
     last_gyro <- save "last_gyro" gyro_out
 
