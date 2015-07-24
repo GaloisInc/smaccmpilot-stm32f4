@@ -16,7 +16,7 @@ import Ivory.Stdlib
 
 import           SMACCMPilot.Time
 import qualified SMACCMPilot.Comm.Ivory.Types.RcInput as RC
-import qualified SMACCMPilot.Comm.Ivory.Types.ControlLaw as CL
+import qualified SMACCMPilot.Comm.Ivory.Types.ControlModes  as CM
 import qualified SMACCMPilot.Comm.Ivory.Types.ControlSource as CS
 import qualified SMACCMPilot.Comm.Ivory.Types.YawMode as Y
 import qualified SMACCMPilot.Comm.Ivory.Types.ThrottleMode as T
@@ -27,7 +27,7 @@ data ModeSwitch =
     , ms_new_sample :: forall eff s . ConstRef s (Struct "rc_input")
                                    -> Ivory eff ()
     , ms_no_sample  :: forall eff   . Ivory eff ()
-    , ms_get_cl_req :: forall eff s . Ref s (Struct "control_law")
+    , ms_get_req    :: forall eff s . Ref s (Struct "control_modes")
                                    -> Ivory eff ()
     }
 
@@ -51,7 +51,7 @@ monitorModeSwitch = do
   init_name <- named "init"
   new_sample_name <- named "new_sample"
   no_sample_name <- named "no_sample"
-  get_cl_req_name <- named "cl_req_proc"
+  get_req_name <- named "req_proc"
 
   let init_proc :: Def('[]:->())
       init_proc = proc init_name $ body $ do
@@ -71,44 +71,44 @@ monitorModeSwitch = do
       no_sample_proc :: Def('[] :-> ())
       no_sample_proc = proc no_sample_name $ body $ return ()
 
-      get_cl_req_proc :: Def('[Ref s (Struct "control_law")]:->())
-      get_cl_req_proc = proc get_cl_req_name $ \cl -> body $ do
+      get_req_proc :: Def('[Ref s (Struct "control_modes")]:->())
+      get_req_proc = proc get_req_name $ \cm -> body $ do
         p <- deref md_last_position
         cond_
           [ p ==? posUp ==> do
               -- UI source may be gcs
-              store (cl ~> CL.ui_mode) CS.gcs
+              store (cm ~> CM.ui_mode) CS.gcs
               -- Yaw law must be heading
-              store (cl ~> CL.yaw_mode) Y.heading
+              store (cm ~> CM.yaw_mode) Y.heading
               -- Throttle law must be autothrottle
-              store (cl ~> CL.thr_mode) T.auto
+              store (cm ~> CM.thr_mode) T.auto
           , p ==? posCenter ==> do
               -- UI source must be ppm
-              store (cl ~> CL.ui_mode) CS.ppm
+              store (cm ~> CM.ui_mode) CS.ppm
               -- Yaw law must be rate
-              store (cl ~> CL.yaw_mode) Y.rate
+              store (cm ~> CM.yaw_mode) Y.rate
               -- Throttle law must be autothrottle
-              store (cl ~> CL.thr_mode) T.auto
+              store (cm ~> CM.thr_mode) T.auto
           , p ==? posDown ==> do
               -- UI source must be ppm
-              store (cl ~> CL.ui_mode) CS.ppm
+              store (cm ~> CM.ui_mode) CS.ppm
               -- Yaw law must be rate
-              store (cl ~> CL.yaw_mode) Y.rate
+              store (cm ~> CM.yaw_mode) Y.rate
               -- Throttle law must be direct
-              store (cl ~> CL.thr_mode) T.direct
+              store (cm ~> CM.thr_mode) T.direct
           ]
 
   monitorModuleDef $ do
     incl init_proc
     incl new_sample_proc
     incl no_sample_proc
-    incl get_cl_req_proc
+    incl get_req_proc
 
   return ModeSwitch
     { ms_init       = call_ init_proc
     , ms_new_sample = call_ new_sample_proc
     , ms_no_sample  = call_ no_sample_proc
-    , ms_get_cl_req = call_ get_cl_req_proc
+    , ms_get_req    = call_ get_req_proc
     }
   where
 

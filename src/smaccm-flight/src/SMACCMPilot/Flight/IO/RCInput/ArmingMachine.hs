@@ -15,7 +15,7 @@ import Ivory.Tower
 import Ivory.Stdlib
 
 import           SMACCMPilot.Time
-import qualified SMACCMPilot.Comm.Ivory.Types.ArmingMode  as A
+import qualified SMACCMPilot.Comm.Ivory.Types.Tristate    as T
 import qualified SMACCMPilot.Comm.Ivory.Types.RcInput     as RC
 
 data ArmingMachine =
@@ -23,7 +23,7 @@ data ArmingMachine =
     { am_init       :: forall eff   . Ivory eff ()
     , am_new_sample :: forall eff s . ConstRef s (Struct "rc_input") -> Ivory eff ()
     , am_no_sample  :: forall eff   . Ivory eff ()
-    , am_get_cl_req :: forall eff s . Ref s (Stored A.ArmingMode)
+    , am_get_req    :: forall eff s . Ref s (Stored T.Tristate)
                                    -> Ivory eff ()
     }
 
@@ -51,7 +51,7 @@ monitorArmingMachine :: Monitor p ArmingMachine
 monitorArmingMachine = do
   arming_state      <- state "arming_state"
   arming_state_time <- state "arming_state_time"
-  armed_state       <- state "armed_state"
+  arming_event      <- state "arming_event"
   dead_last_pos     <- state "dead_last_pos"
   let named n = fmap showUnique $ freshname $ "ppmdecoder_arming_" ++ n
 
@@ -64,7 +64,7 @@ monitorArmingMachine = do
       init_proc = proc init_name $ body $ do
         store arming_state armingIdle
         store arming_state_time 0
-        store armed_state false
+        store arming_event false
         store dead_last_pos deadSafe
 
       new_sample_proc :: Def('[ConstRef s (Struct "rc_input")] :-> ())
@@ -76,7 +76,7 @@ monitorArmingMachine = do
         dead_pos <- assign $ ((dead_chan >? 1600) ? (deadArmable,deadSafe))
         store dead_last_pos dead_pos
         ifte_ (dead_pos ==? deadSafe)
-              (arming_reset time >> store armed_state false)
+              (arming_reset time >> store arming_event false)
               (arming_sm throttle_chan rudder_chan time)
 
 
@@ -98,7 +98,7 @@ monitorArmingMachine = do
           , s ==? armingActive .&& sticks_corner ==> do
               when donewaiting $ do
                 store arming_state armingComplete
-                store armed_state  true
+                store arming_event true
           , true ==> do
               store arming_state armingIdle
           ]
@@ -109,14 +109,15 @@ monitorArmingMachine = do
       no_sample_proc = proc no_sample_name $ body $
         store dead_last_pos deadSafe
 
-      get_arming_mode_proc :: Def('[Ref s (Stored A.ArmingMode)]:->())
+      get_arming_mode_proc :: Def('[Ref s (Stored T.Tristate)]:->())
       get_arming_mode_proc = proc get_arming_mode_name $ \a -> body $ do
         d <- deref dead_last_pos
-        s <- deref armed_state
+        e <- deref arming_event
+        store arming_event false
         cond_
-          [(d ==? deadSafe) ==> store a A.safe
-          ,(s ==? false)    ==> store a A.disarmed
-          ,(s ==? true)     ==> store a A.armed
+          [(d ==? deadSafe) ==> store a T.negative
+          ,(e ==? false)    ==> store a T.neutral
+          ,(e ==? true)     ==> store a T.positive
           ]
 
 
@@ -130,5 +131,5 @@ monitorArmingMachine = do
     { am_init       = call_ init_proc
     , am_new_sample = call_ new_sample_proc
     , am_no_sample  = call_ no_sample_proc
-    , am_get_cl_req = call_ get_arming_mode_proc
+    , am_get_req = call_ get_arming_mode_proc
     }

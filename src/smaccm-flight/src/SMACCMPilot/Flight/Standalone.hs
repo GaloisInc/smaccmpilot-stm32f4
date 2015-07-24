@@ -9,11 +9,11 @@ import           Ivory.Tower
 import           SMACCMPilot.Flight.Platform
 import           SMACCMPilot.Flight.Datalink
 import           SMACCMPilot.Flight.IO
-import           SMACCMPilot.Flight.UserInput
 import           SMACCMPilot.Flight.Sensors
 import           SMACCMPilot.Flight.Control
 import           SMACCMPilot.Flight.Motors
 import           SMACCMPilot.Flight.Tuning
+import           SMACCMPilot.Flight.Law
 
 import           SMACCMPilot.Comm.Tower.Attr
 import           SMACCMPilot.Comm.Tower.Interface.ControllableVehicle
@@ -26,14 +26,39 @@ app tofp = do
   flightTuningTower (fp_tuning . tofp) attrs
 
   rcin_ui <- channel
-  rcin_cl <- channel
+  rcin_cm <- channel
+  rcin_am <- channel
 
   flightIOTower tofp attrs
-                (fst rcin_ui) (fst rcin_cl)
+                (fst rcin_ui)
+                (fst rcin_cm)
+                (fst rcin_am)
                 (attrReaderChan (controlLaw attrs))
                 (attrReaderChan (motorOutput attrs))
 
-  userInputTower (snd rcin_ui) (snd rcin_cl) attrs
+  accel_cal_output <- channel -- XXX PLACEHOLDER TILL I MERGE WITH JAMEYS CODE
+  let lawInputs = LawInputs
+        { lawinput_rcinput_arming   = snd rcin_am
+        , lawinput_rcinput_ui       = snd rcin_ui
+        , lawinput_rcinput_modes    = snd rcin_cm
+        , lawinput_telem_arming     = attrReaderChan (armingRequest attrs)
+        , lawinput_telem_ui         = attrReaderChan (userInputRequest attrs)
+        , lawinput_telem_modes      = attrReaderChan (controlModesRequest attrs)
+        , lawinput_px4io_state      = attrReaderChan (px4ioState attrs)
+        , lawinput_gyro_cal_output  = attrReaderChan (gyroOutputCalibration attrs)
+        , lawinput_accel_cal_output = snd accel_cal_output
+        , lawinput_mag_cal_output   = attrReaderChan (magOutputCalibration attrs)
+        , lawinput_sensors_output   = attrReaderChan (sensorsOutput attrs)
+        }
+
+  control_law <- channel
+  user_input_result <- channel
+  arming_status <- channel
+  lawTower lawInputs (fst arming_status) (fst control_law) (fst user_input_result)
+
+  attrProxy (armingStatus attrs) (snd arming_status)
+  attrProxy (controlLaw attrs) (snd control_law)
+  attrProxy (userInput attrs) (snd user_input_result)
 
   sensorTower tofp attrs
 

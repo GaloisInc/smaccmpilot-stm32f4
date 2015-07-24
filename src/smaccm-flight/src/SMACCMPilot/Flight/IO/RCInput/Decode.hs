@@ -15,7 +15,7 @@ import Control.Monad (forM_)
 
 import qualified SMACCMPilot.Comm.Ivory.Types.RcInput   as RC
 import qualified SMACCMPilot.Comm.Ivory.Types.UserInput as I
-import qualified SMACCMPilot.Comm.Ivory.Types.ControlLaw as C
+import qualified SMACCMPilot.Comm.Ivory.Types.Tristate  as T
 
 import SMACCMPilot.Time
 import SMACCMPilot.Flight.IO.RCInput.ModeSwitch
@@ -29,8 +29,10 @@ data RCInputDecoder =
                                       -> Ivory eff ()
     , rcind_get_ui     :: forall eff cs . (GetAlloc eff ~ Scope cs)
          => Ivory eff (ConstRef (Stack cs) (Struct "user_input"))
-    , rcind_get_cl_req :: forall eff cs . (GetAlloc eff ~ Scope cs)
-         => Ivory eff (ConstRef (Stack cs) (Struct "control_law"))
+    , rcind_get_cm_req :: forall eff cs . (GetAlloc eff ~ Scope cs)
+         => Ivory eff (ConstRef (Stack cs) (Struct "control_modes"))
+    , rcind_get_am_req :: forall eff cs . (GetAlloc eff ~ Scope cs)
+         => Ivory eff (ConstRef (Stack cs) (Stored T.Tristate))
     }
 
 monitorRCInputDecoder :: Monitor e RCInputDecoder
@@ -45,7 +47,8 @@ monitorRCInputDecoder = do
   new_sample_name <- named "new_sample"
   no_sample_name <- named "no_sample"
   get_ui_name <- named "get_ui"
-  get_cl_req_name <- named "gel_cl_req"
+  get_cm_req_name <- named "get_cm_req"
+  get_am_req_name <- named "get_am_req"
 
   let init_proc :: Def('[]:->())
       init_proc = proc init_name $ body $ do
@@ -91,17 +94,21 @@ monitorRCInputDecoder = do
           (call_  ppm_decode_ui_proc (constRef rcin_last) ui time)
           (failsafe ui)
 
-      get_cl_req_proc :: Def('[Ref s (Struct "control_law")]:->())
-      get_cl_req_proc = proc get_cl_req_name $ \cl_req -> body $ do
-        ms_get_cl_req modeswitch cl_req
-        am_get_cl_req armingmachine (cl_req ~> C.arming_mode)
+      get_cm_req_proc :: Def('[Ref s (Struct "control_modes")]:->())
+      get_cm_req_proc = proc get_cm_req_name $ \cm -> body $ do
+        ms_get_req modeswitch cm
+
+      get_am_req_proc :: Def('[Ref s (Stored T.Tristate)]:->())
+      get_am_req_proc = proc get_am_req_name $ \a -> body $ do
+        am_get_req armingmachine a
 
   monitorModuleDef $ do
     incl init_proc
     incl new_sample_proc
     incl no_sample_proc
     incl get_ui_proc
-    incl get_cl_req_proc
+    incl get_cm_req_proc
+    incl get_am_req_proc
     incl scale_proc
     incl ppm_decode_ui_proc
 
@@ -113,9 +120,13 @@ monitorRCInputDecoder = do
         l <- local (istruct [])
         call_ get_ui_proc l
         return (constRef l)
-    , rcind_get_cl_req = do
-        l <- local (istruct [])
-        call_ get_cl_req_proc l
+    , rcind_get_cm_req = do
+        l <- local izero
+        call_ get_cm_req_proc l
+        return (constRef l)
+    , rcind_get_am_req = do
+        l <- local izero
+        call_ get_am_req_proc l
         return (constRef l)
     }
   where

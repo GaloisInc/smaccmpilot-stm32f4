@@ -1,11 +1,17 @@
 
 (def-newtype time_micros_t sint64_t)
 
+
 (def-enum arming_mode_t
   (safe     0)
-  (disarmed 1)
-  (armed    2))
+  (armed    1))
 
+(def-enum tristate_t
+  (negative 0)
+  (neutral  1)
+  (positive 2))
+
+-- TODO: change ppm to rcinput in this enum:
 (def-enum control_source_t
   (ppm 0)
   (gcs 1)
@@ -23,11 +29,18 @@
   (time        time_micros_t)
   (arming_mode arming_mode_t))
 
-(def-struct control_law_t
-  (arming_mode arming_mode_t)
+(def-struct control_modes_t
   (ui_mode     control_source_t)
   (yaw_mode    yaw_mode_t)
   (thr_mode    throttle_mode_t))
+
+(def-struct control_law_t
+  (arming_mode   arming_mode_t)
+  (control_modes control_modes_t))
+
+(def-struct control_law_request_t
+  (arming_mode   tristate_t)
+  (control_modes control_modes_t))
 
 (def-struct user_input_t
   (throttle    float_t) -- [-1.0..1.0]
@@ -209,6 +222,16 @@
   (rc_in   rc_input_t)
   (time    time_micros_t))
 
+
+(def-struct arming_status_t
+  (rcinput   tristate_t)
+  (telem     tristate_t)
+  (px4io     tristate_t)
+  (gyro_cal  tristate_t)
+  (accel_cal tristate_t)
+  (mag_cal   tristate_t)
+  (sens_cal  tristate_t))
+
 (def-interface vehicle_i ()
   (heartbeat               (stream         heartbeat_t))
   (control_law             (attr read      control_law_t))
@@ -230,7 +253,8 @@
   (motor_output            (attr read      quadcopter_motors_t))
   (att_control_debug       (attr read      att_control_debug_t))
   (alt_control_debug       (attr read      alt_control_debug_t))
-  (px4io_state             (attr read      px4io_state_t)))
+  (px4io_state             (attr read      px4io_state_t))
+  (arming_status           (attr read      arming_status_t)))
 
 (def-interface controllable_vehicle_i (vehicle_i)
   (altitude_rate_pid       (attr readwrite pid_config_t))
@@ -251,7 +275,8 @@
 
   -- Use to set control law, when safety input permits the GCS to set the
   -- control law:
-  (control_law_request (attr readwrite control_law_t))
+  (arming_request          (attr readwrite tristate_t))
+  (control_modes_request   (attr readwrite control_modes_t))
   -- Use to set user input, when safety input permits the GCS to set the
   -- user input:
   (user_input_request  (attr readwrite user_input_t))
