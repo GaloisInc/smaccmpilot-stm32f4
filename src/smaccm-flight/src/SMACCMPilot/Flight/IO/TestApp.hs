@@ -14,7 +14,6 @@ import SMACCMPilot.Flight.IO
 
 import qualified SMACCMPilot.Comm.Ivory.Types.ArmingMode      as A
 import qualified SMACCMPilot.Comm.Ivory.Types.ControlLaw      as CL
-import qualified SMACCMPilot.Comm.Ivory.Types.ControlLawRequest as CLR
 import qualified SMACCMPilot.Comm.Ivory.Types.ControlSource   as CS
 import qualified SMACCMPilot.Comm.Ivory.Types.Tristate        as T
 import qualified SMACCMPilot.Comm.Ivory.Types.TimeMicros      as T

@@ -16,7 +16,6 @@ import Control.Monad (forM_)
 import qualified SMACCMPilot.Comm.Ivory.Types.RcInput   as RC
 import qualified SMACCMPilot.Comm.Ivory.Types.UserInput as I
 import qualified SMACCMPilot.Comm.Ivory.Types.Tristate  as T
-import qualified SMACCMPilot.Comm.Ivory.Types.ControlLawRequest as C
 
 import SMACCMPilot.Time
 import SMACCMPilot.Flight.IO.RCInput.ModeSwitch
