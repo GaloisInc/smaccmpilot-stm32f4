@@ -4,7 +4,6 @@ module SMACCMPilot.Flight.Law.ControlModes where
 
 import           Ivory.Language
 import           Ivory.Tower
-import           Ivory.Stdlib
 import qualified SMACCMPilot.Comm.Ivory.Types.ControlModes    as CM
 import qualified SMACCMPilot.Comm.Ivory.Types.ControlSource   as CS
 
@@ -30,7 +29,4 @@ controlModesTower rcinput_modes telem_modes output_modes = monitor "control_mode
                 refCopy m' m
                 store (m' ~> CM.ui_mode) CS.ppm
                 emit e (constRef m'))
-  where
-  timeout :: ITime
-  timeout = fromIMilliseconds (500 :: Sint16)
 

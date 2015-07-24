@@ -4,7 +4,6 @@ module SMACCMPilot.Flight.Law.UserInput where
 
 import           Ivory.Language
 import           Ivory.Tower
-import           Ivory.Stdlib
 import           SMACCMPilot.Time
 import qualified SMACCMPilot.Comm.Ivory.Types.ControlModes    as CM
 import qualified SMACCMPilot.Comm.Ivory.Types.ControlSource   as CS

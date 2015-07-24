@@ -2,8 +2,6 @@
 module SMACCMPilot.Flight.Law.TestApp where
 
 import Ivory.Tower
-import Ivory.Tower
-import Ivory.Stdlib
 
 import SMACCMPilot.Flight.Platform
 import SMACCMPilot.Flight.Datalink
@@ -35,11 +33,7 @@ app tofp = do
     output_cl
     output_motors
 
-
-  telem_arming <- channel
-  telem_ui     <- channel
-  telem_modes  <- channel
-  px4io_state  <- channel
+  -- No sensors for the unit test:
   gyro_cal_output <- channel
   accel_cal_output <- channel
   mag_cal_output <- channel
@@ -49,10 +43,10 @@ app tofp = do
         { lawinput_rcinput_arming   = snd rcinput_am
         , lawinput_rcinput_ui       = snd rcinput_ui
         , lawinput_rcinput_modes    = snd rcinput_cm
-        , lawinput_telem_arming     = snd telem_arming
-        , lawinput_telem_ui         = snd telem_ui
-        , lawinput_telem_modes      = snd telem_modes
-        , lawinput_px4io_state      = snd px4io_state
+        , lawinput_telem_arming     = attrReaderChan (armingRequest attrs)
+        , lawinput_telem_ui         = attrReaderChan (userInputRequest attrs)
+        , lawinput_telem_modes      = attrReaderChan (controlModesRequest attrs)
+        , lawinput_px4io_state      = attrReaderChan (px4ioState attrs)
         , lawinput_gyro_cal_output  = snd gyro_cal_output
         , lawinput_accel_cal_output = snd accel_cal_output
         , lawinput_mag_cal_output   = snd mag_cal_output
