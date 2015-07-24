@@ -63,3 +63,4 @@ app tofp = do
         l <- local izero
         refCopy (l ~> CL.control_modes) cm_req
         refCopy (l ~> CL.arming_mode) a
+        emit e (constRef l)
