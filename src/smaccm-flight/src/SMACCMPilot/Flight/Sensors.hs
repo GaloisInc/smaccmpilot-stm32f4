@@ -114,17 +114,6 @@ sensorTower tofp attrs = do
           ]
         emit e $ constRef result
 
-
-attrProxy :: (AttrWritable w, AttrNamed w, IvoryArea a, IvoryZero a)
-          => w a
-          -> ChanOutput a
-          -> Tower e ()
-attrProxy attr chan = do
-  monitor (attrName attr ++ "Proxy") $ do
-    handler chan "chan_write" $ do
-      e <- attrEmitter attr
-      callback $ \v -> emit e v
-
 save :: (IvoryArea a, IvoryZero a)
      => String
      -> ChanOutput a
