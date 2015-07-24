@@ -16,6 +16,7 @@ import qualified SMACCMPilot.Comm.Ivory.Types.XyzCalibration as Cal
 import qualified SMACCMPilot.Comm.Ivory.Types.SensorsResult  as S
 
 import           SMACCMPilot.Flight.Law.Arming
+import           SMACCMPilot.Flight.Law.ControlModes
 
 data LawInputs =
   LawInputs
@@ -39,15 +40,18 @@ lawTower :: LawInputs
          -> Tower e ()
 lawTower lis@LawInputs{..} as_output law_output _ui_output = do
   arming_mode <- channel
+  control_modes <- channel
 
   armingLawTower lis (fst arming_mode) as_output
+
+  controlModesTower lawinput_rcinput_modes lawinput_telem_modes (fst control_modes)
 
   monitor "control_law" $ do
     am <- state "arming_mode_"
     handler (snd arming_mode) "armingTower_arming_mode" $ do
       callback $ \am' -> refCopy am am'
 
-    handler lawinput_rcinput_modes "rcinput_control_modes" $ do
+    handler (snd control_modes) "controlModesTower_control_modes" $ do
       e <- emitter law_output 1
       callback $ \cm -> do
         law <- local izero
