@@ -46,9 +46,9 @@ sensorTower tofp attrs = do
   monitor "motion_light_debug" $ do
     handler (snd motion) "motion_light_debug" $ do
       e <- attrEmitter (rgbLed attrs)
-      callbackV $ \m -> do
+      callbackV $ \mot -> do
         l <- local izero
-        ifte_ m
+        ifte_ mot
           (store (l ~> LED.red) 15)
           (store (l ~> LED.green) 15)
         emit e (constRef l)
@@ -121,7 +121,6 @@ sensorTower tofp attrs = do
       e <- attrEmitter $ sensorsOutput attrs
       callback $ \ stateVector -> do
         attitude <- mapM deref $ stateOrient $ stateVectorFromStruct stateVector
-        let toNavFrame vec = fromQuaternion attitude !* vec
         let (Quaternion q0 (V3 q1 q2 q3)) = attitude
 
         accel <- xyzRef $ last_accel ~> A.sample
@@ -139,7 +138,7 @@ sensorTower tofp attrs = do
           , R.yaw .= ival (atan2F (2 * (q0 * q3 + q1 * q2)) (1 - 2 * (q2 * q2 + q3 * q3)))
           , R.omega .= xyzInitStruct (fmap (* (pi / 180)) gyro)
           , R.baro_alt .= ival (pressureToHeight $ pressure * 100) -- convert mbar to Pascals
-          , R.accel .= xyzInitStruct (toNavFrame accel + V3 0 0 9.80665)
+          , R.accel .= xyzInitStruct accel
           , R.ahrs_time .= ival gyro_time
           , R.baro_time .= ival baro_time
           ]
