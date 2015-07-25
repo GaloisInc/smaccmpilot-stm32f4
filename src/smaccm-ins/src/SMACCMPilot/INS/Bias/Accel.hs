@@ -20,10 +20,10 @@ import SMACCMPilot.Time
 calcAccelBiasTower :: ChanOutput (Struct "accelerometer_sample")
                    -> ChanOutput (Stored IBool)
                    -> Tower e (ChanOutput (Struct "xyz_calibration"))
-calcAccelBiasTower a motion = do
+calcAccelBiasTower a valid_cal_chan = do
   cal <- channel
   p <- period (Milliseconds 1000)
-  calcAccelBiasTower' a motion (fst cal) p
+  calcAccelBiasTower' a valid_cal_chan (fst cal) p
   return (snd cal)
 
 calcAccelBiasTower' :: ChanOutput (Struct "accelerometer_sample")
@@ -31,7 +31,7 @@ calcAccelBiasTower' :: ChanOutput (Struct "accelerometer_sample")
                     -> ChanInput  (Struct "xyz_calibration")
                     -> ChanOutput (Stored ITime)
                     -> Tower e ()
-calcAccelBiasTower' a motion c newoutput = monitor "calcAccelBias" $ do
+calcAccelBiasTower' a valid_cal_chan c newoutput = monitor "calcAccelBias" $ do
   n <- freshname "abe"
   let named s = showUnique n ++ "_" ++ s
 
@@ -59,8 +59,10 @@ calcAccelBiasTower' a motion c newoutput = monitor "calcAccelBias" $ do
     filter_sample lpf_ay ay
     filter_sample lpf_az az
 
-  inMotion <- state "in_motion"
-  handler motion "motion" $ callback $ refCopy inMotion
+  valid_cal <- state "accel_bias_valid_cal"
+  handler valid_cal_chan "accel_bias_valid_cal" $ do
+    callbackV $ \v -> do
+      when v $ store valid_cal true
 
   handler newoutput "output" $ do
     e <- emitter c 1
@@ -86,8 +88,9 @@ calcAccelBiasTower' a motion c newoutput = monitor "calcAccelBias" $ do
       store (o ! axis) ((axisAccel <? 0) ? (axisAccel + 9.80665, axisAccel - 9.80665))
 
       comment "emit estimated biases"
-      moving <- deref inMotion
-      cal <- mkCalibration (constRef o) (iNot moving) t
+      v <- deref valid_cal
+      store valid_cal false
+      cal <- mkCalibration (constRef o) v t
       emit e cal
 
 mkCalibration :: (GetAlloc eff ~ Scope s)
