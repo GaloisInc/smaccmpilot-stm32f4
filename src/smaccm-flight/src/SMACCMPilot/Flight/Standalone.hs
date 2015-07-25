@@ -14,6 +14,7 @@ import           SMACCMPilot.Flight.Control
 import           SMACCMPilot.Flight.Motors
 import           SMACCMPilot.Flight.Tuning
 import           SMACCMPilot.Flight.Law
+import           SMACCMPilot.Flight.Light
 
 import           SMACCMPilot.Comm.Tower.Attr
 import           SMACCMPilot.Comm.Tower.Interface.ControllableVehicle
@@ -22,6 +23,8 @@ app :: (e -> FlightPlatform)
     -> Tower e ()
 app tofp = do
   (attrs, _streams) <- datalinkTower tofp 57600
+
+  lightTower tofp attrs
 
   flightTuningTower (fp_tuning . tofp) attrs
 
