@@ -1,12 +1,7 @@
 BUGS:
 
-- accel is not calibrated
+- accel cal seems to work, but the euler angles seem to be wrong sometimes?
+- gyro, accel, mag output cal arming inputs seem to be broken, always "neutral"
+- no-motion calculation seems to happen on the SPI interrupt, should we move the
+  heavier parts of that task to a periodic function?
 
-- if you arm the fmu before you arm the io, escs wont calibrate
-  until you disarm the fmu.
-  require io armed first.
-
-- if you attempt to arm before doing a full imu calibration, and do not put the
-  system back to Safe, the arming will take effect as soon as the cal is done
-(you could lose a finger)
-  
