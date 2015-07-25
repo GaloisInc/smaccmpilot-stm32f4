@@ -30,6 +30,7 @@ import           SMACCMPilot.INS.DetectMotion
 import           SMACCMPilot.INS.Ivory
 import           SMACCMPilot.INS.SensorFusion
 import           SMACCMPilot.INS.Tower
+import           SMACCMPilot.Flight.Sensors.AccelBiasTrigger
 
 sensorTower :: (e -> FlightPlatform)
             -> ControllableVehicleAttrs Attr
@@ -50,7 +51,9 @@ sensorTower tofp attrs = do
   attrProxy (accelRawOutput attrs) a
 
   accel_bias_trigger <- channel
-  -- XXX calculate accel_bias_trigger when no-motion and px4io button.
+  accelBiasTriggerTower (snd motion)
+                        (attrReaderChan (px4ioState attrs))
+                        (fst accel_bias_trigger)
 
   accel_bias <- calcAccelBiasTower a (snd accel_bias_trigger)
   attrProxy (accelCalibration attrs) accel_bias

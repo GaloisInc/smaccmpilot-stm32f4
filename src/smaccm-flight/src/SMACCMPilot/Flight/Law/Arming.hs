@@ -8,6 +8,7 @@ import           Ivory.Language
 import           Ivory.Tower
 import           Ivory.Stdlib
 import qualified SMACCMPilot.Comm.Ivory.Types.ArmingMode      as A
+import qualified SMACCMPilot.Comm.Ivory.Types.ArmingStatus    as A ()
 import qualified SMACCMPilot.Comm.Ivory.Types.Tristate        as T
 
 
@@ -62,6 +63,9 @@ armingTower (SomeArmingInput ai_clk) ai_rest a_mode a_stat = monitor "arming_law
               -> Monitor e (Ref Global (Stored T.Tristate))
   someAIState status (SomeArmingInput ai) = do
     let s = status ~> (ai_set ai)
+    handler systemInit ("arming_input_init_" ++ ai_name ai) $ do
+      callback $ const $ do
+        store s T.neutral
     handler (ai_chan ai) ("arming_input_new_" ++ ai_name ai) $ do
       callback $ \v -> do
         t <- ai_get ai v

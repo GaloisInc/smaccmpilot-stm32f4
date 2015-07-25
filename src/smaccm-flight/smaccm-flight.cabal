@@ -53,6 +53,7 @@ library
                        SMACCMPilot.Flight.Motors.Mixing,
                        SMACCMPilot.Flight.Platform,
                        SMACCMPilot.Flight.Sensors,
+                       SMACCMPilot.Flight.Sensors.AccelBiasTrigger,
                        SMACCMPilot.Flight.Sensors.TestApp,
                        SMACCMPilot.Flight.Standalone,
                        SMACCMPilot.Flight.Tuning,

@@ -36,7 +36,7 @@ app tofp = do
                 (attrReaderChan (controlLaw attrs))
                 (attrReaderChan (motorOutput attrs))
 
-  accel_cal_output <- channel -- XXX PLACEHOLDER TILL I MERGE WITH JAMEYS CODE
+
   let lawInputs = LawInputs
         { lawinput_rcinput_arming   = snd rcin_am
         , lawinput_rcinput_ui       = snd rcin_ui
@@ -46,7 +46,7 @@ app tofp = do
         , lawinput_telem_modes      = attrReaderChan (controlModesRequest attrs)
         , lawinput_px4io_state      = attrReaderChan (px4ioState attrs)
         , lawinput_gyro_cal_output  = attrReaderChan (gyroOutputCalibration attrs)
-        , lawinput_accel_cal_output = snd accel_cal_output
+        , lawinput_accel_cal_output = attrReaderChan (accelOutputCalibration attrs)
         , lawinput_mag_cal_output   = attrReaderChan (magOutputCalibration attrs)
         , lawinput_sensors_output   = attrReaderChan (sensorsOutput attrs)
         }
