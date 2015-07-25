@@ -8,9 +8,8 @@ import           Ivory.Language
 import           Ivory.Tower
 import           Ivory.Stdlib
 import qualified SMACCMPilot.Comm.Ivory.Types.ArmingMode      as A
-import qualified SMACCMPilot.Comm.Ivory.Types.ArmingStatus    as A ()
+import qualified SMACCMPilot.Comm.Ivory.Types.ArmingStatus    as A
 import qualified SMACCMPilot.Comm.Ivory.Types.Tristate        as T
-
 
 data ArmingInput a =
   ArmingInput
@@ -31,7 +30,16 @@ armingTower :: SomeArmingInput -- CLOCK
             -> Tower e ()
 armingTower (SomeArmingInput ai_clk) ai_rest a_mode a_stat = monitor "arming_law" $ do
   a <- stateInit "arming_law" (ival A.safe)
-  s <- state "arming_inputs"
+  s <- stateInit "arming_inputs" $ istruct
+        [ A.accel_cal .= ival T.negative
+        , A.mag_cal   .= ival T.negative
+        , A.gyro_cal  .= ival T.negative
+        , A.px4io     .= ival T.negative
+        , A.rcinput   .= ival T.negative
+        , A.sens_cal  .= ival T.negative
+        , A.telem     .= ival T.neutral
+        ]
+
   let s_clk = s ~> (ai_set ai_clk)
   s_rest <- mapM (someAIState s) ai_rest
   handler (ai_chan ai_clk) ("arming_input_clock_" ++ ai_name ai_clk) $ do
@@ -63,9 +71,6 @@ armingTower (SomeArmingInput ai_clk) ai_rest a_mode a_stat = monitor "arming_law
               -> Monitor e (Ref Global (Stored T.Tristate))
   someAIState status (SomeArmingInput ai) = do
     let s = status ~> (ai_set ai)
-    handler systemInit ("arming_input_init_" ++ ai_name ai) $ do
-      callback $ const $ do
-        store s T.neutral
     handler (ai_chan ai) ("arming_input_new_" ++ ai_name ai) $ do
       callback $ \v -> do
         t <- ai_get ai v

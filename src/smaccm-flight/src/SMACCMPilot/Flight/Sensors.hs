@@ -18,6 +18,7 @@ import qualified SMACCMPilot.Comm.Ivory.Types.BarometerSample as B
 import qualified SMACCMPilot.Comm.Ivory.Types.GyroscopeSample as G
 import qualified SMACCMPilot.Comm.Ivory.Types.SensorsResult as R
 import qualified SMACCMPilot.Comm.Ivory.Types.Xyz as XYZ
+import qualified SMACCMPilot.Comm.Ivory.Types.RgbLedSetting as LED
 import           SMACCMPilot.Comm.Tower.Attr
 import           SMACCMPilot.Comm.Tower.Interface.ControllableVehicle
 import           SMACCMPilot.Flight.Platform
@@ -41,6 +42,16 @@ sensorTower tofp attrs = do
 
   motion <- channel
   detectMotion g a (fst motion)
+
+  monitor "motion_light_debug" $ do
+    handler (snd motion) "motion_light_debug" $ do
+      e <- attrEmitter (rgbLed attrs)
+      callbackV $ \m -> do
+        l <- local izero
+        ifte_ m
+          (store (l ~> LED.red) 15)
+          (store (l ~> LED.green) 15)
+        emit e (constRef l)
 
   -- Need control law to ensure we only apply new calibrations when the system
   -- is disarmed.

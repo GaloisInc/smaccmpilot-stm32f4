@@ -1,7 +1,6 @@
 BUGS:
 
 - accel cal seems to work, but the euler angles seem to be wrong sometimes?
-- gyro, accel, mag output cal arming inputs seem to be broken, always "neutral"
 - no-motion calculation seems to happen on the SPI interrupt, should we move the
   heavier parts of that task to a periodic function?
 
