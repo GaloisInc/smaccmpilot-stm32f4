@@ -18,8 +18,8 @@ detectMotion g a res = monitor "detectMotion" $ do
   n <- freshname "detectMotion"
   let named s = showUnique n ++ "_" ++ s
 
-  let gyro_threshold  = 25
-  let accel_threshold = 0.75
+  let gyro_threshold  = 5
+  let accel_threshold = 0.25
 
   let highpass fn = ivory2ndOrderFilter fn highPassButterworth
 
@@ -52,10 +52,9 @@ detectMotion g a res = monitor "detectMotion" $ do
   let reportMotion e = do
         a_t <- deref accel_threshold_ctr
         g_t <- deref gyro_threshold_ctr
-        emitV e $ a_t <=? 100 .|| g_t <=? 100
+        emitV e $ a_t <=? 200 .|| g_t <=? 200
 
   handler g "gyro" $ do
-    e <- emitter res 1
     callback $ \g_samp -> do
       gx <- deref ((g_samp ~> G.sample) ~> XYZ.x)
       gy <- deref ((g_samp ~> G.sample) ~> XYZ.y)
@@ -70,7 +69,6 @@ detectMotion g a res = monitor "detectMotion" $ do
       ifte_ (hg_mag >? gyro_threshold)
             (store gyro_threshold_ctr 0)
             (gyro_threshold_ctr %= (+1))
-      reportMotion e
 
   handler a "accel" $ do
     e <- emitter res 1
