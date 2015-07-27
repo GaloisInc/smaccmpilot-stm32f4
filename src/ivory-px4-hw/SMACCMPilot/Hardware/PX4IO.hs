@@ -190,14 +190,13 @@ px4ioTower tocc dmauart pins control_law motors state_chan = do
           px4ioStatusFromReg status_flags (px4io_state ~> status)
           px4ioAlarmsFromReg status_alarms (px4io_state ~> alarms)
 
-          -- DESPITE WHAT YOU MAY BE LED TO BELIEVE BY THE PX4IO 'protocol.h'
           -- At least in PPM Mode, input channel count is at offset 0
-          -- (as expected) but then channels are laid out in the
-          -- RAW_RC_INPUT page starting at offset 1.
+          -- (as expected) but then channels start at offset 6
+          -- in the RAW_RC_INPUT page. We need the first 6 channels.
           (rc_input_reg, rc_input_ok) <- rpc $ istruct
             [ req_code .= ival request_read
             , page     .= ival 4 -- RAW_RC_INPUT page
-            , count    .= ival 7 -- 7 Registers
+            , count    .= ival 12 -- Need register 0 and from 6..11
             , offs     .= ival 0 -- Starting at reg 0
             , regs     .= iarray [ ival 0 ]
             ]

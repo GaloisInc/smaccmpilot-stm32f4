@@ -80,12 +80,12 @@ rcInputFromRegs :: TimeMicros
                 -> Ivory eff ()
 rcInputFromRegs t input_req rc_input = do
   cnt <- deref (input_req ~> regs ! 0)
-  i0  <- deref (input_req ~> regs ! 1)
-  i1  <- deref (input_req ~> regs ! 2)
-  i2  <- deref (input_req ~> regs ! 3)
-  i3  <- deref (input_req ~> regs ! 4)
-  i4  <- deref (input_req ~> regs ! 5)
-  i5  <- deref (input_req ~> regs ! 6)
+  i0  <- deref (input_req ~> regs ! 6)
+  i1  <- deref (input_req ~> regs ! 7)
+  i2  <- deref (input_req ~> regs ! 8)
+  i3  <- deref (input_req ~> regs ! 9)
+  i4  <- deref (input_req ~> regs ! 10)
+  i5  <- deref (input_req ~> regs ! 11)
   store (rc_input ~> valid) (cnt >=? 6)
   store (rc_input ~> roll)     i0
   store (rc_input ~> pitch)    i1
