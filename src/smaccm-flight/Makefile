@@ -33,6 +33,10 @@ test-fmu24: platform-fmu24/standalone-flight-gen
 .PHONY: flight
 flight: platform-fmu24/standalone-flight-gen
 
+.PHONY: upload-flight
+upload-flight:
+	make -C platform-fmu24/standalone-flight upload
+
 .PHONY: can_proxy_odroid_test
 can_proxy_odroid_test: default
 	-rm -rf $@
