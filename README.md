@@ -2,17 +2,6 @@
 ==============================
 [![Build Status](https://travis-ci.org/GaloisInc/smaccmpilot-stm32f4.svg?branch=master)](https://travis-ci.org/GaloisInc/smaccmpilot-stm32f4)
 
-## NOTES:
-
-*This repository is still in a state of upheaval as the move to tower 9
-stabilizes. At this time there is no application code for flying a quadcopter!*
-
-At this time, the provided master branch is only suitable for developers who are
-interested in the components of the SMACCMPilot project. If you wish to
-evaluate an old version of the code where flight controller application works,
-stable version of this code, given by the `smaccmpilot-build` repository's
-`master` branch.
-
 ## Overview
 
 The [SMACCMPilot project][smaccmpilot.org] is an embedded systems software
@@ -36,9 +25,6 @@ updates. You can also [file issues][issues] on Github.
 - The `src` directory contains a collection of Cabal packages for components
   of the SMACCMPilot build. There is a `README` in each package directory
   describing the libraries and executables provided.
-
-- The `boot` directory contains binaries and upload scripts for the PX4 Project
-  bootloader.
 
 ## Dependencies
 
