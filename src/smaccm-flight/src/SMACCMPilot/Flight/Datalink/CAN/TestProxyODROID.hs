@@ -35,9 +35,9 @@ import Tower.Odroid.UART
 import Tower.Odroid.CameraVM
 
 app :: (e -> DatalinkMode)
-    -> Maybe (ChanOutput (Struct "bbox"))
+    -> Maybe (ChanOutput (Struct "camera_angles"))
     -> Tower e ()
-app todl mbboxRx = do
+app todl anglesRx = do
 
   (canRx, canTx) <- canTower
 
@@ -64,44 +64,46 @@ app todl mbboxRx = do
   uartDatalink (fst s2c_ct_from_uart) (snd c2s_ct_to_uart)
   canDatalink canTx canRx (fst c2s_from_can) s2c_to_can
 
-  case mbboxRx of
+  case anglesRx of
     Nothing
       -> return ()
-    Just bboxRx
+    Just cameraAngles
       -> do
         monitor "periodic_camera_injector" $ do
-           bbox_st   <- stateInit "camera_toggle" izero
-           bbox_prev <- stateInit "camera_toggle" izero
-           set_req   <- stateInit "camera_req"    izero
+           angles_st   <- stateInit "angles_st"   izero
+           angles_prev <- stateInit "angles_prev" izero
+           set_req     <- stateInit "set_req"     izero
+           seq_num_g   <- stateInit "seq_num_g"   izero
 
            handler clk "camera_clk" $ do
              e_set <- emitter (fst camera_tgt_req) 1
              callback $ const $ do
-               comment "Made up for now"
-               l  <- deref (bbox_st ~> left)
-               r  <- deref (bbox_st ~> right)
+               comment ""
+               x  <- deref (angles_st ~> angle_x)
+               y  <- deref (angles_st ~> angle_y)
 
-               l' <- deref (bbox_prev ~> left)
-               r' <- deref (bbox_prev ~> right)
+               x' <- deref (angles_prev ~> angle_x)
+               y' <- deref (angles_prev ~> angle_y)
 
-               unless (l ==? l' .&& r ==? r') $ do
-                 refCopy bbox_prev bbox_st
+               unless (x ==? x' .&& y ==? y') $ do
+                 refCopy angles_prev angles_st
                  (set_req ~> seqnum) += 1
-                 snum <- deref (set_req~>seqnum)
+--                 snum <- deref (set_req ~> seqnum)
                  let ct = set_req ~> val
                  store (ct ~> valid)       true
-                 store (ct ~> angle_up)    (safeCast l)
-                 store (ct ~> angle_right) (safeCast r)
+                 store (ct ~> angle_right) x
+                 store (ct ~> angle_up)    y
                  emit e_set (constRef set_req)
 
-           handler bboxRx "bboxRx" $ do
-             callback $ \bbox -> do
-               refCopy bbox_st bbox
+           handler cameraAngles "anglesRx" $ do
+             callback $ \angles -> do
+               refCopy angles_st angles
 
            handler (cameraTargetInputSetRespProducer cv_producer) "set_response" $ do
              callback $ \seqNum -> do
                comment "camera target setting has been acknowledged"
                s <- deref seqNum
+               store seq_num_g s
 
 canDatalink :: AbortableTransmit (Struct "can_message") (Stored IBool)
             -> ChanOutput (Struct "can_message")
