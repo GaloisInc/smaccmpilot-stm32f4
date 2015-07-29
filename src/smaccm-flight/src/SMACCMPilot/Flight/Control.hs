@@ -53,6 +53,7 @@ controlTower attrs = do
 
     handler p "control_periodic" $ do
       e <- attrEmitter (controlOutput attrs)
+      alt_debug_e <- attrEmitter (altControlDebug attrs)
       callback $ const $ do
         let ui = (ui_res ~> UIR.ui)
         -- Run altitude and attitude controllers
@@ -116,6 +117,10 @@ controlTower attrs = do
           store (ctl ~> CO.armed) true
 
         emit e (constRef ctl)
+
+        alt_debug_v <- local izero
+        alt_debug alt_control alt_debug_v
+        emit alt_debug_e (constRef alt_debug_v)
 
   mapM_ towerModule controlModules
 
