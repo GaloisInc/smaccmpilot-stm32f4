@@ -20,7 +20,6 @@ import SMACCMPilot.Flight.Datalink.CAN (s2cType, c2sType)
 
 import SMACCMPilot.Comm.Ivory.Types.SequenceNumberedCameraTarget
 import SMACCMPilot.Comm.Ivory.Types.CameraTarget
-import SMACCMPilot.Comm.Ivory.Types.SequenceNum
 import SMACCMPilot.Comm.Tower.Interface.ControllableVehicle
 import SMACCMPilot.Commsec.Sizes
 import SMACCMPilot.Commsec.SymmetricKey
@@ -56,8 +55,6 @@ app todl anglesRx = do
 
   c2s_ct_to_uart  <- channel
 
-  clk             <- period (1000`ms`)
-
   datalinkEncode todl c2s_pt_to_uart (fst c2s_ct_to_uart)
   datalinkDecode todl (snd s2c_ct_from_uart) (fst s2c_pt_from_uart)
 
@@ -68,42 +65,49 @@ app todl anglesRx = do
     Nothing
       -> return ()
     Just cameraAngles
-      -> do
-        monitor "periodic_camera_injector" $ do
-           angles_st   <- stateInit "angles_st"   izero
-           angles_prev <- stateInit "angles_prev" izero
-           set_req     <- stateInit "set_req"     izero
-           seq_num_g   <- stateInit "seq_num_g"   izero
+      -> periodicCamera (fst camera_tgt_req) cameraAngles cv_producer
 
-           handler clk "camera_clk" $ do
-             e_set <- emitter (fst camera_tgt_req) 1
-             callback $ const $ do
-               comment ""
-               x  <- deref (angles_st ~> angle_x)
-               y  <- deref (angles_st ~> angle_y)
+periodicCamera :: ChanInput (Struct "sequence_numbered_camera_target")
+               -> ChanOutput (Struct "camera_angles")
+               -> ControllableVehicleProducer
+               -> Tower e ()
+periodicCamera camera_tgt_reqTx cameraAngles cv_producer = do
+  clk             <- period (1000`ms`)
+  monitor "periodic_camera_injector" $ do
+     angles_st   <- stateInit "angles_st"   izero
+     angles_prev <- stateInit "angles_prev" izero
+     set_req     <- stateInit "set_req"     izero
+     seq_num_g   <- stateInit "seq_num_g"   izero
 
-               x' <- deref (angles_prev ~> angle_x)
-               y' <- deref (angles_prev ~> angle_y)
+     handler clk "camera_clk" $ do
+       e_set <- emitter camera_tgt_reqTx 1
+       callback $ const $ do
+         comment ""
+         x  <- deref (angles_st ~> angle_x)
+         y  <- deref (angles_st ~> angle_y)
 
-               unless (x ==? x' .&& y ==? y') $ do
-                 refCopy angles_prev angles_st
-                 (set_req ~> seqnum) += 1
+         x' <- deref (angles_prev ~> angle_x)
+         y' <- deref (angles_prev ~> angle_y)
+
+         unless (x ==? x' .&& y ==? y') $ do
+           refCopy angles_prev angles_st
+           (set_req ~> seqnum) += 1
 --                 snum <- deref (set_req ~> seqnum)
-                 let ct = set_req ~> val
-                 store (ct ~> valid)       true
-                 store (ct ~> angle_right) x
-                 store (ct ~> angle_up)    y
-                 emit e_set (constRef set_req)
+           let ct = set_req ~> val
+           store (ct ~> valid)       true
+           store (ct ~> angle_right) x
+           store (ct ~> angle_up)    y
+           emit e_set (constRef set_req)
 
-           handler cameraAngles "anglesRx" $ do
-             callback $ \angles -> do
-               refCopy angles_st angles
+     handler cameraAngles "anglesRx" $ do
+       callback $ \angles -> do
+         refCopy angles_st angles
 
-           handler (cameraTargetInputSetRespProducer cv_producer) "set_response" $ do
-             callback $ \seqNum -> do
-               comment "camera target setting has been acknowledged"
-               s <- deref seqNum
-               store seq_num_g s
+     handler (cameraTargetInputSetRespProducer cv_producer) "set_response" $ do
+       callback $ \seqNum -> do
+         comment "camera target setting has been acknowledged"
+         s <- deref seqNum
+         store seq_num_g s
 
 canDatalink :: AbortableTransmit (Struct "can_message") (Stored IBool)
             -> ChanOutput (Struct "can_message")
