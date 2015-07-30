@@ -57,7 +57,7 @@ pid_update = proc "pid_update" $ \pid cfg err pos ->
   store (pid~>P.d_state) pos
 
   d_term <- deref (pid~>P.d_last)
-  ret $ p_term + i_term - d_term
+  ret $ p_term + i_term + d_term
 
 -- | Reset the internal state of a PID.
 pid_reset :: Def ('[ Ref s1 (Struct "pid_state") ] :-> ())
