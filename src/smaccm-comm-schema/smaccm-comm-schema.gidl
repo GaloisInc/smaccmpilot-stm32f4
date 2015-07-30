@@ -22,8 +22,9 @@
   (heading 1))
 
 (def-enum throttle_mode_t
-  (direct 0)
-  (auto   1))
+  (direct_ui 0)
+  (alt_ui    1)
+  (alt_setpt 2))
 
 (def-struct heartbeat_t
   (time        time_micros_t)
