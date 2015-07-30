@@ -81,21 +81,21 @@ monitorModeSwitch = do
               -- Yaw law must be heading
               store (cm ~> CM.yaw_mode) Y.heading
               -- Throttle law must be autothrottle
-              store (cm ~> CM.thr_mode) T.auto
+              store (cm ~> CM.thr_mode) T.altUi
           , p ==? posCenter ==> do
               -- UI source must be ppm
               store (cm ~> CM.ui_mode) CS.ppm
               -- Yaw law must be rate
               store (cm ~> CM.yaw_mode) Y.rate
               -- Throttle law must be autothrottle
-              store (cm ~> CM.thr_mode) T.auto
+              store (cm ~> CM.thr_mode) T.altUi
           , p ==? posDown ==> do
               -- UI source must be ppm
               store (cm ~> CM.ui_mode) CS.ppm
               -- Yaw law must be rate
               store (cm ~> CM.yaw_mode) Y.rate
               -- Throttle law must be direct
-              store (cm ~> CM.thr_mode) T.direct
+              store (cm ~> CM.thr_mode) T.directUi
           ]
 
   monitorModuleDef $ do
