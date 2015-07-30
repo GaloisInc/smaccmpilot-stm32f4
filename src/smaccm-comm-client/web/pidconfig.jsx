@@ -1,7 +1,7 @@
 class PidConfig extends React.Component {
   render() {
     return (
-      <div className="col-sm-6 col-md-3">
+      <div className="col-sm-6 col-lg-3">
         <h1>{this.props.name}</h1>
         <form ref="form" onSubmit={ e => e.preventDefault() }>
         <div className="row">
