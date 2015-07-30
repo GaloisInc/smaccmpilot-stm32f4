@@ -59,7 +59,8 @@ app todl anglesRx = do
   datalinkDecode todl (snd s2c_ct_from_uart) (fst s2c_pt_from_uart)
 
   uartDatalink (fst s2c_ct_from_uart) (snd c2s_ct_to_uart)
-  canDatalink canTx canRx (fst c2s_from_can) s2c_to_can
+
+  canDatalink  canTx canRx (fst c2s_from_can) s2c_to_can
 
   case anglesRx of
     Nothing
@@ -109,6 +110,30 @@ periodicCamera camera_tgt_reqTx cameraAngles cv_producer = do
          s <- deref seqNum
          store seq_num_g s
 
+fragmentDrop :: (IvoryArea a, IvoryZero a)
+                    => ChanOutput a
+                    -> MessageType a
+                    -> AbortableTransmit (Struct "can_message") (Stored IBool)
+                    -> Tower e ()
+fragmentDrop src mt tx = do
+  (fragReq, _fragAbort, fragDone) <- fragmentSender mt tx
+
+  monitor "fragment_drop" $ do
+    msg          <- state "can_msg"
+    in_progress  <- stateInit "in_progress" (ival false)
+
+    handler src "new_msg" $ do
+      toFrag <- emitter fragReq 1
+      callback $ \ new_msg -> do
+        was_in_progress <- deref in_progress
+        unless was_in_progress $ do
+          refCopy msg new_msg
+          emit toFrag (constRef msg)
+          store in_progress true
+
+    handler fragDone "fragment_done" $ do
+      callback $ const $ store in_progress false
+
 canDatalink :: AbortableTransmit (Struct "can_message") (Stored IBool)
             -> ChanOutput (Struct "can_message")
             -> ChanInput PlaintextArray
@@ -116,8 +141,7 @@ canDatalink :: AbortableTransmit (Struct "can_message") (Stored IBool)
             -> Tower e ()
 canDatalink tx rx assembled toFrag = do
   fragmentReceiver rx [fragmentReceiveHandler assembled s2cType]
-  fragmentSenderBlind toFrag c2sType tx
-
+  fragmentDrop toFrag c2sType tx
 
 datalinkEncode :: (e -> DatalinkMode)
                -> ChanOutput PlaintextArray
