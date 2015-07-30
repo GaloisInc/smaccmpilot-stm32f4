@@ -95,8 +95,8 @@ monitorAltitudeControl attrs = do
 
           thr_mode <- deref (cl ~> CL.control_modes ~> CM.thr_mode)
           armed_mode <- deref (cl ~> CL.arming_mode)
-          enabled <- assign ((thr_mode ==? TM.auto)
-                         .&& (armed_mode ==? A.armed))
+          enabled <- assign ((armed_mode ==? A.armed)
+                         .&& (thr_mode /=? TM.directUi))
 
           store ui_setpt =<< manual_throttle ui
           store at_enabled enabled
@@ -110,7 +110,7 @@ monitorAltitudeControl attrs = do
 
           when enabled $ do
             vz_control <- cond
-              [ thr_mode ==? TM.direct ==> do
+              [ thr_mode ==? TM.altUi ==> do
                   -- update setpoint ui
                   tui_update      ui_control ui dt
                   -- update position controller
@@ -118,7 +118,7 @@ monitorAltitudeControl attrs = do
                   vz_ctl <- pos_pid_calculate position_pid ui_alt ui_vz dt
                   store (state_dbg ~> A.pos_rate_setp) vz_ctl
                   return vz_ctl
-              , thr_mode ==? TM.auto ==> do
+              , thr_mode ==? TM.altSetpt ==> do
                   -- update setpoint ui
                   tui_reset ui_control
                   -- update position controller
@@ -152,6 +152,7 @@ monitorAltitudeControl attrs = do
       proc_alt_debug = proc name_alt_debug $ \out -> body $ do
         tui_write_debug ui_control state_dbg
         ae_write_debug alt_estimator state_dbg
+        pos_pid_write_debug position_pid state_dbg
         thrust_pid_write_debug thrust_pid state_dbg
         refCopy out (constRef state_dbg)
 
