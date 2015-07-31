@@ -8,13 +8,20 @@ import Ivory.Tower
 
 import SMACCMPilot.Flight.Platform
 import SMACCMPilot.Flight.Datalink
+import SMACCMPilot.Flight.Datalink.UART
+import SMACCMPilot.Flight.Datalink.ControllableVehicle
 import SMACCMPilot.Flight.Sensors
 import SMACCMPilot.Flight.IO
 
 app :: (e -> FlightPlatform)
     -> Tower e ()
 app tofp = do
-  (attrs, _streams) <- datalinkTower tofp 115200
+  cvapi@(attrs, _streams) <- controllableVehicleAPI
+
+  fp <- fmap tofp getEnv
+  datalinkTower tofp cvapi
+    (uartDatalink (fp_clockconfig . tofp) (fp_telem fp) 115200)
+
   sensorTower tofp attrs
 
   -- flightIOTower just exists to populate the px4ioState attr, so we

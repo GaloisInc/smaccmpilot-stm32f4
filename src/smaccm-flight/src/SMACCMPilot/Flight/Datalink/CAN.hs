@@ -21,14 +21,12 @@ c2sType = messageType 0x200 False (Proxy :: Proxy 80)
 
 canDatalink :: AbortableTransmit (Struct "can_message") (Stored IBool)
             -> ChanOutput (Struct "can_message")
-            -> (ChanOutput PlaintextArray -> Tower e (a, ChanOutput PlaintextArray))
-            -> Tower e a
-canDatalink tx rx k = do
-  buffered_rx <- frameBuffer rx (Milliseconds 1)
-                                (Proxy :: Proxy 12)
-  (assembled, fromFrag) <- channel
-  fragmentReceiver buffered_rx [fragmentReceiveHandler assembled c2sType]
+            -> ChanInput PlaintextArray
+            -> ChanOutput PlaintextArray
+            -> Tower e ()
+canDatalink can_tx can_rx msg_rx msg_tx = do
+  buffered_rx <- frameBuffer can_rx (Milliseconds 1)
+                                    (Proxy :: Proxy 12)
+  fragmentReceiver buffered_rx [fragmentReceiveHandler msg_rx c2sType]
 
-  (a, toFrag) <- k fromFrag
-  fragmentSenderBlind toFrag s2cType tx
-  return a
+  fragmentSenderBlind msg_tx s2cType can_tx

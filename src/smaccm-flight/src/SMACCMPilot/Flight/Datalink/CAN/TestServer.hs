@@ -7,6 +7,7 @@ import Ivory.BSP.STM32.Peripheral.CAN.Filter
 import Ivory.Language
 import Ivory.Tower
 import SMACCMPilot.Flight.Platform
+import SMACCMPilot.Flight.Datalink
 import SMACCMPilot.Flight.Datalink.ControllableVehicle
 import SMACCMPilot.Flight.Datalink.CAN
 import SMACCMPilot.Flight.Sensors
@@ -27,7 +28,9 @@ app tofp = do
       let emptyID = CANFilterID32 (fromRep 0) (fromRep 0) False False
       canFilterInit (can_filters can) [CANFilterBank CANFIFO0 CANFilterMask $ CANFilter32 emptyID emptyID] []
 
-  (attrs, _streams) <- canDatalink canTx canRx controllableVehicle
+  cvapi@(attrs, _streams) <- controllableVehicleAPI
+
+  plaintextDatalinkTower cvapi (canDatalink canTx canRx)
 
   sensorTower tofp attrs
   lightTower  tofp attrs

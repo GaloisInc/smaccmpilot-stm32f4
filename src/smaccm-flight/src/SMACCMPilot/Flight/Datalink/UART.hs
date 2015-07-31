@@ -20,19 +20,20 @@ import SMACCMPilot.Flight.Platform (UART_Device(..), ClockConfig)
 uartDatalink :: (e -> ClockConfig)
              -> UART_Device
              -> Integer
-             -> ( ChanOutput CyphertextArray
-                 -> Tower e (a, ChanOutput CyphertextArray))
-             -> Tower e a
-uartDatalink tocc uart baud k = do
+             -> ChanInput CyphertextArray
+             -> ChanOutput CyphertextArray
+             -> Tower e ()
+uartDatalink tocc uart baud input output = do
   let ps = uart_pins uart
   (uarto, uarti) <- case uart_periph uart of
     Left u -> uartTower tocc u ps baud
-    Right dmauart -> dmaUARTTower tocc dmauart ps baud (Proxy :: Proxy HXCyphertext)
+    Right u -> dmaUARTTower tocc u ps baud (Proxy :: Proxy HXCyphertext)
+
   input_frames <- channel
 
   airDataDecodeTower "frame" uarti (fst input_frames)
 
-  buffered_input_frames <- frameBuffer (snd input_frames)
+  frameBuffer' (snd input_frames)
   -- Buffering timing analysis:
   -- Worst case: 115200 baud
   -- 10 bits per byte (UART framing) = 11520 bytes per second
@@ -41,12 +42,9 @@ uartDatalink tocc uart baud k = do
                                        (Milliseconds 5)
   -- buffer depth of 4: we will never use more than 2, and it will fit 3.
                                        (Proxy :: Proxy 4)
+                                       input
 
-  (a, output_frames) <- k buffered_input_frames
-
-  airDataEncodeTower "frame" output_frames uarto
-
-  return a
+  airDataEncodeTower "frame" output uarto
 
 
 frameBuffer :: forall a t n e

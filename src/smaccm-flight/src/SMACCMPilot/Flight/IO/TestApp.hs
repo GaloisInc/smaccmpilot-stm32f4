@@ -10,6 +10,8 @@ import Ivory.Stdlib
 
 import SMACCMPilot.Flight.Platform
 import SMACCMPilot.Flight.Datalink
+import SMACCMPilot.Flight.Datalink.UART
+import SMACCMPilot.Flight.Datalink.ControllableVehicle
 import SMACCMPilot.Flight.IO
 
 import qualified SMACCMPilot.Comm.Ivory.Types.ArmingMode      as A
@@ -27,7 +29,11 @@ app :: (e -> FlightPlatform)
     -> Tower e ()
 app tofp = do
 
-  (attrs, _streams) <- datalinkTower tofp 115200
+  cvapi@(attrs, _streams) <- controllableVehicleAPI
+
+  fp <- fmap tofp getEnv
+  datalinkTower tofp cvapi
+    (uartDatalink (fp_clockconfig . tofp) (fp_telem fp) 115200)
 
   -- Don't hook anything up to outputs!
   (_, output_cl) <- channel
