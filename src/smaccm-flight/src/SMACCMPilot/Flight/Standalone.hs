@@ -8,7 +8,6 @@ import           Ivory.Tower
 
 import           SMACCMPilot.Flight.Platform
 import           SMACCMPilot.Flight.Datalink
-import           SMACCMPilot.Flight.Datalink.UART
 import           SMACCMPilot.Flight.Datalink.ControllableVehicle
 import           SMACCMPilot.Flight.IO
 import           SMACCMPilot.Flight.Sensors
@@ -26,10 +25,7 @@ app :: (e -> FlightPlatform)
 app tofp = do
   cvapi@(attrs, _streams) <- controllableVehicleAPI
 
-  fp <- fmap tofp getEnv
-
-  datalinkTower tofp cvapi
-    (uartDatalink (fp_clockconfig . tofp) (fp_telem fp) 57600)
+  flightDatalinks tofp cvapi
 
   lightTower tofp attrs
 
@@ -77,3 +73,4 @@ app tofp = do
   motorMixer (controlOutput attrs)
              (controlLaw attrs)
              (motorOutput attrs)
+
