@@ -176,9 +176,10 @@
 
 (def-struct camera_target_t
   (valid       bool_t)
-  (angle_up    float_t)
-  (angle_right float_t))
-
+  (bbox_l      uint16_t)
+  (bbox_r      uint16_t)
+  (bbox_t      uint16_t)
+  (bbox_b      uint16_t))
 
 (def-struct rc_input_t
   (valid       bool_t)
@@ -288,5 +289,5 @@
   -- Control rgb led:
   (rgb_led             (attr readwrite rgb_led_setting_t))
   -- Camera target input:
-  (camera_target_input (attr readwrite camera_target_t)))
+  (camera_target_input (attr read camera_target_t)))
 

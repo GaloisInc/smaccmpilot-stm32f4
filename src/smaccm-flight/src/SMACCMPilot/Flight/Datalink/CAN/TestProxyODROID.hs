@@ -18,6 +18,7 @@ import SMACCMPilot.Flight.Datalink.UART (frameBuffer')
 import SMACCMPilot.Flight.Datalink.Commsec
 import SMACCMPilot.Flight.Datalink.CAN (s2cType, c2sType)
 
+import SMACCMPilot.Comm.Ivory.Types.SequenceNum
 import SMACCMPilot.Comm.Ivory.Types.SequenceNumberedCameraTarget
 import SMACCMPilot.Comm.Ivory.Types.CameraTarget
 import SMACCMPilot.Comm.Tower.Interface.ControllableVehicle
@@ -28,12 +29,12 @@ import SMACCMPilot.Datalink.HXStream.Tower
 
 import Tower.Odroid.CAN
 import Tower.Odroid.UART
-import Tower.Odroid.CameraVM
+import qualified Tower.Odroid.CameraVM as VM
 
 app :: (e -> DatalinkMode)
-    -> Maybe (ChanOutput (Struct "camera_angles"))
+    -> Maybe (ChanOutput (Struct "camera_data"))
     -> Tower e ()
-app todl anglesRx = do
+app todl cameraRx = do
 
   (canRx, canTx) <- canTower
 
@@ -41,16 +42,20 @@ app todl anglesRx = do
   s2c_ct_from_uart <- channel
   c2s_from_can     <- channel
 
-  camera_tgt_req   <- channel
+  camera_chan      <- channel
 
   cv_producer      <- controllableVehicleProducerInput (snd c2s_from_can)
-  c2s_pt_to_uart   <- controllableVehicleProducerOutput cv_producer
+  let cv_producer' =  cv_producer { cameraTargetInputGetRespProducer
+                                  = snd camera_chan }
+  c2s_pt_to_uart   <- controllableVehicleProducerOutput cv_producer'
+
   cv_consumer      <- controllableVehicleConsumerInput (snd s2c_pt_from_uart)
-  let cv_consumer' = cv_consumer { cameraTargetInputSetReqConsumer = snd camera_tgt_req
-                                 }
-  s2c_to_can      <- controllableVehicleConsumerOutput cv_consumer'
+  -- cv_consumer'     <- cv_consumer { cameraTargetInputGetReqConsumer
+  --                                 = snd camera_chan }
+  s2c_to_can       <- controllableVehicleConsumerOutput cv_consumer
 
   c2s_ct_to_uart  <- channel
+  return ()
 
   commsecEncodeDatalink todl c2s_pt_to_uart (fst c2s_ct_to_uart)
   commsecDecodeDatalink todl (snd s2c_ct_from_uart) (fst s2c_pt_from_uart)
@@ -59,53 +64,50 @@ app todl anglesRx = do
 
   canDatalink  canTx canRx (fst c2s_from_can) s2c_to_can
 
-  case anglesRx of
+  case cameraRx of
     Nothing
       -> return ()
-    Just cameraAngles
-      -> periodicCamera (fst camera_tgt_req) cameraAngles cv_producer
+    Just camera_data_chan
+      -> periodicCamera (fst camera_chan) camera_data_chan (cameraTargetInputGetReqConsumer cv_consumer)
 
 periodicCamera :: ChanInput (Struct "sequence_numbered_camera_target")
-               -> ChanOutput (Struct "camera_angles")
-               -> ControllableVehicleProducer
+               -> ChanOutput (Struct "camera_data")
+               -> ChanOutput (Stored SequenceNum)
                -> Tower e ()
-periodicCamera camera_tgt_reqTx cameraAngles cv_producer = do
-  clk             <- period (1000`ms`)
+periodicCamera camera_chan_tx camera_data_chan camera_req_tx = do
+
   monitor "periodic_camera_injector" $ do
-     angles_st   <- stateInit "angles_st"   izero
-     angles_prev <- stateInit "angles_prev" izero
-     set_req     <- stateInit "set_req"     izero
-     seq_num_g   <- stateInit "seq_num_g"   izero
+     camera_data_st   <- stateInit "camera_data_st"   izero
+     camera_data_prev <- stateInit "camera_data_prev" izero
 
-     handler clk "camera_clk" $ do
-       e_set <- emitter camera_tgt_reqTx 1
-       callback $ const $ do
-         comment ""
-         x  <- deref (angles_st ~> angle_x)
-         y  <- deref (angles_st ~> angle_y)
+     handler camera_req_tx "camera_req" $ do
+       e <- emitter camera_chan_tx 1
+       callback $ \curr_seq -> do
 
-         x' <- deref (angles_prev ~> angle_x)
-         y' <- deref (angles_prev ~> angle_y)
+         -- We'll use one corner as a proxy for all of them.
+         l  <- deref (camera_data_st ~> VM.bbox_l)
+         r  <- deref (camera_data_st ~> VM.bbox_r)
+         t  <- deref (camera_data_st ~> VM.bbox_t)
+         b  <- deref (camera_data_st ~> VM.bbox_b)
 
-         unless (x ==? x' .&& y ==? y') $ do
-           refCopy angles_prev angles_st
-           (set_req ~> seqnum) += 1
---                 snum <- deref (set_req ~> seqnum)
+         l'  <- deref (camera_data_prev ~> VM.bbox_l)
+
+         unless (l ==? l') $ do
+           s <- deref curr_seq
+           refCopy camera_data_prev camera_data_st
+           set_req <- local izero
+           store (set_req ~> seqnum) s
            let ct = set_req ~> val
-           store (ct ~> valid)       true
-           store (ct ~> angle_right) x
-           store (ct ~> angle_up)    y
-           emit e_set (constRef set_req)
+           store (ct ~> valid)  true
+           store (ct ~> bbox_l) l
+           store (ct ~> bbox_r) r
+           store (ct ~> bbox_t) t
+           store (ct ~> bbox_b) b
+           emit e (constRef set_req)
 
-     handler cameraAngles "anglesRx" $ do
-       callback $ \angles -> do
-         refCopy angles_st angles
-
-     handler (cameraTargetInputSetRespProducer cv_producer) "set_response" $ do
-       callback $ \seqNum -> do
-         comment "camera target setting has been acknowledged"
-         s <- deref seqNum
-         store seq_num_g s
+     handler camera_data_chan "cameraDataRx" $ do
+       callback $ \camera_data -> do
+         refCopy camera_data_st camera_data
 
 fragmentDrop :: (IvoryArea a, IvoryZero a)
                     => ChanOutput a
