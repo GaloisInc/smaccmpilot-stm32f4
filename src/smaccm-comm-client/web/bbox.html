@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SMACCMPilot Camera Object Tracking</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="/bootstrap-3.3.4-dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap theme -->
+    <link href="/bootstrap-3.3.4-dist/css/bootstrap-theme.min.css" rel="stylesheet">
+</head>
+<body role="document">
+
+    <h2>Camera Object Tracking</h2>
+    <p><button type="button" class="btn btn-sm" id="target-poll-btn">?</button></p>
+
+    <canvas id="target-view"></canvas>
+
+    <script src="/underscore-1.8.3.js"></script>
+    <script src="/jquery-2.1.3.js"></script>
+    <script src="/backbone-1.1.2.js"></script>
+    <script src="/bootstrap-3.3.4-dist/js/bootstrap.min.js"></script>
+    <script src="/scheduler.js"></script>
+    <script src="/bbox.js"></script>
+<script>
+$(function() {
+
+var CameraTarget = Backbone.Model.extend({
+  urlRoot: '/controllable_vehicle_i/camera_target_input'
+});
+
+var cameraTarget = new CameraTarget({});
+var cameraTargetView = new BBoxView({ model: cameraTarget, el: '#target-view' });
+
+var cameraTargetScheduler =
+  new Scheduler({ period: false }, cameraTarget);
+var cameraTargetSchedulerView =
+  new SchedulerButtonView({ model: cameraTargetScheduler, el: '#target-poll-btn' });
+
+});
+</script>
+
+</body>
+</html>
