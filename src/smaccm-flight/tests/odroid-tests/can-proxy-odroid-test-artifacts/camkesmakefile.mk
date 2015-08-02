@@ -53,321 +53,39 @@ TEMPLATES := ../../projects/templates ../../projects/global-components/templates
 
 
 include TimeServerOdroid/TimeServer.mk
-frame_datalink_encode_CFILES :=  \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/frame_datalink_encode/src/*.c)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/frame_datalink_encode/src/plat/${PLAT}/*.c)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/frame_datalink_encode/src/arch/${ARCH}/*.c))
+include ${PWD}/apps/smaccmpilot/make_template/Makefile
 
-frame_datalink_encode_HFILES := \
-   $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/frame_datalink_encode/include/*.h)) \
-   $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/include/*.h))
+###### CAN files below
 
-frame_datalink_encode_ASMFILES := \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/frame_datalink_encode/crt/arch-${ARCH}/crt0.S)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/frame_datalink_encode/src/*.S)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/frame_datalink_encode/src/arch/${ARCH}/*.S)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/frame_datalink_encode/src/plat/${PLAT}/*.S))
+gpio_LIBS += platsupport
+spi_LIBS += platsupport
+clk_LIBS += platsupport
 
-camera_target_injector_CFILES :=  \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/camera_target_injector/src/*.c)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/camera_target_injector/src/plat/${PLAT}/*.c)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/camera_target_injector/src/arch/${ARCH}/*.c))
+can_HFILES := \
+    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/can/include/*.h)) \
+    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/include/*.h))
+can_CFILES := \
+    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/can/src/*.c))
 
-camera_target_injector_HFILES := \
-   $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/camera_target_injector/include/*.h)) \
-   $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/include/*.h))
+spi_HFILES := \
+    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/spi/include/*.h)) \
+    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/include/*.h))
+spi_CFILES := \
+    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/spi/src/*.c))
 
-camera_target_injector_ASMFILES := \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/camera_target_injector/crt/arch-${ARCH}/crt0.S)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/camera_target_injector/src/*.S)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/camera_target_injector/src/arch/${ARCH}/*.S)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/camera_target_injector/src/plat/${PLAT}/*.S))
+clk_HFILES := \
+    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/include/*.h)) \
+    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/clk/include/*.h))
+clk_CFILES := \
+    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/clk/src/*.c))
 
-thread_period_1000ms_CFILES :=  \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/thread_period_1000ms/src/*.c)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/thread_period_1000ms/src/plat/${PLAT}/*.c)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/thread_period_1000ms/src/arch/${ARCH}/*.c))
+gpio_HFILES := \
+    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/include/*.h)) \
+    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/gpio/include/*.h))
+gpio_CFILES := \
+    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/gpio/src/*.c))
 
-thread_period_1000ms_HFILES := \
-   $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/thread_period_1000ms/include/*.h)) \
-   $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/include/*.h))
-
-thread_period_1000ms_ASMFILES := \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/thread_period_1000ms/crt/arch-${ARCH}/crt0.S)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/thread_period_1000ms/src/*.S)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/thread_period_1000ms/src/arch/${ARCH}/*.S)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/thread_period_1000ms/src/plat/${PLAT}/*.S))
-
-controllableVehicleConsumerInput_CFILES :=  \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/controllableVehicleConsumerInput/src/*.c)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/controllableVehicleConsumerInput/src/plat/${PLAT}/*.c)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/controllableVehicleConsumerInput/src/arch/${ARCH}/*.c))
-
-controllableVehicleConsumerInput_HFILES := \
-   $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/controllableVehicleConsumerInput/include/*.h)) \
-   $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/include/*.h))
-
-controllableVehicleConsumerInput_ASMFILES := \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/controllableVehicleConsumerInput/crt/arch-${ARCH}/crt0.S)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/controllableVehicleConsumerInput/src/*.S)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/controllableVehicleConsumerInput/src/arch/${ARCH}/*.S)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/controllableVehicleConsumerInput/src/plat/${PLAT}/*.S))
-
-controllableVehicleConsumerOutput_CFILES :=  \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/controllableVehicleConsumerOutput/src/*.c)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/controllableVehicleConsumerOutput/src/plat/${PLAT}/*.c)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/controllableVehicleConsumerOutput/src/arch/${ARCH}/*.c))
-
-controllableVehicleConsumerOutput_HFILES := \
-   $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/controllableVehicleConsumerOutput/include/*.h)) \
-   $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/include/*.h))
-
-controllableVehicleConsumerOutput_ASMFILES := \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/controllableVehicleConsumerOutput/crt/arch-${ARCH}/crt0.S)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/controllableVehicleConsumerOutput/src/*.S)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/controllableVehicleConsumerOutput/src/arch/${ARCH}/*.S)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/controllableVehicleConsumerOutput/src/plat/${PLAT}/*.S))
-
-commsecDecodeStaticKey_CFILES :=  \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/commsecDecodeStaticKey/src/*.c)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/commsecDecodeStaticKey/src/plat/${PLAT}/*.c)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/commsecDecodeStaticKey/src/arch/${ARCH}/*.c))
-
-commsecDecodeStaticKey_HFILES := \
-   $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/commsecDecodeStaticKey/include/*.h)) \
-   $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/include/*.h))
-
-commsecDecodeStaticKey_ASMFILES := \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/commsecDecodeStaticKey/crt/arch-${ARCH}/crt0.S)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/commsecDecodeStaticKey/src/*.S)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/commsecDecodeStaticKey/src/arch/${ARCH}/*.S)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/commsecDecodeStaticKey/src/plat/${PLAT}/*.S))
-
-can_node_CFILES :=  \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/can_node/src/*.c)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/can_node/src/plat/${PLAT}/*.c)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/can_node/src/arch/${ARCH}/*.c))
-
-can_node_HFILES := \
-   $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/can_node/include/*.h)) \
-   $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/include/*.h))
-
-can_node_ASMFILES := \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/can_node/crt/arch-${ARCH}/crt0.S)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/can_node/src/*.S)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/can_node/src/arch/${ARCH}/*.S)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/can_node/src/plat/${PLAT}/*.S))
-
-send_transdata_CFILES :=  \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/send_transdata/src/*.c)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/send_transdata/src/plat/${PLAT}/*.c)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/send_transdata/src/arch/${ARCH}/*.c))
-
-send_transdata_HFILES := \
-   $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/send_transdata/include/*.h)) \
-   $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/include/*.h))
-
-send_transdata_ASMFILES := \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/send_transdata/crt/arch-${ARCH}/crt0.S)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/send_transdata/src/*.S)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/send_transdata/src/arch/${ARCH}/*.S)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/send_transdata/src/plat/${PLAT}/*.S))
-
-commsecEncodeStaticKey_CFILES :=  \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/commsecEncodeStaticKey/src/*.c)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/commsecEncodeStaticKey/src/plat/${PLAT}/*.c)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/commsecEncodeStaticKey/src/arch/${ARCH}/*.c))
-
-commsecEncodeStaticKey_HFILES := \
-   $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/commsecEncodeStaticKey/include/*.h)) \
-   $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/include/*.h))
-
-commsecEncodeStaticKey_ASMFILES := \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/commsecEncodeStaticKey/crt/arch-${ARCH}/crt0.S)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/commsecEncodeStaticKey/src/*.S)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/commsecEncodeStaticKey/src/arch/${ARCH}/*.S)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/commsecEncodeStaticKey/src/plat/${PLAT}/*.S))
-
-fragment_reassembly_CFILES :=  \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/fragment_reassembly/src/*.c)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/fragment_reassembly/src/plat/${PLAT}/*.c)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/fragment_reassembly/src/arch/${ARCH}/*.c))
-
-fragment_reassembly_HFILES := \
-   $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/fragment_reassembly/include/*.h)) \
-   $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/include/*.h))
-
-fragment_reassembly_ASMFILES := \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/fragment_reassembly/crt/arch-${ARCH}/crt0.S)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/fragment_reassembly/src/*.S)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/fragment_reassembly/src/arch/${ARCH}/*.S)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/fragment_reassembly/src/plat/${PLAT}/*.S))
-
-fragment_blindly_0x200_CFILES :=  \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/fragment_blindly_0x200/src/*.c)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/fragment_blindly_0x200/src/plat/${PLAT}/*.c)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/fragment_blindly_0x200/src/arch/${ARCH}/*.c))
-
-fragment_blindly_0x200_HFILES := \
-   $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/fragment_blindly_0x200/include/*.h)) \
-   $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/include/*.h))
-
-fragment_blindly_0x200_ASMFILES := \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/fragment_blindly_0x200/crt/arch-${ARCH}/crt0.S)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/fragment_blindly_0x200/src/*.S)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/fragment_blindly_0x200/src/arch/${ARCH}/*.S)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/fragment_blindly_0x200/src/plat/${PLAT}/*.S))
-
-frameBuffer_CFILES :=  \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/frameBuffer/src/*.c)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/frameBuffer/src/plat/${PLAT}/*.c)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/frameBuffer/src/arch/${ARCH}/*.c))
-
-frameBuffer_HFILES := \
-   $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/frameBuffer/include/*.h)) \
-   $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/include/*.h))
-
-frameBuffer_ASMFILES := \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/frameBuffer/crt/arch-${ARCH}/crt0.S)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/frameBuffer/src/*.S)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/frameBuffer/src/arch/${ARCH}/*.S)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/frameBuffer/src/plat/${PLAT}/*.S))
-
-commsecEncodeState_CFILES :=  \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/commsecEncodeState/src/*.c)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/commsecEncodeState/src/plat/${PLAT}/*.c)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/commsecEncodeState/src/arch/${ARCH}/*.c))
-
-commsecEncodeState_HFILES := \
-   $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/commsecEncodeState/include/*.h)) \
-   $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/include/*.h))
-
-commsecEncodeState_ASMFILES := \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/commsecEncodeState/crt/arch-${ARCH}/crt0.S)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/commsecEncodeState/src/*.S)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/commsecEncodeState/src/arch/${ARCH}/*.S)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/commsecEncodeState/src/plat/${PLAT}/*.S))
-
-frame_datalink_decode_CFILES :=  \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/frame_datalink_decode/src/*.c)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/frame_datalink_decode/src/plat/${PLAT}/*.c)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/frame_datalink_decode/src/arch/${ARCH}/*.c))
-
-frame_datalink_decode_HFILES := \
-   $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/frame_datalink_decode/include/*.h)) \
-   $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/include/*.h))
-
-frame_datalink_decode_ASMFILES := \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/frame_datalink_decode/crt/arch-${ARCH}/crt0.S)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/frame_datalink_decode/src/*.S)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/frame_datalink_decode/src/arch/${ARCH}/*.S)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/frame_datalink_decode/src/plat/${PLAT}/*.S))
-
-fragment_0x200_CFILES :=  \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/fragment_0x200/src/*.c)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/fragment_0x200/src/plat/${PLAT}/*.c)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/fragment_0x200/src/arch/${ARCH}/*.c))
-
-fragment_0x200_HFILES := \
-   $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/fragment_0x200/include/*.h)) \
-   $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/include/*.h))
-
-fragment_0x200_ASMFILES := \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/fragment_0x200/crt/arch-${ARCH}/crt0.S)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/fragment_0x200/src/*.S)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/fragment_0x200/src/arch/${ARCH}/*.S)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/fragment_0x200/src/plat/${PLAT}/*.S))
-
-commsecDecodeState_CFILES :=  \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/commsecDecodeState/src/*.c)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/commsecDecodeState/src/plat/${PLAT}/*.c)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/commsecDecodeState/src/arch/${ARCH}/*.c))
-
-commsecDecodeState_HFILES := \
-   $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/commsecDecodeState/include/*.h)) \
-   $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/include/*.h))
-
-commsecDecodeState_ASMFILES := \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/commsecDecodeState/crt/arch-${ARCH}/crt0.S)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/commsecDecodeState/src/*.S)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/commsecDecodeState/src/arch/${ARCH}/*.S)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/commsecDecodeState/src/plat/${PLAT}/*.S))
-
-uart_CFILES :=  \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/uart/src/*.c)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/uart/src/plat/${PLAT}/*.c)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/uart/src/arch/${ARCH}/*.c))
-
-uart_HFILES := \
-   $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/uart/include/*.h)) \
-   $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/include/*.h))
-
-uart_ASMFILES := \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/uart/crt/arch-${ARCH}/crt0.S)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/uart/src/*.S)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/uart/src/arch/${ARCH}/*.S)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/uart/src/plat/${PLAT}/*.S))
-
-controllableVehicleProducerOutput_CFILES :=  \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/controllableVehicleProducerOutput/src/*.c)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/controllableVehicleProducerOutput/src/plat/${PLAT}/*.c)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/controllableVehicleProducerOutput/src/arch/${ARCH}/*.c))
-
-controllableVehicleProducerOutput_HFILES := \
-   $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/controllableVehicleProducerOutput/include/*.h)) \
-   $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/include/*.h))
-
-controllableVehicleProducerOutput_ASMFILES := \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/controllableVehicleProducerOutput/crt/arch-${ARCH}/crt0.S)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/controllableVehicleProducerOutput/src/*.S)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/controllableVehicleProducerOutput/src/arch/${ARCH}/*.S)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/controllableVehicleProducerOutput/src/plat/${PLAT}/*.S))
-
-controllableVehicleProducerInput_CFILES :=  \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/controllableVehicleProducerInput/src/*.c)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/controllableVehicleProducerInput/src/plat/${PLAT}/*.c)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/controllableVehicleProducerInput/src/arch/${ARCH}/*.c))
-
-controllableVehicleProducerInput_HFILES := \
-   $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/controllableVehicleProducerInput/include/*.h)) \
-   $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/include/*.h))
-
-controllableVehicleProducerInput_ASMFILES := \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/controllableVehicleProducerInput/crt/arch-${ARCH}/crt0.S)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/controllableVehicleProducerInput/src/*.S)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/controllableVehicleProducerInput/src/arch/${ARCH}/*.S)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/controllableVehicleProducerInput/src/plat/${PLAT}/*.S))
-
-thread_period_5ms_CFILES :=  \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/thread_period_5ms/src/*.c)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/thread_period_5ms/src/plat/${PLAT}/*.c)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/thread_period_5ms/src/arch/${ARCH}/*.c))
-
-thread_period_5ms_HFILES := \
-   $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/thread_period_5ms/include/*.h)) \
-   $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/include/*.h))
-
-thread_period_5ms_ASMFILES := \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/thread_period_5ms/crt/arch-${ARCH}/crt0.S)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/thread_period_5ms/src/*.S)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/thread_period_5ms/src/arch/${ARCH}/*.S)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/thread_period_5ms/src/plat/${PLAT}/*.S))
-
-
-dispatch_periodic_CFILES :=  \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/dispatch_periodic/src/*.c)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/dispatch_periodic/src/plat/${PLAT}/*.c)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/dispatch_periodic/src/arch/${ARCH}/*.c))
-
-dispatch_periodic_HFILES := \
-   $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/dispatch_periodic/include/*.h)) \
-   $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/include/*.h))
-
-dispatch_periodic_ASMFILES := \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/dispatch_periodic/crt/arch-${ARCH}/crt0.S)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/dispatch_periodic/src/*.S)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/dispatch_periodic/src/arch/${ARCH}/*.S)) \
-    $(patsubst ${SOURCE_DIR}/%,%,$(wildcard ${SOURCE_DIR}/components/dispatch_periodic/src/plat/${PLAT}/*.S))
+###### End CAN files
 
 
 include ${PWD}/tools/camkes/camkes.mk
