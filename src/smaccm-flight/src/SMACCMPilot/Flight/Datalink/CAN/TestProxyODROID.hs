@@ -8,6 +8,7 @@ module SMACCMPilot.Flight.Datalink.CAN.TestProxyODROID
   ) where
 
 import Ivory.Language
+import Ivory.Language.Proxy
 import Ivory.Stdlib
 import Ivory.Tower
 
@@ -149,8 +150,19 @@ uartDatalink input output = do
   (uarto, uarti) <- uartTower
 
   input_frames <- channel
+  decoderChan  <- channel
 
-  airDataDecodeTower "frame" uarti (fst input_frames)
+  monitor "to_hx" $ do
+    handler uarti "unpack" $ do
+      let n = fromTypeNat (aNat :: Proxy (Capacity UartPacket))
+      e <- emitter (fst decoderChan) n
+      callback $ \msg -> do
+        len <- msg ~>* stringLengthL
+        let d = msg ~> stringDataL
+        arrayMap $ \ix -> do
+          when (fromIx ix <? len) $ emit e (d!ix)
+
+  airDataDecodeTower "frame" (snd decoderChan) (fst input_frames)
 
   frameBuffer' (snd input_frames) (Milliseconds 5) (Proxy :: Proxy 4) input
 
