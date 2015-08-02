@@ -79,32 +79,26 @@ periodicCamera camera_chan_tx camera_data_chan camera_req_tx = do
 
   monitor "periodic_camera_injector" $ do
      camera_data_st   <- stateInit "camera_data_st"   izero
-     camera_data_prev <- stateInit "camera_data_prev" izero
 
      handler camera_req_tx "camera_req" $ do
        e <- emitter camera_chan_tx 1
        callback $ \curr_seq -> do
 
-         -- We'll use one corner as a proxy for all of them.
          l  <- deref (camera_data_st ~> VM.bbox_l)
          r  <- deref (camera_data_st ~> VM.bbox_r)
          t  <- deref (camera_data_st ~> VM.bbox_t)
          b  <- deref (camera_data_st ~> VM.bbox_b)
 
-         l'  <- deref (camera_data_prev ~> VM.bbox_l)
-
-         unless (l ==? l') $ do
-           s <- deref curr_seq
-           refCopy camera_data_prev camera_data_st
-           set_req <- local izero
-           store (set_req ~> seqnum) s
-           let ct = set_req ~> val
-           store (ct ~> valid)  true
-           store (ct ~> bbox_l) l
-           store (ct ~> bbox_r) r
-           store (ct ~> bbox_t) t
-           store (ct ~> bbox_b) b
-           emit e (constRef set_req)
+         s <- deref curr_seq
+         set_req <- local izero
+         store (set_req ~> seqnum) s
+         let ct = set_req ~> val
+         store (ct ~> valid)  true
+         store (ct ~> bbox_l) l
+         store (ct ~> bbox_r) r
+         store (ct ~> bbox_t) t
+         store (ct ~> bbox_b) b
+         emit e (constRef set_req)
 
      handler camera_data_chan "cameraDataRx" $ do
        callback $ \camera_data -> do
