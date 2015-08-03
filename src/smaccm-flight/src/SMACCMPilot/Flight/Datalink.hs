@@ -5,8 +5,6 @@ module SMACCMPilot.Flight.Datalink
   , flightDatalinks
   ) where
 
-import Control.Monad (when)
-
 import Ivory.Language
 import Ivory.Tower
 
