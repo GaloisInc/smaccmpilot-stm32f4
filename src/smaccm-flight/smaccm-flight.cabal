@@ -54,6 +54,7 @@ library
                        SMACCMPilot.Flight.Platform,
                        SMACCMPilot.Flight.Sensors,
                        SMACCMPilot.Flight.Sensors.AccelBiasTrigger,
+                       SMACCMPilot.Flight.Sensors.GPS,
                        SMACCMPilot.Flight.Sensors.TestApp,
                        SMACCMPilot.Flight.Standalone,
                        SMACCMPilot.Flight.Tuning,

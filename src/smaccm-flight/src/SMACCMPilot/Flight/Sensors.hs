@@ -22,6 +22,7 @@ import qualified SMACCMPilot.Comm.Ivory.Types.RgbLedSetting as LED
 import           SMACCMPilot.Comm.Tower.Attr
 import           SMACCMPilot.Comm.Tower.Interface.ControllableVehicle
 import           SMACCMPilot.Flight.Platform
+import           SMACCMPilot.Flight.Sensors.GPS
 import           SMACCMPilot.Hardware.SensorManager
 import           SMACCMPilot.INS.Bias.Gyro
 import           SMACCMPilot.INS.Bias.Accel
@@ -37,6 +38,10 @@ sensorTower :: (e -> FlightPlatform)
             -> ControllableVehicleAttrs Attr
             -> Tower e ()
 sensorTower tofp attrs = do
+
+  p <- channel
+  uartUbloxGPSTower tofp (fst p)
+  -- TODO: consume positions from (snd p) and report them via GIDL
 
   (a,g,m,b) <- sensorManager (fp_sensors . tofp) (fp_clockconfig . tofp)
 

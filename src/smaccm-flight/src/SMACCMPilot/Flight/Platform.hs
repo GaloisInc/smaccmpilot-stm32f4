@@ -43,6 +43,7 @@ import           SMACCMPilot.Flight.Tuning
 data FlightPlatform =
   FlightPlatform
     { fp_telem        :: UART_Device
+    , fp_gps          :: UART_Device
     , fp_io           :: FlightIO
     , fp_sensors      :: Sensors
     , fp_can          :: Maybe CAN_Device
@@ -80,6 +81,7 @@ flightPlatformParser = do
 px4fmuv17 :: FlightTuning -> DatalinkMode -> FlightPlatform
 px4fmuv17 tuning dmode = FlightPlatform
   { fp_telem       = telem
+  , fp_gps         = gps
   , fp_io          = NativeIO ppm
   , fp_sensors     = fmu17_sensors
   , fp_can         = Nothing
@@ -97,6 +99,14 @@ px4fmuv17 tuning dmode = FlightPlatform
         , uartPinAF = F405.gpio_af_uart5
         }
     }
+  gps = UART_Device
+    { uart_periph = Left F405.uart6
+    , uart_pins   = UARTPins
+      { uartPinTx = F405.pinC6
+      , uartPinRx = F405.pinC7
+      , uartPinAF = F405.gpio_af_uart6
+      }
+    }
   ppm = PPM_Timer F405.tim1 F405.pinA10 F405.gpio_af_tim1 ppm_int
   ppm_int = HasSTM32Interrupt F405.TIM1_CC
 
@@ -104,6 +114,7 @@ px4fmuv17 tuning dmode = FlightPlatform
 px4fmuv24 :: FlightTuning -> DatalinkMode -> FlightPlatform
 px4fmuv24 tuning dmode = FlightPlatform
   { fp_telem       = telem
+  , fp_gps         = gps
   , fp_io          = px4io
   , fp_sensors     = fmu24_sensors
   , fp_can         = Just fmu24_can
@@ -119,6 +130,14 @@ px4fmuv24 tuning dmode = FlightPlatform
         { uartPinTx = F427.pinD5
         , uartPinRx = F427.pinD6
         , uartPinAF = F427.gpio_af_uart2
+        }
+    }
+  gps = UART_Device
+    { uart_periph = Right F427.dmaUART4
+    , uart_pins = UARTPins
+        { uartPinTx = F427.pinA0
+        , uartPinRx = F427.pinA1
+        , uartPinAF = F427.gpio_af_uart4
         }
     }
   -- invariant: rgbled is only device attached to given i2c periph.
