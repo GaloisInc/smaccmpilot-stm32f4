@@ -41,7 +41,7 @@ sensorTower tofp attrs = do
 
   p <- channel
   uartUbloxGPSTower tofp (fst p)
-  -- TODO: consume positions from (snd p) and report them via GIDL
+  attrProxy (gpsOutput attrs) (snd p)
 
   (a,g,m,b) <- sensorManager (fp_sensors . tofp) (fp_clockconfig . tofp)
 

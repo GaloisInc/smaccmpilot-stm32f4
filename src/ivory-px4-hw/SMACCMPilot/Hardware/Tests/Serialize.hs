@@ -24,8 +24,8 @@ import SMACCMPilot.Comm.Ivory.Types.AccelerometerSample ()
 import SMACCMPilot.Comm.Ivory.Types.GyroscopeSample ()
 import SMACCMPilot.Comm.Ivory.Types.MagnetometerSample ()
 import SMACCMPilot.Comm.Ivory.Types.BarometerSample ()
+import SMACCMPilot.Comm.Ivory.Types.PositionSample ()
 import SMACCMPilot.Comm.Ivory.Types (typeModules)
-import SMACCMPilot.Hardware.GPS.Types ()
 import SMACCMPilot.Hardware.Tests.Platforms
 
 import qualified SMACCMPilot.Datalink.HXStream.Ivory as HX
@@ -84,5 +84,5 @@ magSender = sampleSender 'm' (Proxy :: Proxy 23)
 baroSender :: Sender e (Struct "barometer_sample")
 baroSender = sampleSender 'b' (Proxy :: Proxy 18)
 
-positionSender :: Sender e (Struct "position")
+positionSender :: Sender e (Struct "position_sample")
 positionSender = sampleSender 'p' (Proxy :: Proxy 46)

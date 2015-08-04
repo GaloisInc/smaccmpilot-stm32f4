@@ -9,16 +9,18 @@ module SMACCMPilot.Hardware.GPS.UBlox
 import Ivory.Language
 import Ivory.Stdlib
 import Ivory.Tower
-
-import SMACCMPilot.Hardware.GPS.Types
+import SMACCMPilot.Comm.Ivory.Types (typeModules)
+import qualified SMACCMPilot.Comm.Ivory.Types.GpsFix as F
+import qualified SMACCMPilot.Comm.Ivory.Types.PositionSample as P
 import SMACCMPilot.Hardware.GPS.UBlox.Types
+import SMACCMPilot.Time
 
 ubloxGPSTower :: ChanOutput (Stored Uint8)
-              -> ChanInput  (Struct "position")
+              -> ChanInput  (Struct "position_sample")
               -> Tower e ()
 ubloxGPSTower istream ostream = do
-  towerModule  gpsTypesModule
-  towerDepends gpsTypesModule
+  mapM_ towerModule  typeModules
+  mapM_ towerDepends typeModules
   monitor "ubloxGPS" $ do
 
     decodestate <- stateInit "decodestate" (ival ubx_idle)
@@ -27,7 +29,7 @@ ubloxGPSTower istream ostream = do
     (pktLen   :: Ref Global (Stored Uint16)) <- state "pktLen"
     (payOffs  :: Ref Global (Stored Uint16)) <- state "payOffs"
     (payload  :: Ref Global (Array 52 (Stored Uint8))) <- state "payload"
-    (position :: Ref Global (Struct "position")) <- state "position_1"
+    (position :: Ref Global (Struct "position_sample")) <- state "position_1"
     (dstate   :: Ref Global (Stored Uint8)) <- state "decode_state"
 
     monitorModuleDef $ do
@@ -56,8 +58,8 @@ ubloxGPSTower istream ostream = do
       e <- emitter ostream 1
       callback $ const $ do
         t <- getTime
-        store (position ~> time) t
-        store (position ~> fix) fix_none
+        store (position ~> P.time) (timeMicrosFromITime t)
+        store (position ~> P.fix) F.fixNone
         emit e (constRef position)
     handler istream "istream" $ do
       e <- emitter ostream 1
@@ -108,7 +110,7 @@ ubloxGPSTower istream ostream = do
                 d <- deref dstate
                 when (d ==? decode_complete) $ do
                   t <- getTime
-                  store (position ~> time) t
+                  store (position ~> P.time) (timeMicrosFromITime t)
                   emit e (constRef position)
                   store dstate decode_none
               store decodestate ubx_idle
@@ -134,7 +136,7 @@ decode :: Def ('[ Ref s1 (Stored Uint8)
                 , Uint8 -- id
                 , Ref s2 (Array 52 (Stored Uint8)) -- payload
                 , Uint16 -- len
-                , Ref s3 (Struct "position")
+                , Ref s3 (Struct "position_sample")
                 ] :->())
 decode = proc "decode" $ \ decodestate pktclass pktid payload len out -> body $ do
   s <- deref decodestate
@@ -151,15 +153,15 @@ decode = proc "decode" $ \ decodestate pktclass pktid payload len out -> body $ 
     ]
 
 unpack_posllh :: Ref s1 (Array 52 (Stored Uint8))
-              -> Ref s2 (Struct "position")
+              -> Ref s2 (Struct "position_sample")
               -> Ivory eff ()
 unpack_posllh payload out = do
   p_lat <- call unpackS4 payload 4
-  store (out ~> lat) p_lat
+  store (out ~> P.lat) p_lat
   p_lon <- call unpackS4 payload 8
-  store (out ~> lon) p_lon
+  store (out ~> P.lon) p_lon
   p_alt <- call unpackS4 payload 12
-  store (out ~> alt) p_alt
+  store (out ~> P.alt) p_alt
 
 unpackS4 :: Def ('[ Ref s1 (Array 52 (Stored Uint8))
                   , Ix 52
@@ -179,25 +181,25 @@ unpackS4 = proc "unpackS4" $ \a off -> body $ do
 
 
 unpack_sol :: Ref s1 (Array 52 (Stored Uint8))
-           -> Ref s2 (Struct "position")
+           -> Ref s2 (Struct "position_sample")
            -> Ivory eff ()
 unpack_sol payload out = do
   gpsfix <- deref (payload ! 10)
   flags  <- deref (payload ! 11)
   let gpsFixOk = (flags .& 0x01) >? 0
-      fix_decoded = (gpsfix ==? 0x03) ? (fix_3d
-                     ,(gpsfix ==? 0x02) ? (fix_2d
-                       ,fix_none))
-  store (out ~> fix) (gpsFixOk ? (fix_decoded,fix_none))
+      fix_decoded = (gpsfix ==? 0x03) ? (F.fix3d
+                     ,(gpsfix ==? 0x02) ? (F.fix2d
+                       ,F.fixNone))
+  store (out ~> P.fix) (gpsFixOk ? (fix_decoded,F.fixNone))
   pdop_l <- deref (payload ! 44)
   pdop_h <- deref (payload ! 45)
   (pdop :: Uint16) <- assign $ safeCast pdop_l + (256 * safeCast pdop_h)
-  store (out ~> dop) (0.01 * safeCast pdop)
+  store (out ~> P.dop) (0.01 * safeCast pdop)
   numsv <- deref (payload ! 47)
-  store (out ~> num_sv) numsv
+  store (out ~> P.num_sv) numsv
 
 unpack_velned :: Ref s1 (Array 52 (Stored Uint8))
-              -> Ref s2 (Struct "position")
+              -> Ref s2 (Struct "position_sample")
               -> Ivory eff ()
 unpack_velned payload out = do
   p_vnorth   <- call unpackS4 payload 4
@@ -207,9 +209,9 @@ unpack_velned payload out = do
   -- going over 0.07*speed of light for it to matter.
   p_vground  <- call unpackS4 payload 16
   int_head   <- call unpackS4 payload 24
-  store (out ~> vnorth)  p_vnorth
-  store (out ~> veast)   p_veast
-  store (out ~> vdown)   p_vdown
-  store (out ~> vground) (signCast p_vground)
-  store (out ~> heading) ((safeCast int_head)/100000.0)
+  store (out ~> P.vnorth)  p_vnorth
+  store (out ~> P.veast)   p_veast
+  store (out ~> P.vdown)   p_vdown
+  store (out ~> P.vground) (signCast p_vground)
+  store (out ~> P.heading) ((safeCast int_head)/100000.0)
 

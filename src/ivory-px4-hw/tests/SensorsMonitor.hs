@@ -14,17 +14,13 @@ import Ivory.OS.Posix.Tower
 import Ivory.OS.Posix.Tower.Serial
 import SMACCMPilot.Comm.Ivory.Types
 import SMACCMPilot.Datalink.HXStream.Tower
-import SMACCMPilot.Hardware.GPS.Types
 
 [ivory| string struct Result 8 |]
 
 app :: Tower e ()
 app = do
   let resultModule = package "result" $ defStringType (Proxy :: Proxy Result)
-  let dependencies =
-        [ gpsTypesModule
-        , resultModule
-        ] ++ typeModules
+  let dependencies = resultModule : typeModules
 
   mapM_ towerModule dependencies
   mapM_ towerDepends dependencies
@@ -36,7 +32,7 @@ app = do
     , decl tx 'm' "mag" (packRep :: PackRep (Struct "magnetometer_sample"))
     , decl tx 'g' "gyro" (packRep :: PackRep (Struct "gyroscope_sample"))
     , decl tx 'a' "accel" (packRep :: PackRep (Struct "accelerometer_sample"))
-    , decl tx 'p' "gps" (packRep :: PackRep (Struct "position"))
+    , decl tx 'p' "gps" (packRep :: PackRep (Struct "position_sample"))
     ]
 
   hxstreamDecodeTower "decoder" rx (Proxy :: Proxy 256) hxs

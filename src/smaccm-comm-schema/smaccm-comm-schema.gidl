@@ -26,6 +26,11 @@
   (alt_ui    1)
   (alt_setpt 2))
 
+(def-enum gps_fix_t
+  (fix_none 0)
+  (fix_2d   2)
+  (fix_3d   3))
+
 (def-struct heartbeat_t
   (time        time_micros_t)
   (arming_mode arming_mode_t))
@@ -129,6 +134,20 @@
   (calibrated  bool_t)
   (sample      xyz_t) -- m/s/s
   (temperature float_t) -- degrees Celsius
+  (time        time_micros_t))
+
+(def-struct position_sample_t
+  (fix         gps_fix_t)
+  (num_sv      uint8_t) -- number of space vehicles
+  (dop         float_t) -- estimated dilution of precision, meters
+  (lat         sint32_t) -- degrees * 1e7
+  (lon         sint32_t) -- degrees * 1e7
+  (alt         sint32_t) -- meters * 1000 (aka mm)
+  (vnorth      sint32_t) -- m/s * 100 (aka cm/s)
+  (veast       sint32_t) -- m/s * 100 (aka cm/s)
+  (vdown       sint32_t) -- m/s * 100 (aka cm/s)
+  (vground     uint32_t) -- m/s * 100 (aka cm/s)
+  (heading     float_t) -- degrees
   (time        time_micros_t))
 
 (def-struct xyz_calibration_t
@@ -253,6 +272,7 @@
   (mag_calibration         (attr read      xyz_calibration_t))
   (mag_output_calibration  (attr read      xyz_calibration_t))
   (mag_output              (attr read      magnetometer_sample_t))
+  (gps_output              (attr read      position_sample_t))
   (control_setpoint        (attr read      control_setpoint_t))
   (control_output          (attr read      control_output_t))
   (motor_output            (attr read      quadcopter_motors_t))

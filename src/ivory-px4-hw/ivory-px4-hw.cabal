@@ -9,10 +9,7 @@ build-type:          Simple
 cabal-version:       >= 1.10
 
 library
-  exposed-modules:     SMACCMPilot.Hardware.GPS.Types,
-                       SMACCMPilot.Hardware.GPS.Types.Position,
-                       SMACCMPilot.Hardware.GPS.Types.GPSFix,
-                       SMACCMPilot.Hardware.GPS.UBlox,
+  exposed-modules:     SMACCMPilot.Hardware.GPS.UBlox,
                        SMACCMPilot.Hardware.GPS.UBlox.Types,
 
                        SMACCMPilot.Hardware.MPU6000,

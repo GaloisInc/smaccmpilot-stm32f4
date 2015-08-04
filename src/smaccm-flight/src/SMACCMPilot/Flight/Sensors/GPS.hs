@@ -18,7 +18,7 @@ import SMACCMPilot.Hardware.GPS.UBlox
 [ivory| string struct GPSString 128 |]
 
 uartUbloxGPSTower :: (e -> FlightPlatform)
-                  -> ChanInput (Struct "position")
+                  -> ChanInput (Struct "position_sample")
                   -> Tower e ()
 uartUbloxGPSTower tofp ostream = do
   let types = package "gps_common" $ do
