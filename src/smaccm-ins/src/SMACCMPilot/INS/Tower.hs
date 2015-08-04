@@ -10,7 +10,6 @@ import Ivory.Stdlib
 import Ivory.Tower
 import Numeric.Estimator.Model.Coordinate
 import Prelude hiding (mapM)
-import qualified SMACCMPilot.Hardware.GPS.Types as GPS
 import SMACCMPilot.Comm.Ivory.Types
 import qualified SMACCMPilot.Comm.Ivory.Types.MagnetometerSample  as M
 import qualified SMACCMPilot.Comm.Ivory.Types.AccelerometerSample as A
@@ -99,7 +98,7 @@ sensorFusion :: ChanOutput (Struct "accelerometer_sample")
 sensorFusion accelSource gyroSource magSource motion = do
   (stateSink, stateSource) <- channel
 
-  let deps = [insTypesModule, GPS.gpsTypesModule] ++ typeModules
+  let deps = insTypesModule : typeModules
   mapM_ towerDepends deps
   mapM_ towerModule deps
 
