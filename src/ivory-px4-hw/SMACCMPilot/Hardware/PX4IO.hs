@@ -246,8 +246,8 @@ outRegIval motors = do
   scale :: IFloat -> Uint16
   scale t = (t <? idle) ? (minPWM, castWith 0 ((t * range) + (safeCast minPWM)))
 
-  minPWM = 1100 -- for Iris and many others
-  maxPWM = 1900
+  minPWM = 1000 -- for Iris and many others
+  maxPWM = 2000
   range :: IFloat
   range = safeCast (maxPWM - minPWM)
   idle = 0.07
