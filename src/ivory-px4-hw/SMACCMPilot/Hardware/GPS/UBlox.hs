@@ -54,14 +54,14 @@ ubloxGPSTower istream ostream = do
               i_16 :: Uint16 = safeCast i
           store ck_a (lbits (a_16+i_16))
           store ck_b (lbits (a_16+b_16+i_16))
-    handler systemInit "init" $ do
+    handler systemInit "ublox_init" $ do
       e <- emitter ostream 1
       callback $ const $ do
         t <- getTime
         store (position ~> P.time) (timeMicrosFromITime t)
         store (position ~> P.fix) F.fixNone
         emit e (constRef position)
-    handler istream "istream" $ do
+    handler istream "ublox_istream" $ do
       e <- emitter ostream 1
       callback $ \cref -> do
         c <- deref cref
@@ -85,9 +85,12 @@ ubloxGPSTower istream ostream = do
           , (s ==? ubx_len2) ==> do
               cksum c
               l <- deref pktLen
-              store pktLen (((safeCast c)*256)+l)
-              store payOffs 0
-              store decodestate ubx_payload
+              let newlen = ((safeCast c)*256)+l
+              ifte_ (newlen <=? 52)
+                (do store pktLen newlen
+                    store payOffs 0
+                    store decodestate ubx_payload)
+                (do store decodestate ubx_idle)
           , (s ==? ubx_payload) ==> do
               off <- deref payOffs
               len <- deref pktLen
@@ -138,7 +141,7 @@ decode :: Def ('[ Ref s1 (Stored Uint8)
                 , Uint16 -- len
                 , Ref s3 (Struct "position_sample")
                 ] :->())
-decode = proc "decode" $ \ decodestate pktclass pktid payload len out -> body $ do
+decode = proc "ublox_decode" $ \ decodestate pktclass pktid payload len out -> body $ do
   s <- deref decodestate
   cond_
     [ pktclass ==? class_nav .&& pktid ==? pktid_posllh .&& len ==? 28 ==> do
