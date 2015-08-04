@@ -108,7 +108,7 @@ function send_request() {
 	request.onerror = function() {
 		setTimeout(send_request, 200);
 	};
-	request.timeout = 200;
+	request.timeout = 500;
 	request.ontimeout = function() {
 		send_request();
 	}
