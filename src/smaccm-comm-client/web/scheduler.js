@@ -19,7 +19,19 @@ $(function() {
       }
       if (attrs.period > 0) {
         this.interval = setInterval(function () {
-          _.each(self.models, function (m) { m.fetch(); });
+          // Build up a chain of callbacks to fetch each model after the
+          // previous one completes, because we don't seem to reliably
+          // get replies when we have multiple requests pending.
+          var chain = self.models.reduceRight(function (k, m) {
+            return function () {
+              m.fetch().done(k);
+            };
+          }, z);
+          // The end of the chain does nothing, but we could invoke
+          // setTimeout here if we didn't want the setInterval policy.
+          function z() {}
+          // Start the callback chain running.
+          chain();
         }, attrs.period);
       } else {
         this.interval = null;
