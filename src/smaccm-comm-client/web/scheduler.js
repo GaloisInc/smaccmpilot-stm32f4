@@ -9,7 +9,7 @@ $(function() {
       this.models = [].concat(models); // creates list from single object or list of objects
       this.interval = null;
       this.on('change', this.update, this);
-      this.set(attrs);
+      this.trigger('change', this);
     },
     update: function () {
       var attrs = this.toJSON();
