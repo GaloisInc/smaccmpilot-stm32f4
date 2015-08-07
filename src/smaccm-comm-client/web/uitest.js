@@ -109,25 +109,45 @@ window.TextView = Backbone.View.extend({
 
 window.UserInputSliderView = Backbone.View.extend({
   initialize: function (options) {
-    this.axis = options.axis;
+    this.accessor = options.accessor;
     this.model.on('change', this.render, this);
-    this.$progbar = $('#ui-' + this.axis + '-progbar');
-    this.$label   = $('#ui-' + this.axis + '-progbar-lbl');
+    this.$progbar = this.$('.progress-bar');
+    this.$label   = this.$('.progress-bar-label');
     this.render();
   },
   render: function () {
-    var val = this.model.toJSON()['ui'][this.axis];
-    this.$label.html(val.toFixed(2));
-    var percent = (val + 1) * 50;
+    var val = this.accessor(this.model.toJSON()),
+        valStr = val.toFixed(2),
+        minVal = parseFloat(this.$progbar.attr('aria-valuemin')),
+        maxVal = parseFloat(this.$progbar.attr('aria-valuemax')),
+        percent = 100 * (val - minVal) / (maxVal - minVal);
+    this.$progbar.attr('aria-valuenow', valStr);
+    this.$label.text(valStr);
     this.$progbar.css('width', percent.toString() + '%');
   }
 });
 
 window.UserInputView = function (opts) {
-  this.throttle = new UserInputSliderView({ model: opts.model, axis: 'throttle' });
-  this.roll     = new UserInputSliderView({ model: opts.model, axis: 'roll' });
-  this.pitch    = new UserInputSliderView({ model: opts.model, axis: 'pitch' });
-  this.yaw      = new UserInputSliderView({ model: opts.model, axis: 'yaw'  });
+  this.throttle = new UserInputSliderView({
+    el: '#ui-throttle',
+    model: opts.model,
+    accessor: function (json) { return json.ui.throttle; },
+  });
+  this.roll     = new UserInputSliderView({
+    el: '#ui-roll',
+    model: opts.model,
+    accessor: function (json) { return json.ui.roll; },
+  });
+  this.pitch    = new UserInputSliderView({
+    el: '#ui-pitch',
+    model: opts.model,
+    accessor: function (json) { return json.ui.pitch; },
+  });
+  this.yaw      = new UserInputSliderView({
+    el: '#ui-yaw',
+    model: opts.model,
+    accessor: function (json) { return json.ui.yaw; },
+  });
   this.source   = new TextView({
     el: '#ui-source',
     model: opts.model,
