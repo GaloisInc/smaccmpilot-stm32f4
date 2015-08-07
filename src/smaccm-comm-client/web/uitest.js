@@ -1,90 +1,112 @@
+window.ButtonGroupView = Backbone.View.extend({
+  tagName: "p",
+  initialize: function (options) {
+    this.field = options.field;
+    var self = this,
+        group = $('<span class="btn-group btn-group-sm" role="group" />');
+    _.each(options.values, function (v) {
+      var btn = $('<button type="button" class="btn btn-default"></button>').text(v);
+      if (options.writable)
+        btn.click(function () {
+          self.model.set(self.field, v);
+          self.model.save();
+        });
+      else
+        btn.prop('disabled', true);
+      group.append(btn);
+    });
+    this.$el.text(options.label + ': ').append(group);
+    this.listenTo(this.model, 'change', this.render);
+    this.render();
+  },
+  render: function () {
+    var value = this.model.get(this.field);
+    this.$('button').each(function () {
+      var $el = $(this);
+      if ($el.text() == value)
+        $el.removeClass('btn-default').addClass('btn-success');
+      else
+        $el.removeClass('btn-success').addClass('btn-default');
+    });
+  },
+});
+
 window.ControlLaw = Backbone.Model.extend({
   urlRoot: '/controllable_vehicle_i/control_law',
-  defaults: {
-    thr_mode: 'Direct',
-    arming_mode: 'Safe',
-    ui_mode: 'Ppm',
-    yaw_mode: 'Rate'
-  },
-  valid : {
-    thr_mode: [ 'Direct', 'Auto' ],
-    arming_mode: [ 'Safe', 'Disarmed', 'Armed' ],
-    ui_mode: [ 'Ppm', 'Gcs', 'Nav' ],
-    yaw_mode: [ 'Rate', 'Heading' ]
-  }
 });
 window.ControlLawRequest = ControlLaw.extend({
   urlRoot: '/controllable_vehicle_i/control_law_request',
 });
 
-window.ControlLawView = Backbone.View.extend({
-  initialize: function () {
-    this.$el.html(''
-      + '<p>Arming Mode: '
-      + this.button_group('arming_mode', this.model.valid.arming_mode)
-      + '</p>'
-      + '<p>Throttle Mode: '
-      + this.button_group('thr_mode', this.model.valid.thr_mode)
-      + '</p>'
-      + '<p>UI Mode: '
-      + this.button_group('ui_mode', this.model.valid.ui_mode)
-      + '</p>'
-      + '<p>Yaw Mode: '
-      + this.button_group('yaw_mode', this.model.valid.yaw_mode)
-      + '</p>'
-      );
-    this.model.on('change', this.render, this);
-    this.render();
-    if (this.post_init) {
-      this.post_init();
+window.BackboneLens = Backbone.Model.extend({
+  constructor: function (attrs, options) {
+    this.base = options.base;
+    this.field = options.field;
+    Backbone.Model.apply(this, arguments);
+  },
+  get: function (field) {
+    var into = this.base.get(this.field);
+    return (into || {})[field];
+  },
+  set: function (key, val, options) {
+    var attrs;
+    if (typeof key === 'object') {
+      attrs = key;
+      options = val;
+    } else {
+      (attrs = {})[key] = val;
     }
+
+    var old = this.base.get(this.field);
+    if (old)
+      _.defaults(attrs, old);
+    this.base.set(this.field, old, options);
   },
-  render: function () {
-    var m = this.model.toJSON();
-    var valid = this.model.valid;
-    var self = this;
-    _.map(valid, function (vs,k) {
-      _.map(vs, function (v) {
-        if (m[k] == v) {
-          self.$('#btn-' + k + '-' + v)
-              .removeClass('btn-default')
-              .addClass('btn-success');
-        } else {
-          self.$('#btn-' + k + '-' + v)
-              .removeClass('btn-success')
-              .addClass('btn-default');
-        }
-      });
-    });
+  on: function (event, callback, context) {
+    // XXX this bare minimum definition will fail for many use cases
+    this.base.on(event, callback, context);
   },
-  button_group: function (group, labels) {
-    var contents = _.map(labels, function(lbl) {
-      return ('<button type="button" class="btn btn-default" id="btn-'
-            + group + '-' + lbl +'">'
-            + lbl + '</button>');
-    });
-    return ('<div class="btn-group btn-group-sm" role="group">' 
-      + _.foldl(contents, function (a, b) { return a+b })
-      + "</div>");
-  }
 });
 
-window.ControlLawRequestView = ControlLawView.extend({
-  post_init: function () {
-    var m = this.model.toJSON();
-    var valid = this.model.valid;
-    var self = this;
-    _.map(valid, function (vs,k) {
-      _.map(vs, function (v) {
-          self.$('#btn-' + k + '-' + v)
-              .click(function () {
-                self.model.set(k,v);
-                self.model.save();
-              });
-      });
-    });
-  }
-});
+window.ControlLawView = function (options) {
+  this.$el = $(options.el);
+  var control_modes = new BackboneLens(null, { base: options.model, field: 'control_modes' });
+  this.$el.append([
+    new ButtonGroupView({
+      label: 'Arming Mode',
+      field: 'arming_mode',
+      values: [ 'Safe', 'Armed' ],
+      model: options.model,
+      writable: options.writable,
+    }).el,
+    new ButtonGroupView({
+      label: 'Throttle Mode',
+      field: 'thr_mode',
+      values: [ 'DirectUi', 'AltUi', 'AltSetpt' ],
+      model: control_modes,
+      writable: options.writable,
+    }).el,
+    new ButtonGroupView({
+      label: 'UI Mode',
+      field: 'ui_mode',
+      values: [ 'Ppm', 'Gcs', 'Nav' ],
+      model: control_modes,
+      writable: options.writable,
+    }).el,
+    new ButtonGroupView({
+      label: 'Yaw Mode',
+      field: 'yaw_mode',
+      values: [ 'Rate', 'Heading' ],
+      model: control_modes,
+      writable: options.writable,
+    }).el,
+  ]);
+};
+
+window.ControlLawRequestView = function (options) {
+  options.writable = true;
+  ControlLawView(options);
+};
 
 window.UserInput = Backbone.Model.extend({
   urlRoot: '/controllable_vehicle_i/user_input',
