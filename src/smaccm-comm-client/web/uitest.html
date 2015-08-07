@@ -89,6 +89,41 @@
     <script src="/bootstrap-3.3.4-dist/js/bootstrap.min.js"></script>
     <script src="/scheduler.js"></script>
     <script src="/uitest.js"></script>
+<script>
+(function () {
+
+  window.userInput =
+    new UserInput({});
+  window.userInputView =
+    new UserInputView({ model: userInput });
+
+  window.userInputScheduler =
+    new Scheduler({ period: false}, userInput);
+  window.userInputSchedulerView =
+    new SchedulerButtonView({ model: userInputScheduler, el: '#ui-sch-btn' });
+
+  window.controlLaw = new ControlLaw({});
+  window.controlLawView = new ControlLawView({
+    model: controlLaw,
+    el: '#control-law-view'
+  });
+  window.controlLawScheduler =
+    new Scheduler({ period: false}, controlLaw);
+  window.controlLawSchedulerView =
+    new SchedulerButtonView({ model: controlLawScheduler, el: '#cl-sch-btn' });
+
+  window.controlLawRequest = new ControlLawRequest({});
+  window.controlLawRequestView = new ControlLawRequestView({
+    model: controlLawRequest,
+    el: '#control-law-request-view'
+  });
+  window.controlLawRequestScheduler =
+    new Scheduler({ period: false}, controlLawRequest);
+  window.controlLawRequestSchedulerView =
+    new SchedulerButtonView({ model: controlLawRequestScheduler, el: '#clr-sch-btn' });
+
+})();
+</script>
   </body>
 </html>
 

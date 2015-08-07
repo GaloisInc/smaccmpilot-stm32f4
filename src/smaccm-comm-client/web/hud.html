@@ -11,7 +11,8 @@
 <body role="document">
 
     <canvas id="target-view"></canvas>
-    <div id="debug" />
+    <div id="control-law-view"></div>
+    <div id="debug"></div>
 
     <script src="/underscore-1.8.3.js"></script>
     <script src="/jquery-2.1.3.js"></script>
@@ -19,6 +20,7 @@
     <script src="/bootstrap-3.3.4-dist/js/bootstrap.min.js"></script>
     <script src="/scheduler.js"></script>
     <script src="/debug.js"></script>
+    <script src="/uitest.js"></script>
     <script src="/bbox.js"></script>
 <script>
 $(function() {
@@ -69,10 +71,8 @@ var ArmingStatus = Backbone.Model.extend({
 });
 var armingStatus = new ArmingStatus({});
 
-var ControlLaw = Backbone.Model.extend({
-  urlRoot: '/controllable_vehicle_i/control_law'
-});
 var controlLaw = new ControlLaw({});
+var controlLawView = new ControlLawView({ model: controlLaw, el: '#control-law-view' });
 
 var models = [
   cameraTarget,
