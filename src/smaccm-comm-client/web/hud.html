@@ -10,6 +10,8 @@
 </head>
 <body role="document">
 
+    <canvas id="pfd-view" width="500" height="350"></canvas>
+
     <canvas id="target-view"></canvas>
 
     <div id="status-view"></div>
@@ -50,10 +52,12 @@
     <script src="/jquery-2.1.3.js"></script>
     <script src="/backbone-1.1.2.js"></script>
     <script src="/bootstrap-3.3.4-dist/js/bootstrap.min.js"></script>
+    <script src="/paper-core-0.9.15.js"></script>
     <script src="/scheduler.js"></script>
     <script src="/debug.js"></script>
     <script src="/uitest.js"></script>
     <script src="/bbox.js"></script>
+    <script src="/pfd.js"></script>
 <script>
 $(function() {
 
@@ -71,6 +75,7 @@ var SensorsOutput = Backbone.Model.extend({
   urlRoot: '/controllable_vehicle_i/sensors_output'
 });
 var sensorsOutput = new SensorsOutput({});
+var pfdView = new PFDView({ model: sensorsOutput, el: '#pfd-view' });
 
 var GPSOutput = Backbone.Model.extend({
   urlRoot: '/controllable_vehicle_i/gps_output'
