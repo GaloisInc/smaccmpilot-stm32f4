@@ -71,11 +71,16 @@ applyCalibrationTower' calibrate biased cal_latest claw unbiased cal_active = do
       callback $ \b -> do
         a <- deref (law ~> L.arming_mode)
         p <- deref pending_cal_ready
-        v <- deref (pending_cal ~> C.valid)
-        when (a /=? A.armed .&& p .&& v) $ do
-          refCopy cal pending_cal
-          emit c_emitter (constRef cal)
+        when (a /=? A.armed .&& p) $ do
+          v <- deref (pending_cal ~> C.valid)
+          old_prog <- deref (cal ~> C.progress)
+          new_prog <- deref (pending_cal ~> C.progress)
+          cond_
+            [ v ==> refCopy cal pending_cal
+            , new_prog >? old_prog ==> store (cal ~> C.progress) new_prog
+            ]
           store pending_cal_ready false
+          emit c_emitter (constRef cal)
         let (Calibrate c) = calibrate
         unb <- c b (constRef cal)
         emit u_emitter unb
