@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SMACCMPilot Heads Up Display</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="/bootstrap-3.3.4-dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap theme -->
+    <link href="/bootstrap-3.3.4-dist/css/bootstrap-theme.min.css" rel="stylesheet">
+</head>
+<body role="document">
+
+    <canvas id="target-view"></canvas>
+    <div id="debug" />
+
+    <script src="/underscore-1.8.3.js"></script>
+    <script src="/jquery-2.1.3.js"></script>
+    <script src="/backbone-1.1.2.js"></script>
+    <script src="/bootstrap-3.3.4-dist/js/bootstrap.min.js"></script>
+    <script src="/scheduler.js"></script>
+    <script src="/debug.js"></script>
+    <script src="/bbox.js"></script>
+<script>
+$(function() {
+
+var CameraTarget = Backbone.Model.extend({
+  urlRoot: '/controllable_vehicle_i/camera_target_input'
+});
+
+var cameraTarget = new CameraTarget({});
+var cameraTargetView = new BBoxView({ model: cameraTarget, el: '#target-view' });
+
+// sensors_output valid/roll/pitch/yaw/baro_alt
+// gps_output fix/num_sv/lat/lon/alt/vground
+
+var SensorsOutput = Backbone.Model.extend({
+  urlRoot: '/controllable_vehicle_i/sensors_output'
+});
+var sensorsOutput = new SensorsOutput({});
+
+var GPSOutput = Backbone.Model.extend({
+  urlRoot: '/controllable_vehicle_i/gps_output'
+});
+var gpsOutput = new GPSOutput({});
+
+// gyro_output_calibration.progress
+// accel_output_calibration.progress
+// mag_output_calibration.progress
+// arming_status rcinput/telem/px4io/sens_cal
+// control_law arming_mode; control_modes ui_mode/yaw_mode/thr_mode
+
+var GyroCalibration = Backbone.Model.extend({
+  urlRoot: '/controllable_vehicle_i/gyro_output_calibration'
+});
+var gyroCalibration = new GyroCalibration({});
+
+var AccelCalibration = Backbone.Model.extend({
+  urlRoot: '/controllable_vehicle_i/accel_output_calibration'
+});
+var accelCalibration = new AccelCalibration({});
+
+var MagCalibration = Backbone.Model.extend({
+  urlRoot: '/controllable_vehicle_i/mag_output_calibration'
+});
+var magCalibration = new MagCalibration({});
+
+var ArmingStatus = Backbone.Model.extend({
+  urlRoot: '/controllable_vehicle_i/arming_status'
+});
+var armingStatus = new ArmingStatus({});
+
+var ControlLaw = Backbone.Model.extend({
+  urlRoot: '/controllable_vehicle_i/control_law'
+});
+var controlLaw = new ControlLaw({});
+
+var models = [
+  cameraTarget,
+  sensorsOutput,
+  gpsOutput,
+  gyroCalibration,
+  accelCalibration,
+  magCalibration,
+  armingStatus,
+  controlLaw,
+];
+new Scheduler({ period: 500 }, models);
+
+_.each(models, function (m) {
+  new JSONView({ model: m }).$el.appendTo('#debug');
+});
+
+});
+</script>
+
+</body>
+</html>

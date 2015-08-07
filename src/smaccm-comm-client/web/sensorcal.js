@@ -1,5 +1,3 @@
-
-
 $(function() {
 
   var GyroRaw = Backbone.Model.extend({
@@ -20,23 +18,6 @@ $(function() {
   });
   var MagOut = Backbone.Model.extend({
     urlRoot: '/controllable_vehicle_i/mag_output',
-  });
-
-
-  window.ConsoleView = Backbone.View.extend({
-    initialize: function (options) {
-      this.model.on('change', this.render, this);
-      this.options = options;
-      this.render();
-    },
-    render: function () {
-      var val = this.model.toJSON()
-      if (this.options['selector']) {
-        console.log(val[this.options['selector']]);
-      } else {
-        console.log(val);
-      }
-    }
   });
 
   window.gyroRaw =
@@ -64,7 +45,3 @@ $(function() {
     new SchedulerButtonView({ model: magScheduler, el: '#mag-sch-btn' });
 
 });
-
-
-
-
