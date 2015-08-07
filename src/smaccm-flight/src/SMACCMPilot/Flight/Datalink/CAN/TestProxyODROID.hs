@@ -99,7 +99,7 @@ periodicCamera camera_chan_tx camera_data_chan camera_req_tx = do
          b' <- deref (camera_data_prev ~> VM.bbox_b)
 
          comment "bbox inside bounds and invariants hold on l,r & t,b"
-         let valid_bounds = r <? 320 .&& l <? r .&& b <? 200 .&& t <? b
+         let valid_bounds = r <=? 320 .&& l <? r .&& b <=? 200 .&& t <? b
          comment "at least one element is nonzero"
          let nzero bool v = bool .|| (v /=? 0)
          comment "at least one bound has changed"
