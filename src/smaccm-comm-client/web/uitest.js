@@ -116,7 +116,7 @@ window.UserInputSliderView = Backbone.View.extend({
     this.render();
   },
   render: function () {
-    var val = this.accessor(this.model.toJSON()),
+    var val = this.accessor(this.model.toJSON()) || 0,
         valStr = val.toFixed(2),
         minVal = parseFloat(this.$progbar.attr('aria-valuemin')),
         maxVal = parseFloat(this.$progbar.attr('aria-valuemax')),

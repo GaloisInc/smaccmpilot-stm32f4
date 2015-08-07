@@ -11,6 +11,34 @@
 <body role="document">
 
     <canvas id="target-view"></canvas>
+
+    <div id="gyro-cal-progress"><p>Gyro calibration:
+      <span class="progress-bar-label">?</span> </p>
+      <div class="progress">
+        <div class="progress-bar" role="progressbar" aria-valuenow="0"
+             aria-valuemin="0" aria-valuemax="1" style="width: 0%;">
+        </div>
+      </div>
+    </div>
+
+    <div id="mag-cal-progress"><p>Mag calibration:
+      <span class="progress-bar-label">?</span> </p>
+      <div class="progress">
+        <div class="progress-bar" role="progressbar" aria-valuenow="0"
+             aria-valuemin="0" aria-valuemax="1" style="width: 0%;">
+        </div>
+      </div>
+    </div>
+
+    <div id="accel-cal-progress"><p>Accel calibration:
+      <span class="progress-bar-label">?</span> </p>
+      <div class="progress">
+        <div class="progress-bar" role="progressbar" aria-valuenow="0"
+             aria-valuemin="0" aria-valuemax="1" style="width: 0%;">
+        </div>
+      </div>
+    </div>
+
     <div id="control-law-view"></div>
     <div id="debug"></div>
 
@@ -55,16 +83,31 @@ var GyroCalibration = Backbone.Model.extend({
   urlRoot: '/controllable_vehicle_i/gyro_output_calibration'
 });
 var gyroCalibration = new GyroCalibration({});
+var gyroCalibrationView = new UserInputSliderView({
+  el: '#gyro-cal-progress',
+  model: gyroCalibration,
+  accessor: function (json) { return json.progress; },
+});
 
 var AccelCalibration = Backbone.Model.extend({
   urlRoot: '/controllable_vehicle_i/accel_output_calibration'
 });
 var accelCalibration = new AccelCalibration({});
+var accelCalibrationView = new UserInputSliderView({
+  el: '#accel-cal-progress',
+  model: accelCalibration,
+  accessor: function (json) { return json.progress; },
+});
 
 var MagCalibration = Backbone.Model.extend({
   urlRoot: '/controllable_vehicle_i/mag_output_calibration'
 });
 var magCalibration = new MagCalibration({});
+var magCalibrationView = new UserInputSliderView({
+  el: '#mag-cal-progress',
+  model: magCalibration,
+  accessor: function (json) { return json.progress; },
+});
 
 var ArmingStatus = Backbone.Model.extend({
   urlRoot: '/controllable_vehicle_i/arming_status'
