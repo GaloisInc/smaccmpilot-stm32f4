@@ -7,6 +7,8 @@ module SMACCMPilot.Flight.Datalink.CAN.TestProxyODROID
   ( app
   ) where
 
+import Data.List (foldl')
+
 import Ivory.Language
 import Ivory.Language.Proxy
 import Ivory.Stdlib
@@ -78,7 +80,9 @@ periodicCamera :: ChanInput (Struct "sequence_numbered_camera_target")
 periodicCamera camera_chan_tx camera_data_chan camera_req_tx = do
 
   monitor "periodic_camera_injector" $ do
-     camera_data_st   <- stateInit "camera_data_st"   izero
+     camera_data_st    <- stateInit "camera_data_st"    izero
+     camera_data_prev  <- stateInit "camera_data_prev"  izero
+     camera_data_watch <- stateInit "camera_data_watch" (izero :: Init (Stored Uint32))
 
      handler camera_req_tx "camera_req" $ do
        e <- emitter camera_chan_tx 1
@@ -89,15 +93,38 @@ periodicCamera camera_chan_tx camera_data_chan camera_req_tx = do
          t  <- deref (camera_data_st ~> VM.bbox_t)
          b  <- deref (camera_data_st ~> VM.bbox_b)
 
+         l' <- deref (camera_data_prev ~> VM.bbox_l)
+         r' <- deref (camera_data_prev ~> VM.bbox_r)
+         t' <- deref (camera_data_prev ~> VM.bbox_t)
+         b' <- deref (camera_data_prev ~> VM.bbox_b)
+
+         comment "bbox inside bounds and invariants hold on l,r & t,b"
+         let valid_bounds = r <? 320 .&& l <? r .&& b <? 200 .&& t <? b
+         comment "at least one element is nonzero"
+         let nzero bool v = bool .|| (v /=? 0)
+         comment "at least one bound has changed"
+         ifte_ (l /=? l' .|| r /=? r' .|| t /=? t' .|| b /=? b')
+               (camera_data_watch %= const 0)
+               (camera_data_watch += 1)
+
          s <- deref curr_seq
          set_req <- local izero
          store (set_req ~> seqnum) s
          let ct = set_req ~> val
-         store (ct ~> valid)  true
+
+         cdw <- deref camera_data_watch
+         comment "Valid packet: valid bounds, at least one nonzero element, and no more at 10 requests without a corner changing."
+         comment "Yes, I know the 2nd property could be make to be a consequence of the 3rd."
+         let isValid = foldl' nzero false [l,r,t,b]
+                   .&& valid_bounds
+                   .&& cdw <? 10
+         store (ct ~> valid) isValid
+
          store (ct ~> bbox_l) l
          store (ct ~> bbox_r) r
          store (ct ~> bbox_t) t
          store (ct ~> bbox_b) b
+         refCopy camera_data_prev camera_data_st
          emit e (constRef set_req)
 
      handler camera_data_chan "cameraDataRx" $ do
