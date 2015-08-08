@@ -71,7 +71,8 @@ app tofp = do
 
   controlTower attrs
 
-  motorMixer (controlOutput attrs)
+  motorMixer (fp_mixer . tofp)
+             (controlOutput attrs)
              (controlLaw attrs)
              (motorOutput attrs)
 

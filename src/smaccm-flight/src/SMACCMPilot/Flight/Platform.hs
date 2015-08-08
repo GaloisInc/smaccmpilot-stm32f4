@@ -8,6 +8,7 @@ module SMACCMPilot.Flight.Platform
   , UART_Device(..)
   , PPM(..)
   , FlightIO(..)
+  , FlightMixer(..)
   , RGBLED_I2C(..)
   , STM32Config
   , ClockConfig
@@ -50,6 +51,7 @@ data FlightPlatform =
     , fp_datalink     :: DatalinkMode
     , fp_rgbled       :: Maybe RGBLED_I2C
     , fp_tuning       :: FlightTuning
+    , fp_mixer        :: FlightMixer
     , fp_stm32config  :: STM32Config
     }
 
@@ -57,6 +59,10 @@ data FlightPlatform =
 data FlightIO
   = PX4IO DMAUART UARTPins
   | NativeIO PPM -- No outputs supported with nativeIO right now
+
+data FlightMixer
+  = QuadXMixer
+  | IrisMixer
 
 fp_clockconfig :: (FlightPlatform -> ClockConfig)
 fp_clockconfig = stm32config_clock . fp_stm32config
@@ -66,10 +72,11 @@ flightPlatformParser = do
   v <- subsection "args" $ subsection "vehicle" string
   t <- subsection "tuning" $ subsection v flightTuningParser
   p <- subsection "args" $ subsection "platform" string
+  m <- subsection "args" $ subsection "mixer" mixerParser
   case map toUpper p of
-    "PX4FMUV17" -> result (px4fmuv17 t)
-    "PX4FMUV24" -> result (px4fmuv24 t)
-    "PIXHAWK"   -> result (px4fmuv24 t)
+    "PX4FMUV17" -> result (px4fmuv17 t m)
+    "PX4FMUV24" -> result (px4fmuv24 t m)
+    "PIXHAWK"   -> result (px4fmuv24 t m)
     _ -> fail ("no such platform " ++ p)
   where
   result mkPlatform = do
@@ -78,8 +85,16 @@ flightPlatformParser = do
     conf <- stm32ConfigParser (fp_stm32config platform)
     return platform { fp_stm32config = conf }
 
-px4fmuv17 :: FlightTuning -> DatalinkMode -> FlightPlatform
-px4fmuv17 tuning dmode = FlightPlatform
+  mixerParser = do
+    s <- string
+    case map toUpper s of
+      "IRIS"  -> return IrisMixer
+      "QUADX" -> return QuadXMixer
+      _ -> fail ("no such mixer " ++ s ++ ". must be 'iris' or 'quadx'")
+
+
+px4fmuv17 :: FlightTuning -> FlightMixer -> DatalinkMode -> FlightPlatform
+px4fmuv17 tuning mixer dmode = FlightPlatform
   { fp_telem       = telem
   , fp_gps         = gps
   , fp_io          = NativeIO ppm
@@ -88,6 +103,7 @@ px4fmuv17 tuning dmode = FlightPlatform
   , fp_datalink    = dmode
   , fp_rgbled      = Nothing
   , fp_tuning      = tuning
+  , fp_mixer       = mixer
   , fp_stm32config = stm32f405Defaults 24
   }
   where
@@ -111,8 +127,8 @@ px4fmuv17 tuning dmode = FlightPlatform
   ppm_int = HasSTM32Interrupt F405.TIM1_CC
 
 
-px4fmuv24 :: FlightTuning -> DatalinkMode -> FlightPlatform
-px4fmuv24 tuning dmode = FlightPlatform
+px4fmuv24 :: FlightTuning -> FlightMixer -> DatalinkMode -> FlightPlatform
+px4fmuv24 tuning mixer dmode = FlightPlatform
   { fp_telem       = telem
   , fp_gps         = gps
   , fp_io          = px4io
@@ -121,6 +137,7 @@ px4fmuv24 tuning dmode = FlightPlatform
   , fp_datalink    = dmode
   , fp_rgbled      = Just rgbled
   , fp_tuning      = tuning
+  , fp_mixer       = mixer
   , fp_stm32config = stm32f427Defaults 24
   }
   where
