@@ -68,19 +68,15 @@ var CameraTarget = Backbone.Model.extend({
 var cameraTarget = new CameraTarget({});
 var cameraTargetView = new BBoxView({ model: cameraTarget, el: '#target-view' });
 
+var PackedStatus = Backbone.Model.extend({
+  urlRoot: '/controllable_vehicle_i/packed_status'
+});
+var packedStatus = new PackedStatus({});
+
 // sensors_output valid/roll/pitch/yaw/baro_alt
-// gps_output fix/num_sv/lat/lon/alt/vground
+// gps_output fix/num_sv/lat/lon/alt/vground/heading
 
-var SensorsOutput = Backbone.Model.extend({
-  urlRoot: '/controllable_vehicle_i/sensors_output'
-});
-var sensorsOutput = new SensorsOutput({});
-var pfdView = new PFDView({ model: sensorsOutput, el: '#pfd-view' });
-
-var GPSOutput = Backbone.Model.extend({
-  urlRoot: '/controllable_vehicle_i/gps_output'
-});
-var gpsOutput = new GPSOutput({});
+var pfdView = new PFDView({ model: packedStatus, el: '#pfd-view' });
 
 // gyro_output_calibration.progress
 // accel_output_calibration.progress
@@ -88,65 +84,40 @@ var gpsOutput = new GPSOutput({});
 // arming_status rcinput/telem/px4io/sens_cal
 // control_law arming_mode; control_modes ui_mode/yaw_mode/thr_mode
 
-var GyroCalibration = Backbone.Model.extend({
-  urlRoot: '/controllable_vehicle_i/gyro_output_calibration'
-});
-var gyroCalibration = new GyroCalibration({});
 var gyroCalibrationView = new UserInputSliderView({
   el: '#gyro-cal-progress',
-  model: gyroCalibration,
-  accessor: function (json) { return json.progress; },
+  model: packedStatus,
+  accessor: function (json) { return json.gyro_progress; },
 });
 
-var AccelCalibration = Backbone.Model.extend({
-  urlRoot: '/controllable_vehicle_i/accel_output_calibration'
-});
-var accelCalibration = new AccelCalibration({});
 var accelCalibrationView = new UserInputSliderView({
   el: '#accel-cal-progress',
-  model: accelCalibration,
-  accessor: function (json) { return json.progress; },
+  model: packedStatus,
+  accessor: function (json) { return json.accel_progress; },
 });
 
-var MagCalibration = Backbone.Model.extend({
-  urlRoot: '/controllable_vehicle_i/mag_output_calibration'
-});
-var magCalibration = new MagCalibration({});
 var magCalibrationView = new UserInputSliderView({
   el: '#mag-cal-progress',
-  model: magCalibration,
-  accessor: function (json) { return json.progress; },
+  model: packedStatus,
+  accessor: function (json) { return json.mag_progress; },
 });
 
-var ArmingStatus = Backbone.Model.extend({
-  urlRoot: '/controllable_vehicle_i/arming_status'
-});
-var armingStatus = new ArmingStatus({});
-
-var controlLaw = new ControlLaw({});
-
-var controlLawView = new ControlLawView({ model: controlLaw, el: '#status-view' });
+var controlLawView = new ControlLawView({ model: packedStatus, el: '#status-view' });
 _.each(['rcinput', 'telem', 'px4io', 'sens_cal'], function (field) {
   $('#status-view').append(new ButtonGroupView({
     label: field,
     field: field,
     values: [ 'Negative', 'Neutral', 'Positive' ],
-    model: armingStatus,
+    model: packedStatus,
     writable: false,
   }).el);
 });
 
 var models = [
   cameraTarget,
-  sensorsOutput,
-  gpsOutput,
-  gyroCalibration,
-  accelCalibration,
-  magCalibration,
-  armingStatus,
-  controlLaw,
+  packedStatus,
 ];
-new Scheduler({ period: 500 }, models);
+new Scheduler({ period: 200 }, models);
 
 _.each(models, function (m) {
   new JSONView({ model: m }).$el.appendTo('#debug');
