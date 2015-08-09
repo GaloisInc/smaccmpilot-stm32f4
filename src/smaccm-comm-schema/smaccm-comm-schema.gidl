@@ -54,12 +54,6 @@
   (pitch       float_t) -- [-1.0..1.0]
   (yaw         float_t)) -- [-1.0..1.0]
 
-(def-struct user_input_trim_t
-  (throttle    float_t) -- [-1.0..1.0]
-  (roll        float_t) -- [-1.0..1.0]
-  (pitch       float_t) -- [-1.0..1.0]
-  (yaw         float_t)) -- [-1.0..1.0]
-
 (def-struct user_input_result_t
   (ui          user_input_t)
   (source      control_source_t)
@@ -337,12 +331,6 @@
   -- Use to set user input, when safety input permits the GCS to set the
   -- user input:
   (user_input_request  (attr readwrite user_input_t))
-
-  -- A temporary fix for the purposes of the demo: possible to arbitrarily trim
-  -- the ppm user input (usually, we make sure this is not in the telemetry
-  -- link's path
-
-  (user_input_trim    (attr readwrite user_input_trim_t))
 
   -- Control rgb led:
   (rgb_led             (attr readwrite rgb_led_setting_t))
