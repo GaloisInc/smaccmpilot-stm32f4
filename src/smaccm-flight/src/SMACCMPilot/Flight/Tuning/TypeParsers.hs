@@ -57,13 +57,13 @@ throttleUIParser = do
 
 userInputTrimParser :: ConfigParser (Init (Struct "user_input_trim"))
 userInputTrimParser = do
-  t <- ifloatParser "throttle_minimum" `withDefault` 0
+  t <- ifloatParser "throttle" `withDefault` 0
   r <- ifloatParser "roll"  `withDefault` 0
   p <- ifloatParser "pitch" `withDefault` 0
   y <- ifloatParser "yaw"   `withDefault` 0
   return $ istruct
-    [ UI.throttle_minimum .= ival t
-    , UI.roll             .= ival r
-    , UI.pitch            .= ival p
-    , UI.yaw              .= ival y
+    [ UI.throttle .= ival t
+    , UI.roll     .= ival r
+    , UI.pitch    .= ival p
+    , UI.yaw      .= ival y
     ]

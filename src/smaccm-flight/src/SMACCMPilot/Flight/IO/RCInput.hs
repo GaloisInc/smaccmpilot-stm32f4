@@ -69,7 +69,7 @@ uitrim :: (GetAlloc eff ~ Scope s3)
        -> ConstRef s2 (Struct "user_input")
        -> Ivory eff (ConstRef (Stack s3) (Struct "user_input"))
 uitrim trim ui = do
-  t <- throttle_trim
+  t <- stick_trim T.throttle UI.throttle
   r <- stick_trim T.roll UI.roll
   p <- stick_trim T.pitch UI.pitch
   y <- stick_trim T.yaw UI.yaw
@@ -90,11 +90,3 @@ uitrim trim ui = do
     u <- deref (ui   ~> ulbl)
     let trimmed = stick_constrain (u + t)
     return ((t <? 1.0 .&& t >? -1.0) ? (trimmed, u))
-
-  throttle_constrain t = ((t >? 1.0) ? (1.0, (t <? 0) ? (0, t)))
-
-  throttle_trim = do
-    tmin <- deref (trim ~> T.throttle_minimum)
-    tui  <- deref (ui   ~> UI.throttle)
-    let trimmed = throttle_constrain (tui + tmin / (1.0 - tmin))
-    return ((tmin <? 1 .&& tmin >=? 0) ? (trimmed, tui))
