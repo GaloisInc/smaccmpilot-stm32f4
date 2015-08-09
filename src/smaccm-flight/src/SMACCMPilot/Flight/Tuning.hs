@@ -25,7 +25,6 @@ data FlightTuning =
     , ft_attitude_pitch    :: Init (Struct "stab_config")
     , ft_yaw_rate          :: Init (Struct "pid_config")
     , ft_yaw_position      :: Init (Struct "pid_config")
-    , ft_ui_trim           :: Init (Struct "user_input_trim")
     }
 
 flightTuningParser :: ConfigParser FlightTuning
@@ -37,7 +36,6 @@ flightTuningParser = do
   ft_attitude_pitch    <- subsection "attitude" $ subsection "pitch" $ stabConfigParser
   ft_yaw_rate          <- subsection "attitude" $ subsection "yaw"   $ subsection "rate" $ pidConfigParser
   ft_yaw_position      <- subsection "attitude" $ subsection "yaw"   $ subsection "pos"  $ pidConfigParser
-  ft_ui_trim           <- subsection "trim"     $ userInputTrimParser
   return FlightTuning{..}
 
 flightTuningTower :: (e -> FlightTuning)
@@ -53,7 +51,6 @@ flightTuningTower totuning attrs = do
     e_attitude_pitch    <- attrEmitter (attitudePitchStab attrs)
     e_yaw_rate          <- attrEmitter (yawRatePid attrs)
     e_yaw_position      <- attrEmitter (yawPositionPid attrs)
-    e_ui_trim           <- attrEmitter (userInputTrim attrs)
     callback $ const $ do
       let go lbl e = do
             v <- local (lbl ft)
@@ -66,4 +63,3 @@ flightTuningTower totuning attrs = do
       go ft_attitude_pitch    e_attitude_pitch
       go ft_yaw_rate          e_yaw_rate
       go ft_yaw_position      e_yaw_position
-      go ft_ui_trim           e_ui_trim

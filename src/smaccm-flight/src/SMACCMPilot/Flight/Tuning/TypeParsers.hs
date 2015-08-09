@@ -4,7 +4,6 @@ module SMACCMPilot.Flight.Tuning.TypeParsers
   ( pidConfigParser
   , stabConfigParser
   , throttleUIParser
-  , userInputTrimParser
   ) where
 
 import Ivory.Language
@@ -14,7 +13,6 @@ import GHC.Float (double2Float)
 import qualified SMACCMPilot.Comm.Ivory.Types.PidConfig as PID
 import qualified SMACCMPilot.Comm.Ivory.Types.StabConfig as Stab
 import qualified SMACCMPilot.Comm.Ivory.Types.ThrottleUi as T
-import qualified SMACCMPilot.Comm.Ivory.Types.UserInputTrim as UI
 
 ifloatParser :: String -> ConfigParser IFloat
 ifloatParser n = do
@@ -55,15 +53,3 @@ throttleUIParser = do
     , T.dead .= ival dead
     ]
 
-userInputTrimParser :: ConfigParser (Init (Struct "user_input_trim"))
-userInputTrimParser = do
-  t <- ifloatParser "throttle" `withDefault` 0
-  r <- ifloatParser "roll"  `withDefault` 0
-  p <- ifloatParser "pitch" `withDefault` 0
-  y <- ifloatParser "yaw"   `withDefault` 0
-  return $ istruct
-    [ UI.throttle .= ival t
-    , UI.roll     .= ival r
-    , UI.pitch    .= ival p
-    , UI.yaw      .= ival y
-    ]
