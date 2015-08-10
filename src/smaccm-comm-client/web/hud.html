@@ -83,7 +83,6 @@
     <script src="/backbone-1.1.2.js"></script>
     <script src="/bootstrap-3.3.4-dist/js/bootstrap.min.js"></script>
     <script src="/paper-core-0.9.15.js"></script>
-    <script src="/scheduler.js"></script>
     <script src="/uitest.js"></script>
     <script src="/bbox.js"></script>
     <script src="/pfd.js"></script>
@@ -142,11 +141,22 @@ _.each(['rcinput', 'telem', 'px4io', 'sens_cal'], function (field) {
   }).el);
 });
 
-var models = [
-  cameraTarget,
-  packedStatus,
-];
-new Scheduler({ period: 1000 }, models);
+function fetchThen(model, next) {
+  model.fetch({ timeout: 500 }).done(next).fail(function (jqXHR, textStatus, errorThrown) {
+    if (errorThrown == "timeout")
+      next();
+    else
+      setTimeout(next, 500);
+  });
+}
+
+function fetchCameraTarget() {
+  fetchThen(cameraTarget, fetchPackedStatus);
+}
+function fetchPackedStatus() {
+  fetchThen(packedStatus, fetchCameraTarget);
+}
+fetchCameraTarget();
 
 });
 </script>
