@@ -233,15 +233,26 @@ window.PFDView = Backbone.View.extend({
   },
   render: function () {
     var m = this.model.toJSON();
-    if (!m.valid) return;
-    this.pfd.horizon.setPitchRoll(m.pitch, m.roll);
 
-    var heading = m.yaw * 180 / Math.PI;
-    if (heading < 0)
-      heading += 360;
-    this.pfd.heading.setIndicated(heading.toFixed(0));
+    if (m.valid) {
+      this.pfd.horizon.setPitchRoll(m.pitch, m.roll);
 
-    this.pfd.altitude.setIndicated(m.baro_alt.toFixed(1));
+      var heading = m.yaw * 180 / Math.PI;
+      if (heading < 0)
+        heading += 360;
+      this.pfd.heading.setIndicated(heading.toFixed(0));
+
+      this.pfd.altitude.setIndicated(m.baro_alt.toFixed(1));
+    } else {
+      this.pfd.horizon.setPitchRoll(0, 0);
+      this.pfd.heading.setIndicated('');
+      this.pfd.altitude.setIndicated('');
+    }
+
+    if (m.fix && m.fix != "FixNone")
+      this.pfd.airspeed.setIndicated((m.vground / 100).toFixed(1));
+    else
+      this.pfd.airspeed.setIndicated('');
 
     this.pfd.draw();
   },
