@@ -9,6 +9,43 @@
     <link href="/bootstrap-3.3.4-dist/css/bootstrap-theme.min.css" rel="stylesheet">
 
     <style>
+      #black-overlay{
+          display: none;
+          position: absolute;
+          top: 0%;
+          left: 0%;
+          width: 100%;
+          height: 100%;
+          background-color: black;
+          z-index:1001;
+          -moz-opacity: 0.8;
+          opacity:.80;
+          filter: alpha(opacity=80);
+      }
+
+      #error-wrapper {
+	  position: absolute;
+	  left: 50%;
+	  top: 15%;
+      }
+
+      #error-message {
+          display: none;
+          position: relative;
+	  left: -50%;
+          height: 150px;
+          line-height: 150px;
+	  padding: 0px 40px;
+          border: 2px solid red;
+          background-color: black;
+          color: red;
+          z-index:1002;
+          text-align: center;
+          font-family: monospace;
+          font-size: 70px;
+	  white-space: nowrap;
+      }
+
       #pfd-view {
         position: absolute;
         top: 0;
@@ -37,6 +74,13 @@
     </style>
 </head>
 <body role="document">
+    <div id="black-overlay"></div>
+
+    <div id="error-wrapper">
+      <div id="error-message">
+        test
+      </div>
+    </div>
 
     <canvas id="pfd-view" width="500" height="350"></canvas>
 
@@ -151,12 +195,42 @@ stats.domElement.style.right = '0px';
 stats.domElement.style.top = '0px';
 document.body.appendChild(stats.domElement);
 
+errors = 0;
+lastMessage = new Date().getTime();
+
+function hideError() {
+  $("#black-overlay").css("display", "none");
+  $("#error-message").css("display", "none");
+}
+
+function showError() {
+  $("#black-overlay").css("display", "block");
+  $("#error-message").css("display", "block");
+}
+
+function refreshErrorMessage() {
+  delay = (new Date().getTime() - lastMessage) / 1000.0;
+  $('#error-message').text("Connection lost: " + delay.toFixed(1) + "s");
+}
+
+setInterval(refreshErrorMessage, 100);
+
 function fetchThen(model, next) {
-  model.fetch({ timeout: 500 }).done(next).fail(function (jqXHR, textStatus, errorThrown) {
-    if (errorThrown == "timeout")
+  model.fetch({ timeout: 500 }).done(function() {
+    errors = 0;
+    lastMessage = new Date().getTime();
+    hideError();
+    next();
+  }).fail(function (jqXHR, textStatus, errorThrown) {
+    errors++;
+    if (errors == 5) {
+      showError();
+    }
+    if (errorThrown == "timeout") {
       next();
-    else
+    } else {
       setTimeout(next, 500);
+    }
   });
 }
 
