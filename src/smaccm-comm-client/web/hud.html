@@ -216,7 +216,7 @@ function refreshErrorMessage() {
 setInterval(refreshErrorMessage, 100);
 
 function fetchThen(model, next) {
-  model.fetch({ timeout: 500 }).done(function() {
+  model.fetch({ timeout: 1500 }).done(function() {
     errors = 0;
     lastMessage = new Date().getTime();
     hideError();
@@ -229,7 +229,7 @@ function fetchThen(model, next) {
     if (errorThrown == "timeout") {
       next();
     } else {
-      setTimeout(next, 500);
+      setTimeout(next, 1500);
     }
   });
 }
