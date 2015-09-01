@@ -9,12 +9,14 @@ window.PFD = function(origin, max_x, max_y) {
   var air_ind = new window.PFD.AirspeedIndicator(origin.add([25,100]));
   var alt_ind = new window.PFD.AltitudeIndicator(origin.add([350,100]));
   var head_ind = new window.PFD.HeadingIndicator(origin.add([250,230]));
+  var volt_ind = new window.PFD.VoltageIndicator(origin.add([25,25]));
 
   return {
     airspeed : air_ind,
     altitude : alt_ind,
     heading  : head_ind,
     horizon  : art_horiz,
+    voltage  : volt_ind,
     draw     : function () { paper.view.draw() } // XXX
   };
 };
@@ -131,6 +133,42 @@ window.PFD.HeadingIndicator = function(origin) {
   };
 };
 
+
+window.PFD.VoltageIndicator = function(origin) {
+  var boundary = new paper.Path();
+  boundary.strokeWidth = 5;
+  boundary.strokeColor = 'white';
+
+  boundary.moveTo(origin);
+  boundary.lineTo(origin.add([95, 0]));
+  boundary.lineTo(origin.add([95, 50]));
+  boundary.lineTo(origin.add([  0, 50]));
+  boundary.closed = true;
+  boundary.fillColor = 'black';
+
+  var lbl = new paper.PointText(origin.add([5,65]));
+  lbl.content = 'BATTERY (V)';
+
+  var indicator = new paper.PointText(origin.add([25, 33]));
+  indicator.fontSize = 24;
+  indicator.fillColor = 'white';
+  indicator.content = '99';
+
+
+  return {
+    setIndicated : function (value) {
+      indicator.content = value.toFixed(1);
+      if (value > 11.6) {
+        boundary.fillColor = 'black';
+      } else if (value > 11.4) {
+        boundary.fillColor = 'orange';
+      } else {
+        boundary.fillColor = 'red';
+      }
+    }
+  };
+};
+
 window.PFD.ArtificialHorizon = function(origin) {
   var x_dim = 250;
   var y_dim = 250;
@@ -234,6 +272,9 @@ window.PFDView = Backbone.View.extend({
   render: function () {
     var m = this.model.toJSON();
 
+    var voltage = m.battery_voltage || 0;
+    this.pfd.voltage.setIndicated(voltage);
+
     if (m.valid) {
       this.pfd.horizon.setPitchRoll(m.pitch, m.roll);
 
@@ -243,6 +284,7 @@ window.PFDView = Backbone.View.extend({
       this.pfd.heading.setIndicated(heading.toFixed(0));
 
       this.pfd.altitude.setIndicated(m.baro_alt.toFixed(0));
+
     } else {
       this.pfd.horizon.setPitchRoll(0, 0);
       this.pfd.heading.setIndicated('');
