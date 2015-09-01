@@ -276,7 +276,8 @@
   (mag_progress float_t) -- 0.0 to 1.0
   (accel_progress float_t) -- 0.0 to 1.0
   (arming_mode   arming_mode_t)
-  (control_modes control_modes_t))
+  (control_modes control_modes_t)
+  (battery_voltage float_t))
 
 (def-interface vehicle_i ()
   (heartbeat               (stream         heartbeat_t))
@@ -305,7 +306,8 @@
   (att_control_debug       (attr read      att_control_debug_t))
   (alt_control_debug       (attr read      alt_control_debug_t))
   (px4io_state             (attr read      px4io_state_t))
-  (arming_status           (attr read      arming_status_t)))
+  (arming_status           (attr read      arming_status_t))
+  (battery_voltage         (attr read      float_t)))
 
 (def-interface controllable_vehicle_i (vehicle_i)
   (altitude_rate_pid       (attr readwrite pid_config_t))
