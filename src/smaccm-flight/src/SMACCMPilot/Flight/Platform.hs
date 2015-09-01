@@ -27,6 +27,7 @@ import qualified Ivory.BSP.STM32F427.UART.DMA       as F427
 import qualified Ivory.BSP.STM32F427.I2C            as F427
 import qualified Ivory.BSP.STM32F427.GPIO           as F427
 import qualified Ivory.BSP.STM32F427.GPIO.AF        as F427
+import qualified Ivory.BSP.STM32F427.ADC            as F427
 import           Ivory.BSP.STM32.Peripheral.UART.DMA
 import           Ivory.BSP.STM32.Peripheral.UART
 import           Ivory.BSP.STM32.Peripheral.I2C
@@ -37,7 +38,7 @@ import           Ivory.OS.FreeRTOS.Tower.STM32.Config
 import           SMACCMPilot.Datalink.Mode
 import           SMACCMPilot.Hardware.CAN
 import           SMACCMPilot.Hardware.Sensors
-import           SMACCMPilot.Hardware.Tests.Platforms (PPM(..), RGBLED_I2C(..))
+import           SMACCMPilot.Hardware.Tests.Platforms (PPM(..), RGBLED_I2C(..), ADC(..))
 import           SMACCMPilot.Flight.Tuning
 
 
@@ -50,6 +51,7 @@ data FlightPlatform =
     , fp_can          :: Maybe CAN_Device
     , fp_datalink     :: DatalinkMode
     , fp_rgbled       :: Maybe RGBLED_I2C
+    , fp_vbatt_adc    :: Maybe ADC
     , fp_tuning       :: FlightTuning
     , fp_mixer        :: FlightMixer
     , fp_stm32config  :: STM32Config
@@ -102,6 +104,7 @@ px4fmuv17 tuning mixer dmode = FlightPlatform
   , fp_can         = Nothing
   , fp_datalink    = dmode
   , fp_rgbled      = Nothing
+  , fp_vbatt_adc   = Nothing
   , fp_tuning      = tuning
   , fp_mixer       = mixer
   , fp_stm32config = stm32f405Defaults 24
@@ -136,6 +139,7 @@ px4fmuv24 tuning mixer dmode = FlightPlatform
   , fp_can         = Just fmu24_can
   , fp_datalink    = dmode
   , fp_rgbled      = Just rgbled
+  , fp_vbatt_adc   = Just adc
   , fp_tuning      = tuning
   , fp_mixer       = mixer
   , fp_stm32config = stm32f427Defaults 24
@@ -171,4 +175,22 @@ px4fmuv24 tuning mixer dmode = FlightPlatform
     { uartPinTx = F427.pinC6
     , uartPinRx = F427.pinC7
     , uartPinAF = F427.gpio_af_uart6
+    }
+
+  adc :: ADC
+  adc = ADC
+    { adc_periph = F427.adc1
+    , adc_chan   = 2
+    , adc_pin    = F427.pinA2
+    , adc_cal    =
+        -- This calibration works for Pixhawk #2 on my desk. I assume
+        -- they're all close enough to this for now.
+        \x -> ((x - 137.718) / 109.709)
+        -- Linear regression, r squared of .9999:
+        -- counts	voltage
+        -- 138	0
+        -- 1350	11.07
+        -- 1420	11.71
+        -- 1450	11.92
+        -- 1475	12.15
     }

@@ -72,3 +72,9 @@ packedStatusTower attrs = monitor "pack_status" $ do
     [ Copy P.arming_mode U.arming_mode
     , Copy P.control_modes U.control_modes
     ]
+
+  attrHandler (batteryVoltage attrs) $ do
+    e <- attrEmitter (packedStatus attrs)
+    callbackV $ \v -> do
+      store (packed ~> P.battery_voltage) v
+      emit e (constRef packed)

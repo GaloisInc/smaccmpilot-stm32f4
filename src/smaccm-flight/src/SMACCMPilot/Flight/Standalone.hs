@@ -17,6 +17,7 @@ import           SMACCMPilot.Flight.Tuning
 import           SMACCMPilot.Flight.Law
 import           SMACCMPilot.Flight.Light
 import           SMACCMPilot.Flight.PackedStatus
+import           SMACCMPilot.Flight.Battery
 
 import           SMACCMPilot.Comm.Tower.Attr
 import           SMACCMPilot.Comm.Tower.Interface.ControllableVehicle
@@ -77,3 +78,5 @@ app tofp = do
              (motorOutput attrs)
 
   packedStatusTower attrs
+
+  batteryTower tofp attrs

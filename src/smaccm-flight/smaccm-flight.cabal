@@ -9,7 +9,8 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  exposed-modules:     SMACCMPilot.Flight.Control,
+  exposed-modules:     SMACCMPilot.Flight.Battery,
+                       SMACCMPilot.Flight.Control,
                        SMACCMPilot.Flight.Control.Altitude,
                        SMACCMPilot.Flight.Control.Altitude.Estimator,
                        SMACCMPilot.Flight.Control.Altitude.Filter,
