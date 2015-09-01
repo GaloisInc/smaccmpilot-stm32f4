@@ -176,6 +176,20 @@ class PPM(object):
         return ("PPM ok %d chans %d %d %d %d %d %d micros %d" %
             (self.v, self.c1, self.c2, self.c3, self.c4, self.c5, self.c6, self.t))
 
+class ADC(object):
+    def __init__(self, binary):
+        self.binary = binary
+        try:
+            sample = struct.unpack("!f", binary)
+            self.sample = sample
+            self.errormsg = None
+        except Exception:
+            self.errormsg = ("ADC: bad size %d" % (len(binary)))
+    def display(self):
+        if self.errormsg:
+            return self.errormsg
+        return ("ADC           % 9.4f" % (self.sample))
+
 class SensorParser(object):
     def __init__(self,radio,opts):
         self.radio = radio
@@ -203,6 +217,8 @@ class SensorParser(object):
                 sensors.append(Position(payload))
             if t == ord('P'): # 'P' PPM
                 sensors.append(PPM(payload))
+            if t == ord('A'): # 'A' ADC
+                sensors.append(ADC(payload))
         return (statuses, sensors)
 
 class SerialPortProvider(object):

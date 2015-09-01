@@ -32,12 +32,14 @@ import qualified Ivory.BSP.STM32F427.UART.DMA       as F427
 import qualified Ivory.BSP.STM32F427.UART           as F427
 import qualified Ivory.BSP.STM32F427.GPIO           as F427
 import qualified Ivory.BSP.STM32F427.GPIO.AF        as F427
+import qualified Ivory.BSP.STM32F427.ADC            as F427
 import           Ivory.BSP.STM32.Peripheral.GPIOF4
 import           Ivory.BSP.STM32.Peripheral.UART
 import           Ivory.BSP.STM32.Peripheral.UART.DMA
 import           Ivory.BSP.STM32.Peripheral.SPI
 import           Ivory.BSP.STM32.Peripheral.I2C
 import           Ivory.BSP.STM32.Peripheral.ATIM18
+import           Ivory.BSP.STM32.Peripheral.ADC
 import           Ivory.BSP.STM32.Interrupt
 import           Ivory.BSP.STM32.Driver.I2C
 import           Ivory.BSP.STM32.Driver.UART
@@ -61,7 +63,7 @@ data PX4Platform =
     , px4platform_console        :: UART_Device
     , px4platform_can            :: Maybe CAN_Device
     , px4platform_rgbled         :: Maybe RGBLED_I2C
-
+    , px4platform_adc            :: Maybe ADC
     , px4platform_stm32config    :: STM32Config
     }
 
@@ -121,6 +123,16 @@ data RGBLED_I2C =
     , rgbled_i2c_pins   :: I2CPins
     , rgbled_i2c_addr   :: I2CDeviceAddr
     }
+
+
+data ADC =
+  ADC
+    { adc_periph :: ADCPeriph
+    , adc_chan   :: Int
+    , adc_pin    :: GPIOPin
+    , adc_cal    :: IFloat -> IFloat
+    }
+
 ------
 
 px4platform_mpu6000 :: PX4Platform -> MPU6000_SPI
@@ -194,6 +206,7 @@ px4fmuv17 = PX4Platform
   , px4platform_console      = console
   , px4platform_can          = Nothing
   , px4platform_rgbled       = Nothing
+  , px4platform_adc          = Nothing
   , px4platform_stm32config  = stm32f405Defaults 24
   }
   where
@@ -242,6 +255,7 @@ px4fmuv24 = PX4Platform
   , px4platform_console      = console
   , px4platform_can          = Just fmu24_can
   , px4platform_rgbled       = Just rgbled
+  , px4platform_adc          = Just adc
   , px4platform_stm32config  = stm32f427Defaults 24
   }
   where
@@ -275,7 +289,22 @@ px4fmuv24 = PX4Platform
     , uartPinRx = F427.pinC7
     , uartPinAF = F427.gpio_af_uart6
     }
-
+  adc = ADC
+    { adc_periph = F427.adc1
+    , adc_chan   = 2
+    , adc_pin    = F427.pinA2
+    , adc_cal    =
+        -- This calibration works for Pixhawk #2 on my desk. I assume
+        -- they're all close enough to this for now.
+        \x -> ((x - 137.718) / 109.709)
+        -- Linear regression, r squared of .9999:
+        -- counts	voltage
+        -- 138	0
+        -- 1350	11.07
+        -- 1420	11.71
+        -- 1450	11.92
+        -- 1475	12.15
+    }
 
 ----
 

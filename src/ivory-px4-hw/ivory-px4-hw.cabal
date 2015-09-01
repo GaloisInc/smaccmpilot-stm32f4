@@ -50,6 +50,8 @@ library
 
                        SMACCMPilot.Hardware.RGBLED,
 
+                       SMACCMPilot.Hardware.ADC,
+
                        SMACCMPilot.Hardware.PX4IO,
                        SMACCMPilot.Hardware.PX4IO.Types,
                        SMACCMPilot.Hardware.PX4IO.Types.Regs,
@@ -71,6 +73,7 @@ library
                        SMACCMPilot.Hardware.Tests.AllSensors,
                        SMACCMPilot.Hardware.Tests.PX4IOPacking,
                        SMACCMPilot.Hardware.Tests.PX4IO,
+                       SMACCMPilot.Hardware.Tests.ADC,
 
                        SMACCMPilot.Time
 
@@ -249,6 +252,19 @@ executable             px4-px4io-packing-test-gen
 
 executable             px4-px4io-test-gen
   main-is:             PX4IOTest.hs
+  hs-source-dirs:      tests
+  build-depends:       base >= 4.6,
+                       monadLib,
+                       tower              >= 0.9,
+                       tower-config,
+                       tower-freertos-stm32,
+                       ivory-px4-hw
+
+  default-language:    Haskell2010
+  ghc-options:         -Wall
+
+executable             px4-adc-test-gen
+  main-is:             ADCTest.hs
   hs-source-dirs:      tests
   build-depends:       base >= 4.6,
                        monadLib,
