@@ -1,8 +1,8 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 module SMACCMPilot.Datalink.Client.Monad
-  ( GW
-  , runGW
+  ( DLIO
+  , runDLIO
   , MonadIO(..)
   , writeErr
   , writeLog
@@ -18,30 +18,30 @@ import SMACCMPilot.Datalink.Client.Console
 
 --------------------------------------------------------------------------------
 
-newtype GW a =
-  GW { unGW :: ReaderT Console IO a }
+newtype DLIO a =
+  DLIO { unDLIO :: ReaderT Console IO a }
   deriving (Functor, Monad, Applicative)
 
-instance MonadIO GW where
-  liftIO a = GW (lift a)
+instance MonadIO DLIO where
+  liftIO a = DLIO (lift a)
 
-runGW :: Console ->  GW a -> IO a
-runGW console gw = runReaderT console (unGW gw)
+runDLIO :: Console ->  DLIO a -> IO a
+runDLIO console gw = runReaderT console (unDLIO gw)
 
-getConsole :: GW Console
-getConsole = GW ask
+getConsole :: DLIO Console
+getConsole = DLIO ask
 
-writeErr :: String -> GW ()
+writeErr :: String -> DLIO ()
 writeErr msg = do
   c <- getConsole
   liftIO $ consoleError c msg
 
-writeDbg :: String -> GW ()
+writeDbg :: String -> DLIO ()
 writeDbg msg = do
   c <- getConsole
   liftIO $ consoleDebug c msg
 
-writeLog :: String -> GW ()
+writeLog :: String -> DLIO ()
 writeLog msg = do
   c <- getConsole
   liftIO $ consoleLog c msg

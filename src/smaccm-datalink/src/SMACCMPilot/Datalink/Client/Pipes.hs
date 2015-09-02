@@ -17,20 +17,20 @@ import qualified SMACCMPilot.Datalink.HXStream.Native as HX
 import SMACCMPilot.Commsec.Sizes
 import GEC.Datagram.Pure
 
-word8Log :: String -> Pipe Word8 Word8 GW ()
+word8Log :: String -> Pipe Word8 Word8 DLIO ()
 word8Log tag = do
   w8 <- await
   lift $ writeLog (printf "%s Word8 %d (0x%0.2x)" tag w8 w8)
   word8Log tag
 
-frameLog :: Pipe (HX.Tag, ByteString) (HX.Tag, ByteString) GW ()
+frameLog :: Pipe (HX.Tag, ByteString) (HX.Tag, ByteString) DLIO ()
 frameLog = do
   (t, bs) <- await
   lift $ writeLog $ bytestringDebug (printf "frame (tag %d)" t) bs
   yield (t, bs)
   frameLog
 
-bytestringLog :: String -> Pipe ByteString ByteString GW ()
+bytestringLog :: String -> Pipe ByteString ByteString DLIO ()
 bytestringLog tag = do
   bs <- await
   lift $ writeDbg $ bytestringDebug tag bs
@@ -38,7 +38,7 @@ bytestringLog tag = do
   bytestringLog tag
 
 
-showLog :: Show a => Pipe a a GW ()
+showLog :: Show a => Pipe a a DLIO ()
 showLog = do
   a <- await
   lift $ writeLog $ show a
@@ -74,7 +74,7 @@ hxDecoder = bytestringUnpack >-> aux HX.emptyStreamState
        Nothing -> return ()
      aux ss'
 
-hxEncoder :: Pipe (HX.Tag, ByteString) ByteString GW ()
+hxEncoder :: Pipe (HX.Tag, ByteString) ByteString DLIO ()
 hxEncoder = do
   (t, bs) <- await
   case bytestringPad cyphertextSize bs of
@@ -84,7 +84,7 @@ hxEncoder = do
 
 type KeySalt = ByteString
 
-commsecEncoder :: KeySalt -> Pipe ByteString ByteString GW ()
+commsecEncoder :: KeySalt -> Pipe ByteString ByteString DLIO ()
 commsecEncoder ks = do
   case mkContextOut Small ks of
     Just ctx -> do
@@ -98,7 +98,7 @@ commsecEncoder ks = do
       Just (ctx', ct) -> yield ct >> aux ctx'
       Nothing -> lift (writeErr "GEC encode failed") >> aux ctx
 
-commsecDecoder :: KeySalt -> Pipe ByteString ByteString GW ()
+commsecDecoder :: KeySalt -> Pipe ByteString ByteString DLIO ()
 commsecDecoder ks = do
   case mkContextIn Small ks of
     Just ctx -> do
@@ -112,7 +112,7 @@ commsecDecoder ks = do
       Just (ctx', pt) -> yield pt >> aux ctx'
       Nothing -> lift (writeErr "GEC decode failed") >> aux ctx
 
-padder :: Integer -> Pipe ByteString ByteString GW ()
+padder :: Integer -> Pipe ByteString ByteString DLIO ()
 padder l = do
   b <- await
   case bytestringPad l b of
@@ -120,7 +120,7 @@ padder l = do
     Right padded -> yield padded
   padder l
 
-unpadder :: Integer -> Pipe ByteString ByteString GW ()
+unpadder :: Integer -> Pipe ByteString ByteString DLIO ()
 unpadder l = do
   a <- await
   let (s,e) = B.splitAt (fromInteger l) a

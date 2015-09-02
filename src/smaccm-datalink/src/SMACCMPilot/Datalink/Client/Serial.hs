@@ -39,11 +39,11 @@ serialServer opts console = case serPort opts of
     open = openSerial port (serBaud opts)
     body h = do
       hSetBuffering h NoBuffering
-      i <- asyncRunGW console "serial input" $ liftIO $ forever $ do
+      i <- asyncRunDLIO console "serial input" $ liftIO $ forever $ do
         c <- hGetChar h
         queuePush ser_in_push (B.pack [c2w c])
 
-      o <- asyncRunGW console "serial output" $ liftIO $ forever $ do
+      o <- asyncRunDLIO console "serial output" $ liftIO $ forever $ do
         bs <- queuePop ser_out_pop
         B.hPutStr h bs
       wait i

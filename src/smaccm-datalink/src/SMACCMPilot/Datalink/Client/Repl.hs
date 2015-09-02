@@ -79,7 +79,7 @@ replClient opts = do
     where
     loop k = k >> repl console
 
-replTranslator :: Pipe ReplCmd ByteString GW ()
+replTranslator :: Pipe ReplCmd ByteString DLIO ()
 replTranslator = await >>= go >> replTranslator
   where
   go (SendRaw bs) = yield bs

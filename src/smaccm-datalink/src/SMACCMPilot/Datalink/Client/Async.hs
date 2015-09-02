@@ -1,7 +1,7 @@
 
 module SMACCMPilot.Datalink.Client.Async
   ( asyncRun
-  , asyncRunGW
+  , asyncRunDLIO
   , asyncRunEffect
   , A.wait
   ) where
@@ -20,8 +20,8 @@ asyncRun name act = A.async $ catch act exit
   exit :: SomeException -> IO ()
   exit x = hPutStrLn stderr $ "asyncRun " ++ name ++ " exception: " ++ (show x)
 
-asyncRunGW :: Console -> String -> GW () -> IO (A.Async ())
-asyncRunGW console name act = asyncRun name $ runGW (annotate console name) act
+asyncRunDLIO :: Console -> String -> DLIO () -> IO (A.Async ())
+asyncRunDLIO console name act = asyncRun name $ runDLIO (annotate console name) act
 
-asyncRunEffect :: Console -> String -> Effect GW () -> IO (A.Async ())
-asyncRunEffect console name eff = asyncRunGW console name (runEffect eff)
+asyncRunEffect :: Console -> String -> Effect DLIO () -> IO (A.Async ())
+asyncRunEffect console name eff = asyncRunDLIO console name (runEffect eff)

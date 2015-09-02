@@ -2,6 +2,7 @@
 module SMACCMPilot.Datalink.Client where
 
 import Pipes
+import Control.Concurrent.Async
 import System.Exit
 
 import SMACCMPilot.Datalink.Client.Async
@@ -10,12 +11,14 @@ import SMACCMPilot.Datalink.Client.Console
 import SMACCMPilot.Datalink.Client.Queue
 import SMACCMPilot.Datalink.Client.Serial
 import SMACCMPilot.Datalink.Client.Pipes
+import SMACCMPilot.Datalink.Client.Monad
 import SMACCMPilot.Datalink.Mode
 
 import           Data.ByteString.Char8 (ByteString)
 import qualified Data.ByteString.Char8 as B
 import qualified Data.ByteString.Internal as B (w2c)
 import SMACCMPilot.Commsec.SymmetricKey
+import SMACCMPilot.Commsec.KeyExchange
 import SMACCMPilot.Commsec.Sizes
 
 
@@ -30,8 +33,12 @@ datalinkClient opts dmode client = case dmode of
   SymmetricCommsecMode DatalinkClient sk ->
     aux (aRunPipe "sym decoder" (commsecDecoder (keyToBS (sk_s2c sk))))
         (aRunPipe "sym encoder" (commsecEncoder (keyToBS (sk_c2s sk))))
-  SymmetricCommsecMode _ _ -> error "not implementing symmetric commsec datalink server right now"
-  KeyExchangeMode _ _ _ _ -> error "key exchange mode unsupported"
+  SymmetricCommsecMode DatalinkServer sk ->
+    aux (aRunPipe "sym decoder" (commsecDecoder (keyToBS (sk_c2s sk))))
+        (aRunPipe "sym encoder" (commsecEncoder (keyToBS (sk_s2c sk))))
+  KeyExchangeMode role mypub mypriv theirpub -> do
+    (decoder, encoder) <- keyExchangeMode role mypub mypriv theirpub
+    aux decoder encoder
   where
   aux decoder encoder = do
     putStrLn ("Datalink client starting in " ++ mode)
@@ -62,6 +69,7 @@ datalinkClient opts dmode client = case dmode of
     mapM_ wait [i, d, p, e, o]
     exitSuccess
 
+  aRunPipe :: String -> Pipe a b DLIO () -> Console -> Poppable a -> Pushable b -> IO (Async ())
   aRunPipe name p console pop_chan push_chan =
     asyncRunEffect console name $
       popProducer pop_chan >-> p >-> pushConsumer push_chan
@@ -87,4 +95,9 @@ datalinkClient opts dmode client = case dmode of
       "key exchange commsec client mode"
     KeyExchangeMode DatalinkServer _ _ _ ->
       "key exchange commsec server mode"
+
+
+keyExchangeMode :: DatalinkRole -> PubKey -> PrivKey -> PubKey
+                -> IO (a, b)
+keyExchangeMode = undefined
 
