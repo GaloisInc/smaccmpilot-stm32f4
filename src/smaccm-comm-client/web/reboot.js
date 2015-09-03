@@ -9,7 +9,7 @@ window.RebootButtonView = Backbone.View.extend({
     this.$el.text('Reboot');
   },
   click: function () {
-    this.model.set('magic', 'LinuxRebootMagic1');
+    this.model.set('magic', []);
     this.model.save();
   }
 });
