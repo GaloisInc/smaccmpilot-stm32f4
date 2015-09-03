@@ -87,6 +87,7 @@
     <script src="/uitest.js"></script>
     <script src="/bbox.js"></script>
     <script src="/pfd.js"></script>
+    <script src="/reboot.js"></script>
 <script>
 $(function() {
 
@@ -141,6 +142,12 @@ _.each(['rcinput', 'telem', 'px4io', 'sens_cal'], function (field) {
     writable: false,
   }).el);
 });
+
+var Reboot = Backbone.Model.extend({
+  urlRoot: '/controllable_vehicle_i/reboot'
+});
+var reboot = new Reboot({});
+$('#status-column').append(new RebootButtonView({ model: reboot }).el);
 
 var stats = new Stats();
 stats.setMode(0); // 0: fps, 1: ms, 2: mb
