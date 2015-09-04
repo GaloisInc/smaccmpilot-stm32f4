@@ -12,7 +12,7 @@ import SMACCMPilot.Datalink.Client.Queue
 import SMACCMPilot.Datalink.Client.Serial
 import SMACCMPilot.Datalink.Client.Pipes
 import SMACCMPilot.Datalink.Client.Monad
-import SMACCMPilot.Datalink.Client.KeyExchange
+import SMACCMPilot.Datalink.Client.KeyExchange (keyExchangeMode)
 import SMACCMPilot.Datalink.Mode
 
 import           Data.ByteString.Char8 (ByteString)

@@ -12,14 +12,16 @@ module SMACCMPilot.Datalink.Client.Queue
   , forkPop
   , popProducer
   , pushConsumer
-  , SelectQ(..)
+  , SelectQ
   , popSelect
+  , (==>)
   ) where
 
 import Control.Monad
 import Control.Concurrent (forkIO)
 import Control.Concurrent.STM
 import Pipes
+import SMACCMPilot.Datalink.Client.Monad
 
 newtype Poppable a = Poppable { unPoppable :: TQueue a }
 newtype Pushable a = Pushable { unPushable :: TQueue a }
@@ -51,13 +53,19 @@ queueTryPop q = atomically $ do
 queuePush :: Pushable a -> a -> IO ()
 queuePush q v = void (atomically (writeTQueue (unPushable q) v))
 
-data SelectQ a = forall b . SelectQ (b -> a) (Poppable b)
+data SelectQ a = forall b . SelectQ (Poppable b) (b -> DLIO a)
 
-popSelect :: [SelectQ a] -> IO a
-popSelect select = atomically $ aux select
+popSelect :: [SelectQ a] -> DLIO a
+popSelect select = do
+  r <- liftIO $ atomically $ aux select
+  r
   where
-  aux ((SelectQ f q):ss) = fmap f (readTQueue (unPoppable q)) `orElse` aux ss
+  aux :: [SelectQ a] -> STM (DLIO a)
+  aux ((SelectQ q f):ss) = fmap f (readTQueue (unPoppable q)) `orElse` aux ss
   aux [] = retry
+
+(==>) :: Poppable b -> (b -> DLIO a) -> SelectQ a
+(==>) = SelectQ
 
 popProducer :: (MonadIO m) => Poppable a -> Producer a m ()
 popProducer q = do

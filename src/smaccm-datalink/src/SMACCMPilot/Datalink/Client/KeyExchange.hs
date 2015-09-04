@@ -2,6 +2,8 @@
 
 module SMACCMPilot.Datalink.Client.KeyExchange
   ( keyExchangeMode
+  , encoder
+  , decoder
   ) where
 
 import Pipes
@@ -34,11 +36,6 @@ keyExchangeMode _role _mypub _mypriv _theirpub = do
          , decoder decode_sk_pop (fst ke_signal_in)
          )
 
-data EncoderActions
-  = ENewSymKey (Maybe ByteString)
-  | ENewKEOut  ByteString
-  | ENewPT     ByteString
-
 encoder :: Poppable (Maybe ByteString)  -- Symmetric Key
         -> Poppable ByteString          -- outbound ke in-band message
         -> Console
@@ -49,21 +46,16 @@ encoder newkey keout console pt_out_frame ct_out_frame =
   asyncRunDLIO console "key exchange encoder" $ aux Nothing
   where
   aux :: Maybe GEC.ContextOut -> DLIO ()
-  aux ctx = do
-    act <- liftIO $ popSelect [ SelectQ ENewSymKey newkey
-                              , SelectQ ENewKEOut  keout
-                              , SelectQ ENewPT     pt_out_frame
-                              ]
-    case act of
-      ENewSymKey Nothing -> do
-        aux Nothing
-      ENewSymKey (Just key) -> do
-        ctx' <- mkSKEncoder key
-        aux ctx'
-      ENewKEOut  msg  -> do
+  aux ctx = popSelect
+    [ newkey       ==> \k -> case k of
+        Nothing -> aux Nothing
+        Just key -> do
+          ctx' <- mkSKEncoder key
+          aux ctx'
+    , keout        ==> \msg -> do
         liftIO $ queuePush ct_out_frame msg
         aux ctx
-      ENewPT     pt   -> case ctx of
+    , pt_out_frame ==> \pt -> case ctx of
         Nothing -> aux ctx
         Just encContext -> do
           case GEC.encode encContext pt of
@@ -73,6 +65,7 @@ encoder newkey keout console pt_out_frame ct_out_frame =
             Nothing -> do
               writeErr "GEC encode failed"
               aux ctx
+    ]
 
   mkSKEncoder :: ByteString -> DLIO (Maybe GEC.ContextOut)
   mkSKEncoder ks = case GEC.mkContextOut GEC.Small ks of
@@ -82,11 +75,6 @@ encoder newkey keout console pt_out_frame ct_out_frame =
     Nothing -> do
       writeErr ("mkSKEncoder: failed to create a GEC decode context from ks " ++ show ks)
       return Nothing
-
-data DecoderActions
-  = DNewSymKey (Maybe ByteString)
-  | DNewCT      ByteString
-
 
 decoder :: Poppable (Maybe ByteString)  -- Symmetric Key
         -> Pushable ByteString          -- forward in-band messages to ke
@@ -98,17 +86,13 @@ decoder newkey kein console ct_in_frame pt_in_frame =
   asyncRunDLIO console "key exchange decoder" $ aux Nothing
   where
   aux :: Maybe GEC.ContextIn -> DLIO ()
-  aux ctx = do
-    act <- liftIO $ popSelect [ SelectQ DNewSymKey newkey
-                              , SelectQ DNewCT     ct_in_frame
-                              ]
-    case act of
-      DNewSymKey Nothing -> do
-        aux Nothing
-      DNewSymKey (Just key) -> do
-        ctx' <- mkSKDecoder key
-        aux ctx'
-      DNewCT     ct   -> do
+  aux ctx = popSelect
+   [ newkey        ==> \k -> case k of
+        Nothing -> aux Nothing
+        Just key -> do
+          ctx' <- mkSKDecoder key
+          aux ctx'
+   , ct_in_frame   ==> \ct -> do
         liftIO $ queuePush kein ct
         case ctx of
           Nothing -> aux ctx
@@ -120,6 +104,7 @@ decoder newkey kein console ct_in_frame pt_in_frame =
               Nothing -> do
                 writeErr "GEC decode failed"
                 aux ctx
+   ]
 
   mkSKDecoder :: ByteString -> DLIO (Maybe GEC.ContextIn)
   mkSKDecoder ks = case GEC.mkContextIn GEC.Small ks of
