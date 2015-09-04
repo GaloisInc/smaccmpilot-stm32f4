@@ -1,3 +1,5 @@
+{-# LANGUAGE ExistentialQuantification #-}
+
 module SMACCMPilot.Datalink.Client.Queue
   ( Poppable
   , unPoppable
@@ -10,6 +12,8 @@ module SMACCMPilot.Datalink.Client.Queue
   , forkPop
   , popProducer
   , pushConsumer
+  , SelectQ(..)
+  , popSelect
   ) where
 
 import Control.Monad
@@ -46,6 +50,14 @@ queueTryPop q = atomically $ do
 
 queuePush :: Pushable a -> a -> IO ()
 queuePush q v = void (atomically (writeTQueue (unPushable q) v))
+
+data SelectQ a = forall b . SelectQ (b -> a) (Poppable b)
+
+popSelect :: [SelectQ a] -> IO a
+popSelect select = atomically $ aux select
+  where
+  aux ((SelectQ f q):ss) = fmap f (readTQueue (unPoppable q)) `orElse` aux ss
+  aux [] = retry
 
 popProducer :: (MonadIO m) => Poppable a -> Producer a m ()
 popProducer q = do

@@ -51,7 +51,7 @@ asyncServer s producer consumer conf = void $ asyncRun "asyncServer" $
   s (unPoppable producer) (unPushable consumer)  conf
 
 
-msgDeserialize :: (Serialize a) => Pipe ByteString a GW ()
+msgDeserialize :: (Serialize a) => Pipe ByteString a DLIO ()
 msgDeserialize = forever $ do
   ser <- await
   process ser
@@ -62,7 +62,7 @@ msgDeserialize = forever $ do
       yield r
       unless (B.null rest || B.all (== (toEnum 0)) rest) $ process rest
 
-msgSerialize :: (Serialize a) => Pipe a ByteString GW ()
+msgSerialize :: (Serialize a) => Pipe a ByteString DLIO ()
 msgSerialize = forever $ do
   msg <- await
   yield (runPut (put msg))

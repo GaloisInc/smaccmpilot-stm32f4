@@ -12,13 +12,13 @@ import SMACCMPilot.Datalink.Client.Queue
 import SMACCMPilot.Datalink.Client.Serial
 import SMACCMPilot.Datalink.Client.Pipes
 import SMACCMPilot.Datalink.Client.Monad
+import SMACCMPilot.Datalink.Client.KeyExchange
 import SMACCMPilot.Datalink.Mode
 
 import           Data.ByteString.Char8 (ByteString)
 import qualified Data.ByteString.Char8 as B
 import qualified Data.ByteString.Internal as B (w2c)
 import SMACCMPilot.Commsec.SymmetricKey
-import SMACCMPilot.Commsec.KeyExchange
 import SMACCMPilot.Commsec.Sizes
 
 
@@ -41,7 +41,7 @@ datalinkClient opts dmode client = case dmode of
     aux decoder encoder
   where
   aux decoder encoder = do
-    putStrLn ("Datalink client starting in " ++ mode)
+    putStrLn ("Datalink client starting in " ++ modedescription)
     console <- newConsolePrinter opts
 
     (ser_in_pop, ser_out_push) <- serialServer opts console
@@ -85,7 +85,7 @@ datalinkClient opts dmode client = case dmode of
             >-> untagger 0
 
   keyToBS = B.pack . map B.w2c
-  mode = case dmode of
+  modedescription = case dmode of
     PlaintextMode -> "plaintext mode"
     SymmetricCommsecMode DatalinkClient _ ->
       "symmetric commsec client mode"
@@ -95,9 +95,4 @@ datalinkClient opts dmode client = case dmode of
       "key exchange commsec client mode"
     KeyExchangeMode DatalinkServer _ _ _ ->
       "key exchange commsec server mode"
-
-
-keyExchangeMode :: DatalinkRole -> PubKey -> PrivKey -> PubKey
-                -> IO (a, b)
-keyExchangeMode = undefined
 

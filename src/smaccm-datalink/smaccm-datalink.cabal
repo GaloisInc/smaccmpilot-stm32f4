@@ -26,6 +26,7 @@ library
                        SMACCMPilot.Datalink.Client.Serial,
                        SMACCMPilot.Datalink.Client.Repl,
                        SMACCMPilot.Datalink.Client.Loopback,
+                       SMACCMPilot.Datalink.Client.KeyExchange,
                        SMACCMPilot.Datalink.Mode
                        SMACCMPilot.Datalink.Loopback
   build-depends:       base >= 4.6,
