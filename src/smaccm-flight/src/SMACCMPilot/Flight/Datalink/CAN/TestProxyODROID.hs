@@ -24,7 +24,6 @@ import SMACCMPilot.Flight.Datalink.CAN (s2cType, c2sType)
 import SMACCMPilot.Comm.Ivory.Types.SequenceNum
 import SMACCMPilot.Comm.Ivory.Types.SequenceNumberedCameraTarget
 import SMACCMPilot.Comm.Ivory.Types.CameraTarget
-
 import SMACCMPilot.Comm.Tower.Interface.ControllableVehicle
 import SMACCMPilot.Commsec.Sizes
 import SMACCMPilot.Datalink.Mode
@@ -50,12 +49,12 @@ app todl cameraRx = do
 
   cv_producer      <- controllableVehicleProducerInput (snd c2s_from_can)
   let cv_producer' =  cv_producer { cameraTargetInputGetRespProducer
-                                  = snd camera_chan
-                                  }
+                                  = snd camera_chan }
   c2s_pt_to_uart   <- controllableVehicleProducerOutput cv_producer'
 
   cv_consumer      <- controllableVehicleConsumerInput (snd s2c_pt_from_uart)
-
+  -- cv_consumer'     <- cv_consumer { cameraTargetInputGetReqConsumer
+  --                                 = snd camera_chan }
   s2c_to_can       <- controllableVehicleConsumerOutput cv_consumer
 
   c2s_ct_to_uart  <- channel
@@ -72,29 +71,20 @@ app todl cameraRx = do
     Nothing
       -> return ()
     Just camera_data_chan
-      -> periodicCamera (fst camera_chan)
-                        camera_data_chan
-                        (cameraTargetInputGetReqConsumer cv_consumer)
-                        (rebootSetReqConsumer cv_consumer)
+      -> periodicCamera (fst camera_chan) camera_data_chan (cameraTargetInputGetReqConsumer cv_consumer)
 
-periodicCamera :: ChanInput  (Struct "sequence_numbered_camera_target")
+periodicCamera :: ChanInput (Struct "sequence_numbered_camera_target")
                -> ChanOutput (Struct "camera_data")
                -> ChanOutput (Stored SequenceNum)
-               -> ChanOutput (Struct "sequence_numbered_reboot")
                -> Tower e ()
-periodicCamera camera_chan_tx camera_data_chan camera_req_rx reboot_rx = do
-  towerModule  rebootModule
-  towerDepends rebootModule
+periodicCamera camera_chan_tx camera_data_chan camera_req_tx = do
 
   monitor "periodic_camera_injector" $ do
      camera_data_st    <- stateInit "camera_data_st"    izero
      camera_data_prev  <- stateInit "camera_data_prev"  izero
      camera_data_watch <- stateInit "camera_data_watch" (izero :: Init (Stored Uint32))
 
-     handler reboot_rx "reboot_handler" $
-       callback $ \_reboot_msg -> call_ reboot_now
-
-     handler camera_req_rx "camera_req" $ do
+     handler camera_req_tx "camera_req" $ do
        e <- emitter camera_chan_tx 1
        callback $ \curr_seq -> do
 
@@ -199,8 +189,3 @@ uartDatalink input output = do
 
   airDataEncodeTower "frame" output uarto
 
-[ivory| import (reboot.h, reboot_now) void reboot_now() |]
-
-rebootModule :: Module
-rebootModule = package "rebootDeps" $
-  incl reboot_now
