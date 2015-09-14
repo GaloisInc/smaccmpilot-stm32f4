@@ -29,14 +29,21 @@ import           Ivory.BSP.STM32.ClockConfig
 import           Ivory.BSP.STM32.Peripheral.UART
 import           Ivory.BSP.STM32.Peripheral.UART.DMA
 
+data PX4IOPWMConfig =
+  PX4IOPWMConfig
+    { px4iopwm_min :: Int
+    , px4iopwm_max :: Int
+    } deriving (Eq, Show)
+
 px4ioTower :: (e -> ClockConfig)
            -> DMAUART
            -> UARTPins
+           -> PX4IOPWMConfig
            -> ChanOutput (Struct "control_law")
            -> ChanOutput (Struct "quadcopter_motors")
            -> ChanInput  (Struct "px4io_state")
            -> Tower e ()
-px4ioTower tocc dmauart pins control_law motors state_chan = do
+px4ioTower tocc dmauart pins pwmconfig control_law motors state_chan = do
   (BackpressureTransmit ser_tx_req ser_rx, driver_ready)
     <- syncDMAUARTTower tocc dmauart pins 1500000
 
@@ -168,7 +175,7 @@ px4ioTower tocc dmauart pins control_law motors state_chan = do
           -- Periodic handler sets loop_ready back to false.
           (_, setup_ok) <- rpc_receive
 
-          output_regs <- outRegIval (constRef motor_output)
+          output_regs <- outRegIval pwmconfig (constRef motor_output)
           (_, output_ok) <- rpc $ istruct
             [ req_code .= ival request_write
             , page     .= ival 54 -- Direct PWM Page
@@ -230,9 +237,10 @@ px4ioTower tocc dmauart pins control_law motors state_chan = do
   init_wait = Milliseconds 1000
 
 
-outRegIval :: ConstRef s (Struct "quadcopter_motors")
+outRegIval :: PX4IOPWMConfig
+           -> ConstRef s (Struct "quadcopter_motors")
            -> Ivory eff (Init (Array 32 (Stored Uint16)))
-outRegIval motors = do
+outRegIval pwmconfig motors = do
   fl <- deref (motors ~> M.frontleft)
   fr <- deref (motors ~> M.frontright)
   bl <- deref (motors ~> M.backleft)
@@ -246,8 +254,8 @@ outRegIval motors = do
   scale :: IFloat -> Uint16
   scale t = (t <? idle) ? (minPWM, castWith 0 ((t * range) + (safeCast minPWM)))
 
-  minPWM = 1000 -- for Iris and many others
-  maxPWM = 2000
+  minPWM = fromIntegral (px4iopwm_min pwmconfig)
+  maxPWM = fromIntegral (px4iopwm_max pwmconfig)
   range :: IFloat
   range = safeCast (maxPWM - minPWM)
   idle = 0.07

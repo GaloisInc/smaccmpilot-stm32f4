@@ -25,7 +25,7 @@ app topx4 = do
 
   env <- getEnv
   case px4platform_px4io (topx4 env) of
-    PX4IO_Serial dmauart pins -> px4ioTower tocc dmauart pins (snd control_law) (snd motor_output) (fst px4io_state)
+    PX4IO_Serial dmauart pins conf -> px4ioTower tocc dmauart pins conf (snd control_law) (snd motor_output) (fst px4io_state)
     PX4IO_None -> error "Cannot build PX4IO Test: not supported on this platform"
 
   monitor "stub" $ do

@@ -25,7 +25,7 @@ app topx4 = do
   case px4platform_ppm env of
     PPM_None -> case px4platform_px4io env of
       PX4IO_None -> error "SMACCMPilot.Hardware.Tests.PPMIn requires either valid PPM or PX4IO hardware"
-      PX4IO_Serial u p -> px4ioPPMInDriver u p ppmOut
+      PX4IO_Serial u p c -> px4ioPPMInDriver u p c ppmOut
 
     _ -> nativePPMDriver ppmOut
 
@@ -45,13 +45,13 @@ app topx4 = do
              (px4platform_clockconfig . topx4)
              (fst ppmOut)
 
-  px4ioPPMInDriver u p ppmOut = do
+  px4ioPPMInDriver u p c ppmOut = do
     dummy_cl <- channel
     dummy_motors <- channel
     px4io_state <- channel
     px4ioTower
          (px4platform_clockconfig . topx4)
-         u p
+         u p c
          (snd dummy_cl)
          (snd dummy_motors)
          (fst px4io_state)

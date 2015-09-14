@@ -21,6 +21,7 @@ import Data.Char (toUpper)
 import           SMACCMPilot.Hardware.CAN
 import qualified SMACCMPilot.Hardware.PX4FMU17 as FMUv17
 import           SMACCMPilot.Hardware.Sensors
+import           SMACCMPilot.Hardware.PX4IO (PX4IOPWMConfig(..))
 
 import qualified Ivory.BSP.STM32F405.UART           as F405
 import qualified Ivory.BSP.STM32F405.GPIO           as F405
@@ -114,7 +115,7 @@ data PPM
   | PPM_None
 
 data PX4IO
-  = PX4IO_Serial DMAUART UARTPins
+  = PX4IO_Serial DMAUART UARTPins PX4IOPWMConfig
   | PX4IO_None
 
 data RGBLED_I2C =
@@ -283,11 +284,15 @@ px4fmuv24 = PX4Platform
         }
     , rgbled_i2c_addr = I2CDeviceAddr 0x55
     }
-  px4io = PX4IO_Serial F427.dmaUART6 px4io_pins
+  px4io = PX4IO_Serial F427.dmaUART6 px4io_pins pwmconf
   px4io_pins = UARTPins
     { uartPinTx = F427.pinC6
     , uartPinRx = F427.pinC7
     , uartPinAF = F427.gpio_af_uart6
+    }
+  pwmconf = PX4IOPWMConfig
+    { px4iopwm_min = 1000
+    , px4iopwm_max = 2000
     }
   adc = ADC
     { adc_periph = F427.adc1
