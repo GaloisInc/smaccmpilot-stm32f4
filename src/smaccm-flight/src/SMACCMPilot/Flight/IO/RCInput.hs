@@ -10,7 +10,6 @@ module SMACCMPilot.Flight.IO.RCInput
 import Ivory.Language
 import Ivory.Tower
 
-import qualified SMACCMPilot.Comm.Ivory.Types.UserInput     as UI
 import qualified SMACCMPilot.Comm.Ivory.Types.ControlLaw as C ()
 import qualified SMACCMPilot.Comm.Ivory.Types.RcInput    as RC
 import qualified SMACCMPilot.Comm.Ivory.Types.Tristate   as T
