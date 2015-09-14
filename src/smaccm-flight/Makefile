@@ -9,9 +9,6 @@ include ../../Makefile.sandbox
 
 IVORY_FLAGS = --const-fold
 
-default:
-	cabal build
-
 .PHONY: test
 test: test-fmu24 test-fmu17 can_proxy_odroid_test smaccmpilot-odroid
 
