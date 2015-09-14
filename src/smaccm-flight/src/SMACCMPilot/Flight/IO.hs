@@ -35,10 +35,10 @@ flightIOTower tofp attrs rc_ui rc_cm rc_am cl_output motors_output = do
   fp <- fmap tofp getEnv
   rc_input <- channel
   case fp_io fp of
-    PX4IO dmauart pins -> do
+    PX4IO dmauart pins pwmconf -> do
       px4io_state <- channel
 
-      px4ioTower tocc dmauart pins cl_output motors_output (fst px4io_state)
+      px4ioTower tocc dmauart pins pwmconf cl_output motors_output (fst px4io_state)
 
       attrProxy (px4ioState attrs) (snd px4io_state)
 

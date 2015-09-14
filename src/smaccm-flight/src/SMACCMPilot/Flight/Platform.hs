@@ -39,6 +39,7 @@ import           SMACCMPilot.Datalink.Mode
 import           SMACCMPilot.Hardware.CAN
 import           SMACCMPilot.Hardware.Sensors
 import           SMACCMPilot.Hardware.Tests.Platforms (PPM(..), RGBLED_I2C(..), ADC(..))
+import           SMACCMPilot.Hardware.PX4IO (PX4IOPWMConfig(..))
 import           SMACCMPilot.Flight.Tuning
 
 
@@ -59,7 +60,7 @@ data FlightPlatform =
 
 
 data FlightIO
-  = PX4IO DMAUART UARTPins
+  = PX4IO DMAUART UARTPins PX4IOPWMConfig
   | NativeIO PPM -- No outputs supported with nativeIO right now
 
 data FlightMixer
@@ -75,10 +76,11 @@ flightPlatformParser = do
   t <- subsection "tuning" $ subsection v flightTuningParser
   p <- subsection "args" $ subsection "platform" string
   m <- subsection "args" $ subsection "mixer" mixerParser
+  let c = pwmconf v
   case map toUpper p of
     "PX4FMUV17" -> result (px4fmuv17 t m)
-    "PX4FMUV24" -> result (px4fmuv24 t m)
-    "PIXHAWK"   -> result (px4fmuv24 t m)
+    "PX4FMUV24" -> result (px4fmuv24 t m c)
+    "PIXHAWK"   -> result (px4fmuv24 t m c)
     _ -> fail ("no such platform " ++ p)
   where
   result mkPlatform = do
@@ -93,6 +95,14 @@ flightPlatformParser = do
       "IRIS"  -> return IrisMixer
       "QUADX" -> return QuadXMixer
       _ -> fail ("no such mixer " ++ s ++ ". must be 'iris' or 'quadx'")
+
+  -- This is a nasty hack: at the moment we want the
+  -- pwm bounds to be 1000/2000 for Iris+ but not
+  -- for the orig Iris. TODO: make this properly configurable!
+  pwmconf v = do
+    case map toUpper v of
+      "IRIS_PLUS" -> PX4IOPWMConfig { px4iopwm_min = 1000, px4iopwm_max = 2000 }
+      _           -> PX4IOPWMConfig { px4iopwm_min = 1100, px4iopwm_max = 1900 }
 
 
 px4fmuv17 :: FlightTuning -> FlightMixer -> DatalinkMode -> FlightPlatform
@@ -130,8 +140,8 @@ px4fmuv17 tuning mixer dmode = FlightPlatform
   ppm_int = HasSTM32Interrupt F405.TIM1_CC
 
 
-px4fmuv24 :: FlightTuning -> FlightMixer -> DatalinkMode -> FlightPlatform
-px4fmuv24 tuning mixer dmode = FlightPlatform
+px4fmuv24 :: FlightTuning -> FlightMixer -> PX4IOPWMConfig -> DatalinkMode -> FlightPlatform
+px4fmuv24 tuning mixer pwmconf dmode = FlightPlatform
   { fp_telem       = telem
   , fp_gps         = gps
   , fp_io          = px4io
@@ -170,7 +180,7 @@ px4fmuv24 tuning mixer dmode = FlightPlatform
         }
     , rgbled_i2c_addr = I2CDeviceAddr 0x55
     }
-  px4io = PX4IO F427.dmaUART6 px4io_pins
+  px4io = PX4IO F427.dmaUART6 px4io_pins pwmconf
   px4io_pins = UARTPins
     { uartPinTx = F427.pinC6
     , uartPinRx = F427.pinC7
