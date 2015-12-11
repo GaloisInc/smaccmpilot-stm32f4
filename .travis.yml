@@ -28,8 +28,6 @@ install:
 - export ODROID_BSP_REPO=$PWD/tower-camkes-odroid
 - git clone https://github.com/galoisinc/gidl
 - export GIDL_REPO=$PWD/gidl
-- git clone https://github.com/aisamanra/s-cargot
-- export SCARGOT_REPO=$PWD/s-cargot
 - git clone https://github.com/galoisinc/gec
 - export GEC_REPO=$PWD/gec
 script:
