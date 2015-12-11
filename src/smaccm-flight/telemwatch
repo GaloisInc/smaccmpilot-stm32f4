@@ -1,0 +1,3 @@
+#/usr/bin/sh
+watch -n 0.5 "curl -s localhost:8080/controllable_vehicle_i/$1 | python -m json.tool"
+
