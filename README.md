@@ -76,3 +76,10 @@ Ivory/Tower programs are Haskell programs which generate C sources and an
 appropriate makefile. We call these makefiles recursively to build binaries from
 the generated C sources.
 
+## Contributing
+
+This project adheres to the
+[Contributor Covenant code of conduct](CODE_OF_CONDUCT.md).
+By participating, you are expected to uphold this code. Please report unaccpetable
+behavior to [smaccm@galois.com](mailto:smaccm@galois.com).
+
