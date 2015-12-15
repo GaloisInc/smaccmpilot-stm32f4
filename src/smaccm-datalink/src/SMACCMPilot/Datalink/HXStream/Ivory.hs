@@ -134,14 +134,14 @@ mkFrameHandler = FrameHandler
 
 data ScopedFrameHandler s =
   ScopedFrameHandler
-    { -- ^ Tag to match.  Only matching frames with a matching tag will be
+    { -- Tag to match.  Only matching frames with a matching tag will be
       -- handled.
       fhTag   :: Tag
-      -- ^ What to do before parsing the frame, after matching the tag.
+      -- What to do before parsing the frame, after matching the tag.
     , fhBegin :: Ivory (AllocEffects s) ()
-      -- ^ What to do with a byte of frame data.  Can use the index.
+      -- What to do with a byte of frame data.  Can use the index.
     , fhData  :: Uint8 -> Sint32 -> Ivory (AllocEffects s) ()
-      -- ^ What to do at the end of the frame.
+      -- What to do at the end of the frame.
     , fhEnd   :: Ivory (AllocEffects s) ()
     }
 
