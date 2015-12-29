@@ -42,7 +42,6 @@ repositories:
 | [ivory-tower-stm32][] | `BSP_REPO` |
 | [gidl][] | `GIDL_REPO` |
 | [gec][] | `GEC_REPO` |
-| [s-cargot][] | `SCARGOT_REPO` |
 
 [smaccmpilot-build]: https://github.com/galoisinc/smaccmpilot-build
 [ivory]: https://github.com/galoisinc/ivory
@@ -50,7 +49,6 @@ repositories:
 [ivory-tower-stm32]: https://github.com/galoisinc/ivory-tower-stm32
 [gec]: https://github.com/galoisinc/gec
 [gidl]: https://github.com/galoisinc/gidl
-[s-cargot]: https://github.com/aisamanra/s-cargot
 
 ### Haskell Tools
 
@@ -77,4 +75,11 @@ Ivory/Tower programs.
 Ivory/Tower programs are Haskell programs which generate C sources and an
 appropriate makefile. We call these makefiles recursively to build binaries from
 the generated C sources.
+
+## Contributing
+
+This project adheres to the
+[Contributor Covenant code of conduct](CODE_OF_CONDUCT.md).
+By participating, you are expected to uphold this code. Please report unaccpetable
+behavior to [smaccm@galois.com](mailto:smaccm@galois.com).
 

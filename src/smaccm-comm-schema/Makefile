@@ -7,7 +7,6 @@ IVORY_REPO ?= $(CURRENT_DIR)/../../../ivory
 TOWER_REPO ?= $(CURRENT_DIR)/../../../tower
 BSP_REPO ?= $(CURRENT_DIR)/../../../ivory-tower-stm32
 GIDL_REPO ?= $(CURRENT_DIR)/../../../gidl
-SCARGOT_REPO ?= $(CURRENT_DIR)/../../../s-cargot
 SMACCMPILOT_REPO ?= ..
 
 SANDBOX_INSTALL = gidl
