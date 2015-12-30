@@ -63,9 +63,10 @@ class Accel(object):
     def __init__(self, binary):
         self.binary = binary
         try:
-            (ifail, sfail, x, y, z, temp, t) = struct.unpack("!BBffffQ", binary)
+            (ifail, sfail, cal, x, y, z, temp, t) = struct.unpack("!BBBffffQ", binary)
             self.ifail = ifail
             self.sfail = sfail
+            self.cal   = cal
             self.x     = x
             self.y     = y
             self.z     = z

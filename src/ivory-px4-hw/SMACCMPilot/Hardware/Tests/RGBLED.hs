@@ -20,7 +20,7 @@ app topx4 = do
   px4platform <- fmap topx4 getEnv
   setting <- channel
   case px4platform_rgbled px4platform of
-    Nothing -> error "put an error here"
+    Nothing -> error "This platform does not support RGBLED."
     Just RGBLED_I2C{..} -> do
       (req, ready) <- i2cTower tocc
                                rgbled_i2c_periph
