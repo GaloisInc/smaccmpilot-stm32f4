@@ -37,7 +37,7 @@
   (time        time_micros_t)
   (arming_mode arming_mode_t))
 
-(def-struct reboot_t
+(def-struct reboot_req_t
   (magic reboot_magic_t))
 
 (def-struct control_modes_t
@@ -315,7 +315,7 @@
   (battery_voltage         (attr read      float_t)))
 
 (def-interface controllable_vehicle_i (vehicle_i)
-  (reboot                  (attr write reboot_t))
+  (reboot_req              (attr write reboot_req_t))
   (altitude_rate_pid       (attr readwrite pid_config_t))
   (altitude_position_pid   (attr readwrite pid_config_t))
   (throttle_ui             (attr readwrite throttle_ui_t))
