@@ -27,7 +27,7 @@ create-sandbox::
 ifneq ($(strip $(CABAL_PACKAGE_SOURCES)),)
 	cabal sandbox add-source $(CABAL_PACKAGE_SOURCES)
 endif
-	cabal install $(SANDBOX_INSTALL) --max-backjumps=10000
+	cabal install $(SANDBOX_INSTALL) --max-backjumps=100000
 
 clean:
 
