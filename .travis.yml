@@ -16,13 +16,13 @@ before_install:
 - export PATH="$(echo $PWD/gcc-arm-embedded/*/bin):/opt/cabal/1.22/bin:/opt/alex/3.1.4/bin:/opt/happy/1.19.5/bin:$PATH"
 - arm-none-eabi-gcc --version && cabal --version && alex --version && happy --version
 install:
-- git clone https://github.com/galoisinc/ivory
+- git clone -b ${TRAVIS_BRANCH} https://github.com/galoisinc/ivory
 - export IVORY_REPO=$PWD/ivory
-- git clone https://github.com/galoisinc/tower
+- git clone -b ${TRAVIS_BRANCH} https://github.com/galoisinc/tower
 - export TOWER_REPO=$PWD/tower
-- git clone https://github.com/galoisinc/ivory-tower-stm32
+- git clone -b ${TRAVIS_BRANCH} https://github.com/galoisinc/ivory-tower-stm32
 - export BSP_REPO=$PWD/ivory-tower-stm32
-- git clone https://github.com/galoisinc/ivory-tower-posix
+- git clone -b ${TRAVIS_BRANCH} https://github.com/galoisinc/ivory-tower-posix
 - export POSIX_REPO=$PWD/ivory-tower-posix
 - git clone https://github.com/galoisinc/tower-camkes-odroid
 - export ODROID_BSP_REPO=$PWD/tower-camkes-odroid
