@@ -13,7 +13,7 @@ import Ivory.BSP.STM32.Peripheral.ADC
 import Ivory.BSP.STM32.Peripheral.GPIOF4
 
 adcTower :: (e -> ADC)
-         -> ChanInput (Stored IFloat)
+         -> ChanInput ('Stored IFloat)
          -> Tower e ()
 adcTower toadc output = do
   adc <- fmap toadc getEnv

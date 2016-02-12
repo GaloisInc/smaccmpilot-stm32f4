@@ -25,7 +25,7 @@ pulseCaptureTower :: (STM32Interrupt i)
                   -> GPIOPin  -- pinA10
                   -> GPIO_AF  -- af_tim1
                   -> i        -- TIM1_CC
-                  -> ChanInput (Struct "pulse_capture")
+                  -> ChanInput ('Struct "pulse_capture")
                   -> Tower e ()
 pulseCaptureTower tocc (ATIM {..}) pin af int pulse_capture_chan = do
   cc <- fmap tocc getEnv

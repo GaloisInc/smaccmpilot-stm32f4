@@ -41,10 +41,10 @@ import Prelude hiding (mapM, mapM_)
 imin :: IvoryOrd t => t -> t -> t
 imin a b = (a <? b) ? (a, b)
 
-snprintf_float :: Def('[Ref s (CArray (Stored Uint8)), Uint32, IString, IFloat] :-> Sint32)
+snprintf_float :: Def('[Ref s ('CArray ('Stored Uint8)), Uint32, IString, IFloat] ':-> Sint32)
 snprintf_float = importProc "snprintf" "stdio.h"
 
-snprintf_double :: Def('[Ref s (CArray (Stored Uint8)), Uint32, IString, IDouble] :-> Sint32)
+snprintf_double :: Def('[Ref s ('CArray ('Stored Uint8)), Uint32, IString, IDouble] ':-> Sint32)
 snprintf_double = importProc "snprintf" "stdio.h"
 
 [ivory| string struct Buffer 1024 |]
@@ -52,7 +52,7 @@ snprintf_double = importProc "snprintf" "stdio.h"
 sprintf_append :: (ANat len, IvoryString str)
                => Ref s' str
                -> Proxy len
-               -> (Ref (Stack s) (CArray (Stored Uint8)) -> Uint32 -> Ivory (AllocEffects s) Sint32)
+               -> (Ref ('Stack s) ('CArray ('Stored Uint8)) -> Uint32 -> Ivory (AllocEffects s) Sint32)
                -> Ivory (AllocEffects s) ()
 sprintf_append str bound f = do
   buf <- local (izerolen bound)
@@ -70,11 +70,11 @@ sprintf_append str bound f = do
   let maxLen = arrayLen (str ~> stringDataL)
   store (str ~> stringLengthL) (imin (destLen + len) maxLen)
 
-sprintf_float :: Def ('[Ref s Buffer, IString, IFloat] :-> ())
+sprintf_float :: Def ('[Ref s Buffer, IString, IFloat] ':-> ())
 sprintf_float = proc "sprintf_float" $ \ buf fmt arg -> body $ noReturn $
   sprintf_append buf (Proxy :: Proxy 64) (\ tmp len -> call snprintf_float tmp len fmt arg)
 
-sprintf_double :: Def ('[Ref s Buffer, IString, IDouble] :-> ())
+sprintf_double :: Def ('[Ref s Buffer, IString, IDouble] ':-> ())
 sprintf_double = proc "sprintf_double" $ \ buf fmt arg -> body $ noReturn $
   sprintf_append buf (Proxy :: Proxy 64) (\ tmp len -> call snprintf_double tmp len fmt arg)
 
@@ -97,7 +97,7 @@ fromHX tag = do
 save :: (IvoryArea a, IvoryZero a)
      => String
      -> ChanOutput a
-     -> Monitor e (ConstRef Global a)
+     -> Monitor e (ConstRef 'Global a)
 save name src = do
   copy <- state name
   handler src ("save_" ++ name) $ do
@@ -184,7 +184,7 @@ app = compileTowerPosix (const $ return ()) $ do
 
               let print_float :: IFloat -> Ivory eff ()
                   print_float = call_ sprintf_float buf " % f"
-              let print_array :: ANat n => ConstRef s (Array n (Stored IFloat)) -> Ivory eff ()
+              let print_array :: ANat n => ConstRef s ('Array n ('Stored IFloat)) -> Ivory eff ()
                   print_array a = arrayMap $ \ ix -> noBreak $ deref (a ! ix) >>= print_float
 
               -- raw sensor values

@@ -20,10 +20,10 @@ data MagBiasEstimator =
   MagBiasEstimator
     { mbe_init     :: forall eff . Ivory eff ()
     , mbe_sample   :: forall eff s
-                    . ConstRef s (Array 3 (Stored IFloat))
+                    . ConstRef s ('Array 3 ('Stored IFloat))
                    -> Ivory eff ()
     , mbe_output   :: forall eff s
-                    . Ref s (Array 4 (Stored IFloat))
+                    . Ref s ('Array 4 ('Stored IFloat))
                    -> Ivory eff IFloat
     }
 
@@ -93,14 +93,14 @@ ivoryMagBiasEstimator n = (f, moddef)
     depend S.magnetometerBiasTypesModule
     defMemArea s_area
 
-  s_area :: MemArea (Struct "mag_bias_sums")
+  s_area :: MemArea ('Struct "mag_bias_sums")
   s_area = area (named "mag_bias_sums") Nothing
   s      = addrOf s_area
 
   named nn = n ++ "_" ++ nn
 
 
-xtx_matrix :: Ref s (Struct "mag_bias_sums") -> Ivory eff (M44 IFloat)
+xtx_matrix :: Ref s ('Struct "mag_bias_sums") -> Ivory eff (M44 IFloat)
 xtx_matrix s = do
   x    <- deref (s ~> S.x)
   y    <- deref (s ~> S.y)
@@ -117,7 +117,7 @@ xtx_matrix s = do
               (V4 xz yz z_sq z)
               (V4 x  y  z    m)
 
-xty_vec :: Ref s (Struct "mag_bias_sums") -> Ivory eff (V4 IFloat)
+xty_vec :: Ref s ('Struct "mag_bias_sums") -> Ivory eff (V4 IFloat)
 xty_vec s = do
   x_sq <- deref (s ~> S.x_sq)
   y_sq <- deref (s ~> S.y_sq)

@@ -21,13 +21,13 @@ import qualified SMACCMPilot.Comm.Ivory.Types.AttControlDebug  as D
 data YawUI =
   YawUI
     { yui_update :: forall eff s1 s2
-                  . Ref s1 (Struct "sensors_result")
-                 -> Ref s2 (Struct "user_input")
+                  . Ref s1 ('Struct "sensors_result")
+                 -> Ref s2 ('Struct "user_input")
                  -> IFloat -- dt
                  -> Ivory eff ()
     , yui_reset :: forall eff . Ivory eff ()
     , yui_setpoint :: forall eff . Ivory eff (IFloat, IFloat)
-    , yui_write_debug :: forall eff s . Ref s (Struct "att_control_debug")
+    , yui_write_debug :: forall eff s . Ref s ('Struct "att_control_debug")
                      -> Ivory eff ()
     }
 
@@ -38,10 +38,10 @@ monitorYawUI = do
   rate_setpoint <- state "rate_setpoint"
   active_state <- stateInit "active_state" (ival false)
   name_update <- named "update"
-  let proc_update :: Def('[ Ref s1 (Struct "sensors_result")
-                          , Ref s2 (Struct "user_input")
+  let proc_update :: Def('[ Ref s1 ('Struct "sensors_result")
+                          , Ref s2 ('Struct "user_input")
                           , IFloat -- dt
-                          ] :-> ())
+                          ] ':-> ())
       proc_update  = proc name_update $
         \sens ui dt -> body $ do
           -- Parameter in degrees/second, convert to rad/sec
@@ -80,8 +80,8 @@ monitorYawUI = do
   where
   sens_dps = 180.0
 
-stickrate :: (GetAlloc eff ~ Scope cs)
-          => Ref s (Struct "user_input")
+stickrate :: (GetAlloc eff ~ 'Scope cs)
+          => Ref s ('Struct "user_input")
           -> IFloat
           -> Ivory eff IFloat
 stickrate ui sens = do

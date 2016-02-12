@@ -57,12 +57,12 @@ gecEncode n = GecEncode
   sym_key_area = area (named "global_gec_sym_key_enc") Nothing
   sym_key = addrOf sym_key_area
 
-  init_proc :: Def('[ConstRef s1 SymKeySaltArray]:->())
+  init_proc :: Def('[ConstRef s1 SymKeySaltArray]':->())
   init_proc = proc (named "encode_init") $ \kref -> body $ do
     call_ gec_init_key sym_key kref
 
   run_proc :: Def('[ ConstRef s1 PlaintextArray , Ref s2 CyphertextArray
-                   ] :-> GecError)
+                   ] ':-> GecError)
   run_proc = proc (named "encode_run") $ \pt ct -> body $ do
         r <- call gec_encrypt sym_key pt ct
         ret r
@@ -93,12 +93,12 @@ gecDecode n = GecDecode
   sym_key_area = area (named "global_gec_sym_key_dec") Nothing
   sym_key = addrOf sym_key_area
 
-  init_proc :: Def('[ConstRef s1 SymKeySaltArray]:->())
+  init_proc :: Def('[ConstRef s1 SymKeySaltArray]':->())
   init_proc = proc (named "decode_init") $ \kref -> body $ do
     call_ gec_init_key sym_key kref
 
   run_proc :: Def('[ ConstRef s1 CyphertextArray, Ref s2 PlaintextArray
-                   ]:->GecError)
+                   ]':->GecError)
   run_proc = proc (named "decode_run") $ \const_ct pt -> body $ do
     r <- call gec_decrypt sym_key const_ct pt
     ret r
@@ -149,7 +149,7 @@ gkeInitiate n themP (meP, meQ) = GkeInitiate
   sts_ctx_area = area (named "global_gke_sts_ctx_initiate") Nothing
   sts_ctx = addrOf sts_ctx_area
 
-  init_proc :: Def('[]:->())
+  init_proc :: Def('[]':->())
   init_proc = proc (named "initiator_init") $ body $ do
     meQRef   <- local meQ'
     mePRef   <- local meP'
@@ -163,18 +163,18 @@ gkeInitiate n themP (meP, meQ) = GkeInitiate
     call_ gke_init sts_ctx (constRef mePub) (constRef mePriv) (constRef themPub)
 
   run_gke_initiate :: Def('[ Ref s1 GecKeMessage1, ConstRef s2 GecKeRandomData
-                   ]:->GecError)
+                   ]':->GecError)
   run_gke_initiate = proc (named "gke_initiate") $ \msgBuf rand -> body $ do
       r <- call gke_initiate_sts msgBuf sts_ctx rand
       ret r
 
   run_gke_response_ack :: Def('[ ConstRef s1 GecKeMessage2, Ref s2 GecKeMessage3, Ref s3 KeyMaterial
-                   ]:->GecError)
+                   ]':->GecError)
   run_gke_response_ack = proc (named "gke_response_ack") $ \m2 m3 keymat -> body $ do
       r <- call gke_response_ack_sts m2 m3 sts_ctx keymat
       ret r
 
-  run_gke_panic :: Def('[]:->())
+  run_gke_panic :: Def('[]':->())
   run_gke_panic = proc (named "gke_clear") $ body $ call_ gke_clear_ctx sts_ctx
 
   meQ'   = iarray (map (ival . fromIntegral) (B.unpack meQ))
@@ -223,7 +223,7 @@ gkeRespond n themP (meP, meQ) = GkeRespond
   sts_ctx_area = area (named "global_gke_sts_ctx_response") Nothing
   sts_ctx = addrOf sts_ctx_area
 
-  init_proc :: Def('[]:->())
+  init_proc :: Def('[]':->())
   init_proc = proc (named "respond_init") $ body $ do
     meQRef   <- local meQ'
     mePRef   <- local meP'
@@ -237,18 +237,18 @@ gkeRespond n themP (meP, meQ) = GkeRespond
     call_ gke_init sts_ctx (constRef mePub) (constRef mePriv) (constRef themPub)
 
   run_gke_respond :: Def('[ConstRef s1 GecKeMessage1, Ref s2 GecKeMessage2, ConstRef s3 GecKeRandomData
-                   ]:->GecError)
+                   ]':->GecError)
   run_gke_respond = proc (named "gke_respond") $ \m1 m2 rand -> body $ do
       r <- call gke_respond_sts m1 m2 sts_ctx rand
       ret r
 
   run_gke_finish :: Def('[ConstRef s1 GecKeMessage3, Ref s2 KeyMaterial
-                   ]:->GecError)
+                   ]':->GecError)
   run_gke_finish = proc (named "gke_finish") $ \m3 keymat -> body $ do
       r <- call gke_finish_sts m3 sts_ctx keymat
       ret r
 
-  run_gke_panic :: Def('[]:->())
+  run_gke_panic :: Def('[]':->())
   run_gke_panic = proc (named "gke_clear") $ body $ call_ gke_clear_ctx sts_ctx
 
   meQ'   = iarray (map (ival . fromIntegral) (B.unpack meQ))

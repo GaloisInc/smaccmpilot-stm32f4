@@ -1,5 +1,6 @@
-{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE TypeFamilies #-}
 
 module SMACCMPilot.Flight.Tuning
   ( flightTuningParser
@@ -18,13 +19,13 @@ import           SMACCMPilot.Flight.Tuning.TypeParsers
 
 data FlightTuning =
   FlightTuning
-    { ft_altitude_rate     :: Init (Struct "pid_config")
-    , ft_altitude_position :: Init (Struct "pid_config")
-    , ft_throttle_ui       :: Init (Struct "throttle_ui")
-    , ft_attitude_roll     :: Init (Struct "stab_config")
-    , ft_attitude_pitch    :: Init (Struct "stab_config")
-    , ft_yaw_rate          :: Init (Struct "pid_config")
-    , ft_yaw_position      :: Init (Struct "pid_config")
+    { ft_altitude_rate     :: Init ('Struct "pid_config")
+    , ft_altitude_position :: Init ('Struct "pid_config")
+    , ft_throttle_ui       :: Init ('Struct "throttle_ui")
+    , ft_attitude_roll     :: Init ('Struct "stab_config")
+    , ft_attitude_pitch    :: Init ('Struct "stab_config")
+    , ft_yaw_rate          :: Init ('Struct "pid_config")
+    , ft_yaw_position      :: Init ('Struct "pid_config")
     }
 
 flightTuningParser :: ConfigParser FlightTuning
@@ -52,7 +53,11 @@ flightTuningTower totuning attrs = do
     e_yaw_rate          <- attrEmitter (yawRatePid attrs)
     e_yaw_position      <- attrEmitter (yawPositionPid attrs)
     callback $ const $ do
-      let go lbl e = do
+      let go :: (IvoryArea a, GetAlloc eff ~ 'Scope s)
+             => (FlightTuning -> Init a)
+             -> Emitter a
+             -> Ivory eff ()
+          go lbl e = do
             v <- local (lbl ft)
             emit e (constRef v)
 

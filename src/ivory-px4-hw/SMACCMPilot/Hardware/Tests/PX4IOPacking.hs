@@ -17,23 +17,23 @@ import SMACCMPilot.Hardware.PX4IO.Types.Buffer
 import SMACCMPilot.Hardware.PX4IO.Types.Request
 import SMACCMPilot.Hardware.PX4IO.Types.RequestCode
 
-puts :: Def('[IString]:-> Sint32)
+puts :: Def('[IString]':-> Sint32)
 puts = importProc "puts" "stdio.h"
 
-printf_uint8 :: Def('[IString, Uint8]:-> Sint32)
+printf_uint8 :: Def('[IString, Uint8]':-> Sint32)
 printf_uint8 = importProc "printf" "stdio.h"
 
-printf_uint16 :: Def('[IString, Uint16]:-> Sint32)
+printf_uint16 :: Def('[IString, Uint16]':-> Sint32)
 printf_uint16 = importProc "printf" "stdio.h"
 
-printf_sint32 :: Def('[IString, Sint32]:-> Sint32)
+printf_sint32 :: Def('[IString, Sint32]':-> Sint32)
 printf_sint32 = importProc "printf" "stdio.h"
 
-printf_none :: Def('[IString]:-> Sint32)
+printf_none :: Def('[IString]':-> Sint32)
 printf_none = importProc "printf" "stdio.h"
 
-print_request :: Def('[ConstRef s (Struct "px4io_request")
-                      ] :-> ())
+print_request :: Def('[ConstRef s ('Struct "px4io_request")
+                      ] ':-> ())
 print_request = proc "print_request" $ \req -> body $ do
   p "px4io_request { code: "
   rcode <- deref (req ~> req_code)
@@ -62,7 +62,7 @@ print_request = proc "print_request" $ \req -> body $ do
   p8 = call_ printf_uint8 "0x%02x"
   p16 = call_ printf_uint16 "0x%02x"
 
-print_buf :: Def('[ConstRef s PX4IOBuffer] :-> ())
+print_buf :: Def('[ConstRef s PX4IOBuffer] ':-> ())
 print_buf = proc "print_buf" $ \buf -> body $ do
   p "px4io_buf [ "
   len <- deref (buf ~> stringLengthL)
@@ -108,8 +108,8 @@ app = (modules, artifacts)
     depend px4ioBufferTypesModule
     depend px4ioRequestTypesModule
 
-  test_encode_proc :: Def('[ IString, ConstRef s (Struct "px4io_request")
-                           ] :-> ())
+  test_encode_proc :: Def('[ IString, ConstRef s ('Struct "px4io_request")
+                           ] ':-> ())
   test_encode_proc = proc "test_encode" $ \tname t_req -> body $ do
     call_ printf_none "\n----\ntest "
     call_ printf_none tname
@@ -123,7 +123,7 @@ app = (modules, artifacts)
       call_ print_buf (constRef buf)
 
 
-  test_decode_proc :: Def('[ IString, ConstRef s PX4IOBuffer ] :-> ())
+  test_decode_proc :: Def('[ IString, ConstRef s PX4IOBuffer ] ':-> ())
   test_decode_proc = proc "test_decode" $ \tname buf -> body $ do
     call_ printf_none "\n----\ntest "
     call_ printf_none tname
@@ -135,15 +135,15 @@ app = (modules, artifacts)
       call_ printf_none "decoded request:\n"
       call_ print_request (constRef result)
 
-  run_encode_test :: (GetAlloc eff ~ Scope s)
+  run_encode_test :: (GetAlloc eff ~ 'Scope s)
            => IString
-           -> Init (Struct "px4io_request")
+           -> Init ('Struct "px4io_request")
            -> Ivory eff ()
   run_encode_test n i = do
     v <- local i
     call_ test_encode_proc n (constRef v)
 
-  run_decode_test :: (GetAlloc eff ~ Scope s)
+  run_decode_test :: (GetAlloc eff ~ 'Scope s)
            => IString
            -> [Uint8]
            -> Ivory eff ()
@@ -153,7 +153,7 @@ app = (modules, artifacts)
                         ])
     call_ test_decode_proc n (constRef v)
 
-  main_proc :: Def('[]:->Sint32)
+  main_proc :: Def('[]':->Sint32)
   main_proc = proc "main" $ body $ do
     run_encode_test "izero" izero
     run_encode_test "read one" $ istruct

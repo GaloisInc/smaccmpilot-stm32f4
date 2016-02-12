@@ -21,23 +21,23 @@ import           SMACCMPilot.Flight.Law.UserInput
 
 data LawInputs =
   LawInputs
-    { lawinput_rcinput_arming   :: ChanOutput (Stored T.Tristate)
-    , lawinput_rcinput_ui       :: ChanOutput (Struct "user_input") -- CLOCK FOR user_input_result OUTPUT
-    , lawinput_rcinput_modes    :: ChanOutput (Struct "control_modes") -- CLOCK FOR control_law OUTPUT
-    , lawinput_telem_arming     :: ChanOutput (Stored T.Tristate)
-    , lawinput_telem_ui         :: ChanOutput (Struct "user_input")
-    , lawinput_telem_modes      :: ChanOutput (Struct "control_modes")
-    , lawinput_px4io_state      :: ChanOutput (Struct "px4io_state")
-    , lawinput_gyro_cal_output  :: ChanOutput (Struct "xyz_calibration")
-    , lawinput_accel_cal_output :: ChanOutput (Struct "xyz_calibration")
-    , lawinput_mag_cal_output   :: ChanOutput (Struct "xyz_calibration")
-    , lawinput_sensors_output   :: ChanOutput (Struct "sensors_result")
+    { lawinput_rcinput_arming   :: ChanOutput ('Stored T.Tristate)
+    , lawinput_rcinput_ui       :: ChanOutput ('Struct "user_input") -- CLOCK FOR user_input_result OUTPUT
+    , lawinput_rcinput_modes    :: ChanOutput ('Struct "control_modes") -- CLOCK FOR control_law OUTPUT
+    , lawinput_telem_arming     :: ChanOutput ('Stored T.Tristate)
+    , lawinput_telem_ui         :: ChanOutput ('Struct "user_input")
+    , lawinput_telem_modes      :: ChanOutput ('Struct "control_modes")
+    , lawinput_px4io_state      :: ChanOutput ('Struct "px4io_state")
+    , lawinput_gyro_cal_output  :: ChanOutput ('Struct "xyz_calibration")
+    , lawinput_accel_cal_output :: ChanOutput ('Struct "xyz_calibration")
+    , lawinput_mag_cal_output   :: ChanOutput ('Struct "xyz_calibration")
+    , lawinput_sensors_output   :: ChanOutput ('Struct "sensors_result")
     }
 
 lawTower :: LawInputs
-         -> ChanInput (Struct "arming_status")
-         -> ChanInput (Struct "control_law")
-         -> ChanInput (Struct "user_input_result")
+         -> ChanInput ('Struct "arming_status")
+         -> ChanInput ('Struct "control_law")
+         -> ChanInput ('Struct "user_input_result")
          -> Tower e ()
 lawTower lis@LawInputs{..} as_output law_output ui_output = do
   arming_mode <- channel
@@ -70,8 +70,8 @@ lawTower lis@LawInputs{..} as_output law_output ui_output = do
   where
 
 armingLawTower :: LawInputs
-               -> ChanInput (Stored A.ArmingMode)
-               -> ChanInput (Struct "arming_status")
+               -> ChanInput ('Stored A.ArmingMode)
+               -> ChanInput ('Struct "arming_status")
                -> Tower e ()
 armingLawTower LawInputs{..} arming_output arming_status = do
   armingTower rcinput_arming_input

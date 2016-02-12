@@ -31,42 +31,42 @@ instance HasAtan2 IFloat where
 
 vec3FromArray :: ( IvoryRef ref
                  , IvoryExpr (ref s v)
-                 , IvoryExpr (ref s (Array 3 v))
+                 , IvoryExpr (ref s ('Array 3 v))
                  , IvoryArea v)
-              => V3 ((ref s t -> ref s (Array 3 v)) -> ref s t -> ref s v)
+              => V3 ((ref s t -> ref s ('Array 3 v)) -> ref s t -> ref s v)
 vec3FromArray = V3 ((! 0) .) ((! 1) .) ((! 2) .)
 
 stateVectorFromStruct :: ( IvoryRef ref
-                         , IvoryExpr (ref s (Stored IFloat))
-                         , IvoryExpr (ref s (Array 3 (Stored IFloat)))
-                         , IvoryExpr (ref s (Array 4 (Stored IFloat)))
-                         , IvoryExpr (ref s (Struct "kalman_state")))
-                      => ref s (Struct "kalman_state")
-                      -> StateVector (ref s (Stored IFloat))
+                         , IvoryExpr (ref s ('Stored IFloat))
+                         , IvoryExpr (ref s ('Array 3 ('Stored IFloat)))
+                         , IvoryExpr (ref s ('Array 4 ('Stored IFloat)))
+                         , IvoryExpr (ref s ('Struct "kalman_state")))
+                      => ref s ('Struct "kalman_state")
+                      -> StateVector (ref s ('Stored IFloat))
 stateVectorFromStruct s = StateVector
   { stateOrient = Quaternion ((! 0) .) (V3 ((! 1) .) ((! 2) .) ((! 3) .)) <*> pure (~> orient)
   , stateMagNED = NED vec3FromArray <*> pure (~> mag_ned)
   } <*> pure s
 
 covarianceFromStruct :: ( IvoryRef ref
-                        , IvoryExpr (ref s (Stored IFloat))
-                        , IvoryExpr (ref s (Array 3 (Stored IFloat)))
-                        , IvoryExpr (ref s (Array 4 (Stored IFloat)))
-                        , IvoryExpr (ref s (Struct "kalman_state"))
-                        , IvoryExpr (ref s (Array 3 (Struct "kalman_state")))
-                        , IvoryExpr (ref s (Array 4 (Struct "kalman_state")))
-                        , IvoryExpr (ref s (Struct "kalman_covariance")))
-                     => ref s (Struct "kalman_covariance")
-                     -> StateVector (StateVector (ref s (Stored IFloat)))
+                        , IvoryExpr (ref s ('Stored IFloat))
+                        , IvoryExpr (ref s ('Array 3 ('Stored IFloat)))
+                        , IvoryExpr (ref s ('Array 4 ('Stored IFloat)))
+                        , IvoryExpr (ref s ('Struct "kalman_state"))
+                        , IvoryExpr (ref s ('Array 3 ('Struct "kalman_state")))
+                        , IvoryExpr (ref s ('Array 4 ('Struct "kalman_state")))
+                        , IvoryExpr (ref s ('Struct "kalman_covariance")))
+                     => ref s ('Struct "kalman_covariance")
+                     -> StateVector (StateVector (ref s ('Stored IFloat)))
 covarianceFromStruct s = stateVectorFromStruct <$> (StateVector
   { stateOrient = Quaternion ((! 0) .) (V3 ((! 1) .) ((! 2) .) ((! 3) .)) <*> pure (~> cov_orient)
   , stateMagNED = NED vec3FromArray <*> pure (~> cov_mag_ned)
   } <*> pure s)
 
-storeRow :: (Applicative f, Foldable f, IvoryStore a, IvoryExpr a) => f (Ref s (Stored a)) -> f a -> Ivory eff ()
+storeRow :: (Applicative f, Foldable f, IvoryStore a, IvoryExpr a) => f (Ref s ('Stored a)) -> f a -> Ivory eff ()
 storeRow vars vals = sequence_ $ liftA2 store vars vals
 
-kalmanInit :: Ref s1 (Struct "kalman_state") -> Ref s2 (Struct "kalman_covariance") -> XYZ IFloat -> XYZ IFloat -> Ivory eff ()
+kalmanInit :: Ref s1 ('Struct "kalman_state") -> Ref s2 ('Struct "kalman_covariance") -> XYZ IFloat -> XYZ IFloat -> Ivory eff ()
 kalmanInit state_ptr cov_ptr acc mag = do
   let stateVector = stateVectorFromStruct state_ptr
   let covariance = covarianceFromStruct cov_ptr
@@ -74,7 +74,7 @@ kalmanInit state_ptr cov_ptr acc mag = do
   storeRow stateVector initialState
   sequence_ $ liftA2 storeRow covariance initCovariance
 
-kalmanPredict :: Ref s1 (Struct "kalman_state") -> Ref s2 (Struct "kalman_covariance") -> IFloat -> XYZ IFloat -> Ivory eff ()
+kalmanPredict :: Ref s1 ('Struct "kalman_state") -> Ref s2 ('Struct "kalman_covariance") -> IFloat -> XYZ IFloat -> Ivory eff ()
 kalmanPredict state_ptr cov_ptr dt gyro = do
   let stateVector = stateVectorFromStruct state_ptr
   let covariance = covarianceFromStruct cov_ptr
@@ -85,7 +85,7 @@ kalmanPredict state_ptr cov_ptr dt gyro = do
   storeRow stateVector $ fixQuat stateVector'
   sequence_ $ liftA2 storeRow covariance covariance'
 
-applyUpdate :: Ref s1 (Struct "kalman_state") -> Ref s2 (Struct "kalman_covariance") -> IFloat -> (KalmanFilter StateVector IFloat -> (IFloat, IFloat, KalmanFilter StateVector IFloat)) -> Ivory eff ()
+applyUpdate :: Ref s1 ('Struct "kalman_state") -> Ref s2 ('Struct "kalman_covariance") -> IFloat -> (KalmanFilter StateVector IFloat -> (IFloat, IFloat, KalmanFilter StateVector IFloat)) -> Ivory eff ()
 applyUpdate state_ptr cov_ptr cov fusionStep = do
     let stateVector = stateVectorFromStruct state_ptr
     let covariance = covarianceFromStruct cov_ptr
@@ -99,8 +99,8 @@ applyUpdate state_ptr cov_ptr cov fusionStep = do
         storeRow stateVector $ fixQuat stateVector'
         sequence_ $ liftA2 storeRow covariance covariance'
 
-magMeasure :: Ref s1 (Struct "kalman_state") -> Ref s2 (Struct "kalman_covariance") -> XYZ IFloat -> Ivory eff ()
+magMeasure :: Ref s1 ('Struct "kalman_state") -> Ref s2 ('Struct "kalman_covariance") -> XYZ IFloat -> Ivory eff ()
 magMeasure state_ptr cov_ptr mag = sequence_ $ applyUpdate state_ptr cov_ptr <$> magNoise <*> (fuseMag <*> magNoise <*> mag)
 
-accelMeasure :: Ref s1 (Struct "kalman_state") -> Ref s2 (Struct "kalman_covariance") -> XYZ IFloat -> Ivory eff ()
+accelMeasure :: Ref s1 ('Struct "kalman_state") -> Ref s2 ('Struct "kalman_covariance") -> XYZ IFloat -> Ivory eff ()
 accelMeasure state_ptr cov_ptr accel = sequence_ $ applyUpdate state_ptr cov_ptr <$> accelNoise <*> (fuseAccel <*> accelNoise <*> accel)

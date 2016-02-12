@@ -2,7 +2,9 @@
 
 module SMACCMPilot.INS.Parameters where
 
-import Control.Applicative
+import Prelude ()
+import Prelude.Compat
+
 import Numeric.Estimator.Model.Coordinate
 import SMACCMPilot.INS.SensorFusion
 

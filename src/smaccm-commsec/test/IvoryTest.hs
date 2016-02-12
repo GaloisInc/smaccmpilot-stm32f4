@@ -46,7 +46,7 @@ m = package "main" $ do
   kr = gkeRespond  "ker" pubA (pubB,privB)
   ce = gecEncode "etest"
   cd = gecDecode "dtest"
-  main_proc :: Def('[Sint32, Ref s (Stored (Ref s (Stored IChar)))]:->Sint32)
+  main_proc :: Def('[Sint32, Ref s ('Stored (Ref s ('Stored IChar)))]':->Sint32)
   main_proc = proc "main" $ \ _ _ -> body $ do
     (ks1,ks2) <- keTest
     sk1 <- local izero
@@ -59,7 +59,7 @@ m = package "main" $ do
     encDecTest (sk1 ~> c2s_ks)
     encDecTest (sk1 ~> s2c_ks)
     ret 0
-  assertEq :: KnownNat n => Ref s1 (Array n (Stored Uint8)) -> Ref s2 (Array n (Stored Uint8)) -> Int -> Ivory (ProcEffects s Sint32) ()
+  assertEq :: KnownNat n => Ref s1 ('Array n ('Stored Uint8)) -> Ref s2 ('Array n ('Stored Uint8)) -> Int -> Ivory (ProcEffects s Sint32) ()
   assertEq r1 r2 e = do
       arrayMap $ \ix -> do
           v1 <- deref (r1!ix)
@@ -80,7 +80,7 @@ m = package "main" $ do
       p <- deref (pt ! ix)
       p' <- deref (pt' ! ix)
       when (p /=? p') (ret 3)
-  keTest :: Ivory (ProcEffects s Sint32) (Ref (Stack s) KeyMaterial, Ref (Stack s) KeyMaterial)
+  keTest :: Ivory (ProcEffects s Sint32) (Ref ('Stack s) KeyMaterial, Ref ('Stack s) KeyMaterial)
   keTest = do
       m1    <- local izero
       m2    <- local izero

@@ -19,10 +19,10 @@ import           SMACCMPilot.Comm.Tower.Interface.ControllableVehicle
 import SMACCMPilot.Flight.IO.RCInput.Decode
 
 rcInputTower :: ControllableVehicleAttrs Attr
-             -> ChanOutput (Struct "rc_input")
-             -> ChanInput (Struct "user_input")
-             -> ChanInput (Struct "control_modes")
-             -> ChanInput (Stored T.Tristate)
+             -> ChanOutput ('Struct "rc_input")
+             -> ChanInput ('Struct "user_input")
+             -> ChanInput ('Struct "control_modes")
+             -> ChanInput ('Stored T.Tristate)
              -> Tower e ()
 rcInputTower attrs rc ui cmr amr = do
   p <- period (Milliseconds 50)

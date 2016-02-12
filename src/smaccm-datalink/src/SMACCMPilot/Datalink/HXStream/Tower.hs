@@ -33,7 +33,7 @@ hxstreamEncodeTower :: (IvoryString str, Packable msg, IvoryArea msg, IvoryZero 
                     -> ChanOutput msg
                     -> Proxy len
                     -> H.Tag
-                    -> BackpressureTransmit str (Stored IBool)
+                    -> BackpressureTransmit str ('Stored IBool)
                     -> Tower e ()
 hxstreamEncodeTower n = hxstreamEncodeTower' n packRep
 
@@ -43,7 +43,7 @@ hxstreamEncodeTower' :: (IvoryString str, IvoryArea msg, IvoryZero msg, ANat len
                      -> ChanOutput msg
                      -> Proxy len
                      -> H.Tag
-                     -> BackpressureTransmit str (Stored IBool)
+                     -> BackpressureTransmit str ('Stored IBool)
                      -> Tower e ()
 hxstreamEncodeTower' n rep ct_chan buflen tag (BackpressureTransmit serial_chan complete) = do
   let deps = [H.hxstreamModule, serializeModule]
@@ -83,7 +83,7 @@ hxstreamHandler' = HXStreamHandler
 
 hxstreamDecodeTower :: ANat len
                     => String
-                    -> ChanOutput (Stored Uint8)
+                    -> ChanOutput ('Stored Uint8)
                     -> Proxy len
                     -> [HXStreamHandler]
                     -> Tower e ()
@@ -138,7 +138,7 @@ airDataTag = 0
 
 airDataEncodeTower :: String
                    -> ChanOutput CyphertextArray
-                   -> BackpressureTransmit HXCyphertext (Stored IBool)
+                   -> BackpressureTransmit HXCyphertext ('Stored IBool)
                    -> Tower e ()
 airDataEncodeTower n ct_chan tx = do
   let bufmod = package "hx_cyphertext" $ defStringType (Proxy :: Proxy HXCyphertext)
@@ -147,7 +147,7 @@ airDataEncodeTower n ct_chan tx = do
   hxstreamEncodeTower n ct_chan (Proxy :: Proxy 96) airDataTag tx
 
 airDataDecodeTower :: String
-                   -> ChanOutput (Stored Uint8)
+                   -> ChanOutput ('Stored Uint8)
                    -> ChanInput  CyphertextArray
                    -> Tower e ()
 airDataDecodeTower n serial_chan ct_chan = do

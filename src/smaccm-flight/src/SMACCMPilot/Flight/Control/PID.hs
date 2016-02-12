@@ -30,10 +30,10 @@ notFloatNan flt = (iNot $ isnan flt) .&& (iNot $ isinf flt)
 
 -- | Update a PID controller given an error value and measured value
 -- and return the output value.
-pid_update :: Def ('[ Ref      s1 (Struct "pid_state")
-                    , ConstRef s2 (Struct "pid_config")
+pid_update :: Def ('[ Ref      s1 ('Struct "pid_state")
+                    , ConstRef s2 ('Struct "pid_config")
                     , IFloat
-                    , IFloat] :-> IFloat)
+                    , IFloat] ':-> IFloat)
 pid_update = proc "pid_update" $ \pid cfg err pos ->
   requires (notFloatNan err) $ requires (notFloatNan pos)
   $ body $ do
@@ -60,13 +60,13 @@ pid_update = proc "pid_update" $ \pid cfg err pos ->
   ret $ p_term + i_term + d_term
 
 -- | Reset the internal state of a PID.
-pid_reset :: Def ('[ Ref s1 (Struct "pid_state") ] :-> ())
+pid_reset :: Def ('[ Ref s1 ('Struct "pid_state") ] ':-> ())
 pid_reset = proc "pid_reset" $ \pid -> body $ do
   store (pid ~> P.d_reset) true
   store (pid ~> P.i_state) 0.0
 
 -- | Constrain a floating point value to the range [xmin..xmax].
-fconstrain :: Def ('[IFloat, IFloat, IFloat] :-> IFloat)
+fconstrain :: Def ('[IFloat, IFloat, IFloat] ':-> IFloat)
 fconstrain = proc "fconstrain" $ \xmin xmax x -> body $
   (ifte_ (x <? xmin)
     (ret xmin)

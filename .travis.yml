@@ -1,49 +1,54 @@
 sudo: false
-language: haskell
-addons:
-  apt:
-    sources:
-      - hvr-ghc
-    packages:
-      - cabal-install-1.22
-      - alex-3.1.4
-      - happy-1.19.5
-      - lib32ncurses5
-      - libev-dev
+language: c
+
+cache:
+  directories:
+    - $HOME/.gcc-arm-embedded
+    - $HOME/.stack
+
+# note: we always include 7.8.4 for bootstrapping Gidl
+matrix:
+  include:
+    - env: GHCVER=7.8.4 STACK_YAML=stack.yaml
+      addons: {apt: {packages: [ghc-7.8.4,gcc-multilib,libev-dev], sources: [hvr-ghc]}}
+    - env: GHCVER=7.10.3 STACK_YAML=stack-7.10.yaml
+      addons: {apt: {packages: [ghc-7.8.4,ghc-7.10.3,gcc-multilib,libev-dev], sources: [hvr-ghc]}}
+    - env: GHCVER=8.0.1 STACK_YAML=stack-8.0.yaml
+      addons: {apt: {packages: [ghc-7.8.4,ghc-8.0.1,gcc-multilib,libev-dev], sources: [hvr-ghc]}}
+
+  allow_failures:
+    - env: GHCVER=8.0.1 STACK_YAML=stack-8.0.yaml
+
 before_install:
-- mkdir -p gcc-arm-embedded
-- wget https://launchpad.net/gcc-arm-embedded/4.9/4.9-2015-q2-update/+download/gcc-arm-none-eabi-4_9-2015q2-20150609-linux.tar.bz2 -O- | tar xjf - -C gcc-arm-embedded
-- export PATH="$(echo $PWD/gcc-arm-embedded/*/bin):/opt/cabal/1.22/bin:/opt/alex/3.1.4/bin:/opt/happy/1.19.5/bin:$PATH"
-- arm-none-eabi-gcc --version && cabal --version && alex --version && happy --version
+  # Download and unpack the stack executable
+  - mkdir -p ~/.local/bin
+  - travis_retry curl -L https://www.stackage.org/stack/linux-x86_64 | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
+  - export PATH=$HOME/.local/bin:/opt/ghc/$GHCVER/bin:/opt/ghc/7.8.4/bin:$PATH
+  # Set up the ARM GCC toolchain
+  - if [ ! -d $HOME/.gcc-arm-embedded/*/bin ];
+    then
+      mkdir -p $HOME/.gcc-arm-embedded;
+      wget https://launchpad.net/gcc-arm-embedded/4.9/4.9-2015-q2-update/+download/gcc-arm-none-eabi-4_9-2015q2-20150609-linux.tar.bz2 -O- | tar xjf - -C $HOME/.gcc-arm-embedded;
+    fi
+  - echo $HOME/.gcc-arm-embedded/*/bin
+  - ls $HOME/.gcc-arm-embedded/*/bin
+  - export PATH="$(echo $HOME/.gcc-arm-embedded/*/bin):$PATH"
+  - ghc --version
+  - stack --version
+  - arm-none-eabi-gcc --version
+
 install:
-- git clone https://github.com/galoisinc/ivory
-- export IVORY_REPO=$PWD/ivory
-- git clone https://github.com/galoisinc/tower
-- export TOWER_REPO=$PWD/tower
-- git clone https://github.com/galoisinc/ivory-tower-stm32
-- export BSP_REPO=$PWD/ivory-tower-stm32
-- git clone https://github.com/galoisinc/ivory-tower-posix
-- export POSIX_REPO=$PWD/ivory-tower-posix
-- git clone https://github.com/galoisinc/tower-camkes-odroid
-- export ODROID_BSP_REPO=$PWD/tower-camkes-odroid
-- git clone https://github.com/galoisinc/gidl
-- export GIDL_REPO=$PWD/gidl
-- git clone https://github.com/galoisinc/gec
-- export GEC_REPO=$PWD/gec
+  # make sure we stay pointed at the right stack file
+  - export STACK_YAML=$PWD/$STACK_YAML
+  # check out repositories and modify stack file to point to them
+  - ./standalone-setup.sh
+  - export IVORY_REPO=$PWD/ivory
+  - export TOWER_REPO=$PWD/tower
+  - export IVORY_TOWER_STM32_REPO=$PWD/ivory-tower-stm32
+  - export IVORY_TOWER_POSIX_REPO=$PWD/ivory-tower-posix
+  - export TOWER_CAMKES_ODROID_REPO=$PWD/tower-camkes-odroid
+  - export GIDL_REPO=$PWD/gidl
+  - export GEC_REPO=$PWD/gec
+
 script:
-- make $ENV_TEST_TARGET
-ghc:
-- 7.8
-env:
-- ENV_TEST_TARGET=ivory-px4-hw
-- ENV_TEST_TARGET=ivory-geo
-- ENV_TEST_TARGET=smaccm-commsec
-- ENV_TEST_TARGET=smaccm-datalink
-- ENV_TEST_TARGET=smaccm-comm-schema
-- ENV_TEST_TARGET=smaccm-comm-client
-- ENV_TEST_TARGET=smaccm-ins
-- ENV_TEST_TARGET=smaccm-flight
-notifications:
-  slack:
-    secure: Hmbath6bJea5z9Fp1NPdryQFCSKH+wKF+zvWdmsiruWRmxiGuFqnTQXVsshlMwbYneq0ODQ7PnNmlV4b6nAMfhpD0R+B1RlEjrzxPxX7sb+oNZFi8fu8PpKITUYsX8JP+PtiJP016N8AIBYI1l5m+LZKe5dgX1tw7TeaTF6EN/Q=
-    secure: Zi4xv4gmE6xJ/hhgIMLKiXRmFJeV3Hx7gQZzqNmtHV0RlHT/6m3EA1c0s//znrt2nPA3MOn9aTCn3AB198yyc8TIeYPvucBBH+Zts0TYOd4MeRDwYT07T1qklzA1ityZUiC/JztgznXuOn+oLofCmfDeddSpdPn0WiCXKlUdltw=
+  - make travis-test

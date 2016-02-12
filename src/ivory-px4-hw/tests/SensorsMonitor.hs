@@ -28,11 +28,11 @@ app = do
   (tx, rx) <- serialIO
 
   (hxs, hs) <- fmap unzip $ sequence
-    [ decl tx 'b' "baro" (packRep :: PackRep (Struct "barometer_sample"))
-    , decl tx 'm' "mag" (packRep :: PackRep (Struct "magnetometer_sample"))
-    , decl tx 'g' "gyro" (packRep :: PackRep (Struct "gyroscope_sample"))
-    , decl tx 'a' "accel" (packRep :: PackRep (Struct "accelerometer_sample"))
-    , decl tx 'p' "gps" (packRep :: PackRep (Struct "position_sample"))
+    [ decl tx 'b' "baro" (packRep :: PackRep ('Struct "barometer_sample"))
+    , decl tx 'm' "mag" (packRep :: PackRep ('Struct "magnetometer_sample"))
+    , decl tx 'g' "gyro" (packRep :: PackRep ('Struct "gyroscope_sample"))
+    , decl tx 'a' "accel" (packRep :: PackRep ('Struct "accelerometer_sample"))
+    , decl tx 'p' "gps" (packRep :: PackRep ('Struct "position_sample"))
     ]
 
   hxstreamDecodeTower "decoder" rx (Proxy :: Proxy 256) hxs
@@ -40,7 +40,7 @@ app = do
   monitor "decoder" $ sequence_ hs
 
 decl :: (IvoryArea msg, IvoryZero msg)
-     => BackpressureTransmit Result (Stored IBool)
+     => BackpressureTransmit Result ('Stored IBool)
      -> Char
      -> String
      -> PackRep msg

@@ -15,7 +15,7 @@ px4ioCRCModule = package "px4io_crc" $ do
   private $ do
     defConstMemArea crc8_tab_area
 
-crc8_tab_area :: ConstMemArea (Array 256 (Stored Uint8))
+crc8_tab_area :: ConstMemArea ('Array 256 ('Stored Uint8))
 crc8_tab_area = constArea "px4io_crc8_tab" $ iarray $ map ival [
     -- crc8_tab lifted directly from
     -- px4/Firmware/src/modules/px4iofirmware/protocol.h
@@ -54,7 +54,7 @@ crc8_tab_area = constArea "px4io_crc8_tab" $ iarray $ map ival [
   ]
 
 
-crc8_update :: Def('[Ref s (Stored Uint8), Uint8] :-> ())
+crc8_update :: Def('[Ref s ('Stored Uint8), Uint8] ':-> ())
 crc8_update = proc "px4io_crc8_update" $ \ref input -> body $ do
   c  <- deref ref
   ix <- assign (toIx (c .^ input))

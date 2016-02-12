@@ -1,6 +1,12 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE FlexibleInstances  #-}
+{-# LANGUAGE StandaloneDeriving #-}
+
+#if __GLASGOW_HASKELL__ < 709
+{-# OPTIONS_GHC -fno-warn-unrecognised-pragmas #-}
 {-# LANGUAGE OverlappingInstances #-}
+#endif
 
 -- | Haskell implementation of the Hxstream protocol.
 
@@ -27,7 +33,7 @@ import qualified Data.DList as D
 
 type Tag = Word8
 
-instance Show (D.DList Word8) where
+instance {-# OVERLAPPING #-} Show (D.DList Word8) where
   show = show . D.toList
 
 data FrameState = FrameTag

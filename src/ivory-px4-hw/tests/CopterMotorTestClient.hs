@@ -29,7 +29,6 @@ import SMACCMPilot.Datalink.Client.Opts
 import SMACCMPilot.Datalink.Client.Console
 import SMACCMPilot.Datalink.Client.Queue
 import SMACCMPilot.Datalink.Client.Serial
-import SMACCMPilot.Datalink.Client.Monad
 import SMACCMPilot.Datalink.Client.ByteString
 import SMACCMPilot.Datalink.Client.Pipes
 
@@ -96,8 +95,6 @@ replClient opts = do
           Nothing -> return ()
         repl console s'
       Nothing   -> repl console s
-    where
-    loop k = k >> repl console
 
 ---------- MANAGING MOTOR STATE -------------
 
@@ -171,6 +168,7 @@ tCmd = do
         2 -> s { m2 = mval }
         3 -> s { m3 = mval }
         4 -> s { m4 = mval }
+        x -> error ("invalid motor " ++ show x)
     _ -> fail "unknown command"
 
 parseCmd :: String -> Either ParseError (MotorState -> MotorState)

@@ -22,8 +22,8 @@ import SMACCMPilot.Commsec.Tower
 import SMACCMPilot.Datalink.HXStream.Tower
 
 frame_loopback :: SymmetricKey
-               -> BackpressureTransmit HXCyphertext (Stored IBool)
-               -> ChanOutput (Stored Uint8)
+               -> BackpressureTransmit HXCyphertext ('Stored IBool)
+               -> ChanOutput ('Stored Uint8)
                -> Tower e ()
 frame_loopback sk o i = do
   ct_buf_in <- channel

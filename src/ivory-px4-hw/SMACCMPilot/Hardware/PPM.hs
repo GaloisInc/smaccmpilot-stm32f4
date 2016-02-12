@@ -18,7 +18,7 @@ import Ivory.Serialize (serializeArtifacts, serializeModule)
 
 ppmTower :: (e -> PPM)
          -> (e -> ClockConfig)
-         -> ChanInput (Struct "rc_input")
+         -> ChanInput ('Struct "rc_input")
          -> Tower e ()
 ppmTower toppm tocc output = do
   ppm <- fmap toppm getEnv

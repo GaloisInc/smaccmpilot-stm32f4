@@ -22,18 +22,18 @@ data YawControl =
   YawControl
     { yaw_init   :: forall eff . Ivory eff ()
     , yaw_rate   :: forall eff s1
-                  . Ref s1 (Struct "sensors_result")
+                  . Ref s1 ('Struct "sensors_result")
                  -> IFloat -- rate in radians per second
                  -> IFloat -- dt
                  -> Ivory eff ()
     , yaw_heading :: forall eff s1
-                  .  Ref s1 (Struct "sensors_result")
+                  .  Ref s1 ('Struct "sensors_result")
                   -> IFloat -- Heading in radians
                   -> IFloat -- Heading rate in radians/sec
                   -> IFloat -- dt
                   -> Ivory eff ()
     , yaw_reset  :: forall eff . Ivory eff ()
-    , yaw_output :: forall eff s . Ref s (Struct "control_output") -> Ivory eff ()
+    , yaw_output :: forall eff s . Ref s ('Struct "control_output") -> Ivory eff ()
     }
 
 monitorYawControl :: (AttrReadable a)
@@ -52,40 +52,40 @@ monitorYawControl attrs = do
   -- debug_name <- named "debug"
   output_name <- named "output"
 
-  let init_proc :: Def ('[]:->())
+  let init_proc :: Def ('[]':->())
       init_proc = proc init_name $ body $ do
         yc_init   yaw_ctl
         hctl_init hctl
 
-      rate_proc :: Def ('[ Ref s1 (Struct "sensors_result")
+      rate_proc :: Def ('[ Ref s1 ('Struct "sensors_result")
                            , IFloat
                            , IFloat
-                           ]:->())
+                           ]':->())
       rate_proc = proc rate_name $ \sens yaw_rate_setpt _dt -> body $ do
          yc_run yaw_ctl yaw_rate_setpt (constRef sens)
 
-      heading_proc :: Def ('[ Ref s1 (Struct "sensors_result")
+      heading_proc :: Def ('[ Ref s1 ('Struct "sensors_result")
                            , IFloat
                            , IFloat
                            , IFloat
-                           ]:->())
+                           ]':->())
       heading_proc = proc heading_name $ \sens heading heading_rate dt -> body $ do
          hctl_update   hctl heading heading_rate sens dt
          yaw_rate_setpt <- hctl_setpoint hctl
          yc_run yaw_ctl yaw_rate_setpt (constRef sens)
 
-      reset_proc  :: Def ('[]:->())
+      reset_proc  :: Def ('[]':->())
       reset_proc = proc reset_name $ body $ do
         hctl_reset hctl
         yc_reset  yaw_ctl
 
 -- XXX FIX DEBUGGING
---      debug_proc :: Def ('[]:->())
+--      debug_proc :: Def ('[]':->())
 --      debug_proc = proc debug_name $ body $ do
 --        dbg <- local izero
 --        hctl_write_debug hctl dbg
 
-      output_proc :: Def ('[Ref s (Struct "control_output")]:->())
+      output_proc :: Def ('[Ref s ('Struct "control_output")]':->())
       output_proc = proc output_name $ \ctl-> body $ do
         y <- yc_state yaw_ctl
         store (ctl ~> CO.yaw) y

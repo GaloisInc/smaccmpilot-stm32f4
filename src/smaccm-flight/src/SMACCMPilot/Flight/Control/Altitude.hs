@@ -41,15 +41,15 @@ data AltitudeControl =
    AltitudeControl
     { alt_init   :: forall eff   . Ivory eff ()
     , alt_update :: forall eff s1 s2 s3 s4
-                 . Ref s1 (Struct "sensors_result")
-                -> Ref s2 (Struct "user_input")
-                -> Ref s3 (Struct "control_setpoint")
-                -> Ref s4 (Struct "control_law")
+                 . Ref s1 ('Struct "sensors_result")
+                -> Ref s2 ('Struct "user_input")
+                -> Ref s3 ('Struct "control_setpoint")
+                -> Ref s4 ('Struct "control_law")
                 -> IFloat -- dt, seconds
                 -> Ivory eff ()
-    , alt_output :: forall eff s . Ref s (Struct "control_output")
+    , alt_output :: forall eff s . Ref s ('Struct "control_output")
                               -> Ivory eff ()
-    , alt_debug :: forall eff s . Ref s (Struct "alt_control_debug")
+    , alt_debug :: forall eff s . Ref s ('Struct "alt_control_debug")
                               -> Ivory eff ()
     }
 
@@ -85,12 +85,12 @@ monitorAltitudeControl attrs = do
   name_alt_debug <- named "debug"
   name_alt_output <- named "output"
 
-  let proc_alt_update :: Def('[ Ref s1 (Struct "sensors_result")
-                              , Ref s2 (Struct "user_input")
-                              , Ref s3 (Struct "control_setpoint")
-                              , Ref s4 (Struct "control_law")
+  let proc_alt_update :: Def('[ Ref s1 ('Struct "sensors_result")
+                              , Ref s2 ('Struct "user_input")
+                              , Ref s3 ('Struct "control_setpoint")
+                              , Ref s4 ('Struct "control_law")
                               , IFloat
-                              ]:->())
+                              ]':->())
       proc_alt_update = proc name_alt_update $ \sens ui ctl_sp cl dt -> body $ do
 
           thr_mode <- deref (cl ~> CL.control_modes ~> CM.thr_mode)
@@ -148,7 +148,7 @@ monitorAltitudeControl attrs = do
             -- Reset derivative tracking when not using thrust controller
             thrust_pid_init thrust_pid
 
-      proc_alt_debug :: Def('[Ref s (Struct "alt_control_debug")]:->())
+      proc_alt_debug :: Def('[Ref s ('Struct "alt_control_debug")]':->())
       proc_alt_debug = proc name_alt_debug $ \out -> body $ do
         tui_write_debug ui_control state_dbg
         ae_write_debug alt_estimator state_dbg
@@ -156,7 +156,7 @@ monitorAltitudeControl attrs = do
         thrust_pid_write_debug thrust_pid state_dbg
         refCopy out (constRef state_dbg)
 
-      proc_alt_output :: Def('[Ref s (Struct "control_output")]:->())
+      proc_alt_output :: Def('[Ref s ('Struct "control_output")]':->())
       proc_alt_output = proc name_alt_output $ \out -> body $ do
         at <- deref at_setpt
         en <- deref at_enabled
@@ -181,7 +181,7 @@ monitorAltitudeControl attrs = do
     }
 
 -- | Calculate R22 factor, product of cosines of roll & pitch angles
-sensorsR22 :: Ref s (Struct "sensors_result") -> Ivory eff IFloat
+sensorsR22 :: Ref s ('Struct "sensors_result") -> Ivory eff IFloat
 sensorsR22 sens = do
   pitch <- deref (sens ~> S.pitch)
   roll  <- deref (sens ~> S.roll)

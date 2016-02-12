@@ -29,7 +29,7 @@ data AngleControl =
     }
 
 monitorAngleController :: (AttrReadable a)
-                    => a (Struct "stab_config")
+                    => a ('Struct "stab_config")
                     -> IFloat -- output range (absolute value)
                     -> String                -- name
                     -> Monitor e AngleControl
@@ -47,12 +47,12 @@ monitorAngleController stab_config_attr output_range name = do
   out_name <- named "out"
   reset_name <- named "reset"
 
-  let init_proc :: Def ('[]:->())
+  let init_proc :: Def ('[]':->())
       init_proc = proc init_name $ body $ do
         store valid false
         call_ reset_proc
 
-      run_proc :: Def ('[IFloat, IFloat, IFloat] :-> ())
+      run_proc :: Def ('[IFloat, IFloat, IFloat] ':-> ())
       run_proc = proc run_name $ \setpt est deriv_est -> body $ do
         ctl <- call stabilize_from_angle
                       pos_pid
@@ -66,14 +66,14 @@ monitorAngleController stab_config_attr output_range name = do
         store valid true
         store out ctl
 
-      out_proc :: Def ('[] :-> IFloat)
+      out_proc :: Def ('[] ':-> IFloat)
       out_proc = proc out_name $ body $ do
         v <- deref valid
         ifte_ v
           (deref out >>= ret)
           (ret 0)
 
-      reset_proc :: Def ('[]:->())
+      reset_proc :: Def ('[]':->())
       reset_proc = proc reset_name $ body $ do
         store valid false
         call_ pid_reset pos_pid

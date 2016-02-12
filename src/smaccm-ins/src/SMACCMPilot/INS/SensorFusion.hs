@@ -48,10 +48,12 @@ does not need, or be missing ones you do need.
 
 module SMACCMPilot.INS.SensorFusion where
 
+import Prelude ()
+import Prelude.Compat
+
 import Control.Applicative
 import Control.Lens
 import Data.Distributive
-import Data.Foldable
 import Data.Traversable
 import Linear
 import Numeric.Estimator.Augment

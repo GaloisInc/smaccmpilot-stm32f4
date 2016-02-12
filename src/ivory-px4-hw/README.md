@@ -15,12 +15,9 @@ of the [PX4FMU 1.7][fmu17] and [PX4FMU 2.4 "Pixhawk"][fmu24] flight controllers.
 
 The `Makefile` in this directory provides:
 
-- the `create-sandbox` target, which creates a cabal sandbox and installs all
-  of `ivory-px4-hw`'s dependencies. This target must be created before any other
-  targets.
-
-- the default target, which runs `cabal build`, which serves to type-check the
-  library code and executables.
+- the default target, which runs
+  [`stack build`](http://www.haskellstack.org/) builds the the library
+  code and executables.
 
 - the `test-fmu17` target, which builds test applications for the PX4FMU 1.7.
   Applications are found in the `platform-fmu17` subdirectory.
@@ -133,7 +130,7 @@ tested with the `copter-motor-test-client`. The user can invoke this program
 using
 
 ```
-cabal run copter-motor-test-client -- --serial=/PATH/TO/SERIAL/PORT
+stack exec -- copter-motor-test-client --serial=/PATH/TO/SERIAL/PORT
 ```
 
 The test client provides the user with a prompt. The following commands are

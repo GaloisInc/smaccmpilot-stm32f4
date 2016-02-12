@@ -18,7 +18,7 @@ data AltEstimator =
     { ae_init        :: forall eff . Ivory eff ()
     , ae_measurement :: forall eff . IFloat -> ITime -> Ivory eff ()
     , ae_state       :: forall eff . Ivory eff (IFloat, IFloat)
-    , ae_write_debug :: forall eff s . Ref s (Struct "alt_control_debug")
+    , ae_write_debug :: forall eff s . Ref s ('Struct "alt_control_debug")
                                     -> Ivory eff ()
     }
 
@@ -29,7 +29,7 @@ monitorAltEstimator = do
   prevClimbRate <- state "prev_climb_rate"
 
   measName <- fmap showUnique $ freshname "thrustEstimatorMeasure"
-  let measDef :: Def ('[IFloat, ITime] :-> ())
+  let measDef :: Def ('[IFloat, ITime] ':-> ())
       measDef = proc measName $
         \alt_meas meas_time -> body $ do
           prev_time   <- deref prevAltTime

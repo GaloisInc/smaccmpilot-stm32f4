@@ -59,8 +59,8 @@ app tofp = do
   tocc = fp_clockconfig . tofp
   todl = fp_datalink . tofp
 
-canDatalink :: AbortableTransmit (Struct "can_message") (Stored IBool)
-            -> ChanOutput (Struct "can_message")
+canDatalink :: AbortableTransmit ('Struct "can_message") ('Stored IBool)
+            -> ChanOutput ('Struct "can_message")
             -> ChanInput PlaintextArray
             -> ChanOutput PlaintextArray
             -> Tower e ()

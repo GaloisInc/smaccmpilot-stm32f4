@@ -24,10 +24,10 @@ import qualified SMACCMPilot.Comm.Ivory.Types.ThrottleMode as T
 data ModeSwitch =
   ModeSwitch
     { ms_init       :: forall eff   . Ivory eff ()
-    , ms_new_sample :: forall eff s . ConstRef s (Struct "rc_input")
+    , ms_new_sample :: forall eff s . ConstRef s ('Struct "rc_input")
                                    -> Ivory eff ()
     , ms_no_sample  :: forall eff   . Ivory eff ()
-    , ms_get_req    :: forall eff s . Ref s (Struct "control_modes")
+    , ms_get_req    :: forall eff s . Ref s ('Struct "control_modes")
                                    -> Ivory eff ()
     }
 
@@ -53,12 +53,12 @@ monitorModeSwitch = do
   no_sample_name <- named "no_sample"
   get_req_name <- named "req_proc"
 
-  let init_proc :: Def('[]:->())
+  let init_proc :: Def('[]':->())
       init_proc = proc init_name $ body $ do
         store md_last_position posDown
         store md_last_position_time 0
 
-      new_sample_proc :: Def('[ConstRef s (Struct "rc_input")]:->())
+      new_sample_proc :: Def('[ConstRef s ('Struct "rc_input")]':->())
       new_sample_proc = proc new_sample_name $ \rc_in -> body $ do
         switch <- deref (rc_in ~> RC.switch1)
         time   <- fmap iTimeFromTimeMicros (deref (rc_in ~> RC.time))
@@ -68,10 +68,10 @@ monitorModeSwitch = do
         store md_last_position_time time
 
       -- No failure logic--handled in arming state machine.
-      no_sample_proc :: Def('[] :-> ())
+      no_sample_proc :: Def('[] ':-> ())
       no_sample_proc = proc no_sample_name $ body $ return ()
 
-      get_req_proc :: Def('[Ref s (Struct "control_modes")]:->())
+      get_req_proc :: Def('[Ref s ('Struct "control_modes")]':->())
       get_req_proc = proc get_req_name $ \cm -> body $ do
         p <- deref md_last_position
         cond_

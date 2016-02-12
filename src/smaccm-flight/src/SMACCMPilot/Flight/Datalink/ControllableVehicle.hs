@@ -25,9 +25,9 @@ controllableVehicleAPI = do
 
 controllableVehicle' :: forall e n
                      . (ANat n)
-                    => ChanOutput (Array n (Stored Uint8))
+                    => ChanOutput ('Array n ('Stored Uint8))
                     -> CVAPI
-                    -> Tower e ( ChanOutput (Array n (Stored Uint8)))
+                    -> Tower e ( ChanOutput ('Array n ('Stored Uint8)))
 controllableVehicle' input_frames (attrs, streams) = do
 
   cvc <- controllableVehicleConsumerInput input_frames
@@ -38,11 +38,11 @@ controllableVehicle' input_frames (attrs, streams) = do
 
 controllableVehicle :: forall e n
                      . (ANat n)
-                    => ChanOutput (Array n (Stored Uint8))
+                    => ChanOutput ('Array n ('Stored Uint8))
                     -> Tower e ( ( ControllableVehicleAttrs Attr
                                  , ControllableVehicleStreams ChanInput
                                  )
-                               , ChanOutput (Array n (Stored Uint8))
+                               , ChanOutput ('Array n ('Stored Uint8))
                                )
 controllableVehicle input_frames = do
   (attrs, streams) <- controllableVehicleAPI

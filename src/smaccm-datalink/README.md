@@ -1,4 +1,3 @@
-
 # smaccm-datalink
 
 Library for SMACCMPilot project datalink. Defines a framing protocol used over
@@ -9,12 +8,10 @@ of this protocol.
 
 ## Building
 
-This library and its tests should be built using the included `Makefile`.
-Run the `make create-sandbox` target first to create a cabal sandbox in this
-directory and install all dependencies.
-
-Run the `make test` target to build all tests. Individual tests are described
-below.
+This library and its tests should be built using the included
+`Makefile` (requires the [Stack](http://www.haskellstack.org/) build
+tool). Run `make test` to build the library and run all
+tests. Individual tests are described below.
 
 ## Tests
 

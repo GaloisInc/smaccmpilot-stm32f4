@@ -1,6 +1,7 @@
-{-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeOperators #-}
 
 module SMACCMPilot.Hardware.GPS.UBlox
   ( ubloxGPSTower
@@ -15,8 +16,8 @@ import qualified SMACCMPilot.Comm.Ivory.Types.PositionSample as P
 import SMACCMPilot.Hardware.GPS.UBlox.Types
 import SMACCMPilot.Time
 
-ubloxGPSTower :: ChanOutput (Stored Uint8)
-              -> ChanInput  (Struct "position_sample")
+ubloxGPSTower :: ChanOutput ('Stored Uint8)
+              -> ChanInput  ('Struct "position_sample")
               -> Tower e ()
 ubloxGPSTower istream ostream = do
   mapM_ towerModule  typeModules
@@ -26,11 +27,11 @@ ubloxGPSTower istream ostream = do
     decodestate <- stateInit "decodestate" (ival ubx_idle)
     pktClass <- state "pktClass"
     pktId    <- state "pktId"
-    (pktLen   :: Ref Global (Stored Uint16)) <- state "pktLen"
-    (payOffs  :: Ref Global (Stored Uint16)) <- state "payOffs"
-    (payload  :: Ref Global (Array 52 (Stored Uint8))) <- state "payload"
-    (position :: Ref Global (Struct "position_sample")) <- state "position_1"
-    (dstate   :: Ref Global (Stored Uint8)) <- state "decode_state"
+    (pktLen   :: Ref 'Global ('Stored Uint16)) <- state "pktLen"
+    (payOffs  :: Ref 'Global ('Stored Uint16)) <- state "payOffs"
+    (payload  :: Ref 'Global ('Array 52 ('Stored Uint8))) <- state "payload"
+    (position :: Ref 'Global ('Struct "position_sample")) <- state "position_1"
+    (dstate   :: Ref 'Global ('Stored Uint8)) <- state "decode_state"
 
     monitorModuleDef $ do
       incl decode
@@ -134,13 +135,13 @@ pktid_posllh = 0x02
 pktid_sol    = 0x06
 pktid_velned = 0x12
 
-decode :: Def ('[ Ref s1 (Stored Uint8)
+decode :: Def ('[ Ref s1 ('Stored Uint8)
                 , Uint8 -- class
                 , Uint8 -- id
-                , Ref s2 (Array 52 (Stored Uint8)) -- payload
+                , Ref s2 ('Array 52 ('Stored Uint8)) -- payload
                 , Uint16 -- len
-                , Ref s3 (Struct "position_sample")
-                ] :->())
+                , Ref s3 ('Struct "position_sample")
+                ] ':->())
 decode = proc "ublox_decode" $ \ decodestate pktclass pktid payload len out -> body $ do
   s <- deref decodestate
   cond_
@@ -155,8 +156,8 @@ decode = proc "ublox_decode" $ \ decodestate pktclass pktid payload len out -> b
         unpack_velned payload out
     ]
 
-unpack_posllh :: Ref s1 (Array 52 (Stored Uint8))
-              -> Ref s2 (Struct "position_sample")
+unpack_posllh :: Ref s1 ('Array 52 ('Stored Uint8))
+              -> Ref s2 ('Struct "position_sample")
               -> Ivory eff ()
 unpack_posllh payload out = do
   p_lat <- call unpackS4 payload 4
@@ -166,9 +167,9 @@ unpack_posllh payload out = do
   p_alt <- call unpackS4 payload 12
   store (out ~> P.alt) p_alt
 
-unpackS4 :: Def ('[ Ref s1 (Array 52 (Stored Uint8))
+unpackS4 :: Def ('[ Ref s1 ('Array 52 ('Stored Uint8))
                   , Ix 52
-                  ] :-> Sint32)
+                  ] ':-> Sint32)
 unpackS4 = proc "unpackS4" $ \a off -> body $ do
   b1 <- deref (a ! (off+0))
   b2 <- deref (a ! (off+1))
@@ -183,8 +184,8 @@ unpackS4 = proc "unpackS4" $ \a off -> body $ do
   ret ((r <? 0x7FFFFFFF) ? (signCast r, -1 * (castWith 0 s_negr)))
 
 
-unpack_sol :: Ref s1 (Array 52 (Stored Uint8))
-           -> Ref s2 (Struct "position_sample")
+unpack_sol :: Ref s1 ('Array 52 ('Stored Uint8))
+           -> Ref s2 ('Struct "position_sample")
            -> Ivory eff ()
 unpack_sol payload out = do
   gpsfix <- deref (payload ! 10)
@@ -201,8 +202,8 @@ unpack_sol payload out = do
   numsv <- deref (payload ! 47)
   store (out ~> P.num_sv) numsv
 
-unpack_velned :: Ref s1 (Array 52 (Stored Uint8))
-              -> Ref s2 (Struct "position_sample")
+unpack_velned :: Ref s1 ('Array 52 ('Stored Uint8))
+              -> Ref s2 ('Struct "position_sample")
               -> Ivory eff ()
 unpack_velned payload out = do
   p_vnorth   <- call unpackS4 payload 4

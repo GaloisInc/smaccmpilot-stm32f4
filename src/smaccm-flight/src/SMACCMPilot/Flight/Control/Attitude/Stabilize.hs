@@ -28,15 +28,15 @@ attStabilizeModule = package "attitude_stabilize" $ do
 --
 --   http://code.google.com/p/arducopter/wiki/AC2_Tweaks
 stabilize_from_angle :: Def (
- '[ Ref      s1 (Struct "pid_state")   -- angle_pid
-  , ConstRef s2 (Struct "pid_config")  -- angle_cfg
-  , Ref      s3 (Struct "pid_state")   -- rate_pid
-  , ConstRef s4 (Struct "pid_config")  -- rate_cfg
+ '[ Ref      s1 ('Struct "pid_state")   -- angle_pid
+  , ConstRef s2 ('Struct "pid_config")  -- angle_cfg
+  , Ref      s3 ('Struct "pid_state")   -- rate_pid
+  , ConstRef s4 ('Struct "pid_config")  -- rate_cfg
   , IFloat                            -- stick_angle_rad
   , IFloat                            -- sensor_angle_rad
   , IFloat                            -- sensor_rate_rad_s
   , IFloat                            -- max_servo_rate_deg_s
-  ] :-> IFloat)
+  ] ':-> IFloat)
 stabilize_from_angle = proc "stabilize_from_angle" $
   \angle_pid angle_cfg
    rate_pid  rate_cfg
@@ -61,12 +61,12 @@ stabilize_from_angle = proc "stabilize_from_angle" $
 -- | Return a normalized servo output given a normalized stick input
 -- representing the desired rate.  Only uses the rate PID controller.
 stabilize_from_rate :: Def (
- '[ Ref      s1 (Struct "pid_state")     -- rate_pid
-  , ConstRef s2 (Struct "pid_config")    -- rate_cfg
+ '[ Ref      s1 ('Struct "pid_state")     -- rate_pid
+  , ConstRef s2 ('Struct "pid_config")    -- rate_cfg
   , IFloat                              -- stick_rate_rad_s
   , IFloat                              -- sensor_rate_rad_s
   , IFloat                              -- max_servo_rate_deg_s
-  ] :-> IFloat)
+  ] ':-> IFloat)
 stabilize_from_rate = proc "stabilize_from_rate" $
   \rate_pid rate_cfg stick_rate_rad_s
    sensor_rate_rad_s max_servo_rate_deg_s ->

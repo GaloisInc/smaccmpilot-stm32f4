@@ -56,7 +56,7 @@ data PX4Platform =
     , px4platform_sensors        :: Sensors
 
     , px4platform_motorcontrol   :: forall e . (e -> ClockConfig)
-                                 -> ChanOutput (Array 4 (Stored IFloat))
+                                 -> ChanOutput ('Array 4 ('Stored IFloat))
                                  -> Tower e ()
     , px4platform_ppm            :: PPM
     , px4platform_px4io          :: PX4IO
@@ -317,8 +317,8 @@ px4fmuv24 = PX4Platform
 
 px4ConsoleTower :: (e -> PX4Platform)
                 -> Tower e
-                  ( BackpressureTransmit ConsoleBuffer (Stored IBool)
-                  , ChanOutput (Stored Uint8) )
+                  ( BackpressureTransmit ConsoleBuffer ('Stored IBool)
+                  , ChanOutput ('Stored Uint8) )
 px4ConsoleTower topx4 = do
   let consoleModule = package "px4_console" $ defStringType (Proxy :: Proxy ConsoleBuffer)
   towerModule consoleModule
@@ -340,8 +340,8 @@ px4platform_clockconfig = stm32config_clock . px4platform_stm32config
 
 
 px4platform_sensorenable_tower :: (e -> PX4Platform)
-                               -> ChanOutput (Stored ITime)
-                               -> Tower e (ChanOutput (Stored ITime))
+                               -> ChanOutput ('Stored ITime)
+                               -> Tower e (ChanOutput ('Stored ITime))
 px4platform_sensorenable_tower topx4 ready = do
   after_ready <- channel
   px4platform <- fmap topx4 getEnv

@@ -75,7 +75,7 @@ filter_test_pkg = package "filter_test" $ do
       filter_out avg >>= put_float
       endl
 
-  main_proc :: Def('[]:->Sint32)
+  main_proc :: Def('[]':->Sint32)
   main_proc = proc "main" $ body $ do
     call_ puts "input lpf hpf avg"
     -- Impulse function
@@ -88,11 +88,11 @@ filter_test_pkg = package "filter_test" $ do
     ret 0
 
 
-printf_float :: Def('[IString, IFloat] :-> ())
+printf_float :: Def('[IString, IFloat] ':-> ())
 printf_float = importProc "printf" "stdio.h"
 
-puts :: Def('[IString] :-> ())
+puts :: Def('[IString] ':-> ())
 puts = importProc "puts" "stdio.h"
 
-sin_proc :: Def('[IFloat] :-> IFloat)
+sin_proc :: Def('[IFloat] ':-> IFloat)
 sin_proc = importProc "sin" "math.h"

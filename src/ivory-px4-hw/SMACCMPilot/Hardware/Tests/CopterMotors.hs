@@ -25,8 +25,8 @@ app topx4 = do
   motorcontrol_input i (fst c)
 
 motorcontrol_input ::
-         ChanOutput (Stored Uint8)
-      -> ChanInput (Array 4 (Stored IFloat))
+         ChanOutput ('Stored Uint8)
+      -> ChanInput ('Array 4 ('Stored IFloat))
       -> Tower e ()
 motorcontrol_input byte_istream motorstream = do
 
@@ -52,12 +52,12 @@ iand :: [IBool] -> IBool
 iand (b:bs) = b .&& (iand bs)
 iand [] = true
 
-ref_is_char :: ConstRef s (Stored Uint8) -> Char -> Ivory eff IBool
+ref_is_char :: ConstRef s ('Stored Uint8) -> Char -> Ivory eff IBool
 ref_is_char r c = do
   v <- deref r
   return (v ==? fromIntegral (ord (c)))
 
-ref_to_motor :: ConstRef s (Stored Uint8) -> Ref s2 (Stored IFloat) -> Ivory eff ()
+ref_to_motor :: ConstRef s ('Stored Uint8) -> Ref s2 ('Stored IFloat) -> Ivory eff ()
 ref_to_motor r m = do
   v <- deref r
   ifte_ (v <=? 100)

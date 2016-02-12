@@ -19,7 +19,7 @@ ifloatParser n = do
   v <- subsection n double
   return (ifloat (double2Float v))
 
-pidConfigParser :: ConfigParser (Init (Struct "pid_config"))
+pidConfigParser :: ConfigParser (Init ('Struct "pid_config"))
 pidConfigParser = do
   p_gain <- ifloatParser "p_gain"
   i_gain <- ifloatParser "i_gain" `withDefault` 0
@@ -35,7 +35,7 @@ pidConfigParser = do
     ]
 
 
-stabConfigParser :: ConfigParser (Init (Struct "stab_config"))
+stabConfigParser :: ConfigParser (Init ('Struct "stab_config"))
 stabConfigParser = do
   pos  <- subsection "pos"  pidConfigParser
   rate <- subsection "rate" pidConfigParser
@@ -44,7 +44,7 @@ stabConfigParser = do
     , Stab.rate .= rate
     ]
 
-throttleUIParser :: ConfigParser (Init (Struct "throttle_ui"))
+throttleUIParser :: ConfigParser (Init ('Struct "throttle_ui"))
 throttleUIParser = do
   sens <- ifloatParser "sens"
   dead <- ifloatParser "dead"

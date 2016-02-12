@@ -152,15 +152,15 @@ sensorTower tofp attrs = do
 save :: (IvoryArea a, IvoryZero a)
      => String
      -> ChanOutput a
-     -> Monitor e (ConstRef Global a)
+     -> Monitor e (ConstRef 'Global a)
 save name src = do
   copy <- state name
   handler src ("save_" ++ name) $ do
     callback $ refCopy copy
   return $ constRef copy
 
-xyzRef :: ConstRef s (Struct "xyz") -> Ivory eff (V3 IFloat)
+xyzRef :: ConstRef s ('Struct "xyz") -> Ivory eff (V3 IFloat)
 xyzRef r = mapM deref $ fmap (r ~>) (V3 XYZ.x XYZ.y XYZ.z)
 
-xyzInitStruct :: V3 IFloat -> Init (Struct "xyz")
+xyzInitStruct :: V3 IFloat -> Init ('Struct "xyz")
 xyzInitStruct (V3 x y z) = istruct [ XYZ.x .= ival x, XYZ.y .= ival y, XYZ.z .= ival z ]

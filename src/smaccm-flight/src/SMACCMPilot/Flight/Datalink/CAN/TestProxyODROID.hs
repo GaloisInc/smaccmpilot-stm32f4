@@ -35,7 +35,7 @@ import Tower.Odroid.UART
 import qualified Tower.Odroid.CameraVM as VM
 
 app :: (e -> DatalinkMode)
-    -> Maybe (ChanOutput (Struct "camera_data"))
+    -> Maybe (ChanOutput ('Struct "camera_data"))
     -> Tower e ()
 app todl cameraRx = do
 
@@ -73,16 +73,16 @@ app todl cameraRx = do
     Just camera_data_chan
       -> periodicCamera (fst camera_chan) camera_data_chan (cameraTargetInputGetReqConsumer cv_consumer)
 
-periodicCamera :: ChanInput (Struct "sequence_numbered_camera_target")
-               -> ChanOutput (Struct "camera_data")
-               -> ChanOutput (Stored SequenceNum)
+periodicCamera :: ChanInput ('Struct "sequence_numbered_camera_target")
+               -> ChanOutput ('Struct "camera_data")
+               -> ChanOutput ('Stored SequenceNum)
                -> Tower e ()
 periodicCamera camera_chan_tx camera_data_chan camera_req_tx = do
 
   monitor "periodic_camera_injector" $ do
      camera_data_st    <- stateInit "camera_data_st"    izero
      camera_data_prev  <- stateInit "camera_data_prev"  izero
-     camera_data_watch <- stateInit "camera_data_watch" (izero :: Init (Stored Uint32))
+     camera_data_watch <- stateInit "camera_data_watch" (izero :: Init ('Stored Uint32))
 
      handler camera_req_tx "camera_req" $ do
        e <- emitter camera_chan_tx 1
@@ -134,7 +134,7 @@ periodicCamera camera_chan_tx camera_data_chan camera_req_tx = do
 fragmentDrop :: (IvoryArea a, IvoryZero a)
                     => ChanOutput a
                     -> MessageType a
-                    -> AbortableTransmit (Struct "can_message") (Stored IBool)
+                    -> AbortableTransmit ('Struct "can_message") ('Stored IBool)
                     -> Tower e ()
 fragmentDrop src mt tx = do
   (fragReq, _fragAbort, fragDone) <- fragmentSender mt tx
@@ -155,8 +155,8 @@ fragmentDrop src mt tx = do
     handler fragDone "fragment_done" $ do
       callback $ const $ store in_progress false
 
-canDatalink :: AbortableTransmit (Struct "can_message") (Stored IBool)
-            -> ChanOutput (Struct "can_message")
+canDatalink :: AbortableTransmit ('Struct "can_message") ('Stored IBool)
+            -> ChanOutput ('Struct "can_message")
             -> ChanInput PlaintextArray
             -> ChanOutput PlaintextArray
             -> Tower e ()

@@ -25,11 +25,11 @@ import SMACCMPilot.Hardware.PX4IO (px4ioTower)
 
 flightIOTower :: (e -> FlightPlatform)
               -> ControllableVehicleAttrs Attr
-              -> ChanInput (Struct "user_input")
-              -> ChanInput (Struct "control_modes")
-              -> ChanInput (Stored T.Tristate)
-              -> ChanOutput (Struct "control_law")
-              -> ChanOutput (Struct "quadcopter_motors")
+              -> ChanInput ('Struct "user_input")
+              -> ChanInput ('Struct "control_modes")
+              -> ChanInput ('Stored T.Tristate)
+              -> ChanOutput ('Struct "control_law")
+              -> ChanOutput ('Struct "quadcopter_motors")
               -> Tower e ()
 flightIOTower tofp attrs rc_ui rc_cm rc_am cl_output motors_output = do
   fp <- fmap tofp getEnv

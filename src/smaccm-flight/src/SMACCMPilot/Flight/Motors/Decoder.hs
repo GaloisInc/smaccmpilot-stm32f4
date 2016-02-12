@@ -9,9 +9,9 @@ import Ivory.Language
 
 import qualified SMACCMPilot.Comm.Ivory.Types.QuadcopterMotors as M
 
-fmuPwmMotorDecoder :: ConstRef s (Struct "quadcopter_motors")
+fmuPwmMotorDecoder :: ConstRef s ('Struct "quadcopter_motors")
                    -> Ivory (AllocEffects cs)
-                         (ConstRef (Stack cs) (Array 4 (Stored IFloat)))
+                         (ConstRef ('Stack cs) ('Array 4 ('Stored IFloat)))
 fmuPwmMotorDecoder ms = do
   fl <- deref (ms ~> M.frontleft) -- m3
   fr <- deref (ms ~> M.frontright) -- m2

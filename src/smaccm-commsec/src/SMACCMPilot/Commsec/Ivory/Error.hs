@@ -18,7 +18,7 @@ import Ivory.Serialize
 newtype GecError = GecError Uint32
   deriving (IvoryType, IvoryVar, IvoryExpr, IvoryEq, IvoryStore, IvoryInit)
 
-instance Packable (Stored GecError) where
+instance Packable ('Stored GecError) where
   packRep = repackV wrap unwrap packRep
     where
     wrap raw = GecError $ (raw <=? 6) ? (raw, 0)

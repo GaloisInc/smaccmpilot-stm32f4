@@ -1,4 +1,6 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module SMACCMPilot.INS.DetectMotion where
 
@@ -10,9 +12,9 @@ import qualified SMACCMPilot.Comm.Ivory.Types.GyroscopeSample     as G
 import qualified SMACCMPilot.Comm.Ivory.Types.Xyz                 as XYZ
 import SMACCMPilot.INS.Filter
 
-detectMotion :: ChanOutput (Struct "gyroscope_sample")
-             -> ChanOutput (Struct "accelerometer_sample")
-             -> ChanInput (Stored IBool)
+detectMotion :: ChanOutput ('Struct "gyroscope_sample")
+             -> ChanOutput ('Struct "accelerometer_sample")
+             -> ChanInput ('Stored IBool)
              -> Tower e ()
 detectMotion g a res = monitor "detectMotion" $ do
   n <- freshname "detectMotion"
@@ -38,8 +40,8 @@ detectMotion g a res = monitor "detectMotion" $ do
     hpf_ay_moddef
     hpf_az_moddef
 
-  accel_threshold_ctr <- stateInit "accel_threshold_counter" (izero :: Init (Stored Uint32))
-  gyro_threshold_ctr <- stateInit "gyro_threshold_counter" (izero :: Init (Stored Uint32))
+  accel_threshold_ctr <- stateInit "accel_threshold_counter" (izero :: Init ('Stored Uint32))
+  gyro_threshold_ctr <- stateInit "gyro_threshold_counter" (izero :: Init ('Stored Uint32))
 
   handler systemInit "init" $ callback $ const $ do
     filter_init hpf_gx
@@ -49,7 +51,10 @@ detectMotion g a res = monitor "detectMotion" $ do
     filter_init hpf_ay
     filter_init hpf_az
 
-  let reportMotion e = do
+  let reportMotion :: (GetAlloc eff ~ 'Scope s)
+                   => Emitter ('Stored IBool)
+                   -> Ivory eff ()
+      reportMotion e = do
         a_t <- deref accel_threshold_ctr
         g_t <- deref gyro_threshold_ctr
         emitV e $ a_t <=? 200 .|| g_t <=? 200

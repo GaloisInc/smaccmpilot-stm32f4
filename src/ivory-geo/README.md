@@ -8,17 +8,13 @@ repository.
 
 ## Building
 
-The provided `Makefile` has two targets:
-
-- `make create-sandbox` initializes a cabal sandbox in the current directory,
-  adds Ivory language sources (see `[../../README.md][d]` for dependency info),
-  and installs all dependencies in the sandbox.
-- `make` can be run after the sandbox is created. It runs `cabal build` to build
-  the `ivory-geo` library.
+The provided `Makefile` wraps the basic
+[`stack build`](http://www.haskellstack.org) command to build this
+package. If Stack is unable to find all of the project dependencies,
+see `[../../README.md][d]` for dependency info.
 
 [d]: https://github.com/GaloisInc/smaccmpilot-stm32f4/blob/master/README.md
 
 ## Tests
 
 `ivory-geo` has no tests at this time.
-

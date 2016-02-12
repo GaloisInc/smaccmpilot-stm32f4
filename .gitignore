@@ -2,3 +2,16 @@
 cabal.sandbox.config
 .cabal-sandbox/
 dist/
+.stack-work
+/src/smaccm-flight/smaccmpilot
+/gec/
+/gidl/
+/ivory-tower-posix/
+/ivory-tower-stm32/
+/ivory/
+/stack-7.10.yaml.orig
+/stack-8.0.yaml.orig
+/gidl-bootstrap.yaml.orig
+/stack.yaml.orig
+/tower-camkes-odroid/
+/tower/

@@ -18,7 +18,7 @@ import SMACCMPilot.Hardware.GPS.UBlox
 [ivory| string struct GPSString 128 |]
 
 uartUbloxGPSTower :: (e -> FlightPlatform)
-                  -> ChanInput (Struct "position_sample")
+                  -> ChanInput ('Struct "position_sample")
                   -> Tower e ()
 uartUbloxGPSTower tofp ostream = do
   let types = package "gps_common" $ do
@@ -33,5 +33,5 @@ uartUbloxGPSTower tofp ostream = do
     Left u -> uartTower tocc u (uart_pins uart) 38400
     Right dmauart -> dmaUARTTower tocc dmauart (uart_pins uart) 38400 (Proxy :: Proxy GPSString)
   -- we ignore the transmit channel, but we're forced to provide a buffer type for it
-  let _gpso = fst gps :: BackpressureTransmit UnusedString (Stored IBool)
+  let _gpso = fst gps :: BackpressureTransmit UnusedString ('Stored IBool)
   ubloxGPSTower (snd gps) ostream

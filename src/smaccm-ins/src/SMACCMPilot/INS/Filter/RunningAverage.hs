@@ -36,10 +36,10 @@ ivoryRunningAverageFilter name proxy = (f, moddef)
   len = natVal proxy
 
   named s = name ++ "_avg_" ++ s
-  a_area :: MemArea (Array n (Stored IFloat))
+  a_area :: MemArea ('Array n ('Stored IFloat))
   a_area = area (named "store") Nothing
   a = addrOf a_area
-  offs_area :: MemArea (Stored (Ix n))
+  offs_area :: MemArea ('Stored (Ix n))
   offs_area = area (named "offs") Nothing
   offs = addrOf offs_area
   sum_area = area (named "sum") Nothing

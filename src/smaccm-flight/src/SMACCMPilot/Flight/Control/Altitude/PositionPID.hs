@@ -24,18 +24,18 @@ data PositionPid =
                                      -> IFloat -- dt, seconds
                                      -> Ivory eff IFloat
     , pos_pid_write_debug :: forall eff s .
-          Ref s (Struct "alt_control_debug") -> Ivory eff ()
+          Ref s ('Struct "alt_control_debug") -> Ivory eff ()
     }
 
 monitorPositionPid :: AttrReadable a
-                   => a (Struct "pid_config")
+                   => a ('Struct "pid_config")
                    -> AltEstimator
                    -> Monitor e PositionPid
 monitorPositionPid pid_config alt_estimator = do
   ppid_state  <- state "posPidState"
   ppid_config <- attrState pid_config
   name_pid_calculate <- fmap showUnique $ freshname "pos_pid_calculate"
-  let proc_pid_calculate :: Def('[IFloat, IFloat, IFloat] :-> IFloat)
+  let proc_pid_calculate :: Def('[IFloat, IFloat, IFloat] ':-> IFloat)
       proc_pid_calculate = proc name_pid_calculate $
         \pos_sp vel_sp dt -> body $ do
           p_gain <-             (ppid_config~>*C.p_gain)

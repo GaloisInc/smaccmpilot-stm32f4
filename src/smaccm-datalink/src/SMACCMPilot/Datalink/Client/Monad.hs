@@ -9,9 +9,11 @@ module SMACCMPilot.Datalink.Client.Monad
   , writeDbg
   ) where
 
+import Prelude ()
+import Prelude.Compat
+
 import MonadLib
 
-import Control.Applicative
 import Control.Monad.IO.Class
 
 import SMACCMPilot.Datalink.Client.Console

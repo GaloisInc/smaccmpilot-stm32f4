@@ -39,9 +39,9 @@ px4ioTower :: (e -> ClockConfig)
            -> DMAUART
            -> UARTPins
            -> PX4IOPWMConfig
-           -> ChanOutput (Struct "control_law")
-           -> ChanOutput (Struct "quadcopter_motors")
-           -> ChanInput  (Struct "px4io_state")
+           -> ChanOutput ('Struct "control_law")
+           -> ChanOutput ('Struct "quadcopter_motors")
+           -> ChanInput  ('Struct "px4io_state")
            -> Tower e ()
 px4ioTower tocc dmauart pins pwmconfig control_law motors state_chan = do
   (BackpressureTransmit ser_tx_req ser_rx, driver_ready)
@@ -238,8 +238,8 @@ px4ioTower tocc dmauart pins pwmconfig control_law motors state_chan = do
 
 
 outRegIval :: PX4IOPWMConfig
-           -> ConstRef s (Struct "quadcopter_motors")
-           -> Ivory eff (Init (Array 32 (Stored Uint16)))
+           -> ConstRef s ('Struct "quadcopter_motors")
+           -> Ivory eff (Init ('Array 32 ('Stored Uint16)))
 outRegIval pwmconfig motors = do
   fl <- deref (motors ~> M.frontleft)
   fr <- deref (motors ~> M.frontright)

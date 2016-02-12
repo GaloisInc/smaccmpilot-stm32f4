@@ -28,11 +28,11 @@ insTypesModule = package "ins_types" $ do
   depend serializeModule
   wrappedPackMod kalmanStateWrapper
 
-kalmanStateWrapper :: WrappedPackRep (Struct "kalman_state")
+kalmanStateWrapper :: WrappedPackRep ('Struct "kalman_state")
 kalmanStateWrapper = wrapPackRep "kalman_state" $ packStruct
   [ packLabel orient
   , packLabel mag_ned
   ]
 
-instance Packable (Struct "kalman_state") where
+instance Packable ('Struct "kalman_state") where
   packRep = wrappedPackRep kalmanStateWrapper

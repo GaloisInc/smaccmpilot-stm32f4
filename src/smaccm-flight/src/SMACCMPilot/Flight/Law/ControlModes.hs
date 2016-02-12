@@ -7,9 +7,9 @@ import           Ivory.Tower
 import qualified SMACCMPilot.Comm.Ivory.Types.ControlModes    as CM
 import qualified SMACCMPilot.Comm.Ivory.Types.ControlSource   as CS
 
-controlModesTower :: ChanOutput (Struct "control_modes") -- CLOCK
-                  -> ChanOutput (Struct "control_modes")
-                  -> ChanInput  (Struct "control_modes")
+controlModesTower :: ChanOutput ('Struct "control_modes") -- CLOCK
+                  -> ChanOutput ('Struct "control_modes")
+                  -> ChanInput  ('Struct "control_modes")
                   -> Tower e ()
 controlModesTower rcinput_modes telem_modes output_modes = monitor "control_modes_law" $ do
   telem_request <- state "telem_control_modes_request"

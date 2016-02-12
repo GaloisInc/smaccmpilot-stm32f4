@@ -9,10 +9,10 @@ import qualified SMACCMPilot.Comm.Ivory.Types.ControlModes    as CM
 import qualified SMACCMPilot.Comm.Ivory.Types.ControlSource   as CS
 import qualified SMACCMPilot.Comm.Ivory.Types.UserInputResult as UIR
 
-userInputMuxTower :: ChanOutput (Struct "control_modes")
-                  -> ChanOutput (Struct "user_input") -- CLOCK
-                  -> ChanOutput (Struct "user_input")
-                  -> ChanInput  (Struct "user_input_result")
+userInputMuxTower :: ChanOutput ('Struct "control_modes")
+                  -> ChanOutput ('Struct "user_input") -- CLOCK
+                  -> ChanOutput ('Struct "user_input")
+                  -> ChanInput  ('Struct "user_input_result")
                   -> Tower e ()
 userInputMuxTower cm_chan rcinput_ui_chan telem_ui_chan output_ui_chan = monitor "user_input_mux" $ do
   telem_ui <- state "telem_ui_request"

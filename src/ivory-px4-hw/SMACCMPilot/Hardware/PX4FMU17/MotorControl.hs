@@ -26,7 +26,7 @@ minPWM = 1100
 maxPWM = 1900
 
 motorControlTower :: (e -> ClockConfig)
-                  -> ChanOutput (Array 4 (Stored IFloat))
+                  -> ChanOutput ('Array 4 ('Stored IFloat))
                   -> Tower e ()
 motorControlTower tocc ostream = do
   cc <- fmap tocc getEnv
@@ -37,7 +37,7 @@ motorControlTower tocc ostream = do
       callback $ \throttle -> noReturn $ do
         pwm_output throttle
 
-hw_init :: (GetAlloc eff ~ Scope cs)
+hw_init :: (GetAlloc eff ~ 'Scope cs)
         => ClockConfig -> Ivory eff ()
 hw_init clockConfig = do
   tim_init clockConfig tim2
@@ -51,7 +51,7 @@ pwm_out_pin af p = do
   pinSetSpeed      p gpio_speed_50mhz
   pinSetAF         p af
 
-tim_init :: (GetAlloc eff ~ Scope cs)
+tim_init :: (GetAlloc eff ~ 'Scope cs)
          => ClockConfig -> GTIM16 -> Ivory eff ()
 tim_init clockConfig gtim = do
   gtimRCCEnable gtim
@@ -98,7 +98,7 @@ tim_init clockConfig gtim = do
     setBit gtim_cr1_cen
     setBit gtim_cr1_arpe
 
-pwm_set :: GTIM16 -> Ref s (Array 4 (Stored Uint16)) -> Ivory eff ()
+pwm_set :: GTIM16 -> Ref s ('Array 4 ('Stored Uint16)) -> Ivory eff ()
 pwm_set gtim chs = do
   set_ccr (gtimRegCCR1 gtim) (chs ! 1)
   set_ccr (gtimRegCCR2 gtim) (chs ! 2)
@@ -109,9 +109,9 @@ pwm_set gtim chs = do
     c <- deref chan
     setReg reg (setField gtim_16_data (fromRep c))
 
-pwm_scale :: (GetAlloc eff ~ Scope cs)
-          => ConstRef s (Array 4 (Stored IFloat))
-          -> Ivory eff (Ref (Stack cs) (Array 4 (Stored Uint16)))
+pwm_scale :: (GetAlloc eff ~ 'Scope cs)
+          => ConstRef s ('Array 4 ('Stored IFloat))
+          -> Ivory eff (Ref ('Stack cs) ('Array 4 ('Stored Uint16)))
 pwm_scale throttle = do
   o <- local (iarray [])
   arrayMap $ \i -> do
@@ -127,8 +127,8 @@ pwm_scale throttle = do
   offs = safeCast minPWM
   idle = 0.07
 
-pwm_output :: (GetAlloc eff ~ Scope cs)
-           => ConstRef s (Array 4 (Stored IFloat))
+pwm_output :: (GetAlloc eff ~ 'Scope cs)
+           => ConstRef s ('Array 4 ('Stored IFloat))
            -> Ivory eff ()
 pwm_output throttle = do
   scaled <- pwm_scale throttle
