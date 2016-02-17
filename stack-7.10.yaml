@@ -38,6 +38,7 @@ packages:
     - ivory-bsp-tests
     - ivory-freertos-bindings
     - tower-freertos-stm32
+    - tower-echronos-stm32
 - location: ../tower/
   extra-dep: true
   subdirs:

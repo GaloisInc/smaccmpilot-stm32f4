@@ -68,7 +68,9 @@ smaccmpilot-odroid: default
 	-rm -rf $*
 
 %_gen: default
-	cabal run $(@F) -- --src-dir=$* --lib-dir="" --conf-file=$(patsubst platform-%,%,$(*D)).conf $(IVORY_FLAGS)
+	stack exec -- $(@F) --src-dir=$* \
+		      --conf-file=$(patsubst platform-%,%,$(*D)).conf \
+					$(IVORY_FLAGS)
 	make -C $*
 
 %_clean:
