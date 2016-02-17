@@ -31,7 +31,7 @@ import SMACCMPilot.Hardware.Tests.Serialize
 
 uartUbloxGPSTower :: (e -> ClockConfig)
                   -> UART_Device
-                  -> ChanInput (Struct "position_sample")
+                  -> ChanInput ('Struct "position_sample")
                   -> Tower e ()
 uartUbloxGPSTower tocc uart ostream = do
   let unusedmod = package "unused_string" $ defStringType (Proxy :: Proxy UnusedString)
@@ -40,7 +40,7 @@ uartUbloxGPSTower tocc uart ostream = do
   towerDepends unusedmod
   towerModule gpsstringmod
   towerDepends gpsstringmod
-  (_gpso :: BackpressureTransmit UnusedString (Stored IBool), gpsi) <-
+  (_gpso :: BackpressureTransmit UnusedString ('Stored IBool), gpsi) <-
     case uart_periph uart of
       Left u -> uartTower tocc u (uart_pins uart) 38400
       Right dmauart -> dmaUARTTower tocc dmauart (uart_pins uart) 38400 (Proxy :: Proxy GPSString)

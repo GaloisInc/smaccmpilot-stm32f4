@@ -20,7 +20,7 @@ struct symmetric_key
 |]
 
 deriveSymmetricKey :: Def ('[ ConstRef s1 KeyMaterial
-                            , Ref s2 (Struct "symmetric_key")]:->())
+                            , Ref s2 ('Struct "symmetric_key")]':->())
 deriveSymmetricKey = proc "gec_derive_symmetric_key" $ \km sk -> body $ do
     arrayMap $ \ix -> do
       v <- deref (km ! ix)
@@ -41,6 +41,6 @@ symmetricKeyTypesModule = package "gec_symmetric_key_types" $ do
 symKeySaltArrayIval :: [Word8] -> Init SymKeySaltArray
 symKeySaltArrayIval w8s = iarray (map (ival . fromIntegral) w8s)
 
-symmetricKeyIval :: SymmetricKey -> Init (Struct "symmetric_key")
+symmetricKeyIval :: SymmetricKey -> Init ('Struct "symmetric_key")
 symmetricKeyIval sk = istruct [ s2c_ks .= symKeySaltArrayIval (sk_s2c sk)
                               , c2s_ks .= symKeySaltArrayIval (sk_c2s sk) ]

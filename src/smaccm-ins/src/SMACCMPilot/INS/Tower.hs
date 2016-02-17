@@ -22,7 +22,7 @@ changeUnits :: (Functor f, Functor g) => (x -> y) -> f (g x) -> f (g y)
 changeUnits f = fmap (fmap f)
 
 accel :: (SafeCast IFloat to)
-      => ConstRef s (Struct "accelerometer_sample")
+      => ConstRef s ('Struct "accelerometer_sample")
       -> Ivory eff (XYZ to)
 accel sample = fmap (fmap safeCast)
              $ mapM deref
@@ -30,7 +30,7 @@ accel sample = fmap (fmap safeCast)
              $ xyz XYZ.x XYZ.y XYZ.z
 
 gyro :: (Floating to, SafeCast IFloat to)
-      => ConstRef s (Struct "gyroscope_sample")
+      => ConstRef s ('Struct "gyroscope_sample")
       -> Ivory eff (XYZ to)
 gyro sample = changeUnits (* (pi / 180))
             $ fmap (fmap safeCast)
@@ -38,11 +38,11 @@ gyro sample = changeUnits (* (pi / 180))
             $ fmap ((sample ~> G.sample) ~>)
             $ xyz XYZ.x XYZ.y XYZ.z
 
-kalman_predict :: Def ('[ Ref s1 (Struct "kalman_state")
-                        , Ref s2 (Struct "kalman_covariance")
-                        , Ref s3 (Stored ITime)
+kalman_predict :: Def ('[ Ref s1 ('Struct "kalman_state")
+                        , Ref s2 ('Struct "kalman_covariance")
+                        , Ref s3 ('Stored ITime)
                         , ITime
-                        , ConstRef s4 (Struct "gyroscope_sample")] :-> ())
+                        , ConstRef s4 ('Struct "gyroscope_sample")] ':-> ())
 kalman_predict = proc "kalman_predict" $
   \ state_vector covariance last_predict now last_gyro -> body $ do
       gyro_not_ready <- deref $ last_gyro ~> G.samplefail
@@ -53,15 +53,15 @@ kalman_predict = proc "kalman_predict" $
       kalmanPredict state_vector covariance dt =<< gyro last_gyro
       store last_predict now
 
-accel_measure :: Def ('[ Ref s1 (Struct "kalman_state")
-                       , Ref s2 (Struct "kalman_covariance")
-                       , ConstRef s3 (Struct "accelerometer_sample")
-                       ] :-> ())
+accel_measure :: Def ('[ Ref s1 ('Struct "kalman_state")
+                       , Ref s2 ('Struct "kalman_covariance")
+                       , ConstRef s3 ('Struct "accelerometer_sample")
+                       ] ':-> ())
 accel_measure = proc "accel_measure" $ \ state_vector covariance last_accel -> body $ do
   accelMeasure state_vector covariance =<< accel last_accel
 
 mag :: (Num to, SafeCast IFloat to)
-    => ConstRef s (Struct "magnetometer_sample")
+    => ConstRef s ('Struct "magnetometer_sample")
     -> Ivory eff (XYZ to)
 mag sample = changeUnits (* 1000)
            $ fmap (fmap safeCast)
@@ -69,17 +69,17 @@ mag sample = changeUnits (* 1000)
            $ fmap ((sample ~> M.sample) ~>)
            $ xyz XYZ.x XYZ.y XYZ.z
 
-mag_measure :: Def ('[ Ref s1 (Struct "kalman_state")
-                     , Ref s2 (Struct "kalman_covariance")
-                     , ConstRef s3 (Struct "magnetometer_sample")] :-> ())
+mag_measure :: Def ('[ Ref s1 ('Struct "kalman_state")
+                     , Ref s2 ('Struct "kalman_covariance")
+                     , ConstRef s3 ('Struct "magnetometer_sample")] ':-> ())
 mag_measure = proc "mag_measure" $ \ state_vector covariance last_mag -> body $ do
   magMeasure state_vector covariance =<< mag last_mag
 
-init_filter :: Def ('[ Ref s1 (Struct "kalman_state")
-                     , Ref s2 (Struct "kalman_covariance")
-                     , ConstRef s3 (Struct "accelerometer_sample")
-                     , ConstRef s4 (Struct "magnetometer_sample")
-                     ] :-> IBool)
+init_filter :: Def ('[ Ref s1 ('Struct "kalman_state")
+                     , Ref s2 ('Struct "kalman_covariance")
+                     , ConstRef s3 ('Struct "accelerometer_sample")
+                     , ConstRef s4 ('Struct "magnetometer_sample")
+                     ] ':-> IBool)
 init_filter = proc "init_filter" $
   \ state_vector covariance last_accel last_mag -> body $ do
       magFail <- deref $ last_mag ~> M.samplefail
@@ -90,11 +90,11 @@ init_filter = proc "init_filter" $
         ret true
       ret false
 
-sensorFusion :: ChanOutput (Struct "accelerometer_sample")
-             -> ChanOutput (Struct "gyroscope_sample")
-             -> ChanOutput (Struct "magnetometer_sample")
-             -> ChanOutput (Stored IBool)
-             -> Tower e (ChanOutput (Struct "kalman_state"))
+sensorFusion :: ChanOutput ('Struct "accelerometer_sample")
+             -> ChanOutput ('Struct "gyroscope_sample")
+             -> ChanOutput ('Struct "magnetometer_sample")
+             -> ChanOutput ('Stored IBool)
+             -> Tower e (ChanOutput ('Struct "kalman_state"))
 sensorFusion accelSource gyroSource magSource motion = do
   (stateSink, stateSource) <- channel
 

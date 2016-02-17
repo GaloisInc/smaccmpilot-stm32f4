@@ -9,7 +9,7 @@ serial=$1
 baud=$2
 shift 2
 
-exec cabal run smaccm-comm-client -- \
+exec stack exec -- smaccm-comm-client \
 	--serial=$serial \
 	--baud=$baud \
 	--conf-file=../smaccm-flight/fmu24.conf \

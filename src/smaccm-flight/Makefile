@@ -1,11 +1,5 @@
-IVORY_REPO ?= ../../../ivory
-TOWER_REPO ?= ../../../tower
-BSP_REPO ?= ../../../ivory-tower-stm32
-POSIX_REPO ?= ../../../ivory-tower-posix
-GEC_REPO ?= ../../../gec
-ODROID_BSP_REPO ?= ../../../tower-camkes-odroid
-SMACCMPILOT_REPO ?= ..
-include ../../Makefile.sandbox
+TOWER_CAMKES_ODROID_REPO ?= ../../../tower-camkes-odroid
+include ../../stack.mk
 
 IVORY_FLAGS = --const-fold
 
@@ -45,25 +39,29 @@ upload_flight_echronos:
 can_proxy_odroid_test: default
 	-rm -rf $@
 	-mkdir $@
-	cp -r $(ODROID_BSP_REPO)/data/uart/* ./$@/
-	cp -r $(ODROID_BSP_REPO)/data/can/* ./$@/
+	cp -r $(TOWER_CAMKES_ODROID_REPO)/data/uart/* ./$@/
+	cp -r $(TOWER_CAMKES_ODROID_REPO)/data/can/* ./$@/
 	cp -r tests/odroid-tests/can-proxy-odroid-test-artifacts/* ./$@/
-	cabal run can-proxy-odroid-test-gen -- --src-dir=$@ --lib-dir=$@\
-    --conf-file=odroid.conf $(IVORY_FLAGS)
+	stack exec -- can-proxy-odroid-test-gen \
+			--src-dir=$@ --lib-dir=$@ \
+			--conf-file=odroid.conf $(IVORY_FLAGS)
 
 .PHONY: smaccmpilot-odroid
 smaccmpilot-odroid: default
 	-rm -rf smaccmpilot
 	-mkdir smaccmpilot
-	cp -r $(ODROID_BSP_REPO)/data/uart/* ./smaccmpilot/
-	cp -r $(ODROID_BSP_REPO)/data/can/* ./smaccmpilot/
-	cp -r $(ODROID_BSP_REPO)/data/camera_vm/* ./smaccmpilot/
+	cp -r $(TOWER_CAMKES_ODROID_REPO)/data/uart/* ./smaccmpilot/
+	cp -r $(TOWER_CAMKES_ODROID_REPO)/data/can/* ./smaccmpilot/
+	cp -r $(TOWER_CAMKES_ODROID_REPO)/data/camera_vm/* ./smaccmpilot/
 	cp -r tests/odroid-tests/smaccmpilot-odroid-artifacts/* ./smaccmpilot/
-	cabal run smaccmpilot-odroid-gen -- --src-dir=smaccmpilot --lib-dir=smaccmpilot\
-		--conf-file=odroid.conf $(IVORY_FLAGS)
+	stack exec -- smaccmpilot-odroid-gen \
+			--src-dir=smaccmpilot --lib-dir=smaccmpilot \
+			--conf-file=odroid.conf $(IVORY_FLAGS)
 
 %-gen: default
-	cabal run $(@F) -- --src-dir=$* --conf-file=$(patsubst platform-%,%,$(*D)).conf $(IVORY_FLAGS)
+	stack exec -- $(@F) --src-dir=$* \
+			    --conf-file=$(patsubst platform-%,%,$(*D)).conf \
+			    $(IVORY_FLAGS)
 	make -C $*
 
 %-clean:

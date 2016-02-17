@@ -1,6 +1,7 @@
-{-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ScopedTypeVariables#-}
+{-# LANGUAGE TypeOperators #-}
 
 module SMACCMPilot.Hardware.PX4IO.Pack where
 
@@ -21,8 +22,8 @@ px4ioPackModule = package "px4io_pack" $ do
   incl px4io_unpack
 
 px4io_pack :: Def('[ Ref      s1 PX4IOBuffer
-                   , ConstRef s2 (Struct "px4io_request")
-                   ] :-> IBool)
+                   , ConstRef s2 ('Struct "px4io_request")
+                   ] ':-> IBool)
 px4io_pack = proc "px4io_pack" $ \buf req -> body $ do
   crc <- local izero
   ixref <- local izero
@@ -62,8 +63,8 @@ px4io_pack = proc "px4io_pack" $ \buf req -> body $ do
                            , {- default -} 0))
 
 px4io_unpack :: Def('[ ConstRef s1 PX4IOBuffer
-                     , Ref      s2 (Struct "px4io_request")
-                     ] :-> Uint8)
+                     , Ref      s2 ('Struct "px4io_request")
+                     ] ':-> Uint8)
 px4io_unpack = proc "px4io_unpack" $ \buf req -> body $ do
   crc <- local izero
   ixref <- local izero

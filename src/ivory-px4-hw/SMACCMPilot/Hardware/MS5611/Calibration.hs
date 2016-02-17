@@ -9,9 +9,9 @@ import SMACCMPilot.Comm.Ivory.Types.BarometerSample
 import SMACCMPilot.Hardware.MS5611.Types
 import SMACCMPilot.Time
 
-measurement :: ConstRef s1 (Struct "ms5611_calibration")
-            -> ConstRef s2 (Struct "ms5611_sample")
-            -> Ref s3 (Struct "barometer_sample")
+measurement :: ConstRef s1 ('Struct "ms5611_calibration")
+            -> ConstRef s2 ('Struct "ms5611_sample")
+            -> Ref s3 ('Struct "barometer_sample")
             -> Ivory eff ()
 measurement cal sample meas = do
   c1 <- deref (cal ~> coeff ! 0)

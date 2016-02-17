@@ -37,7 +37,7 @@ radioCmdTag = 1
 
 startDebugger :: IORef DebuggerMode -> FilePath -> IO ()
 startDebugger sig f = do
-  forkIO (runDebugger sig f)
+  void $ forkIO (runDebugger sig f)
   hSetBuffering stdin NoBuffering
   loop
   where
@@ -85,7 +85,7 @@ runDebugger sig port = do
                 ++ " payload: " ++ show payload)
         let packetBS = encode tag (B.pack payload)
         putHexBS packetBS
-        send serial packetBS
+        void $ send serial packetBS
         cont
       Exit -> closeSerial serial
 

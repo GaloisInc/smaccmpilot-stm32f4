@@ -14,8 +14,8 @@ import SMACCMPilot.Hardware.PPM.Decode.Types
 import SMACCMPilot.Hardware.PPM.PulseCapture.Types
 import qualified SMACCMPilot.Comm.Ivory.Types.RcInput as RC
 
-ppmDecodeTower :: ChanOutput (Struct "pulse_capture")
-               -> ChanInput (Struct "rc_input")
+ppmDecodeTower :: ChanOutput ('Struct "pulse_capture")
+               -> ChanInput ('Struct "rc_input")
                -> Tower e ()
 ppmDecodeTower pulse_chan out_chan = monitor "ppmDecode" $ do
   s  <- stateInit "ppmState" (ival ppmSync)
@@ -69,8 +69,8 @@ ppmDecodeTower pulse_chan out_chan = monitor "ppmDecode" $ do
   pulseMaxWidth = 2100
   minimumPulses = 6
 
-frameToRCInput :: ConstRef s1 (Array 8 (Stored Uint16))
-               -> Ref      s2 (Struct "rc_input")
+frameToRCInput :: ConstRef s1 ('Array 8 ('Stored Uint16))
+               -> Ref      s2 ('Struct "rc_input")
                -> Ivory eff ()
 frameToRCInput frame rcin = do
   i0  <- deref (frame ! 0)

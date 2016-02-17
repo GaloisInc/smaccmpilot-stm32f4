@@ -19,38 +19,38 @@ readRegAddr reg = 0x80 .| fromIntegral reg
 writeRegAddr :: Reg -> Uint8
 writeRegAddr reg = fromIntegral reg
 
-readRegReq :: (GetAlloc eff ~ Scope s)
+readRegReq :: (GetAlloc eff ~ 'Scope s)
            => SPIDeviceHandle
            -> Reg
-           -> Ivory eff (ConstRef (Stack s) (Struct "spi_transaction_request"))
+           -> Ivory eff (ConstRef ('Stack s) ('Struct "spi_transaction_request"))
 readRegReq dev reg = fmap constRef $ local $ istruct
   [ tx_device .= ival dev
   , tx_buf    .= iarray [ ival (readRegAddr reg), ival 0 ]
   , tx_len    .= ival 2
   ]
 
-writeRegReq :: (GetAlloc eff ~ Scope s)
+writeRegReq :: (GetAlloc eff ~ 'Scope s)
             => SPIDeviceHandle
             -> Reg
             -> Uint8
-            -> Ivory eff (ConstRef (Stack s) (Struct "spi_transaction_request"))
+            -> Ivory eff (ConstRef ('Stack s) ('Struct "spi_transaction_request"))
 writeRegReq dev reg v = fmap constRef $ local $ istruct
   [ tx_device .= ival dev
   , tx_buf    .= iarray [ ival (writeRegAddr reg), ival v ]
   , tx_len    .= ival 2
   ]
 
-regContents :: Ref s (Struct "spi_transaction_result") -> Ivory eff Uint8
+regContents :: Ref s ('Struct "spi_transaction_result") -> Ivory eff Uint8
 regContents res = deref ((res ~> rx_buf) ! 1)
 
 -- | We are not using the L3GD20 sensor found on the Pixhawk at this time.
 -- However, we need to sends requests to disable the L3GD20's I2C bus mode,
 -- which causes it to corrupt the SPI bus it shares with other devices.
-l3gd20Disabler :: BackpressureTransmit (Struct "spi_transaction_request")
-                                       (Struct "spi_transaction_result")
-               -> ChanOutput (Stored ITime) -- Begin disabling
-               -> ChanInput  (Stored ITime) -- Finished successfully
-               -> ChanInput  (Stored IBool) -- Unsuccessful: panic
+l3gd20Disabler :: BackpressureTransmit ('Struct "spi_transaction_request")
+                                       ('Struct "spi_transaction_result")
+               -> ChanOutput ('Stored ITime) -- Begin disabling
+               -> ChanInput  ('Stored ITime) -- Finished successfully
+               -> ChanInput  ('Stored IBool) -- Unsuccessful: panic
                -> SPIDeviceHandle
                -> Tower e ()
 l3gd20Disabler (BackpressureTransmit req_chan res_chan) init_chan init_done panic_chan dev = do

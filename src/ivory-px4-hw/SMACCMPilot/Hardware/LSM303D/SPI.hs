@@ -22,10 +22,10 @@ import Numeric (showHex)
 import SMACCMPilot.Hardware.LSM303D.Regs
 
 lsm303dSPISensorManager :: Config
-                        -> BackpressureTransmit (Struct "spi_transaction_request") (Struct "spi_transaction_result")
-                        -> ChanOutput (Stored ITime)
-                        -> ChanInput  (Struct "magnetometer_sample")
-                        -> ChanInput  (Struct "accelerometer_sample")
+                        -> BackpressureTransmit ('Struct "spi_transaction_request") ('Struct "spi_transaction_result")
+                        -> ChanOutput ('Stored ITime)
+                        -> ChanInput  ('Struct "magnetometer_sample")
+                        -> ChanInput  ('Struct "accelerometer_sample")
                         -> SPIDeviceHandle
                         -> Tower e ()
 lsm303dSPISensorManager conf (BackpressureTransmit req_chan res_chan) init_chan mag_chan accel_chan h = do
@@ -126,20 +126,20 @@ lsm303dSPISensorManager conf (BackpressureTransmit req_chan res_chan) init_chan 
           emit req_e do_read_req
 
 convert_mag_sample :: Config
-                   -> Ref s1 (Struct "spi_transaction_result")
-                   -> Ref s2 (Struct "magnetometer_sample")
+                   -> Ref s1 ('Struct "spi_transaction_result")
+                   -> Ref s2 ('Struct "magnetometer_sample")
                    -> Ivory eff ()
 convert_mag_sample c res s = convert_sample (magSensitivityGauss c) res (s ~> M.sample)
 
 convert_acc_sample :: Config
-                   -> Ref s1 (Struct "spi_transaction_result")
-                   -> Ref s2 (Struct "accelerometer_sample")
+                   -> Ref s1 ('Struct "spi_transaction_result")
+                   -> Ref s2 ('Struct "accelerometer_sample")
                    -> Ivory eff ()
 convert_acc_sample c res s = convert_sample (accelSensitivityMSS c) res (s ~> A.sample)
 
 convert_sample :: IFloat
-               -> Ref s1 (Struct "spi_transaction_result")
-               -> Ref s2 (Struct "xyz")
+               -> Ref s1 ('Struct "spi_transaction_result")
+               -> Ref s2 ('Struct "xyz")
                -> Ivory eff ()
 convert_sample scale res s = do
   f ((res ~> rx_buf) ! 1)
@@ -191,14 +191,14 @@ lsm303dDefaultConf = Config
 
 data RegAction
   = RegWrite Reg Word8
-  | RegRead Reg (forall s eff . Ref s (Struct "spi_transaction_result")
+  | RegRead Reg (forall s eff . Ref s ('Struct "spi_transaction_result")
                   -> Ivory eff IBool) -- Test successful
   | RegModify Reg (Uint8 -> Uint8)
 
-runAction :: (GetAlloc eff ~ Scope s)
+runAction :: (GetAlloc eff ~ 'Scope s)
           => SPIDeviceHandle
-          -> Emitter (Struct "spi_transaction_request")
-          -> (Ivory eff (Ref s1 (Struct "spi_transaction_result")))
+          -> Emitter ('Struct "spi_transaction_request")
+          -> (Ivory eff (Ref s1 ('Struct "spi_transaction_result")))
           -> Ivory eff ()
           -> RegAction
           -> Ivory eff ()
@@ -228,9 +228,9 @@ runAction h e y onfail (RegRead  r f) = do
   success <- f read_res
   unless success onfail
 
-yieldCheckResultcode :: Ivory eff (Ref s1 (Struct "spi_transaction_result"))
+yieldCheckResultcode :: Ivory eff (Ref s1 ('Struct "spi_transaction_result"))
           -> Ivory eff ()
-          -> Ivory eff (Ref s1 (Struct "spi_transaction_result"))
+          -> Ivory eff (Ref s1 ('Struct "spi_transaction_result"))
 yieldCheckResultcode y onfail = do
   res <- y
   rc <- deref (res ~> resultcode)
@@ -238,18 +238,18 @@ yieldCheckResultcode y onfail = do
   return res
 
 
-readTransaction :: (GetAlloc eff ~ Scope s)
+readTransaction :: (GetAlloc eff ~ 'Scope s)
                 => SPIDeviceHandle -> Reg
-                -> Ivory eff (ConstRef (Stack s) (Struct "spi_transaction_request"))
+                -> Ivory eff (ConstRef ('Stack s) ('Struct "spi_transaction_request"))
 readTransaction h r = fmap constRef $ local $ istruct
   [ tx_device .= ival h
   , tx_buf .= iarray [ ival (fromIntegral (readReg r)) , ival 0 ]
   , tx_len .= ival 2
   ]
 
-writeTransaction :: (GetAlloc eff ~ Scope s)
+writeTransaction :: (GetAlloc eff ~ 'Scope s)
                  => SPIDeviceHandle -> Reg -> Uint8
-                 -> Ivory eff (ConstRef (Stack s) (Struct "spi_transaction_request"))
+                 -> Ivory eff (ConstRef ('Stack s) ('Struct "spi_transaction_request"))
 writeTransaction h r v = fmap constRef $ local $ istruct
   [ tx_device .= ival h
   , tx_buf .= iarray [ ival (fromIntegral (writeReg r)) , ival v ]

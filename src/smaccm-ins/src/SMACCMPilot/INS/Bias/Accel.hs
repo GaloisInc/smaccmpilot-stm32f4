@@ -17,19 +17,19 @@ import SMACCMPilot.INS.Bias.Calibration
 import SMACCMPilot.INS.Filter
 import SMACCMPilot.Time
 
-calcAccelBiasTower :: ChanOutput (Struct "accelerometer_sample")
-                   -> ChanOutput (Stored IBool)
-                   -> Tower e (ChanOutput (Struct "xyz_calibration"))
+calcAccelBiasTower :: ChanOutput ('Struct "accelerometer_sample")
+                   -> ChanOutput ('Stored IBool)
+                   -> Tower e (ChanOutput ('Struct "xyz_calibration"))
 calcAccelBiasTower a valid_cal_chan = do
   cal <- channel
   p <- period (Milliseconds 1000)
   calcAccelBiasTower' a valid_cal_chan (fst cal) p
   return (snd cal)
 
-calcAccelBiasTower' :: ChanOutput (Struct "accelerometer_sample")
-                    -> ChanOutput (Stored IBool)
-                    -> ChanInput  (Struct "xyz_calibration")
-                    -> ChanOutput (Stored ITime)
+calcAccelBiasTower' :: ChanOutput ('Struct "accelerometer_sample")
+                    -> ChanOutput ('Stored IBool)
+                    -> ChanInput  ('Struct "xyz_calibration")
+                    -> ChanOutput ('Stored ITime)
                     -> Tower e ()
 calcAccelBiasTower' a valid_cal_chan c newoutput = monitor "calcAccelBias" $ do
   n <- freshname "abe"
@@ -93,11 +93,11 @@ calcAccelBiasTower' a valid_cal_chan c newoutput = monitor "calcAccelBias" $ do
       cal <- mkCalibration (constRef o) v t
       emit e cal
 
-mkCalibration :: (GetAlloc eff ~ Scope s)
-              => ConstRef s' (Array 3 (Stored IFloat))
+mkCalibration :: (GetAlloc eff ~ 'Scope s)
+              => ConstRef s' ('Array 3 ('Stored IFloat))
               -> IBool
               -> ITime
-              -> Ivory eff (ConstRef (Stack s) (Struct "xyz_calibration"))
+              -> Ivory eff (ConstRef ('Stack s) ('Struct "xyz_calibration"))
 mkCalibration cal done time = do
   x <- deref (cal ! 0)
   y <- deref (cal ! 1)
@@ -118,7 +118,7 @@ mkCalibration cal done time = do
     , C.time     .= ival (timeMicrosFromITime time)
     ]
 
-accelCalibrate :: Calibrate (Struct "accelerometer_sample")
+accelCalibrate :: Calibrate ('Struct "accelerometer_sample")
 accelCalibrate = Calibrate aux
   where
   aux samp cal = do

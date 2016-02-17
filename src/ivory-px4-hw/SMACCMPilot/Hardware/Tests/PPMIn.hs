@@ -37,7 +37,7 @@ app topx4 = do
   mapM_ towerArtifact serializeArtifacts
 
   where
-  ppmSender :: Sender e (Struct "rc_input")
+  ppmSender :: Sender e ('Struct "rc_input")
   ppmSender = sampleSender 'P' (Proxy :: Proxy 21)
 
   nativePPMDriver ppmOut = do

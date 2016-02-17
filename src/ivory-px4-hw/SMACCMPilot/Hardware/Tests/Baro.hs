@@ -37,7 +37,7 @@ app topx4 = do
 
 ms5611_i2c_app :: (e -> PX4Platform)
                -> MS5611_I2C
-               -> ChanInput (Struct "barometer_sample")
+               -> ChanInput ('Struct "barometer_sample")
                -> Tower e ()
 ms5611_i2c_app topx4 ms5611 meas = do
   (req, ready) <- i2cTower (px4platform_clockconfig . topx4)
@@ -48,7 +48,7 @@ ms5611_i2c_app topx4 ms5611 meas = do
 
 ms5611_spi_app :: (e -> PX4Platform)
                -> MS5611_SPI
-               -> ChanInput (Struct "barometer_sample")
+               -> ChanInput ('Struct "barometer_sample")
                -> Tower e ()
 ms5611_spi_app topx4 ms5611 meas = do
   (req, ready) <- spiTower (px4platform_clockconfig . topx4)

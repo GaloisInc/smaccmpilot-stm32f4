@@ -25,10 +25,10 @@ import Ivory.BSP.STM32.ClockConfig
 
 sensorManager :: (e -> Sensors)
               -> (e -> ClockConfig)
-              -> Tower e ( ChanOutput (Struct "accelerometer_sample")
-                         , ChanOutput (Struct "gyroscope_sample")
-                         , ChanOutput (Struct "magnetometer_sample")
-                         , ChanOutput (Struct "barometer_sample"))
+              -> Tower e ( ChanOutput ('Struct "accelerometer_sample")
+                         , ChanOutput ('Struct "gyroscope_sample")
+                         , ChanOutput ('Struct "magnetometer_sample")
+                         , ChanOutput ('Struct "barometer_sample"))
 sensorManager tosens tocc = do
   e <- getEnv
   case tosens e of
@@ -38,10 +38,10 @@ sensorManager tosens tocc = do
 
 fmu17SensorManager :: Sensors
                    -> (e -> ClockConfig)
-                   -> Tower e ( ChanOutput (Struct "accelerometer_sample")
-                              , ChanOutput (Struct "gyroscope_sample")
-                              , ChanOutput (Struct "magnetometer_sample")
-                              , ChanOutput (Struct "barometer_sample"))
+                   -> Tower e ( ChanOutput ('Struct "accelerometer_sample")
+                              , ChanOutput ('Struct "gyroscope_sample")
+                              , ChanOutput ('Struct "magnetometer_sample")
+                              , ChanOutput ('Struct "barometer_sample"))
 fmu17SensorManager FMU17Sensors{..} tocc = do
 
   (i2cRequest, i2cReady) <- i2cTower
@@ -74,10 +74,10 @@ fmu17SensorManager _ _ = error "impossible"
 
 fmu24SensorManager :: Sensors
                    -> (e -> ClockConfig)
-                   -> Tower e ( ChanOutput (Struct "accelerometer_sample")
-                              , ChanOutput (Struct "gyroscope_sample")
-                              , ChanOutput (Struct "magnetometer_sample")
-                              , ChanOutput (Struct "barometer_sample"))
+                   -> Tower e ( ChanOutput ('Struct "accelerometer_sample")
+                              , ChanOutput ('Struct "gyroscope_sample")
+                              , ChanOutput ('Struct "magnetometer_sample")
+                              , ChanOutput ('Struct "barometer_sample"))
 fmu24SensorManager FMU24Sensors{..} tocc = do
 
   acc_s <- channel

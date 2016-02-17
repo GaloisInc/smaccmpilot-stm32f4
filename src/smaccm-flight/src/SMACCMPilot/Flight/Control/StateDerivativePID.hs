@@ -29,7 +29,7 @@ data StateDerivativePID =
     }
 
 monitorStateDerivativePID :: (AttrReadable a)
-                          => a (Struct "pid_config")
+                          => a ('Struct "pid_config")
                           -> String
                           -> Monitor e StateDerivativePID
 monitorStateDerivativePID config_attr username = do
@@ -48,7 +48,7 @@ monitorStateDerivativePID config_attr username = do
                            , IFloat
                            , IFloat
                            , IFloat
-                           ] :-> ())
+                           ] ':-> ())
       update_proc = proc update_name $ \setpt state_est deriv_est dt -> body $ do
         assert (dt >? 0)
         p_gain <-             (deref (cfg ~> C.p_gain))
@@ -65,14 +65,14 @@ monitorStateDerivativePID config_attr username = do
         store p_out (err * p_gain)
         store d_out (deriv_est * d_gain)
 
-      output_proc :: Def ('[]:->IFloat)
+      output_proc :: Def ('[]':->IFloat)
       output_proc = proc output_name $ body $ do
         p <- deref p_out
         i <- deref integral
         d <- deref d_out
         ret (p + i - d)
 
-      reset_proc :: Def ('[]:->())
+      reset_proc :: Def ('[]':->())
       reset_proc = proc reset_name $ body $ do
         store integral 0
 

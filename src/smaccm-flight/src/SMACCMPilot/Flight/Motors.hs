@@ -18,9 +18,9 @@ import SMACCMPilot.Flight.Motors.Mixing
 
 motorMixer :: (AttrReadable a1, AttrReadable a2, AttrWritable a3)
            => (e -> FlightMixer)
-           -> a1 (Struct "control_output")
-           -> a2 (Struct "control_law")
-           -> a3 (Struct "quadcopter_motors")
+           -> a1 ('Struct "control_output")
+           -> a2 ('Struct "control_law")
+           -> a3 ('Struct "quadcopter_motors")
            -> Tower e ()
 motorMixer tofm ctl_out_attr cl_attr motors_attr = do
   fm <- fmap tofm getEnv
@@ -40,8 +40,8 @@ motorMixer tofm ctl_out_attr cl_attr motors_attr = do
           (mixer fm ctl >>= output)
           (disabled >>= output)
 
-disabled :: (GetAlloc eff ~ Scope cs)
-         => Ivory eff (ConstRef (Stack cs) (Struct "quadcopter_motors"))
+disabled :: (GetAlloc eff ~ 'Scope cs)
+         => Ivory eff (ConstRef ('Stack cs) ('Struct "quadcopter_motors"))
 disabled = do
   v <- local $ istruct zeroes
   return (constRef v)

@@ -19,9 +19,9 @@ data Copy sym = forall a. IvoryArea a => Copy (Label "packed_status" a) (Label s
 -- | When 'src' changes, copy the specified 'fields' to the given ref
 -- and then emit its current contents to 'dst'.
 save :: (AttrWritable dst, AttrReadable src, AttrNamed src, IvoryStruct sym)
-     => Ref Global (Struct "packed_status")
-     -> dst (Struct "packed_status")
-     -> src (Struct sym)
+     => Ref 'Global ('Struct "packed_status")
+     -> dst ('Struct "packed_status")
+     -> src ('Struct sym)
      -> [Copy sym]
      -> Monitor e ()
 save packed dst src fields = attrHandler src $ do

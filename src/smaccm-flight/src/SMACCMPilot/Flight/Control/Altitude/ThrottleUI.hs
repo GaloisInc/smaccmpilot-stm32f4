@@ -20,17 +20,17 @@ import           SMACCMPilot.Comm.Tower.Attr
 data ThrottleUI =
   ThrottleUI
     { tui_update :: forall eff s
-                 . Ref s (Struct "user_input")
+                 . Ref s ('Struct "user_input")
                 -> IFloat -- dt
                 -> Ivory eff ()
     , tui_reset  :: forall eff . Ivory eff ()
     , tui_setpoint :: forall eff . Ivory eff (IFloat, IFloat)
-    , tui_write_debug :: forall eff s . Ref s (Struct "alt_control_debug")
+    , tui_write_debug :: forall eff s . Ref s ('Struct "alt_control_debug")
                      -> Ivory eff ()
     }
 
 monitorThrottleUI :: (AttrReadable a)
-                  => a (Struct "throttle_ui")
+                  => a ('Struct "throttle_ui")
                   -> AltEstimator
                   -> Monitor p ThrottleUI
 monitorThrottleUI attr estimator = do
@@ -39,9 +39,9 @@ monitorThrottleUI attr estimator = do
   active_state <- stateInit "active_state" (ival false)
   settings     <- attrState attr
   name_update <- fmap showUnique $ freshname "throttle_ui_update"
-  let proc_update :: Def('[ Ref s (Struct "user_input")
+  let proc_update :: Def('[ Ref s ('Struct "user_input")
                           , IFloat -- dt
-                          ] :-> ())
+                          ] ':-> ())
       proc_update  = proc name_update $
         \ui dt -> body $ do
           sr <- stickrate settings ui
@@ -79,9 +79,9 @@ monitorThrottleUI attr estimator = do
     }
 
 
-stickrate :: (GetAlloc eff ~ Scope cs)
-          => Ref s1 (Struct "throttle_ui")
-          -> Ref s2 (Struct "user_input")
+stickrate :: (GetAlloc eff ~ 'Scope cs)
+          => Ref s1 ('Struct "throttle_ui")
+          -> Ref s2 ('Struct "user_input")
           -> Ivory eff IFloat
 stickrate settings ui = do
   sens       <- deref (settings ~> TUI.sens)

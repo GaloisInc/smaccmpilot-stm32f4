@@ -17,7 +17,7 @@ import Ivory.Serialize
 newtype RequestCode = RequestCode { unRequestCode :: Uint8 }
   deriving (IvoryType, IvoryVar, IvoryExpr, IvoryEq, IvoryStore, IvoryInit)
 
-instance Packable (Stored RequestCode) where
+instance Packable ('Stored RequestCode) where
   packRep = repackV wrap unwrap packRep
     where
     wrap raw = RequestCode $ (raw <? 5) ? (raw, 4)

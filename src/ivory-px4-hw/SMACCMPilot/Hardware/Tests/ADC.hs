@@ -32,5 +32,5 @@ app topx4 = do
   mapM_ towerArtifact serializeArtifacts
 
   where
-  adcSender :: Sender e (Stored IFloat)
+  adcSender :: Sender e ('Stored IFloat)
   adcSender = sampleSender 'A' (Proxy :: Proxy 4)

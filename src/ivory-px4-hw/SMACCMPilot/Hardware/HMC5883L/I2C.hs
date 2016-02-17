@@ -4,7 +4,9 @@
 
 module SMACCMPilot.Hardware.HMC5883L.I2C where
 
-import Control.Applicative
+import Prelude ()
+import Prelude.Compat
+
 import Data.Word
 import Ivory.BSP.STM32.Driver.I2C
 import Ivory.Language
@@ -16,9 +18,9 @@ import SMACCMPilot.Comm.Ivory.Types.Xyz
 import SMACCMPilot.Hardware.HMC5883L.Regs
 import SMACCMPilot.Time
 
-hmc5883lSensorManager :: BackpressureTransmit (Struct "i2c_transaction_request") (Struct "i2c_transaction_result")
-                      -> ChanOutput (Stored ITime)
-                      -> ChanInput  (Struct "magnetometer_sample")
+hmc5883lSensorManager :: BackpressureTransmit ('Struct "i2c_transaction_request") ('Struct "i2c_transaction_result")
+                      -> ChanOutput ('Stored ITime)
+                      -> ChanInput  ('Struct "magnetometer_sample")
                       -> I2CDeviceAddr
                       -> Tower e ()
 hmc5883lSensorManager (BackpressureTransmit req_chan res_chan) init_chan sensor_chan addr = do
@@ -33,7 +35,7 @@ hmc5883lSensorManager (BackpressureTransmit req_chan res_chan) init_chan sensor_
             [ regWriteInit addr ConfA $ confAVal Average8 Rate75Hz NoBias
             , regWriteInit addr ConfB $ confBVal LSBGauss1370
             , regWriteInit addr Mode  $ modeVal  Continuous
-            ] :: Init (Array 3 (Struct "i2c_transaction_request"))
+            ] :: Init ('Array 3 ('Struct "i2c_transaction_request"))
       constArea <$> fmap showUnique (freshname "hmc5883l_init_requests") <*> pure reqs
     monitorModuleDef $ defConstMemArea init_requests_area
     let init_requests = addrOf init_requests_area
@@ -94,7 +96,7 @@ hmc5883lSensorManager (BackpressureTransmit req_chan res_chan) init_chan sensor_
             ]
           emit req_e setup_read_req
   where
-  payloadu16 :: Ref s (Struct "i2c_transaction_result")
+  payloadu16 :: Ref s ('Struct "i2c_transaction_result")
              -> Ix 128 -> Ix 128 -> Ivory eff IFloat
   payloadu16 res ixhi ixlo = do
     hi <- deref ((res ~> rx_buf) ! ixhi)
@@ -104,7 +106,7 @@ hmc5883lSensorManager (BackpressureTransmit req_chan res_chan) init_chan sensor_
 regWriteInit :: I2CDeviceAddr
              -> Reg
              -> Word8
-             -> Init (Struct "i2c_transaction_request")
+             -> Init ('Struct "i2c_transaction_request")
 regWriteInit addr r v = istruct
   [ tx_addr .= ival addr
   , tx_buf  .= iarray [ ival (fromIntegral (regAddr r)), ival (fromIntegral v) ]

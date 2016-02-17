@@ -21,7 +21,7 @@ struct mpu6000_response
   }
 |]
 
-mpu6000ResponseWrapper :: WrappedPackRep (Struct "mpu6000_response")
+mpu6000ResponseWrapper :: WrappedPackRep ('Struct "mpu6000_response")
 mpu6000ResponseWrapper = wrapPackRep "mpu6000_response" $ packStruct
   [ packLabel ax
   , packLabel ay
@@ -38,7 +38,7 @@ mpu6000ResponseTypesModule = package "mpu6000_response_types" $ do
   depend serializeModule
   wrappedPackMod mpu6000ResponseWrapper
 
-instance Packable (Struct "mpu6000_response") where
+instance Packable ('Struct "mpu6000_response") where
   packRep = wrappedPackRep mpu6000ResponseWrapper
 
 

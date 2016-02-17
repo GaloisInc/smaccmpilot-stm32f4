@@ -56,7 +56,7 @@ rateDivider r c = do
           (store st (s + 1))
   return (snd c')
 
-type Sender e a = ChanOutput a -> BackpressureTransmit ConsoleBuffer (Stored IBool) -> Monitor e ()
+type Sender e a = ChanOutput a -> BackpressureTransmit ConsoleBuffer ('Stored IBool) -> Monitor e ()
 
 sampleSender :: (ANat len, IvoryArea a, IvoryZero a, Packable a)
              => Char
@@ -72,17 +72,17 @@ sampleSender tag len c out = do
       HX.encodeString (fromIntegral $ ord tag) (constRef buf) str
       emit e $ constRef str
 
-gyroSender :: Sender e (Struct "gyroscope_sample")
+gyroSender :: Sender e ('Struct "gyroscope_sample")
 gyroSender = sampleSender 'g' (Proxy :: Proxy 27)
 
-accelSender :: Sender e (Struct "accelerometer_sample")
+accelSender :: Sender e ('Struct "accelerometer_sample")
 accelSender = sampleSender 'a' (Proxy :: Proxy 27)
 
-magSender :: Sender e (Struct "magnetometer_sample")
+magSender :: Sender e ('Struct "magnetometer_sample")
 magSender = sampleSender 'm' (Proxy :: Proxy 23)
 
-baroSender :: Sender e (Struct "barometer_sample")
+baroSender :: Sender e ('Struct "barometer_sample")
 baroSender = sampleSender 'b' (Proxy :: Proxy 18)
 
-positionSender :: Sender e (Struct "position_sample")
+positionSender :: Sender e ('Struct "position_sample")
 positionSender = sampleSender 'p' (Proxy :: Proxy 46)

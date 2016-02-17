@@ -1,0 +1,94 @@
+# For more information, see: http://docs.haskellstack.org/en/stable/yaml_configuration.html
+
+# Specifies the GHC version and set of packages available (e.g., lts-3.5, nightly-2015-09-21, ghc-7.10.2)
+resolver: lts-5.1
+
+# Local packages, usually specified by relative directory name
+packages:
+- src/ivory-geo/
+- src/ivory-px4-hw/
+- src/smaccm-comm-client/
+- src/smaccm-commsec/
+- src/smaccm-datalink/
+- src/smaccm-flight/
+- src/smaccm-ins/
+- location: src/smaccm-comm-schema
+  extra-dep: true
+  subdirs:
+    - smaccm-comm-schema-native
+    - smaccm-comm-schema-tower
+- location: ../gec/
+  extra-dep: true
+- location: ../ivory/
+  extra-dep: true
+  subdirs:
+    - ivory
+    - ivory-artifact
+    - ivory-backend-c
+    - ivory-hw
+    - ivory-opts
+    - ivory-serialize
+    - ivory-stdlib
+- location: ../ivory-tower-posix/
+  extra-dep: true
+- location: ../ivory-tower-stm32/
+  extra-dep: true
+  subdirs:
+    - ivory-bsp-stm32
+    - ivory-bsp-tests
+    - ivory-freertos-bindings
+    - tower-freertos-stm32
+- location: ../tower/
+  extra-dep: true
+  subdirs:
+    - tower
+    - tower-aadl
+    - tower-config
+    - tower-hal
+- location: ../tower-camkes-odroid/
+  extra-dep: true
+- location:
+    git: https://github.com/GaloisInc/estimator.git
+    commit: 4818515e8a05d7d9c54e51d7ac7fa21580336366
+  extra-dep: true
+
+# Packages to be pulled from upstream that are not in the resolver (e.g., acme-missiles-0.3)
+extra-deps:
+  - cipher-aes128-0.7.0.1
+  - curve25519-0.2.2
+  - ed25519-donna-0.1.1
+  - exception-mtl-0.4
+#  - estimator-1.1.0.2
+  - ghc-srcspan-plugin-0.2.1.0
+  - language-c-quote-0.11.4
+  - mainland-pretty-0.4.1.2
+  - s-cargot-0.1.0.0
+  - serialport-0.4.7
+  - symbol-0.2.4
+
+# Override default flag values for local packages and extra-deps
+flags: {}
+
+# Extra package databases containing global packages
+extra-package-dbs: []
+
+# Download GHC automatically
+install-ghc: true
+
+# Control whether we use the GHC we find on the path
+# system-ghc: true
+
+# Require a specific version of stack, using version ranges
+# require-stack-version: -any # Default
+# require-stack-version: >= 1.0.0
+
+# Override the architecture used by stack, especially useful on Windows
+# arch: i386
+# arch: x86_64
+
+# Extra directories used by stack for building
+# extra-include-dirs: [/path/to/dir]
+# extra-lib-dirs: [/path/to/dir]
+
+# Allow a newer minor version of GHC than the snapshot specifies
+# compiler-check: newer-minor

@@ -37,8 +37,8 @@ app totp = do
   where
   tocc = BSP.testplatform_clockconfig . totp
 
-frame_loopback :: BackpressureTransmit HXCyphertext (Stored IBool)
-               -> ChanOutput (Stored Uint8)
+frame_loopback :: BackpressureTransmit HXCyphertext ('Stored IBool)
+               -> ChanOutput ('Stored Uint8)
                -> Tower p ()
 frame_loopback o i = do
   ctin <- channel

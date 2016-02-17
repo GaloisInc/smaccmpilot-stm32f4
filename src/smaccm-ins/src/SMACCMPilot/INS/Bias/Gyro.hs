@@ -17,19 +17,19 @@ import SMACCMPilot.INS.Bias.Calibration
 import SMACCMPilot.INS.Filter
 import SMACCMPilot.Time
 
-calcGyroBiasTower :: ChanOutput (Struct "gyroscope_sample")
-                  -> ChanOutput (Stored IBool)
-                  -> Tower e (ChanOutput (Struct "xyz_calibration"))
+calcGyroBiasTower :: ChanOutput ('Struct "gyroscope_sample")
+                  -> ChanOutput ('Stored IBool)
+                  -> Tower e (ChanOutput ('Struct "xyz_calibration"))
 calcGyroBiasTower g motion = do
   cal <- channel
   p <- period (Milliseconds 1000)
   calcGyroBiasTower' g motion (fst cal) p
   return (snd cal)
 
-calcGyroBiasTower' :: ChanOutput (Struct "gyroscope_sample")
-                   -> ChanOutput (Stored IBool)
-                   -> ChanInput  (Struct "xyz_calibration")
-                   -> ChanOutput (Stored ITime)
+calcGyroBiasTower' :: ChanOutput ('Struct "gyroscope_sample")
+                   -> ChanOutput ('Stored IBool)
+                   -> ChanInput  ('Struct "xyz_calibration")
+                   -> ChanOutput ('Stored ITime)
                    -> Tower e ()
 calcGyroBiasTower' g motion c newoutput = monitor "calcGyroBias" $ do
   n <- freshname "gbe"
@@ -73,11 +73,11 @@ calcGyroBiasTower' g motion c newoutput = monitor "calcGyroBias" $ do
       cal <- mkCalibration (constRef o) (iNot moving) t
       emit e cal
 
-mkCalibration :: (GetAlloc eff ~ Scope s)
-              => ConstRef s' (Array 3 (Stored IFloat))
+mkCalibration :: (GetAlloc eff ~ 'Scope s)
+              => ConstRef s' ('Array 3 ('Stored IFloat))
               -> IBool
               -> ITime
-              -> Ivory eff (ConstRef (Stack s) (Struct "xyz_calibration"))
+              -> Ivory eff (ConstRef ('Stack s) ('Struct "xyz_calibration"))
 mkCalibration cal done time = do
   x <- deref (cal ! 0)
   y <- deref (cal ! 1)
@@ -98,7 +98,7 @@ mkCalibration cal done time = do
     , C.time     .= ival (timeMicrosFromITime time)
     ]
 
-gyroCalibrate :: Calibrate (Struct "gyroscope_sample")
+gyroCalibrate :: Calibrate ('Struct "gyroscope_sample")
 gyroCalibrate = Calibrate aux
   where
   aux samp cal = do

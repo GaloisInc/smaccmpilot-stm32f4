@@ -24,40 +24,40 @@ readRegAddr reg = 0x80 .| (fromIntegral (regAddr reg))
 writeRegAddr :: Reg -> Uint8
 writeRegAddr reg = fromIntegral (regAddr reg)
 
-readRegReq :: (GetAlloc eff ~ Scope s)
+readRegReq :: (GetAlloc eff ~ 'Scope s)
            => SPIDeviceHandle
            -> Reg
-           -> Ivory eff (ConstRef (Stack s) (Struct "spi_transaction_request"))
+           -> Ivory eff (ConstRef ('Stack s) ('Struct "spi_transaction_request"))
 readRegReq dev reg = fmap constRef $ local $ istruct
   [ tx_device .= ival dev
   , tx_buf    .= iarray [ ival (readRegAddr reg), ival 0 ]
   , tx_len    .= ival 2
   ]
 
-writeRegReq :: (GetAlloc eff ~ Scope s)
+writeRegReq :: (GetAlloc eff ~ 'Scope s)
             => SPIDeviceHandle
             -> Reg
             -> Uint8
-            -> Ivory eff (ConstRef (Stack s) (Struct "spi_transaction_request"))
+            -> Ivory eff (ConstRef ('Stack s) ('Struct "spi_transaction_request"))
 writeRegReq dev reg v = fmap constRef $ local $ istruct
   [ tx_device .= ival dev
   , tx_buf    .= iarray [ ival (writeRegAddr reg), ival v ]
   , tx_len    .= ival 2
   ]
 
-getSensorsReq :: (GetAlloc eff ~ Scope s)
+getSensorsReq :: (GetAlloc eff ~ 'Scope s)
               => SPIDeviceHandle
-              -> Ivory eff (ConstRef (Stack s) (Struct "spi_transaction_request"))
+              -> Ivory eff (ConstRef ('Stack s) ('Struct "spi_transaction_request"))
 getSensorsReq dev = fmap constRef $ local $ istruct
   [ tx_device .= ival dev
   , tx_buf    .= iarray [ ival (readRegAddr AccelXoutH) ]
   , tx_len    .= ival 15 -- addr, 6 accel, 2 temp, 6 gyro
   ]
 
-sensorSample :: ConstRef s1 (Struct "spi_transaction_result")
-             -> Ref s2 (Struct "gyroscope_sample")
-             -> Ref s3 (Struct "accelerometer_sample")
-             -> Ivory ('Effects r b (Scope s)) ()
+sensorSample :: ConstRef s1 ('Struct "spi_transaction_result")
+             -> Ref s2 ('Struct "gyroscope_sample")
+             -> Ref s3 ('Struct "accelerometer_sample")
+             -> Ivory ('Effects r b ('Scope s)) ()
 sensorSample res r_gyro r_accel = do
   r_time <- getTime
   rc <- deref (res ~> resultcode)
@@ -91,10 +91,10 @@ sensorSample res r_gyro r_accel = do
     v <- deref fro
     store to (f v)
 
-mpu6000SensorManager :: BackpressureTransmit (Struct "spi_transaction_request") (Struct "spi_transaction_result")
-                     -> ChanOutput (Stored ITime)
-                     -> ChanInput  (Struct "gyroscope_sample")
-                     -> ChanInput  (Struct "accelerometer_sample")
+mpu6000SensorManager :: BackpressureTransmit ('Struct "spi_transaction_request") ('Struct "spi_transaction_result")
+                     -> ChanOutput ('Stored ITime)
+                     -> ChanInput  ('Struct "gyroscope_sample")
+                     -> ChanInput  ('Struct "accelerometer_sample")
                      -> SPIDeviceHandle
                      -> Tower e ()
 mpu6000SensorManager (BackpressureTransmit req_chan res_chan) init_chan gyro_chan accel_chan dev = do
@@ -201,9 +201,9 @@ mpu6000SensorManager (BackpressureTransmit req_chan res_chan) init_chan gyro_cha
           ]
 
   where
-  invalidTransaction :: (GetAlloc eff ~ Scope s)
-                => Ref s1 (Struct "gyroscope_sample")
-                -> Ref s2 (Struct "accelerometer_sample")
+  invalidTransaction :: (GetAlloc eff ~ 'Scope s)
+                => Ref s1 ('Struct "gyroscope_sample")
+                -> Ref s2 ('Struct "accelerometer_sample")
                 -> Ivory eff ()
   invalidTransaction r_gyro r_accel = do
     t <- getTime

@@ -22,18 +22,18 @@ data ThrustPid =
                                         -> IFloat -- dt, seconds
                                         -> Ivory eff IFloat
     , thrust_pid_write_debug :: forall eff s .
-          Ref s (Struct "alt_control_debug") -> Ivory eff ()
+          Ref s ('Struct "alt_control_debug") -> Ivory eff ()
     }
 
 monitorThrustPid :: (AttrReadable a)
-                 => a (Struct "pid_config")
+                 => a ('Struct "pid_config")
                  -> AltEstimator
                  -> Monitor e ThrustPid
 monitorThrustPid config alt_estimator = do
   tpid_state  <- state "thrustPidState"
   tpid_config <- attrState config
   name_pid_calculate <- fmap showUnique $ freshname "thrust_pid_calculate"
-  let proc_pid_calculate :: Def('[IFloat, IFloat] :-> IFloat)
+  let proc_pid_calculate :: Def('[IFloat, IFloat] ':-> IFloat)
       proc_pid_calculate = proc name_pid_calculate $
         \vel_sp dt -> body $ do
           pgain <- deref (tpid_config ~> C.p_gain)

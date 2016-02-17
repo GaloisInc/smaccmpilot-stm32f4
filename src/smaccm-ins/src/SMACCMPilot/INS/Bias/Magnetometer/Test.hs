@@ -55,18 +55,18 @@ mag_bias_test_pkg = package "mag_bias_test" $ do
   put_float :: IFloat -> Ivory eff ()
   put_float = call_ printf_float "%f\t"
 
-  put_array :: (ANat n) => Ref s (Array n (Stored IFloat)) -> Ivory eff ()
+  put_array :: (ANat n) => Ref s ('Array n ('Stored IFloat)) -> Ivory eff ()
   put_array a = arrayMap $ \ix -> deref (a ! ix) >>= put_float
 
-  mk_sample :: (GetAlloc eff ~ Scope s)
-            => IFloat -> IFloat -> IFloat -> Ivory eff (Ref (Stack s) (Array 3 (Stored IFloat)))
+  mk_sample :: (GetAlloc eff ~ 'Scope s)
+            => IFloat -> IFloat -> IFloat -> Ivory eff (Ref ('Stack s) ('Array 3 ('Stored IFloat)))
   mk_sample x y z = local (iarray [ival x, ival y, ival z])
 
 
   endl = call_ puts ""
 
 
-  main_proc :: Def('[]:->Sint32)
+  main_proc :: Def('[]':->Sint32)
   main_proc = proc "main" $ body $ do
     call_ puts "magx magy magz biasx biasy biasz biasmag n"
     mbe_init mbe
@@ -96,9 +96,9 @@ mag_bias_test_pkg = package "mag_bias_test" $ do
                 , (192.9, -242.4, 17.1)
                 ]
 
-printf_float :: Def('[IString, IFloat] :-> ())
+printf_float :: Def('[IString, IFloat] ':-> ())
 printf_float = importProc "printf" "stdio.h"
 
-puts :: Def('[IString] :-> ())
+puts :: Def('[IString] ':-> ())
 puts = importProc "puts" "stdio.h"
 

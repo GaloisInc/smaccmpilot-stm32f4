@@ -58,15 +58,15 @@ ivoryDiverseMagBiasEstimator n = (f, moddef)
     defMemArea mbe_vx_area
 
 
-  mbe_buf_area :: MemArea (Struct "mag_diversity_buf")
+  mbe_buf_area :: MemArea ('Struct "mag_diversity_buf")
   mbe_buf_area = area (named "buf") Nothing
   mbe_buf      = addrOf mbe_buf_area
 
-  mbe_ix_area :: MemArea (Stored (Ix T.MBEBufDepth))
+  mbe_ix_area :: MemArea ('Stored (Ix T.MBEBufDepth))
   mbe_ix_area = area (named "ix") Nothing
   mbe_ix      = addrOf mbe_ix_area
 
-  mbe_vx_area :: MemArea (Stored Uint32)
+  mbe_vx_area :: MemArea ('Stored Uint32)
   mbe_vx_area = area (named "vx") Nothing
   mbe_vx      = addrOf mbe_vx_area
 
@@ -81,11 +81,11 @@ magDiversityHelpersModule = package "mag_diversity_helpers" $ do
   depend T.magnetometerBiasTypesModule
 
 
-insert_proc :: Def('[ ConstRef s1 (Array 3 (Stored IFloat))
-                    , Ref s2 (Struct "mag_diversity_buf")
-                    , Ref s3 (Stored (Ix T.MBEBufDepth))
-                    , Ref s4 (Stored Uint32)
-                    ] :-> ())
+insert_proc :: Def('[ ConstRef s1 ('Array 3 ('Stored IFloat))
+                    , Ref s2 ('Struct "mag_diversity_buf")
+                    , Ref s3 ('Stored (Ix T.MBEBufDepth))
+                    , Ref s4 ('Stored Uint32)
+                    ] ':-> ())
 insert_proc = proc "mbeh_insert" $ \v vs ix_ref vx_ref -> body $ do
   ix <- deref ix_ref
   refCopy ((vs ~> T.buf) ! ix) v
@@ -99,9 +99,9 @@ insert_proc = proc "mbeh_insert" $ \v vs ix_ref vx_ref -> body $ do
             store vx_ref ((vx >? ix_uint32) ? (vx, ix_uint32)))
 
 
-euclidian_distance_proc :: Def('[ ConstRef s1 (Array 3 (Stored IFloat))
-                                , ConstRef s2 (Array 3 (Stored IFloat))
-                                ] :-> IFloat)
+euclidian_distance_proc :: Def('[ ConstRef s1 ('Array 3 ('Stored IFloat))
+                                , ConstRef s2 ('Array 3 ('Stored IFloat))
+                                ] ':-> IFloat)
 euclidian_distance_proc = proc "mbeh_euclidian_distance" $ \v1 v2 -> body $ do
   x1 <- deref (v1 ! 0)
   y1 <- deref (v1 ! 1)
@@ -114,10 +114,10 @@ euclidian_distance_proc = proc "mbeh_euclidian_distance" $ \v1 v2 -> body $ do
   dz <- assign (z1 - z2)
   ret (sqrt (dx*dx + dy*dy + dz*dz))
 
-closest_distance_proc :: Def('[ ConstRef s1 (Struct "mag_diversity_buf")
-                              , ConstRef s2 (Stored Uint32)
-                              , ConstRef s3 (Array 3 (Stored IFloat))
-                              ] :-> IFloat)
+closest_distance_proc :: Def('[ ConstRef s1 ('Struct "mag_diversity_buf")
+                              , ConstRef s2 ('Stored Uint32)
+                              , ConstRef s3 ('Array 3 ('Stored IFloat))
+                              ] ':-> IFloat)
 closest_distance_proc = proc "mbeh_closest_distance" $ \vs vx_ref v -> body $ do
   valid_vs <- deref vx_ref
   d <- local (ival 99999.9)

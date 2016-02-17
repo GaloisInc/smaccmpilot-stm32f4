@@ -9,9 +9,9 @@ import Ivory.Tower
 import qualified SMACCMPilot.Comm.Ivory.Types.Px4ioState  as PX4
 import qualified SMACCMPilot.Comm.Ivory.Types.Px4ioStatus as PX4
 
-accelBiasTriggerTower :: ChanOutput (Stored IBool)
-                      -> ChanOutput (Struct "px4io_state")
-                      -> ChanInput  (Stored IBool)
+accelBiasTriggerTower :: ChanOutput ('Stored IBool)
+                      -> ChanOutput ('Struct "px4io_state")
+                      -> ChanInput  ('Stored IBool)
                       -> Tower e ()
 accelBiasTriggerTower motion_chan px4_chan trigger_chan = monitor "accel_bias_trigger" $ do
 

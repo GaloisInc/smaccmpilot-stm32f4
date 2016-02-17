@@ -21,9 +21,9 @@ import qualified SMACCMPilot.Comm.Ivory.Types.RcInput     as RC
 data ArmingMachine =
   ArmingMachine
     { am_init       :: forall eff   . Ivory eff ()
-    , am_new_sample :: forall eff s . ConstRef s (Struct "rc_input") -> Ivory eff ()
+    , am_new_sample :: forall eff s . ConstRef s ('Struct "rc_input") -> Ivory eff ()
     , am_no_sample  :: forall eff   . Ivory eff ()
-    , am_get_req    :: forall eff s . Ref s (Stored T.Tristate)
+    , am_get_req    :: forall eff s . Ref s ('Stored T.Tristate)
                                    -> Ivory eff ()
     }
 
@@ -60,14 +60,14 @@ monitorArmingMachine = do
   no_sample_name <- named "no_sample"
   get_arming_mode_name <- named "get_arming_mode"
 
-  let init_proc :: Def('[]:->())
+  let init_proc :: Def('[]':->())
       init_proc = proc init_name $ body $ do
         store arming_state armingIdle
         store arming_state_time 0
         store arming_event false
         store dead_last_pos deadSafe
 
-      new_sample_proc :: Def('[ConstRef s (Struct "rc_input")] :-> ())
+      new_sample_proc :: Def('[ConstRef s ('Struct "rc_input")] ':-> ())
       new_sample_proc = proc new_sample_name $ \rcin -> body $ do
         throttle_chan   <- deref (rcin ~> RC.throttle)
         rudder_chan     <- deref (rcin ~> RC.yaw)
@@ -105,11 +105,11 @@ monitorArmingMachine = do
         where
         hystresis = 750
 
-      no_sample_proc :: Def('[] :-> ())
+      no_sample_proc :: Def('[] ':-> ())
       no_sample_proc = proc no_sample_name $ body $
         store dead_last_pos deadSafe
 
-      get_arming_mode_proc :: Def('[Ref s (Stored T.Tristate)]:->())
+      get_arming_mode_proc :: Def('[Ref s ('Stored T.Tristate)]':->())
       get_arming_mode_proc = proc get_arming_mode_name $ \a -> body $ do
         d <- deref dead_last_pos
         e <- deref arming_event

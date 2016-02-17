@@ -15,7 +15,7 @@ import SMACCMPilot.Flight.Types.MaybeFloat ()
 lowPassDeriv :: Float                         -- freq
              -> Float                         -- dt
              -> IFloat                        -- new value
-             -> Ref s (Struct "maybe_float")  -- prev value
+             -> Ref s ('Struct "maybe_float")  -- prev value
              -> Ivory eff IFloat              -- filtered delta
 lowPassDeriv freq dt x prev = do
   let rc     = 1.0 / (2.0 * pi * freq)
@@ -31,7 +31,7 @@ lowPassDeriv freq dt x prev = do
 lowPassFilter :: Float                        -- freq
               -> Float                        -- dt
               -> IFloat                       -- new value
-              -> Ref s (Struct "maybe_float") -- prev value
+              -> Ref s ('Struct "maybe_float") -- prev value
               -> Ivory eff IFloat             -- filtered value
 lowPassFilter freq dt x prev = do
   _ <- lowPassDeriv freq dt x prev
@@ -41,7 +41,7 @@ lowPassFilter freq dt x prev = do
 lowPassDeriv' :: Float
                -> IFloat
                -> IFloat
-               -> Ref s (Struct "maybe_float")
+               -> Ref s ('Struct "maybe_float")
                -> Ivory eff IFloat
 lowPassDeriv' freq dt x prev = do
   rc        <- assign (1.0 / (2.0 * pi * ifloat freq))
@@ -55,7 +55,7 @@ lowPassDeriv' freq dt x prev = do
 lowPassFilter' :: Float
                -> IFloat
                -> IFloat
-               -> Ref s (Struct "maybe_float")
+               -> Ref s ('Struct "maybe_float")
                -> Ivory eff IFloat
 lowPassFilter' freq dt x prev = do
   rc        <- assign (1.0 / (2.0 * pi * ifloat freq))

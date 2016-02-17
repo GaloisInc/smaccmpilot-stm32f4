@@ -11,10 +11,10 @@ import Ivory.Stdlib
 import Ivory.Tower
 import Ivory.Tower.HAL.Bus.Interface
 
-rgbLedManager :: BackpressureTransmit (Struct "i2c_transaction_request")
-                                      (Struct "i2c_transaction_result")
-              -> ChanOutput (Stored ITime)
-              -> ChanOutput (Struct "rgb_led_setting")
+rgbLedManager :: BackpressureTransmit ('Struct "i2c_transaction_request")
+                                      ('Struct "i2c_transaction_result")
+              -> ChanOutput ('Stored ITime)
+              -> ChanOutput ('Struct "rgb_led_setting")
               -> I2CDeviceAddr
               -> Tower e ()
 rgbLedManager bp_i2c init_chan attr addr = do

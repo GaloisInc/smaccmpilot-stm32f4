@@ -19,19 +19,19 @@ import qualified SMACCMPilot.Comm.Ivory.Types.XyzCalibration      as C
 
 newtype Calibrate a =
   Calibrate ( forall eff s1 s2 s3
-            . (GetAlloc eff ~ Scope s3)
+            . (GetAlloc eff ~ 'Scope s3)
            => ConstRef s1 a
-           -> ConstRef s2 (Struct "xyz_calibration")
-           -> Ivory eff (ConstRef (Stack s3) a))
+           -> ConstRef s2 ('Struct "xyz_calibration")
+           -> Ivory eff (ConstRef ('Stack s3) a))
 
 
 applyCalibrationTower :: (IvoryArea a, IvoryZero a)
                       => Calibrate a
                       -> ChanOutput a
-                      -> ChanOutput (Struct "xyz_calibration")
-                      -> ChanOutput (Struct "control_law")
+                      -> ChanOutput ('Struct "xyz_calibration")
+                      -> ChanOutput ('Struct "control_law")
                       -> Tower e ( ChanOutput a
-                                  , ChanOutput (Struct "xyz_calibration"))
+                                  , ChanOutput ('Struct "xyz_calibration"))
 applyCalibrationTower calibrate a cal claw = do
   unbiased <- channel
   active_cal <- channel
@@ -41,10 +41,10 @@ applyCalibrationTower calibrate a cal claw = do
 applyCalibrationTower' :: (IvoryArea a, IvoryZero a)
                     => Calibrate a
                     -> ChanOutput a
-                    -> ChanOutput (Struct "xyz_calibration")
-                    -> ChanOutput (Struct "control_law")
+                    -> ChanOutput ('Struct "xyz_calibration")
+                    -> ChanOutput ('Struct "control_law")
                     -> ChanInput  a
-                    -> ChanInput  (Struct "xyz_calibration")
+                    -> ChanInput  ('Struct "xyz_calibration")
                     -> Tower e ()
 applyCalibrationTower' calibrate biased cal_latest claw unbiased cal_active = do
   mapM_ towerDepends typeModules

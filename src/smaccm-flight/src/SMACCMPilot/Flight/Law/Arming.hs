@@ -16,7 +16,7 @@ data ArmingInput a =
     { ai_name :: String
     , ai_chan :: ChanOutput a
     , ai_get  :: forall eff s . ConstRef s a -> Ivory eff T.Tristate
-    , ai_set  :: Label "arming_status" (Stored T.Tristate)
+    , ai_set  :: Label "arming_status" ('Stored T.Tristate)
     }
 
 data SomeArmingInput = forall a . (IvoryArea a, IvoryZero a)
@@ -25,8 +25,8 @@ data SomeArmingInput = forall a . (IvoryArea a, IvoryZero a)
 
 armingTower :: SomeArmingInput -- CLOCK
             -> [SomeArmingInput]
-            -> ChanInput (Stored A.ArmingMode)
-            -> ChanInput (Struct "arming_status")
+            -> ChanInput ('Stored A.ArmingMode)
+            -> ChanInput ('Struct "arming_status")
             -> Tower e ()
 armingTower (SomeArmingInput ai_clk) ai_rest a_mode a_stat = monitor "arming_law" $ do
   a <- stateInit "arming_law" (ival A.safe)
@@ -54,8 +54,8 @@ armingTower (SomeArmingInput ai_clk) ai_rest a_mode a_stat = monitor "arming_law
 
 
   where
-  calcArmingState :: Ref s (Stored A.ArmingMode)
-                  -> [ConstRef Global (Stored T.Tristate)]
+  calcArmingState :: Ref s ('Stored A.ArmingMode)
+                  -> [ConstRef 'Global ('Stored T.Tristate)]
                   -> Ivory eff ()
   calcArmingState a iis = do
     ts <- mapM deref iis
@@ -66,9 +66,9 @@ armingTower (SomeArmingInput ai_clk) ai_rest a_mode a_stat = monitor "arming_law
       , ts_high ==> store a A.armed
       ]
 
-  someAIState :: Ref Global (Struct "arming_status")
+  someAIState :: Ref 'Global ('Struct "arming_status")
               -> SomeArmingInput
-              -> Monitor e (Ref Global (Stored T.Tristate))
+              -> Monitor e (Ref 'Global ('Stored T.Tristate))
   someAIState status (SomeArmingInput ai) = do
     let s = status ~> (ai_set ai)
     handler (ai_chan ai) ("arming_input_new_" ++ ai_name ai) $ do

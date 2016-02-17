@@ -43,7 +43,7 @@ import SMACCMPilot.Comm.Ivory.Types.TimeMicros
   }
 |]
 
-px4ioStatusFromReg :: Uint16 -> Ref s (Struct "px4io_status") -> Ivory eff ()
+px4ioStatusFromReg :: Uint16 -> Ref s ('Struct "px4io_status") -> Ivory eff ()
 px4ioStatusFromReg v r = do
   p safety_off     px4io_status_safety_off
   p failsafe       px4io_status_failsafe
@@ -61,7 +61,7 @@ px4ioStatusFromReg v r = do
   where
   p lbl field = store (r ~> lbl) (bitToBool (fromRep v #. field))
 
-px4ioAlarmsFromReg :: Uint16 -> Ref s (Struct "px4io_alarms") -> Ivory eff ()
+px4ioAlarmsFromReg :: Uint16 -> Ref s ('Struct "px4io_alarms") -> Ivory eff ()
 px4ioAlarmsFromReg v r = do
   p vservo_fault  px4io_alarms_vservo_fault
   p pwm_error     px4io_alarms_pwm_error
@@ -75,8 +75,8 @@ px4ioAlarmsFromReg v r = do
   p lbl field = store (r ~> lbl) (bitToBool (fromRep v #. field))
 
 rcInputFromRegs :: TimeMicros
-                -> Ref s1 (Struct "px4io_request")
-                -> Ref s3 (Struct "rc_input")
+                -> Ref s1 ('Struct "px4io_request")
+                -> Ref s3 ('Struct "rc_input")
                 -> Ivory eff ()
 rcInputFromRegs t input_req rc_input = do
   cnt <- deref (input_req ~> regs ! 0)

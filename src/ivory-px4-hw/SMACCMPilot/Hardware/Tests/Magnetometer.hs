@@ -38,7 +38,7 @@ app topx4 = do
 
 hmc5883l_i2c_app :: (e -> PX4Platform)
                  -> HMC5883L_I2C
-                 -> BackpressureTransmit ConsoleBuffer (Stored IBool)
+                 -> BackpressureTransmit ConsoleBuffer ('Stored IBool)
                  -> Tower e ()
 hmc5883l_i2c_app topx4 hmc uarto = do
   (req, ready) <- i2cTower (px4platform_clockconfig . topx4)
@@ -58,7 +58,7 @@ hmc5883l_i2c_app topx4 hmc uarto = do
 
 lsm303d_spi_app :: (e -> PX4Platform)
                  -> LSM303D_SPI
-                 -> BackpressureTransmit ConsoleBuffer (Stored IBool)
+                 -> BackpressureTransmit ConsoleBuffer ('Stored IBool)
                  -> Tower e ()
 lsm303d_spi_app topx4 lsm uarto = do
   (req, ready) <- spiTower (px4platform_clockconfig . topx4)

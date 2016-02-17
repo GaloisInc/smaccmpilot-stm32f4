@@ -27,9 +27,9 @@ data PitchRollControl =
     { prc_init  :: forall eff . Ivory eff ()
     , prc_run   :: forall eff s . IFloat -- Pitch, Radians
                                -> IFloat -- Roll, Radians
-                               -> ConstRef s (Struct "sensors_result")
+                               -> ConstRef s ('Struct "sensors_result")
                                -> Ivory eff ()
-    , prc_state :: forall eff s . Ref s (Struct "control_output") -> Ivory eff ()
+    , prc_state :: forall eff s . Ref s ('Struct "control_output") -> Ivory eff ()
     , prc_reset :: forall eff . Ivory eff ()
     }
 
@@ -50,15 +50,15 @@ monitorPitchRollControl attrs = do
   state_name <- named "state"
   reset_name <- named "reset"
 
-  let init_proc :: Def ('[]:->())
+  let init_proc :: Def ('[]':->())
       init_proc = proc init_name $ body $ do
         ac_reset pitch_ctl
         ac_reset roll_ctl
 
       run_proc :: Def ('[ IFloat
                         , IFloat
-                        , ConstRef s2 (Struct "sensors_result")
-                        ] :-> ())
+                        , ConstRef s2 ('Struct "sensors_result")
+                        ] ':-> ())
       run_proc = proc run_name $ \pitch_setpt roll_setpt sens -> body $ do
         sen_roll    <- deref  (sens ~> S.roll)
         sen_pitch   <- deref  (sens ~> S.pitch)
@@ -67,13 +67,13 @@ monitorPitchRollControl attrs = do
         ac_run pitch_ctl (-1*pitch_setpt) sen_pitch sen_omega_y
         ac_run roll_ctl  roll_setpt       sen_roll  sen_omega_x
 
-      state_proc :: Def ('[ Ref s1 (Struct "control_output")
-                          ] :-> ())
+      state_proc :: Def ('[ Ref s1 ('Struct "control_output")
+                          ] ':-> ())
       state_proc = proc state_name $ \out -> body $ do
           ac_out pitch_ctl >>= store (out ~> OUT.pitch)
           ac_out roll_ctl  >>= store (out ~> OUT.roll)
 
-      reset_proc :: Def ('[]:->())
+      reset_proc :: Def ('[]':->())
       reset_proc = proc reset_name $ body $ do
         ac_reset pitch_ctl
         ac_reset roll_ctl

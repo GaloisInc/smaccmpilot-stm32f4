@@ -27,17 +27,17 @@ data HeadingController =
     , hctl_update :: forall eff s
                    . IFloat
                   -> IFloat
-                  -> Ref s (Struct "sensors_result")
+                  -> Ref s ('Struct "sensors_result")
                   -> IFloat
                   -> Ivory eff ()
     , hctl_reset :: forall eff . Ivory eff ()
     , hctl_setpoint :: forall eff . Ivory eff IFloat
-    , hctl_write_debug :: forall eff s . Ref s (Struct "att_control_debug")
+    , hctl_write_debug :: forall eff s . Ref s ('Struct "att_control_debug")
                      -> Ivory eff ()
     }
 
 monitorHeadingControl :: (AttrReadable a)
-                      => a (Struct "pid_config")
+                      => a ('Struct "pid_config")
                       -> Monitor e HeadingController
 monitorHeadingControl cfg_attr = do
   let named n = fmap showUnique $ freshname $ "head_ctl_" ++ n
@@ -50,9 +50,9 @@ monitorHeadingControl cfg_attr = do
 
   let proc_update :: Def('[ IFloat -- Heading setpoint
                           , IFloat -- Rate setpoint
-                          , Ref s (Struct "sensors_result")
+                          , Ref s ('Struct "sensors_result")
                           , IFloat -- dt
-                          ] :-> ())
+                          ] ':-> ())
       proc_update  = proc name_update $
         \head_setpt rate_setpt sens dt -> body $ do
           p_gain <-             (cfg ~>* C.p_gain)
@@ -67,7 +67,7 @@ monitorHeadingControl cfg_attr = do
           pid_result <- assign ((p_gain * pos_err) - (d_gain * vel_err))
           store output (pid_result + rate_setpt)
 
-      proc_reset :: Def('[]:->())
+      proc_reset :: Def('[]':->())
       proc_reset = proc name_reset $ body $ do
         call_ pid_reset pid_state
 

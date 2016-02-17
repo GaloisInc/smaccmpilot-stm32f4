@@ -29,6 +29,7 @@ library
                        SMACCMPilot.Datalink.Mode
                        SMACCMPilot.Datalink.Loopback
   build-depends:       base >= 4.6,
+                       base-compat >= 0.6,
                        async,
                        bytestring,
                        dlist,

@@ -16,9 +16,9 @@ import SMACCMPilot.Hardware.MS5611.Mode
 import SMACCMPilot.Hardware.MS5611.Regs
 import SMACCMPilot.Hardware.MS5611.Types
 
-ms5611SPISensorManager :: BackpressureTransmit (Struct "spi_transaction_request") (Struct "spi_transaction_result")
-                       -> ChanOutput (Stored ITime)
-                       -> ChanInput  (Struct "barometer_sample")
+ms5611SPISensorManager :: BackpressureTransmit ('Struct "spi_transaction_request") ('Struct "spi_transaction_result")
+                       -> ChanOutput ('Stored ITime)
+                       -> ChanInput  ('Struct "barometer_sample")
                        -> SPIDeviceHandle
                        -> Tower e ()
 ms5611SPISensorManager (BackpressureTransmit req_chan res_chan) init_chan meas_chan h = do
@@ -50,29 +50,29 @@ ms5611SPISensorManager (BackpressureTransmit req_chan res_chan) init_chan meas_c
               c <- ms5611_res_code res
               when (c >? 0) (store (meas ~> initfail) true)
 
-            samplei2csuccess :: Ref s (Struct "spi_transaction_result")
+            samplei2csuccess :: Ref s ('Struct "spi_transaction_result")
                              -> Ivory eff ()
             samplei2csuccess res = do
               c <- ms5611_res_code res
               when (c >? 0) (store (meas ~> samplefail) true)
 
-            transaction :: (GetAlloc eff ~ Scope s)
-                        => Ivory eff (Ref s2 (Struct "spi_transaction_result"))
-                        -> Ivory eff (ConstRef s1 (Struct "spi_transaction_request"))
-                        -> Ivory eff (Ref s2 (Struct "spi_transaction_result"))
+            transaction :: (GetAlloc eff ~ 'Scope s)
+                        => Ivory eff (Ref s2 ('Struct "spi_transaction_result"))
+                        -> Ivory eff (ConstRef s1 ('Struct "spi_transaction_request"))
+                        -> Ivory eff (Ref s2 ('Struct "spi_transaction_result"))
             transaction y req = do
               startTransaction req
               finishTransaction y
 
-            startTransaction :: (GetAlloc eff ~ Scope s)
-                             => Ivory eff (ConstRef s1 (Struct "spi_transaction_request"))
+            startTransaction :: (GetAlloc eff ~ 'Scope s)
+                             => Ivory eff (ConstRef s1 ('Struct "spi_transaction_request"))
                              -> Ivory eff ()
             startTransaction req = do
               r <- req
               emit req_e r
 
-            finishTransaction :: Ivory eff (Ref s (Struct "spi_transaction_result"))
-                              -> Ivory eff (Ref s (Struct "spi_transaction_result"))
+            finishTransaction :: Ivory eff (Ref s ('Struct "spi_transaction_result"))
+                              -> Ivory eff (Ref s ('Struct "spi_transaction_result"))
             finishTransaction y = do
               res <- y
               samplei2csuccess res
@@ -170,10 +170,10 @@ ms5611SPISensorManager (BackpressureTransmit req_chan res_chan) init_chan meas_c
           ]
 
 ms5611_command_req :: forall s eff
-                    . (GetAlloc eff ~ Scope s)
+                    . (GetAlloc eff ~ 'Scope s)
                    => SPIDeviceHandle
                    -> Command
-                   -> Ivory eff (ConstRef (Stack s) (Struct "spi_transaction_request"))
+                   -> Ivory eff (ConstRef ('Stack s) ('Struct "spi_transaction_request"))
 ms5611_command_req h cmd = fmap constRef $ local $ istruct
   [ tx_device .= ival h
   , tx_buf .= iarray [ ival (commandVal cmd) ]
@@ -181,10 +181,10 @@ ms5611_command_req h cmd = fmap constRef $ local $ istruct
   ]
 
 ms5611_prom_fetch_req :: forall s eff
-                       . (GetAlloc eff ~ Scope s)
+                       . (GetAlloc eff ~ 'Scope s)
                       => SPIDeviceHandle
                       -> PROM
-                      -> Ivory eff (ConstRef (Stack s) (Struct "spi_transaction_request"))
+                      -> Ivory eff (ConstRef ('Stack s) ('Struct "spi_transaction_request"))
 ms5611_prom_fetch_req h p = fmap constRef $ local $ istruct
   [ tx_device .= ival h
   , tx_buf    .= iarray [ ival (commandVal (PromRead p)), ival 0, ival 0 ]
@@ -192,9 +192,9 @@ ms5611_prom_fetch_req h p = fmap constRef $ local $ istruct
   ]
 
 ms5611_adc_fetch_req :: forall s eff
-                      . (GetAlloc eff ~ Scope s)
+                      . (GetAlloc eff ~ 'Scope s)
                      => SPIDeviceHandle
-                     -> Ivory eff (ConstRef (Stack s) (Struct "spi_transaction_request"))
+                     -> Ivory eff (ConstRef ('Stack s) ('Struct "spi_transaction_request"))
 ms5611_adc_fetch_req h = fmap constRef $ local $ istruct
   [ tx_device .= ival h
   , tx_buf    .= iarray [ ival (commandVal ADCRead), ival 0, ival 0, ival 0 ]
@@ -202,12 +202,12 @@ ms5611_adc_fetch_req h = fmap constRef $ local $ istruct
   ] 
 
 ms5611_res_code :: forall s eff
-                 . Ref s (Struct "spi_transaction_result")
+                 . Ref s ('Struct "spi_transaction_result")
                 -> Ivory eff Uint8
 ms5611_res_code = \r -> deref (r ~> resultcode)
 
 ms5611_res_prom :: forall s eff
-                 . Ref s (Struct "spi_transaction_result")
+                 . Ref s ('Struct "spi_transaction_result")
                 -> Ivory eff Uint16
 ms5611_res_prom = \r -> do
   h <- deref ((r ~> rx_buf) ! 1)
@@ -215,7 +215,7 @@ ms5611_res_prom = \r -> do
   assign (u16_from_2_bytes h l)
 
 ms5611_res_sample :: forall s eff
-                   . ConstRef s (Struct "spi_transaction_result")
+                   . ConstRef s ('Struct "spi_transaction_result")
                   -> Ivory eff Uint32
 ms5611_res_sample = \r -> do
   h <- deref ((r ~> rx_buf) ! 1)

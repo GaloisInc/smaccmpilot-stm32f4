@@ -17,7 +17,7 @@ import SMACCMPilot.Datalink.HXStream.Ivory.Types
 
 --------------------------------------------------------------------------------
 
-type Hx  = Struct "hxstream_state"
+type Hx  = 'Struct "hxstream_state"
 type Tag = Uint8
 
 [ivory|
@@ -26,7 +26,7 @@ struct hxstream_state
   { offset  :: Stored Sint32
   ; fstate  :: Stored HXState
   ; ftag    :: Stored Uint8 -- Frame tag
-  ; tagSeen :: Stored IBool  -- Has a tag been processed in the current frame?
+  ; tagSeen :: Stored IBool -- Has a tag been processed in the current frame?
   }
 
 |]
@@ -42,7 +42,7 @@ emptyStreamState state = do
   -- frame.
 
 -- Should match the initialization in the empty state.
-initStreamState :: Init (Struct "hxstream_state")
+initStreamState :: Init ('Struct "hxstream_state")
 initStreamState = istruct [ fstate  .=  ival hxstate_progress
                           , offset  .=  ival 0
                           , tagSeen .= ival false
@@ -94,7 +94,7 @@ escape = (.^) 0x20 -- XOR with 0x20
 -- hxstate_progress --> hxstate_tag
 --
 -- A frame just ended.
-decodeSM :: Def ('[ Ref s Hx, Uint8 ] :-> Uint8)
+decodeSM :: Def ('[ Ref s Hx, Uint8 ] ':-> Uint8)
 decodeSM = proc "decodeSM" $ \state b -> body $ do
   st <- state ~>* fstate
   byteRef <- local (ival 0)
@@ -197,8 +197,8 @@ decode fh = decodes [fh]
 -- hxstream protocol.
 encode ::   ANat n
          => Tag
-         -> ConstRef s (Array n (Stored Uint8))
-         -> (Uint8 -> Ivory ('Effects r NoBreak a) ())
+         -> ConstRef s ('Array n ('Stored Uint8))
+         -> (Uint8 -> Ivory ('Effects r 'NoBreak a) ())
          -> Ivory ('Effects r b a) ()
 encode tag arr put = noBreak $ do
   put fbo
@@ -214,7 +214,7 @@ encode tag arr put = noBreak $ do
 
 encodeString :: (ANat n, IvoryString str)
              => Tag
-             -> ConstRef s1 (Array n (Stored Uint8))
+             -> ConstRef s1 ('Array n ('Stored Uint8))
              -> Ref s2 str
              -> Ivory ('Effects r b a) ()
 encodeString tag arr str = do

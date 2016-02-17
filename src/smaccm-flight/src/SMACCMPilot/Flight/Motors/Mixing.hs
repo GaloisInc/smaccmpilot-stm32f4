@@ -13,9 +13,9 @@ import SMACCMPilot.Flight.Platform
 import qualified SMACCMPilot.Comm.Ivory.Types.ControlOutput    as C
 import qualified SMACCMPilot.Comm.Ivory.Types.QuadcopterMotors as M
 
-throttlePassthrough :: (GetAlloc eff ~ Scope cs)
-      => ConstRef s1 (Struct "control_output")
-      -> Ivory eff (ConstRef (Stack cs) (Struct "quadcopter_motors"))
+throttlePassthrough :: (GetAlloc eff ~ 'Scope cs)
+      => ConstRef s1 ('Struct "control_output")
+      -> Ivory eff (ConstRef ('Stack cs) ('Struct "quadcopter_motors"))
 throttlePassthrough control = do
   t <- deref (control ~> C.throttle)
   out <- local (istruct [ M.frontleft  .= ival t
@@ -28,10 +28,10 @@ throttlePassthrough control = do
 idle :: IFloat
 idle = 0.15
 
-mixer :: (GetAlloc eff ~ Scope cs)
+mixer :: (GetAlloc eff ~ 'Scope cs)
       => FlightMixer
-      -> ConstRef s1 (Struct "control_output")
-      -> Ivory eff (ConstRef (Stack cs) (Struct "quadcopter_motors"))
+      -> ConstRef s1 ('Struct "control_output")
+      -> Ivory eff (ConstRef ('Stack cs) ('Struct "quadcopter_motors"))
 mixer fmixer control = do
   throttle <- deref (control ~> C.throttle)
   pitch    <- deref (control ~> C.pitch)
@@ -42,13 +42,13 @@ mixer fmixer control = do
   sane_range out
   return (constRef out)
 
-axis_mix :: (GetAlloc eff ~ Scope cs)
+axis_mix :: (GetAlloc eff ~ 'Scope cs)
           => FlightMixer
           -> IFloat -- Throttle
           -> IFloat -- Pitch
           -> IFloat -- Roll
           -> IFloat -- Yaw
-          -> Ivory eff (Ref (Stack cs) (Struct "quadcopter_motors"))
+          -> Ivory eff (Ref ('Stack cs) ('Struct "quadcopter_motors"))
 axis_mix fmixer throttle pitch roll yaw = do
   (fl, fr, bl, br) <- tpry_to_flfrblbr fmixer throttle pitch roll y
   lowbound <- assign $ floor4 fl fr bl br
@@ -138,7 +138,7 @@ yaw_constrain input threshold =
        ,inside))
 
 
-throttle_floor :: IFloat -> Ref s (Struct "quadcopter_motors") -> Ivory eff ()
+throttle_floor :: IFloat -> Ref s ('Struct "quadcopter_motors") -> Ivory eff ()
 throttle_floor thr m = do
   when (thr <? idle) $ do
     setidle M.frontleft
@@ -146,17 +146,17 @@ throttle_floor thr m = do
     setidle M.backleft
     setidle M.backright
   where
-  setidle :: Label "quadcopter_motors" (Stored IFloat) -> Ivory eff ()
+  setidle :: Label "quadcopter_motors" ('Stored IFloat) -> Ivory eff ()
   setidle lbl = store (m ~> lbl) idle
 
-sane_range :: Ref s (Struct "quadcopter_motors") -> Ivory eff ()
+sane_range :: Ref s ('Struct "quadcopter_motors") -> Ivory eff ()
 sane_range i = do
   sane M.frontleft
   sane M.frontright
   sane M.backleft
   sane M.backright
   where
-  sane :: Label "quadcopter_motors" (Stored IFloat) -> Ivory eff ()
+  sane :: Label "quadcopter_motors" ('Stored IFloat) -> Ivory eff ()
   sane lbl = do
     v <- deref r
     cond_
