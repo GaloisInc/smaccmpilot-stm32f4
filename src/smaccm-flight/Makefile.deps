@@ -5,6 +5,7 @@ create-sandbox::
 $(call add-cabal-package-source, \
   $(BSP_REPO)/ivory-bsp-stm32 \
   $(BSP_REPO)/tower-freertos-stm32 \
+  $(BSP_REPO)/tower-echronos-stm32 \
   $(IVORY_REPO)/ivory \
   $(IVORY_REPO)/ivory-serialize \
   $(IVORY_REPO)/ivory-stdlib \

@@ -94,6 +94,19 @@ executable             can-server-test-gen
   default-language:    Haskell2010
   ghc-options:         -Wall
 
+executable             can_server_aadl_test_gen
+  main-is:             CANServerAADL.hs
+  hs-source-dirs:      tests
+  build-depends:       base >= 4.6,
+                       tower >= 0.9,
+                       tower-config,
+                       tower-aadl,
+                       tower-freertos-stm32,
+                       tower-echronos-stm32,
+                       smaccm-flight
+  default-language:    Haskell2010
+  ghc-options:         -Wall
+
 executable             can-proxy-test-gen
   main-is:             CANProxy.hs
   hs-source-dirs:      tests
@@ -185,6 +198,19 @@ executable             standalone-flight-gen
                        tower >= 0.9,
                        tower-config,
                        tower-freertos-stm32,
+                       smaccm-flight
+  default-language:    Haskell2010
+  ghc-options:         -Wall
+
+executable             standalone_flight_echronos_gen
+  main-is:             StandaloneEchronos.hs
+  hs-source-dirs:      tests
+  build-depends:       base >= 4.6,
+                       tower >= 0.9,
+                       tower-config,
+                       tower-aadl,
+                       tower-freertos-stm32,
+                       tower-echronos-stm32,
                        smaccm-flight
   default-language:    Haskell2010
   ghc-options:         -Wall
