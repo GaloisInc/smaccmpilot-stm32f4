@@ -6,15 +6,14 @@ cache:
     - $HOME/.gcc-arm-embedded
     - $HOME/.stack
 
-# note: we always include 7.8.4 for bootstrapping Gidl
 matrix:
   include:
-    - env: GHCVER=7.8.4 STACK_YAML=stack.yaml
+    - env: GHCVER=7.8.4 STACK_YAML=stack-7.8.yaml
       addons: {apt: {packages: [ghc-7.8.4,gcc-multilib,libev-dev], sources: [hvr-ghc]}}
-    - env: GHCVER=7.10.3 STACK_YAML=stack-7.10.yaml
-      addons: {apt: {packages: [ghc-7.8.4,ghc-7.10.3,gcc-multilib,libev-dev], sources: [hvr-ghc]}}
+    - env: GHCVER=7.10.3 STACK_YAML=stack.yaml
+      addons: {apt: {packages: [ghc-7.10.3,gcc-multilib,libev-dev], sources: [hvr-ghc]}}
     - env: GHCVER=8.0.1 STACK_YAML=stack-8.0.yaml
-      addons: {apt: {packages: [ghc-7.8.4,ghc-8.0.1,gcc-multilib,libev-dev], sources: [hvr-ghc]}}
+      addons: {apt: {packages: [ghc-8.0.1,gcc-multilib,libev-dev], sources: [hvr-ghc]}}
 
   allow_failures:
     - env: GHCVER=8.0.1 STACK_YAML=stack-8.0.yaml
@@ -23,7 +22,7 @@ before_install:
   # Download and unpack the stack executable
   - mkdir -p ~/.local/bin
   - travis_retry curl -L https://www.stackage.org/stack/linux-x86_64 | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
-  - export PATH=$HOME/.local/bin:/opt/ghc/$GHCVER/bin:/opt/ghc/7.8.4/bin:$PATH
+  - export PATH=$HOME/.local/bin:/opt/ghc/$GHCVER/bin:$PATH
   # Set up the ARM GCC toolchain
   - if [ ! -d $HOME/.gcc-arm-embedded/*/bin ];
     then

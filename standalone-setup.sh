@@ -28,7 +28,7 @@ done
 # must substitute the `../` with the current directory, so that the
 # repositories checked out above can be found.
 
-STACKFILES="stack.yaml stack-7.10.yaml stack-8.0.yaml gidl-bootstrap.yaml"
+STACKFILES="stack-7.8.yaml stack.yaml stack-8.0.yaml gidl-bootstrap.yaml"
 for stackfile in $STACKFILES;
 do
     sed -i.orig "s;\.\./;$PWD/;g" $stackfile
