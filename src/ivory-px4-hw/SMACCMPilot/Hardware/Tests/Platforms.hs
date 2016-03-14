@@ -46,7 +46,7 @@ import           Ivory.BSP.STM32.Driver.I2C
 import           Ivory.BSP.STM32.Driver.UART
 import           Ivory.BSP.STM32.Driver.UART.DMA
 import           Ivory.BSP.STM32.ClockConfig
-import           Ivory.OS.FreeRTOS.Tower.STM32.Config
+import           Ivory.BSP.STM32.Config
 
 
 data PX4Platform =

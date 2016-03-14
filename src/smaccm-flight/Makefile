@@ -28,6 +28,13 @@ flight: platform-fmu24/standalone-flight-gen
 upload-flight:
 	make -C platform-fmu24/standalone-flight upload
 
+.PHONY: flight_echronos
+flight_echronos: platform-fmu24/standalone_flight_echronos_gen
+
+.PHONY: upload_flight_echronos
+upload_flight_echronos:
+	make -C platform-fmu24/standalone_flight_echronos upload
+
 .PHONY: can_proxy_odroid_test
 can_proxy_odroid_test: default
 	-rm -rf $@
@@ -58,6 +65,15 @@ smaccmpilot-odroid: default
 	make -C $*
 
 %-clean:
+	-rm -rf $*
+
+%_gen: default
+	stack exec -- $(@F) --src-dir=$* \
+		      --conf-file=$(patsubst platform-%,%,$(*D)).conf \
+					$(IVORY_FLAGS)
+	make -C $*
+
+%_clean:
 	-rm -rf $*
 
 clean:

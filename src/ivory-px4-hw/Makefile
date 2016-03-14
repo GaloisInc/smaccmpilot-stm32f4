@@ -36,6 +36,10 @@ px4io-packing-test: default
 	stack build . --exec '$(@F) --src-dir=$* --conf-file=$(patsubst platform-%,%,$(*D)).conf $(IVORY_FLAGS)'
 	make -C $*
 
+%_gen: default
+	stack build . --exec "$(@F) --src-dir=$* --conf-file=$(patsubst platform-%,%,$(*D)).conf $(IVORY_FLAGS)"
+	make -C $*
+
 %-clean:
 	-rm -rf $*
 

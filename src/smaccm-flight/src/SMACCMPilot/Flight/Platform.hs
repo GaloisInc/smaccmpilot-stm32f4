@@ -34,7 +34,7 @@ import           Ivory.BSP.STM32.Peripheral.I2C
 import           Ivory.BSP.STM32.Driver.I2C
 import           Ivory.BSP.STM32.Interrupt
 import           Ivory.BSP.STM32.ClockConfig
-import           Ivory.OS.FreeRTOS.Tower.STM32.Config
+import           Ivory.BSP.STM32.Config
 import           SMACCMPilot.Datalink.Mode
 import           SMACCMPilot.Hardware.CAN
 import           SMACCMPilot.Hardware.Sensors

@@ -203,6 +203,22 @@ executable             px4-rgbled-test-gen
   default-language:    Haskell2010
   ghc-options:         -Wall
 
+executable             px4_rgbled_aadl_test_gen
+  main-is:             RGBLEDAADLTest.hs
+  hs-source-dirs:      tests
+  build-depends:       base >= 4.6,
+                       monadLib,
+                       tower              >= 0.9,
+                       tower-config,
+                       tower-aadl,
+                       tower-freertos-stm32,
+                       tower-echronos-stm32,
+                       ivory-px4-hw
+
+  default-language:    Haskell2010
+  ghc-options:         -Wall
+
+
 executable             px4-all-sensors-test-gen
   main-is:             AllSensorsTest.hs
   hs-source-dirs:      tests
