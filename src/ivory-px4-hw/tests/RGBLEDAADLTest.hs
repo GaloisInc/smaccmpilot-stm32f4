@@ -17,7 +17,7 @@ main :: IO ()
 main = compileTowerAADLForPlatform f p $ do
   app id
   where
-  f :: PX4Platform -> (AADLConfig, OSSpecific STM32Config e)
+  f :: PX4Platform -> (AADLConfig, OSSpecific STM32Config)
   f tp = ( defaultAADLConfig { configSystemOS = EChronos
                              , configSystemHW = PIXHAWK
                              }

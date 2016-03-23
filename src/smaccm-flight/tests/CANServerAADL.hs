@@ -14,7 +14,7 @@ import SMACCMPilot.Flight.Datalink.CAN.TestServer (app)
 main :: IO ()
 main = compileTowerAADLForPlatform f p (app id)
   where
-  f :: FlightPlatform -> (AADLConfig, OSSpecific STM32Config e)
+  f :: FlightPlatform -> (AADLConfig, OSSpecific STM32Config)
   f config = ( defaultAADLConfig { configSystemOS = EChronos
                                  , configSystemHW = PIXHAWK
                                  }
