@@ -11,7 +11,7 @@ import Ivory.Tower
 
 import Ivory.BSP.STM32.Driver.I2C
 import SMACCMPilot.Hardware.RGBLED
-import SMACCMPilot.Hardware.Tests.Platforms
+import SMACCMPilot.Hardware.Platforms
 import SMACCMPilot.Hardware.Tests.Serialize
 import SMACCMPilot.Comm.Ivory.Types.RgbLedSetting
 

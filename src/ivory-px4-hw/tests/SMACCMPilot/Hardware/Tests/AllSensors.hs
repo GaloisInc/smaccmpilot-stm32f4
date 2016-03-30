@@ -21,7 +21,7 @@ import SMACCMPilot.Hardware.CAN
 import SMACCMPilot.Hardware.CANMessages
 
 import SMACCMPilot.Hardware.SensorManager
-import SMACCMPilot.Hardware.Tests.Platforms
+import SMACCMPilot.Hardware.Platforms
 import SMACCMPilot.Hardware.Tests.Serialize
 import SMACCMPilot.Hardware.Tests.Ublox (uartUbloxGPSTower)
 

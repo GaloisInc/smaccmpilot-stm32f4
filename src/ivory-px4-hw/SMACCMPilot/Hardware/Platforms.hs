@@ -9,7 +9,7 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
-module SMACCMPilot.Hardware.Tests.Platforms where
+module SMACCMPilot.Hardware.Platforms where
 
 import Ivory.Language
 import Ivory.Tower

@@ -38,7 +38,7 @@ import           Ivory.BSP.STM32.Config
 import           SMACCMPilot.Datalink.Mode
 import           SMACCMPilot.Hardware.CAN
 import           SMACCMPilot.Hardware.Sensors
-import           SMACCMPilot.Hardware.Tests.Platforms (PPM(..), RGBLED_I2C(..), ADC(..))
+import           SMACCMPilot.Hardware.Platforms (PPM(..), RGBLED_I2C(..), ADC(..))
 import           SMACCMPilot.Hardware.PX4IO (PX4IOPWMConfig(..))
 import           SMACCMPilot.Flight.Tuning
 

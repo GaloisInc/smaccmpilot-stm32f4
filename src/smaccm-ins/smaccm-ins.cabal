@@ -15,8 +15,6 @@ library
                        SMACCMPilot.INS.SensorFusion,
                        SMACCMPilot.INS.Simulate,
                        SMACCMPilot.INS.Tower,
-                       SMACCMPilot.INS.Tests.SensorFusion,
-                       SMACCMPilot.INS.Tests.AllSensorsIvory,
                        SMACCMPilot.INS.Bias.Accel,
                        SMACCMPilot.INS.Bias.Calibration,
                        SMACCMPilot.INS.Bias.Gyro,
@@ -100,7 +98,19 @@ library
 executable all-sensors-ins-test-gen
   hs-source-dirs:      tests
   main-is:             AllSensorsIvory.hs
+  other-modules:
+      SMACCMPilot.INS.Tests.AllSensorsIvory
   build-depends:       base >=4.6,
+                       estimator,
+                       monadLib,
+                       ivory,
+                       ivory-serialize,
+                       ivory-stdlib,
+                       ivory-tower-posix,
+                       smaccm-comm-schema-tower,
+                       smaccm-datalink,
+                       tower,
+                       tower-hal,
                        smaccm-ins
   default-language:    Haskell2010
   ghc-options:         -Wall
@@ -108,12 +118,17 @@ executable all-sensors-ins-test-gen
 executable px4-sensor-fusion-test-gen
   hs-source-dirs:      tests
   main-is:             PX4SensorFusionTest.hs
+  other-modules:
+      SMACCMPilot.INS.Tests.SensorFusion
   build-depends:       base >=4.6,
                        estimator == 1.1.*,
+                       ivory,
+                       ivory-px4-hw,
+                       ivory-serialize,
+                       smaccm-comm-schema-tower,
                        tower,
                        tower-config,
                        tower-freertos-stm32,
-                       ivory-px4-hw,
                        smaccm-ins
   default-language:    Haskell2010
   ghc-options:         -Wall -Werror

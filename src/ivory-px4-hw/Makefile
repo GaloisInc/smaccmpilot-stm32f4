@@ -24,7 +24,6 @@ test-fmu24: platform-fmu24/px4-adc-test-gen
 
 .PHONY: default
 default:
-	stack build ivory-px4-hw --test --no-run-tests
 
 px4-sensors-monitor: default
 	stack test ivory-px4-hw:$@-gen --test-arguments '--src-dir=$@ $(IVORY_FLAGS)'

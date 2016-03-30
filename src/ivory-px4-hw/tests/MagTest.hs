@@ -4,7 +4,7 @@ module Main where
 import Ivory.Tower.Config
 import Ivory.OS.FreeRTOS.Tower.STM32
 
-import SMACCMPilot.Hardware.Tests.Platforms
+import SMACCMPilot.Hardware.Platforms
 import SMACCMPilot.Hardware.Tests.Magnetometer (app)
 
 main :: IO ()

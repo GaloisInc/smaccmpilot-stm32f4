@@ -26,7 +26,7 @@ import SMACCMPilot.Comm.Ivory.Types.MagnetometerSample ()
 import SMACCMPilot.Comm.Ivory.Types.BarometerSample ()
 import SMACCMPilot.Comm.Ivory.Types.PositionSample ()
 import SMACCMPilot.Comm.Ivory.Types (typeModules)
-import SMACCMPilot.Hardware.Tests.Platforms
+import SMACCMPilot.Hardware.Platforms
 
 import qualified SMACCMPilot.Datalink.HXStream.Ivory as HX
 import Ivory.Serialize
