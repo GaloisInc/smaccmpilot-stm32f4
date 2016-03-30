@@ -63,6 +63,8 @@ library
 
                        SMACCMPilot.Hardware.Platforms,
 
+                       SMACCMPilot.Hardware.Serialize,
+
                        SMACCMPilot.Time
 
 
@@ -78,6 +80,7 @@ library
                        tower-config,
                        ivory-bsp-stm32,
                        smaccm-comm-schema-tower,
+                       smaccm-datalink,
                        tower-hal
 
   default-language:    Haskell2010
@@ -117,7 +120,6 @@ test-suite             ublox-gps-test-gen
   main-is:             UbloxGPSTest.hs
   hs-source-dirs:      tests
   other-modules:
-      SMACCMPilot.Hardware.Tests.Serialize,
       SMACCMPilot.Hardware.Tests.Ublox
   build-depends:       base >= 4.6,
                        monadLib,
@@ -141,8 +143,7 @@ test-suite             px4-mpu6k-test-gen
   main-is:             MPU6000Test.hs
   hs-source-dirs:      tests
   other-modules:
-      SMACCMPilot.Hardware.Tests.MPU6000,
-      SMACCMPilot.Hardware.Tests.Serialize
+      SMACCMPilot.Hardware.Tests.MPU6000
   build-depends:       base >= 4.6,
                        monadLib,
                        ivory,
@@ -165,8 +166,7 @@ test-suite             px4-baro-test-gen
   main-is:             BaroTest.hs
   hs-source-dirs:      tests
   other-modules:
-      SMACCMPilot.Hardware.Tests.Baro,
-      SMACCMPilot.Hardware.Tests.Serialize
+      SMACCMPilot.Hardware.Tests.Baro
   build-depends:       base >= 4.6,
                        monadLib,
                        ivory,
@@ -189,8 +189,7 @@ test-suite             px4-mag-test-gen
   main-is:             MagTest.hs
   hs-source-dirs:      tests
   other-modules:
-      SMACCMPilot.Hardware.Tests.Magnetometer,
-      SMACCMPilot.Hardware.Tests.Serialize
+      SMACCMPilot.Hardware.Tests.Magnetometer
   build-depends:       base >= 4.6,
                        monadLib,
                        ivory,
@@ -213,8 +212,7 @@ test-suite             px4-ppm-in-test-gen
   main-is:             PPMInTest.hs
   hs-source-dirs:      tests
   other-modules:
-      SMACCMPilot.Hardware.Tests.PPMIn,
-      SMACCMPilot.Hardware.Tests.Serialize
+      SMACCMPilot.Hardware.Tests.PPMIn
   build-depends:       base >= 4.6,
                        monadLib,
                        ivory,
@@ -236,8 +234,7 @@ test-suite             px4-rgbled-test-gen
   main-is:             RGBLEDTest.hs
   hs-source-dirs:      tests
   other-modules:
-      SMACCMPilot.Hardware.Tests.RGBLED,
-      SMACCMPilot.Hardware.Tests.Serialize
+      SMACCMPilot.Hardware.Tests.RGBLED
   build-depends:       base >= 4.6,
                        monadLib,
                        ivory,
@@ -278,7 +275,6 @@ test-suite             px4-all-sensors-test-gen
   hs-source-dirs:      tests
   other-modules:
       SMACCMPilot.Hardware.Tests.AllSensors,
-      SMACCMPilot.Hardware.Tests.Serialize,
       SMACCMPilot.Hardware.Tests.Ublox
   build-depends:       base >= 4.6,
                        monadLib,
@@ -356,8 +352,7 @@ test-suite             px4-adc-test-gen
   main-is:             ADCTest.hs
   hs-source-dirs:      tests
   other-modules:
-      SMACCMPilot.Hardware.Tests.ADC,
-      SMACCMPilot.Hardware.Tests.Serialize
+      SMACCMPilot.Hardware.Tests.ADC
   build-depends:       base >= 4.6,
                        monadLib,
                        ivory,

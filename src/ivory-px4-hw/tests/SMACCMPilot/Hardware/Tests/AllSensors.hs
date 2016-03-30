@@ -22,7 +22,7 @@ import SMACCMPilot.Hardware.CANMessages
 
 import SMACCMPilot.Hardware.SensorManager
 import SMACCMPilot.Hardware.Platforms
-import SMACCMPilot.Hardware.Tests.Serialize
+import SMACCMPilot.Hardware.Serialize
 import SMACCMPilot.Hardware.Tests.Ublox (uartUbloxGPSTower)
 
 app :: (e -> PX4Platform) -> Tower e ()

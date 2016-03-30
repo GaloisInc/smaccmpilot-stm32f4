@@ -24,7 +24,7 @@ import SMACCMPilot.Hardware.GPS.UBlox
 
 import SMACCMPilot.Hardware.Sensors
 import SMACCMPilot.Hardware.Platforms
-import SMACCMPilot.Hardware.Tests.Serialize
+import SMACCMPilot.Hardware.Serialize
 
 [ivory| string struct UnusedString 1 |]
 [ivory| string struct GPSString 128 |]

@@ -11,7 +11,7 @@ import Ivory.Serialize
 import Ivory.Tower
 import SMACCMPilot.Hardware.ADC
 import SMACCMPilot.Hardware.Platforms
-import SMACCMPilot.Hardware.Tests.Serialize
+import SMACCMPilot.Hardware.Serialize
 
 app :: (e -> PX4Platform)
     -> Tower e ()

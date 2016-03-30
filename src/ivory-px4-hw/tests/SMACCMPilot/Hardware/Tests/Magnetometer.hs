@@ -22,7 +22,7 @@ import SMACCMPilot.Hardware.HMC5883L
 import SMACCMPilot.Hardware.LSM303D
 
 import SMACCMPilot.Hardware.Platforms
-import SMACCMPilot.Hardware.Tests.Serialize
+import SMACCMPilot.Hardware.Serialize
 
 app :: (e -> PX4Platform) -> Tower e ()
 app topx4 = do

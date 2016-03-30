@@ -18,7 +18,7 @@ import SMACCMPilot.Hardware.MPU6000
 import SMACCMPilot.Hardware.L3GD20
 
 import SMACCMPilot.Hardware.Platforms
-import SMACCMPilot.Hardware.Tests.Serialize
+import SMACCMPilot.Hardware.Serialize
 
 app :: (e -> PX4Platform) -> Tower e ()
 app topx4 = do
