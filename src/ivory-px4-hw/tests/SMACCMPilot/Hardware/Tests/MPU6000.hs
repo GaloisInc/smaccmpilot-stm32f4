@@ -17,7 +17,7 @@ import Ivory.BSP.STM32.Driver.SPI
 import SMACCMPilot.Hardware.MPU6000
 import SMACCMPilot.Hardware.L3GD20
 
-import SMACCMPilot.Hardware.Tests.Platforms
+import SMACCMPilot.Hardware.Platforms
 import SMACCMPilot.Hardware.Tests.Serialize
 
 app :: (e -> PX4Platform) -> Tower e ()

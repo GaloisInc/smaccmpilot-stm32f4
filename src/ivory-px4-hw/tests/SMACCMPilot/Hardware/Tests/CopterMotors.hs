@@ -15,7 +15,7 @@ import Ivory.Tower
 
 import SMACCMPilot.Datalink.HXStream.Tower
 
-import SMACCMPilot.Hardware.Tests.Platforms
+import SMACCMPilot.Hardware.Platforms
 
 app :: (e -> PX4Platform)
     -> Tower e ()

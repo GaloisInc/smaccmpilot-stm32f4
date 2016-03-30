@@ -23,7 +23,7 @@ import Ivory.Tower.HAL.Bus.Interface
 import SMACCMPilot.Hardware.GPS.UBlox
 
 import SMACCMPilot.Hardware.Sensors
-import SMACCMPilot.Hardware.Tests.Platforms
+import SMACCMPilot.Hardware.Platforms
 import SMACCMPilot.Hardware.Tests.Serialize
 
 [ivory| string struct UnusedString 1 |]

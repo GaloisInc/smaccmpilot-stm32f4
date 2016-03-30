@@ -13,7 +13,7 @@ import Ivory.Language
 import Ivory.Serialize
 import Ivory.Tower
 import SMACCMPilot.Hardware.SensorManager
-import SMACCMPilot.Hardware.Tests.Platforms
+import SMACCMPilot.Hardware.Platforms
 import SMACCMPilot.Hardware.Tests.Serialize
 import SMACCMPilot.Comm.Ivory.Types (typeModules)
 import SMACCMPilot.INS.Bias.Calibration
