@@ -16,8 +16,8 @@ import Ivory.BSP.STM32.Driver.SPI
 
 import SMACCMPilot.Hardware.MS5611
 
-import SMACCMPilot.Hardware.Tests.Platforms
-import SMACCMPilot.Hardware.Tests.Serialize
+import SMACCMPilot.Hardware.Platforms
+import SMACCMPilot.Hardware.Serialize
 
 app :: (e -> PX4Platform) -> Tower e ()
 app topx4 = do

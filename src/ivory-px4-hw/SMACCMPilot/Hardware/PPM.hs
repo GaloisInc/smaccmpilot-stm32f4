@@ -11,7 +11,7 @@ import SMACCMPilot.Hardware.PPM.PulseCapture
 import SMACCMPilot.Hardware.PPM.Decode
 
 import Ivory.BSP.STM32.ClockConfig (ClockConfig(..))
-import SMACCMPilot.Hardware.Tests.Platforms (PPM(..))
+import SMACCMPilot.Hardware.Platforms (PPM(..))
 
 import SMACCMPilot.Comm.Ivory.Types (typeModules)
 import Ivory.Serialize (serializeArtifacts, serializeModule)

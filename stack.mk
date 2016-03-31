@@ -13,9 +13,6 @@ $(COMM_SCHEMA_NATIVE) $(COMM_SCHEMA_TOWER):
 	make -C $(ROOT_DIR) gidl-bootstrap
 	make -C $(COMM_SCHEMA) smaccm-comm-schema-native smaccm-comm-schema-tower
 
-test:
-	stack build --test
-
 clean:
 
 distclean: clean

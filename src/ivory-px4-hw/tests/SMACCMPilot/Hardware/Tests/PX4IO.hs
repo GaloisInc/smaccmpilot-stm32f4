@@ -7,7 +7,7 @@ module SMACCMPilot.Hardware.Tests.PX4IO (app) where
 
 import Ivory.Language
 import Ivory.Tower
-import SMACCMPilot.Hardware.Tests.Platforms
+import SMACCMPilot.Hardware.Platforms
 import SMACCMPilot.Hardware.PX4IO
 import BSP.Tests.UART.TestApp (echoPrompt)
 import BSP.Tests.UART.Buffer

@@ -6,7 +6,7 @@ import Ivory.Tower.Options
 
 import Ivory.OS.FreeRTOS.Tower.STM32
 
-import SMACCMPilot.Hardware.Tests.Platforms
+import SMACCMPilot.Hardware.Platforms
 import SMACCMPilot.Hardware.Tests.RGBLED (app)
 
 import Tower.AADL

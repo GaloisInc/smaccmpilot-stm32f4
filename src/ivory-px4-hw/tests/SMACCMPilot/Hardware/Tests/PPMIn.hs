@@ -11,8 +11,8 @@ import Ivory.Serialize
 import Ivory.Tower
 import SMACCMPilot.Hardware.PPM
 import SMACCMPilot.Hardware.PX4IO
-import SMACCMPilot.Hardware.Tests.Platforms
-import SMACCMPilot.Hardware.Tests.Serialize
+import SMACCMPilot.Hardware.Platforms
+import SMACCMPilot.Hardware.Serialize
 import qualified SMACCMPilot.Comm.Ivory.Types.Px4ioState as PX4IO
 
 app :: (e -> PX4Platform)

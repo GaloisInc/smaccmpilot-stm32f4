@@ -8,7 +8,7 @@ module SMACCMPilot.Hardware.ADC
 import Ivory.Language
 import Ivory.Tower
 
-import SMACCMPilot.Hardware.Tests.Platforms (ADC(..))
+import SMACCMPilot.Hardware.Platforms (ADC(..))
 import Ivory.BSP.STM32.Peripheral.ADC
 import Ivory.BSP.STM32.Peripheral.GPIOF4
 
