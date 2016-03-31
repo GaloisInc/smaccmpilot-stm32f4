@@ -92,7 +92,10 @@ test-suite             copter-motor-test-gen
   hs-source-dirs:      tests
   build-depends:       base >= 4.6,
                        monadLib,
+                       ivory,
+                       ivory-stdlib,                       
                        ivory-bsp-stm32,
+                       smaccm-datalink,
                        tower              >= 0.9,
                        tower-config,
                        tower-freertos-stm32,
@@ -258,11 +261,18 @@ test-suite             px4_rgbled_aadl_test_gen
   hs-source-dirs:      tests
   build-depends:       base >= 4.6,
                        monadLib,
+                       ivory,
+                       ivory-bsp-stm32,
+                       ivory-serialize,
+                       ivory-stdlib,
+                       smaccm-comm-schema-tower,
+                       smaccm-datalink,
                        tower              >= 0.9,
                        tower-config,
                        tower-aadl,
                        tower-freertos-stm32,
                        tower-echronos-stm32,
+                       tower-hal,
                        ivory-px4-hw
 
   default-language:    Haskell2010
