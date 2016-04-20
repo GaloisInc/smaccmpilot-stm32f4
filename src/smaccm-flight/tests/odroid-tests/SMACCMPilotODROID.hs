@@ -9,9 +9,7 @@ import SMACCMPilot.Flight.Datalink.CAN.TestProxyODROID (app)
 
 main :: IO ()
 main = do
-  compileTowerAADL fst p (do rx <- cameraVMTower
-                             app snd (Just rx)
-                         )
+  compileTowerAADL fst p (app snd (Just cameraVMTower))
   where
   p topts = fmap fst $ getConfig' topts $ do
     k <- datalinkModeParser DatalinkServer
