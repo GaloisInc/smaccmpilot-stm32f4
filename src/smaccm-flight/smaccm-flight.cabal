@@ -75,6 +75,7 @@ library
                        tower-config,
                        tower-camkes-odroid,
                        tower-freertos-stm32,
+                       tower-mini,
                        ivory-bsp-stm32,
                        smaccm-commsec,
                        smaccm-datalink,
@@ -137,9 +138,9 @@ executable             smaccmpilot-odroid-gen
   hs-source-dirs:      tests/odroid-tests
   build-depends:       base >= 4.6,
                        tower >= 0.9,
-                       tower-aadl,
                        tower-camkes-odroid,
                        tower-config,
+                       tower-mini,
                        smaccm-commsec,
                        smaccm-datalink,
                        smaccm-flight

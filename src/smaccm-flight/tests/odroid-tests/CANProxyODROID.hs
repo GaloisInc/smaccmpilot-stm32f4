@@ -8,7 +8,7 @@ import SMACCMPilot.Datalink.Mode
 import SMACCMPilot.Flight.Datalink.CAN.TestProxyODROID (app)
 
 main :: IO ()
-main = compileTowerAADL fst p (app snd Nothing)
+main = compileTowerAADL fst p (app snd (return Nothing))
   where
   p topts = fmap fst $ getConfig' topts $ do
     k <- datalinkModeParser DatalinkServer

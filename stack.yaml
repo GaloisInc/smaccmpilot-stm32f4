@@ -46,6 +46,7 @@ packages:
     - tower-aadl
     - tower-config
     - tower-hal
+    - tower-mini
 - location: ../tower-camkes-odroid/
   extra-dep: true
 - location:
