@@ -124,7 +124,7 @@ executable             can-proxy-odroid-test-gen
   hs-source-dirs:      tests/odroid-tests
   build-depends:       base >= 4.6,
                        tower >= 0.9,
-                       tower-aadl,
+                       tower-mini,
                        tower-camkes-odroid,
                        tower-config,
                        smaccm-commsec,
