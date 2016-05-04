@@ -54,7 +54,7 @@ library
                        tower-hal,
                        ivory-bsp-stm32,
                        ivory-px4-hw,
-                       ivory-tower-posix,
+                       tower-posix,
                        smaccm-datalink,
                        smaccm-comm-schema-tower
   default-language:    Haskell2010

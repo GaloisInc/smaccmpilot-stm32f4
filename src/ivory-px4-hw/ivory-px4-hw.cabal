@@ -312,7 +312,7 @@ test-suite             px4-sensors-monitor-gen
                        ivory,
                        ivory-serialize,
                        ivory-stdlib,
-                       ivory-tower-posix,
+                       tower-posix,
                        smaccm-datalink,
                        tower,
                        tower-hal,
