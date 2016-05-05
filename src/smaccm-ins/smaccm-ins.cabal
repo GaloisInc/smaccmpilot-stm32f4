@@ -52,6 +52,7 @@ library
                        reflection >=1.5,
                        tower >=0.9,
                        tower-hal,
+                       tower-opts,
                        ivory-bsp-stm32,
                        ivory-px4-hw,
                        tower-posix,
