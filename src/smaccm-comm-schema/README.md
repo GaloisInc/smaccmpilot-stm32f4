@@ -4,7 +4,7 @@ This directory is not a cabal package. Instead, it generates cabal packages
 impelmenting the SMACCMPilot communications link schema, using the `gidl` tool.
 
 The SMACCMPilot communications link schema is described in the
-`smaccm-comm-schema.idl` file found in this directory.
+`smaccm-comm-schema.gidl` file found in this directory.
 
 ## Building
 
