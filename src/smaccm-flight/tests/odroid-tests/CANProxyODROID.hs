@@ -11,4 +11,4 @@ main = compileTowerMini fst p (app snd Nothing)
   where
   p topts = fmap fst $ getConfig' topts $ do
     k <- datalinkModeParser DatalinkServer
-    return (MiniConfig, k)
+    return (defaultMiniConfig, k)

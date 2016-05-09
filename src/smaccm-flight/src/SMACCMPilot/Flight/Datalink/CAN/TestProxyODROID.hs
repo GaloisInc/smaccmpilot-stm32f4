@@ -14,7 +14,7 @@ import Ivory.Language.Proxy
 import Ivory.Stdlib
 import Ivory.Tower
 
-import Tower.Mini.Component
+import Tower.Mini
 
 import Ivory.Tower.HAL.Bus.CAN.Fragment (
     fragmentReceiveHandler
@@ -23,7 +23,10 @@ import Ivory.Tower.HAL.Bus.CAN.Fragment (
   , MessageType
   )
 
-import Ivory.Tower.HAL.Bus.Interface (AbortableTransmit(..), BackpressureTransmit(..))
+import Ivory.Tower.HAL.Bus.Interface (
+    AbortableTransmit(..)
+  , BackpressureTransmit(..)
+  )
 
 import SMACCMPilot.Flight.Datalink.UART (frameBuffer')
 import SMACCMPilot.Flight.Datalink.Commsec (
@@ -75,7 +78,7 @@ uartHw   = "UART_hw"
 -- monitor
 mkChan :: String -> String -> String -> ExternalChan a
 mkChan c1 c2 nm =
-  ExternalChan
+  mkExternalChan
     (intercalate "_" [c1, c2, "get", nm])
     (intercalate "_" [c1, c2, "put", nm])
     (intercalate "_" [c1, c2, "intermon"] ++ ".h")
@@ -97,13 +100,37 @@ app todl mkCameraVm =
       canHw2can_recv   = mkChan canHw    can     "can_message"
       canHw2can_status = mkChan canHw    can     "status"
   in [
-    cameraVmComponent mkCameraVm cameraVm2server
-  , serverComponent mkCameraVm uartIn2server can2server cameraVm2server server2uartOut server2can
-  , canComponent server2can can2server canHw2can_recv canHw2can_status can2canHw_send can2canHw_abort
-  , canHwComponent can2canHw_send can2canHw_abort canHw2can_status canHw2can_recv
-  , uartInComponent todl uartHw2uartIn uartIn2server
-  , uartOutComponent todl uartOut2uartHw uartHw2uartOut server2uartOut
-  , uartHwComponent uartOut2uartHw uartHw2uartIn uartHw2uartOut
+    cameraVmComponent mkCameraVm
+      cameraVm2server
+  , serverComponent mkCameraVm
+      uartIn2server
+      can2server
+      cameraVm2server
+      server2uartOut
+      server2can
+  , canComponent
+      server2can
+      can2server
+      canHw2can_recv
+      canHw2can_status
+      can2canHw_send
+      can2canHw_abort
+  , canHwComponent
+      can2canHw_send
+      can2canHw_abort
+      canHw2can_status
+      canHw2can_recv
+  , uartInComponent todl
+      uartHw2uartIn
+      uartIn2server
+  , uartOutComponent todl
+      uartOut2uartHw
+      uartHw2uartOut
+      server2uartOut
+  , uartHwComponent
+      uartOut2uartHw
+      uartHw2uartIn
+      uartHw2uartOut
   ]
 
 cameraVmComponent :: Maybe (Tower e (ChanOutput ('Struct "camera_data")))
@@ -114,7 +141,7 @@ cameraVmComponent mkCameraVm cameraVm2server =
     case mkCameraVm of
       Nothing -> return ()
       Just mk -> do
-        rx <- liftTower mk
+        rx <- tower mk
         outputPortChan' rx cameraVm2server
 
 serverComponent :: Maybe (Tower e (ChanOutput ('Struct "camera_data")))
@@ -124,13 +151,19 @@ serverComponent :: Maybe (Tower e (ChanOutput ('Struct "camera_data")))
                 -> ExternalChan PlaintextArray
                 -> ExternalChan PlaintextArray
                 -> Component e
-serverComponent mkCameraVm uartIn2server can2server cameraVm2server server2uartOut server2can =
+serverComponent mkCameraVm
+  uartIn2server
+  can2server
+  cameraVm2server
+  server2uartOut
+  server2can
+  =
   component server $ do
     s2c_pt_from_uart <- inputPortChan uartIn2server
     c2s_from_can     <- inputPortChan can2server
     camera_data_in   <- inputPortChan cameraVm2server
 
-    (c2s_pt_to_uart, s2c_to_can) <- liftTower $ do
+    (c2s_pt_to_uart, s2c_to_can) <- tower $ do
       camera_chan      <- channel
       cv_producer      <- controllableVehicleProducerInput c2s_from_can
       let cv_producer' =  cv_producer { cameraTargetInputGetRespProducer
@@ -140,8 +173,10 @@ serverComponent mkCameraVm uartIn2server can2server cameraVm2server server2uartO
       s2c_to_can       <- controllableVehicleConsumerOutput cv_consumer
       case mkCameraVm of
         Nothing -> return ()
-        Just _ -> do
-          periodicCamera (fst camera_chan) camera_data_in (cameraTargetInputGetReqConsumer cv_consumer)
+        Just _ -> periodicCamera
+                    (fst camera_chan)
+                    camera_data_in
+                    (cameraTargetInputGetReqConsumer cv_consumer)
       return ( c2s_pt_to_uart
              , s2c_to_can
              )
@@ -156,7 +191,14 @@ canComponent :: ExternalChan PlaintextArray
              -> ExternalChan ('Struct "can_message")
              -> ExternalChan ('Stored IBool)
              -> Component e
-canComponent server2can can2server canHw2can_recv canHw2can_status can2canHw_send can2canHw_abort =
+canComponent
+  server2can
+  can2server
+  canHw2can_recv
+  canHw2can_status
+  can2canHw_send
+  can2canHw_abort
+  =
   component can $ do
     s2c_to_can   <- inputPortChan  server2can
     canRx        <- inputPortChan  canHw2can_recv
@@ -165,7 +207,7 @@ canComponent server2can can2server canHw2can_recv canHw2can_status can2canHw_sen
     abort        <- outputPortChan can2canHw_abort
     c2s_from_can <- outputPortChan can2server
     let canTx = AbortableTransmit send abort status
-    liftTower $ canDatalink canTx canRx c2s_from_can s2c_to_can
+    tower $ canDatalink canTx canRx c2s_from_can s2c_to_can
 
 canHwComponent :: ExternalChan ('Struct "can_message")
                -> ExternalChan ('Stored IBool)
@@ -174,7 +216,7 @@ canHwComponent :: ExternalChan ('Struct "can_message")
                -> Component e
 canHwComponent can2canHw_send can2canHw_abort canHw2can_status canHw2can_recv =
   component canHw $ do
-    (canRx, AbortableTransmit send abort status) <- liftTower canTower
+    (canRx, AbortableTransmit send abort status) <- tower canTower
     inputPortChan'  send can2canHw_send
     inputPortChan'  abort can2canHw_abort
     outputPortChan' status canHw2can_status
@@ -188,7 +230,7 @@ uartInComponent todl uart_in_ext pt_out_ext =
   component uartIn $ do
     uarti <- inputPortChan uart_in_ext
     input <- outputPortChan pt_out_ext
-    liftTower $ do
+    tower $ do
       input_frames <- channel
       decoderChan  <- channel
       s2c_ct_from_uart <- channel
@@ -205,7 +247,11 @@ uartInComponent todl uart_in_ext pt_out_ext =
 
       airDataDecodeTower "frame" (snd decoderChan) (fst input_frames)
 
-      frameBuffer' (snd input_frames) (Milliseconds 5) (Proxy :: Proxy 4) (fst s2c_ct_from_uart)
+      frameBuffer'
+        (snd input_frames)
+        (Milliseconds 5)
+        (Proxy :: Proxy 4)
+        (fst s2c_ct_from_uart)
 
       commsecDecodeDatalink todl (snd s2c_ct_from_uart) input
 
@@ -219,8 +265,8 @@ uartOutComponent todl uartOut2uartHw uartHw2uartOut server2uartOut =
     output <- inputPortChan server2uartOut
     status <- inputPortChan uartHw2uartOut
     packet <- outputPortChan uartOut2uartHw
-    let uarto = BackpressureTransmit packet (status :: ChanOutput ('Stored IBool))
-    liftTower $ do
+    let uarto = BackpressureTransmit packet status
+    tower $ do
       c2s_ct_to_uart <- channel
       airDataEncodeTower "frame" (snd c2s_ct_to_uart) uarto
       commsecEncodeDatalink todl output (fst c2s_ct_to_uart)
@@ -231,7 +277,7 @@ uartHwComponent :: ExternalChan HXCyphertext
                 -> Component e
 uartHwComponent uartOut2uartHw uartHw2uartIn uartHw2uartOut =
   component uartHw $ do
-    (BackpressureTransmit output status, input) <- liftTower uartTower
+    (BackpressureTransmit output status, input) <- tower uartTower
     inputPortChan'  output uartOut2uartHw
     outputPortChan' status uartHw2uartOut
     outputPortChan' input uartHw2uartIn
