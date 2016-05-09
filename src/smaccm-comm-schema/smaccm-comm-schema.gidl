@@ -265,7 +265,7 @@
   (roll      float_t) -- Roll, pitch,  yaw, in Radians
   (pitch     float_t)
   (yaw       float_t)
-  (baro_alt  float_t) meters
+  (baro_alt  float_t) -- meters
   (fix         gps_fix_t)
   (num_sv      uint8_t) -- number of space vehicles
   (lat         sint32_t) -- degrees * 1e7
