@@ -44,7 +44,12 @@ packedStatusTower attrs = monitor "pack_status" $ do
 
   save packed (packedStatus attrs) (gpsOutput attrs)
     [ Copy P.fix U.fix
+    , Copy P.num_sv U.num_sv
+    , Copy P.lat U.lat
+    , Copy P.lon U.lon
+    , Copy P.alt U.alt
     , Copy P.vground U.vground
+    , Copy P.heading U.heading
     ]
 
   save packed (packedStatus attrs) (gyroOutputCalibration attrs)
@@ -61,6 +66,11 @@ packedStatusTower attrs = monitor "pack_status" $ do
     , Copy P.telem U.telem
     , Copy P.px4io U.px4io
     , Copy P.sens_cal U.sens_cal
+    ]
+
+  save packed (packedStatus attrs) (controlLaw attrs)
+    [ Copy P.arming_mode U.arming_mode
+    , Copy P.control_modes U.control_modes
     ]
 
   attrHandler (batteryVoltage attrs) $ do

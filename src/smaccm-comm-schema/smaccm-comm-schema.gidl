@@ -261,28 +261,28 @@
 -- This is a redundant copy of parts of many other structs, for use in the demo
 -- heads-up display.
 (def-struct packed_status_t
-  (valid     bool_t) -- USED
-  (roll      float_t) -- Roll, pitch,  yaw, in Radians USED
-  (pitch     float_t) -- USED
-  (yaw       float_t) -- USED
-  (baro_alt  float_t) -- meters USED
-  (fix         gps_fix_t) -- USED
---  (num_sv      uint8_t) -- number of space vehicles
---  (lat         sint32_t) -- degrees * 1e7
---  (lon         sint32_t) -- degrees * 1e7
---  (alt         sint32_t) -- meters * 1000 (aka mm)
-  (vground     uint32_t) -- m/s * 100 (aka cm/s) USED
---  (heading     float_t) -- degrees
-  (rcinput   tristate_t) -- USED
-  (telem     tristate_t) -- USED
-  (px4io     tristate_t) -- USED
-  (sens_cal  tristate_t) -- USED
-  (gyro_progress float_t) -- 0.0 to 1.0 USED
-  (mag_progress float_t) -- 0.0 to 1.0 USED
-  (accel_progress float_t) -- 0.0 to 1.0 USED
---  (arming_mode   arming_mode_t)
---  (control_modes control_modes_t)
-  (battery_voltage float_t)) -- USED
+  (valid     bool_t)
+  (roll      float_t) -- Roll, pitch,  yaw, in Radians
+  (pitch     float_t)
+  (yaw       float_t)
+  (baro_alt  float_t) meters
+  (fix         gps_fix_t)
+  (num_sv      uint8_t) -- number of space vehicles
+  (lat         sint32_t) -- degrees * 1e7
+  (lon         sint32_t) -- degrees * 1e7
+  (alt         sint32_t) -- meters * 1000 (aka mm)
+  (vground     uint32_t) -- m/s * 100 (aka cm/s)
+  (heading     float_t) -- degrees
+  (rcinput   tristate_t)
+  (telem     tristate_t)
+  (px4io     tristate_t)
+  (sens_cal  tristate_t)
+  (gyro_progress float_t) -- 0.0 to 1.0
+  (mag_progress float_t) -- 0.0 to 1.0
+  (accel_progress float_t) -- 0.0 to 1.0
+  (arming_mode   arming_mode_t)
+  (control_modes control_modes_t)
+  (battery_voltage float_t))
 
 (def-interface vehicle_i ()
   (heartbeat               (stream         heartbeat_t))
