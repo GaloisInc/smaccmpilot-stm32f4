@@ -377,6 +377,8 @@ test-suite             px4-px4io-packing-test-gen
   type: exitcode-stdio-1.0
   main-is:             PX4IOPackingTest.hs
   hs-source-dirs:      tests
+  other-modules:
+      SMACCMPilot.Hardware.Tests.PX4IO
   build-depends:       base >= 4.6,
                        filepath,
                        ivory,

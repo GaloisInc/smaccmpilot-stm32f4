@@ -188,7 +188,7 @@ _.each(['rcinput', 'telem', 'px4io', 'sens_cal'], function (field) {
 });
 
 var Reboot = Backbone.Model.extend({
-  urlRoot: '/controllable_vehicle_i/reboot'
+  urlRoot: '/controllable_vehicle_i/reboot_req'
 });
 var reboot = new Reboot({});
 $('#status-column').append(new RebootButtonView({ model: reboot }).el);
