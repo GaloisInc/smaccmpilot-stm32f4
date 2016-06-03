@@ -22,11 +22,11 @@ uartDatalink :: (e -> ClockConfig)
              -> Integer
              -> ChanInput CyphertextArray
              -> ChanOutput CyphertextArray
-             -> Tower e ()
+             -> Tower e (Monitor e ())
 uartDatalink tocc uart baud input output = do
   let ps = uart_pins uart
-  (uarto, uarti) <- case uart_periph uart of
-    Left u -> uartTower tocc u ps baud
+  (uarto, uarti, mon) <- case uart_periph uart of
+    Left  u -> uartTower tocc u ps baud
     Right u -> dmaUARTTower tocc u ps baud (Proxy :: Proxy HXCyphertext)
 
   input_frames <- channel
@@ -45,6 +45,7 @@ uartDatalink tocc uart baud input output = do
                                        input
 
   airDataEncodeTower "frame" output uarto
+  return mon
 
 
 frameBuffer :: forall a t n e

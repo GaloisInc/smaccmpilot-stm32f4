@@ -51,7 +51,8 @@ app tofp = do
   commsecEncodeDatalink todl c2s_pt_to_uart (fst c2s_ct_to_uart)
   commsecDecodeDatalink todl (snd s2c_ct_from_uart) (fst s2c_pt_from_uart)
 
-  uartDatalink tocc (fp_telem fp) 115200 (fst s2c_ct_from_uart) (snd c2s_ct_to_uart)
+  mon <- uartDatalink tocc (fp_telem fp) 115200 (fst s2c_ct_from_uart) (snd c2s_ct_to_uart)
+  monitor "uart_dma" mon
   canDatalink canTx canRx (fst c2s_from_can) s2c_to_can
 
   return ()

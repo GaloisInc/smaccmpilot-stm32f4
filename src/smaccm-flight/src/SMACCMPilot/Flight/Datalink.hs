@@ -23,19 +23,20 @@ import Ivory.BSP.STM32.Peripheral.CAN.Filter
 
 datalinkTower :: (e -> FlightPlatform)
               -> CVAPI
-              -> (ChanInput CyphertextArray -> ChanOutput CyphertextArray -> Tower e ())
-              -> Tower e ()
+              -> (ChanInput CyphertextArray -> ChanOutput CyphertextArray -> Tower e (Monitor e ()))
+              -> Tower e (Monitor e ())
 datalinkTower tofp cvapi dl = do
   rx_ct <- channel
   tx_ct <- channel
 
-  dl (fst rx_ct) (snd tx_ct)
+  mon   <- dl (fst rx_ct) (snd tx_ct)
 
-  cv_input <- channel
+  cv_input  <- channel
   cv_output <- controllableVehicle' (snd cv_input) cvapi
 
   commsecEncodeDatalink todatalink cv_output (fst tx_ct)
   commsecDecodeDatalink todatalink (snd rx_ct) (fst cv_input)
+  return mon
 
   where
   todatalink = fp_datalink . tofp
@@ -51,10 +52,10 @@ plaintextDatalinkTower cvapi dl = do
 
 
 -- Provides a plaintext datalink on fp_can and a secure datalink on fp_telem
-flightDatalinks :: (e -> FlightPlatform) -> CVAPI -> Tower e ()
+flightDatalinks :: (e -> FlightPlatform) -> CVAPI -> Tower e (Monitor e ())
 flightDatalinks tofp cvapi = do
-  fp <- fmap tofp getEnv
-  datalinkTower tofp cvapi
+  fp  <- fmap tofp getEnv
+  mon <- datalinkTower tofp cvapi
     (uartDatalink (fp_clockconfig . tofp) (fp_telem fp) 57600)
 
   can <- maybe (fail "flightDatalinks requires a CAN peripheral") return $ fp_can fp
@@ -66,6 +67,7 @@ flightDatalinks tofp cvapi = do
       canFilterInit (can_filters can) [CANFilterBank CANFIFO0 CANFilterMask $ CANFilter32 emptyID emptyID] []
 
   plaintextDatalinkTower cvapi (canDatalink canTx canRx)
+  return mon
 
 
   where

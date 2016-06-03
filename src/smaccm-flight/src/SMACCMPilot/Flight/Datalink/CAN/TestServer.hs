@@ -32,7 +32,8 @@ app tofp = do
 
   plaintextDatalinkTower cvapi (canDatalink canTx canRx)
 
-  sensorTower tofp attrs
+  mon <- sensorTower tofp attrs
+  monitor "uart_dma" mon
   lightTower  tofp attrs
 
   where
