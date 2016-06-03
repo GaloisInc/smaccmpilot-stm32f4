@@ -50,7 +50,8 @@ app topx4 = do
 
   mpu6000SensorManager req ready (fst g_sample) (fst a_sample) (SPIDeviceHandle 0)
 
-  (uarto, _uarti) <- px4ConsoleTower topx4
+  (uarto, _uarti, mon) <- px4ConsoleTower topx4
+  monitor "uart" mon
   half_g <- rateDivider 2 (snd g_sample)
   half_a <- rateDivider 2 (snd a_sample)
 

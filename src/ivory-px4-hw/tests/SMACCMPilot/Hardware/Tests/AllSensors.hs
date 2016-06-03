@@ -37,7 +37,8 @@ app topx4 = do
 
   (accel_meas, gyro_meas, mag_meas, baro_meas) <- sensorManager tosens tocc
 
-  (uartout, _uarti) <- px4ConsoleTower topx4
+  (uartout, _uarti, mon) <- px4ConsoleTower topx4
+  monitor "console_uart" mon
 
   div_accel_meas <- rateDivider 4 accel_meas
   div_gyro_meas <- rateDivider 4 gyro_meas
