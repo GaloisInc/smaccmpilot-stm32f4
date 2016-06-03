@@ -26,7 +26,8 @@ app :: (e -> BSP.TestPlatform)
 app totp tosk = do
   tp <- fmap totp getEnv
   let cu = BSP.testplatform_uart tp
-  (o, i) <- uartTower tocc (BSP.testUARTPeriph cu) (BSP.testUARTPins cu) 57600
+  (o, i, m) <- uartTower tocc (BSP.testUARTPeriph cu) (BSP.testUARTPins cu) 57600
+  monitor "uart" m
   sk <- fmap tosk getEnv
   frame_loopback sk o i
   where
