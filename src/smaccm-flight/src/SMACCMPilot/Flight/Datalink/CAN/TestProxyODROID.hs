@@ -57,7 +57,6 @@ import SMACCMPilot.Datalink.Mode (DatalinkMode)
 import SMACCMPilot.Datalink.HXStream.Tower (
     airDataEncodeTower
   , airDataDecodeTower
-  , HXCyphertext
   )
 
 import Tower.Odroid.CAN (canTower)
@@ -256,7 +255,7 @@ uartInComponent todl uart_in_ext pt_out_ext =
       commsecDecodeDatalink todl (snd s2c_ct_from_uart) input
 
 uartOutComponent :: (e -> DatalinkMode)
-                 -> ExternalChan HXCyphertext
+                 -> ExternalChan UartPacket
                  -> ExternalChan ('Stored IBool)
                  -> ExternalChan PlaintextArray
                  -> Component e
@@ -265,13 +264,28 @@ uartOutComponent todl uartOut2uartHw uartHw2uartOut server2uartOut =
     output <- inputPortChan server2uartOut
     status <- inputPortChan uartHw2uartOut
     packet <- outputPortChan uartOut2uartHw
-    let uarto = BackpressureTransmit packet status
     tower $ do
       c2s_ct_to_uart <- channel
-      airDataEncodeTower "frame" (snd c2s_ct_to_uart) uarto
       commsecEncodeDatalink todl output (fst c2s_ct_to_uart)
 
-uartHwComponent :: ExternalChan HXCyphertext
+      (hx_packet_in, hx_packet_out) <- channel
+      let uarto = BackpressureTransmit hx_packet_in status
+      airDataEncodeTower "frame" (snd c2s_ct_to_uart) uarto
+
+      monitor "send_transdata" $ do
+        handler hx_packet_out "send_translate" $ do
+          e <- emitter packet 1
+          callback $ \msg -> do
+            msg' <- local (izero :: Init UartPacket)
+            let srccap = arrayLen (msg ~> stringDataL)
+            srclen <- msg ~>* stringLengthL
+            assert $ srclen >=? 0 .&& srclen <=? srccap
+            assert $ srccap <=? arrayLen (msg' ~> stringDataL)
+            arrayCopy (msg' ~> stringDataL) (msg ~> stringDataL) 0 srclen
+            store (msg' ~> stringLengthL) srclen
+            emit e $ constRef msg'
+
+uartHwComponent :: ExternalChan UartPacket
                 -> ExternalChan UartPacket
                 -> ExternalChan ('Stored IBool)
                 -> Component e
