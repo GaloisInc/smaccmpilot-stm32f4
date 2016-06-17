@@ -50,10 +50,6 @@ can_proxy_odroid_test: default
 smaccmpilot-odroid: default
 	-rm -rf smaccmpilot
 	-mkdir smaccmpilot
-	cp -r $(TOWER_CAMKES_ODROID_REPO)/data/uart/* ./smaccmpilot/
-	cp -r $(TOWER_CAMKES_ODROID_REPO)/data/can/* ./smaccmpilot/
-	cp -r $(TOWER_CAMKES_ODROID_REPO)/data/camera_vm/* ./smaccmpilot/
-	cp -r tests/odroid-tests/smaccmpilot-odroid-artifacts/* ./smaccmpilot/
 	stack exec -- smaccmpilot-odroid-gen \
 			--src-dir=smaccmpilot --lib-dir=smaccmpilot \
 			--conf-file=odroid.conf $(IVORY_FLAGS)
