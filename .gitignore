@@ -3,7 +3,9 @@ cabal.sandbox.config
 .cabal-sandbox/
 dist/
 .stack-work
+TAGS
 /src/smaccm-flight/smaccmpilot
+/src/smaccm-flight/smaccmpilot-mini
 /gec/
 /gidl/
 /ivory-tower-posix/

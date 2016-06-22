@@ -1,14 +1,15 @@
 module Main where
 
 import Ivory.Tower.Config
-import Tower.Mini
+import Tower.AADL
+import Tower.Odroid.CAN (canConfig)
 
 import SMACCMPilot.Datalink.Mode
 import SMACCMPilot.Flight.Datalink.CAN.TestProxyODROID (app)
 
 main :: IO ()
-main = compileTowerMini fst p (app snd False)
+main = compileTowerAADL fst p (app snd Nothing)
   where
   p topts = fmap fst $ getConfig' topts $ do
     k <- datalinkModeParser DatalinkServer
-    return (defaultMiniConfig, k)
+    return (canConfig, k)

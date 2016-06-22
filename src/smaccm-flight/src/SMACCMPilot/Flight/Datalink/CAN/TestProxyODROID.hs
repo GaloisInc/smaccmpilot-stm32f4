@@ -14,243 +14,64 @@ import Ivory.Language.Proxy
 import Ivory.Stdlib
 import Ivory.Tower
 
-import Tower.Mini
-
-import Ivory.Tower.HAL.Bus.CAN.Fragment (
-    fragmentReceiveHandler
-  , fragmentReceiver
-  , fragmentSender
-  , MessageType
-  )
-
-import Ivory.Tower.HAL.Bus.Interface (
-    AbortableTransmit(..)
-  , BackpressureTransmit(..)
-  )
+import Ivory.Tower.HAL.Bus.CAN.Fragment
+import Ivory.Tower.HAL.Bus.Interface
 
 import SMACCMPilot.Flight.Datalink.UART (frameBuffer')
-import SMACCMPilot.Flight.Datalink.Commsec (
-    commsecEncodeDatalink
-  , commsecDecodeDatalink)
+import SMACCMPilot.Flight.Datalink.Commsec
 import SMACCMPilot.Flight.Datalink.CAN (s2cType, c2sType)
 
-import SMACCMPilot.Comm.Ivory.Types.SequenceNum (SequenceNum)
-import SMACCMPilot.Comm.Ivory.Types.SequenceNumberedCameraTarget (seqnum, val)
-import SMACCMPilot.Comm.Ivory.Types.CameraTarget (
-    bbox_l
-  , bbox_r
-  , bbox_t
-  , bbox_b
-  , valid
-  )
-import SMACCMPilot.Comm.Tower.Interface.ControllableVehicle (
-    cameraTargetInputGetReqConsumer
-  , cameraTargetInputGetRespProducer
-  , controllableVehicleConsumerInput
-  , controllableVehicleConsumerOutput
-  , controllableVehicleProducerInput
-  , controllableVehicleProducerOutput
-  )
-import SMACCMPilot.Commsec.Sizes (PlaintextArray)
-import SMACCMPilot.Datalink.Mode (DatalinkMode)
+import SMACCMPilot.Comm.Ivory.Types.SequenceNum
+import SMACCMPilot.Comm.Ivory.Types.SequenceNumberedCameraTarget
+import SMACCMPilot.Comm.Ivory.Types.CameraTarget
+import SMACCMPilot.Comm.Tower.Interface.ControllableVehicle
+import SMACCMPilot.Commsec.Sizes
+import SMACCMPilot.Datalink.Mode
 
-import SMACCMPilot.Datalink.HXStream.Tower (
-    airDataEncodeTower
-  , airDataDecodeTower
-  )
+import SMACCMPilot.Datalink.HXStream.Tower
 
-import Tower.Odroid.UART (UartPacket)
+import Tower.Odroid.CAN
+import Tower.Odroid.UART
 import qualified Tower.Odroid.CameraVM as VM
 
-server, can, uartIn, uartOut :: String
-server   = "Server"
-can      = "CAN_framing"
-uartIn   = "Decrypt"
-uartOut  = "Encrypt"
+app :: (e -> DatalinkMode)
+    -> Maybe (ChanOutput ('Struct "camera_data"))
+    -> Tower e ()
+app todl cameraRx = do
 
-app :: (e -> DatalinkMode) -> Bool -> [Component e]
-app todl cameraPresent =
-  let canHdr     = "smaccm_CAN_framing.h"
-      decryptHdr = "smaccm_Decrypt.h"
-      encryptHdr = "smaccm_Encrypt.h"
-      serverHdr  = "smaccm_Server.h"
-      cameraVm2server =
-        mkExternalInputChan "Server_read_camera_data" serverHdr
-      uartHw2uartIn =
-        mkExternalInputChan "Decrypt_read_get_packet" decryptHdr
-      uartHw2uartOut =
-        mkExternalInputChan "Encrypt_read_recv_response" encryptHdr
-      uartIn2server =
-        mkExternalChan
-          "Server_read_get_input"   serverHdr
-          "Decrypt_write_send_gidl" decryptHdr
-      uartOut2uartHw =
-        mkExternalOutputChan "Encrypt_write_send_packet" encryptHdr
-      server2uartOut =
-        mkExternalChan
-          "Encrypt_read_get_gidl"    encryptHdr
-          "Server_write_send_output" serverHdr
-      server2can =
-        mkExternalChan
-          "CAN_framing_read_from_server" canHdr
-          "Server_write_send_can"        serverHdr
-      can2server =
-        mkExternalChan
-          "Server_read_get_can"         serverHdr
-          "CAN_framing_write_to_server" canHdr
-      can2canHw_send =
-        mkExternalOutputChan "CAN_framing_write_fragment_request" canHdr
-      canHw2can_recv =
-        mkExternalInputChan "CAN_framing_read_fragment_reasembly" canHdr
-      canHw2can_status =
-        mkExternalInputChan "CAN_framing_read_get_status" canHdr
-  in [
-    serverComponent cameraPresent
-      uartIn2server
-      can2server
-      cameraVm2server
-      server2uartOut
-      server2can
-  , canComponent
-      server2can
-      can2server
-      canHw2can_recv
-      canHw2can_status
-      can2canHw_send
-  , uartInComponent todl
-      uartHw2uartIn
-      uartIn2server
-  , uartOutComponent todl
-      uartOut2uartHw
-      uartHw2uartOut
-      server2uartOut
-  ]
+  (canRx, canTx) <- canTower
 
-serverComponent :: Bool
-                -> ExternalChan PlaintextArray
-                -> ExternalChan PlaintextArray
-                -> ExternalInputChan ('Struct "camera_data")
-                -> ExternalChan PlaintextArray
-                -> ExternalChan PlaintextArray
-                -> Component e
-serverComponent cameraPresent
-  uartIn2server
-  can2server
-  cameraVm2server
-  server2uartOut
-  server2can
-  =
-  component server $ do
-    s2c_pt_from_uart <- inputPortChan uartIn2server
-    c2s_from_can     <- inputPortChan can2server
-    camera_data_in   <- inputPortChan cameraVm2server
+  s2c_pt_from_uart <- channel
+  s2c_ct_from_uart <- channel
+  c2s_from_can     <- channel
 
-    (c2s_pt_to_uart, s2c_to_can) <- tower $ do
-      camera_chan      <- channel
-      cv_producer      <- controllableVehicleProducerInput c2s_from_can
-      let cv_producer' =  cv_producer { cameraTargetInputGetRespProducer
-                                      = snd camera_chan }
-      c2s_pt_to_uart   <- controllableVehicleProducerOutput cv_producer'
-      cv_consumer      <- controllableVehicleConsumerInput s2c_pt_from_uart
-      s2c_to_can       <- controllableVehicleConsumerOutput cv_consumer
-      case cameraPresent of
-        False -> return ()
-        True -> periodicCamera
-                  (fst camera_chan)
-                  camera_data_in
-                  (cameraTargetInputGetReqConsumer cv_consumer)
-      return (c2s_pt_to_uart, s2c_to_can)
-    outputPortChan' c2s_pt_to_uart server2uartOut
-    outputPortChan' s2c_to_can server2can
+  camera_chan      <- channel
 
-canComponent :: ExternalChan PlaintextArray
-             -> ExternalChan PlaintextArray
-             -> ExternalInputChan ('Struct "can_message")
-             -> ExternalInputChan ('Stored IBool)
-             -> ExternalOutputChan ('Struct "can_message")
-             -> Component e
-canComponent
-  server2can
-  can2server
-  canHw2can_recv
-  canHw2can_status
-  can2canHw_send
-  =
-  component can $ do
-    s2c_to_can   <- inputPortChan  server2can
-    canRx        <- inputPortChan  canHw2can_recv
-    status       <- inputPortChan  canHw2can_status
-    send         <- outputPortChan can2canHw_send
-    c2s_from_can <- outputPortChan can2server
-    tower $ do
-      -- unused for the Ph3 implementation
-      (_abort, _) <- channel
-      let canTx = AbortableTransmit send _abort status
-      canDatalink canTx canRx c2s_from_can s2c_to_can
+  cv_producer      <- controllableVehicleProducerInput (snd c2s_from_can)
+  let cv_producer' =  cv_producer { cameraTargetInputGetRespProducer
+                                  = snd camera_chan }
+  c2s_pt_to_uart   <- controllableVehicleProducerOutput cv_producer'
 
-uartInComponent :: (e -> DatalinkMode)
-                -> ExternalInputChan UartPacket
-                -> ExternalChan PlaintextArray
-                -> Component e
-uartInComponent todl uart_in_ext pt_out_ext =
-  component uartIn $ do
-    uarti <- inputPortChan uart_in_ext
-    input <- outputPortChan pt_out_ext
-    tower $ do
-      input_frames <- channel
-      decoderChan  <- channel
-      s2c_ct_from_uart <- channel
+  cv_consumer      <- controllableVehicleConsumerInput (snd s2c_pt_from_uart)
+  -- cv_consumer'     <- cv_consumer { cameraTargetInputGetReqConsumer
+  --                                 = snd camera_chan }
+  s2c_to_can       <- controllableVehicleConsumerOutput cv_consumer
 
-      monitor "to_hx" $ do
-        handler uarti "unpack" $ do
-          let n = fromTypeNat (aNat :: Proxy (Capacity UartPacket))
-          e <- emitter (fst decoderChan) n
-          callback $ \msg -> do
-            len <- msg ~>* stringLengthL
-            let d = msg ~> stringDataL
-            arrayMap $ \ix -> do
-              when (fromIx ix <? len) $ emit e (d!ix)
+  c2s_ct_to_uart  <- channel
+  return ()
 
-      airDataDecodeTower "frame" (snd decoderChan) (fst input_frames)
+  commsecEncodeDatalink todl c2s_pt_to_uart (fst c2s_ct_to_uart)
+  commsecDecodeDatalink todl (snd s2c_ct_from_uart) (fst s2c_pt_from_uart)
 
-      frameBuffer'
-        (snd input_frames)
-        (Milliseconds 5)
-        (Proxy :: Proxy 4)
-        (fst s2c_ct_from_uart)
+  uartDatalink (fst s2c_ct_from_uart) (snd c2s_ct_to_uart)
 
-      commsecDecodeDatalink todl (snd s2c_ct_from_uart) input
+  canDatalink  canTx canRx (fst c2s_from_can) s2c_to_can
 
-uartOutComponent :: (e -> DatalinkMode)
-                 -> ExternalOutputChan UartPacket
-                 -> ExternalInputChan ('Stored IBool)
-                 -> ExternalChan PlaintextArray
-                 -> Component e
-uartOutComponent todl uartOut2uartHw uartHw2uartOut server2uartOut =
-  component uartOut $ do
-    output <- inputPortChan server2uartOut
-    status <- inputPortChan uartHw2uartOut
-    packet <- outputPortChan uartOut2uartHw
-    tower $ do
-      c2s_ct_to_uart <- channel
-      commsecEncodeDatalink todl output (fst c2s_ct_to_uart)
-
-      (hx_packet_in, hx_packet_out) <- channel
-      let uarto = BackpressureTransmit hx_packet_in status
-      airDataEncodeTower "frame" (snd c2s_ct_to_uart) uarto
-
-      monitor "send_transdata" $ do
-        handler hx_packet_out "send_translate" $ do
-          e <- emitter packet 1
-          callback $ \msg -> do
-            msg' <- local (izero :: Init UartPacket)
-            let srccap = arrayLen (msg ~> stringDataL)
-            srclen <- msg ~>* stringLengthL
-            assert $ srclen >=? 0 .&& srclen <=? srccap
-            assert $ srccap <=? arrayLen (msg' ~> stringDataL)
-            arrayCopy (msg' ~> stringDataL) (msg ~> stringDataL) 0 srclen
-            store (msg' ~> stringLengthL) srclen
-            emit e $ constRef msg'
+  case cameraRx of
+    Nothing
+      -> return ()
+    Just camera_data_chan
+      -> periodicCamera (fst camera_chan) camera_data_chan (cameraTargetInputGetReqConsumer cv_consumer)
 
 periodicCamera :: ChanInput ('Struct "sequence_numbered_camera_target")
                -> ChanOutput ('Struct "camera_data")
@@ -311,10 +132,10 @@ periodicCamera camera_chan_tx camera_data_chan camera_req_tx = do
          refCopy camera_data_st camera_data
 
 fragmentDrop :: (IvoryArea a, IvoryZero a)
-             => ChanOutput a
-             -> MessageType a
-             -> AbortableTransmit ('Struct "can_message") ('Stored IBool)
-             -> Tower e ()
+                    => ChanOutput a
+                    -> MessageType a
+                    -> AbortableTransmit ('Struct "can_message") ('Stored IBool)
+                    -> Tower e ()
 fragmentDrop src mt tx = do
   (fragReq, _fragAbort, fragDone) <- fragmentSender mt tx
 
@@ -342,3 +163,45 @@ canDatalink :: AbortableTransmit ('Struct "can_message") ('Stored IBool)
 canDatalink tx rx assembled toFrag = do
   fragmentReceiver rx [fragmentReceiveHandler assembled s2cType]
   fragmentDrop toFrag c2sType tx
+
+uartDatalink :: ChanInput CyphertextArray
+             -> ChanOutput CyphertextArray
+             -> Tower e ()
+uartDatalink input output = do
+  (BackpressureTransmit uarto status, uarti) <- uartTower
+
+  input_frames <- channel
+  decoderChan  <- channel
+
+  monitor "to_hx" $ do
+    handler uarti "unpack" $ do
+      let n = fromTypeNat (aNat :: Proxy (Capacity UartPacket))
+      e <- emitter (fst decoderChan) n
+      callback $ \msg -> do
+        len <- msg ~>* stringLengthL
+        let d = msg ~> stringDataL
+        arrayMap $ \ix -> do
+          when (fromIx ix <? len) $ emit e (d!ix)
+
+  (hx_packet_in, hx_packet_out) <- channel
+  let translate = BackpressureTransmit hx_packet_in status
+
+  monitor "send_transdata" $ do
+    handler hx_packet_out "send_translate" $ do
+      e <- emitter uarto 1
+      callback $ \msg -> do
+        msg' <- local (izero :: Init UartPacket)
+        let srccap = arrayLen (msg ~> stringDataL)
+        srclen <- msg ~>* stringLengthL
+        assert $ srclen >=? 0 .&& srclen <=? srccap
+        assert $ srccap <=? arrayLen (msg' ~> stringDataL)
+        arrayCopy (msg' ~> stringDataL) (msg ~> stringDataL) 0 srclen
+        store (msg' ~> stringLengthL) srclen
+        emit e $ constRef msg'
+
+
+  airDataDecodeTower "frame" (snd decoderChan) (fst input_frames)
+
+  frameBuffer' (snd input_frames) (Milliseconds 5) (Proxy :: Proxy 4) input
+
+  airDataEncodeTower "frame" output translate

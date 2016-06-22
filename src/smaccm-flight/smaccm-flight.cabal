@@ -124,7 +124,7 @@ executable             can-proxy-odroid-test-gen
   hs-source-dirs:      tests/odroid-tests
   build-depends:       base >= 4.6,
                        tower >= 0.9,
-                       tower-mini,
+                       tower-aadl,
                        tower-camkes-odroid,
                        tower-config,
                        smaccm-commsec,
@@ -138,10 +138,28 @@ executable             smaccmpilot-odroid-gen
   hs-source-dirs:      tests/odroid-tests
   build-depends:       base >= 4.6,
                        tower >= 0.9,
+                       tower-aadl,
                        tower-camkes-odroid,
                        tower-config,
+                       smaccm-commsec,
+                       smaccm-datalink,
+                       smaccm-flight
+  default-language:    Haskell2010
+  ghc-options:         -Wall
+
+executable             smaccmpilot-odroid-mini-gen
+  main-is:             SMACCMPilotODROIDMini.hs
+  hs-source-dirs:      odroid-mini
+  build-depends:       base >= 4.6,
+                       ivory,
+                       ivory-stdlib,
+                       tower >= 0.9,
+                       tower-camkes-odroid,
+                       tower-config,
+                       tower-hal,
                        tower-mini,
                        smaccm-commsec,
+                       smaccm-comm-schema-tower,
                        smaccm-datalink,
                        smaccm-flight
   default-language:    Haskell2010
