@@ -23,7 +23,8 @@ app topx4 = do
     Just adc -> adcTower (const adc) (fst adcOut)
     Nothing -> fail "adc unit test requires px4platform to have ADC"
 
-  (uarto, _i) <- px4ConsoleTower topx4
+  (uarto, _i, mon) <- px4ConsoleTower topx4
+  monitor "console_uart" mon
   monitor "adcsender" $ do
     adcSender (snd adcOut) uarto
 

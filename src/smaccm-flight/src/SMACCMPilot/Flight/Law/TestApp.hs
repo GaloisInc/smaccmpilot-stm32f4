@@ -19,9 +19,10 @@ app tofp = do
 
   cvapi@(attrs, _streams) <- controllableVehicleAPI
 
-  fp <- fmap tofp getEnv
-  datalinkTower tofp cvapi
+  fp  <- fmap tofp getEnv
+  mon <- datalinkTower tofp cvapi
     (uartDatalink (fp_clockconfig . tofp) (fp_telem fp) 115200)
+  monitor "uart_dma" mon
 
   -- Don't hook anything up to outputs!
   (_, output_cl) <- channel

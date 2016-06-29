@@ -19,7 +19,7 @@ type CVAPI = (ControllableVehicleAttrs Attr, (ControllableVehicleStreams ChanInp
 
 controllableVehicleAPI :: Tower e CVAPI
 controllableVehicleAPI = do
-  attrs <- towerControllableVehicleAttrs initControllableVehicleAttrs
+  attrs   <- towerControllableVehicleAttrs initControllableVehicleAttrs
   streams <- towerControllableVehicleStreams
   return (attrs, streams)
 

@@ -33,7 +33,9 @@ app topx4 = do
       callback $ const $ return () -- I need a place to put the breakpoint...
 
 
-  (buffered_uarto, uarti) <- px4ConsoleTower topx4
+  (buffered_uarto, uarti, mon) <- px4ConsoleTower topx4
+  monitor "console_uart" mon
+
   unbuffered_uarto <- uartUnbuffer buffered_uarto
 
   arming_control <- channel
