@@ -17,7 +17,6 @@ import Ivory.HW (hw_moduledef)
 import Ivory.Language.Module (package)
 import Ivory.Language.Syntax.Names
 import Ivory.Language.Syntax
-import Ivory.Language.Syntax.AST
 
 main :: IO ()
 main = compileTowerAADLForPlatformWithOpts f p (app id) [lockCoarsening 200 60 unsafeList]
