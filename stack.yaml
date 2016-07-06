@@ -31,6 +31,8 @@ packages:
     - ivory-stdlib
 - location: ../ivory-tower-posix/
   extra-dep: true
+  subdirs:
+    - tower-posix
 - location: ../ivory-tower-stm32/
   extra-dep: true
   subdirs:
@@ -46,6 +48,7 @@ packages:
     - tower-aadl
     - tower-config
     - tower-hal
+    - tower-opts
 - location: ../tower-camkes-odroid/
   extra-dep: true
 - location:

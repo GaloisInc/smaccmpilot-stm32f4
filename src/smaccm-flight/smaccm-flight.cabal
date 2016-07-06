@@ -72,6 +72,7 @@ library
                        tower >=0.9,
                        tower-aadl,
                        tower-hal,
+                       tower-opts,
                        tower-config,
                        tower-camkes-odroid,
                        tower-freertos-stm32,
@@ -209,7 +210,10 @@ executable             standalone-flight-gen
   hs-source-dirs:      tests
   build-depends:       base >= 4.6,
                        tower >= 0.9,
+                       tower-opts,
                        tower-config,
+                       ivory-hw,
+                       ivory,
                        tower-freertos-stm32,
                        smaccm-flight
   default-language:    Haskell2010
@@ -222,8 +226,11 @@ executable             standalone_flight_echronos_gen
                        tower >= 0.9,
                        tower-config,
                        tower-aadl,
+                       tower-opts,
                        tower-freertos-stm32,
                        tower-echronos-stm32,
+                       ivory,
+                       ivory-hw,
                        smaccm-flight
   default-language:    Haskell2010
   ghc-options:         -Wall
