@@ -19,8 +19,8 @@ import Ivory.Language.Syntax.Names
 import Ivory.Language.Syntax
 
 main :: IO ()
-main = compileTowerAADLForPlatformWithOpts f p (app id) [lockCoarsening 200 60 unsafeList]
---main = compileTowerAADLForPlatformWithOpts f p (app id) []
+main = compileTowerAADLForPlatformWithOpts f p (app id) []
+--main = compileTowerAADLForPlatformWithOpts f p (app id) [lockCoarsening 200 60 unsafeList]
 --DEPRECATED main = compileTowerSTM32FreeRTOS fp_stm32config p (app id)
   where
   f :: FlightPlatform -> (AADLConfig, OSSpecific STM32Config)
@@ -31,7 +31,7 @@ main = compileTowerAADLForPlatformWithOpts f p (app id) [lockCoarsening 200 60 u
              )
   p :: TOpts -> IO FlightPlatform
   p topts = fmap fst (getConfig' topts flightPlatformParser)
-  unsafeList :: [Sym]
-  unsafeList = (map importSym $ modImports $ package "" hw_moduledef)
+--  unsafeList :: [Sym]
+--  unsafeList = (map importSym $ modImports $ package "" hw_moduledef)
 
   --DEPRECATED p topts = getConfig topts flightPlatformParser
