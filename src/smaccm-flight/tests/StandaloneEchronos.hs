@@ -12,11 +12,11 @@ import Tower.AADL
 import Tower.AADL.Build.Common
 import Tower.AADL.Build.EChronos
 
-import Ivory.Tower.Opts.LockCoarsening
-import Ivory.HW (hw_moduledef)
-import Ivory.Language.Module (package)
-import Ivory.Language.Syntax.Names
-import Ivory.Language.Syntax
+--import Ivory.Tower.Opts.LockCoarsening
+--import Ivory.HW (hw_moduledef)
+--import Ivory.Language.Module (package)
+--import Ivory.Language.Syntax.Names
+--import Ivory.Language.Syntax
 
 main :: IO ()
 main = compileTowerAADLForPlatformWithOpts f p (app id) []
