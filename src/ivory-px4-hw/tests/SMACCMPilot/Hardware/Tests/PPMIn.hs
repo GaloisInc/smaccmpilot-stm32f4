@@ -12,13 +12,14 @@ import Ivory.Tower
 import SMACCMPilot.Hardware.PPM
 import SMACCMPilot.Hardware.PX4IO
 import SMACCMPilot.Hardware.Platforms
-import SMACCMPilot.Hardware.Tests.Serialize
+import SMACCMPilot.Hardware.Serialize
 import qualified SMACCMPilot.Comm.Ivory.Types.Px4ioState as PX4IO
 
 app :: (e -> PX4Platform)
     -> Tower e ()
 app topx4 = do
-  (uarto, _i) <- px4ConsoleTower topx4
+  (uarto, _i, mon) <- px4ConsoleTower topx4
+  monitor "consule_uart" mon
 
   ppmOut <- channel
   env <- fmap topx4 getEnv

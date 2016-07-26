@@ -34,10 +34,13 @@ import Tower.Odroid.CAN
 import Tower.Odroid.UART
 import qualified Tower.Odroid.CameraVM as VM
 
+type CameraSetup e = ChanOutput ('Struct "sequence_numbered_reboot_req")
+                  -> Tower e (ChanOutput ('Struct "camera_data"))
+
 app :: (e -> DatalinkMode)
-    -> Maybe (ChanOutput ('Struct "camera_data"))
+    -> Maybe (CameraSetup e)
     -> Tower e ()
-app todl cameraRx = do
+app todl mCameraSetup = do
 
   (canRx, canTx) <- canTower
 
@@ -45,16 +48,13 @@ app todl cameraRx = do
   s2c_ct_from_uart <- channel
   c2s_from_can     <- channel
 
-  camera_chan      <- channel
+  camera_chan        <- channel
 
   cv_producer      <- controllableVehicleProducerInput (snd c2s_from_can)
-  let cv_producer' =  cv_producer { cameraTargetInputGetRespProducer
-                                  = snd camera_chan }
+  let cv_producer' =  cv_producer { cameraTargetInputGetRespProducer = snd camera_chan }
   c2s_pt_to_uart   <- controllableVehicleProducerOutput cv_producer'
 
   cv_consumer      <- controllableVehicleConsumerInput (snd s2c_pt_from_uart)
-  -- cv_consumer'     <- cv_consumer { cameraTargetInputGetReqConsumer
-  --                                 = snd camera_chan }
   s2c_to_can       <- controllableVehicleConsumerOutput cv_consumer
 
   c2s_ct_to_uart  <- channel
@@ -67,11 +67,11 @@ app todl cameraRx = do
 
   canDatalink  canTx canRx (fst c2s_from_can) s2c_to_can
 
-  case cameraRx of
-    Nothing
-      -> return ()
-    Just camera_data_chan
-      -> periodicCamera (fst camera_chan) camera_data_chan (cameraTargetInputGetReqConsumer cv_consumer)
+  case mCameraSetup of
+    Nothing -> return ()
+    Just cameraSetup -> do
+      camera_data_chan <- cameraSetup (rebootReqSetReqConsumer cv_consumer)
+      periodicCamera (fst camera_chan) camera_data_chan (cameraTargetInputGetReqConsumer cv_consumer)
 
 periodicCamera :: ChanInput ('Struct "sequence_numbered_camera_target")
                -> ChanOutput ('Struct "camera_data")

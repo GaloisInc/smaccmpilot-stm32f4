@@ -98,11 +98,11 @@ mpu6000SensorManager :: BackpressureTransmit ('Struct "spi_transaction_request")
                      -> SPIDeviceHandle
                      -> Tower e ()
 mpu6000SensorManager (BackpressureTransmit req_chan res_chan) init_chan gyro_chan accel_chan dev = do
-  towerModule G.gyroscopeSampleTypesModule
+  towerModule  G.gyroscopeSampleTypesModule
   towerDepends G.gyroscopeSampleTypesModule
-  towerModule A.accelerometerSampleTypesModule
+  towerModule  A.accelerometerSampleTypesModule
   towerDepends A.accelerometerSampleTypesModule
-  towerModule M.mpu6000ResponseTypesModule
+  towerModule  M.mpu6000ResponseTypesModule
   towerDepends M.mpu6000ResponseTypesModule
 
   -- TODO: let caller choose the bandwidth
@@ -118,15 +118,15 @@ mpu6000SensorManager (BackpressureTransmit req_chan res_chan) init_chan gyro_cha
   p <- period (Milliseconds samplePeriodMS)
 
   monitor "mpu6kCtl" $ do
-    retries <- state "retries"
-    ready <- state "ready"
+    retries            <- state "retries"
+    ready              <- state "ready"
     transactionPending <- state "transaction_pending"
-    gyro_s <- state "gyro"
-    accel_s <- state "accel"
+    gyro_s             <- state "gyro"
+    accel_s            <- state "accel"
 
     coroutineHandler init_chan res_chan "mpu6000" $ do
-      req_e   <- emitter req_chan 1
-      gyro_e  <- emitter gyro_chan 1
+      req_e   <- emitter req_chan   1
+      gyro_e  <- emitter gyro_chan  1
       accel_e <- emitter accel_chan 1
       return $ CoroutineBody $ \ yield -> do
         let rpc req = req >>= emit req_e >> yield
@@ -150,8 +150,8 @@ mpu6000SensorManager (BackpressureTransmit req_chan res_chan) init_chan gyro_cha
         comment "Wake the sensor device, use internal oscillator"
         _ <- rpc (writeRegReq dev PowerManagment1 0x00)
 
-        comment $ "accel bandwidth: " ++ show (accelBandwidth lpfConfig :: Int) ++ "Hz, "
-               ++ "gyro bandwidth: " ++ show (gyroBandwidth lpfConfig :: Int) ++ "Hz, "
+        comment $ "accel bandwidth: "  ++ show (accelBandwidth lpfConfig :: Int) ++ "Hz, "
+               ++ "gyro bandwidth: "   ++ show (gyroBandwidth  lpfConfig :: Int) ++ "Hz, "
                ++ "gyro sample rate: " ++ show (gyroSampleRate lpfConfig :: Int) ++ "Hz"
         _ <- rpc $ writeRegReq dev Config $ configRegVal lpfConfig
 
@@ -171,29 +171,30 @@ mpu6000SensorManager (BackpressureTransmit req_chan res_chan) init_chan gyro_cha
           comment "Got a response, sending it up the stack"
           store transactionPending false
           sensorSample (constRef res) gyro_s accel_s
-          emit gyro_e (constRef gyro_s)
+          emit gyro_e  (constRef gyro_s)
           emit accel_e (constRef accel_s)
 
     handler p "period" $ do
-      req_e   <- emitter req_chan 1
-      gyro_e  <- emitter gyro_chan 1
+      req_e   <- emitter req_chan   1
+      gyro_e  <- emitter gyro_chan  1
       accel_e <- emitter accel_chan 1
       callback $ const $ do
-        isReady <- deref ready
+        comment ("samplePeriodMS = " ++ show (Milliseconds samplePeriodMS))
+        isReady   <- deref ready
         isPending <- deref transactionPending
         cond_
           [ iNot isReady ==> do
-              store (gyro_s ~> G.initfail) true
+              store (gyro_s  ~> G.initfail) true
               store (accel_s ~> A.initfail) true
               invalidTransaction gyro_s accel_s
-              emit gyro_e (constRef gyro_s)
+              emit gyro_e  (constRef gyro_s)
               emit accel_e (constRef accel_s)
           , isPending ==> do
               invalidTransaction gyro_s accel_s
-              emit gyro_e (constRef gyro_s)
+              emit gyro_e  (constRef gyro_s)
               emit accel_e (constRef accel_s)
           , true ==> do
-              store (gyro_s ~> G.initfail) false
+              store (gyro_s  ~> G.initfail) false
               store (accel_s ~> A.initfail) false
               store transactionPending true
               req <- getSensorsReq dev

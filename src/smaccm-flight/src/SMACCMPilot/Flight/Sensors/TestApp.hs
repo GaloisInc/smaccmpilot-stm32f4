@@ -18,11 +18,12 @@ app :: (e -> FlightPlatform)
 app tofp = do
   cvapi@(attrs, _streams) <- controllableVehicleAPI
 
-  fp <- fmap tofp getEnv
-  datalinkTower tofp cvapi
+  fp   <- fmap tofp getEnv
+  mon1 <- datalinkTower tofp cvapi
     (uartDatalink (fp_clockconfig . tofp) (fp_telem fp) 115200)
 
-  sensorTower tofp attrs
+  mon2 <- sensorTower tofp attrs
+  monitor "uart_dma" (mon1 >> mon2)
 
   -- flightIOTower just exists to populate the px4ioState attr, so we
   -- can trigger accel cal.

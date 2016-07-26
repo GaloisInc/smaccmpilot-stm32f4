@@ -22,7 +22,7 @@ import SMACCMPilot.Hardware.CANMessages
 
 import SMACCMPilot.Hardware.SensorManager
 import SMACCMPilot.Hardware.Platforms
-import SMACCMPilot.Hardware.Tests.Serialize
+import SMACCMPilot.Hardware.Serialize
 import SMACCMPilot.Hardware.Tests.Ublox (uartUbloxGPSTower)
 
 app :: (e -> PX4Platform) -> Tower e ()
@@ -33,11 +33,12 @@ app topx4 = do
 
   let gps = px4platform_gps px4platform
   position <- channel
-  uartUbloxGPSTower tocc gps (fst position)
+  mon1 <- uartUbloxGPSTower tocc gps (fst position)
 
   (accel_meas, gyro_meas, mag_meas, baro_meas) <- sensorManager tosens tocc
 
-  (uartout, _uarti) <- px4ConsoleTower topx4
+  (uartout, _uarti, mon2) <- px4ConsoleTower topx4
+  monitor "console_uart" (mon1 >> mon2)
 
   div_accel_meas <- rateDivider 4 accel_meas
   div_gyro_meas <- rateDivider 4 gyro_meas

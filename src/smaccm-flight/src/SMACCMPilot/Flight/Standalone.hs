@@ -27,7 +27,7 @@ app :: (e -> FlightPlatform)
 app tofp = do
   cvapi@(attrs, _streams) <- controllableVehicleAPI
 
-  flightDatalinks tofp cvapi
+  mon1 <- flightDatalinks tofp cvapi
 
   lightTower tofp attrs
 
@@ -59,16 +59,17 @@ app tofp = do
         , lawinput_sensors_output   = attrReaderChan (sensorsOutput attrs)
         }
 
-  control_law <- channel
+  control_law       <- channel
   user_input_result <- channel
-  arming_status <- channel
+  arming_status     <- channel
   lawTower lawInputs (fst arming_status) (fst control_law) (fst user_input_result)
 
   attrProxy (armingStatus attrs) (snd arming_status)
-  attrProxy (controlLaw attrs) (snd control_law)
-  attrProxy (userInput attrs) (snd user_input_result)
+  attrProxy (controlLaw attrs)   (snd control_law)
+  attrProxy (userInput attrs)    (snd user_input_result)
 
-  sensorTower tofp attrs
+  mon2 <- sensorTower tofp attrs
+  monitor "dma_uart" (mon1 >> mon2)
 
   controlTower attrs
 

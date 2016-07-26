@@ -22,13 +22,14 @@ import SMACCMPilot.Hardware.HMC5883L
 import SMACCMPilot.Hardware.LSM303D
 
 import SMACCMPilot.Hardware.Platforms
-import SMACCMPilot.Hardware.Tests.Serialize
+import SMACCMPilot.Hardware.Serialize
 
 app :: (e -> PX4Platform) -> Tower e ()
 app topx4 = do
   px4platform <- fmap topx4 getEnv
 
-  (uarto, _uarti) <- px4ConsoleTower topx4
+  (uarto, _uarti, mon) <- px4ConsoleTower topx4
+  monitor "console_uart" mon
 
   case px4platform_mag px4platform of
     Mag_HMC5883L_I2C h -> hmc5883l_i2c_app topx4 h uarto

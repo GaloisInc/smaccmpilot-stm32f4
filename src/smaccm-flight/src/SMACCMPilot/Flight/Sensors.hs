@@ -36,11 +36,11 @@ import           SMACCMPilot.Flight.Sensors.AccelBiasTrigger
 
 sensorTower :: (e -> FlightPlatform)
             -> ControllableVehicleAttrs Attr
-            -> Tower e ()
+            -> Tower e (Monitor e ())
 sensorTower tofp attrs = do
 
-  p <- channel
-  uartUbloxGPSTower tofp (fst p)
+  p   <- channel
+  mon <- uartUbloxGPSTower tofp (fst p)
   attrProxy (gpsOutput attrs) (snd p)
 
   (a,g,m,b) <- sensorManager (fp_sensors . tofp) (fp_clockconfig . tofp)
@@ -148,6 +148,7 @@ sensorTower tofp attrs = do
           , R.baro_time .= ival baro_time
           ]
         emit e $ constRef result
+  return mon
 
 save :: (IvoryArea a, IvoryZero a)
      => String

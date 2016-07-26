@@ -14,7 +14,7 @@ import Ivory.Serialize
 import Ivory.Tower
 import SMACCMPilot.Hardware.SensorManager
 import SMACCMPilot.Hardware.Platforms
-import SMACCMPilot.Hardware.Tests.Serialize
+import SMACCMPilot.Hardware.Serialize
 import SMACCMPilot.Comm.Ivory.Types (typeModules)
 import SMACCMPilot.INS.Bias.Calibration
 import SMACCMPilot.INS.Bias.Gyro
@@ -39,7 +39,8 @@ app topx4 = do
 
   states <- sensorFusion accel_s gyro_cal mag_cal (snd motion)
 
-  (uartout, _uarti) <- px4ConsoleTower topx4
+  (uartout, _uarti, mon) <- px4ConsoleTower topx4
+  monitor "uart_dma" mon
 
   p <- period (Milliseconds 40) -- can't send states much faster than 25Hz at 115200bps
 

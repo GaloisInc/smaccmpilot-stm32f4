@@ -318,7 +318,8 @@ px4fmuv24 = PX4Platform
 px4ConsoleTower :: (e -> PX4Platform)
                 -> Tower e
                   ( BackpressureTransmit ConsoleBuffer ('Stored IBool)
-                  , ChanOutput ('Stored Uint8) )
+                  , ChanOutput ('Stored Uint8)
+                  , Monitor e ())
 px4ConsoleTower topx4 = do
   let consoleModule = package "px4_console" $ defStringType (Proxy :: Proxy ConsoleBuffer)
   towerModule consoleModule

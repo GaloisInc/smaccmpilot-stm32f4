@@ -2,6 +2,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module SMACCMPilot.Flight.Sensors.GPS (uartUbloxGPSTower) where
@@ -19,7 +20,7 @@ import SMACCMPilot.Hardware.GPS.UBlox
 
 uartUbloxGPSTower :: (e -> FlightPlatform)
                   -> ChanInput ('Struct "position_sample")
-                  -> Tower e ()
+                  -> Tower e (Monitor e ())
 uartUbloxGPSTower tofp ostream = do
   let types = package "gps_common" $ do
         defStringType (Proxy :: Proxy UnusedString)
@@ -29,9 +30,10 @@ uartUbloxGPSTower tofp ostream = do
   fp <- fmap tofp getEnv
   let uart = fp_gps fp
   let tocc = fp_clockconfig . tofp
-  gps <- case uart_periph uart of
-    Left u -> uartTower tocc u (uart_pins uart) 38400
-    Right dmauart -> dmaUARTTower tocc dmauart (uart_pins uart) 38400 (Proxy :: Proxy GPSString)
   -- we ignore the transmit channel, but we're forced to provide a buffer type for it
-  let _gpso = fst gps :: BackpressureTransmit UnusedString ('Stored IBool)
-  ubloxGPSTower (snd gps) ostream
+  (_gpso :: BackpressureTransmit UnusedString ('Stored IBool), chan, mon) <-
+    case uart_periph uart of
+      Left  u       -> uartTower tocc u (uart_pins uart) 38400
+      Right dmauart -> dmaUARTTower tocc dmauart (uart_pins uart) 38400 (Proxy :: Proxy GPSString)
+  ubloxGPSTower chan ostream
+  return mon

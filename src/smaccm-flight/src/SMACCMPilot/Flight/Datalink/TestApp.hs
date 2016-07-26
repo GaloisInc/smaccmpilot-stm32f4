@@ -17,7 +17,8 @@ app :: (e -> FlightPlatform)
 app tofp = do
   cvapi@(attrs, _streams) <- controllableVehicleAPI
   fp <- fmap tofp getEnv
-  datalinkTower tofp cvapi (u fp)
+  mon <- datalinkTower tofp cvapi (u fp)
+  monitor "uart_dma" mon
   lightTower tofp attrs
   where
   u fp = uartDatalink (fp_clockconfig . tofp) (fp_telem fp) 115200

@@ -18,7 +18,7 @@ import SMACCMPilot.Hardware.MPU6000
 import SMACCMPilot.Hardware.L3GD20
 
 import SMACCMPilot.Hardware.Platforms
-import SMACCMPilot.Hardware.Tests.Serialize
+import SMACCMPilot.Hardware.Serialize
 
 app :: (e -> PX4Platform) -> Tower e ()
 app topx4 = do
@@ -50,7 +50,8 @@ app topx4 = do
 
   mpu6000SensorManager req ready (fst g_sample) (fst a_sample) (SPIDeviceHandle 0)
 
-  (uarto, _uarti) <- px4ConsoleTower topx4
+  (uarto, _uarti, mon) <- px4ConsoleTower topx4
+  monitor "uart" mon
   half_g <- rateDivider 2 (snd g_sample)
   half_a <- rateDivider 2 (snd a_sample)
 
