@@ -73,13 +73,13 @@ import qualified Tower.Odroid.CameraVM as VM
 
 server, can, uartIn, uartOut :: String
 server   = "Server"
-can      = "CAN_framing"
+can      = "CAN_Framing"
 uartIn   = "Decrypt"
 uartOut  = "Encrypt"
 
 app :: (e -> DatalinkMode) -> Bool -> [Component e]
 app todl cameraPresent =
-  let canHdr     = "smaccm_CAN_framing.h"
+  let canHdr     = "smaccm_CAN_Framing.h"
       decryptHdr = "smaccm_Decrypt.h"
       encryptHdr = "smaccm_Encrypt.h"
       serverHdr  = "smaccm_Server.h"
