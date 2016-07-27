@@ -121,7 +121,7 @@ executable px4-sensor-fusion-test-gen
   other-modules:
       SMACCMPilot.INS.Tests.SensorFusion
   build-depends:       base >=4.6,
-                       estimator == 1.1.*,
+                       estimator,
                        ivory,
                        ivory-px4-hw,
                        ivory-serialize,

@@ -5,6 +5,7 @@
 
 module Main where
 
+import Control.Monad (forM_)
 import Data.List (foldl')
 
 import Ivory.Language
@@ -35,7 +36,11 @@ import SMACCMPilot.Flight.Datalink.Commsec (
 import SMACCMPilot.Flight.Datalink.CAN (s2cType, c2sType)
 
 import SMACCMPilot.Comm.Ivory.Types.SequenceNum (SequenceNum)
-import SMACCMPilot.Comm.Ivory.Types.SequenceNumberedCameraTarget (seqnum, val)
+
+import SMACCMPilot.Comm.Ivory.Types.SequenceNumberedCameraTarget (
+    seqnum
+  , val
+  )
 import SMACCMPilot.Comm.Ivory.Types.CameraTarget (
     bbox_l
   , bbox_r
@@ -43,6 +48,7 @@ import SMACCMPilot.Comm.Ivory.Types.CameraTarget (
   , bbox_b
   , valid
   )
+
 import SMACCMPilot.Comm.Tower.Interface.ControllableVehicle (
     cameraTargetInputGetReqConsumer
   , cameraTargetInputGetRespProducer
@@ -50,6 +56,7 @@ import SMACCMPilot.Comm.Tower.Interface.ControllableVehicle (
   , controllableVehicleConsumerOutput
   , controllableVehicleProducerInput
   , controllableVehicleProducerOutput
+  , rebootReqSetReqConsumer
   )
 import SMACCMPilot.Commsec.Sizes (PlaintextArray)
 import SMACCMPilot.Datalink.Mode (DatalinkMode)
@@ -78,6 +85,8 @@ app todl cameraPresent =
       serverHdr  = "smaccm_Server.h"
       cameraVm2server =
         mkExternalInputChan "Server_read_camera_data" serverHdr
+      server2cameraVm =
+        mkExternalOutputChan "Server_self2vm_reboot" serverHdr
       uartHw2uartIn =
         mkExternalInputChan "Decrypt_read_get_packet" decryptHdr
       uartHw2uartOut =
@@ -111,6 +120,7 @@ app todl cameraPresent =
       uartIn2server
       can2server
       cameraVm2server
+      server2cameraVm
       server2uartOut
       server2can
   , canComponent
@@ -132,6 +142,7 @@ serverComponent :: Bool
                 -> ExternalChan PlaintextArray
                 -> ExternalChan PlaintextArray
                 -> ExternalInputChan ('Struct "camera_data")
+                -> ExternalOutputChan ('Stored IBool)
                 -> ExternalChan PlaintextArray
                 -> ExternalChan PlaintextArray
                 -> Component e
@@ -139,6 +150,7 @@ serverComponent cameraPresent
   uartIn2server
   can2server
   cameraVm2server
+  server2cameraVm
   server2uartOut
   server2can
   =
@@ -147,7 +159,7 @@ serverComponent cameraPresent
     c2s_from_can     <- inputPortChan can2server
     camera_data_in   <- inputPortChan cameraVm2server
 
-    (c2s_pt_to_uart, s2c_to_can) <- tower $ do
+    (c2s_pt_to_uart, s2c_to_can, reboot_req_to_vm) <- tower $ do
       camera_chan      <- channel
       cv_producer      <- controllableVehicleProducerInput c2s_from_can
       let cv_producer' =  cv_producer { cameraTargetInputGetRespProducer
@@ -155,15 +167,86 @@ serverComponent cameraPresent
       c2s_pt_to_uart   <- controllableVehicleProducerOutput cv_producer'
       cv_consumer      <- controllableVehicleConsumerInput s2c_pt_from_uart
       s2c_to_can       <- controllableVehicleConsumerOutput cv_consumer
-      case cameraPresent of
-        False -> return ()
-        True -> periodicCamera
-                  (fst camera_chan)
-                  camera_data_in
-                  (cameraTargetInputGetReqConsumer cv_consumer)
-      return (c2s_pt_to_uart, s2c_to_can)
+      reboot_req_to_vm <-
+        case cameraPresent of
+          False -> return Nothing
+          True -> do
+            periodicCamera
+              (fst camera_chan)
+              camera_data_in
+              (cameraTargetInputGetReqConsumer cv_consumer)
+
+            reboot_req <- channel
+            monitor "reboot_req_unwrapper" $ do
+              handler (rebootReqSetReqConsumer cv_consumer) "reboot_vm" $ do
+                e <- emitter (fst reboot_req) 1
+                callback $ \_ -> do
+                  emitV e true
+            return (Just (snd reboot_req))
+
+      return (c2s_pt_to_uart, s2c_to_can, reboot_req_to_vm)
     outputPortChan' c2s_pt_to_uart server2uartOut
     outputPortChan' s2c_to_can server2can
+    forM_ reboot_req_to_vm $ \chan ->
+      outputPortChan' chan server2cameraVm
+
+periodicCamera :: ChanInput ('Struct "sequence_numbered_camera_target")
+               -> ChanOutput ('Struct "camera_data")
+               -> ChanOutput ('Stored SequenceNum)
+               -> Tower e ()
+periodicCamera camera_chan_tx camera_data_chan camera_req_tx = do
+
+  monitor "periodic_camera_injector" $ do
+     camera_data_st    <- stateInit "camera_data_st"    izero
+     camera_data_prev  <- stateInit "camera_data_prev"  izero
+     camera_data_watch <- stateInit "camera_data_watch" (izero :: Init ('Stored Uint32))
+
+     handler camera_req_tx "camera_req" $ do
+       e <- emitter camera_chan_tx 1
+       callback $ \curr_seq -> do
+
+         l  <- deref (camera_data_st ~> VM.bbox_l)
+         r  <- deref (camera_data_st ~> VM.bbox_r)
+         t  <- deref (camera_data_st ~> VM.bbox_t)
+         b  <- deref (camera_data_st ~> VM.bbox_b)
+
+         l' <- deref (camera_data_prev ~> VM.bbox_l)
+         r' <- deref (camera_data_prev ~> VM.bbox_r)
+         t' <- deref (camera_data_prev ~> VM.bbox_t)
+         b' <- deref (camera_data_prev ~> VM.bbox_b)
+
+         comment "bbox inside bounds and invariants hold on l,r & t,b"
+         let valid_bounds = r <=? 320 .&& l <? r .&& b <=? 200 .&& t <? b
+         comment "at least one element is nonzero"
+         let nzero bit v = bit .|| (v /=? 0)
+         comment "at least one bound has changed"
+         ifte_ (l /=? l' .|| r /=? r' .|| t /=? t' .|| b /=? b')
+               (camera_data_watch %= const 0)
+               (camera_data_watch += 1)
+
+         s <- deref curr_seq
+         set_req <- local izero
+         store (set_req ~> seqnum) s
+         let ct = set_req ~> val
+
+         cdw <- deref camera_data_watch
+         comment "Valid packet: valid bounds, at least one nonzero element, and no more at 10 requests without a corner changing."
+         comment "Yes, I know the 2nd property could be make to be a consequence of the 3rd."
+         let isValid = foldl' nzero false [l,r,t,b]
+                   .&& valid_bounds
+                   .&& cdw <? 10
+         store (ct ~> valid) isValid
+
+         store (ct ~> bbox_l) l
+         store (ct ~> bbox_r) r
+         store (ct ~> bbox_t) t
+         store (ct ~> bbox_b) b
+         refCopy camera_data_prev camera_data_st
+         emit e (constRef set_req)
+
+     handler camera_data_chan "cameraDataRx" $ do
+       callback $ \camera_data -> do
+         refCopy camera_data_st camera_data
 
 canComponent :: ExternalChan PlaintextArray
              -> ExternalChan PlaintextArray
@@ -253,64 +336,6 @@ uartOutComponent todl uartOut2uartHw uartHw2uartOut server2uartOut =
             arrayCopy (msg' ~> stringDataL) (msg ~> stringDataL) 0 srclen
             store (msg' ~> stringLengthL) srclen
             emit e $ constRef msg'
-
-periodicCamera :: ChanInput ('Struct "sequence_numbered_camera_target")
-               -> ChanOutput ('Struct "camera_data")
-               -> ChanOutput ('Stored SequenceNum)
-               -> Tower e ()
-periodicCamera camera_chan_tx camera_data_chan camera_req_tx = do
-
-  monitor "periodic_camera_injector" $ do
-     camera_data_st    <- stateInit "camera_data_st"    izero
-     camera_data_prev  <- stateInit "camera_data_prev"  izero
-     camera_data_watch <- stateInit "camera_data_watch" (izero :: Init ('Stored Uint32))
-
-     handler camera_req_tx "camera_req" $ do
-       e <- emitter camera_chan_tx 1
-       callback $ \curr_seq -> do
-
-         l  <- deref (camera_data_st ~> VM.bbox_l)
-         r  <- deref (camera_data_st ~> VM.bbox_r)
-         t  <- deref (camera_data_st ~> VM.bbox_t)
-         b  <- deref (camera_data_st ~> VM.bbox_b)
-
-         l' <- deref (camera_data_prev ~> VM.bbox_l)
-         r' <- deref (camera_data_prev ~> VM.bbox_r)
-         t' <- deref (camera_data_prev ~> VM.bbox_t)
-         b' <- deref (camera_data_prev ~> VM.bbox_b)
-
-         comment "bbox inside bounds and invariants hold on l,r & t,b"
-         let valid_bounds = r <=? 320 .&& l <? r .&& b <=? 200 .&& t <? b
-         comment "at least one element is nonzero"
-         let nzero bit v = bit .|| (v /=? 0)
-         comment "at least one bound has changed"
-         ifte_ (l /=? l' .|| r /=? r' .|| t /=? t' .|| b /=? b')
-               (camera_data_watch %= const 0)
-               (camera_data_watch += 1)
-
-         s <- deref curr_seq
-         set_req <- local izero
-         store (set_req ~> seqnum) s
-         let ct = set_req ~> val
-
-         cdw <- deref camera_data_watch
-         comment "Valid packet: valid bounds, at least one nonzero element, and no more at 10 requests without a corner changing."
-         comment "Yes, I know the 2nd property could be make to be a consequence of the 3rd."
-         let isValid = foldl' nzero false [l,r,t,b]
-                   .&& valid_bounds
-                   .&& cdw <? 10
-         store (ct ~> valid) isValid
-
-         store (ct ~> bbox_l) l
-         store (ct ~> bbox_r) r
-         store (ct ~> bbox_t) t
-         store (ct ~> bbox_b) b
-         refCopy camera_data_prev camera_data_st
-         emit e (constRef set_req)
-
-     handler camera_data_chan "cameraDataRx" $ do
-       callback $ \camera_data -> do
-         refCopy camera_data_st camera_data
 
 fragmentDrop :: (IvoryArea a, IvoryZero a)
              => ChanOutput a

@@ -49,10 +49,6 @@ packages:
     - tower-mini
 - location: ../tower-camkes-odroid/
   extra-dep: true
-- location:
-    git: https://github.com/GaloisInc/estimator.git
-    commit: 4818515e8a05d7d9c54e51d7ac7fa21580336366
-  extra-dep: true
 
 # Packages to be pulled from upstream that are not in the resolver (e.g., acme-missiles-0.3)
 extra-deps:
@@ -60,7 +56,7 @@ extra-deps:
   - curve25519-0.2.2
   - ed25519-donna-0.1.1
   - exception-mtl-0.4
-#  - estimator-1.1.0.2
+  - estimator-1.2.0.0
   - ghc-srcspan-plugin-0.2.1.0
   - language-c-quote-0.11.4
   - mainland-pretty-0.4.1.2
