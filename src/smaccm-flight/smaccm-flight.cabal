@@ -149,6 +149,9 @@ executable             smaccmpilot-odroid-gen
 
 executable             smaccmpilot-odroid-mini-gen
   main-is:             SMACCMPilotODROIDMini.hs
+  other-modules:       SMACCMTypes.CAN,
+                       SMACCMTypes.Camera,
+                       SMACCMTypes.UARTPacket
   hs-source-dirs:      odroid-mini
   build-depends:       base >= 4.6,
                        ivory,

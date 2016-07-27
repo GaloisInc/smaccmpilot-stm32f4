@@ -71,11 +71,15 @@ import SMACCMPilot.Datalink.HXStream.Tower (
 import Tower.Odroid.UART (UartPacket)
 import qualified Tower.Odroid.CameraVM as VM
 
-server, can, uartIn, uartOut :: String
+import qualified SMACCMTypes.CAN        as SMACCM_CAN
+import qualified SMACCMTypes.Camera     as SMACCM_Camera
+import qualified SMACCMTypes.UARTPacket as SMACCM_UART
+
+server, can, decrypt, encrypt :: String
 server   = "Server"
 can      = "CAN_Framing"
-uartIn   = "Decrypt"
-uartOut  = "Encrypt"
+decrypt  = "Decrypt"
+encrypt  = "Encrypt"
 
 app :: (e -> DatalinkMode) -> Bool -> [Component e]
 app todl cameraPresent =
@@ -84,44 +88,44 @@ app todl cameraPresent =
       encryptHdr = "smaccm_Encrypt.h"
       serverHdr  = "smaccm_Server.h"
       cameraVm2server =
-        mkExternalInputChan "Server_read_camera_data" serverHdr
+        mkExternalInputChan (server ++ "_read_vm2self") serverHdr
       server2cameraVm =
-        mkExternalOutputChan "Server_self2vm_reboot" serverHdr
-      uartHw2uartIn =
-        mkExternalInputChan "Decrypt_read_get_packet" decryptHdr
-      uartHw2uartOut =
-        mkExternalInputChan "Encrypt_read_recv_response" encryptHdr
-      uartIn2server =
+        mkExternalOutputChan (server ++ "_write_self2vm_reboot") serverHdr
+      uartHw2decrypt =
+        mkExternalInputChan (decrypt ++ "_read_uart2self") decryptHdr
+      uartHw2encrypt =
+        mkExternalInputChan (encrypt ++ "_read_uart2self") encryptHdr
+      decrypt2server =
         mkExternalChan
-          "Server_read_get_input"   serverHdr
-          "Decrypt_write_send_gidl" decryptHdr
-      uartOut2uartHw =
-        mkExternalOutputChan "Encrypt_write_send_packet" encryptHdr
-      server2uartOut =
+          (server ++ "_read_decrypt2self") serverHdr
+          (decrypt ++ "_write_self2server") decryptHdr
+      encrypt2uartHw =
+        mkExternalOutputChan (encrypt ++ "_write_self2uart") encryptHdr
+      server2encrypt =
         mkExternalChan
-          "Encrypt_read_get_gidl"    encryptHdr
-          "Server_write_send_output" serverHdr
+          (encrypt ++ "_read_server2self") encryptHdr
+          (server ++ "_write_self2encrypt") serverHdr
       server2can =
         mkExternalChan
-          "CAN_framing_read_from_server" canHdr
-          "Server_write_send_can"        serverHdr
+          (can ++ "_read_server2self") canHdr
+          (server ++ "_write_self2framing") serverHdr
       can2server =
         mkExternalChan
-          "Server_read_get_can"         serverHdr
-          "CAN_framing_write_to_server" canHdr
+          (server ++ "_read_framing2self") serverHdr
+          (can ++ "_write_self2server") canHdr
       can2canHw_send =
-        mkExternalOutputChan "CAN_framing_write_fragment_request" canHdr
+        mkExternalOutputChan (can ++ "_write_self2can") canHdr
       canHw2can_recv =
-        mkExternalInputChan "CAN_framing_read_fragment_reasembly" canHdr
+        mkExternalInputChan (can ++ "_read_can2self_frame") canHdr
       canHw2can_status =
-        mkExternalInputChan "CAN_framing_read_get_status" canHdr
+        mkExternalInputChan (can ++ "_read_can2self_status") canHdr
   in [
     serverComponent cameraPresent
-      uartIn2server
+      decrypt2server
       can2server
       cameraVm2server
       server2cameraVm
-      server2uartOut
+      server2encrypt
       server2can
   , canComponent
       server2can
@@ -129,33 +133,34 @@ app todl cameraPresent =
       canHw2can_recv
       canHw2can_status
       can2canHw_send
-  , uartInComponent todl
-      uartHw2uartIn
-      uartIn2server
-  , uartOutComponent todl
-      uartOut2uartHw
-      uartHw2uartOut
-      server2uartOut
+  , decryptComponent todl
+      uartHw2decrypt
+      decrypt2server
+  , encryptComponent todl
+      encrypt2uartHw
+      uartHw2encrypt
+      server2encrypt
   ]
 
-serverComponent :: Bool
-                -> ExternalChan PlaintextArray
-                -> ExternalChan PlaintextArray
-                -> ExternalInputChan ('Struct "camera_data")
-                -> ExternalOutputChan ('Stored IBool)
-                -> ExternalChan PlaintextArray
-                -> ExternalChan PlaintextArray
-                -> Component e
+serverComponent
+  :: Bool
+  -> ExternalChan PlaintextArray
+  -> ExternalChan PlaintextArray
+  -> ExternalInputChan ('Struct "SMACCM_DATA__Camera_Bounding_Box_i")
+  -> ExternalOutputChan ('Stored IBool)
+  -> ExternalChan PlaintextArray
+  -> ExternalChan PlaintextArray
+  -> Component e
 serverComponent cameraPresent
-  uartIn2server
+  decrypt2server
   can2server
   cameraVm2server
   server2cameraVm
-  server2uartOut
+  server2encrypt
   server2can
   =
   component server $ do
-    s2c_pt_from_uart <- inputPortChan uartIn2server
+    s2c_pt_from_uart <- inputPortChan decrypt2server
     c2s_from_can     <- inputPortChan can2server
     camera_data_in   <- inputPortChan cameraVm2server
 
@@ -185,16 +190,17 @@ serverComponent cameraPresent
             return (Just (snd reboot_req))
 
       return (c2s_pt_to_uart, s2c_to_can, reboot_req_to_vm)
-    outputPortChan' c2s_pt_to_uart server2uartOut
+    outputPortChan' c2s_pt_to_uart server2encrypt
     outputPortChan' s2c_to_can server2can
     forM_ reboot_req_to_vm $ \chan ->
       outputPortChan' chan server2cameraVm
 
 periodicCamera :: ChanInput ('Struct "sequence_numbered_camera_target")
-               -> ChanOutput ('Struct "camera_data")
+               -> ChanOutput ('Struct "SMACCM_DATA__Camera_Bounding_Box_i")
                -> ChanOutput ('Stored SequenceNum)
                -> Tower e ()
-periodicCamera camera_chan_tx camera_data_chan camera_req_tx = do
+periodicCamera camera_chan_tx smaccm_camera_data_chan camera_req_tx = do
+  camera_data_chan <- SMACCM_Camera.from_smaccm smaccm_camera_data_chan
 
   monitor "periodic_camera_injector" $ do
      camera_data_st    <- stateInit "camera_data_st"    izero
@@ -250,9 +256,9 @@ periodicCamera camera_chan_tx camera_data_chan camera_req_tx = do
 
 canComponent :: ExternalChan PlaintextArray
              -> ExternalChan PlaintextArray
-             -> ExternalInputChan ('Struct "can_message")
+             -> ExternalInputChan ('Struct "SMACCM_DATA__CAN_Frame_i")
              -> ExternalInputChan ('Stored IBool)
-             -> ExternalOutputChan ('Struct "can_message")
+             -> ExternalOutputChan ('Struct "SMACCM_DATA__CAN_Frame_i")
              -> Component e
 canComponent
   server2can
@@ -263,31 +269,34 @@ canComponent
   =
   component can $ do
     s2c_to_can   <- inputPortChan  server2can
-    canRx        <- inputPortChan  canHw2can_recv
+    smaccm_canRx <- inputPortChan  canHw2can_recv
     status       <- inputPortChan  canHw2can_status
-    send         <- outputPortChan can2canHw_send
+    smaccm_send  <- outputPortChan can2canHw_send
     c2s_from_can <- outputPortChan can2server
     tower $ do
       -- unused for the Ph3 implementation
       (_abort, _) <- channel
+      send <- SMACCM_CAN.to_smaccm smaccm_send
       let canTx = AbortableTransmit send _abort status
+      canRx <- SMACCM_CAN.from_smaccm smaccm_canRx
       canDatalink canTx canRx c2s_from_can s2c_to_can
 
-uartInComponent :: (e -> DatalinkMode)
-                -> ExternalInputChan UartPacket
-                -> ExternalChan PlaintextArray
-                -> Component e
-uartInComponent todl uart_in_ext pt_out_ext =
-  component uartIn $ do
+decryptComponent :: (e -> DatalinkMode)
+                 -> ExternalInputChan ('Struct "SMACCM_DATA__UART_Packet_i")
+                 -> ExternalChan PlaintextArray
+                 -> Component e
+decryptComponent todl uart_in_ext pt_out_ext =
+  component decrypt $ do
     uarti <- inputPortChan uart_in_ext
     input <- outputPortChan pt_out_ext
     tower $ do
       input_frames <- channel
       decoderChan  <- channel
       s2c_ct_from_uart <- channel
+      uarti' <- SMACCM_UART.from_smaccm uarti
 
       monitor "to_hx" $ do
-        handler uarti "unpack" $ do
+        handler uarti' "unpack" $ do
           let n = fromTypeNat (aNat :: Proxy (Capacity UartPacket))
           e <- emitter (fst decoderChan) n
           callback $ \msg -> do
@@ -306,16 +315,16 @@ uartInComponent todl uart_in_ext pt_out_ext =
 
       commsecDecodeDatalink todl (snd s2c_ct_from_uart) input
 
-uartOutComponent :: (e -> DatalinkMode)
-                 -> ExternalOutputChan UartPacket
+encryptComponent :: (e -> DatalinkMode)
+                 -> ExternalOutputChan ('Struct "SMACCM_DATA__UART_Packet_i")
                  -> ExternalInputChan ('Stored IBool)
                  -> ExternalChan PlaintextArray
                  -> Component e
-uartOutComponent todl uartOut2uartHw uartHw2uartOut server2uartOut =
-  component uartOut $ do
-    output <- inputPortChan server2uartOut
-    status <- inputPortChan uartHw2uartOut
-    packet <- outputPortChan uartOut2uartHw
+encryptComponent todl encrypt2uartHw uartHw2encrypt server2encrypt =
+  component encrypt $ do
+    output <- inputPortChan server2encrypt
+    status <- inputPortChan uartHw2encrypt
+    smaccm_packet <- outputPortChan encrypt2uartHw
     tower $ do
       c2s_ct_to_uart <- channel
       commsecEncodeDatalink todl output (fst c2s_ct_to_uart)
@@ -324,6 +333,7 @@ uartOutComponent todl uartOut2uartHw uartHw2uartOut server2uartOut =
       let uarto = BackpressureTransmit hx_packet_in status
       airDataEncodeTower "frame" (snd c2s_ct_to_uart) uarto
 
+      packet <- SMACCM_UART.to_smaccm smaccm_packet
       monitor "send_transdata" $ do
         handler hx_packet_out "send_translate" $ do
           e <- emitter packet 1
