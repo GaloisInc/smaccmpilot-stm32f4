@@ -48,6 +48,8 @@ from_smaccm ::
 from_smaccm smaccm_in = do
   towerDepends smaccm_camera_module
   towerModule  smaccm_camera_module
+  towerDepends cameraVMModule
+  towerModule  cameraVMModule
   camera_data_out <- channel
   monitor "from_smaccm_camera" $ do
     handler smaccm_in "from_smaccm_camera" $ do
@@ -72,6 +74,8 @@ to_smaccm ::
 to_smaccm smaccm_out = do
   towerDepends smaccm_camera_module
   towerModule  smaccm_camera_module
+  towerDepends cameraVMModule
+  towerModule  cameraVMModule
   camera_data_out <- channel
   monitor "to_smaccm_camera" $ do
     handler (snd camera_data_out) "to_smaccm_camera" $ do

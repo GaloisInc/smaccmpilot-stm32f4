@@ -45,6 +45,8 @@ from_smaccm ::
 from_smaccm smaccm_in = do
   towerDepends smaccm_UART_module
   towerModule  smaccm_UART_module
+  towerDepends uartModule
+  towerModule  uartModule
   uart_packet_out <- channel
   monitor "from_smaccm_uart" $ do
     handler smaccm_in "from_smaccm_uart" $ do
@@ -64,6 +66,8 @@ to_smaccm ::
 to_smaccm smaccm_out = do
   towerDepends smaccm_UART_module
   towerModule  smaccm_UART_module
+  towerDepends uartModule
+  towerModule  uartModule
   uart_packet_out <- channel
   monitor "to_smaccm_uart" $ do
     handler (snd uart_packet_out) "to_smaccm_uart" $ do

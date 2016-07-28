@@ -89,7 +89,8 @@ hxstreamDecodeTower :: ANat len
                     -> Tower e ()
 hxstreamDecodeTower n serial_chan buflen handlers = do
   let deps = [H.hxstreamModule, serializeModule]
-  mapM_ towerModule deps
+  mapM_ towerDepends deps
+  mapM_ towerModule  deps
   mapM_ towerArtifact serializeArtifacts
 
   monitor (n ++ "_datalink_decode") $ do
