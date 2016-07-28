@@ -5,7 +5,7 @@
 
 module Main where
 
-import Control.Monad (forM_)
+import Data.Foldable (for_)
 import Data.List (foldl')
 
 import Ivory.Language
@@ -192,7 +192,7 @@ serverComponent cameraPresent
       return (c2s_pt_to_uart, s2c_to_can, reboot_req_to_vm)
     outputPortChan' c2s_pt_to_uart server2encrypt
     outputPortChan' s2c_to_can server2can
-    forM_ reboot_req_to_vm $ \chan ->
+    for_ reboot_req_to_vm $ \chan ->
       outputPortChan' chan server2cameraVm
 
 periodicCamera :: ChanInput ('Struct "sequence_numbered_camera_target")
