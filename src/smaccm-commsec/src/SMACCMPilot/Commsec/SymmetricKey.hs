@@ -1,5 +1,3 @@
-{-# LANGUAGE RecordWildCards #-}
-
 module SMACCMPilot.Commsec.SymmetricKey where
 
 import Data.Word
@@ -13,9 +11,9 @@ data SymmetricKey =
 
 symmetricKeyParser :: ConfigParser SymmetricKey
 symmetricKeyParser = subsection "symmetric_key" $ do
-  sk_s2c <- subsection "server_to_client" ks
-  sk_c2s <- subsection "client_to_server" ks
-  return SymmetricKey{..}
+  s2c <- subsection "server_to_client" ks
+  c2s <- subsection "client_to_server" ks
+  return SymmetricKey { sk_c2s = c2s, sk_s2c = s2c }
   where
   ks = subsection "keysalt" (arrayOfLen 24 (boundedInteger 0 255))
   arrayOfLen l e = do

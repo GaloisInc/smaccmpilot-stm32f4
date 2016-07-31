@@ -1,4 +1,3 @@
-{-# LANGUAGE RecordWildCards      #-}
 {-# LANGUAGE FlexibleInstances    #-}
 {-# LANGUAGE DataKinds            #-}
 {-# LANGUAGE TypeOperators        #-}
