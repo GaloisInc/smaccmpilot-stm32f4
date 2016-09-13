@@ -107,10 +107,8 @@ tpry_to_flfrblbr IrisMixer t p r y = do
   return (fl, fr, bl, br)
   where
 
-  -- These geometries are based on what the px4 project regretfully calls "dead
-  -- cat". that unfortunate name is used to describe quadcopters with the
-  -- asymetric front/back shape like the iris has. why are drone people such
-  -- garbage?
+  -- These geometries are based on what the px4 project calls "dead
+  -- cat".
 
   -- These are angles forwards and backwards of the center of mass,
   -- respectively. I do not have actual measurements of the iris to base these
