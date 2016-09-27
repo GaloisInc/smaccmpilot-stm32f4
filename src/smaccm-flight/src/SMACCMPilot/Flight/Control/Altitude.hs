@@ -193,9 +193,11 @@ sensorsR22 sens = do
 --   R22 is rotation matrix element {2,2}, equivelant to cos pitch * cos roll
 throttleR22Comp :: IFloat -> IFloat
 throttleR22Comp r22 =
-  (r22 >? 0.8) ? ((1.0 / r22)
-  ,(r22 >? 0.0) ? ((((1.0 / 0.8 - 1.0) / 0.8) * r22 + 1.0)
-   ,(1.0)))
+  (r22 >? 0.8) ? (
+    (1.0 / r22)
+  , (r22 >? 0.0) ? (
+      (((1.0 / 0.8 - 1.0) / 0.8) * r22 + 1.0)
+    , (1.0)))
 
 
 timeMicrosToITime :: TimeMicros -> ITime
