@@ -57,6 +57,8 @@ monitorThrottleUI attr estimator = do
                 current <- deref alt_setpoint
                 next <- assign (current + (sr * dt))
                 sens <- deref (settings ~> TUI.sens)
+                -- do we want our alt setpoint to drift along with alt
+                -- estimation?
                 a <- call fconstrain (alt_est - 0.8*sens)
                                      (alt_est + 0.8*sens)
                                      next

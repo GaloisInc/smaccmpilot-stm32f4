@@ -115,7 +115,7 @@ monitorAltitudeControl attrs = do
                   tui_update      ui_control ui dt
                   -- update position controller
                   (ui_alt, ui_vz) <- tui_setpoint ui_control
-                  vz_ctl <- pos_pid_calculate position_pid ui_alt ui_vz dt
+                  vz_ctl <- pos_pid_calculate position_pid ui_alt 0 dt
                   store (state_dbg ~> A.pos_rate_setp) vz_ctl
                   return vz_ctl
               , thr_mode ==? TM.altSetpt ==> do
