@@ -62,12 +62,15 @@ monitorAltitudeControl attrs = do
   alt_estimator    <- monitorAltEstimator
   -- Throttle tracker keeps track of steady-state throttle for transitioning
   -- into autothrottle mode
-  throttle_tracker <- monitorThrottleTracker
+--  throttle_tracker <- monitorThrottleTracker
   -- Thrust PID controls altitude rate with thrust
-  alt_rate_pid       <- monitorThrustPid   (altitudeRatePid attrs) alt_estimator
-  tpid_config <- attrState (altitudeRatePid attrs)
+--alt_rate_cfg       <- monitorThrustPid   (altitudeRatePid attrs) alt_estimator
+  alt_rate_pid  <- state "alt_rate_pid"
+  alt_rate_cfg <- attrState (altitudeRatePid attrs)
   -- Position PID controls altitude with altitude rate
-  alt_pos_pid     <- monitorPositionPid (altitudePositionPid attrs) alt_estimator
+--  alt_pos_pid     <- monitorPositionPid (altitudePositionPid attrs) alt_estimator
+  alt_pos_pid  <- state "alt_pos_pid"
+  alt_pos_cfg     <- (altitudePositionPid attrs)
   -- UI controls Position setpoint from user stick input
   ui_control       <- monitorThrottleUI  (throttleUi attrs) alt_estimator
   -- setpoint: result of the whole autothrottle calculation
@@ -106,14 +109,15 @@ monitorAltitudeControl attrs = do
           store at_enabled enabled
 
           -- Update estimators
-          tt_update throttle_tracker ui enabled
-
+--          tt_update throttle_tracker ui enabled -- not used
           sensor_alt  <- deref (sens ~> S.baro_alt)
-           
           sensor_time <- deref (sens ~> S.baro_time)
           ae_measurement alt_estimator sensor_alt (timeMicrosToITime sensor_time)
-          (new_alt, new_rate) <- ae_state alt_estimator
-          store rate_stored rate
+          
+          -- read newest estimate
+          (estimated_alt_pos, estimated_alt_rate) <- ae_state alt_estimator
+          -- Not used
+          -- store rate_stored rate
 
           when enabled $ do
             vz_control <- cond
@@ -125,13 +129,13 @@ monitorAltitudeControl attrs = do
                   -- update position controller (see stabilize_from_angle in Stabilize.hs)
                   -- we care only about the altitude, not the rate at this point
                   (ui_alt, _) <- tui_setpoint ui_control
-                  alt_err     <- assign $ ui_alt - sensor_alt
+                  alt_err     <- assign $ ui_alt - estimated_alt_pos
                   -- ideally we would feed the controller just the desired position and the actual position
                   -- it should calculate alt_err internally
-                  alt_rate_desired  <- call pid_update alt_pos_pid alt_pos_cfg alt_err sensor_alt
-                  alt_rate_err    <- assign $ alt_rate_desired - sensor_alt_rate_est
+                  alt_rate_desired  <- call pid_update alt_pos_pid alt_pos_cfg alt_err estimated_alt_pos
+                  alt_rate_err    <- assign $ alt_rate_desired - estimated_alt_rate
                   -- again the error should be calculated internally
-                  alt_thrust  <- call pid_update alt_rate_pid alt_rate_cfg alt_rate_err sensor_alt_rate_est
+                  alt_thrust  <- call pid_update alt_rate_pid alt_rate_cfg alt_rate_err estimated_alt_rate
                   -- optionally limit the output of the feedback loop (like -0.2 -- 0.2), leave unlimited by default
                   alt_thrust_norm <- call fconstrain (-max_alt_thrust_fb)
                             max_alt_thrust_fb alt_thrust
