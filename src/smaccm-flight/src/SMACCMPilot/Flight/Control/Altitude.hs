@@ -24,7 +24,6 @@ import           SMACCMPilot.Flight.Control.Altitude.PositionPID
 import           SMACCMPilot.Flight.Control.Altitude.ThrottleUI
 import           SMACCMPilot.Flight.Types.MaybeFloat
 import           SMACCMPilot.Flight.Control.PID
-
 import qualified SMACCMPilot.Comm.Ivory.Types.AltControlDebug as A
 import qualified SMACCMPilot.Comm.Ivory.Types.ControlLaw      as CL
 import qualified SMACCMPilot.Comm.Ivory.Types.ControlModes    as CM
@@ -60,15 +59,10 @@ monitorAltitudeControl :: (AttrReadable a)
 monitorAltitudeControl attrs = do
   -- Alt estimator filters noisy sensor into altitude & its derivative
   alt_estimator    <- monitorAltEstimator
-  -- Throttle tracker keeps track of steady-state throttle for transitioning
-  -- into autothrottle mode
---  throttle_tracker <- monitorThrottleTracker
   -- Thrust PID controls altitude rate with thrust
---alt_rate_cfg       <- monitorThrustPid   (altitudeRatePid attrs) alt_estimator
   alt_rate_pid  <- state "alt_rate_pid"
   alt_rate_cfg <- attrState (altitudeRatePid attrs)
   -- Position PID controls altitude with altitude rate
---  alt_pos_pid     <- monitorPositionPid (altitudePositionPid attrs) alt_estimator
   alt_pos_pid  <- state "alt_pos_pid"
   alt_pos_cfg     <- (altitudePositionPid attrs)
   -- UI controls Position setpoint from user stick input
@@ -109,33 +103,34 @@ monitorAltitudeControl attrs = do
           store at_enabled enabled
 
           -- Update estimators
---          tt_update throttle_tracker ui enabled -- not used
-          sensor_alt  <- deref (sens ~> S.baro_alt)
-          sensor_time <- deref (sens ~> S.baro_time)
-          ae_measurement alt_estimator sensor_alt (timeMicrosToITime sensor_time)
+          alt_baro_alt  <- deref (sens ~> S.baro_alt)
+          alt_baro_time <- deref (sens ~> S.baro_time)
+          ae_measurement alt_estimator alt_baro_alt (timeMicrosToITime alt_baro_time)
           
           -- read newest estimate
-          (estimated_alt_pos, estimated_alt_rate) <- ae_state alt_estimator
-          -- Not used
-          -- store rate_stored rate
+          (alt_est_pos, alt_est_rate) <- ae_state alt_estimator
 
           when enabled $ do
             vz_control <- cond
               -- default mode
-              [ thr_mode ==? TM.altUi ==> do
+              [thr_mode ==? TM.DirectUi ==> do
+                  -- reset the integrators in manual mode
+                  pid_reset alt_pos_pid
+                  pid_reset alt_rate_pid
+              , thr_mode ==? TM.altUi ==> do
                   -- update setpoint ui
                   tui_update      ui_control ui dt
                   -- ALTITUDE CONTROLLER START
                   -- update position controller (see stabilize_from_angle in Stabilize.hs)
                   -- we care only about the altitude, not the rate at this point
                   (ui_alt, _) <- tui_setpoint ui_control
-                  alt_err     <- assign $ ui_alt - estimated_alt_pos
+                  alt_err     <- assign $ ui_alt - alt_est_pos
                   -- ideally we would feed the controller just the desired position and the actual position
                   -- it should calculate alt_err internally
-                  alt_rate_desired  <- call pid_update alt_pos_pid alt_pos_cfg alt_err estimated_alt_pos
-                  alt_rate_err    <- assign $ alt_rate_desired - estimated_alt_rate
+                  alt_rate_desired  <- call pid_update alt_pos_pid alt_pos_cfg alt_err alt_est_pos
+                  alt_rate_err    <- assign $ alt_rate_desired - alt_est_rate
                   -- again the error should be calculated internally
-                  alt_thrust  <- call pid_update alt_rate_pid alt_rate_cfg alt_rate_err estimated_alt_rate
+                  alt_thrust  <- call pid_update alt_rate_pid alt_rate_cfg alt_rate_err alt_est_rate
                   -- optionally limit the output of the feedback loop (like -0.2 -- 0.2), leave unlimited by default
                   alt_thrust_norm <- call fconstrain (-max_alt_thrust_fb)
                             max_alt_thrust_fb alt_thrust
@@ -145,7 +140,7 @@ monitorAltitudeControl attrs = do
                   vz_ctl <- alt_thrust_norm + alt_nominal_hover_throttle     
                   -- maybe rename A.pos_rate_setp because it is not the right name             
                   store (state_dbg ~> A.pos_rate_setp) vz_ctl
-                  return vz_ctl
+                  return vz_ctpid_resetl
               -- Ignore for now
               , thr_mode ==? TM.altSetpt ==> do
                   -- update setpoint ui
@@ -167,16 +162,14 @@ monitorAltitudeControl attrs = do
             -- (reset_integral, new_integral) <- tt_reset_to throttle_tracker
             -- when reset_integral $ do
             --  thrust_pid_set_integral thrust_pid new_integral
-            
             -- calculate thrust pid (delete this)
             -- uncomp_thr_setpt <- thrust_pid_calculate thrust_pid vz_control dt
             
             -- compensate for roll/pitch rotation 
-            r22              <- sensorsR22 sens
+            r22   <- sensorsR22 sens
             setpt <- assign ((throttleR22Comp r22) * vz_ctl)
             -- limit max throttle by the throttle stick (safety feature)
             store at_setpt =<< call fconstrain 0.0 ui_setpt setpt
-            
             -- now limit the throttle 
 
           unless enabled $ do
