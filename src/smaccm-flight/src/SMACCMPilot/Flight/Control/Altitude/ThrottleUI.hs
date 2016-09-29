@@ -55,15 +55,9 @@ monitorThrottleUI attr estimator = do
                 store active_state true
             , active ==> do
                 -- do nothing (the alt_setpoint is constant)
-                --current <- deref alt_setpoint
-                --next <- assign (current + (sr * dt))
-                --sens <- deref (settings ~> TUI.sens)
-                -- do we want our alt setpoint to drift along with alt
-                -- estimation?
-                --a <- call fconstrain (alt_est - 0.8*sens)
-                                     (alt_est + 0.8*sens)
-                                     next
-                --store alt_setpoint a
+                -- just a cludge to get this compiled
+                current <- deref alt_setpoint
+                store alt_setpoint current
             ]
 
   monitorModuleDef $ incl proc_update

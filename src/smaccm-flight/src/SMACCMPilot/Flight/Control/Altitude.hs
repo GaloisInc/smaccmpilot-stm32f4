@@ -23,6 +23,7 @@ import           SMACCMPilot.Flight.Control.Altitude.ThrustPID
 import           SMACCMPilot.Flight.Control.Altitude.PositionPID
 import           SMACCMPilot.Flight.Control.Altitude.ThrottleUI
 import           SMACCMPilot.Flight.Types.MaybeFloat
+import           SMACCMPilot.Flight.Control.PID
 
 import qualified SMACCMPilot.Comm.Ivory.Types.AltControlDebug as A
 import qualified SMACCMPilot.Comm.Ivory.Types.ControlLaw      as CL
