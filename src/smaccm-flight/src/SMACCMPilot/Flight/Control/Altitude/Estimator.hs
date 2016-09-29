@@ -24,10 +24,11 @@ data AltEstimator =
 
 monitorAltEstimator :: Monitor e AltEstimator
 monitorAltEstimator = do
-  prevAlt       <- state "prev_alt"
-  prevAltTime   <- state "prev_alt_time"
+  prevAlt       <- state "prev_  prevAltTime   <- state "prev_alt_time"
+alt"
   prevClimbRate <- state "prev_climb_rate"
 
+  -- why is this called "thrustEstimatorMeasure" ?
   measName <- fmap showUnique $ freshname "thrustEstimatorMeasure"
   let measDef :: Def ('[IFloat, ITime] ':-> ())
       measDef = proc measName $
@@ -35,6 +36,7 @@ monitorAltEstimator = do
           prev_time   <- deref prevAltTime
           when (meas_time /=? prev_time) $ do
             -- If the dtime exceeds capability of a sint32 or float, we're hosed
+            -- TODO: maybe we should fix this and have some overflow checks?
             let dtime = meas_time - prev_time
             (int_ms :: Sint32) <- assign $ castWith 0 $ toIMilliseconds dtime
             dt   <- assign ((safeCast int_ms) / 1000.0)

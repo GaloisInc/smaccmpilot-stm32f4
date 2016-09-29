@@ -64,9 +64,10 @@ monitorAltitudeControl attrs = do
   -- into autothrottle mode
   throttle_tracker <- monitorThrottleTracker
   -- Thrust PID controls altitude rate with thrust
-  thrust_pid       <- monitorThrustPid   (altitudeRatePid attrs) alt_estimator
+  alt_rate_pid       <- monitorThrustPid   (altitudeRatePid attrs) alt_estimator
+  tpid_config <- attrState (altitudeRatePid attrs)
   -- Position PID controls altitude with altitude rate
-  position_pid     <- monitorPositionPid (altitudePositionPid attrs) alt_estimator
+  alt_pos_pid     <- monitorPositionPid (altitudePositionPid attrs) alt_estimator
   -- UI controls Position setpoint from user stick input
   ui_control       <- monitorThrottleUI  (throttleUi attrs) alt_estimator
   -- setpoint: result of the whole autothrottle calculation
@@ -108,8 +109,11 @@ monitorAltitudeControl attrs = do
           tt_update throttle_tracker ui enabled
 
           sensor_alt  <- deref (sens ~> S.baro_alt)
+           
           sensor_time <- deref (sens ~> S.baro_time)
           ae_measurement alt_estimator sensor_alt (timeMicrosToITime sensor_time)
+          (new_alt, new_rate) <- ae_state alt_estimator
+          store rate_stored rate
 
           when enabled $ do
             vz_control <- cond
@@ -124,10 +128,10 @@ monitorAltitudeControl attrs = do
                   alt_err     <- assign $ ui_alt - sensor_alt
                   -- ideally we would feed the controller just the desired position and the actual position
                   -- it should calculate alt_err internally
-                  alt_rate_desired  <- call pid_update alt_pos_pid alt_pos_cfg alt_error sensor_alt
-                  alt_rate_error    <- assign $ alt_rate_desired - sensor_alt_rate_est
+                  alt_rate_desired  <- call pid_update alt_pos_pid alt_pos_cfg alt_err sensor_alt
+                  alt_rate_err    <- assign $ alt_rate_desired - sensor_alt_rate_est
                   -- again the error should be calculated internally
-                  alt_thrust  <- call pid_update alt_rate_pid alt_rate_cfg alt_rate_error sensor_alt_rate_est
+                  alt_thrust  <- call pid_update alt_rate_pid alt_rate_cfg alt_rate_err sensor_alt_rate_est
                   -- optionally limit the output of the feedback loop (like -0.2 -- 0.2), leave unlimited by default
                   alt_thrust_norm <- call fconstrain (-max_alt_thrust_fb)
                             max_alt_thrust_fb alt_thrust
