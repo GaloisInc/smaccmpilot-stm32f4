@@ -24,6 +24,7 @@ import           SMACCMPilot.Flight.Control.Altitude.PositionPID
 import           SMACCMPilot.Flight.Control.Altitude.ThrottleUI
 import           SMACCMPilot.Flight.Types.MaybeFloat
 import           SMACCMPilot.Flight.Control.PID
+import qualified SMACCMPilot.Comm.Ivory.Types.PidConfig as C
 import qualified SMACCMPilot.Comm.Ivory.Types.AltControlDebug as A
 import qualified SMACCMPilot.Comm.Ivory.Types.ControlLaw      as CL
 import qualified SMACCMPilot.Comm.Ivory.Types.ControlModes    as CM
@@ -137,12 +138,14 @@ monitorAltitudeControl attrs = do
                   -- ALTITUDE CONTROLLER END
                   -- add the constant hover throttle (~50% for now)
                   -- save this somewhere in the conf file
+                  alt_nominal_hover_throttle <- alt_pos_cfg~>*C.nominal_throttle
                   vz_ctl <- alt_thrust_norm + alt_nominal_hover_throttle     
                   -- maybe rename A.pos_rate_setp because it is not the right name             
                   store (state_dbg ~> A.pos_rate_setp) vz_ctl
                   return vz_ctpid_resetl
               -- Ignore for now
               , thr_mode ==? TM.altSetpt ==> do
+                  -- FIXME: This mode is Not used yet
                   -- update setpoint ui
                   tui_reset ui_control
                   -- update position controller
@@ -157,13 +160,6 @@ monitorAltitudeControl attrs = do
                     (do store (state_dbg ~> A.pos_rate_setp) vz_ctl
                         return vz_ctl)
               ]
-            -- Probably unused? This is the throttle_tracker_code
-            -- Manage thrust pid integral reset, if required.
-            -- (reset_integral, new_integral) <- tt_reset_to throttle_tracker
-            -- when reset_integral $ do
-            --  thrust_pid_set_integral thrust_pid new_integral
-            -- calculate thrust pid (delete this)
-            -- uncomp_thr_setpt <- thrust_pid_calculate thrust_pid vz_control dt
             
             -- compensate for roll/pitch rotation 
             r22   <- sensorsR22 sens

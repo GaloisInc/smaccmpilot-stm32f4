@@ -55,7 +55,6 @@ monitorThrottleUI attr estimator = do
                 store active_state true
             , active ==> do
                 -- do nothing (the alt_setpoint is constant)
-                -- just a cludge to get this compiled
                 current <- deref alt_setpoint
                 store alt_setpoint current
             ]
