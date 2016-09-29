@@ -98,7 +98,9 @@ monitorAltitudeControl attrs = do
           enabled <- assign ((armed_mode ==? A.armed)
                          .&& (thr_mode /=? TM.directUi))
 
-          store ui_setpt =<< manual_throttle ui
+          -- store ui_setpt =<< manual_throttle ui
+          mt <- manual_throttle ui
+          store ui_setpt mt
           store at_enabled enabled
 
           -- Update estimators
@@ -110,14 +112,32 @@ monitorAltitudeControl attrs = do
 
           when enabled $ do
             vz_control <- cond
+              -- default mode
               [ thr_mode ==? TM.altUi ==> do
                   -- update setpoint ui
                   tui_update      ui_control ui dt
-                  -- update position controller
-                  (ui_alt, ui_vz) <- tui_setpoint ui_control
-                  vz_ctl <- pos_pid_calculate position_pid ui_alt 0 dt
+                  -- ALTITUDE CONTROLLER START
+                  -- update position controller (see stabilize_from_angle in Stabilize.hs)
+                  -- we care only about the altitude, not the rate at this point
+                  (ui_alt, _) <- tui_setpoint ui_control
+                  alt_err     <- assign $ ui_alt - sensor_alt
+                  -- ideally we would feed the controller just the desired position and the actual position
+                  -- it should calculate alt_err internally
+                  alt_rate_desired  <- call pid_update alt_pos_pid alt_pos_cfg alt_error sensor_alt
+                  alt_rate_error    <- assign $ alt_rate_desired - sensor_alt_rate_est
+                  -- again the error should be calculated internally
+                  alt_thrust  <- call pid_update alt_rate_pid alt_rate_cfg alt_rate_error sensor_alt_rate_est
+                  -- optionally limit the output of the feedback loop (like -0.2 -- 0.2), leave unlimited by default
+                  alt_thrust_norm <- call fconstrain (-max_alt_thrust_fb)
+                            max_alt_thrust_fb alt_thrust
+                  -- ALTITUDE CONTROLLER END
+                  -- add the constant hover throttle (~50% for now)
+                  -- save this somewhere in the conf file
+                  vz_ctl <- alt_thrust_norm + alt_nominal_hover_throttle     
+                  -- maybe rename A.pos_rate_setp because it is not the right name             
                   store (state_dbg ~> A.pos_rate_setp) vz_ctl
                   return vz_ctl
+              -- Ignore for now
               , thr_mode ==? TM.altSetpt ==> do
                   -- update setpoint ui
                   tui_reset ui_control
@@ -133,15 +153,22 @@ monitorAltitudeControl attrs = do
                     (do store (state_dbg ~> A.pos_rate_setp) vz_ctl
                         return vz_ctl)
               ]
+            -- Probably unused? This is the throttle_tracker_code
             -- Manage thrust pid integral reset, if required.
-            (reset_integral, new_integral) <- tt_reset_to throttle_tracker
-            when reset_integral $ do
-              thrust_pid_set_integral thrust_pid new_integral
-            -- calculate thrust pid
-            uncomp_thr_setpt <- thrust_pid_calculate thrust_pid vz_control dt
+            -- (reset_integral, new_integral) <- tt_reset_to throttle_tracker
+            -- when reset_integral $ do
+            --  thrust_pid_set_integral thrust_pid new_integral
+            
+            -- calculate thrust pid (delete this)
+            -- uncomp_thr_setpt <- thrust_pid_calculate thrust_pid vz_control dt
+            
+            -- compensate for roll/pitch rotation 
             r22              <- sensorsR22 sens
-            setpt <- assign ((throttleR22Comp r22) * uncomp_thr_setpt)
-            store at_setpt =<< call fconstrain 0.0 1.0 setpt
+            setpt <- assign ((throttleR22Comp r22) * vz_ctl)
+            -- limit max throttle by the throttle stick (safety feature)
+            store at_setpt =<< call fconstrain 0.0 ui_setpt setpt
+            
+            -- now limit the throttle 
 
           unless enabled $ do
             tui_reset       ui_control
