@@ -16,11 +16,8 @@ import Ivory.Language
 import Ivory.Tower
 import Ivory.Stdlib
 
-import           SMACCMPilot.Flight.Control.PID (fconstrain, controlPIDModule)
 import           SMACCMPilot.Flight.Control.Altitude.Estimator
 import           SMACCMPilot.Flight.Control.Altitude.ThrottleTracker
-import           SMACCMPilot.Flight.Control.Altitude.ThrustPID
-import           SMACCMPilot.Flight.Control.Altitude.PositionPID
 import           SMACCMPilot.Flight.Control.Altitude.ThrottleUI
 import           SMACCMPilot.Flight.Types.MaybeFloat
 import           SMACCMPilot.Flight.Control.PID
@@ -96,7 +93,7 @@ monitorAltitudeControl attrs = do
                               , Ref s4 ('Struct "control_law")
                               , IFloat
                               ]':->())
-      proc_alt_update = proc name_alt_update $ \sens ui ctl_sp cl dt -> body $ do
+      proc_alt_update = proc name_alt_update $ \sens ui _ctl_sp cl dt -> body $ do
 
           thr_mode <- deref (cl ~> CL.control_modes ~> CM.thr_mode)
           armed_mode <- deref (cl ~> CL.arming_mode)
