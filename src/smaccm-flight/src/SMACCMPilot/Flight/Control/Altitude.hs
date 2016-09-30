@@ -24,7 +24,6 @@ import           SMACCMPilot.Flight.Control.Altitude.PositionPID
 import           SMACCMPilot.Flight.Control.Altitude.ThrottleUI
 import           SMACCMPilot.Flight.Types.MaybeFloat
 import           SMACCMPilot.Flight.Control.PID
-import qualified SMACCMPilot.Comm.Ivory.Types.PidConfig as C
 import qualified SMACCMPilot.Comm.Ivory.Types.AltControlDebug as A
 import qualified SMACCMPilot.Comm.Ivory.Types.ControlLaw      as CL
 import qualified SMACCMPilot.Comm.Ivory.Types.ControlModes    as CM
@@ -37,6 +36,12 @@ import qualified SMACCMPilot.Comm.Ivory.Types.ControlOutput as CO
 import           SMACCMPilot.Comm.Ivory.Types.TimeMicros
 import           SMACCMPilot.Comm.Tower.Attr
 import           SMACCMPilot.Comm.Tower.Interface.ControllableVehicle
+
+const_MAX_THRUST_FB :: IFloat
+const_MAX_THRUST_FB  = 0.2 -- [x100% throttle]
+
+const_NOMINAL_HOVER_THROTTLE :: IFloat
+const_NOMINAL_HOVER_THROTTLE = 0.5 -- [x100% throttle]
 
 data AltitudeControl =
    AltitudeControl
@@ -59,15 +64,15 @@ monitorAltitudeControl :: (AttrReadable a)
                        -> Monitor e AltitudeControl
 monitorAltitudeControl attrs = do
   -- Alt estimator filters noisy sensor into altitude & its derivative
-  alt_estimator    <- monitorAltEstimator
+  alt_estimator <- monitorAltEstimator
   -- Thrust PID controls altitude rate with thrust
-  alt_rate_pid  <- state "alt_rate_pid"
+  alt_rate_pid <- state "alt_rate_pid"
   alt_rate_cfg <- attrState (altitudeRatePid attrs)
   -- Position PID controls altitude with altitude rate
-  alt_pos_pid  <- state "alt_pos_pid"
-  alt_pos_cfg     <- (altitudePositionPid attrs)
+  alt_pos_pid <- state "alt_pos_pid"
+  alt_pos_cfg <- attrState (altitudePositionPid attrs)
   -- UI controls Position setpoint from user stick input
-  ui_control       <- monitorThrottleUI  (throttleUi attrs) alt_estimator
+  ui_control <- monitorThrottleUI  (throttleUi attrs) alt_estimator
   -- setpoint: result of the whole autothrottle calculation
   at_setpt <- state "at_setpt"
   -- setpoint for manual passthrough control, and a boolean indicating
@@ -114,36 +119,30 @@ monitorAltitudeControl attrs = do
           when enabled $ do
             vz_control <- cond
               -- default mode
-              [thr_mode ==? TM.DirectUi ==> do
-                  -- reset the integrators in manual mode
-                  pid_reset alt_pos_pid
-                  pid_reset alt_rate_pid
-              , thr_mode ==? TM.altUi ==> do
+              [thr_mode ==? TM.altUi ==> do
                   -- update setpoint ui
                   tui_update      ui_control ui dt
                   -- ALTITUDE CONTROLLER START
-                  -- update position controller (see stabilize_from_angle in Stabilize.hs)
+                  -- update position controller (see stabilize_from_angle iMonitor n Stabilize.hs)
                   -- we care only about the altitude, not the rate at this point
                   (ui_alt, _) <- tui_setpoint ui_control
                   alt_err     <- assign $ ui_alt - alt_est_pos
                   -- ideally we would feed the controller just the desired position and the actual position
                   -- it should calculate alt_err internally
-                  alt_rate_desired  <- call pid_update alt_pos_pid alt_pos_cfg alt_err alt_est_pos
+                  alt_rate_desired  <- call pid_update alt_pos_pid (constRef alt_pos_cfg) alt_err alt_est_pos
                   alt_rate_err    <- assign $ alt_rate_desired - alt_est_rate
                   -- again the error should be calculated internally
-                  alt_thrust  <- call pid_update alt_rate_pid alt_rate_cfg alt_rate_err alt_est_rate
+                  alt_thrust  <- call pid_update alt_rate_pid (constRef alt_rate_cfg) alt_rate_err alt_est_rate
                   -- optionally limit the output of the feedback loop (like -0.2 -- 0.2), leave unlimited by default
-                  alt_thrust_norm <- call fconstrain (-max_alt_thrust_fb)
-                            max_alt_thrust_fb alt_thrust
+                  alt_thrust_norm <- call fconstrain (-const_MAX_THRUST_FB) const_MAX_THRUST_FB alt_thrust
                   -- ALTITUDE CONTROLLER END
                   -- add the constant hover throttle (~50% for now)
                   -- save this somewhere in the conf file
-                  alt_nominal_hover_throttle <- alt_pos_cfg~>*C.nominal_throttle
-                  vz_ctl <- alt_thrust_norm + alt_nominal_hover_throttle     
-                  -- maybe rename A.pos_rate_setp because it is not the right name             
+                  let vz_ctl = alt_thrust_norm + const_NOMINAL_HOVER_THROTTLE
+                  -- maybe rename A.pos_rate_setp because it is not the right name
                   store (state_dbg ~> A.pos_rate_setp) vz_ctl
-                  return vz_ctpid_resetl
-              -- Ignore for now
+                  return vz_ctl
+              {- -- Ignore for now
               , thr_mode ==? TM.altSetpt ==> do
                   -- FIXME: This mode is Not used yet
                   -- update setpoint ui
@@ -159,26 +158,28 @@ monitorAltitudeControl attrs = do
                         return vz_ctl')
                     (do store (state_dbg ~> A.pos_rate_setp) vz_ctl
                         return vz_ctl)
+              -}
               ]
             
             -- compensate for roll/pitch rotation 
             r22   <- sensorsR22 sens
-            setpt <- assign ((throttleR22Comp r22) * vz_ctl)
+            setpt <- assign ((throttleR22Comp r22) * vz_control)
             -- limit max throttle by the throttle stick (safety feature)
-            store at_setpt =<< call fconstrain 0.0 ui_setpt setpt
+            store at_setpt =<< call fconstrain 0.0 mt setpt
             -- now limit the throttle 
 
           unless enabled $ do
             tui_reset       ui_control
-            -- Reset derivative tracking when not using thrust controller
-            thrust_pid_init thrust_pid
+            -- reset the integrators in manual mode
+            call_ pid_reset alt_pos_pid
+            call_ pid_reset alt_rate_pid
 
       proc_alt_debug :: Def('[Ref s ('Struct "alt_control_debug")]':->())
       proc_alt_debug = proc name_alt_debug $ \out -> body $ do
         tui_write_debug ui_control state_dbg
         ae_write_debug alt_estimator state_dbg
-        pos_pid_write_debug position_pid state_dbg
-        thrust_pid_write_debug thrust_pid state_dbg
+        --pos_pid_write_debug position_pid state_dbg
+        --thrust_pid_write_debug thrust_pid state_dbg
         refCopy out (constRef state_dbg)
 
       proc_alt_output :: Def('[Ref s ('Struct "control_output")]':->())
@@ -198,8 +199,8 @@ monitorAltitudeControl attrs = do
     { alt_init = do
         store at_enabled false
         ae_init alt_estimator
-        tt_init throttle_tracker
-        thrust_pid_init thrust_pid
+        -- tt_init throttle_tracker
+        -- thrust_pid_init thrust_pid
     , alt_update = call_ proc_alt_update
     , alt_output = call_ proc_alt_output
     , alt_debug  = call_ proc_alt_debug

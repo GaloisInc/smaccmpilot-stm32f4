@@ -24,8 +24,8 @@ data AltEstimator =
 
 monitorAltEstimator :: Monitor e AltEstimator
 monitorAltEstimator = do
-  prevAlt       <- state "prev_  prevAltTime   <- state "prev_alt_time"
-alt"
+  prevAlt       <- state "prev_alt"
+  prevAltTime   <- state "prev_alt_time"
   prevClimbRate <- state "prev_climb_rate"
 
   -- why is this called "thrustEstimatorMeasure" ?
