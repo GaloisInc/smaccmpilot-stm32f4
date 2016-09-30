@@ -195,7 +195,9 @@ px4fmuv24 tuning mixer pwmconf dmode = FlightPlatform
     , adc_cal    =
         -- This calibration works for Pixhawk #2 on my desk. I assume
         -- they're all close enough to this for now.
-        \x -> ((x - 137.718) / 109.709)
+        -- TODO: replace with proper calibration, the GAIN 1.27
+        -- is only a kludge to get the voltage read correct values
+        \x -> (x*0.0100695421)
         -- Linear regression, r squared of .9999:
         -- counts	voltage
         -- 138	0

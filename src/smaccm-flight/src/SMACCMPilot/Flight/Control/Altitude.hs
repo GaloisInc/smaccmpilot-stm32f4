@@ -112,6 +112,8 @@ monitorAltitudeControl attrs = do
           
           -- read newest estimate
           (alt_est_pos, alt_est_rate) <- ae_state alt_estimator
+          store (state_dbg ~> A.alt_est) alt_est_pos
+          store (state_dbg ~> A.alt_rate_est) alt_est_rate
 
           when enabled $ do
             vz_control <- cond
@@ -163,7 +165,7 @@ monitorAltitudeControl attrs = do
             setpt <- assign ((throttleR22Comp r22) * vz_control)
             -- limit max throttle by the throttle stick (safety feature)
             store at_setpt =<< call fconstrain 0.0 mt setpt
-            -- now limit the throttle 
+            --TODO: store (state_dbg ~> A.thrust) at_setpt
 
           unless enabled $ do
             tui_reset       ui_control
