@@ -46,6 +46,7 @@ import           SMACCMPilot.Flight.Tuning
 data FlightPlatform =
   FlightPlatform
     { fp_telem        :: UART_Device
+    , fp_telem_baud   :: Integer
     , fp_gps          :: UART_Device
     , fp_io           :: FlightIO
     , fp_sensors      :: Sensors
@@ -76,11 +77,13 @@ flightPlatformParser = do
   t <- subsection "tuning" $ subsection v flightTuningParser
   p <- subsection "args" $ subsection "platform" string
   m <- subsection "args" $ subsection "mixer" mixerParser
+  b <- subsection "args" $ subsection "telem_baud" integer
+   <|> pure 57600
   let c = pwmconf v
   case map toUpper p of
-    "PX4FMUV17" -> result (px4fmuv17 t m)
-    "PX4FMUV24" -> result (px4fmuv24 t m c)
-    "PIXHAWK"   -> result (px4fmuv24 t m c)
+    "PX4FMUV17" -> result (px4fmuv17 t m b)
+    "PX4FMUV24" -> result (px4fmuv24 t m c b)
+    "PIXHAWK"   -> result (px4fmuv24 t m c b)
     _ -> fail ("no such platform " ++ p)
   where
   result mkPlatform = do
@@ -105,9 +108,14 @@ flightPlatformParser = do
       _           -> PX4IOPWMConfig { px4iopwm_min = 1100, px4iopwm_max = 1900 }
 
 
-px4fmuv17 :: FlightTuning -> FlightMixer -> DatalinkMode -> FlightPlatform
-px4fmuv17 tuning mixer dmode = FlightPlatform
+px4fmuv17 :: FlightTuning
+          -> FlightMixer
+          -> Integer
+          -> DatalinkMode
+          -> FlightPlatform
+px4fmuv17 tuning mixer telem_baud dmode = FlightPlatform
   { fp_telem       = telem
+  , fp_telem_baud  = telem_baud
   , fp_gps         = gps
   , fp_io          = NativeIO ppm
   , fp_sensors     = fmu17_sensors
@@ -140,9 +148,15 @@ px4fmuv17 tuning mixer dmode = FlightPlatform
   ppm_int = HasSTM32Interrupt F405.TIM1_CC
 
 
-px4fmuv24 :: FlightTuning -> FlightMixer -> PX4IOPWMConfig -> DatalinkMode -> FlightPlatform
-px4fmuv24 tuning mixer pwmconf dmode = FlightPlatform
+px4fmuv24 :: FlightTuning
+          -> FlightMixer
+          -> PX4IOPWMConfig
+          -> Integer
+          -> DatalinkMode
+          -> FlightPlatform
+px4fmuv24 tuning mixer pwmconf telem_baud dmode = FlightPlatform
   { fp_telem       = telem
+  , fp_telem_baud  = telem_baud
   , fp_gps         = gps
   , fp_io          = px4io
   , fp_sensors     = fmu24_sensors

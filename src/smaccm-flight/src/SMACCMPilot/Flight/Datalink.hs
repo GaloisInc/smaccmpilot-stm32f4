@@ -56,7 +56,7 @@ flightDatalinks :: (e -> FlightPlatform) -> CVAPI -> Tower e (Monitor e ())
 flightDatalinks tofp cvapi = do
   fp  <- fmap tofp getEnv
   mon <- datalinkTower tofp cvapi
-    (uartDatalink (fp_clockconfig . tofp) (fp_telem fp) 57600)
+    (uartDatalink (fp_clockconfig . tofp) (fp_telem fp) (fp_telem_baud fp))
 
   can <- maybe (fail "flightDatalinks requires a CAN peripheral") return $ fp_can fp
   (canRx, canTx, _, _) <- canTower tocc (can_periph can) 125000 (can_RX can) (can_TX can)
