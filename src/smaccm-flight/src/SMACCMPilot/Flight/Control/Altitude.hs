@@ -27,7 +27,7 @@ import qualified SMACCMPilot.Comm.Ivory.Types.ControlModes    as CM
 import qualified SMACCMPilot.Comm.Ivory.Types.ThrottleMode    as TM
 import qualified SMACCMPilot.Comm.Ivory.Types.ArmingMode      as A
 import qualified SMACCMPilot.Comm.Ivory.Types.SensorsResult   as S
-import qualified SMACCMPilot.Comm.Ivory.Types.ControlSetpoint as SP
+--import qualified SMACCMPilot.Comm.Ivory.Types.ControlSetpoint as SP
 import           SMACCMPilot.Comm.Ivory.Types.UserInput       ()
 import qualified SMACCMPilot.Comm.Ivory.Types.ControlOutput as CO
 import           SMACCMPilot.Comm.Ivory.Types.TimeMicros
@@ -36,9 +36,6 @@ import           SMACCMPilot.Comm.Tower.Interface.ControllableVehicle
 
 const_MAX_THRUST_FB :: IFloat
 const_MAX_THRUST_FB  = 0.2 -- [x100% throttle]
-
-const_NOMINAL_HOVER_THROTTLE :: IFloat
-const_NOMINAL_HOVER_THROTTLE = 0.5 -- [x100% throttle]
 
 data AltitudeControl =
    AltitudeControl
