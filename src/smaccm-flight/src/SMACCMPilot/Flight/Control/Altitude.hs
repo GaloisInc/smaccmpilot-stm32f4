@@ -68,6 +68,7 @@ monitorAltitudeControl attrs = do
   -- Position PID controls altitude with altitude rate
   alt_pos_pid <- state "alt_pos_pid"
   alt_pos_cfg <- attrState (altitudePositionPid attrs)
+  alt_nominal_throttle <- attrState (nominalThrottle attrs)
   -- UI controls Position setpoint from user stick input
   ui_control <- monitorThrottleUI  (throttleUi attrs) alt_estimator
   -- setpoint: result of the whole autothrottle calculation
@@ -137,7 +138,8 @@ monitorAltitudeControl attrs = do
                   -- ALTITUDE CONTROLLER END
                   -- add the constant hover throttle (~50% for now)
                   -- save this somewhere in the conf file
-                  let vz_ctl = alt_thrust_norm + const_NOMINAL_HOVER_THROTTLE
+                  nominal_throttle <- deref alt_nominal_throttle
+                  let vz_ctl = alt_thrust_norm + nominal_throttle
                   -- maybe rename A.pos_rate_setp because it is not the right name
                   store (state_dbg ~> A.pos_rate_setp) vz_ctl
                   return vz_ctl

@@ -13,7 +13,7 @@ test: smaccm-comm-schema-native-test
 test: smaccm-comm-schema-tower-test
 
 .PHONY: smaccm-comm-schema-native
-smaccm-comm-schema-native:
+smaccm-comm-schema-native: smaccm-comm-schema.gidl
 	$(GIDL) -b haskell-rpc \
 	     -i smaccm-comm-schema.gidl \
 	     -o smaccm-comm-schema-native \
@@ -21,7 +21,7 @@ smaccm-comm-schema-native:
 	     -n SMACCMPilot.Comm.Native
 
 .PHONY: smaccm-comm-schema-tower
-smaccm-comm-schema-tower:
+smaccm-comm-schema-tower: smaccm-comm-schema.gidl
 	$(GIDL) -b tower \
 	     -i smaccm-comm-schema.gidl \
 	     -o smaccm-comm-schema-tower \

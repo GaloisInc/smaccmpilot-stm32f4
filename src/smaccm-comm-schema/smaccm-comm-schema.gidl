@@ -316,6 +316,8 @@
 
 (def-interface controllable_vehicle_i (vehicle_i)
   (reboot_req              (attr write reboot_req_t))
+  -- Parameter for altitude hold mode: what % throttle yields a hover?
+  (nominal_throttle        (attr readwrite float_t))
   (altitude_rate_pid       (attr readwrite pid_config_t))
   (altitude_position_pid   (attr readwrite pid_config_t))
   (throttle_ui             (attr readwrite throttle_ui_t))

@@ -1,7 +1,8 @@
 {-# LANGUAGE DataKinds #-}
 
 module SMACCMPilot.Flight.Tuning.TypeParsers
-  ( pidConfigParser
+  ( ifloatParser
+  , pidConfigParser
   , stabConfigParser
   , throttleUIParser
   ) where
