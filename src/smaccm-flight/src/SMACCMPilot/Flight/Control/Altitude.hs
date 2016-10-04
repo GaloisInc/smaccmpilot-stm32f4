@@ -110,8 +110,8 @@ monitorAltitudeControl attrs = do
           
           -- read newest estimate
           (alt_est_pos, alt_est_rate) <- ae_state alt_estimator
-          store (state_dbg ~> A.alt_est) alt_est_pos
-          store (state_dbg ~> A.alt_rate_est) alt_est_rate
+          --store (state_dbg ~> A.alt_est) alt_est_pos
+          --store (state_dbg ~> A.alt_rate_est) alt_est_rate
 
           when enabled $ do
             vz_control <- cond
