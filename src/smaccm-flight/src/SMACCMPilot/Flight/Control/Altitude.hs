@@ -35,7 +35,7 @@ import           SMACCMPilot.Comm.Tower.Attr
 import           SMACCMPilot.Comm.Tower.Interface.ControllableVehicle
 
 const_MAX_THRUST_FB :: IFloat
-const_MAX_THRUST_FB  = 0.2 -- [x100% throttle]
+const_MAX_THRUST_FB  = 0.4 -- [x100% throttle]
 
 data AltitudeControl =
    AltitudeControl
@@ -124,10 +124,12 @@ monitorAltitudeControl attrs = do
                   -- we care only about the altitude, not the rate at this point
                   (ui_alt, _) <- tui_setpoint ui_control
                   alt_err     <- assign $ ui_alt - alt_est_pos
+                  store (state_dbg ~> A.pos_setp) alt_err
                   -- ideally we would feed the controller just the desired position and the actual position
                   -- it should calculate alt_err internally
                   alt_rate_desired  <- call pid_update alt_pos_pid (constRef alt_pos_cfg) alt_err alt_est_pos
                   alt_rate_err    <- assign $ alt_rate_desired - alt_est_rate
+                  --store (state_dbg ~> A.pos_rate_setp) alt_rate_err
                   -- again the error should be calculated internally
                   alt_thrust  <- call pid_update alt_rate_pid (constRef alt_rate_cfg) alt_rate_err alt_est_rate
                   -- optionally limit the output of the feedback loop (like -0.2 -- 0.2), leave unlimited by default
