@@ -35,7 +35,10 @@ import           SMACCMPilot.Comm.Tower.Attr
 import           SMACCMPilot.Comm.Tower.Interface.ControllableVehicle
 
 const_MAX_THRUST_FB :: IFloat
-const_MAX_THRUST_FB  = 0.4 -- [x100% throttle]
+const_MAX_THRUST_FB  = 1.0 -- [x100% throttle]
+
+const_NOMINAL_THRUST :: IFloat
+const_NOMINAL_THRUST  = 0.7 -- [x100% throttle]
 
 data AltitudeControl =
    AltitudeControl
@@ -137,10 +140,10 @@ monitorAltitudeControl attrs = do
                   -- ALTITUDE CONTROLLER END
                   -- add the constant hover throttle (~50% for now)
                   -- save this somewhere in the conf file
-                  nominal_throttle <- deref alt_nominal_throttle
-                  let vz_ctl = alt_thrust_norm + nominal_throttle
+                  --nominal_throttle <- deref alt_nominal_throttle
+                  let vz_ctl = alt_thrust_norm + const_NOMINAL_THRUST
                   -- maybe rename A.pos_rate_setp because it is not the right name
-                  store (state_dbg ~> A.pos_rate_setp) vz_ctl
+                  --store (state_dbg ~> A.pos_rate_setp) vz_ctl
                   return vz_ctl
               {- -- Ignore for now
               , thr_mode ==? TM.altSetpt ==> do
@@ -162,11 +165,20 @@ monitorAltitudeControl attrs = do
               ]
             
             -- compensate for roll/pitch rotation 
-            r22   <- sensorsR22 sens
-            setpt <- assign ((throttleR22Comp r22) * vz_control)
+            --r22   <- sensorsR22 sens
+            --setpt <- assign ((throttleR22Comp r22) * vz_control)
+            setpt <- assign vz_control
             -- limit max throttle by the throttle stick (safety feature)
             store at_setpt =<< call fconstrain 0.0 mt setpt
             --TODO: store (state_dbg ~> A.thrust) at_setpt
+
+          ifte_ enabled
+            (do sp <- deref at_setpt
+                store (state_dbg ~> A.pos_rate_setp) sp
+            )
+            (do ui <- deref ui_setpt
+                store (state_dbg ~> A.pos_rate_setp) ui
+            )
 
           unless enabled $ do
             tui_reset       ui_control
