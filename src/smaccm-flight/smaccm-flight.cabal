@@ -63,6 +63,7 @@ library
                        SMACCMPilot.Flight.Tuning.TypeParsers,
                        SMACCMPilot.Flight.Types.MaybeFloat
   build-depends:       base >=4.6,
+                       base-compat,
                        ivory >=0.1,
                        ivory-px4-hw >=0.1,
                        ivory-serialize >=0.1,

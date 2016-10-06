@@ -68,7 +68,7 @@ monitorAltitudeControl attrs = do
   -- Position PID controls altitude with altitude rate
   alt_pos_pid <- state "alt_pos_pid"
   alt_pos_cfg <- attrState (altitudePositionPid attrs)
-  alt_nominal_throttle <- attrState (nominalThrottle attrs)
+  _alt_nominal_throttle <- attrState (nominalThrottle attrs)
   -- UI controls Position setpoint from user stick input
   ui_control <- monitorThrottleUI  (throttleUi attrs) alt_estimator
   -- setpoint: result of the whole autothrottle calculation
@@ -176,8 +176,8 @@ monitorAltitudeControl attrs = do
             (do sp <- deref at_setpt
                 store (state_dbg ~> A.pos_rate_setp) sp
             )
-            (do ui <- deref ui_setpt
-                store (state_dbg ~> A.pos_rate_setp) ui
+            (do ui_sp <- deref ui_setpt
+                store (state_dbg ~> A.pos_rate_setp) ui_sp
             )
 
           unless enabled $ do
@@ -219,8 +219,8 @@ monitorAltitudeControl attrs = do
     }
 
 -- | Calculate R22 factor, product of cosines of roll & pitch angles
-sensorsR22 :: Ref s ('Struct "sensors_result") -> Ivory eff IFloat
-sensorsR22 sens = do
+_sensorsR22 :: Ref s ('Struct "sensors_result") -> Ivory eff IFloat
+_sensorsR22 sens = do
   pitch <- deref (sens ~> S.pitch)
   roll  <- deref (sens ~> S.roll)
   r22   <- assign (cos pitch * cos roll)
@@ -229,8 +229,8 @@ sensorsR22 sens = do
 -- | Throttle compensation factor (multiplicative) based on R22
 --   Based on PX4 project code (98a43454 Anton Babushkin)
 --   R22 is rotation matrix element {2,2}, equivelant to cos pitch * cos roll
-throttleR22Comp :: IFloat -> IFloat
-throttleR22Comp r22 =
+_throttleR22Comp :: IFloat -> IFloat
+_throttleR22Comp r22 =
   (r22 >? 0.8) ? (
     (1.0 / r22)
   , (r22 >? 0.0) ? (

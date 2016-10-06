@@ -17,6 +17,9 @@ import           SMACCMPilot.Comm.Tower.Interface.ControllableVehicle
 
 import           SMACCMPilot.Flight.Tuning.TypeParsers
 
+import           Prelude ()
+import           Prelude.Compat
+
 data FlightTuning =
   FlightTuning
     { ft_altitude_rate     :: Init ('Struct "pid_config")
