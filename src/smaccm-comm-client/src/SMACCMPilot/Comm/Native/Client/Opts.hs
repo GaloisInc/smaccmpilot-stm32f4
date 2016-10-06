@@ -13,12 +13,14 @@ import           SMACCMPilot.Datalink.Client.Opts
 data ClientOptions = ClientOptions
   { dlOpts     :: Options
   , srvPort    :: Int  -- Server TCP Port
+  , srvLogFile :: Maybe FilePath -- Server JSON log file
   } deriving (Show)
 
 defaultClientOpts :: ClientOptions
 defaultClientOpts = ClientOptions
-  { dlOpts   = defaultOpts
-  , srvPort  = 8080
+  { dlOpts     = defaultOpts
+  , srvPort    = 8080
+  , srvLogFile = Nothing
   }
 
 clientoptions :: [OptDescr (ClientOptions -> ClientOptions)]
@@ -43,6 +45,9 @@ clientoptions =
   , Option [] ["port"]
       (ReqArg (\arg opts -> opts { srvPort = mkSrvPort arg }) "portnumber")
       ("Server TCP port (default: " ++ (show (srvPort defaultClientOpts)) ++ ")")
+  , Option [] ["logfile"]
+      (ReqArg (\arg opts -> opts { srvLogFile = Just arg }) "filename")
+      "Log file for JSON responses"
   ]
 
 mkSrvPort :: String -> Int

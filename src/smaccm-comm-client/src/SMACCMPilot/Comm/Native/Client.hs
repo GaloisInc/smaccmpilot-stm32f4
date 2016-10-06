@@ -36,6 +36,9 @@ commClient clientopts mode = datalinkClient opts mode $ \to fro console -> do
          >-> pushConsumer to
 
   asyncServer RPC.rpcServer in_msg_pop out_msg_push rpccfg
+  forM_ (srvLogFile clientopts) $ \logFile ->
+    -- clear out logfile
+    writeFile logFile ""
   wait a
   wait b
   where
@@ -43,6 +46,7 @@ commClient clientopts mode = datalinkClient opts mode $ \to fro console -> do
   rpccfg = RPC.Config
     { RPC.cfgPort = srvPort clientopts
     , RPC.cfgStaticDir = Just "./web/"
+    , RPC.cfgJsonLogFile = srvLogFile clientopts
     }
 
 asyncServer :: (TQueue producer -> TQueue consumer -> RPC.Config -> IO ())
