@@ -27,7 +27,6 @@ import qualified SMACCMPilot.Comm.Ivory.Types.ControlModes    as CM
 import qualified SMACCMPilot.Comm.Ivory.Types.ThrottleMode    as TM
 import qualified SMACCMPilot.Comm.Ivory.Types.ArmingMode      as A
 import qualified SMACCMPilot.Comm.Ivory.Types.SensorsResult   as S
---import qualified SMACCMPilot.Comm.Ivory.Types.ControlSetpoint as SP
 import           SMACCMPilot.Comm.Ivory.Types.UserInput       ()
 import qualified SMACCMPilot.Comm.Ivory.Types.ControlOutput as CO
 import           SMACCMPilot.Comm.Ivory.Types.TimeMicros
@@ -101,7 +100,6 @@ monitorAltitudeControl attrs = do
           enabled <- assign ((armed_mode ==? A.armed)
                          .&& (thr_mode /=? TM.directUi))
 
-          -- store ui_setpt =<< manual_throttle ui
           mt <- manual_throttle ui
           store ui_setpt mt
           store at_enabled enabled
@@ -113,8 +111,6 @@ monitorAltitudeControl attrs = do
           
           -- read newest estimate
           (alt_est_pos, alt_est_rate) <- ae_state alt_estimator
-          --store (state_dbg ~> A.alt_est) alt_est_pos
-          --store (state_dbg ~> A.alt_rate_est) alt_est_rate
 
           when enabled $ do
             vz_control <- cond
@@ -130,18 +126,19 @@ monitorAltitudeControl attrs = do
                   store (state_dbg ~> A.pos_setp) alt_err
                   -- ideally we would feed the controller just the desired position and the actual position
                   -- it should calculate alt_err internally
-                  alt_rate_desired  <- call pid_update alt_pos_pid (constRef alt_pos_cfg) alt_err alt_est_pos
-                  alt_rate_err    <- assign $ alt_rate_desired - alt_est_rate
+                  ------alt_rate_desired  <- call pid_update alt_pos_pid (constRef alt_pos_cfg) alt_err alt_est_pos
+                  ------alt_rate_err    <- assign $ alt_rate_desired - alt_est_rate
                   --store (state_dbg ~> A.pos_rate_setp) alt_rate_err
                   -- again the error should be calculated internally
-                  alt_thrust  <- call pid_update alt_rate_pid (constRef alt_rate_cfg) alt_rate_err alt_est_rate
+                  ------alt_thrust  <- call pid_update alt_rate_pid (constRef alt_rate_cfg) alt_rate_err alt_est_rate
                   -- optionally limit the output of the feedback loop (like -0.2 -- 0.2), leave unlimited by default
-                  alt_thrust_norm <- call fconstrain (-const_MAX_THRUST_FB) const_MAX_THRUST_FB alt_thrust
+                  ------alt_thrust_norm <- call fconstrain (-const_MAX_THRUST_FB) const_MAX_THRUST_FB alt_thrust
                   -- ALTITUDE CONTROLLER END
                   -- add the constant hover throttle (~50% for now)
                   -- save this somewhere in the conf file
                   --nominal_throttle <- deref alt_nominal_throttle
-                  let vz_ctl = alt_thrust_norm + const_NOMINAL_THRUST
+                  -------let vz_ctl = alt_thrust_norm + const_NOMINAL_THRUST
+                  let vz_ctl = const_NOMINAL_THRUST
                   -- maybe rename A.pos_rate_setp because it is not the right name
                   --store (state_dbg ~> A.pos_rate_setp) vz_ctl
                   return vz_ctl
@@ -170,7 +167,6 @@ monitorAltitudeControl attrs = do
             setpt <- assign vz_control
             -- limit max throttle by the throttle stick (safety feature)
             store at_setpt =<< call fconstrain 0.0 mt setpt
-            --TODO: store (state_dbg ~> A.thrust) at_setpt
 
           ifte_ enabled
             (do sp <- deref at_setpt

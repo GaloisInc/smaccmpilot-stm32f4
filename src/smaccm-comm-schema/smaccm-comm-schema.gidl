@@ -68,6 +68,7 @@
   (p_gain float_t)
   (i_gain float_t)
   (d_gain float_t)
+  (dd_gain float_t)
   (i_min  float_t)
   (i_max  float_t))
 

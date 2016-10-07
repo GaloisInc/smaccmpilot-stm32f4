@@ -33,29 +33,26 @@ stabilize_from_angle :: Def (
   , Ref      s3 ('Struct "pid_state")   -- rate_pid
   , ConstRef s4 ('Struct "pid_config")  -- rate_cfg
   , IFloat                            -- stick_angle_rad
-  , IFloat                            -- sensor_angle_rad
-  , IFloat                            -- sensor_rate_rad_s
+  , IFloat                            -- angle_measured_rad
+  , IFloat                            -- rate_measured_rad_s
   , IFloat                            -- max_servo_rate_deg_s
   ] ':-> IFloat)
 stabilize_from_angle = proc "stabilize_from_angle" $
   \angle_pid angle_cfg
    rate_pid  rate_cfg
    stick_angle_rad
-   sensor_angle_rad sensor_rate_rad_s
-   max_servo_rate_deg_s ->
-  requires (max_servo_rate_deg_s /=? 0) $ body $
+   angle_measured_rad
+   rate_measured_rad_s
+   _max_servo_rate_deg_s ->
+  requires (_max_servo_rate_deg_s /=? 0) $ body $
   do
-  -- XXX: at some point, convert internals to be fully in rads, and transform
-  -- each platform params accordingly
-  sensor_angle_deg  <- assign $ degrees sensor_angle_rad
-  angle_error       <- assign $ (degrees stick_angle_rad) - sensor_angle_deg
-  rate_deg_s        <- call pid_update angle_pid angle_cfg angle_error sensor_angle_deg
-  sensor_rate_deg_s <- assign $ degrees sensor_rate_rad_s
-  rate_error        <- assign $ rate_deg_s - sensor_rate_deg_s
-  servo_rate_deg_s  <- call pid_update rate_pid rate_cfg rate_error sensor_rate_deg_s
-  servo_rate_norm   <- call fconstrain (-max_servo_rate_deg_s)
-                            max_servo_rate_deg_s servo_rate_deg_s
-  ret $ servo_rate_norm / max_servo_rate_deg_s
+  -- TODO: plug in the reference generators, we are using ref_accel and ref_rate = 0.0 (only regulating rate and accel)  
+  stabilize_cmd <- call pid_update angle_pid angle_cfg stick_angle_rad angle_measured_rad 0.0 rate_measured_rad_s 0.0
+
+  -- for now limit to +-100% (of throttle) and then normalize to 0-1 range
+  stabilize_cmd_norm   <- call fconstrain (-100.0)
+                            100.0 stabilize_cmd
+  ret $ stabilize_cmd_norm / 100.0
 
 
 -- | Return a normalized servo output given a normalized stick input
@@ -64,17 +61,15 @@ stabilize_from_rate :: Def (
  '[ Ref      s1 ('Struct "pid_state")     -- rate_pid
   , ConstRef s2 ('Struct "pid_config")    -- rate_cfg
   , IFloat                              -- stick_rate_rad_s
-  , IFloat                              -- sensor_rate_rad_s
+  , IFloat                              -- rate_measured_rad_s
   , IFloat                              -- max_servo_rate_deg_s
   ] ':-> IFloat)
 stabilize_from_rate = proc "stabilize_from_rate" $
   \rate_pid rate_cfg stick_rate_rad_s
-   sensor_rate_rad_s max_servo_rate_deg_s ->
+   rate_measured_rad_s max_servo_rate_deg_s ->
   requires (max_servo_rate_deg_s /=? 0) $ body $
   do
-  sensor_rate_deg_s <- assign $ degrees sensor_rate_rad_s
-  rate_error        <- assign $ (degrees stick_rate_rad_s) - sensor_rate_deg_s
-  servo_rate_deg_s  <- call pid_update rate_pid rate_cfg rate_error sensor_rate_deg_s
+  servo_rate_deg_s  <- call pid_update rate_pid rate_cfg stick_rate_rad_s rate_measured_rad_s 
   servo_rate_norm   <- call fconstrain (-max_servo_rate_deg_s)
                             max_servo_rate_deg_s servo_rate_deg_s
   ret $ servo_rate_norm / max_servo_rate_deg_s
