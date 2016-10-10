@@ -10,7 +10,6 @@ import Json.Decode exposing ((:=))
 import Task
 import Time exposing (Time, millisecond)
 
-
 main =
   App.program
     { init = init
@@ -26,6 +25,8 @@ main =
 
 type alias Model =
   { packedStatus : PackedStatus
+  , lastUpdate : Time
+  , lastUpdateDt : Float -- milliseconds
   , httpError : Maybe Http.Error
   }
 
@@ -75,7 +76,7 @@ type ThrottleMode = DirectUi | AltUi | AltSetpt
 initPackedStatus : PackedStatus
 initPackedStatus = {
     valid = False
-  , roll = 0
+  , roll = zero
   , pitch = 0
   , yaw = 0
   , baro_alt = 0
@@ -104,7 +105,7 @@ initPackedStatus = {
 
 init : (Model, Cmd Msg)
 init =
-  ( Model initPackedStatus  Nothing
+  ( Model initPackedStatus 0 0 Nothing
   , fetchPackedStatus
   )
 
@@ -115,6 +116,7 @@ init =
 
 type Msg
   = Poll
+  | UpdateTime Time
   | FetchPackedStatusSucceed PackedStatus
   | FetchFail Http.Error
 
@@ -123,14 +125,15 @@ update msg model =
   case msg of
     Poll ->
       (model, fetchPackedStatus)
-
+    UpdateTime time ->
+      let dt = Time.inMilliseconds time - Time.inMilliseconds model.lastUpdate
+      in ({model | lastUpdate = time, lastUpdateDt = dt}, Cmd.none)
     FetchPackedStatusSucceed newPackedStatus ->
-      ({model | packedStatus = newPackedStatus, httpError = Nothing}, Cmd.none)
-
+      ({model | packedStatus = newPackedStatus, httpError = Nothing}, updateTime)
     FetchFail err ->
       ({model | httpError = Just err}, Cmd.none)
 
-
+updateTime = Task.perform (\_ -> UpdateTime 0) UpdateTime Time.now
 
 -- VIEW
 
@@ -138,7 +141,8 @@ update msg model =
 view : Model -> Html Msg
 view model =
   div []
-    [ h2 [] [text ("Gyro calibration: " ++ toString model.packedStatus.gyro_progress)]
+    [ h2 [] [text ("Update latency: " ++ toString model.lastUpdateDt ++ "ms")]
+    , h2 [] [text ("Gyro calibration: " ++ toString model.packedStatus.gyro_progress)]
     , h2 [] [text ("Mag calibration: " ++ toString model.packedStatus.mag_progress)]
     , case model.httpError of
         Just err -> div [ style [("color", "red")] ] [ text (toString err) ]
@@ -152,7 +156,7 @@ view model =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-  Time.every (1000 * millisecond) (\_ -> Poll)
+  Time.every (33 * millisecond) (\_ -> Poll)
 
 
 -- HTTP
