@@ -50,8 +50,8 @@ stabilize_from_angle = proc "stabilize_from_angle" $
   stabilize_cmd <- call pid_update angle_pid angle_cfg stick_angle_rad angle_measured_rad 0.0 rate_measured_rad_s 0.0
 
   -- for now limit to +-100% (of throttle) and then normalize to 0-1 range
-  stabilize_cmd_norm   <- call fconstrain (-100.0)
-                            100.0 stabilize_cmd
+  -- what about rounding errors with too small gains? (ideally we have everything scaled to [-1,1]
+  stabilize_cmd_norm   <- call fconstrain (-100.0) 100.0 stabilize_cmd
   ret $ stabilize_cmd_norm / 100.0
 
 
@@ -69,10 +69,16 @@ stabilize_from_rate = proc "stabilize_from_rate" $
    rate_measured_rad_s max_servo_rate_deg_s ->
   requires (max_servo_rate_deg_s /=? 0) $ body $
   do
-  servo_rate_deg_s  <- call pid_update rate_pid rate_cfg stick_rate_rad_s rate_measured_rad_s 
-  servo_rate_norm   <- call fconstrain (-max_servo_rate_deg_s)
-                            max_servo_rate_deg_s servo_rate_deg_s
-  ret $ servo_rate_norm / max_servo_rate_deg_s
+{-
+  last_rate <- 0.0
+  d_rate <- 0.0
+  store d_rate (rate_measured_rad_s - last_rate)
+  store last_rate d_rate
+-}
+  -- TODO: measure rate of change?
+  rate_cmd  <- call pid_update rate_pid rate_cfg stick_rate_rad_s rate_measured_rad_s 0.0 0.0 0.0
+  rate_cmd_norm   <- call fconstrain (-100.0) 100.0 rate_cmd
+  ret $ rate_cmd_norm / 100.0
 
 
 ----------------------------------------------------------------------
