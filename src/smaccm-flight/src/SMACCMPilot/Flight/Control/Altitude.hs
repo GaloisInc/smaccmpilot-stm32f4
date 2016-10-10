@@ -37,7 +37,7 @@ const_MAX_THRUST_FB :: IFloat
 const_MAX_THRUST_FB  = 1.0 -- [x100% throttle]
 
 const_NOMINAL_THRUST :: IFloat
-const_NOMINAL_THRUST  = 0.7 -- [x100% throttle]
+const_NOMINAL_THRUST  = 0.5 -- [x100% throttle]
 
 data AltitudeControl =
    AltitudeControl
@@ -118,53 +118,37 @@ monitorAltitudeControl attrs = do
               [thr_mode ==? TM.altUi ==> do
                   -- update setpoint ui
                   tui_update      ui_control ui dt
-                  -- ALTITUDE CONTROLLER START
+                  (ui_alt, _) <- tui_setpoint ui_control
+                  -- store errors for reference
+                  _alt_err     <- assign $ ui_alt - alt_est_pos
+                  _alt_rate_err    <- assign $ 0.0 - alt_est_rate
+                  store (state_dbg ~> A.pos_setp) _alt_err
+                  store (state_dbg ~> A.pos_rate_setp) _alt_rate_err
+
+                  -- ALTITUDE CONTROLLER START (SIMPLE PID with constant nominal thrust)
                   -- update position controller (see stabilize_from_angle iMonitor n Stabilize.hs)
                   -- we care only about the altitude, not the rate at this point
-                  (ui_alt, _) <- tui_setpoint ui_control
-                  alt_err     <- assign $ ui_alt - alt_est_pos
-                  store (state_dbg ~> A.pos_setp) alt_err
-                  -- ideally we would feed the controller just the desired position and the actual position
-                  -- it should calculate alt_err internally
-                  ------alt_rate_desired  <- call pid_update alt_pos_pid (constRef alt_pos_cfg) alt_err alt_est_pos
-                  ------alt_rate_err    <- assign $ alt_rate_desired - alt_est_rate
-                  --store (state_dbg ~> A.pos_rate_setp) alt_rate_err
-                  -- again the error should be calculated internally
-                  ------alt_thrust  <- call pid_update alt_rate_pid (constRef alt_rate_cfg) alt_rate_err alt_est_rate
-                  -- optionally limit the output of the feedback loop (like -0.2 -- 0.2), leave unlimited by default
-                  ------alt_thrust_norm <- call fconstrain (-const_MAX_THRUST_FB) const_MAX_THRUST_FB alt_thrust
+                  -- PID: zero rate for now
+                  thrust_cmd  <- call pid_update alt_pos_pid (constRef alt_pos_cfg) ui_alt alt_est_pos 0.0 alt_est_rate 0.0
+
+                  -- thrust_cmd is unbounded, so make sure it is within the limits [0.1-1]
+                  thrust_cmd_norm   <- call fconstrain (0.1) 1 thrust_cmd
+
+                  -- compensate for roll/pitch rotation 
+                  r22   <- _sensorsR22 sens
+                  let hover_thrust_abs = const_NOMINAL_THRUST
+                  hover_thrust <- assign ((_throttleR22Comp r22) * hover_thrust_abs)
+                  let vz_ctl = thrust_cmd_norm + hover_thrust
                   -- ALTITUDE CONTROLLER END
-                  -- add the constant hover throttle (~50% for now)
-                  -- save this somewhere in the conf file
-                  --nominal_throttle <- deref alt_nominal_throttle
-                  -------let vz_ctl = alt_thrust_norm + const_NOMINAL_THRUST
-                  let vz_ctl = const_NOMINAL_THRUST
+
                   -- maybe rename A.pos_rate_setp because it is not the right name
-                  --store (state_dbg ~> A.pos_rate_setp) vz_ctl
+                  store (state_dbg ~> A.pos_rate_setp) vz_ctl
                   return vz_ctl
-              {- -- Ignore for now
-              , thr_mode ==? TM.altSetpt ==> do
-                  -- FIXME: This mode is Not used yet
-                  -- update setpoint ui
-                  tui_reset ui_control
-                  -- update position controller
-                  sp_alt <- deref (ctl_sp ~> SP.altitude)
-                  sp_rate <- deref (ctl_sp ~> SP.alt_rate)
-                  vz_ctl <- pos_pid_calculate position_pid sp_alt 0 dt
-                  -- Only limit rate if a nonzero positive number
-                  ifte (sp_rate >? 0)
-                    (do vz_ctl' <- call fconstrain (-1*sp_rate) sp_rate vz_ctl
-                        store (state_dbg ~> A.pos_rate_setp) vz_ctl'
-                        return vz_ctl')
-                    (do store (state_dbg ~> A.pos_rate_setp) vz_ctl
-                        return vz_ctl)
-              -}
               ]
             
-            -- compensate for roll/pitch rotation 
-            --r22   <- sensorsR22 sens
-            --setpt <- assign ((throttleR22Comp r22) * vz_control)
             setpt <- assign vz_control
+            
+
             -- limit max throttle by the throttle stick (safety feature)
             store at_setpt =<< call fconstrain 0.0 mt setpt
 
