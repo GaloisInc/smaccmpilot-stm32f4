@@ -1,14 +1,17 @@
 module Main exposing (..)
 
+import Basics.Extra exposing (never)
+import Bootstrap.Html exposing (..)
 import Html exposing (..)
 import Html.App as App
+import Html.Shorthand exposing (..)
 import Html.Attributes exposing (..)
-import Html.Events exposing (..)
 import Http
 import Json.Decode as Json
 import Json.Decode exposing ((:=))
 import Task
 import Time exposing (Time, millisecond)
+import PFD exposing (..)
 
 main =
   App.program
@@ -76,7 +79,7 @@ type ThrottleMode = DirectUi | AltUi | AltSetpt
 initPackedStatus : PackedStatus
 initPackedStatus = {
     valid = False
-  , roll = zero
+  , roll = 0
   , pitch = 0
   , yaw = 0
   , baro_alt = 0
@@ -133,30 +136,84 @@ update msg model =
     FetchFail err ->
       ({model | httpError = Just err}, Cmd.none)
 
-updateTime = Task.perform (\_ -> UpdateTime 0) UpdateTime Time.now
+updateTime = Task.perform never UpdateTime Time.now
 
 -- VIEW
 
 
 view : Model -> Html Msg
 view model =
-  div []
-    [ h2 [] [text ("Update latency: " ++ toString model.lastUpdateDt ++ "ms")]
-    , h2 [] [text ("Gyro calibration: " ++ toString model.packedStatus.gyro_progress)]
-    , h2 [] [text ("Mag calibration: " ++ toString model.packedStatus.mag_progress)]
-    , case model.httpError of
-        Just err -> div [ style [("color", "red")] ] [ text (toString err) ]
-        Nothing -> div [] []
+  container_ [
+      row_ [
+        colXs_ 4 [ pfd model.packedStatus.pitch model.packedStatus.roll ]
+      , colXs_ 8 [
+          h2 [] [text ("Update latency: " ++ toString model.lastUpdateDt ++ "ms")]
+        , renderCalProgress model.packedStatus.gyro_progress
+        , renderCalProgress model.packedStatus.mag_progress
+        , renderPidTabs
+        , case model.httpError of
+            Just err -> div [ class "alert alert-warning" ] [ text (toString err) ]
+            Nothing -> div [] []
+        ]
+      ]
     ]
+{-
+<ul class="nav nav-tabs">
+  <li role="presentation" class="active"><a href="#">Home</a></li>
+  <li role="presentation"><a href="#">Profile</a></li>
+  <li role="presentation"><a href="#">Messages</a></li>
+</ul>
+<!-- Tab panes -->
+  <div class="tab-content">
+    <div role="tabpanel" class="tab-pane active" id="home">...</div>
+    <div role="tabpanel" class="tab-pane" id="profile">...</div>
+    <div role="tabpanel" class="tab-pane" id="messages">...</div>
+    <div role="tabpanel" class="tab-pane" id="settings">...</div>
+  </div>
+-}
+renderPidTabs : Html Msg
+renderPidTabs = panelDefault_ [
+    ul [ class "nav nav-tabs", attribute "role" "tablist" ] [
+        li' { class = "active" } [ a [ href "#altitude", attribute "data-toggle" "tab" ] [ text "Altitude" ] ]
+      , li_ [ a [href "#attitude", attribute "data-toggle" "tab" ] [ text "Attitude"] ]
+      ]
+  , div' { class = "tab-content" } [
+        div [ class "tab-pane active", id "altitude", attribute "role" "tabpanel" ] [ text "Altitude PID config" ]
+      , div [ class "tab-pane", id "attitude", attribute "role" "tabpanel" ] [ text "Attitude PID config" ]
+      ]
+  ]
 
-
+{-
+<div class="progress">
+  <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="45" aria-valuemin="0" aria-valuemax="100" style="width: 45%">
+    <span class="sr-only">45% Complete</span>
+  </div>
+</div>
+-}
+renderCalProgress : Float -> Html Msg
+renderCalProgress p =
+  let inProgress = p < 1.0
+      pct = toString (p * 100) ++ "%"
+  in div' { class = "progress" }
+       [ div [ classList [
+                   ("progress-bar", True)
+                 , ("progress-bar-striped", True)
+                 , ("active", inProgress)
+                 , ("progress-bar-info", inProgress)
+                 , ("progress-bar-success", not inProgress)
+                 ]
+             , style [ ("width", pct) ]
+             ]
+           [ text pct ]
+       ]
+                 
 
 -- SUBSCRIPTIONS
 
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-  Time.every (33 * millisecond) (\_ -> Poll)
+  Time.every (66 * millisecond) (\_ -> Poll)
 
 
 -- HTTP
