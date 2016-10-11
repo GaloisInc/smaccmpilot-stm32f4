@@ -51,8 +51,8 @@ stabilize_from_angle = proc "stabilize_from_angle" $
 
   -- for now limit to +-100% (of throttle) and then normalize to 0-1 range
   -- what about rounding errors with too small gains? (ideally we have everything scaled to [-1,1]
-  stabilize_cmd_norm   <- call fconstrain (-100.0) 100.0 stabilize_cmd
-  ret $ stabilize_cmd_norm / 100.0
+  stabilize_cmd_norm   <- call fconstrain (-1.0) 1.0 stabilize_cmd
+  ret $ stabilize_cmd_norm -- / 1.0
 
 
 -- | Return a normalized servo output given a normalized stick input
@@ -77,8 +77,8 @@ stabilize_from_rate = proc "stabilize_from_rate" $
 -}
   -- TODO: measure rate of change?
   rate_cmd  <- call pid_update rate_pid rate_cfg stick_rate_rad_s rate_measured_rad_s 0.0 0.0 0.0
-  rate_cmd_norm   <- call fconstrain (-100.0) 100.0 rate_cmd
-  ret $ rate_cmd_norm / 100.0
+  rate_cmd_norm   <- call fconstrain (-1.0) 1.0 rate_cmd
+  ret $ rate_cmd_norm -- / 1.0
 
 
 ----------------------------------------------------------------------
