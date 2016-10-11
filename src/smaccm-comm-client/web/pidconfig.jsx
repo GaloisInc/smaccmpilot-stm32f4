@@ -8,6 +8,7 @@ class PidConfig extends React.Component {
           <div className="col-xs-4"><label>P gain: <input type="number" step="any" onChange={ this.changed.bind(this) } name="p_gain" value={ String(this.props.p_gain) } style={{width: "100%"}} /></label></div>
           <div className="col-xs-4"><label>I gain: <input type="number" step="any" onChange={ this.changed.bind(this) } name="i_gain" value={ String(this.props.i_gain) } style={{width: "100%"}} /></label></div>
           <div className="col-xs-4"><label>D gain: <input type="number" step="any" onChange={ this.changed.bind(this) } name="d_gain" value={ String(this.props.d_gain) } style={{width: "100%"}} /></label></div>
+          <div className="col-xs-4"><label>DD gain: <input type="number" step="any" onChange={ this.changed.bind(this) } name="dd_gain" value={ String(this.props.d_gain) } style={{width: "100%"}} /></label></div>
         </div>
         <div className="row">
           <div className="col-xs-6"><label>I min: <input type="number" step="any" onChange={ this.changed.bind(this) } name="i_min" value={ String(this.props.i_min) } style={{width: "100%"}} /></label></div>

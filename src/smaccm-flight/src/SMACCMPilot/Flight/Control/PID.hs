@@ -48,7 +48,7 @@ pid_update = proc "pid_update" $ \pid cfg angle_ref angle_measured rate_ref rate
   i_min   <- cfg~>*C.i_min
   i_max   <- cfg~>*C.i_max
   d_gain  <- cfg~>*C.d_gain
-  --dd_gain  <- cfg~>*C.dd_gain
+  dd_gain  <- cfg~>*C.dd_gain
 
   -- calculate errors
   let angle_err = angle_ref - angle_measured
@@ -57,12 +57,12 @@ pid_update = proc "pid_update" $ \pid cfg angle_ref angle_measured rate_ref rate
   -- calculate terms
   let p_term = p_gain * angle_err
   let d_term = d_gain * rate_err
-  --let dd_term = dd_gain * accel_ref
+  let dd_term = dd_gain * accel_ref
   i_sum <- pid~>*P.i_state
   i_sum' <- call fconstrain i_min i_max (i_sum + angle_err)
   store (pid~>P.i_state) i_sum'
   let i_term = i_gain * i_sum'
-  ret $ p_term + i_term + d_term -- + dd_term
+  ret $ p_term + i_term + d_term + dd_term
 
 -- | Reset the internal state of a PID.
 pid_reset :: Def ('[ Ref s1 ('Struct "pid_state") ] ':-> ())
