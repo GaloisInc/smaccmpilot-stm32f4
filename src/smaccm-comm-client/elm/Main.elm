@@ -145,12 +145,18 @@ view : Model -> Html Msg
 view model =
   container_ [
       row_ [
-        colXs_ 4 [ pfd model.packedStatus.pitch model.packedStatus.roll ]
+        colXs_ 4 [ pfd
+                     model.packedStatus.pitch
+                     model.packedStatus.roll
+                     model.packedStatus.baro_alt
+                     model.packedStatus.yaw ]
       , colXs_ 8 [
           h2 [] [text ("Update latency: " ++ toString model.lastUpdateDt ++ "ms")]
         , renderCalProgress model.packedStatus.gyro_progress
         , renderCalProgress model.packedStatus.mag_progress
-        , renderPidTabs
+        -- , h2_ ("Heading: " ++ toString (if model.packedStatus.yaw < 0
+        --                                 then 360 + (model.packedStatus.yaw * 180 / pi)
+        --                                 else model.packedStatus.yaw * 180 / pi))
         , case model.httpError of
             Just err -> div [ class "alert alert-warning" ] [ text (toString err) ]
             Nothing -> div [] []
