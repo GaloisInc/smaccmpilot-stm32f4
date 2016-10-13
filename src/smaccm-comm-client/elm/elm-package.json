@@ -1,10 +1,10 @@
 {
     "version": "1.0.0",
-    "summary": "helpful summary of your project, less than 80 characters",
-    "repository": "https://github.com/user/project.git",
+    "summary": "SMACCMPilot Ground Control Station",
+    "repository": "https://github.com/GaloisInc/smaccmpilot-stm32f4.git",
     "license": "BSD3",
     "source-directories": [
-        ".", "../../smaccm-comm-schema/smaccm-comm-schema-elm/src"
+        "./src", "../../smaccm-comm-schema/smaccm-comm-schema-elm/src"
     ],
     "exposed-modules": [],
     "dependencies": {

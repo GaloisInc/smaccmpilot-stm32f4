@@ -12,7 +12,10 @@ default: $(COMM_SCHEMA_NATIVE) $(COMM_SCHEMA_TOWER) $(COMM_SCHEMA_ELM)
 
 $(COMM_SCHEMA_NATIVE) $(COMM_SCHEMA_TOWER) $(COMM_SCHEMA_ELM): $(COMM_SCHEMA)/smaccm-comm-schema.gidl
 	make -C $(ROOT_DIR) gidl-bootstrap
-	make -C $(COMM_SCHEMA) smaccm-comm-schema-native smaccm-comm-schema-tower
+	make -C $(COMM_SCHEMA) \
+          smaccm-comm-schema-native \
+          smaccm-comm-schema-tower \
+          smaccm-comm-schema-elm
 
 clean:
 
