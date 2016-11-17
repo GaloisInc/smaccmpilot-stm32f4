@@ -15,9 +15,8 @@ $(SUBDIRS):
 # yet, then calls the default target to generate them.
 .PHONY: gidl-bootstrap
 gidl-bootstrap:
-	stack --stack-yaml=gidl-bootstrap.yaml clean gidl
-	stack --stack-yaml=gidl-bootstrap.yaml install ../gidl || \
-        stack --stack-yaml=gidl-bootstrap.yaml install ./gidl
+	stack --stack-yaml=gidl-bootstrap.yaml install ../gidl --force-dirty || \
+        stack --stack-yaml=gidl-bootstrap.yaml install ./gidl --force-dirty
 
 clean:
 	make -C src/smaccm-comm-schema clean

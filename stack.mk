@@ -7,7 +7,7 @@ COMM_SCHEMA_NATIVE := $(COMM_SCHEMA)/smaccm-comm-schema-native
 COMM_SCHEMA_TOWER  := $(COMM_SCHEMA)/smaccm-comm-schema-tower
 COMM_SCHEMA_ELM    := $(COMM_SCHEMA)/smaccm-comm-schema-elm
 
-default: $(COMM_SCHEMA_NATIVE) $(COMM_SCHEMA_TOWER) $(COMM_SCHEMA_ELM)
+default: $(COMM_SCHEMA_NATIVE)
 	stack build
 
 $(COMM_SCHEMA_NATIVE) $(COMM_SCHEMA_TOWER) $(COMM_SCHEMA_ELM): $(COMM_SCHEMA)/smaccm-comm-schema.gidl

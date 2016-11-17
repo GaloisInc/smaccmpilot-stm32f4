@@ -33,7 +33,12 @@ frame_loopback sk o i = do
                                       (snd ct_buf_out)
   ct_out <- commsecEncodeTower "test" (symKeySaltArrayIval (sk_s2c sk))
                                       pt_out
-  airDataEncodeTower "test" ct_out o
+  airDataEncodeTower
+    "test"
+    ct_out
+    o
+    (Milliseconds 10)
+    (Proxy :: Proxy 4)
 
   p <- period (Milliseconds 10)
 

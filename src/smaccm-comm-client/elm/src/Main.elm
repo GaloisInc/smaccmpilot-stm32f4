@@ -12,7 +12,7 @@ import Task
 import Time exposing (Time, millisecond, second)
 import PFD exposing (..)
 
-import SMACCMPilot.Comm.Interface.ControllableVehicle as CV
+import SMACCMPilot.Comm.Interface.ControllableVehicle as CV exposing (ControllableVehicle)
 import SMACCMPilot.Comm.Types.ArmingMode as ArmingMode
 import SMACCMPilot.Comm.Types.ControlSource as ControlSource
 import SMACCMPilot.Comm.Types.PackedStatus as PackedStatus exposing (PackedStatus)
@@ -34,7 +34,7 @@ main =
 -- MODEL
 
 type alias Model =
-  { packedStatus : PackedStatus
+  { cv : ControllableVehicle
   , refreshRate : Float -- milliseconds
   , baroSmoother : Smoother
   , latencySmoother : Smoother
@@ -71,7 +71,7 @@ init =
         , 0.11538864317459548
         , 0.0006633631777757225
         ]
-  in ( { packedStatus = PackedStatus.init
+  in ( { cv = CV.init
        , refreshRate = 66
        , baroSmoother = mkSmoother baroWeights
        , latencySmoother = mkSmoother latencyWeights
@@ -91,16 +91,11 @@ type Msg
   | UpdateTime Time
   | CVResponse CV.Response
   | SendReboot
+  | FetchTuning
   | FetchFail Http.Error
 
--- elm-compiler bug #635: no qualified names in record update
-defaultHandler : CV.Handler Model Msg
-defaultHandler = CV.defaultHandler
 cvh : CV.Handler Model Msg
-cvh = { defaultHandler | handleGotPackedStatus = updatePackedStatus }
-
-updatePackedStatus : PackedStatus -> Model -> (Model, Cmd Msg)
-updatePackedStatus new model = {model | packedStatus = new} ! []
+cvh = let upd m f = { m | cv = f m.cv } in CV.updatingHandler upd
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
@@ -126,12 +121,23 @@ update msg model =
           model'' = updateSmoothers model'
       in { model'' | httpError = Nothing } ! [ cmd, Task.perform never UpdateTime Time.now ]
     SendReboot -> (model, cvc.setRebootReq (RebootReq.RebootReq RebootMagic.LinuxRebootMagic1))
+    FetchTuning -> model ! fetchTuning
     FetchFail err ->
       { model | httpError = Just err } ! []
 
+fetchTuning : List (Cmd Msg)
+fetchTuning = [
+    cvc.getAltitudeRatePid
+  , cvc.getAltitudePositionPid
+  , cvc.getAttitudeRollStab
+  , cvc.getAttitudePitchStab
+  , cvc.getYawRatePid
+  , cvc.getYawPositionPid
+  ]
+
 updateSmoothers : Model -> Model
 updateSmoothers model =
-  { model | baroSmoother = putNext model.baroSmoother model.packedStatus.baro_alt }
+  { model | baroSmoother = putNext model.baroSmoother model.cv.packedStatus.baro_alt }
 
 -- VIEW
 
@@ -140,22 +146,22 @@ view model =
   container_ [ panelDefault_ [ panelHeading_ [ panelTitle_ "SMACCMPilot" ], panelBody_ [
       row_ [
         colXs_ 4 [ pfd
-                     model.packedStatus.pitch
-                     model.packedStatus.roll
+                     model.cv.packedStatus.pitch
+                     model.cv.packedStatus.roll
                      model.baroSmoother.value
-                     model.packedStatus.yaw ]
+                     model.cv.packedStatus.yaw ]
       , colXs_ 8 [
           panelDefault_ [
             ul [ class "nav nav-tabs", attribute "role" "tablist" ] [
                 li' { class = "active" } [ a [ href "#calibration", attribute "data-toggle" "tab" ] [ strong_ "Calibration" ] ]
               , li_ [ a [href "#status", attribute "data-toggle" "tab" ] [ strong_ "Control Law Status"] ]
-              , li_ [ a [href "#tuning", attribute "data-toggle" "tab" ] [ strong_ "Tuning" ] ]
+              , li_ [ a [href "#tuning", attribute "data-toggle" "tab" , onClick FetchTuning ] [ strong_ "Tuning" ] ]
               ]
           , panelBody_ [
               div' { class = "tab-content"} [
-                div [ class "tab-pane active", id "calibration" ] [ renderCalibration model.packedStatus ]
-              , div [ class "tab-pane", id "status" ] [ renderStatus model.packedStatus ]
-              , div [ class "tab-pane", id "tuning" ] [ text "Tuning TODO" ]
+                div [ class "tab-pane active", id "calibration" ] [ renderCalibration model.cv.packedStatus ]
+              , div [ class "tab-pane", id "status" ] [ renderStatus model.cv.packedStatus ]
+              , div [ class "tab-pane", id "tuning" ] [ renderTuning model ]
               ]
             ]
           ]
@@ -204,16 +210,17 @@ view model =
 
 thLabel w str = th [ style [ ("width", toString w ++ "%"), ("vertical-align", "middle") ] ] [ text str ]
 
-renderPidTabs : Html Msg
-renderPidTabs = panelDefault_ [
-    ul [ class "nav nav-tabs", attribute "role" "tablist" ] [
-        li' { class = "active" } [ a [ href "#altitude", attribute "data-toggle" "tab" ] [ text "Altitude" ] ]
-      , li_ [ a [href "#attitude", attribute "data-toggle" "tab" ] [ text "Attitude"] ]
-      ]
-  , div' { class = "tab-content" } [
-        div [ class "tab-pane active", id "altitude", attribute "role" "tabpanel" ] [ text "Altitude PID config" ]
-      , div [ class "tab-pane", id "attitude", attribute "role" "tabpanel" ] [ text "Attitude PID config" ]
-      ]
+renderTuning : Model -> Html Msg
+renderTuning model = div_ [
+    panelDefault_ [
+        panelHeading_ [ panelTitle_ "Altitude" ]
+      , panelBody_ [ text "Altitude stuff" ] ]
+  , panelDefault_ [
+        panelHeading_ [ panelTitle_ "Attitude" ]
+      , panelBody_ [ text "Attitude stuff" ] ]
+  , panelDefault_ [
+        panelHeading_ [ panelTitle_ "Yaw" ]
+      , panelBody_ [ text "Yaw stuff" ] ]
   ]
 
 renderCalibration : PackedStatus -> Html Msg

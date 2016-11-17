@@ -35,7 +35,7 @@ executable             smaccm-comm-client
                        smaccm-comm-client
 
   default-language:    Haskell2010
-  ghc-options:         -Wall
+  ghc-options:         -Wall -threaded -rtsopts
 
 executable             smaccm-comm-client-static-web
   main-is:             StaticWeb.hs

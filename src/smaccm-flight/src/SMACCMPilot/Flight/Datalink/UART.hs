@@ -3,8 +3,6 @@
 
 module SMACCMPilot.Flight.Datalink.UART
   ( uartDatalink
-  , frameBuffer
-  , frameBuffer'
   ) where
 
 import Ivory.Language
@@ -17,13 +15,16 @@ import SMACCMPilot.Commsec.Sizes
 import SMACCMPilot.Datalink.HXStream.Tower
 import SMACCMPilot.Flight.Platform (UART_Device(..), ClockConfig)
 
+import SMACCMPilot.Comm.Tower.Attr
+
 uartDatalink :: (e -> ClockConfig)
              -> UART_Device
              -> Integer
              -> ChanInput CyphertextArray
              -> ChanOutput CyphertextArray
+             -> Maybe (Attr ('Struct "uart_debug"))
              -> Tower e (Monitor e ())
-uartDatalink tocc uart baud input output = do
+uartDatalink tocc uart baud input output mdbgAttr = do
   let ps = uart_pins uart
   (uarto, uarti, mon) <- case uart_periph uart of
     Left  u -> uartTower tocc u ps baud
@@ -33,7 +34,7 @@ uartDatalink tocc uart baud input output = do
 
   airDataDecodeTower "frame" uarti (fst input_frames)
 
-  frameBuffer' (snd input_frames)
+  bufferChans (snd input_frames)
   -- Buffering timing analysis:
   -- Worst case: 115200 baud
   -- 10 bits per byte (UART framing) = 11520 bytes per second
@@ -44,40 +45,10 @@ uartDatalink tocc uart baud input output = do
                                        (Proxy :: Proxy 4)
                                        input
 
-  airDataEncodeTower "frame" output uarto
+  airDataEncodeTower
+    "frame"
+    output
+    uarto
+    (Milliseconds 5)
+    (Proxy :: Proxy 4)
   return mon
-
-
-frameBuffer :: forall a t n e
-             . (IvoryArea a, IvoryZero a, Time t, ANat n)
-            => ChanOutput a
-            -> t
-            -> Proxy n
-            -> Tower e (ChanOutput a)
-frameBuffer input pop_period _buf_size = do
-  out <- channel
-  frameBuffer' input pop_period _buf_size (fst out)
-  return (snd out)
-
-frameBuffer' :: forall a t n e
-             . (IvoryArea a, IvoryZero a, Time t, ANat n)
-            => ChanOutput a
-            -> t
-            -> Proxy n
-            -> ChanInput a
-            -> Tower e ()
-frameBuffer' input pop_period _buf_size out = do
-
-  p <- period pop_period
-  monitor "frameBuffer" $ do
-    (rb :: RingBuffer n a) <- monitorRingBuffer "frameBuffer"
-    handler input "push" $ do
-      callback $ \v -> do
-        _ <- ringbuffer_push rb v
-        return ()
-    handler p "periodic_pop" $ do
-      e <- emitter out 1
-      callback $ const $ do
-        v <- local izero
-        got <- ringbuffer_pop rb v
-        ifte_ got (emit e (constRef v)) (return ())
