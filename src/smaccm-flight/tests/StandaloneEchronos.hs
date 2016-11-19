@@ -20,6 +20,7 @@ main = compileTowerAADLForPlatform f p (app id)
   f config = ( defaultAADLConfig { configSystemOS   = EChronos
                                  , configSystemHW   = PIXHAWK
                                  , configSystemAddr = Just 0x8004000
+                                 , configBuildRoot  = Just "../../../../../"
                                  }
              , defaultEChronosOS (fp_stm32config config)
              )

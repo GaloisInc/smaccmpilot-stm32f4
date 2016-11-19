@@ -21,8 +21,9 @@ main = compileTowerAADLForPlatform f p $ do
   app id
   where
   f :: PX4Platform -> (AADLConfig, OSSpecific STM32Config)
-  f tp = ( defaultAADLConfig { configSystemOS = EChronos
-                             , configSystemHW = PIXHAWK
+  f tp = ( defaultAADLConfig { configSystemOS  = EChronos
+                             , configSystemHW  = PIXHAWK
+                             , configBuildRoot = "../../../../"
                              }
          , defaultEChronosOS (px4platform_stm32config tp)
          )
