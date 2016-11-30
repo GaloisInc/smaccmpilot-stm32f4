@@ -4,7 +4,7 @@ include ../../stack.mk
 IVORY_FLAGS = --const-fold
 
 .PHONY: test
-test: test-fmu24 test-fmu17 can_proxy_odroid_test smaccmpilot-odroid
+test: test-fmu24 test-fm32-echronos test-fmu17 can_proxy_odroid_test smaccmpilot-odroid
 
 .PHONY: test-fmu17
 test-fmu17: platform-fmu17/comm-only-test-gen
@@ -23,6 +23,7 @@ test-fmu24: platform-fmu24/standalone-flight-gen
 
 .PHONY: test-fmu24-echronos
 test-fmu24-echronos: platform-fmu24/sensors_aadl_test_gen
+test-fmu24-echronos: platform-fmu24/standalone_flight_echronos_gen
 
 .PHONY: flight
 flight: platform-fmu24/standalone-flight-gen
