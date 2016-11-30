@@ -4,7 +4,7 @@ include ../../stack.mk
 IVORY_FLAGS = --const-fold
 
 .PHONY: test
-test: test-fmu24 test-fm32-echronos test-fmu17 can_proxy_odroid_test smaccmpilot-odroid
+test: test-fmu24 test-fmu24-echronos test-fmu17 can_proxy_odroid_test smaccmpilot-odroid
 
 .PHONY: test-fmu17
 test-fmu17: platform-fmu17/comm-only-test-gen
