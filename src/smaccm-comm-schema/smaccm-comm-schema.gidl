@@ -111,6 +111,11 @@
   (y float_t)
   (z float_t))
 
+(def-struct lidarlite_sample_t
+  (samplefail bool_t)
+  (distance   float_t) -- meters
+  (time       time_micros_t))
+
 (def-struct magnetometer_sample_t
   (initfail   bool_t)
   (samplefail bool_t)
@@ -169,9 +174,11 @@
   (yaw       float_t)
   (omega     xyz_t) -- Radians per second
   (baro_alt  float_t) -- meters
+  (lidar_alt float_t) -- meters
   (accel     xyz_t) -- g
   (ahrs_time time_micros_t)
-  (baro_time time_micros_t))
+  (baro_time time_micros_t)
+  (lidar_time time_micros_t))
 
 (def-struct control_setpoint_t
   (altitude  float_t)
@@ -266,6 +273,7 @@
   (pitch     float_t)
   (yaw       float_t)
   (baro_alt  float_t) -- meters
+  (lidar_alt float_t) -- meters
   (fix         gps_fix_t)
   (num_sv      uint8_t) -- number of space vehicles
   (lat         sint32_t) -- degrees * 1e7
@@ -300,6 +308,7 @@
   (accel_output_calibration (attr read     xyz_calibration_t))
   (accel_output            (attr read      accelerometer_sample_t))
   (baro_output             (attr read      barometer_sample_t))
+  (lidarlite_output        (attr read      lidarlite_sample_t))
   (mag_raw_output          (attr read      magnetometer_sample_t))
   (mag_calibration         (attr read      xyz_calibration_t))
   (mag_output_calibration  (attr read      xyz_calibration_t))

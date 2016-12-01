@@ -18,7 +18,10 @@ import qualified Ivory.BSP.STM32F405.I2C            as F405
 
 import qualified Ivory.BSP.STM32F427.GPIO           as F427
 import qualified Ivory.BSP.STM32F427.GPIO.AF        as F427
+import qualified Ivory.BSP.STM32F427.I2C            as F427
 import qualified Ivory.BSP.STM32F427.SPI            as F427
+
+import           SMACCMPilot.Hardware.LIDARLite
 
 data Sensors
   = FMU17Sensors
@@ -38,6 +41,9 @@ data Sensors
     , fmu24sens_spi_periph :: SPIPeriph
     , fmu24sens_spi_pins   :: SPIPins
     , fmu24sens_enable     :: forall eff . Ivory eff ()
+    , fmu24sens_i2c_periph :: I2CPeriph
+    , fmu24sens_i2c_pins   :: I2CPins
+    , fmu24sens_lidarlite  :: Maybe LIDARLite
     }
 
 
@@ -95,6 +101,9 @@ fmu24_sensors = FMU24Sensors
   , fmu24sens_spi_pins   = spi1_pins
   , fmu24sens_spi_periph = spi1_periph
   , fmu24sens_enable     = sensor_enable
+  , fmu24sens_i2c_periph = F427.i2c1
+  , fmu24sens_i2c_pins   = i2c1_pins
+  , fmu24sens_lidarlite  = Nothing
   }
   where
   mpu6000 :: SPIDevice
@@ -149,6 +158,11 @@ fmu24_sensors = FMU24Sensors
     , spiPinMosi = F427.pinA7
     , spiPinSck  = F427.pinA5
     , spiPinAF   = F427.gpio_af_spi1
+    }
+  i2c1_pins :: I2CPins
+  i2c1_pins = I2CPins
+    { i2cpins_sda = F427.pinB9
+    , i2cpins_scl = F427.pinB8
     }
 
   sensor_enable :: Ivory eff ()

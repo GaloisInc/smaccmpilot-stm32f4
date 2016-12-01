@@ -12,6 +12,8 @@ library
   exposed-modules:     SMACCMPilot.Hardware.GPS.UBlox,
                        SMACCMPilot.Hardware.GPS.UBlox.Types,
 
+                       SMACCMPilot.Hardware.LIDARLite,
+                       
                        SMACCMPilot.Hardware.MPU6000,
                        SMACCMPilot.Hardware.MPU6000.Regs,
                        SMACCMPilot.Hardware.MPU6000.SPI,

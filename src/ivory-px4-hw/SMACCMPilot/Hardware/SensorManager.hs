@@ -14,10 +14,12 @@ import Ivory.BSP.STM32.Driver.I2C
 import Ivory.BSP.STM32.Driver.SPI
 
 import SMACCMPilot.Hardware.HMC5883L
+import SMACCMPilot.Hardware.LIDARLite
 import SMACCMPilot.Hardware.LSM303D
 import SMACCMPilot.Hardware.MS5611
 import SMACCMPilot.Hardware.MPU6000
 import SMACCMPilot.Hardware.L3GD20.SPI
+
 
 import SMACCMPilot.Hardware.Sensors
 
@@ -28,7 +30,8 @@ sensorManager :: (e -> Sensors)
               -> Tower e ( ChanOutput ('Struct "accelerometer_sample")
                          , ChanOutput ('Struct "gyroscope_sample")
                          , ChanOutput ('Struct "magnetometer_sample")
-                         , ChanOutput ('Struct "barometer_sample"))
+                         , ChanOutput ('Struct "barometer_sample")
+                         , ChanOutput ('Struct "lidarlite_sample"))
 sensorManager tosens tocc = do
   e <- getEnv
   case tosens e of
@@ -41,7 +44,8 @@ fmu17SensorManager :: Sensors
                    -> Tower e ( ChanOutput ('Struct "accelerometer_sample")
                               , ChanOutput ('Struct "gyroscope_sample")
                               , ChanOutput ('Struct "magnetometer_sample")
-                              , ChanOutput ('Struct "barometer_sample"))
+                              , ChanOutput ('Struct "barometer_sample")
+                              , ChanOutput ('Struct "lidarlite_sample"))
 fmu17SensorManager FMU17Sensors{..} tocc = do
 
   (i2cRequest, i2cReady) <- i2cTower
@@ -57,6 +61,9 @@ fmu17SensorManager FMU17Sensors{..} tocc = do
   mag_s <-channel
   hmc5883lSensorManager hmc5883Req i2cReady (fst mag_s) fmu17sens_hmc5883l
 
+  lidar_s <- channel
+  -- TODO if we ever want to run the LIDAR on the old hardware
+
   schedule [ms5611task, hmc5883task] i2cReady i2cRequest
 
   acc_s <- channel
@@ -68,16 +75,18 @@ fmu17SensorManager FMU17Sensors{..} tocc = do
                        (fst gyro_s) (fst acc_s)
                        (SPIDeviceHandle 0)
 
-  return (snd acc_s, snd gyro_s, snd mag_s, snd baro_s)
+  return (snd acc_s, snd gyro_s, snd mag_s, snd baro_s, snd lidar_s)
 
 fmu17SensorManager _ _ = error "impossible"
 
-fmu24SensorManager :: Sensors
-                   -> (e -> ClockConfig)
-                   -> Tower e ( ChanOutput ('Struct "accelerometer_sample")
-                              , ChanOutput ('Struct "gyroscope_sample")
-                              , ChanOutput ('Struct "magnetometer_sample")
-                              , ChanOutput ('Struct "barometer_sample"))
+fmu24SensorManager ::
+     Sensors
+  -> (e -> ClockConfig)
+  -> Tower e ( ChanOutput ('Struct "accelerometer_sample")
+             , ChanOutput ('Struct "gyroscope_sample")
+             , ChanOutput ('Struct "magnetometer_sample")
+             , ChanOutput ('Struct "barometer_sample")
+             , ChanOutput ('Struct "lidarlite_sample"))
 fmu24SensorManager FMU24Sensors{..} tocc = do
 
   acc_s <- channel
@@ -125,6 +134,27 @@ fmu24SensorManager FMU24Sensors{..} tocc = do
 
   schedule [mpu6000Task, lsm303dTask, ms5611Task, l3gd20Task] sready sreq
 
-  return (snd acc_s, snd gyro_s, snd mag_s, snd baro_s)
+  -- I2C devices
+
+  (i2cRequest, i2cReady) <- i2cTower
+                              tocc
+                              fmu24sens_i2c_periph
+                              fmu24sens_i2c_pins
+
+  -- optional LIDAR
+  (lidarTask, lidarReq) <- task "lidarlite"
+  lidar_s <- channel
+  case fmu24sens_lidarlite of
+    Nothing -> return ()
+    Just LIDARLite{..} ->
+      lidarliteSensorManager
+        lidarReq
+        i2cReady
+        (fst lidar_s)
+        lidarlite_i2c_addr
+
+  schedule [lidarTask] i2cReady i2cRequest
+
+  return (snd acc_s, snd gyro_s, snd mag_s, snd baro_s, snd lidar_s)
 
 fmu24SensorManager _ _ = error "impossible"
