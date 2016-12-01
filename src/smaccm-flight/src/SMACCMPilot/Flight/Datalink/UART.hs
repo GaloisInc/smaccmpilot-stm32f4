@@ -22,9 +22,8 @@ uartDatalink :: (e -> ClockConfig)
              -> Integer
              -> ChanInput CyphertextArray
              -> ChanOutput CyphertextArray
-             -> Maybe (Attr ('Struct "uart_debug"))
              -> Tower e (Monitor e ())
-uartDatalink tocc uart baud input output mdbgAttr = do
+uartDatalink tocc uart baud input output = do
   let ps = uart_pins uart
   (uarto, uarti, mon) <- case uart_periph uart of
     Left  u -> uartTower tocc u ps baud
