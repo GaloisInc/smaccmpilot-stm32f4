@@ -36,7 +36,7 @@ main =
 type alias Model =
   { cv : ControllableVehicle
   , refreshRate : Float -- milliseconds
-  , baroSmoother : Smoother
+  , altSmoother : Smoother
   , latencySmoother : Smoother
   , lastUpdate : Time
   , lastUpdateDts : List Float -- milliseconds
@@ -48,7 +48,7 @@ cvc = CV.client FetchFail CVResponse "http://localhost:8080"
 
 init : (Model, Cmd Msg)
 init =
-  let baroWeights = [
+  let altWeights = [
           -0.004079714666025863
         , -0.011002950421607123
         , -0.004853702172814258
@@ -73,7 +73,7 @@ init =
         ]
   in ( { cv = CV.init
        , refreshRate = 66
-       , baroSmoother = mkSmoother baroWeights
+       , altSmoother = mkSmoother altWeights
        , latencySmoother = mkSmoother latencyWeights
        , lastUpdate = 0
        , lastUpdateDts = []
@@ -137,7 +137,7 @@ fetchTuning = [
 
 updateSmoothers : Model -> Model
 updateSmoothers model =
-  { model | baroSmoother = putNext model.baroSmoother model.cv.packedStatus.baro_alt }
+  { model | altSmoother = putNext model.altSmoother model.cv.packedStatus.lidar_alt }
 
 -- VIEW
 
@@ -148,7 +148,7 @@ view model =
         colXs_ 4 [ pfd
                      model.cv.packedStatus.pitch
                      model.cv.packedStatus.roll
-                     model.baroSmoother.value
+                     model.altSmoother.value
                      model.cv.packedStatus.yaw ]
       , colXs_ 8 [
           panelDefault_ [
