@@ -32,6 +32,7 @@ lidarliteSensorManager
   p <- period (Milliseconds 20) -- 50 hz. Can be faster if required.
   monitor "lidarliteSensorManager" $ do
     s <- state "sample"
+    pending <- state "pending"
     coroutineHandler init_chan res_chan "lidarlite" $ do
       req_e <- emitter req_chan 1
       sens_e <- emitter sensor_chan 1
@@ -41,6 +42,8 @@ lidarliteSensorManager
         forever $ do
           -- Request originates from period below
           setup_read_result <- yield
+          is_pending <- deref pending
+          assert is_pending
           rc <- deref (setup_read_result ~> resultcode)
           -- Reset the samplefail field
           store (s ~> samplefail) (rc >? 0)
@@ -57,6 +60,7 @@ lidarliteSensorManager
             ]
           emit req_e do_read_req
           res <- yield
+          store pending false
           -- Unpack read, updating samplefail if failed.
           rc2 <- deref (res ~> resultcode)
           when (rc2 >? 0) (store (s ~> samplefail) true)
@@ -69,20 +73,23 @@ lidarliteSensorManager
     handler p "periodic_read" $ do
       req_e <- emitter req_chan 1
       callback $ const $ do
-        -- Initiate a read (see LIDAR-Lite datasheet for explanation
-        -- of magic numbers)
-        setup_read_req <- fmap constRef $ local $ istruct
-          [ tx_addr .= ival addr
-          , tx_buf  .= iarray [
-                -- set register pointer
-                ival 0x00
-                -- acquisition and correlation processing with DC correction
-              , ival 0x04
-              ]
-          , tx_len  .= ival 2
-          , rx_len  .= ival 0
-          ]
-        emit req_e setup_read_req
+        is_pending <- deref pending
+        unless is_pending $ do
+          -- Initiate a read (see LIDAR-Lite datasheet for explanation
+          -- of magic numbers)
+          setup_read_req <- fmap constRef $ local $ istruct
+            [ tx_addr .= ival addr
+            , tx_buf  .= iarray [
+                  -- set register pointer
+                  ival 0x00
+                  -- acquisition and correlation processing with DC correction
+                , ival 0x04
+                ]
+            , tx_len  .= ival 2
+            , rx_len  .= ival 0
+            ]
+          store pending true
+          emit req_e setup_read_req
   where
   payloadu16 :: Ref s ('Struct "i2c_transaction_result")
              -> Ix 128 -> Ix 128 -> Ivory eff IFloat
