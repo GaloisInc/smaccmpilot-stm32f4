@@ -6,6 +6,7 @@ module SMACCMPilot.Hardware.Serialize
   , accelSender
   , magSender
   , baroSender
+  , lidarliteSender
   , positionSender
   , sampleSender
   , Sender
@@ -83,6 +84,9 @@ magSender = sampleSender 'm' (Proxy :: Proxy 23)
 
 baroSender :: Sender e ('Struct "barometer_sample")
 baroSender = sampleSender 'b' (Proxy :: Proxy 18)
+
+lidarliteSender :: Sender e ('Struct "lidarlite_sample")
+lidarliteSender = sampleSender 'l' (Proxy :: Proxy 13)
 
 positionSender :: Sender e ('Struct "position_sample")
 positionSender = sampleSender 'p' (Proxy :: Proxy 46)

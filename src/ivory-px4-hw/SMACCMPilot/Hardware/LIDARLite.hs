@@ -49,23 +49,33 @@ lidarliteSensorManager
           store (s ~> samplefail) (rc >? 0)
           -- Send request to perform read (see LIDAR-Lite datasheet
           -- for explanation of magic numbers)
-          do_read_req <- fmap constRef $ local $ istruct
+          read_tx_req <- fmap constRef $ local $ istruct
             [ tx_addr .= ival addr
             , tx_buf  .= iarray [
                   -- set register pointer to result register
                   ival 0x8F
                 ]
             , tx_len  .= ival 1
+            , rx_len  .= ival 0
+            ]
+          emit req_e read_tx_req
+          ack <- yield
+          rc2 <- deref (ack ~> resultcode)
+          when (rc2 >? 0) (store (s ~> samplefail) true)
+          read_rx_req <- fmap constRef $ local $ istruct
+            [ tx_addr .= ival addr
+            , tx_buf  .= iarray []
+            , tx_len  .= ival 0
             , rx_len  .= ival 2
             ]
-          emit req_e do_read_req
+          emit req_e read_rx_req
           res <- yield
           store pending false
           -- Unpack read, updating samplefail if failed.
-          rc2 <- deref (res ~> resultcode)
-          when (rc2 >? 0) (store (s ~> samplefail) true)
+          rc3 <- deref (res ~> resultcode)
+          when (rc3 >? 0) (store (s ~> samplefail) true)
           distance_raw <- payloadu16 res 0 1
-          store (s ~> distance) (distance_raw / 100)
+          store (s ~> distance) (safeCast distance_raw / 100)
           fmap timeMicrosFromITime getTime >>= store (s ~> time)
           -- Send the sample upstream.
           emit sens_e (constRef s)
@@ -92,8 +102,8 @@ lidarliteSensorManager
           emit req_e setup_read_req
   where
   payloadu16 :: Ref s ('Struct "i2c_transaction_result")
-             -> Ix 128 -> Ix 128 -> Ivory eff IFloat
+             -> Ix 128 -> Ix 128 -> Ivory eff Uint16
   payloadu16 res ixhi ixlo = do
     hi <- deref ((res ~> rx_buf) ! ixhi)
     lo <- deref ((res ~> rx_buf) ! ixlo)
-    assign $ safeCast (twosComplementCast ((safeCast hi `iShiftL` 8) .| safeCast lo) :: Sint16) / 1370.0
+    assign $ (((safeCast hi `iShiftL` 8) .| safeCast lo) :: Uint16)
