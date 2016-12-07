@@ -32,53 +32,111 @@ lidarliteSensorManager
   p <- period (Milliseconds 20) -- 50 hz. Can be faster if required.
   monitor "lidarliteSensorManager" $ do
     s <- state "sample"
-    pending <- state "pending"
+    -- only enable the samples once the I2C ready chan has fired
+    pending <- stateInit "pending" (ival true)
     coroutineHandler init_chan res_chan "lidarlite" $ do
       req_e <- emitter req_chan 1
       sens_e <- emitter sensor_chan 1
       return $ CoroutineBody $ \yield -> do
         comment "entry to lidarlite coroutine"
 
+        -- two loops so that we can breakOut when one goes wrong,
+        -- while still being ready to service more routines
         forever $ do
-          -- Request originates from period below
-          setup_read_result <- yield
-          is_pending <- deref pending
-          assert is_pending
-          rc <- deref (setup_read_result ~> resultcode)
-          -- Reset the samplefail field
-          store (s ~> samplefail) (rc >? 0)
-          -- Send request to perform read (see LIDAR-Lite datasheet
-          -- for explanation of magic numbers)
-          read_tx_req <- fmap constRef $ local $ istruct
-            [ tx_addr .= ival addr
-            , tx_buf  .= iarray [
-                  -- set register pointer to result register
-                  ival 0x8F
+          forever $ do
+            -- Request originates from period below
+            setup_read_result <- yield
+            is_pending <- deref pending
+            assert is_pending
+            rc <- deref (setup_read_result ~> resultcode)
+            -- Reset the samplefail field
+            store (s ~> samplefail) (rc >? 0)
+            when (rc >? 0) breakOut
+
+            -- wait for LIDAR to be ready
+            forever $ do
+              ready_req <- fmap constRef $ local $ istruct
+                [ tx_addr .= ival addr
+                , tx_buf  .= iarray [
+                      -- set register pointer to status register
+                      ival 0x01
+                    ]
+                , tx_len  .= ival 1
+                , rx_len  .= ival 0
                 ]
-            , tx_len  .= ival 1
-            , rx_len  .= ival 0
-            ]
-          emit req_e read_tx_req
-          ack <- yield
-          rc2 <- deref (ack ~> resultcode)
-          when (rc2 >? 0) (store (s ~> samplefail) true)
-          read_rx_req <- fmap constRef $ local $ istruct
-            [ tx_addr .= ival addr
-            , tx_buf  .= iarray []
-            , tx_len  .= ival 0
-            , rx_len  .= ival 2
-            ]
-          emit req_e read_rx_req
-          res <- yield
+              emit req_e ready_req
+
+              ready_ack <- yield
+              rc_readyack <- deref (ready_ack ~> resultcode)
+              store (s ~> samplefail) (rc_readyack >? 0)
+              when (rc_readyack >? 0) breakOut
+
+              ready_read <- fmap constRef $ local $ istruct
+                [ tx_addr .= ival addr
+                , tx_buf  .= iarray []
+                , tx_len  .= ival 0
+                , rx_len  .= ival 1
+                ]
+              emit req_e ready_read
+
+              ready_sr <- yield
+              rc_readysr <- deref (ready_sr ~> resultcode)
+              store (s ~> samplefail) (rc_readysr >? 0)
+              when (rc_readysr >? 0) breakOut
+
+              sr <- deref ((ready_sr ~> rx_buf) ! 0)
+              when (sr .& 1 ==? 0) breakOut
+
+            -- bail all the way out if there's an error
+            sf <- deref (s ~> samplefail)
+            when sf breakOut
+
+            -- Send request to perform read (see LIDAR-Lite datasheet
+            -- for explanation of magic numbers)
+            read_tx_req <- fmap constRef $ local $ istruct
+              [ tx_addr .= ival addr
+              , tx_buf  .= iarray [
+                    -- set register pointer to result register
+                    ival 0x8F
+                  ]
+              , tx_len  .= ival 1
+              , rx_len  .= ival 0
+              ]
+            emit req_e read_tx_req
+            ack <- yield
+            rc2 <- deref (ack ~> resultcode)
+            store (s ~> samplefail) (rc2 >? 0)
+            when (rc2 >? 0) breakOut
+
+            read_rx_req <- fmap constRef $ local $ istruct
+              [ tx_addr .= ival addr
+              , tx_buf  .= iarray []
+              , tx_len  .= ival 0
+              , rx_len  .= ival 2
+              ]
+            emit req_e read_rx_req
+            res <- yield
+            store pending false
+            -- Unpack read, updating samplefail if failed.
+            rc3 <- deref (res ~> resultcode)
+            store (s ~> samplefail) (rc3 >? 0)
+            when (rc3 >? 0) breakOut
+
+            distance_raw <- payloadu16 res 0 1
+            store (s ~> distance) (safeCast distance_raw / 100)
+            fmap timeMicrosFromITime getTime >>= store (s ~> time)
+            -- Send the sample upstream.
+            emit sens_e (constRef s)
+
+          -- only get here by breaking out of the main coroutine
+          -- loop. reset the state and get ready for another sample
+          comment "error handling"
           store pending false
-          -- Unpack read, updating samplefail if failed.
-          rc3 <- deref (res ~> resultcode)
-          when (rc3 >? 0) (store (s ~> samplefail) true)
-          distance_raw <- payloadu16 res 0 1
-          store (s ~> distance) (safeCast distance_raw / 100)
-          fmap timeMicrosFromITime getTime >>= store (s ~> time)
-          -- Send the sample upstream.
+          -- emit result with error code
           emit sens_e (constRef s)
+
+    handler init_chan "lidar_ready" $
+      callback $ const $ store pending false
 
     handler p "periodic_read" $ do
       req_e <- emitter req_chan 1

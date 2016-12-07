@@ -5,6 +5,7 @@ module SMACCMPilot.Hardware.Tests.LIDARLite (app) where
 import Ivory.Language
 
 import Ivory.Tower
+import Ivory.Tower.HAL.RingBuffer
 
 import Ivory.BSP.STM32.Driver.I2C
 import Ivory.BSP.STM32.Peripheral.I2C
@@ -20,6 +21,17 @@ app :: (e -> PX4Platform) -> Tower e ()
 app topx4 = do
   px4platform <- fmap topx4 getEnv
   measurements <- channel
+  measurements_buf <- channel
+  bufferChans (snd measurements)
+  -- Buffering timing analysis:
+  -- Worst case: 115200 baud
+  -- 10 bits per byte (UART framing) = 11520 bytes per second
+  -- 18 bytes per sample = 640 samples per second
+  -- 640 samples per second = 1.5ms per frame, but we can be conservative
+                                       (Milliseconds 10)
+  -- buffer depth of 4: we will never use more than 2, and it will fit 3.
+                                       (Proxy :: Proxy 4)
+                                       (fst measurements_buf)
 
 {-
   case px4platform_lidarlite px4platform of
@@ -30,7 +42,7 @@ app topx4 = do
   (uarto, _uarti, mon) <- px4ConsoleTower topx4
   monitor "uart" mon
   monitor "lidarliteSender" $ do
-    lidarliteSender (snd measurements) uarto
+    lidarliteSender (snd measurements_buf) uarto
 
   serializeTowerDeps
 
