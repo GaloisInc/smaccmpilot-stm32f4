@@ -15,8 +15,6 @@ import SMACCMPilot.Commsec.Sizes
 import SMACCMPilot.Datalink.HXStream.Tower
 import SMACCMPilot.Flight.Platform (UART_Device(..), ClockConfig)
 
-import SMACCMPilot.Comm.Tower.Attr
-
 uartDatalink :: (e -> ClockConfig)
              -> UART_Device
              -> Integer
