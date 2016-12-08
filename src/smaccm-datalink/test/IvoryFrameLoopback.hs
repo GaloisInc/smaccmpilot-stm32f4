@@ -45,7 +45,7 @@ frame_loopback o i = do
   ctin <- channel
   ctout <- channel
   airDataDecodeTower "test" i (fst ctin)
-  airDataEncodeTower "test" (snd ctout) o
+  airDataEncodeTower "test" (snd ctout) o (Milliseconds 10) (Proxy :: Proxy 4)
 
   p <- period (Milliseconds 10)
 
