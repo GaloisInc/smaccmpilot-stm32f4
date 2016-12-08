@@ -38,10 +38,10 @@ import           Ivory.BSP.STM32.ClockConfig
 import           Ivory.BSP.STM32.Config
 import           SMACCMPilot.Datalink.Mode
 import           SMACCMPilot.Hardware.CAN
-import           SMACCMPilot.Hardware.LIDARLite
 import           SMACCMPilot.Hardware.Sensors
 import           SMACCMPilot.Hardware.Platforms (PPM(..), RGBLED_I2C(..), ADC(..))
 import           SMACCMPilot.Hardware.PX4IO (PX4IOPWMConfig(..))
+import           SMACCMPilot.Flight.Sensors.LIDARLite
 import           SMACCMPilot.Flight.Tuning
 
 
@@ -59,6 +59,7 @@ data FlightPlatform =
     , fp_tuning       :: FlightTuning
     , fp_mixer        :: FlightMixer
     , fp_stm32config  :: STM32Config
+    , fp_lidarlite    :: Maybe LIDARLite
     }
 
 
@@ -136,6 +137,7 @@ px4fmuv17 tuning mixer telem_baud dmode = FlightPlatform
   , fp_tuning      = tuning
   , fp_mixer       = mixer
   , fp_stm32config = stm32f405Defaults 24
+  , fp_lidarlite   = Nothing
   }
   where
   telem = UART_Device
@@ -170,7 +172,7 @@ px4fmuv24 tuning mixer pwmconf telem_baud mlidar dmode = FlightPlatform
   , fp_telem_baud  = telem_baud
   , fp_gps         = gps
   , fp_io          = px4io
-  , fp_sensors     = addLidar fmu24_sensors
+  , fp_sensors     = fmu24_sensors
   , fp_can         = Just fmu24_can
   , fp_datalink    = dmode
   , fp_rgbled      = Just rgbled
@@ -178,6 +180,7 @@ px4fmuv24 tuning mixer pwmconf telem_baud mlidar dmode = FlightPlatform
   , fp_tuning      = tuning
   , fp_mixer       = mixer
   , fp_stm32config = stm32f427Defaults 24
+  , fp_lidarlite   = mlidar
   }
   where
   telem = UART_Device
@@ -196,7 +199,6 @@ px4fmuv24 tuning mixer pwmconf telem_baud mlidar dmode = FlightPlatform
         , uartPinAF = F427.gpio_af_uart4
         }
     }
-  addLidar sens = sens { fmu24sens_lidarlite = mlidar }
   -- invariant: rgbled is only device attached to given i2c periph.
   rgbled = RGBLED_I2C
     { rgbled_i2c_periph = F427.i2c2

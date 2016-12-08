@@ -1,6 +1,5 @@
 {-# LANGUAGE DataKinds #-}
-module SMACCMPilot.Hardware.LIDARLite where
-
+module SMACCMPilot.Flight.Sensors.LIDARLite where
 
 import Prelude ()
 import Prelude.Compat

@@ -12,8 +12,6 @@ library
   exposed-modules:     SMACCMPilot.Hardware.GPS.UBlox,
                        SMACCMPilot.Hardware.GPS.UBlox.Types,
 
-                       SMACCMPilot.Hardware.LIDARLite,
-                       
                        SMACCMPilot.Hardware.MPU6000,
                        SMACCMPilot.Hardware.MPU6000.Regs,
                        SMACCMPilot.Hardware.MPU6000.SPI,
@@ -436,27 +434,4 @@ test-suite             px4-adc-test-gen
                        tower-freertos-stm32,
                        tower-hal,
                        ivory-px4-hw
-
-test-suite             px4-lidarlite-test-gen
-  type: exitcode-stdio-1.0
-  main-is:             LIDARTest.hs
-  hs-source-dirs:      tests
-  other-modules:
-      SMACCMPilot.Hardware.Tests.LIDARLite
-  build-depends:       base >= 4.6,
-                       monadLib,
-                       ivory,
-                       ivory-serialize,
-                       ivory-stdlib,
-                       ivory-bsp-stm32,
-                       smaccm-comm-schema-tower,
-                       smaccm-datalink,
-                       tower              >= 0.9,
-                       tower-config,
-                       tower-freertos-stm32,
-                       tower-hal,
-                       ivory-px4-hw
-
-  default-language:    Haskell2010
-  ghc-options:         -Wall
 

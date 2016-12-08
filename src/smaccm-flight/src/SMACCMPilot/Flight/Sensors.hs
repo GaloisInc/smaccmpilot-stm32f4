@@ -1,3 +1,4 @@
+{-# LANGUAGE RecordWildCards #-}
 
 {-# LANGUAGE DataKinds #-}
 
@@ -6,6 +7,7 @@ module SMACCMPilot.Flight.Sensors
   ) where
 
 import Data.Foldable
+import Data.Maybe
 import Data.Traversable
 import Ivory.Language
 import Ivory.Tower
@@ -25,6 +27,7 @@ import           SMACCMPilot.Comm.Tower.Interface.ControllableVehicle
 import           SMACCMPilot.Flight.Platform
 import           SMACCMPilot.Flight.Sensors.GPS
 import           SMACCMPilot.Hardware.SensorManager
+import           SMACCMPilot.Hardware.Sensors
 import           SMACCMPilot.INS.Bias.Gyro
 import           SMACCMPilot.INS.Bias.Accel
 import           SMACCMPilot.INS.Bias.Magnetometer.Tower
@@ -34,6 +37,7 @@ import           SMACCMPilot.INS.Ivory
 import           SMACCMPilot.INS.SensorFusion
 import           SMACCMPilot.INS.Tower
 import           SMACCMPilot.Flight.Sensors.AccelBiasTrigger
+import           SMACCMPilot.Flight.Sensors.LIDARLite
 
 sensorTower :: (e -> FlightPlatform)
             -> ControllableVehicleAttrs Attr
@@ -44,8 +48,22 @@ sensorTower tofp attrs = do
   mon <- uartUbloxGPSTower tofp (fst p)
   attrProxy (gpsOutput attrs) (snd p)
 
-  (a,g,m,b,lidar) <-
-    sensorManager (fp_sensors . tofp) (fp_clockconfig . tofp)
+  fp <- tofp <$> getEnv
+  -- make a channel whether or not we have a LIDAR in order to make
+  -- the control flow simpler here
+  (lidar_in, lidar) <- channel
+  let exti2cs = catMaybes [ mlidar ]
+      mlidar = do
+        LIDARLite{..} <- fp_lidarlite fp
+        return $ ExternalSensor {
+            ext_sens_name = "lidarlite"
+          , ext_sens_init = \bpt init_chan ->
+              lidarliteSensorManager
+                bpt init_chan lidar_in lidarlite_i2c_addr
+          }
+
+  (a,g,m,b) <-
+    sensorManager (fp_sensors . tofp) (fp_clockconfig . tofp) exti2cs
 
   motion <- channel
   detectMotion g a (fst motion)

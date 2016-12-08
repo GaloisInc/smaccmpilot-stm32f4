@@ -21,7 +21,6 @@ test-fmu24: platform-fmu24/px4-all-sensors-test-gen
 test-fmu24: platform-fmu24/px4-px4io-test-gen
 test-fmu24: platform-fmu24/px4-ppm-in-test-gen
 test-fmu24: platform-fmu24/px4-adc-test-gen
-test-fmu24: platform-fmu24/px4-lidarlite-test-gen
 
 test-fmu24-echronos: platform-fmu24/px4_all_sensors_aadl_test_gen
 test-fmu24-echronos: platform-fmu24/px4_rgbled_aadl_test_gen

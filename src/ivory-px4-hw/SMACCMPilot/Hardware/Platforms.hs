@@ -48,8 +48,6 @@ import           Ivory.BSP.STM32.Driver.UART.DMA
 import           Ivory.BSP.STM32.ClockConfig
 import           Ivory.BSP.STM32.Config
 
-import           SMACCMPilot.Hardware.LIDARLite
-
 data PX4Platform =
   PX4Platform
     { px4platform_gps            :: UART_Device
@@ -176,11 +174,6 @@ px4platform_l3gd20 :: PX4Platform -> Maybe SPIDevice
 px4platform_l3gd20 PX4Platform{..} = case px4platform_sensors of
   FMU17Sensors{..} -> Nothing
   FMU24Sensors{..} -> Just fmu24sens_l3gd20
-
-px4platform_lidarlite :: PX4Platform -> Maybe LIDARLite
-px4platform_lidarlite PX4Platform{..} = case px4platform_sensors of
-  FMU17Sensors{..} -> Nothing
-  FMU24Sensors{..} -> fmu24sens_lidarlite
 
 px4platform_sensorenable :: PX4Platform -> Ivory eff ()
 px4platform_sensorenable PX4Platform{..} = case px4platform_sensors of
