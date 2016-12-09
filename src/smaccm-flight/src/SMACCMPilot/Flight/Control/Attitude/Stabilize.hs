@@ -30,8 +30,6 @@ attStabilizeModule = package "attitude_stabilize" $ do
 stabilize_from_angle :: Def (
  '[ Ref      s1 ('Struct "pid_state")   -- angle_pid
   , ConstRef s2 ('Struct "pid_config")  -- angle_cfg
-  , Ref      s3 ('Struct "pid_state")   -- rate_pid
-  , ConstRef s4 ('Struct "pid_config")  -- rate_cfg
   , IFloat                            -- stick_angle_rad
   , IFloat                            -- angle_measured_rad
   , IFloat                            -- rate_measured_rad_s
@@ -39,7 +37,6 @@ stabilize_from_angle :: Def (
   ] ':-> IFloat)
 stabilize_from_angle = proc "stabilize_from_angle" $
   \angle_pid angle_cfg
-   rate_pid  rate_cfg
    stick_angle_rad
    angle_measured_rad
    rate_measured_rad_s
@@ -79,12 +76,4 @@ stabilize_from_rate = proc "stabilize_from_rate" $
   rate_cmd  <- call pid_update rate_pid rate_cfg stick_rate_rad_s rate_measured_rad_s 0.0 0.0 0.0
   rate_cmd_norm   <- call fconstrain (-1.0) 1.0 rate_cmd
   ret $ rate_cmd_norm -- / 1.0
-
-
-----------------------------------------------------------------------
--- Math Utilities (move into a Math.hs?)
-
--- | Convert an angle in radians to degrees.
-degrees :: (Fractional a) => a -> a
-degrees x = x * 57.295779513082320876798154814105
 

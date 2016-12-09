@@ -33,9 +33,6 @@ import           SMACCMPilot.Comm.Ivory.Types.TimeMicros
 import           SMACCMPilot.Comm.Tower.Attr
 import           SMACCMPilot.Comm.Tower.Interface.ControllableVehicle
 
-const_MAX_THRUST_FB :: IFloat
-const_MAX_THRUST_FB  = 1.0 -- [x100% throttle]
-
 const_NOMINAL_THRUST :: IFloat
 const_NOMINAL_THRUST  = 0.5 -- [x100% throttle]
 
@@ -63,7 +60,6 @@ monitorAltitudeControl attrs = do
   alt_estimator <- monitorAltEstimator
   -- Thrust PID controls altitude rate with thrust
   alt_rate_pid <- state "alt_rate_pid"
-  alt_rate_cfg <- attrState (altitudeRatePid attrs)
   -- Position PID controls altitude with altitude rate
   alt_pos_pid <- state "alt_pos_pid"
   alt_pos_cfg <- attrState (altitudePositionPid attrs)
