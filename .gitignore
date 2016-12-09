@@ -18,3 +18,5 @@ TAGS
 /stack.yaml.orig
 /tower-camkes-odroid/
 /tower/
+*~
+/src/smaccm-comm-schema/smaccm-comm-schema-elm

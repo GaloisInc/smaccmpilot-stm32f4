@@ -14,9 +14,13 @@ module SMACCMPilot.Flight.Platform
   , ClockConfig
   ) where
 
+import Prelude ()
+import Prelude.Compat
+
 import Ivory.Tower.Config
 
 import Data.Char (toUpper)
+import Data.Word (Word8)
 
 import qualified Ivory.BSP.STM32F405.UART           as F405
 import qualified Ivory.BSP.STM32F405.GPIO           as F405
@@ -40,12 +44,14 @@ import           SMACCMPilot.Hardware.CAN
 import           SMACCMPilot.Hardware.Sensors
 import           SMACCMPilot.Hardware.Platforms (PPM(..), RGBLED_I2C(..), ADC(..))
 import           SMACCMPilot.Hardware.PX4IO (PX4IOPWMConfig(..))
+import           SMACCMPilot.Flight.Sensors.LIDARLite
 import           SMACCMPilot.Flight.Tuning
 
 
 data FlightPlatform =
   FlightPlatform
     { fp_telem        :: UART_Device
+    , fp_telem_baud   :: Integer
     , fp_gps          :: UART_Device
     , fp_io           :: FlightIO
     , fp_sensors      :: Sensors
@@ -56,6 +62,7 @@ data FlightPlatform =
     , fp_tuning       :: FlightTuning
     , fp_mixer        :: FlightMixer
     , fp_stm32config  :: STM32Config
+    , fp_lidarlite    :: Maybe LIDARLite
     }
 
 
@@ -76,11 +83,15 @@ flightPlatformParser = do
   t <- subsection "tuning" $ subsection v flightTuningParser
   p <- subsection "args" $ subsection "platform" string
   m <- subsection "args" $ subsection "mixer" mixerParser
+  b <- subsection "args" $ subsection "telem_baud" integer
+   <|> pure 57600
+  mlidar <- subsection "args" $ subsection "lidar_lite" lidarParser
+   <|> pure Nothing
   let c = pwmconf v
   case map toUpper p of
-    "PX4FMUV17" -> result (px4fmuv17 t m)
-    "PX4FMUV24" -> result (px4fmuv24 t m c)
-    "PIXHAWK"   -> result (px4fmuv24 t m c)
+    "PX4FMUV17" -> result (px4fmuv17 t m b)
+    "PX4FMUV24" -> result (px4fmuv24 t m c b mlidar)
+    "PIXHAWK"   -> result (px4fmuv24 t m c b mlidar)
     _ -> fail ("no such platform " ++ p)
   where
   result mkPlatform = do
@@ -96,6 +107,12 @@ flightPlatformParser = do
       "QUADX" -> return QuadXMixer
       _ -> fail ("no such mixer " ++ s ++ ". must be 'iris' or 'quadx'")
 
+  lidarParser = do
+    addr <- fromIntegral <$> integer
+    if 0 <= addr && addr <= (maxBound :: Word8)
+      then return (Just (LIDARLite (I2CDeviceAddr (fromIntegral addr))))
+      else fail ("invalid i2c address " ++ show addr ++ " for LIDAR-lite")
+
   -- This is a nasty hack: at the moment we want the
   -- pwm bounds to be 1000/2000 for Iris+ but not
   -- for the orig Iris. TODO: make this properly configurable!
@@ -105,9 +122,14 @@ flightPlatformParser = do
       _           -> PX4IOPWMConfig { px4iopwm_min = 1100, px4iopwm_max = 1900 }
 
 
-px4fmuv17 :: FlightTuning -> FlightMixer -> DatalinkMode -> FlightPlatform
-px4fmuv17 tuning mixer dmode = FlightPlatform
+px4fmuv17 :: FlightTuning
+          -> FlightMixer
+          -> Integer
+          -> DatalinkMode
+          -> FlightPlatform
+px4fmuv17 tuning mixer telem_baud dmode = FlightPlatform
   { fp_telem       = telem
+  , fp_telem_baud  = telem_baud
   , fp_gps         = gps
   , fp_io          = NativeIO ppm
   , fp_sensors     = fmu17_sensors
@@ -118,6 +140,7 @@ px4fmuv17 tuning mixer dmode = FlightPlatform
   , fp_tuning      = tuning
   , fp_mixer       = mixer
   , fp_stm32config = stm32f405Defaults 24
+  , fp_lidarlite   = Nothing
   }
   where
   telem = UART_Device
@@ -140,9 +163,16 @@ px4fmuv17 tuning mixer dmode = FlightPlatform
   ppm_int = HasSTM32Interrupt F405.TIM1_CC
 
 
-px4fmuv24 :: FlightTuning -> FlightMixer -> PX4IOPWMConfig -> DatalinkMode -> FlightPlatform
-px4fmuv24 tuning mixer pwmconf dmode = FlightPlatform
+px4fmuv24 :: FlightTuning
+          -> FlightMixer
+          -> PX4IOPWMConfig
+          -> Integer
+          -> Maybe LIDARLite
+          -> DatalinkMode
+          -> FlightPlatform
+px4fmuv24 tuning mixer pwmconf telem_baud mlidar dmode = FlightPlatform
   { fp_telem       = telem
+  , fp_telem_baud  = telem_baud
   , fp_gps         = gps
   , fp_io          = px4io
   , fp_sensors     = fmu24_sensors
@@ -153,6 +183,7 @@ px4fmuv24 tuning mixer pwmconf dmode = FlightPlatform
   , fp_tuning      = tuning
   , fp_mixer       = mixer
   , fp_stm32config = stm32f427Defaults 24
+  , fp_lidarlite   = mlidar
   }
   where
   telem = UART_Device
@@ -195,7 +226,9 @@ px4fmuv24 tuning mixer pwmconf dmode = FlightPlatform
     , adc_cal    =
         -- This calibration works for Pixhawk #2 on my desk. I assume
         -- they're all close enough to this for now.
-        \x -> ((x - 137.718) / 109.709)
+        -- TODO: replace with proper calibration, the GAIN 1.27
+        -- is only a kludge to get the voltage read correct values
+        \x -> (x*0.0100695421)
         -- Linear regression, r squared of .9999:
         -- counts	voltage
         -- 138	0

@@ -10,7 +10,7 @@ import Ivory.Tower
 import Ivory.Stdlib
 
 import           SMACCMPilot.Flight.Control.Altitude.Estimator
-import           SMACCMPilot.Flight.Control.PID
+import           SMACCMPilot.Flight.Control.PID()
 
 import qualified SMACCMPilot.Comm.Ivory.Types.AltControlDebug as D
 import qualified SMACCMPilot.Comm.Ivory.Types.UserInput       as UI
@@ -43,7 +43,7 @@ monitorThrottleUI attr estimator = do
                           , IFloat -- dt
                           ] ':-> ())
       proc_update  = proc name_update $
-        \ui dt -> body $ do
+        \ui _dt -> body $ do
           sr <- stickrate settings ui
           store vel_setpoint sr
 
@@ -54,13 +54,9 @@ monitorThrottleUI attr estimator = do
                 store alt_setpoint alt_est
                 store active_state true
             , active ==> do
+                -- do nothing (the alt_setpoint is constant)
                 current <- deref alt_setpoint
-                next <- assign (current + (sr * dt))
-                sens <- deref (settings ~> TUI.sens)
-                a <- call fconstrain (alt_est - 0.8*sens)
-                                     (alt_est + 0.8*sens)
-                                     next
-                store alt_setpoint a
+                store alt_setpoint current
             ]
 
   monitorModuleDef $ incl proc_update

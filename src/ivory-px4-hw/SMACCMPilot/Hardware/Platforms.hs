@@ -48,7 +48,6 @@ import           Ivory.BSP.STM32.Driver.UART.DMA
 import           Ivory.BSP.STM32.ClockConfig
 import           Ivory.BSP.STM32.Config
 
-
 data PX4Platform =
   PX4Platform
     { px4platform_gps            :: UART_Device

@@ -1,0 +1,9 @@
+/**
+* CanvasJS HTML5 & JavaScript Charts - v1.9.0 GA - http://canvasjs.com/ 
+* Copyright 2016 fenopix
+
+*  --------------------- License Information --------------------
+* CanvasJS is a commercial product which requires purchase of license. Without a commercial license you can use it for evaluation purposes for upto 30 days. Please refer to the following link for further details.
+*     http://canvasjs.com/license-canvasjs/
+* 
+*/

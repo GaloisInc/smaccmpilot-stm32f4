@@ -43,6 +43,7 @@ commClient clientopts mode = datalinkClient opts mode $ \to fro console -> do
   rpccfg = RPC.Config
     { RPC.cfgPort = srvPort clientopts
     , RPC.cfgStaticDir = Just "./web/"
+    , RPC.cfgLogSuffix = srvLogSuffix clientopts
     }
 
 asyncServer :: (TQueue producer -> TQueue consumer -> RPC.Config -> IO ())

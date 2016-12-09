@@ -81,6 +81,23 @@ class Accel(object):
         return ("Accel %d %d x % 9.4f y % 9.4f z % 9.4f temp % 9.4f micros %d" %
             (self.ifail, self.sfail, self.x, self.y, self.z, self.temp, self.t))
 
+class LIDAR(object):
+    def __init__(self, binary):
+        self.binary = binary
+        try:
+            (sfail, dist, t) = struct.unpack("!BfQ", binary)
+            self.sfail = sfail
+            self.dist  = dist
+            self.t     = t
+            self.errormsg = None
+        except Exception:
+            self.errormsg = ("LIDAR: bad size %d" % (len(binary)))
+    def display(self):
+        if self.errormsg:
+            return self.errormsg
+        return ("LIDAR %d m % 9.4f micros %d" %
+            (self.sfail, self.dist, self.t))
+
 class Fusion(object):
     def __init__(self, binary):
         self.binary = binary
@@ -208,6 +225,8 @@ class SensorParser(object):
                 sensors.append(Accel(payload))
             if t == ord('b'): # 'b' barometer
                 sensors.append(Barometer(payload))
+            if t == ord('l'): # 'l' lidar
+                sensors.append(LIDAR(payload))
             if t == ord('m'): # 'm' magnetometer
                 sensors.append(Mag(payload))
             if t == ord('f'): # 'f' fusion

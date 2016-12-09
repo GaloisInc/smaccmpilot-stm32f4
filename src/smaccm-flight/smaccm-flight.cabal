@@ -57,12 +57,14 @@ library
                        SMACCMPilot.Flight.Sensors,
                        SMACCMPilot.Flight.Sensors.AccelBiasTrigger,
                        SMACCMPilot.Flight.Sensors.GPS,
+                       SMACCMPilot.Flight.Sensors.LIDARLite,
                        SMACCMPilot.Flight.Sensors.TestApp,
                        SMACCMPilot.Flight.Standalone,
                        SMACCMPilot.Flight.Tuning,
                        SMACCMPilot.Flight.Tuning.TypeParsers,
                        SMACCMPilot.Flight.Types.MaybeFloat
   build-depends:       base >=4.6,
+                       base-compat,
                        ivory >=0.1,
                        ivory-px4-hw >=0.1,
                        ivory-serialize >=0.1,
@@ -249,3 +251,28 @@ executable             standalone_flight_echronos_gen
                        smaccm-flight
   default-language:    Haskell2010
   ghc-options:         -Wall
+
+executable             lidar-test-gen
+  main-is:             LIDARTest.hs
+  hs-source-dirs:      tests
+  other-modules:
+      LIDAR.LIDARApp
+  build-depends:       base >= 4.6,
+                       base-compat,
+                       monadLib,
+                       ivory,
+                       ivory-serialize,
+                       ivory-stdlib,
+                       ivory-bsp-stm32,
+                       smaccm-comm-schema-tower,
+                       smaccm-datalink,
+                       tower              >= 0.9,
+                       tower-config,
+                       tower-freertos-stm32,
+                       tower-hal,
+                       ivory-px4-hw,
+                       smaccm-flight
+
+  default-language:    Haskell2010
+  ghc-options:         -Wall
+

@@ -35,7 +35,7 @@ app topx4 = do
   position <- channel
   mon1 <- uartUbloxGPSTower tocc gps (fst position)
 
-  (accel_meas, gyro_meas, mag_meas, baro_meas) <- sensorManager tosens tocc
+  (accel_meas, gyro_meas, mag_meas, baro_meas) <- sensorManager tosens tocc []
 
   (uartout, _uarti, mon2) <- px4ConsoleTower topx4
   monitor "console_uart" (mon1 >> mon2)

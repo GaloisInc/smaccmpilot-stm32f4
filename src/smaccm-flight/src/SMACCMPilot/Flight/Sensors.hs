@@ -1,3 +1,4 @@
+{-# LANGUAGE RecordWildCards #-}
 
 {-# LANGUAGE DataKinds #-}
 
@@ -5,8 +6,10 @@ module SMACCMPilot.Flight.Sensors
   ( sensorTower
   ) where
 
-import Data.Foldable
-import Data.Traversable
+import Prelude ()
+import Prelude.Compat
+
+import Data.Maybe
 import Ivory.Language
 import Ivory.Tower
 import Linear
@@ -16,6 +19,7 @@ import           Numeric.Estimator.Model.Pressure
 import qualified SMACCMPilot.Comm.Ivory.Types.AccelerometerSample as A
 import qualified SMACCMPilot.Comm.Ivory.Types.BarometerSample as B
 import qualified SMACCMPilot.Comm.Ivory.Types.GyroscopeSample as G
+import qualified SMACCMPilot.Comm.Ivory.Types.LidarliteSample as L
 import qualified SMACCMPilot.Comm.Ivory.Types.SensorsResult as R
 import qualified SMACCMPilot.Comm.Ivory.Types.Xyz as XYZ
 import qualified SMACCMPilot.Comm.Ivory.Types.RgbLedSetting as LED
@@ -24,6 +28,7 @@ import           SMACCMPilot.Comm.Tower.Interface.ControllableVehicle
 import           SMACCMPilot.Flight.Platform
 import           SMACCMPilot.Flight.Sensors.GPS
 import           SMACCMPilot.Hardware.SensorManager
+import           SMACCMPilot.Hardware.Sensors
 import           SMACCMPilot.INS.Bias.Gyro
 import           SMACCMPilot.INS.Bias.Accel
 import           SMACCMPilot.INS.Bias.Magnetometer.Tower
@@ -33,6 +38,7 @@ import           SMACCMPilot.INS.Ivory
 import           SMACCMPilot.INS.SensorFusion
 import           SMACCMPilot.INS.Tower
 import           SMACCMPilot.Flight.Sensors.AccelBiasTrigger
+import           SMACCMPilot.Flight.Sensors.LIDARLite
 
 sensorTower :: (e -> FlightPlatform)
             -> ControllableVehicleAttrs Attr
@@ -43,7 +49,22 @@ sensorTower tofp attrs = do
   mon <- uartUbloxGPSTower tofp (fst p)
   attrProxy (gpsOutput attrs) (snd p)
 
-  (a,g,m,b) <- sensorManager (fp_sensors . tofp) (fp_clockconfig . tofp)
+  fp <- tofp <$> getEnv
+  -- make a channel whether or not we have a LIDAR in order to make
+  -- the control flow simpler here
+  (lidar_in, lidar) <- channel
+  let exti2cs = catMaybes [ mlidar ]
+      mlidar = do
+        LIDARLite{..} <- fp_lidarlite fp
+        return $ ExternalSensor {
+            ext_sens_name = "lidarlite"
+          , ext_sens_init = \bpt init_chan ->
+              lidarliteSensorManager
+                bpt init_chan lidar_in lidarlite_i2c_addr
+          }
+
+  (a,g,m,b) <-
+    sensorManager (fp_sensors . tofp) (fp_clockconfig . tofp) exti2cs
 
   motion <- channel
   detectMotion g a (fst motion)
@@ -78,6 +99,9 @@ sensorTower tofp attrs = do
 
   attrProxy (accelOutputCalibration attrs) accel_out_bias
   attrProxy (accelOutput attrs) accel_out
+
+  -- LIDAR: calibration handled onboard
+  attrProxy (lidarliteOutput attrs) lidar
 
   -- Baro: no calibration at this time.
   attrProxy (baroOutput attrs) b
@@ -121,6 +145,7 @@ sensorTower tofp attrs = do
     last_accel <- save "last_accel" accel_out
     last_baro <- save "last_baro" b
     last_gyro <- save "last_gyro" gyro_out
+    last_lidar <- save "last_lidar" lidar
 
     handler states "new_state" $ do
       e <- attrEmitter $ sensorsOutput attrs
@@ -136,6 +161,9 @@ sensorTower tofp attrs = do
         gyro_time <- deref $ last_gyro ~> G.time
         gyro <- xyzRef $ last_gyro ~> G.sample
 
+        lidar_distance <- deref $ last_lidar ~> L.distance
+        lidar_time <- deref $ last_lidar ~> L.time
+
         result <- local $ istruct
           [ R.valid .= ival (foldr1 (.||) $ fmap (/=? 0) attitude)
           , R.roll .= ival (atan2F (2 * (q0 * q1 + q2 * q3)) (1 - 2 * (q1 * q1 + q2 * q2)))
@@ -143,9 +171,11 @@ sensorTower tofp attrs = do
           , R.yaw .= ival (atan2F (2 * (q0 * q3 + q1 * q2)) (1 - 2 * (q2 * q2 + q3 * q3)))
           , R.omega .= xyzInitStruct (fmap (* (pi / 180)) gyro)
           , R.baro_alt .= ival (pressureToHeight $ pressure * 100) -- convert mbar to Pascals
+          , R.lidar_alt .= ival lidar_distance
           , R.accel .= xyzInitStruct accel
           , R.ahrs_time .= ival gyro_time
           , R.baro_time .= ival baro_time
+          , R.lidar_time .= ival lidar_time
           ]
         emit e $ constRef result
   return mon

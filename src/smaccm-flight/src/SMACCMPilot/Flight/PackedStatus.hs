@@ -40,6 +40,7 @@ packedStatusTower attrs = monitor "pack_status" $ do
     , Copy P.pitch U.pitch
     , Copy P.yaw U.yaw
     , Copy P.baro_alt U.baro_alt
+    , Copy P.lidar_alt U.lidar_alt
     ]
 
   save packed (packedStatus attrs) (gpsOutput attrs)

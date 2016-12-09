@@ -138,9 +138,7 @@ test-suite smaccm-datalink-native-commsecloopback-client
                         smaccm-datalink
   default-language:     Haskell2010
 
-test-suite smaccm-datalink-repl
-  type: exitcode-stdio-1.0
-
+executable smaccm-datalink-repl
   main-is:              Repl.hs
   hs-source-dirs:       test
 

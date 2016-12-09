@@ -6,6 +6,8 @@ module SMACCMPilot.Hardware.SensorManager
   ( sensorManager
   ) where
 
+import Control.Monad (forM, when)
+
 import Ivory.Language
 import Ivory.Tower
 import Ivory.Tower.HAL.Bus.Sched
@@ -25,24 +27,26 @@ import Ivory.BSP.STM32.ClockConfig
 
 sensorManager :: (e -> Sensors)
               -> (e -> ClockConfig)
+              -> [ExternalI2CSensor]
               -> Tower e ( ChanOutput ('Struct "accelerometer_sample")
                          , ChanOutput ('Struct "gyroscope_sample")
                          , ChanOutput ('Struct "magnetometer_sample")
                          , ChanOutput ('Struct "barometer_sample"))
-sensorManager tosens tocc = do
+sensorManager tosens tocc exti2cs = do
   e <- getEnv
   case tosens e of
-    FMU17Sensors{} -> fmu17SensorManager (tosens e) tocc
-    FMU24Sensors{} -> fmu24SensorManager (tosens e) tocc
+    FMU17Sensors{} -> fmu17SensorManager (tosens e) tocc exti2cs
+    FMU24Sensors{} -> fmu24SensorManager (tosens e) tocc exti2cs
 
 
 fmu17SensorManager :: Sensors
                    -> (e -> ClockConfig)
+                   -> [ExternalI2CSensor]
                    -> Tower e ( ChanOutput ('Struct "accelerometer_sample")
                               , ChanOutput ('Struct "gyroscope_sample")
                               , ChanOutput ('Struct "magnetometer_sample")
                               , ChanOutput ('Struct "barometer_sample"))
-fmu17SensorManager FMU17Sensors{..} tocc = do
+fmu17SensorManager FMU17Sensors{..} tocc _exti2cs = do
 
   (i2cRequest, i2cReady) <- i2cTower
                               tocc
@@ -70,15 +74,17 @@ fmu17SensorManager FMU17Sensors{..} tocc = do
 
   return (snd acc_s, snd gyro_s, snd mag_s, snd baro_s)
 
-fmu17SensorManager _ _ = error "impossible"
+fmu17SensorManager _ _ _ = error "impossible"
 
-fmu24SensorManager :: Sensors
-                   -> (e -> ClockConfig)
-                   -> Tower e ( ChanOutput ('Struct "accelerometer_sample")
-                              , ChanOutput ('Struct "gyroscope_sample")
-                              , ChanOutput ('Struct "magnetometer_sample")
-                              , ChanOutput ('Struct "barometer_sample"))
-fmu24SensorManager FMU24Sensors{..} tocc = do
+fmu24SensorManager ::
+     Sensors
+  -> (e -> ClockConfig)
+  -> [ExternalI2CSensor]
+  -> Tower e ( ChanOutput ('Struct "accelerometer_sample")
+             , ChanOutput ('Struct "gyroscope_sample")
+             , ChanOutput ('Struct "magnetometer_sample")
+             , ChanOutput ('Struct "barometer_sample"))
+fmu24SensorManager FMU24Sensors{..} tocc exti2cs = do
 
   acc_s <- channel
   gyro_s <- channel
@@ -125,6 +131,32 @@ fmu24SensorManager FMU24Sensors{..} tocc = do
 
   schedule [mpu6000Task, lsm303dTask, ms5611Task, l3gd20Task] sready sreq
 
+  -- I2C devices
+  when (not (null exti2cs)) $ do
+    (i2cRequest, i2cReady) <- i2cTower
+                                tocc
+                                fmu24sens_ext_i2c_periph
+                                fmu24sens_ext_i2c_pins
+    tasks <- forM exti2cs $ \ExternalSensor{..} -> do
+      (t, req) <- task ext_sens_name
+      ext_sens_init req i2cReady
+      return t
+    schedule tasks i2cReady i2cRequest
+{-
+  -- optional LIDAR
+  (lidarTask, lidarReq) <- task "lidarlite"
+  lidar_s <- channel
+  case fmu24sens_lidarlite of
+    Nothing -> return ()
+    Just LIDARLite{..} ->
+      lidarliteSensorManager
+        lidarReq
+        i2cReady
+        (fst lidar_s)
+        lidarlite_i2c_addr
+
+  schedule [lidarTask] i2cReady i2cRequest
+-}
   return (snd acc_s, snd gyro_s, snd mag_s, snd baro_s)
 
-fmu24SensorManager _ _ = error "impossible"
+fmu24SensorManager _ _ _ = error "impossible"

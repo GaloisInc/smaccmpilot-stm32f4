@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SMACCMPilot Altitude Hold</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="/bootstrap-3.3.4-dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap theme -->
+    <link href="/bootstrap-3.3.4-dist/css/bootstrap-theme.min.css" rel="stylesheet">
+</head>
+<body role="document">
+    <div class="container">
+
+      <div class="row">
+
+        <div class="col-md-3" role="main">
+          <h2>Altitude Hold Debug</h2>
+          <p><button type="button" class="btn btn-sm" id="alt-control-debug-btn">?</button>
+          </p>
+
+          <p>alt_est [m]:
+          <span id="alt_est-lbl">?</span>
+          </p>
+
+          <p>alt_rate_est [m/s]:
+          <span id="alt_rate_est-lbl">?</span>
+          </p>
+
+          <p>pos_setp [m]:
+          <span id="pos_setp-lbl">?</span>
+          </p>
+
+          <p>vz_ctl [0-1]:
+          <span id="pos_rate_setp-lbl">?</span>
+          </p>
+
+          <p>ui_setp [m]:
+          <span id="ui_setp-lbl">?</span>
+          </p>
+
+          <p>ui_rate_setp [m/s]:
+          <span id="ui_rate_setp-lbl">?</span>
+          </p>
+
+        </div> <!-- end column -->
+
+      </div> <!-- end row -->
+      
+
+      <div class="row">
+        <div id="chartContainer1" style="height: 300px; width:100%;"></div>
+        <div id="chartContainer3" style="height: 300px; width:100%;"></div>
+        <div id="chartContainer4" style="height: 300px; width:100%;"></div>
+        <div id="chartContainer2" style="height: 300px; width:100%;"></div>
+      </div> <!-- end row -->
+
+    </div> <!-- end container -->
+    <script src="/underscore-1.8.3.js"></script>
+    <script src="/jquery-2.1.3.js"></script>
+    <script src="/backbone-1.1.2.js"></script>
+    <script src="/bootstrap-3.3.4-dist/js/bootstrap.min.js"></script>
+    <script src="/scheduler.js"></script>
+    <script type="text/javascript" src="/canvasjs-1.9.1/canvasjs.min.js"></script>
+
+<script type="text/javascript">
+var labels = ["alt_est", "alt_rate_est", "pos_setp", "pos_rate_setp", "ui_setp", "ui_rate_setp"];
+var data = []; // array of variables
+
+	window.onload = function () {
+		var dps0 = []; // dataPoints
+ 		var dps1 = []; // dataPoints
+		var dps2 = []; // dataPoints
+ 		var dps3 = []; // dataPoints
+		var dps4 = []; // dataPoints
+ 		var dps5 = []; // dataPoints
+
+		var xVal = 0;
+		var yVal = 0;	
+		var updateInterval = 100; // in ms
+		var dataLength = 500; // number of dataPoints visible at any point
+
+    /*
+    * CHART 1: alt_est + alt_ref
+    */
+		var chart1 = new CanvasJS.Chart("chartContainer1",{
+			title :{
+				text: "Altitude"
+			},
+			axisY: {
+				title: "Altitude [m]",
+        includeZero: false
+			},		
+			data: [{
+        legendText: "alt_est",
+				showInLegend: "true",
+				type: "line",
+				dataPoints: dps0 
+  			}, 
+        {
+				legendText: "ui_setp",
+  			showInLegend: "true",
+				type: "line",
+				dataPoints: dps1 
+			}]
+		});
+
+
+    /*
+    * CHART 2: alt_rate_est + alt_rate_ref
+    */
+		var chart2 = new CanvasJS.Chart("chartContainer2",{
+			title :{
+				text: "Altitude rate"
+			},
+			axisY: {
+				title: "Altitude rate [m/s]"
+			},		
+			data: [{
+        legendText: "alt_rate_est",
+				showInLegend: "true",
+				type: "line",
+				dataPoints: dps2 
+  			}, 
+        {
+				legendText: "ui_rate_setp",
+  			showInLegend: "true",
+				type: "line",
+				dataPoints: dps3 
+			}]
+		});
+
+
+    /*
+    * CHART 3: alt_err
+    */
+		var chart3 = new CanvasJS.Chart("chartContainer3",{
+			title :{
+				text: "Alt error"
+			},
+			axisY: {
+				title: "Alt Error[m]"
+			},		
+			data: [{
+        legendText: "alt_err",
+				showInLegend: "true",
+				type: "line",
+				dataPoints: dps4 
+  			}]
+		});
+
+    /*
+    * CHART 4: vz_ctl
+    */
+		var chart4 = new CanvasJS.Chart("chartContainer4",{
+			title :{
+				text: "Control Action"
+			},
+			axisY: {
+				title: "Input"
+			},		
+			data: [{
+				legendText: "vz_ctl",
+  			showInLegend: "true",
+				type: "line",
+				dataPoints: dps5 
+			}]
+		});
+
+
+		var updateChart = function (count) {
+			count = count || 1;
+			// count is number of times loop runs to generate random dataPoints.
+			
+      
+			for (var j = 0; j < count; j++) {
+        // update xaxis
+        xVal += updateInterval/1000.0;
+        var idx = -1;
+
+        /*
+        * CHART 1: alt_est + alt_ref
+        */
+        // search for the right variable
+        idx = match_labels("alt_est");
+        if (idx != -1) { // we have a match here
+          yVal = data[idx];
+        }
+        else {
+          yVal = 0; // backup 
+        }
+
+				dps0.push({
+					x: xVal,
+					y: yVal
+				});
+
+        // search for the right variable
+        idx = match_labels("ui_setp");
+        if (idx != -1) { // we have a match here
+          yVal = data[idx];
+        }
+        else {
+          yVal = 0; // backup 
+        }
+        dps1.push({
+					x: xVal,
+					y: yVal
+				});
+
+        /*
+        * CHART 2: alt_rate_est + alt_rate_ref
+        */
+        idx = match_labels("alt_rate_est");
+        if (idx != -1) { // we have a match here
+          yVal = data[idx];
+        }
+        else {
+          yVal = 0; // backup 
+        }
+
+				dps2.push({
+					x: xVal,
+					y: yVal
+				});
+
+        // search for the right variable
+        idx = match_labels("ui_rate_setp");
+        if (idx != -1) { // we have a match here
+          yVal = data[idx];
+        }
+        else {
+          yVal = 0; // backup 
+        }
+        dps3.push({
+					x: xVal,
+					y: yVal
+				});
+
+        /*
+        * CHART 3: alt_err & alt_rate_err
+        */
+        idx = match_labels("pos_setp");
+        if (idx != -1) { // we have a match here
+          yVal = data[idx];
+        }
+        else {
+          yVal = 0; // backup 
+        }
+
+				dps4.push({
+					x: xVal,
+					y: yVal
+				});
+
+        // search for the right variable
+        var idx = match_labels("pos_rate_setp");
+        if (idx != -1) { // we have a match here
+          yVal = data[idx];
+        }
+        else {
+          yVal = 0; // backup 
+        }
+        dps5.push({
+					x: xVal,
+					y: yVal
+				});
+			}; // end for loop
+
+
+      // assuming all dataLengths are the same...
+			if (dps0.length > dataLength)
+			{
+				dps0.shift();
+				dps1.shift();
+				dps2.shift();
+				dps3.shift();
+				dps4.shift();
+				dps5.shift();
+      }
+			chart1.render();
+			chart2.render();
+			chart3.render();
+			chart4.render();
+		}; // updateChart
+
+		// generates first set of dataPoints
+		updateChart(dataLength); 
+
+		// update chart after specified time. 
+		setInterval(function(){updateChart()}, updateInterval); 
+  }
+
+function match_labels(my_label) {
+  var idx = -1;
+  for (i = 0; i < labels.length; i++) {
+    var res = my_label.match(labels[i]);
+    if (res != null) {
+      idx = i;
+      return idx;
+    }
+  }
+  return idx;
+}
+
+$(function() {
+
+var AltOutput = Backbone.Model.extend({
+  urlRoot: '/controllable_vehicle_i/alt_control_debug'
+});
+
+var AltSliderView = Backbone.View.extend({
+  initialize: function (options) {
+    this.selector = options.selector;
+    this.model.on('change', this.render, this);
+    this.$label   = $('#' + this.selector + '-lbl');
+    this.render();
+  },
+  render: function () {
+    var val = this.model.toJSON()[this.selector] || 0;
+    this.$label.html(val);
+    var idx = match_labels(this.selector);
+    if (idx != -1) { // we have a match here
+      data[idx] = val; // save into global array
+    }
+  }
+});
+
+var AltView = function (opts) {
+  this.altEst =
+    new AltSliderView({model: opts.model, selector: 'alt_est'});
+  this.altRateEst =
+    new AltSliderView({model: opts.model, selector: 'alt_rate_est'});
+  this.posSetp =
+    new AltSliderView({model: opts.model, selector: 'pos_setp'});
+  this.posRateSetp =
+    new AltSliderView({model: opts.model, selector: 'pos_rate_setp'});
+  this.uiSetp =
+    new AltSliderView({model: opts.model, selector: 'ui_setp'});
+  this.iuRateSetp =
+    new AltSliderView({model: opts.model, selector: 'ui_rate_setp'});
+};
+
+window.altOutput = new AltOutput({});
+window.altOutputView = new AltView({ model: altOutput });
+
+window.altOutputScheduler =
+  new Scheduler({ period: 100}, altOutput);
+window.altOutputSchedulerView =
+  new SchedulerButtonView({ model: altOutputScheduler, el: '#alt-control-debug-btn' });
+
+});
+</script>
+
+</body>
+</html>
