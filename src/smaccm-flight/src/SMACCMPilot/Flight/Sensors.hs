@@ -6,9 +6,10 @@ module SMACCMPilot.Flight.Sensors
   ( sensorTower
   ) where
 
-import Data.Foldable
+import Prelude ()
+import Prelude.Compat
+
 import Data.Maybe
-import Data.Traversable
 import Ivory.Language
 import Ivory.Tower
 import Linear

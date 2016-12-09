@@ -2,6 +2,9 @@
 {-# LANGUAGE RecordWildCards #-}
 module LIDAR.LIDARApp (app) where
 
+import Prelude ()
+import Prelude.Compat
+
 import Ivory.Language
 
 import Ivory.Tower

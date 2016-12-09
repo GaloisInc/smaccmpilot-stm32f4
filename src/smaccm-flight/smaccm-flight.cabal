@@ -258,6 +258,7 @@ executable             lidar-test-gen
   other-modules:
       LIDAR.LIDARApp
   build-depends:       base >= 4.6,
+                       base-compat,
                        monadLib,
                        ivory,
                        ivory-serialize,
