@@ -14,6 +14,9 @@ module SMACCMPilot.Flight.Platform
   , ClockConfig
   ) where
 
+import Prelude ()
+import Prelude.Compat
+
 import Ivory.Tower.Config
 
 import Data.Char (toUpper)
