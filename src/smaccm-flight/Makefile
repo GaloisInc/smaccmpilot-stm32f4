@@ -20,9 +20,11 @@ test-fmu24: platform-fmu24/sensors-test-gen
 test-fmu24: platform-fmu24/ppm-test-gen
 test-fmu24: platform-fmu24/law-test-gen
 test-fmu24: platform-fmu24/standalone-flight-gen
+test-fmu24: platform-fmu24/lidar-test-gen
 
 .PHONY: test-fmu24-echronos
 test-fmu24-echronos: platform-fmu24/sensors_aadl_test_gen
+test-fmu24-echronos: platform-fmu24/standalone_flight_echronos_gen
 
 .PHONY: flight
 flight: platform-fmu24/standalone-flight-gen

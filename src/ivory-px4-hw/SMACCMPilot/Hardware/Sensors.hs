@@ -1,8 +1,11 @@
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE RankNTypes #-}
 
 module SMACCMPilot.Hardware.Sensors where
 
 import Ivory.Language
+import Ivory.Tower
+import Ivory.Tower.HAL.Bus.Interface
 
 import           Ivory.BSP.STM32.Peripheral.UART
 import           Ivory.BSP.STM32.Peripheral.UART.DMA
@@ -18,6 +21,7 @@ import qualified Ivory.BSP.STM32F405.I2C            as F405
 
 import qualified Ivory.BSP.STM32F427.GPIO           as F427
 import qualified Ivory.BSP.STM32F427.GPIO.AF        as F427
+import qualified Ivory.BSP.STM32F427.I2C            as F427
 import qualified Ivory.BSP.STM32F427.SPI            as F427
 
 data Sensors
@@ -31,21 +35,34 @@ data Sensors
     , fmu17sens_i2c_pins   :: I2CPins
     }
   | FMU24Sensors
-    { fmu24sens_mpu6000    :: SPIDevice
-    , fmu24sens_ms5611     :: SPIDevice
-    , fmu24sens_lsm303d    :: SPIDevice
-    , fmu24sens_l3gd20     :: SPIDevice
-    , fmu24sens_spi_periph :: SPIPeriph
-    , fmu24sens_spi_pins   :: SPIPins
-    , fmu24sens_enable     :: forall eff . Ivory eff ()
+    { fmu24sens_mpu6000        :: SPIDevice
+    , fmu24sens_ms5611         :: SPIDevice
+    , fmu24sens_lsm303d        :: SPIDevice
+    , fmu24sens_l3gd20         :: SPIDevice
+    , fmu24sens_spi_periph     :: SPIPeriph
+    , fmu24sens_spi_pins       :: SPIPins
+    , fmu24sens_enable         :: forall eff . Ivory eff ()
+    , fmu24sens_ext_i2c_periph :: I2CPeriph
+    , fmu24sens_ext_i2c_pins   :: I2CPins
     }
-
 
 data UART_Device =
   UART_Device
     { uart_periph :: Either UART DMAUART
     , uart_pins   :: UARTPins
     }
+
+data ExternalSensor req res = ExternalSensor
+  { ext_sens_name :: String
+  , ext_sens_init
+      :: forall e . BackpressureTransmit req res
+      -> ChanOutput ('Stored ITime)
+      -> Tower e ()
+  }
+
+type ExternalI2CSensor =
+  ExternalSensor ('Struct "i2c_transaction_request")
+                 ('Struct "i2c_transaction_result")
 
 -----
 
@@ -94,6 +111,8 @@ fmu24_sensors = FMU24Sensors
   , fmu24sens_l3gd20     = l3gd20
   , fmu24sens_spi_pins   = spi1_pins
   , fmu24sens_spi_periph = spi1_periph
+  , fmu24sens_ext_i2c_pins   = i2c1_pins
+  , fmu24sens_ext_i2c_periph = i2c1_periph
   , fmu24sens_enable     = sensor_enable
   }
   where
@@ -149,6 +168,13 @@ fmu24_sensors = FMU24Sensors
     , spiPinMosi = F427.pinA7
     , spiPinSck  = F427.pinA5
     , spiPinAF   = F427.gpio_af_spi1
+    }
+  i2c1_periph :: I2CPeriph
+  i2c1_periph = F427.i2c1
+  i2c1_pins :: I2CPins
+  i2c1_pins = I2CPins
+    { i2cpins_sda = F427.pinB9
+    , i2cpins_scl = F427.pinB8
     }
 
   sensor_enable :: Ivory eff ()

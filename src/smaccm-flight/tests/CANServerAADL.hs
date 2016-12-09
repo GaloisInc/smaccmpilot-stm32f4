@@ -15,8 +15,9 @@ main :: IO ()
 main = compileTowerAADLForPlatform f p (app id)
   where
   f :: FlightPlatform -> (AADLConfig, OSSpecific STM32Config)
-  f config = ( defaultAADLConfig { configSystemOS = EChronos
-                                 , configSystemHW = PIXHAWK
+  f config = ( defaultAADLConfig { configSystemOS   = EChronos
+                                 , configSystemHW   = PIXHAWK
+                                 , configSystemAddr = Nothing
                                  }
              , defaultEChronosOS (fp_stm32config config)
              )

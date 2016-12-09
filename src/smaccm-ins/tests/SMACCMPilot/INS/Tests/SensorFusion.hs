@@ -24,7 +24,7 @@ import SMACCMPilot.INS.Tower
 
 app :: (e -> PX4Platform) -> Tower e ()
 app topx4 = do
-  (accel_s, gyro_s, mag_s, _baro_s) <- sensorManager tosens tocc
+  (accel_s, gyro_s, mag_s, _baro_s) <- sensorManager tosens tocc []
 
   (_, controlLaw) <- channel
 

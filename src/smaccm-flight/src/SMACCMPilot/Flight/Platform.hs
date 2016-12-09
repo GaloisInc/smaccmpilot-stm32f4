@@ -14,9 +14,13 @@ module SMACCMPilot.Flight.Platform
   , ClockConfig
   ) where
 
+import Prelude ()
+import Prelude.Compat
+
 import Ivory.Tower.Config
 
 import Data.Char (toUpper)
+import Data.Word (Word8)
 
 import qualified Ivory.BSP.STM32F405.UART           as F405
 import qualified Ivory.BSP.STM32F405.GPIO           as F405
@@ -40,6 +44,7 @@ import           SMACCMPilot.Hardware.CAN
 import           SMACCMPilot.Hardware.Sensors
 import           SMACCMPilot.Hardware.Platforms (PPM(..), RGBLED_I2C(..), ADC(..))
 import           SMACCMPilot.Hardware.PX4IO (PX4IOPWMConfig(..))
+import           SMACCMPilot.Flight.Sensors.LIDARLite
 import           SMACCMPilot.Flight.Tuning
 
 
@@ -57,6 +62,7 @@ data FlightPlatform =
     , fp_tuning       :: FlightTuning
     , fp_mixer        :: FlightMixer
     , fp_stm32config  :: STM32Config
+    , fp_lidarlite    :: Maybe LIDARLite
     }
 
 
@@ -79,11 +85,13 @@ flightPlatformParser = do
   m <- subsection "args" $ subsection "mixer" mixerParser
   b <- subsection "args" $ subsection "telem_baud" integer
    <|> pure 57600
+  mlidar <- subsection "args" $ subsection "lidar_lite" lidarParser
+   <|> pure Nothing
   let c = pwmconf v
   case map toUpper p of
     "PX4FMUV17" -> result (px4fmuv17 t m b)
-    "PX4FMUV24" -> result (px4fmuv24 t m c b)
-    "PIXHAWK"   -> result (px4fmuv24 t m c b)
+    "PX4FMUV24" -> result (px4fmuv24 t m c b mlidar)
+    "PIXHAWK"   -> result (px4fmuv24 t m c b mlidar)
     _ -> fail ("no such platform " ++ p)
   where
   result mkPlatform = do
@@ -98,6 +106,12 @@ flightPlatformParser = do
       "IRIS"  -> return IrisMixer
       "QUADX" -> return QuadXMixer
       _ -> fail ("no such mixer " ++ s ++ ". must be 'iris' or 'quadx'")
+
+  lidarParser = do
+    addr <- fromIntegral <$> integer
+    if 0 <= addr && addr <= (maxBound :: Word8)
+      then return (Just (LIDARLite (I2CDeviceAddr (fromIntegral addr))))
+      else fail ("invalid i2c address " ++ show addr ++ " for LIDAR-lite")
 
   -- This is a nasty hack: at the moment we want the
   -- pwm bounds to be 1000/2000 for Iris+ but not
@@ -126,6 +140,7 @@ px4fmuv17 tuning mixer telem_baud dmode = FlightPlatform
   , fp_tuning      = tuning
   , fp_mixer       = mixer
   , fp_stm32config = stm32f405Defaults 24
+  , fp_lidarlite   = Nothing
   }
   where
   telem = UART_Device
@@ -152,9 +167,10 @@ px4fmuv24 :: FlightTuning
           -> FlightMixer
           -> PX4IOPWMConfig
           -> Integer
+          -> Maybe LIDARLite
           -> DatalinkMode
           -> FlightPlatform
-px4fmuv24 tuning mixer pwmconf telem_baud dmode = FlightPlatform
+px4fmuv24 tuning mixer pwmconf telem_baud mlidar dmode = FlightPlatform
   { fp_telem       = telem
   , fp_telem_baud  = telem_baud
   , fp_gps         = gps
@@ -167,6 +183,7 @@ px4fmuv24 tuning mixer pwmconf telem_baud dmode = FlightPlatform
   , fp_tuning      = tuning
   , fp_mixer       = mixer
   , fp_stm32config = stm32f427Defaults 24
+  , fp_lidarlite   = mlidar
   }
   where
   telem = UART_Device

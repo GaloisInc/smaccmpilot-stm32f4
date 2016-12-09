@@ -1,0 +1,20 @@
+{
+    "version": "1.0.0",
+    "summary": "SMACCMPilot Ground Control Station",
+    "repository": "https://github.com/GaloisInc/smaccmpilot-stm32f4.git",
+    "license": "BSD3",
+    "source-directories": [
+        "./src", "../../smaccm-comm-schema/smaccm-comm-schema-elm/src"
+    ],
+    "exposed-modules": [],
+    "dependencies": {
+        "circuithub/elm-bootstrap-html": "7.0.0 <= v < 8.0.0",
+        "circuithub/elm-html-shorthand": "11.0.0 <= v < 12.0.0",
+        "elm-community/basics-extra": "1.2.0 <= v < 2.0.0",
+        "elm-lang/core": "4.0.5 <= v < 5.0.0",
+        "elm-lang/html": "1.1.0 <= v < 2.0.0",
+        "elm-lang/svg": "1.1.1 <= v < 2.0.0",
+        "evancz/elm-http": "3.0.1 <= v < 4.0.0"
+    },
+    "elm-version": "0.17.1 <= v < 0.18.0"
+}

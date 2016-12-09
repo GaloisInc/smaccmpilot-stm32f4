@@ -29,7 +29,8 @@ import Ivory.Tower.HAL.Bus.Interface (
   , BackpressureTransmit(..)
   )
 
-import SMACCMPilot.Flight.Datalink.UART (frameBuffer')
+import Ivory.Tower.HAL.RingBuffer (bufferChans)
+
 import SMACCMPilot.Flight.Datalink.Commsec (
     commsecEncodeDatalink
   , commsecDecodeDatalink)
@@ -307,7 +308,7 @@ decryptComponent todl uart_in_ext pt_out_ext =
 
       airDataDecodeTower "frame" (snd decoderChan) (fst input_frames)
 
-      frameBuffer'
+      bufferChans
         (snd input_frames)
         (Milliseconds 5)
         (Proxy :: Proxy 4)
@@ -331,7 +332,12 @@ encryptComponent todl encrypt2uartHw uartHw2encrypt server2encrypt =
 
       (hx_packet_in, hx_packet_out) <- channel
       let uarto = BackpressureTransmit hx_packet_in status
-      airDataEncodeTower "frame" (snd c2s_ct_to_uart) uarto
+      airDataEncodeTower
+        "frame"
+        (snd c2s_ct_to_uart)
+        uarto
+        (Milliseconds 5)
+        (Proxy :: Proxy 4)
 
       packet <- SMACCM_UART.to_smaccm smaccm_packet
       monitor "send_transdata" $ do

@@ -16,8 +16,8 @@ import Ivory.Tower
 
 import Ivory.Tower.HAL.Bus.CAN.Fragment
 import Ivory.Tower.HAL.Bus.Interface
+import Ivory.Tower.HAL.RingBuffer
 
-import SMACCMPilot.Flight.Datalink.UART (frameBuffer')
 import SMACCMPilot.Flight.Datalink.Commsec
 import SMACCMPilot.Flight.Datalink.CAN (s2cType, c2sType)
 
@@ -202,6 +202,6 @@ uartDatalink input output = do
 
   airDataDecodeTower "frame" (snd decoderChan) (fst input_frames)
 
-  frameBuffer' (snd input_frames) (Milliseconds 5) (Proxy :: Proxy 4) input
+  bufferChans (snd input_frames) (Milliseconds 5) (Proxy :: Proxy 4) input
 
-  airDataEncodeTower "frame" output translate
+  airDataEncodeTower "frame" output translate (Milliseconds 5) (Proxy :: Proxy 4)
