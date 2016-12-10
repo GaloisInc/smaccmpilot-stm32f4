@@ -33,9 +33,6 @@ import           SMACCMPilot.Comm.Ivory.Types.TimeMicros
 import           SMACCMPilot.Comm.Tower.Attr
 import           SMACCMPilot.Comm.Tower.Interface.ControllableVehicle
 
-const_NOMINAL_THRUST :: IFloat
-const_NOMINAL_THRUST  = 0.5 -- [x100% throttle]
-
 data AltitudeControl =
    AltitudeControl
     { alt_init   :: forall eff   . Ivory eff ()
@@ -73,6 +70,8 @@ monitorAltitudeControl attrs = do
   ui_setpt <- state "ui_setpt"
   at_enabled <- state "at_enabled"
 
+  nominal_throttle <- attrState (nominalThrottle attrs)
+
   monitorModuleDef $ do
     depend controlPIDModule -- for fconstrain
     depend maybeFloatModule
@@ -89,8 +88,8 @@ monitorAltitudeControl attrs = do
                               , Ref s4 ('Struct "control_law")
                               , IFloat
                               ]':->())
-      proc_alt_update = proc name_alt_update $ \sens ui _ctl_sp cl dt -> body $ do
-
+      proc_alt_update =
+        proc name_alt_update $ \sens ui _ctl_sp cl dt -> body $ do
           thr_mode <- deref (cl ~> CL.control_modes ~> CM.thr_mode)
           armed_mode <- deref (cl ~> CL.arming_mode)
           enabled <- assign ((armed_mode ==? A.armed)
@@ -101,10 +100,13 @@ monitorAltitudeControl attrs = do
           store at_enabled enabled
 
           -- Update estimators
-          alt_baro_alt  <- deref (sens ~> S.baro_alt)
-          alt_baro_time <- deref (sens ~> S.baro_time)
-          ae_measurement alt_estimator alt_baro_alt (timeMicrosToITime alt_baro_time)
-          
+          alt_lidar_alt  <- deref (sens ~> S.baro_alt)
+          alt_lidar_time <- deref (sens ~> S.baro_time)
+          ae_measurement
+            alt_estimator
+            alt_lidar_alt
+            (timeMicrosToITime alt_lidar_time)
+
           -- read newest estimate
           (alt_est_pos, alt_est_rate) <- ae_state alt_estimator
 
@@ -121,29 +123,42 @@ monitorAltitudeControl attrs = do
                   store (state_dbg ~> A.pos_setp) _alt_err
                   store (state_dbg ~> A.pos_rate_setp) _alt_rate_err
 
-                  -- ALTITUDE CONTROLLER START (SIMPLE PID with constant nominal thrust)
-                  -- update position controller (see stabilize_from_angle iMonitor n Stabilize.hs)
-                  -- we care only about the altitude, not the rate at this point
+                  -- ALTITUDE CONTROLLER START (SIMPLE PID with
+                  -- constant nominal thrust) update position
+                  -- controller (see stabilize_from_angle iMonitor n
+                  -- Stabilize.hs) we care only about the altitude,
+                  -- not the rate at this point
+                  --
                   -- PID: zero rate for now
-                  thrust_cmd  <- call pid_update alt_pos_pid (constRef alt_pos_cfg) ui_alt alt_est_pos 0.0 alt_est_rate 0.0
+                  thrust_cmd <-
+                    call pid_update
+                      alt_pos_pid
+                      (constRef alt_pos_cfg)
+                      ui_alt
+                      alt_est_pos
+                      0.0
+                      alt_est_rate
+                      0.0
 
-                  -- thrust_cmd is unbounded, so make sure it is within the limits [0.1-1]
+                  -- thrust_cmd is unbounded, so make sure it is
+                  -- within the limits [0.1-1]
                   thrust_cmd_norm   <- call fconstrain (0.1) 1 thrust_cmd
 
-                  -- compensate for roll/pitch rotation 
+                  -- compensate for roll/pitch rotation
                   r22   <- _sensorsR22 sens
-                  let hover_thrust_abs = const_NOMINAL_THRUST
-                  hover_thrust <- assign ((_throttleR22Comp r22) * hover_thrust_abs)
+                  hover_thrust_abs <- deref nominal_throttle
+                  hover_thrust <-
+                    assign ((_throttleR22Comp r22) * hover_thrust_abs)
                   let vz_ctl = thrust_cmd_norm + hover_thrust
                   -- ALTITUDE CONTROLLER END
 
-                  -- maybe rename A.pos_rate_setp because it is not the right name
+                  -- maybe rename A.pos_rate_setp because it is not
+                  -- the right name
                   store (state_dbg ~> A.pos_rate_setp) vz_ctl
                   return vz_ctl
               ]
-            
+
             setpt <- assign vz_control
-            
 
             -- limit max throttle by the throttle stick (safety feature)
             store at_setpt =<< call fconstrain 0.0 mt setpt
