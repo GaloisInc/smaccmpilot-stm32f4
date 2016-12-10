@@ -30,39 +30,43 @@ notFloatNan flt = (iNot $ isnan flt) .&& (iNot $ isinf flt)
 
 -- | Update a PID controller given an error value and measured value
 -- and return the output value.
+-- See https://wiki.paparazziuav.org/wiki/Control_Loops#Attitude_loop for details
 pid_update :: Def ('[ Ref      s1 ('Struct "pid_state")
                     , ConstRef s2 ('Struct "pid_config")
-                    , IFloat
-                    , IFloat] ':-> IFloat)
-pid_update = proc "pid_update" $ \pid cfg err pos ->
-  requires (notFloatNan err) $ requires (notFloatNan pos)
+                    , IFloat -- float angle_ref [rad]
+                    , IFloat -- float angle_measured [rad]
+                    , IFloat -- float rate_ref [rad/s]
+                    , IFloat -- float rate_measured [rad/s]
+                    , IFloat -- float accel_ref [rad/s^2]
+                    ]':-> IFloat) -- float stabilization_cmd
+pid_update = proc "pid_update" $ \pid cfg angle_ref angle_measured rate_ref rate_measured accel_ref ->
+  requires (notFloatNan angle_ref) $ requires (notFloatNan angle_measured) $ requires (notFloatNan rate_ref) $ requires (notFloatNan rate_measured) $ requires (notFloatNan accel_ref)
   $ body $ do
-  p_term  <- fmap (* err) (cfg~>*C.p_gain)
-  store (pid~>P.p_last) p_term
-
+  -- load gains and limits
+  p_gain <- cfg~>*C.p_gain
+  i_gain  <- cfg~>*C.i_gain
   i_min   <- cfg~>*C.i_min
   i_max   <- cfg~>*C.i_max
-  i_gain  <- cfg~>*C.i_gain
-  pid~>P.i_state %=! (call fconstrain i_min i_max . (+ (err * i_gain)))
-  i_term  <- pid~>*P.i_state
+  d_gain  <- cfg~>*C.d_gain
+  dd_gain  <- cfg~>*C.dd_gain
 
-  reset      <- pid~>*P.d_reset
+  -- calculate errors
+  let angle_err = angle_ref - angle_measured
+  let rate_err = rate_ref - rate_measured
 
-  ifte_ reset
-    (do store (pid~>P.d_reset) false
-        store (pid~>P.d_last)  0)
-    (do d_state <- pid~>*P.d_state
-        d_gain  <- cfg~>*C.d_gain
-        store (pid~>P.d_last) (d_gain * (pos - d_state)))
-  store (pid~>P.d_state) pos
-
-  d_term <- deref (pid~>P.d_last)
-  ret $ p_term + i_term + d_term
+  -- calculate terms
+  let p_term = p_gain * angle_err
+  let d_term = d_gain * rate_err
+  let dd_term = dd_gain * accel_ref
+  i_sum <- pid~>*P.i_state
+  i_sum' <- call fconstrain i_min i_max (i_sum + angle_err)
+  store (pid~>P.i_state) i_sum'
+  let i_term = i_gain * i_sum'
+  ret $ p_term + i_term + d_term + dd_term
 
 -- | Reset the internal state of a PID.
 pid_reset :: Def ('[ Ref s1 ('Struct "pid_state") ] ':-> ())
 pid_reset = proc "pid_reset" $ \pid -> body $ do
-  store (pid ~> P.d_reset) true
   store (pid ~> P.i_state) 0.0
 
 -- | Constrain a floating point value to the range [xmin..xmax].

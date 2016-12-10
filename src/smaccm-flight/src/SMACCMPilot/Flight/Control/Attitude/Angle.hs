@@ -57,8 +57,6 @@ monitorAngleController stab_config_attr output_range name = do
         ctl <- call stabilize_from_angle
                       pos_pid
                       (constRef (stab_config ~> S.pos))
-                      rate_pid
-                      (constRef (stab_config ~> S.rate))
                       setpt
                       est
                       deriv_est
