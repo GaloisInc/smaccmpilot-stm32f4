@@ -147,6 +147,21 @@
   (temperature float_t) -- degrees Celsius
   (time        time_micros_t))
 
+(def-struct px4flow_sample_t
+  (frame_count_since_last_readout uint16_t) -- number of flow measurements since last I2C readout [#frames]
+  (pixel_flow_x_integral          sint16_t) -- accumulated flow in radians*10000 around x axis since last I2C readout [rad*10000]
+  (pixel_flow_y_integral          sint16_t) -- accumulated in flow radians*10000 around y axis since last I2C readout [rad*10000]
+  (gyro_x_rate_integral           sint16_t) -- accumulated x gyro rates in radians*10000 since last I2C readout [rad*10000]
+  (gyro_y_rate_integral           sint16_t) -- accumulated y gyro rates in radians*10000 since last I2C readout [rad*10000]
+  (gyro_z_rate_integral           sint16_t) -- accumulated z gyro rates in radians*10000 since last I2C readout [rad*10000]
+  (integration_timespan           uint32_t) -- accumulation in timespan microseconds since last I2C readout [microseconds]
+  (sonar_timestamp                uint32_t) -- time since sonar last update [microseconds]
+  (ground_distance                sint16_t) -- Ground in distance meters*1000 [meters*1000]
+  (gyro_temperature               sint16_t) -- Temperature * in 100 centi-degrees Celsius [degcelsius*100]
+  (quality                        uint8_t)  -- averaged quality accumulated of flow values [0:bad quality;255: max quality]
+  (samplefail                     bool_t)
+  (time                           time_micros_t))
+
 (def-struct position_sample_t
   (fix         gps_fix_t)
   (num_sv      uint8_t) -- number of space vehicles
@@ -314,6 +329,7 @@
   (mag_calibration         (attr read      xyz_calibration_t))
   (mag_output_calibration  (attr read      xyz_calibration_t))
   (mag_output              (attr read      magnetometer_sample_t))
+  (px4flow_output          (attr read      px4flow_sample_t))
   (gps_output              (attr read      position_sample_t))
   (control_setpoint        (attr read      control_setpoint_t))
   (control_output          (attr read      control_output_t))
