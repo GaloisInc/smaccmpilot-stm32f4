@@ -20,3 +20,6 @@ TAGS
 /tower/
 *~
 /src/smaccm-comm-schema/smaccm-comm-schema-elm
+
+# all logs
+*.csv
