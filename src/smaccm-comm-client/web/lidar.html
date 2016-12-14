@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SMACCMPilot Altitude Hold</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="/bootstrap-3.3.4-dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap theme -->
+    <link href="/bootstrap-3.3.4-dist/css/bootstrap-theme.min.css" rel="stylesheet">
+</head>
+<body role="document">
+	<div id="chartContainer" style="height: 300px; width:100%;">
+	</div>
+    <div class="container">
+    <div class="row">
+    <div class="col-md-3" role="main">
+    <h2>lidar output</h2>
+    <p><button type="button" class="btn btn-sm" id="alt-control-debug-btn">?</button>
+    </p>
+
+    </div> <!-- end column -->
+    </div> <!-- end row -->
+    <div class="row">
+    <div class="col-md-3" role="main">
+
+    <p>ground_distance:
+      <span id="alt-alt_est-lbl">?</span> </p>
+    <div class="progress">
+      <div class="progress-bar" role="progressbar" aria-valuenow="0"
+           aria-valuemin="-100" aria-valuemax="100" style="width: 50%;"
+           id="alt-alt_est-progbar">
+      </div>
+    </div>
+    </div> <!-- end column -->
+
+    </div> <!-- end row -->
+    </div> <!-- end container -->
+    <script src="/underscore-1.8.3.js"></script>
+    <script src="/jquery-2.1.3.js"></script>
+    <script src="/backbone-1.1.2.js"></script>
+    <script src="/bootstrap-3.3.4-dist/js/bootstrap.min.js"></script>
+    <script src="/scheduler.js"></script>
+    <script type="text/javascript" src="/canvasjs-1.9.1/canvasjs.min.js"></script>
+
+
+
+	
+
+
+<script type="text/javascript">
+var yourGlobalVariable;
+
+	window.onload = function () {
+
+    yourGlobalVariable = 0;
+		var dps = []; // dataPoints
+
+		var chart = new CanvasJS.Chart("chartContainer",{
+			title :{
+				text: "alt_est"
+			},			
+			data: [{
+				type: "line",
+				dataPoints: dps 
+			}]
+		});
+
+		var xVal = 0;
+		var yVal = 100;	
+		var updateInterval = 100; // in ms
+		var dataLength = 500; // number of dataPoints visible at any point
+
+
+		var updateChart = function (count) {
+			count = count || 1;
+			// count is number of times loop runs to generate random dataPoints.
+			
+			for (var j = 0; j < count; j++) {	
+				//yVal = yVal +  Math.round(5 + Math.random() *(-5-5));
+        yVal = yourGlobalVariable;
+				dps.push({
+					x: xVal,
+					y: yVal
+				});
+				xVal++;
+			};
+			if (dps.length > dataLength)
+			{
+				dps.shift();				
+			}
+			chart.render();		
+		};
+
+		// generates first set of dataPoints
+		updateChart(dataLength); 
+
+		// update chart after specified time. 
+		setInterval(function(){updateChart()}, updateInterval); 
+
+
+/*
+		var updateChart = function (yVal) {
+			count = count || 1;
+			// count is number of times loop runs to generate random dataPoints.
+			dps.push({
+				x: xVal,
+				y: yVal
+			});
+			xVal++;
+
+			if (dps.length > dataLength)
+			{
+				dps.shift();				
+			}
+			chart.render();		
+		};
+
+		// generates first set of dataPoints
+		updateChart(dataLength); 
+
+		// update chart after specified time. 
+		setInterval(function(){updateChart()}, updateInterval); 
+
+*/
+
+	}
+
+
+$(function() {
+
+var MotorOutput = Backbone.Model.extend({
+  urlRoot: '/controllable_vehicle_i/lidarlite_output'
+});
+
+var MotorSliderView = Backbone.View.extend({
+  initialize: function (options) {
+    this.selector = options.selector;
+    this.model.on('change', this.render, this);
+    this.$progbar = $('#alt-alt_est-progbar');
+    this.$label   = $('#alt-alt_est-lbl');
+    this.render();
+  },
+  render: function () {
+    //var val = this.model.toJSON()[this.selector] || 0;
+    var val = this.model.attributes.distance || 0;
+    this.$label.html(val);
+    yourGlobalVariable = val;
+    //updateChart(val);
+    //var percent = val * 1;
+    //this.$progbar.css('width', percent.toString() + '%');
+  }
+});
+
+var MotorsView = function (opts) {
+  this.posrate =
+    new MotorSliderView({model: opts.model, selector: 'distance'});
+};
+
+window.motorOutput = new MotorOutput({});
+window.motorOutputView = new MotorsView({ model: motorOutput });
+
+window.motorOutputScheduler =
+  new Scheduler({ period: false}, motorOutput);
+window.motorOutputSchedulerView =
+  new SchedulerButtonView({ model: motorOutputScheduler, el: '#alt-control-debug-btn' });
+
+});
+</script>
+
+</body>
+</html>
