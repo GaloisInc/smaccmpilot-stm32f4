@@ -56,7 +56,7 @@ px4flowSensorManager
               [ tx_addr .= ival addr
               , tx_buf  .= iarray []
               , tx_len  .= ival 0
-              , rx_len  .= ival 25
+              , rx_len  .= ival 22--25 was for integral frame
               ]
             emit req_e read_rx_req
             res <- yield
@@ -66,30 +66,57 @@ px4flowSensorManager
             store (s ~> samplefail) (rc2 >? 0)
             when (rc2 >? 0) breakOut
 
-            store (s ~> frame_count_since_last_readout)
+            store (s ~> frame_count)
               =<< (payloadu16 res 0 1)
-            store (s ~> pixel_flow_x_integral)
+            store (s ~> pixel_flow_x_sum)
               =<< (payloads16 res 2 3)
-            store (s ~> pixel_flow_y_integral)
+            store (s ~> pixel_flow_y_sum)
               =<< (payloads16 res 4 5)
-            store (s ~> gyro_x_rate_integral)
+            store (s ~> flow_comp_m_x)
               =<< (payloads16 res 6 7)
-            store (s ~> gyro_y_rate_integral)
+            store (s ~> flow_comp_m_x)
               =<< (payloads16 res 8 9)
-            store (s ~> gyro_z_rate_integral)
+            store (s ~> quality)
               =<< (payloads16 res 10 11)
-            store (s ~> integration_timespan)
-              =<< (payloadu32 res 12 13 14 15)
+            store (s ~> gyro_x_rate)
+              =<< (payloads16 res 12 13)
+            store (s ~> gyro_y_rate)
+              =<< (payloads16 res 14 15)
+            store (s ~> gyro_z_rate)
+              =<< (payloads16 res 16 17)
+            store (s ~> gyro_range)
+              =<< (deref ((res ~> rx_buf) ! 18))
             store (s ~> sonar_timestamp)
-              =<< (payloadu32 res 16 17 18 19)
+              =<< (deref ((res ~> rx_buf) ! 19))
             store (s ~> ground_distance)
               =<< (payloads16 res 20 21)
-            store (s ~> gyro_temperature)
-              =<< (payloads16 res 22 23)
-            store (s ~> quality)
-              =<< (deref ((res ~> rx_buf) ! 24))
             store (s ~> time)
               =<< (fmap timeMicrosFromITime getTime)
+
+            --store (s ~> frame_count_since_last_readout)
+            --  =<< (payloadu16 res 0 1)
+            --store (s ~> pixel_flow_x_integral)
+            --  =<< (payloads16 res 2 3)
+            --store (s ~> pixel_flow_y_integral)
+            --  =<< (payloads16 res 4 5)
+            --store (s ~> gyro_x_rate_integral)
+            --  =<< (payloads16 res 6 7)
+            --store (s ~> gyro_y_rate_integral)
+            --  =<< (payloads16 res 8 9)
+            --store (s ~> gyro_z_rate_integral)
+            --  =<< (payloads16 res 10 11)
+            --store (s ~> integration_timespan)
+            --  =<< (payloadu32 res 12 13 14 15)
+            --store (s ~> sonar_timestamp)
+            --  =<< (payloadu32 res 16 17 18 19)
+            --store (s ~> ground_distance)
+            --  =<< (payloads16 res 20 21)
+            --store (s ~> gyro_temperature)
+            --  =<< (payloads16 res 22 23)
+            --store (s ~> quality)
+            --  =<< (deref ((res ~> rx_buf) ! 24))
+            --store (s ~> time)
+            --  =<< (fmap timeMicrosFromITime getTime)
 
             -- Send the sample upstream.
             emit sens_e (constRef s)
@@ -114,7 +141,7 @@ px4flowSensorManager
             [ tx_addr .= ival addr
             , tx_buf  .= iarray [
                   -- set register pointer for integral frame
-                  ival 0x16
+                  ival 0x00 -- 0x16 was for integral frame
                 ]
             , tx_len  .= ival 1
             , rx_len  .= ival 0

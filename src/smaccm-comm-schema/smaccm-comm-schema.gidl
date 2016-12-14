@@ -147,7 +147,7 @@
   (temperature float_t) -- degrees Celsius
   (time        time_micros_t))
 
-(def-struct px4flow_sample_t
+(def-struct px4flow_integral_sample_t
   (frame_count_since_last_readout uint16_t) -- number of flow measurements since last I2C readout [#frames]
   (pixel_flow_x_integral          sint16_t) -- accumulated flow in radians*10000 around x axis since last I2C readout [rad*10000]
   (pixel_flow_y_integral          sint16_t) -- accumulated in flow radians*10000 around y axis since last I2C readout [rad*10000]
@@ -159,6 +159,22 @@
   (ground_distance                sint16_t) -- Ground in distance meters*1000 [meters*1000]
   (gyro_temperature               sint16_t) -- Temperature * in 100 centi-degrees Celsius [degcelsius*100]
   (quality                        uint8_t)  -- averaged quality accumulated of flow values [0:bad quality;255: max quality]
+  (samplefail                     bool_t)
+  (time                           time_micros_t))
+
+(def-struct px4flow_sample_t
+  (frame_count                    uint16_t) -- counts created I2C frames [#frames]
+  (pixel_flow_x_sum               sint16_t) -- latest x flow measurement in pixels*10 [pixels]
+  (pixel_flow_y_sum               sint16_t) -- latest y flow measurement in pixels*10 [pixels]
+  (flow_comp_m_x                  sint16_t) -- x velocity*1000 [meters/sec]
+  (flow_comp_m_y                  sint16_t) -- y velocity*1000 [meters/sec]
+  (quality                        sint16_t) -- averaged quality accumulated of flow values [0:bad quality;255: max quality]
+  (gyro_x_rate                    sint16_t) -- latest gyro x rate [rad/sec]
+  (gyro_y_rate                    sint16_t) -- latest gyro y rate [rad/sec]
+  (gyro_z_rate                    sint16_t) -- latest gyro z rate [rad/sec]
+  (gyro_range                     uint8_t)  -- gyro range [0 .. 7] equals [50 deg/sec .. 2000 deg/sec]
+  (sonar_timestamp                uint8_t)  -- time since last sonar update [milliseconds]
+  (ground_distance                sint16_t) -- Ground distance in meters*1000 [meters].
   (samplefail                     bool_t)
   (time                           time_micros_t))
 
@@ -329,6 +345,7 @@
   (mag_calibration         (attr read      xyz_calibration_t))
   (mag_output_calibration  (attr read      xyz_calibration_t))
   (mag_output              (attr read      magnetometer_sample_t))
+  (px4flow_int_output      (attr read      px4flow_integral_sample_t))
   (px4flow_output          (attr read      px4flow_sample_t))
   (gps_output              (attr read      position_sample_t))
   (control_setpoint        (attr read      control_setpoint_t))
