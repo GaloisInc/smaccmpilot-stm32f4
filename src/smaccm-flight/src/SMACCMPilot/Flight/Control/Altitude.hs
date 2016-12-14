@@ -33,6 +33,11 @@ import           SMACCMPilot.Comm.Ivory.Types.TimeMicros
 import           SMACCMPilot.Comm.Tower.Attr
 import           SMACCMPilot.Comm.Tower.Interface.ControllableVehicle
 
+
+import qualified SMACCMPilot.Comm.Ivory.Types.PidState as P
+import qualified SMACCMPilot.Comm.Ivory.Types.PidConfig as C
+
+
 data AltitudeControl =
    AltitudeControl
     { alt_init   :: forall eff   . Ivory eff ()
@@ -100,8 +105,8 @@ monitorAltitudeControl attrs = do
           store at_enabled enabled
 
           -- Update estimators
-          alt_lidar_alt  <- deref (sens ~> S.baro_alt)
-          alt_lidar_time <- deref (sens ~> S.baro_time)
+          alt_lidar_alt  <- deref (sens ~> S.lidar_alt)
+          alt_lidar_time <- deref (sens ~> S.lidar_time)
           ae_measurement
             alt_estimator
             alt_lidar_alt
@@ -142,7 +147,7 @@ monitorAltitudeControl attrs = do
 
                   -- thrust_cmd is unbounded, so make sure it is
                   -- within the limits [0.1-1]
-                  thrust_cmd_norm   <- call fconstrain (0.1) 1 thrust_cmd
+                  thrust_cmd_norm   <- call fconstrain (0.1) 0.9 thrust_cmd
 
                   -- compensate for roll/pitch rotation
                   r22   <- _sensorsR22 sens
