@@ -33,11 +33,6 @@ import           SMACCMPilot.Comm.Ivory.Types.TimeMicros
 import           SMACCMPilot.Comm.Tower.Attr
 import           SMACCMPilot.Comm.Tower.Interface.ControllableVehicle
 
-
-import qualified SMACCMPilot.Comm.Ivory.Types.PidState as P
-import qualified SMACCMPilot.Comm.Ivory.Types.PidConfig as C
-
-
 data AltitudeControl =
    AltitudeControl
     { alt_init   :: forall eff   . Ivory eff ()
