@@ -34,17 +34,19 @@ stabilize_from_angle :: Def (
   , IFloat                            -- angle_measured_rad
   , IFloat                            -- rate_measured_rad_s
   , IFloat                            -- max_servo_rate_deg_s
+  , IFloat                            -- dt [seconds]
   ] ':-> IFloat)
 stabilize_from_angle = proc "stabilize_from_angle" $
   \angle_pid angle_cfg
    stick_angle_rad
    angle_measured_rad
    rate_measured_rad_s
-   _max_servo_rate_deg_s ->
+   _max_servo_rate_deg_s
+   dt ->
   requires (_max_servo_rate_deg_s /=? 0) $ body $
   do
   -- TODO: plug in the reference generators, we are using ref_accel and ref_rate = 0.0 (only regulating rate and accel)  
-  stabilize_cmd <- call pid_update angle_pid angle_cfg stick_angle_rad angle_measured_rad 0.0 rate_measured_rad_s 0.0
+  stabilize_cmd <- call pid_update angle_pid angle_cfg stick_angle_rad angle_measured_rad 0.0 rate_measured_rad_s 0.0 dt
 
   -- for now limit to +-100% (of throttle) and then normalize to 0-1 range
   -- what about rounding errors with too small gains? (ideally we have everything scaled to [-1,1]
@@ -60,10 +62,11 @@ stabilize_from_rate :: Def (
   , IFloat                              -- stick_rate_rad_s
   , IFloat                              -- rate_measured_rad_s
   , IFloat                              -- max_servo_rate_deg_s
+  , IFloat                              -- dt [seconds]
   ] ':-> IFloat)
 stabilize_from_rate = proc "stabilize_from_rate" $
   \rate_pid rate_cfg stick_rate_rad_s
-   rate_measured_rad_s max_servo_rate_deg_s ->
+   rate_measured_rad_s max_servo_rate_deg_s dt ->
   requires (max_servo_rate_deg_s /=? 0) $ body $
   do
 {-
@@ -73,7 +76,7 @@ stabilize_from_rate = proc "stabilize_from_rate" $
   store last_rate d_rate
 -}
   -- TODO: measure rate of change?
-  rate_cmd  <- call pid_update rate_pid rate_cfg stick_rate_rad_s rate_measured_rad_s 0.0 0.0 0.0
+  rate_cmd  <- call pid_update rate_pid rate_cfg stick_rate_rad_s rate_measured_rad_s 0.0 0.0 0.0 dt
   rate_cmd_norm   <- call fconstrain (-1.0) 1.0 rate_cmd
   ret $ rate_cmd_norm -- / 1.0
 

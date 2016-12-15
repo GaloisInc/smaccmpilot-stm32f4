@@ -54,8 +54,8 @@ pid_update = proc "pid_update" $ \pid cfg angle_ref angle_measured rate_ref rate
   errd_max  <- cfg~>*C.errd_max
 
   -- calculate errors
-  let angle_err = call fconstrain (-err_max) err_max (angle_ref - angle_measured)
-  let rate_err = call fconstrain (-errd_max) errd_max (rate_ref - rate_measured)
+  angle_err <- call fconstrain (-err_max) err_max (angle_ref - angle_measured)
+  rate_err <- call fconstrain (-errd_max) errd_max (rate_ref - rate_measured)
 
   -- calculate terms
   let p_term = p_gain * angle_err
