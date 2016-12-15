@@ -17,6 +17,7 @@ import Ivory.Tower
 import Ivory.Stdlib
 
 import           SMACCMPilot.Flight.Control.Altitude.Estimator
+import           SMACCMPilot.Flight.Control.Altitude.Filter
 import           SMACCMPilot.Flight.Control.Altitude.ThrottleTracker
 import           SMACCMPilot.Flight.Control.Altitude.ThrottleUI
 import           SMACCMPilot.Flight.Types.MaybeFloat
@@ -32,12 +33,6 @@ import qualified SMACCMPilot.Comm.Ivory.Types.ControlOutput as CO
 import           SMACCMPilot.Comm.Ivory.Types.TimeMicros
 import           SMACCMPilot.Comm.Tower.Attr
 import           SMACCMPilot.Comm.Tower.Interface.ControllableVehicle
-
-
-
-import qualified SMACCMPilot.Comm.Ivory.Types.PidState as P
-import qualified SMACCMPilot.Comm.Ivory.Types.PidConfig as C
-
 
 data AltitudeControl =
    AltitudeControl
@@ -61,6 +56,8 @@ monitorAltitudeControl :: (AttrReadable a)
 monitorAltitudeControl attrs = do
   -- Alt estimator filters noisy sensor into altitude & its derivative
   alt_estimator <- monitorAltEstimator
+  -- We want to further filter the LIDAR output
+  lidar_median_filter <- monitorMedianFilter (Proxy :: Proxy 7)
   -- Thrust PID controls altitude rate with thrust
   alt_rate_pid <- state "alt_rate_pid"
   -- Position PID controls altitude with altitude rate
@@ -108,9 +105,11 @@ monitorAltitudeControl attrs = do
           -- Update estimators
           alt_lidar_alt  <- deref (sens ~> S.lidar_alt)
           alt_lidar_time <- deref (sens ~> S.lidar_time)
+          mf_update lidar_median_filter alt_lidar_alt
+          alt_lidar_filtered <- mf_output lidar_median_filter
           ae_measurement
             alt_estimator
-            alt_lidar_alt
+            alt_lidar_filtered
             (timeMicrosToITime alt_lidar_time)
 
           -- read newest estimate
@@ -209,6 +208,7 @@ monitorAltitudeControl attrs = do
     { alt_init = do
         store at_enabled false
         ae_init alt_estimator
+        mf_init lidar_median_filter
         -- tt_init throttle_tracker
         -- thrust_pid_init thrust_pid
     , alt_update = call_ proc_alt_update
