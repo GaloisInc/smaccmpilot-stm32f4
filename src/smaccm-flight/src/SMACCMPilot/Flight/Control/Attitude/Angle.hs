@@ -40,6 +40,7 @@ monitorAngleController stab_config_attr output_range name = do
   out      <- state "out"
   pos_pid  <- state "pos_pid"
   rate_pid <- state "rate_pid"
+  last_time <- state "last_time"
   stab_config <- attrState stab_config_attr
 
   init_name <- named "init"
@@ -54,6 +55,10 @@ monitorAngleController stab_config_attr output_range name = do
 
       run_proc :: Def ('[IFloat, IFloat, IFloat] ':-> ())
       run_proc = proc run_name $ \setpt est deriv_est -> body $ do
+        t0 <- deref last_time
+        t1 <- fmap toIMicroseconds getTime
+        store last_time t1
+        let dt = safeCast (castDefault (t1 - t0) :: Sint32) / 1000000
         ctl <- call stabilize_from_angle
                       pos_pid
                       (constRef (stab_config ~> S.pos))
@@ -61,6 +66,7 @@ monitorAngleController stab_config_attr output_range name = do
                       est
                       deriv_est
                       output_range
+                      dt
         store valid true
         store out ctl
 
@@ -76,6 +82,8 @@ monitorAngleController stab_config_attr output_range name = do
         store valid false
         call_ pid_reset pos_pid
         call_ pid_reset rate_pid
+        t <- fmap toIMicroseconds getTime
+        store last_time t
 
   monitorModuleDef $ do
     incl init_proc
@@ -84,6 +92,8 @@ monitorAngleController stab_config_attr output_range name = do
     incl reset_proc
     depend controlPIDModule
     depend attStabilizeModule
+    -- XXX why is this not getting included by the importProc of getTime?
+    dependByName "tower_time"
   return AngleControl
     { ac_init  = call_ init_proc
     , ac_run   = call_ run_proc
