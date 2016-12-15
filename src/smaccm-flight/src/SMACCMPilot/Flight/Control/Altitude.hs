@@ -34,6 +34,7 @@ import           SMACCMPilot.Comm.Tower.Attr
 import           SMACCMPilot.Comm.Tower.Interface.ControllableVehicle
 
 
+
 import qualified SMACCMPilot.Comm.Ivory.Types.PidState as P
 import qualified SMACCMPilot.Comm.Ivory.Types.PidConfig as C
 
@@ -144,6 +145,7 @@ monitorAltitudeControl attrs = do
                       0.0
                       alt_est_rate
                       0.0
+                      dt
 
                   -- thrust_cmd is unbounded, so make sure it is
                   -- within the limits [0.1-1]
