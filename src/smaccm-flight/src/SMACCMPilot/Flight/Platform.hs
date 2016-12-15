@@ -88,6 +88,7 @@ flightPlatformParser = do
   b <- subsection "args" $ subsection "telem_baud" integer
    <|> pure 57600
   mlidar <- (fmap LIDARLite) <$> subsection "lidarlite" i2caddrParser
+   <|> pure Nothing
   mpx4flow <- (fmap PX4Flow) <$> subsection "px4flow"   i2caddrParser
    <|> pure Nothing
   let c = pwmconf v
