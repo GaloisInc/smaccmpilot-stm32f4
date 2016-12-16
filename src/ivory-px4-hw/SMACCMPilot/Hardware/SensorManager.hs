@@ -142,21 +142,7 @@ fmu24SensorManager FMU24Sensors{..} tocc exti2cs = do
       ext_sens_init req i2cReady
       return t
     schedule tasks i2cReady i2cRequest
-{-
-  -- optional LIDAR
-  (lidarTask, lidarReq) <- task "lidarlite"
-  lidar_s <- channel
-  case fmu24sens_lidarlite of
-    Nothing -> return ()
-    Just LIDARLite{..} ->
-      lidarliteSensorManager
-        lidarReq
-        i2cReady
-        (fst lidar_s)
-        lidarlite_i2c_addr
 
-  schedule [lidarTask] i2cReady i2cRequest
--}
   return (snd acc_s, snd gyro_s, snd mag_s, snd baro_s)
 
 fmu24SensorManager _ _ _ = error "impossible"

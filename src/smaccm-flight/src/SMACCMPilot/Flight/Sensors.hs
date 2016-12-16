@@ -39,6 +39,7 @@ import           SMACCMPilot.INS.SensorFusion
 import           SMACCMPilot.INS.Tower
 import           SMACCMPilot.Flight.Sensors.AccelBiasTrigger
 import           SMACCMPilot.Flight.Sensors.LIDARLite
+import           SMACCMPilot.Flight.Sensors.PX4Flow
 
 sensorTower :: (e -> FlightPlatform)
             -> ControllableVehicleAttrs Attr
@@ -50,10 +51,11 @@ sensorTower tofp attrs = do
   attrProxy (gpsOutput attrs) (snd p)
 
   fp <- tofp <$> getEnv
-  -- make a channel whether or not we have a LIDAR in order to make
-  -- the control flow simpler here
+  -- make channels whether or not we have a LIDAR or PX4Flow in order
+  -- to make the control flow simpler here
   (lidar_in, lidar) <- channel
-  let exti2cs = catMaybes [ mlidar ]
+  (px4flow_in, px4flow) <- channel
+  let exti2cs = catMaybes [ mlidar, mpx4flow ]
       mlidar = do
         LIDARLite{..} <- fp_lidarlite fp
         return $ ExternalSensor {
@@ -61,6 +63,14 @@ sensorTower tofp attrs = do
           , ext_sens_init = \bpt init_chan ->
               lidarliteSensorManager
                 bpt init_chan lidar_in lidarlite_i2c_addr
+          }
+      mpx4flow = do
+        PX4Flow{..} <- fp_px4flow fp
+        return $ ExternalSensor {
+            ext_sens_name = "px4flow"
+          , ext_sens_init = \bpt init_chan ->
+              px4flowSensorManager
+                bpt init_chan px4flow_in px4flow_i2c_addr
           }
 
   (a,g,m,b) <-
@@ -103,6 +113,8 @@ sensorTower tofp attrs = do
   -- LIDAR: calibration handled onboard
   attrProxy (lidarliteOutput attrs) lidar
 
+  attrProxy (px4flowOutput attrs) px4flow
+
   -- Baro: no calibration at this time.
   attrProxy (baroOutput attrs) b
 
@@ -124,7 +136,6 @@ sensorTower tofp attrs = do
   attrProxy (gyroOutput            attrs) gyro_out
   attrProxy (gyroOutputCalibration attrs) gyro_out_bias
 
-
   -- Mag: same basic idea as Gyro. We calculate calibration differently, of
   -- course.
   attrProxy (magRawOutput attrs) m
@@ -135,7 +146,6 @@ sensorTower tofp attrs = do
   (mag_out, mag_out_bias) <- applyCalibrationTower magCalibrate m mag_bias cl_chan
   attrProxy (magOutput            attrs) mag_out
   attrProxy (magOutputCalibration attrs) mag_out_bias
-
 
   -- Sensor fusion: estimate vehicle attitude with respect to a N/E/D
   -- navigation frame. Report (1) attitude; (2) sensor measurements in the

@@ -57,6 +57,7 @@ library
                        SMACCMPilot.Flight.Sensors.AccelBiasTrigger,
                        SMACCMPilot.Flight.Sensors.GPS,
                        SMACCMPilot.Flight.Sensors.LIDARLite,
+                       SMACCMPilot.Flight.Sensors.PX4Flow,
                        SMACCMPilot.Flight.Sensors.TestApp,
                        SMACCMPilot.Flight.Standalone,
                        SMACCMPilot.Flight.Tuning,

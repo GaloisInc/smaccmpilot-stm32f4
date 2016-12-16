@@ -14,4 +14,5 @@ exec stack exec -- smaccm-comm-client \
 	--baud=$baud \
 	--conf-file=../smaccm-flight/fmu24.conf \
 	--conf-path=../smaccm-flight \
+  --logsuffix=log.csv
 	"$@"
