@@ -1,4 +1,6 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+
 module SMACCMPilot.Flight.Sensors.LIDARLite where
 
 import Prelude ()
@@ -14,6 +16,13 @@ import SMACCMPilot.Time
 
 data LIDARLite = LIDARLite { lidarlite_i2c_addr :: I2CDeviceAddr }
 
+newtype LIDARLiteDriverState = LIDARLiteDriverState Uint8
+  deriving (IvoryType, IvoryVar, IvoryExpr, IvoryEq, IvoryStore, IvoryInit, IvoryZeroVal)
+
+llInitializing, llInactive, llInitialReq, llActive :: LIDARLiteDriverState
+[llInitializing, llInactive, llInitialReq, llActive]
+  = map (LIDARLiteDriverState . fromInteger) [0..3]
+
 lidarliteSensorManager ::
      BackpressureTransmit ('Struct "i2c_transaction_request")
                           ('Struct "i2c_transaction_result")
@@ -26,31 +35,46 @@ lidarliteSensorManager
   init_chan
   sensor_chan
   addr = do
+  let named nm = "lidarlite_" ++ nm
   towerModule lidarliteSampleTypesModule
   towerDepends lidarliteSampleTypesModule
   p <- period (Milliseconds 20) -- 50 hz. Can be faster if required.
-  monitor "lidarliteSensorManager" $ do
-    s <- state "sample"
+  monitor (named "sensor_manager") $ do
+    s <- state (named "current_sample")
     -- only enable the samples once the I2C ready chan has fired
-    pending <- stateInit "pending" (ival true)
-    coroutineHandler init_chan res_chan "lidarlite" $ do
+    driver_state <- stateInit (named "driver_state") (ival llInitializing)
+    coroutineHandler init_chan res_chan (named "coroutine") $ do
       req_e <- emitter req_chan 1
       sens_e <- emitter sensor_chan 1
-      return $ CoroutineBody $ \yield -> do
+      return $ CoroutineBody $ \yield_raw -> do
         comment "entry to lidarlite coroutine"
 
         -- two loops so that we can breakOut when one goes wrong,
         -- while still being ready to service more routines
         forever $ do
           forever $ do
+            -- if we ever get a message but are not in the right
+            -- driver state, something isn't right, like a timeout, so
+            -- exit the loop
+            let yield' expected_state = do
+                  x <- yield_raw
+                  -- update the result code and break out if non-zero
+                  rc <- deref (x ~> resultcode)
+                  store (s ~> samplefail) (rc >? 0)
+                  when (rc >? 0) breakOut
+                  -- check the driver state and break out if it's unexpected
+                  ds <- deref driver_state
+                  unless (ds ==? expected_state) $ do
+                    -- set an error ourselves
+                    store (s ~> samplefail) true
+                    breakOut
+                  return x
+                -- the first yield must be for an initial request
+                yield0 = yield' llInitialReq
+                yield  = yield' llActive
+
             -- Request originates from period below
-            setup_read_result <- yield
-            is_pending <- deref pending
-            assert is_pending
-            rc <- deref (setup_read_result ~> resultcode)
-            -- Reset the samplefail field
-            store (s ~> samplefail) (rc >? 0)
-            when (rc >? 0) breakOut
+            _setup_read_result <- yield0
 
             -- wait for LIDAR to be ready
             forever $ do
@@ -65,10 +89,7 @@ lidarliteSensorManager
                 ]
               emit req_e ready_req
 
-              ready_ack <- yield
-              rc_readyack <- deref (ready_ack ~> resultcode)
-              store (s ~> samplefail) (rc_readyack >? 0)
-              when (rc_readyack >? 0) breakOut
+              _ready_ack <- yield
 
               ready_read <- fmap constRef $ local $ istruct
                 [ tx_addr .= ival addr
@@ -79,14 +100,11 @@ lidarliteSensorManager
               emit req_e ready_read
 
               ready_sr <- yield
-              rc_readysr <- deref (ready_sr ~> resultcode)
-              store (s ~> samplefail) (rc_readysr >? 0)
-              when (rc_readysr >? 0) breakOut
-
               sr <- deref ((ready_sr ~> rx_buf) ! 0)
               when (sr .& 1 ==? 0) breakOut
 
-            -- bail all the way out if there's an error
+            -- bail all the way out if there was an error during the
+            -- wait loop
             sf <- deref (s ~> samplefail)
             when sf breakOut
 
@@ -102,10 +120,8 @@ lidarliteSensorManager
               , rx_len  .= ival 0
               ]
             emit req_e read_tx_req
-            ack <- yield
-            rc2 <- deref (ack ~> resultcode)
-            store (s ~> samplefail) (rc2 >? 0)
-            when (rc2 >? 0) breakOut
+
+            _ack <- yield
 
             read_rx_req <- fmap constRef $ local $ istruct
               [ tx_addr .= ival addr
@@ -114,34 +130,27 @@ lidarliteSensorManager
               , rx_len  .= ival 2
               ]
             emit req_e read_rx_req
-            res <- yield
-            store pending false
-            -- Unpack read, updating samplefail if failed.
-            rc3 <- deref (res ~> resultcode)
-            store (s ~> samplefail) (rc3 >? 0)
-            when (rc3 >? 0) breakOut
 
+            res <- yield
             distance_raw <- payloadu16 res 0 1
             store (s ~> distance) (safeCast distance_raw / 100)
-            fmap timeMicrosFromITime getTime >>= store (s ~> time)
-            -- Send the sample upstream.
-            emit sens_e (constRef s)
+            store (s ~> time) =<< timeMicrosFromITime <$> getTime
+            breakOut
 
-          -- only get here by breaking out of the main coroutine
-          -- loop. reset the state and get ready for another sample
-          comment "error handling"
-          store pending false
-          -- emit result with error code
+          -- only get here by breaking out of the main coroutine loop,
+          -- which sends the current sample and sets state to inactive
+          comment "send sample"
+          store driver_state llInactive
           emit sens_e (constRef s)
 
-    handler init_chan "lidar_ready" $
-      callback $ const $ store pending false
+    handler init_chan (named "ready") $
+      callback $ const $ store driver_state llInactive
 
-    handler p "periodic_read" $ do
+    handler p (named "periodic_read") $ do
       req_e <- emitter req_chan 1
       callback $ const $ do
-        is_pending <- deref pending
-        unless is_pending $ do
+        ds <- deref driver_state
+        when (ds ==? llInactive) $ do
           -- Initiate a read (see LIDAR-Lite datasheet for explanation
           -- of magic numbers)
           setup_read_req <- fmap constRef $ local $ istruct
@@ -155,7 +164,7 @@ lidarliteSensorManager
             , tx_len  .= ival 2
             , rx_len  .= ival 0
             ]
-          store pending true
+          store driver_state llInitialReq
           emit req_e setup_read_req
   where
   payloadu16 :: Ref s ('Struct "i2c_transaction_result")
