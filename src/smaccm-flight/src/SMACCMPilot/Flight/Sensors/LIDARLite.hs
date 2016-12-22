@@ -23,6 +23,14 @@ llInitializing, llInactive, llInitialReq, llActive :: LIDARLiteDriverState
 [llInitializing, llInactive, llInitialReq, llActive]
   = map (LIDARLiteDriverState . fromInteger) [0..3]
 
+-- | This is dangerous! If the driver tries to send another request
+-- while one is already pending from the scheduler, an assertion will
+-- fail. However, this seems to happen sometimes, somehow. If we get
+-- assertion failures from the scheduler code, this is almost
+-- certainly why.
+lidarlite_TIMEOUT :: ITime
+lidarlite_TIMEOUT = toITime (Milliseconds 1000)
+
 lidarliteSensorManager ::
      BackpressureTransmit ('Struct "i2c_transaction_request")
                           ('Struct "i2c_transaction_result")
@@ -41,6 +49,7 @@ lidarliteSensorManager
   p <- period (Milliseconds 20) -- 50 hz. Can be faster if required.
   monitor (named "sensor_manager") $ do
     s <- state (named "current_sample")
+    last_response <- state (named "last_response")
     -- only enable the samples once the I2C ready chan has fired
     driver_state <- stateInit (named "driver_state") (ival llInitializing)
     coroutineHandler init_chan res_chan (named "coroutine") $ do
@@ -58,16 +67,17 @@ lidarliteSensorManager
             -- exit the loop
             let yield' expected_state = do
                   x <- yield_raw
-                  -- update the result code and break out if non-zero
-                  rc <- deref (x ~> resultcode)
-                  store (s ~> samplefail) (rc >? 0)
-                  when (rc >? 0) breakOut
+                  store last_response =<< getTime
                   -- check the driver state and break out if it's unexpected
                   ds <- deref driver_state
                   unless (ds ==? expected_state) $ do
                     -- set an error ourselves
                     store (s ~> samplefail) true
                     breakOut
+                  -- update the result code and break out if non-zero
+                  rc <- deref (x ~> resultcode)
+                  store (s ~> samplefail) (rc >? 0)
+                  when (rc >? 0) breakOut
                   return x
                 -- the first yield must be for an initial request
                 yield0 = yield' llInitialReq
@@ -75,6 +85,8 @@ lidarliteSensorManager
 
             -- Request originates from period below
             _setup_read_result <- yield0
+
+            store driver_state llActive
 
             -- wait for LIDAR to be ready
             forever $ do
@@ -166,6 +178,12 @@ lidarliteSensorManager
             ]
           store driver_state llInitialReq
           emit req_e setup_read_req
+        when (ds ==? llInitialReq .|| ds ==? llActive) $ do
+          last_t <- deref last_response
+          t <- getTime
+          when (t - last_t >? lidarlite_TIMEOUT) $ do
+            -- dangerous! see comment on lidarlite_TIMEOUT
+            store driver_state llInactive
   where
   payloadu16 :: Ref s ('Struct "i2c_transaction_result")
              -> Ix 128 -> Ix 128 -> Ivory eff Uint16
