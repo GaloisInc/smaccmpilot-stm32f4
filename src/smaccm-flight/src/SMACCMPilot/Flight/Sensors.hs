@@ -34,9 +34,9 @@ import           SMACCMPilot.INS.Bias.Accel
 import           SMACCMPilot.INS.Bias.Magnetometer.Tower
 import           SMACCMPilot.INS.Bias.Calibration
 import           SMACCMPilot.INS.DetectMotion
-import           SMACCMPilot.INS.Ivory
-import           SMACCMPilot.INS.SensorFusion
-import           SMACCMPilot.INS.Tower
+import           SMACCMPilot.INS.Attitude.Ivory
+import           SMACCMPilot.INS.Attitude.SensorFusion
+import           SMACCMPilot.INS.Attitude.Tower
 import           SMACCMPilot.Flight.Sensors.AccelBiasTrigger
 import           SMACCMPilot.Flight.Sensors.LIDARLite
 import           SMACCMPilot.Flight.Sensors.PX4Flow
