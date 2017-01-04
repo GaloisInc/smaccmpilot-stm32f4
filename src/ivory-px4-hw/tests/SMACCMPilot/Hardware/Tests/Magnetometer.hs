@@ -81,4 +81,4 @@ lsm303d_spi_app topx4 lsm uarto = do
     magSender (snd m_samples) magReq
     accelSender (snd a_samples) accReq
 
-  schedule [magTask, accTask] systemInit uarto
+  schedule "uart" [magTask, accTask] systemInit uarto

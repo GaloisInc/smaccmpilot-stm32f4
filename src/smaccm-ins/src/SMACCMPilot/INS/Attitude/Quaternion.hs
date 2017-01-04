@@ -6,7 +6,7 @@ They should not be used by external code, but might be useful
 contributions to the linear package.
 -}
 
-module SMACCMPilot.INS.Quaternion where
+module SMACCMPilot.INS.Attitude.Quaternion where
 
 import Control.Applicative
 import Control.Lens

@@ -65,7 +65,7 @@ app topx4 = do
       , ("accel", accelSender half_a)
       ]
     ]
-  schedule uartTasks systemInit uarto
+  schedule "uart" uartTasks systemInit uarto
 
   serializeTowerDeps
 

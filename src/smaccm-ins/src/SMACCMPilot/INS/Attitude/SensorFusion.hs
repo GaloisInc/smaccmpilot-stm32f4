@@ -46,7 +46,7 @@ autopilots. As a result the state vector may have components your system
 does not need, or be missing ones you do need.
 -}
 
-module SMACCMPilot.INS.SensorFusion where
+module SMACCMPilot.INS.Attitude.SensorFusion where
 
 import Prelude ()
 import Prelude.Compat
@@ -59,7 +59,7 @@ import Linear
 import Numeric.Estimator.Augment
 import Numeric.Estimator.Model.Coordinate
 import Numeric.Estimator.Model.Symbolic
-import SMACCMPilot.INS.Quaternion
+import SMACCMPilot.INS.Attitude.Quaternion
 
 -- | A collection of all the state variables needed for this model.
 data StateVector a = StateVector
