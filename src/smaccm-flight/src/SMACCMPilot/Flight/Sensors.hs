@@ -20,6 +20,7 @@ import qualified SMACCMPilot.Comm.Ivory.Types.AccelerometerSample as A
 import qualified SMACCMPilot.Comm.Ivory.Types.BarometerSample as B
 import qualified SMACCMPilot.Comm.Ivory.Types.GyroscopeSample as G
 import qualified SMACCMPilot.Comm.Ivory.Types.LidarliteSample as L
+import qualified SMACCMPilot.Comm.Ivory.Types.Quaternion as Q
 import qualified SMACCMPilot.Comm.Ivory.Types.SensorsResult as R
 import qualified SMACCMPilot.Comm.Ivory.Types.Xyz as XYZ
 import qualified SMACCMPilot.Comm.Ivory.Types.RgbLedSetting as LED
@@ -180,6 +181,7 @@ sensorTower tofp attrs = do
           , R.pitch .= ival (asin (2 * (q0 * q2 - q3 * q1)))
           , R.yaw .= ival (atan2F (2 * (q0 * q3 + q1 * q2)) (1 - 2 * (q2 * q2 + q3 * q3)))
           , R.omega .= xyzInitStruct (fmap (* (pi / 180)) gyro)
+          , R.attitude .= quatInitStruct q0 q1 q2 q3
           , R.baro_alt .= ival (pressureToHeight $ pressure * 100) -- convert mbar to Pascals
           , R.lidar_alt .= ival lidar_distance
           , R.accel .= xyzInitStruct accel
@@ -205,3 +207,8 @@ xyzRef r = mapM deref $ fmap (r ~>) (V3 XYZ.x XYZ.y XYZ.z)
 
 xyzInitStruct :: V3 IFloat -> Init ('Struct "xyz")
 xyzInitStruct (V3 x y z) = istruct [ XYZ.x .= ival x, XYZ.y .= ival y, XYZ.z .= ival z ]
+
+quatInitStruct
+  :: IFloat -> IFloat -> IFloat -> IFloat -> Init ('Struct "quaternion")
+quatInitStruct a b c d =
+  istruct [ Q.a .= ival a, Q.b .= ival b, Q.c .= ival c, Q.d .= ival d]
