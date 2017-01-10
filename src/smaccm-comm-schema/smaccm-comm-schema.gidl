@@ -201,14 +201,22 @@
   (scale       xyz_t)
   (time        time_micros_t))
 
+(def-struct quaternion_t
+  (a float_t)
+  (b float_t)
+  (c float_t)
+  (d float_t))
+
 (def-struct sensors_result_t
   (valid     bool_t)
   (roll      float_t) -- Roll, pitch,  yaw, in Radians
   (pitch     float_t)
   (yaw       float_t)
   (omega     xyz_t) -- Radians per second
+  (attitude  quaternion_t) -- Attitude as a quaternion
   (baro_alt  float_t) -- meters
   (lidar_alt float_t) -- meters
+  (sonar_alt float_t) -- meters
   (accel     xyz_t) -- g
   (ahrs_time time_micros_t)
   (baro_time time_micros_t)
@@ -306,6 +314,7 @@
   (roll      float_t) -- Roll, pitch,  yaw, in Radians
   (pitch     float_t)
   (yaw       float_t)
+  (sonar_alt float_t) -- meters
   (baro_alt  float_t) -- meters
   (lidar_alt float_t) -- meters
   (fix         gps_fix_t)
