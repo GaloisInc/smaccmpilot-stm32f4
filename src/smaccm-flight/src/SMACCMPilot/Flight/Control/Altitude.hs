@@ -61,6 +61,7 @@ monitorAltitudeControl :: (AttrReadable a)
 monitorAltitudeControl attrs = do
   -- Alt estimator filters noisy sensor into altitude & its derivative
   alt_estimator <- monitorAltEstimator
+  r22_dbg <- state "r22_dbg"
   -- Thrust PID controls altitude rate with thrust
   alt_rate_pid <- state "alt_rate_pid"
   -- Position PID controls altitude with altitude rate
@@ -107,16 +108,23 @@ monitorAltitudeControl attrs = do
 
           -- Update estimators
           -- TODO: more sophisticated noise values
+          r22 <- sensorsR22 sens
+          store r22_dbg r22
           att_quat <- derefQuat (sens ~> S.attitude)
           accel <- derefXyz (sens ~> S.accel)
           let NED (V3 _ _ zdot) = fst (convertFrames att_quat) accel
           ae_propagate alt_estimator zdot dt
+
+          -- baro: offset, no compensation
           alt_baro_alt  <- deref (sens ~> S.baro_alt)
           ae_measure_offset alt_estimator alt_baro_alt r_baro
+
+          -- lidar and sonar: no offset, compensated
+          let gain = (abs r22 >? 0) ? (abs r22, 1e-7)
           alt_lidar_alt <- deref (sens ~> S.lidar_alt)
-          ae_measure_absolute alt_estimator alt_lidar_alt r_alt
+          ae_measure_absolute alt_estimator (alt_lidar_alt * gain) r_alt
           alt_sonar_alt <- deref (sens ~> S.sonar_alt)
-          ae_measure_absolute alt_estimator alt_sonar_alt r_alt
+          ae_measure_absolute alt_estimator (alt_sonar_alt * gain) r_alt
 
           -- read newest estimate
           (AltState{..}) <- ae_state alt_estimator
@@ -156,10 +164,9 @@ monitorAltitudeControl attrs = do
                   thrust_cmd_norm   <- call fconstrain (0.1) 1 thrust_cmd
 
                   -- compensate for roll/pitch rotation
-                  r22   <- _sensorsR22 sens
                   hover_thrust_abs <- deref nominal_throttle
                   hover_thrust <-
-                    assign ((_throttleR22Comp r22) * hover_thrust_abs)
+                    assign ((throttleR22Comp r22) * hover_thrust_abs)
                   let vz_ctl = thrust_cmd_norm + hover_thrust
                   -- ALTITUDE CONTROLLER END
 
@@ -192,6 +199,8 @@ monitorAltitudeControl attrs = do
       proc_alt_debug = proc name_alt_debug $ \out -> body $ do
         tui_write_debug ui_control state_dbg
         ae_write_debug alt_estimator state_dbg
+        gain <- abs <$> deref r22_dbg
+        store (state_dbg ~> A.r22_gain) gain
         --pos_pid_write_debug position_pid state_dbg
         --thrust_pid_write_debug thrust_pid state_dbg
         refCopy out (constRef state_dbg)
@@ -232,8 +241,8 @@ derefQuat quat = do
   return (Quaternion a (V3 b c d))
 
 -- | Calculate R22 factor, product of cosines of roll & pitch angles
-_sensorsR22 :: Ref s ('Struct "sensors_result") -> Ivory eff IFloat
-_sensorsR22 sens = do
+sensorsR22 :: Ref s ('Struct "sensors_result") -> Ivory eff IFloat
+sensorsR22 sens = do
   pitch <- deref (sens ~> S.pitch)
   roll  <- deref (sens ~> S.roll)
   r22   <- assign (cos pitch * cos roll)
@@ -242,8 +251,8 @@ _sensorsR22 sens = do
 -- | Throttle compensation factor (multiplicative) based on R22
 --   Based on PX4 project code (98a43454 Anton Babushkin)
 --   R22 is rotation matrix element {2,2}, equivelant to cos pitch * cos roll
-_throttleR22Comp :: IFloat -> IFloat
-_throttleR22Comp r22 =
+throttleR22Comp :: IFloat -> IFloat
+throttleR22Comp r22 =
   (r22 >? 0.8) ? (
     (1.0 / r22)
   , (r22 >? 0.0) ? (
