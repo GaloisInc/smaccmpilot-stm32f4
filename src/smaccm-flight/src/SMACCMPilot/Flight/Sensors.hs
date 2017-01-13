@@ -74,11 +74,11 @@ sensorTower tofp attrs = do
                 bpt init_chan px4flow_in px4flow_i2c_addr
           }
 
-  (a,g,m,b) <-
+  (accel_raw, gyro_raw, mag_raw, baro_raw) <-
     sensorManager (fp_sensors . tofp) (fp_clockconfig . tofp) exti2cs
 
   motion <- channel
-  detectMotion g a (fst motion)
+  detectMotion gyro_raw accel_raw (fst motion)
 
   monitor "motion_light_debug" $ do
     handler (snd motion) "motion_light_debug" $ do
@@ -96,17 +96,17 @@ sensorTower tofp attrs = do
 
   -- Accel: same basic calibration scheme as Gyro, below, except that we only
   -- trigger the calcAccelBiasTower under special conditions.
-  attrProxy (accelRawOutput attrs) a
+  attrProxy (accelRawOutput attrs) accel_raw
 
   accel_bias_trigger <- channel
   accelBiasTriggerTower (snd motion)
                         (attrReaderChan (px4ioState attrs))
                         (fst accel_bias_trigger)
 
-  accel_bias <- calcAccelBiasTower a (snd accel_bias_trigger)
+  accel_bias <- calcAccelBiasTower accel_raw (snd accel_bias_trigger)
   attrProxy (accelCalibration attrs) accel_bias
 
-  (accel_out, accel_out_bias) <- applyCalibrationTower accelCalibrate a accel_bias cl_chan
+  (accel_out, accel_out_bias) <- applyCalibrationTower accelCalibrate accel_raw accel_bias cl_chan
 
   attrProxy (accelOutputCalibration attrs) accel_out_bias
   attrProxy (accelOutput attrs) accel_out
@@ -117,7 +117,7 @@ sensorTower tofp attrs = do
   attrProxy (px4flowOutput attrs) px4flow
 
   -- Baro: no calibration at this time.
-  attrProxy (baroOutput attrs) b
+  attrProxy (baroOutput attrs) baro_raw
 
   -- Gyro: there are four attributes we care about.
   --    gyroRawOutput: the uncalibrated gyro sample, from sensorManager
@@ -128,23 +128,23 @@ sensorTower tofp attrs = do
   --      control law indicated the vehicle is disarmed.
   --    gyroOutput: the calibrated gyro sample, from applyGyroBias
 
-  attrProxy (gyroRawOutput attrs) g
+  attrProxy (gyroRawOutput attrs) gyro_raw
 
-  gyro_bias <- calcGyroBiasTower g (snd motion)
+  gyro_bias <- calcGyroBiasTower gyro_raw (snd motion)
   attrProxy (gyroCalibration attrs) gyro_bias
 
-  (gyro_out, gyro_out_bias) <- applyCalibrationTower gyroCalibrate g gyro_bias cl_chan
+  (gyro_out, gyro_out_bias) <- applyCalibrationTower gyroCalibrate gyro_raw gyro_bias cl_chan
   attrProxy (gyroOutput            attrs) gyro_out
   attrProxy (gyroOutputCalibration attrs) gyro_out_bias
 
   -- Mag: same basic idea as Gyro. We calculate calibration differently, of
   -- course.
-  attrProxy (magRawOutput attrs) m
+  attrProxy (magRawOutput attrs) mag_raw
 
-  mag_bias <- calcMagBiasTower m
+  mag_bias <- calcMagBiasTower mag_raw
   attrProxy (magCalibration attrs) mag_bias
 
-  (mag_out, mag_out_bias) <- applyCalibrationTower magCalibrate m mag_bias cl_chan
+  (mag_out, mag_out_bias) <- applyCalibrationTower magCalibrate mag_raw mag_bias cl_chan
   attrProxy (magOutput            attrs) mag_out
   attrProxy (magOutputCalibration attrs) mag_out_bias
 
@@ -154,7 +154,7 @@ sensorTower tofp attrs = do
   states <- sensorFusion accel_out gyro_out mag_out (snd motion)
   monitor "sensor_fusion_proxy" $ do
     last_accel <- save "last_accel" accel_out
-    last_baro <- save "last_baro" b
+    last_baro <- save "last_baro" baro_raw
     last_gyro <- save "last_gyro" gyro_out
     last_lidar <- save "last_lidar" lidar
 
