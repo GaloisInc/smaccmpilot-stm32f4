@@ -17,15 +17,21 @@ import Ivory.Language
 import Ivory.Tower
 import Ivory.Stdlib
 
+-- <<<<<<< HEAD
 -- <<<<<<< aeae75180c4f06cec55442f0d054c8c1c2616aca
 -- import           SMACCMPilot.Flight.Control.Altitude.Estimator
 -- import           SMACCMPilot.Flight.Control.Altitude.Filter
 -- =======
+-- =======
+-- >>>>>>> c8cc1f9d73fee82d1cbaf0e03664d8beea1d6d7c
 import Linear
 import Numeric.Estimator.Model.Coordinate
 
 import           SMACCMPilot.Flight.Control.Altitude.KalmanFilter
+-- <<<<<<< HEAD
 -- >>>>>>> implements Kalman filter for altitude state estimation
+-- =======
+-- >>>>>>> c8cc1f9d73fee82d1cbaf0e03664d8beea1d6d7c
 import           SMACCMPilot.Flight.Control.Altitude.ThrottleTracker
 import           SMACCMPilot.Flight.Control.Altitude.ThrottleUI
 import           SMACCMPilot.Flight.Types.MaybeFloat
@@ -66,12 +72,16 @@ monitorAltitudeControl :: (AttrReadable a)
 monitorAltitudeControl attrs = do
   -- Alt estimator filters noisy sensor into altitude & its derivative
   alt_estimator <- monitorAltEstimator
+-- <<<<<<< HEAD
 -- <<<<<<< 3db709c41dbc02b427c63c381e5b13df27d15d9f
 --   -- We want to further filter the LIDAR output
 --   lidar_median_filter <- monitorMedianFilter (Proxy :: Proxy 7)
 -- =======
-  r22_dbg <- state "r22_dbg"
+--  r22_dbg <- state "r22_dbg"
 -- >>>>>>> apply attitude compensation to altitude measurements
+-- =======
+  r22_dbg <- state "r22_dbg"
+-- >>>>>>> c8cc1f9d73fee82d1cbaf0e03664d8beea1d6d7c
   -- Thrust PID controls altitude rate with thrust
   alt_rate_pid <- state "alt_rate_pid"
   -- Position PID controls altitude with altitude rate
@@ -117,6 +127,7 @@ monitorAltitudeControl attrs = do
           store at_enabled enabled
 
           -- Update estimators
+-- <<<<<<< HEAD
 -- <<<<<<< aeae75180c4f06cec55442f0d054c8c1c2616aca
 --          alt_lidar_alt  <- deref (sens ~> S.lidar_alt)
 --          alt_lidar_time <- deref (sens ~> S.lidar_time)
@@ -127,6 +138,8 @@ monitorAltitudeControl attrs = do
 --           alt_lidar_filtered
 --            (timeMicrosToITime alt_lidar_time)
 -- =======
+-- =======
+-- >>>>>>> c8cc1f9d73fee82d1cbaf0e03664d8beea1d6d7c
           -- TODO: more sophisticated noise values
           r22 <- sensorsR22 sens
           store r22_dbg r22
@@ -144,12 +157,16 @@ monitorAltitudeControl attrs = do
           alt_lidar_alt <- deref (sens ~> S.lidar_alt)
           ae_measure_absolute alt_estimator (alt_lidar_alt * gain) r_alt
           alt_sonar_alt <- deref (sens ~> S.sonar_alt)
+-- <<<<<<< HEAD
 -- <<<<<<< 3db709c41dbc02b427c63c381e5b13df27d15d9f
 --           ae_measure_absolute alt_estimator alt_sonar_alt r_alt
 -- >>>>>>> implements Kalman filter for altitude state estimation
 -- =======
           ae_measure_absolute alt_estimator (alt_sonar_alt * gain) r_alt
 -- >>>>>>> apply attitude compensation to altitude measurements
+-- =======
+          ae_measure_absolute alt_estimator (alt_sonar_alt * gain) r_alt
+-- >>>>>>> c8cc1f9d73fee82d1cbaf0e03664d8beea1d6d7c
 
           -- read newest estimate
           (AltState{..}) <- ae_state alt_estimator
