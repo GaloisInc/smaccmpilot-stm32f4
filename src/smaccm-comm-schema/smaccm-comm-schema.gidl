@@ -95,7 +95,8 @@
   (ui_rate_setp  float_t)
   (pos           pid_state_t)
   (pos_setp      float_t)
-  (pos_rate_setp float_t))
+  (pos_rate_setp float_t)
+  (r22_gain      float_t))
 
 (def-struct att_control_debug_t
   (head_setpt       float_t)
