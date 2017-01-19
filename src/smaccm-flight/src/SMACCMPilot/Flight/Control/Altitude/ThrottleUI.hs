@@ -10,7 +10,8 @@ import Ivory.Language
 import Ivory.Tower
 import Ivory.Stdlib
 
-import           SMACCMPilot.Flight.Control.Altitude.KalmanFilter
+--import           SMACCMPilot.Flight.Control.Altitude.KalmanFilter
+import           SMACCMPilot.Flight.Control.Altitude.Estimator
 import           SMACCMPilot.Flight.Control.PID()
 
 import qualified SMACCMPilot.Comm.Ivory.Types.AltControlDebug as D
@@ -49,7 +50,7 @@ monitorThrottleUI attr estimator = do
           store vel_setpoint sr
 
           active <- deref active_state
-          AltState{..} <- ae_state estimator
+          (as_z, _) <- ae_state estimator
           cond_
             [ iNot active ==> do
                 store alt_setpoint as_z

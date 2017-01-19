@@ -14,7 +14,8 @@ import qualified SMACCMPilot.Comm.Ivory.Types.PidConfig       as C
 import qualified SMACCMPilot.Comm.Ivory.Types.AltControlDebug as A
 import           SMACCMPilot.Comm.Tower.Attr
 import           SMACCMPilot.Flight.Control.PID
-import           SMACCMPilot.Flight.Control.Altitude.KalmanFilter
+--import           SMACCMPilot.Flight.Control.Altitude.KalmanFilter
+import           SMACCMPilot.Flight.Control.Altitude.Estimator
 
 data PositionPid =
   PositionPid
@@ -42,7 +43,7 @@ monitorPositionPid pid_config alt_estimator = do
           p_gain <-             (ppid_config~>*C.p_gain)
           d_gain <- fmap (/ dt) (ppid_config~>*C.d_gain)
 
-          (AltState{..}) <- ae_state alt_estimator
+          (as_z, as_zdot) <- ae_state alt_estimator
           pos_err            <- assign (pos_sp - as_z)
           vel_err            <- assign (vel_sp - as_zdot)
 

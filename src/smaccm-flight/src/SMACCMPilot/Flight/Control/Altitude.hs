@@ -17,21 +17,12 @@ import Ivory.Language
 import Ivory.Tower
 import Ivory.Stdlib
 
--- <<<<<<< HEAD
--- <<<<<<< aeae75180c4f06cec55442f0d054c8c1c2616aca
--- import           SMACCMPilot.Flight.Control.Altitude.Estimator
--- import           SMACCMPilot.Flight.Control.Altitude.Filter
--- =======
--- =======
--- >>>>>>> c8cc1f9d73fee82d1cbaf0e03664d8beea1d6d7c
-import Linear
-import Numeric.Estimator.Model.Coordinate
+import           SMACCMPilot.Flight.Control.Altitude.Estimator
+import           SMACCMPilot.Flight.Control.Altitude.Filter
+--import Linear
+--import Numeric.Estimator.Model.Coordinate
 
-import           SMACCMPilot.Flight.Control.Altitude.KalmanFilter
--- <<<<<<< HEAD
--- >>>>>>> implements Kalman filter for altitude state estimation
--- =======
--- >>>>>>> c8cc1f9d73fee82d1cbaf0e03664d8beea1d6d7c
+-- import           SMACCMPilot.Flight.Control.Altitude.KalmanFilter
 import           SMACCMPilot.Flight.Control.Altitude.ThrottleTracker
 import           SMACCMPilot.Flight.Control.Altitude.ThrottleUI
 import           SMACCMPilot.Flight.Types.MaybeFloat
@@ -41,9 +32,9 @@ import qualified SMACCMPilot.Comm.Ivory.Types.ControlLaw      as CL
 import qualified SMACCMPilot.Comm.Ivory.Types.ControlModes    as CM
 import qualified SMACCMPilot.Comm.Ivory.Types.ThrottleMode    as TM
 import qualified SMACCMPilot.Comm.Ivory.Types.ArmingMode      as A
-import qualified SMACCMPilot.Comm.Ivory.Types.Quaternion      as Q
+--import qualified SMACCMPilot.Comm.Ivory.Types.Quaternion      as Q
 import qualified SMACCMPilot.Comm.Ivory.Types.SensorsResult   as S
-import qualified SMACCMPilot.Comm.Ivory.Types.Xyz             as XYZ
+--import qualified SMACCMPilot.Comm.Ivory.Types.Xyz             as XYZ
 import           SMACCMPilot.Comm.Ivory.Types.UserInput       ()
 import qualified SMACCMPilot.Comm.Ivory.Types.ControlOutput as CO
 import           SMACCMPilot.Comm.Ivory.Types.TimeMicros
@@ -72,16 +63,9 @@ monitorAltitudeControl :: (AttrReadable a)
 monitorAltitudeControl attrs = do
   -- Alt estimator filters noisy sensor into altitude & its derivative
   alt_estimator <- monitorAltEstimator
--- <<<<<<< HEAD
--- <<<<<<< 3db709c41dbc02b427c63c381e5b13df27d15d9f
---   -- We want to further filter the LIDAR output
---   lidar_median_filter <- monitorMedianFilter (Proxy :: Proxy 7)
--- =======
---  r22_dbg <- state "r22_dbg"
--- >>>>>>> apply attitude compensation to altitude measurements
--- =======
+  -- We want to further filter the LIDAR output
+  lidar_median_filter <- monitorMedianFilter (Proxy :: Proxy 7)
   r22_dbg <- state "r22_dbg"
--- >>>>>>> c8cc1f9d73fee82d1cbaf0e03664d8beea1d6d7c
   -- Thrust PID controls altitude rate with thrust
   alt_rate_pid <- state "alt_rate_pid"
   -- Position PID controls altitude with altitude rate
@@ -127,49 +111,36 @@ monitorAltitudeControl attrs = do
           store at_enabled enabled
 
           -- Update estimators
--- <<<<<<< HEAD
--- <<<<<<< aeae75180c4f06cec55442f0d054c8c1c2616aca
---          alt_lidar_alt  <- deref (sens ~> S.lidar_alt)
---          alt_lidar_time <- deref (sens ~> S.lidar_time)
---          mf_update lidar_median_filter alt_lidar_alt
---          alt_lidar_filtered <- mf_output lidar_median_filter
---          ae_measurement
---            alt_estimator
---           alt_lidar_filtered
---            (timeMicrosToITime alt_lidar_time)
--- =======
--- =======
--- >>>>>>> c8cc1f9d73fee82d1cbaf0e03664d8beea1d6d7c
-          -- TODO: more sophisticated noise values
+          alt_lidar_alt  <- deref (sens ~> S.lidar_alt)
           r22 <- sensorsR22 sens
           store r22_dbg r22
-          att_quat <- derefQuat (sens ~> S.attitude)
-          accel <- derefXyz (sens ~> S.accel)
-          let NED (V3 _ _ zdot) = fst (convertFrames att_quat) accel
-          ae_propagate alt_estimator zdot dt
+          let gain = (abs r22 >? 0) ? (abs r22, 1e-7)
+          alt_lidar_time <- deref (sens ~> S.lidar_time)
+          mf_update lidar_median_filter (alt_lidar_alt * gain)
+          alt_lidar_filtered <- mf_output lidar_median_filter
+          ae_measurement
+            alt_estimator
+            alt_lidar_filtered
+            (timeMicrosToITime alt_lidar_time)
+
+          -- att_quat <- derefQuat (sens ~> S.attitude)
+          -- accel <- derefXyz (sens ~> S.accel)
+          -- let NED (V3 _ _ zdot) = fst (convertFrames att_quat) accel
+          -- ae_propagate alt_estimator zdot dt
 
           -- baro: offset, no compensation
-          alt_baro_alt  <- deref (sens ~> S.baro_alt)
-          ae_measure_offset alt_estimator alt_baro_alt r_baro
+          -- alt_baro_alt  <- deref (sens ~> S.baro_alt)
+          -- ae_measure_offset alt_estimator alt_baro_alt r_baro
 
           -- lidar and sonar: no offset, compensated
-          let gain = (abs r22 >? 0) ? (abs r22, 1e-7)
-          alt_lidar_alt <- deref (sens ~> S.lidar_alt)
-          ae_measure_absolute alt_estimator (alt_lidar_alt * gain) r_alt
-          alt_sonar_alt <- deref (sens ~> S.sonar_alt)
--- <<<<<<< HEAD
--- <<<<<<< 3db709c41dbc02b427c63c381e5b13df27d15d9f
---           ae_measure_absolute alt_estimator alt_sonar_alt r_alt
--- >>>>>>> implements Kalman filter for altitude state estimation
--- =======
-          ae_measure_absolute alt_estimator (alt_sonar_alt * gain) r_alt
--- >>>>>>> apply attitude compensation to altitude measurements
--- =======
-          ae_measure_absolute alt_estimator (alt_sonar_alt * gain) r_alt
--- >>>>>>> c8cc1f9d73fee82d1cbaf0e03664d8beea1d6d7c
+          -- let gain = (abs r22 >? 0) ? (abs r22, 1e-7)
+          -- ae_measure_absolute alt_estimator (alt_lidar_alt * gain) r_alt
+          -- alt_sonar_alt <- deref (sens ~> S.sonar_alt)
+          -- ae_measure_absolute alt_estimator (alt_sonar_alt * gain) r_alt
 
           -- read newest estimate
-          (AltState{..}) <- ae_state alt_estimator
+          -- (AltState{..}) <- ae_state alt_estimator
+          (as_z, as_zdot) <- ae_state alt_estimator
 
           when enabled $ do
             vz_control <- cond
@@ -273,16 +244,16 @@ monitorAltitudeControl attrs = do
     , alt_debug  = call_ proc_alt_debug
     }
 
-derefXyz :: Ref s ('Struct "xyz") -> Ivory eff (XYZ IFloat)
-derefXyz r = fmap XYZ $ mapM deref $ fmap (r ~>) (V3 XYZ.x XYZ.y XYZ.z)
+--derefXyz :: Ref s ('Struct "xyz") -> Ivory eff (XYZ IFloat)
+--derefXyz r = fmap XYZ $ mapM deref $ fmap (r ~>) (V3 XYZ.x XYZ.y XYZ.z)
 
-derefQuat :: Ref s ('Struct "quaternion") -> Ivory eff (Quaternion IFloat)
-derefQuat quat = do
-  a <- deref (quat ~> Q.a)
-  b <- deref (quat ~> Q.b)
-  c <- deref (quat ~> Q.c)
-  d <- deref (quat ~> Q.d)
-  return (Quaternion a (V3 b c d))
+--derefQuat :: Ref s ('Struct "quaternion") -> Ivory eff (Quaternion IFloat)
+--derefQuat quat = do
+--  a <- deref (quat ~> Q.a)
+--  b <- deref (quat ~> Q.b)
+--  c <- deref (quat ~> Q.c)
+--  d <- deref (quat ~> Q.d)
+--  return (Quaternion a (V3 b c d))
 
 -- | Calculate R22 factor, product of cosines of roll & pitch angles
 sensorsR22 :: Ref s ('Struct "sensors_result") -> Ivory eff IFloat
@@ -303,5 +274,5 @@ throttleR22Comp r22 =
       (((1.0 / 0.8 - 1.0) / 0.8) * r22 + 1.0)
     , (1.0)))
 
-_timeMicrosToITime :: TimeMicros -> ITime
-_timeMicrosToITime (TimeMicros m) = fromIMicroseconds m
+timeMicrosToITime :: TimeMicros -> ITime
+timeMicrosToITime (TimeMicros m) = fromIMicroseconds m
