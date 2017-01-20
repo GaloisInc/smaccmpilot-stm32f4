@@ -90,6 +90,7 @@
 (def-struct alt_control_debug_t
   (alt_est       float_t)
   (alt_rate_est  float_t)
+  (r22_gain      float_t)
   (thrust        pid_state_t)
   (ui_setp       float_t)
   (ui_rate_setp  float_t)
