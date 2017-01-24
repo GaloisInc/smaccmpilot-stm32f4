@@ -75,6 +75,7 @@ fmu17SensorManager FMU17Sensors{..} tocc _exti2cs = do
   mpu6000SensorManager sreq sready
                        (fst gyro_s) (fst acc_s)
                        (SPIDeviceHandle 0)
+                       Nothing
 
   return (snd acc_s, snd gyro_s, snd mag_s, snd baro_s)
 
@@ -121,6 +122,7 @@ fmu24SensorManager FMU24Sensors{..} tocc exti2cs = do
   mpu6000SensorManager mpu6000Req (snd l3gd20_rdy)
                        (fst gyro_s) (fst acc_s)
                        (SPIDeviceHandle 0)
+                       (Just fmu24sens_accel_cal)
 
   (lsm303dTask, lsm303dReq) <- task "lsm303d"
   mag_s <- channel
