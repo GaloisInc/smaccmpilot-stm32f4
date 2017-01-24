@@ -4,6 +4,9 @@
 
 module SMACCMPilot.Hardware.Sensors where
 
+import Prelude ()
+import Prelude.Compat
+
 import Ivory.Language
 import Ivory.Tower
 import Ivory.Tower.Config

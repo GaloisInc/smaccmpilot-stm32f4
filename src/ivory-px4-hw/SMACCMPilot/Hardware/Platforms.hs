@@ -11,6 +11,9 @@
 
 module SMACCMPilot.Hardware.Platforms where
 
+import Prelude ()
+import Prelude.Compat
+
 import Ivory.Language
 import Ivory.Tower
 import Ivory.Tower.HAL.Bus.Interface

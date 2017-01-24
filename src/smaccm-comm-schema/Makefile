@@ -1,5 +1,3 @@
-include ../../stack.mk
-
 IVORY_REPO             ?= ../../../ivory
 TOWER_REPO             ?= ../../../tower
 IVORY_TOWER_STM32_REPO ?= ../../../ivory-tower-stm32

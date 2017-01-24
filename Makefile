@@ -2,7 +2,7 @@ include stack.mk
 
 SUBDIRS = ivory-px4-hw ivory-geo smaccm-commsec smaccm-datalink smaccm-comm-schema smaccm-comm-client smaccm-flight smaccm-ins
 
-default: ivory-px4-hw
+default: smaccm-flight
 
 all: $(SUBDIRS)
 

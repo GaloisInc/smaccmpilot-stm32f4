@@ -13,6 +13,9 @@ module SMACCMPilot.Flight.Control.Altitude
   , monitorAltitudeControl
   ) where
 
+import Prelude ()
+import Prelude.Compat
+
 import Ivory.Language
 import Ivory.Tower
 import Ivory.Stdlib
