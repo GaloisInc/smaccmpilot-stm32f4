@@ -65,12 +65,14 @@
   (time        time_micros_t))
 
 (def-struct pid_config_t
-  (p_gain float_t)
-  (i_gain float_t)
-  (d_gain float_t)
-  (dd_gain float_t)
-  (i_min  float_t)
-  (i_max  float_t))
+  (p_gain   float_t)
+  (i_gain   float_t)
+  (d_gain   float_t)
+  (dd_gain  float_t)
+  (i_min    float_t)
+  (i_max    float_t)
+  (err_max  float_t)
+  (errd_max float_t))
 
 (def-struct pid_state_t
   (i_state float_t)

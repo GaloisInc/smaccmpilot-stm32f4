@@ -38,8 +38,9 @@ pid_update :: Def ('[ Ref      s1 ('Struct "pid_state")
                     , IFloat -- float rate_ref [rad/s]
                     , IFloat -- float rate_measured [rad/s]
                     , IFloat -- float accel_ref [rad/s^2]
+                    , IFloat -- dt [s]
                     ]':-> IFloat) -- float stabilization_cmd
-pid_update = proc "pid_update" $ \pid cfg angle_ref angle_measured rate_ref rate_measured accel_ref ->
+pid_update = proc "pid_update" $ \pid cfg angle_ref angle_measured rate_ref rate_measured accel_ref dt ->
   requires (notFloatNan angle_ref) $ requires (notFloatNan angle_measured) $ requires (notFloatNan rate_ref) $ requires (notFloatNan rate_measured) $ requires (notFloatNan accel_ref)
   $ body $ do
   -- load gains and limits
@@ -49,17 +50,19 @@ pid_update = proc "pid_update" $ \pid cfg angle_ref angle_measured rate_ref rate
   i_max   <- cfg~>*C.i_max
   d_gain  <- cfg~>*C.d_gain
   dd_gain  <- cfg~>*C.dd_gain
+  err_max  <- cfg~>*C.err_max
+  errd_max  <- cfg~>*C.errd_max
 
   -- calculate errors
-  let angle_err = angle_ref - angle_measured
-  let rate_err = rate_ref - rate_measured
+  angle_err <- ifte (err_max >? 0.0) (call fconstrain (-err_max) err_max (angle_ref - angle_measured)) (return (angle_ref - angle_measured))
+  rate_err <- ifte (errd_max >? 0.0) (call fconstrain (-errd_max) errd_max (rate_ref - rate_measured)) (return (rate_ref - rate_measured))
 
   -- calculate terms
   let p_term = p_gain * angle_err
   let d_term = d_gain * rate_err
   let dd_term = dd_gain * accel_ref
   i_sum <- pid~>*P.i_state
-  i_sum' <- call fconstrain i_min i_max (i_sum + angle_err)
+  i_sum' <- call fconstrain i_min i_max (i_sum + angle_err*dt)
   store (pid~>P.i_state) i_sum'
   let i_term = i_gain * i_sum'
   ret $ p_term + i_term + d_term + dd_term

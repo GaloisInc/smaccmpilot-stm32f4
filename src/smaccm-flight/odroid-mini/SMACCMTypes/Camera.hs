@@ -31,7 +31,7 @@ typedef
 
 smaccm_camera_module :: Module
 smaccm_camera_module = package "smaccm_camera_module" $ do
-  dependByName "smaccm_top_i_types"
+  dependByName "tb_smaccmcopter_types"
 
 [ivory|
 struct SMACCM_DATA__Camera_Bounding_Box_i

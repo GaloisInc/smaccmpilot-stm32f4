@@ -158,10 +158,11 @@ monitorAltitudeControl attrs = do
                       0.0
                       as_zdot
                       0.0
+                      dt
 
                   -- thrust_cmd is unbounded, so make sure it is
                   -- within the limits [0.1-1]
-                  thrust_cmd_norm   <- call fconstrain (0.1) 1 thrust_cmd
+                  thrust_cmd_norm   <- call fconstrain (0.1) 0.9 thrust_cmd
 
                   -- compensate for roll/pitch rotation
                   hover_thrust_abs <- deref nominal_throttle

@@ -30,7 +30,7 @@ typedef
 
 smaccm_UART_module :: Module
 smaccm_UART_module = package "smaccm_UART_module" $ do
-  dependByName "smaccm_top_i_types"
+  dependByName "tb_smaccmcopter_types"
 
 [ivory|
 struct SMACCM_DATA__UART_Packet_i

@@ -84,42 +84,42 @@ encrypt  = "Encrypt"
 
 app :: (e -> DatalinkMode) -> Bool -> [Component e]
 app todl cameraPresent =
-  let canHdr     = "smaccm_CAN_Framing.h"
-      decryptHdr = "smaccm_Decrypt.h"
-      encryptHdr = "smaccm_Encrypt.h"
-      serverHdr  = "smaccm_Server.h"
+  let canHdr     = "tb_CAN_Framing.h"
+      decryptHdr = "tb_Decrypt.h"
+      encryptHdr = "tb_Encrypt.h"
+      serverHdr  = "tb_Server.h"
       cameraVm2server =
-        mkExternalInputChan (server ++ "_read_vm2self") serverHdr
+        mkExternalInputChan ("tb_" ++ server ++ "_read_vm2self") serverHdr
       server2cameraVm =
-        mkExternalOutputChan (server ++ "_write_self2vm_reboot") serverHdr
+        mkExternalOutputChan ("tb_" ++ server ++ "_write_self2vm_reboot") serverHdr
       uartHw2decrypt =
-        mkExternalInputChan (decrypt ++ "_read_uart2self") decryptHdr
+        mkExternalInputChan ("tb_" ++ decrypt ++ "_read_uart2self") decryptHdr
       uartHw2encrypt =
-        mkExternalInputChan (encrypt ++ "_read_uart2self") encryptHdr
+        mkExternalInputChan ("tb_" ++ encrypt ++ "_read_uart2self") encryptHdr
       decrypt2server =
         mkExternalChan
-          (server ++ "_read_decrypt2self") serverHdr
-          (decrypt ++ "_write_self2server") decryptHdr
+          ("tb_" ++ server ++ "_read_decrypt2self") serverHdr
+          ("tb_" ++ decrypt ++ "_write_self2server") decryptHdr
       encrypt2uartHw =
-        mkExternalOutputChan (encrypt ++ "_write_self2uart") encryptHdr
+        mkExternalOutputChan ("tb_" ++ encrypt ++ "_write_self2uart") encryptHdr
       server2encrypt =
         mkExternalChan
-          (encrypt ++ "_read_server2self") encryptHdr
-          (server ++ "_write_self2encrypt") serverHdr
+          ("tb_" ++ encrypt ++ "_read_server2self") encryptHdr
+          ("tb_" ++ server ++ "_write_self2encrypt") serverHdr
       server2can =
         mkExternalChan
-          (can ++ "_read_server2self") canHdr
-          (server ++ "_write_self2framing") serverHdr
+          ("tb_" ++ can ++ "_read_server2self") canHdr
+          ("tb_" ++ server ++ "_write_self2framing") serverHdr
       can2server =
         mkExternalChan
-          (server ++ "_read_framing2self") serverHdr
-          (can ++ "_write_self2server") canHdr
+          ("tb_" ++ server ++ "_read_framing2self") serverHdr
+          ("tb_" ++ can ++ "_write_self2server") canHdr
       can2canHw_send =
-        mkExternalOutputChan (can ++ "_write_self2can") canHdr
+        mkExternalOutputChan ("tb_" ++ can ++ "_write_self2can") canHdr
       canHw2can_recv =
-        mkExternalInputChan (can ++ "_read_can2self_frame") canHdr
+        mkExternalInputChan ("tb_" ++ can ++ "_read_can2self_frame") canHdr
       canHw2can_status =
-        mkExternalInputChan (can ++ "_read_can2self_status") canHdr
+        mkExternalInputChan ("tb_" ++ can ++ "_read_can2self_status") canHdr
   in [
     serverComponent cameraPresent
       decrypt2server

@@ -33,7 +33,7 @@ typedef
 
 smaccm_can_module :: Module
 smaccm_can_module = package "smaccm_can_module" $ do
-  dependByName "smaccm_CAN_Framing"
+  dependByName "tb_CAN_Framing"
 
 [ivory|
 struct SMACCM_DATA__CAN_Frame_i

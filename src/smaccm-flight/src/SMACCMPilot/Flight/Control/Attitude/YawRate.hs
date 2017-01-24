@@ -39,6 +39,7 @@ monitorYawRateControl config_attr = do
 
   valid     <- state "valid"
   yaw_out   <- state "yaw_out"
+  last_time <- state "last_time"
   yaw_rate_cfg <- attrState config_attr
   let named n = fmap showUnique $ freshname $ "yawctl_" ++ n
 
@@ -56,6 +57,10 @@ monitorYawRateControl config_attr = do
                         , ConstRef s ('Struct "sensors_result")
                         ] ':-> ())
       run_proc = proc run_name $ \yaw_rate_setpt sens -> body $ do
+        t0 <- deref last_time
+        t1 <- fmap toIMicroseconds getTime
+        store last_time t1
+        let dt = safeCast (castDefault (t1 - t0) :: Sint32) / 1000000
         sen_omega_z <- deref ((sens ~> SEN.omega) ~> XYZ.z)
         yaw_ctl <- call stabilize_from_rate
                             yaw_rate
@@ -63,6 +68,7 @@ monitorYawRateControl config_attr = do
                             yaw_rate_setpt
                             sen_omega_z
                             const_MAX_OUTPUT_YAW
+                            dt
 
         store valid true
         store yaw_out yaw_ctl
@@ -78,6 +84,8 @@ monitorYawRateControl config_attr = do
       reset_proc = proc reset_name $ body $ do
         store valid false
         call_ pid_reset yaw_rate
+        t <- fmap toIMicroseconds getTime
+        store last_time t
 
   monitorModuleDef $ do
     incl init_proc
@@ -86,6 +94,8 @@ monitorYawRateControl config_attr = do
     incl reset_proc
     depend controlPIDModule
     depend attStabilizeModule
+    -- XXX why is this not getting included by the importProc of getTime?
+    dependByName "tower_time"
   return YawRateControl
     { yc_init  = call_ init_proc
     , yc_run   = call_ run_proc
