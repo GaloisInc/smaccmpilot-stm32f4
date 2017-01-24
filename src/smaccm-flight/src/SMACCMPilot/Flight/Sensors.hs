@@ -31,14 +31,12 @@ import           SMACCMPilot.Flight.Sensors.GPS
 import           SMACCMPilot.Hardware.SensorManager
 import           SMACCMPilot.Hardware.Sensors
 import           SMACCMPilot.INS.Bias.Gyro
-import           SMACCMPilot.INS.Bias.Accel
 import           SMACCMPilot.INS.Bias.Magnetometer.Tower
 import           SMACCMPilot.INS.Bias.Calibration
 import           SMACCMPilot.INS.DetectMotion
 import           SMACCMPilot.INS.Attitude.Ivory
 import           SMACCMPilot.INS.Attitude.SensorFusion
 import           SMACCMPilot.INS.Attitude.Tower
-import           SMACCMPilot.Flight.Sensors.AccelBiasTrigger
 import           SMACCMPilot.Flight.Sensors.LIDARLite
 import           SMACCMPilot.Flight.Sensors.PX4Flow
 
@@ -74,11 +72,11 @@ sensorTower tofp attrs = do
                 bpt init_chan px4flow_in px4flow_i2c_addr
           }
 
-  (accel_raw, gyro_raw, mag_raw, baro_raw) <-
+  (accel, gyro_raw, mag_raw, baro_raw) <-
     sensorManager (fp_sensors . tofp) (fp_clockconfig . tofp) exti2cs
 
   motion <- channel
-  detectMotion gyro_raw accel_raw (fst motion)
+  detectMotion gyro_raw accel (fst motion)
 
   monitor "motion_light_debug" $ do
     handler (snd motion) "motion_light_debug" $ do
@@ -94,22 +92,7 @@ sensorTower tofp attrs = do
   -- is disarmed.
   let cl_chan = attrReaderChan (controlLaw attrs)
 
-  -- Accel: same basic calibration scheme as Gyro, below, except that we only
-  -- trigger the calcAccelBiasTower under special conditions.
-  attrProxy (accelRawOutput attrs) accel_raw
-
-  accel_bias_trigger <- channel
-  accelBiasTriggerTower (snd motion)
-                        (attrReaderChan (px4ioState attrs))
-                        (fst accel_bias_trigger)
-
-  accel_bias <- calcAccelBiasTower accel_raw (snd accel_bias_trigger)
-  attrProxy (accelCalibration attrs) accel_bias
-
-  (accel_out, accel_out_bias) <- applyCalibrationTower accelCalibrate accel_raw accel_bias cl_chan
-
-  attrProxy (accelOutputCalibration attrs) accel_out_bias
-  attrProxy (accelOutput attrs) accel_out
+  attrProxy (accelOutput attrs) accel
 
   -- LIDAR: calibration handled onboard
   attrProxy (lidarliteOutput attrs) lidar
@@ -151,9 +134,9 @@ sensorTower tofp attrs = do
   -- Sensor fusion: estimate vehicle attitude with respect to a N/E/D
   -- navigation frame. Report (1) attitude; (2) sensor measurements in the
   -- navigation frame.
-  states <- sensorFusion accel_out gyro_out mag_out (snd motion)
+  states <- sensorFusion accel gyro_out mag_out (snd motion)
   monitor "sensor_fusion_proxy" $ do
-    last_accel <- save "last_accel" accel_out
+    last_accel <- save "last_accel" accel
     last_baro <- save "last_baro" baro_raw
     last_gyro <- save "last_gyro" gyro_out
     last_lidar <- save "last_lidar" lidar
@@ -164,7 +147,7 @@ sensorTower tofp attrs = do
         attitude <- mapM deref $ stateOrient $ stateVectorFromStruct stateVector
         let (Quaternion q0 (V3 q1 q2 q3)) = attitude
 
-        accel <- xyzRef $ last_accel ~> A.sample
+        accel_sample <- xyzRef $ last_accel ~> A.sample
 
         baro_time <- deref $ last_baro ~> B.time
         pressure <- deref $ last_baro ~> B.pressure
@@ -184,7 +167,7 @@ sensorTower tofp attrs = do
           , R.attitude .= quatInitStruct q0 q1 q2 q3
           , R.baro_alt .= ival (pressureToHeight $ pressure * 100) -- convert mbar to Pascals
           , R.lidar_alt .= ival lidar_distance
-          , R.accel .= xyzInitStruct accel
+          , R.accel .= xyzInitStruct accel_sample
           , R.ahrs_time .= ival gyro_time
           , R.baro_time .= ival baro_time
           , R.lidar_time .= ival lidar_time
@@ -211,4 +194,8 @@ xyzInitStruct (V3 x y z) = istruct [ XYZ.x .= ival x, XYZ.y .= ival y, XYZ.z .= 
 quatInitStruct
   :: IFloat -> IFloat -> IFloat -> IFloat -> Init ('Struct "quaternion")
 quatInitStruct a b c d =
-  istruct [ Q.a .= ival a, Q.b .= ival b, Q.c .= ival c, Q.d .= ival d]
+  istruct [ Q.quat_a .= ival a
+          , Q.quat_b .= ival b
+          , Q.quat_c .= ival c
+          , Q.quat_d .= ival d
+          ]

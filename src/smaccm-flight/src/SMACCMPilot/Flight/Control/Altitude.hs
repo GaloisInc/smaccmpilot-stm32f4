@@ -235,10 +235,10 @@ derefXyz r = fmap XYZ $ mapM deref $ fmap (r ~>) (V3 XYZ.x XYZ.y XYZ.z)
 
 derefQuat :: Ref s ('Struct "quaternion") -> Ivory eff (Quaternion IFloat)
 derefQuat quat = do
-  a <- deref (quat ~> Q.a)
-  b <- deref (quat ~> Q.b)
-  c <- deref (quat ~> Q.c)
-  d <- deref (quat ~> Q.d)
+  a <- deref (quat ~> Q.quat_a)
+  b <- deref (quat ~> Q.quat_b)
+  c <- deref (quat ~> Q.quat_c)
+  d <- deref (quat ~> Q.quat_d)
   return (Quaternion a (V3 b c d))
 
 -- | Calculate R22 factor, product of cosines of roll & pitch angles

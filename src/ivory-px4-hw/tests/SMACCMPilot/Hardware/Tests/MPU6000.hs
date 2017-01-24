@@ -48,7 +48,7 @@ app topx4 = do
                      (SPIDeviceHandle 1)
       return (spi_req, snd l3gd20_rdy)
 
-  mpu6000SensorManager req ready (fst g_sample) (fst a_sample) (SPIDeviceHandle 0)
+  mpu6000SensorManager req ready (fst g_sample) (fst a_sample) (SPIDeviceHandle 0) Nothing
 
   (uarto, _uarti, mon) <- px4ConsoleTower topx4
   monitor "uart" mon

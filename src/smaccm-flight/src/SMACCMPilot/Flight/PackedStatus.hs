@@ -57,9 +57,6 @@ packedStatusTower attrs = monitor "pack_status" $ do
   save packed (packedStatus attrs) (gyroOutputCalibration attrs)
     [ Copy P.gyro_progress U.progress ]
 
-  save packed (packedStatus attrs) (accelOutputCalibration attrs)
-    [ Copy P.accel_progress U.progress ]
-
   save packed (packedStatus attrs) (magOutputCalibration attrs)
     [ Copy P.mag_progress U.progress ]
 

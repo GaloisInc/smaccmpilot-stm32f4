@@ -23,7 +23,8 @@ main = compileTowerAADLForPlatform f p $ do
   f :: PX4Platform -> (AADLConfig, OSSpecific STM32Config)
   f tp = ( defaultAADLConfig { configSystemOS  = EChronos
                              , configSystemHW  = PIXHAWK
-                             , configBuildRoot = Just "../../../../"
+                             , configRamsesPath = Just "../../../../ramses-demo"
+                             , configEchronosPath = Just "../../../echronos"
                              }
          , defaultEChronosOS (px4platform_stm32config tp)
          )

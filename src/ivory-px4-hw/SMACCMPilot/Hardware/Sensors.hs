@@ -74,7 +74,7 @@ data AccelCal = AccelCal {
   }
 
 parseAccelCal :: ConfigParser AccelCal
-parseAccelCal = subsection "accelerometer" $ subsection "calibration" $ do
+parseAccelCal = subsection "calibration" $ subsection "accelerometer" $ do
   accel_cal_x_offset <- fromIntegral <$> subsection "x_offset" integer
   accel_cal_y_offset <- fromIntegral <$> subsection "y_offset" integer
   accel_cal_z_offset <- fromIntegral <$> subsection "z_offset" integer
