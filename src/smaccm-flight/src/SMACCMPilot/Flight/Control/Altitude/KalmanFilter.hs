@@ -99,10 +99,10 @@ qoffoff :: IFloat
 qoffoff = 1e-4
 
 r_baro :: IFloat
-r_baro = 1
+r_baro = 10
 
 r_alt :: IFloat
-r_alt = 0.1
+r_alt = 1
 
 r_offset :: IFloat
 r_offset = 1
