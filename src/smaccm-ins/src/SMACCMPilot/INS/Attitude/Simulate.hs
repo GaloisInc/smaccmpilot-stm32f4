@@ -3,7 +3,7 @@
 {-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE TypeFamilies #-}
 
-module SMACCMPilot.INS.Simulate where
+module SMACCMPilot.INS.Attitude.Simulate where
 
 import Control.Applicative
 import Control.Lens ((^.))
@@ -16,7 +16,7 @@ import Numeric.AD.Internal.Reverse
 import Numeric.Estimator
 import Numeric.Estimator.Model.Coordinate
 import Prelude hiding (mapM, sequence, sum)
-import SMACCMPilot.INS.SensorFusion
+import SMACCMPilot.INS.Attitude.SensorFusion
 
 type KalmanState m a = StateT (a, KalmanFilter StateVector a) m
 

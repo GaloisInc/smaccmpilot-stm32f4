@@ -11,9 +11,12 @@ import Control.Monad (forM, when)
 import Ivory.Language
 import Ivory.Tower
 import Ivory.Tower.HAL.Bus.Sched
+import qualified Ivory.Tower.HAL.Bus.SchedAsync as Async
 
 import Ivory.BSP.STM32.Driver.I2C
+import Ivory.BSP.STM32.Peripheral.I2C (i2cName)
 import Ivory.BSP.STM32.Driver.SPI
+import Ivory.BSP.STM32.Peripheral.SPI (spiName)
 
 import SMACCMPilot.Hardware.HMC5883L
 import SMACCMPilot.Hardware.LSM303D
@@ -61,7 +64,8 @@ fmu17SensorManager FMU17Sensors{..} tocc _exti2cs = do
   mag_s <-channel
   hmc5883lSensorManager hmc5883Req i2cReady (fst mag_s) fmu17sens_hmc5883l
 
-  schedule [ms5611task, hmc5883task] i2cReady i2cRequest
+  Async.schedule (i2cName fmu17sens_i2c_periph)
+    [ms5611task, hmc5883task] i2cReady i2cRequest (Milliseconds 1)
 
   acc_s <- channel
   gyro_s <- channel
@@ -129,7 +133,8 @@ fmu24SensorManager FMU24Sensors{..} tocc exti2cs = do
   ms5611SPISensorManager ms5611Req (snd l3gd20_rdy)
                          (fst baro_s) (SPIDeviceHandle 2)
 
-  schedule [mpu6000Task, lsm303dTask, ms5611Task, l3gd20Task] sready sreq
+  schedule (spiName fmu24sens_spi_periph)
+    [mpu6000Task, lsm303dTask, ms5611Task, l3gd20Task] sready sreq
 
   -- I2C devices
   when (not (null exti2cs)) $ do
@@ -141,7 +146,8 @@ fmu24SensorManager FMU24Sensors{..} tocc exti2cs = do
       (t, req) <- task ext_sens_name
       ext_sens_init req i2cReady
       return t
-    schedule tasks i2cReady i2cRequest
+    Async.schedule (i2cName fmu24sens_ext_i2c_periph)
+      tasks i2cReady i2cRequest (Milliseconds 1)
 
   return (snd acc_s, snd gyro_s, snd mag_s, snd baro_s)
 

@@ -33,8 +33,8 @@ import SMACCMPilot.INS.Bias.Calibration
 import SMACCMPilot.INS.Bias.Gyro
 import SMACCMPilot.INS.Bias.Magnetometer
 import SMACCMPilot.INS.DetectMotion
-import SMACCMPilot.INS.Ivory
-import SMACCMPilot.INS.Tower
+import SMACCMPilot.INS.Attitude.Ivory
+import SMACCMPilot.INS.Attitude.Tower
 
 import Prelude hiding (mapM, mapM_)
 
@@ -174,7 +174,7 @@ app = compileTowerPosix (const $ return ()) $ do
 
         handler states "print_row" $ do
           e <- emitter (backpressureTransmit tx) 1
-          callback $ \ kalman_state -> do
+          callback $ \ att_kalman_state -> do
             was_pending <- deref pending
             unless was_pending $ do
               buf <- local izero
@@ -201,8 +201,8 @@ app = compileTowerPosix (const $ return ()) $ do
 
               -- EKF states
 
-              print_array (kalman_state ~> orient)
-              print_array (kalman_state ~> mag_ned)
+              print_array (att_kalman_state ~> orient)
+              print_array (att_kalman_state ~> mag_ned)
 
               -- Non EKF states
 

@@ -1,6 +1,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE Rank2Types #-}
+{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TypeFamilies #-}
 
 module SMACCMPilot.Flight.Control.Altitude.ThrottleUI where
@@ -9,6 +10,7 @@ import Ivory.Language
 import Ivory.Tower
 import Ivory.Stdlib
 
+--import           SMACCMPilot.Flight.Control.Altitude.KalmanFilter
 import           SMACCMPilot.Flight.Control.Altitude.Estimator
 import           SMACCMPilot.Flight.Control.PID()
 
@@ -48,10 +50,10 @@ monitorThrottleUI attr estimator = do
           store vel_setpoint sr
 
           active <- deref active_state
-          (alt_est, _) <- ae_state estimator
+          (as_z, _) <- ae_state estimator
           cond_
             [ iNot active ==> do
-                store alt_setpoint alt_est
+                store alt_setpoint as_z
                 store active_state true
             , active ==> do
                 -- do nothing (the alt_setpoint is constant)

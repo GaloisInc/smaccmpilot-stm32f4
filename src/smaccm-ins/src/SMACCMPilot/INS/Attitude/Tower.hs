@@ -2,7 +2,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE TypeOperators #-}
 
-module SMACCMPilot.INS.Tower (sensorFusion) where
+module SMACCMPilot.INS.Attitude.Tower (sensorFusion) where
 
 import Data.Traversable
 import Ivory.Language
@@ -15,7 +15,7 @@ import qualified SMACCMPilot.Comm.Ivory.Types.MagnetometerSample  as M
 import qualified SMACCMPilot.Comm.Ivory.Types.AccelerometerSample as A
 import qualified SMACCMPilot.Comm.Ivory.Types.GyroscopeSample     as G
 import qualified SMACCMPilot.Comm.Ivory.Types.Xyz as XYZ
-import SMACCMPilot.INS.Ivory
+import SMACCMPilot.INS.Attitude.Ivory
 import SMACCMPilot.Time
 
 changeUnits :: (Functor f, Functor g) => (x -> y) -> f (g x) -> f (g y)
@@ -38,12 +38,12 @@ gyro sample = changeUnits (* (pi / 180))
             $ fmap ((sample ~> G.sample) ~>)
             $ xyz XYZ.x XYZ.y XYZ.z
 
-kalman_predict :: Def ('[ Ref s1 ('Struct "kalman_state")
-                        , Ref s2 ('Struct "kalman_covariance")
+att_kalman_predict :: Def ('[ Ref s1 ('Struct "att_kalman_state")
+                        , Ref s2 ('Struct "att_kalman_covariance")
                         , Ref s3 ('Stored ITime)
                         , ITime
                         , ConstRef s4 ('Struct "gyroscope_sample")] ':-> ())
-kalman_predict = proc "kalman_predict" $
+att_kalman_predict = proc "att_kalman_predict" $
   \ state_vector covariance last_predict now last_gyro -> body $ do
       gyro_not_ready <- deref $ last_gyro ~> G.samplefail
       when gyro_not_ready retVoid
@@ -53,8 +53,8 @@ kalman_predict = proc "kalman_predict" $
       kalmanPredict state_vector covariance dt =<< gyro last_gyro
       store last_predict now
 
-accel_measure :: Def ('[ Ref s1 ('Struct "kalman_state")
-                       , Ref s2 ('Struct "kalman_covariance")
+accel_measure :: Def ('[ Ref s1 ('Struct "att_kalman_state")
+                       , Ref s2 ('Struct "att_kalman_covariance")
                        , ConstRef s3 ('Struct "accelerometer_sample")
                        ] ':-> ())
 accel_measure = proc "accel_measure" $ \ state_vector covariance last_accel -> body $ do
@@ -69,14 +69,14 @@ mag sample = changeUnits (* 1000)
            $ fmap ((sample ~> M.sample) ~>)
            $ xyz XYZ.x XYZ.y XYZ.z
 
-mag_measure :: Def ('[ Ref s1 ('Struct "kalman_state")
-                     , Ref s2 ('Struct "kalman_covariance")
+mag_measure :: Def ('[ Ref s1 ('Struct "att_kalman_state")
+                     , Ref s2 ('Struct "att_kalman_covariance")
                      , ConstRef s3 ('Struct "magnetometer_sample")] ':-> ())
 mag_measure = proc "mag_measure" $ \ state_vector covariance last_mag -> body $ do
   magMeasure state_vector covariance =<< mag last_mag
 
-init_filter :: Def ('[ Ref s1 ('Struct "kalman_state")
-                     , Ref s2 ('Struct "kalman_covariance")
+init_filter :: Def ('[ Ref s1 ('Struct "att_kalman_state")
+                     , Ref s2 ('Struct "att_kalman_covariance")
                      , ConstRef s3 ('Struct "accelerometer_sample")
                      , ConstRef s4 ('Struct "magnetometer_sample")
                      ] ':-> IBool)
@@ -94,7 +94,7 @@ sensorFusion :: ChanOutput ('Struct "accelerometer_sample")
              -> ChanOutput ('Struct "gyroscope_sample")
              -> ChanOutput ('Struct "magnetometer_sample")
              -> ChanOutput ('Stored IBool)
-             -> Tower e (ChanOutput ('Struct "kalman_state"))
+             -> Tower e (ChanOutput ('Struct "att_kalman_state"))
 sensorFusion accelSource gyroSource magSource motion = do
   (stateSink, stateSource) <- channel
 
@@ -104,7 +104,7 @@ sensorFusion accelSource gyroSource magSource motion = do
 
   monitor "fuse" $ do
     monitorModuleDef $ do
-      incl kalman_predict
+      incl att_kalman_predict
       incl accel_measure
       incl mag_measure
       incl init_filter
@@ -140,7 +140,7 @@ sensorFusion accelSource gyroSource magSource motion = do
           ifte_ ready
             (do
               now <- fmap iTimeFromTimeMicros $ deref $ last_gyro ~> G.time
-              call_ kalman_predict state_vector covariance last_predict now (constRef last_gyro)
+              call_ att_kalman_predict state_vector covariance last_predict now (constRef last_gyro)
             ) (do
               magCal <- deref $ last_mag ~> M.calibrated
               wasMoving <- deref in_motion

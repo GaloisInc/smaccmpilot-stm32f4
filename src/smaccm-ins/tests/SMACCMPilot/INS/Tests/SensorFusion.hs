@@ -20,7 +20,7 @@ import SMACCMPilot.INS.Bias.Calibration
 import SMACCMPilot.INS.Bias.Gyro
 import SMACCMPilot.INS.Bias.Magnetometer
 import SMACCMPilot.INS.DetectMotion
-import SMACCMPilot.INS.Tower
+import SMACCMPilot.INS.Attitude.Tower
 
 app :: (e -> PX4Platform) -> Tower e ()
 app topx4 = do

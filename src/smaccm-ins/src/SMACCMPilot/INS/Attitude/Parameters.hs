@@ -1,12 +1,12 @@
 -- | Model noise parameters
 
-module SMACCMPilot.INS.Parameters where
+module SMACCMPilot.INS.Attitude.Parameters where
 
 import Prelude ()
 import Prelude.Compat
 
 import Numeric.Estimator.Model.Coordinate
-import SMACCMPilot.INS.SensorFusion
+import SMACCMPilot.INS.Attitude.SensorFusion
 
 processNoise :: Fractional a => a -> StateVector a
 processNoise dt = fmap (^ (2 :: Int)) $ fmap (dt *) $ StateVector

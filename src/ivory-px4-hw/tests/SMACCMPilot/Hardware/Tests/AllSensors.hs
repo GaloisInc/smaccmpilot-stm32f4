@@ -56,7 +56,7 @@ app topx4 = do
       , ("gps", positionSender (snd position))
       ]
     ]
-  schedule uartTasks systemInit uartout
+  schedule "uart" uartTasks systemInit uartout
 
   case px4platform_can px4platform of
     Nothing -> return () -- don't send sensor readings to non-existent CAN busses

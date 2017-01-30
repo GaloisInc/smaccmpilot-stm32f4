@@ -73,10 +73,12 @@ sensorSample res r_gyro r_accel = do
   convert ((r_gyro ~> G.sample) ~> XYZ.y) (mpu6000_r ~> M.gx) (negate . to_dps)
   convert ((r_gyro ~> G.sample) ~> XYZ.z) (mpu6000_r ~> M.gz) to_dps
   comment "convert to m/s/s by way of g"
-  let to_g x = safeCast x / 2048.0 * 9.80665
-  convert ((r_accel ~> A.sample) ~> XYZ.x)  (mpu6000_r ~> M.ay) to_g
-  convert ((r_accel ~> A.sample) ~> XYZ.y)  (mpu6000_r ~> M.ax) (negate . to_g)
-  convert ((r_accel ~> A.sample) ~> XYZ.z)  (mpu6000_r ~> M.az) to_g
+  let to_ms2_x x = safeCast (x-7) / 2048.0 * 9.80665
+  let to_ms2_y x = safeCast (x+19) / 2048.0 * 9.80665
+  let to_ms2_z x = safeCast (x+8) / 2048.0 * 9.80665
+  convert ((r_accel ~> A.sample) ~> XYZ.x)  (mpu6000_r ~> M.ay) to_ms2_x
+  convert ((r_accel ~> A.sample) ~> XYZ.y)  (mpu6000_r ~> M.ax) (negate . to_ms2_y)
+  convert ((r_accel ~> A.sample) ~> XYZ.z)  (mpu6000_r ~> M.az) to_ms2_z
   comment "convert to degrees Celsius"
   t <- deref (mpu6000_r ~> M.temp)
   r_temp <- assign (safeCast t / 340.0 + 36.53)

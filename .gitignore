@@ -20,6 +20,7 @@ TAGS
 /tower/
 *~
 /src/smaccm-comm-schema/smaccm-comm-schema-elm
-
+/src/smaccm-comm-client/elm/elm-stuff
+/src/smaccm-comm-client/elm/elm.js
 # all logs
 *.csv

@@ -41,9 +41,9 @@ rgbLedManager bp_i2c init_chan attr addr = do
     handler attr "set" $ do
       o <- emitter req_chan 1
       callback $ \v -> do
-        e <- deref err
+        _e <- deref err
         resp <- deref expect_resp
-        unless ((e >? 0) .|| resp)  $ do
+        unless resp $ do
           store expect_resp true
           r <- deref (v ~> red)
           g <- deref (v ~> green)

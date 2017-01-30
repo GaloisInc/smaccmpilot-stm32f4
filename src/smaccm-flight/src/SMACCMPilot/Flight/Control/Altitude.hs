@@ -1,7 +1,8 @@
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE Rank2Types #-}
+{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE TypeOperators #-}
 
 -- Altitude controller based off work by Anton Babushkin <rk3dov@gmail.com> for
 -- the PX4 Autopilot Project
@@ -18,6 +19,10 @@ import Ivory.Stdlib
 
 import           SMACCMPilot.Flight.Control.Altitude.Estimator
 import           SMACCMPilot.Flight.Control.Altitude.Filter
+--import Linear
+--import Numeric.Estimator.Model.Coordinate
+
+-- import           SMACCMPilot.Flight.Control.Altitude.KalmanFilter
 import           SMACCMPilot.Flight.Control.Altitude.ThrottleTracker
 import           SMACCMPilot.Flight.Control.Altitude.ThrottleUI
 import           SMACCMPilot.Flight.Types.MaybeFloat
@@ -27,7 +32,9 @@ import qualified SMACCMPilot.Comm.Ivory.Types.ControlLaw      as CL
 import qualified SMACCMPilot.Comm.Ivory.Types.ControlModes    as CM
 import qualified SMACCMPilot.Comm.Ivory.Types.ThrottleMode    as TM
 import qualified SMACCMPilot.Comm.Ivory.Types.ArmingMode      as A
+--import qualified SMACCMPilot.Comm.Ivory.Types.Quaternion      as Q
 import qualified SMACCMPilot.Comm.Ivory.Types.SensorsResult   as S
+--import qualified SMACCMPilot.Comm.Ivory.Types.Xyz             as XYZ
 import           SMACCMPilot.Comm.Ivory.Types.UserInput       ()
 import qualified SMACCMPilot.Comm.Ivory.Types.ControlOutput as CO
 import           SMACCMPilot.Comm.Ivory.Types.TimeMicros
@@ -58,6 +65,7 @@ monitorAltitudeControl attrs = do
   alt_estimator <- monitorAltEstimator
   -- We want to further filter the LIDAR output
   lidar_median_filter <- monitorMedianFilter (Proxy :: Proxy 7)
+  r22_dbg <- state "r22_dbg"
   -- Thrust PID controls altitude rate with thrust
   alt_rate_pid <- state "alt_rate_pid"
   -- Position PID controls altitude with altitude rate
@@ -104,16 +112,35 @@ monitorAltitudeControl attrs = do
 
           -- Update estimators
           alt_lidar_alt  <- deref (sens ~> S.lidar_alt)
+          r22 <- sensorsR22 sens
+          store r22_dbg r22
+          let gain = (abs r22 >? 0) ? (abs r22, 1e-7)
           alt_lidar_time <- deref (sens ~> S.lidar_time)
-          mf_update lidar_median_filter alt_lidar_alt
+          mf_update lidar_median_filter (alt_lidar_alt * gain)
           alt_lidar_filtered <- mf_output lidar_median_filter
           ae_measurement
             alt_estimator
             alt_lidar_filtered
             (timeMicrosToITime alt_lidar_time)
 
+          -- att_quat <- derefQuat (sens ~> S.attitude)
+          -- accel <- derefXyz (sens ~> S.accel)
+          -- let NED (V3 _ _ zdot) = fst (convertFrames att_quat) accel
+          -- ae_propagate alt_estimator zdot dt
+
+          -- baro: offset, no compensation
+          -- alt_baro_alt  <- deref (sens ~> S.baro_alt)
+          -- ae_measure_offset alt_estimator alt_baro_alt r_baro
+
+          -- lidar and sonar: no offset, compensated
+          -- let gain = (abs r22 >? 0) ? (abs r22, 1e-7)
+          -- ae_measure_absolute alt_estimator (alt_lidar_alt * gain) r_alt
+          -- alt_sonar_alt <- deref (sens ~> S.sonar_alt)
+          -- ae_measure_absolute alt_estimator (alt_sonar_alt * gain) r_alt
+
           -- read newest estimate
-          (alt_est_pos, alt_est_rate) <- ae_state alt_estimator
+          -- (AltState{..}) <- ae_state alt_estimator
+          (as_z, as_zdot) <- ae_state alt_estimator
 
           when enabled $ do
             vz_control <- cond
@@ -123,8 +150,8 @@ monitorAltitudeControl attrs = do
                   tui_update      ui_control ui dt
                   (ui_alt, _) <- tui_setpoint ui_control
                   -- store errors for reference
-                  _alt_err     <- assign $ ui_alt - alt_est_pos
-                  _alt_rate_err    <- assign $ 0.0 - alt_est_rate
+                  _alt_err     <- assign $ ui_alt - as_z
+                  _alt_rate_err    <- assign $ 0.0 - as_zdot
                   store (state_dbg ~> A.pos_setp) _alt_err
                   store (state_dbg ~> A.pos_rate_setp) _alt_rate_err
 
@@ -140,22 +167,21 @@ monitorAltitudeControl attrs = do
                       alt_pos_pid
                       (constRef alt_pos_cfg)
                       ui_alt
-                      alt_est_pos
+                      as_z
                       0.0
-                      alt_est_rate
+                      as_zdot
                       0.0
                       dt
 
                   -- thrust_cmd is unbounded, so make sure it is
-                  -- within the limits [0.1-1]
-                  thrust_cmd_norm   <- call fconstrain (0.1) 0.9 thrust_cmd
+                  -- within the limits [-1..1]
+                  thrust_cmd_norm   <- call fconstrain (-1.0) 0.9 thrust_cmd
 
                   -- compensate for roll/pitch rotation
-                  r22   <- _sensorsR22 sens
                   hover_thrust_abs <- deref nominal_throttle
                   hover_thrust <-
-                    assign ((_throttleR22Comp r22) * hover_thrust_abs)
-                  let vz_ctl = thrust_cmd_norm + hover_thrust
+                    assign ((throttleR22Comp r22) * hover_thrust_abs)
+                  vz_ctl <- call fconstrain 0.1 0.9 (thrust_cmd_norm + hover_thrust)
                   -- ALTITUDE CONTROLLER END
 
                   -- maybe rename A.pos_rate_setp because it is not
@@ -187,6 +213,8 @@ monitorAltitudeControl attrs = do
       proc_alt_debug = proc name_alt_debug $ \out -> body $ do
         tui_write_debug ui_control state_dbg
         ae_write_debug alt_estimator state_dbg
+        gain <- abs <$> deref r22_dbg
+        store (state_dbg ~> A.r22_gain) gain
         --pos_pid_write_debug position_pid state_dbg
         --thrust_pid_write_debug thrust_pid state_dbg
         refCopy out (constRef state_dbg)
@@ -216,9 +244,20 @@ monitorAltitudeControl attrs = do
     , alt_debug  = call_ proc_alt_debug
     }
 
+--derefXyz :: Ref s ('Struct "xyz") -> Ivory eff (XYZ IFloat)
+--derefXyz r = fmap XYZ $ mapM deref $ fmap (r ~>) (V3 XYZ.x XYZ.y XYZ.z)
+
+--derefQuat :: Ref s ('Struct "quaternion") -> Ivory eff (Quaternion IFloat)
+--derefQuat quat = do
+--  a <- deref (quat ~> Q.a)
+--  b <- deref (quat ~> Q.b)
+--  c <- deref (quat ~> Q.c)
+--  d <- deref (quat ~> Q.d)
+--  return (Quaternion a (V3 b c d))
+
 -- | Calculate R22 factor, product of cosines of roll & pitch angles
-_sensorsR22 :: Ref s ('Struct "sensors_result") -> Ivory eff IFloat
-_sensorsR22 sens = do
+sensorsR22 :: Ref s ('Struct "sensors_result") -> Ivory eff IFloat
+sensorsR22 sens = do
   pitch <- deref (sens ~> S.pitch)
   roll  <- deref (sens ~> S.roll)
   r22   <- assign (cos pitch * cos roll)
@@ -227,14 +266,13 @@ _sensorsR22 sens = do
 -- | Throttle compensation factor (multiplicative) based on R22
 --   Based on PX4 project code (98a43454 Anton Babushkin)
 --   R22 is rotation matrix element {2,2}, equivelant to cos pitch * cos roll
-_throttleR22Comp :: IFloat -> IFloat
-_throttleR22Comp r22 =
+throttleR22Comp :: IFloat -> IFloat
+throttleR22Comp r22 =
   (r22 >? 0.8) ? (
     (1.0 / r22)
   , (r22 >? 0.0) ? (
       (((1.0 / 0.8 - 1.0) / 0.8) * r22 + 1.0)
     , (1.0)))
-
 
 timeMicrosToITime :: TimeMicros -> ITime
 timeMicrosToITime (TimeMicros m) = fromIMicroseconds m
