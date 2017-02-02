@@ -138,7 +138,7 @@ vff_init vff = voidProc (named "vff_init") $
 -- Qzz =  VFF_EXTENDED_ACCEL_NOISE * DT_VFILTER * DT_VFILTER / 2.
 -- Qzdotzdot =  VFF_EXTENDED_ACCEL_NOISE * DT_VFILTER
 --
--- Xk1 = F * Xk0 + B * accel;
+-- Xk1 = F * Xk0 + B * (accel + 9.81);
 --
 -- Pk1 = F * Pk0 * F' + Q;
 vff_propagate
@@ -156,7 +156,7 @@ vff_propagate vff = voidProc (named "vff_propagate") $
         q = scaled (V4 qzz qzdotzdot qbiasbias qoffoff)
         qzz = vFF_EXTENDED_ACCEL_NOISE * dt * dt / 2
         qzdotzdot = vFF_EXTENDED_ACCEL_NOISE * dt
-        xk1 = (f !* xk0) ^+^ (b ^* accel)
+        xk1 = (f !* xk0) ^+^ (b ^* (accel + 9.81))
         pk1 = f !*! pk0 !*! (transpose f) !+! q
 
     storeStateVec vff xk1
