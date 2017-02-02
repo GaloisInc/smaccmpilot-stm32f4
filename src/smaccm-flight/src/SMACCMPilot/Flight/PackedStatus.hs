@@ -41,6 +41,7 @@ packedStatusTower attrs = monitor "pack_status" $ do
     , Copy P.yaw U.yaw
     , Copy P.baro_alt U.baro_alt
     , Copy P.lidar_alt U.lidar_alt
+    , Copy P.sonar_alt U.sonar_alt
     ]
 
   save packed (packedStatus attrs) (gpsOutput attrs)
@@ -55,9 +56,6 @@ packedStatusTower attrs = monitor "pack_status" $ do
 
   save packed (packedStatus attrs) (gyroOutputCalibration attrs)
     [ Copy P.gyro_progress U.progress ]
-
-  save packed (packedStatus attrs) (accelOutputCalibration attrs)
-    [ Copy P.accel_progress U.progress ]
 
   save packed (packedStatus attrs) (magOutputCalibration attrs)
     [ Copy P.mag_progress U.progress ]

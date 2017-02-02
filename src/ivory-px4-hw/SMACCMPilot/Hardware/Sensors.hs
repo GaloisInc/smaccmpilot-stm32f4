@@ -1,10 +1,15 @@
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE Rank2Types #-}
+{-# LANGUAGE RecordWildCards #-}
 
 module SMACCMPilot.Hardware.Sensors where
 
+import Prelude ()
+import Prelude.Compat
+
 import Ivory.Language
 import Ivory.Tower
+import Ivory.Tower.Config
 import Ivory.Tower.HAL.Bus.Interface
 
 import           Ivory.BSP.STM32.Peripheral.UART
@@ -36,6 +41,7 @@ data Sensors
     }
   | FMU24Sensors
     { fmu24sens_mpu6000        :: SPIDevice
+    , fmu24sens_accel_cal      :: AccelCal
     , fmu24sens_ms5611         :: SPIDevice
     , fmu24sens_lsm303d        :: SPIDevice
     , fmu24sens_l3gd20         :: SPIDevice
@@ -63,6 +69,19 @@ data ExternalSensor req res = ExternalSensor
 type ExternalI2CSensor =
   ExternalSensor ('Struct "i2c_transaction_request")
                  ('Struct "i2c_transaction_result")
+
+data AccelCal = AccelCal {
+    accel_cal_x_offset :: Sint16
+  , accel_cal_y_offset :: Sint16
+  , accel_cal_z_offset :: Sint16
+  }
+
+parseAccelCal :: ConfigParser AccelCal
+parseAccelCal = subsection "calibration" $ subsection "accelerometer" $ do
+  accel_cal_x_offset <- fromIntegral <$> subsection "x_offset" integer
+  accel_cal_y_offset <- fromIntegral <$> subsection "y_offset" integer
+  accel_cal_z_offset <- fromIntegral <$> subsection "z_offset" integer
+  return $ AccelCal {..}
 
 -----
 
@@ -103,18 +122,21 @@ fmu17_sensors = FMU17Sensors
     , i2cpins_scl = F405.pinB11
     }
 
-fmu24_sensors :: Sensors
-fmu24_sensors = FMU24Sensors
-  { fmu24sens_mpu6000    = mpu6000
-  , fmu24sens_ms5611     = ms5611
-  , fmu24sens_lsm303d    = lsm303d
-  , fmu24sens_l3gd20     = l3gd20
-  , fmu24sens_spi_pins   = spi1_pins
-  , fmu24sens_spi_periph = spi1_periph
-  , fmu24sens_ext_i2c_pins   = i2c1_pins
-  , fmu24sens_ext_i2c_periph = i2c1_periph
-  , fmu24sens_enable     = sensor_enable
-  }
+fmu24_sensors :: ConfigParser Sensors
+fmu24_sensors = do
+  accel_cal <- parseAccelCal
+  return $ FMU24Sensors
+    { fmu24sens_mpu6000    = mpu6000
+    , fmu24sens_accel_cal  = accel_cal
+    , fmu24sens_ms5611     = ms5611
+    , fmu24sens_lsm303d    = lsm303d
+    , fmu24sens_l3gd20     = l3gd20
+    , fmu24sens_spi_pins   = spi1_pins
+    , fmu24sens_spi_periph = spi1_periph
+    , fmu24sens_ext_i2c_pins   = i2c1_pins
+    , fmu24sens_ext_i2c_periph = i2c1_periph
+    , fmu24sens_enable     = sensor_enable
+    }
   where
   mpu6000 :: SPIDevice
   mpu6000 = SPIDevice

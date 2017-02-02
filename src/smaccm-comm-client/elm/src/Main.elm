@@ -229,7 +229,6 @@ renderCalibration packedStatus =
   in table' { class = "table" } [ tbody_ [
          tr_ [ label "Gyro", td_ [ renderCalProgress packedStatus.gyro_progress ] ]
        , tr_ [ label "Mag", td_ [ renderCalProgress packedStatus.mag_progress ] ]
-       , tr_ [ label "Accel", td_ [ renderCalProgress packedStatus.accel_progress ] ]
        ] ]
 
 renderStatus : PackedStatus -> Html Msg

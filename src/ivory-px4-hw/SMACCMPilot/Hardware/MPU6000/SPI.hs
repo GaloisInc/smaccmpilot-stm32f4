@@ -1,6 +1,7 @@
+{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module SMACCMPilot.Hardware.MPU6000.SPI where
@@ -16,6 +17,7 @@ import qualified SMACCMPilot.Comm.Ivory.Types.Xyz as XYZ
 import qualified SMACCMPilot.Hardware.MPU6000.Types as M
 import Ivory.BSP.STM32.Driver.SPI
 import SMACCMPilot.Hardware.MPU6000.Regs
+import SMACCMPilot.Hardware.Sensors
 import SMACCMPilot.Time
 
 readRegAddr :: Reg -> Uint8
@@ -54,11 +56,12 @@ getSensorsReq dev = fmap constRef $ local $ istruct
   , tx_len    .= ival 15 -- addr, 6 accel, 2 temp, 6 gyro
   ]
 
-sensorSample :: ConstRef s1 ('Struct "spi_transaction_result")
+sensorSample :: Maybe AccelCal
+             -> ConstRef s1 ('Struct "spi_transaction_result")
              -> Ref s2 ('Struct "gyroscope_sample")
              -> Ref s3 ('Struct "accelerometer_sample")
              -> Ivory ('Effects r b ('Scope s)) ()
-sensorSample res r_gyro r_accel = do
+sensorSample mAccelCal res r_gyro r_accel = do
   r_time <- getTime
   rc <- deref (res ~> resultcode)
   mpu6000_r <- local (istruct [])
@@ -72,11 +75,29 @@ sensorSample res r_gyro r_accel = do
   convert ((r_gyro ~> G.sample) ~> XYZ.x) (mpu6000_r ~> M.gy) to_dps
   convert ((r_gyro ~> G.sample) ~> XYZ.y) (mpu6000_r ~> M.gx) (negate . to_dps)
   convert ((r_gyro ~> G.sample) ~> XYZ.z) (mpu6000_r ~> M.gz) to_dps
-  comment "convert to m/s/s by way of g"
-  let to_g x = safeCast x / 2048.0 * 9.80665
-  convert ((r_accel ~> A.sample) ~> XYZ.x)  (mpu6000_r ~> M.ay) to_g
-  convert ((r_accel ~> A.sample) ~> XYZ.y)  (mpu6000_r ~> M.ax) (negate . to_g)
-  convert ((r_accel ~> A.sample) ~> XYZ.z)  (mpu6000_r ~> M.az) to_g
+  comment "subtract calibation offsets and convert to m/s/s by way of g"
+  let to_m_s_s x = safeCast x / 2048.0 * 9.80665
+      (cal_x, cal_y, cal_z) =
+        case mAccelCal of
+          Nothing -> (id, id, id)
+          Just AccelCal {..} ->
+            ( (\x -> x - accel_cal_x_offset)
+            , (\y -> y - accel_cal_y_offset)
+            , (\z -> z - accel_cal_z_offset)
+            )
+  convert ((r_accel ~> A.sample) ~> XYZ.x)
+          (mpu6000_r ~> M.ay)
+          (to_m_s_s . cal_x)
+  convert ((r_accel ~> A.sample) ~> XYZ.y)
+          (mpu6000_r ~> M.ax)
+          (negate . to_m_s_s . cal_y)
+  convert ((r_accel ~> A.sample) ~> XYZ.z)
+          (mpu6000_r ~> M.az)
+          (to_m_s_s . cal_z)
+  comment "indicate whether we have calibration"
+  case mAccelCal of
+    Nothing -> store (r_accel ~> A.calibrated) false
+    Just _  -> store (r_accel ~> A.calibrated) true
   comment "convert to degrees Celsius"
   t <- deref (mpu6000_r ~> M.temp)
   r_temp <- assign (safeCast t / 340.0 + 36.53)
@@ -96,8 +117,9 @@ mpu6000SensorManager :: BackpressureTransmit ('Struct "spi_transaction_request")
                      -> ChanInput  ('Struct "gyroscope_sample")
                      -> ChanInput  ('Struct "accelerometer_sample")
                      -> SPIDeviceHandle
+                     -> Maybe AccelCal
                      -> Tower e ()
-mpu6000SensorManager (BackpressureTransmit req_chan res_chan) init_chan gyro_chan accel_chan dev = do
+mpu6000SensorManager (BackpressureTransmit req_chan res_chan) init_chan gyro_chan accel_chan dev mAccelCal = do
   towerModule  G.gyroscopeSampleTypesModule
   towerDepends G.gyroscopeSampleTypesModule
   towerModule  A.accelerometerSampleTypesModule
@@ -170,7 +192,7 @@ mpu6000SensorManager (BackpressureTransmit req_chan res_chan) init_chan gyro_cha
           res <- yield
           comment "Got a response, sending it up the stack"
           store transactionPending false
-          sensorSample (constRef res) gyro_s accel_s
+          sensorSample mAccelCal (constRef res) gyro_s accel_s
           emit gyro_e  (constRef gyro_s)
           emit accel_e (constRef accel_s)
 

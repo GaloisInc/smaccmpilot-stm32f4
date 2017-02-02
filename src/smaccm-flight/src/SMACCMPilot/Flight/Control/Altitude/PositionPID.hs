@@ -1,6 +1,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE Rank2Types #-}
+{-# LANGUAGE RecordWildCards #-}
 
 module SMACCMPilot.Flight.Control.Altitude.PositionPID where
 
@@ -13,7 +14,7 @@ import qualified SMACCMPilot.Comm.Ivory.Types.PidConfig       as C
 import qualified SMACCMPilot.Comm.Ivory.Types.AltControlDebug as A
 import           SMACCMPilot.Comm.Tower.Attr
 import           SMACCMPilot.Flight.Control.PID
-import           SMACCMPilot.Flight.Control.Altitude.Estimator
+import           SMACCMPilot.Flight.Control.Altitude.KalmanFilter
 
 data PositionPid =
   PositionPid
@@ -41,9 +42,9 @@ monitorPositionPid pid_config alt_estimator = do
           p_gain <-             (ppid_config~>*C.p_gain)
           d_gain <- fmap (/ dt) (ppid_config~>*C.d_gain)
 
-          (pos_est, vel_est) <- ae_state alt_estimator
-          pos_err            <- assign (pos_sp - pos_est)
-          vel_err            <- assign (vel_sp - vel_est)
+          (AltState{..}) <- ae_state alt_estimator
+          pos_err            <- assign (pos_sp - as_z)
+          vel_err            <- assign (vel_sp - as_zdot)
 
           pid_result <- assign ((p_gain * pos_err) - (d_gain * vel_err))
           ret (pid_result + vel_sp)

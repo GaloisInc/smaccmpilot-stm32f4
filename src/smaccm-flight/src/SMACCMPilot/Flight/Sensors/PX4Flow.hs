@@ -1,4 +1,5 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module SMACCMPilot.Flight.Sensors.PX4Flow where
 
 import Prelude ()
@@ -14,6 +15,21 @@ import SMACCMPilot.Time
 
 data PX4Flow = PX4Flow { px4flow_i2c_addr :: I2CDeviceAddr }
 
+newtype PX4FlowDriverState = PX4FlowDriverState Uint8
+  deriving (IvoryType, IvoryVar, IvoryExpr, IvoryEq, IvoryStore, IvoryInit, IvoryZeroVal)
+
+px4flowInitializing, px4flowInactive, px4flowInitialReq, px4flowActive :: PX4FlowDriverState
+[px4flowInitializing, px4flowInactive, px4flowInitialReq, px4flowActive]
+  = map (PX4FlowDriverState . fromInteger) [0..3]
+
+-- | This is dangerous! If the driver tries to send another request
+-- while one is already pending from the scheduler, an assertion will
+-- fail. However, this seems to happen sometimes, somehow. If we get
+-- assertion failures from the scheduler code, this is almost
+-- certainly why.
+px4flow_TIMEOUT :: ITime
+px4flow_TIMEOUT = toITime (Milliseconds 1000)
+
 px4flowSensorManager ::
      BackpressureTransmit ('Struct "i2c_transaction_request")
                           ('Struct "i2c_transaction_result")
@@ -26,14 +42,16 @@ px4flowSensorManager
   init_chan
   sensor_chan
   addr = do
+  let named nm = "px4flow_" ++ nm
   towerModule px4flowSampleTypesModule
   towerDepends px4flowSampleTypesModule
   p <- period (Milliseconds 20) -- 50 hz. Can be faster if required.
-  monitor "px4flowSensorManager" $ do
-    s <- state "sample"
+  monitor (named "sensor_manager") $ do
+    s <- state (named "current_sample")
+    last_response <- state (named "last_response")
     -- only enable the samples once the I2C ready chan has fired
-    pending <- stateInit "pending" (ival true)
-    coroutineHandler init_chan res_chan "px4flow" $ do
+    driver_state <- stateInit (named "driver_state") (ival px4flowInitializing)
+    coroutineHandler init_chan res_chan (named "coroutine") $ do
       req_e <- emitter req_chan 1
       sens_e <- emitter sensor_chan 1
       return $ CoroutineBody $ \yield -> do
@@ -45,10 +63,17 @@ px4flowSensorManager
           forever $ do
             -- Request originates from period below
             setup_read_result <- yield
-            is_pending <- deref pending
-            assert is_pending
+            store last_response =<< getTime
+            ds <- deref driver_state
+
+            -- Make sure we're in the right state
+            unless (ds ==? px4flowInitialReq) $ do
+              store (s ~> samplefail) true
+              breakOut
+            store driver_state px4flowActive
+
+            -- Fail for I2C error
             rc <- deref (setup_read_result ~> resultcode)
-            -- Reset the samplefail field
             store (s ~> samplefail) (rc >? 0)
             when (rc >? 0) breakOut
 
@@ -59,9 +84,18 @@ px4flowSensorManager
               , rx_len  .= ival 22--25 was for integral frame
               ]
             emit req_e read_rx_req
+
             res <- yield
-            store pending false
-            -- Unpack read, updating samplefail if failed.
+            store last_response =<< getTime
+            ds2 <- deref driver_state
+
+            -- Make sure we're in the right state
+            unless (ds2 ==? px4flowActive) $ do
+              store (s ~> samplefail) true
+              breakOut
+            store driver_state px4flowInactive
+
+            -- Unpack read, updating samplefail for I2C error
             rc2 <- deref (res ~> resultcode)
             store (s ~> samplefail) (rc2 >? 0)
             when (rc2 >? 0) breakOut
@@ -119,23 +153,23 @@ px4flowSensorManager
             --  =<< (fmap timeMicrosFromITime getTime)
 
             -- Send the sample upstream.
-            emit sens_e (constRef s)
+            breakOut
 
-          -- only get here by breaking out of the main coroutine
-          -- loop. reset the state and get ready for another sample
-          comment "error handling"
-          store pending false
-          -- emit result with error code
+          -- only get here by breaking out of the main coroutine loop
+          -- which sends the sample and sets the state to inactive
+          comment "send sample"
+          store driver_state px4flowInactive
           emit sens_e (constRef s)
 
-    handler init_chan "lidar_ready" $
-      callback $ const $ store pending false
+    handler init_chan (named "ready") $
+      callback $ const $ store driver_state px4flowInactive
 
-    handler p "periodic_read" $ do
+    handler p (named "periodic_read") $ do
       req_e <- emitter req_chan 1
       callback $ const $ do
-        is_pending <- deref pending
-        unless is_pending $ do
+        ds <- deref driver_state
+        when (ds ==? px4flowInactive) $ do
+          store (s ~> samplefail) false
           -- Initiate a read of the integral data frame
           setup_read_req <- fmap constRef $ local $ istruct
             [ tx_addr .= ival addr
@@ -146,8 +180,14 @@ px4flowSensorManager
             , tx_len  .= ival 1
             , rx_len  .= ival 0
             ]
-          store pending true
+          store driver_state px4flowInitialReq
           emit req_e setup_read_req
+        when (ds ==? px4flowInitialReq .|| ds ==? px4flowActive) $ do
+          last_t <- deref last_response
+          t <- getTime
+          when (t - last_t >? px4flow_TIMEOUT) $ do
+            -- dangerous! see comment on px4flow_TIMEOUT
+            store driver_state px4flowInactive
   where
   payloadu16 :: Ref s ('Struct "i2c_transaction_result")
              -> Ix 128 -> Ix 128 -> Ivory eff Uint16
@@ -163,9 +203,9 @@ px4flowSensorManager
     lo <- deref ((res ~> rx_buf) ! ixlo)
     assign (twosComplementCast ((safeCast hi `iShiftL` 8) .| safeCast lo) :: Sint16)
 
-  payloadu32 :: Ref s ('Struct "i2c_transaction_result")
+  _payloadu32 :: Ref s ('Struct "i2c_transaction_result")
              -> Ix 128 -> Ix 128 -> Ix 128 -> Ix 128 -> Ivory eff Uint32
-  payloadu32 res ixb0 ixb1 ixb2 ixb3 = do
+  _payloadu32 res ixb0 ixb1 ixb2 ixb3 = do
     b0 <- deref ((res ~> rx_buf) ! ixb0)
     b1 <- deref ((res ~> rx_buf) ! ixb1)
     b2 <- deref ((res ~> rx_buf) ! ixb2)

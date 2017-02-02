@@ -1,4 +1,4 @@
-{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE DataKinds #-}
 
 module SMACCMPilot.Flight.Motors.Decoder

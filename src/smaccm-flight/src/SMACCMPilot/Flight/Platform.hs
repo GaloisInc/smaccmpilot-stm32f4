@@ -1,4 +1,4 @@
-{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE DataKinds #-}
 
 module SMACCMPilot.Flight.Platform
@@ -81,72 +81,59 @@ fp_clockconfig = stm32config_clock . fp_stm32config
 
 flightPlatformParser :: ConfigParser FlightPlatform
 flightPlatformParser = do
-  v <- subsection "args" $ subsection "vehicle" string
-  t <- subsection "tuning" $ subsection v flightTuningParser
   p <- subsection "args" $ subsection "platform" string
-  m <- subsection "args" $ subsection "mixer" mixerParser
-  b <- subsection "args" $ subsection "telem_baud" integer
-   <|> pure 57600
-  mlidar <- (fmap LIDARLite) <$> subsection "lidarlite" i2caddrParser
-   <|> pure Nothing
-  mpx4flow <- (fmap PX4Flow) <$> subsection "px4flow"   i2caddrParser
-   <|> pure Nothing
-  let c = pwmconf v
   case map toUpper p of
-    "PX4FMUV17" -> result (px4fmuv17 t m b)
-    "PX4FMUV24" -> result (px4fmuv24 t m c b mlidar mpx4flow)
-    "PIXHAWK"   -> result (px4fmuv24 t m c b mlidar mpx4flow)
+    "PX4FMUV17" -> result =<< px4fmuv17
+    "PX4FMUV24" -> result =<< px4fmuv24
+    "PIXHAWK"   -> result =<< px4fmuv24
     _ -> fail ("no such platform " ++ p)
   where
-  result mkPlatform = do
-    datalink <- datalinkModeParser DatalinkServer
-    let platform = mkPlatform datalink
+  result platform = do
     conf <- stm32ConfigParser (fp_stm32config platform)
     return platform { fp_stm32config = conf }
 
-  mixerParser = do
-    s <- string
-    case map toUpper s of
-      "IRIS"  -> return IrisMixer
-      "QUADX" -> return QuadXMixer
-      _ -> fail ("no such mixer " ++ s ++ ". must be 'iris' or 'quadx'")
+i2cAddr :: ConfigParser (Maybe I2CDeviceAddr)
+i2cAddr = subsection "i2caddr" $ do
+  addr <- fromIntegral <$> integer
+  if 0 <= addr && addr <= (maxBound :: Word8)
+    then return (Just (I2CDeviceAddr (fromIntegral addr)))
+    else fail ("invalid i2c address " ++ show addr)
 
-  i2caddrParser = subsection "i2caddr" $ do
-    addr <- fromIntegral <$> integer
-    if 0 <= addr && addr <= (maxBound :: Word8)
-      then return (Just (I2CDeviceAddr (fromIntegral addr)))
-      else fail ("invalid i2c address " ++ show addr)
+mixer :: ConfigParser FlightMixer
+mixer = subsection "mixer" $ do
+  s <- string
+  case map toUpper s of
+    "IRIS"  -> return IrisMixer
+    "QUADX" -> return QuadXMixer
+    _ -> fail ("no such mixer " ++ s ++ ". must be 'iris' or 'quadx'")
 
-  -- This is a nasty hack: at the moment we want the
-  -- pwm bounds to be 1000/2000 for Iris+ but not
-  -- for the orig Iris. TODO: make this properly configurable!
-  pwmconf v = do
-    case map toUpper v of
-      "IRIS_PLUS" -> PX4IOPWMConfig { px4iopwm_min = 1000, px4iopwm_max = 2000 }
-      _           -> PX4IOPWMConfig { px4iopwm_min = 1100, px4iopwm_max = 1900 }
+telemBaud :: ConfigParser Integer
+telemBaud =
+  subsection "args" $ subsection "telem_baud" integer <|> pure 57600
 
-
-px4fmuv17 :: FlightTuning
-          -> FlightMixer
-          -> Integer
-          -> DatalinkMode
-          -> FlightPlatform
-px4fmuv17 tuning mixer telem_baud dmode = FlightPlatform
-  { fp_telem       = telem
-  , fp_telem_baud  = telem_baud
-  , fp_gps         = gps
-  , fp_io          = NativeIO ppm
-  , fp_sensors     = fmu17_sensors
-  , fp_can         = Nothing
-  , fp_datalink    = dmode
-  , fp_rgbled      = Nothing
-  , fp_vbatt_adc   = Nothing
-  , fp_tuning      = tuning
-  , fp_mixer       = mixer
-  , fp_stm32config = stm32f405Defaults 24
-  , fp_lidarlite   = Nothing
-  , fp_px4flow     = Nothing
-  }
+px4fmuv17 :: ConfigParser FlightPlatform
+px4fmuv17 = do
+  vehicle <- subsection "args" $ subsection "vehicle" string
+  tuning <- subsection "tuning" $ subsection vehicle flightTuningParser
+  m <- subsection "args" mixer
+  baud <- telemBaud
+  dmode <- datalinkModeParser DatalinkServer
+  pure $ FlightPlatform
+    { fp_telem       = telem
+    , fp_telem_baud  = baud
+    , fp_gps         = gps
+    , fp_io          = NativeIO ppm
+    , fp_sensors     = fmu17_sensors
+    , fp_can         = Nothing
+    , fp_datalink    = dmode
+    , fp_rgbled      = Nothing
+    , fp_vbatt_adc   = Nothing
+    , fp_tuning      = tuning
+    , fp_mixer       = m
+    , fp_stm32config = stm32f405Defaults 24
+    , fp_lidarlite   = Nothing
+    , fp_px4flow     = Nothing
+    }
   where
   telem = UART_Device
     { uart_periph = Left F405.uart5
@@ -167,31 +154,42 @@ px4fmuv17 tuning mixer telem_baud dmode = FlightPlatform
   ppm = PPM_Timer F405.tim1 F405.pinA10 F405.gpio_af_tim1 ppm_int
   ppm_int = HasSTM32Interrupt F405.TIM1_CC
 
+px4fmuv24 :: ConfigParser FlightPlatform
+px4fmuv24 = do
+  vehicle <- subsection "args" $ subsection "vehicle" string
+  tuning <- subsection "tuning" $ subsection vehicle flightTuningParser
+  m <- subsection "args" mixer
+  baud <- telemBaud
+  sensors <- fmu24_sensors
+  mlidar <- (fmap LIDARLite) <$> subsection "lidarlite" i2cAddr
+   <|> pure Nothing
+  mpx4flow <- (fmap PX4Flow) <$> subsection "px4flow"   i2cAddr
+   <|> pure Nothing
+  dmode <- datalinkModeParser DatalinkServer
+  let pwmconf =
+        case map toUpper vehicle of
+          "IRIS_PLUS" ->
+            PX4IOPWMConfig { px4iopwm_min = 1000, px4iopwm_max = 2000 }
+          _ ->
+            PX4IOPWMConfig { px4iopwm_min = 1100, px4iopwm_max = 1900 }
+      px4io = PX4IO F427.dmaUART6 px4io_pins pwmconf
 
-px4fmuv24 :: FlightTuning
-          -> FlightMixer
-          -> PX4IOPWMConfig
-          -> Integer
-          -> Maybe LIDARLite
-          -> Maybe PX4Flow
-          -> DatalinkMode
-          -> FlightPlatform
-px4fmuv24 tuning mixer pwmconf telem_baud mlidar mpx4flow dmode = FlightPlatform
-  { fp_telem       = telem
-  , fp_telem_baud  = telem_baud
-  , fp_gps         = gps
-  , fp_io          = px4io
-  , fp_sensors     = fmu24_sensors
-  , fp_can         = Just fmu24_can
-  , fp_datalink    = dmode
-  , fp_rgbled      = Just rgbled
-  , fp_vbatt_adc   = Just adc
-  , fp_tuning      = tuning
-  , fp_mixer       = mixer
-  , fp_stm32config = stm32f427Defaults 24
-  , fp_lidarlite   = mlidar
-  , fp_px4flow     = mpx4flow
-  }
+  return $ FlightPlatform
+    { fp_telem       = telem
+    , fp_telem_baud  = baud
+    , fp_gps         = gps
+    , fp_io          = px4io
+    , fp_sensors     = sensors
+    , fp_can         = Just fmu24_can
+    , fp_datalink    = dmode
+    , fp_rgbled      = Just rgbled
+    , fp_vbatt_adc   = Just adc
+    , fp_tuning      = tuning
+    , fp_mixer       = m
+    , fp_stm32config = stm32f427Defaults 24
+    , fp_lidarlite   = mlidar
+    , fp_px4flow     = mpx4flow
+    }
   where
   telem = UART_Device
     { uart_periph = Right F427.dmaUART2
@@ -218,7 +216,6 @@ px4fmuv24 tuning mixer pwmconf telem_baud mlidar mpx4flow dmode = FlightPlatform
         }
     , rgbled_i2c_addr = I2CDeviceAddr 0x55
     }
-  px4io = PX4IO F427.dmaUART6 px4io_pins pwmconf
   px4io_pins = UARTPins
     { uartPinTx = F427.pinC6
     , uartPinRx = F427.pinC7

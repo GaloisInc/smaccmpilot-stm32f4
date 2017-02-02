@@ -11,6 +11,9 @@
 
 module SMACCMPilot.Hardware.Platforms where
 
+import Prelude ()
+import Prelude.Compat
+
 import Ivory.Language
 import Ivory.Tower
 import Ivory.Tower.HAL.Bus.Interface
@@ -186,18 +189,18 @@ px4PlatformParser :: ConfigParser PX4Platform
 px4PlatformParser = do
   p <- subsection "args" $ subsection "platform" string
   case map toUpper p of
-    "PX4FMUV17"      -> result px4fmuv17
-    "PX4FMUV17_IOAR" -> result px4fmuv17_ioar
-    "PX4FMUV24"      -> result px4fmuv24
-    "PIXHAWK"        -> result px4fmuv24
+    "PX4FMUV17"      -> result =<< px4fmuv17
+    "PX4FMUV17_IOAR" -> result =<< px4fmuv17_ioar
+    "PX4FMUV24"      -> result =<< px4fmuv24
+    "PIXHAWK"        -> result =<< px4fmuv24
     _ -> fail ("no such platform " ++ p)
   where
   result platform = do
     conf <- stm32ConfigParser (px4platform_stm32config platform)
     return platform { px4platform_stm32config = conf }
 
-px4fmuv17 :: PX4Platform
-px4fmuv17 = PX4Platform
+px4fmuv17 :: ConfigParser PX4Platform
+px4fmuv17 = pure $ PX4Platform
   { px4platform_gps          = gps
   , px4platform_sensors      = fmu17_sensors
   , px4platform_motorcontrol = FMUv17.motorControlTower
@@ -232,8 +235,10 @@ px4fmuv17 = PX4Platform
   ppm_timer = PPM_Timer F405.tim1 F405.pinA10 F405.gpio_af_tim1 ppm_int
   ppm_int = HasSTM32Interrupt F405.TIM1_CC
 
-px4fmuv17_ioar :: PX4Platform
-px4fmuv17_ioar = px4fmuv17 { px4platform_console = console }
+px4fmuv17_ioar :: ConfigParser PX4Platform
+px4fmuv17_ioar = do
+  p <- px4fmuv17
+  return $ p { px4platform_console = console }
   where
   console :: UART_Device
   console = UART_Device
@@ -245,19 +250,21 @@ px4fmuv17_ioar = px4fmuv17 { px4platform_console = console }
         }
     }
 
-px4fmuv24 :: PX4Platform
-px4fmuv24 = PX4Platform
-  { px4platform_gps          = gps
-  , px4platform_sensors      = fmu24_sensors
-  , px4platform_motorcontrol = error "motor control not defined for px4fmuv24"
-  , px4platform_ppm          = PPM_None
-  , px4platform_px4io        = px4io
-  , px4platform_console      = console
-  , px4platform_can          = Just fmu24_can
-  , px4platform_rgbled       = Just rgbled
-  , px4platform_adc          = Just adc
-  , px4platform_stm32config  = stm32f427Defaults 24
-  }
+px4fmuv24 :: ConfigParser PX4Platform
+px4fmuv24 = do
+  sens <- fmu24_sensors
+  return $ PX4Platform
+    { px4platform_gps          = gps
+    , px4platform_sensors      = sens
+    , px4platform_motorcontrol = error "motor control not defined for px4fmuv24"
+    , px4platform_ppm          = PPM_None
+    , px4platform_px4io        = px4io
+    , px4platform_console      = console
+    , px4platform_can          = Just fmu24_can
+    , px4platform_rgbled       = Just rgbled
+    , px4platform_adc          = Just adc
+    , px4platform_stm32config  = stm32f427Defaults 24
+    }
   where
   console = UART_Device -- Telem 1 Port
     { uart_periph = Right F427.dmaUART2

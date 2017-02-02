@@ -29,7 +29,6 @@ data LawInputs =
     , lawinput_telem_modes      :: ChanOutput ('Struct "control_modes")
     , lawinput_px4io_state      :: ChanOutput ('Struct "px4io_state")
     , lawinput_gyro_cal_output  :: ChanOutput ('Struct "xyz_calibration")
-    , lawinput_accel_cal_output :: ChanOutput ('Struct "xyz_calibration")
     , lawinput_mag_cal_output   :: ChanOutput ('Struct "xyz_calibration")
     , lawinput_sensors_output   :: ChanOutput ('Struct "sensors_result")
     }
@@ -78,7 +77,6 @@ armingLawTower LawInputs{..} arming_output arming_status = do
     [ telem_arming_input
     , px4io_state_input
     , gyro_cal_input
-    , accel_cal_input
     , mag_cal_input
     , sens_cal_input
     ]
@@ -109,12 +107,6 @@ armingLawTower LawInputs{..} arming_output arming_status = do
     , ai_chan = lawinput_gyro_cal_output
     , ai_get  = arming_from_xyzcal
     , ai_set  = A.gyro_cal
-    }
-  accel_cal_input = SomeArmingInput $ ArmingInput
-    { ai_name = "accel_cal"
-    , ai_chan = lawinput_accel_cal_output
-    , ai_get  = arming_from_xyzcal
-    , ai_set  = A.accel_cal
     }
   mag_cal_input = SomeArmingInput $ ArmingInput
     { ai_name = "mag_cal"

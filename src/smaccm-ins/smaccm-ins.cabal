@@ -11,11 +11,10 @@ cabal-version:       >=1.10
 library
   hs-source-dirs:      src
   exposed-modules:     SMACCMPilot.INS.DetectMotion,
-                       SMACCMPilot.INS.Ivory,
-                       SMACCMPilot.INS.SensorFusion,
-                       SMACCMPilot.INS.Simulate,
-                       SMACCMPilot.INS.Tower,
-                       SMACCMPilot.INS.Bias.Accel,
+                       SMACCMPilot.INS.Attitude.Ivory,
+                       SMACCMPilot.INS.Attitude.SensorFusion,
+                       SMACCMPilot.INS.Attitude.Simulate,
+                       SMACCMPilot.INS.Attitude.Tower,
                        SMACCMPilot.INS.Bias.Calibration,
                        SMACCMPilot.INS.Bias.Gyro,
                        SMACCMPilot.INS.Bias.Magnetometer,
@@ -29,9 +28,9 @@ library
                        SMACCMPilot.INS.Filter.Butterworth,
                        SMACCMPilot.INS.Filter.RunningAverage,
                        SMACCMPilot.INS.Filter.Test
-  other-modules:       SMACCMPilot.INS.Parameters,
-                       SMACCMPilot.INS.Quaternion,
-                       SMACCMPilot.INS.Types
+  other-modules:       SMACCMPilot.INS.Attitude.Parameters,
+                       SMACCMPilot.INS.Attitude.Quaternion,
+                       SMACCMPilot.INS.Attitude.Types
   build-depends:       base >=4.6,
                        base-compat >= 0.6,
                        ad >=4.2,

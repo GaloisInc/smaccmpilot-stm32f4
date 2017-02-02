@@ -73,5 +73,5 @@ ins-mag-bias-test-clean:
 clean: psas-recording-ivory-test-clean
 clean: px4-sensor-fusion-test-clean
 clean: all-sensors-ins-test-clean
-clean: ins-filter-test
-clean: ins-mag-bias-test
+clean: ins-filter-test-clean
+clean: ins-mag-bias-test-clean

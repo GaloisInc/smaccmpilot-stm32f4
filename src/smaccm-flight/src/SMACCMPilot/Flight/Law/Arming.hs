@@ -1,6 +1,6 @@
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE Rank2Types #-}
 
 module SMACCMPilot.Flight.Law.Arming where
 
@@ -31,8 +31,7 @@ armingTower :: SomeArmingInput -- CLOCK
 armingTower (SomeArmingInput ai_clk) ai_rest a_mode a_stat = monitor "arming_law" $ do
   a <- stateInit "arming_law" (ival A.safe)
   s <- stateInit "arming_inputs" $ istruct
-        [ A.accel_cal .= ival T.negative
-        , A.mag_cal   .= ival T.negative
+        [ A.mag_cal   .= ival T.negative
         , A.gyro_cal  .= ival T.negative
         , A.px4io     .= ival T.negative
         , A.rcinput   .= ival T.negative

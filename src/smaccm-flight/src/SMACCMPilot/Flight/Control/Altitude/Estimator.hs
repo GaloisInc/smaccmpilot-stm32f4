@@ -1,9 +1,11 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE Rank2Types #-}
 
-module SMACCMPilot.Flight.Control.Altitude.Estimator where
+module SMACCMPilot.Flight.Control.Altitude.Estimator
+{-# DEPRECATED "Use KalmanFilter instead" #-}
+where
 
 import Ivory.Language
 import Ivory.Tower
