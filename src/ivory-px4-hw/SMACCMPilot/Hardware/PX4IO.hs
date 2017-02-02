@@ -52,10 +52,23 @@ px4ioTower tocc dmauart pins pwmconfig control_law motors state_chan = do
 
   init_chan <- channel
 
+  let rpc_send
+        :: (GetAlloc eff ~ 'Scope s)
+        => Init ('Struct "px4io_request")
+        -> Emitter ('Struct "ivory_string_PX4IOBuffer")
+        -> Ivory eff IBool
+      rpc_send req_ival req_e = do
+        req <- local req_ival
+        packed <- local izero
+        packing_valid <- call px4io_pack packed (constRef req)
+        emit req_e (constRef packed)
+        return packing_valid
+
   monitor "px4io_driver" $ do
     monitorModuleDef $ depend px4ioPackModule
     px4io_success <- state "px4io_success"
     px4io_fail    <- state "px4io_fail"
+
     let incr r = do
           v <- deref r
           store r (v + (1 :: Uint32))
@@ -90,13 +103,6 @@ px4ioTower tocc dmauart pins pwmconfig control_law motors state_chan = do
           when (t >=? deadline) $ do
             emitV e t
             store init_ready false
-
-    let rpc_send req_ival req_e = do
-          req <- local req_ival
-          packed <- local izero
-          packing_valid <- call px4io_pack packed (constRef req)
-          emit req_e (constRef packed)
-          return packing_valid
 
     loop_ready <- state "coroutine_loop_ready"
 
