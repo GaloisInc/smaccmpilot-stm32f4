@@ -1,1 +1,3 @@
 include ../../stack.mk
+
+test:
