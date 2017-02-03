@@ -314,16 +314,14 @@
   (roll      float_t) -- Roll, pitch,  yaw, in Radians
   (pitch     float_t)
   (yaw       float_t)
-  (sonar_alt float_t) -- meters
-  (baro_alt  float_t) -- meters
-  (lidar_alt float_t) -- meters
-  (fix         gps_fix_t)
-  (num_sv      uint8_t) -- number of space vehicles
-  (lat         sint32_t) -- degrees * 1e7
-  (lon         sint32_t) -- degrees * 1e7
-  (alt         sint32_t) -- meters * 1000 (aka mm)
-  (vground     uint32_t) -- m/s * 100 (aka cm/s)
-  (heading     float_t) -- degrees
+  (alt_est   float_t) -- meters
+  (fix       gps_fix_t)
+  (num_sv    uint8_t) -- number of space vehicles
+  (lat       sint32_t) -- degrees * 1e7
+  (lon       sint32_t) -- degrees * 1e7
+  (alt       sint32_t) -- meters * 1000 (aka mm)
+  (vground   uint32_t) -- m/s * 100 (aka cm/s)
+  (heading   float_t) -- degrees
   (rcinput   tristate_t)
   (telem     tristate_t)
   (px4io     tristate_t)
