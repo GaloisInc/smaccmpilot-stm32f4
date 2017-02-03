@@ -73,7 +73,7 @@ init =
         , 0.0006633631777757225
         ]
   in ( { cv = CV.init
-       , refreshRate = 66
+       , refreshRate = 200
        , latencySmoother = mkSmoother latencyWeights
        , lastUpdate = 0
        , lastUpdateDts = []
@@ -101,7 +101,7 @@ update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
     Poll ->
-      (model, cvc.getPackedStatus)
+      model ! [ cvc.getPackedStatus, cvc.getCameraTargetInput ]
     SetRefreshRate hz ->
       { model | refreshRate = 1*second / (hz + 0.0001) } ! []
     UpdateLatency time ->
@@ -144,11 +144,25 @@ view : Model -> Html Msg
 view model =
   container_ [ panelDefault_ [ panelHeading_ [ panelTitle_ "SMACCMPilot" ], panelBody_ [
       row_ [
-        colXs_ 4 [ pfd
-                     model.cv.packedStatus.pitch
-                     model.cv.packedStatus.roll
-                     model.cv.packedStatus.alt_est
-                     model.cv.packedStatus.yaw ]
+        colXs_ 4 [
+          panelDefault_ [
+            ul [ class "nav nav-tabs", attribute "role" "tablist" ] [
+                li' { class = "active" } [ a [ href "#pfd", attribute "data-toggle" "tab" ] [ strong_ "PFD" ] ]
+              , li_ [ a [ href "#bbox", attribute "data-toggle" "tab" ] [ strong_ "Camera Target" ] ]
+              ]
+          , panelBody_ [
+              div' { class = "tab-content" } [
+                div [ class "tab-pane active", id "pfd" ] [
+                    pfd model.cv.packedStatus.pitch
+                        model.cv.packedStatus.roll
+                        model.cv.packedStatus.alt_est
+                        model.cv.packedStatus.yaw
+                    ]
+              , div [ class "tab-pane", id "bbox" ] [ bbox model.cv.cameraTargetInput ]
+              ]
+            ]
+          ]
+        ]
       , colXs_ 8 [
           panelDefault_ [
             ul [ class "nav nav-tabs", attribute "role" "tablist" ] [
@@ -168,8 +182,7 @@ view model =
     ]
     , hr_
     , row_ [
-        colXs_ 4 [ bbox model.cv.cameraTargetInput ]
-      , colXs_ 8 [ table' { class = "table" } [ tbody_ [
+        colXs_ 12 [ table' { class = "table" } [ tbody_ [
             tr
               [ let v = model.latencySmoother.value
                 in class (if v < 1000
@@ -184,7 +197,7 @@ view model =
                       class = "form-control"
                     , name = "refresh-rate"
                     , placeholder = Nothing
-                    , value = 15
+                    , value = 5
                     , min = Just 0
                     , max = Just 15
                     , step = Nothing
