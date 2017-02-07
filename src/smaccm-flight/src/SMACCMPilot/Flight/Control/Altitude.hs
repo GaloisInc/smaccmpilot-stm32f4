@@ -125,7 +125,12 @@ monitorAltitudeControl attrs = do
           -- lidar and sonar: no offset, compensated
           let gain = (abs r22 >? 0) ? (abs r22, 1e-7)
           alt_lidar_alt <- deref (sens ~> S.lidar_alt)
-          ae_measure_absolute alt_estimator (alt_lidar_alt * gain) r_alt
+          -- if outside of effective range, don't measure (see
+          -- lidarlite datasheet)
+          unless (0 >? alt_lidar_alt .|| alt_lidar_alt >? 40) $ do
+            -- adjust noise based on the ranges given in the datasheet
+            noise <- ifte (alt_lidar_alt <? 5) (pure 0.025) (pure 0.1)
+            ae_measure_absolute alt_estimator (alt_lidar_alt * gain) noise
           alt_sonar_alt <- deref (sens ~> S.sonar_alt)
           ae_measure_absolute alt_estimator (alt_sonar_alt * gain) r_alt
 

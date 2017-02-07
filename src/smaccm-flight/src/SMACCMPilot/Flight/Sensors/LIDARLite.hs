@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE RecordWildCards #-}
 
 module SMACCMPilot.Flight.Sensors.LIDARLite where
 
@@ -10,11 +11,22 @@ import Ivory.BSP.STM32.Driver.I2C
 import Ivory.Language
 import Ivory.Stdlib
 import Ivory.Tower
+import Ivory.Tower.Config
 import Ivory.Tower.HAL.Bus.Interface
 import SMACCMPilot.Comm.Ivory.Types.LidarliteSample
 import SMACCMPilot.Time
+import SMACCMPilot.Flight.Platform.ParserUtils
 
-data LIDARLite = LIDARLite { lidarlite_i2c_addr :: I2CDeviceAddr }
+data LIDARLite = LIDARLite {
+    lidarlite_i2c_addr :: I2CDeviceAddr
+  , lidarlite_cal_offset_cm :: Sint16
+  }
+
+parseLidar :: ConfigParser LIDARLite
+parseLidar = subsection "lidarlite" $ do
+  lidarlite_i2c_addr <- i2cAddr
+  lidarlite_cal_offset_cm <- fromIntegral <$> subsection "offset_cm" integer
+  return $ LIDARLite {..}
 
 newtype LIDARLiteDriverState = LIDARLiteDriverState Uint8
   deriving (IvoryType, IvoryVar, IvoryExpr, IvoryEq, IvoryStore, IvoryInit, IvoryZeroVal)
@@ -36,13 +48,13 @@ lidarliteSensorManager ::
                           ('Struct "i2c_transaction_result")
   -> ChanOutput ('Stored ITime)
   -> ChanInput  ('Struct "lidarlite_sample")
-  -> I2CDeviceAddr
+  -> LIDARLite
   -> Tower e ()
 lidarliteSensorManager
   (BackpressureTransmit req_chan res_chan)
   init_chan
   sensor_chan
-  addr = do
+  LIDARLite {..} = do
   let named nm = "lidarlite_" ++ nm
   towerModule lidarliteSampleTypesModule
   towerDepends lidarliteSampleTypesModule
@@ -91,7 +103,7 @@ lidarliteSensorManager
             -- wait for LIDAR to be ready
             forever $ do
               ready_req <- fmap constRef $ local $ istruct
-                [ tx_addr .= ival addr
+                [ tx_addr .= ival lidarlite_i2c_addr
                 , tx_buf  .= iarray [
                       -- set register pointer to status register
                       ival 0x01
@@ -104,7 +116,7 @@ lidarliteSensorManager
               _ready_ack <- yield
 
               ready_read <- fmap constRef $ local $ istruct
-                [ tx_addr .= ival addr
+                [ tx_addr .= ival lidarlite_i2c_addr
                 , tx_buf  .= iarray []
                 , tx_len  .= ival 0
                 , rx_len  .= ival 1
@@ -123,7 +135,7 @@ lidarliteSensorManager
             -- Send request to perform read (see LIDAR-Lite datasheet
             -- for explanation of magic numbers)
             read_tx_req <- fmap constRef $ local $ istruct
-              [ tx_addr .= ival addr
+              [ tx_addr .= ival lidarlite_i2c_addr
               , tx_buf  .= iarray [
                     -- set register pointer to result register
                     ival 0x8F
@@ -136,7 +148,7 @@ lidarliteSensorManager
             _ack <- yield
 
             read_rx_req <- fmap constRef $ local $ istruct
-              [ tx_addr .= ival addr
+              [ tx_addr .= ival lidarlite_i2c_addr
               , tx_buf  .= iarray []
               , tx_len  .= ival 0
               , rx_len  .= ival 2
@@ -145,7 +157,8 @@ lidarliteSensorManager
 
             res <- yield
             distance_raw <- payloadu16 res 0 1
-            store (s ~> distance) (safeCast distance_raw / 100)
+            let distance_cal = signCast distance_raw + lidarlite_cal_offset_cm
+            store (s ~> distance) (safeCast distance_cal / 100)
             store (s ~> time) =<< timeMicrosFromITime <$> getTime
             breakOut
 
@@ -166,7 +179,7 @@ lidarliteSensorManager
           -- Initiate a read (see LIDAR-Lite datasheet for explanation
           -- of magic numbers)
           setup_read_req <- fmap constRef $ local $ istruct
-            [ tx_addr .= ival addr
+            [ tx_addr .= ival lidarlite_i2c_addr
             , tx_buf  .= iarray [
                   -- set register pointer
                   ival 0x00

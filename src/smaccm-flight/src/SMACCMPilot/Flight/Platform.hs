@@ -20,7 +20,6 @@ import Prelude.Compat
 import Ivory.Tower.Config
 
 import Data.Char (toUpper)
-import Data.Word (Word8)
 
 import qualified Ivory.BSP.STM32F405.UART           as F405
 import qualified Ivory.BSP.STM32F405.GPIO           as F405
@@ -44,6 +43,7 @@ import           SMACCMPilot.Hardware.CAN
 import           SMACCMPilot.Hardware.Sensors
 import           SMACCMPilot.Hardware.Platforms (PPM(..), RGBLED_I2C(..), ADC(..))
 import           SMACCMPilot.Hardware.PX4IO (PX4IOPWMConfig(..))
+import           SMACCMPilot.Flight.Platform.ParserUtils
 import           SMACCMPilot.Flight.Sensors.LIDARLite
 import           SMACCMPilot.Flight.Sensors.PX4Flow
 import           SMACCMPilot.Flight.Tuning
@@ -91,13 +91,6 @@ flightPlatformParser = do
   result platform = do
     conf <- stm32ConfigParser (fp_stm32config platform)
     return platform { fp_stm32config = conf }
-
-i2cAddr :: ConfigParser (Maybe I2CDeviceAddr)
-i2cAddr = subsection "i2caddr" $ do
-  addr <- fromIntegral <$> integer
-  if 0 <= addr && addr <= (maxBound :: Word8)
-    then return (Just (I2CDeviceAddr (fromIntegral addr)))
-    else fail ("invalid i2c address " ++ show addr)
 
 mixer :: ConfigParser FlightMixer
 mixer = subsection "mixer" $ do
@@ -161,9 +154,8 @@ px4fmuv24 = do
   m <- subsection "args" mixer
   baud <- telemBaud
   sensors <- fmu24_sensors
-  mlidar <- (fmap LIDARLite) <$> subsection "lidarlite" i2cAddr
-   <|> pure Nothing
-  mpx4flow <- (fmap PX4Flow) <$> subsection "px4flow"   i2cAddr
+  mlidar <- fmap Just parseLidar <|> pure Nothing
+  mpx4flow <- fmap (Just . PX4Flow) (subsection "px4flow" i2cAddr)
    <|> pure Nothing
   dmode <- datalinkModeParser DatalinkServer
   let pwmconf =
