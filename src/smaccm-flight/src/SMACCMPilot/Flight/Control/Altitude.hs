@@ -142,8 +142,8 @@ monitorAltitudeControl attrs = do
                   -- store errors for reference
                   _alt_err     <- assign $ ui_alt - as_z
                   _alt_rate_err    <- assign $ 0.0 - as_zdot
-                  store (state_dbg ~> A.pos_setp) _alt_err
-                  store (state_dbg ~> A.pos_rate_setp) _alt_rate_err
+                  store (state_dbg ~> A.pos_err) _alt_err
+                  store (state_dbg ~> A.pos_rate_err) _alt_rate_err
 
                   -- ALTITUDE CONTROLLER START (SIMPLE PID with
                   -- constant nominal thrust) update position
@@ -176,7 +176,7 @@ monitorAltitudeControl attrs = do
 
                   -- maybe rename A.pos_rate_setp because it is not
                   -- the right name
-                  store (state_dbg ~> A.pos_rate_setp) vz_ctl
+                  --store (state_dbg ~> A.vz_ctl) vz_ctl
                   return vz_ctl
               ]
 
@@ -187,10 +187,10 @@ monitorAltitudeControl attrs = do
 
           ifte_ enabled
             (do sp <- deref at_setpt
-                store (state_dbg ~> A.pos_rate_setp) sp
+                store (state_dbg ~> A.vz_ctl) sp
             )
             (do ui_sp <- deref ui_setpt
-                store (state_dbg ~> A.pos_rate_setp) ui_sp
+                store (state_dbg ~> A.vz_ctl) ui_sp
             )
 
           unless enabled $ do

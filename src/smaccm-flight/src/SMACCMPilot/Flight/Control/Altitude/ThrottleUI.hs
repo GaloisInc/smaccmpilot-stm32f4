@@ -46,7 +46,7 @@ monitorThrottleUI attr estimator = do
       proc_update  = proc name_update $
         \ui _dt -> body $ do
           sr <- stickrate settings ui
-          store vel_setpoint sr
+          store vel_setpoint (sr * 0.0) -- vel setpoint is zero
 
           active <- deref active_state
           AltState{..} <- ae_state estimator

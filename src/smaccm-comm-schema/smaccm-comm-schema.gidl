@@ -97,8 +97,9 @@
   (ui_setp       float_t)
   (ui_rate_setp  float_t)
   (pos           pid_state_t)
-  (pos_setp      float_t)
-  (pos_rate_setp float_t))
+  (pos_err       float_t)
+  (pos_rate_err  float_t)
+  (vz_ctl        float_t))
 
 (def-struct att_control_debug_t
   (head_setpt       float_t)
