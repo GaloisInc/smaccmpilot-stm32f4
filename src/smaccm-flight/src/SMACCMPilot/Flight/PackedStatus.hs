@@ -5,6 +5,7 @@ module SMACCMPilot.Flight.PackedStatus (packedStatusTower) where
 
 import           Ivory.Language
 import           Ivory.Tower
+import qualified SMACCMPilot.Comm.Ivory.Types.AltControlDebug     as U
 import qualified SMACCMPilot.Comm.Ivory.Types.ArmingStatus        as U
 import qualified SMACCMPilot.Comm.Ivory.Types.ControlLaw          as U
 import qualified SMACCMPilot.Comm.Ivory.Types.PackedStatus        as P
@@ -39,10 +40,10 @@ packedStatusTower attrs = monitor "pack_status" $ do
     , Copy P.roll U.roll
     , Copy P.pitch U.pitch
     , Copy P.yaw U.yaw
-    , Copy P.baro_alt U.baro_alt
-    , Copy P.lidar_alt U.lidar_alt
-    , Copy P.sonar_alt U.sonar_alt
     ]
+
+  save packed (packedStatus attrs) (altControlDebug attrs)
+    [ Copy P.alt_est U.alt_est ]
 
   save packed (packedStatus attrs) (gpsOutput attrs)
     [ Copy P.fix U.fix

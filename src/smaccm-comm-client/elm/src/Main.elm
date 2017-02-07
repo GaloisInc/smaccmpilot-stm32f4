@@ -10,6 +10,8 @@ import Html.Attributes exposing (..)
 import Http
 import Task
 import Time exposing (Time, millisecond, second)
+
+import Bbox exposing (..)
 import PFD exposing (..)
 
 import SMACCMPilot.Comm.Interface.ControllableVehicle as CV exposing (ControllableVehicle)
@@ -36,7 +38,6 @@ main =
 type alias Model =
   { cv : ControllableVehicle
   , refreshRate : Float -- milliseconds
-  , altSmoother : Smoother
   , latencySmoother : Smoother
   , lastUpdate : Time
   , lastUpdateDts : List Float -- milliseconds
@@ -72,8 +73,7 @@ init =
         , 0.0006633631777757225
         ]
   in ( { cv = CV.init
-       , refreshRate = 66
-       , altSmoother = mkSmoother altWeights
+       , refreshRate = 200
        , latencySmoother = mkSmoother latencyWeights
        , lastUpdate = 0
        , lastUpdateDts = []
@@ -101,7 +101,7 @@ update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
     Poll ->
-      (model, cvc.getPackedStatus)
+      model ! [ cvc.getPackedStatus, cvc.getCameraTargetInput ]
     SetRefreshRate hz ->
       { model | refreshRate = 1*second / (hz + 0.0001) } ! []
     UpdateLatency time ->
@@ -136,8 +136,7 @@ fetchTuning = [
   ]
 
 updateSmoothers : Model -> Model
-updateSmoothers model =
-  { model | altSmoother = putNext model.altSmoother model.cv.packedStatus.lidar_alt }
+updateSmoothers model = model
 
 -- VIEW
 
@@ -145,11 +144,25 @@ view : Model -> Html Msg
 view model =
   container_ [ panelDefault_ [ panelHeading_ [ panelTitle_ "SMACCMPilot" ], panelBody_ [
       row_ [
-        colXs_ 4 [ pfd
-                     model.cv.packedStatus.pitch
-                     model.cv.packedStatus.roll
-                     model.altSmoother.value
-                     model.cv.packedStatus.yaw ]
+        colXs_ 4 [
+          panelDefault_ [
+            ul [ class "nav nav-tabs", attribute "role" "tablist" ] [
+                li' { class = "active" } [ a [ href "#pfd", attribute "data-toggle" "tab" ] [ strong_ "PFD" ] ]
+              , li_ [ a [ href "#bbox", attribute "data-toggle" "tab" ] [ strong_ "Camera Target" ] ]
+              ]
+          , panelBody_ [
+              div' { class = "tab-content" } [
+                div [ class "tab-pane active", id "pfd" ] [
+                    pfd model.cv.packedStatus.pitch
+                        model.cv.packedStatus.roll
+                        model.cv.packedStatus.alt_est
+                        model.cv.packedStatus.yaw
+                    ]
+              , div [ class "tab-pane", id "bbox" ] [ bbox model.cv.cameraTargetInput ]
+              ]
+            ]
+          ]
+        ]
       , colXs_ 8 [
           panelDefault_ [
             ul [ class "nav nav-tabs", attribute "role" "tablist" ] [
@@ -168,36 +181,37 @@ view model =
         ]
     ]
     , hr_
-    , row_ [ colXs_ 12 [ table' { class = "table" } [ tbody_ [
-           tr
-             [ let v = model.latencySmoother.value
-               in class (if v < 1000
-                         then "success"
-                         else if v >= 1000 && v < 5000
-                         then "warning"
-                         else "danger") ]
-             [ thLabel 80 "Time between updates", td_ [ text (toString (round model.latencySmoother.value) ++ "ms") ] ]
-         , tr_ [ thLabel 80 "Refresh rate"
-               , td_ [ div' { class = "input-group" } [
-                   inputFloat' {
-                     class = "form-control"
-                   , name = "refresh-rate"
-                   , placeholder = Nothing
-                   , value = 15
-                   , min = Just 0
-                   , max = Just 15
-                   , step = Nothing
-                   , update = {
-                         onEnter = Nothing
-                       , onKeyboardLost = Nothing
-                       , onInput = Just (\res -> Maybe.map SetRefreshRate (Result.toMaybe res))
-                       }
-                   }
-                 , span' { class = "input-group-addon" } [ text "hz" ] ] ] ]
-         , tr_ [ thLabel 80 "Linux VM"
-               , td_ [ node "button"
-                   [ class "btn btn-primary btn-lg btn-block", onClick SendReboot ]
-                   [ text "Reboot" ] ] ]
+    , row_ [
+        colXs_ 12 [ table' { class = "table" } [ tbody_ [
+            tr
+              [ let v = model.latencySmoother.value
+                in class (if v < 1000
+                          then "success"
+                          else if v >= 1000 && v < 5000
+                          then "warning"
+                          else "danger") ]
+              [ thLabel 80 "Time between updates", td_ [ text (toString (round model.latencySmoother.value) ++ "ms") ] ]
+          , tr_ [ thLabel 80 "Refresh rate"
+                , td_ [ div' { class = "input-group" } [
+                    inputFloat' {
+                      class = "form-control"
+                    , name = "refresh-rate"
+                    , placeholder = Nothing
+                    , value = 5
+                    , min = Just 0
+                    , max = Just 15
+                    , step = Nothing
+                    , update = {
+                          onEnter = Nothing
+                        , onKeyboardLost = Nothing
+                        , onInput = Just (\res -> Maybe.map SetRefreshRate (Result.toMaybe res))
+                        }
+                    }
+                  , span' { class = "input-group-addon" } [ text "hz" ] ] ] ]
+          , tr_ [ thLabel 80 "Linux VM"
+                , td_ [ node "button"
+                    [ class "btn btn-primary btn-lg btn-block", onClick SendReboot ]
+                    [ text "Reboot" ] ] ]
          ] ] ] ]
     , row_ [ colXs_ 12 [
           case model.httpError of
@@ -205,8 +219,6 @@ view model =
             Nothing -> div [] []
         ] ]
     ] ] ]
-    
-    
 
 thLabel w str = th [ style [ ("width", toString w ++ "%"), ("vertical-align", "middle") ] ] [ text str ]
 
