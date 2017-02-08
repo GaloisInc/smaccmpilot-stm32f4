@@ -56,12 +56,12 @@ sensorTower tofp attrs = do
   (px4flow_in, px4flow) <- channel
   let exti2cs = catMaybes [ mlidar, mpx4flow ]
       mlidar = do
-        LIDARLite{..} <- fp_lidarlite fp
+        ll@LIDARLite{..} <- fp_lidarlite fp
         return $ ExternalSensor {
             ext_sens_name = "lidarlite"
           , ext_sens_init = \bpt init_chan ->
               lidarliteSensorManager
-                bpt init_chan lidar_in lidarlite_i2c_addr
+                bpt init_chan lidar_in ll
           }
       mpx4flow = do
         PX4Flow{..} <- fp_px4flow fp

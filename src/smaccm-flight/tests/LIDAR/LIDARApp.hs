@@ -37,8 +37,8 @@ app tofp topx4 = do
 
   case fp_lidarlite fp of
     Nothing -> error "no LIDAR-Lite configured"
-    Just LIDARLite{..} ->
-      lidarlite_app topx4 lidarlite_i2c_addr (fst measurements)
+    Just ll ->
+      lidarlite_app topx4 ll (fst measurements)
 
   (uarto, _uarti, mon) <- px4ConsoleTower topx4
   monitor "uart" mon
@@ -48,13 +48,13 @@ app tofp topx4 = do
   serializeTowerDeps
 
 lidarlite_app :: (e -> PX4Platform)
-              -> I2CDeviceAddr
+              -> LIDARLite
               -> ChanInput ('Struct "lidarlite_sample")
               -> Tower e ()
-lidarlite_app topx4 addr meas = do
+lidarlite_app topx4 ll meas = do
   px4 <- topx4 <$> getEnv
   (req, ready) <- i2cTower (px4platform_clockconfig . topx4)
                            (fmu24sens_ext_i2c_periph (px4platform_sensors px4))
                            (fmu24sens_ext_i2c_pins   (px4platform_sensors px4))
   sensors_ready <- px4platform_sensorenable_tower topx4 ready
-  lidarliteSensorManager req sensors_ready meas addr
+  lidarliteSensorManager req sensors_ready meas ll

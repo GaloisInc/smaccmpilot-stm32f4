@@ -54,6 +54,7 @@ library
                        SMACCMPilot.Flight.Motors.Mixing,
                        SMACCMPilot.Flight.PackedStatus,
                        SMACCMPilot.Flight.Platform,
+                       SMACCMPilot.Flight.Platform.ParserUtils,
                        SMACCMPilot.Flight.Sensors,
                        SMACCMPilot.Flight.Sensors.AccelBiasTrigger,
                        SMACCMPilot.Flight.Sensors.GPS,
