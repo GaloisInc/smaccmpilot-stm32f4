@@ -64,12 +64,12 @@ sensorTower tofp attrs = do
                 bpt init_chan lidar_in ll
           }
       mpx4flow = do
-        PX4Flow{..} <- fp_px4flow fp
+        p4f@PX4Flow{..} <- fp_px4flow fp
         return $ ExternalSensor {
             ext_sens_name = "px4flow"
           , ext_sens_init = \bpt init_chan ->
               px4flowSensorManager
-                bpt init_chan px4flow_in px4flow_i2c_addr
+                bpt init_chan px4flow_in p4f
           }
 
   (accel, gyro_raw, mag_raw, baro_raw) <-

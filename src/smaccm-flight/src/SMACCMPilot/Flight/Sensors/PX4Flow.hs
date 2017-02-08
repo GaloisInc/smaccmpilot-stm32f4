@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE RecordWildCards #-}
 module SMACCMPilot.Flight.Sensors.PX4Flow where
 
 import Prelude ()
@@ -9,11 +10,23 @@ import Ivory.BSP.STM32.Driver.I2C
 import Ivory.Language
 import Ivory.Stdlib
 import Ivory.Tower
+import Ivory.Tower.Config
 import Ivory.Tower.HAL.Bus.Interface
 import SMACCMPilot.Comm.Ivory.Types.Px4flowSample
 import SMACCMPilot.Time
+import SMACCMPilot.Flight.Platform.ParserUtils
 
-data PX4Flow = PX4Flow { px4flow_i2c_addr :: I2CDeviceAddr }
+data PX4Flow = PX4Flow {
+    px4flow_i2c_addr :: I2CDeviceAddr
+  , px4flow_cal_sonar_offset_cm :: Sint16
+  }
+
+parsePx4flow :: ConfigParser PX4Flow
+parsePx4flow = subsection "px4flow" $ do
+  px4flow_i2c_addr <- i2cAddr
+  px4flow_cal_sonar_offset_cm
+    <- fromIntegral <$> subsection "sonar_offset_cm" integer
+  return $ PX4Flow {..}
 
 newtype PX4FlowDriverState = PX4FlowDriverState Uint8
   deriving (IvoryType, IvoryVar, IvoryExpr, IvoryEq, IvoryStore, IvoryInit, IvoryZeroVal)
@@ -35,13 +48,13 @@ px4flowSensorManager ::
                           ('Struct "i2c_transaction_result")
   -> ChanOutput ('Stored ITime)
   -> ChanInput  ('Struct "px4flow_sample")
-  -> I2CDeviceAddr
+  -> PX4Flow
   -> Tower e ()
 px4flowSensorManager
   (BackpressureTransmit req_chan res_chan)
   init_chan
   sensor_chan
-  addr = do
+  PX4Flow {..} = do
   let named nm = "px4flow_" ++ nm
   towerModule px4flowSampleTypesModule
   towerDepends px4flowSampleTypesModule
@@ -78,7 +91,7 @@ px4flowSensorManager
             when (rc >? 0) breakOut
 
             read_rx_req <- fmap constRef $ local $ istruct
-              [ tx_addr .= ival addr
+              [ tx_addr .= ival px4flow_i2c_addr
               , tx_buf  .= iarray []
               , tx_len  .= ival 0
               , rx_len  .= ival 22--25 was for integral frame
@@ -122,8 +135,10 @@ px4flowSensorManager
               =<< (deref ((res ~> rx_buf) ! 18))
             store (s ~> sonar_timestamp)
               =<< (deref ((res ~> rx_buf) ! 19))
+            raw_ground_distance <- payloads16 res 21 20
             store (s ~> ground_distance)
-              =<< (payloads16 res 21 20)
+              -- convert offset to meters * 1000 and add it into the raw value
+              (raw_ground_distance + (px4flow_cal_sonar_offset_cm * 10))
             store (s ~> time)
               =<< (fmap timeMicrosFromITime getTime)
 
@@ -172,7 +187,7 @@ px4flowSensorManager
           store (s ~> samplefail) false
           -- Initiate a read of the integral data frame
           setup_read_req <- fmap constRef $ local $ istruct
-            [ tx_addr .= ival addr
+            [ tx_addr .= ival px4flow_i2c_addr
             , tx_buf  .= iarray [
                   -- set register pointer for integral frame
                   ival 0x00 -- 0x16 was for integral frame

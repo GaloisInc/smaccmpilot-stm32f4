@@ -43,7 +43,6 @@ import           SMACCMPilot.Hardware.CAN
 import           SMACCMPilot.Hardware.Sensors
 import           SMACCMPilot.Hardware.Platforms (PPM(..), RGBLED_I2C(..), ADC(..))
 import           SMACCMPilot.Hardware.PX4IO (PX4IOPWMConfig(..))
-import           SMACCMPilot.Flight.Platform.ParserUtils
 import           SMACCMPilot.Flight.Sensors.LIDARLite
 import           SMACCMPilot.Flight.Sensors.PX4Flow
 import           SMACCMPilot.Flight.Tuning
@@ -155,8 +154,7 @@ px4fmuv24 = do
   baud <- telemBaud
   sensors <- fmu24_sensors
   mlidar <- fmap Just parseLidar <|> pure Nothing
-  mpx4flow <- fmap (Just . PX4Flow) (subsection "px4flow" i2cAddr)
-   <|> pure Nothing
+  mpx4flow <- fmap Just parsePx4flow <|> pure Nothing
   dmode <- datalinkModeParser DatalinkServer
   let pwmconf =
         case map toUpper vehicle of
