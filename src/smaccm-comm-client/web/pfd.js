@@ -283,7 +283,7 @@ window.PFDView = Backbone.View.extend({
         heading += 360;
       this.pfd.heading.setIndicated(heading.toFixed(0));
 
-      this.pfd.altitude.setIndicated(m.baro_alt.toFixed(0));
+      this.pfd.altitude.setIndicated(m.alt_est.toFixed(0));
 
     } else {
       this.pfd.horizon.setPitchRoll(0, 0);

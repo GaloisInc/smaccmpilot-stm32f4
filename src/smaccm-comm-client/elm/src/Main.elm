@@ -1,4 +1,4 @@
-module Main exposing (..)
+port module Main exposing (..)
 
 import Basics.Extra exposing (never)
 import Bootstrap.Html exposing (..)
@@ -112,7 +112,10 @@ update msg model =
             case model.lastUpdateDts of
               [] -> putSome model.latencySmoother (List.repeat window dt)
               ls -> putSome model.latencySmoother ls
-      in { model | latencySmoother = s', lastUpdateDts = [] } ! []
+          v = s'.value
+      in { model | latencySmoother = s', lastUpdateDts = [] } ! [
+          if v > 5000 then showModal () else hideModal ()
+        ]
     UpdateTime time ->
       let dt = Time.inMilliseconds time - Time.inMilliseconds model.lastUpdate
       in { model | lastUpdate = time, lastUpdateDts = dt :: model.lastUpdateDts } ! []
@@ -142,9 +145,11 @@ updateSmoothers model = model
 
 view : Model -> Html Msg
 view model =
-  container_ [ panelDefault_ [ panelHeading_ [ panelTitle_ "SMACCMPilot" ], panelBody_ [
+  container_ [
+    errorModal model
+  , panelDefault_ [ panelHeading_ [ panelTitle_ "SMACCMPilot" ], panelBody_ [
       row_ [
-        colXs_ 4 [
+        colXs_ 5 [
           panelDefault_ [
             ul [ class "nav nav-tabs", attribute "role" "tablist" ] [
                 li' { class = "active" } [ a [ href "#pfd", attribute "data-toggle" "tab" ] [ strong_ "PFD" ] ]
@@ -163,7 +168,7 @@ view model =
             ]
           ]
         ]
-      , colXs_ 8 [
+      , colXs_ 7 [
           panelDefault_ [
             ul [ class "nav nav-tabs", attribute "role" "tablist" ] [
                 li' { class = "active" } [ a [ href "#calibration", attribute "data-toggle" "tab" ] [ strong_ "Calibration" ] ]
@@ -297,6 +302,28 @@ renderCalProgress p =
              ]
            [ text pct ]
        ]
+
+errorModal model =
+  div [ class "modal fade"
+      , id "errorModal"
+      , attribute "tabindex" "-1"
+      , attribute "role" "dialog" ] [
+    div [ class "modal-dialog modal-lg"
+        , attribute "role" "document" ] [
+      div [ class "modal-content"
+          , style [ ("background-color", "black")
+                  , ("color", "red")
+                  , ("text-align", "center") ] ] [
+        div [ class "modal-body" ] [
+          let elapsed = toString (round (model.latencySmoother.value / 1000))
+          in h1 [ class "modal-title" ] [ text ("Connection Lost: " ++ elapsed ++ "s") ]
+        ]
+      ]
+    ]
+  ]
+
+port showModal : () -> Cmd msg
+port hideModal : () -> Cmd msg
 
 -- SUBSCRIPTIONS
 
