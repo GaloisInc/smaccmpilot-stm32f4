@@ -69,7 +69,7 @@ artificialHorizon pitchRads rollRads baroAlt yawRads =
 
 mkPitchLadder =
   let pitchRung deg =
-        let label = text' [
+        let label = text_ [
                 textAnchor "end", x "-24", y "1"
               , fontFamily "Lucida Console", fontSize "4"
               ] [ text (toString deg ++ "°") ]
@@ -77,9 +77,9 @@ mkPitchLadder =
                 line [ x1 "-23", y1 "0", x2 "-13", y2 "0" ] []
               , line [ x1  "23", y1 "0", x2  "13", y2 "0" ] []
               ]
-            translate = "translate(0 " ++ toString -(deg / pitchScale) ++ ")"
+            translate = "translate(0 " ++ toString -(toFloat deg / pitchScale) ++ ")"
         in g [ transform translate ] <| if deg /= 0 then [ rung, label ] else [ rung ]
-  in List.map (\x -> pitchRung (x*15)) [-6..6]
+  in List.map (\x -> pitchRung (x*15)) (List.range -6 6)
 
 mkAltLadder baroAlt =
   let short = "M42,0 L47,0 Z"
@@ -93,7 +93,7 @@ mkAltLadder baroAlt =
                   [n] -> String.dropRight (n-2) altStr
                   _ -> "error"
       altRung m =
-        let label = text' [
+        let label = text_ [
                 textAnchor "end", x "36", y "1"
               , fontFamily "Lucida Console", fontSize "4"
               ] [ text (toString m ++ "m") ]
@@ -104,11 +104,11 @@ mkAltLadder baroAlt =
            else g [ transform translate ] [ rung short ]
       indicator = g [] [
           Svg.path [ d "M45,-20 L42,-22.5 L27,-22.5 L27,-17.5 L42,-17.5 Z", stroke "black" ] []
-        , text' [ textAnchor "end", x "42", y "-18.5"
+        , text_ [ textAnchor "end", x "42", y "-18.5"
                 , fontFamily "Lucida Console", fontSize "4", fill "white"
                 ] [ text altFmtd ]
         ]
-  in List.reverse <| indicator :: List.map altRung [(round baroAlt - 20)..(round baroAlt + 20)]
+  in List.reverse <| indicator :: List.map altRung (List.range (round baroAlt - 20) (round baroAlt + 20))
 
 mkHeadingIndicator yawDeg =
   let short = "M0,44 L0,47 Z"
@@ -116,7 +116,7 @@ mkHeadingIndicator yawDeg =
       hdgScale = 5
       hdgStr = toString (truncate yawDeg)
       hdgRung deg =
-        let label = text' [
+        let label = text_ [
                 textAnchor "middle", x "0", y "40.5"
               , fontFamily "Lucida Console", fontSize "4"
               ] [ text (toString (deg % 360) ++ "°") ]
@@ -127,8 +127,8 @@ mkHeadingIndicator yawDeg =
            else g [ transform translate ] [ rung short ]
       indicator = g [] [
           Svg.path [ d "M0,45.5 L-3.5,43 L-3.5,39 L3.5,39 L3.5,43 Z", stroke "black" ] []
-        , text' [ textAnchor "middle", x "0", y "42.5"
+        , text_ [ textAnchor "middle", x "0", y "42.5"
                 , fontFamily "Lucida Console", fontSize "4", fill "white"
                 ] [ text hdgStr ]
         ]
-  in List.reverse <| indicator :: List.map (\x -> hdgRung (x*1)) [(round yawDeg - 20) .. (round yawDeg + 20)]
+  in List.reverse <| indicator :: List.map (\x -> hdgRung (x*1)) (List.range (round yawDeg - 20) (round yawDeg + 20))

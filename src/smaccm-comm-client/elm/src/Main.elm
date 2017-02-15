@@ -1,13 +1,11 @@
 port module Main exposing (..)
 
-import Basics.Extra exposing (never)
-import Bootstrap.Html exposing (..)
+--import Basics.Extra exposing (never)
 import Html exposing (..)
-import Html.App as App
 import Html.Events exposing (..)
-import Html.Shorthand exposing (..)
-import Html.Attributes exposing (..)
+import Html.Attributes as A exposing (..)
 import Http
+import Keyboard
 import Task
 import Time exposing (Time, millisecond, second)
 
@@ -24,9 +22,9 @@ import SMACCMPilot.Comm.Types.ThrottleMode as ThrottleMode
 import SMACCMPilot.Comm.Types.Tristate as Tristate
 import SMACCMPilot.Comm.Types.YawMode as YawMode
 
-main : Program Never
+main : Program Never Model Msg
 main =
-  App.program
+  Html.program
     { init = init
     , view = view
     , update = update
@@ -86,11 +84,13 @@ init =
 
 type Msg
   = Poll
-  | SetRefreshRate Float -- hz
+  | SetRefreshRate String -- Float hz
   | UpdateLatency Time
   | UpdateTime Time
   | CVResponse CV.Response
   | SendReboot
+  | KeyUp Keyboard.KeyCode
+  | KeyDown Keyboard.KeyCode
   | FetchTuning
   | FetchFail Http.Error
 
@@ -102,28 +102,32 @@ update msg model =
   case msg of
     Poll ->
       model ! [ cvc.getPackedStatus, cvc.getCameraTargetInput ]
-    SetRefreshRate hz ->
-      { model | refreshRate = 1*second / (hz + 0.0001) } ! []
+    SetRefreshRate hzStr ->
+      case String.toFloat hzStr of
+        Ok hz -> { model | refreshRate = 1*second / (hz + 0.0001) } ! []
+        Err _ -> model ! []
     UpdateLatency time ->
       let -- use the current dt if we haven't seen a sample since the last update
           dt = Time.inMilliseconds time - Time.inMilliseconds model.lastUpdate
           window = model.latencySmoother.firState.size
-          s' =
+          s1 =
             case model.lastUpdateDts of
               [] -> putSome model.latencySmoother (List.repeat window dt)
               ls -> putSome model.latencySmoother ls
-          v = s'.value
-      in { model | latencySmoother = s', lastUpdateDts = [] } ! [
-          if v > 5000 then showModal () else hideModal ()
+          v = s1.value
+      in { model | latencySmoother = s1, lastUpdateDts = [] } ! [
+          if v > 5000 && model.refreshRate < 10*second then showModal () else hideModal ()
         ]
     UpdateTime time ->
       let dt = Time.inMilliseconds time - Time.inMilliseconds model.lastUpdate
       in { model | lastUpdate = time, lastUpdateDts = dt :: model.lastUpdateDts } ! []
     CVResponse resp ->
-      let (model', cmd) = CV.handle cvh resp model
-          model'' = updateSmoothers model'
-      in { model'' | httpError = Nothing } ! [ cmd, Task.perform never UpdateTime Time.now ]
+      let (model1, cmd) = CV.handle cvh resp model
+          model2 = updateSmoothers model1
+      in { model2 | httpError = Nothing } ! [ cmd, Task.perform UpdateTime Time.now ]
     SendReboot -> (model, cvc.setRebootReq (RebootReq.RebootReq RebootMagic.LinuxRebootMagic1))
+    KeyUp kc -> model ! []
+    KeyDown kc -> model ! []
     FetchTuning -> model ! fetchTuning
     FetchFail err ->
       { model | httpError = Just err } ! []
@@ -145,18 +149,18 @@ updateSmoothers model = model
 
 view : Model -> Html Msg
 view model =
-  container_ [
+  div [ class "container" ] [
     errorModal model
-  , panelDefault_ [ panelHeading_ [ panelTitle_ "SMACCMPilot" ], panelBody_ [
-      row_ [
-        colXs_ 5 [
-          panelDefault_ [
+  , div [ class "panel panel-default" ] [ div [ class "panel-heading" ] [ h2 [ class "panel-title" ] [ text "SMACCMPilot" ] ], div [ class "panel-body" ] [
+      div [ class "row" ] [
+        div [ class "col-xs-5" ] [
+          div [ class "panel panel-default" ] [
             ul [ class "nav nav-tabs", attribute "role" "tablist" ] [
-                li' { class = "active" } [ a [ href "#pfd", attribute "data-toggle" "tab" ] [ strong_ "PFD" ] ]
-              , li_ [ a [ href "#bbox", attribute "data-toggle" "tab" ] [ strong_ "Camera Target" ] ]
+                li [ class "active" ] [ a [ href "#pfd", attribute "data-toggle" "tab" ] [ strong [ ] [ text "PFD" ] ] ]
+              , li [ ] [ a [ href "#bbox", attribute "data-toggle" "tab" ] [ strong [ ] [ text "Camera Target" ] ] ]
               ]
-          , panelBody_ [
-              div' { class = "tab-content" } [
+          , div [ class "panel-body" ] [
+              div [ class "tab-content" ] [
                 div [ class "tab-pane active", id "pfd" ] [
                     pfd model.cv.packedStatus.pitch
                         model.cv.packedStatus.roll
@@ -168,26 +172,27 @@ view model =
             ]
           ]
         ]
-      , colXs_ 7 [
-          panelDefault_ [
+      , div [ class "col-xs-7" ] [
+          div [ class "panel panel-default" ] [
             ul [ class "nav nav-tabs", attribute "role" "tablist" ] [
-                li' { class = "active" } [ a [ href "#calibration", attribute "data-toggle" "tab" ] [ strong_ "Calibration" ] ]
-              , li_ [ a [href "#status", attribute "data-toggle" "tab" ] [ strong_ "Control Law Status"] ]
-              , li_ [ a [href "#tuning", attribute "data-toggle" "tab" , onClick FetchTuning ] [ strong_ "Tuning" ] ]
+                li [ class "active" ] [ a [ href "#calibration", attribute "data-toggle" "tab" ] [ strong [ ] [ text "Calibration" ] ] ]
+              , li [ ] [ a [href "#status", attribute "data-toggle" "tab" ] [ strong [ ] [ text "Control Law Status" ] ] ]
+              , li [ ] [ a [href "#tuning", attribute "data-toggle" "tab" , onClick FetchTuning ] [ strong [ ] [ text "Tuning" ] ] ]
               ]
-          , panelBody_ [
-              div' { class = "tab-content"} [
+          , div [ class "panel-body" ] [
+              div [ class "tab-content" ] [
                 div [ class "tab-pane active", id "calibration" ] [ renderCalibration model.cv.packedStatus ]
               , div [ class "tab-pane", id "status" ] [ renderStatus model.cv.packedStatus ]
+              , div [ class "tab-pane", id "control" ] [ renderControl model ]
               , div [ class "tab-pane", id "tuning" ] [ renderTuning model ]
               ]
             ]
           ]
         ]
     ]
-    , hr_
-    , row_ [
-        colXs_ 12 [ table' { class = "table" } [ tbody_ [
+    , hr [ ] [ ]
+    , div [ class "row" ] [
+        div [ class "col-xs-12" ] [ table [ class "table" ] [ tbody [ ] [
             tr
               [ let v = model.latencySmoother.value
                 in class (if v < 1000
@@ -195,30 +200,24 @@ view model =
                           else if v >= 1000 && v < 5000
                           then "warning"
                           else "danger") ]
-              [ thLabel 80 "Time between updates", td_ [ text (toString (round model.latencySmoother.value) ++ "ms") ] ]
-          , tr_ [ thLabel 80 "Refresh rate"
-                , td_ [ div' { class = "input-group" } [
-                    inputFloat' {
-                      class = "form-control"
-                    , name = "refresh-rate"
-                    , placeholder = Nothing
-                    , value = 5
-                    , min = Just 0
-                    , max = Just 15
-                    , step = Nothing
-                    , update = {
-                          onEnter = Nothing
-                        , onKeyboardLost = Nothing
-                        , onInput = Just (\res -> Maybe.map SetRefreshRate (Result.toMaybe res))
-                        }
-                    }
-                  , span' { class = "input-group-addon" } [ text "hz" ] ] ] ]
-          , tr_ [ thLabel 80 "Linux VM"
-                , td_ [ node "button"
-                    [ class "btn btn-primary btn-lg btn-block", onClick SendReboot ]
-                    [ text "Reboot" ] ] ]
+              [ thLabel 80 "Time between updates", td [ ] [ text (toString (round model.latencySmoother.value) ++ "ms") ] ]
+          , tr [ ] [ thLabel 80 "Refresh rate"
+                   , td [ ] [ div [ class "input-group" ] [
+                                input [ class "form-control"
+                                      , name "refresh-rate"
+                                      , type_  "number"
+                                      , value (toString (round (1000 / model.refreshRate)))
+                                      , A.min (toString 0)
+                                      , A.max (toString 15)
+                                      , onInput SetRefreshRate
+                                      ] []
+                     , span [ class "input-group-addon" ] [ text "hz" ] ] ] ]
+          , tr [ ] [ thLabel 80 "Linux VM"
+                   , td [ ] [ node "button"
+                                [ class "btn btn-primary btn-lg btn-block", onClick SendReboot ]
+                                [ text "Reboot" ] ] ]
          ] ] ] ]
-    , row_ [ colXs_ 12 [
+    , div [ class "row" ] [ div [ class "col-xs-12" ] [
           case model.httpError of
             Just err -> div [ class "alert alert-warning" ] [ text (toString err) ]
             Nothing -> div [] []
@@ -227,25 +226,28 @@ view model =
 
 thLabel w str = th [ style [ ("width", toString w ++ "%"), ("vertical-align", "middle") ] ] [ text str ]
 
+renderControl : Model -> Html Msg
+renderControl model = div [ ] [ ]
+
 renderTuning : Model -> Html Msg
-renderTuning model = div_ [
-    panelDefault_ [
-        panelHeading_ [ panelTitle_ "Altitude" ]
-      , panelBody_ [ text "Altitude stuff" ] ]
-  , panelDefault_ [
-        panelHeading_ [ panelTitle_ "Attitude" ]
-      , panelBody_ [ text "Attitude stuff" ] ]
-  , panelDefault_ [
-        panelHeading_ [ panelTitle_ "Yaw" ]
-      , panelBody_ [ text "Yaw stuff" ] ]
+renderTuning model = div [ ] [
+    div [ class "panel panel-default" ] [
+        div [ class "panel-heading" ] [ h2 [ class "panel-title" ] [ text "Altitude" ] ]
+      , div [ class "panel-body" ] [ text "Altitude stuff" ] ]
+  , div [ class "panel panel-default" ] [
+        div [ class "panel-heading" ] [ h2 [ class "panel-title" ] [ text "Attitude" ] ]
+      , div [ class "panel-body" ] [ text "Attitude stuff" ] ]
+  , div [ class "panel panel-default" ] [
+        div [ class "panel-heading" ] [ h2 [ class "panel-title" ] [ text "Yaw" ] ]
+      , div [ class "panel-body" ] [ text "Yaw stuff" ] ]
   ]
 
 renderCalibration : PackedStatus -> Html Msg
 renderCalibration packedStatus =
   let label str = th [ style [ ("width", "10%") ] ] [ text str ]
-  in table' { class = "table" } [ tbody_ [
-         tr_ [ label "Gyro", td_ [ renderCalProgress packedStatus.gyro_progress ] ]
-       , tr_ [ label "Mag", td_ [ renderCalProgress packedStatus.mag_progress ] ]
+  in table [ class "table" ] [ tbody [ ] [
+         tr [ ] [ label "Gyro", td [ ] [ renderCalProgress packedStatus.gyro_progress ] ]
+       , tr [ ] [ label "Mag", td [ ] [ renderCalProgress packedStatus.mag_progress ] ]
        ] ]
 
 renderStatus : PackedStatus -> Html Msg
@@ -256,36 +258,36 @@ renderStatus packedStatus =
         let cls = if active then "btn-primary" else "btn-default"
         in div [ class "btn-group" ] [ node "button" [ class ("btn " ++ cls), attribute "disabled" "disabled" ] [ text lbl ] ]
       tristate lbl st =
-        tr_ [ label lbl, td_ [ bgrp [
-                  btn "Negative" (st == Tristate.Negative)
-                , btn "Neutral" (st == Tristate.Neutral)
-                , btn "Positive" (st == Tristate.Positive)
-                ] ] ]
-  in table' { class = "table" } [ tbody_ [
-         tr_ [ label "Arming Mode", td_ [ bgrp [
-                   btn "Safe" (packedStatus.arming_mode == ArmingMode.Safe)
-                 , btn "Armed" (packedStatus.arming_mode == ArmingMode.Armed)
-                 ] ] ]
-       , tr_ [ label "Throttle Mode", td_ [ bgrp [
-                   btn "DirectUi" (packedStatus.control_modes.thr_mode == ThrottleMode.DirectUi)
-                 , btn "AltUi" (packedStatus.control_modes.thr_mode == ThrottleMode.AltUi)
-                 , btn "AltSetpt" (packedStatus.control_modes.thr_mode == ThrottleMode.AltSetpt)
-                 ] ] ]
-       , tr_ [ label "UI Mode", td_ [ bgrp [
-                   btn "Ppm" (packedStatus.control_modes.ui_mode == ControlSource.Ppm)
-                 , btn "Gcs" (packedStatus.control_modes.ui_mode == ControlSource.Gcs)
-                 , btn "Nav" (packedStatus.control_modes.ui_mode == ControlSource.Nav)
-                 ] ] ]
-       , tr_ [ label "Yaw Mode", td_ [ bgrp [
-                   btn "Rate" (packedStatus.control_modes.yaw_mode == YawMode.Rate)
-                 , btn "Heading" (packedStatus.control_modes.yaw_mode == YawMode.Heading)
-                 ] ] ]
+        tr [ ] [ label lbl, td [ ] [ bgrp [
+                     btn "Negative" (st == Tristate.Negative)
+                   , btn "Neutral" (st == Tristate.Neutral)
+                   , btn "Positive" (st == Tristate.Positive)
+                   ] ] ]
+  in table [ class "table" ] [ tbody [ ] [
+         tr [ ] [ label "Arming Mode", td [ ] [ bgrp [
+                      btn "Safe" (packedStatus.arming_mode == ArmingMode.Safe)
+                    , btn "Armed" (packedStatus.arming_mode == ArmingMode.Armed)
+                    ] ] ]
+       , tr [ ] [ label "Throttle Mode", td [ ] [ bgrp [
+                      btn "DirectUi" (packedStatus.control_modes.thr_mode == ThrottleMode.DirectUi)
+                    , btn "AltUi" (packedStatus.control_modes.thr_mode == ThrottleMode.AltUi)
+                    , btn "AltSetpt" (packedStatus.control_modes.thr_mode == ThrottleMode.AltSetpt)
+                    ] ] ]
+       , tr [ ] [ label "UI Mode", td [ ] [ bgrp [
+                      btn "Ppm" (packedStatus.control_modes.ui_mode == ControlSource.Ppm)
+                    , btn "Gcs" (packedStatus.control_modes.ui_mode == ControlSource.Gcs)
+                    , btn "Nav" (packedStatus.control_modes.ui_mode == ControlSource.Nav)
+                    ] ] ]
+       , tr [ ] [ label "Yaw Mode", td [ ] [ bgrp [
+                      btn "Rate" (packedStatus.control_modes.yaw_mode == YawMode.Rate)
+                    , btn "Heading" (packedStatus.control_modes.yaw_mode == YawMode.Heading)
+                    ] ] ]
        , tristate "rcinput" packedStatus.rcinput
        , tristate "telem" packedStatus.telem
        , tristate "px4io" packedStatus.px4io
        , tristate "sens_cal" packedStatus.sens_cal
        ] ]
-    
+
 renderCalProgress : Float -> Html Msg
 renderCalProgress p =
   let inProgress = p < 1.0
@@ -350,19 +352,19 @@ mkFir ws =
 {-| Run a FIR filter with a list of inputs from most to least recent. Returns the intermediate outputs and the updated filter state -}
 fir : FIR -> List Float -> (List Float, FIR)
 fir f is =
-  let go i (os, f') =
-        let (o, f'') = fir1 f' i
-        in (o :: os, f'')
+  let go i (os, f1) =
+        let (o, f2) = fir1 f1 i
+        in (o :: os, f2)
   in List.foldr go ([], f) is
 
 {-| Run a FIR filter with a single new input. Returns the output and the updated filter state -}
 fir1 : FIR -> Float -> (Float, FIR)
 fir1 f i =
-  let output = List.foldr go 0 (List.map2 (,) f.weights inputs')
-      inputs' = List.take f.size (i :: f.inputs)
-      f' = { f | inputs = inputs' }
+  let output = List.foldr go 0 (List.map2 (,) f.weights inputs1)
+      inputs1 = List.take f.size (i :: f.inputs)
+      f1 = { f | inputs = inputs1 }
       go (w, i) s = s + (w * i)
-  in (output, f')
+  in (output, f1)
 
 type alias Smoother =
   { firState : FIR
@@ -375,10 +377,10 @@ mkSmoother ws =
 
 putNext : Smoother -> Float -> Smoother
 putNext s i =
-  let (v, fs') = fir1 s.firState i
-  in { s | firState = fs', value = v / s.mag }
+  let (v, fs1) = fir1 s.firState i
+  in { s | firState = fs1, value = v / s.mag }
 
 putSome : Smoother -> List Float -> Smoother
 putSome s is =
-  let (vs, fs') = fir s.firState is
-  in { s | firState = fs', value = Maybe.withDefault s.value (Maybe.map (\x -> x / s.mag) (List.head vs)) }
+  let (vs, fs1) = fir s.firState is
+  in { s | firState = fs1, value = Maybe.withDefault s.value (Maybe.map (\x -> x / s.mag) (List.head vs)) }
