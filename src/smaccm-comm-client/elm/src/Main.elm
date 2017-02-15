@@ -1,6 +1,6 @@
 port module Main exposing (..)
 
---import Basics.Extra exposing (never)
+import Char
 import Html exposing (..)
 import Html.Events exposing (..)
 import Html.Attributes as A exposing (..)
@@ -127,10 +127,23 @@ update msg model =
       in { model2 | httpError = Nothing } ! [ cmd, Task.perform UpdateTime Time.now ]
     SendReboot -> (model, cvc.setRebootReq (RebootReq.RebootReq RebootMagic.LinuxRebootMagic1))
     KeyUp kc -> model ! []
-    KeyDown kc -> model ! []
+    KeyDown kc -> handleKeyDown model kc
     FetchTuning -> model ! fetchTuning
     FetchFail err ->
       { model | httpError = Just err } ! []
+
+handleKeyDown model kc =
+  let cmd = case Char.fromCode kc |> Char.toUpper of
+              'W' -> [ cvc.setUserInputRequest { throttle = 0, roll = 0, pitch = 0.2, yaw = 0 } ]
+              'S' -> [ cvc.setUserInputRequest { throttle = 0, roll = 0, pitch = -0.2, yaw = 0 } ]
+              'A' -> [ cvc.setUserInputRequest { throttle = 0, roll = 0.2, pitch = 0.2, yaw = 0 } ]
+              'D' -> [ cvc.setUserInputRequest { throttle = 0, roll = -0.2, pitch = 0.2, yaw = 0 } ]
+              'Q' -> [ cvc.setUserInputRequest { throttle = 0, roll = 0, pitch = 0.2, yaw = 0.2 } ]
+              'E' -> [ cvc.setUserInputRequest { throttle = 0, roll = 0, pitch = 0.2, yaw = -0.2 } ]
+              'R' -> [ cvc.setUserInputRequest { throttle = 0.2, roll = 0, pitch = 0.2, yaw = 0 } ]
+              'F' -> [ cvc.setUserInputRequest { throttle = -0.2, roll = 0, pitch = 0.2, yaw = 0 } ]
+              _ -> [ ]
+  in model ! cmd
 
 fetchTuning : List (Cmd Msg)
 fetchTuning = [
@@ -333,6 +346,8 @@ subscriptions : Model -> Sub Msg
 subscriptions model = Sub.batch [
     Time.every (model.refreshRate * millisecond) (\_ -> Poll)
   , Time.every second UpdateLatency
+  , Keyboard.downs KeyDown
+  , Keyboard.ups KeyUp
   ]
 
 -- MOVE TO ANOTHER MODULE
