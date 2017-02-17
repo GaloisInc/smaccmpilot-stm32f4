@@ -37,6 +37,7 @@ type alias Model =
   { cv : ControllableVehicle
   , refreshRate : Float -- milliseconds
   , latencySmoother : Smoother
+  , latencyModalVisible : Bool
   , lastUpdate : Time
   , lastUpdateDts : List Float -- milliseconds
   , httpError : Maybe Http.Error
@@ -73,11 +74,12 @@ init =
   in ( { cv = CV.init
        , refreshRate = 200
        , latencySmoother = mkSmoother latencyWeights
+       , latencyModalVisible = False
        , lastUpdate = 0
        , lastUpdateDts = []
        , httpError = Nothing
        }
-     , cvc.getPackedStatus
+     , Cmd.batch [ cvc.getPackedStatus, Task.perform InitializeTime Time.now ]
      )
 
 -- UPDATE
@@ -86,6 +88,7 @@ type Msg
   = Poll
   | SetRefreshRate String -- Float hz
   | UpdateLatency Time
+  | InitializeTime Time
   | UpdateTime Time
   | CVResponse CV.Response
   | SendReboot
@@ -115,9 +118,12 @@ update msg model =
               [] -> putSome model.latencySmoother (List.repeat window dt)
               ls -> putSome model.latencySmoother ls
           v = s1.value
-      in { model | latencySmoother = s1, lastUpdateDts = [] } ! [
-          if v > 5000 && model.refreshRate < 10*second then showModal () else hideModal ()
-        ]
+          doShow = v > 5000 && model.refreshRate < 10 * second
+      in { model | latencySmoother = s1, lastUpdateDts = [], latencyModalVisible = doShow }
+         ! [ if doShow
+             then if model.latencyModalVisible then showModal () else Cmd.none
+             else hideModal () ]
+    InitializeTime time -> { model | lastUpdate = time } ! []
     UpdateTime time ->
       let dt = Time.inMilliseconds time - Time.inMilliseconds model.lastUpdate
       in { model | lastUpdate = time, lastUpdateDts = dt :: model.lastUpdateDts } ! []
