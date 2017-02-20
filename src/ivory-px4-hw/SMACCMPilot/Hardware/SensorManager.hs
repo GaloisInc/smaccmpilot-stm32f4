@@ -128,7 +128,8 @@ fmu24SensorManager FMU24Sensors{..} tocc exti2cs = do
   mag_s <- channel
   lsm_acc_s <- channel -- output never used!
   lsm303dSPISensorManager lsm303dDefaultConf lsm303dReq (snd l3gd20_rdy)
-                          (fst mag_s) (fst lsm_acc_s) (SPIDeviceHandle 1)
+                          (fst mag_s) (Just fmu24sens_mag_cal)
+                          (fst lsm_acc_s) (SPIDeviceHandle 1)
 
   (ms5611Task, ms5611Req) <- task "ms5611"
   baro_s <- channel

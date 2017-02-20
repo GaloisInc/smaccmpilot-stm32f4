@@ -161,17 +161,19 @@ px4platform_baro PX4Platform{..} = case px4platform_sensors of
     , ms5611_spi_pins   = fmu24sens_spi_pins
     }
 
-px4platform_mag :: PX4Platform -> Magnetometer
+px4platform_mag :: PX4Platform -> (Magnetometer, Maybe MagCal)
 px4platform_mag PX4Platform{..} = case px4platform_sensors of
-  FMU17Sensors{..} -> Mag_HMC5883L_I2C $ HMC5883L_I2C
-    { hmc5883l_i2c_periph = fmu17sens_i2c_periph
-    , hmc5883l_i2c_pins   = fmu17sens_i2c_pins
-    , hmc5883l_i2c_addr   = fmu17sens_hmc5883l
-    }
-  FMU24Sensors{..} -> Mag_LSM303D_SPI $ LSM303D_SPI
-    { lsm303d_spi_device  = fmu24sens_lsm303d
-    , lsm303d_spi_pins    = fmu24sens_spi_pins
-    }
+  FMU17Sensors{..} -> (mag, Nothing)
+    where mag = Mag_HMC5883L_I2C $ HMC5883L_I2C
+                  { hmc5883l_i2c_periph = fmu17sens_i2c_periph
+                  , hmc5883l_i2c_pins   = fmu17sens_i2c_pins
+                  , hmc5883l_i2c_addr   = fmu17sens_hmc5883l
+                  }
+  FMU24Sensors{..} -> (mag, Just fmu24sens_mag_cal)
+    where mag = Mag_LSM303D_SPI $ LSM303D_SPI
+                  { lsm303d_spi_device  = fmu24sens_lsm303d
+                  , lsm303d_spi_pins    = fmu24sens_spi_pins
+                  }
 
 px4platform_l3gd20 :: PX4Platform -> Maybe SPIDevice
 px4platform_l3gd20 PX4Platform{..} = case px4platform_sensors of

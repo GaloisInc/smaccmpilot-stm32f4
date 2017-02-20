@@ -44,6 +44,7 @@ data Sensors
     , fmu24sens_accel_cal      :: AccelCal
     , fmu24sens_ms5611         :: SPIDevice
     , fmu24sens_lsm303d        :: SPIDevice
+    , fmu24sens_mag_cal        :: MagCal
     , fmu24sens_l3gd20         :: SPIDevice
     , fmu24sens_spi_periph     :: SPIPeriph
     , fmu24sens_spi_pins       :: SPIPins
@@ -82,6 +83,19 @@ parseAccelCal = subsection "calibration" $ subsection "accelerometer" $ do
   accel_cal_y_offset <- fromIntegral <$> subsection "y_offset" integer
   accel_cal_z_offset <- fromIntegral <$> subsection "z_offset" integer
   return $ AccelCal {..}
+
+data MagCal = MagCal {
+    mag_cal_x_offset :: Sint16
+  , mag_cal_y_offset :: Sint16
+  , mag_cal_z_offset :: Sint16
+  }
+
+parseMagCal :: ConfigParser MagCal
+parseMagCal = subsection "calibration" $ subsection "magnetometer" $ do
+  mag_cal_x_offset <- fromIntegral <$> subsection "x_offset" integer
+  mag_cal_y_offset <- fromIntegral <$> subsection "y_offset" integer
+  mag_cal_z_offset <- fromIntegral <$> subsection "z_offset" integer
+  return $ MagCal {..}
 
 -----
 
@@ -125,11 +139,13 @@ fmu17_sensors = FMU17Sensors
 fmu24_sensors :: ConfigParser Sensors
 fmu24_sensors = do
   accel_cal <- parseAccelCal
+  mag_cal <- parseMagCal
   return $ FMU24Sensors
     { fmu24sens_mpu6000    = mpu6000
     , fmu24sens_accel_cal  = accel_cal
     , fmu24sens_ms5611     = ms5611
     , fmu24sens_lsm303d    = lsm303d
+    , fmu24sens_mag_cal    = mag_cal
     , fmu24sens_l3gd20     = l3gd20
     , fmu24sens_spi_pins   = spi1_pins
     , fmu24sens_spi_periph = spi1_periph

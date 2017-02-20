@@ -1,7 +1,8 @@
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE Rank2Types #-}
-{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE Rank2Types #-}
+{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeFamilies #-}
 
 module SMACCMPilot.Hardware.LSM303D.SPI
   ( lsm303dSPISensorManager
@@ -20,15 +21,17 @@ import qualified SMACCMPilot.Comm.Ivory.Types.Xyz as XYZ
 import SMACCMPilot.Time
 import Numeric (showHex)
 import SMACCMPilot.Hardware.LSM303D.Regs
+import SMACCMPilot.Hardware.Sensors
 
 lsm303dSPISensorManager :: Config
                         -> BackpressureTransmit ('Struct "spi_transaction_request") ('Struct "spi_transaction_result")
                         -> ChanOutput ('Stored ITime)
                         -> ChanInput  ('Struct "magnetometer_sample")
+                        -> Maybe MagCal
                         -> ChanInput  ('Struct "accelerometer_sample")
                         -> SPIDeviceHandle
                         -> Tower e ()
-lsm303dSPISensorManager conf (BackpressureTransmit req_chan res_chan) init_chan mag_chan accel_chan h = do
+lsm303dSPISensorManager conf (BackpressureTransmit req_chan res_chan) init_chan mag_chan mMagCal accel_chan h = do
   towerModule  M.magnetometerSampleTypesModule
   towerDepends M.magnetometerSampleTypesModule
   towerModule  A.accelerometerSampleTypesModule
@@ -81,7 +84,7 @@ lsm303dSPISensorManager conf (BackpressureTransmit req_chan res_chan) init_chan 
           store (acc_s ~> A.samplefail) (mrc >? 0)
 
           comment "put results in mag_sample field"
-          convert_mag_sample conf mag_read_result mag_s
+          convert_mag_sample conf mMagCal mag_read_result mag_s
 
           comment "send accel read request"
           acc_read_req <- fmap constRef $ local $ istruct
@@ -126,10 +129,18 @@ lsm303dSPISensorManager conf (BackpressureTransmit req_chan res_chan) init_chan 
           emit req_e do_read_req
 
 convert_mag_sample :: Config
+                   -> Maybe MagCal
                    -> Ref s1 ('Struct "spi_transaction_result")
                    -> Ref s2 ('Struct "magnetometer_sample")
                    -> Ivory eff ()
-convert_mag_sample c res s = convert_sample (magSensitivityGauss c) res (s ~> M.sample)
+convert_mag_sample c Nothing res s =
+  convert_sample (magSensitivityGauss c) res (s ~> M.sample)
+convert_mag_sample c (Just MagCal {..}) res s =
+  convert_sample_cal
+    mag_cal_x_offset mag_cal_y_offset mag_cal_z_offset
+    (magSensitivityGauss c)
+    res
+    (s ~> M.sample)
 
 convert_acc_sample :: Config
                    -> Ref s1 ('Struct "spi_transaction_result")
@@ -141,23 +152,33 @@ convert_sample :: IFloat
                -> Ref s1 ('Struct "spi_transaction_result")
                -> Ref s2 ('Struct "xyz")
                -> Ivory eff ()
-convert_sample scale res s = do
+convert_sample = convert_sample_cal 0 0 0
+
+convert_sample_cal :: Sint16 -> Sint16 -> Sint16
+                   -> IFloat
+                   -> Ref s1 ('Struct "spi_transaction_result")
+                   -> Ref s2 ('Struct "xyz")
+                   -> Ivory eff ()
+convert_sample_cal xoff yoff zoff scale res s = do
   f ((res ~> rx_buf) ! 1)
     ((res ~> rx_buf) ! 2)
     (s ~> XYZ.x)
+    xoff
   f ((res ~> rx_buf) ! 3)
     ((res ~> rx_buf) ! 4)
     (s ~> XYZ.y)
+    yoff
   f ((res ~> rx_buf) ! 5)
     ((res ~> rx_buf) ! 6)
     (s ~> XYZ.z)
+    zoff
   where
-  f loref hiref resref = do
+  f loref hiref resref offset = do
     lo <- deref loref
     hi <- deref hiref
     (u16 :: Uint16) <- assign ((safeCast lo) + ((safeCast hi) `iShiftL` 8))
     (i16 :: Sint16) <- assign (twosComplementCast u16)
-    (r :: IFloat)   <- assign (scale * safeCast i16)
+    (r :: IFloat)   <- assign (scale * safeCast (i16 + offset))
     store resref r
 
 
