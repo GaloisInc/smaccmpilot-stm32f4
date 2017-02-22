@@ -72,6 +72,7 @@ library
                        ivory-serialize >=0.1,
                        ivory-stdlib >=0.1,
                        estimator,
+                       ieee754,
                        linear,
                        tower >=0.9,
                        tower-aadl,
@@ -84,7 +85,8 @@ library
                        smaccm-commsec,
                        smaccm-datalink,
                        smaccm-comm-schema-tower,
-                       smaccm-ins
+                       smaccm-ins,
+                       vector >= 0.11
   default-language:    Haskell2010
   ghc-options:         -Wall
 
