@@ -26,17 +26,14 @@ import qualified SMACCMPilot.Comm.Ivory.Types.Xyz as XYZ
 import qualified SMACCMPilot.Comm.Ivory.Types.RgbLedSetting as LED
 import           SMACCMPilot.Comm.Tower.Attr
 import           SMACCMPilot.Comm.Tower.Interface.ControllableVehicle
+import qualified SMACCMPilot.Flight.Control.Attitude.KalmanFilter as Att
 import           SMACCMPilot.Flight.Platform
 import           SMACCMPilot.Flight.Sensors.GPS
 import           SMACCMPilot.Hardware.SensorManager
 import           SMACCMPilot.Hardware.Sensors
 import           SMACCMPilot.INS.Bias.Gyro
-import           SMACCMPilot.INS.Bias.Magnetometer.Tower
 import           SMACCMPilot.INS.Bias.Calibration
 import           SMACCMPilot.INS.DetectMotion
-import           SMACCMPilot.INS.Attitude.Ivory
-import           SMACCMPilot.INS.Attitude.SensorFusion
-import           SMACCMPilot.INS.Attitude.Tower
 import           SMACCMPilot.Flight.Sensors.LIDARLite
 import           SMACCMPilot.Flight.Sensors.PX4Flow
 
@@ -45,9 +42,9 @@ sensorTower :: (e -> FlightPlatform)
             -> Tower e (Monitor e ())
 sensorTower tofp attrs = do
 
-  p   <- channel
-  mon <- uartUbloxGPSTower tofp (fst p)
-  attrProxy (gpsOutput attrs) (snd p)
+  gps <- channel
+  mon <- uartUbloxGPSTower tofp (fst gps)
+  attrProxy (gpsOutput attrs) (snd gps)
 
   fp <- tofp <$> getEnv
   -- make channels whether or not we have a LIDAR or PX4Flow in order
@@ -120,21 +117,15 @@ sensorTower tofp attrs = do
   attrProxy (gyroOutput            attrs) gyro_out
   attrProxy (gyroOutputCalibration attrs) gyro_out_bias
 
-  -- Mag: same basic idea as Gyro. We calculate calibration differently, of
-  -- course.
+  -- mag calibration now on the ADC level, so these are the same for now...
   attrProxy (magRawOutput attrs) mag_raw
+  attrProxy (magOutput attrs) mag_raw
 
-  mag_bias <- calcMagBiasTower mag_raw
-  attrProxy (magCalibration attrs) mag_bias
-
-  (mag_out, mag_out_bias) <- applyCalibrationTower magCalibrate mag_raw mag_bias cl_chan
-  attrProxy (magOutput            attrs) mag_out
-  attrProxy (magOutputCalibration attrs) mag_out_bias
 
   -- Sensor fusion: estimate vehicle attitude with respect to a N/E/D
   -- navigation frame. Report (1) attitude; (2) sensor measurements in the
   -- navigation frame.
-  states <- sensorFusion accel gyro_out mag_out (snd motion)
+  states <- Att.sensorFusion accel gyro_out mag_raw (snd motion)
   monitor "sensor_fusion_proxy" $ do
     last_accel <- save "last_accel" accel
     last_baro <- save "last_baro" baro_raw
@@ -143,9 +134,9 @@ sensorTower tofp attrs = do
 
     handler states "new_state" $ do
       e <- attrEmitter $ sensorsOutput attrs
-      callback $ \ stateVector -> do
-        attitude <- mapM deref $ stateOrient $ stateVectorFromStruct stateVector
-        let (Quaternion q0 (V3 q1 q2 q3)) = attitude
+      callback $ \ ahrsState -> do
+        Att.AttState {..} <- Att.attState ahrsState
+        let (Quaternion q0 (V3 q1 q2 q3)) = ahrs_ltp_to_body
 
         accel_sample <- xyzRef $ last_accel ~> A.sample
 
@@ -159,7 +150,7 @@ sensorTower tofp attrs = do
         lidar_time <- deref $ last_lidar ~> L.time
 
         result <- local $ istruct
-          [ R.valid .= ival (foldr1 (.||) $ fmap (/=? 0) attitude)
+          [ R.valid .= ival (foldr1 (.||) $ fmap (/=? 0) ahrs_ltp_to_body)
           , R.roll .= ival (atan2F (2 * (q0 * q1 + q2 * q3)) (1 - 2 * (q1 * q1 + q2 * q2)))
           , R.pitch .= ival (asin (2 * (q0 * q2 - q3 * q1)))
           , R.yaw .= ival (atan2F (2 * (q0 * q3 + q1 * q2)) (1 - 2 * (q2 * q2 + q3 * q3)))

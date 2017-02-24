@@ -20,6 +20,7 @@ library
                        SMACCMPilot.Flight.Control.Altitude.ThrottleUI,
                        SMACCMPilot.Flight.Control.Attitude.Angle,
                        SMACCMPilot.Flight.Control.Attitude.HeadingControl,
+                       SMACCMPilot.Flight.Control.Attitude.KalmanFilter,
                        SMACCMPilot.Flight.Control.Attitude.PitchRoll,
                        SMACCMPilot.Flight.Control.Attitude.Stabilize,
                        SMACCMPilot.Flight.Control.Attitude.YawRate,
