@@ -467,12 +467,12 @@ monitorAttEstimator :: Monitor e AttEstimator
 monitorAttEstimator = do
   ahrs <- state (named "ahrs_state")
   monitorModuleDef $ do
-    defStruct (Proxy :: Proxy "AhrsMlkf")
     incl (ahrs_mlkf_init ahrs)
     incl (ahrs_mlkf_align ahrs)
     incl (ahrs_mlkf_propagate ahrs)
     incl (ahrs_mlkf_update_accel ahrs)
     incl (ahrs_mlkf_update_mag_full ahrs)
+
   return AttEstimator
     { ahrs_init = call_ (ahrs_mlkf_init ahrs)
     , ahrs_align = call (ahrs_mlkf_align ahrs)
@@ -489,6 +489,9 @@ sensorFusion
   -> ChanOutput ('Stored IBool)
   -> Tower e (ChanOutput ('Struct "AhrsMlkf"))
 sensorFusion accel_out gyro_out mag_out motion = do
+  towerModule $ package "attitude_filter" $
+    defStruct (Proxy :: Proxy "AhrsMlkf")
+
   (states_in, states_out) <- channel
 
   monitor (named "sensor_fusion") $ do
