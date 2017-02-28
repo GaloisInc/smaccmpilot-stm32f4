@@ -7,7 +7,7 @@ import Html.Attributes as A exposing (..)
 import Http
 import Keyboard
 import Task
-import Time exposing (Time, millisecond, second)
+import Time exposing (..)
 
 import Bbox exposing (..)
 import PFD exposing (..)
@@ -35,16 +35,21 @@ main =
 
 type alias Model =
   { cv : ControllableVehicle
+  , cvc : CV.Client Msg
   , refreshRate : Float -- milliseconds
   , latencySmoother : Smoother
   , latencyModalVisible : Bool
   , lastUpdate : Time
   , lastUpdateDts : List Float -- milliseconds
   , httpError : Maybe Http.Error
+  , httpTimeout : Time
   }
 
-cvc : CV.Client Msg
-cvc = CV.client FetchFail CVResponse "http://localhost:8080"
+mkCvc : Time -> CV.Client Msg
+mkCvc timeout = CV.client timeout FetchFail CVResponse "http://localhost:8080"
+
+initTimeout : Time
+initTimeout = 2 * second
 
 init : (Model, Cmd Msg)
 init =
@@ -71,15 +76,18 @@ init =
         , 0.11538864317459548
         , 0.0006633631777757225
         ]
+      initCvc = mkCvc initTimeout
   in ( { cv = CV.init
+       , cvc = initCvc
        , refreshRate = 200
        , latencySmoother = mkSmoother latencyWeights
        , latencyModalVisible = False
        , lastUpdate = 0
        , lastUpdateDts = []
        , httpError = Nothing
+       , httpTimeout = initTimeout
        }
-     , Cmd.batch [ cvc.getPackedStatus, Task.perform InitializeTime Time.now ]
+     , Cmd.batch [ initCvc.getPackedStatus, Task.perform InitializeTime Time.now ]
      )
 
 -- UPDATE
@@ -96,6 +104,7 @@ type Msg
   | KeyDown Keyboard.KeyCode
   | FetchTuning
   | FetchFail Http.Error
+  | SetTimeout String -- Int ms
 
 cvh : CV.Handler Model Msg
 cvh = let upd m f = { m | cv = f m.cv } in CV.updatingHandler upd
@@ -104,7 +113,7 @@ update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
     Poll ->
-      model ! [ cvc.getPackedStatus, cvc.getCameraTargetInput ]
+      model ! [ model.cvc.getPackedStatus, model.cvc.getCameraTargetInput ]
     SetRefreshRate hzStr ->
       case String.toFloat hzStr of
         Ok hz -> { model | refreshRate = 1*second / (hz + 0.0001) } ! []
@@ -131,34 +140,40 @@ update msg model =
       let (model1, cmd) = CV.handle cvh resp model
           model2 = updateSmoothers model1
       in { model2 | httpError = Nothing } ! [ cmd, Task.perform UpdateTime Time.now ]
-    SendReboot -> (model, cvc.setRebootReq (RebootReq.RebootReq RebootMagic.LinuxRebootMagic1))
+    SendReboot -> (model, model.cvc.setRebootReq (RebootReq.RebootReq RebootMagic.LinuxRebootMagic1))
     KeyUp kc -> model ! []
     KeyDown kc -> handleKeyDown model kc
-    FetchTuning -> model ! fetchTuning
+    FetchTuning -> model ! fetchTuning model
     FetchFail err ->
       { model | httpError = Just err } ! []
+    SetTimeout msStr ->
+      case String.toInt msStr of
+        Ok ms ->
+          let to = toFloat ms * millisecond
+          in { model | cvc = mkCvc to, httpTimeout = to } ! []
+        Err _ -> model ! []
 
 handleKeyDown model kc =
   let cmd = case Char.fromCode kc |> Char.toUpper of
-              'W' -> [ cvc.setUserInputRequest { throttle = 0, roll = 0, pitch = 0.2, yaw = 0 } ]
-              'S' -> [ cvc.setUserInputRequest { throttle = 0, roll = 0, pitch = -0.2, yaw = 0 } ]
-              'A' -> [ cvc.setUserInputRequest { throttle = 0, roll = 0.2, pitch = 0.2, yaw = 0 } ]
-              'D' -> [ cvc.setUserInputRequest { throttle = 0, roll = -0.2, pitch = 0.2, yaw = 0 } ]
-              'Q' -> [ cvc.setUserInputRequest { throttle = 0, roll = 0, pitch = 0.2, yaw = 0.2 } ]
-              'E' -> [ cvc.setUserInputRequest { throttle = 0, roll = 0, pitch = 0.2, yaw = -0.2 } ]
-              'R' -> [ cvc.setUserInputRequest { throttle = 0.2, roll = 0, pitch = 0.2, yaw = 0 } ]
-              'F' -> [ cvc.setUserInputRequest { throttle = -0.2, roll = 0, pitch = 0.2, yaw = 0 } ]
+              'W' -> [ model.cvc.setUserInputRequest { throttle = 0, roll = 0, pitch = 0.2, yaw = 0 } ]
+              'S' -> [ model.cvc.setUserInputRequest { throttle = 0, roll = 0, pitch = -0.2, yaw = 0 } ]
+              'A' -> [ model.cvc.setUserInputRequest { throttle = 0, roll = 0.2, pitch = 0.2, yaw = 0 } ]
+              'D' -> [ model.cvc.setUserInputRequest { throttle = 0, roll = -0.2, pitch = 0.2, yaw = 0 } ]
+              'Q' -> [ model.cvc.setUserInputRequest { throttle = 0, roll = 0, pitch = 0.2, yaw = 0.2 } ]
+              'E' -> [ model.cvc.setUserInputRequest { throttle = 0, roll = 0, pitch = 0.2, yaw = -0.2 } ]
+              'R' -> [ model.cvc.setUserInputRequest { throttle = 0.2, roll = 0, pitch = 0.2, yaw = 0 } ]
+              'F' -> [ model.cvc.setUserInputRequest { throttle = -0.2, roll = 0, pitch = 0.2, yaw = 0 } ]
               _ -> [ ]
   in model ! cmd
 
-fetchTuning : List (Cmd Msg)
-fetchTuning = [
-    cvc.getAltitudeRatePid
-  , cvc.getAltitudePositionPid
-  , cvc.getAttitudeRollStab
-  , cvc.getAttitudePitchStab
-  , cvc.getYawRatePid
-  , cvc.getYawPositionPid
+fetchTuning : Model -> List (Cmd Msg)
+fetchTuning model = [
+    model.cvc.getAltitudeRatePid
+  , model.cvc.getAltitudePositionPid
+  , model.cvc.getAttitudeRollStab
+  , model.cvc.getAttitudePitchStab
+  , model.cvc.getYawRatePid
+  , model.cvc.getYawPositionPid
   ]
 
 updateSmoothers : Model -> Model
@@ -231,6 +246,17 @@ view model =
                                       , onInput SetRefreshRate
                                       ] []
                      , span [ class "input-group-addon" ] [ text "hz" ] ] ] ]
+          , tr [ ] [ thLabel 80 "Request timeout"
+                   , td [ ] [ div [ class "input-group" ] [
+                                input [ class "form-control"
+                                      , name "request-timeout"
+                                      , type_  "number"
+                                      , value (toString (inMilliseconds (model.httpTimeout)))
+                                      , A.min (toString 0)
+                                      , A.max (toString (inMilliseconds (60 * second)))
+                                      , onInput SetTimeout
+                                      ] []
+                     , span [ class "input-group-addon" ] [ text "ms" ] ] ] ]
           , tr [ ] [ thLabel 80 "Linux VM"
                    , td [ ] [ node "button"
                                 [ class "btn btn-primary btn-lg btn-block", onClick SendReboot ]
