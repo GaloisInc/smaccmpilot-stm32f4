@@ -12,7 +12,6 @@ import qualified SMACCMPilot.Comm.Ivory.Types.ControlLaw     as CL
 import qualified SMACCMPilot.Comm.Ivory.Types.Tristate       as T
 import qualified SMACCMPilot.Comm.Ivory.Types.Px4ioState     as PX4
 import qualified SMACCMPilot.Comm.Ivory.Types.Px4ioStatus    as PX4
-import qualified SMACCMPilot.Comm.Ivory.Types.XyzCalibration as Cal
 import qualified SMACCMPilot.Comm.Ivory.Types.SensorsResult  as S
 
 import           SMACCMPilot.Flight.Law.Arming
@@ -76,8 +75,6 @@ armingLawTower LawInputs{..} arming_output arming_status = do
   armingTower rcinput_arming_input
     [ telem_arming_input
     , px4io_state_input
-    , gyro_cal_input
-    , mag_cal_input
     , sens_cal_input
     ]
     arming_output
@@ -102,18 +99,6 @@ armingLawTower LawInputs{..} arming_output arming_status = do
     , ai_get  = arming_from_px4io_state
     , ai_set  = A.px4io
     }
-  gyro_cal_input = SomeArmingInput $ ArmingInput
-    { ai_name = "gyro_cal"
-    , ai_chan = lawinput_gyro_cal_output
-    , ai_get  = arming_from_xyzcal
-    , ai_set  = A.gyro_cal
-    }
-  mag_cal_input = SomeArmingInput $ ArmingInput
-    { ai_name = "mag_cal"
-    , ai_chan = lawinput_mag_cal_output
-    , ai_get  = arming_from_xyzcal
-    , ai_set  = A.mag_cal
-    }
   sens_cal_input = SomeArmingInput $ ArmingInput
     { ai_name = "sens_cal"
     , ai_chan = lawinput_sensors_output
@@ -124,10 +109,6 @@ armingLawTower LawInputs{..} arming_output arming_status = do
   arming_from_px4io_state s = do
     safety_off <- deref (s ~> PX4.status ~> PX4.safety_off)
     return (safety_off ? (T.neutral, T.negative))
-
-  arming_from_xyzcal cal = do
-    v <- deref (cal ~> Cal.valid)
-    return (v ? (T.neutral, T.negative))
 
   arming_from_sensors sens = do
     v <- deref (sens ~> S.valid)

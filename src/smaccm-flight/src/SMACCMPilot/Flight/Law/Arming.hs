@@ -31,9 +31,7 @@ armingTower :: SomeArmingInput -- CLOCK
 armingTower (SomeArmingInput ai_clk) ai_rest a_mode a_stat = monitor "arming_law" $ do
   a <- stateInit "arming_law" (ival A.safe)
   s <- stateInit "arming_inputs" $ istruct
-        [ A.mag_cal   .= ival T.negative
-        , A.gyro_cal  .= ival T.negative
-        , A.px4io     .= ival T.negative
+        [ A.px4io     .= ival T.negative
         , A.rcinput   .= ival T.negative
         , A.sens_cal  .= ival T.negative
         , A.telem     .= ival T.neutral
@@ -75,4 +73,3 @@ armingTower (SomeArmingInput ai_clk) ai_rest a_mode a_stat = monitor "arming_law
         t <- ai_get ai v
         store s t
     return s
-

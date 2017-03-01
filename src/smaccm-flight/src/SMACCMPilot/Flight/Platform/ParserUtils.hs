@@ -5,6 +5,9 @@ import Data.Word (Word8)
 import Ivory.BSP.STM32.Driver.I2C
 import Ivory.Tower.Config
 
+import Prelude ()
+import Prelude.Compat
+
 i2cAddr :: ConfigParser I2CDeviceAddr
 i2cAddr = subsection "i2caddr" $ do
   addr <- fromIntegral <$> integer

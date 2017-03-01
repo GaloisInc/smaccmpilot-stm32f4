@@ -31,8 +31,6 @@ import           SMACCMPilot.Flight.Platform
 import           SMACCMPilot.Flight.Sensors.GPS
 import           SMACCMPilot.Hardware.SensorManager
 import           SMACCMPilot.Hardware.Sensors
-import           SMACCMPilot.INS.Bias.Gyro
-import           SMACCMPilot.INS.Bias.Calibration
 import           SMACCMPilot.INS.DetectMotion
 import           SMACCMPilot.Flight.Sensors.LIDARLite
 import           SMACCMPilot.Flight.Sensors.PX4Flow
@@ -85,10 +83,6 @@ sensorTower tofp attrs = do
           (store (l ~> LED.green) 15)
         emit e (constRef l)
 
-  -- Need control law to ensure we only apply new calibrations when the system
-  -- is disarmed.
-  let cl_chan = attrReaderChan (controlLaw attrs)
-
   attrProxy (accelOutput attrs) accel
 
   -- LIDAR: calibration handled onboard
@@ -99,37 +93,22 @@ sensorTower tofp attrs = do
   -- Baro: no calibration at this time.
   attrProxy (baroOutput attrs) baro_raw
 
-  -- Gyro: there are four attributes we care about.
-  --    gyroRawOutput: the uncalibrated gyro sample, from sensorManager
-  --    gyroCalibration: the most recent calibration value calculated, from
-  --      calcGyroBias.
-  --    gyroOutputCalibration: the calibration value, selected by applyCal
-  --      applyCal will only choose a new calibration value when the
-  --      control law indicated the vehicle is disarmed.
-  --    gyroOutput: the calibrated gyro sample, from applyGyroBias
-
+  -- gyro calibration now on the ADC level, so these are the same for now...
   attrProxy (gyroRawOutput attrs) gyro_raw
-
-  gyro_bias <- calcGyroBiasTower gyro_raw (snd motion)
-  attrProxy (gyroCalibration attrs) gyro_bias
-
-  (gyro_out, gyro_out_bias) <- applyCalibrationTower gyroCalibrate gyro_raw gyro_bias cl_chan
-  attrProxy (gyroOutput            attrs) gyro_out
-  attrProxy (gyroOutputCalibration attrs) gyro_out_bias
+  attrProxy (gyroOutput    attrs) gyro_raw
 
   -- mag calibration now on the ADC level, so these are the same for now...
   attrProxy (magRawOutput attrs) mag_raw
   attrProxy (magOutput attrs) mag_raw
 
-
   -- Sensor fusion: estimate vehicle attitude with respect to a N/E/D
   -- navigation frame. Report (1) attitude; (2) sensor measurements in the
   -- navigation frame.
-  states <- Att.sensorFusion accel gyro_out mag_raw (snd motion)
+  states <- Att.sensorFusion accel gyro_raw mag_raw (snd motion)
   monitor "sensor_fusion_proxy" $ do
     last_accel <- save "last_accel" accel
     last_baro <- save "last_baro" baro_raw
-    last_gyro <- save "last_gyro" gyro_out
+    last_gyro <- save "last_gyro" gyro_raw
     last_lidar <- save "last_lidar" lidar
 
     handler states "new_state" $ do

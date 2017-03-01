@@ -15,7 +15,7 @@
 module SMACCMPilot.Flight.Control.Attitude.KalmanFilter (AttState(..), attState, sensorFusion) where
 
 import Control.Applicative
-import Control.Monad (forM, forM_)
+import Control.Monad (forM)
 import Data.Foldable
 import qualified Data.Vector as V
 
@@ -31,6 +31,9 @@ import qualified SMACCMPilot.Comm.Ivory.Types.AccelerometerSample as A
 import qualified SMACCMPilot.Comm.Ivory.Types.GyroscopeSample as G
 import qualified SMACCMPilot.Comm.Ivory.Types.MagnetometerSample as M
 import qualified SMACCMPilot.Comm.Ivory.Types.Xyz as XYZ
+
+import Prelude ()
+import Prelude.Compat
 
 named :: String -> String
 named nm = "att_est_" ++ nm
@@ -50,6 +53,10 @@ struct AhrsMlkf {
   ; imu_rate :: Array 3 (Stored IFloat)
 }
 |]
+
+ahrsModule :: Module
+ahrsModule = package "attitude_filter" $
+  defStruct (Proxy :: Proxy "AhrsMlkf")
 
 type FloatRates = V3 IFloat
 
@@ -489,8 +496,8 @@ sensorFusion
   -> ChanOutput ('Stored IBool)
   -> Tower e (ChanOutput ('Struct "AhrsMlkf"))
 sensorFusion accel_out gyro_out mag_out motion = do
-  towerModule $ package "attitude_filter" $
-    defStruct (Proxy :: Proxy "AhrsMlkf")
+  towerModule ahrsModule
+  towerDepends ahrsModule
 
   (states_in, states_out) <- channel
 
@@ -531,7 +538,8 @@ sensorFusion accel_out gyro_out mag_out motion = do
         isFail <- deref (mag ~> M.samplefail)
         unless isFail $ do
           refCopy last_mag mag
-          isAligned <- deref aligned
+          _isAligned <- deref aligned
+--        disable mag update for now
 --          when isAligned $ do
           when false $ do
             ahrs_update_mag ahrs mag
@@ -541,8 +549,7 @@ sensorFusion accel_out gyro_out mag_out motion = do
       e <- emitter states_in 1
       callback $ \gyro_sample -> do
         isFail <- deref (gyro_sample ~> G.samplefail)
-        isCal <- deref (gyro_sample ~> G.calibrated)
-        unless (isFail .|| iNot isCal) $ do
+        unless isFail $ do
           -- to the conversion deg -> rads here
           gyro_deg <- derefXyz (gyro_sample ~> G.sample)
           let gyro_rads = gyro_deg ^* (pi / 180)

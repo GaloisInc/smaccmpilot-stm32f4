@@ -304,8 +304,6 @@
   (rcinput   tristate_t)
   (telem     tristate_t)
   (px4io     tristate_t)
-  (gyro_cal  tristate_t)
-  (mag_cal   tristate_t)
   (sens_cal  tristate_t))
 
 -- This is a redundant copy of parts of many other structs, for use in the demo

@@ -74,7 +74,7 @@ library
                        ivory-stdlib >=0.1,
                        estimator,
                        ieee754,
-                       linear,
+                       linear >= 1.20,
                        tower >=0.9,
                        tower-aadl,
                        tower-hal,
