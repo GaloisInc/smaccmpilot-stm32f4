@@ -154,17 +154,25 @@ update msg model =
         Err _ -> model ! []
 
 handleKeyDown model kc =
-  let cmd = case Char.fromCode kc |> Char.toUpper of
-              'W' -> [ model.cvc.setUserInputRequest { throttle = 0, roll = 0, pitch = 0.2, yaw = 0 } ]
-              'S' -> [ model.cvc.setUserInputRequest { throttle = 0, roll = 0, pitch = -0.2, yaw = 0 } ]
-              'A' -> [ model.cvc.setUserInputRequest { throttle = 0, roll = 0.2, pitch = 0.2, yaw = 0 } ]
-              'D' -> [ model.cvc.setUserInputRequest { throttle = 0, roll = -0.2, pitch = 0.2, yaw = 0 } ]
-              'Q' -> [ model.cvc.setUserInputRequest { throttle = 0, roll = 0, pitch = 0.2, yaw = 0.2 } ]
-              'E' -> [ model.cvc.setUserInputRequest { throttle = 0, roll = 0, pitch = 0.2, yaw = -0.2 } ]
-              'R' -> [ model.cvc.setUserInputRequest { throttle = 0.2, roll = 0, pitch = 0.2, yaw = 0 } ]
-              'F' -> [ model.cvc.setUserInputRequest { throttle = -0.2, roll = 0, pitch = 0.2, yaw = 0 } ]
-              _ -> [ ]
-  in model ! cmd
+  case Char.fromCode kc |> Char.toUpper of
+    'W' -> model ! [ model.cvc.setUserInputRequest { throttle = 0, roll = 0, pitch = 0.2, yaw = 0 } ]
+    'S' -> model ! [ model.cvc.setUserInputRequest { throttle = 0, roll = 0, pitch = -0.2, yaw = 0 } ]
+    'A' -> model ! [ model.cvc.setUserInputRequest { throttle = 0, roll = 0.2, pitch = 0.2, yaw = 0 } ]
+    'D' -> model ! [ model.cvc.setUserInputRequest { throttle = 0, roll = -0.2, pitch = 0.2, yaw = 0 } ]
+    'Q' -> model ! [ model.cvc.setUserInputRequest { throttle = 0, roll = 0, pitch = 0.2, yaw = 0.2 } ]
+    'E' -> model ! [ model.cvc.setUserInputRequest { throttle = 0, roll = 0, pitch = 0.2, yaw = -0.2 } ]
+    'R' -> model ! [ model.cvc.setUserInputRequest { throttle = 0.2, roll = 0, pitch = 0.2, yaw = 0 } ]
+    'F' -> model ! [ model.cvc.setUserInputRequest { throttle = -0.2, roll = 0, pitch = 0.2, yaw = 0 } ]
+    'T' -> let cv0 = model.cv
+               cmr0 = cv0.controlModesRequest
+               ui_mode0 = cmr0.ui_mode
+               cmr1 = { cmr0 | ui_mode = if ui_mode0 == ControlSource.Gcs then ControlSource.Ppm else ControlSource.Gcs
+                             , yaw_mode = YawMode.Heading
+                             , thr_mode = ThrottleMode.AltUi
+                      }
+               cv1 = { cv0 | controlModesRequest = cmr1 }
+           in { model | cv = cv1 } ! [ model.cvc.setControlModesRequest cmr1 ]
+    _ -> model ! [ ]
 
 fetchTuning : Model -> List (Cmd Msg)
 fetchTuning model = [
