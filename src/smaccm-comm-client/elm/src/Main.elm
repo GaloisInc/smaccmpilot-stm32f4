@@ -277,6 +277,7 @@ view model =
          ] ] ] ]
     , div [ class "row" ] [ div [ class "col-xs-12" ] [
           case model.httpError of
+            Just Http.Timeout -> div [] []
             Just err -> div [ class "alert alert-warning" ] [ text (toString err) ]
             Nothing -> div [] []
         ] ]
