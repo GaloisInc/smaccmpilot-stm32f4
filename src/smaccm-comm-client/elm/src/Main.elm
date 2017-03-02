@@ -7,7 +7,7 @@ import Html.Attributes as A exposing (..)
 import Http
 import Keyboard
 import Task
-import Time exposing (Time, millisecond, second)
+import Time exposing (..)
 
 import Bbox exposing (..)
 import PFD exposing (..)
@@ -35,16 +35,21 @@ main =
 
 type alias Model =
   { cv : ControllableVehicle
+  , cvc : CV.Client Msg
   , refreshRate : Float -- milliseconds
   , latencySmoother : Smoother
   , latencyModalVisible : Bool
   , lastUpdate : Time
   , lastUpdateDts : List Float -- milliseconds
   , httpError : Maybe Http.Error
+  , httpTimeout : Time
   }
 
-cvc : CV.Client Msg
-cvc = CV.client FetchFail CVResponse "http://localhost:8080"
+mkCvc : Time -> CV.Client Msg
+mkCvc timeout = CV.client timeout FetchFail CVMsg "http://localhost:8080"
+
+initTimeout : Time
+initTimeout = 2 * second
 
 init : (Model, Cmd Msg)
 init =
@@ -71,31 +76,37 @@ init =
         , 0.11538864317459548
         , 0.0006633631777757225
         ]
+      initCvc = mkCvc initTimeout
+      initRefreshRate = 200 * millisecond
   in ( { cv = CV.init
-       , refreshRate = 200
+       , cvc = initCvc
+       , refreshRate = initRefreshRate
        , latencySmoother = mkSmoother latencyWeights
        , latencyModalVisible = False
        , lastUpdate = 0
        , lastUpdateDts = []
        , httpError = Nothing
+       , httpTimeout = initTimeout
        }
-     , Cmd.batch [ cvc.getPackedStatus, Task.perform InitializeTime Time.now ]
+     , Cmd.batch [ initCvc.pollPackedStatus (Just initRefreshRate), Task.perform InitializeTime Time.now ]
      )
 
 -- UPDATE
 
 type Msg
-  = Poll
-  | SetRefreshRate String -- Float hz
+  = SetRefreshRate String -- Float hz
   | UpdateLatency Time
   | InitializeTime Time
   | UpdateTime Time
-  | CVResponse CV.Response
+  | CVMsg CV.Msg
   | SendReboot
   | KeyUp Keyboard.KeyCode
   | KeyDown Keyboard.KeyCode
   | FetchTuning
   | FetchFail Http.Error
+  | SetTimeout String -- Int ms
+  | FocusPFD
+  | FocusCameraTarget
 
 cvh : CV.Handler Model Msg
 cvh = let upd m f = { m | cv = f m.cv } in CV.updatingHandler upd
@@ -103,11 +114,10 @@ cvh = let upd m f = { m | cv = f m.cv } in CV.updatingHandler upd
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
-    Poll ->
-      model ! [ cvc.getPackedStatus, cvc.getCameraTargetInput ]
     SetRefreshRate hzStr ->
       case String.toFloat hzStr of
-        Ok hz -> { model | refreshRate = 1*second / (hz + 0.0001) } ! []
+        Ok hz -> let rate = 1*second / (hz + 0.0001)
+                 in { model | refreshRate = rate, cv = CV.mapPollRates (always rate) model.cv } ! []
         Err _ -> model ! []
     UpdateLatency time ->
       let -- use the current dt if we haven't seen a sample since the last update
@@ -127,38 +137,56 @@ update msg model =
     UpdateTime time ->
       let dt = Time.inMilliseconds time - Time.inMilliseconds model.lastUpdate
       in { model | lastUpdate = time, lastUpdateDts = dt :: model.lastUpdateDts } ! []
-    CVResponse resp ->
-      let (model1, cmd) = CV.handle cvh resp model
+    CVMsg msg ->
+      let (model1, cmd) = CV.handle cvh (\m -> m.cvc) msg model
           model2 = updateSmoothers model1
-      in { model2 | httpError = Nothing } ! [ cmd, Task.perform UpdateTime Time.now ]
-    SendReboot -> (model, cvc.setRebootReq (RebootReq.RebootReq RebootMagic.LinuxRebootMagic1))
+      in case CV.networkMsg msg of
+           True -> { model2 | httpError = Nothing } ! [ cmd, Task.perform UpdateTime Time.now ]
+           False -> model2 ! [ cmd ]
+    SendReboot -> (model, model.cvc.setRebootReq (RebootReq.RebootReq RebootMagic.LinuxRebootMagic1))
     KeyUp kc -> model ! []
     KeyDown kc -> handleKeyDown model kc
-    FetchTuning -> model ! fetchTuning
+    FetchTuning -> model ! fetchTuning model
     FetchFail err ->
       { model | httpError = Just err } ! []
+    SetTimeout msStr ->
+      case String.toInt msStr of
+        Ok ms ->
+          let to = toFloat ms * millisecond
+          in { model | cvc = mkCvc to, httpTimeout = to } ! []
+        Err _ -> model ! []
+    FocusPFD -> model ! [ model.cvc.pollCameraTargetInput Nothing ]
+    FocusCameraTarget -> model ! [ model.cvc.pollCameraTargetInput (Just model.refreshRate) ]
 
 handleKeyDown model kc =
-  let cmd = case Char.fromCode kc |> Char.toUpper of
-              'W' -> [ cvc.setUserInputRequest { throttle = 0, roll = 0, pitch = 0.2, yaw = 0 } ]
-              'S' -> [ cvc.setUserInputRequest { throttle = 0, roll = 0, pitch = -0.2, yaw = 0 } ]
-              'A' -> [ cvc.setUserInputRequest { throttle = 0, roll = 0.2, pitch = 0.2, yaw = 0 } ]
-              'D' -> [ cvc.setUserInputRequest { throttle = 0, roll = -0.2, pitch = 0.2, yaw = 0 } ]
-              'Q' -> [ cvc.setUserInputRequest { throttle = 0, roll = 0, pitch = 0.2, yaw = 0.2 } ]
-              'E' -> [ cvc.setUserInputRequest { throttle = 0, roll = 0, pitch = 0.2, yaw = -0.2 } ]
-              'R' -> [ cvc.setUserInputRequest { throttle = 0.2, roll = 0, pitch = 0.2, yaw = 0 } ]
-              'F' -> [ cvc.setUserInputRequest { throttle = -0.2, roll = 0, pitch = 0.2, yaw = 0 } ]
-              _ -> [ ]
-  in model ! cmd
+  case Char.fromCode kc |> Char.toUpper of
+    'W' -> model ! [ model.cvc.setUserInputRequest { throttle = 0, roll = 0, pitch = 0.2, yaw = 0 } ]
+    'S' -> model ! [ model.cvc.setUserInputRequest { throttle = 0, roll = 0, pitch = -0.2, yaw = 0 } ]
+    'A' -> model ! [ model.cvc.setUserInputRequest { throttle = 0, roll = 0.2, pitch = 0.2, yaw = 0 } ]
+    'D' -> model ! [ model.cvc.setUserInputRequest { throttle = 0, roll = -0.2, pitch = 0.2, yaw = 0 } ]
+    'Q' -> model ! [ model.cvc.setUserInputRequest { throttle = 0, roll = 0, pitch = 0.2, yaw = 0.2 } ]
+    'E' -> model ! [ model.cvc.setUserInputRequest { throttle = 0, roll = 0, pitch = 0.2, yaw = -0.2 } ]
+    'R' -> model ! [ model.cvc.setUserInputRequest { throttle = 0.2, roll = 0, pitch = 0.2, yaw = 0 } ]
+    'F' -> model ! [ model.cvc.setUserInputRequest { throttle = -0.2, roll = 0, pitch = 0.2, yaw = 0 } ]
+    'T' -> let cv0 = model.cv
+               cmr0 = cv0.controlModesRequest
+               ui_mode0 = cmr0.ui_mode
+               cmr1 = { cmr0 | ui_mode = if ui_mode0 == ControlSource.Gcs then ControlSource.Ppm else ControlSource.Gcs
+                             , yaw_mode = YawMode.Heading
+                             , thr_mode = ThrottleMode.AltUi
+                      }
+               cv1 = { cv0 | controlModesRequest = cmr1 }
+           in { model | cv = cv1 } ! [ model.cvc.setControlModesRequest cmr1 ]
+    _ -> model ! [ ]
 
-fetchTuning : List (Cmd Msg)
-fetchTuning = [
-    cvc.getAltitudeRatePid
-  , cvc.getAltitudePositionPid
-  , cvc.getAttitudeRollStab
-  , cvc.getAttitudePitchStab
-  , cvc.getYawRatePid
-  , cvc.getYawPositionPid
+fetchTuning : Model -> List (Cmd Msg)
+fetchTuning model = [
+    model.cvc.getAltitudeRatePid
+  , model.cvc.getAltitudePositionPid
+  , model.cvc.getAttitudeRollStab
+  , model.cvc.getAttitudePitchStab
+  , model.cvc.getYawRatePid
+  , model.cvc.getYawPositionPid
   ]
 
 updateSmoothers : Model -> Model
@@ -175,8 +203,8 @@ view model =
         div [ class "col-xs-5" ] [
           div [ class "panel panel-default" ] [
             ul [ class "nav nav-tabs", attribute "role" "tablist" ] [
-                li [ class "active" ] [ a [ href "#pfd", attribute "data-toggle" "tab" ] [ strong [ ] [ text "PFD" ] ] ]
-              , li [ ] [ a [ href "#bbox", attribute "data-toggle" "tab" ] [ strong [ ] [ text "Camera Target" ] ] ]
+                li [ class "active" ] [ a [ href "#pfd", attribute "data-toggle" "tab", onClick FocusPFD ] [ strong [ ] [ text "PFD" ] ] ]
+              , li [ ] [ a [ href "#bbox", attribute "data-toggle" "tab", onClick FocusCameraTarget ] [ strong [ ] [ text "Camera Target" ] ] ]
               ]
           , div [ class "panel-body" ] [
               div [ class "tab-content" ] [
@@ -231,6 +259,17 @@ view model =
                                       , onInput SetRefreshRate
                                       ] []
                      , span [ class "input-group-addon" ] [ text "hz" ] ] ] ]
+          , tr [ ] [ thLabel 80 "Request timeout"
+                   , td [ ] [ div [ class "input-group" ] [
+                                input [ class "form-control"
+                                      , name "request-timeout"
+                                      , type_  "number"
+                                      , value (toString (inMilliseconds (model.httpTimeout)))
+                                      , A.min (toString 0)
+                                      , A.max (toString (inMilliseconds (60 * second)))
+                                      , onInput SetTimeout
+                                      ] []
+                     , span [ class "input-group-addon" ] [ text "ms" ] ] ] ]
           , tr [ ] [ thLabel 80 "Linux VM"
                    , td [ ] [ node "button"
                                 [ class "btn btn-primary btn-lg btn-block", onClick SendReboot ]
@@ -350,7 +389,7 @@ port hideModal : () -> Cmd msg
 
 subscriptions : Model -> Sub Msg
 subscriptions model = Sub.batch [
-    Time.every (model.refreshRate * millisecond) (\_ -> Poll)
+    Sub.batch (CV.subscriptions model.cv CVMsg)
   , Time.every second UpdateLatency
   , Keyboard.downs KeyDown
   , Keyboard.ups KeyUp
