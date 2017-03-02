@@ -46,7 +46,7 @@ type alias Model =
   }
 
 mkCvc : Time -> CV.Client Msg
-mkCvc timeout = CV.client timeout FetchFail CVResponse "http://localhost:8080"
+mkCvc timeout = CV.client timeout FetchFail CVMsg "http://localhost:8080"
 
 initTimeout : Time
 initTimeout = 2 * second
@@ -77,9 +77,10 @@ init =
         , 0.0006633631777757225
         ]
       initCvc = mkCvc initTimeout
+      initRefreshRate = 200 * millisecond
   in ( { cv = CV.init
        , cvc = initCvc
-       , refreshRate = 200
+       , refreshRate = initRefreshRate
        , latencySmoother = mkSmoother latencyWeights
        , latencyModalVisible = False
        , lastUpdate = 0
@@ -87,24 +88,25 @@ init =
        , httpError = Nothing
        , httpTimeout = initTimeout
        }
-     , Cmd.batch [ initCvc.getPackedStatus, Task.perform InitializeTime Time.now ]
+     , Cmd.batch [ initCvc.pollPackedStatus (Just initRefreshRate), Task.perform InitializeTime Time.now ]
      )
 
 -- UPDATE
 
 type Msg
-  = Poll
-  | SetRefreshRate String -- Float hz
+  = SetRefreshRate String -- Float hz
   | UpdateLatency Time
   | InitializeTime Time
   | UpdateTime Time
-  | CVResponse CV.Response
+  | CVMsg CV.Msg
   | SendReboot
   | KeyUp Keyboard.KeyCode
   | KeyDown Keyboard.KeyCode
   | FetchTuning
   | FetchFail Http.Error
   | SetTimeout String -- Int ms
+  | FocusPFD
+  | FocusCameraTarget
 
 cvh : CV.Handler Model Msg
 cvh = let upd m f = { m | cv = f m.cv } in CV.updatingHandler upd
@@ -112,11 +114,10 @@ cvh = let upd m f = { m | cv = f m.cv } in CV.updatingHandler upd
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
-    Poll ->
-      model ! [ model.cvc.getPackedStatus, model.cvc.getCameraTargetInput ]
     SetRefreshRate hzStr ->
       case String.toFloat hzStr of
-        Ok hz -> { model | refreshRate = 1*second / (hz + 0.0001) } ! []
+        Ok hz -> let rate = 1*second / (hz + 0.0001)
+                 in { model | refreshRate = rate, cv = CV.mapPollRates (always rate) model.cv } ! []
         Err _ -> model ! []
     UpdateLatency time ->
       let -- use the current dt if we haven't seen a sample since the last update
@@ -136,10 +137,12 @@ update msg model =
     UpdateTime time ->
       let dt = Time.inMilliseconds time - Time.inMilliseconds model.lastUpdate
       in { model | lastUpdate = time, lastUpdateDts = dt :: model.lastUpdateDts } ! []
-    CVResponse resp ->
-      let (model1, cmd) = CV.handle cvh resp model
+    CVMsg msg ->
+      let (model1, cmd) = CV.handle cvh (\m -> m.cvc) msg model
           model2 = updateSmoothers model1
-      in { model2 | httpError = Nothing } ! [ cmd, Task.perform UpdateTime Time.now ]
+      in case CV.networkMsg msg of
+           True -> { model2 | httpError = Nothing } ! [ cmd, Task.perform UpdateTime Time.now ]
+           False -> model2 ! [ cmd ]
     SendReboot -> (model, model.cvc.setRebootReq (RebootReq.RebootReq RebootMagic.LinuxRebootMagic1))
     KeyUp kc -> model ! []
     KeyDown kc -> handleKeyDown model kc
@@ -152,6 +155,8 @@ update msg model =
           let to = toFloat ms * millisecond
           in { model | cvc = mkCvc to, httpTimeout = to } ! []
         Err _ -> model ! []
+    FocusPFD -> model ! [ model.cvc.pollCameraTargetInput Nothing ]
+    FocusCameraTarget -> model ! [ model.cvc.pollCameraTargetInput (Just model.refreshRate) ]
 
 handleKeyDown model kc =
   case Char.fromCode kc |> Char.toUpper of
@@ -198,8 +203,8 @@ view model =
         div [ class "col-xs-5" ] [
           div [ class "panel panel-default" ] [
             ul [ class "nav nav-tabs", attribute "role" "tablist" ] [
-                li [ class "active" ] [ a [ href "#pfd", attribute "data-toggle" "tab" ] [ strong [ ] [ text "PFD" ] ] ]
-              , li [ ] [ a [ href "#bbox", attribute "data-toggle" "tab" ] [ strong [ ] [ text "Camera Target" ] ] ]
+                li [ class "active" ] [ a [ href "#pfd", attribute "data-toggle" "tab", onClick FocusPFD ] [ strong [ ] [ text "PFD" ] ] ]
+              , li [ ] [ a [ href "#bbox", attribute "data-toggle" "tab", onClick FocusCameraTarget ] [ strong [ ] [ text "Camera Target" ] ] ]
               ]
           , div [ class "panel-body" ] [
               div [ class "tab-content" ] [
@@ -384,7 +389,7 @@ port hideModal : () -> Cmd msg
 
 subscriptions : Model -> Sub Msg
 subscriptions model = Sub.batch [
-    Time.every (model.refreshRate * millisecond) (\_ -> Poll)
+    Sub.batch (CV.subscriptions model.cv CVMsg)
   , Time.every second UpdateLatency
   , Keyboard.downs KeyDown
   , Keyboard.ups KeyUp
