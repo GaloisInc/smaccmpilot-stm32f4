@@ -132,7 +132,7 @@
   (initfail    bool_t)
   (samplefail  bool_t)
   (calibrated  bool_t)
-  (sample      xyz_t) -- degrees/second
+  (sample      xyz_t) -- rads/second
   (temperature float_t) -- degrees Celsius
   (time        time_micros_t))
 
