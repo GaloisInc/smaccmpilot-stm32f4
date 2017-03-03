@@ -75,7 +75,8 @@ fmu17SensorManager FMU17Sensors{..} tocc _exti2cs = do
   mpu6000SensorManager sreq sready
                        (fst gyro_s) (fst acc_s)
                        (SPIDeviceHandle 0)
-                       Nothing
+                       fmu17sens_mpu6000_accel_cal
+                       fmu17sens_mpu6000_gyro_cal
 
   return (snd acc_s, snd gyro_s, snd mag_s, snd baro_s)
 
@@ -122,14 +123,16 @@ fmu24SensorManager FMU24Sensors{..} tocc exti2cs = do
   mpu6000SensorManager mpu6000Req (snd l3gd20_rdy)
                        (fst gyro_s) (fst acc_s)
                        (SPIDeviceHandle 0)
-                       (Just fmu24sens_accel_cal)
+                       fmu24sens_mpu6000_accel_cal
+                       fmu24sens_mpu6000_gyro_cal
 
   (lsm303dTask, lsm303dReq) <- task "lsm303d"
   mag_s <- channel
   lsm_acc_s <- channel -- output never used!
   lsm303dSPISensorManager lsm303dDefaultConf lsm303dReq (snd l3gd20_rdy)
-                          (fst mag_s) (Just fmu24sens_mag_cal)
-                          (fst lsm_acc_s) (SPIDeviceHandle 1)
+                          (fst mag_s) fmu24sens_lsm303d_mag_cal
+                          (fst lsm_acc_s) fmu24sens_lsm303d_accel_cal
+                          (SPIDeviceHandle 1)
 
   (ms5611Task, ms5611Req) <- task "ms5611"
   baro_s <- channel

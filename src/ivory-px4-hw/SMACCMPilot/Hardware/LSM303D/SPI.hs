@@ -27,11 +27,12 @@ lsm303dSPISensorManager :: Config
                         -> BackpressureTransmit ('Struct "spi_transaction_request") ('Struct "spi_transaction_result")
                         -> ChanOutput ('Stored ITime)
                         -> ChanInput  ('Struct "magnetometer_sample")
-                        -> Maybe MagCal
+                        -> MagCal
                         -> ChanInput  ('Struct "accelerometer_sample")
+                        -> AccelCal
                         -> SPIDeviceHandle
                         -> Tower e ()
-lsm303dSPISensorManager conf (BackpressureTransmit req_chan res_chan) init_chan mag_chan mMagCal accel_chan h = do
+lsm303dSPISensorManager conf (BackpressureTransmit req_chan res_chan) init_chan mag_chan mag_cal accel_chan accel_cal h = do
   towerModule  M.magnetometerSampleTypesModule
   towerDepends M.magnetometerSampleTypesModule
   towerModule  A.accelerometerSampleTypesModule
@@ -84,7 +85,7 @@ lsm303dSPISensorManager conf (BackpressureTransmit req_chan res_chan) init_chan 
           store (acc_s ~> A.samplefail) (mrc >? 0)
 
           comment "put results in mag_sample field"
-          convert_mag_sample conf mMagCal mag_read_result mag_s
+          convert_mag_sample conf mag_cal mag_read_result mag_s
 
           comment "send accel read request"
           acc_read_req <- fmap constRef $ local $ istruct
@@ -105,7 +106,7 @@ lsm303dSPISensorManager conf (BackpressureTransmit req_chan res_chan) init_chan 
             store (acc_s ~> A.samplefail) true
 
           comment "put results in acc_sample field"
-          convert_acc_sample conf acc_read_result acc_s
+          convert_acc_sample conf accel_cal acc_read_result acc_s
 
           comment "record time and emit sample"
           r_time <- getTime
@@ -129,58 +130,51 @@ lsm303dSPISensorManager conf (BackpressureTransmit req_chan res_chan) init_chan 
           emit req_e do_read_req
 
 convert_mag_sample :: Config
-                   -> Maybe MagCal
+                   -> MagCal
                    -> Ref s1 ('Struct "spi_transaction_result")
                    -> Ref s2 ('Struct "magnetometer_sample")
                    -> Ivory eff ()
-convert_mag_sample c Nothing res s =
-  convert_sample (magSensitivityGauss c) res (s ~> M.sample)
-convert_mag_sample c (Just MagCal {..}) res s =
-  convert_sample_cal
-    mag_cal_x_offset mag_cal_y_offset mag_cal_z_offset
+convert_mag_sample c (MagCal xyz_cal) res s =
+  convert_sample
+    xyz_cal
     (magSensitivityGauss c)
     res
     (s ~> M.sample)
 
 convert_acc_sample :: Config
+                   -> AccelCal
                    -> Ref s1 ('Struct "spi_transaction_result")
                    -> Ref s2 ('Struct "accelerometer_sample")
                    -> Ivory eff ()
-convert_acc_sample c res s = convert_sample (accelSensitivityMSS c) res (s ~> A.sample)
+convert_acc_sample c (AccelCal xyz_cal) res s =
+  convert_sample xyz_cal (accelSensitivityMSS c) res (s ~> A.sample)
 
-convert_sample :: IFloat
+convert_sample :: XyzCal
+               -> IFloat
                -> Ref s1 ('Struct "spi_transaction_result")
                -> Ref s2 ('Struct "xyz")
                -> Ivory eff ()
-convert_sample = convert_sample_cal 0 0 0
-
-convert_sample_cal :: Sint16 -> Sint16 -> Sint16
-                   -> IFloat
-                   -> Ref s1 ('Struct "spi_transaction_result")
-                   -> Ref s2 ('Struct "xyz")
-                   -> Ivory eff ()
-convert_sample_cal xoff yoff zoff scale res s = do
+convert_sample XyzCal {..} scale res s = do
   f ((res ~> rx_buf) ! 1)
     ((res ~> rx_buf) ! 2)
     (s ~> XYZ.x)
-    xoff
+    cal_x_offset cal_x_scale
   f ((res ~> rx_buf) ! 3)
     ((res ~> rx_buf) ! 4)
     (s ~> XYZ.y)
-    yoff
+    cal_y_offset cal_y_scale
   f ((res ~> rx_buf) ! 5)
     ((res ~> rx_buf) ! 6)
     (s ~> XYZ.z)
-    zoff
+    cal_z_offset cal_z_scale
   where
-  f loref hiref resref offset = do
+  f loref hiref resref offset axis_scale = do
     lo <- deref loref
     hi <- deref hiref
     (u16 :: Uint16) <- assign ((safeCast lo) + ((safeCast hi) `iShiftL` 8))
     (i16 :: Sint16) <- assign (twosComplementCast u16)
-    (r :: IFloat)   <- assign (scale * safeCast (i16 + offset))
+    (r :: IFloat)   <- assign (scale * (safeCast i16 + offset) * axis_scale)
     store resref r
-
 
 lsm303dDefaultConf :: Config
 lsm303dDefaultConf = Config

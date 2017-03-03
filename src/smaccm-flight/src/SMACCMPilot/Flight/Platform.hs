@@ -109,13 +109,14 @@ px4fmuv17 = do
   tuning <- subsection "tuning" $ subsection vehicle flightTuningParser
   m <- subsection "args" mixer
   baud <- telemBaud
+  sensors <- fmu17_sensors
   dmode <- datalinkModeParser DatalinkServer
   pure $ FlightPlatform
     { fp_telem       = telem
     , fp_telem_baud  = baud
     , fp_gps         = gps
     , fp_io          = NativeIO ppm
-    , fp_sensors     = fmu17_sensors
+    , fp_sensors     = sensors
     , fp_can         = Nothing
     , fp_datalink    = dmode
     , fp_rgbled      = Nothing

@@ -31,26 +31,30 @@ import qualified Ivory.BSP.STM32F427.SPI            as F427
 
 data Sensors
   = FMU17Sensors
-    { fmu17sens_mpu6000    :: SPIDevice
-    , fmu17sens_spi_pins   :: SPIPins
-    , fmu17sens_spi_periph :: SPIPeriph
-    , fmu17sens_ms5611     :: I2CDeviceAddr
-    , fmu17sens_hmc5883l   :: I2CDeviceAddr
-    , fmu17sens_i2c_periph :: I2CPeriph
-    , fmu17sens_i2c_pins   :: I2CPins
+    { fmu17sens_mpu6000           :: SPIDevice
+    , fmu17sens_mpu6000_accel_cal :: AccelCal
+    , fmu17sens_mpu6000_gyro_cal  :: GyroCal
+    , fmu17sens_spi_pins          :: SPIPins
+    , fmu17sens_spi_periph        :: SPIPeriph
+    , fmu17sens_ms5611            :: I2CDeviceAddr
+    , fmu17sens_hmc5883l          :: I2CDeviceAddr
+    , fmu17sens_i2c_periph        :: I2CPeriph
+    , fmu17sens_i2c_pins          :: I2CPins
     }
   | FMU24Sensors
-    { fmu24sens_mpu6000        :: SPIDevice
-    , fmu24sens_accel_cal      :: AccelCal
-    , fmu24sens_ms5611         :: SPIDevice
-    , fmu24sens_lsm303d        :: SPIDevice
-    , fmu24sens_mag_cal        :: MagCal
-    , fmu24sens_l3gd20         :: SPIDevice
-    , fmu24sens_spi_periph     :: SPIPeriph
-    , fmu24sens_spi_pins       :: SPIPins
-    , fmu24sens_enable         :: forall eff . Ivory eff ()
-    , fmu24sens_ext_i2c_periph :: I2CPeriph
-    , fmu24sens_ext_i2c_pins   :: I2CPins
+    { fmu24sens_mpu6000           :: SPIDevice
+    , fmu24sens_mpu6000_accel_cal :: AccelCal
+    , fmu24sens_mpu6000_gyro_cal  :: GyroCal
+    , fmu24sens_ms5611            :: SPIDevice
+    , fmu24sens_lsm303d           :: SPIDevice
+    , fmu24sens_lsm303d_mag_cal   :: MagCal
+    , fmu24sens_lsm303d_accel_cal :: AccelCal
+    , fmu24sens_l3gd20            :: SPIDevice
+    , fmu24sens_spi_periph        :: SPIPeriph
+    , fmu24sens_spi_pins          :: SPIPins
+    , fmu24sens_enable            :: forall eff . Ivory eff ()
+    , fmu24sens_ext_i2c_periph    :: I2CPeriph
+    , fmu24sens_ext_i2c_pins      :: I2CPins
     }
 
 data UART_Device =
@@ -71,44 +75,80 @@ type ExternalI2CSensor =
   ExternalSensor ('Struct "i2c_transaction_request")
                  ('Struct "i2c_transaction_result")
 
-data AccelCal = AccelCal {
-    accel_cal_x_offset :: Sint16
-  , accel_cal_y_offset :: Sint16
-  , accel_cal_z_offset :: Sint16
+data XyzCal = XyzCal {
+    cal_x_offset :: IFloat
+  , cal_y_offset :: IFloat
+  , cal_z_offset :: IFloat
+  , cal_x_scale :: IFloat
+  , cal_y_scale :: IFloat
+  , cal_z_scale :: IFloat
   }
 
-parseAccelCal :: ConfigParser AccelCal
-parseAccelCal = subsection "calibration" $ subsection "accelerometer" $ do
-  accel_cal_x_offset <- fromIntegral <$> subsection "x_offset" integer
-  accel_cal_y_offset <- fromIntegral <$> subsection "y_offset" integer
-  accel_cal_z_offset <- fromIntegral <$> subsection "z_offset" integer
-  return $ AccelCal {..}
+parseXyzCal :: ConfigParser XyzCal
+parseXyzCal = do
+  cal_x_offset <- toIFloat <$> subsection "x_offset" double
+  cal_y_offset <- toIFloat <$> subsection "y_offset" double
+  cal_z_offset <- toIFloat <$> subsection "z_offset" double
+  cal_x_scale <- toIFloat <$> subsection "x_scale" double
+  cal_y_scale <- toIFloat <$> subsection "y_scale" double
+  cal_z_scale <- toIFloat <$> subsection "z_scale" double
+  return $ XyzCal {..}
 
-data MagCal = MagCal {
-    mag_cal_x_offset :: Sint16
-  , mag_cal_y_offset :: Sint16
-  , mag_cal_z_offset :: Sint16
-  }
+toIFloat :: Double -> IFloat
+toIFloat = fromRational . toRational
 
-parseMagCal :: ConfigParser MagCal
-parseMagCal = subsection "calibration" $ subsection "magnetometer" $ do
-  mag_cal_x_offset <- fromIntegral <$> subsection "x_offset" integer
-  mag_cal_y_offset <- fromIntegral <$> subsection "y_offset" integer
-  mag_cal_z_offset <- fromIntegral <$> subsection "z_offset" integer
-  return $ MagCal {..}
+applyXyzCal
+  :: XyzCal -> (IFloat -> IFloat, IFloat -> IFloat, IFloat -> IFloat)
+applyXyzCal XyzCal {..} = (cal_x, cal_y, cal_z)
+  where
+    cal_x x = (x - cal_x_offset) * cal_x_scale
+    cal_y y = (y - cal_y_offset) * cal_y_scale
+    cal_z z = (z - cal_z_offset) * cal_z_scale
+
+newtype AccelCal = AccelCal XyzCal
+
+parseAccelCal :: String -> ConfigParser AccelCal
+parseAccelCal periph
+  = subsection "calibration"
+  $ subsection periph
+  $ subsection "accelerometer"
+  $ fmap AccelCal parseXyzCal
+
+newtype GyroCal = GyroCal XyzCal
+
+parseGyroCal :: String -> ConfigParser GyroCal
+parseGyroCal periph
+  = subsection "calibration"
+  $ subsection periph
+  $ subsection "gyroscope"
+  $ fmap GyroCal parseXyzCal
+
+newtype MagCal = MagCal XyzCal
+
+parseMagCal :: String -> ConfigParser MagCal
+parseMagCal periph
+  = subsection "calibration"
+  $ subsection periph
+  $ subsection "magnetometer"
+  $ fmap MagCal parseXyzCal
 
 -----
 
-fmu17_sensors :: Sensors
-fmu17_sensors = FMU17Sensors
-  { fmu17sens_mpu6000    = mpu6000
-  , fmu17sens_spi_pins   = spi1_pins
-  , fmu17sens_spi_periph = spi1_periph
-  , fmu17sens_ms5611     = I2CDeviceAddr 0x76
-  , fmu17sens_hmc5883l   = I2CDeviceAddr 0x1e
-  , fmu17sens_i2c_periph = F405.i2c2
-  , fmu17sens_i2c_pins   = i2c2_pins
-  }
+fmu17_sensors :: ConfigParser Sensors
+fmu17_sensors = do
+  mpu6000_accel_cal <- parseAccelCal "mpu6000"
+  mpu6000_gyro_cal <- parseGyroCal "mpu6000"
+  return $ FMU17Sensors
+    { fmu17sens_mpu6000           = mpu6000
+    , fmu17sens_mpu6000_accel_cal = mpu6000_accel_cal
+    , fmu17sens_mpu6000_gyro_cal  = mpu6000_gyro_cal
+    , fmu17sens_spi_pins          = spi1_pins
+    , fmu17sens_spi_periph        = spi1_periph
+    , fmu17sens_ms5611            = I2CDeviceAddr 0x76
+    , fmu17sens_hmc5883l          = I2CDeviceAddr 0x1e
+    , fmu17sens_i2c_periph        = F405.i2c2
+    , fmu17sens_i2c_pins          = i2c2_pins
+    }
   where
   mpu6000 :: SPIDevice
   mpu6000 = SPIDevice
@@ -138,20 +178,24 @@ fmu17_sensors = FMU17Sensors
 
 fmu24_sensors :: ConfigParser Sensors
 fmu24_sensors = do
-  accel_cal <- parseAccelCal
-  mag_cal <- parseMagCal
+  mpu6000_accel_cal <- parseAccelCal "mpu6000"
+  mpu6000_gyro_cal <- parseGyroCal "mpu6000"
+  lsm303d_mag_cal <- parseMagCal "lsm303d"
+  lsm303d_accel_cal <- parseAccelCal "lsm303d"
   return $ FMU24Sensors
-    { fmu24sens_mpu6000    = mpu6000
-    , fmu24sens_accel_cal  = accel_cal
-    , fmu24sens_ms5611     = ms5611
-    , fmu24sens_lsm303d    = lsm303d
-    , fmu24sens_mag_cal    = mag_cal
-    , fmu24sens_l3gd20     = l3gd20
-    , fmu24sens_spi_pins   = spi1_pins
-    , fmu24sens_spi_periph = spi1_periph
-    , fmu24sens_ext_i2c_pins   = i2c1_pins
-    , fmu24sens_ext_i2c_periph = i2c1_periph
-    , fmu24sens_enable     = sensor_enable
+    { fmu24sens_mpu6000           = mpu6000
+    , fmu24sens_mpu6000_accel_cal = mpu6000_accel_cal
+    , fmu24sens_mpu6000_gyro_cal  = mpu6000_gyro_cal
+    , fmu24sens_ms5611            = ms5611
+    , fmu24sens_lsm303d           = lsm303d
+    , fmu24sens_lsm303d_mag_cal   = lsm303d_mag_cal
+    , fmu24sens_lsm303d_accel_cal = lsm303d_accel_cal
+    , fmu24sens_l3gd20            = l3gd20
+    , fmu24sens_spi_pins          = spi1_pins
+    , fmu24sens_spi_periph        = spi1_periph
+    , fmu24sens_ext_i2c_pins      = i2c1_pins
+    , fmu24sens_ext_i2c_periph    = i2c1_periph
+    , fmu24sens_enable            = sensor_enable
     }
   where
   mpu6000 :: SPIDevice

@@ -56,12 +56,13 @@ getSensorsReq dev = fmap constRef $ local $ istruct
   , tx_len    .= ival 15 -- addr, 6 accel, 2 temp, 6 gyro
   ]
 
-sensorSample :: Maybe AccelCal
+sensorSample :: AccelCal
+             -> GyroCal
              -> ConstRef s1 ('Struct "spi_transaction_result")
              -> Ref s2 ('Struct "gyroscope_sample")
              -> Ref s3 ('Struct "accelerometer_sample")
              -> Ivory ('Effects r b ('Scope s)) ()
-sensorSample mAccelCal res r_gyro r_accel = do
+sensorSample (AccelCal accel_cal) (GyroCal gyro_cal) res r_gyro r_accel = do
   r_time <- getTime
   rc <- deref (res ~> resultcode)
   mpu6000_r <- local (istruct [])
@@ -70,34 +71,32 @@ sensorSample mAccelCal res r_gyro r_accel = do
   store (r_gyro ~> G.samplefail) (rc >? 0)
   store (r_accel ~> A.samplefail) (rc >? 0)
   comment "we rotate the X/Y plane 90 degrees to match Pixhawk's silk-screened orientation"
-  comment "convert to degrees per second"
-  let to_dps x = safeCast x / 16.4
-  convert ((r_gyro ~> G.sample) ~> XYZ.x) (mpu6000_r ~> M.gy) to_dps
-  convert ((r_gyro ~> G.sample) ~> XYZ.y) (mpu6000_r ~> M.gx) (negate . to_dps)
-  convert ((r_gyro ~> G.sample) ~> XYZ.z) (mpu6000_r ~> M.gz) to_dps
+  comment "convert to radians per second"
+  let to_dps x = safeCast x * (0.0174532 / 16.4)
+      (g_cal_x, g_cal_y, g_cal_z) = applyXyzCal gyro_cal
+  convert ((r_gyro ~> G.sample) ~> XYZ.x)
+          (mpu6000_r ~> M.gy)
+          (g_cal_x . to_dps)
+  convert ((r_gyro ~> G.sample) ~> XYZ.y)
+          (mpu6000_r ~> M.gx)
+          (g_cal_y . negate . to_dps)
+  convert ((r_gyro ~> G.sample) ~> XYZ.z)
+          (mpu6000_r ~> M.gz)
+          (g_cal_z . to_dps)
   comment "subtract calibation offsets and convert to m/s/s by way of g"
   let to_m_s_s x = safeCast x / 2048.0 * 9.80665
-      (cal_x, cal_y, cal_z) =
-        case mAccelCal of
-          Nothing -> (id, id, id)
-          Just AccelCal {..} ->
-            ( (\x -> x - accel_cal_x_offset)
-            , (\y -> y - accel_cal_y_offset)
-            , (\z -> z - accel_cal_z_offset)
-            )
+      (a_cal_x, a_cal_y, a_cal_z) = applyXyzCal accel_cal
   convert ((r_accel ~> A.sample) ~> XYZ.x)
           (mpu6000_r ~> M.ay)
-          (to_m_s_s . cal_x)
+          (a_cal_x . to_m_s_s)
   convert ((r_accel ~> A.sample) ~> XYZ.y)
           (mpu6000_r ~> M.ax)
-          (negate . to_m_s_s . cal_y)
+          (a_cal_y . negate . to_m_s_s)
   convert ((r_accel ~> A.sample) ~> XYZ.z)
           (mpu6000_r ~> M.az)
-          (to_m_s_s . cal_z)
+          (a_cal_z . to_m_s_s)
   comment "indicate whether we have calibration"
-  case mAccelCal of
-    Nothing -> store (r_accel ~> A.calibrated) false
-    Just _  -> store (r_accel ~> A.calibrated) true
+  store (r_accel ~> A.calibrated) true
   comment "convert to degrees Celsius"
   t <- deref (mpu6000_r ~> M.temp)
   r_temp <- assign (safeCast t / 340.0 + 36.53)
@@ -117,9 +116,10 @@ mpu6000SensorManager :: BackpressureTransmit ('Struct "spi_transaction_request")
                      -> ChanInput  ('Struct "gyroscope_sample")
                      -> ChanInput  ('Struct "accelerometer_sample")
                      -> SPIDeviceHandle
-                     -> Maybe AccelCal
+                     -> AccelCal
+                     -> GyroCal
                      -> Tower e ()
-mpu6000SensorManager (BackpressureTransmit req_chan res_chan) init_chan gyro_chan accel_chan dev mAccelCal = do
+mpu6000SensorManager (BackpressureTransmit req_chan res_chan) init_chan gyro_chan accel_chan dev accelCal gyroCal = do
   towerModule  G.gyroscopeSampleTypesModule
   towerDepends G.gyroscopeSampleTypesModule
   towerModule  A.accelerometerSampleTypesModule
@@ -192,7 +192,7 @@ mpu6000SensorManager (BackpressureTransmit req_chan res_chan) init_chan gyro_cha
           res <- yield
           comment "Got a response, sending it up the stack"
           store transactionPending false
-          sensorSample mAccelCal (constRef res) gyro_s accel_s
+          sensorSample accelCal gyroCal (constRef res) gyro_s accel_s
           emit gyro_e  (constRef gyro_s)
           emit accel_e (constRef accel_s)
 
