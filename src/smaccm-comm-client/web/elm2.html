@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+
+    <title>Elm GCS</title>
+
+    <!-- Generated Elm code -->
+    <script type="text/javascript" src="/elm.min.js"></script>
+    <!-- Bootstrap core CSS -->
+    <link href="/bootstrap-3.3.4-dist/css/bootstrap-cyborg.min.css" rel="stylesheet">
+    <!-- Bootstrap theme -->
+    <link href="/bootstrap-3.3.4-dist/css/bootstrap-theme.min.css" rel="stylesheet">
+
+  </head>
+
+  <body>
+    <script type="text/javascript">
+      var app = Elm.Main.fullscreen();
+      app.ports.showModal.subscribe(function(nil) {
+          $("#errorModal").modal({
+              backdrop: 'static'
+          });
+      });
+      app.ports.hideModal.subscribe(function(nil) {
+          $("#errorModal").modal('hide');
+      });
+    </script>
+    <script src="/jquery-2.1.3.js"></script>
+    <script src="/bootstrap-3.3.4-dist/js/bootstrap.min.js"></script>
+  </body>
+</html>
