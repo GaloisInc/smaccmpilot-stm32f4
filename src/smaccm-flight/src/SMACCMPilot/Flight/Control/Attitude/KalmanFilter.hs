@@ -148,11 +148,14 @@ storeCovMat ahrs covMat = do
 
 --------------------------------------------------------------------------------
 -- Constants, to be turned into config values later
-
+-- Portland, from http://www.ngdc.noaa.gov/geomag-web/#igrfwmm
+-- hx = 19443.3nT = 19443.3 * 10^-9 * 10^4 Gauss = 19443.3*10^-5 = 0.1944
+-- hy = 5354.0 nT = 5354.0*10^-5 = 0.0535
+-- hz = 48519.5 nT = 48519.5 *10^-5 = 0.4852 
 ahrs_h_x, ahrs_h_y, ahrs_h_z :: IFloat
-ahrs_h_x = 0
-ahrs_h_y = 0
-ahrs_h_z = 0
+ahrs_h_x = 0.37004
+ahrs_h_y = 0.101896
+ahrs_h_z = 0.923411
 
 ahrs_mag_noise :: V3 IFloat
 ahrs_mag_noise = V3 0.2 0.2 0.2
@@ -218,19 +221,44 @@ quatPlus :: Quaternion IFloat -> Quaternion IFloat -> Quaternion IFloat
 quatPlus = liftA2 (+)
 
 -- | Because we don't have a RealFloat instance for IFloat :(
-quatMult :: Quaternion IFloat -> Quaternion IFloat -> Quaternion IFloat
+quatMult :: Num a => Quaternion a -> Quaternion a -> Quaternion a
 quatMult (Quaternion s1 v1) (Quaternion s2 v2) =
   Quaternion (s1*s2 - (v1 `dot` v2)) ((v1 `cross` v2) + s1*^v2 + s2*^v1)
 
+-- OK
 quatConj :: Conjugate a => Quaternion a -> Quaternion a
 quatConj (Quaternion e v) = Quaternion (conjugate e) (negate v)
 
 instance Conjugate IFloat
 instance TrivialConjugate IFloat
 
-quatRotate :: Quaternion IFloat -> V3 IFloat -> V3 IFloat
-quatRotate q v = ijk where
+quatRotate :: (Num a, Conjugate a) => Quaternion a -> V3 a -> V3 a
+quatRotate q@(Quaternion qi (V3 qx qy qz)) v = ijk where
   Quaternion _ ijk = q `quatMult` Quaternion 0 v `quatMult` quatConj q
+
+quatVMult :: (Num a, Conjugate a, Fractional a) => Quaternion a -> V3 a -> V3 a
+quatVMult q@(Quaternion qi (V3 qx qy qz)) v@(V3 vx vy vz) = 
+  V3 vout_x vout_y vout_z where
+  qi2_M1_2  = qi*qi - 0.5
+  qiqx = qi * qx
+  qiqy = qi * qy;
+  qiqz = qi * qz;
+  m01  = qx * qy + qiqz
+  m02  = qx * qz - qiqy
+  m12  = qy * qz + qiqx
+
+  m00  = qi2_M1_2 + qx * qx
+  m10  = m01 - qiqz
+  m20  = m02 + qiqy
+  m21  = m12 - qiqx
+
+  m11  = qi2_M1_2 + qy * qy
+  m22  = qi2_M1_2 + qz * qz
+
+
+  vout_x = 2 * (m00 * vx + m01 * vy + m02 * vz)
+  vout_y = 2 * (m10 * vx + m11 * vy + m12 * vz)
+  vout_z = 2 * (m20 * vx + m21 * vy + m22 * vz)
 
 float_quat_comp_norm_shortest
   :: Quaternion IFloat -> Quaternion IFloat -> Quaternion IFloat
@@ -245,7 +273,8 @@ ahrs_float_get_quat_from_accel_mag accel mag =
   where
     q_a = ahrs_float_get_quat_from_accel accel
     q_m = signorm (Quaternion q_mi (V3 q_mx q_my q_mz))
-    (V3 mag_ltp_x mag_ltp_y _) = quatRotate q_a mag
+--    (V3 mag_ltp_x mag_ltp_y _) = quatRotate q_a mag
+    (V3 mag_ltp_x mag_ltp_y _) = quatVMult q_a mag
     v1 = V3 mag_ltp_x mag_ltp_y 0
     v2 = V3 ahrs_h_x ahrs_h_y 0
     mag_dot = v1 `dot` v2
@@ -280,7 +309,7 @@ ahrs_mlkf_align ahrs =
               sv_ltp_to_imu_quat = ahrs_float_get_quat_from_accel_mag
                                      accel
                                      mag
-            , sv_gyro_bias = gyro
+--            , sv_gyro_bias = gyro
             }
       storeStateVec ahrs sv'
       ret true
@@ -296,7 +325,7 @@ float_quat_integrate q@(Quaternion qi (V3 qx qy qz)) omega dt =
     no = norm omega
     a = 0.5 * no * dt
     ca = cos a
-    sa_ov_no = sin a / no
+    sa_ov_no = (sin a) / no
     V3 dp dq dr = sa_ov_no *^ omega
     qi' = ca * qi - dp * qx - dq * qy - dr * qz
     qx' = dp * qi + ca * qx + dr * qy - dq * qz
@@ -354,14 +383,15 @@ update_state ahrs i_expected b_measured noise = do
   StateVec {..} <- derefStateVec ahrs
   p0 <- derefCovMat ahrs
   let b_expected@(V3 b_ex_x b_ex_y b_ex_z) =
-        quatRotate sv_ltp_to_imu_quat i_expected
+--        quatRotate sv_ltp_to_imu_quat i_expected
+         quatVMult sv_ltp_to_imu_quat i_expected
       h = m36FromList [
               [0        , (-b_ex_z), b_ex_y   , 0, 0, 0]
             , [b_ex_z   , 0        , (-b_ex_x), 0, 0, 0]
             , [(-b_ex_y), b_ex_x   , 0        , 0, 0, 0]
             ]
       hph' = h !*! p0 !*! (transpose h)
-      s = hph' !+! (scaled (vFromV3 noise))
+      s = hph' !+! (scaled (vFromV3 noise)) -- TODO: why scaled?
       sInv = vsFromM33 (inv33 (m33FromVs s))
       k = p0 !*! (transpose h) !*! sInv
       i6 = scaled (V (V.fromList [1, 1, 1, 1, 1, 1]))
@@ -409,7 +439,7 @@ ahrs_mlkf_update_accel ahrs =
     imu_g <- derefXyz (accel ~> A.sample)
     lp_accel0 <- deref (ahrs ~> lp_accel)
     let alpha = 0.92
-        lp_accel' = alpha * lp_accel0 + (1 - alpha) * (norm imu_g - 9.81)
+        lp_accel' = alpha * lp_accel0 + (1 - alpha) * ((norm imu_g) - 9.81)
         earth_g = V3 0 0 (-9.81)
         dn = 250 * abs lp_accel0
         g_noise = V3 (1 + dn) (1 + dn) (1 + dn)
@@ -423,8 +453,9 @@ ahrs_mlkf_update_mag_full
 ahrs_mlkf_update_mag_full ahrs =
   voidProc (named "mag") $ \mag_sample -> body $ do
     mag <- derefXyz (mag_sample ~> M.sample)
+    let mag_norm = signorm mag
     let mag_h = V3 ahrs_h_x ahrs_h_y ahrs_h_z
-    update_state ahrs mag_h mag ahrs_mag_noise
+    update_state ahrs mag_h mag_norm ahrs_mag_noise
     reset_state ahrs
 
 data AttState =
@@ -529,6 +560,7 @@ sensorFusion accel_out gyro_out mag_out motion = do
           refCopy last_acc accel
           isAligned <- deref aligned
           when isAligned $ do
+--          when false $ do
             ahrs_update_accel ahrs accel
             emit e (constRef (ahrs_state ahrs))
 
@@ -538,8 +570,7 @@ sensorFusion accel_out gyro_out mag_out motion = do
         isFail <- deref (mag ~> M.samplefail)
         unless isFail $ do
           refCopy last_mag mag
-          _isAligned <- deref aligned
---        disable mag update for now
+          isAligned <- deref aligned
 --          when isAligned $ do
           when false $ do
             ahrs_update_mag ahrs mag
@@ -547,14 +578,15 @@ sensorFusion accel_out gyro_out mag_out motion = do
 
     handler gyro_out (named "gyro") $ do
       e <- emitter states_in 1
-      callback $ \gyro_sample -> do
-        isFail <- deref (gyro_sample ~> G.samplefail)
+      callback $ \gyro_rads -> do
+        isFail <- deref (gyro_rads ~> G.samplefail)
         unless isFail $ do
+          refCopy last_gyro_rads gyro_rads
           -- to the conversion deg -> rads here
-          gyro_deg <- derefXyz (gyro_sample ~> G.sample)
-          let gyro_rads = gyro_deg ^* (pi / 180)
-          refCopy last_gyro_rads gyro_sample
-          storeXyz (last_gyro_rads ~> G.sample) gyro_rads
+--          gyro_deg <- derefXyz (gyro_sample ~> G.sample)
+--          let gyro_rads = gyro_deg ^* (pi / 180)
+--          refCopy last_gyro_rads gyro_sample
+--          storeXyz (last_gyro_rads ~> G.sample) gyro_rads
 
           isAligned <- deref aligned
           ifte_ isAligned

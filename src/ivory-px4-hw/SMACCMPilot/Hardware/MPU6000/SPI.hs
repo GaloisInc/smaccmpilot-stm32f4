@@ -137,7 +137,7 @@ mpu6000SensorManager (BackpressureTransmit req_chan res_chan) init_chan gyro_cha
   let samplePeriodMS = 1000 `div` targetSampleRate
   let divisor = samplePeriodMS * gyroSamplesPerMS
 
-  p <- period (Milliseconds samplePeriodMS)
+  p <- period (Milliseconds samplePeriodMS) -- at 200Hz
 
   monitor "mpu6kCtl" $ do
     retries            <- state "retries"
