@@ -123,7 +123,8 @@ sensorTower tofp attrs = do
         pressure <- deref $ last_baro ~> B.pressure
 
         gyro_time <- deref $ last_gyro ~> G.time
-        gyro <- xyzRef $ last_gyro ~> G.sample
+        -- gyro <- xyzRef $ last_gyro ~> G.sample
+        -- gyro <- ahrs_body_rates
 
         lidar_distance <- deref $ last_lidar ~> L.distance
         lidar_time <- deref $ last_lidar ~> L.time
@@ -133,7 +134,7 @@ sensorTower tofp attrs = do
           , R.roll .= ival (atan2F (2 * (q0 * q1 + q2 * q3)) (1 - 2 * (q1 * q1 + q2 * q2)))
           , R.pitch .= ival (asin (2 * (q0 * q2 - q3 * q1)))
           , R.yaw .= ival (atan2F (2 * (q0 * q3 + q1 * q2)) (1 - 2 * (q2 * q2 + q3 * q3)))
-          , R.omega .= xyzInitStruct gyro
+          , R.omega .= xyzInitStruct ahrs_body_rates--gyro
           , R.attitude .= quatInitStruct q0 q1 q2 q3
           , R.baro_alt .= ival (pressureToHeight $ pressure * 100) -- convert mbar to Pascals
           , R.lidar_alt .= ival lidar_distance

@@ -22,6 +22,7 @@ import SMACCMPilot.Time
 import Numeric (showHex)
 import SMACCMPilot.Hardware.LSM303D.Regs
 import SMACCMPilot.Hardware.Sensors
+import Linear -- for signonorm
 
 lsm303dSPISensorManager :: Config
                         -> BackpressureTransmit ('Struct "spi_transaction_request") ('Struct "spi_transaction_result")
@@ -87,6 +88,15 @@ lsm303dSPISensorManager conf (BackpressureTransmit req_chan res_chan) init_chan 
           comment "put results in mag_sample field"
           convert_mag_sample conf mag_cal mag_read_result mag_s
 
+          let s = (mag_s ~> M.sample)
+          mx <- deref (s ~> XYZ.x)
+          my <- deref (s ~> XYZ.y)
+          mz <- deref (s ~> XYZ.z)
+          let (V3 mx_n my_n mz_n) = signorm (V3 mx my mz)
+          store (s ~> XYZ.x) mx_n
+          store (s ~> XYZ.y) my_n
+          store (s ~> XYZ.z) mz_n
+
           comment "send accel read request"
           acc_read_req <- fmap constRef $ local $ istruct
             [ tx_device .= ival h
@@ -135,11 +145,7 @@ convert_mag_sample :: Config
                    -> Ref s2 ('Struct "magnetometer_sample")
                    -> Ivory eff ()
 convert_mag_sample c (MagCal xyz_cal) res s =
-  convert_sample
-    xyz_cal
-    (magSensitivityGauss c)
-    res
-    (s ~> M.sample)
+  convert_sample xyz_cal (magSensitivityGauss c) res (s ~> M.sample)
 
 convert_acc_sample :: Config
                    -> AccelCal

@@ -50,6 +50,7 @@ struct AhrsMlkf {
 
     -- secondary filters and bookkeeping
   ; lp_accel :: IFloat
+  ; lp_rates :: Array 3 (Stored IFloat)
   ; imu_rate :: Array 3 (Stored IFloat)
 }
 |]
@@ -64,6 +65,7 @@ data StateVec = StateVec {
     sv_ltp_to_imu_quat :: Quaternion IFloat
   , sv_gibbs_cor :: Quaternion IFloat
   , sv_gyro_bias :: FloatRates
+  , sv_imu_rates :: FloatRates
   }
 
 derefStateVec :: Ref s ('Struct "AhrsMlkf") -> Ivory eff StateVec
@@ -71,6 +73,7 @@ derefStateVec ahrs = do
   sv_ltp_to_imu_quat <- derefQuat (ahrs ~> ltp_to_imu_quat)
   sv_gibbs_cor <- derefQuat (ahrs ~> gibbs_cor)
   sv_gyro_bias <- derefV3 (ahrs ~> gyro_bias)
+  sv_imu_rates <- derefV3 (ahrs ~> lp_rates)
   return StateVec {..}
 
 storeStateVec :: Ref s ('Struct "AhrsMlkf") -> StateVec -> Ivory eff ()
@@ -158,7 +161,7 @@ ahrs_h_y = 0.101896
 ahrs_h_z = 0.923411
 
 ahrs_mag_noise :: V3 IFloat
-ahrs_mag_noise = V3 0.2 0.2 0.2
+ahrs_mag_noise = V3 0.4 0.4 0.4
 
 flt_min :: IFloat
 flt_min = fromRational (toRational (minNormal :: Float))
@@ -189,6 +192,7 @@ ahrs_mlkf_init ahrs = voidProc (named "init") $ body $ do
               sv_ltp_to_imu_quat = quatRotId
             , sv_gibbs_cor = quatRotId
             , sv_gyro_bias = zero
+            , sv_imu_rates = zero
             }
   let p0 = scaled (v6FromList [p0_a, p0_a, p0_a, p0_b, p0_b, p0_b])
       p0_a = 1
@@ -309,7 +313,8 @@ ahrs_mlkf_align ahrs =
               sv_ltp_to_imu_quat = ahrs_float_get_quat_from_accel_mag
                                      accel
                                      mag
---            , sv_gyro_bias = gyro
+              , sv_imu_rates = zero
+              , sv_gyro_bias = gyro
             }
       storeStateVec ahrs sv'
       ret true
@@ -339,9 +344,21 @@ ahrs_mlkf_propagate
 ahrs_mlkf_propagate ahrs =
   voidProc (named "ahrs_mlkf_propagate") $ \gyro_sample dt -> body $ do
     gyro <- derefXyz (gyro_sample ~> G.sample)
+    -- low pass gyro (lp_rates)
+    lp_rate_x <- deref (ahrs ~> lp_rates ! 0)
+    lp_rate_y <- deref (ahrs ~> lp_rates ! 1)
+    lp_rate_z <- deref (ahrs ~> lp_rates ! 2)
+    let lp_rates0 = (V3 (lp_rate_x) (lp_rate_y) (lp_rate_z))
+    let alpha = 0.92
+    let lp_rates_new@(V3 rate_x rate_y rate_z) = alpha * lp_rates0 + (1-alpha) * gyro
+    store (ahrs ~> lp_rates ! 0) rate_x
+    store (ahrs ~> lp_rates ! 1) rate_y
+    store (ahrs ~> lp_rates ! 2) rate_z
+
     StateVec {..} <- derefStateVec ahrs
     p0 <- derefCovMat ahrs
-    let rates = gyro - sv_gyro_bias
+--    let rates = gyro - sv_gyro_bias
+    let rates = lp_rates_new - sv_gyro_bias
         sv_ltp_to_imu_quat' = float_quat_integrate sv_ltp_to_imu_quat rates dt
         V3 dp dq dr = rates ^* dt
         f :: V 6 (V 6 IFloat)
@@ -363,7 +380,7 @@ ahrs_mlkf_propagate ahrs =
                          , dt2 * 9e-6
                          ]
         p' = fpf' !+! scaled gqg
-    storeStateVec ahrs StateVec { sv_ltp_to_imu_quat = sv_ltp_to_imu_quat', .. }
+    storeStateVec ahrs StateVec { sv_ltp_to_imu_quat = sv_ltp_to_imu_quat', sv_imu_rates = rates, .. }
     storeCovMat ahrs p'
 
 v6FromList :: [IFloat] -> V 6 IFloat
@@ -441,7 +458,7 @@ ahrs_mlkf_update_accel ahrs =
     let alpha = 0.92
         lp_accel' = alpha * lp_accel0 + (1 - alpha) * ((norm imu_g) - 9.81)
         earth_g = V3 0 0 (-9.81)
-        dn = 250 * abs lp_accel0
+        dn = 500 * abs lp_accel0
         g_noise = V3 (1 + dn) (1 + dn) (1 + dn)
     store (ahrs ~> lp_accel) lp_accel'
     update_state ahrs earth_g imu_g g_noise
@@ -453,7 +470,7 @@ ahrs_mlkf_update_mag_full
 ahrs_mlkf_update_mag_full ahrs =
   voidProc (named "mag") $ \mag_sample -> body $ do
     mag <- derefXyz (mag_sample ~> M.sample)
-    let mag_norm = signorm mag
+    let mag_norm = mag--signorm mag
     let mag_h = V3 ahrs_h_x ahrs_h_y ahrs_h_z
     update_state ahrs mag_h mag_norm ahrs_mag_noise
     reset_state ahrs
@@ -472,7 +489,7 @@ attState
   => ref s ('Struct "AhrsMlkf") -> Ivory eff AttState
 attState ahrs = do
   ahrs_ltp_to_body <- derefQuat (ahrs ~> ltp_to_imu_quat)
-  ahrs_body_rates <- derefV3 (ahrs ~> imu_rate)
+  ahrs_body_rates <- derefV3 (ahrs ~> lp_rates)
   return AttState {..}
 
 data AttEstimator =
