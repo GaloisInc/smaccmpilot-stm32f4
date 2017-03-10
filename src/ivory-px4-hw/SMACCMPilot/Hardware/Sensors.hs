@@ -29,6 +29,13 @@ import qualified Ivory.BSP.STM32F427.GPIO.AF        as F427
 import qualified Ivory.BSP.STM32F427.I2C            as F427
 import qualified Ivory.BSP.STM32F427.SPI            as F427
 
+data Mag =
+    HMC5883L I2CDeviceAddr
+  | LSM303D { fmu24sens_lsm303d           :: SPIDevice
+            , fmu24sens_lsm303d_mag_cal   :: MagCal
+            , fmu24sens_lsm303d_accel_cal :: AccelCal
+            }
+
 data Sensors
   = FMU17Sensors
     { fmu17sens_mpu6000           :: SPIDevice
@@ -45,10 +52,8 @@ data Sensors
     { fmu24sens_mpu6000           :: SPIDevice
     , fmu24sens_mpu6000_accel_cal :: AccelCal
     , fmu24sens_mpu6000_gyro_cal  :: GyroCal
+    , fmu24sens_mag               :: Mag
     , fmu24sens_ms5611            :: SPIDevice
-    , fmu24sens_lsm303d           :: SPIDevice
-    , fmu24sens_lsm303d_mag_cal   :: MagCal
-    , fmu24sens_lsm303d_accel_cal :: AccelCal
     , fmu24sens_l3gd20            :: SPIDevice
     , fmu24sens_spi_periph        :: SPIPeriph
     , fmu24sens_spi_pins          :: SPIPins
@@ -187,9 +192,11 @@ fmu24_sensors = do
     , fmu24sens_mpu6000_accel_cal = mpu6000_accel_cal
     , fmu24sens_mpu6000_gyro_cal  = mpu6000_gyro_cal
     , fmu24sens_ms5611            = ms5611
-    , fmu24sens_lsm303d           = lsm303d
-    , fmu24sens_lsm303d_mag_cal   = lsm303d_mag_cal
-    , fmu24sens_lsm303d_accel_cal = lsm303d_accel_cal
+    -- XXX make a config choice
+    -- , fmu24sens_lsm303d     stm32_freertos_init.      = lsm303d
+    -- , fmu24sens_lsm303d_mag_cal   = lsm303d_mag_cal
+    -- , fmu24sens_lsm303d_accel_cal = lsm303d_accel_cal
+    , fmu24sens_mag               = HMC5883L (I2CDeviceAddr 0x1e)
     , fmu24sens_l3gd20            = l3gd20
     , fmu24sens_spi_pins          = spi1_pins
     , fmu24sens_spi_periph        = spi1_periph

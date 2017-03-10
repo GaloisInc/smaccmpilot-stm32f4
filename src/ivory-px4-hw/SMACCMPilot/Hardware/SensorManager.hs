@@ -95,11 +95,16 @@ fmu24SensorManager FMU24Sensors{..} tocc exti2cs = do
   acc_s <- channel
   gyro_s <- channel
 
+  let spi_mag =
+        case fmu24sens_mag of
+          HMC5883L{}     -> []
+          LSM303D{..}    -> [fmu24sens_lsm303d]
+
   let devices = [ fmu24sens_mpu6000
-                , fmu24sens_lsm303d
                 , fmu24sens_ms5611
                 , fmu24sens_l3gd20
-                ]
+                ] ++ spi_mag
+
   (sreq, sready) <- spiTower tocc devices fmu24sens_spi_pins
 
   initdone_sready <- channel
@@ -130,8 +135,8 @@ fmu24SensorManager FMU24Sensors{..} tocc exti2cs = do
   mag_s <- channel
   lsm_acc_s <- channel -- output never used!
   lsm303dSPISensorManager lsm303dDefaultConf lsm303dReq (snd l3gd20_rdy)
-                          (fst mag_s) fmu24sens_lsm303d_mag_cal
-                          (fst lsm_acc_s) fmu24sens_lsm303d_accel_cal
+                          (fst mag_s) undefined -- XXX fmu24sens_lsm303d_mag_cal
+                          (fst lsm_acc_s) undefined -- XXX fmu24sens_lsm303d_accel_cal
                           (SPIDeviceHandle 1)
 
   (ms5611Task, ms5611Req) <- task "ms5611"

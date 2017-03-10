@@ -175,13 +175,20 @@ px4platform_mag PX4Platform{..} = case px4platform_sensors of
     , hmc5883l_i2c_addr   = fmu17sens_hmc5883l
     }
   FMU24Sensors{..} ->
-    Mag_LSM303D_SPI
-      (LSM303D_SPI
-         { lsm303d_spi_device  = fmu24sens_lsm303d
-         , lsm303d_spi_pins    = fmu24sens_spi_pins
-         })
-      fmu24sens_lsm303d_mag_cal
-      fmu24sens_lsm303d_accel_cal
+    case fmu24sens_mag of
+      LSM303D{..} ->
+        Mag_LSM303D_SPI
+          (LSM303D_SPI
+             { lsm303d_spi_device  = fmu24sens_lsm303d
+             , lsm303d_spi_pins    = fmu24sens_spi_pins
+             })
+          fmu24sens_lsm303d_mag_cal
+          fmu24sens_lsm303d_accel_cal
+      HMC5883L h -> Mag_HMC5883L_I2C $ HMC5883L_I2C
+        { hmc5883l_i2c_periph = fmu24sens_ext_i2c_periph
+        , hmc5883l_i2c_pins   = fmu24sens_ext_i2c_pins
+        , hmc5883l_i2c_addr   = h
+        }
 
 px4platform_l3gd20 :: PX4Platform -> Maybe SPIDevice
 px4platform_l3gd20 PX4Platform{..} = case px4platform_sensors of
