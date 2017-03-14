@@ -225,6 +225,7 @@ view model =
                 li [ class "active" ] [ a [ href "#calibration", attribute "data-toggle" "tab" ] [ strong [ ] [ text "Calibration" ] ] ]
               , li [ ] [ a [href "#status", attribute "data-toggle" "tab" ] [ strong [ ] [ text "Control Law Status" ] ] ]
               , li [ ] [ a [href "#tuning", attribute "data-toggle" "tab" , onClick FetchTuning ] [ strong [ ] [ text "Tuning" ] ] ]
+              , li [ ] [ a [href "#reboot", attribute "data-toggle" "tab" , onClick SendReboot ] [ strong [ ] [ text "Reboot" ] ] ]
               ]
           , div [ class "panel-body" ] [
               div [ class "tab-content" ] [
