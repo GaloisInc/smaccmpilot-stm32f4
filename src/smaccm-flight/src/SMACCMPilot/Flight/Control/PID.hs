@@ -56,7 +56,7 @@ pid_update = proc "pid_update" $ \pid cfg angle_ref angle_measured rate_ref rate
   -- calculate errors
   angle_err <- ifte (err_max >? 0.0) (call fconstrain (-err_max) err_max (angle_ref - angle_measured)) (return (angle_ref - angle_measured))
   rate_err <- ifte (errd_max >? 0.0) (call fconstrain (-errd_max) errd_max (rate_ref - rate_measured)) (return (rate_ref - rate_measured))
-  store (pid~>P.d_state) rate_err
+  store (pid~>P.d_state) 42.0 -- TODO: debug - I want to see this value when I get a debug message
 
   -- calculate terms
   let p_term = p_gain * angle_err
@@ -65,6 +65,7 @@ pid_update = proc "pid_update" $ \pid cfg angle_ref angle_measured rate_ref rate
   i_sum <- pid~>*P.i_state
   i_sum' <- call fconstrain i_min i_max (i_sum + angle_err*dt)
   store (pid~>P.i_state) i_sum'
+  store (pid~>P.i_state) 44.0 -- TODO: debug - I want to see this value when I get a debug message
   let i_term = i_gain * i_sum'
   ret $ p_term + i_term + d_term + dd_term
 
@@ -72,6 +73,7 @@ pid_update = proc "pid_update" $ \pid cfg angle_ref angle_measured rate_ref rate
 pid_reset :: Def ('[ Ref s1 ('Struct "pid_state") ] ':-> ())
 pid_reset = proc "pid_reset" $ \pid -> body $ do
   store (pid ~> P.i_state) 0.0
+  store (pid ~> P.d_state) 0.0
 
 -- | Constrain a floating point value to the range [xmin..xmax].
 fconstrain :: Def ('[IFloat, IFloat, IFloat] ':-> IFloat)
