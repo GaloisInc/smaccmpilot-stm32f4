@@ -24,3 +24,15 @@ TAGS
 /src/smaccm-comm-client/elm/elm.js
 # all logs
 *.csv
+
+# eclipse config files
+.cproject
+.project
+.settings/*
+
+# mat files and data files
+*.mat
+*.data
+
+# matlab scripts
+*.m
