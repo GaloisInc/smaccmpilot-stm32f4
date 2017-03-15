@@ -123,8 +123,8 @@ sensorTower tofp attrs = do
         pressure <- deref $ last_baro ~> B.pressure
 
         gyro_time <- deref $ last_gyro ~> G.time
-        -- gyro <- xyzRef $ last_gyro ~> G.sample
-        -- gyro <- ahrs_body_rates
+        --gyro <- xyzRef $ last_gyro ~> G.sample
+        --gyro <- ahrs_body_rates
 
         lidar_distance <- deref $ last_lidar ~> L.distance
         lidar_time <- deref $ last_lidar ~> L.time
