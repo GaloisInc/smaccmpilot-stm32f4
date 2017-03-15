@@ -230,18 +230,18 @@ quatMult (Quaternion s1 v1) (Quaternion s2 v2) =
   Quaternion (s1*s2 - (v1 `dot` v2)) ((v1 `cross` v2) + s1*^v2 + s2*^v1)
 
 -- OK
-quatConj :: Conjugate a => Quaternion a -> Quaternion a
-quatConj (Quaternion e v) = Quaternion (conjugate e) (negate v)
+--quatConj :: Conjugate a => Quaternion a -> Quaternion a
+--quatConj (Quaternion e v) = Quaternion (conjugate e) (negate v)
 
 instance Conjugate IFloat
 instance TrivialConjugate IFloat
 
-quatRotate :: (Num a, Conjugate a) => Quaternion a -> V3 a -> V3 a
-quatRotate q@(Quaternion qi (V3 qx qy qz)) v = ijk where
-  Quaternion _ ijk = q `quatMult` Quaternion 0 v `quatMult` quatConj q
+--quatRotate :: (Num a, Conjugate a) => Quaternion a -> V3 a -> V3 a
+--quatRotate q@(Quaternion qi (V3 qx qy qz)) v = ijk where
+--  Quaternion _ ijk = q `quatMult` Quaternion 0 v `quatMult` quatConj q
 
 quatVMult :: (Num a, Conjugate a, Fractional a) => Quaternion a -> V3 a -> V3 a
-quatVMult q@(Quaternion qi (V3 qx qy qz)) v@(V3 vx vy vz) = 
+quatVMult (Quaternion qi (V3 qx qy qz)) (V3 vx vy vz) = 
   V3 vout_x vout_y vout_z where
   qi2_M1_2  = qi*qi - 0.5
   qiqx = qi * qx
@@ -349,7 +349,7 @@ ahrs_mlkf_propagate ahrs =
     lp_rate_y <- deref (ahrs ~> lp_rates ! 1)
     lp_rate_z <- deref (ahrs ~> lp_rates ! 2)
     let lp_rates0 = (V3 (lp_rate_x) (lp_rate_y) (lp_rate_z))
-    let alpha = 0.92
+    let alpha = 0.1
     let lp_rates_new@(V3 rate_x rate_y rate_z) = alpha * lp_rates0 + (1-alpha) * gyro
     store (ahrs ~> lp_rates ! 0) rate_x
     store (ahrs ~> lp_rates ! 1) rate_y
@@ -423,6 +423,38 @@ update_state ahrs i_expected b_measured noise = do
                               }
   storeCovMat ahrs p'
 
+update_state_heading
+  :: Ref s ('Struct "AhrsMlkf")
+  -> V3 IFloat -> V3 IFloat -> V3 IFloat -> Ivory eff ()
+update_state_heading ahrs i_expected@(V3 i_ex_x i_ex_y i_ex_z) b_measured noise = do
+  StateVec {..} <- derefStateVec ahrs
+  p0 <- derefCovMat ahrs
+  let b_expected@(V3 b_ex_x b_ex_y b_ex_z) =
+--        quatRotate sv_ltp_to_imu_quat i_expected
+         quatVMult sv_ltp_to_imu_quat i_expected
+      i_h_2d = (V3 i_ex_y (-i_ex_x) 0)
+      (V3 b_yaw_x b_yaw_y b_yaw_z) = quatVMult sv_ltp_to_imu_quat i_h_2d
+      h = m36FromList [
+              [0, 0, b_yaw_x, 0, 0, 0]
+            , [0, 0, b_yaw_y, 0, 0, 0]
+            , [0, 0, b_yaw_z, 0, 0, 0]
+            ]
+      hph' = h !*! p0 !*! (transpose h)
+      s = hph' !+! (scaled (vFromV3 noise)) -- TODO: why scaled?
+      sInv = vsFromM33 (inv33 (m33FromVs s))
+      k = p0 !*! (transpose h) !*! sInv
+      i6 = scaled (V (V.fromList [1, 1, 1, 1, 1, 1]))
+      p' = (i6 !-! (k !*! h)) !*! p0
+      e = vFromV3 (b_measured ^-^ b_expected)
+      [ke0, ke1, ke2, ke3, ke4, ke5] = toList (k !* e)
+      gibbs_cor' = sv_gibbs_cor `quatPlus` Quaternion 0 (V3 ke0 ke1 ke2)
+      gyro_bias' = sv_gyro_bias ^+^ V3 ke3 ke4 ke5
+  storeStateVec ahrs StateVec { sv_gibbs_cor = gibbs_cor'
+                              , sv_gyro_bias = gyro_bias'
+                              , ..
+                              }
+  storeCovMat ahrs p'
+
 vsFromM33 :: M33 a -> V 3 (V 3 a)
 vsFromM33 = vFromV3 . fmap vFromV3
 
@@ -463,6 +495,18 @@ ahrs_mlkf_update_accel ahrs =
     store (ahrs ~> lp_accel) lp_accel'
     update_state ahrs earth_g imu_g g_noise
     reset_state ahrs
+
+ahrs_mlkf_update_mag_2D
+  :: Ref s1 ('Struct "AhrsMlkf")
+  -> Def ('[ConstRef s2 ('Struct "magnetometer_sample")] ':-> ())
+ahrs_mlkf_update_mag_2D ahrs = 
+  voidProc (named "mag") $ \mag_sample -> body $ do
+    mag <- derefXyz (mag_sample ~> M.sample)
+    let mag_norm = mag--signorm mag
+    let mag_h = V3 ahrs_h_x ahrs_h_y ahrs_h_z
+    update_state_heading ahrs mag_h mag_norm ahrs_mag_noise
+    reset_state ahrs  
+
 
 ahrs_mlkf_update_mag_full
   :: Ref s1 ('Struct "AhrsMlkf")
@@ -526,7 +570,8 @@ monitorAttEstimator = do
     incl (ahrs_mlkf_align ahrs)
     incl (ahrs_mlkf_propagate ahrs)
     incl (ahrs_mlkf_update_accel ahrs)
-    incl (ahrs_mlkf_update_mag_full ahrs)
+--    incl (ahrs_mlkf_update_mag_full ahrs)
+    incl (ahrs_mlkf_update_mag_2D ahrs)
 
   return AttEstimator
     { ahrs_init = call_ (ahrs_mlkf_init ahrs)
@@ -534,6 +579,7 @@ monitorAttEstimator = do
     , ahrs_propagate = call_ (ahrs_mlkf_propagate ahrs)
     , ahrs_update_accel = call_ (ahrs_mlkf_update_accel ahrs)
     , ahrs_update_mag = call_ (ahrs_mlkf_update_mag_full ahrs)
+--    , ahrs_update_mag = call_ (ahrs_mlkf_update_mag_2D ahrs)
     , ahrs_state = ahrs
     }
 
@@ -588,8 +634,8 @@ sensorFusion accel_out gyro_out mag_out motion = do
         unless isFail $ do
           refCopy last_mag mag
           isAligned <- deref aligned
---          when isAligned $ do
-          when false $ do
+          when isAligned $ do
+--          when false $ do
             ahrs_update_mag ahrs mag
             emit e (constRef (ahrs_state ahrs))
 
