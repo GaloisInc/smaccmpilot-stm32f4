@@ -59,20 +59,24 @@
     <script type="text/javascript" src="/canvasjs-1.9.1/canvasjs.min.js"></script>
 
 <script type="text/javascript">
-var labels = ["alt_est", "alt_rate_est", "vz_ctl", "pos_err", "pos_rate_err", "ui_setp","ui_rate_setp", "r22_gain"];
+var labels = ["alt_est", "alt_rate_est", "r22_gain", "ui_setp","ui_rate_setp", "vz_fb","vz_fb_norm", "vz_ff", "vz_ff_rot", "vz_ctl"];
 var data = []; // array of variables
 
 	window.onload = function () {
-		var dps0 = []; // dataPoints
- 		var dps1 = []; // dataPoints
+		var dps0 = []; // alt est
+ 		var dps1 = []; // ui_setp
 
-		var dps2 = []; // dataPoints
- 		var dps3 = []; // dataPoints
+		var dps2 = []; // rate est
+ 		var dps3 = []; // rate setp
 
-		var dps4 = []; // dataPoints
- 		var dps5 = []; // dataPoints
+		var dps4 = []; // pos error
+ 		var dps5 = []; // pos rate error
 
- 		var dps6 = []; // dataPoints
+ 		var dps6 = []; // vz_ctl
+ 		var dps7 = []; // vz_fb
+    var dps8 = []; // vz_fb_norm
+    var dps9 = []; // vz_ff
+    var dps10 = []; // vz_ff_rot
 
 		var xVal = 0;
 		var yVal = 0;	
@@ -169,6 +173,30 @@ var data = []; // array of variables
   			showInLegend: "true",
 				type: "line",
 				dataPoints: dps6 
+			},
+      {
+				legendText: "vz_fb",
+  			showInLegend: "true",
+				type: "line",
+				dataPoints: dps7 
+			},
+      {
+				legendText: "vz_fb_norm",
+  			showInLegend: "true",
+				type: "line",
+				dataPoints: dps8 
+			},
+      {
+				legendText: "vz_ff",
+  			showInLegend: "true",
+				type: "line",
+				dataPoints: dps9 
+			},
+      {
+				legendText: "vz_ff_rot",
+  			showInLegend: "true",
+				type: "line",
+				dataPoints: dps10 
 			}]
 		});
 
@@ -283,6 +311,60 @@ var data = []; // array of variables
 					x: xVal,
 					y: yVal
 				});
+
+        // search for the right variable
+        var idx = match_labels("vz_fb");
+        if (idx != -1) { // we have a match here
+          yVal = data[idx];
+        }
+        else {
+          yVal = -1; // backup 
+        }
+        dps7.push({
+					x: xVal,
+					y: yVal
+				});
+
+        // search for the right variable
+        var idx = match_labels("vz_fb_norm");
+        if (idx != -1) { // we have a match here
+          yVal = data[idx];
+        }
+        else {
+          yVal = -1; // backup 
+        }
+        dps8.push({
+          x: xVal,
+          y: yVal
+        });
+
+        // search for the right variable
+        var idx = match_labels("vz_ff");
+        if (idx != -1) { // we have a match here
+          yVal = data[idx];
+        }
+        else {
+          yVal = -1; // backup 
+        }
+        dps9.push({
+          x: xVal,
+          y: yVal
+        });
+
+        // search for the right variable
+        var idx = match_labels("vz_ff_rot");
+        if (idx != -1) { // we have a match here
+          yVal = data[idx];
+        }
+        else {
+          yVal = -1; // backup 
+        }
+        dps10.push({
+          x: xVal,
+          y: yVal
+        });
+
+
 			}; // end for loop
 
 
@@ -296,6 +378,10 @@ var data = []; // array of variables
 				dps4.shift();
 				dps5.shift();
 				dps6.shift();
+        dps7.shift();
+        dps8.shift();
+        dps9.shift();
+        dps10.shift();
       }
 			chart1.render();
 			chart2.render();
@@ -345,25 +431,44 @@ var AltSliderView = Backbone.View.extend({
   }
 });
 
+
+/*
+(def-struct alt_control_debug_t -- 40+24 = 64 bytes
+  (alt_est       float_t)
+  (alt_rate_est  float_t)
+  (r22_gain      float_t)
+  (ui_setp       float_t)
+  (ui_rate_setp  float_t)
+  (pos           pid_state_t)
+  (vz_fb         float_t)
+  (vz_fb_norm    float_t)
+  (vz_ff         float_t)
+  (vz_ff_rot     float_t)
+  (vz_ctl        float_t))
+
+*/
 var AltView = function (opts) {
   this.altEst =
     new AltSliderView({model: opts.model, selector: 'alt_est'}); // estimated altitude
   this.altRateEst =
     new AltSliderView({model: opts.model, selector: 'alt_rate_est'}); // estimated rate
-  this.vzCmd =
-    new AltSliderView({model: opts.model, selector: 'vz_ctl'}); // control input before the mixer (still can be overwritten by the position of throttle stick
-  this.posErr =
-    new AltSliderView({model: opts.model, selector: 'pos_err'}); // position error
-  this.rateErr =
-    new AltSliderView({model: opts.model, selector: 'pos_rate_err'}); // rate error
+  this.r22Gain =
+    new AltSliderView({model: opts.model, selector: 'r22_gain'}); // derotation gain
   this.uiSetp =
     new AltSliderView({model: opts.model, selector: 'ui_setp'}); // altitude setpoint - aka ui_alt
   this.iuRateSetp =
     new AltSliderView({model: opts.model, selector: 'ui_rate_setp'}); // rate setpoint - typically zero
-  this.r22Gain =
-    new AltSliderView({model: opts.model, selector: 'r22_gain'}); // derotation gain
+  this.vzFb =
+    new AltSliderView({model: opts.model, selector: 'vz_fb'});
+  this.vzFbNorm =
+    new AltSliderView({model: opts.model, selector: 'vz_fb_norm'});
+  this.vzFf =
+    new AltSliderView({model: opts.model, selector: 'vz_ff'});
+  this.vzFfRot =
+    new AltSliderView({model: opts.model, selector: 'vz_ff_rot'});
+  this.vzCmd =
+    new AltSliderView({model: opts.model, selector: 'vz_ctl'}); // control input before the mixer (still can be overwritten by the position of throttle stick
 };
-
 
 window.altOutput = new AltOutput({});
 window.altOutputView = new AltView({ model: altOutput });
