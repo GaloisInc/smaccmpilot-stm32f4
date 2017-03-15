@@ -189,7 +189,6 @@ mpu6000SensorManager (BackpressureTransmit req_chan res_chan) init_chan gyro_cha
   let targetSampleRate = 2 * max (accelBandwidth lpfConfig) (gyroBandwidth lpfConfig)
 
   let (gyroSamplesPerMS, 0) = gyroSampleRate lpfConfig `divMod` 1000
-  comment "Set value to 200Hz (5ms period)"
   let samplePeriodMS = 5--1000 `div` targetSampleRate
   let divisor = samplePeriodMS * gyroSamplesPerMS
 
