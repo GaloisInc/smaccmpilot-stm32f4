@@ -26,12 +26,8 @@
           <span id="alt_rate_est-lbl">?</span>
           </p>
 
-          <p>pos_setp [m]:
-          <span id="pos_setp-lbl">?</span>
-          </p>
-
           <p>vz_ctl [0-1]:
-          <span id="pos_rate_setp-lbl">?</span>
+          <span id="vz_ctl-lbl">?</span>
           </p>
 
           <p>ui_setp [m]:
@@ -49,9 +45,9 @@
 
       <div class="row">
         <div id="chartContainer1" style="height: 300px; width:100%;"></div>
+        <div id="chartContainer2" style="height: 300px; width:100%;"></div>
         <div id="chartContainer3" style="height: 300px; width:100%;"></div>
         <div id="chartContainer4" style="height: 300px; width:100%;"></div>
-        <div id="chartContainer2" style="height: 300px; width:100%;"></div>
       </div> <!-- end row -->
 
     </div> <!-- end container -->
@@ -63,16 +59,21 @@
     <script type="text/javascript" src="/canvasjs-1.9.1/canvasjs.min.js"></script>
 
 <script type="text/javascript">
-var labels = ["alt_est", "alt_rate_est", "pos_setp", "pos_rate_setp", "ui_setp", "ui_rate_setp"];
+//var labels = ["alt_est", "alt_rate_est", "pos_setp", "pos_rate_setp", "ui_setp", "ui_rate_setp"];
+var labels = ["alt_est", "alt_rate_est", "vz_ctl", "pos_err", "pos_rate_err", "ui_setp","ui_rate_setp", "r22_gain"];
 var data = []; // array of variables
 
 	window.onload = function () {
 		var dps0 = []; // dataPoints
  		var dps1 = []; // dataPoints
+
 		var dps2 = []; // dataPoints
  		var dps3 = []; // dataPoints
+
 		var dps4 = []; // dataPoints
  		var dps5 = []; // dataPoints
+
+ 		var dps6 = []; // dataPoints
 
 		var xVal = 0;
 		var yVal = 0;	
@@ -131,21 +132,27 @@ var data = []; // array of variables
 
 
     /*
-    * CHART 3: alt_err
+    * CHART 3: alt_err + rate_err
     */
 		var chart3 = new CanvasJS.Chart("chartContainer3",{
 			title :{
-				text: "Alt error"
+				text: "Errors"
 			},
 			axisY: {
-				title: "Alt Error[m]"
+				title: "Errors"
 			},		
 			data: [{
-        legendText: "alt_err",
+        legendText: "pos_err",
 				showInLegend: "true",
 				type: "line",
 				dataPoints: dps4 
-  			}]
+  			}, 
+        {
+				legendText: "pos_rate_err",
+  			showInLegend: "true",
+				type: "line",
+				dataPoints: dps5 
+			}]
 		});
 
     /*
@@ -162,7 +169,7 @@ var data = []; // array of variables
 				legendText: "vz_ctl",
   			showInLegend: "true",
 				type: "line",
-				dataPoints: dps5 
+				dataPoints: dps6 
 			}]
 		});
 
@@ -239,7 +246,7 @@ var data = []; // array of variables
         /*
         * CHART 3: alt_err & alt_rate_err
         */
-        idx = match_labels("pos_setp");
+        idx = match_labels("pos_err");
         if (idx != -1) { // we have a match here
           yVal = data[idx];
         }
@@ -253,14 +260,27 @@ var data = []; // array of variables
 				});
 
         // search for the right variable
-        var idx = match_labels("pos_rate_setp");
+        var idx = match_labels("pos_rate_err");
         if (idx != -1) { // we have a match here
           yVal = data[idx];
         }
         else {
-          yVal = 0; // backup 
+          yVal = -1; // backup 
         }
         dps5.push({
+					x: xVal,
+					y: yVal
+				});
+
+        // search for the right variable
+        var idx = match_labels("vz_ctl");
+        if (idx != -1) { // we have a match here
+          yVal = data[idx];
+        }
+        else {
+          yVal = -1; // backup 
+        }
+        dps6.push({
 					x: xVal,
 					y: yVal
 				});
@@ -276,6 +296,7 @@ var data = []; // array of variables
 				dps3.shift();
 				dps4.shift();
 				dps5.shift();
+				dps6.shift();
       }
 			chart1.render();
 			chart2.render();
@@ -327,18 +348,23 @@ var AltSliderView = Backbone.View.extend({
 
 var AltView = function (opts) {
   this.altEst =
-    new AltSliderView({model: opts.model, selector: 'alt_est'});
+    new AltSliderView({model: opts.model, selector: 'alt_est'}); // estimated altitude
   this.altRateEst =
-    new AltSliderView({model: opts.model, selector: 'alt_rate_est'});
-  this.posSetp =
-    new AltSliderView({model: opts.model, selector: 'pos_setp'});
-  this.posRateSetp =
-    new AltSliderView({model: opts.model, selector: 'pos_rate_setp'});
+    new AltSliderView({model: opts.model, selector: 'alt_rate_est'}); // estimated rate
+  this.vzCmd =
+    new AltSliderView({model: opts.model, selector: 'vz_ctl'}); // control input before the mixer (still can be overwritten by the position of throttle stick
+  this.posErr =
+    new AltSliderView({model: opts.model, selector: 'pos_err'}); // position error
+  this.rateErr =
+    new AltSliderView({model: opts.model, selector: 'pos_rate_err'}); // rate error
   this.uiSetp =
-    new AltSliderView({model: opts.model, selector: 'ui_setp'});
+    new AltSliderView({model: opts.model, selector: 'ui_setp'}); // altitude setpoint - aka ui_alt
   this.iuRateSetp =
-    new AltSliderView({model: opts.model, selector: 'ui_rate_setp'});
+    new AltSliderView({model: opts.model, selector: 'ui_rate_setp'}); // rate setpoint - typically zero
+  this.r22Gain =
+    new AltSliderView({model: opts.model, selector: 'r22_gain'}); // derotation gain
 };
+
 
 window.altOutput = new AltOutput({});
 window.altOutputView = new AltView({ model: altOutput });
