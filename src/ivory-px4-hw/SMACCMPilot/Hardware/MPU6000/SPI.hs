@@ -70,8 +70,9 @@ sensorSample (AccelCal accel_cal) (GyroCal gyro_cal) res r_gyro r_accel = do
   comment "store sample failure"
   store (r_gyro ~> G.samplefail) (rc >? 0)
   store (r_accel ~> A.samplefail) (rc >? 0)
+  comment "subtract calibation offsets and  convert to radians per second"
+--  convert_gyro_sample gyro_cal res r_gyro
   comment "we rotate the X/Y plane 90 degrees to match Pixhawk's silk-screened orientation"
-  comment "convert to radians per second"
   let to_dps x = safeCast x * (0.0174532 / 16.4)
       (g_cal_x, g_cal_y, g_cal_z) = applyXyzCal gyro_cal
   convert ((r_gyro ~> G.sample) ~> XYZ.x)
@@ -83,8 +84,12 @@ sensorSample (AccelCal accel_cal) (GyroCal gyro_cal) res r_gyro r_accel = do
   convert ((r_gyro ~> G.sample) ~> XYZ.z)
           (mpu6000_r ~> M.gz)
           (g_cal_z . to_dps)
+
   comment "subtract calibation offsets and convert to m/s/s by way of g"
-  let to_m_s_s x = safeCast x / 2048.0 * 9.80665
+--  let to_m_s_s x = safeCast x / 2048.0 * 9.80665
+--  convert_acc_sample accel_cal res r_accel
+  comment "we rotate the X/Y plane 90 degrees to match Pixhawk's silk-screened orientation"
+  let to_m_s_s x = safeCast x / 4096.0 * 9.80665
       (a_cal_x, a_cal_y, a_cal_z) = applyXyzCal accel_cal
   convert ((r_accel ~> A.sample) ~> XYZ.x)
           (mpu6000_r ~> M.ay)
@@ -95,6 +100,7 @@ sensorSample (AccelCal accel_cal) (GyroCal gyro_cal) res r_gyro r_accel = do
   convert ((r_accel ~> A.sample) ~> XYZ.z)
           (mpu6000_r ~> M.az)
           (a_cal_z . to_m_s_s)
+
   comment "indicate whether we have calibration"
   store (r_accel ~> A.calibrated) true
   comment "convert to degrees Celsius"
@@ -110,6 +116,55 @@ sensorSample (AccelCal accel_cal) (GyroCal gyro_cal) res r_gyro r_accel = do
   convert to fro f = do
     v <- deref fro
     store to (f v)
+
+
+convert_acc_sample :: AccelCal
+                   -> ConstRef s1 ('Struct "spi_transaction_result")
+                   -> Ref s2 ('Struct "accelerometer_sample")
+                   -> Ivory eff ()
+convert_acc_sample (AccelCal xyz_cal) res s =
+  let scale = (1.0/4096.0)* 9.80665 in
+  convert_sample xyz_cal scale res (s ~> A.sample)
+
+convert_gyro_sample :: GyroCal
+                   -> ConstRef s1 ('Struct "spi_transaction_result")
+                   -> Ref s2 ('Struct "gyroscope_sample")
+                   -> Ivory eff ()
+convert_gyro_sample (GyroCal xyz_cal) res s =
+  let scale = (0.0174532 / 16.4) in
+  convert_sample xyz_cal scale res (s ~> G.sample)
+
+
+
+convert_sample :: XyzCal
+               -> IFloat
+               -> ConstRef s1 ('Struct "spi_transaction_result")
+               -> Ref s2 ('Struct "xyz")
+               -> Ivory eff ()
+convert_sample XyzCal {..} scale res s = do 
+  comment "we rotate the X/Y plane 90 degrees to match Pixhawk's silk-screened orientation"
+  f ((res ~> rx_buf) ! 1) -- swapped
+    ((res ~> rx_buf) ! 2) -- swapped
+    (s ~> XYZ.x)
+    cal_x_offset cal_x_scale
+  f ((res ~> rx_buf) ! 3) -- swapped
+    ((res ~> rx_buf) ! 4) -- swapped
+    (s ~> XYZ.y)
+    cal_y_offset cal_y_scale
+  f ((res ~> rx_buf) ! 5)
+    ((res ~> rx_buf) ! 6)
+    (s ~> XYZ.z)
+    cal_z_offset cal_z_scale
+  where
+  f loref hiref resref offset axis_scale = do
+    lo <- deref loref
+    hi <- deref hiref
+    (u16 :: Uint16) <- assign ((safeCast lo) + ((safeCast hi) `iShiftL` 8))
+    (i16 :: Sint16) <- assign (twosComplementCast u16)
+    (r :: IFloat)   <- assign ((safeCast i16) * scale)
+--    (r :: IFloat)   <- assign ((((safeCast i16) * (scale)) - offset) * axis_scale)
+    store resref r
+
 
 mpu6000SensorManager :: BackpressureTransmit ('Struct "spi_transaction_request") ('Struct "spi_transaction_result")
                      -> ChanOutput ('Stored ITime)
@@ -128,13 +183,14 @@ mpu6000SensorManager (BackpressureTransmit req_chan res_chan) init_chan gyro_cha
   towerDepends M.mpu6000ResponseTypesModule
 
   -- TODO: let caller choose the bandwidth
-  let lpfConfig = DLPF94Hz
+  let lpfConfig = DLPF44Hz--DLPF94Hz
 
   -- TODO: let caller request oversampling by an integer multiple
   let targetSampleRate = 2 * max (accelBandwidth lpfConfig) (gyroBandwidth lpfConfig)
 
   let (gyroSamplesPerMS, 0) = gyroSampleRate lpfConfig `divMod` 1000
-  let samplePeriodMS = 1000 `div` targetSampleRate
+  comment "Set value to 200Hz (5ms period)"
+  let samplePeriodMS = 5--1000 `div` targetSampleRate
   let divisor = samplePeriodMS * gyroSamplesPerMS
 
   p <- period (Milliseconds samplePeriodMS) -- at 200Hz
@@ -180,12 +236,13 @@ mpu6000SensorManager (BackpressureTransmit req_chan res_chan) init_chan gyro_cha
         comment $ "sample rate: " ++ show (1000 / fromInteger samplePeriodMS :: Double) ++ "Hz"
         _ <- rpc $ writeRegReq dev SampleRateDivider $ fromInteger divisor
 
-        comment "Set accelerometer scale to +/- 16g"
-        _ <- rpc (writeRegReq dev AccelConfig 0x18)
+--        comment "Set accelerometer scale to +/- 16g"
+--        _ <- rpc (writeRegReq dev AccelConfig 0x18)
+        comment "Set accelerometer scale to +/- 8"
+        _ <- rpc (writeRegReq dev AccelConfig 0x10)
 
         comment "Set gyro scale to +/- 2000 dps"
         _ <- rpc (writeRegReq dev GyroConfig 0x18)
-
         store ready true
         forever $ do
           comment "Wait for responses to periodic requests"

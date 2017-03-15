@@ -88,6 +88,7 @@ lsm303dSPISensorManager conf (BackpressureTransmit req_chan res_chan) init_chan 
           comment "put results in mag_sample field"
           convert_mag_sample conf mag_cal mag_read_result mag_s
 
+          comment "normalize magnetic field vector"
           let s = (mag_s ~> M.sample)
           mx <- deref (s ~> XYZ.x)
           my <- deref (s ~> XYZ.y)
@@ -160,7 +161,7 @@ convert_sample :: XyzCal
                -> Ref s1 ('Struct "spi_transaction_result")
                -> Ref s2 ('Struct "xyz")
                -> Ivory eff ()
-convert_sample XyzCal {..} scale res s = do
+convert_sample XyzCal {..} sens_scale res s = do
   f ((res ~> rx_buf) ! 1)
     ((res ~> rx_buf) ! 2)
     (s ~> XYZ.x)
@@ -179,7 +180,10 @@ convert_sample XyzCal {..} scale res s = do
     hi <- deref hiref
     (u16 :: Uint16) <- assign ((safeCast lo) + ((safeCast hi) `iShiftL` 8))
     (i16 :: Sint16) <- assign (twosComplementCast u16)
-    (r :: IFloat)   <- assign (scale * (safeCast i16 + offset) * axis_scale)
+-- From PX4: 
+-- float x_in_new = ((xraw_f * _accel_range_scale) - _accel_scale.x_offset) * _accel_scale.x_scale;
+--    (r :: IFloat)   <- assign (((safeCast i16 * sens_scale) - offset) * axis_scale)
+    (r :: IFloat)   <- assign ((sens_scale * (safeCast i16 - offset) )* axis_scale)
     store resref r
 
 lsm303dDefaultConf :: Config
