@@ -181,6 +181,7 @@ monitorAltitudeControl attrs = do
                   hover_thrust_abs <- deref nominal_throttle
                   store vz_ff hover_thrust_abs
 
+                  -- TODO: see if we can do without the r22 derotation component
                   hover_thrust <- assign ((throttleR22Comp r22) * hover_thrust_abs)
                   store vz_ff_rot hover_thrust
 
