@@ -160,19 +160,19 @@ update msg model =
 
 handleKeyDown model kc =
   case Char.fromCode kc |> Char.toUpper of
-    'W' -> model ! [ model.cvc.setUserInputRequest { throttle = 0, roll = 0, pitch = 0.2, yaw = 0 } ]
-    'S' -> model ! [ model.cvc.setUserInputRequest { throttle = 0, roll = 0, pitch = -0.2, yaw = 0 } ]
-    'A' -> model ! [ model.cvc.setUserInputRequest { throttle = 0, roll = 0.2, pitch = 0.2, yaw = 0 } ]
-    'D' -> model ! [ model.cvc.setUserInputRequest { throttle = 0, roll = -0.2, pitch = 0.2, yaw = 0 } ]
-    'Q' -> model ! [ model.cvc.setUserInputRequest { throttle = 0, roll = 0, pitch = 0.2, yaw = 0.2 } ]
-    'E' -> model ! [ model.cvc.setUserInputRequest { throttle = 0, roll = 0, pitch = 0.2, yaw = -0.2 } ]
-    'R' -> model ! [ model.cvc.setUserInputRequest { throttle = 0.2, roll = 0, pitch = 0.2, yaw = 0 } ]
-    'F' -> model ! [ model.cvc.setUserInputRequest { throttle = -0.2, roll = 0, pitch = 0.2, yaw = 0 } ]
+    'W' -> model ! [ model.cvc.setUserInputRequest { throttle = 1, roll = 0, pitch = 0.2, yaw = 0 } ]
+    'S' -> model ! [ model.cvc.setUserInputRequest { throttle = 1, roll = 0, pitch = -0.2, yaw = 0 } ]
+    'A' -> model ! [ model.cvc.setUserInputRequest { throttle = 1, roll = -0.2, pitch = 0, yaw = 0 } ]
+    'D' -> model ! [ model.cvc.setUserInputRequest { throttle = 1, roll = 0.2, pitch = 0, yaw = 0 } ]
+    'Q' -> model ! [ model.cvc.setUserInputRequest { throttle = 1, roll = 0, pitch = 0, yaw = -0.13 } ]
+    'E' -> model ! [ model.cvc.setUserInputRequest { throttle = 1, roll = 0, pitch = 0, yaw = 0.13 } ]
+--    'R' -> model ! [ model.cvc.setUserInputRequest { throttle = 0.2, roll = 0, pitch = 0, yaw = 0 } ]
+--    'F' -> model ! [ model.cvc.setUserInputRequest { throttle = -0.2, roll = 0, pitch = 0, yaw = 0 } ]
     'T' -> let cv0 = model.cv
                cmr0 = cv0.controlModesRequest
                ui_mode0 = cmr0.ui_mode
                cmr1 = { cmr0 | ui_mode = if ui_mode0 == ControlSource.Gcs then ControlSource.Ppm else ControlSource.Gcs
-                             , yaw_mode = YawMode.Heading
+                             , yaw_mode = YawMode.Rate
                              , thr_mode = ThrottleMode.AltUi
                       }
                cv1 = { cv0 | controlModesRequest = cmr1 }
@@ -222,14 +222,12 @@ view model =
       , div [ class "col-xs-7" ] [
           div [ class "panel panel-default" ] [
             ul [ class "nav nav-tabs", attribute "role" "tablist" ] [
-                li [ class "active" ] [ a [ href "#calibration", attribute "data-toggle" "tab" ] [ strong [ ] [ text "Calibration" ] ] ]
-              , li [ ] [ a [href "#status", attribute "data-toggle" "tab" ] [ strong [ ] [ text "Control Law Status" ] ] ]
+                li [ class "active" ] [ a [href "#status", attribute "data-toggle" "tab" ] [ strong [ ] [ text "Control Law Status" ] ] ]
               , li [ ] [ a [href "#tuning", attribute "data-toggle" "tab" , onClick FetchTuning ] [ strong [ ] [ text "Tuning" ] ] ]
               ]
           , div [ class "panel-body" ] [
               div [ class "tab-content" ] [
-                div [ class "tab-pane active", id "calibration" ] [ renderCalibration model.cv.packedStatus ]
-              , div [ class "tab-pane", id "status" ] [ renderStatus model.cv.packedStatus ]
+                div [ class "tab-pane active", id "status" ] [ renderStatus model.cv.packedStatus ]
               , div [ class "tab-pane", id "control" ] [ renderControl model ]
               , div [ class "tab-pane", id "tuning" ] [ renderTuning model ]
               ]
