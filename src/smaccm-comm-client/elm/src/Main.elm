@@ -6,6 +6,7 @@ import Html.Events exposing (..)
 import Html.Attributes as A exposing (..)
 import Http
 import Keyboard
+import Set exposing (Set)
 import Task
 import Time exposing (..)
 
@@ -20,6 +21,7 @@ import SMACCMPilot.Comm.Types.RebootMagic as RebootMagic
 import SMACCMPilot.Comm.Types.RebootReq as RebootReq
 import SMACCMPilot.Comm.Types.ThrottleMode as ThrottleMode
 import SMACCMPilot.Comm.Types.Tristate as Tristate
+import SMACCMPilot.Comm.Types.UserInput as UI
 import SMACCMPilot.Comm.Types.YawMode as YawMode
 
 main : Program Never Model Msg
@@ -43,6 +45,8 @@ type alias Model =
   , lastUpdateDts : List Float -- milliseconds
   , httpError : Maybe Http.Error
   , httpTimeout : Time
+  , keysDown : Set Char
+  , keysSincePeriod : Set Char
   }
 
 mkCvc : Time -> CV.Client Msg
@@ -87,6 +91,8 @@ init =
        , lastUpdateDts = []
        , httpError = Nothing
        , httpTimeout = initTimeout
+       , keysDown = Set.empty
+       , keysSincePeriod = Set.empty
        }
      , Cmd.batch [ initCvc.pollPackedStatus (Just initRefreshRate), Task.perform InitializeTime Time.now ]
      )
@@ -107,6 +113,7 @@ type Msg
   | SetTimeout String -- Int ms
   | FocusPFD
   | FocusCameraTarget
+  | SendControlInput
 
 cvh : CV.Handler Model Msg
 cvh = let upd m f = { m | cv = f m.cv } in CV.updatingHandler upd
@@ -144,8 +151,6 @@ update msg model =
            True -> { model2 | httpError = Nothing } ! [ cmd, Task.perform UpdateTime Time.now ]
            False -> model2 ! [ cmd ]
     SendReboot -> (model, model.cvc.setRebootReq (RebootReq.RebootReq RebootMagic.LinuxRebootMagic1))
-    KeyUp kc -> model ! []
-    KeyDown kc -> handleKeyDown model kc
     FetchTuning -> model ! fetchTuning model
     FetchFail err ->
       { model | httpError = Just err } ! []
@@ -157,17 +162,31 @@ update msg model =
         Err _ -> model ! []
     FocusPFD -> model ! [ model.cvc.pollCameraTargetInput Nothing ]
     FocusCameraTarget -> model ! [ model.cvc.pollCameraTargetInput (Just model.refreshRate) ]
+    KeyUp kc -> { model | keysDown = Set.remove (Char.fromCode kc |> Char.toUpper) model.keysDown
+                } ! []
+    KeyDown kc -> handleKeyDown model kc
+    SendControlInput ->
+      if Set.isEmpty model.keysDown && Set.isEmpty model.keysSincePeriod
+        then model ! []
+        else let uir0 = { throttle = 1, pitch = 0, roll = 0, yaw = 0 }
+                 uir = Set.foldl addControlInput uir0 (Set.union model.keysDown model.keysSincePeriod)
+             in { model | keysSincePeriod = Set.empty } ! [ model.cvc.setUserInputRequest uir ]
 
+addControlInput : Char -> UI.UserInput -> UI.UserInput
+addControlInput key uir =
+  case key of
+    'W' -> { uir | pitch = uir.pitch + 0.2 }
+    'S' -> { uir | pitch = uir.pitch - 0.2 }
+    'A' -> { uir | roll  = uir.roll  - 0.2 }
+    'D' -> { uir | roll  = uir.roll  + 0.2 }
+    'Q' -> { uir | yaw   = uir.yaw   - 0.13 }
+    'E' -> { uir | yaw   = uir.yaw   + 0.13 }
+    _   -> uir
+
+handleKeyDown : Model -> Char.KeyCode -> (Model, Cmd Msg)
 handleKeyDown model kc =
   case Char.fromCode kc |> Char.toUpper of
-    'W' -> model ! [ model.cvc.setUserInputRequest { throttle = 1, roll = 0, pitch = 0.2, yaw = 0 } ]
-    'S' -> model ! [ model.cvc.setUserInputRequest { throttle = 1, roll = 0, pitch = -0.2, yaw = 0 } ]
-    'A' -> model ! [ model.cvc.setUserInputRequest { throttle = 1, roll = -0.2, pitch = 0, yaw = 0 } ]
-    'D' -> model ! [ model.cvc.setUserInputRequest { throttle = 1, roll = 0.2, pitch = 0, yaw = 0 } ]
-    'Q' -> model ! [ model.cvc.setUserInputRequest { throttle = 1, roll = 0, pitch = 0, yaw = -0.13 } ]
-    'E' -> model ! [ model.cvc.setUserInputRequest { throttle = 1, roll = 0, pitch = 0, yaw = 0.13 } ]
---    'R' -> model ! [ model.cvc.setUserInputRequest { throttle = 0.2, roll = 0, pitch = 0, yaw = 0 } ]
---    'F' -> model ! [ model.cvc.setUserInputRequest { throttle = -0.2, roll = 0, pitch = 0, yaw = 0 } ]
+    -- Toggle GCS control mode
     'T' -> let cv0 = model.cv
                cmr0 = cv0.controlModesRequest
                ui_mode0 = cmr0.ui_mode
@@ -176,8 +195,11 @@ handleKeyDown model kc =
                              , thr_mode = ThrottleMode.AltUi
                       }
                cv1 = { cv0 | controlModesRequest = cmr1 }
-           in { model | cv = cv1 } ! [ model.cvc.setControlModesRequest cmr1 ]
-    _ -> model ! [ ]
+           in { model | cv = cv1, keysSincePeriod = Set.empty } ! [ model.cvc.setControlModesRequest cmr1 ]
+    -- Otherwise keep track of which keys are down
+    _ -> { model | keysDown = Set.insert (Char.fromCode kc |> Char.toUpper) model.keysDown
+                 , keysSincePeriod = Set.insert (Char.fromCode kc |> Char.toUpper) model.keysSincePeriod
+         } ! []
 
 fetchTuning : Model -> List (Cmd Msg)
 fetchTuning model = [
@@ -391,6 +413,9 @@ subscriptions model = Sub.batch [
   , Time.every second UpdateLatency
   , Keyboard.downs KeyDown
   , Keyboard.ups KeyUp
+  , if model.cv.controlModesRequest.ui_mode == ControlSource.Gcs
+      then Time.every (250 * millisecond) (always SendControlInput)
+      else Sub.none
   ]
 
 -- MOVE TO ANOTHER MODULE
