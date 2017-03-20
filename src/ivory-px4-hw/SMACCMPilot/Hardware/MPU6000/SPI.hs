@@ -156,7 +156,7 @@ convert_sample XyzCal {..} scale res s = do
     (s ~> XYZ.z)
     cal_z_offset cal_z_scale
   where
-  f loref hiref resref offset axis_scale = do
+  f loref hiref resref _offset _axis_scale = do
     lo <- deref loref
     hi <- deref hiref
     (u16 :: Uint16) <- assign ((safeCast lo) + ((safeCast hi) `iShiftL` 8))
@@ -186,7 +186,7 @@ mpu6000SensorManager (BackpressureTransmit req_chan res_chan) init_chan gyro_cha
   let lpfConfig = DLPF44Hz--DLPF94Hz
 
   -- TODO: let caller request oversampling by an integer multiple
-  let targetSampleRate = 2 * max (accelBandwidth lpfConfig) (gyroBandwidth lpfConfig)
+--  let targetSampleRate = 2 * max (accelBandwidth lpfConfig) (gyroBandwidth lpfConfig)
 
   let (gyroSamplesPerMS, 0) = gyroSampleRate lpfConfig `divMod` 1000
   let samplePeriodMS = 5--1000 `div` targetSampleRate

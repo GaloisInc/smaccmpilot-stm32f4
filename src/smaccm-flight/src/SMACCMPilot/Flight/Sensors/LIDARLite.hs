@@ -15,7 +15,7 @@ import Ivory.Tower.Config
 import Ivory.Tower.HAL.Bus.Interface
 import SMACCMPilot.Comm.Ivory.Types.LidarliteSample
 import SMACCMPilot.Time
-import SMACCMPilot.Flight.Platform.ParserUtils
+import SMACCMPilot.Hardware.Platforms.ParserUtils
 
 data LIDARLite = LIDARLite {
     lidarlite_i2c_addr :: I2CDeviceAddr

@@ -115,9 +115,9 @@ derefXyz
   => ref s ('Struct "xyz") -> Ivory eff (V3 IFloat)
 derefXyz ref = mapM deref $ fmap (ref ~>) (V3 XYZ.x XYZ.y XYZ.z)
 
-storeXyz
+_storeXyz
   :: Ref s ('Struct "xyz") -> V3 IFloat -> Ivory eff ()
-storeXyz ref (V3 x y z) = do
+_storeXyz ref (V3 x y z) = do
   store (ref ~> XYZ.x) x
   store (ref ~> XYZ.y) y
   store (ref ~> XYZ.z) z
@@ -426,10 +426,10 @@ update_state ahrs i_expected b_measured noise = do
 update_state_heading
   :: Ref s ('Struct "AhrsMlkf")
   -> V3 IFloat -> V3 IFloat -> V3 IFloat -> Ivory eff ()
-update_state_heading ahrs i_expected@(V3 i_ex_x i_ex_y i_ex_z) b_measured noise = do
+update_state_heading ahrs i_expected@(V3 i_ex_x i_ex_y _i_ex_z) b_measured noise = do
   StateVec {..} <- derefStateVec ahrs
   p0 <- derefCovMat ahrs
-  let b_expected@(V3 b_ex_x b_ex_y b_ex_z) =
+  let b_expected@(V3 _b_ex_x _b_ex_y _b_ex_z) =
 --        quatRotate sv_ltp_to_imu_quat i_expected
          quatVMult sv_ltp_to_imu_quat i_expected
       i_h_2d = (V3 i_ex_y (-i_ex_x) 0)

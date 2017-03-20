@@ -14,7 +14,7 @@ import Ivory.Tower.Config
 import Ivory.Tower.HAL.Bus.Interface
 import SMACCMPilot.Comm.Ivory.Types.Px4flowSample
 import SMACCMPilot.Time
-import SMACCMPilot.Flight.Platform.ParserUtils
+import SMACCMPilot.Hardware.Platforms.ParserUtils
 
 data PX4Flow = PX4Flow {
     px4flow_i2c_addr :: I2CDeviceAddr

@@ -95,7 +95,7 @@ data MS5611_SPI =
     }
 
 data Magnetometer
-  = Mag_HMC5883L_I2C HMC5883L_I2C
+  = Mag_HMC5883L_I2C HMC5883L_I2C MagCal
   | Mag_LSM303D_SPI  LSM303D_SPI MagCal AccelCal
 
 data HMC5883L_I2C =
@@ -169,26 +169,22 @@ px4platform_baro PX4Platform{..} = case px4platform_sensors of
 
 px4platform_mag :: PX4Platform -> Magnetometer
 px4platform_mag PX4Platform{..} = case px4platform_sensors of
-  FMU17Sensors{..} -> Mag_HMC5883L_I2C $ HMC5883L_I2C
-    { hmc5883l_i2c_periph = fmu17sens_i2c_periph
-    , hmc5883l_i2c_pins   = fmu17sens_i2c_pins
-    , hmc5883l_i2c_addr   = fmu17sens_hmc5883l
-    }
+  FMU17Sensors{..} ->
+    Mag_HMC5883L_I2C
+      (HMC5883L_I2C
+        { hmc5883l_i2c_periph = fmu17sens_i2c_periph
+        , hmc5883l_i2c_pins   = fmu17sens_i2c_pins
+        , hmc5883l_i2c_addr   = fmu17sens_hmc5883l
+        })
+      fmu17sens_hmc5883l_mag_cal
   FMU24Sensors{..} ->
-    case fmu24sens_mag of
-      LSM303D{..} ->
-        Mag_LSM303D_SPI
-          (LSM303D_SPI
-             { lsm303d_spi_device  = fmu24sens_lsm303d
-             , lsm303d_spi_pins    = fmu24sens_spi_pins
-             })
-          fmu24sens_lsm303d_mag_cal
-          fmu24sens_lsm303d_accel_cal
-      HMC5883L h -> Mag_HMC5883L_I2C $ HMC5883L_I2C
-        { hmc5883l_i2c_periph = fmu24sens_ext_i2c_periph
-        , hmc5883l_i2c_pins   = fmu24sens_ext_i2c_pins
-        , hmc5883l_i2c_addr   = h
-        }
+    Mag_LSM303D_SPI
+      (LSM303D_SPI
+         { lsm303d_spi_device  = fmu24sens_lsm303d
+         , lsm303d_spi_pins    = fmu24sens_spi_pins
+         })
+      fmu24sens_lsm303d_mag_cal
+      fmu24sens_lsm303d_accel_cal
 
 px4platform_l3gd20 :: PX4Platform -> Maybe SPIDevice
 px4platform_l3gd20 PX4Platform{..} = case px4platform_sensors of

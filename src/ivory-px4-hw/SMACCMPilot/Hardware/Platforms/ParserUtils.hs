@@ -1,4 +1,4 @@
-module SMACCMPilot.Flight.Platform.ParserUtils where
+module SMACCMPilot.Hardware.Platforms.ParserUtils where
 
 import Data.Word (Word8)
 

@@ -29,6 +29,7 @@ import           SMACCMPilot.Comm.Tower.Interface.ControllableVehicle
 import qualified SMACCMPilot.Flight.Control.Attitude.KalmanFilter as Att
 import           SMACCMPilot.Flight.Platform
 import           SMACCMPilot.Flight.Sensors.GPS
+import           SMACCMPilot.Hardware.HMC5883L
 import           SMACCMPilot.Hardware.SensorManager
 import           SMACCMPilot.Hardware.Sensors
 import           SMACCMPilot.INS.DetectMotion
@@ -49,7 +50,8 @@ sensorTower tofp attrs = do
   -- to make the control flow simpler here
   (lidar_in, lidar) <- channel
   (px4flow_in, px4flow) <- channel
-  let exti2cs = catMaybes [ mlidar, mpx4flow ]
+  (hmc5883l_in, mag_raw) <- channel
+  let exti2cs = catMaybes [ mlidar, mpx4flow, mhmc5883l ]
       mlidar = do
         ll@LIDARLite{..} <- fp_lidarlite fp
         return $ ExternalSensor {
@@ -66,8 +68,16 @@ sensorTower tofp attrs = do
               px4flowSensorManager
                 bpt init_chan px4flow_in p4f
           }
+      mhmc5883l = do
+        HMC5883L{..} <- fp_ext_hmc5883l fp
+        return $ ExternalSensor {
+            ext_sens_name = "hmc5883l"
+          , ext_sens_init = \bpt init_chan ->
+              hmc5883lSensorManager hmc5883l_mag_cal
+                bpt init_chan hmc5883l_in hmc5883l_i2c_addr
+          }
 
-  (accel, gyro_raw, mag_raw, baro_raw) <-
+  (accel, gyro_raw, _mag_raw, baro_raw) <-
     sensorManager (fp_sensors . tofp) (fp_clockconfig . tofp) exti2cs
 
   motion <- channel
