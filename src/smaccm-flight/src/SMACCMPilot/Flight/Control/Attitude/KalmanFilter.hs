@@ -229,16 +229,8 @@ quatMult :: Num a => Quaternion a -> Quaternion a -> Quaternion a
 quatMult (Quaternion s1 v1) (Quaternion s2 v2) =
   Quaternion (s1*s2 - (v1 `dot` v2)) ((v1 `cross` v2) + s1*^v2 + s2*^v1)
 
--- OK
---quatConj :: Conjugate a => Quaternion a -> Quaternion a
---quatConj (Quaternion e v) = Quaternion (conjugate e) (negate v)
-
 instance Conjugate IFloat
 instance TrivialConjugate IFloat
-
---quatRotate :: (Num a, Conjugate a) => Quaternion a -> V3 a -> V3 a
---quatRotate q@(Quaternion qi (V3 qx qy qz)) v = ijk where
---  Quaternion _ ijk = q `quatMult` Quaternion 0 v `quatMult` quatConj q
 
 quatVMult :: (Num a, Conjugate a, Fractional a) => Quaternion a -> V3 a -> V3 a
 quatVMult (Quaternion qi (V3 qx qy qz)) (V3 vx vy vz) = 
@@ -277,7 +269,6 @@ ahrs_float_get_quat_from_accel_mag accel mag =
   where
     q_a = ahrs_float_get_quat_from_accel accel
     q_m = signorm (Quaternion q_mi (V3 q_mx q_my q_mz))
---    (V3 mag_ltp_x mag_ltp_y _) = quatRotate q_a mag
     (V3 mag_ltp_x mag_ltp_y _) = quatVMult q_a mag
     v1 = V3 mag_ltp_x mag_ltp_y 0
     v2 = V3 ahrs_h_x ahrs_h_y 0
@@ -400,7 +391,6 @@ update_state ahrs i_expected b_measured noise = do
   StateVec {..} <- derefStateVec ahrs
   p0 <- derefCovMat ahrs
   let b_expected@(V3 b_ex_x b_ex_y b_ex_z) =
---        quatRotate sv_ltp_to_imu_quat i_expected
          quatVMult sv_ltp_to_imu_quat i_expected
       h = m36FromList [
               [0        , (-b_ex_z), b_ex_y   , 0, 0, 0]
@@ -408,7 +398,7 @@ update_state ahrs i_expected b_measured noise = do
             , [(-b_ex_y), b_ex_x   , 0        , 0, 0, 0]
             ]
       hph' = h !*! p0 !*! (transpose h)
-      s = hph' !+! (scaled (vFromV3 noise)) -- TODO: why scaled?
+      s = hph' !+! (scaled (vFromV3 noise))
       sInv = vsFromM33 (inv33 (m33FromVs s))
       k = p0 !*! (transpose h) !*! sInv
       i6 = scaled (V (V.fromList [1, 1, 1, 1, 1, 1]))
@@ -429,8 +419,7 @@ update_state_heading
 update_state_heading ahrs i_expected@(V3 i_ex_x i_ex_y _i_ex_z) b_measured noise = do
   StateVec {..} <- derefStateVec ahrs
   p0 <- derefCovMat ahrs
-  let b_expected@(V3 _b_ex_x _b_ex_y _b_ex_z) =
---        quatRotate sv_ltp_to_imu_quat i_expected
+  let b_expected@(V3 b_ex_x b_ex_y b_ex_z) =
          quatVMult sv_ltp_to_imu_quat i_expected
       i_h_2d = (V3 i_ex_y (-i_ex_x) 0)
       (V3 b_yaw_x b_yaw_y b_yaw_z) = quatVMult sv_ltp_to_imu_quat i_h_2d
@@ -440,7 +429,7 @@ update_state_heading ahrs i_expected@(V3 i_ex_x i_ex_y _i_ex_z) b_measured noise
             , [0, 0, b_yaw_z, 0, 0, 0]
             ]
       hph' = h !*! p0 !*! (transpose h)
-      s = hph' !+! (scaled (vFromV3 noise)) -- TODO: why scaled?
+      s = hph' !+! (scaled (vFromV3 noise))
       sInv = vsFromM33 (inv33 (m33FromVs s))
       k = p0 !*! (transpose h) !*! sInv
       i6 = scaled (V (V.fromList [1, 1, 1, 1, 1, 1]))
@@ -502,9 +491,8 @@ ahrs_mlkf_update_mag_2D
 ahrs_mlkf_update_mag_2D ahrs = 
   voidProc (named "mag") $ \mag_sample -> body $ do
     mag <- derefXyz (mag_sample ~> M.sample)
-    let mag_norm = mag--signorm mag
     let mag_h = V3 ahrs_h_x ahrs_h_y ahrs_h_z
-    update_state_heading ahrs mag_h mag_norm ahrs_mag_noise
+    update_state_heading ahrs mag_h mag ahrs_mag_noise
     reset_state ahrs  
 
 
@@ -514,9 +502,8 @@ ahrs_mlkf_update_mag_full
 ahrs_mlkf_update_mag_full ahrs =
   voidProc (named "mag") $ \mag_sample -> body $ do
     mag <- derefXyz (mag_sample ~> M.sample)
-    let mag_norm = mag--signorm mag
     let mag_h = V3 ahrs_h_x ahrs_h_y ahrs_h_z
-    update_state ahrs mag_h mag_norm ahrs_mag_noise
+    update_state ahrs mag_h mag ahrs_mag_noise
     reset_state ahrs
 
 data AttState =
@@ -578,8 +565,8 @@ monitorAttEstimator = do
     , ahrs_align = call (ahrs_mlkf_align ahrs)
     , ahrs_propagate = call_ (ahrs_mlkf_propagate ahrs)
     , ahrs_update_accel = call_ (ahrs_mlkf_update_accel ahrs)
-    , ahrs_update_mag = call_ (ahrs_mlkf_update_mag_full ahrs)
---    , ahrs_update_mag = call_ (ahrs_mlkf_update_mag_2D ahrs)
+--    , ahrs_update_mag = call_ (ahrs_mlkf_update_mag_full ahrs)
+    , ahrs_update_mag = call_ (ahrs_mlkf_update_mag_2D ahrs)
     , ahrs_state = ahrs
     }
 
@@ -597,7 +584,6 @@ sensorFusion accel_out gyro_out mag_out motion = do
 
   monitor (named "sensor_fusion") $ do
     last_gyro_time <- state (named "last_gyro_time")
-    -- this gyro sample is in rads/sec rather than deg/sec
     last_gyro_rads <- stateInit (named "last_gyro_rads")
       $ istruct [ G.samplefail .= ival true ]
     last_acc  <- stateInit (named "last_acc")
@@ -623,7 +609,6 @@ sensorFusion accel_out gyro_out mag_out motion = do
           refCopy last_acc accel
           isAligned <- deref aligned
           when isAligned $ do
---          when false $ do
             ahrs_update_accel ahrs accel
             emit e (constRef (ahrs_state ahrs))
 
@@ -635,7 +620,6 @@ sensorFusion accel_out gyro_out mag_out motion = do
           refCopy last_mag mag
           isAligned <- deref aligned
           when isAligned $ do
---          when false $ do
             ahrs_update_mag ahrs mag
             emit e (constRef (ahrs_state ahrs))
 
@@ -645,11 +629,6 @@ sensorFusion accel_out gyro_out mag_out motion = do
         isFail <- deref (gyro_rads ~> G.samplefail)
         unless isFail $ do
           refCopy last_gyro_rads gyro_rads
-          -- to the conversion deg -> rads here
---          gyro_deg <- derefXyz (gyro_sample ~> G.sample)
---          let gyro_rads = gyro_deg ^* (pi / 180)
---          refCopy last_gyro_rads gyro_sample
---          storeXyz (last_gyro_rads ~> G.sample) gyro_rads
 
           isAligned <- deref aligned
           ifte_ isAligned

@@ -71,7 +71,6 @@ sensorSample (AccelCal accel_cal) (GyroCal gyro_cal) res r_gyro r_accel = do
   store (r_gyro ~> G.samplefail) (rc >? 0)
   store (r_accel ~> A.samplefail) (rc >? 0)
   comment "subtract calibation offsets and  convert to radians per second"
---  convert_gyro_sample gyro_cal res r_gyro
   comment "we rotate the X/Y plane 90 degrees to match Pixhawk's silk-screened orientation"
   let to_dps x = safeCast x * (0.0174532 / 16.4)
       (g_cal_x, g_cal_y, g_cal_z) = applyXyzCal gyro_cal
@@ -86,10 +85,9 @@ sensorSample (AccelCal accel_cal) (GyroCal gyro_cal) res r_gyro r_accel = do
           (g_cal_z . to_dps)
 
   comment "subtract calibation offsets and convert to m/s/s by way of g"
---  let to_m_s_s x = safeCast x / 2048.0 * 9.80665
---  convert_acc_sample accel_cal res r_accel
   comment "we rotate the X/Y plane 90 degrees to match Pixhawk's silk-screened orientation"
-  let to_m_s_s x = safeCast x / 4096.0 * 9.80665
+  comment "conversion to the SI units is done using calbration scales from calibration.conf"
+  let to_m_s_s x = safeCast x / 1.0
       (a_cal_x, a_cal_y, a_cal_z) = applyXyzCal accel_cal
   convert ((r_accel ~> A.sample) ~> XYZ.x)
           (mpu6000_r ~> M.ay)
@@ -235,8 +233,6 @@ mpu6000SensorManager (BackpressureTransmit req_chan res_chan) init_chan gyro_cha
         comment $ "sample rate: " ++ show (1000 / fromInteger samplePeriodMS :: Double) ++ "Hz"
         _ <- rpc $ writeRegReq dev SampleRateDivider $ fromInteger divisor
 
---        comment "Set accelerometer scale to +/- 16g"
---        _ <- rpc (writeRegReq dev AccelConfig 0x18)
         comment "Set accelerometer scale to +/- 8"
         _ <- rpc (writeRegReq dev AccelConfig 0x10)
 

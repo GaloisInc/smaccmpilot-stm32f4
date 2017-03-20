@@ -22,7 +22,6 @@ import SMACCMPilot.Time
 import Numeric (showHex)
 import SMACCMPilot.Hardware.LSM303D.Regs
 import SMACCMPilot.Hardware.Sensors
-import Linear -- for signonorm
 
 lsm303dSPISensorManager :: Config
                         -> BackpressureTransmit ('Struct "spi_transaction_request") ('Struct "spi_transaction_result")
@@ -88,16 +87,6 @@ lsm303dSPISensorManager conf (BackpressureTransmit req_chan res_chan) init_chan 
           comment "put results in mag_sample field"
           convert_mag_sample conf mag_cal mag_read_result mag_s
 
-          comment "normalize magnetic field vector"
-          let s = (mag_s ~> M.sample)
-          mx <- deref (s ~> XYZ.x)
-          my <- deref (s ~> XYZ.y)
-          mz <- deref (s ~> XYZ.z)
-          let (V3 mx_n my_n mz_n) = signorm (V3 mx my mz)
-          store (s ~> XYZ.x) mx_n
-          store (s ~> XYZ.y) my_n
-          store (s ~> XYZ.z) mz_n
-
           comment "send accel read request"
           acc_read_req <- fmap constRef $ local $ istruct
             [ tx_device .= ival h
@@ -140,21 +129,24 @@ lsm303dSPISensorManager conf (BackpressureTransmit req_chan res_chan) init_chan 
             ]
           emit req_e do_read_req
 
+-- using unity sensor scale and delegating the scaling to sensor calibration
 convert_mag_sample :: Config
                    -> MagCal
                    -> Ref s1 ('Struct "spi_transaction_result")
                    -> Ref s2 ('Struct "magnetometer_sample")
                    -> Ivory eff ()
-convert_mag_sample c (MagCal xyz_cal) res s =
-  convert_sample xyz_cal (magSensitivityGauss c) res (s ~> M.sample)
+convert_mag_sample _c (MagCal xyz_cal) res s =
+  convert_sample xyz_cal 1.0 res (s ~> M.sample)
 
+-- using unity sensor scale and delegating the scaling to sensor calibration
 convert_acc_sample :: Config
                    -> AccelCal
                    -> Ref s1 ('Struct "spi_transaction_result")
                    -> Ref s2 ('Struct "accelerometer_sample")
                    -> Ivory eff ()
-convert_acc_sample c (AccelCal xyz_cal) res s =
-  convert_sample xyz_cal (accelSensitivityMSS c) res (s ~> A.sample)
+convert_acc_sample _c (AccelCal xyz_cal) res s =
+  convert_sample xyz_cal 1.0 res (s ~> A.sample)
+
 
 convert_sample :: XyzCal
                -> IFloat
@@ -180,9 +172,6 @@ convert_sample XyzCal {..} sens_scale res s = do
     hi <- deref hiref
     (u16 :: Uint16) <- assign ((safeCast lo) + ((safeCast hi) `iShiftL` 8))
     (i16 :: Sint16) <- assign (twosComplementCast u16)
--- From PX4: 
--- float x_in_new = ((xraw_f * _accel_range_scale) - _accel_scale.x_offset) * _accel_scale.x_scale;
---    (r :: IFloat)   <- assign (((safeCast i16 * sens_scale) - offset) * axis_scale)
     (r :: IFloat)   <- assign ((sens_scale * (safeCast i16 - offset) )* axis_scale)
     store resref r
 
@@ -203,7 +192,7 @@ lsm303dDefaultConf = Config
       }
   , conf_ctl5 = Control5
       { temp_enable = False
-      , mag_resolution = MR_High
+      , mag_resolution = MR_Low
       , mag_datarate = MDR_100hz
       }
   , conf_ctl6 = Control6
