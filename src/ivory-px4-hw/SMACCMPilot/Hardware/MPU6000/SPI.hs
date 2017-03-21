@@ -70,34 +70,31 @@ sensorSample (AccelCal accel_cal) (GyroCal gyro_cal) res r_gyro r_accel = do
   comment "store sample failure"
   store (r_gyro ~> G.samplefail) (rc >? 0)
   store (r_accel ~> A.samplefail) (rc >? 0)
-  comment "subtract calibation offsets and  convert to radians per second"
+  comment "apply calibration, which converts to rads/sec"
   comment "we rotate the X/Y plane 90 degrees to match Pixhawk's silk-screened orientation"
-  let to_dps x = safeCast x * (0.0174532 / 16.4)
-      (g_cal_x, g_cal_y, g_cal_z) = applyXyzCal gyro_cal
+  let (g_cal_x, g_cal_y, g_cal_z) = applyXyzCal gyro_cal
   convert ((r_gyro ~> G.sample) ~> XYZ.x)
           (mpu6000_r ~> M.gy)
-          (g_cal_x . to_dps)
+          g_cal_x
   convert ((r_gyro ~> G.sample) ~> XYZ.y)
           (mpu6000_r ~> M.gx)
-          (g_cal_y . negate . to_dps)
+          (g_cal_y . negate)
   convert ((r_gyro ~> G.sample) ~> XYZ.z)
           (mpu6000_r ~> M.gz)
-          (g_cal_z . to_dps)
+          g_cal_z
 
-  comment "subtract calibation offsets and convert to m/s/s by way of g"
+  comment "apply calibation, which subtracts offsets and converts to m/s/s by way of g"
   comment "we rotate the X/Y plane 90 degrees to match Pixhawk's silk-screened orientation"
-  comment "conversion to the SI units is done using calbration scales from calibration.conf"
-  let to_m_s_s x = safeCast x / 1.0
-      (a_cal_x, a_cal_y, a_cal_z) = applyXyzCal accel_cal
+  let (a_cal_x, a_cal_y, a_cal_z) = applyXyzCal accel_cal
   convert ((r_accel ~> A.sample) ~> XYZ.x)
           (mpu6000_r ~> M.ay)
-          (a_cal_x . to_m_s_s)
+          a_cal_x
   convert ((r_accel ~> A.sample) ~> XYZ.y)
           (mpu6000_r ~> M.ax)
-          (a_cal_y . negate . to_m_s_s)
+          (a_cal_y . negate)
   convert ((r_accel ~> A.sample) ~> XYZ.z)
           (mpu6000_r ~> M.az)
-          (a_cal_z . to_m_s_s)
+          a_cal_z
 
   comment "indicate whether we have calibration"
   store (r_accel ~> A.calibrated) true
@@ -114,55 +111,6 @@ sensorSample (AccelCal accel_cal) (GyroCal gyro_cal) res r_gyro r_accel = do
   convert to fro f = do
     v <- deref fro
     store to (f v)
-
-
-convert_acc_sample :: AccelCal
-                   -> ConstRef s1 ('Struct "spi_transaction_result")
-                   -> Ref s2 ('Struct "accelerometer_sample")
-                   -> Ivory eff ()
-convert_acc_sample (AccelCal xyz_cal) res s =
-  let scale = (1.0/4096.0)* 9.80665 in
-  convert_sample xyz_cal scale res (s ~> A.sample)
-
-convert_gyro_sample :: GyroCal
-                   -> ConstRef s1 ('Struct "spi_transaction_result")
-                   -> Ref s2 ('Struct "gyroscope_sample")
-                   -> Ivory eff ()
-convert_gyro_sample (GyroCal xyz_cal) res s =
-  let scale = (0.0174532 / 16.4) in
-  convert_sample xyz_cal scale res (s ~> G.sample)
-
-
-
-convert_sample :: XyzCal
-               -> IFloat
-               -> ConstRef s1 ('Struct "spi_transaction_result")
-               -> Ref s2 ('Struct "xyz")
-               -> Ivory eff ()
-convert_sample XyzCal {..} scale res s = do 
-  comment "we rotate the X/Y plane 90 degrees to match Pixhawk's silk-screened orientation"
-  f ((res ~> rx_buf) ! 1) -- swapped
-    ((res ~> rx_buf) ! 2) -- swapped
-    (s ~> XYZ.x)
-    cal_x_offset cal_x_scale
-  f ((res ~> rx_buf) ! 3) -- swapped
-    ((res ~> rx_buf) ! 4) -- swapped
-    (s ~> XYZ.y)
-    cal_y_offset cal_y_scale
-  f ((res ~> rx_buf) ! 5)
-    ((res ~> rx_buf) ! 6)
-    (s ~> XYZ.z)
-    cal_z_offset cal_z_scale
-  where
-  f loref hiref resref _offset _axis_scale = do
-    lo <- deref loref
-    hi <- deref hiref
-    (u16 :: Uint16) <- assign ((safeCast lo) + ((safeCast hi) `iShiftL` 8))
-    (i16 :: Sint16) <- assign (twosComplementCast u16)
-    (r :: IFloat)   <- assign ((safeCast i16) * scale)
---    (r :: IFloat)   <- assign ((((safeCast i16) * (scale)) - offset) * axis_scale)
-    store resref r
-
 
 mpu6000SensorManager :: BackpressureTransmit ('Struct "spi_transaction_request") ('Struct "spi_transaction_result")
                      -> ChanOutput ('Stored ITime)

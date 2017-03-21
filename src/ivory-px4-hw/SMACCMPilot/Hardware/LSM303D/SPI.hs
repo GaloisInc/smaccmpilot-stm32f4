@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE RecordWildCards #-}
@@ -129,50 +130,48 @@ lsm303dSPISensorManager conf (BackpressureTransmit req_chan res_chan) init_chan 
             ]
           emit req_e do_read_req
 
--- using unity sensor scale and delegating the scaling to sensor calibration
 convert_mag_sample :: Config
                    -> MagCal
                    -> Ref s1 ('Struct "spi_transaction_result")
                    -> Ref s2 ('Struct "magnetometer_sample")
                    -> Ivory eff ()
 convert_mag_sample _c (MagCal xyz_cal) res s =
-  convert_sample xyz_cal 1.0 res (s ~> M.sample)
+  convert_sample xyz_cal res (s ~> M.sample)
 
--- using unity sensor scale and delegating the scaling to sensor calibration
 convert_acc_sample :: Config
                    -> AccelCal
                    -> Ref s1 ('Struct "spi_transaction_result")
                    -> Ref s2 ('Struct "accelerometer_sample")
                    -> Ivory eff ()
 convert_acc_sample _c (AccelCal xyz_cal) res s =
-  convert_sample xyz_cal 1.0 res (s ~> A.sample)
+  convert_sample xyz_cal res (s ~> A.sample)
 
 
 convert_sample :: XyzCal
-               -> IFloat
                -> Ref s1 ('Struct "spi_transaction_result")
                -> Ref s2 ('Struct "xyz")
                -> Ivory eff ()
-convert_sample XyzCal {..} sens_scale res s = do
+convert_sample cal res s = do
   f ((res ~> rx_buf) ! 1)
     ((res ~> rx_buf) ! 2)
     (s ~> XYZ.x)
-    cal_x_offset cal_x_scale
+    cal_x
   f ((res ~> rx_buf) ! 3)
     ((res ~> rx_buf) ! 4)
     (s ~> XYZ.y)
-    cal_y_offset cal_y_scale
+    cal_y
   f ((res ~> rx_buf) ! 5)
     ((res ~> rx_buf) ! 6)
     (s ~> XYZ.z)
-    cal_z_offset cal_z_scale
+    cal_z
   where
-  f loref hiref resref offset axis_scale = do
+  (cal_x, cal_y, cal_z) = applyXyzCal cal
+  f loref hiref resref c = do
     lo <- deref loref
     hi <- deref hiref
     (u16 :: Uint16) <- assign ((safeCast lo) + ((safeCast hi) `iShiftL` 8))
     (i16 :: Sint16) <- assign (twosComplementCast u16)
-    (r :: IFloat)   <- assign ((sens_scale * (safeCast i16 - offset) )* axis_scale)
+    (r :: IFloat)   <- assign (c i16)
     store resref r
 
 lsm303dDefaultConf :: Config

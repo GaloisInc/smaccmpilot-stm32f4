@@ -102,9 +102,9 @@ hmc5883lSensorManager (MagCal mag_cal) (BackpressureTransmit req_chan res_chan) 
           rc2 <- deref (res ~> resultcode)
           when (rc2 >? 0) (store (s ~> samplefail) true)
           let (cal_x, cal_y, cal_z) = applyXyzCal mag_cal
-          payloadu16 res 0 1 >>= store ((s ~> sample) ~> x) . cal_x -- xh, xl
-          payloadu16 res 2 3 >>= store ((s ~> sample) ~> z) . cal_z -- zh, zl
-          payloadu16 res 4 5 >>= store ((s ~> sample) ~> y) . cal_y -- yh, yl
+          payloads16 res 0 1 >>= store ((s ~> sample) ~> x) . cal_x -- xh, xl
+          payloads16 res 2 3 >>= store ((s ~> sample) ~> z) . cal_z -- zh, zl
+          payloads16 res 4 5 >>= store ((s ~> sample) ~> y) . cal_y -- yh, yl
           fmap timeMicrosFromITime getTime >>= store (s ~> time)
           -- Send the sample upstream.
           emit sens_e (constRef s)
@@ -126,12 +126,12 @@ hmc5883lSensorManager (MagCal mag_cal) (BackpressureTransmit req_chan res_chan) 
           store active true
           emit req_e setup_read_req
   where
-  payloadu16 :: Ref s ('Struct "i2c_transaction_result")
-             -> Ix 128 -> Ix 128 -> Ivory eff IFloat
-  payloadu16 res ixhi ixlo = do
+  payloads16 :: Ref s ('Struct "i2c_transaction_result")
+             -> Ix 128 -> Ix 128 -> Ivory eff Sint16
+  payloads16 res ixhi ixlo = do
     hi <- deref ((res ~> rx_buf) ! ixhi)
     lo <- deref ((res ~> rx_buf) ! ixlo)
-    assign $ safeCast (twosComplementCast ((safeCast hi `iShiftL` 8) .| safeCast lo) :: Sint16) / 1370.0
+    assign $ twosComplementCast ((safeCast hi `iShiftL` 8) .| safeCast lo)
 
 regWriteInit :: I2CDeviceAddr
              -> Reg

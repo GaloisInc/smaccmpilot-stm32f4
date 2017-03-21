@@ -81,9 +81,9 @@ type ExternalI2CSensor =
                  ('Struct "i2c_transaction_result")
 
 data XyzCal = XyzCal {
-    cal_x_offset :: IFloat
-  , cal_y_offset :: IFloat
-  , cal_z_offset :: IFloat
+    cal_x_offset :: Sint16
+  , cal_y_offset :: Sint16
+  , cal_z_offset :: Sint16
   , cal_x_scale :: IFloat
   , cal_y_scale :: IFloat
   , cal_z_scale :: IFloat
@@ -91,9 +91,9 @@ data XyzCal = XyzCal {
 
 parseXyzCal :: ConfigParser XyzCal
 parseXyzCal = do
-  cal_x_offset <- toIFloat <$> subsection "x_offset" double
-  cal_y_offset <- toIFloat <$> subsection "y_offset" double
-  cal_z_offset <- toIFloat <$> subsection "z_offset" double
+  cal_x_offset <- fromInteger <$> subsection "x_offset" integer
+  cal_y_offset <- fromInteger <$> subsection "y_offset" integer
+  cal_z_offset <- fromInteger <$> subsection "z_offset" integer
   cal_x_scale <- toIFloat <$> subsection "x_scale" double
   cal_y_scale <- toIFloat <$> subsection "y_scale" double
   cal_z_scale <- toIFloat <$> subsection "z_scale" double
@@ -103,12 +103,12 @@ toIFloat :: Double -> IFloat
 toIFloat = fromRational . toRational
 
 applyXyzCal
-  :: XyzCal -> (IFloat -> IFloat, IFloat -> IFloat, IFloat -> IFloat)
+  :: XyzCal -> (Sint16 -> IFloat, Sint16 -> IFloat, Sint16 -> IFloat)
 applyXyzCal XyzCal {..} = (cal_x, cal_y, cal_z)
   where
-    cal_x x = (x - cal_x_offset) * cal_x_scale
-    cal_y y = (y - cal_y_offset) * cal_y_scale
-    cal_z z = (z - cal_z_offset) * cal_z_scale
+    cal_x x = safeCast (x - cal_x_offset) * cal_x_scale
+    cal_y y = safeCast (y - cal_y_offset) * cal_y_scale
+    cal_z z = safeCast (z - cal_z_offset) * cal_z_scale
 
 newtype AccelCal = AccelCal XyzCal
 
