@@ -150,38 +150,23 @@ storeCovMat ahrs covMat = do
       store (((ahrs ~> p) ! r) ! c) cv
 
 --------------------------------------------------------------------------------
--- Constants, to be turned into config values later
+
+-- Magnetometer contsants
 -- Portland, from http://www.ngdc.noaa.gov/geomag-web/#igrfwmm
 -- hx = 19443.3nT = 19443.3 * 10^-9 * 10^4 Gauss = 19443.3*10^-5 = 0.1944
 -- hy = 5354.0 nT = 5354.0*10^-5 = 0.0535
--- hz = 48519.5 nT = 48519.5 *10^-5 = 0.4852 
-ahrs_h_x, ahrs_h_y, ahrs_h_z :: IFloat
-ahrs_h_x = 0.37004
-ahrs_h_y = 0.101896
-ahrs_h_z = 0.923411
+-- hz = 48519.5 nT = 48519.5 *10^-5 = 0.4852
+type MagParams = V3 IFloat
+-- ahrs_h_x, ahrs_h_y, ahrs_h_z :: IFloat
+-- ahrs_h_x = 0.37004
+-- ahrs_h_y = 0.101896
+-- ahrs_h_z = 0.923411
 
 ahrs_mag_noise :: V3 IFloat
 ahrs_mag_noise = V3 0.4 0.4 0.4
 
 flt_min :: IFloat
 flt_min = fromRational (toRational (minNormal :: Float))
-
-{-
-extern void ahrs_mlkf_init(void);
-
-// skipping for now because our IMU and body should be aligned
-extern void ahrs_mlkf_set_body_to_imu(struct OrientationReps *body_to_imu);
-// skipping for now because our IMU and body should be aligned
-extern void ahrs_mlkf_set_body_to_imu_quat(struct FloatQuat *q_b2i);
-
-extern bool ahrs_mlkf_align(struct FloatRates *lp_gyro, struct FloatVect3 *lp_accel,
-                              struct FloatVect3 *lp_mag);
-extern void ahrs_mlkf_propagate(struct FloatRates *gyro, float dt);
-extern void ahrs_mlkf_update_accel(struct FloatVect3 *accel);
-extern void ahrs_mlkf_update_mag(struct FloatVect3 *mag);
-extern void ahrs_mlkf_update_mag_2d(struct FloatVect3 *mag);
-extern void ahrs_mlkf_update_mag_full(struct FloatVect3 *mag);
--}
 
 quatRotId :: Quaternion IFloat
 quatRotId = Quaternion 1 zero
@@ -233,7 +218,7 @@ instance Conjugate IFloat
 instance TrivialConjugate IFloat
 
 quatVMult :: (Num a, Conjugate a, Fractional a) => Quaternion a -> V3 a -> V3 a
-quatVMult (Quaternion qi (V3 qx qy qz)) (V3 vx vy vz) = 
+quatVMult (Quaternion qi (V3 qx qy qz)) (V3 vx vy vz) =
   V3 vout_x vout_y vout_z where
   qi2_M1_2  = qi*qi - 0.5
   qiqx = qi * qx
@@ -263,8 +248,8 @@ float_quat_comp_norm_shortest a2b b2c =
 
 -- | Get an orientation directly from mag and accel
 ahrs_float_get_quat_from_accel_mag
-  :: V3 IFloat -> V3 IFloat -> Quaternion IFloat
-ahrs_float_get_quat_from_accel_mag accel mag =
+  :: MagParams -> V3 IFloat -> V3 IFloat -> Quaternion IFloat
+ahrs_float_get_quat_from_accel_mag (V3 ahrs_h_x ahrs_h_y _) accel mag =
     float_quat_comp_norm_shortest q_a q_m
   where
     q_a = ahrs_float_get_quat_from_accel accel
@@ -282,12 +267,13 @@ ahrs_float_get_quat_from_accel_mag accel mag =
 
 -- | Establish initial alignment
 ahrs_mlkf_align
-  :: Ref s ('Struct "AhrsMlkf")
+  :: MagParams
+  -> Ref s ('Struct "AhrsMlkf")
   -> Def ('[ ConstRef s1 ('Struct "gyroscope_sample")
            , ConstRef s2 ('Struct "accelerometer_sample")
            , ConstRef s3 ('Struct "magnetometer_sample")
            ] ':-> IBool)
-ahrs_mlkf_align ahrs =
+ahrs_mlkf_align mag_params ahrs =
   proc (named "ahrs_mlkf_align")
     $ \gyro_sample accel_sample mag_sample -> body $ do
       gyroFail <- deref (gyro_sample ~> G.samplefail)
@@ -302,6 +288,7 @@ ahrs_mlkf_align ahrs =
       sv <- derefStateVec ahrs
       let sv' = sv {
               sv_ltp_to_imu_quat = ahrs_float_get_quat_from_accel_mag
+                                     mag_params
                                      accel
                                      mag
               , sv_imu_rates = zero
@@ -335,21 +322,16 @@ ahrs_mlkf_propagate
 ahrs_mlkf_propagate ahrs =
   voidProc (named "ahrs_mlkf_propagate") $ \gyro_sample dt -> body $ do
     gyro <- derefXyz (gyro_sample ~> G.sample)
+
     -- low pass gyro (lp_rates)
-    lp_rate_x <- deref (ahrs ~> lp_rates ! 0)
-    lp_rate_y <- deref (ahrs ~> lp_rates ! 1)
-    lp_rate_z <- deref (ahrs ~> lp_rates ! 2)
-    let lp_rates0 = (V3 (lp_rate_x) (lp_rate_y) (lp_rate_z))
+    lp_rates0 <- derefV3 (ahrs ~> lp_rates)
     let alpha = 0.1
-    let lp_rates_new@(V3 rate_x rate_y rate_z) = alpha * lp_rates0 + (1-alpha) * gyro
-    store (ahrs ~> lp_rates ! 0) rate_x
-    store (ahrs ~> lp_rates ! 1) rate_y
-    store (ahrs ~> lp_rates ! 2) rate_z
+        lp_rates' = alpha * lp_rates0 + (1-alpha) * gyro
+    storeV3 (ahrs ~> lp_rates) lp_rates'
 
     StateVec {..} <- derefStateVec ahrs
     p0 <- derefCovMat ahrs
---    let rates = gyro - sv_gyro_bias
-    let rates = lp_rates_new - sv_gyro_bias
+    let rates = lp_rates' - sv_gyro_bias
         sv_ltp_to_imu_quat' = float_quat_integrate sv_ltp_to_imu_quat rates dt
         V3 dp dq dr = rates ^* dt
         f :: V 6 (V 6 IFloat)
@@ -419,8 +401,7 @@ update_state_heading
 update_state_heading ahrs i_expected@(V3 i_ex_x i_ex_y _i_ex_z) b_measured noise = do
   StateVec {..} <- derefStateVec ahrs
   p0 <- derefCovMat ahrs
-  let b_expected@(V3 b_ex_x b_ex_y b_ex_z) =
-         quatVMult sv_ltp_to_imu_quat i_expected
+  let b_expected = quatVMult sv_ltp_to_imu_quat i_expected
       i_h_2d = (V3 i_ex_y (-i_ex_x) 0)
       (V3 b_yaw_x b_yaw_y b_yaw_z) = quatVMult sv_ltp_to_imu_quat i_h_2d
       h = m36FromList [
@@ -486,24 +467,26 @@ ahrs_mlkf_update_accel ahrs =
     reset_state ahrs
 
 ahrs_mlkf_update_mag_2D
-  :: Ref s1 ('Struct "AhrsMlkf")
+  :: MagParams
+  -> Ref s1 ('Struct "AhrsMlkf")
   -> Def ('[ConstRef s2 ('Struct "magnetometer_sample")] ':-> ())
-ahrs_mlkf_update_mag_2D ahrs = 
-  voidProc (named "mag") $ \mag_sample -> body $ do
+ahrs_mlkf_update_mag_2D mag_params ahrs =
+  voidProc (named "mag_2d") $ \mag_sample -> body $ do
     mag <- derefXyz (mag_sample ~> M.sample)
-    let mag_h = V3 ahrs_h_x ahrs_h_y ahrs_h_z
-    update_state_heading ahrs mag_h mag ahrs_mag_noise
-    reset_state ahrs  
+    let mag_norm = signorm mag
+    update_state_heading ahrs mag_params mag_norm ahrs_mag_noise
+    reset_state ahrs
 
 
 ahrs_mlkf_update_mag_full
-  :: Ref s1 ('Struct "AhrsMlkf")
+  :: MagParams
+  -> Ref s1 ('Struct "AhrsMlkf")
   -> Def ('[ConstRef s2 ('Struct "magnetometer_sample")] ':-> ())
-ahrs_mlkf_update_mag_full ahrs =
-  voidProc (named "mag") $ \mag_sample -> body $ do
+ahrs_mlkf_update_mag_full mag_params ahrs =
+  voidProc (named "mag_full") $ \mag_sample -> body $ do
     mag <- derefXyz (mag_sample ~> M.sample)
-    let mag_h = V3 ahrs_h_x ahrs_h_y ahrs_h_z
-    update_state ahrs mag_h mag ahrs_mag_noise
+    let mag_norm = signorm mag
+    update_state ahrs mag_params mag_norm ahrs_mag_noise
     reset_state ahrs
 
 data AttState =
@@ -549,34 +532,35 @@ data AttEstimator =
     -- TODO: debug
     }
 
-monitorAttEstimator :: Monitor e AttEstimator
-monitorAttEstimator = do
+monitorAttEstimator :: MagParams -> Monitor e AttEstimator
+monitorAttEstimator mag_params = do
   ahrs <- state (named "ahrs_state")
   monitorModuleDef $ do
     incl (ahrs_mlkf_init ahrs)
-    incl (ahrs_mlkf_align ahrs)
+    incl (ahrs_mlkf_align mag_params ahrs)
     incl (ahrs_mlkf_propagate ahrs)
     incl (ahrs_mlkf_update_accel ahrs)
---    incl (ahrs_mlkf_update_mag_full ahrs)
-    incl (ahrs_mlkf_update_mag_2D ahrs)
+    incl (ahrs_mlkf_update_mag_full mag_params ahrs)
+    incl (ahrs_mlkf_update_mag_2D mag_params ahrs)
 
   return AttEstimator
     { ahrs_init = call_ (ahrs_mlkf_init ahrs)
-    , ahrs_align = call (ahrs_mlkf_align ahrs)
+    , ahrs_align = call (ahrs_mlkf_align mag_params ahrs)
     , ahrs_propagate = call_ (ahrs_mlkf_propagate ahrs)
     , ahrs_update_accel = call_ (ahrs_mlkf_update_accel ahrs)
---    , ahrs_update_mag = call_ (ahrs_mlkf_update_mag_full ahrs)
-    , ahrs_update_mag = call_ (ahrs_mlkf_update_mag_2D ahrs)
+    , ahrs_update_mag = call_ (ahrs_mlkf_update_mag_full mag_params ahrs)
+--    , ahrs_update_mag = call_ (ahrs_mlkf_update_mag_2D mag_params ahrs)
     , ahrs_state = ahrs
     }
 
 sensorFusion
-  :: ChanOutput ('Struct "accelerometer_sample")
+  :: MagParams
+  -> ChanOutput ('Struct "accelerometer_sample")
   -> ChanOutput ('Struct "gyroscope_sample")
   -> ChanOutput ('Struct "magnetometer_sample")
   -> ChanOutput ('Stored IBool)
   -> Tower e (ChanOutput ('Struct "AhrsMlkf"))
-sensorFusion accel_out gyro_out mag_out motion = do
+sensorFusion mag_params accel_out gyro_out mag_out motion = do
   towerModule ahrsModule
   towerDepends ahrsModule
 
@@ -594,7 +578,7 @@ sensorFusion accel_out gyro_out mag_out motion = do
 
     aligned <- stateInit (named "aligned") (ival false)
 
-    ahrs <- monitorAttEstimator
+    ahrs <- monitorAttEstimator mag_params
 
     handler systemInit (named "init") $
       callback $ \_ -> do

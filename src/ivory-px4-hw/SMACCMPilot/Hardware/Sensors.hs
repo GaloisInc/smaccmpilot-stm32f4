@@ -7,6 +7,8 @@ module SMACCMPilot.Hardware.Sensors where
 import Prelude ()
 import Prelude.Compat
 
+import Linear
+
 import Ivory.Language
 import Ivory.Tower
 import Ivory.Tower.Config
@@ -39,6 +41,7 @@ data Sensors
     , fmu17sens_ms5611            :: I2CDeviceAddr
     , fmu17sens_hmc5883l          :: I2CDeviceAddr
     , fmu17sens_hmc5883l_mag_cal  :: MagCal
+    , fmu17sens_local_mag         :: LocalMag
     , fmu17sens_i2c_periph        :: I2CPeriph
     , fmu17sens_i2c_pins          :: I2CPins
     }
@@ -49,6 +52,7 @@ data Sensors
     , fmu24sens_ms5611            :: SPIDevice
     , fmu24sens_lsm303d           :: SPIDevice
     , fmu24sens_lsm303d_mag_cal   :: MagCal
+    , fmu24sens_local_mag         :: LocalMag
     , fmu24sens_lsm303d_accel_cal :: AccelCal
     , fmu24sens_l3gd20            :: SPIDevice
     , fmu24sens_spi_periph        :: SPIPeriph
@@ -133,6 +137,23 @@ parseMagCal periph
   $ subsection "magnetometer"
   $ fmap MagCal parseXyzCal
 
+type LocalMag = V3 IFloat
+
+parseLocalMag :: ConfigParser LocalMag
+parseLocalMag
+  = subsection "calibration"
+  $ subsection "magnetometer"
+  $ subsection "local_field" $ do
+    x <- toIFloat <$> subsection "x" double
+    y <- toIFloat <$> subsection "y" double
+    z <- toIFloat <$> subsection "z" double
+    return (signorm (V3 x y z))
+
+sensors_local_mag :: Sensors -> LocalMag
+sensors_local_mag sens = case sens of
+  FMU17Sensors{..} -> fmu17sens_local_mag
+  FMU24Sensors{..} -> fmu24sens_local_mag
+
 -----
 
 fmu17_sensors :: ConfigParser Sensors
@@ -140,6 +161,7 @@ fmu17_sensors = do
   mpu6000_accel_cal <- parseAccelCal "mpu6000"
   mpu6000_gyro_cal <- parseGyroCal "mpu6000"
   hmc5883l_mag_cal <- parseMagCal "hmc5883l"
+  local_mag <- parseLocalMag
   return $ FMU17Sensors
     { fmu17sens_mpu6000           = mpu6000
     , fmu17sens_mpu6000_accel_cal = mpu6000_accel_cal
@@ -149,6 +171,7 @@ fmu17_sensors = do
     , fmu17sens_ms5611            = I2CDeviceAddr 0x76
     , fmu17sens_hmc5883l          = I2CDeviceAddr 0x1e
     , fmu17sens_hmc5883l_mag_cal  = hmc5883l_mag_cal
+    , fmu17sens_local_mag         = local_mag
     , fmu17sens_i2c_periph        = F405.i2c2
     , fmu17sens_i2c_pins          = i2c2_pins
     }
@@ -184,6 +207,7 @@ fmu24_sensors = do
   mpu6000_accel_cal <- parseAccelCal "mpu6000"
   mpu6000_gyro_cal <- parseGyroCal "mpu6000"
   lsm303d_mag_cal <- parseMagCal "lsm303d"
+  local_mag <- parseLocalMag
   lsm303d_accel_cal <- parseAccelCal "lsm303d"
   return $ FMU24Sensors
     { fmu24sens_mpu6000           = mpu6000
@@ -192,6 +216,7 @@ fmu24_sensors = do
     , fmu24sens_ms5611            = ms5611
     , fmu24sens_lsm303d           = lsm303d
     , fmu24sens_lsm303d_mag_cal   = lsm303d_mag_cal
+    , fmu24sens_local_mag         = local_mag
     , fmu24sens_lsm303d_accel_cal = lsm303d_accel_cal
     , fmu24sens_l3gd20            = l3gd20
     , fmu24sens_spi_pins          = spi1_pins

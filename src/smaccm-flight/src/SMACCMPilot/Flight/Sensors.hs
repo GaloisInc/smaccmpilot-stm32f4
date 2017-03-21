@@ -114,7 +114,9 @@ sensorTower tofp attrs = do
   -- Sensor fusion: estimate vehicle attitude with respect to a N/E/D
   -- navigation frame. Report (1) attitude; (2) sensor measurements in the
   -- navigation frame.
-  states <- Att.sensorFusion accel gyro_raw mag_raw (snd motion)
+  states <- Att.sensorFusion
+              (sensors_local_mag (fp_sensors fp))
+              accel gyro_raw mag_raw (snd motion)
   monitor "sensor_fusion_proxy" $ do
     last_accel <- save "last_accel" accel
     last_baro <- save "last_baro" baro_raw
