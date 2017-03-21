@@ -21,6 +21,7 @@ test-fmu24: platform-fmu24/ppm-test-gen
 test-fmu24: platform-fmu24/law-test-gen
 test-fmu24: platform-fmu24/standalone-flight-gen
 test-fmu24: platform-fmu24/lidar-test-gen
+test-fmu24: platform-fmu24/hmc5883l-test-gen
 
 .PHONY: test-fmu24-echronos
 test-fmu24-echronos: platform-fmu24/sensors_aadl_test_gen

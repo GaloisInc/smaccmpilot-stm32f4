@@ -49,7 +49,7 @@ data OutputRate
   | Rate7_5hz
   | Rate15hz
   | Rate30hz
-  | Rate75Hz
+  | Rate75hz
   deriving (Eq, Show)
 
 data BiasMode
@@ -73,7 +73,7 @@ confAVal a o b =  (savg  a `shiftL` 5)
   orate Rate7_5hz  = 3
   orate Rate15hz   = 4
   orate Rate30hz   = 5
-  orate Rate75Hz   = 6
+  orate Rate75hz   = 6
 
   bmode NoBias       = 0
   bmode PositiveBias = 1

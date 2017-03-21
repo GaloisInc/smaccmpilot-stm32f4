@@ -33,6 +33,7 @@ parseHMC5883L = do
   hmc5883l_mag_cal <- parseMagCal "hmc5883l"
   return HMC5883L {..}
 
+named :: String -> String
 named nm = "hmc5883l_" ++ nm
 
 hmc5883lSensorManager :: MagCal
@@ -50,7 +51,7 @@ hmc5883lSensorManager (MagCal mag_cal) (BackpressureTransmit req_chan res_chan) 
   monitor (named "sensor_manager") $ do
     init_requests_area <- do
       let reqs = iarray
-            [ regWriteInit addr ConfA $ confAVal Average8 Rate75Hz NoBias
+            [ regWriteInit addr ConfA $ confAVal Average8 Rate75hz NoBias
             , regWriteInit addr ConfB $ confBVal LSBGauss1370
             , regWriteInit addr Mode  $ modeVal  Continuous
             ] :: Init ('Array 3 ('Struct "i2c_transaction_request"))
@@ -66,12 +67,16 @@ hmc5883lSensorManager (MagCal mag_cal) (BackpressureTransmit req_chan res_chan) 
       sens_e <- emitter sensor_chan 1
       return $ CoroutineBody $ \yield -> do
         comment "entry to hmc5883l coroutine"
-        arrayMap $ \ i -> do
-          emit req_e $ init_requests ! i
-          res <- yield
-          code <- deref (res ~> resultcode)
-          -- Set the initfail field if i2c failed
-          when (code >? 0) (store (s ~> initfail) true)
+        forever $ do
+          store (s ~> initfail) false
+          arrayMap $ \ i -> do
+            emit req_e $ init_requests ! i
+            res <- yield
+            code <- deref (res ~> resultcode)
+            -- Set the initfail field if i2c failed
+            when (code >? 0) (store (s ~> initfail) true)
+          failed <- deref (s ~> initfail)
+          unless failed breakOut
         store initialized true
         comment "finished initializing in hmc5883l coroutine"
 
