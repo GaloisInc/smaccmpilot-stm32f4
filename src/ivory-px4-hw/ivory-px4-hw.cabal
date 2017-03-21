@@ -359,6 +359,30 @@ test-suite             px4_all_sensors_aadl_test_gen
   default-language:    Haskell2010
   ghc-options:         -Wall
 
+test-suite             px4-all-sensors-ext-mag-test-gen
+  type: exitcode-stdio-1.0
+  main-is:             AllSensorsExtMagTest.hs
+  hs-source-dirs:      tests
+  other-modules:
+      SMACCMPilot.Hardware.Tests.AllSensors,
+      SMACCMPilot.Hardware.Tests.Ublox
+  build-depends:       base >= 4.6,
+                       monadLib,
+                       ivory,
+                       ivory-bsp-stm32,
+                       ivory-serialize,
+                       ivory-stdlib,
+                       smaccm-comm-schema-tower,
+                       smaccm-datalink,
+                       tower              >= 0.9,
+                       tower-config,
+                       tower-freertos-stm32,
+                       tower-hal,
+                       ivory-px4-hw
+
+  default-language:    Haskell2010
+  ghc-options:         -Wall
+
 test-suite             px4-sensors-monitor-gen
   type: exitcode-stdio-1.0
   main-is:             SensorsMonitor.hs

@@ -18,6 +18,7 @@ test-fmu24: platform-fmu24/px4-baro-test-gen
 test-fmu24: platform-fmu24/px4-mag-test-gen
 test-fmu24: platform-fmu24/px4-rgbled-test-gen
 test-fmu24: platform-fmu24/px4-all-sensors-test-gen
+test-fmu24: platform-fmu24/px4-all-sensors-ext-mag-test-gen
 test-fmu24: platform-fmu24/px4-px4io-test-gen
 test-fmu24: platform-fmu24/px4-ppm-in-test-gen
 test-fmu24: platform-fmu24/px4-adc-test-gen
