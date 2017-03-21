@@ -235,6 +235,7 @@ view model =
                         model.cv.packedStatus.roll
                         model.cv.packedStatus.alt_est
                         model.cv.packedStatus.yaw
+                        model.cv.packedStatus.battery_voltage
                     ]
               , div [ class "tab-pane", id "bbox" ] [ bbox model.cv.cameraTargetInput ]
               ]
