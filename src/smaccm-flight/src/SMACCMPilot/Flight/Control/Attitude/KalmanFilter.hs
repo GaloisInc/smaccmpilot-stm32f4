@@ -548,8 +548,8 @@ monitorAttEstimator mag_params = do
     , ahrs_align = call (ahrs_mlkf_align mag_params ahrs)
     , ahrs_propagate = call_ (ahrs_mlkf_propagate ahrs)
     , ahrs_update_accel = call_ (ahrs_mlkf_update_accel ahrs)
-    , ahrs_update_mag = call_ (ahrs_mlkf_update_mag_full mag_params ahrs)
---    , ahrs_update_mag = call_ (ahrs_mlkf_update_mag_2D mag_params ahrs)
+--    , ahrs_update_mag = call_ (ahrs_mlkf_update_mag_full mag_params ahrs)
+    , ahrs_update_mag = call_ (ahrs_mlkf_update_mag_2D mag_params ahrs)
     , ahrs_state = ahrs
     }
 

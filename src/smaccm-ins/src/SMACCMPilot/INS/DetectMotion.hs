@@ -20,7 +20,7 @@ detectMotion g a res = monitor "detectMotion" $ do
   n <- freshname "detectMotion"
   let named s = showUnique n ++ "_" ++ s
 
-  let gyro_threshold  = 5
+  let gyro_threshold  = 0.25
   let accel_threshold = 0.25
 
   let highpass fn = ivory2ndOrderFilter fn highPassButterworth
@@ -43,7 +43,7 @@ detectMotion g a res = monitor "detectMotion" $ do
   accel_threshold_ctr <- stateInit "accel_threshold_counter" (izero :: Init ('Stored Uint32))
   gyro_threshold_ctr <- stateInit "gyro_threshold_counter" (izero :: Init ('Stored Uint32))
 
-  handler systemInit "init" $ callback $ const $ do
+  handler systemInit (named "init") $ callback $ const $ do
     filter_init hpf_gx
     filter_init hpf_gy
     filter_init hpf_gz
@@ -59,7 +59,7 @@ detectMotion g a res = monitor "detectMotion" $ do
         g_t <- deref gyro_threshold_ctr
         emitV e $ a_t <=? 200 .|| g_t <=? 200
 
-  handler g "gyro" $ do
+  handler g (named "gyro") $ do
     callback $ \g_samp -> do
       gx <- deref ((g_samp ~> G.sample) ~> XYZ.x)
       gy <- deref ((g_samp ~> G.sample) ~> XYZ.y)
@@ -75,7 +75,7 @@ detectMotion g a res = monitor "detectMotion" $ do
             (store gyro_threshold_ctr 0)
             (gyro_threshold_ctr %= (+1))
 
-  handler a "accel" $ do
+  handler a (named "accel") $ do
     e <- emitter res 1
     callback $ \a_samp -> do
       ax <- deref ((a_samp ~> A.sample) ~> XYZ.x)
@@ -87,7 +87,7 @@ detectMotion g a res = monitor "detectMotion" $ do
       hax <- filter_out hpf_ax
       hay <- filter_out hpf_ay
       haz <- filter_out hpf_az
-      ha_mag <- assign (hax * hax + hay * hay + haz * haz)
+      ha_mag <- assign ((hax * hax + hay * hay + haz * haz) - 9.80665^(2::Int))
       ifte_ (ha_mag >? accel_threshold)
             (store accel_threshold_ctr 0)
             (accel_threshold_ctr %= (+1))
