@@ -50,7 +50,7 @@ sensorTower tofp attrs = do
   -- to make the control flow simpler here
   (lidar_in, lidar) <- channel
   (px4flow_in, px4flow) <- channel
-  (hmc5883l_in, mag_raw) <- channel
+  (hmc5883l_in, hmc5883l) <- channel
   let exti2cs = catMaybes [ mlidar, mpx4flow, mhmc5883l ]
       mlidar = do
         ll@LIDARLite{..} <- fp_lidarlite fp
@@ -77,8 +77,12 @@ sensorTower tofp attrs = do
                 bpt init_chan hmc5883l_in hmc5883l_i2c_addr
           }
 
-  (accel, gyro_raw, _mag_raw, baro_raw) <-
+  (accel, gyro_raw, internal_mag_raw, baro_raw) <-
     sensorManager (fp_sensors . tofp) (fp_clockconfig . tofp) exti2cs
+
+  let mag_raw = case mhmc5883l of
+                  Nothing -> internal_mag_raw
+                  Just _ -> hmc5883l
 
   motion <- channel
   detectMotion gyro_raw accel (fst motion)
