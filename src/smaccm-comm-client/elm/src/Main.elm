@@ -213,6 +213,7 @@ view model =
                         model.cv.packedStatus.roll
                         model.cv.packedStatus.alt_est
                         model.cv.packedStatus.yaw
+                        model.cv.packedStatus.battery_voltage
                     ]
               , div [ class "tab-pane", id "bbox" ] [ bbox model.cv.cameraTargetInput ]
               ]
@@ -222,15 +223,13 @@ view model =
       , div [ class "col-xs-7" ] [
           div [ class "panel panel-default" ] [
             ul [ class "nav nav-tabs", attribute "role" "tablist" ] [
-                li [ class "active" ] [ a [ href "#calibration", attribute "data-toggle" "tab" ] [ strong [ ] [ text "Calibration" ] ] ]
-              , li [ ] [ a [href "#status", attribute "data-toggle" "tab" ] [ strong [ ] [ text "Control Law Status" ] ] ]
+                li [ class "active" ] [ a [href "#status", attribute "data-toggle" "tab" ] [ strong [ ] [ text "Control Law Status" ] ] ]
               , li [ ] [ a [href "#tuning", attribute "data-toggle" "tab" , onClick FetchTuning ] [ strong [ ] [ text "Tuning" ] ] ]
               , li [ ] [ a [href "#reboot", attribute "data-toggle" "tab" , onClick SendReboot ] [ strong [ ] [ text "Reboot" ] ] ]
               ]
           , div [ class "panel-body" ] [
               div [ class "tab-content" ] [
-                div [ class "tab-pane active", id "calibration" ] [ renderCalibration model.cv.packedStatus ]
-              , div [ class "tab-pane", id "status" ] [ renderStatus model.cv.packedStatus ]
+                div [ class "tab-pane active", id "status" ] [ renderStatus model.cv.packedStatus ]
               , div [ class "tab-pane", id "control" ] [ renderControl model ]
               , div [ class "tab-pane", id "tuning" ] [ renderTuning model ]
               ]

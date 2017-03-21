@@ -6,18 +6,18 @@ import Svg exposing (..)
 import Svg.Attributes exposing (..)
 
 --pfd : Svg msg
-pfd pitchRads rollRads baroAlt yawRads =
+pfd pitchRads rollRads baroAlt yawRads voltage =
   svg
     [ viewBox "0 0 100 100" ]
     [ rect [ x "0", y "0", width "100", height "100", fill "rgb(76,76,76)" ] []
-    , artificialHorizon pitchRads rollRads baroAlt yawRads
+    , artificialHorizon pitchRads rollRads baroAlt yawRads voltage
     ]
 
 -- we linearize pitch in the display; this is the factor we
 -- divide degrees by to get y coordinate changes
 pitchScale = 1.2
 
-artificialHorizon pitchRads rollRads baroAlt yawRads =
+artificialHorizon pitchRads rollRads baroAlt yawRads voltage =
   let pitchDeg = pitchRads * 180 / pi
       rollDeg = rollRads * 180 / pi
       yawDeg = if yawRads < 0 then 360 + (yawRads * (180 / pi)) else yawRads * (180 / pi)
@@ -60,12 +60,28 @@ artificialHorizon pitchRads rollRads baroAlt yawRads =
           , g [] (mkAltLadder baroAlt)
           ]
 
+      voltsStr = toString voltage
+      voltsFmtd = case String.indices "." (String.reverse voltsStr) of
+                  [] -> voltsStr ++ ".0v"
+                  [1] -> voltsStr ++ "0v"
+                  [n] -> String.dropRight (n-1) voltsStr ++ "v"
+                  _ -> "error"
+      voltageReadout =
+        g [] [
+           Svg.rect [ x "-48", y "-48", width "16", height "6", fill "black" ] []
+         , text_ [ textAnchor "end", x "-34", y "-43.5"
+                 , fontFamily "Lucida Console", fontSize "4", fill "white"
+                 ] [ text voltsFmtd ]
+         ]
+
   in g [ transform "translate(50 50)" ] [
          movingGroup
        , pitchLadder
        , altIndicator
        , headingIndicator
-       , indicator ]
+       , indicator
+       , voltageReadout
+    ]
 
 mkPitchLadder =
   let pitchRung deg =
