@@ -102,9 +102,9 @@ hmc5883lSensorManager (MagCal mag_cal) (BackpressureTransmit req_chan res_chan) 
           rc2 <- deref (res ~> resultcode)
           when (rc2 >? 0) (store (s ~> samplefail) true)
           let (cal_x, cal_y, cal_z) = applyXyzCal mag_cal
-          payloads16 res 0 1 >>= store ((s ~> sample) ~> x) . cal_x -- xh, xl
+          payloads16 res 0 1 >>= store ((s ~> sample) ~> y) . cal_y -- xh, xl
           payloads16 res 2 3 >>= store ((s ~> sample) ~> z) . cal_z -- zh, zl
-          payloads16 res 4 5 >>= store ((s ~> sample) ~> y) . cal_y -- yh, yl
+          payloads16 res 4 5 >>= store ((s ~> sample) ~> x) . cal_x -- yh, yl
           fmap timeMicrosFromITime getTime >>= store (s ~> time)
           -- Send the sample upstream.
           emit sens_e (constRef s)
