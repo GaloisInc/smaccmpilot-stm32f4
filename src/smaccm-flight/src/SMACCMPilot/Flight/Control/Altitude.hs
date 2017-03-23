@@ -194,8 +194,8 @@ monitorAltitudeControl attrs = do
 
             setpt <- assign vz_control
 
-            -- limit max throttle by the throttle stick (safety feature)
-            store at_setpt =<< call fconstrain 0.0 mt setpt
+            -- dont limit the throttle by RC stick anymore
+            store at_setpt =<< call fconstrain 0.0 1.0 setpt
 
           ifte_ enabled
             (do sp <- deref at_setpt
