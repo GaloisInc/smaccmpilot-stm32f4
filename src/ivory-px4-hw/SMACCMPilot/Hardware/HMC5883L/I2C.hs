@@ -52,7 +52,7 @@ hmc5883lSensorManager (MagCal mag_cal) (BackpressureTransmit req_chan res_chan) 
     init_requests_area <- do
       let reqs = iarray
             [ regWriteInit addr ConfA $ confAVal Average8 Rate75hz NoBias
-            , regWriteInit addr ConfB $ confBVal LSBGauss1370
+            , regWriteInit addr ConfB $ confBVal LSBGauss1090
             , regWriteInit addr Mode  $ modeVal  Continuous
             ] :: Init ('Array 3 ('Struct "i2c_transaction_request"))
       constArea <$> fmap showUnique (freshname "hmc5883l_init_requests") <*> pure reqs
