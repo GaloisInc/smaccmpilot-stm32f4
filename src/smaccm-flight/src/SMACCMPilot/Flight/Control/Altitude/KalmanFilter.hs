@@ -24,6 +24,7 @@ import Control.Monad (forM, forM_)
 import Data.Foldable (toList)
 
 import Ivory.Language
+import Ivory.Stdlib
 import Ivory.Tower
 
 import Linear
@@ -57,11 +58,12 @@ derefStateVec vff = do
   return (V4 z zdot bias offset)
 
 storeStateVec :: Ref s ('Struct "VffExtended") -> StateVec -> Ivory eff ()
-storeStateVec vff (V4 z zdot bias offset) = do
-  store (vff ~> vff_z) z
-  store (vff ~> vff_zdot) zdot
-  store (vff ~> vff_bias) bias
-  store (vff ~> vff_offset) offset
+storeStateVec vff (V4 z zdot bias offset) =
+  unless (isnan z .|| isnan zdot .|| isnan bias .|| isnan offset) $ do
+    store (vff ~> vff_z) z
+    store (vff ~> vff_zdot) zdot
+    store (vff ~> vff_bias) bias
+    store (vff ~> vff_offset) offset
 
 -- row-major 4x4 matrix
 type CovMat = M44 IFloat
