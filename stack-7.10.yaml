@@ -11,7 +11,6 @@ packages:
 - src/smaccm-commsec/
 - src/smaccm-datalink/
 - src/smaccm-flight/
-- src/smaccm-ins/
 - location: src/smaccm-comm-schema
   extra-dep: true
   subdirs:

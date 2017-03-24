@@ -20,6 +20,7 @@ import qualified SMACCMPilot.Comm.Ivory.Types.AccelerometerSample as A
 import qualified SMACCMPilot.Comm.Ivory.Types.BarometerSample as B
 import qualified SMACCMPilot.Comm.Ivory.Types.GyroscopeSample as G
 import qualified SMACCMPilot.Comm.Ivory.Types.LidarliteSample as L
+import qualified SMACCMPilot.Comm.Ivory.Types.MagnetometerSample as M
 import qualified SMACCMPilot.Comm.Ivory.Types.Quaternion as Q
 import qualified SMACCMPilot.Comm.Ivory.Types.SensorsResult as R
 import qualified SMACCMPilot.Comm.Ivory.Types.Xyz as XYZ
@@ -32,7 +33,7 @@ import           SMACCMPilot.Flight.Sensors.GPS
 import           SMACCMPilot.Hardware.HMC5883L
 import           SMACCMPilot.Hardware.SensorManager
 import           SMACCMPilot.Hardware.Sensors
-import           SMACCMPilot.INS.DetectMotion
+import           SMACCMPilot.Flight.Sensors.DetectMotion
 import           SMACCMPilot.Flight.Sensors.LIDARLite
 import           SMACCMPilot.Flight.Sensors.PX4Flow
 
@@ -107,12 +108,8 @@ sensorTower tofp attrs = do
   -- Baro: no calibration at this time.
   attrProxy (baroOutput attrs) baro_raw
 
-  -- gyro calibration now on the ADC level, so these are the same for now...
-  attrProxy (gyroRawOutput attrs) gyro_raw
-  attrProxy (gyroOutput    attrs) gyro_raw
+  attrProxy (gyroOutput attrs) gyro_raw
 
-  -- mag calibration now on the ADC level, so these are the same for now...
-  attrProxy (magRawOutput attrs) mag_raw
   attrProxy (magOutput attrs) mag_raw
 
   -- Sensor fusion: estimate vehicle attitude with respect to a N/E/D
@@ -123,6 +120,7 @@ sensorTower tofp attrs = do
               accel gyro_raw mag_raw (snd motion)
   monitor "sensor_fusion_proxy" $ do
     last_accel <- save "last_accel" accel
+    last_mag <- save "last_mag" mag_raw
     last_baro <- save "last_baro" baro_raw
     last_gyro <- save "last_gyro" gyro_raw
     last_lidar <- save "last_lidar" lidar
@@ -134,19 +132,31 @@ sensorTower tofp attrs = do
         let (Quaternion q0 (V3 q1 q2 q3)) = ahrs_ltp_to_body
 
         accel_sample <- xyzRef $ last_accel ~> A.sample
+        accel_valid <- iNot <$> deref (last_accel ~> A.samplefail)
+
+        mag_valid <- iNot <$> deref (last_mag ~> M.samplefail)
 
         baro_time <- deref $ last_baro ~> B.time
         pressure <- deref $ last_baro ~> B.pressure
+        baro_valid <- iNot <$> deref (last_baro ~> B.samplefail)
 
         gyro_time <- deref $ last_gyro ~> G.time
-        --gyro <- xyzRef $ last_gyro ~> G.sample
-        --gyro <- ahrs_body_rates
+        gyro_valid <- iNot <$> deref (last_gyro ~> G.samplefail)
 
         lidar_distance <- deref $ last_lidar ~> L.distance
         lidar_time <- deref $ last_lidar ~> L.time
+        lidar_valid <- iNot <$> deref (last_lidar ~> L.samplefail)
+
+        samples_valid <- assign $ accel_valid
+                              .&& mag_valid
+                              .&& baro_valid
+                              .&& gyro_valid
+                              .&& lidar_valid
+
+        att_quat_valid <- assign $ foldr1 (.||) $ fmap (/=? 0) ahrs_ltp_to_body
 
         result <- local $ istruct
-          [ R.valid .= ival (foldr1 (.||) $ fmap (/=? 0) ahrs_ltp_to_body)
+          [ R.valid .= ival (samples_valid .&& att_quat_valid)
           , R.roll .= ival (atan2F (2 * (q0 * q1 + q2 * q3)) (1 - 2 * (q1 * q1 + q2 * q2)))
           , R.pitch .= ival (asin (2 * (q0 * q2 - q3 * q1)))
           , R.yaw .= ival (atan2F (2 * (q0 * q3 + q1 * q2)) (1 - 2 * (q2 * q2 + q3 * q3)))

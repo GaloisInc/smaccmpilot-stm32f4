@@ -320,14 +320,6 @@ renderTuning model = div [ ] [
       , div [ class "panel-body" ] [ text "Yaw stuff" ] ]
   ]
 
-renderCalibration : PackedStatus -> Html Msg
-renderCalibration packedStatus =
-  let label str = th [ style [ ("width", "10%") ] ] [ text str ]
-  in table [ class "table" ] [ tbody [ ] [
-         tr [ ] [ label "Gyro", td [ ] [ renderCalProgress packedStatus.gyro_progress ] ]
-       , tr [ ] [ label "Mag", td [ ] [ renderCalProgress packedStatus.mag_progress ] ]
-       ] ]
-
 renderStatus : PackedStatus -> Html Msg
 renderStatus packedStatus =
   let label str = th [ style [ ("width", "20%"), ("vertical-align", "middle") ] ] [ text str ]
@@ -363,25 +355,8 @@ renderStatus packedStatus =
        , tristate "rcinput" packedStatus.rcinput
        , tristate "telem" packedStatus.telem
        , tristate "px4io" packedStatus.px4io
-       , tristate "sens_cal" packedStatus.sens_cal
+       , tristate "sens_valid" packedStatus.sens_valid
        ] ]
-
-renderCalProgress : Float -> Html Msg
-renderCalProgress p =
-  let inProgress = p < 1.0
-      pct = toString (p * 100) ++ "%"
-  in div [ class "progress", style [ ("margin-bottom", "0") ] ]
-       [ div [ classList [
-                   ("progress-bar", True)
-                 , ("progress-bar-striped", True)
-                 , ("active", inProgress)
-                 , ("progress-bar-info", inProgress)
-                 , ("progress-bar-success", not inProgress)
-                 ]
-             , style [ ("width", pct) ]
-             ]
-           [ text pct ]
-       ]
 
 errorModal model =
   div [ class "modal fade"

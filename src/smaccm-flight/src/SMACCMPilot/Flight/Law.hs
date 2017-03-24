@@ -27,8 +27,6 @@ data LawInputs =
     , lawinput_telem_ui         :: ChanOutput ('Struct "user_input")
     , lawinput_telem_modes      :: ChanOutput ('Struct "control_modes")
     , lawinput_px4io_state      :: ChanOutput ('Struct "px4io_state")
-    , lawinput_gyro_cal_output  :: ChanOutput ('Struct "xyz_calibration")
-    , lawinput_mag_cal_output   :: ChanOutput ('Struct "xyz_calibration")
     , lawinput_sensors_output   :: ChanOutput ('Struct "sensors_result")
     }
 
@@ -73,37 +71,37 @@ armingLawTower :: LawInputs
                -> Tower e ()
 armingLawTower LawInputs{..} arming_output arming_status = do
   armingTower rcinput_arming_input
+    [ sens_cal_input ]
     [ telem_arming_input
     , px4io_state_input
-    , sens_cal_input
     ]
     arming_output
     arming_status
 
   where
-  rcinput_arming_input = SomeArmingInput $ ArmingInput
+  rcinput_arming_input = ArmingInput
     { ai_name = "rcinput"
     , ai_chan = lawinput_rcinput_arming
     , ai_get  = deref
     , ai_set  = A.rcinput
     }
-  telem_arming_input = SomeArmingInput $ ArmingInput
+  telem_arming_input = ConstantArmingInput $ ArmingInput
     { ai_name = "telem"
     , ai_chan = lawinput_telem_arming
     , ai_get  = deref
     , ai_set  = A.telem
     }
-  px4io_state_input = SomeArmingInput $ ArmingInput
+  px4io_state_input = ConstantArmingInput $ ArmingInput
     { ai_name = "px4io"
     , ai_chan = lawinput_px4io_state
     , ai_get  = arming_from_px4io_state
     , ai_set  = A.px4io
     }
-  sens_cal_input = SomeArmingInput $ ArmingInput
-    { ai_name = "sens_cal"
+  sens_cal_input = InitialArmingInput $ ArmingInput
+    { ai_name = "sens_valid"
     , ai_chan = lawinput_sensors_output
     , ai_get  = arming_from_sensors
-    , ai_set  = A.sens_cal
+    , ai_set  = A.sens_valid
     }
 
   arming_from_px4io_state s = do

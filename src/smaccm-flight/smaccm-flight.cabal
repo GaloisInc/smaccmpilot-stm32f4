@@ -38,6 +38,10 @@ library
                        SMACCMPilot.Flight.Datalink.Commsec,
                        SMACCMPilot.Flight.Datalink.UART,
                        SMACCMPilot.Flight.Datalink.TestApp,
+                       SMACCMPilot.Flight.Filter,
+                       SMACCMPilot.Flight.Filter.Butterworth,
+                       SMACCMPilot.Flight.Filter.Filter,
+                       SMACCMPilot.Flight.Filter.RunningAverage,
                        SMACCMPilot.Flight.IO,
                        SMACCMPilot.Flight.IO.RCInput,
                        SMACCMPilot.Flight.IO.RCInput.ArmingMachine,
@@ -57,6 +61,7 @@ library
                        SMACCMPilot.Flight.Platform,
                        SMACCMPilot.Flight.Sensors,
                        SMACCMPilot.Flight.Sensors.AccelBiasTrigger,
+                       SMACCMPilot.Flight.Sensors.DetectMotion,
                        SMACCMPilot.Flight.Sensors.GPS,
                        SMACCMPilot.Flight.Sensors.LIDARLite,
                        SMACCMPilot.Flight.Sensors.PX4Flow,
@@ -85,7 +90,6 @@ library
                        smaccm-commsec,
                        smaccm-datalink,
                        smaccm-comm-schema-tower,
-                       smaccm-ins,
                        vector >= 0.11
   default-language:    Haskell2010
   ghc-options:         -Wall

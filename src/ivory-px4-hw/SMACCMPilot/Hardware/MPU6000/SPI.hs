@@ -96,8 +96,6 @@ sensorSample (AccelCal accel_cal) (GyroCal gyro_cal) res r_gyro r_accel = do
           (mpu6000_r ~> M.az)
           a_cal_z
 
-  comment "indicate whether we have calibration"
-  store (r_accel ~> A.calibrated) true
   comment "convert to degrees Celsius"
   t <- deref (mpu6000_r ~> M.temp)
   r_temp <- assign (safeCast t / 340.0 + 36.53)
