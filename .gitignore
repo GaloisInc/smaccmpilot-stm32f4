@@ -34,5 +34,3 @@ TAGS
 *.mat
 *.data
 
-# matlab scripts
-*.m
