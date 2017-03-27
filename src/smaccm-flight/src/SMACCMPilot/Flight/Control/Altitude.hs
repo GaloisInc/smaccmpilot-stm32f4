@@ -186,7 +186,7 @@ monitorAltitudeControl attrs = do
                   store vz_ff_rot hover_thrust
 
                   --let vz_ctl = thrust_cmd_norm + hover_thrust
-                  vz_ctl <- call fconstrain 0.1 0.9 (thrust_cmd + hover_thrust)
+                  vz_ctl <- call fconstrain 0.1 1.0 (thrust_cmd + hover_thrust)
                   -- ALTITUDE CONTROLLER END
 
                   return vz_ctl
