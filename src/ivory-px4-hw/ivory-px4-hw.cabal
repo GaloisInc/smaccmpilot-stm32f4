@@ -364,7 +364,7 @@ test-suite             px4-all-sensors-ext-mag-test-gen
   main-is:             AllSensorsExtMagTest.hs
   hs-source-dirs:      tests
   other-modules:
-      SMACCMPilot.Hardware.Tests.AllSensors,
+      SMACCMPilot.Hardware.Tests.AllSensorsExtMag,
       SMACCMPilot.Hardware.Tests.Ublox
   build-depends:       base >= 4.6,
                        monadLib,

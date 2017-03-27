@@ -50,9 +50,9 @@ app topx4 = do
       -- this is hardcoded because the flight platform config parser
       -- is in smaccm-flight :(
       hmcCal = MagCal $ XyzCal {
-          cal_x_offset = 0.0
-        , cal_y_offset = 0.0
-        , cal_z_offset = 0.0
+          cal_x_offset = 0
+        , cal_y_offset = 0
+        , cal_z_offset = 0
         , cal_x_scale = 1.0
         , cal_y_scale = 1.0
         , cal_z_scale = 1.0
@@ -94,7 +94,7 @@ app topx4 = do
         | go <-
             [ fragmentSenderBlind gyro_meas gyroType
             , fragmentSenderBlind accel_meas accelType
-            , fragmentSenderBlind mag_meas magType
+            , fragmentSenderBlind ext_mag_meas magType
             , fragmentSenderBlind baro_meas baroType
             , fragmentSenderBlind (snd position) gpsType
             ]
