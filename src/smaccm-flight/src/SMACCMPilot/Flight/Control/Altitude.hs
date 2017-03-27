@@ -207,9 +207,6 @@ monitorAltitudeControl attrs = do
         -- vz_fb
         tmp_vz_fb <- deref vz_fb
         store (state_dbg ~> A.vz_fb) tmp_vz_fb
-        -- vz_fb_norm
-        --tmp_vz_fb_norm <- deref vz_fb_norm
-        --store (state_dbg ~> A.vz_fb_norm) tmp_vz_fb_norm
         -- vz_ff
         tmp_vz_ff <- deref vz_ff
         store (state_dbg ~> A.vz_ff) tmp_vz_ff
