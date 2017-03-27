@@ -43,10 +43,9 @@ class Mag(object):
     def __init__(self, binary):
         self.binary = binary
         try:
-            (ifail, sfail, cal, x, y, z, t) = struct.unpack("!BBBfffQ", binary)
+            (ifail, sfail, x, y, z, t) = struct.unpack("!BBfffQ", binary)
             self.ifail = ifail
             self.sfail = sfail
-            self.cal   = cal
             self.x     = x
             self.y     = y
             self.z     = z
@@ -65,10 +64,9 @@ class Accel(object):
     def __init__(self, binary):
         self.binary = binary
         try:
-            (ifail, sfail, cal, x, y, z, temp, t) = struct.unpack("!BBBffffQ", binary)
+            (ifail, sfail, x, y, z, temp, t) = struct.unpack("!BBffffQ", binary)
             self.ifail = ifail
             self.sfail = sfail
-            self.cal   = cal
             self.x     = x
             self.y     = y
             self.z     = z
@@ -127,10 +125,9 @@ class Gyro(object):
     def __init__(self, binary):
         self.binary = binary
         try:
-            (ifail, sfail, cal, x, y, z, temp, t) = struct.unpack("!BBBffffQ", binary)
+            (ifail, sfail, x, y, z, temp, t) = struct.unpack("!BBffffQ", binary)
             self.ifail = ifail
             self.sfail = sfail
-            self.cal   = cal
             self.x     = x
             self.y     = y
             self.z     = z
