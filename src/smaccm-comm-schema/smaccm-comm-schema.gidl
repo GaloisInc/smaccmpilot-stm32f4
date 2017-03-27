@@ -68,20 +68,20 @@
   (p_gain   float_t)
   (i_gain   float_t)
   (d_gain   float_t)
-  (dd_gain  float_t)
+  (dd_gain  float_t) -- feedfoward gain
   (i_min    float_t)
   (i_max    float_t)
   (err_max  float_t)
   (errd_max float_t))
 
 (def-struct pid_state_t -- 28 bytes
-  (i_state   float_t)
+  (i_state   float_t) -- integrated sum
   (d_term    float_t)
-  (dd_term   float_t)
+  (dd_term   float_t) -- feedforward term
   (p_term    float_t)
   (i_term    float_t)
-  (angle_err float_t)
-  (rate_err  float_t))
+  (angle_err float_t) -- error for PI block
+  (rate_err  float_t)) -- error for D block
 
 (def-struct throttle_ui_t
   (sens float_t)
@@ -92,17 +92,16 @@
   (rate pid_config_t))
 
 (def-struct alt_control_debug_t -- 40+24 = 64 bytes
-  (alt_est       float_t)
-  (alt_rate_est  float_t)
-  (r22_gain      float_t)
-  (ui_setp       float_t)
-  (ui_rate_setp  float_t)
-  (pos           pid_state_t)
-  (vz_fb         float_t)
-  --(vz_fb_norm    float_t)
-  (vz_ff         float_t)
-  (vz_ff_rot     float_t)
-  (vz_ctl        float_t))
+  (alt_est       float_t) -- estimated altitude [m]
+  (alt_rate_est  float_t) -- estimated vertical rate [m/s]
+  (r22_gain      float_t) -- derotation coefficient
+  (ui_setp       float_t) -- reference altitude [m]
+  (ui_rate_setp  float_t) -- reference rate [m/s]
+  (pos           pid_state_t) -- pid state for alt-hold
+  (vz_fb         float_t) -- feedback part of the vertical command
+  (vz_ff         float_t) -- feedforward (nominal throttle)
+  (vz_ff_rot     float_t) -- derotated feedforward component
+  (vz_ctl        float_t)) -- command to motor mixers
 
 (def-struct att_control_debug_t
   (head_setpt       float_t)

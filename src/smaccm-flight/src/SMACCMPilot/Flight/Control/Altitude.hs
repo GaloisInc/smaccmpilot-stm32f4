@@ -77,10 +77,9 @@ monitorAltitudeControl attrs = do
   -- whether autothrottle is valid or not
   ui_setpt <- state "ui_setpt"
   at_enabled <- state "at_enabled"
-  vz_fb <- state "vz_fb"
-  --vz_fb_norm <- state "vz_fb_norm"
-  vz_ff <- state "vz_ff"
-  vz_ff_rot <- state "vz_ff_rot"
+  vz_fb <- state "vz_fb" -- feedback part of the vertical command
+  vz_ff <- state "vz_ff" -- feedforward (nominal throttle)
+  vz_ff_rot <- state "vz_ff_rot" -- derotated feedforward component
 
   nominal_throttle <- attrState (nominalThrottle attrs)
 
@@ -146,19 +145,10 @@ monitorAltitudeControl attrs = do
                   -- update setpoint ui
                   tui_update      ui_control ui dt
                   (ui_alt, _) <- tui_setpoint ui_control
-                  -- store errors for reference
-                  --_alt_err     <- assign $ ui_alt - as_z
-                  --_alt_rate_err    <- assign $ 0.0 - as_zdot
-                  --store (state_dbg ~> A.pos_err) _alt_err
-                  --store (state_dbg ~> A.pos_rate_err) _alt_rate_err
 
-                  -- ALTITUDE CONTROLLER START (SIMPLE PID with
-                  -- constant nominal thrust) update position
-                  -- controller (see stabilize_from_angle iMonitor n
-                  -- Stabilize.hs) we care only about the altitude,
-                  -- not the rate at this point
-                  --
-                  -- PID: zero rate for now
+                  -- ALTITUDE CONTROLLER START 
+                  -- Simple PID with constant nominal thrust
+                  -- Zero rate for now (static setpoint)
                   thrust_cmd <-
                     call pid_update
                       alt_pos_pid
@@ -172,20 +162,13 @@ monitorAltitudeControl attrs = do
 
                   store vz_fb thrust_cmd
 
-                  -- thrust_cmd is unbounded, so make sure it is
-                  -- within the limits [0.1-1]
-                  --thrust_cmd_norm   <- call fconstrain (0.1) 0.9 thrust_cmd
-                  --store vz_fb_norm thrust_cmd_norm
-
                   -- compensate for roll/pitch rotation
                   hover_thrust_abs <- deref nominal_throttle
                   store vz_ff hover_thrust_abs
 
-                  -- TODO: see if we can do without the r22 derotation component
                   hover_thrust <- assign ((throttleR22Comp r22) * hover_thrust_abs)
                   store vz_ff_rot hover_thrust
 
-                  --let vz_ctl = thrust_cmd_norm + hover_thrust
                   vz_ctl <- call fconstrain 0.1 1.0 (thrust_cmd + hover_thrust)
                   -- ALTITUDE CONTROLLER END
 
@@ -252,8 +235,6 @@ monitorAltitudeControl attrs = do
     { alt_init = do
         store at_enabled false
         ae_init alt_estimator
-        -- tt_init throttle_tracker
-        -- thrust_pid_init thrust_pid
     , alt_update = call_ proc_alt_update
     , alt_output = call_ proc_alt_output
     , alt_debug  = call_ proc_alt_debug
