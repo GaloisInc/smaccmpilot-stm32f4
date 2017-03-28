@@ -1,0 +1,15 @@
+--- calibration_utils.py	2017-03-28 10:05:05.000000000 -0700
++++ calibration_utils.py.good	2017-03-28 10:05:19.000000000 -0700
+@@ -148,9 +148,9 @@
+     print("<define name=\""+sensor+"_X_NEUTRAL\" value=\""+str(int(round(p[0])))+"\"/>")
+     print("<define name=\""+sensor+"_Y_NEUTRAL\" value=\""+str(int(round(p[1])))+"\"/>")
+     print("<define name=\""+sensor+"_Z_NEUTRAL\" value=\""+str(int(round(p[2])))+"\"/>")
+-    print("<define name=\""+sensor+"_X_SENS\" value=\""+str(p[3]*2**res)+"\" integer=\"16\"/>")
+-    print("<define name=\""+sensor+"_Y_SENS\" value=\""+str(p[4]*2**res)+"\" integer=\"16\"/>")
+-    print("<define name=\""+sensor+"_Z_SENS\" value=\""+str(p[5]*2**res)+"\" integer=\"16\"/>")
++    print("<define name=\""+sensor+"_X_SENS\" value=\""+str(p[3])+"\" integer=\"16\"/>")
++    print("<define name=\""+sensor+"_Y_SENS\" value=\""+str(p[4])+"\" integer=\"16\"/>")
++    print("<define name=\""+sensor+"_Z_SENS\" value=\""+str(p[5])+"\" integer=\"16\"/>")
+     print("")
+ 
+ 
