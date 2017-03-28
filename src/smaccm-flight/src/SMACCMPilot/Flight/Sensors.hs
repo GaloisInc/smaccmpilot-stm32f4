@@ -151,7 +151,7 @@ sensorTower tofp attrs = do
                               .&& mag_valid
                               .&& baro_valid
                               .&& gyro_valid
-                              .&& lidar_valid
+                              .&& (maybe true (const lidar_valid) mlidar)
 
         att_quat_valid <- assign $ foldr1 (.||) $ fmap (/=? 0) ahrs_ltp_to_body
 

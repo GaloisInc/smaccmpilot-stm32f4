@@ -73,6 +73,7 @@ smaccmpilot-odroid-mini: default
 			--conf-file=odroid-mini.conf $(IVORY_FLAGS)
 
 %-gen: default
+	-rm -rf $*
 	stack exec -- $(@F) --src-dir=$* \
 			    --conf-file=$(patsubst platform-%,%,$(*D)).conf \
 			    $(IVORY_FLAGS)
@@ -82,6 +83,7 @@ smaccmpilot-odroid-mini: default
 	-rm -rf $*
 
 %_gen: default
+	-rm -rf $*
 	stack exec -- $(@F) --src-dir=$* \
 		      --conf-file=$(patsubst platform-%,%,$(*D)).conf \
 					$(IVORY_FLAGS)
