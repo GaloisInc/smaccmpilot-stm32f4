@@ -95,3 +95,4 @@ clean:
 	-rm -rf platform-fmu24
 	-rm -rf can_proxy_odroid_test
 	-rm -rf smaccmpilot
+	-rm -rf smaccmpilot-mini
