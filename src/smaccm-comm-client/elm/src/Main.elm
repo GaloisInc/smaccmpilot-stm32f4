@@ -125,6 +125,7 @@ type Msg
   | FocusCameraTarget
   | SendControlInput
   | UpdatePid Pid PidConfig
+  | UpdateNominalThrottle Float
   | Nop
 
 cvh : CV.Handler Model Msg
@@ -186,6 +187,9 @@ update msg model =
     UpdatePid pid pidConfig ->
       let cv = model.cv
       in { model | cv = pid.updCv cv pidConfig } ! [ pid.set model.cv model.cvc pidConfig ]
+    UpdateNominalThrottle thr ->
+      let cv = model.cv
+      in { model | cv = { cv | nominalThrottle = thr } } ! [ model.cvc.setNominalThrottle thr ]
     Nop -> model ! []
 
 addControlInput : Char -> UI.UserInput -> UI.UserInput
@@ -218,7 +222,7 @@ handleKeyDown model kc =
          } ! []
 
 fetchTuning : Model -> List (Cmd Msg)
-fetchTuning model = List.map (\pid -> pid.get model.cvc) pids
+fetchTuning model = model.cvc.getNominalThrottle :: List.map (\pid -> pid.get model.cvc) pids
 
 updateSmoothers : Model -> Model
 updateSmoothers model = model
@@ -315,11 +319,29 @@ thLabel w str = th [ style [ ("width", toString w ++ "%"), ("vertical-align", "m
 
 renderTunings : Model -> Html Msg
 renderTunings model =
-  let renderTuning pid =
+  let onFloatInput f = onInput (\str -> case String.toFloat str of
+                                          Ok v -> f v
+                                          Err _ -> Nop)
+      nominalThrottle =
+        div [ class "panel panel-default" ] [
+            div [ class "panel-heading" ] [ h2 [ class "panel-title" ] [
+                                               a [ attribute "data-toggle" "collapse", href ("#nominal-throttle") ]
+                                                 [ text "Nominal Throttle" ] ] ]
+             , div [ id "nominal-throttle", class "panel-body panel-collapse collapse" ] [
+                 table [ class "table table-bordered" ] [
+                     thead [ ] [ tr [ ] [ th [ ] [ text "%" ] ] ]
+                   , tbody [ ] [ tr [ ] [ td [ ] [ div [ class "input-group" ] [
+                                                      input [ class "form-control"
+                                                            , name "nominal_throttle"
+                                                            , type_ "number"
+                                                            , A.min "0.0"
+                                                            , A.max "100.0"
+                                                            , step "0.01"
+                                                            , value (toString model.cv.nominalThrottle)
+                                                            , onFloatInput UpdateNominalThrottle
+                                                            ] [ ] ] ] ] ] ] ] ]
+      renderTuning pid =
         let pidConfig = pid.fromCv model.cv
-            onFloatInput f = onInput (\str -> case String.toFloat str of
-                                                Ok v -> f v
-                                                Err _ -> Nop)
             pidField field val upd = td [ ] [ div [ class "input-group" ] [
                                                  input [ class "form-control"
                                                        , name (pid.key ++ "_" ++ field)
@@ -345,7 +367,7 @@ renderTunings model =
                        , pidField "i_min" pidConfig.i_min (\v -> UpdatePid pid { pidConfig | i_min = v })
                        , pidField "i_max" pidConfig.i_max (\v -> UpdatePid pid { pidConfig | i_max = v })
                        ] ] ] ] ]
-  in div [ ] (List.map renderTuning pids)
+  in nominalThrottle :: List.map renderTuning pids |> div [ ]
 
 renderStatus : PackedStatus -> Html Msg
 renderStatus packedStatus =
