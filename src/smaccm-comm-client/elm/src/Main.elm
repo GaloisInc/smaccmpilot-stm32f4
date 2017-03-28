@@ -17,6 +17,7 @@ import SMACCMPilot.Comm.Interface.ControllableVehicle as CV exposing (Controllab
 import SMACCMPilot.Comm.Types.ArmingMode as ArmingMode
 import SMACCMPilot.Comm.Types.ControlSource as ControlSource
 import SMACCMPilot.Comm.Types.PackedStatus as PackedStatus exposing (PackedStatus)
+import SMACCMPilot.Comm.Types.PidConfig as PidConfig exposing (PidConfig)
 import SMACCMPilot.Comm.Types.RebootMagic as RebootMagic
 import SMACCMPilot.Comm.Types.RebootReq as RebootReq
 import SMACCMPilot.Comm.Types.ThrottleMode as ThrottleMode
@@ -47,6 +48,15 @@ type alias Model =
   , httpTimeout : Time
   , keysDown : Set Char
   , keysSincePeriod : Set Char
+  }
+
+type alias Pid =
+  { key : String
+  , prettyName : String
+  , fromCv : ControllableVehicle -> PidConfig
+  , updCv : ControllableVehicle -> PidConfig -> ControllableVehicle
+  , get : CV.Client Msg -> Cmd Msg
+  , set : ControllableVehicle -> CV.Client Msg -> PidConfig -> Cmd Msg
   }
 
 mkCvc : Time -> CV.Client Msg
@@ -114,6 +124,8 @@ type Msg
   | FocusPFD
   | FocusCameraTarget
   | SendControlInput
+  | UpdatePid Pid PidConfig
+  | Nop
 
 cvh : CV.Handler Model Msg
 cvh = let upd m f = { m | cv = f m.cv } in CV.updatingHandler upd
@@ -171,6 +183,10 @@ update msg model =
         else let uir0 = { throttle = 1, pitch = 0, roll = 0, yaw = 0 }
                  uir = Set.foldl addControlInput uir0 (Set.union model.keysDown model.keysSincePeriod)
              in { model | keysSincePeriod = Set.empty } ! [ model.cvc.setUserInputRequest uir ]
+    UpdatePid pid pidConfig ->
+      let cv = model.cv
+      in { model | cv = pid.updCv cv pidConfig } ! [ pid.set model.cv model.cvc pidConfig ]
+    Nop -> model ! []
 
 addControlInput : Char -> UI.UserInput -> UI.UserInput
 addControlInput key uir =
@@ -202,14 +218,7 @@ handleKeyDown model kc =
          } ! []
 
 fetchTuning : Model -> List (Cmd Msg)
-fetchTuning model = [
-    model.cvc.getAltitudeRatePid
-  , model.cvc.getAltitudePositionPid
-  , model.cvc.getAttitudeRollStab
-  , model.cvc.getAttitudePitchStab
-  , model.cvc.getYawRatePid
-  , model.cvc.getYawPositionPid
-  ]
+fetchTuning model = List.map (\pid -> pid.get model.cvc) pids
 
 updateSmoothers : Model -> Model
 updateSmoothers model = model
@@ -251,8 +260,7 @@ view model =
           , div [ class "panel-body" ] [
               div [ class "tab-content" ] [
                 div [ class "tab-pane active", id "status" ] [ renderStatus model.cv.packedStatus ]
-              , div [ class "tab-pane", id "control" ] [ renderControl model ]
-              , div [ class "tab-pane", id "tuning" ] [ renderTuning model ]
+              , div [ class "tab-pane", id "tuning" ] [ renderTunings model ]
               ]
             ]
           ]
@@ -305,21 +313,39 @@ view model =
 
 thLabel w str = th [ style [ ("width", toString w ++ "%"), ("vertical-align", "middle") ] ] [ text str ]
 
-renderControl : Model -> Html Msg
-renderControl model = div [ ] [ ]
-
-renderTuning : Model -> Html Msg
-renderTuning model = div [ ] [
-    div [ class "panel panel-default" ] [
-        div [ class "panel-heading" ] [ h2 [ class "panel-title" ] [ text "Altitude" ] ]
-      , div [ class "panel-body" ] [ text "Altitude stuff" ] ]
-  , div [ class "panel panel-default" ] [
-        div [ class "panel-heading" ] [ h2 [ class "panel-title" ] [ text "Attitude" ] ]
-      , div [ class "panel-body" ] [ text "Attitude stuff" ] ]
-  , div [ class "panel panel-default" ] [
-        div [ class "panel-heading" ] [ h2 [ class "panel-title" ] [ text "Yaw" ] ]
-      , div [ class "panel-body" ] [ text "Yaw stuff" ] ]
-  ]
+renderTunings : Model -> Html Msg
+renderTunings model =
+  let renderTuning pid =
+        let pidConfig = pid.fromCv model.cv
+            onFloatInput f = onInput (\str -> case String.toFloat str of
+                                                Ok v -> f v
+                                                Err _ -> Nop)
+            pidField field val upd = td [ ] [ div [ class "input-group" ] [
+                                                 input [ class "form-control"
+                                                       , name (pid.key ++ "_" ++ field)
+                                                       , type_ "number"
+                                                       , A.min "-1000.0"
+                                                       , A.max "1000.0"
+                                                       , step "0.01"
+                                                       , value (toString val)
+                                                       , onFloatInput upd
+                                                       ] [ ] ] ]
+        in div [ class "panel panel-default" ] [
+               div [ class "panel-heading" ] [ h2 [ class "panel-title" ] [
+                                                  a [ attribute "data-toggle" "collapse", href ("#" ++ pid.key) ]
+                                                    [ text pid.prettyName ] ] ]
+             , div [ id pid.key, class "panel-body panel-collapse collapse" ] [
+                 table [ class "table table-bordered" ] [
+                     thead [ ] [ tr [ ] (List.map (\hd -> th [ ] [ text hd ]) [ "p", "i", "d", "dd", "i_min", "i_max" ]) ]
+                   , tbody [ ] [ tr [ ] [
+                         pidField "p_gain" pidConfig.p_gain (\v -> UpdatePid pid { pidConfig | p_gain = v })
+                       , pidField "i_gain" pidConfig.i_gain (\v -> UpdatePid pid { pidConfig | i_gain = v })
+                       , pidField "d_gain" pidConfig.d_gain (\v -> UpdatePid pid { pidConfig | d_gain = v })
+                       , pidField "dd_gain" pidConfig.dd_gain (\v -> UpdatePid pid { pidConfig | dd_gain = v })
+                       , pidField "i_min" pidConfig.i_min (\v -> UpdatePid pid { pidConfig | i_min = v })
+                       , pidField "i_max" pidConfig.i_max (\v -> UpdatePid pid { pidConfig | i_max = v })
+                       ] ] ] ] ]
+  in div [ ] (List.map renderTuning pids)
 
 renderStatus : PackedStatus -> Html Msg
 renderStatus packedStatus =
@@ -392,6 +418,77 @@ subscriptions model = Sub.batch [
   , if model.cv.controlModesRequest.ui_mode == ControlSource.Gcs
       then Time.every (250 * millisecond) (always SendControlInput)
       else Sub.none
+  ]
+
+-- Ugly PID business
+
+pids : List Pid
+pids = [
+    { key = "alt_pos"
+    , prettyName = "Altitude Position"
+    , fromCv = \cv -> cv.altitudePositionPid
+    , updCv = \cv pidConfig -> { cv | altitudePositionPid = pidConfig }
+    , get = \cvc -> cvc.getAltitudePositionPid
+    , set = \_ cvc pidConfig -> cvc.setAltitudePositionPid pidConfig
+    }
+  , { key = "roll_pos"
+    , prettyName = "Roll Position"
+    , fromCv = \cv -> cv.attitudeRollStab.pos
+    , updCv = \cv pidConfig ->
+        let stab = cv.attitudeRollStab
+        in { cv | attitudeRollStab = { stab | pos = pidConfig } }
+    , get = \cvc -> cvc.getAttitudeRollStab
+    , set = \cv cvc pidConfig ->
+        let stab = cv.attitudeRollStab
+        in cvc.setAttitudeRollStab { stab | pos = pidConfig }
+    }
+  , { key = "roll_rate"
+    , prettyName = "Roll Rate"
+    , fromCv = \cv -> cv.attitudeRollStab.rate
+    , updCv = \cv pidConfig ->
+        let stab = cv.attitudeRollStab
+        in { cv | attitudeRollStab = { stab | rate = pidConfig } }
+    , get = \cvc -> cvc.getAttitudeRollStab
+    , set = \cv cvc pidConfig ->
+        let stab = cv.attitudeRollStab
+        in cvc.setAttitudeRollStab { stab | rate = pidConfig }
+    }
+  , { key = "pitch_pos"
+    , prettyName = "Pitch Position"
+    , fromCv = \cv -> cv.attitudePitchStab.pos
+    , updCv = \cv pidConfig ->
+        let stab = cv.attitudePitchStab
+        in { cv | attitudePitchStab = { stab | pos = pidConfig } }
+    , get = \cvc -> cvc.getAttitudePitchStab
+    , set = \cv cvc pidConfig ->
+        let stab = cv.attitudePitchStab
+        in cvc.setAttitudePitchStab { stab | pos = pidConfig }
+    }
+  , { key = "pitch_rate"
+    , prettyName = "Pitch Rate"
+    , fromCv = \cv -> cv.attitudePitchStab.rate
+    , updCv = \cv pidConfig ->
+        let stab = cv.attitudePitchStab
+        in { cv | attitudePitchStab = { stab | rate = pidConfig } }
+    , get = \cvc -> cvc.getAttitudePitchStab
+    , set = \cv cvc pidConfig ->
+        let stab = cv.attitudePitchStab
+        in cvc.setAttitudePitchStab { stab | rate = pidConfig }
+    }
+  , { key = "yaw_pos"
+    , prettyName = "Yaw Position"
+    , fromCv = \cv -> cv.yawPositionPid
+    , updCv = \cv pidConfig -> { cv | yawPositionPid = pidConfig }
+    , get = \cvc -> cvc.getYawPositionPid
+    , set = \_ cvc pidConfig -> cvc.setYawPositionPid pidConfig
+    }
+  , { key = "yaw_rate"
+    , prettyName = "Yaw Rate"
+    , fromCv = \cv -> cv.yawRatePid
+    , updCv = \cv pidConfig -> { cv | yawRatePid = pidConfig }
+    , get = \cvc -> cvc.getYawRatePid
+    , set = \_ cvc pidConfig -> cvc.setYawRatePid pidConfig
+    }
   ]
 
 -- MOVE TO ANOTHER MODULE
