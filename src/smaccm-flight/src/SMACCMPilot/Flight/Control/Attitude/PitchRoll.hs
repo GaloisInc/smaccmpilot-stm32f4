@@ -16,6 +16,7 @@ import SMACCMPilot.Flight.Control.Attitude.Angle
 import qualified SMACCMPilot.Comm.Ivory.Types.SensorsResult   as S
 import qualified SMACCMPilot.Comm.Ivory.Types.ControlOutput   as OUT
 import qualified SMACCMPilot.Comm.Ivory.Types.Xyz             as XYZ
+import qualified SMACCMPilot.Comm.Ivory.Types.AttControlDebug as ACD
 import           SMACCMPilot.Comm.Tower.Attr
 import           SMACCMPilot.Comm.Tower.Interface.ControllableVehicle
 
@@ -50,6 +51,8 @@ monitorPitchRollControl attrs = do
   state_name <- named "state"
   reset_name <- named "reset"
 
+  att_dbg <- attrState (attControlDebug attrs)
+
   let init_proc :: Def ('[]':->())
       init_proc = proc init_name $ body $ do
         ac_reset pitch_ctl
@@ -66,6 +69,8 @@ monitorPitchRollControl attrs = do
         sen_omega_y <- deref ((sens ~> S.omega) ~> XYZ.y)
         ac_run pitch_ctl (-1*pitch_setpt) sen_pitch sen_omega_y
         ac_run roll_ctl  roll_setpt       sen_roll  sen_omega_x
+        store (att_dbg ~> ACD.pitch_setpt) (-1*pitch_setpt)
+        store (att_dbg ~> ACD.roll_setpt) (roll_setpt)
 
       state_proc :: Def ('[ Ref s1 ('Struct "control_output")
                           ] ':-> ())

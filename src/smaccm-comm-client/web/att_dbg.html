@@ -246,7 +246,7 @@
                     /*
                     * CHART 3: Yaw + sp
                     */
-                    idx = match_labels_status("yaw");
+                    idx = match_labels_att("head_setpt");
                     if (idx != -1) { // we have a match here
                         yVal = data_status[idx];
                     }
@@ -259,7 +259,7 @@
                     });
 
                     // search for the right variable
-                    var idx = match_labels_att("head_setpt");
+                    var idx = match_labels_att("head_rate_setpt");
                     if (idx != -1) { // we have a match here
                         yVal = data_att[idx];
                     }
