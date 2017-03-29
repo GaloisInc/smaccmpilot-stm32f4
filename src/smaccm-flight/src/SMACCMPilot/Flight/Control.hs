@@ -49,7 +49,6 @@ controlTower attrs = do
     prc_control    <- monitorPitchRollControl attrs
     yaw_control    <- monitorYawControl       attrs
     yui            <- monitorYawUI
-    
 
     handler systemInit "control_init" $ callback $ const $ do
       alt_init alt_control
@@ -59,6 +58,7 @@ controlTower attrs = do
     handler p "control_periodic" $ do
       e <- attrEmitter (controlOutput attrs)
       alt_debug_e <- attrEmitter (altControlDebug attrs)
+      att_debug_e <- attrEmitter (attControlDebug attrs)
       callback $ const $ do
         let ui = (ui_res ~> UIR.ui)
         -- Run altitude and attitude controllers
@@ -78,6 +78,8 @@ controlTower attrs = do
               prc_run prc_control (pit_ui * ui_sens_rads)
                                   (rll_ui * ui_sens_rads)
                                   (constRef sens)
+              store (att_dbg ~> ACD.pitch_setpt) (-1 * pit_ui * ui_sens_rads)
+              store (att_dbg ~> ACD.roll_setpt) (rll_ui * ui_sens_rads)
           , ui_mode ==? CS.nav ==> do
               pit_sp <- deref (setpt ~> SP.pitch)
               rll_sp <- deref (setpt ~> SP.roll)
@@ -130,6 +132,7 @@ controlTower attrs = do
         alt_debug_v <- local izero
         alt_debug alt_control alt_debug_v
         emit alt_debug_e (constRef alt_debug_v)
+        emit att_debug_e (constRef att_dbg)
 
   mapM_ towerModule controlModules
 
