@@ -209,8 +209,9 @@ handleKeyDown model kc =
     -- Toggle GCS control mode
     'T' -> let cv0 = model.cv
                cmr0 = cv0.controlModesRequest
-               ui_mode0 = cmr0.ui_mode
-               cmr1 = { cmr0 | ui_mode = if ui_mode0 == ControlSource.Gcs then ControlSource.Ppm else ControlSource.Gcs
+               cmr1 = { cmr0 | ui_mode = if cv0.packedStatus.control_modes.ui_mode == ControlSource.Gcs
+                                         then ControlSource.Ppm
+                                         else ControlSource.Gcs
                              , yaw_mode = YawMode.Rate
                              , thr_mode = ThrottleMode.AltUi
                       }
