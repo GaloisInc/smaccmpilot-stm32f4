@@ -49,6 +49,7 @@
         <div id="chartContainer2" style="height: 300px; width:100%;"></div>
         <div id="chartContainer3" style="height: 300px; width:100%;"></div>
         <div id="chartContainer4" style="height: 300px; width:100%;"></div>
+        <div id="chartContainer5" style="height: 300px; width:100%;"></div>
       </div> <!-- end row -->
 
     </div> <!-- end container -->
@@ -81,6 +82,11 @@ var data_pid = []; // array of variables
     var dps8 = []; // vz_fb_norm
     var dps9 = []; // vz_ff
     var dps10 = []; // vz_ff_rot
+
+    var dps11 = [];
+    var dps12 = [];
+    var dps13 = [];
+    var dps14 = [];
 
 		var xVal = 0;
 		var yVal = 0;	
@@ -205,6 +211,42 @@ var data_pid = []; // array of variables
 		});
 
 
+/*
+    * CHART 5: PID status
+    */
+		var chart5 = new CanvasJS.Chart("chartContainer5",{
+			title :{
+				text: "PID status"
+			},
+			axisY: {
+				title: "value"
+			},		
+			data: [{
+				legendText: "i_state",
+  			showInLegend: "true",
+				type: "line",
+				dataPoints: dps11 
+			},
+      {
+				legendText: "p_term",
+  			showInLegend: "true",
+				type: "line",
+				dataPoints: dps12 
+			},
+      {
+				legendText: "i_term",
+  			showInLegend: "true",
+				type: "line",
+				dataPoints: dps13 
+			},
+      {
+				legendText: "d_term",
+  			showInLegend: "true",
+				type: "line",
+				dataPoints: dps14 
+			}]
+		});
+
 		var updateChart = function (count) {
 			count = count || 1;
 			// count is number of times loop runs to generate random dataPoints.
@@ -303,6 +345,9 @@ var data_pid = []; // array of variables
 					y: yVal
 				});
 
+       /*
+        * CHART 4: control action
+        */
         // search for the right variable
         var idx = match_labels("vz_ctl");
         if (idx != -1) { // we have a match here
@@ -369,6 +414,61 @@ var data_pid = []; // array of variables
         });
 
 
+        /*
+        * CHART 5: PID state
+        */
+        idx = match_labels_pid("i_state");
+        if (idx != -1) { // we have a match here
+          yVal = data_pid[idx];
+        }
+        else {
+          yVal = 0; // backup 
+        }
+
+				dps11.push({
+					x: xVal,
+					y: yVal
+				});
+
+        // search for the right variable
+        var idx = match_labels_pid("p_term");
+        if (idx != -1) { // we have a match here
+          yVal = data_pid[idx];
+        }
+        else {
+          yVal = -1; // backup 
+        }
+        dps12.push({
+					x: xVal,
+					y: yVal
+				});
+      
+      idx = match_labels_pid("i_term");
+        if (idx != -1) { // we have a match here
+          yVal = data_pid[idx];
+        }
+        else {
+          yVal = 0; // backup 
+        }
+
+				dps13.push({
+					x: xVal,
+					y: yVal
+				});
+
+        // search for the right variable
+        var idx = match_labels_pid("d_term");
+        if (idx != -1) { // we have a match here
+          yVal = data_pid[idx];
+        }
+        else {
+          yVal = -1; // backup 
+        }
+        dps14.push({
+					x: xVal,
+					y: yVal
+				});
+
 			}; // end for loop
 
 
@@ -386,11 +486,16 @@ var data_pid = []; // array of variables
         dps8.shift();
         dps9.shift();
         dps10.shift();
+        dps11.shift();
+        dps12.shift();
+        dps13.shift();
+        dps14.shift();
       }
 			chart1.render();
 			chart2.render();
 			chart3.render();
 			chart4.render();
+      chart5.render();
 		}; // updateChart
 
 		// generates first set of dataPoints
