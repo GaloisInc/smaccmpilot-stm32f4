@@ -392,12 +392,8 @@
 
         $(function () {
 
-            var StatusOutput = Backbone.Model.extend({
-                urlRoot: '/controllable_vehicle_i/packed_status'
-            });
-
-            var AttOutput = Backbone.Model.extend({
-                urlRoot: '/controllable_vehicle_i/att_control_debug'
+            var ControllableVehicle = Backbone.Model.extend({
+                urlRoot: '/controllable_vehicle_i'
             });
 
             /*
@@ -466,7 +462,7 @@
                     new AttSliderView({ model: opts.model, selector: 'roll_rate_setpt' });
             };
 
-            window.attOutput = new AttOutput({});
+            window.attOutput = new ControllableVehicle({id: "att_control_debug"});
             window.attOutputView = new AttView({ model: attOutput });
 
             window.attOutputScheduler =
@@ -505,7 +501,7 @@
                     new StatusSliderView({ model: opts.model, selector: 'yaw' });
             };
 
-            window.statusOutput = new StatusOutput({});
+            window.statusOutput = new ControllableVehicle({id: "packed_status"});
             window.statusOutputView = new StatusView({ model: statusOutput });
 
             window.statusOutputScheduler =
