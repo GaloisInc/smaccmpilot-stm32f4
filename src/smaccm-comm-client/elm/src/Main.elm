@@ -216,6 +216,8 @@ handleKeyDown model kc =
                       }
                cv1 = { cv0 | controlModesRequest = cmr1 }
            in { model | cv = cv1, keysSincePeriod = Set.empty } ! [ model.cvc.setControlModesRequest cmr1 ]
+    -- Reboot VM
+    '=' -> model ! [ model.cvc.setRebootReq (RebootReq.RebootReq RebootMagic.LinuxRebootMagic1) ]
     -- Otherwise keep track of which keys are down
     _ -> { model | keysDown = Set.insert (Char.fromCode kc |> Char.toUpper) model.keysDown
                  , keysSincePeriod = Set.insert (Char.fromCode kc |> Char.toUpper) model.keysSincePeriod
