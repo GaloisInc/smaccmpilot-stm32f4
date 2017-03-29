@@ -464,7 +464,7 @@ var PidSliderView = Backbone.View.extend({
     var val = this.model.toJSON()['pos'] || 0;
     var s = val[this.selector];
     this.$label.html(val);
-    var idx = match_labels(this.selector);
+    var idx = match_labels_pid(this.selector);
     if (idx != -1) { // we have a match here
       data_pid[idx] = s; // save into global array
     }
@@ -540,7 +540,7 @@ var PidView = function (opts) {
     new PidSliderView({model: opts.model, selector: 'rate_err'}); // rate_err
 };
 
-window.pidOutputView = new AltView({ model: altOutput });
+window.pidOutputView = new PidView({ model: altOutput });
 
 window.pidOutputScheduler =
   new Scheduler({ period: 100}, altOutput);
