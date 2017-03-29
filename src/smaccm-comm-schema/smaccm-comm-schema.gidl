@@ -91,7 +91,7 @@
   (pos  pid_config_t)
   (rate pid_config_t))
 
-(def-struct alt_control_debug_t -- 40+24 = 64 bytes
+(def-struct alt_control_debug_t -- 40+28 = 68 bytes
   (alt_est       float_t) -- estimated altitude [m]
   (alt_rate_est  float_t) -- estimated vertical rate [m/s]
   (r22_gain      float_t) -- derotation coefficient
@@ -103,15 +103,17 @@
   (vz_ff_rot     float_t) -- derotated feedforward component
   (vz_ctl        float_t)) -- command to motor mixers
 
-(def-struct att_control_debug_t
+(def-struct att_control_debug_t -- 36 + 28 = 64 bytes 
   (head_setpt       float_t)
+  (head_rate_est    float_t) -- estimated yaw rate
   (head_rate_setpt  float_t)
   (head_ctl_p       float_t)
   (head_ctl_d       float_t)
   (pitch_setpt      float_t)
   (pitch_rate_setpt float_t)
   (roll_setpt       float_t)
-  (roll_rate_setpt  float_t))
+  (roll_rate_setpt  float_t)
+  (att_pid          pid_state_t)) -- pid state for roll/pitch/yaw (we have space for only one PID)
 
 (def-struct xyz_t
   (x float_t)

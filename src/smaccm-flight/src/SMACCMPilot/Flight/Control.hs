@@ -100,7 +100,7 @@ controlTower attrs = do
               yaw_rate yaw_control sens yaw_rate_sp idt
               store (att_dbg ~> ACD.head_rate_setpt) yaw_rate_sp
               sen_omega_z <- deref ((sens ~> SEN.omega) ~> XYZ.z)
-              store (att_dbg ~> ACD.head_setpt) sen_omega_z
+              store (att_dbg ~> ACD.head_rate_est) sen_omega_z
           , yaw_mode ==? Y.heading .&& ui_mode /=? CS.nav ==> do
               yui_update yui sens ui idt
               (head_sp, head_rate_sp) <- yui_setpoint yui
