@@ -9,6 +9,8 @@ import           Ivory.Tower
 import qualified SMACCMPilot.Comm.Ivory.Types.ArmingStatus   as A
 import qualified SMACCMPilot.Comm.Ivory.Types.ArmingMode     as A
 import qualified SMACCMPilot.Comm.Ivory.Types.ControlLaw     as CL
+--import qualified SMACCMPilot.Comm.Ivory.Types.ControlModes   as CM
+--import qualified SMACCMPilot.Comm.Ivory.Types.ThrottleMode   as TM
 import qualified SMACCMPilot.Comm.Ivory.Types.Tristate       as T
 import qualified SMACCMPilot.Comm.Ivory.Types.Px4ioState     as PX4
 import qualified SMACCMPilot.Comm.Ivory.Types.Px4ioStatus    as PX4
@@ -71,7 +73,9 @@ armingLawTower :: LawInputs
                -> Tower e ()
 armingLawTower LawInputs{..} arming_output arming_status = do
   armingTower rcinput_arming_input
-    [ sens_cal_input ]
+    [ sens_cal_input
+--    , rcinput_mode_input
+    ]
     [ telem_arming_input
     , px4io_state_input
     ]
@@ -103,6 +107,14 @@ armingLawTower LawInputs{..} arming_output arming_status = do
     , ai_get  = arming_from_sensors
     , ai_set  = A.sens_valid
     }
+{-
+  rcinput_mode_input = InitialArmingInput $ ArmingInput
+    { ai_name = "rcinput_mode"
+    , ai_chan = lawinput_rcinput_modes
+    , ai_get  = arming_from_mode
+    , ai_set  = A.rcinput_mode
+    }
+-}
 
   arming_from_px4io_state s = do
     safety_off <- deref (s ~> PX4.status ~> PX4.safety_off)
@@ -111,3 +123,9 @@ armingLawTower LawInputs{..} arming_output arming_status = do
   arming_from_sensors sens = do
     v <- deref (sens ~> S.valid)
     return (v ? (T.neutral, T.negative))
+
+{-
+  arming_from_mode m = do
+    tm <- deref (m ~> CM.thr_mode)
+    return ((tm ==? TM.directUi) ? (T.neutral, T.negative))
+-}
