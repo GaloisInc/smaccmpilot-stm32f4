@@ -308,3 +308,27 @@ executable             hmc5883l-test-gen
   default-language:    Haskell2010
   ghc-options:         -Wall
 
+executable             esccal-test-gen
+  main-is:             ESCCalTest.hs
+  hs-source-dirs:      tests
+  other-modules:
+      ESCCal.ESCCalApp
+  build-depends:       base >= 4.6,
+                       base-compat,
+                       monadLib,
+                       ivory,
+                       ivory-serialize,
+                       ivory-stdlib,
+                       ivory-bsp-stm32,
+                       smaccm-comm-schema-tower,
+                       smaccm-datalink,
+                       tower              >= 0.9,
+                       tower-config,
+                       tower-freertos-stm32,
+                       tower-hal,
+                       ivory-px4-hw,
+                       smaccm-flight
+
+  default-language:    Haskell2010
+  ghc-options:         -Wall
+
