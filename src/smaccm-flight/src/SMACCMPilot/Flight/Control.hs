@@ -80,6 +80,7 @@ controlTower attrs = do
                                   (constRef sens)
               store (att_dbg ~> ACD.pitch_setpt) (-1 * pit_ui * ui_sens_rads)
               store (att_dbg ~> ACD.roll_setpt) (rll_ui * ui_sens_rads)
+              prc_debug prc_control att_dbg
           , ui_mode ==? CS.nav ==> do
               pit_sp <- deref (setpt ~> SP.pitch)
               rll_sp <- deref (setpt ~> SP.roll)
