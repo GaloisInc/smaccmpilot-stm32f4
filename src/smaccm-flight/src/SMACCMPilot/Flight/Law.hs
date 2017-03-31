@@ -43,9 +43,9 @@ lawTower lis@LawInputs{..} as_output law_output ui_output = do
 
   armingLawTower lis (fst arming_mode) as_output
 
-  controlModesTower lawinput_rcinput_modes
-                    lawinput_telem_modes
-                    (fst control_modes)
+  controlModesTowerRCOnly lawinput_rcinput_modes
+                          lawinput_telem_modes
+                          (fst control_modes)
 
   userInputMuxTower (snd control_modes)
                     lawinput_rcinput_ui

@@ -30,3 +30,15 @@ controlModesTower rcinput_modes telem_modes output_modes = monitor "control_mode
                 store (m' ~> CM.ui_mode) CS.ppm
                 emit e (constRef m'))
 
+controlModesTowerRCOnly :: ChanOutput ('Struct "control_modes")
+                        -> ChanOutput ('Struct "control_modes")
+                        -> ChanInput  ('Struct "control_modes")
+                        -> Tower e ()
+controlModesTowerRCOnly rcinput_modes _telem_modes output_modes =
+  monitor "control_modes_rc_only_law" $ do
+    handler rcinput_modes "rcinput_control_modes" $ do
+      e <- emitter output_modes 1
+      callback $ \m -> do
+        m' <- local izero
+        refCopy m' m
+        emit e (constRef m')

@@ -195,8 +195,8 @@ update msg model =
 addControlInput : Char -> UI.UserInput -> UI.UserInput
 addControlInput key uir =
   case key of
-    'W' -> { uir | pitch = uir.pitch + 0.2 }
-    'S' -> { uir | pitch = uir.pitch - 0.2 }
+    'W' -> { uir | pitch = uir.pitch + 0.3 }
+    'S' -> { uir | pitch = uir.pitch - 0.3 }
     'A' -> { uir | roll  = uir.roll  - 0.2 }
     'D' -> { uir | roll  = uir.roll  + 0.2 }
     'Q' -> { uir | yaw   = uir.yaw   - 0.13 }
@@ -206,17 +206,6 @@ addControlInput key uir =
 handleKeyDown : Model -> Char.KeyCode -> (Model, Cmd Msg)
 handleKeyDown model kc =
   case Char.fromCode kc |> Char.toUpper of
-    -- Toggle GCS control mode
-    'T' -> let cv0 = model.cv
-               cmr0 = cv0.controlModesRequest
-               cmr1 = { cmr0 | ui_mode = if cv0.packedStatus.control_modes.ui_mode == ControlSource.Gcs
-                                         then ControlSource.Ppm
-                                         else ControlSource.Gcs
-                             , yaw_mode = YawMode.Rate
-                             , thr_mode = ThrottleMode.AltUi
-                      }
-               cv1 = { cv0 | controlModesRequest = cmr1 }
-           in { model | cv = cv1, keysSincePeriod = Set.empty } ! [ model.cvc.setControlModesRequest cmr1 ]
     -- Reboot VM
     '=' -> model ! [ model.cvc.setRebootReq (RebootReq.RebootReq RebootMagic.LinuxRebootMagic1) ]
     -- Otherwise keep track of which keys are down
@@ -440,7 +429,7 @@ subscriptions model = Sub.batch [
   , Time.every second UpdateLatency
   , Keyboard.downs KeyDown
   , Keyboard.ups KeyUp
-  , if model.cv.controlModesRequest.ui_mode == ControlSource.Gcs
+  , if model.cv.packedStatus.control_modes.ui_mode == ControlSource.Gcs
       then Time.every (250 * millisecond) (always SendControlInput)
       else Sub.none
   ]
