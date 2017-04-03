@@ -127,13 +127,10 @@ mpu6000SensorManager (BackpressureTransmit req_chan res_chan) init_chan gyro_cha
   towerDepends M.mpu6000ResponseTypesModule
 
   -- TODO: let caller choose the bandwidth
-  let lpfConfig = DLPF44Hz--DLPF94Hz
-
-  -- TODO: let caller request oversampling by an integer multiple
---  let targetSampleRate = 2 * max (accelBandwidth lpfConfig) (gyroBandwidth lpfConfig)
+  let lpfConfig = DLPF44Hz
 
   let (gyroSamplesPerMS, 0) = gyroSampleRate lpfConfig `divMod` 1000
-  let samplePeriodMS = 5--1000 `div` targetSampleRate
+  let samplePeriodMS = 5
   let divisor = samplePeriodMS * gyroSamplesPerMS
 
   p <- period (Milliseconds samplePeriodMS) -- at 200Hz

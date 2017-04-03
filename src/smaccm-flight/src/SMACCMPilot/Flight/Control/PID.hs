@@ -75,7 +75,7 @@ pid_update = proc "pid_update" $ \pid cfg angle_ref angle_measured rate_ref rate
 
   let i_term = i_gain * i_sum'
   store (pid~>P.i_term) i_term
-  
+
   ret $ p_term + i_term + d_term + dd_term
 
 -- | Reset the internal state of a PID.

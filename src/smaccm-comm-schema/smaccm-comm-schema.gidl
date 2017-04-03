@@ -301,16 +301,16 @@
 -- This is a redundant copy of parts of many other structs, for use in the demo
 -- heads-up display.
 (def-struct packed_status_t
-  (valid           bool_t)                                    
-  (roll            float_t) -- Roll, pitch,  yaw, in Radians  
-  (pitch           float_t)                                   
-  (yaw             float_t)                                   
-  (alt_est         float_t) -- meters                         
-  (fix             gps_fix_t)                                 
-  (num_sv          uint8_t) -- number of space vehicles       
-  (lat             sint32_t) -- degrees * 1e7                 
-  (lon             sint32_t) -- degrees * 1e7                 
-  (alt             sint32_t) -- meters * 1000 (aka mm)        
+  (valid           bool_t)
+  (roll            float_t) -- Roll, pitch,  yaw, in Radians
+  (pitch           float_t)
+  (yaw             float_t)
+  (alt_est         float_t) -- meters
+  (fix             gps_fix_t)
+  (num_sv          uint8_t) -- number of space vehicles
+  (lat             sint32_t) -- degrees * 1e7
+  (lon             sint32_t) -- degrees * 1e7
+  (alt             sint32_t) -- meters * 1000 (aka mm)
   (vground         uint32_t) -- m/s * 100 (aka cm/s)
   (heading         float_t) -- degrees
   (rcinput         tristate_t)
@@ -377,4 +377,3 @@
   (rgb_led             (attr readwrite rgb_led_setting_t))
   -- Camera target input:
   (camera_target_input (attr read camera_target_t)))
-

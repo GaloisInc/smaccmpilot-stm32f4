@@ -24,21 +24,19 @@ import Linear
 import Numeric.Estimator.Model.Coordinate
 
 import           SMACCMPilot.Flight.Control.Altitude.KalmanFilter
-import           SMACCMPilot.Flight.Control.Altitude.ThrottleTracker
 import           SMACCMPilot.Flight.Control.Altitude.ThrottleUI
 import           SMACCMPilot.Flight.Types.MaybeFloat
 import           SMACCMPilot.Flight.Control.PID
 import qualified SMACCMPilot.Comm.Ivory.Types.AltControlDebug as A
+import qualified SMACCMPilot.Comm.Ivory.Types.ArmingMode      as A
 import qualified SMACCMPilot.Comm.Ivory.Types.ControlLaw      as CL
 import qualified SMACCMPilot.Comm.Ivory.Types.ControlModes    as CM
-import qualified SMACCMPilot.Comm.Ivory.Types.ThrottleMode    as TM
-import qualified SMACCMPilot.Comm.Ivory.Types.ArmingMode      as A
+import qualified SMACCMPilot.Comm.Ivory.Types.ControlOutput as CO
 import qualified SMACCMPilot.Comm.Ivory.Types.Quaternion      as Q
 import qualified SMACCMPilot.Comm.Ivory.Types.SensorsResult   as S
+import qualified SMACCMPilot.Comm.Ivory.Types.ThrottleMode    as TM
+import qualified SMACCMPilot.Comm.Ivory.Types.UserInput       as UI
 import qualified SMACCMPilot.Comm.Ivory.Types.Xyz             as XYZ
-import           SMACCMPilot.Comm.Ivory.Types.UserInput       ()
-import qualified SMACCMPilot.Comm.Ivory.Types.ControlOutput as CO
-import           SMACCMPilot.Comm.Ivory.Types.TimeMicros
 import           SMACCMPilot.Comm.Tower.Attr
 import           SMACCMPilot.Comm.Tower.Interface.ControllableVehicle
 
@@ -146,7 +144,7 @@ monitorAltitudeControl attrs = do
                   tui_update      ui_control ui dt
                   (ui_alt, _) <- tui_setpoint ui_control
 
-                  -- ALTITUDE CONTROLLER START 
+                  -- ALTITUDE CONTROLLER START
                   -- Simple PID with constant nominal thrust
                   -- Zero rate for now (static setpoint)
                   thrust_cmd <-
@@ -267,5 +265,8 @@ throttleR22Comp r22 =
       (((1.0 / 0.8 - 1.0) / 0.8) * r22 + 1.0)
     , (1.0)))
 
-_timeMicrosToITime :: TimeMicros -> ITime
-_timeMicrosToITime (TimeMicros m) = fromIMicroseconds m
+manual_throttle :: Ref s ('Struct "user_input") -> Ivory eff IFloat
+manual_throttle ui = do
+  thr <- deref (ui ~> UI.throttle)
+  -- -1 =< UI.thr =< 1.  Scale to 0 =< thr' =< 1.
+  return ((thr + 1) / 2)

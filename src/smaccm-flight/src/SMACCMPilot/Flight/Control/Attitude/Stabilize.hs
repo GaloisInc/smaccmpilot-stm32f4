@@ -79,4 +79,3 @@ stabilize_from_rate = proc "stabilize_from_rate" $
   rate_cmd  <- call pid_update rate_pid rate_cfg stick_rate_rad_s rate_measured_rad_s 0.0 0.0 0.0 dt
   rate_cmd_norm   <- call fconstrain (-1.0) 1.0 rate_cmd
   ret $ rate_cmd_norm -- / 1.0
-
