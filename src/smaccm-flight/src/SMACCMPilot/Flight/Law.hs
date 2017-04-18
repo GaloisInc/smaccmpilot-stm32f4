@@ -9,10 +9,11 @@ import           Ivory.Tower
 import qualified SMACCMPilot.Comm.Ivory.Types.ArmingStatus   as A
 import qualified SMACCMPilot.Comm.Ivory.Types.ArmingMode     as A
 import qualified SMACCMPilot.Comm.Ivory.Types.ControlLaw     as CL
+--import qualified SMACCMPilot.Comm.Ivory.Types.ControlModes   as CM
+--import qualified SMACCMPilot.Comm.Ivory.Types.ThrottleMode   as TM
 import qualified SMACCMPilot.Comm.Ivory.Types.Tristate       as T
 import qualified SMACCMPilot.Comm.Ivory.Types.Px4ioState     as PX4
 import qualified SMACCMPilot.Comm.Ivory.Types.Px4ioStatus    as PX4
-import qualified SMACCMPilot.Comm.Ivory.Types.XyzCalibration as Cal
 import qualified SMACCMPilot.Comm.Ivory.Types.SensorsResult  as S
 
 import           SMACCMPilot.Flight.Law.Arming
@@ -28,8 +29,6 @@ data LawInputs =
     , lawinput_telem_ui         :: ChanOutput ('Struct "user_input")
     , lawinput_telem_modes      :: ChanOutput ('Struct "control_modes")
     , lawinput_px4io_state      :: ChanOutput ('Struct "px4io_state")
-    , lawinput_gyro_cal_output  :: ChanOutput ('Struct "xyz_calibration")
-    , lawinput_mag_cal_output   :: ChanOutput ('Struct "xyz_calibration")
     , lawinput_sensors_output   :: ChanOutput ('Struct "sensors_result")
     }
 
@@ -44,9 +43,9 @@ lawTower lis@LawInputs{..} as_output law_output ui_output = do
 
   armingLawTower lis (fst arming_mode) as_output
 
-  controlModesTower lawinput_rcinput_modes
-                    lawinput_telem_modes
-                    (fst control_modes)
+  controlModesTowerRCOnly lawinput_rcinput_modes
+                          lawinput_telem_modes
+                          (fst control_modes)
 
   userInputMuxTower (snd control_modes)
                     lawinput_rcinput_ui
@@ -74,61 +73,59 @@ armingLawTower :: LawInputs
                -> Tower e ()
 armingLawTower LawInputs{..} arming_output arming_status = do
   armingTower rcinput_arming_input
+    [ sens_cal_input
+--    , rcinput_mode_input
+    ]
     [ telem_arming_input
     , px4io_state_input
-    , gyro_cal_input
-    , mag_cal_input
-    , sens_cal_input
     ]
     arming_output
     arming_status
 
   where
-  rcinput_arming_input = SomeArmingInput $ ArmingInput
+  rcinput_arming_input = ArmingInput
     { ai_name = "rcinput"
     , ai_chan = lawinput_rcinput_arming
     , ai_get  = deref
     , ai_set  = A.rcinput
     }
-  telem_arming_input = SomeArmingInput $ ArmingInput
+  telem_arming_input = ConstantArmingInput $ ArmingInput
     { ai_name = "telem"
     , ai_chan = lawinput_telem_arming
     , ai_get  = deref
     , ai_set  = A.telem
     }
-  px4io_state_input = SomeArmingInput $ ArmingInput
+  px4io_state_input = ConstantArmingInput $ ArmingInput
     { ai_name = "px4io"
     , ai_chan = lawinput_px4io_state
     , ai_get  = arming_from_px4io_state
     , ai_set  = A.px4io
     }
-  gyro_cal_input = SomeArmingInput $ ArmingInput
-    { ai_name = "gyro_cal"
-    , ai_chan = lawinput_gyro_cal_output
-    , ai_get  = arming_from_xyzcal
-    , ai_set  = A.gyro_cal
-    }
-  mag_cal_input = SomeArmingInput $ ArmingInput
-    { ai_name = "mag_cal"
-    , ai_chan = lawinput_mag_cal_output
-    , ai_get  = arming_from_xyzcal
-    , ai_set  = A.mag_cal
-    }
-  sens_cal_input = SomeArmingInput $ ArmingInput
-    { ai_name = "sens_cal"
+  sens_cal_input = InitialArmingInput $ ArmingInput
+    { ai_name = "sens_valid"
     , ai_chan = lawinput_sensors_output
     , ai_get  = arming_from_sensors
-    , ai_set  = A.sens_cal
+    , ai_set  = A.sens_valid
     }
+{-
+  rcinput_mode_input = InitialArmingInput $ ArmingInput
+    { ai_name = "rcinput_mode"
+    , ai_chan = lawinput_rcinput_modes
+    , ai_get  = arming_from_mode
+    , ai_set  = A.rcinput_mode
+    }
+-}
 
   arming_from_px4io_state s = do
     safety_off <- deref (s ~> PX4.status ~> PX4.safety_off)
     return (safety_off ? (T.neutral, T.negative))
 
-  arming_from_xyzcal cal = do
-    v <- deref (cal ~> Cal.valid)
-    return (v ? (T.neutral, T.negative))
-
   arming_from_sensors sens = do
     v <- deref (sens ~> S.valid)
     return (v ? (T.neutral, T.negative))
+
+{-
+  arming_from_mode m = do
+    tm <- deref (m ~> CM.thr_mode)
+    return ((tm ==? TM.directUi) ? (T.neutral, T.negative))
+-}

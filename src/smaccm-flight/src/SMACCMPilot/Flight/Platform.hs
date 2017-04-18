@@ -40,6 +40,7 @@ import           Ivory.BSP.STM32.ClockConfig
 import           Ivory.BSP.STM32.Config
 import           SMACCMPilot.Datalink.Mode
 import           SMACCMPilot.Hardware.CAN
+import           SMACCMPilot.Hardware.HMC5883L
 import           SMACCMPilot.Hardware.Sensors
 import           SMACCMPilot.Hardware.Platforms (PPM(..), RGBLED_I2C(..), ADC(..))
 import           SMACCMPilot.Hardware.PX4IO (PX4IOPWMConfig(..))
@@ -64,6 +65,7 @@ data FlightPlatform =
     , fp_stm32config  :: STM32Config
     , fp_lidarlite    :: Maybe LIDARLite
     , fp_px4flow      :: Maybe PX4Flow
+    , fp_ext_hmc5883l :: Maybe HMC5883L
     }
 
 
@@ -109,22 +111,24 @@ px4fmuv17 = do
   tuning <- subsection "tuning" $ subsection vehicle flightTuningParser
   m <- subsection "args" mixer
   baud <- telemBaud
+  sensors <- fmu17_sensors
   dmode <- datalinkModeParser DatalinkServer
   pure $ FlightPlatform
-    { fp_telem       = telem
-    , fp_telem_baud  = baud
-    , fp_gps         = gps
-    , fp_io          = NativeIO ppm
-    , fp_sensors     = fmu17_sensors
-    , fp_can         = Nothing
-    , fp_datalink    = dmode
-    , fp_rgbled      = Nothing
-    , fp_vbatt_adc   = Nothing
-    , fp_tuning      = tuning
-    , fp_mixer       = m
-    , fp_stm32config = stm32f405Defaults 24
-    , fp_lidarlite   = Nothing
-    , fp_px4flow     = Nothing
+    { fp_telem        = telem
+    , fp_telem_baud   = baud
+    , fp_gps          = gps
+    , fp_io           = NativeIO ppm
+    , fp_sensors      = sensors
+    , fp_can          = Nothing
+    , fp_datalink     = dmode
+    , fp_rgbled       = Nothing
+    , fp_vbatt_adc    = Nothing
+    , fp_tuning       = tuning
+    , fp_mixer        = m
+    , fp_stm32config  = stm32f405Defaults 24
+    , fp_lidarlite    = Nothing
+    , fp_px4flow      = Nothing
+    , fp_ext_hmc5883l = Nothing
     }
   where
   telem = UART_Device
@@ -155,6 +159,7 @@ px4fmuv24 = do
   sensors <- fmu24_sensors
   mlidar <- fmap Just parseLidar <|> pure Nothing
   mpx4flow <- fmap Just parsePx4flow <|> pure Nothing
+  mhmc5883l <- fmap Just parseHMC5883L <|> pure Nothing
   dmode <- datalinkModeParser DatalinkServer
   let pwmconf =
         case map toUpper vehicle of
@@ -165,20 +170,21 @@ px4fmuv24 = do
       px4io = PX4IO F427.dmaUART6 px4io_pins pwmconf
 
   return $ FlightPlatform
-    { fp_telem       = telem
-    , fp_telem_baud  = baud
-    , fp_gps         = gps
-    , fp_io          = px4io
-    , fp_sensors     = sensors
-    , fp_can         = Just fmu24_can
-    , fp_datalink    = dmode
-    , fp_rgbled      = Just rgbled
-    , fp_vbatt_adc   = Just adc
-    , fp_tuning      = tuning
-    , fp_mixer       = m
-    , fp_stm32config = stm32f427Defaults 24
-    , fp_lidarlite   = mlidar
-    , fp_px4flow     = mpx4flow
+    { fp_telem        = telem
+    , fp_telem_baud   = baud
+    , fp_gps          = gps
+    , fp_io           = px4io
+    , fp_sensors      = sensors
+    , fp_can          = Just fmu24_can
+    , fp_datalink     = dmode
+    , fp_rgbled       = Just rgbled
+    , fp_vbatt_adc    = Just adc
+    , fp_tuning       = tuning
+    , fp_mixer        = m
+    , fp_stm32config  = stm32f427Defaults 24
+    , fp_lidarlite    = mlidar
+    , fp_px4flow      = mpx4flow
+    , fp_ext_hmc5883l = mhmc5883l
     }
   where
   telem = UART_Device

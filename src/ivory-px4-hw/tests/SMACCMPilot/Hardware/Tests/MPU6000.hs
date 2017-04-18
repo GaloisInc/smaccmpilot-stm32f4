@@ -25,7 +25,7 @@ app topx4 = do
   g_sample <- channel
   a_sample <- channel
   px4platform <- fmap topx4 getEnv
-  let mpu6000  = px4platform_mpu6000 px4platform
+  let (mpu6000, accelCal, gyroCal)  = px4platform_mpu6000 px4platform
   (req, ready) <- case px4platform_l3gd20 px4platform of
     Nothing -> do
       (spi_req, spi_rdy) <- spiTower (px4platform_clockconfig . topx4)
@@ -48,7 +48,7 @@ app topx4 = do
                      (SPIDeviceHandle 1)
       return (spi_req, snd l3gd20_rdy)
 
-  mpu6000SensorManager req ready (fst g_sample) (fst a_sample) (SPIDeviceHandle 0) Nothing
+  mpu6000SensorManager req ready (fst g_sample) (fst a_sample) (SPIDeviceHandle 0) accelCal gyroCal
 
   (uarto, _uarti, mon) <- px4ConsoleTower topx4
   monitor "uart" mon

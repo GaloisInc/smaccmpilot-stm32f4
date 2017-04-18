@@ -95,8 +95,8 @@ data MS5611_SPI =
     }
 
 data Magnetometer
-  = Mag_HMC5883L_I2C HMC5883L_I2C
-  | Mag_LSM303D_SPI  LSM303D_SPI
+  = Mag_HMC5883L_I2C HMC5883L_I2C MagCal
+  | Mag_LSM303D_SPI  LSM303D_SPI MagCal AccelCal
 
 data HMC5883L_I2C =
   HMC5883L_I2C
@@ -138,16 +138,22 @@ data ADC =
 
 ------
 
-px4platform_mpu6000 :: PX4Platform -> MPU6000_SPI
+px4platform_mpu6000 :: PX4Platform -> (MPU6000_SPI, AccelCal, GyroCal)
 px4platform_mpu6000 PX4Platform{..} = case px4platform_sensors of
-  FMU17Sensors{..} -> MPU6000_SPI
-    { mpu6000_spi_device = fmu17sens_mpu6000
-    , mpu6000_spi_pins   = fmu17sens_spi_pins
-    }
-  FMU24Sensors{..} -> MPU6000_SPI
-    { mpu6000_spi_device = fmu24sens_mpu6000
-    , mpu6000_spi_pins   = fmu24sens_spi_pins
-    }
+  FMU17Sensors{..} ->
+      (mpu, fmu17sens_mpu6000_accel_cal, fmu17sens_mpu6000_gyro_cal)
+    where
+      mpu = MPU6000_SPI
+              { mpu6000_spi_device = fmu17sens_mpu6000
+              , mpu6000_spi_pins   = fmu17sens_spi_pins
+              }
+  FMU24Sensors{..} ->
+      (mpu, fmu24sens_mpu6000_accel_cal, fmu24sens_mpu6000_gyro_cal)
+    where
+      mpu = MPU6000_SPI
+              { mpu6000_spi_device = fmu24sens_mpu6000
+              , mpu6000_spi_pins   = fmu24sens_spi_pins
+              }
 
 px4platform_baro :: PX4Platform -> Baro
 px4platform_baro PX4Platform{..} = case px4platform_sensors of
@@ -161,19 +167,24 @@ px4platform_baro PX4Platform{..} = case px4platform_sensors of
     , ms5611_spi_pins   = fmu24sens_spi_pins
     }
 
-px4platform_mag :: PX4Platform -> (Magnetometer, Maybe MagCal)
+px4platform_mag :: PX4Platform -> Magnetometer
 px4platform_mag PX4Platform{..} = case px4platform_sensors of
-  FMU17Sensors{..} -> (mag, Nothing)
-    where mag = Mag_HMC5883L_I2C $ HMC5883L_I2C
-                  { hmc5883l_i2c_periph = fmu17sens_i2c_periph
-                  , hmc5883l_i2c_pins   = fmu17sens_i2c_pins
-                  , hmc5883l_i2c_addr   = fmu17sens_hmc5883l
-                  }
-  FMU24Sensors{..} -> (mag, Just fmu24sens_mag_cal)
-    where mag = Mag_LSM303D_SPI $ LSM303D_SPI
-                  { lsm303d_spi_device  = fmu24sens_lsm303d
-                  , lsm303d_spi_pins    = fmu24sens_spi_pins
-                  }
+  FMU17Sensors{..} ->
+    Mag_HMC5883L_I2C
+      (HMC5883L_I2C
+        { hmc5883l_i2c_periph = fmu17sens_i2c_periph
+        , hmc5883l_i2c_pins   = fmu17sens_i2c_pins
+        , hmc5883l_i2c_addr   = fmu17sens_hmc5883l
+        })
+      fmu17sens_hmc5883l_mag_cal
+  FMU24Sensors{..} ->
+    Mag_LSM303D_SPI
+      (LSM303D_SPI
+         { lsm303d_spi_device  = fmu24sens_lsm303d
+         , lsm303d_spi_pins    = fmu24sens_spi_pins
+         })
+      fmu24sens_lsm303d_mag_cal
+      fmu24sens_lsm303d_accel_cal
 
 px4platform_l3gd20 :: PX4Platform -> Maybe SPIDevice
 px4platform_l3gd20 PX4Platform{..} = case px4platform_sensors of
@@ -202,18 +213,20 @@ px4PlatformParser = do
     return platform { px4platform_stm32config = conf }
 
 px4fmuv17 :: ConfigParser PX4Platform
-px4fmuv17 = pure $ PX4Platform
-  { px4platform_gps          = gps
-  , px4platform_sensors      = fmu17_sensors
-  , px4platform_motorcontrol = FMUv17.motorControlTower
-  , px4platform_ppm          = ppm_timer
-  , px4platform_px4io        = PX4IO_None
-  , px4platform_console      = console
-  , px4platform_can          = Nothing
-  , px4platform_rgbled       = Nothing
-  , px4platform_adc          = Nothing
-  , px4platform_stm32config  = stm32f405Defaults 24
-  }
+px4fmuv17 = do
+  sens <- fmu17_sensors
+  pure $ PX4Platform
+    { px4platform_gps          = gps
+    , px4platform_sensors      = sens
+    , px4platform_motorcontrol = FMUv17.motorControlTower
+    , px4platform_ppm          = ppm_timer
+    , px4platform_px4io        = PX4IO_None
+    , px4platform_console      = console
+    , px4platform_can          = Nothing
+    , px4platform_rgbled       = Nothing
+    , px4platform_adc          = Nothing
+    , px4platform_stm32config  = stm32f405Defaults 24
+    }
   where
   console :: UART_Device
   console = UART_Device

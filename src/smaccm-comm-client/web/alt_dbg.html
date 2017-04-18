@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SMACCMPilot Altitude Hold</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="/bootstrap-3.3.4-dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap theme -->
+    <link href="/bootstrap-3.3.4-dist/css/bootstrap-theme.min.css" rel="stylesheet">
+</head>
+<body role="document">
+    <div class="container">
+
+      <div class="row">
+
+        <div class="col-md-3" role="main">
+          <h2>Altitude Hold Debug</h2>
+          <p><button type="button" class="btn btn-sm" id="alt-control-debug-btn">?</button>
+          <p><button type="button" class="btn btn-sm" id="pid-control-debug-btn">?</button>
+          </p>
+
+          <p>alt_est [m]:
+          <span id="alt_est-lbl">?</span>
+          </p>
+
+          <p>alt_rate_est [m/s]:
+          <span id="alt_rate_est-lbl">?</span>
+          </p>
+
+          <p>vz_ctl [0-1]:
+          <span id="vz_ctl-lbl">?</span>
+          </p>
+
+          <p>ui_setp [m]:
+          <span id="ui_setp-lbl">?</span>
+          </p>
+
+          <p>ui_rate_setp [m/s]:
+          <span id="ui_rate_setp-lbl">?</span>
+          </p>
+
+        </div> <!-- end column -->
+
+      </div> <!-- end row -->
+      
+
+      <div class="row">
+        <div id="chartContainer1" style="height: 300px; width:100%;"></div>
+        <div id="chartContainer2" style="height: 300px; width:100%;"></div>
+        <div id="chartContainer3" style="height: 300px; width:100%;"></div>
+        <div id="chartContainer4" style="height: 300px; width:100%;"></div>
+        <div id="chartContainer5" style="height: 300px; width:100%;"></div>
+      </div> <!-- end row -->
+
+    </div> <!-- end container -->
+    <script src="/underscore-1.8.3.js"></script>
+    <script src="/jquery-2.1.3.js"></script>
+    <script src="/backbone-1.1.2.js"></script>
+    <script src="/bootstrap-3.3.4-dist/js/bootstrap.min.js"></script>
+    <script src="/scheduler.js"></script>
+    <script type="text/javascript" src="/canvasjs-1.9.1/canvasjs.min.js"></script>
+
+<script type="text/javascript">
+var labels = ["alt_est", "alt_rate_est", "r22_gain", "ui_setp","ui_rate_setp", "vz_fb","vz_fb_norm", "vz_ff", "vz_ff_rot", "vz_ctl"];
+var labels_pid = ["i_state", "p_term","i_term","d_term","dd_term","angle_err","rate_err"];
+
+var data = []; // array of variables
+var data_pid = []; // array of variables
+
+	window.onload = function () {
+		var dps0 = []; // alt est
+ 		var dps1 = []; // ui_setp
+
+		var dps2 = []; // rate est
+ 		var dps3 = []; // rate setp
+
+		var dps4 = []; // pos error
+ 		var dps5 = []; // pos rate error
+
+ 		var dps6 = []; // vz_ctl
+ 		var dps7 = []; // vz_fb
+    var dps8 = []; // vz_fb_norm
+    var dps9 = []; // vz_ff
+    var dps10 = []; // vz_ff_rot
+
+    var dps11 = [];
+    var dps12 = [];
+    var dps13 = [];
+    var dps14 = [];
+
+		var xVal = 0;
+		var yVal = 0;	
+		var updateInterval = 100; // in ms
+		var dataLength = 500; // number of dataPoints visible at any point
+
+    /*
+    * CHART 1: alt_est + alt_ref
+    */
+		var chart1 = new CanvasJS.Chart("chartContainer1",{
+			title :{
+				text: "Altitude"
+			},
+			axisY: {
+				title: "Altitude [m]",
+        includeZero: false
+			},		
+			data: [{
+        legendText: "alt_est",
+				showInLegend: "true",
+				type: "line",
+				dataPoints: dps0 
+  			}, 
+        {
+				legendText: "ui_setp",
+  			showInLegend: "true",
+				type: "line",
+				dataPoints: dps1 
+			}]
+		});
+
+
+    /*
+    * CHART 2: alt_rate_est + alt_rate_ref
+    */
+		var chart2 = new CanvasJS.Chart("chartContainer2",{
+			title :{
+				text: "Altitude rate"
+			},
+			axisY: {
+				title: "Altitude rate [m/s]"
+			},		
+			data: [{
+        legendText: "alt_rate_est",
+				showInLegend: "true",
+				type: "line",
+				dataPoints: dps2 
+  			}, 
+        {
+				legendText: "ui_rate_setp",
+  			showInLegend: "true",
+				type: "line",
+				dataPoints: dps3 
+			}]
+		});
+
+
+    /*
+    * CHART 3: alt_err + rate_err
+    */
+		var chart3 = new CanvasJS.Chart("chartContainer3",{
+			title :{
+				text: "Errors"
+			},
+			axisY: {
+				title: "Errors"
+			},		
+			data: [{
+        legendText: "pos_err",
+				showInLegend: "true",
+				type: "line",
+				dataPoints: dps4 
+  			}, 
+        {
+				legendText: "pos_rate_err",
+  			showInLegend: "true",
+				type: "line",
+				dataPoints: dps5 
+			}]
+		});
+
+    /*
+    * CHART 4: vz_ctl
+    */
+		var chart4 = new CanvasJS.Chart("chartContainer4",{
+			title :{
+				text: "Control Action"
+			},
+			axisY: {
+				title: "Input"
+			},		
+			data: [{
+				legendText: "vz_ctl",
+  			showInLegend: "true",
+				type: "line",
+				dataPoints: dps6 
+			},
+      {
+				legendText: "vz_fb",
+  			showInLegend: "true",
+				type: "line",
+				dataPoints: dps7 
+			},
+      {
+				legendText: "vz_fb_norm",
+  			showInLegend: "true",
+				type: "line",
+				dataPoints: dps8 
+			},
+      {
+				legendText: "vz_ff",
+  			showInLegend: "true",
+				type: "line",
+				dataPoints: dps9 
+			},
+      {
+				legendText: "vz_ff_rot",
+  			showInLegend: "true",
+				type: "line",
+				dataPoints: dps10 
+			}]
+		});
+
+
+/*
+    * CHART 5: PID status
+    */
+		var chart5 = new CanvasJS.Chart("chartContainer5",{
+			title :{
+				text: "PID status"
+			},
+			axisY: {
+				title: "value"
+			},		
+			data: [{
+				legendText: "i_state",
+  			showInLegend: "true",
+				type: "line",
+				dataPoints: dps11 
+			},
+      {
+				legendText: "p_term",
+  			showInLegend: "true",
+				type: "line",
+				dataPoints: dps12 
+			},
+      {
+				legendText: "i_term",
+  			showInLegend: "true",
+				type: "line",
+				dataPoints: dps13 
+			},
+      {
+				legendText: "d_term",
+  			showInLegend: "true",
+				type: "line",
+				dataPoints: dps14 
+			}]
+		});
+
+		var updateChart = function (count) {
+			count = count || 1;
+			// count is number of times loop runs to generate random dataPoints.
+			
+      
+			for (var j = 0; j < count; j++) {
+        // update xaxis
+        xVal += updateInterval/1000.0;
+        var idx = -1;
+
+        /*
+        * CHART 1: alt_est + alt_ref
+        */
+        // search for the right variable
+        idx = match_labels("alt_est");
+        if (idx != -1) { // we have a match here
+          yVal = data[idx];
+        }
+        else {
+          yVal = 0; // backup 
+        }
+
+				dps0.push({
+					x: xVal,
+					y: yVal
+				});
+
+        // search for the right variable
+        idx = match_labels("ui_setp");
+        if (idx != -1) { // we have a match here
+          yVal = data[idx];
+        }
+        else {
+          yVal = 0; // backup 
+        }
+        dps1.push({
+					x: xVal,
+					y: yVal
+				});
+
+        /*
+        * CHART 2: alt_rate_est + alt_rate_ref
+        */
+        idx = match_labels("alt_rate_est");
+        if (idx != -1) { // we have a match here
+          yVal = data[idx];
+        }
+        else {
+          yVal = 0; // backup 
+        }
+
+				dps2.push({
+					x: xVal,
+					y: yVal
+				});
+
+        // search for the right variable
+        idx = match_labels("ui_rate_setp");
+        if (idx != -1) { // we have a match here
+          yVal = data[idx];
+        }
+        else {
+          yVal = 0; // backup 
+        }
+        dps3.push({
+					x: xVal,
+					y: yVal
+				});
+
+        /*
+        * CHART 3: alt_err & alt_rate_err
+        */
+        idx = match_labels_pid("angle_err");
+        if (idx != -1) { // we have a match here
+          yVal = data_pid[idx];
+        }
+        else {
+          yVal = 0; // backup 
+        }
+
+				dps4.push({
+					x: xVal,
+					y: yVal
+				});
+
+        // search for the right variable
+        var idx = match_labels_pid("rate_err");
+        if (idx != -1) { // we have a match here
+          yVal = data_pid[idx];
+        }
+        else {
+          yVal = -1; // backup 
+        }
+        dps5.push({
+					x: xVal,
+					y: yVal
+				});
+
+       /*
+        * CHART 4: control action
+        */
+        // search for the right variable
+        var idx = match_labels("vz_ctl");
+        if (idx != -1) { // we have a match here
+          yVal = data[idx];
+        }
+        else {
+          yVal = -1; // backup 
+        }
+        dps6.push({
+					x: xVal,
+					y: yVal
+				});
+
+        // search for the right variable
+        var idx = match_labels("vz_fb");
+        if (idx != -1) { // we have a match here
+          yVal = data[idx];
+        }
+        else {
+          yVal = -1; // backup 
+        }
+        dps7.push({
+					x: xVal,
+					y: yVal
+				});
+
+        // search for the right variable
+        var idx = match_labels("vz_fb_norm");
+        if (idx != -1) { // we have a match here
+          yVal = data[idx];
+        }
+        else {
+          yVal = -1; // backup 
+        }
+        dps8.push({
+          x: xVal,
+          y: yVal
+        });
+
+        // search for the right variable
+        var idx = match_labels("vz_ff");
+        if (idx != -1) { // we have a match here
+          yVal = data[idx];
+        }
+        else {
+          yVal = -1; // backup 
+        }
+        dps9.push({
+          x: xVal,
+          y: yVal
+        });
+
+        // search for the right variable
+        var idx = match_labels("vz_ff_rot");
+        if (idx != -1) { // we have a match here
+          yVal = data[idx];
+        }
+        else {
+          yVal = -1; // backup 
+        }
+        dps10.push({
+          x: xVal,
+          y: yVal
+        });
+
+
+        /*
+        * CHART 5: PID state
+        */
+        idx = match_labels_pid("i_state");
+        if (idx != -1) { // we have a match here
+          yVal = data_pid[idx];
+        }
+        else {
+          yVal = 0; // backup 
+        }
+
+				dps11.push({
+					x: xVal,
+					y: yVal
+				});
+
+        // search for the right variable
+        var idx = match_labels_pid("p_term");
+        if (idx != -1) { // we have a match here
+          yVal = data_pid[idx];
+        }
+        else {
+          yVal = -1; // backup 
+        }
+        dps12.push({
+					x: xVal,
+					y: yVal
+				});
+      
+      idx = match_labels_pid("i_term");
+        if (idx != -1) { // we have a match here
+          yVal = data_pid[idx];
+        }
+        else {
+          yVal = 0; // backup 
+        }
+
+				dps13.push({
+					x: xVal,
+					y: yVal
+				});
+
+        // search for the right variable
+        var idx = match_labels_pid("d_term");
+        if (idx != -1) { // we have a match here
+          yVal = data_pid[idx];
+        }
+        else {
+          yVal = -1; // backup 
+        }
+        dps14.push({
+					x: xVal,
+					y: yVal
+				});
+
+			}; // end for loop
+
+
+      // assuming all dataLengths are the same...
+			if (dps0.length > dataLength)
+			{
+				dps0.shift();
+				dps1.shift();
+				dps2.shift();
+				dps3.shift();
+				dps4.shift();
+				dps5.shift();
+				dps6.shift();
+        dps7.shift();
+        dps8.shift();
+        dps9.shift();
+        dps10.shift();
+        dps11.shift();
+        dps12.shift();
+        dps13.shift();
+        dps14.shift();
+      }
+			chart1.render();
+			chart2.render();
+			chart3.render();
+			chart4.render();
+      chart5.render();
+		}; // updateChart
+
+		// generates first set of dataPoints
+		updateChart(dataLength); 
+
+		// update chart after specified time. 
+		setInterval(function(){updateChart()}, updateInterval); 
+  }
+
+function match_labels(my_label) {
+  var idx = -1;
+  for (i = 0; i < labels.length; i++) {
+    var res = my_label.match(labels[i]);
+    if (res != null) {
+      idx = i;
+      return idx;
+    }
+  }
+  return idx;
+}
+
+function match_labels_pid(my_label) {
+  var idx = -1;
+  for (i = 0; i < labels_pid.length; i++) {
+    var res = my_label.match(labels_pid[i]);
+    if (res != null) {
+      idx = i;
+      return idx;
+    }
+  }
+  return idx;
+}
+
+$(function() {
+
+var AltOutput = Backbone.Model.extend({
+  urlRoot: '/controllable_vehicle_i/alt_control_debug'
+});
+
+/*
+Default alt_control_debug view
+*/
+var AltSliderView = Backbone.View.extend({
+  initialize: function (options) {
+    this.selector = options.selector;
+    this.model.on('change', this.render, this);
+    this.$label   = $('#' + this.selector + '-lbl');
+    this.render();
+  },
+  render: function () {
+    var val = this.model.toJSON()[this.selector] || 0;
+    this.$label.html(val);
+    var idx = match_labels(this.selector);
+    if (idx != -1) { // we have a match here
+      data[idx] = val; // save into global array
+    }
+  }
+});
+
+/*
+alt-hold PID view
+*/
+var PidSliderView = Backbone.View.extend({
+  initialize: function (options) {
+    this.selector = options.selector;
+    this.model.on('change', this.render, this);
+    this.$label   = $('#' + this.selector + '-lbl');
+    this.render();
+  },
+  render: function () {
+    var val = this.model.toJSON()['pos'] || 0;
+    var s = val[this.selector];
+    this.$label.html(val);
+    var idx = match_labels_pid(this.selector);
+    if (idx != -1) { // we have a match here
+      data_pid[idx] = s; // save into global array
+    }
+  }
+});
+
+/*
+(def-struct alt_control_debug_t -- 40+24 = 64 bytes
+  (alt_est       float_t) -- estimated altitude [m]
+  (alt_rate_est  float_t) -- estimated vertical rate [m/s]
+  (r22_gain      float_t) -- derotation coefficient
+  (ui_setp       float_t) -- reference altitude [m]
+  (ui_rate_setp  float_t) -- reference rate [m/s]
+  (pos           pid_state_t) -- pid state for alt-hold
+  (vz_fb         float_t) -- feedback part of the vertical command
+  (vz_ff         float_t) -- feedforward (nominal throttle)
+  (vz_ff_rot     float_t) -- derotated feedforward component
+  (vz_ctl        float_t)) -- command to motor mixers
+*/
+var AltView = function (opts) {
+  this.altEst =
+    new AltSliderView({model: opts.model, selector: 'alt_est'}); // estimated altitude
+  this.altRateEst =
+    new AltSliderView({model: opts.model, selector: 'alt_rate_est'}); // estimated rate
+  this.r22Gain =
+    new AltSliderView({model: opts.model, selector: 'r22_gain'}); // derotation gain
+  this.uiSetp =
+    new AltSliderView({model: opts.model, selector: 'ui_setp'}); // altitude setpoint - aka ui_alt
+  this.iuRateSetp =
+    new AltSliderView({model: opts.model, selector: 'ui_rate_setp'}); // rate setpoint - typically zero
+  this.vzFb =
+    new AltSliderView({model: opts.model, selector: 'vz_fb'});
+  this.vzFf =
+    new AltSliderView({model: opts.model, selector: 'vz_ff'});
+  this.vzFfRot =
+    new AltSliderView({model: opts.model, selector: 'vz_ff_rot'});
+  this.vzCmd =
+    new AltSliderView({model: opts.model, selector: 'vz_ctl'}); // control input before the mixer (still can be overwritten by the position of throttle stick
+};
+
+window.altOutput = new AltOutput({});
+window.altOutputView = new AltView({ model: altOutput });
+
+window.altOutputScheduler =
+  new Scheduler({ period: 100}, altOutput);
+window.altOutputSchedulerView =
+  new SchedulerButtonView({ model: altOutputScheduler, el: '#alt-control-debug-btn' });
+
+/*
+(def-struct pid_state_t -- 28 bytes
+  (i_state   float_t) -- integrated sum
+  (d_term    float_t)
+  (dd_term   float_t) -- feedforward term
+  (p_term    float_t)
+  (i_term    float_t)
+  (angle_err float_t) -- error for PI block
+  (rate_err  float_t)) -- error for D block
+*/
+var PidView = function (opts) {
+  this.sumError =
+    new PidSliderView({model: opts.model, selector: 'i_state'}); // sum
+  this.pTerm =
+    new PidSliderView({model: opts.model, selector: 'p_term'}); // p_term
+  this.iTerm =
+    new PidSliderView({model: opts.model, selector: 'i_term'}); // i_term
+  this.dTerm =
+    new PidSliderView({model: opts.model, selector: 'd_term'}); // d_term
+  this.ddTerm =
+    new PidSliderView({model: opts.model, selector: 'dd_term'}); // dd_term
+  this.err =
+    new PidSliderView({model: opts.model, selector: 'angle_err'}); // angle_err
+  this.rateErr =
+    new PidSliderView({model: opts.model, selector: 'rate_err'}); // rate_err
+};
+
+window.pidOutputView = new PidView({ model: altOutput });
+
+window.pidOutputScheduler =
+  new Scheduler({ period: 100}, altOutput);
+window.pidOutputSchedulerView =
+  new SchedulerButtonView({ model: pidOutputScheduler, el: '#pid-control-debug-btn' });
+
+
+});
+</script>
+
+</body>
+</html>

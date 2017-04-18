@@ -81,8 +81,8 @@ monitorHeadingControl cfg_attr = do
     , hctl_reset    = call_ proc_reset
     , hctl_setpoint = deref output
     , hctl_write_debug = \acd -> do
-        p <- deref (pid_state ~> P.p_last)
-        d <- deref (pid_state ~> P.d_last)
+        p <- deref (pid_state ~> P.p_term)
+        d <- deref (pid_state ~> P.d_term)
         store (acd ~> ACD.head_ctl_p) p
         store (acd ~> ACD.head_ctl_d) d
     }

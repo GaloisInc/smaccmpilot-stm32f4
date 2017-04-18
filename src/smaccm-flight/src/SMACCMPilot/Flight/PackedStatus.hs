@@ -11,7 +11,6 @@ import qualified SMACCMPilot.Comm.Ivory.Types.ControlLaw          as U
 import qualified SMACCMPilot.Comm.Ivory.Types.PackedStatus        as P
 import qualified SMACCMPilot.Comm.Ivory.Types.PositionSample      as U
 import qualified SMACCMPilot.Comm.Ivory.Types.SensorsResult       as U
-import qualified SMACCMPilot.Comm.Ivory.Types.XyzCalibration      as U hiding (valid)
 import           SMACCMPilot.Comm.Tower.Attr
 import           SMACCMPilot.Comm.Tower.Interface.ControllableVehicle
 
@@ -55,17 +54,11 @@ packedStatusTower attrs = monitor "pack_status" $ do
     , Copy P.heading U.heading
     ]
 
-  save packed (packedStatus attrs) (gyroOutputCalibration attrs)
-    [ Copy P.gyro_progress U.progress ]
-
-  save packed (packedStatus attrs) (magOutputCalibration attrs)
-    [ Copy P.mag_progress U.progress ]
-
   save packed (packedStatus attrs) (armingStatus attrs)
     [ Copy P.rcinput U.rcinput
     , Copy P.telem U.telem
     , Copy P.px4io U.px4io
-    , Copy P.sens_cal U.sens_cal
+    , Copy P.sens_valid U.sens_valid
     ]
 
   save packed (packedStatus attrs) (controlLaw attrs)

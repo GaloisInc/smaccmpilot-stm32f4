@@ -53,8 +53,6 @@ app tofp = do
         , lawinput_telem_ui         = attrReaderChan (userInputRequest attrs)
         , lawinput_telem_modes      = attrReaderChan (controlModesRequest attrs)
         , lawinput_px4io_state      = attrReaderChan (px4ioState attrs)
-        , lawinput_gyro_cal_output  = attrReaderChan (gyroOutputCalibration attrs)
-        , lawinput_mag_cal_output   = attrReaderChan (magOutputCalibration attrs)
         , lawinput_sensors_output   = attrReaderChan (sensorsOutput attrs)
         }
 

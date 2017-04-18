@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>SMACCMPilot Attitude debug</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="/bootstrap-3.3.4-dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap theme -->
+    <link href="/bootstrap-3.3.4-dist/css/bootstrap-theme.min.css" rel="stylesheet">
+</head>
+
+<body role="document">
+    <div class="container">
+
+        <div class="row">
+
+            <div class="col-md-3" role="main">
+                <h2>Attitude debug</h2>
+                <p><button type="button" class="btn btn-sm" id="packed-status-btn">?</button></p>
+                <p><button type="button" class="btn btn-sm" id="att-debug-btn">?</button></p>
+                <p><button type="button" class="btn btn-sm" id="pid-debug-btn">?</button></p>
+
+            </div>
+            <!-- end column -->
+
+        </div>
+        <!-- end row -->
+
+
+        <div class="row">
+            <div id="chartContainer1" style="height: 300px; width:100%;"></div>
+            <div id="chartContainer2" style="height: 300px; width:100%;"></div>
+            <div id="chartContainer3" style="height: 300px; width:100%;"></div>
+            <div id="chartContainer4" style="height: 300px; width:100%;"></div>
+        </div>
+        <!-- end row -->
+
+    </div>
+    <!-- end container -->
+    <script src="/underscore-1.8.3.js"></script>
+    <script src="/jquery-2.1.3.js"></script>
+    <script src="/backbone-1.1.2.js"></script>
+    <script src="/bootstrap-3.3.4-dist/js/bootstrap.min.js"></script>
+    <script src="/scheduler.js"></script>
+    <script type="text/javascript" src="/canvasjs-1.9.1/canvasjs.min.js"></script>
+
+    <script type="text/javascript">
+        var labels_att = ["head_rate_est", "head_rate_setpt", "pitch_setpt", "pitch_rate_setpt", "roll_setpt", "roll_rate_setpt"];
+        var labels_status = ["roll", "pitch", "yaw"];
+        var labels_pid = ["i_state", "p_term", "i_term", "d_term", "dd_term", "angle_err", "rate_err"];
+
+        var data_att = []; // array of variables
+        var data_status = []; // array of variables
+        var data_pid = [];
+
+        window.onload = function () {
+            var dps_roll = []; // roll in rad
+            var dps_roll_sp = []; // roll setpoint [rad?]
+
+            var dps_pitch = []; // pitch in rad
+            var dps_pitch_sp = []; // pitch setpoint [rad?]
+
+            var dps_yaw = []; // yaw in rad
+            var dps_yaw_sp = []; // yaw setpoint [rad?]
+
+            var dps_yaw_rate_sp = []; // yaw rate setpoint [rad/s?]
+            var dps_pitch_rate_sp = []; // pitch rate setpoit [rad/s?] 		
+            var dps_roll_rate_sp = []; // roll rate sp [rad/s?]
+
+            var dps_pid_i_state = [];
+            var dps_pid_p_term = [];
+            var dps_pid_i_term = [];
+            var dps_pid_d_term = [];
+            var dps_angle_err = [];
+            var dps_rate_err = [];
+
+            var xVal = 0;
+            var yVal = 0;
+            var updateInterval = 100; // in ms
+            var dataLength = 200; // number of dataPoints visible at any point
+
+            /*
+            * CHART 1: Roll + sp
+            */
+            var chart1 = new CanvasJS.Chart("chartContainer1", {
+                title: {
+                    text: "Roll"
+                },
+                axisY: {
+                    title: "[deg]",
+                    includeZero: false
+                },
+                data: [{
+                    legendText: "roll",
+                    showInLegend: "true",
+                    type: "line",
+                    dataPoints: dps_roll
+                },
+                {
+                    legendText: "roll_sp",
+                    showInLegend: "true",
+                    type: "line",
+                    dataPoints: dps_roll_sp
+                }]
+            });
+
+
+            /*
+            * CHART 2: Pitch + sp
+            */
+            var chart2 = new CanvasJS.Chart("chartContainer2", {
+                title: {
+                    text: "Pitch"
+                },
+                axisY: {
+                    title: "[deg]"
+                },
+                data: [{
+                    legendText: "pitch",
+                    showInLegend: "true",
+                    type: "line",
+                    dataPoints: dps_pitch
+                },
+                {
+                    legendText: "pitch_sp",
+                    showInLegend: "true",
+                    type: "line",
+                    dataPoints: dps_pitch_sp
+                }]
+            });
+
+
+            /*
+            * CHART 3: Yaw + sp
+            */
+            var chart3 = new CanvasJS.Chart("chartContainer3", {
+                title: {
+                    text: "Yaw"
+                },
+                axisY: {
+                    title: "[deg/s]"
+                },
+                data: [{
+                    legendText: "yaw_rate",
+                    showInLegend: "true",
+                    type: "line",
+                    dataPoints: dps_yaw
+                },
+                {
+                    legendText: "yaw_rate_sp",
+                    showInLegend: "true",
+                    type: "line",
+                    dataPoints: dps_yaw_sp
+                }]
+            });
+
+            /*
+            * CHART 4: PID info
+            */
+            var chart4 = new CanvasJS.Chart("chartContainer4", {
+                title: {
+                    text: "PID status"
+                },
+                axisY: {
+                    title: "value"
+                },
+                data: [{
+                    legendText: "i_state",
+                    showInLegend: "true",
+                    type: "line",
+                    dataPoints: dps_pid_i_state
+                },
+                {
+                    legendText: "p_term",
+                    showInLegend: "true",
+                    type: "line",
+                    dataPoints: dps_pid_p_term
+                },
+                {
+                    legendText: "i_term",
+                    showInLegend: "true",
+                    type: "line",
+                    dataPoints: dps_pid_i_term
+                },
+                {
+                    legendText: "d_term",
+                    showInLegend: "true",
+                    type: "line",
+                    dataPoints: dps_pid_d_term
+                }]
+            });
+
+
+            var updateChart = function (count) {
+                count = count || 1;
+                // count is number of times loop runs to generate random dataPoints.
+
+
+                for (var j = 0; j < count; j++) {
+                    // update xaxis
+                    xVal += updateInterval / 1000.0;
+                    var idx = -1;
+
+                    /*
+                    * CHART 1: Roll + sp
+                    */
+                    // search for the right variable
+                    idx = match_labels_status("roll");
+                    if (idx != -1) { // we have a match here
+                        yVal = data_status[idx];
+                    }
+                    else {
+                        yVal = 0; // backup 
+                    }
+                    dps_roll.push({
+                        x: xVal,
+                        y: yVal
+                    });
+
+                    // search for the right variable
+                    idx = match_labels_att("roll_setpt");
+                    if (idx != -1) { // we have a match here
+                        yVal = data_att[idx];
+                    }
+                    else {
+                        yVal = 0; // backup 
+                    }
+                    dps_roll_sp.push({
+                        x: xVal,
+                        y: yVal
+                    });
+
+                    /*
+                    * CHART 2: Pitch + sp
+                    */
+                    idx = match_labels_status("pitch");
+                    if (idx != -1) { // we have a match here
+                        yVal = data_status[idx];
+                    }
+                    else {
+                        yVal = 0; // backup 
+                    }
+                    dps_pitch.push({
+                        x: xVal,
+                        y: yVal
+                    });
+
+                    // search for the right variable
+                    idx = match_labels_att("pitch_setpt");
+                    if (idx != -1) { // we have a match here
+                        yVal = data_att[idx];
+                    }
+                    else {
+                        yVal = 0; // backup 
+                    }
+                    dps_pitch_sp.push({
+                        x: xVal,
+                        y: yVal
+                    });
+
+                    /*
+                    * CHART 3: Yaw + sp
+                    */
+                    idx = match_labels_att("head_rate_est");
+                    if (idx != -1) { // we have a match here
+                        yVal = data_att[idx];
+                    }
+                    else {
+                        yVal = 0; // backup 
+                    }
+                    dps_yaw.push({
+                        x: xVal,
+                        y: yVal
+                    });
+
+                    // search for the right variable
+                    var idx = match_labels_att("head_rate_setpt");
+                    if (idx != -1) { // we have a match here
+                        yVal = data_att[idx];
+                    }
+                    else {
+                        yVal = -1; // backup 
+                    }
+                    dps_yaw_sp.push({
+                        x: xVal,
+                        y: yVal
+                    });
+
+                    /*
+                    * CHART 5: PID state
+                    */
+                    idx = match_labels_pid("i_state");
+                    if (idx != -1) { // we have a match here
+                        yVal = data_pid[idx];
+                    }
+                    else {
+                        yVal = 0; // backup 
+                    }
+
+                    dps_pid_i_state.push({
+                        x: xVal,
+                        y: yVal
+                    });
+
+                    // search for the right variable
+                    var idx = match_labels_pid("p_term");
+                    if (idx != -1) { // we have a match here
+                        yVal = data_pid[idx];
+                    }
+                    else {
+                        yVal = -1; // backup 
+                    }
+                    dps_pid_p_term.push({
+                        x: xVal,
+                        y: yVal
+                    });
+
+                    idx = match_labels_pid("i_term");
+                    if (idx != -1) { // we have a match here
+                        yVal = data_pid[idx];
+                    }
+                    else {
+                        yVal = 0; // backup 
+                    }
+
+                    dps_pid_i_term.push({
+                        x: xVal,
+                        y: yVal
+                    });
+
+                    // search for the right variable
+                    var idx = match_labels_pid("d_term");
+                    if (idx != -1) { // we have a match here
+                        yVal = data_pid[idx];
+                    }
+                    else {
+                        yVal = -1; // backup 
+                    }
+                    dps_pid_d_term.push({
+                        x: xVal,
+                        y: yVal
+                    });
+
+                }; // end for loop
+
+
+                // assuming all dataLengths are the same...
+                if (dps_roll.length > dataLength) {
+                    dps_roll.shift();
+                }
+
+                if (dps_roll_sp.length > dataLength) {
+                    dps_roll_sp.shift();
+                }
+
+                if (dps_pitch.length > dataLength) {
+                    dps_pitch.shift();
+                }
+
+                if (dps_pitch_sp.length > dataLength) {
+                    dps_pitch_sp.shift();
+                }
+
+                if (dps_yaw.length > dataLength) {
+                    dps_yaw.shift();
+                }
+
+                if (dps_yaw_sp.length > dataLength) {
+                    dps_yaw_sp.shift();
+                }
+
+                if (dps_pid_i_state.length > dataLength) {
+                    dps_pid_i_state.shift();
+                    dps_pid_p_term.shift();
+                    dps_pid_i_term.shift();
+                    dps_pid_d_term.shift();
+                }
+
+                // updateChart
+                chart1.render();
+                chart2.render();
+                chart3.render();
+                chart4.render();
+            };
+
+            // generates first set of dataPoints
+            updateChart(dataLength);
+
+            // update chart after specified time. 
+            setInterval(function () { updateChart() }, updateInterval);
+        }
+
+        function match_labels_att(my_label) {
+            var idx = -1;
+            for (i = 0; i < labels_att.length; i++) {
+                var res = my_label.match(labels_att[i]);
+                if (res != null) {
+                    idx = i;
+                    return idx;
+                }
+            }
+            return idx;
+        }
+
+        function match_labels_status(my_label) {
+            var idx = -1;
+            for (i = 0; i < labels_status.length; i++) {
+                var res = my_label.match(labels_status[i]);
+                if (res != null) {
+                    idx = i;
+                    return idx;
+                }
+            }
+            return idx;
+        }
+
+        function match_labels_pid(my_label) {
+            var idx = -1;
+            for (i = 0; i < labels_pid.length; i++) {
+                var res = my_label.match(labels_pid[i]);
+                if (res != null) {
+                    idx = i;
+                    return idx;
+                }
+            }
+            return idx;
+        }
+
+        $(function () {
+
+            var ControllableVehicle = Backbone.Model.extend({
+                urlRoot: '/controllable_vehicle_i'
+            });
+
+            /*
+            Att debug view
+            */
+            var AttSliderView = Backbone.View.extend({
+                initialize: function (options) {
+                    this.selector = options.selector;
+                    this.model.on('change', this.render, this);
+                    this.$label = $('#' + this.selector + '-lbl');
+                    this.render();
+                },
+                render: function () {
+                    var val = this.model.toJSON()[this.selector] || 0;
+                    this.$label.html(val);
+                    var idx = match_labels_att(this.selector);
+                    if (idx != -1) { // we have a match here
+                        data_att[idx] = val * 57.296; // convert to rad, save into global array
+                    }
+                }
+            });
+
+            /*
+            Packed status view: roll, pitch, yaw
+            */
+            var StatusSliderView = Backbone.View.extend({
+                initialize: function (options) {
+                    this.selector = options.selector;
+                    this.model.on('change', this.render, this);
+                    this.$label = $('#' + this.selector + '-lbl');
+                    this.render();
+                },
+                render: function () {
+                    var val = this.model.toJSON()[this.selector] || 0;
+                    this.$label.html(val);
+                    var idx = match_labels_status(this.selector);
+                    if (idx != -1) { // we have a match here
+                        data_status[idx] = val * 57.296; // convert to rad, save into global array
+                    }
+                }
+            });
+
+            /*
+            (def-struct att_control_debug_t
+            (head_setpt       float_t)
+            (head_rate_setpt  float_t)
+            (head_ctl_p       float_t)
+            (head_ctl_d       float_t)
+            (pitch_setpt      float_t)
+            (pitch_rate_setpt float_t)
+            (roll_setpt       float_t)
+            (roll_rate_setpt  float_t))
+            */
+            var AttView = function (opts) {
+                this.head_setpt =
+                    new AttSliderView({ model: opts.model, selector: 'head_rate_est' });
+                this.head_rate_setpt =
+                    new AttSliderView({ model: opts.model, selector: 'head_rate_setpt' });
+                this.pitch_setpt =
+                    new AttSliderView({ model: opts.model, selector: 'pitch_setpt' });
+                this.pitch_rate_setpt =
+                    new AttSliderView({ model: opts.model, selector: 'pitch_rate_setpt' });
+                this.roll_setpt =
+                    new AttSliderView({ model: opts.model, selector: 'roll_setpt' });
+                this.roll_rate_setpt =
+                    new AttSliderView({ model: opts.model, selector: 'roll_rate_setpt' });
+            };
+
+            window.attOutput = new ControllableVehicle({ id: "att_control_debug" });
+            window.attOutputView = new AttView({ model: attOutput });
+
+            window.attOutputScheduler =
+                new Scheduler({ period: 200 }, attOutput);
+            window.attOutputSchedulerView =
+                new SchedulerButtonView({ model: attOutputScheduler, el: '#att-debug-btn' });
+
+            /*
+            (def-struct packed_status_t
+            (valid           bool_t)                                    
+            (roll            float_t) -- Roll, pitch,  yaw, in Radians  
+            (pitch           float_t)                                   
+            (yaw             float_t)                                   
+            (alt_est         float_t) -- meters                         
+            (fix             gps_fix_t)                                 
+            (num_sv          uint8_t) -- number of space vehicles       
+            (lat             sint32_t) -- degrees * 1e7                 
+            (lon             sint32_t) -- degrees * 1e7                 
+            (alt             sint32_t) -- meters * 1000 (aka mm)        
+            (vground         uint32_t) -- m/s * 100 (aka cm/s)
+            (heading         float_t) -- degrees
+            (rcinput         tristate_t)
+            (telem           tristate_t)
+            (px4io           tristate_t)
+            (sens_valid      tristate_t)
+            (arming_mode     arming_mode_t)
+            (control_modes   control_modes_t)
+            (battery_voltage float_t))
+            */
+            var StatusView = function (opts) {
+                this.roll =
+                    new StatusSliderView({ model: opts.model, selector: 'roll' });
+                this.pitch =
+                    new StatusSliderView({ model: opts.model, selector: 'pitch' });
+                this.yaw =
+                    new StatusSliderView({ model: opts.model, selector: 'yaw' });
+            };
+
+            window.statusOutput = new ControllableVehicle({ id: "packed_status" });
+            window.statusOutputView = new StatusView({ model: statusOutput });
+
+            window.statusOutputScheduler =
+                new Scheduler({ period: 200 }, statusOutput);
+            window.statusOutputSchedulerView =
+                new SchedulerButtonView({ model: statusOutputScheduler, el: '#packed-status-btn' });
+
+
+            /*
+            PID view
+            */
+            var PidSliderView = Backbone.View.extend({
+                initialize: function (options) {
+                    this.selector = options.selector;
+                    this.model.on('change', this.render, this);
+                    this.$label = $('#' + this.selector + '-lbl');
+                    this.render();
+                },
+                render: function () {
+                    var val = this.model.toJSON()['att_pid'] || 0;
+                    var s = val[this.selector];
+                    this.$label.html(val);
+                    var idx = match_labels_pid(this.selector);
+                    if (idx != -1) { // we have a match here
+                        data_pid[idx] = s; // save into global array
+                    }
+                }
+            });
+
+            /*
+            (def-struct pid_state_t -- 28 bytes
+            (i_state   float_t) -- integrated sum
+            (d_term    float_t)
+            (dd_term   float_t) -- feedforward term
+            (p_term    float_t)
+            (i_term    float_t)
+            (angle_err float_t) -- error for PI block
+            (rate_err  float_t)) -- error for D block
+            */
+            var PidView = function (opts) {
+                this.sumError =
+                    new PidSliderView({ model: opts.model, selector: 'i_state' }); // sum
+                this.pTerm =
+                    new PidSliderView({ model: opts.model, selector: 'p_term' }); // p_term
+                this.iTerm =
+                    new PidSliderView({ model: opts.model, selector: 'i_term' }); // i_term
+                this.dTerm =
+                    new PidSliderView({ model: opts.model, selector: 'd_term' }); // d_term
+                this.ddTerm =
+                    new PidSliderView({ model: opts.model, selector: 'dd_term' }); // dd_term
+                this.err =
+                    new PidSliderView({ model: opts.model, selector: 'angle_err' }); // angle_err
+                this.rateErr =
+                    new PidSliderView({ model: opts.model, selector: 'rate_err' }); // rate_err
+            };
+
+
+            window.pidOutputView = new PidView({ model: attOutput });
+
+            window.pidOutputScheduler =
+                new Scheduler({ period: 200 }, attOutput);
+            window.pidOutputSchedulerView =
+                new SchedulerButtonView({ model: pidOutputScheduler, el: '#pid-debug-btn' });
+
+
+        });
+    </script>
+
+</body>
+
+</html>

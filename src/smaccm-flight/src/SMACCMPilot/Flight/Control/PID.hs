@@ -55,22 +55,37 @@ pid_update = proc "pid_update" $ \pid cfg angle_ref angle_measured rate_ref rate
 
   -- calculate errors
   angle_err <- ifte (err_max >? 0.0) (call fconstrain (-err_max) err_max (angle_ref - angle_measured)) (return (angle_ref - angle_measured))
+  store (pid~>P.angle_err) angle_err
   rate_err <- ifte (errd_max >? 0.0) (call fconstrain (-errd_max) errd_max (rate_ref - rate_measured)) (return (rate_ref - rate_measured))
+  store (pid~>P.rate_err) rate_err
 
   -- calculate terms
   let p_term = p_gain * angle_err
+  store (pid~>P.p_term) p_term
+
   let d_term = d_gain * rate_err
+  store (pid~>P.d_term) d_term
+
   let dd_term = dd_gain * accel_ref
+  store (pid~>P.dd_term) dd_term
+
   i_sum <- pid~>*P.i_state
   i_sum' <- call fconstrain i_min i_max (i_sum + angle_err*dt)
   store (pid~>P.i_state) i_sum'
+
   let i_term = i_gain * i_sum'
+  store (pid~>P.i_term) i_term
+
   ret $ p_term + i_term + d_term + dd_term
 
 -- | Reset the internal state of a PID.
 pid_reset :: Def ('[ Ref s1 ('Struct "pid_state") ] ':-> ())
 pid_reset = proc "pid_reset" $ \pid -> body $ do
   store (pid ~> P.i_state) 0.0
+  store (pid ~> P.p_term) 0.0
+  store (pid ~> P.i_term) 0.0
+  store (pid ~> P.d_term) 0.0
+  store (pid ~> P.dd_term) 0.0
 
 -- | Constrain a floating point value to the range [xmin..xmax].
 fconstrain :: Def ('[IFloat, IFloat, IFloat] ':-> IFloat)

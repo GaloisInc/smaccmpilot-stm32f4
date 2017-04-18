@@ -66,9 +66,15 @@ artificialHorizon pitchRads rollRads baroAlt yawRads voltage =
                   [1] -> voltsStr ++ "0v"
                   [n] -> String.dropRight (n-1) voltsStr ++ "v"
                   _ -> "error"
+      voltageFill =
+        if voltage > 10.5
+        then "green"
+        else if voltage > 10.1
+             then "orange"
+             else "red"
       voltageReadout =
         g [] [
-           Svg.rect [ x "-48", y "-48", width "16", height "6", fill "black" ] []
+           Svg.rect [ x "-48", y "-48", width "16", height "6", fill voltageFill ] []
          , text_ [ textAnchor "end", x "-34", y "-43.5"
                  , fontFamily "Lucida Console", fontSize "4", fill "white"
                  ] [ text voltsFmtd ]

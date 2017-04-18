@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SMACCMPilot Altitude Hold</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="/bootstrap-3.3.4-dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap theme -->
+    <link href="/bootstrap-3.3.4-dist/css/bootstrap-theme.min.css" rel="stylesheet">
+</head>
+<body role="document">
+    <div class="container">
+
+      <div class="row">
+
+        <div class="col-md-3" role="main">
+          <h2>Altitude Hold PID Debug</h2>
+          <p><button type="button" class="btn btn-sm" id="alt-control-debug-btn">?</button>
+          </p>
+
+        </div> <!-- end column -->
+
+      </div> <!-- end row -->
+      
+
+      <div class="row">
+        <div id="chartContainer1" style="height: 300px; width:100%;"></div>
+        <div id="chartContainer2" style="height: 300px; width:100%;"></div>
+        <div id="chartContainer3" style="height: 300px; width:100%;"></div>
+      </div> <!-- end row -->
+
+    </div> <!-- end container -->
+    <script src="/underscore-1.8.3.js"></script>
+    <script src="/jquery-2.1.3.js"></script>
+    <script src="/backbone-1.1.2.js"></script>
+    <script src="/bootstrap-3.3.4-dist/js/bootstrap.min.js"></script>
+    <script src="/scheduler.js"></script>
+    <script type="text/javascript" src="/canvasjs-1.9.1/canvasjs.min.js"></script>
+
+<script type="text/javascript">
+var labels = ["i_state", "p_term","i_term","d_term","dd_term","angle_err","rate_err"];
+var data = []; // array of variables
+
+	window.onload = function () {
+		var dps0 = []; // sum err
+ 		var dps1 = []; // P
+ 		var dps2 = []; // I
+ 		var dps3 = []; // D
+ 		var dps4 = []; // DD
+ 		var dps5 = []; // angle err
+ 		var dps6 = []; // rate err
+
+
+		var xVal = 0;
+		var yVal = 0;	
+		var updateInterval = 100; // in ms
+		var dataLength = 200; // number of dataPoints visible at any point
+
+    /*
+    * CHART 1: alt_est + alt_ref
+    */
+		var chart1 = new CanvasJS.Chart("chartContainer1",{
+			title :{
+				text: "Sum error"
+			},
+			axisY: {
+				title: "Sum err",
+        includeZero: false
+			},		
+			data: [{
+        legendText: "i_state",
+				showInLegend: "true",
+				type: "line",
+				dataPoints: dps0 
+  			}]
+		});
+
+
+    /*
+    * CHART 2: alt_rate_est + alt_rate_ref
+    */
+		var chart2 = new CanvasJS.Chart("chartContainer2",{
+			title :{
+				text: "PID terms"
+			},
+			axisY: {
+				title: "control action"
+			},		
+			data: [{
+        legendText: "p_term",
+				showInLegend: "true",
+				type: "line",
+				dataPoints: dps1 
+  			},
+        {
+        legendText: "i_term",
+				showInLegend: "true",
+				type: "line",
+				dataPoints: dps2 
+  			},
+        {
+        legendText: "d_term",
+				showInLegend: "true",
+				type: "line",
+				dataPoints: dps3 
+  			},
+        {
+        legendText: "dd_term",
+				showInLegend: "true",
+				type: "line",
+				dataPoints: dps4 
+  			}]
+		});
+
+    /*
+    * CHART 3: alt_est + alt_ref
+    */
+		var chart3 = new CanvasJS.Chart("chartContainer3",{
+			title :{
+				text: "pos error"
+			},
+			axisY: {
+				title: "errir",
+        includeZero: false
+			},		
+			data: [{
+        legendText: "angle_err",
+				showInLegend: "true",
+				type: "line",
+				dataPoints: dps5 
+  			},
+        {
+        legendText: "rate_err",
+				showInLegend: "true",
+				type: "line",
+				dataPoints: dps6 
+  			}]
+		});
+
+
+
+		var updateChart = function (count) {
+			count = count || 1;
+			// count is number of times loop runs to generate random dataPoints.
+			
+      
+			for (var j = 0; j < count; j++) {
+        // update xaxis
+        xVal += updateInterval/1000.0;
+        var idx = -1;
+
+        /*
+        * CHART 1: sum err
+        */
+        // search for the right variable
+        idx = match_labels("i_state");
+        if (idx != -1) { // we have a match here
+          yVal = data[idx];
+        }
+        else {
+          yVal = -1; // backup 
+        }
+				dps0.push({
+					x: xVal,
+					y: yVal
+				});
+
+        /*
+        * CHART 2: P+I+D
+        */
+        // search for the right variable
+        idx = match_labels("p_term");
+        if (idx != -1) { // we have a match here
+          yVal = data[idx];
+        }
+        else {
+          yVal = -1; // backup 
+        }
+        dps1.push({
+					x: xVal,
+					y: yVal
+				});
+
+        // search for the right variable
+        idx = match_labels("i_term");
+        if (idx != -1) { // we have a match here
+          yVal = data[idx];
+        }
+        else {
+          yVal = -1; // backup 
+        }
+        dps2.push({
+					x: xVal,
+					y: yVal
+				});
+
+        // search for the right variable
+        idx = match_labels("d_term");
+        if (idx != -1) { // we have a match here
+          yVal = data[idx];
+        }
+        else {
+          yVal = -1; // backup 
+        }
+        dps3.push({
+					x: xVal,
+					y: yVal
+				});
+
+        // search for the right variable
+        idx = match_labels("dd_term");
+        if (idx != -1) { // we have a match here
+          yVal = data[idx];
+        }
+        else {
+          yVal = -1; // backup 
+        }
+        dps4.push({
+					x: xVal,
+					y: yVal
+				});
+
+        // search for the right variable
+        idx = match_labels("angle_err");
+        if (idx != -1) { // we have a match here
+          yVal = data[idx];
+        }
+        else {
+          yVal = -1; // backup 
+        }
+        dps5.push({
+					x: xVal,
+					y: yVal
+				});
+
+        // search for the right variable
+        idx = match_labels("rate_err");
+        if (idx != -1) { // we have a match here
+          yVal = data[idx];
+        }
+        else {
+          yVal = -1; // backup 
+        }
+        dps6.push({
+					x: xVal,
+					y: yVal
+				});
+
+			}; // end for loop
+
+
+      // assuming all dataLengths are the same...
+			if (dps0.length > dataLength)
+			{
+				dps0.shift();
+				dps1.shift();
+        dps2.shift();
+        dps3.shift();
+        dps4.shift();
+        dps5.shift();
+        dps6.shift();
+      }
+			chart1.render();
+			chart2.render();
+			chart3.render();
+		}; // updateChart
+
+		// generates first set of dataPoints
+		updateChart(dataLength); 
+
+		// update chart after specified time. 
+		setInterval(function(){updateChart()}, updateInterval); 
+  }
+
+function match_labels(my_label) {
+  var idx = -1;
+  for (i = 0; i < labels.length; i++) {
+    var res = my_label.match(labels[i]);
+    if (res != null) {
+      idx = i;
+      return idx;
+    }
+  }
+  return idx;
+}
+
+$(function() {
+
+var AltOutput = Backbone.Model.extend({
+  urlRoot: '/controllable_vehicle_i/alt_control_debug'
+});
+
+var AltSliderView = Backbone.View.extend({
+  initialize: function (options) {
+    this.selector = options.selector;
+    this.model.on('change', this.render, this);
+    this.$label   = $('#' + this.selector + '-lbl');
+    this.render();
+  },
+  render: function () {
+    var val = this.model.toJSON()['pos'] || 0;
+    var s = val[this.selector];
+    this.$label.html(val);
+    var idx = match_labels(this.selector);
+    if (idx != -1) { // we have a match here
+      data[idx] = s; // save into global array
+    }
+  }
+});
+
+var AltView = function (opts) {
+  this.sumError =
+    new AltSliderView({model: opts.model, selector: 'i_state'}); // sum
+  this.pTerm =
+    new AltSliderView({model: opts.model, selector: 'p_term'}); // p_term
+  this.iTerm =
+    new AltSliderView({model: opts.model, selector: 'i_term'}); // i_term
+  this.dTerm =
+    new AltSliderView({model: opts.model, selector: 'd_term'}); // d_term
+  this.ddTerm =
+    new AltSliderView({model: opts.model, selector: 'dd_term'}); // dd_term
+  this.err =
+    new AltSliderView({model: opts.model, selector: 'angle_err'}); // angle_err
+  this.rateErr =
+    new AltSliderView({model: opts.model, selector: 'rate_err'}); // rate_err
+};
+
+
+window.altOutput = new AltOutput({});
+window.altOutputView = new AltView({ model: altOutput });
+
+window.altOutputScheduler =
+  new Scheduler({ period: 100}, altOutput);
+window.altOutputSchedulerView =
+  new SchedulerButtonView({ model: altOutputScheduler, el: '#alt-control-debug-btn' });
+
+});
+</script>
+
+</body>
+</html>

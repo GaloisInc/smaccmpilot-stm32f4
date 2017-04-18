@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SMACCMPilot Gyro</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="/bootstrap-3.3.4-dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap theme -->
+    <link href="/bootstrap-3.3.4-dist/css/bootstrap-theme.min.css" rel="stylesheet">
+</head>
+<body role="document">
+    <div class="container">
+
+      <div class="row">
+
+        <div class="col-md-3" role="main">
+          <h2>Gyro</h2>
+          <p><button type="button" class="btn btn-sm" id="sensors-dbg-btn">?</button>
+          </p>
+
+        </div> <!-- end column -->
+
+      </div> <!-- end row -->
+      
+
+      <div class="row">
+        <div id="chartContainer1" style="height: 300px; width:100%;"></div>
+      </div> <!-- end row -->
+
+    </div> <!-- end container -->
+    <script src="/underscore-1.8.3.js"></script>
+    <script src="/jquery-2.1.3.js"></script>
+    <script src="/backbone-1.1.2.js"></script>
+    <script src="/bootstrap-3.3.4-dist/js/bootstrap.min.js"></script>
+    <script src="/scheduler.js"></script>
+    <script type="text/javascript" src="/canvasjs-1.9.1/canvasjs.min.js"></script>
+
+
+<script type="text/javascript">
+var labels = ["x", "y", "z"];
+var data = []; // array of variables
+
+	window.onload = function () {
+		var dps0 = []; // dataPoints
+ 		var dps1 = []; // dataPoints
+ 		var dps2 = []; // dataPoints
+
+		var xVal = 0;
+		var yVal = 0;	
+		var updateInterval = 100; // in ms
+		var dataLength = 200; // number of dataPoints visible at any point
+
+    /*
+    * CHART 1: x+y+z
+    */
+		var chart1 = new CanvasJS.Chart("chartContainer1",{
+			title :{
+				text: "Sensor"
+			},
+			axisY: {
+				title: "rad/s",
+        includeZero: false
+			},		
+			data: [{
+        legendText: "x",
+				showInLegend: "true",
+				type: "line",
+				dataPoints: dps0 
+  			}, 
+        {
+				legendText: "y",
+  			showInLegend: "true",
+				type: "line",
+				dataPoints: dps1 
+			  },
+        {
+				legendText: "z",
+  			showInLegend: "true",
+				type: "line",
+				dataPoints: dps2 
+			  }]
+		});
+
+
+
+		var updateChart = function (count) {
+			count = count || 1;
+			// count is number of times loop runs to generate random dataPoints.
+			
+      
+			for (var j = 0; j < count; j++) {
+        // update xaxis
+        xVal += updateInterval/1000.0;
+        var idx = -1;
+
+        /*
+        * CHART 1: x+y+z
+        */
+        // search for the right variable
+        idx = match_labels("x");
+        if (idx != -1) { // we have a match here
+          yVal = data[idx];
+        }
+        else {
+          yVal = 0; // backup 
+        }
+				dps0.push({
+					x: xVal,
+					y: yVal
+				});
+
+        // search for the right variable
+        idx = match_labels("y");
+        if (idx != -1) { // we have a match here
+          yVal = data[idx];
+        }
+        else {
+          yVal = 0; // backup 
+        }
+        dps1.push({
+					x: xVal,
+					y: yVal
+				});
+
+        // search for the right variable
+        idx = match_labels("z");
+        if (idx != -1) { // we have a match here
+          yVal = data[idx];
+        }
+        else {
+          yVal = 0; // backup 
+        }
+        dps2.push({
+					x: xVal,
+					y: yVal
+				});
+
+        
+			}; // end for loop
+
+
+      // assuming all dataLengths are the same...
+			if (dps0.length > dataLength)
+			{
+				dps0.shift();
+				dps1.shift();
+				dps2.shift();
+      }
+			chart1.render();
+		}; // updateChart
+
+		// generates first set of dataPoints
+		updateChart(dataLength); 
+
+		// update chart after specified time. 
+		setInterval(function(){updateChart()}, updateInterval); 
+  }
+
+function match_labels(my_label) {
+  var idx = -1;
+  for (i = 0; i < labels.length; i++) {
+    var res = my_label.match(labels[i]);
+    if (res != null) {
+      idx = i;
+      return idx;
+    }
+  }
+  return idx;
+}
+
+$(function() {
+
+var SensorsOutput = Backbone.Model.extend({
+  urlRoot: '/controllable_vehicle_i/gyro_output'
+});
+
+var SensorsSliderView = Backbone.View.extend({
+  initialize: function (options) {
+    this.selector = options.selector;
+    this.model.on('change', this.render, this);
+    this.$label   = $('#' + this.selector + '-lbl');
+    this.render();
+  },
+  render: function () {
+    var val = this.model.toJSON()['sample'] || 0;
+    var s = val[this.selector];
+    this.$label.html(val);
+    var idx = match_labels(this.selector);
+    if (idx != -1) { // we have a match here
+      data[idx] = s; // save into global array
+    }
+  }
+
+});
+
+var SensorsView = function (opts) {
+  this.xVar =
+    new SensorsSliderView({model: opts.model, selector: 'x'});
+  this.yVar =
+    new SensorsSliderView({model: opts.model, selector: 'z'});
+  this.zVar =
+    new SensorsSliderView({model: opts.model, selector: 'y'});
+};
+
+window.sensorsOutput = new SensorsOutput({});
+window.sensorsOutputView = new SensorsView({ model: sensorsOutput });
+
+window.sensorsOutputScheduler =
+  new Scheduler({ period: 100}, sensorsOutput);
+window.sensorsOutputSchedulerView =
+  new SchedulerButtonView({ model: sensorsOutputScheduler, el: '#sensors-dbg-btn' });
+
+});
+</script>
+
+</body>
+</html>

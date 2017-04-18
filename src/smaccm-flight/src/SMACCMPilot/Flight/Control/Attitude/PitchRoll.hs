@@ -30,6 +30,7 @@ data PitchRollControl =
                                -> ConstRef s ('Struct "sensors_result")
                                -> Ivory eff ()
     , prc_state :: forall eff s . Ref s ('Struct "control_output") -> Ivory eff ()
+    , prc_debug :: forall eff s . Ref s ('Struct "att_control_debug") -> Ivory eff ()
     , prc_reset :: forall eff . Ivory eff ()
     }
 
@@ -48,6 +49,7 @@ monitorPitchRollControl attrs = do
   init_name <- named "init"
   run_name <- named "run"
   state_name <- named "state"
+  debug_name <- named "debug"
   reset_name <- named "reset"
 
   let init_proc :: Def ('[]':->())
@@ -73,6 +75,12 @@ monitorPitchRollControl attrs = do
           ac_out pitch_ctl >>= store (out ~> OUT.pitch)
           ac_out roll_ctl  >>= store (out ~> OUT.roll)
 
+      debug_proc :: Def ('[ Ref s ('Struct "att_control_debug")
+                          ] ':-> ())
+      debug_proc = voidProc debug_name $ \dbg -> body $ do
+          -- only room for one PID state
+          ac_debug pitch_ctl dbg
+
       reset_proc :: Def ('[]':->())
       reset_proc = proc reset_name $ body $ do
         ac_reset pitch_ctl
@@ -82,12 +90,13 @@ monitorPitchRollControl attrs = do
     incl init_proc
     incl run_proc
     incl state_proc
+    incl debug_proc
     incl reset_proc
 
   return PitchRollControl
     { prc_init  = call_ init_proc
     , prc_run   = call_ run_proc
     , prc_state = call_ state_proc
+    , prc_debug = call_ debug_proc
     , prc_reset = call_ reset_proc
     }
-

@@ -41,8 +41,6 @@ app tofp = do
     output_motors
 
   -- No sensors for the unit test:
-  gyro_cal_output <- channel
-  mag_cal_output <- channel
   sensors_output <- channel
 
   let lawInputs = LawInputs
@@ -53,8 +51,6 @@ app tofp = do
         , lawinput_telem_ui         = attrReaderChan (userInputRequest attrs)
         , lawinput_telem_modes      = attrReaderChan (controlModesRequest attrs)
         , lawinput_px4io_state      = attrReaderChan (px4ioState attrs)
-        , lawinput_gyro_cal_output  = snd gyro_cal_output
-        , lawinput_mag_cal_output   = snd mag_cal_output
         , lawinput_sensors_output   = snd sensors_output
         }
 

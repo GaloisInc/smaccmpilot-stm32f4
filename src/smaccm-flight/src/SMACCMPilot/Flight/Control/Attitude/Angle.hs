@@ -11,6 +11,7 @@ module SMACCMPilot.Flight.Control.Attitude.Angle
 import Ivory.Language
 import Ivory.Tower
 
+import qualified SMACCMPilot.Comm.Ivory.Types.AttControlDebug as ACD
 import qualified SMACCMPilot.Comm.Ivory.Types.StabConfig as S
 import           SMACCMPilot.Comm.Tower.Attr
 
@@ -25,14 +26,16 @@ data AngleControl =
                             -> IFloat -- Derivative estimate, radians per second
                             -> Ivory eff ()
     , ac_out   :: forall eff . Ivory eff IFloat
+    , ac_debug :: forall eff s . Ref s ('Struct "att_control_debug")
+                              -> Ivory eff ()
     , ac_reset :: forall eff . Ivory eff ()
     }
 
 monitorAngleController :: (AttrReadable a)
-                    => a ('Struct "stab_config")
-                    -> IFloat -- output range (absolute value)
-                    -> String                -- name
-                    -> Monitor e AngleControl
+                       => a ('Struct "stab_config")
+                       -> IFloat -- output range (absolute value)
+                       -> String                -- name
+                       -> Monitor e AngleControl
 monitorAngleController stab_config_attr output_range name = do
   let named n = fmap showUnique $ freshname $ name ++ "_anglectl_" ++ n
 
@@ -46,6 +49,7 @@ monitorAngleController stab_config_attr output_range name = do
   init_name <- named "init"
   run_name <- named "run"
   out_name <- named "out"
+  debug_name <- named "debug"
   reset_name <- named "reset"
 
   let init_proc :: Def ('[]':->())
@@ -77,6 +81,10 @@ monitorAngleController stab_config_attr output_range name = do
           (deref out >>= ret)
           (ret 0)
 
+      debug_proc :: Def ('[(Ref s ('Struct "att_control_debug"))] ':-> ())
+      debug_proc = voidProc debug_name $ \dbg -> body $ do
+        refCopy (dbg ~> ACD.att_pid) pos_pid
+
       reset_proc :: Def ('[]':->())
       reset_proc = proc reset_name $ body $ do
         store valid false
@@ -89,6 +97,7 @@ monitorAngleController stab_config_attr output_range name = do
     incl init_proc
     incl run_proc
     incl out_proc
+    incl debug_proc
     incl reset_proc
     depend controlPIDModule
     depend attStabilizeModule
@@ -98,5 +107,6 @@ monitorAngleController stab_config_attr output_range name = do
     { ac_init  = call_ init_proc
     , ac_run   = call_ run_proc
     , ac_out   = call  out_proc
+    , ac_debug = call_ debug_proc
     , ac_reset = call_ reset_proc
     }

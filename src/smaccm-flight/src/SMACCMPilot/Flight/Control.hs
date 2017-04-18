@@ -19,6 +19,9 @@ import qualified SMACCMPilot.Comm.Ivory.Types.ControlSetpoint as SP
 import qualified SMACCMPilot.Comm.Ivory.Types.UserInput       as UI
 import qualified SMACCMPilot.Comm.Ivory.Types.UserInputResult as UIR
 import qualified SMACCMPilot.Comm.Ivory.Types.YawMode         as Y
+import qualified SMACCMPilot.Comm.Ivory.Types.AttControlDebug as ACD
+import qualified SMACCMPilot.Comm.Ivory.Types.SensorsResult as SEN
+import qualified SMACCMPilot.Comm.Ivory.Types.Xyz           as XYZ
 import           SMACCMPilot.Comm.Tower.Attr
 import           SMACCMPilot.Comm.Tower.Interface.ControllableVehicle
 
@@ -40,6 +43,7 @@ controlTower attrs = do
     ui_res <- attrState (userInput attrs)
     sens   <- attrState (sensorsOutput attrs)
     setpt  <- attrState (controlSetpoint attrs)
+    att_dbg <- attrState (attControlDebug attrs)
 
     alt_control    <- monitorAltitudeControl  attrs
     prc_control    <- monitorPitchRollControl attrs
@@ -54,6 +58,7 @@ controlTower attrs = do
     handler p "control_periodic" $ do
       e <- attrEmitter (controlOutput attrs)
       alt_debug_e <- attrEmitter (altControlDebug attrs)
+      att_debug_e <- attrEmitter (attControlDebug attrs)
       callback $ const $ do
         let ui = (ui_res ~> UIR.ui)
         -- Run altitude and attitude controllers
@@ -73,6 +78,9 @@ controlTower attrs = do
               prc_run prc_control (pit_ui * ui_sens_rads)
                                   (rll_ui * ui_sens_rads)
                                   (constRef sens)
+              store (att_dbg ~> ACD.pitch_setpt) (-1 * pit_ui * ui_sens_rads)
+              store (att_dbg ~> ACD.roll_setpt) (rll_ui * ui_sens_rads)
+              prc_debug prc_control att_dbg
           , ui_mode ==? CS.nav ==> do
               pit_sp <- deref (setpt ~> SP.pitch)
               rll_sp <- deref (setpt ~> SP.roll)
@@ -89,7 +97,11 @@ controlTower attrs = do
               rate_sp <- deref (ui ~> UI.yaw)
               let yaw_ui_sens_dps = 180.0
               ui_sens_rads <- assign (yaw_ui_sens_dps * pi / 180)
-              yaw_rate yaw_control sens (ui_sens_rads * rate_sp) idt
+              let yaw_rate_sp = (ui_sens_rads * rate_sp)
+              yaw_rate yaw_control sens yaw_rate_sp idt
+              store (att_dbg ~> ACD.head_rate_setpt) yaw_rate_sp
+              sen_omega_z <- deref ((sens ~> SEN.omega) ~> XYZ.z)
+              store (att_dbg ~> ACD.head_rate_est) sen_omega_z
           , yaw_mode ==? Y.heading .&& ui_mode /=? CS.nav ==> do
               yui_update yui sens ui idt
               (head_sp, head_rate_sp) <- yui_setpoint yui
@@ -121,6 +133,7 @@ controlTower attrs = do
         alt_debug_v <- local izero
         alt_debug alt_control alt_debug_v
         emit alt_debug_e (constRef alt_debug_v)
+        emit att_debug_e (constRef att_dbg)
 
   mapM_ towerModule controlModules
 

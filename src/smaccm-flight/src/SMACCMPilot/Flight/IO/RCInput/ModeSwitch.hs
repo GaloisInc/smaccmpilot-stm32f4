@@ -79,9 +79,9 @@ monitorModeSwitch = do
               -- UI source may be gcs
               store (cm ~> CM.ui_mode) CS.gcs
               -- Yaw law must be heading
-              store (cm ~> CM.yaw_mode) Y.heading
-              -- Throttle law must be autothrottle with setpoint
-              store (cm ~> CM.thr_mode) T.altSetpt
+              store (cm ~> CM.yaw_mode) Y.rate
+              -- Throttle law must be autothrottle
+              store (cm ~> CM.thr_mode) T.altUi
           , p ==? posCenter ==> do
               -- UI source must be ppm
               store (cm ~> CM.ui_mode) CS.ppm

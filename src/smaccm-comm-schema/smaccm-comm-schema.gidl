@@ -68,18 +68,20 @@
   (p_gain   float_t)
   (i_gain   float_t)
   (d_gain   float_t)
-  (dd_gain  float_t)
+  (dd_gain  float_t) -- feedfoward gain
   (i_min    float_t)
   (i_max    float_t)
   (err_max  float_t)
   (errd_max float_t))
 
-(def-struct pid_state_t
-  (i_state float_t)
-  (d_state float_t)
-  (d_reset bool_t)
-  (p_last  float_t)
-  (d_last  float_t))
+(def-struct pid_state_t -- 28 bytes
+  (i_state   float_t) -- integrated sum
+  (d_term    float_t)
+  (dd_term   float_t) -- feedforward term
+  (p_term    float_t)
+  (i_term    float_t)
+  (angle_err float_t) -- error for PI block
+  (rate_err  float_t)) -- error for D block
 
 (def-struct throttle_ui_t
   (sens float_t)
@@ -89,27 +91,29 @@
   (pos  pid_config_t)
   (rate pid_config_t))
 
-(def-struct alt_control_debug_t
-  (alt_est       float_t)
-  (alt_rate_est  float_t)
-  (r22_gain      float_t)
-  (thrust        pid_state_t)
-  (ui_setp       float_t)
-  (ui_rate_setp  float_t)
-  (pos           pid_state_t)
-  (pos_err       float_t)
-  (pos_rate_err  float_t)
-  (vz_ctl        float_t))
+(def-struct alt_control_debug_t -- 40+28 = 68 bytes
+  (alt_est       float_t) -- estimated altitude [m]
+  (alt_rate_est  float_t) -- estimated vertical rate [m/s]
+  (r22_gain      float_t) -- derotation coefficient
+  (ui_setp       float_t) -- reference altitude [m]
+  (ui_rate_setp  float_t) -- reference rate [m/s]
+  (pos           pid_state_t) -- pid state for alt-hold
+  (vz_fb         float_t) -- feedback part of the vertical command
+  (vz_ff         float_t) -- feedforward (nominal throttle)
+  (vz_ff_rot     float_t) -- derotated feedforward component
+  (vz_ctl        float_t)) -- command to motor mixers
 
-(def-struct att_control_debug_t
+(def-struct att_control_debug_t -- 36 + 28 = 64 bytes 
   (head_setpt       float_t)
+  (head_rate_est    float_t) -- estimated yaw rate
   (head_rate_setpt  float_t)
   (head_ctl_p       float_t)
   (head_ctl_d       float_t)
   (pitch_setpt      float_t)
   (pitch_rate_setpt float_t)
   (roll_setpt       float_t)
-  (roll_rate_setpt  float_t))
+  (roll_rate_setpt  float_t)
+  (att_pid          pid_state_t)) -- pid state for roll/pitch/yaw (we have space for only one PID)
 
 (def-struct xyz_t
   (x float_t)
@@ -124,15 +128,13 @@
 (def-struct magnetometer_sample_t
   (initfail   bool_t)
   (samplefail bool_t)
-  (calibrated bool_t)
   (sample     xyz_t) -- Gauss
   (time       time_micros_t))
 
 (def-struct gyroscope_sample_t
   (initfail    bool_t)
   (samplefail  bool_t)
-  (calibrated  bool_t)
-  (sample      xyz_t) -- degrees/second
+  (sample      xyz_t) -- rads/second
   (temperature float_t) -- degrees Celsius
   (time        time_micros_t))
 
@@ -146,8 +148,7 @@
 (def-struct accelerometer_sample_t
   (initfail    bool_t)
   (samplefail  bool_t)
-  (calibrated  bool_t)
-  (sample      xyz_t) -- m/s/s
+  (sample      xyz_t) -- m/s^2
   (temperature float_t) -- degrees Celsius
   (time        time_micros_t))
 
@@ -194,13 +195,6 @@
   (vdown       sint32_t) -- m/s * 100 (aka cm/s)
   (vground     uint32_t) -- m/s * 100 (aka cm/s)
   (heading     float_t) -- degrees
-  (time        time_micros_t))
-
-(def-struct xyz_calibration_t
-  (valid       bool_t)
-  (progress    float_t) -- 0.0 to 1.0
-  (bias        xyz_t)
-  (scale       xyz_t)
   (time        time_micros_t))
 
 (def-struct quaternion_t
@@ -291,7 +285,6 @@
   (temperature   bool_t)
   (vbatt_low     bool_t))
 
-
 (def-struct px4io_state_t
   (comm_ok bool_t)
   (status  px4io_status_t)
@@ -299,38 +292,33 @@
   (rc_in   rc_input_t)
   (time    time_micros_t))
 
-
 (def-struct arming_status_t
-  (rcinput   tristate_t)
-  (telem     tristate_t)
-  (px4io     tristate_t)
-  (gyro_cal  tristate_t)
-  (mag_cal   tristate_t)
-  (sens_cal  tristate_t))
+  (rcinput    tristate_t)
+  (telem      tristate_t)
+  (px4io      tristate_t)
+  (sens_valid tristate_t))
 
 -- This is a redundant copy of parts of many other structs, for use in the demo
 -- heads-up display.
 (def-struct packed_status_t
-  (valid     bool_t)
-  (roll      float_t) -- Roll, pitch,  yaw, in Radians
-  (pitch     float_t)
-  (yaw       float_t)
-  (alt_est   float_t) -- meters
-  (fix       gps_fix_t)
-  (num_sv    uint8_t) -- number of space vehicles
-  (lat       sint32_t) -- degrees * 1e7
-  (lon       sint32_t) -- degrees * 1e7
-  (alt       sint32_t) -- meters * 1000 (aka mm)
-  (vground   uint32_t) -- m/s * 100 (aka cm/s)
-  (heading   float_t) -- degrees
-  (rcinput   tristate_t)
-  (telem     tristate_t)
-  (px4io     tristate_t)
-  (sens_cal  tristate_t)
-  (gyro_progress float_t) -- 0.0 to 1.0
-  (mag_progress float_t) -- 0.0 to 1.0
-  (arming_mode   arming_mode_t)
-  (control_modes control_modes_t)
+  (valid           bool_t)
+  (roll            float_t) -- Roll, pitch,  yaw, in Radians
+  (pitch           float_t)
+  (yaw             float_t)
+  (alt_est         float_t) -- meters
+  (fix             gps_fix_t)
+  (num_sv          uint8_t) -- number of space vehicles
+  (lat             sint32_t) -- degrees * 1e7
+  (lon             sint32_t) -- degrees * 1e7
+  (alt             sint32_t) -- meters * 1000 (aka mm)
+  (vground         uint32_t) -- m/s * 100 (aka cm/s)
+  (heading         float_t) -- degrees
+  (rcinput         tristate_t)
+  (telem           tristate_t)
+  (px4io           tristate_t)
+  (sens_valid      tristate_t)
+  (arming_mode     arming_mode_t)
+  (control_modes   control_modes_t)
   (battery_voltage float_t))
 
 (def-interface vehicle_i ()
@@ -340,16 +328,10 @@
   (rc_input                (attr read      rc_input_t))
   (user_input              (attr read      user_input_result_t))
   (sensors_output          (attr read      sensors_result_t))
-  (gyro_raw_output         (attr read      gyroscope_sample_t))
-  (gyro_calibration        (attr read      xyz_calibration_t))
-  (gyro_output_calibration (attr read      xyz_calibration_t))
   (gyro_output             (attr read      gyroscope_sample_t))
   (accel_output            (attr read      accelerometer_sample_t))
   (baro_output             (attr read      barometer_sample_t))
   (lidarlite_output        (attr read      lidarlite_sample_t))
-  (mag_raw_output          (attr read      magnetometer_sample_t))
-  (mag_calibration         (attr read      xyz_calibration_t))
-  (mag_output_calibration  (attr read      xyz_calibration_t))
   (mag_output              (attr read      magnetometer_sample_t))
   (px4flow_int_output      (attr read      px4flow_integral_sample_t))
   (px4flow_output          (attr read      px4flow_sample_t))
@@ -395,4 +377,3 @@
   (rgb_led             (attr readwrite rgb_led_setting_t))
   -- Camera target input:
   (camera_target_input (attr read camera_target_t)))
-

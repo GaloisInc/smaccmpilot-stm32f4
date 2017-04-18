@@ -6,6 +6,7 @@ import Html.Events exposing (..)
 import Html.Attributes as A exposing (..)
 import Http
 import Keyboard
+import Set exposing (Set)
 import Task
 import Time exposing (..)
 
@@ -16,10 +17,12 @@ import SMACCMPilot.Comm.Interface.ControllableVehicle as CV exposing (Controllab
 import SMACCMPilot.Comm.Types.ArmingMode as ArmingMode
 import SMACCMPilot.Comm.Types.ControlSource as ControlSource
 import SMACCMPilot.Comm.Types.PackedStatus as PackedStatus exposing (PackedStatus)
+import SMACCMPilot.Comm.Types.PidConfig as PidConfig exposing (PidConfig)
 import SMACCMPilot.Comm.Types.RebootMagic as RebootMagic
 import SMACCMPilot.Comm.Types.RebootReq as RebootReq
 import SMACCMPilot.Comm.Types.ThrottleMode as ThrottleMode
 import SMACCMPilot.Comm.Types.Tristate as Tristate
+import SMACCMPilot.Comm.Types.UserInput as UI
 import SMACCMPilot.Comm.Types.YawMode as YawMode
 
 main : Program Never Model Msg
@@ -43,6 +46,17 @@ type alias Model =
   , lastUpdateDts : List Float -- milliseconds
   , httpError : Maybe Http.Error
   , httpTimeout : Time
+  , keysDown : Set Char
+  , keysSincePeriod : Set Char
+  }
+
+type alias Pid =
+  { key : String
+  , prettyName : String
+  , fromCv : ControllableVehicle -> PidConfig
+  , updCv : ControllableVehicle -> PidConfig -> ControllableVehicle
+  , get : CV.Client Msg -> Cmd Msg
+  , set : ControllableVehicle -> CV.Client Msg -> PidConfig -> Cmd Msg
   }
 
 mkCvc : Time -> CV.Client Msg
@@ -87,6 +101,8 @@ init =
        , lastUpdateDts = []
        , httpError = Nothing
        , httpTimeout = initTimeout
+       , keysDown = Set.empty
+       , keysSincePeriod = Set.empty
        }
      , Cmd.batch [ initCvc.pollPackedStatus (Just initRefreshRate), Task.perform InitializeTime Time.now ]
      )
@@ -107,6 +123,10 @@ type Msg
   | SetTimeout String -- Int ms
   | FocusPFD
   | FocusCameraTarget
+  | SendControlInput
+  | UpdatePid Pid PidConfig
+  | UpdateNominalThrottle Float
+  | Nop
 
 cvh : CV.Handler Model Msg
 cvh = let upd m f = { m | cv = f m.cv } in CV.updatingHandler upd
@@ -144,8 +164,6 @@ update msg model =
            True -> { model2 | httpError = Nothing } ! [ cmd, Task.perform UpdateTime Time.now ]
            False -> model2 ! [ cmd ]
     SendReboot -> (model, model.cvc.setRebootReq (RebootReq.RebootReq RebootMagic.LinuxRebootMagic1))
-    KeyUp kc -> model ! []
-    KeyDown kc -> handleKeyDown model kc
     FetchTuning -> model ! fetchTuning model
     FetchFail err ->
       { model | httpError = Just err } ! []
@@ -157,37 +175,46 @@ update msg model =
         Err _ -> model ! []
     FocusPFD -> model ! [ model.cvc.pollCameraTargetInput Nothing ]
     FocusCameraTarget -> model ! [ model.cvc.pollCameraTargetInput (Just model.refreshRate) ]
+    KeyUp kc -> { model | keysDown = Set.remove (Char.fromCode kc |> Char.toUpper) model.keysDown
+                } ! []
+    KeyDown kc -> handleKeyDown model kc
+    SendControlInput ->
+      if Set.isEmpty model.keysDown && Set.isEmpty model.keysSincePeriod
+        then model ! []
+        else let uir0 = { throttle = 1, pitch = 0, roll = 0, yaw = 0 }
+                 uir = Set.foldl addControlInput uir0 (Set.union model.keysDown model.keysSincePeriod)
+             in { model | keysSincePeriod = Set.empty } ! [ model.cvc.setUserInputRequest uir ]
+    UpdatePid pid pidConfig ->
+      let cv = model.cv
+      in { model | cv = pid.updCv cv pidConfig } ! [ pid.set model.cv model.cvc pidConfig ]
+    UpdateNominalThrottle thr ->
+      let cv = model.cv
+      in { model | cv = { cv | nominalThrottle = thr } } ! [ model.cvc.setNominalThrottle thr ]
+    Nop -> model ! []
 
+addControlInput : Char -> UI.UserInput -> UI.UserInput
+addControlInput key uir =
+  case key of
+    'W' -> { uir | pitch = uir.pitch + 0.3 }
+    'S' -> { uir | pitch = uir.pitch - 0.3 }
+    'A' -> { uir | roll  = uir.roll  - 0.2 }
+    'D' -> { uir | roll  = uir.roll  + 0.2 }
+    'Q' -> { uir | yaw   = uir.yaw   - 0.13 }
+    'E' -> { uir | yaw   = uir.yaw   + 0.13 }
+    _   -> uir
+
+handleKeyDown : Model -> Char.KeyCode -> (Model, Cmd Msg)
 handleKeyDown model kc =
   case Char.fromCode kc |> Char.toUpper of
-    'W' -> model ! [ model.cvc.setUserInputRequest { throttle = 0, roll = 0, pitch = 0.2, yaw = 0 } ]
-    'S' -> model ! [ model.cvc.setUserInputRequest { throttle = 0, roll = 0, pitch = -0.2, yaw = 0 } ]
-    'A' -> model ! [ model.cvc.setUserInputRequest { throttle = 0, roll = 0.2, pitch = 0.2, yaw = 0 } ]
-    'D' -> model ! [ model.cvc.setUserInputRequest { throttle = 0, roll = -0.2, pitch = 0.2, yaw = 0 } ]
-    'Q' -> model ! [ model.cvc.setUserInputRequest { throttle = 0, roll = 0, pitch = 0.2, yaw = 0.2 } ]
-    'E' -> model ! [ model.cvc.setUserInputRequest { throttle = 0, roll = 0, pitch = 0.2, yaw = -0.2 } ]
-    'R' -> model ! [ model.cvc.setUserInputRequest { throttle = 0.2, roll = 0, pitch = 0.2, yaw = 0 } ]
-    'F' -> model ! [ model.cvc.setUserInputRequest { throttle = -0.2, roll = 0, pitch = 0.2, yaw = 0 } ]
-    'T' -> let cv0 = model.cv
-               cmr0 = cv0.controlModesRequest
-               ui_mode0 = cmr0.ui_mode
-               cmr1 = { cmr0 | ui_mode = if ui_mode0 == ControlSource.Gcs then ControlSource.Ppm else ControlSource.Gcs
-                             , yaw_mode = YawMode.Heading
-                             , thr_mode = ThrottleMode.AltUi
-                      }
-               cv1 = { cv0 | controlModesRequest = cmr1 }
-           in { model | cv = cv1 } ! [ model.cvc.setControlModesRequest cmr1 ]
-    _ -> model ! [ ]
+    -- Reboot VM
+    '=' -> model ! [ model.cvc.setRebootReq (RebootReq.RebootReq RebootMagic.LinuxRebootMagic1) ]
+    -- Otherwise keep track of which keys are down
+    _ -> { model | keysDown = Set.insert (Char.fromCode kc |> Char.toUpper) model.keysDown
+                 , keysSincePeriod = Set.insert (Char.fromCode kc |> Char.toUpper) model.keysSincePeriod
+         } ! []
 
 fetchTuning : Model -> List (Cmd Msg)
-fetchTuning model = [
-    model.cvc.getAltitudeRatePid
-  , model.cvc.getAltitudePositionPid
-  , model.cvc.getAttitudeRollStab
-  , model.cvc.getAttitudePitchStab
-  , model.cvc.getYawRatePid
-  , model.cvc.getYawPositionPid
-  ]
+fetchTuning model = model.cvc.getNominalThrottle :: List.map (\pid -> pid.get model.cvc) pids
 
 updateSmoothers : Model -> Model
 updateSmoothers model = model
@@ -225,13 +252,11 @@ view model =
             ul [ class "nav nav-tabs", attribute "role" "tablist" ] [
                 li [ class "active" ] [ a [href "#status", attribute "data-toggle" "tab" ] [ strong [ ] [ text "Control Law Status" ] ] ]
               , li [ ] [ a [href "#tuning", attribute "data-toggle" "tab" , onClick FetchTuning ] [ strong [ ] [ text "Tuning" ] ] ]
-              , li [ ] [ a [href "#reboot", attribute "data-toggle" "tab" , onClick SendReboot ] [ strong [ ] [ text "Reboot" ] ] ]
               ]
           , div [ class "panel-body" ] [
               div [ class "tab-content" ] [
                 div [ class "tab-pane active", id "status" ] [ renderStatus model.cv.packedStatus ]
-              , div [ class "tab-pane", id "control" ] [ renderControl model ]
-              , div [ class "tab-pane", id "tuning" ] [ renderTuning model ]
+              , div [ class "tab-pane", id "tuning" ] [ renderTunings model ]
               ]
             ]
           ]
@@ -277,7 +302,6 @@ view model =
          ] ] ] ]
     , div [ class "row" ] [ div [ class "col-xs-12" ] [
           case model.httpError of
-            Just Http.Timeout -> div [] []
             Just err -> div [ class "alert alert-warning" ] [ text (toString err) ]
             Nothing -> div [] []
         ] ]
@@ -285,29 +309,57 @@ view model =
 
 thLabel w str = th [ style [ ("width", toString w ++ "%"), ("vertical-align", "middle") ] ] [ text str ]
 
-renderControl : Model -> Html Msg
-renderControl model = div [ ] [ ]
-
-renderTuning : Model -> Html Msg
-renderTuning model = div [ ] [
-    div [ class "panel panel-default" ] [
-        div [ class "panel-heading" ] [ h2 [ class "panel-title" ] [ text "Altitude" ] ]
-      , div [ class "panel-body" ] [ text "Altitude stuff" ] ]
-  , div [ class "panel panel-default" ] [
-        div [ class "panel-heading" ] [ h2 [ class "panel-title" ] [ text "Attitude" ] ]
-      , div [ class "panel-body" ] [ text "Attitude stuff" ] ]
-  , div [ class "panel panel-default" ] [
-        div [ class "panel-heading" ] [ h2 [ class "panel-title" ] [ text "Yaw" ] ]
-      , div [ class "panel-body" ] [ text "Yaw stuff" ] ]
-  ]
-
-renderCalibration : PackedStatus -> Html Msg
-renderCalibration packedStatus =
-  let label str = th [ style [ ("width", "10%") ] ] [ text str ]
-  in table [ class "table" ] [ tbody [ ] [
-         tr [ ] [ label "Gyro", td [ ] [ renderCalProgress packedStatus.gyro_progress ] ]
-       , tr [ ] [ label "Mag", td [ ] [ renderCalProgress packedStatus.mag_progress ] ]
-       ] ]
+renderTunings : Model -> Html Msg
+renderTunings model =
+  let onFloatInput f = onInput (\str -> case String.toFloat str of
+                                          Ok v -> f v
+                                          Err _ -> Nop)
+      nominalThrottle =
+        div [ class "panel panel-default" ] [
+            div [ class "panel-heading" ] [ h2 [ class "panel-title" ] [
+                                               a [ attribute "data-toggle" "collapse", href ("#nominal-throttle") ]
+                                                 [ text "Nominal Throttle" ] ] ]
+             , div [ id "nominal-throttle", class "panel-body panel-collapse collapse" ] [
+                 table [ class "table table-bordered" ] [
+                     thead [ ] [ tr [ ] [ th [ ] [ text "%" ] ] ]
+                   , tbody [ ] [ tr [ ] [ td [ ] [ div [ class "input-group" ] [
+                                                      input [ class "form-control"
+                                                            , name "nominal_throttle"
+                                                            , type_ "number"
+                                                            , A.min "0.0"
+                                                            , A.max "100.0"
+                                                            , step "0.01"
+                                                            , value (toString model.cv.nominalThrottle)
+                                                            , onFloatInput UpdateNominalThrottle
+                                                            ] [ ] ] ] ] ] ] ] ]
+      renderTuning pid =
+        let pidConfig = pid.fromCv model.cv
+            pidField field val upd = td [ ] [ div [ class "input-group" ] [
+                                                 input [ class "form-control"
+                                                       , name (pid.key ++ "_" ++ field)
+                                                       , type_ "number"
+                                                       , A.min "-1000.0"
+                                                       , A.max "1000.0"
+                                                       , step "0.01"
+                                                       , value (toString val)
+                                                       , onFloatInput upd
+                                                       ] [ ] ] ]
+        in div [ class "panel panel-default" ] [
+               div [ class "panel-heading" ] [ h2 [ class "panel-title" ] [
+                                                  a [ attribute "data-toggle" "collapse", href ("#" ++ pid.key) ]
+                                                    [ text pid.prettyName ] ] ]
+             , div [ id pid.key, class "panel-body panel-collapse collapse" ] [
+                 table [ class "table table-bordered" ] [
+                     thead [ ] [ tr [ ] (List.map (\hd -> th [ ] [ text hd ]) [ "p", "i", "d", "dd", "i_min", "i_max" ]) ]
+                   , tbody [ ] [ tr [ ] [
+                         pidField "p_gain" pidConfig.p_gain (\v -> UpdatePid pid { pidConfig | p_gain = v })
+                       , pidField "i_gain" pidConfig.i_gain (\v -> UpdatePid pid { pidConfig | i_gain = v })
+                       , pidField "d_gain" pidConfig.d_gain (\v -> UpdatePid pid { pidConfig | d_gain = v })
+                       , pidField "dd_gain" pidConfig.dd_gain (\v -> UpdatePid pid { pidConfig | dd_gain = v })
+                       , pidField "i_min" pidConfig.i_min (\v -> UpdatePid pid { pidConfig | i_min = v })
+                       , pidField "i_max" pidConfig.i_max (\v -> UpdatePid pid { pidConfig | i_max = v })
+                       ] ] ] ] ]
+  in nominalThrottle :: List.map renderTuning pids |> div [ ]
 
 renderStatus : PackedStatus -> Html Msg
 renderStatus packedStatus =
@@ -344,25 +396,8 @@ renderStatus packedStatus =
        , tristate "rcinput" packedStatus.rcinput
        , tristate "telem" packedStatus.telem
        , tristate "px4io" packedStatus.px4io
-       , tristate "sens_cal" packedStatus.sens_cal
+       , tristate "sens_valid" packedStatus.sens_valid
        ] ]
-
-renderCalProgress : Float -> Html Msg
-renderCalProgress p =
-  let inProgress = p < 1.0
-      pct = toString (p * 100) ++ "%"
-  in div [ class "progress", style [ ("margin-bottom", "0") ] ]
-       [ div [ classList [
-                   ("progress-bar", True)
-                 , ("progress-bar-striped", True)
-                 , ("active", inProgress)
-                 , ("progress-bar-info", inProgress)
-                 , ("progress-bar-success", not inProgress)
-                 ]
-             , style [ ("width", pct) ]
-             ]
-           [ text pct ]
-       ]
 
 errorModal model =
   div [ class "modal fade"
@@ -394,6 +429,80 @@ subscriptions model = Sub.batch [
   , Time.every second UpdateLatency
   , Keyboard.downs KeyDown
   , Keyboard.ups KeyUp
+  , if model.cv.packedStatus.control_modes.ui_mode == ControlSource.Gcs
+      then Time.every (250 * millisecond) (always SendControlInput)
+      else Sub.none
+  ]
+
+-- Ugly PID business
+
+pids : List Pid
+pids = [
+    { key = "alt_pos"
+    , prettyName = "Altitude Position"
+    , fromCv = \cv -> cv.altitudePositionPid
+    , updCv = \cv pidConfig -> { cv | altitudePositionPid = pidConfig }
+    , get = \cvc -> cvc.getAltitudePositionPid
+    , set = \_ cvc pidConfig -> cvc.setAltitudePositionPid pidConfig
+    }
+  , { key = "roll_pos"
+    , prettyName = "Roll Position"
+    , fromCv = \cv -> cv.attitudeRollStab.pos
+    , updCv = \cv pidConfig ->
+        let stab = cv.attitudeRollStab
+        in { cv | attitudeRollStab = { stab | pos = pidConfig } }
+    , get = \cvc -> cvc.getAttitudeRollStab
+    , set = \cv cvc pidConfig ->
+        let stab = cv.attitudeRollStab
+        in cvc.setAttitudeRollStab { stab | pos = pidConfig }
+    }
+  , { key = "roll_rate"
+    , prettyName = "Roll Rate"
+    , fromCv = \cv -> cv.attitudeRollStab.rate
+    , updCv = \cv pidConfig ->
+        let stab = cv.attitudeRollStab
+        in { cv | attitudeRollStab = { stab | rate = pidConfig } }
+    , get = \cvc -> cvc.getAttitudeRollStab
+    , set = \cv cvc pidConfig ->
+        let stab = cv.attitudeRollStab
+        in cvc.setAttitudeRollStab { stab | rate = pidConfig }
+    }
+  , { key = "pitch_pos"
+    , prettyName = "Pitch Position"
+    , fromCv = \cv -> cv.attitudePitchStab.pos
+    , updCv = \cv pidConfig ->
+        let stab = cv.attitudePitchStab
+        in { cv | attitudePitchStab = { stab | pos = pidConfig } }
+    , get = \cvc -> cvc.getAttitudePitchStab
+    , set = \cv cvc pidConfig ->
+        let stab = cv.attitudePitchStab
+        in cvc.setAttitudePitchStab { stab | pos = pidConfig }
+    }
+  , { key = "pitch_rate"
+    , prettyName = "Pitch Rate"
+    , fromCv = \cv -> cv.attitudePitchStab.rate
+    , updCv = \cv pidConfig ->
+        let stab = cv.attitudePitchStab
+        in { cv | attitudePitchStab = { stab | rate = pidConfig } }
+    , get = \cvc -> cvc.getAttitudePitchStab
+    , set = \cv cvc pidConfig ->
+        let stab = cv.attitudePitchStab
+        in cvc.setAttitudePitchStab { stab | rate = pidConfig }
+    }
+  , { key = "yaw_pos"
+    , prettyName = "Yaw Position"
+    , fromCv = \cv -> cv.yawPositionPid
+    , updCv = \cv pidConfig -> { cv | yawPositionPid = pidConfig }
+    , get = \cvc -> cvc.getYawPositionPid
+    , set = \_ cvc pidConfig -> cvc.setYawPositionPid pidConfig
+    }
+  , { key = "yaw_rate"
+    , prettyName = "Yaw Rate"
+    , fromCv = \cv -> cv.yawRatePid
+    , updCv = \cv pidConfig -> { cv | yawRatePid = pidConfig }
+    , get = \cvc -> cvc.getYawRatePid
+    , set = \_ cvc pidConfig -> cvc.setYawRatePid pidConfig
+    }
   ]
 
 -- MOVE TO ANOTHER MODULE

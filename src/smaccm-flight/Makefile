@@ -4,7 +4,7 @@ include ../../stack.mk
 IVORY_FLAGS = --const-fold
 
 .PHONY: test
-test: test-fmu24 test-fmu17 can_proxy_odroid_test smaccmpilot-odroid
+test: test-fmu24 smaccmpilot-odroid-mini # test-fmu17
 
 .PHONY: test-fmu17
 test-fmu17: platform-fmu17/comm-only-test-gen
@@ -21,6 +21,9 @@ test-fmu24: platform-fmu24/ppm-test-gen
 test-fmu24: platform-fmu24/law-test-gen
 test-fmu24: platform-fmu24/standalone-flight-gen
 test-fmu24: platform-fmu24/lidar-test-gen
+# disabled so we can keep the default config internal sensors only
+#test-fmu24: platform-fmu24/hmc5883l-test-gen
+test-fmu24: platform-fmu24/esccal-test-gen
 
 .PHONY: test-fmu24-echronos
 test-fmu24-echronos: platform-fmu24/sensors_aadl_test_gen
@@ -72,6 +75,7 @@ smaccmpilot-odroid-mini: default
 			--conf-file=odroid-mini.conf $(IVORY_FLAGS)
 
 %-gen: default
+	-rm -rf $*
 	stack exec -- $(@F) --src-dir=$* \
 			    --conf-file=$(patsubst platform-%,%,$(*D)).conf \
 			    $(IVORY_FLAGS)
@@ -81,6 +85,7 @@ smaccmpilot-odroid-mini: default
 	-rm -rf $*
 
 %_gen: default
+	-rm -rf $*
 	stack exec -- $(@F) --src-dir=$* \
 		      --conf-file=$(patsubst platform-%,%,$(*D)).conf \
 					$(IVORY_FLAGS)
@@ -94,3 +99,4 @@ clean:
 	-rm -rf platform-fmu24
 	-rm -rf can_proxy_odroid_test
 	-rm -rf smaccmpilot
+	-rm -rf smaccmpilot-mini

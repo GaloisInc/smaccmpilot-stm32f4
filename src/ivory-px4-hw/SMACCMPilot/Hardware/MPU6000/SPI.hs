@@ -56,12 +56,13 @@ getSensorsReq dev = fmap constRef $ local $ istruct
   , tx_len    .= ival 15 -- addr, 6 accel, 2 temp, 6 gyro
   ]
 
-sensorSample :: Maybe AccelCal
+sensorSample :: AccelCal
+             -> GyroCal
              -> ConstRef s1 ('Struct "spi_transaction_result")
              -> Ref s2 ('Struct "gyroscope_sample")
              -> Ref s3 ('Struct "accelerometer_sample")
              -> Ivory ('Effects r b ('Scope s)) ()
-sensorSample mAccelCal res r_gyro r_accel = do
+sensorSample (AccelCal accel_cal) (GyroCal gyro_cal) res r_gyro r_accel = do
   r_time <- getTime
   rc <- deref (res ~> resultcode)
   mpu6000_r <- local (istruct [])
@@ -69,35 +70,32 @@ sensorSample mAccelCal res r_gyro r_accel = do
   comment "store sample failure"
   store (r_gyro ~> G.samplefail) (rc >? 0)
   store (r_accel ~> A.samplefail) (rc >? 0)
+  comment "apply calibration, which converts to rads/sec"
   comment "we rotate the X/Y plane 90 degrees to match Pixhawk's silk-screened orientation"
-  comment "convert to degrees per second"
-  let to_dps x = safeCast x / 16.4
-  convert ((r_gyro ~> G.sample) ~> XYZ.x) (mpu6000_r ~> M.gy) to_dps
-  convert ((r_gyro ~> G.sample) ~> XYZ.y) (mpu6000_r ~> M.gx) (negate . to_dps)
-  convert ((r_gyro ~> G.sample) ~> XYZ.z) (mpu6000_r ~> M.gz) to_dps
-  comment "subtract calibation offsets and convert to m/s/s by way of g"
-  let to_m_s_s x = safeCast x / 2048.0 * 9.80665
-      (cal_x, cal_y, cal_z) =
-        case mAccelCal of
-          Nothing -> (id, id, id)
-          Just AccelCal {..} ->
-            ( (\x -> x - accel_cal_x_offset)
-            , (\y -> y - accel_cal_y_offset)
-            , (\z -> z - accel_cal_z_offset)
-            )
+  let (g_cal_x, g_cal_y, g_cal_z) = applyXyzCal gyro_cal
+  convert ((r_gyro ~> G.sample) ~> XYZ.x)
+          (mpu6000_r ~> M.gy)
+          g_cal_x
+  convert ((r_gyro ~> G.sample) ~> XYZ.y)
+          (mpu6000_r ~> M.gx)
+          (g_cal_y . negate)
+  convert ((r_gyro ~> G.sample) ~> XYZ.z)
+          (mpu6000_r ~> M.gz)
+          g_cal_z
+
+  comment "apply calibation, which subtracts offsets and converts to m/s/s by way of g"
+  comment "we rotate the X/Y plane 90 degrees to match Pixhawk's silk-screened orientation"
+  let (a_cal_x, a_cal_y, a_cal_z) = applyXyzCal accel_cal
   convert ((r_accel ~> A.sample) ~> XYZ.x)
           (mpu6000_r ~> M.ay)
-          (to_m_s_s . cal_x)
+          a_cal_x
   convert ((r_accel ~> A.sample) ~> XYZ.y)
           (mpu6000_r ~> M.ax)
-          (negate . to_m_s_s . cal_y)
+          (a_cal_y . negate)
   convert ((r_accel ~> A.sample) ~> XYZ.z)
           (mpu6000_r ~> M.az)
-          (to_m_s_s . cal_z)
-  comment "indicate whether we have calibration"
-  case mAccelCal of
-    Nothing -> store (r_accel ~> A.calibrated) false
-    Just _  -> store (r_accel ~> A.calibrated) true
+          a_cal_z
+
   comment "convert to degrees Celsius"
   t <- deref (mpu6000_r ~> M.temp)
   r_temp <- assign (safeCast t / 340.0 + 36.53)
@@ -117,9 +115,10 @@ mpu6000SensorManager :: BackpressureTransmit ('Struct "spi_transaction_request")
                      -> ChanInput  ('Struct "gyroscope_sample")
                      -> ChanInput  ('Struct "accelerometer_sample")
                      -> SPIDeviceHandle
-                     -> Maybe AccelCal
+                     -> AccelCal
+                     -> GyroCal
                      -> Tower e ()
-mpu6000SensorManager (BackpressureTransmit req_chan res_chan) init_chan gyro_chan accel_chan dev mAccelCal = do
+mpu6000SensorManager (BackpressureTransmit req_chan res_chan) init_chan gyro_chan accel_chan dev accelCal gyroCal = do
   towerModule  G.gyroscopeSampleTypesModule
   towerDepends G.gyroscopeSampleTypesModule
   towerModule  A.accelerometerSampleTypesModule
@@ -128,16 +127,13 @@ mpu6000SensorManager (BackpressureTransmit req_chan res_chan) init_chan gyro_cha
   towerDepends M.mpu6000ResponseTypesModule
 
   -- TODO: let caller choose the bandwidth
-  let lpfConfig = DLPF94Hz
-
-  -- TODO: let caller request oversampling by an integer multiple
-  let targetSampleRate = 2 * max (accelBandwidth lpfConfig) (gyroBandwidth lpfConfig)
+  let lpfConfig = DLPF44Hz
 
   let (gyroSamplesPerMS, 0) = gyroSampleRate lpfConfig `divMod` 1000
-  let samplePeriodMS = 1000 `div` targetSampleRate
+  let samplePeriodMS = 5
   let divisor = samplePeriodMS * gyroSamplesPerMS
 
-  p <- period (Milliseconds samplePeriodMS)
+  p <- period (Milliseconds samplePeriodMS) -- at 200Hz
 
   monitor "mpu6kCtl" $ do
     retries            <- state "retries"
@@ -180,19 +176,18 @@ mpu6000SensorManager (BackpressureTransmit req_chan res_chan) init_chan gyro_cha
         comment $ "sample rate: " ++ show (1000 / fromInteger samplePeriodMS :: Double) ++ "Hz"
         _ <- rpc $ writeRegReq dev SampleRateDivider $ fromInteger divisor
 
-        comment "Set accelerometer scale to +/- 16g"
-        _ <- rpc (writeRegReq dev AccelConfig 0x18)
+        comment "Set accelerometer scale to +/- 8"
+        _ <- rpc (writeRegReq dev AccelConfig 0x10)
 
         comment "Set gyro scale to +/- 2000 dps"
         _ <- rpc (writeRegReq dev GyroConfig 0x18)
-
         store ready true
         forever $ do
           comment "Wait for responses to periodic requests"
           res <- yield
           comment "Got a response, sending it up the stack"
           store transactionPending false
-          sensorSample mAccelCal (constRef res) gyro_s accel_s
+          sensorSample accelCal gyroCal (constRef res) gyro_s accel_s
           emit gyro_e  (constRef gyro_s)
           emit accel_e (constRef accel_s)
 

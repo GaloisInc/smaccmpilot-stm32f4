@@ -12,21 +12,16 @@ library
   exposed-modules:     SMACCMPilot.Flight.Battery,
                        SMACCMPilot.Flight.Control,
                        SMACCMPilot.Flight.Control.Altitude,
-                       SMACCMPilot.Flight.Control.Altitude.Estimator,
-                       SMACCMPilot.Flight.Control.Altitude.Filter,
                        SMACCMPilot.Flight.Control.Altitude.KalmanFilter,
-                       SMACCMPilot.Flight.Control.Altitude.PositionPID,
-                       SMACCMPilot.Flight.Control.Altitude.ThrottleTracker,
                        SMACCMPilot.Flight.Control.Altitude.ThrottleUI,
                        SMACCMPilot.Flight.Control.Attitude.Angle,
                        SMACCMPilot.Flight.Control.Attitude.HeadingControl,
+                       SMACCMPilot.Flight.Control.Attitude.KalmanFilter,
                        SMACCMPilot.Flight.Control.Attitude.PitchRoll,
                        SMACCMPilot.Flight.Control.Attitude.Stabilize,
                        SMACCMPilot.Flight.Control.Attitude.YawRate,
                        SMACCMPilot.Flight.Control.Attitude.YawUI,
                        SMACCMPilot.Flight.Control.PID,
-                       SMACCMPilot.Flight.Control.StateDerivativePID,
-                       SMACCMPilot.Flight.Control.StatePID,
                        SMACCMPilot.Flight.Control.Yaw,
                        SMACCMPilot.Flight.Datalink,
                        SMACCMPilot.Flight.Datalink.CAN,
@@ -37,6 +32,10 @@ library
                        SMACCMPilot.Flight.Datalink.Commsec,
                        SMACCMPilot.Flight.Datalink.UART,
                        SMACCMPilot.Flight.Datalink.TestApp,
+                       SMACCMPilot.Flight.Filter,
+                       SMACCMPilot.Flight.Filter.Butterworth,
+                       SMACCMPilot.Flight.Filter.Filter,
+                       SMACCMPilot.Flight.Filter.RunningAverage,
                        SMACCMPilot.Flight.IO,
                        SMACCMPilot.Flight.IO.RCInput,
                        SMACCMPilot.Flight.IO.RCInput.ArmingMachine,
@@ -54,9 +53,8 @@ library
                        SMACCMPilot.Flight.Motors.Mixing,
                        SMACCMPilot.Flight.PackedStatus,
                        SMACCMPilot.Flight.Platform,
-                       SMACCMPilot.Flight.Platform.ParserUtils,
                        SMACCMPilot.Flight.Sensors,
-                       SMACCMPilot.Flight.Sensors.AccelBiasTrigger,
+                       SMACCMPilot.Flight.Sensors.DetectMotion,
                        SMACCMPilot.Flight.Sensors.GPS,
                        SMACCMPilot.Flight.Sensors.LIDARLite,
                        SMACCMPilot.Flight.Sensors.PX4Flow,
@@ -72,7 +70,8 @@ library
                        ivory-serialize >=0.1,
                        ivory-stdlib >=0.1,
                        estimator,
-                       linear,
+                       ieee754,
+                       linear >= 1.20,
                        tower >=0.9,
                        tower-aadl,
                        tower-hal,
@@ -84,7 +83,7 @@ library
                        smaccm-commsec,
                        smaccm-datalink,
                        smaccm-comm-schema-tower,
-                       smaccm-ins
+                       vector >= 0.11
   default-language:    Haskell2010
   ghc-options:         -Wall
 
@@ -259,6 +258,54 @@ executable             lidar-test-gen
   hs-source-dirs:      tests
   other-modules:
       LIDAR.LIDARApp
+  build-depends:       base >= 4.6,
+                       base-compat,
+                       monadLib,
+                       ivory,
+                       ivory-serialize,
+                       ivory-stdlib,
+                       ivory-bsp-stm32,
+                       smaccm-comm-schema-tower,
+                       smaccm-datalink,
+                       tower              >= 0.9,
+                       tower-config,
+                       tower-freertos-stm32,
+                       tower-hal,
+                       ivory-px4-hw,
+                       smaccm-flight
+
+  default-language:    Haskell2010
+  ghc-options:         -Wall
+
+executable             hmc5883l-test-gen
+  main-is:             HMC5883LTest.hs
+  hs-source-dirs:      tests
+  other-modules:
+      HMC5883L.HMC5883LApp
+  build-depends:       base >= 4.6,
+                       base-compat,
+                       monadLib,
+                       ivory,
+                       ivory-serialize,
+                       ivory-stdlib,
+                       ivory-bsp-stm32,
+                       smaccm-comm-schema-tower,
+                       smaccm-datalink,
+                       tower              >= 0.9,
+                       tower-config,
+                       tower-freertos-stm32,
+                       tower-hal,
+                       ivory-px4-hw,
+                       smaccm-flight
+
+  default-language:    Haskell2010
+  ghc-options:         -Wall
+
+executable             esccal-test-gen
+  main-is:             ESCCalTest.hs
+  hs-source-dirs:      tests
+  other-modules:
+      ESCCal.ESCCalApp
   build-depends:       base >= 4.6,
                        base-compat,
                        monadLib,
