@@ -15,9 +15,6 @@ matrix:
     - env: GHCVER=8.0.2 STACK_YAML=stack-8.0.yaml
       addons: {apt: {packages: [ghc-8.0.2,gcc-multilib,libev-dev], sources: [hvr-ghc]}}
 
-  allow_failures:
-    - env: GHCVER=8.0.2 STACK_YAML=stack-8.0.yaml
-
 before_install:
   # Download and unpack the stack executable
   - mkdir -p ~/.local/bin

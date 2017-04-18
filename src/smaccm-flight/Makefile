@@ -21,7 +21,8 @@ test-fmu24: platform-fmu24/ppm-test-gen
 test-fmu24: platform-fmu24/law-test-gen
 test-fmu24: platform-fmu24/standalone-flight-gen
 test-fmu24: platform-fmu24/lidar-test-gen
-test-fmu24: platform-fmu24/hmc5883l-test-gen
+# disabled so we can keep the default config internal sensors only
+#test-fmu24: platform-fmu24/hmc5883l-test-gen
 test-fmu24: platform-fmu24/esccal-test-gen
 
 .PHONY: test-fmu24-echronos
