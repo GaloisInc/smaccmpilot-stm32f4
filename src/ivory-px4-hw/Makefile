@@ -1,7 +1,7 @@
 IVORY_FLAGS = --const-fold
 
 .PHONY: test
-test: default test-fmu24 test-fmu17 #XXX: needs ev.h px4-sensors-monitor
+test: default test-fmu24 # test-fmu17 #XXX: needs ev.h px4-sensors-monitor
 
 .PHONY: test-fmu17
 test-fmu17: platform-fmu17/ublox-gps-test-gen

@@ -5,15 +5,16 @@ cache:
   directories:
     - $HOME/.gcc-arm-embedded
     - $HOME/.stack
+    - $HOME/.ccache
 
 matrix:
   include:
     - env: GHCVER=7.8.4 STACK_YAML=stack-7.8.yaml
-      addons: {apt: {packages: [ghc-7.8.4,gcc-multilib,libev-dev], sources: [hvr-ghc]}}
+      addons: {apt: {packages: [ghc-7.8.4,gcc-multilib,libev-dev,ccache], sources: [hvr-ghc]}}
     - env: GHCVER=7.10.3 STACK_YAML=stack.yaml
-      addons: {apt: {packages: [ghc-7.10.3,gcc-multilib,libev-dev], sources: [hvr-ghc]}}
+      addons: {apt: {packages: [ghc-7.10.3,gcc-multilib,libev-dev,ccache], sources: [hvr-ghc]}}
     - env: GHCVER=8.0.2 STACK_YAML=stack-8.0.yaml
-      addons: {apt: {packages: [ghc-8.0.2,gcc-multilib,libev-dev], sources: [hvr-ghc]}}
+      addons: {apt: {packages: [ghc-8.0.2,gcc-multilib,libev-dev,ccache], sources: [hvr-ghc]}}
 
 before_install:
   # Download and unpack the stack executable
@@ -29,6 +30,15 @@ before_install:
   - echo $HOME/.gcc-arm-embedded/*/bin
   - ls $HOME/.gcc-arm-embedded/*/bin
   - export PATH="$(echo $HOME/.gcc-arm-embedded/*/bin):$PATH"
+  # Set up ccache
+  - if [ ! -d $HOME/.ccache/bin ];
+    then
+      mkdir -p $HOME/.ccache/bin;
+      for exe in $(ls $HOME/.gcc-arm-embedded/*/bin); do ln -s ccache $HOME/.ccache/bin/$exe; done
+    fi
+  - echo $HOME/.ccache/bin
+  - ls $HOME/.ccache/bin
+  - export PATH="$(echo $HOME/.ccache/bin):$PATH"
   - ghc --version
   - stack --version
   - arm-none-eabi-gcc --version
