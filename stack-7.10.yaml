@@ -54,6 +54,9 @@ extra-deps:
   - curve25519-0.2.2
   - ed25519-donna-0.1.1
   - estimator-1.2.0.0
+  - monadLib-3.7.3
+  - th-abstraction-0.2.5.0
+  - serialport-0.4.7
 
 # Override default flag values for local packages and extra-deps
 flags: {}
